@@ -9,14 +9,14 @@ Feature: The commit-msg hook
     Given a repository whose ledger has the task "T-001"
     And a change to "README.md" is staged
 
-  @ID-CMSG-01 @wip
+  @ID-CMSG-01
   Scenario: A header without a type is rejected, naming the rule it breaks
     Given the header lint is commitlint's conventional config
     When the commit-msg hook checks the message "update things"
     Then itos exits with code 1
     And its output names the rule "type-empty"
 
-  @ID-CMSG-02 @wip
+  @ID-CMSG-02
   Scenario: A sound message with the footer its type needs is accepted
     When the commit-msg hook checks the message:
       """
@@ -26,7 +26,7 @@ Feature: The commit-msg hook
       """
     Then itos exits with code 0
 
-  @ID-CMSG-03 @wip
+  @ID-CMSG-03
   Scenario: A footer naming a task the ledger does not have is rejected
     When the commit-msg hook checks the message:
       """
@@ -38,7 +38,7 @@ Feature: The commit-msg hook
     And its output says "unknown tasks: T-999"
     And its output names the rule "task-footer"
 
-  @ID-CMSG-04 @wip
+  @ID-CMSG-04
   Scenario: A commit whose type may not touch a staged path is rejected
     Given a change to "tools/build.sh" is staged
     When the commit-msg hook checks the message "docs: describe the build"

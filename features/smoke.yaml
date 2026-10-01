@@ -16,4 +16,7 @@
 # features/, `more` saying why the file has more than one (required when it
 # does), and each scenario's `id` and `why`. Quote a value holding `: `, and
 # every ID (its `@` starts no plain scalar).
-[]
+- file: commit-msg.feature
+  scenarios:
+    - id: "@ID-CMSG-03"
+      why: the hook rejects a commit by a footer rule of itos's own, no delegate in between
