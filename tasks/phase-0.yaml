@@ -1,17 +1,19 @@
-# Phase 0: the scaffold, the gates, the task tool and CI. The only
-# user-facing scenario is @ID-APP-01 (the page opens and greets the visitor),
-# which drives the first feat commit.
+# Phase 0: the scaffold, the gates, the task tool and CI, inherited from the
+# project template this repository was made from. The template's demo app
+# (a page, its greeting and its Playwright scenario) went in phase 1, so the
+# checks below are the ones that hold here: each task's why says what changed.
 
 - id: T-001
   type: build
   title: Repository scaffold
   why: >
-    A Vite+ project with TypeScript in its own git repository: one small page,
-    one pure function beside its unit test, so every gate below has something
-    real to run.
+    A Vite+ project with TypeScript in its own git repository, so every gate
+    below has something real to run. Here the TypeScript is itos itself, and a
+    Go module (go.mod) carries the features' steps; the template's page and
+    its build went in phase 1 (T-014).
   done_when:
     - run: vp install
-    - run: vp build
+    - run: go mod verify
 
 - id: T-002
   type: build
@@ -24,11 +26,13 @@
 
 - id: T-003
   type: build
-  title: Unit tests and coverage thresholds
+  title: Unit tests, and coverage for the audit
   why: >
-    The application's modules keep statements, lines and functions at 90% and
-    branches at 75%. The hooks run only the tests a change reaches, without
-    thresholds; CI runs the whole suite with them.
+    The hooks run only the unit tests a change reaches; CI runs the whole suite
+    with coverage. The template held its demo's modules to coverage
+    thresholds; itos is proven through its command line (the features, the
+    conformance corpus), which a unit test's coverage cannot see, so the
+    coverage feeds the audit's scores and holds no threshold (T-014).
   done_when:
     - run: vp test run
     - run: vp run test:coverage
@@ -45,19 +49,18 @@
 
 - id: T-005
   type: build
-  title: E2E harness and the smoke set
+  title: Named tests and the smoke set
   why: >
-    Playwright with playwright-bdd: scenarios in Gherkin under e2e/features,
-    steps that drive page objects only, the built app served for the run, a
-    recorded retry in CI that never hides a flaky scenario. A push's CI runs
-    the smoke set (e2e/smoke.yaml) and what its commits name in one run; the
-    self-test proves the plan's E2E command selects exactly that, against
-    Playwright's own listing.
+    Scenarios in Gherkin, a smoke set every push runs with what its commits
+    name, in one run, and a self-test proving the plan's command selects
+    exactly that. The template ran its scenarios with Playwright against its
+    demo page; here they are the features at features/, run by godog against
+    the itos binary (T-016), and the self-test reads go test's own record of
+    what ran.
   done_when:
     - run: tools/bin/itos tests smoke check scenario
-    - run: vp run e2e --grep @ID-APP-01
-    - run: vp run e2e:smoke
-    - run: node tools/selftest/e2e-scope.ts
+    - run: tools/bin/itos tests smoke run scenario
+    - run: node tools/selftest/features-scope.ts
 
 - id: T-006
   type: build
@@ -74,7 +77,7 @@
     - fails: tools/bin/itos config check --ledger tools/itos/fixtures/static-after-late.yaml
     - fails: tools/bin/itos work check tools/itos/fixtures/cycle.yaml
     - fails: tools/bin/itos task T-000
-    - run: ITOS_CONFIG=tools/itos/fixtures/lax-refactor.yaml tools/bin/itos commit check-paths --type refactor e2e/features/app.feature
+    - run: ITOS_CONFIG=tools/itos/fixtures/lax-refactor.yaml tools/bin/itos commit check-paths --type refactor features/since.feature
     - run: ITOS_CONFIG=tools/itos/fixtures/command-adapter.yaml tools/bin/itos tests list fixture --json
     - run: sh -c 'test "$(ITOS_CONFIG=tools/itos/fixtures/range-command-false.yaml tools/bin/itos ci range --head HEAD)" = FROM='
     - run: sh -c 'ITOS_CONFIG=tools/itos/fixtures/identity-command.yaml tools/bin/itos work | grep -q "Working for someone"'
@@ -88,7 +91,8 @@
   why: >
     Conventional Commits with a Task: or Scenarios: footer naming what drives
     the commit, and each type held to the paths it may touch, so a commit's
-    type is honest. The commit-msg hook applies the path rules, the scenario
+    type is honest: here a build may not touch the implementation, nor a
+    refactor a feature file. The commit-msg hook applies the path rules, the scenario
     moves and then commitlint (config-conventional plus one rule per footer,
     from itos.yaml); pre-commit formats, lints and runs the unit tests the
     change reaches and the audit; pre-push runs the unit tests the pushed
@@ -98,8 +102,9 @@
     - run: "printf 'build: scaffold\\n\\nTask: T-001\\n' | vp exec commitlint"
     - fails: "printf 'build: scaffold\\n' | vp exec commitlint"
     - fails: "printf 'feat: x\\n\\nScenarios: @ID-NOPE-01\\n' | vp exec commitlint"
-    - fails: tools/bin/itos commit check-paths --type refactor e2e/features/app.feature
-    - fails: tools/bin/itos commit check-paths --type build src/greeting.ts
+    - fails: tools/bin/itos commit check-paths --type refactor features/since.feature
+    - fails: tools/bin/itos commit check-paths --type build tools/itos/main.ts
+    - fails: tools/bin/itos commit check-paths --type chore tools/itos/main.ts
     - run: tools/bin/itos commit check-paths --type docs README.md tasks/phase-0.yaml
     - fails: 'sh -c ''f=$(mktemp) && printf "build: x\n" > "$f" && tools/bin/itos hook commit-msg "$f"'''
       cost: static
@@ -113,7 +118,7 @@
     Every push runs the same gates as local development, through one local
     command (`vp run ci`, `itos ci run`), so the workflow is a thin wrapper:
     the range from the last green run, the named tasks' checks in cost order,
-    one E2E run over the smoke set and what the range names, a prose-only
+    one run of the features over the smoke set and what the range names, a prose-only
     shortcut. It re-checks every pushed commit with the commit-msg rules, so a
     commit made with the hooks bypassed fails CI.
   done_when:
@@ -154,11 +159,12 @@
   type: chore
   title: Licences
   why: >
-    The template is 0BSD, so a project made from it owes nothing; the task
-    tool it carries in tools/itos/ keeps its own licence, AGPL-3.0, in its
-    folder. The check asks GitHub which licence it detects for the repository.
+    The template is 0BSD, so a project made from it owes nothing, with the task
+    tool's AGPL-3.0 licence in its folder. This repository is the tool, so it
+    is AGPL-3.0 as a whole (T-018). The check asks GitHub which licence it
+    detects for the repository.
   done_when:
-    - run: gh api 'repos/{owner}/{repo}/license' --jq .license.spdx_id | grep -qx 0BSD
+    - run: gh api 'repos/{owner}/{repo}/license' --jq .license.spdx_id | grep -qx AGPL-3.0
       after: push
 
 - id: T-012
