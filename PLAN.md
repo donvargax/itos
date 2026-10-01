@@ -380,6 +380,12 @@ npm (as `palitos`) and PyPI wrappers, signatures.
 v0 releases are the TypeScript packed to JavaScript, since Node strips types
 only outside `node_modules`, published as a tarball a consumer pins.
 
+Each release's notes are a committed file, `docs/releases/v<version>.md`, which the release
+workflow publishes and without which it refuses the tag. They end with an "Upgrading" section a
+consumer's session updates from alone, so it is complete: each config key added, removed, renamed
+or with a changed default; each workaround a consumer can now drop; each behaviour that can reject
+a commit that passed before; and the pin line to change.
+
 ## 11. Working rules
 
 The rules for agents are `AGENTS.md` (implementing) and

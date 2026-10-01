@@ -417,7 +417,7 @@ items:
     refs: [tasks/phase-1.yaml]
 
   - id: T-024
-    title: v0.2.0, with the version in one place
+    title: v0.2.0, with the version in one place and notes a consumer upgrades from
     phase: 1
     owner: donvargax
     status: todo

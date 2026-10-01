@@ -179,19 +179,32 @@
 
 - id: T-024
   type: build
-  title: v0.2.0, with the version in one place
+  title: v0.2.0, with the version in one place and notes a consumer upgrades from
   why: >
     The consumers move their pin when the registry's new default and the
     commit-time validation are released. The version was written twice,
     package.json and tools/itos/version.ts, so a bump touched the
     implementation and needed a code commit; version.ts now reads
     package.json's at build time (the bundle inlines it), and a release is one
-    build commit and a tag. v0.2.0's notes say what a consumer must change: a
-    registry at docs/work-items.yaml moves to tasks/work-items.yaml, or
-    work.registry names it.
+    build commit and a tag. Every release's notes are a committed file,
+    docs/releases/v<version>.md, which the release workflow publishes (filling
+    in the tarball's SHA-256 where the file writes {sha256}) and without which
+    it refuses the tag. The notes end with an "Upgrading" section, from which a
+    consumer's session updates alone, so it is complete: each config key added,
+    removed, renamed or with a changed default; each workaround a consumer can
+    now drop; each behaviour that can reject a commit that passed before; and
+    the pin line to change. For v0.2.0 that is, among the rest, the registry's
+    move from docs/work-items.yaml to tasks/work-items.yaml (or work.registry
+    naming the old path), that ci plan reads a missing registry as no task
+    waiting, and the commit-msg hook's new rejections. The notes check proves
+    the parts a command can: the section is there and last, its pin line names
+    this version's tarball, and every key whose default differs between the
+    last release's --print-defaults --json and this one's is named in it.
   done_when:
     - run: node tools/selftest/release.ts
       timeout: 900
+    - run: node tools/selftest/release-notes.ts
+      timeout: 300
     - run: sh -c 'd=$(mktemp -d) && gh release download v0.2.0 --dir "$d" --pattern "itos-0.2.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
       after: push
 
