@@ -20,3 +20,7 @@
   scenarios:
     - id: "@ID-CMSG-03"
       why: the hook rejects a commit by a footer rule of itos's own, no delegate in between
+- file: since.feature
+  scenarios:
+    - id: "@ID-SINCE-01"
+      why: verify leaves out the commit commits.since names, the key's point

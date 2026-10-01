@@ -8,6 +8,7 @@ import { load, registryIssues } from "./work.ts";
 import { config, configIssues, configPath, ledgerFiles, ledgerIssues } from "./config.ts";
 import { emit, type Output, problem, type Problem, TEXT } from "./problem.ts";
 import { DEFAULT_PEOPLE } from "./providers.ts";
+import { sinceIssue } from "./repo.ts";
 import { loadSmoke } from "./smoke.ts";
 
 // The values the tools take when the config leaves a key out.
@@ -57,6 +58,10 @@ function report(found: Found[], lines: string[], out: Output) {
 
 export function configCheck(ledger: string | undefined, out: Output = TEXT): number {
 	const loaded = configIssues();
+	// A commits.since this repository does not have makes the config unusable
+	// for verify, as an invalid key does.
+	const missing = loaded.problems.length ? undefined : sinceIssue();
+	if (missing) loaded.problems.push(missing);
 	if (loaded.problems.length) {
 		const found = loaded.problems.map((p) => ({
 			...p,

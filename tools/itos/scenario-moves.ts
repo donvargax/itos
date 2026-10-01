@@ -18,7 +18,7 @@
 //
 // itos.yaml's `tests.scenario.range_checks` names these commands.
 import { featureTexts, parseFeature } from "./gherkin.ts";
-import { git } from "./repo.ts";
+import { git, rangeArgs } from "./repo.ts";
 import { kind } from "./tests.ts";
 
 // The scenario kind of itos.yaml, whose range check this is: its
@@ -147,9 +147,10 @@ export function moveProblems(
 }
 
 // The commits of a range, oldest first; an empty or all-zero start (a new
-// branch) means everything up to `to`.
+// branch) means everything up to `to`. commits.since and its ancestors are
+// left out, as verify leaves them.
 const commitsIn = (from: string, to: string) =>
-	git("rev-list", "--no-merges", "--reverse", !from || /^0+$/.test(from) ? to : `${from}..${to}`)
+	git("rev-list", "--no-merges", "--reverse", ...rangeArgs(from, to))
 		.split("\n")
 		.filter(Boolean);
 

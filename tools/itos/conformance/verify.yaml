@@ -1,7 +1,8 @@
 # The re-check of a pushed range (`itos verify`): every
 # non-merge commit's message against the footers as they were at that commit,
 # then its paths, then each kind's range check once; the summary line agents
-# quote, and --json.
+# quote, and --json; commits.since, which leaves a commit and its ancestors
+# out and starts the range checks there.
 #
 # The repository: a commit before the ledger (bare); a feat naming a live
 # scenario and T-002 (live); the scenario set back to @wip and T-002 taken out
@@ -168,3 +169,101 @@ cases:
     stdout: |
       0/0 commits pass the commit rules
       checked {{sha.tidy}}..{{sha.tidy}}
+  - name: commits.since and its ancestors are left out, and the range checks start there
+    argv: [verify, "", "{{sha.tidy}}", --config, since.yaml]
+    files:
+      since.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          types: [feat, fix, build, chore, docs]
+          since: "{{sha.source}}"
+          footers:
+            Task: { source: ledger, required_for: [build, chore], validate_for: all, read_at: commit }
+          scopes:
+            docs: { only: ["**/*.md", "tasks/**", "e2e/features/**"] }
+        tests:
+          scenario:
+            root: e2e/features
+            id: "ID-[A-Z]+-\\d+"
+            range_checks:
+              - { name: moves, except_types: [feat, fix], range: "echo checked {from}..{to}" }
+    exit: 0
+    stdout: |
+      Not checked: {{short.source}} (commits.since) and its ancestors
+      1/1 commits pass the commit rules
+      checked {{sha.source}}..{{sha.tidy}}
+  - name: a start older than commits.since starts at it
+    argv: [verify, "{{sha.bare}}", "{{sha.tidy}}", --config, since.yaml]
+    files:
+      since.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          types: [feat, fix, build, chore, docs]
+          since: "{{sha.source}}"
+          footers:
+            Task: { source: ledger, required_for: [build, chore], validate_for: all, read_at: commit }
+          scopes:
+            docs: { only: ["**/*.md", "tasks/**", "e2e/features/**"] }
+        tests:
+          scenario:
+            root: e2e/features
+            id: "ID-[A-Z]+-\\d+"
+            range_checks:
+              - { name: moves, except_types: [feat, fix], range: "echo checked {from}..{to}" }
+    exit: 0
+    stdout: |
+      Not checked: {{short.source}} (commits.since) and its ancestors
+      1/1 commits pass the commit rules
+      checked {{sha.source}}..{{sha.tidy}}
+  - name: a start newer than commits.since keeps its own
+    argv: [verify, "{{sha.gone}}", "{{sha.tidy}}", --config, since.yaml]
+    files:
+      since.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          types: [feat, fix, build, chore, docs]
+          since: "{{sha.head}}"
+          footers:
+            Task: { source: ledger, required_for: [build, chore], validate_for: all, read_at: commit }
+          scopes:
+            docs: { only: ["**/*.md", "tasks/**", "e2e/features/**"] }
+        tests:
+          scenario:
+            root: e2e/features
+            id: "ID-[A-Z]+-\\d+"
+            range_checks:
+              - { name: moves, except_types: [feat, fix], range: "echo checked {from}..{to}" }
+    exit: 1
+    stdout: |
+      Not checked: {{short.head}} (commits.since) and its ancestors
+      1/2 commits pass the commit rules
+      checked {{sha.gone}}..{{sha.tidy}}
+    stderr: |
+      Commit rejected:
+        - docs commits may not touch src/a.ts
+        ^ {{short.source}} docs: touch the source
+  - name: commits.since naming no commit of the repository
+    argv: [verify, "", "{{sha.tidy}}", --config, since.yaml]
+    files:
+      since.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          types: [feat, fix, build, chore, docs]
+          since: "0123456789abcdef0123456789abcdef01234567"
+          footers:
+            Task: { source: ledger, required_for: [build, chore], validate_for: all, read_at: commit }
+          scopes:
+            docs: { only: ["**/*.md", "tasks/**", "e2e/features/**"] }
+        tests:
+          scenario:
+            root: e2e/features
+            id: "ID-[A-Z]+-\\d+"
+            range_checks:
+              - { name: moves, except_types: [feat, fix], range: "echo checked {from}..{to}" }
+    exit: 2
+    stderr: |
+      FAIL commits.since names 0123456789abcdef0123456789abcdef01234567, which is not a commit of this repository

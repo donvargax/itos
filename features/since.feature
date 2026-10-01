@@ -12,7 +12,7 @@ Feature: Verification starts at commits.since
     Given a repository made from a template, its first commit "Initial commit"
     And the commit "docs: write the readme" on top of it
 
-  @ID-SINCE-01 @wip
+  @ID-SINCE-01
   Scenario: verify skips the commit commits.since names, and its ancestors
     Given commits.since names the first commit
     When itos verifies every commit up to HEAD
@@ -20,36 +20,36 @@ Feature: Verification starts at commits.since
     And its output says "1/1 commits pass the commit rules"
 
   # The first commit's header has no type, which the header lint rejects.
-  @ID-SINCE-02 @wip
+  @ID-SINCE-02
   Scenario: Without commits.since, verify checks the root commit too
     When itos verifies every commit up to HEAD
     Then itos exits with code 1
     And its output says "1/2 commits pass the commit rules"
     And its output names the rule "type-empty"
 
-  @ID-SINCE-03 @wip
+  @ID-SINCE-03
   Scenario: A range check starts at the commit commits.since names
     Given a range check that records where its range starts
     And commits.since names the first commit
     When itos verifies every commit up to HEAD
     Then the range check started at the first commit
 
-  @ID-SINCE-04 @wip
+  @ID-SINCE-04
   Scenario: config check accepts a commits.since that names a commit of the repository
     Given commits.since names the first commit
     When itos checks the config
     Then itos exits with code 0
 
-  @ID-SINCE-05 @wip
+  @ID-SINCE-05
   Scenario: config check rejects a commits.since that is not a full SHA
     Given commits.since is "abc1234"
     When itos checks the config
     Then itos exits with code 2
-    And its output says "commits.since"
+    And its output says "commits.since is not the full SHA of a commit"
 
-  @ID-SINCE-06 @wip
+  @ID-SINCE-06
   Scenario: config check rejects a commits.since that names no commit of the repository
     Given commits.since is "0123456789abcdef0123456789abcdef01234567"
     When itos checks the config
     Then itos exits with code 2
-    And its output says "commits.since"
+    And its output says "which is not a commit of this repository"

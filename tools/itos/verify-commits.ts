@@ -3,13 +3,16 @@
 // message (against the feature files and the ledger of that commit) and
 // paths, then each kind's range check over the range (the scenario-moves
 // rule). `itos verify <from> <to>` runs it; `from` may be empty or all zeros
-// (a new branch): every commit up to `to`.
+// (a new branch): every commit up to `to`. The commit `commits.since` names,
+// and its ancestors, are left out, and the range checks start there: a
+// history written before the rules (a template's squashed first commit, a
+// project adopting itos) is not judged by them.
 import { spawnSync } from "node:child_process";
 import { messageHoldsAt } from "./commit.ts";
 import { checkPaths } from "./commit-scope.ts";
 import { config } from "./config.ts";
 import { emit, type Output, TEXT } from "./problem.ts";
-import { git } from "./repo.ts";
+import { git, rangeArgs, rangeStartAfterSince, since, sinceIssue } from "./repo.ts";
 import { shellWord } from "./tests.ts";
 
 // A range check, its output where the logs go: stderr under `--json`.
@@ -35,29 +38,44 @@ function verifyCommit(sha: string, out: Output): { sha: string; header: string; 
 }
 
 // Each kind's range checks (`tests.<kind>.range_checks[].range`), their
-// {from} and {to} filled in, such as the scenario moves.
+// {from} and {to} filled in, such as the scenario moves. {from} starts after
+// commits.since.
 const rangeChecks = (from: string, to: string) =>
 	Object.values(config().tests ?? {}).flatMap((k) =>
 		((k.range_checks ?? []) as { range?: string }[]).flatMap((c) =>
 			c.range
-				? [c.range.replaceAll("{from}", shellWord(from)).replaceAll("{to}", shellWord(to))]
+				? [
+						c.range
+							.replaceAll("{from}", shellWord(rangeStartAfterSince(from)))
+							.replaceAll("{to}", shellWord(to)),
+					]
 				: [],
 		),
 	);
 
 // `verify <from> <to>`: 0 when every non-merge commit of the range passes and
-// its range checks hold, else 1.
+// its range checks hold, else 1; 2 when commits.since is no commit here.
 export function verify(from = "", to = "HEAD", out: Output = TEXT): number {
-	const range = !from || /^0+$/.test(from) ? to : `${from}..${to}`;
-	const commits = git("rev-list", "--no-merges", "--reverse", range).split("\n").filter(Boolean);
+	const log = out.json ? console.error : console.log;
+	const missing = sinceIssue();
+	if (missing) {
+		if (out.json) emit({ range: { from, to }, problems: [missing] });
+		else console.error(`FAIL ${missing.message}`);
+		return 2;
+	}
+	const start = since();
+	if (start) log(`Not checked: ${start.slice(0, 7)} (commits.since) and its ancestors`);
+	const commits = git("rev-list", "--no-merges", "--reverse", ...rangeArgs(from, to))
+		.split("\n")
+		.filter(Boolean);
 	const results = commits.map((sha) => verifyCommit(sha, out));
 	const passed = results.filter((r) => r.ok).length;
-	const summary = `${passed}/${commits.length} commits pass the commit rules`;
-	(out.json ? console.error : console.log)(summary);
+	log(`${passed}/${commits.length} commits pass the commit rules`);
 	const ranged = rangeChecks(from, to).every((command) => run(command, out));
 	if (out.json)
 		emit({
 			range: { from, to },
+			...(start ? { since: start } : {}),
 			commits: results,
 			passed,
 			total: commits.length,

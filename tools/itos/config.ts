@@ -73,6 +73,9 @@ export interface Config {
 		path_sets?: Record<string, string[]>;
 		scopes?: Record<string, ScopeRule>;
 		reject_message?: string;
+		// The commit where verification starts: verify and the range checks
+		// leave it and its ancestors out.
+		since?: string;
 	};
 	tests?: Record<
 		string,
@@ -165,6 +168,7 @@ const SCHEMA: Spec = obj(
 			path_sets: { map: strs },
 			scopes: { map: obj({ only: strs, never: strs, must_touch: strs }) },
 			reject_message: str,
+			since: str,
 		}),
 		tests: {
 			map: obj({
@@ -383,6 +387,7 @@ function expandSets(config: Config, found: Problem[]) {
 // What the schema cannot say: names that must refer to something, patterns
 // that must compile.
 const crossProblems = (config: Config): Problem[] => [
+	...sinceProblems(config),
 	...scopeProblems(config),
 	...footerProblems(config),
 	...stepProblems(config),
@@ -426,6 +431,24 @@ function providerProblems(config: Config): Problem[] {
 			);
 	}
 	return found;
+}
+
+// A full commit SHA, SHA-1 or SHA-256, as git prints it.
+export const FULL_SHA = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+
+// commits.since is a full SHA: an abbreviation can grow ambiguous, and a
+// branch or tag can move. Whether the repository has that commit is
+// `config check`'s question (config-check.ts), since a shallow clone may not.
+function sinceProblems(config: Config): Problem[] {
+	const since = config.commits?.since;
+	if (since === undefined || FULL_SHA.test(since)) return [];
+	return [
+		problem(
+			"config-since",
+			`commits.since is not the full SHA of a commit: ${since}`,
+			"set commits.since to the commit's full SHA, as `git rev-parse <commit>` prints it",
+		),
+	];
 }
 
 function scopeProblems(config: Config): Problem[] {

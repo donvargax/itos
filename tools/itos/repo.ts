@@ -1,9 +1,10 @@
 // Repository readers shared by the hooks and the task runner.
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import { parse } from "yaml";
-import { type Cost, ledgerFiles, ledgerLayout } from "./config.ts";
+import { config, type Cost, ledgerFiles, ledgerLayout } from "./config.ts";
+import { problem, type Problem } from "./problem.ts";
 
 export interface Check {
 	run?: string;
@@ -81,6 +82,42 @@ export function ledgerIds(at?: string): Set<string> {
 			for (const task of tasks) if (typeof task?.id === "string") ids.add(task.id);
 	}
 	return ids;
+}
+
+// commits.since, if the config names one: the commit where verification
+// starts.
+export const since = (): string | undefined => config().commits?.since;
+
+// Whether the repository has the commit commits.since names, as a problem
+// when it does not (a typo, a commit of another repository, a shallow clone).
+export function sinceIssue(): Problem | undefined {
+	const sha = since();
+	if (!sha) return undefined;
+	const found = spawnSync("git", ["cat-file", "-e", `${sha}^{commit}`], { stdio: "ignore" });
+	if (found.status === 0) return undefined;
+	return problem(
+		"config-since-commit",
+		`commits.since names ${sha}, which is not a commit of this repository`,
+		"set commits.since to the full SHA of a commit this repository has, or fetch its history",
+	);
+}
+
+// A range's commits as `git rev-list` takes them: `from..to`, or everything up
+// to `to` when `from` is empty or all zeros (a new branch), less commits.since
+// and its ancestors.
+export function rangeArgs(from: string, to: string): string[] {
+	const sha = since();
+	return [!from || /^0+$/.test(from) ? to : `${from}..${to}`, ...(sha ? [`^${sha}`] : [])];
+}
+
+// Where a range starts for a range check, which takes one `{from}`: `from`,
+// or commits.since when `from` is empty or one of its ancestors.
+export function rangeStartAfterSince(from: string): string {
+	const sha = since();
+	if (!sha) return from;
+	if (!from || /^0+$/.test(from)) return sha;
+	const older = spawnSync("git", ["merge-base", "--is-ancestor", from, sha], { stdio: "ignore" });
+	return older.status === 0 ? sha : from;
 }
 
 export function stagedFiles(): string[] {

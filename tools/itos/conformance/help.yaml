@@ -130,10 +130,12 @@ cases:
 
       Re-checks every non-merge commit of the range (from may be empty or all zeros:
       every commit up to <to>): its message, with the footers read at that commit,
-      and its paths; then each named-test kind's range check. Prints
-      "<n>/<m> commits pass the commit rules". Exit 1 on any failure.
+      and its paths; then each named-test kind's range check. The commit
+      commits.since names and its ancestors are left out, and the range checks start
+      there. Prints "<n>/<m> commits pass the commit rules". Exit 1 on any failure,
+      2 when commits.since is not a commit of the repository.
 
-      --json: {"schema":1,"range","commits":[{"sha","header","ok"}],"passed","total","range_checks"}
+      --json: {"schema":1,"range","since"?,"commits":[{"sha","header","ok"}],"passed","total","range_checks"}
   - name: itos tests --help
     argv: [tests, --help]
     exit: 0

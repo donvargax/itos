@@ -2,7 +2,7 @@
 # config, ledger, registry and smoke set; each config problem with its rule
 # and fix (an unknown key and the key it misspells, a wrong type, a value not
 # allowed, a missing key, a pattern that does not compile, a name that refers
-# to nothing), exit 2; each ledger problem (written order among them), exit 1;
+# to nothing, a commits.since that is no full SHA or no commit here), exit 2; each ledger problem (written order among them), exit 1;
 # the registry's and the smoke set's problems beside them; --print-defaults.
 files:
   itos.yaml: |
@@ -342,6 +342,70 @@ cases:
     exit: 1
     stderr: |
       FAIL smoke.yaml: is not a list of files
+  - name: commits.since naming a commit of the repository
+    argv: [config, check, --config, since.yaml]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+        label: start
+    files:
+      since.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits: { types: [build, docs], since: "{{sha.start}}" }
+        tests:
+          scenario: { root: features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: smoke.yaml } }
+        ci:
+          steps: [{ run: vp check, cost: static }]
+          cost: { static: ["^vp check$"], keep_written_order: true }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+    exit: 0
+    stdout: |
+      since.yaml is valid, and so are the 2 ledger files it reads
+      work-items.yaml: sound
+      smoke.yaml: every file has a smoke test (1 in all)
+  - name: commits.since that is not a full SHA
+    argv: [config, check, --json, --config, since.yaml]
+    files:
+      since.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits: { types: [build, docs], since: "abc1234" }
+        tests:
+          scenario: { root: features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: smoke.yaml } }
+        ci:
+          steps: [{ run: vp check, cost: static }]
+          cost: { static: ["^vp check$"], keep_written_order: true }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+    exit: 2
+    json:
+      schema: 1
+      config: since.yaml
+      valid: false
+      problems:
+        - rule: config-since
+          message: "since.yaml: commits.since is not the full SHA of a commit: abc1234"
+          fix: set commits.since to the commit's full SHA, as `git rev-parse <commit>` prints it
+          area: config
+  - name: commits.since naming no commit of the repository
+    argv: [config, check, --config, since.yaml]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+    files:
+      since.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits: { types: [build, docs], since: "0123456789abcdef0123456789abcdef01234567" }
+        tests:
+          scenario: { root: features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: smoke.yaml } }
+        ci:
+          steps: [{ run: vp check, cost: static }]
+          cost: { static: ["^vp check$"], keep_written_order: true }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+    exit: 2
+    stderr: |
+      FAIL since.yaml: commits.since names 0123456789abcdef0123456789abcdef01234567, which is not a commit of this repository
   - name: the defaults the tools take when a key is left out
     argv: [config, check, --print-defaults]
     exit: 0
