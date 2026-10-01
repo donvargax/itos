@@ -290,18 +290,14 @@ items:
       release, a tag) could be reported pending by CI instead, so the push that lands the workflow
       is green and the next release task does not meet the same red.
 
-  - id: p1-config-check-gate
-    title: itos config check in a gate
+  - id: T-022
+    title: itos config check in the gates
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
-    kind: idea
-    why: >
-      No hook runs it, and CI only when a pushed commit names a task that carries it, so a broken
-      config, ledger, registry or smoke set can land and fail a later push. A static CI step, or the
-      pre-commit hook when itos.yaml, tasks/, the registry or the smoke set is staged, would catch it
-      in the commit that breaks it.
+    kind: task
+    refs: [tasks/phase-1.yaml]
 
   - id: p1-config-keys-honoured
     title: Every config key the loader accepts is one the tool reads
@@ -319,20 +315,6 @@ items:
       hardcodes feat and fix and ignores except_types, and it, ci-scope's Task key, ci plan --data-at
       and the smoke rule default to the kind named scenario; ci run's messages name tasks/,
       docs/work-items.yaml and vp check. Each is read from the config, or the key goes.
-
-  - id: p1-one-defaults-table
-    title: The defaults the tools apply, read from one table
-    phase: 1
-    owner: donvargax
-    status: todo
-    depends_on: []
-    kind: idea
-    why: >
-      config check --print-defaults prints a table beside the code, but each tool writes its own
-      fallback where it reads a key (?? 600, ?? "docs/work-items.yaml", ?? "@wip"), so the printed
-      table can drift from what runs: tests.<kind>.tag_prefix is @ in the table and the Gherkin adapter
-      but empty where a smoke ID loses its prefix. One table the loader merges under the file, which the
-      tools and the flag both read, closes it; it fits the Go port's config loader.
 
   - id: p1-footers-beside-header-lint
     title: The footer rules run by itos beside the header lint
