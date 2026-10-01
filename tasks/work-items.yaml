@@ -339,7 +339,7 @@ items:
     title: The commit-msg hook validates itos.yaml, the ledger, the registry and the smoke set as staged
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-5]
     kind: slice
     refs: [features/commit-data.feature]
