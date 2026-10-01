@@ -36,7 +36,7 @@ an agent before any new slice; it is not left for whoever looks next.
 
 1. Pick the next slice from `docs/HANDOFF.md` ("Next"), among what
    `vp run work` proposes for the person you work for: an item another person
-   owns in `docs/work-items.yaml` is theirs, and one whose dependencies are not
+   owns in `tasks/work-items.yaml` is theirs, and one whose dependencies are not
    done waits. If it is not specified in `@wip` scenarios or a task yet,
    specify it first. An idea (`kind: idea`, listed apart by `vp run work`) is
    such an item: specify it, then change its kind to `slice` or `task` in the
@@ -85,7 +85,7 @@ everyone who pushes after it, and the write-up can wait.
 2. If a live scenario was what blocked it and `main` cannot be green without
    it, set that scenario `@wip` with its reason as a comment above it.
 3. In a `docs` commit, record the attempt in the item's `why` in
-   `docs/work-items.yaml` (or the task's in `tasks/`): the commits, the
+   `tasks/work-items.yaml` (or the task's in `tasks/`): the commits, the
    mechanism, what was found and what is left, so the next agent, or the
    other owner's, starts from it. The item goes back to its owner as `todo`;
    its scenarios stay `@wip` as the spec.
@@ -105,7 +105,7 @@ the rest.
 > Read `AGENTS.md`, `PLAN.md` (<the sections this slice rests on>), the
 > earlier slices' commits (<which; `vp run changelog -- --scenario <id>` or
 > `git log --grep` finds them>), what the last one left missing (<the ideas
-> and `todo` items in `docs/work-items.yaml`, from `vp run work`>),
+> and `todo` items in `tasks/work-items.yaml`, from `vp run work`>),
 > `docs/ARCHITECTURE.md`, `features/README.md` and `tasks/README.md`
 > first, and follow `AGENTS.md` — in particular "The gates run themselves":
 > just commit and react to what a gate reports.

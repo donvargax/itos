@@ -6,7 +6,7 @@ the [emoji key](https://allcontributors.org/docs/en/emoji-key)'s contribution
 types. It is written by hand, without the specification's
 `.all-contributorsrc`, its CLI or its bot: the table is the record, and a stale
 one is fixed in a `docs` commit. Each person's GitHub login, in their profile
-link, is the handle `docs/work-items.yaml` names as an owner and `vp run work`
+link, is the handle `tasks/work-items.yaml` names as an owner and `vp run work`
 knows them by (`docs/PHASES.md`); nothing here carries an email.
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->

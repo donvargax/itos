@@ -14,7 +14,7 @@ on it starts. Its tasks stay in `tasks/phase-<n>.yaml` and its scenarios in
 
 ## Routing work items
 
-`docs/work-items.yaml` is the machine-readable form of this file: each phase's
+`tasks/work-items.yaml` is the machine-readable form of this file: each phase's
 owner, and every work item with its owner, status (`todo`, `doing`, `done`,
 `blocked`), dependencies and issue. Who works on the project is
 `CONTRIBUTORS.md`, an All Contributors table: an owner is a GitHub login, and

@@ -48,7 +48,7 @@ it, and the instructions then point to the check instead of restating it.
   shortcut for prose-only pushes; `itos ci plan` prints it without running
   anything.
 - **Work routing**: `itos work` says what the person a session works for can
-  start next, from `docs/work-items.yaml` and `CONTRIBUTORS.md`.
+  start next, from `tasks/work-items.yaml` and `CONTRIBUTORS.md`.
 
 `tools/bin/itos --help` lists the commands, and `itos <command> --help` each
 one.
@@ -110,7 +110,7 @@ commit, and it says how work is split into commits.
 | `AGENTS.md`             | The working rules for a session that implements.                             |
 | `docs/ORCHESTRATING.md` | The working rules for the session that coordinates.                          |
 | `docs/PHASES.md`        | Who owns which phase, and how work is routed.                                |
-| `docs/work-items.yaml`  | The one list of open work: owners, statuses, dependencies, ideas.            |
+| `tasks/work-items.yaml` | The one list of open work: owners, statuses, dependencies, ideas.            |
 | `tasks/`                | The ledger: every non-feature task and the checks that prove it.             |
 | `features/`             | The scenarios: what itos does, through its command line.                     |
 | `itos.yaml`             | This repository's policy, which every gate reads.                            |

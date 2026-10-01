@@ -12,7 +12,7 @@ those, and decides only what they are asked to do.
 This file holds the decisions and the order of the work. How the code is
 actually put together is `docs/ARCHITECTURE.md`; what has been built, and
 why, is the history (`vp run changelog`); who works which phase is
-`docs/PHASES.md`, and the open work is `docs/work-items.yaml`.
+`docs/PHASES.md`, and the open work is `tasks/work-items.yaml`.
 
 ---
 
@@ -118,6 +118,7 @@ names (`.ito/`, `ito.json`).
 | Header lint         | Delegated to commitlint (`commits.header_lint.hook` and `stdin`) until a built-in lint matches it on a whole history; then the built-in one replaces it.                                                                                                                                                                                                                                                         |
 | Coverage            | Collected for the audit's scores, held to no threshold: itos is proven through its command line, which a unit test's coverage cannot see.                                                                                                                                                                                                                                                                        |
 | Licence             | AGPL-3.0 for the whole repository.                                                                                                                                                                                                                                                                                                                                                                               |
+| Work registry       | Beside the ledger by default, `tasks/work-items.yaml`: it is itos's data, as the ledger is, and read every day, so `docs/` is left for prose; `work.registry` puts it anywhere else. With none where itos looks, the commands that read it say so, naming the path, so a project with its registry at the old default (`docs/work-items.yaml`) learns where itos reads it now.                                   |
 | Distribution        | Release archives plus checksums, installed pinned; `go install` for Go developers. v0 releases are the TypeScript, packed to JavaScript.                                                                                                                                                                                                                                                                         |
 
 ## 4. The model
@@ -145,7 +146,7 @@ command line.
 | **Coverage**             | A named task's check is not rerun when a step did it (equal to a step, or a `covers` rule); a run of a kind is merged; a nightly-only check waits for the nightly.                                                                                                                                      |
 | **Prose**                | Paths that can only break their own formatting. A prose-only range runs the prose steps and the named tasks' static and `prose: true` checks, and lists the rest as left out.                                                                                                                           |
 | **Plan**                 | What a CI run executes and in what order, computed without side effects from the range, the config, the ledger and the registry. `ci plan --json` prints it.                                                                                                                                            |
-| **Work registry**        | `docs/work-items.yaml`: group owners and **work items** (owner, status, dependencies, kind). A named task whose item is `todo` waits in CI.                                                                                                                                                             |
+| **Work registry**        | `tasks/work-items.yaml` (`work.registry`'s default): group owners and **work items** (owner, status, dependencies, kind). A named task whose item is `todo` waits in CI.                                                                                                                                |
 | **People source**        | Who may own work: the All Contributors table in `CONTRIBUTORS.md`, `.all-contributorsrc`, or a YAML list.                                                                                                                                                                                               |
 | **Identity provider**    | Who a session works for: `--as`, else the provider (`gh api user`, a command, none).                                                                                                                                                                                                                    |
 
@@ -325,7 +326,7 @@ The template's demo app goes; the named tests become the features at the
 root, run by godog against the binary; verification starts after the
 template's squashed commit (`commits.since`); the repository is AGPL-3.0 as a
 whole (`tasks/phase-1.yaml`). What remains of v0 is in
-`docs/work-items.yaml`: the v0.1.0 release, packed to JavaScript (Node strips
+`tasks/work-items.yaml`: the v0.1.0 release, packed to JavaScript (Node strips
 types only outside `node_modules`) and published as a tarball on a tag; CI
 verifying with the last released itos as well as the working tree, so a
 commit that breaks the gate cannot approve itself; and the config keys that

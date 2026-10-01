@@ -316,7 +316,7 @@ items:
     title: The work registry's default home is tasks/work-items.yaml
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-025]
     kind: slice
     refs: [features/work.feature]
@@ -330,7 +330,7 @@ items:
     title: This repository's registry moves to tasks/work-items.yaml
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     refs: [tasks/phase-1.yaml]
@@ -349,6 +349,35 @@ items:
       commit-msg hook runs the config check when any of them is staged and the registry's check when
       the registry is, from the staged tree as it reads footers, which also closes the gap T-022
       left (its pre-commit check read the working tree). @ID-CDATA-01 to 05.
+
+  - id: p1-ledger-matches-registry
+    title: A ledger.files pattern that matches the registry
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The registry's default home is tasks/, where ledgers live. This repository's ledger.files,
+      tasks/phase-{group}.yaml, does not match tasks/work-items.yaml, but tasks/{group}.yaml with the
+      default group pattern [^/]+ does: config check then fails with "tasks/work-items.yaml is not a
+      list of tasks", and task list with a TypeError. config check could reject a ledger.files whose
+      pattern matches work.registry (naming both), or the ledger could leave the registry's file out.
+      Needs a scenario either way.
+
+  - id: p1-people-checked-at-commit
+    title: A staged people file runs the registry's check at commit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-6]
+    kind: idea
+    why: >
+      A registry's owners must be among the people (CONTRIBUTORS.md here, work.people's file), so an
+      edit to that file alone can break the registry. Slice 6 runs the registry's check when the
+      registry is staged, and T-023 drops the pre-commit check, which never watched the people file
+      either; only CI's prose steps catch it, after the push. The commit-msg hook could run the
+      registry's check when work.people's file is staged too.
 
   - id: T-023
     title: The pre-commit hook leaves itos's data to the commit-msg hook
@@ -433,7 +462,7 @@ items:
       What is left of the config-keys audit: scenario-moves' range mode hardcodes feat and fix and
       ignores except_types; it, ci-scope's Task key and the smoke rule default to the kind named
       scenario (the plan's smoke set reads the kind of its tests step since slice 3); ci run's
-      messages name tasks/, docs/work-items.yaml and vp check. Each is read from the config.
+      messages name tasks/ and vp check. Each is read from the config.
 
   - id: p1-one-defaults-table
     title: The defaults the tools apply, read from one table
@@ -444,7 +473,8 @@ items:
     kind: idea
     why: >
       config check --print-defaults prints a table beside the code, but each tool writes its own
-      fallback where it reads a key (?? 600, ?? "docs/work-items.yaml", ?? "@wip"), so the printed
+      fallback where it reads a key (?? 600, ?? "@wip"; the registry's is one constant since slice 5,
+      DEFAULT_REGISTRY in config.ts, which the table and the tools share), so the printed
       table can drift from what runs: tests.<kind>.tag_prefix is @ in the table and the Gherkin adapter
       but empty where a smoke ID loses its prefix. One table the loader merges under the file, which the
       tools and the flag both read, closes it; it fits the Go port's config loader.

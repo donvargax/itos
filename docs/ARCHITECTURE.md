@@ -76,7 +76,8 @@ the commands, `itos <command> --help` each one). The code is
   `ITOS_CONFIG` or `--config` names another file. A project changes its
   policy here, not in the code.
 - **What it reads.** The ledger is `tasks/phase-<n>.yaml` (`ledger.files`),
-  the registry `docs/work-items.yaml` (`work.registry`), the people
+  the registry `tasks/work-items.yaml` (`work.registry`'s default, beside the
+  ledger but not a ledger file, since it does not match `ledger.files`), the people
   `CONTRIBUTORS.md` (`work.people`), the smoke set `features/smoke.yaml`
   (`tests.scenario.smoke`). `itos config check` validates all of them.
 - **One command line** (`tools/itos/main.ts`): exit 0 on success, 1 for a
@@ -131,7 +132,7 @@ the commands, `itos <command> --help` each one). The code is
   - **pre-commit** runs `vp staged` (each path's command in `vite.config.ts`'s
     `staged`: `vp check --fix`, or for Go `gofmt -w` and then `go vet` over the
     module, since it reads packages rather than files), then `itos config check`
-    when `itos.yaml`, `tasks/`, `docs/work-items.yaml` or `features/smoke.yaml`
+    when `itos.yaml`, `tasks/` (the ledger and the registry) or `features/smoke.yaml`
     is staged (before the prose exit, which skips `tasks/`), then, unless every staged file is Markdown, under `tasks/` or
     a feature file, `vp test run --changed HEAD` with coverage collected but
     no thresholds, then `fallow audit` on what is new against HEAD. Vitest
@@ -175,8 +176,9 @@ the commands, `itos <command> --help` each one). The code is
   the first failure; with `ci.stop_at_first_failure: false` it runs every step
   and check, says where each failure was, and exits with the first one's code.
   A range of only `ci.prose.paths` (Markdown, `docs/**`)
-  runs `ci.prose.steps` (`vp check`, and `itos config check`, since the
-  registry is under `docs/`) and the named tasks' static and `prose: true` checks,
+  runs `ci.prose.steps` (`vp check`, and `itos config check`, since
+  `CONTRIBUTORS.md`, the people a registry's owners must be among, is
+  Markdown; the registry and the ledger, under `tasks/`, are not prose) and the named tasks' static and `prose: true` checks,
   and no features.
 - **The nightly** (`.github/workflows/nightly.yml`, at 11:44 UTC on `main` or
   by hand) runs `itos ci run --nightly`: every feature, then the gates
@@ -193,8 +195,9 @@ TestFeatures/…` lines); a green run closes it.
   claims, by go test's own record of what it ran (`-json`).
   `config-gate.ts` proves `itos config check` gates what it guards: in a
   scratch worktree the pre-commit hook rejects a ledger with a misspelt key
-  and passes a sound one, and CI's plan runs the check for a prose-only range
-  touching the registry. It and `gates.ts` build their worktree with
+  and passes a sound one, and CI's plan runs the check for a range touching
+  the registry or the ledger and for a prose-only range touching
+  `CONTRIBUTORS.md`. It and `gates.ts` build their worktree with
   `scratch.ts`.
   `release.ts` proves the tarball rather than the source: it packs (or takes
   `--tarball`, the one a release publishes), installs it with

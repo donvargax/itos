@@ -146,13 +146,15 @@
     No hook ran it, and CI only when a pushed commit named a task carrying it,
     so a broken config, ledger, registry or smoke set could land and fail a
     later push. It is now a static CI step, in the prose steps too (the
-    registry is under docs/**, so a prose-only push can break it), and the
-    pre-commit hook runs it when itos.yaml, tasks/, docs/work-items.yaml or
-    features/smoke.yaml is staged, before the early exit for prose. The
-    self-test proves both: in a scratch copy of the repository, a commit
-    staging a ledger with a misspelt key is rejected by the pre-commit hook,
-    and the CI plan for a prose-only range that touches the registry runs the
-    check.
+    registry was then under docs/**, and CONTRIBUTORS.md, the people its
+    owners must be among, is Markdown, so a prose-only push can break it), and
+    the pre-commit hook runs it when itos.yaml, tasks/ (the ledger and, since
+    T-025, the registry) or features/smoke.yaml is staged, before the early
+    exit for prose. The self-test proves both: in a scratch copy of the
+    repository, a commit staging a ledger with a misspelt key is rejected by
+    the pre-commit hook, and the CI plan runs the check for a range that
+    touches the registry and for a prose-only one that touches
+    CONTRIBUTORS.md.
   done_when:
     - run: tools/bin/itos config check
     - run: node tools/selftest/config-gate.ts
