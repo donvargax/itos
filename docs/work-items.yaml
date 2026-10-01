@@ -317,7 +317,7 @@ items:
     title: Every command itos runs goes through the configured shell, and ci.stop_at_first_failure is read
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     refs: [features/config.feature]
