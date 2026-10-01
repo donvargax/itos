@@ -110,7 +110,10 @@
     not the source: it packs, installs the tarball into a scratch project with
     no network, and runs the conformance corpus and every feature against the
     installed bin, so a file the bundle misses, or a path resolved beside the
-    source, fails it.
+    source, fails it. Nothing in tools/itos/ reads a file beside itself, so the
+    source needed no change. Against a bundle that left yaml out, the self-test
+    failed three ways: the installed itos could not say its version, and the
+    corpus and the features failed.
   done_when:
     - run: vp pack
     - run: node tools/selftest/release.ts

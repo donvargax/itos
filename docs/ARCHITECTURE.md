@@ -12,7 +12,17 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
 - `features/` holds itos's named tests: Gherkin feature files, their steps in
   Go (`*_test.go`, package `features`), and the smoke set (`smoke.yaml`).
 - `tools/itos/conformance/` is the regression corpus, `tools/selftest/` the
-  self-tests of the gates, `tools/changelog.ts` the changelog's filter.
+  self-tests of the gates and of the release, `tools/changelog.ts` the
+  changelog's filter.
+- **The package** is for consumers, not for this repository: `vp pack` (the
+  `pack` block of `vite.config.ts`, tsdown) bundles `tools/itos/main.ts` and
+  everything it imports, `yaml` and the commands' lazy imports included, into
+  one file, `dist/itos.mjs`, which `package.json`'s `bin` names; its `files`
+  are that, `LICENSE` and `README.md`, so `npm pack` gives
+  `itos-<version>.tgz` with no runtime dependencies. Here `tools/bin/itos`
+  runs the working tree's TypeScript, since the hooks and CI judge the working
+  tree. Nothing in the source reads a file beside itself, which is what lets
+  one file carry it.
 - `go.mod` is the module `github.com/donvargax/itos`, Go pinned by its
   `toolchain` line; its one dependency set is godog's. The Go port adds
   `cmd/itos` and `internal/` (`PLAN.md`, §8).
@@ -171,6 +181,11 @@ TestFeatures/…` lines); a green run closes it.
   `ci-scope.ts`, `ci-range.ts` and `features-scope.ts` prove the scope, the
   range and that the plan's features command runs exactly the scenarios it
   claims, by go test's own record of what it ran (`-json`).
+  `release.ts` proves the tarball rather than the source: it packs (or takes
+  `--tarball`, the one a release publishes), installs it with
+  `npm install --offline` and an empty cache into a scratch project, which
+  must then hold itos alone, and runs the conformance corpus and every
+  feature against the installed bin.
 - **The changelog** (`tools/changelog.ts`, `cliff.toml`): git-cliff groups
   the Conventional Commits by type, each with its footers and body, into
   `docs/changelog/`, which git, the formatter, the linter and the audit

@@ -234,7 +234,7 @@ items:
     title: itos packed to JavaScript, as a tarball a consumer installs
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     refs: [tasks/phase-1.yaml]
