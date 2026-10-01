@@ -753,7 +753,7 @@ items:
     title: A footer whose source is missing is a problem, not a crash
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-10]
     kind: slice
     refs: [features/footers.feature]
