@@ -14,10 +14,10 @@
 // that fails, since a failed range lookup means "run everything" and a failed
 // identity means "nobody".
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { config, type IdentityConfig, type PeopleConfig, type RangeConfig } from "./config.ts";
 import { inShell } from "./shell.ts";
+import { current } from "./source.ts";
 
 // A command run through the config's shell, and its trimmed first line of
 // output; undefined when it fails or prints nothing.
@@ -189,7 +189,7 @@ export const DEFAULT_PEOPLE: PeopleConfig = {
 
 // Who may own work, read from the file the people source names.
 export function people(source: PeopleConfig = config().work?.people ?? DEFAULT_PEOPLE): string[] {
-	const text = readFileSync(source.file, "utf8");
+	const text = current().read(source.file);
 	try {
 		if (source.source === "all-contributorsrc") return allContributorsRc(text);
 		if (source.source === "yaml") return yamlLogins(text);

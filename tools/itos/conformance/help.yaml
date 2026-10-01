@@ -230,11 +230,13 @@ cases:
     stdout: |
       Usage: itos hook commit-msg <file>
 
-      The commit-msg hook. The staged files against the message's type (the path
-      rules, then each kind's staged range check: the scenario moves here), then the
-      header lint (commits.header_lint.hook, commitlint here, whose config runs the
-      footer rules; with no delegate, the footer rules alone). The first to fail
-      prints its report and decides: exit 1, or the header lint's own code.
+      The commit-msg hook. When the commit stages itos.yaml, a ledger file, the work
+      registry or a smoke set, itos config check's problems, read from the staged
+      tree; then the staged files against the message's type (the path rules, then
+      each kind's staged range check: the scenario moves here), then the header lint
+      (commits.header_lint.hook, commitlint here, whose config runs the footer rules;
+      with no delegate, the footer rules alone). The first to fail prints its report
+      and decides: exit 1, or the header lint's own code.
   - name: itos hook pre-push --help
     argv: [hook, pre-push, --help]
     exit: 0

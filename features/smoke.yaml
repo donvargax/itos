@@ -20,6 +20,10 @@
   scenarios:
     - id: "@ID-CMSG-03"
       why: the hook rejects a commit by a footer rule of itos's own, no delegate in between
+- file: commit-data.feature
+  scenarios:
+    - id: "@ID-CDATA-01"
+      why: the hook rejects a commit whose staged data has a problem, with the problem, the file's point
 - file: config.feature
   scenarios:
     - id: "@ID-CONFIG-01"

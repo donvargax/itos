@@ -1,6 +1,8 @@
 // itos's hook entry points and their shims.
 //
-//   itos hook commit-msg <file>      the path rules and the kinds' staged range
+//   itos hook commit-msg <file>      itos's own data as staged, when a commit
+//                                    stages any (commit-data.ts), then the
+//                                    path rules and the kinds' staged range
 //                                    checks (commit-scope.ts), then the header
 //                                    lint with the footer rules (commit.ts)
 //   itos hook pre-push <remote> <url> the unit tests the pushed commits reach
@@ -20,15 +22,17 @@ import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { lintMessageFile } from "./commit.ts";
+import { hook as dataRule } from "./commit-data.ts";
 import { hook as stagedRule } from "./commit-scope.ts";
 import { config } from "./config.ts";
 import { emit, type Output, TEXT } from "./problem.ts";
 import { prePush } from "./pre-push.ts";
 
-// `hook commit-msg <file>`: the staged files' rules, then the header lint,
-// in the order and wording the two-line hook had; the first to fail decides.
+// `hook commit-msg <file>`: the staged data first, since the other rules read
+// the config, then the staged files' rules, then the header lint, in the order
+// and wording the two-line hook had; the first to fail decides.
 export function hookCommitMsg(file: string): number {
-	return stagedRule(file) || lintMessageFile(file);
+	return dataRule() || stagedRule(file) || lintMessageFile(file);
 }
 
 // `hook pre-push <remote> <url>`: git's ref lines on stdin. Under pre-commit

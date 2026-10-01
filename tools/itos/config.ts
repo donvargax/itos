@@ -13,10 +13,11 @@
 //
 // A section is optional when loading, so a fixture holds only what it tests;
 // a tool that needs one it lacks fails saying so.
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { parse } from "yaml";
 import { messages, problem, type Problem } from "./problem.ts";
+import { current } from "./source.ts";
 
 export type Cost = "static" | "late";
 
@@ -562,10 +563,16 @@ function patternProblems(config: Config): Problem[] {
 	return found;
 }
 
+// The config's text from the source itos reads its data from (source.ts); one
+// that source does not hold, such as an ITOS_CONFIG outside the repository, is
+// read where it is.
+const configText = (file: string) =>
+	current().has(file) ? current().read(file) : readFileSync(file, "utf8");
+
 export function loadConfig(file = configPath()): Config {
 	let raw: unknown;
 	try {
-		raw = parse(readFileSync(file, "utf8"));
+		raw = parse(configText(file));
 	} catch (error) {
 		throw new ConfigError(file, [
 			problem(
@@ -589,11 +596,11 @@ export function loadConfig(file = configPath()): Config {
 }
 
 const loaded = new Map<string, Config>();
-// The config, read once per file.
+// The config, read once per file and per tree it is read from.
 export function config(): Config {
-	const file = configPath();
-	if (!loaded.has(file)) loaded.set(file, loadConfig(file));
-	return loaded.get(file)!;
+	const key = `${current().tree}:${configPath()}`;
+	if (!loaded.has(key)) loaded.set(key, loadConfig());
+	return loaded.get(key)!;
 }
 
 // A section a tool cannot work without.
@@ -644,7 +651,8 @@ export function ledgerLayout(): { dir: string; file: RegExp; numeric: boolean } 
 // The ledger's files in a folder (its own by default), sorted, with their group.
 export function ledgerFiles(dir = ledgerLayout().dir): { path: string; group: string }[] {
 	const { file } = ledgerLayout();
-	return readdirSync(dir)
+	return current()
+		.list(dir)
 		.map((name) => ({ name, m: file.exec(name) }))
 		.filter(({ m }) => m)
 		.sort((a, b) => a.name.localeCompare(b.name))
@@ -653,11 +661,11 @@ export function ledgerFiles(dir = ledgerLayout().dir): { path: string; group: st
 
 // The static command patterns: a check or step without a `cost:` of
 // its own is static when one matches.
-let patterns: { file: string; rules: RegExp[] } | undefined;
+let patterns: { config: Config; rules: RegExp[] } | undefined;
 export function staticPatterns(): RegExp[] {
-	if (patterns?.file !== configPath())
+	if (patterns?.config !== config())
 		patterns = {
-			file: configPath(),
+			config: config(),
 			rules: (config().ci?.cost?.static ?? []).map((p) => new RegExp(p)),
 		};
 	return patterns.rules;
@@ -836,7 +844,7 @@ function taskProblems(task: Record<string, unknown>): Problem[] {
 // A ledger file's tasks, or the problem reading it.
 function readLedger(file: string): { tasks: Record<string, unknown>[] } | { problem: Problem } {
 	try {
-		const tasks: unknown = parse(readFileSync(file, "utf8")) ?? [];
+		const tasks: unknown = parse(current().read(file)) ?? [];
 		return Array.isArray(tasks)
 			? { tasks: tasks.map((t) => (t ?? {}) as Record<string, unknown>) }
 			: {

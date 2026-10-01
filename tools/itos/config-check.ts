@@ -63,7 +63,11 @@ function report(found: Found[], lines: string[], out: Output) {
 	if (!found.length && !out.json && !out.quiet) for (const line of lines) console.log(line);
 }
 
-export function configCheck(ledger: string | undefined, out: Output = TEXT): number {
+// What the check finds, read from wherever itos reads its data (source.ts:
+// the working tree, or the staged tree for the commit-msg hook), and the lines
+// it prints when it finds nothing. Its exit code is 2 when the config is
+// invalid, since nothing else can be read, else 1 for any problem.
+export function configFindings(ledger?: string): { code: number; found: Found[]; lines: string[] } {
 	const loaded = configIssues();
 	// A commits.since this repository does not have makes the config unusable
 	// for verify, as an invalid key does.
@@ -75,8 +79,7 @@ export function configCheck(ledger: string | undefined, out: Output = TEXT): num
 			message: `${loaded.file}: ${p.message}`,
 			area: "config" as const,
 		}));
-		report(found, [], out);
-		return 2;
+		return { code: 2, found, lines: [] };
 	}
 	const files = ledger ? [ledger] : ledgerFiles().map((f) => f.path);
 	const registry = config().work?.registry ?? DEFAULTS.work.registry;
@@ -86,16 +89,18 @@ export function configCheck(ledger: string | undefined, out: Output = TEXT): num
 		...tagged("registry", registryProblems()),
 		...smoke.found,
 	];
-	report(
-		found,
-		[
-			`${configPath()} is valid, and so are the ${files.length} ledger files it reads`,
-			`${registry}: sound`,
-			...smoke.lines,
-		],
-		out,
-	);
-	return found.length ? 1 : 0;
+	const lines = [
+		`${configPath()} is valid, and so are the ${files.length} ledger files it reads`,
+		`${registry}: sound`,
+		...smoke.lines,
+	];
+	return { code: found.length ? 1 : 0, found, lines };
+}
+
+export function configCheck(ledger: string | undefined, out: Output = TEXT): number {
+	const { code, found, lines } = configFindings(ledger);
+	report(found, lines, out);
+	return code;
 }
 
 // `config check --print-defaults`: the defaults, as YAML or JSON.

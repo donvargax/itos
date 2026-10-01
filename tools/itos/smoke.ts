@@ -9,8 +9,8 @@
 //       - id: "@ID-APP-01"
 //         why: what it is there for
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
 import { parse } from "yaml";
+import { current } from "./source.ts";
 import { kind } from "./tests.ts";
 
 interface SmokeScenario {
@@ -91,12 +91,13 @@ function showAt(at: string, path: string): string | undefined {
 	}
 }
 
-// The kind's smoke set in the working tree, or with `at` at that commit.
+// The kind's smoke set where itos reads its data (the working tree, or the
+// tree source.ts reads from), or with `at` at that commit.
 export function loadSmoke(name = "scenario", { at }: { at?: string } = {}): SmokeFile[] {
 	const path = smokeFile(name);
 	if (!at) {
-		if (!existsSync(path)) throw new Error(`${path} is missing (tests.${name}.smoke.file)`);
-		return parseSmoke(readFileSync(path, "utf8"), path);
+		if (!current().has(path)) throw new Error(`${path} is missing (tests.${name}.smoke.file)`);
+		return parseSmoke(current().read(path), path);
 	}
 	const text = showAt(at, path);
 	if (text === undefined) throw new Error(`${at} holds no ${path}`);

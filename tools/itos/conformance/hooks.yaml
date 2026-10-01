@@ -32,6 +32,7 @@ files:
           - name: moves
             except_types: [feat]
             staged: "sh moves.sh {type}"
+    work: { people: { source: yaml, file: people.yaml } }
     hooks:
       bin: tools/bin/itos
       pre_push: { per_base: "echo tests since {base}", whole: "echo every test" }
@@ -349,6 +350,70 @@ cases:
         files: { README.md: "scratch\n", tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
       - stage: { tools/a.sh: "true\n" }
     files: { msg: "build: a script\n\nTask: T-001\n" }
+    exit: 0
+  # itos's own data, as staged: the working tree's copy is sound in each
+  # case (the files written after the repository), so a rejection shows the
+  # index was read.
+  - name: commit-msg rejects a staged ledger with a problem, read from the index
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: &data
+          README.md: "scratch\n"
+          people.yaml: "- someone\n"
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n"
+          tasks/work-items.yaml: "phases: { 1: null }\nitems: []\n"
+      - stage: { tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, titel: One }\n" }
+    files: { msg: "docs: retitle the task\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - T-001: unknown key titel
+  - name: commit-msg rejects a staged registry with a problem
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - stage:
+          tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: W-1, title: One, phase: 1, owner: null, status: lost, depends_on: [] }\n"
+    files: { msg: "docs: plan the work\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - W-1: unknown status "lost"
+  - name: commit-msg rejects a staged itos.yaml with an unknown key, naming the key
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - stage: { itos.yaml: "version: 1\ncolour: true\n" }
+    files: { msg: "build: colour the config\n\nTask: T-001\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - itos.yaml: unknown key colour
+  - name: staged data that cannot be read is rejected, saying what is missing
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n", tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
+      - stage: { tasks/work-items.yaml: "phases: {}\nitems: []\n" }
+    files: { msg: "docs: plan the work\n", people.yaml: "- someone\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - the index holds no people.yaml
+  - name: a commit that stages none of itos's data leaves it unchecked
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files:
+          README.md: "scratch\n"
+          people.yaml: "- someone\n"
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n"
+          tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: W-1, title: One, phase: 1, owner: null, status: lost, depends_on: [] }\n"
+      - stage: { README.md: "more\n" }
+    files: { msg: "docs: write the readme\n" }
     exit: 0
   - name: the header lint delegate gets the message file, and its exit code is the hook's
     argv: [hook, commit-msg, msg]

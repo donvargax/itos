@@ -71,6 +71,11 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^ci\.stop_at_first_failure is (true|false)$`, w.stopAtFirstFailureIs)
 	sc.Step(`^work\.registry is "([^"]*)"$`, w.registryIs)
 	sc.Step(`^the work registry at "([^"]*)" has the item "([^"]*)" with the status "([^"]*)"$`, w.registryAt)
+	sc.Step(`^the work registry at "([^"]*)" with the item "([^"]*)" with the status "([^"]*)" is staged$`, w.stagedRegistryAt)
+	sc.Step(`^the working tree's "([^"]*)" sets the item "([^"]*)" to the status "([^"]*)"$`, w.workingRegistry)
+	sc.Step(`^the commit of a registry at "([^"]*)" with the item "([^"]*)" with the status "([^"]*)"$`, w.committedRegistryAt)
+	sc.Step(`^an itos\.yaml with the unknown key "([^"]*)" is staged$`, w.stagedConfigKey)
+	sc.Step(`^a ledger whose task "([^"]*)" has the unknown key "([^"]*)" is staged$`, w.stagedLedgerKey)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -403,9 +408,55 @@ func (w *world) registryAt(path, item, status string) error {
 			return err
 		}
 	}
+	return w.workingRegistry(path, item, status)
+}
+
+// The registry at path holds one unowned item of phase 1, in the working tree
+// alone: nothing is staged.
+func (w *world) workingRegistry(path, item, status string) error {
 	return w.write(path, fmt.Sprintf(
 		"phases: { 1: null }\nitems:\n  - { id: %s, title: %s, phase: 1, owner: null, status: %s, depends_on: [] }\n",
 		item, item, status))
+}
+
+// The same registry, staged, with the starting one's removal when it moved.
+func (w *world) stagedRegistryAt(path, item, status string) error {
+	if err := w.registryAt(path, item, status); err != nil {
+		return err
+	}
+	return w.git("add", "-A", "--", path, startingRegistry)
+}
+
+// The same registry, committed past the hooks.
+func (w *world) committedRegistryAt(path, item, status string) error {
+	if err := w.registryAt(path, item, status); err != nil {
+		return err
+	}
+	return w.commit("docs: a registry")
+}
+
+// The scratch repository's itos.yaml with one more top-level key, staged.
+func (w *world) stagedConfigKey(key string) error {
+	if err := w.writeConfig(); err != nil {
+		return err
+	}
+	text, err := os.ReadFile(filepath.Join(w.dir, "itos.yaml"))
+	if err != nil {
+		return err
+	}
+	if err := w.write("itos.yaml", string(text)+key+": true\n"); err != nil {
+		return err
+	}
+	return w.git("add", "--", "itos.yaml")
+}
+
+// The ledger's one task with one more key, staged.
+func (w *world) stagedLedgerKey(task, key string) error {
+	if err := w.write("tasks/phase-1.yaml",
+		fmt.Sprintf("- { id: %s, type: chore, title: Tidy, %s: Tidy }\n", task, key)); err != nil {
+		return err
+	}
+	return w.git("add", "--", "tasks/phase-1.yaml")
 }
 
 // When steps.

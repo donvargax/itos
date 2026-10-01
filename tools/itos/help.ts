@@ -175,11 +175,13 @@ what the ci.range provider says if it is an ancestor of the head, else empty
 
 	"hook commit-msg": `Usage: itos hook commit-msg <file>
 
-The commit-msg hook. The staged files against the message's type (the path
-rules, then each kind's staged range check: the scenario moves here), then the
-header lint (commits.header_lint.hook, commitlint here, whose config runs the
-footer rules; with no delegate, the footer rules alone). The first to fail
-prints its report and decides: exit 1, or the header lint's own code.`,
+The commit-msg hook. When the commit stages itos.yaml, a ledger file, the work
+registry or a smoke set, itos config check's problems, read from the staged
+tree; then the staged files against the message's type (the path rules, then
+each kind's staged range check: the scenario moves here), then the header lint
+(commits.header_lint.hook, commitlint here, whose config runs the footer rules;
+with no delegate, the footer rules alone). The first to fail prints its report
+and decides: exit 1, or the header lint's own code.`,
 
 	"hook pre-push": `Usage: itos hook pre-push <remote> <url>
 

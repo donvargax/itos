@@ -14,6 +14,7 @@
 import { emit, messages, type Output, problem, type Problem, TEXT } from "./problem.ts";
 import { inShell } from "./shell.ts";
 import { loadSmoke, type SmokeFile } from "./smoke.ts";
+import { current } from "./source.ts";
 import { bareId, commandFor, kind, listTests, shellWord } from "./tests.ts";
 
 // The kind a caller means when it names none: itos.yaml's `tests.scenario`.
@@ -32,10 +33,11 @@ const addHint = (name: string) => {
 };
 
 // Each file's live test IDs (without the tag prefix), keyed by its path
-// relative to the kind's root, which `root` stands in for. A file with no live
-// test, or none at all, is there with none.
+// relative to the kind's root, which `root` stands in for, at the tree itos
+// reads its data from (source.ts). A file with no live test, or none at all,
+// is there with none.
 export function liveScenarios(root?: string, name = KIND): Map<string, Set<string>> {
-	const { tests, files } = listTests(name, { root });
+	const { tests, files } = listTests(name, { root, at: current().tree });
 	const live = new Map(files.map((file) => [file, new Set<string>()]));
 	for (const t of tests) if (t.live) live.get(t.file)?.add(t.id);
 	return live;

@@ -13,11 +13,11 @@
 //   itos work check [<file>]             validate the registry, exit 1 on a problem
 //
 // Every problem carries a rule id and a fix for `--json`.
-import { existsSync, readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { config, DEFAULT_REGISTRY, type PeopleConfig } from "./config.ts";
 import { emit, messages, type Output, problem, type Problem, TEXT } from "./problem.ts";
 import { type Answer, DEFAULT_PEOPLE, identityProvider, people } from "./providers.ts";
+import { current } from "./source.ts";
 
 const STATUSES = ["todo", "doing", "done", "blocked"] as const;
 type Status = (typeof STATUSES)[number];
@@ -51,7 +51,7 @@ const peopleSource = () => config().work?.people ?? DEFAULT_PEOPLE;
 const listedIn = () => peopleSource().file;
 
 export function load(path = registryPath(), source: PeopleConfig = peopleSource()): Registry {
-	const raw = parse(readFileSync(path, "utf8")) as Partial<Registry>;
+	const raw = parse(current().read(path)) as Partial<Registry>;
 	return {
 		logins: people(source),
 		phases: raw.phases ?? {},
@@ -210,7 +210,7 @@ export function registryIssues(
 // itos reads it now, and how to say otherwise.
 export function registryProblems(path?: string): Problem[] {
 	const file = path ?? registryPath();
-	if (!existsSync(file))
+	if (!current().has(file))
 		return [
 			problem(
 				"work-registry-missing",

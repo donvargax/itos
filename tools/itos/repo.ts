@@ -1,10 +1,10 @@
 // Repository readers shared by the hooks and the task runner.
 import { execFileSync, spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
 import { basename, dirname } from "node:path";
 import { parse } from "yaml";
 import { config, type Cost, ledgerFiles, ledgerLayout } from "./config.ts";
 import { problem, type Problem } from "./problem.ts";
+import { current } from "./source.ts";
 
 export interface Check {
 	run?: string;
@@ -36,7 +36,7 @@ export function loadTasks(root?: string): Task[] {
 	const { numeric } = ledgerLayout();
 	for (const { path, group } of ledgerFiles(root)) {
 		const phase = (numeric ? Number(group) : group) as number;
-		for (const task of (parse(readFileSync(path, "utf8")) ?? []) as Omit<Task, "phase">[])
+		for (const task of (parse(current().read(path)) ?? []) as Omit<Task, "phase">[])
 			tasks.push({ ...task, done_when: task.done_when ?? [], phase });
 	}
 	return tasks;
