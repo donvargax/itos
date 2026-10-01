@@ -216,3 +216,17 @@
     - run: test ! -e docs/work-items.yaml
       cost: static
     - run: node tools/selftest/config-gate.ts
+
+- id: T-026
+  type: build
+  title: The docs call itos task directly, and the task script goes
+  why: >
+    `vp run task <id>` was a package.json script wrapping `tools/bin/itos task`:
+    a second name for one command, which a project without Vite+ does not
+    have. The docs (AGENTS.md, tasks/README.md, docs/**, the comments, the CI
+    step that proves the commit rules) call `tools/bin/itos task <id>`, and the
+    script goes. The negative proof is that the script no longer runs.
+  done_when:
+    - fails: vp run task T-026
+      cost: static
+    - run: tools/bin/itos task list

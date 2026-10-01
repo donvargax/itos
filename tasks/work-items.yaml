@@ -397,6 +397,31 @@ items:
     kind: task
     refs: [tasks/phase-1.yaml]
 
+  - id: slice-7
+    title: The commit-msg hook runs the static checks of the tasks a commit names
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-5, T-024]
+    kind: slice
+    refs: [features/commit-tasks.feature]
+    why: >
+      Asked by the user: a commit that breaks a finished task is stopped before it is made. The hook
+      runs the named tasks' static checks in written order up to the first late one; a failure
+      rejects the commit when the task's work item is done, and for a task in progress (or with no
+      item) prints its status and lets the commit through, since CI judges what is pushed.
+      hooks.commit_msg.task_checks turns it off and hooks.commit_msg.check_timeout caps each check.
+      Ships after v0.2.0. @ID-CTASK-01 to 05.
+
+  - id: T-026
+    title: The docs call itos task directly, and the task script goes
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
   - id: slice-4
     title: The work, smoke and hooks keys read; the keys of unbuilt features dropped
     phase: 1
