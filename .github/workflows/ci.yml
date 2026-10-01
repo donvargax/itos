@@ -33,6 +33,12 @@ jobs:
         with:
           node-version: "24"
           cache: true
+      # Go for the features' steps (godog), the version go.mod's toolchain line
+      # pins.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - run: vp install
       # Where the range starts, computed once for every step below: a pull
       # request's base, else the last green run on main, else empty (run
@@ -45,12 +51,8 @@ jobs:
           range=$(tools/bin/itos ci range --head "$TO" --base "$BASE")
           echo "$range"
           echo "$range" >> "$GITHUB_ENV"
-      - id: scope
-        run: tools/bin/itos ci scope "$FROM" "$TO" >> "$GITHUB_OUTPUT"
       # The commit-msg hook's rules again, for commits made without hooks.
       - run: tools/bin/itos verify "$FROM" "$TO"
-      - if: steps.scope.outputs.docs_only != 'true'
-        run: vp exec playwright install --with-deps chromium
       # actionlint, for the task checks that lint the workflows: the runners
       # don't carry it. Pinned, from its own release script.
       - name: actionlint
@@ -58,20 +60,10 @@ jobs:
           mkdir -p "$RUNNER_TEMP/bin"
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP/bin"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-      # Every gate lives in one local command. Its E2E step is one Playwright
+      # Every gate lives in one local command. Its features step is one go test
       # run over the smoke set and the scenarios and task subsets the range
       # names; the whole suite runs in nightly.yml. GH_TOKEN is for the task
       # checks that ask GitHub.
       - run: tools/bin/itos ci run "$FROM" "$TO"
         env:
           GH_TOKEN: ${{ github.token }}
-      - name: Upload Playwright failure artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-failure-artifacts
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
-          if-no-files-found: ignore

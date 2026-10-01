@@ -1,7 +1,7 @@
 name: Nightly
 
-# The whole E2E suite. A push's CI runs the smoke set and the scenarios and
-# task subsets its commits name; every scenario runs here, once a night on
+# Every feature. A push's CI runs the smoke set and the scenarios and task
+# subsets its commits name; every scenario runs here, once a night on
 # main, or by hand from the Actions tab, and then the gates self-test, which
 # a push's CI leaves to the nightly (itos.yaml's `ci.nightly`). A red run
 # opens one issue, "Nightly red", or comments on the open one; a green run
@@ -30,24 +30,20 @@ jobs:
         with:
           node-version: "24"
           cache: true
+      # Go for the features' steps (godog), the version go.mod's toolchain line
+      # pins.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
       - run: vp install
-      - run: vp exec playwright install --with-deps chromium
-      # The output is kept for the issue below: the `✘` lines are the failing
-      # scenarios. pipefail, so tee does not hide the run's exit code.
+      # The output is kept for the issue below: go test's `--- FAIL:
+      # TestFeatures/…` lines are the failing scenarios. pipefail, so tee does
+      # not hide the run's exit code.
       - name: Nightly
         run: |
           set -o pipefail
           tools/bin/itos ci run --nightly 2>&1 | tee "$RUNNER_TEMP/nightly.log"
-      - name: Upload Playwright failure artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-failure-artifacts
-          path: |
-            playwright-report/
-            test-results/
-          retention-days: 7
-          if-no-files-found: ignore
       # The GitHub CLI, for the issue steps below. Pinned, from its release
       # tarball, checked against the release's SHA-256, so the runner image's
       # own copy, whatever its version, does not decide what runs. It runs
@@ -69,8 +65,9 @@ jobs:
           "$RUNNER_TEMP/bin/gh" --version
       # Red: one open issue labelled nightly-red, opened by the first red run
       # and commented on by every later one, with the failing scenarios and the
-      # run's URL. With no `✘` line saved, the run failed before Playwright
-      # ran, and the issue says so. The label is created on the first red run.
+      # run's URL. With no failing scenario saved, the run failed outside the
+      # features (the gates self-test, say), and the issue says so. The label is
+      # created on the first red run.
       - name: Open or comment on the Nightly red issue
         if: failure()
         env:
@@ -82,7 +79,7 @@ jobs:
           body="$RUNNER_TEMP/nightly-red.md"
           failing=""
           if [ -f "$log" ]; then
-            failing=$(sed 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log" | grep -F -- '✘' || true)
+            failing=$(sed 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log" | grep -E -- '--- FAIL: TestFeatures/' || true)
           fi
           {
             echo "Nightly run $RUN_URL is red."
@@ -94,10 +91,10 @@ jobs:
               echo "$failing"
               echo '```'
             else
-              echo "No failing scenario in the Playwright output: the run failed before Playwright ran, or in a step after it. See the run's log."
+              echo "No failing scenario in the features' output: the run failed before the features ran, or in a step after them. See the run's log."
             fi
           } > "$body"
-          gh label create nightly-red --description "The nightly E2E run is red" --color B60205 2>/dev/null || true
+          gh label create nightly-red --description "The nightly run is red" --color B60205 2>/dev/null || true
           open=$(gh issue list --label nightly-red --state open --json number --jq '.[0].number // empty')
           if [ -n "$open" ]; then
             echo "Commenting on issue #$open"
