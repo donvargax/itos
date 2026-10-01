@@ -14,10 +14,9 @@
 //     rejects a commit whose type may not touch a staged path, a scenario
 //     renamed outside feat and fix, and a header commitlint rejects, and lets a
 //     sound commit through;
-//   - what the hooks leave out fails CI's own steps: a refactor that breaks
-//     every scenario passes both hooks and fails the push's E2E step, and a
-//     coverage threshold the tree misses passes pre-commit and fails
-//     `vp run test:coverage`.
+//   - what the hooks leave out fails CI's own steps: a refactor that changes
+//     what itos prints, in a module no unit test imports, passes both hooks and
+//     fails the push's features step, whose smoke set reads that output.
 import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { writeFileSync } from "node:fs";
@@ -37,8 +36,6 @@ Object.assign(env, {
 	GIT_AUTHOR_EMAIL: "selftest@localhost",
 	GIT_COMMITTER_NAME: "gates self-test",
 	GIT_COMMITTER_EMAIL: "selftest@localhost",
-	// A port of its own, in case a suite is running in the checkout.
-	E2E_PORT: "5284",
 });
 
 interface Run {
@@ -133,7 +130,7 @@ try {
 			throw new Error(`could not copy the working tree:\n${applied.output}`);
 	}
 	for (const file of sh(
-		"git ls-files --others --exclude-standard -- tools .vite-hooks src e2e",
+		"git ls-files --others --exclude-standard -- tools .vite-hooks features",
 		undefined,
 		root,
 	)
@@ -148,18 +145,16 @@ try {
 	// upstream branch in the checkout.
 	env.FALLOW_AUDIT_BASE = base;
 
-	for (const step of ["vp run e2e", "vp run test:coverage"])
+	const features = "go test ./features -count=1";
+	for (const step of [features, "vp run test:coverage"])
 		expect(STEPS.includes(step), `CI no longer runs \`${step}\`, which the hooks leave to it`);
 
 	// 1. A change to a leaf module runs the tests that reach it and not the
 	// whole suite, on both gates.
-	const module = "src/greeting.ts";
-	const moduleTest = "src/greeting.test.ts";
-	edit(
-		module,
-		"export function greeting",
-		"// gates self-test: a harmless change\nexport function greeting",
-	);
+	const module = "tools/itos/scenario-moves.ts";
+	const moduleTest = "tools/itos/scenario-moves.test.ts";
+	const moduleLine = "const SCENARIO_LINE";
+	edit(module, moduleLine, `// gates self-test: a harmless change\n${moduleLine}`);
 	let run = preCommit("a harmless change to a module");
 	expect(run.status === 0, `pre-commit failed on a harmless change:\n${run.output}`);
 	const reached = (n: number) => n >= 1 && n < allTests.length;
@@ -174,12 +169,12 @@ try {
 		reached(ranFiles(run.output)),
 		`pre-push should run only the test files that reach ${module}, ran ${ranFiles(run.output)} of ${allTests.length}`,
 	);
-	expect(!run.output.includes("$ vp run e2e"), "pre-push still runs the E2E suite for a refactor");
+	expect(!run.output.includes(features), "pre-push still runs the features for a refactor");
 
 	// 2. The negative proof: the same file, broken, fails both gates, and fails
 	// in the module's test alone.
 	git(`reset -q --hard ${base}`);
-	edit(module, "`Hello, ", "`Hi, ");
+	edit(module, "changes the live scenario ${id}", "alters the live scenario ${id}");
 	run = preCommit("a change that breaks the module's test");
 	expect(run.status !== 0, `pre-commit passed a change that breaks ${moduleTest}`);
 	expect(
@@ -214,10 +209,10 @@ try {
 	// A commit that names a scenario and a task leaves both to CI...
 	git(`reset -q --hard ${base}`);
 	edit("README.md", "# ", "A footed edit.\n\n# ");
-	sha = commit("chore: name a scenario and a task\n\nScenarios: @ID-APP-01\nTask: T-007");
+	sha = commit("chore: name a scenario and a task\n\nScenarios: @ID-SINCE-01\nTask: T-007");
 	run = prePush("a push naming a scenario and a task", base, sha);
 	expect(run.status === 0, `pre-push failed on a footed push:\n${run.output}`);
-	expect(!run.output.includes("$ vp run e2e"), "pre-push ran the scenarios a footer names");
+	expect(!run.output.includes(features), "pre-push ran the scenarios a footer names");
 	expect(!run.output.includes("$ vp run task"), "pre-push ran the checks of a task a footer names");
 	// ...and CI finds the task in the pushed range.
 	expect(
@@ -225,25 +220,21 @@ try {
 		`CI did not find T-007 in the pushed range: ${tasksIn(base, sha).join(", ") || "none"}`,
 	);
 
-	// The commit-msg hook, through its shim. A docs commit may not touch src/;
+	// The commit-msg hook, through its shim. A docs commit may not touch itos;
 	// a test commit may not rename a live scenario; commitlint rejects a header
 	// without a type; a docs commit with its footer passes.
 	git(`reset -q --hard ${base}`);
-	edit(
-		module,
-		"export function greeting",
-		"// gates self-test: a docs commit\nexport function greeting",
-	);
-	run = commitMsg("a docs commit touching src/", "docs: touch the module\n\nTask: T-007\n");
+	edit(module, moduleLine, `// gates self-test: a docs commit\n${moduleLine}`);
+	run = commitMsg("a docs commit touching itos", "docs: touch the module\n\nTask: T-007\n");
 	expect(
 		run.status === 1 && run.output.includes(`docs commits may not touch ${module}`),
 		`commit-msg did not reject a docs commit touching ${module}:\n${run.output}`,
 	);
 	git(`reset -q --hard ${base}`);
 	edit(
-		"e2e/features/app.feature",
-		"Scenario: The page opens and greets the visitor by name",
-		"Scenario: The page opens, renamed",
+		"features/since.feature",
+		"Scenario: verify skips the commit commits.since names, and its ancestors",
+		"Scenario: verify skips commits.since, renamed",
 	);
 	run = commitMsg("a test commit renaming a scenario", "test: rename a scenario\n\nTask: T-007\n");
 	expect(
@@ -260,33 +251,26 @@ try {
 	run = commitMsg("a sound docs commit", "docs: edit the readme\n\nTask: T-007\n");
 	expect(run.status === 0, `commit-msg rejected a sound docs commit:\n${run.output}`);
 
-	// 5. What the hooks leave out, CI's steps catch. A refactor that changes the
-	// page's heading, which every scenario reads, passes both hooks...
+	// 5. What the hooks leave out, CI's steps catch. A refactor that changes
+	// what verify prints, in a module no unit test imports, passes both hooks...
 	git(`reset -q --hard ${base}`);
-	edit("src/main.ts", '"h1"', '"h2"');
-	run = preCommit("a refactor that breaks every scenario");
-	expect(run.status === 0, `pre-commit should not see a broken scenario:\n${run.output}`);
-	sha = commit("refactor: change the heading");
+	edit("tools/itos/verify-commits.ts", "commits pass the commit rules", "commits pass");
+	run = preCommit("a refactor that changes what itos prints");
+	expect(run.status === 0, `pre-commit should not see the changed output:\n${run.output}`);
+	sha = commit("refactor: shorten the summary");
 	run = prePush("that refactor", base, sha);
-	expect(run.status === 0, `pre-push should leave the scenarios to CI:\n${run.output}`);
-	// ...and fails a push's E2E step, the smoke set among it.
+	expect(run.status === 0, `pre-push should leave the features to CI:\n${run.output}`);
+	// ...and fails a push's features step, whose smoke set reads that line.
 	const step = e2eStep(planFor(base, sha)) ?? "";
-	expect(step.startsWith("vp run e2e --grep"), `a push's E2E step is not a selection: ${step}`);
-	run = gate("CI's E2E step for a push, same refactor", step);
-	expect(run.status !== 0, "a push's E2E step passed a refactor that breaks every scenario");
-
-	// A coverage threshold the tree misses passes pre-commit (a partial run
-	// holds no threshold) and fails CI's coverage step.
-	git(`reset -q --hard ${base}`);
-	edit(
-		module,
-		"const who = name?.trim();",
-		'const who = name?.trim();\n\tif (who === "gates self-test") return who;',
+	expect(
+		step.startsWith(`${features} -scenarios=`),
+		`a push's features step is not a selection: ${step}`,
 	);
-	run = preCommit("a branch no test covers");
-	expect(run.status === 0, `pre-commit should leave the thresholds to CI:\n${run.output}`);
-	run = gate("CI step `vp run test:coverage`, same branch", "vp run test:coverage");
-	expect(run.status !== 0, "`vp run test:coverage` passed a tree that misses its thresholds");
+	run = gate("CI's features step for a push, same refactor", step);
+	expect(
+		run.status !== 0,
+		"a push's features step passed a refactor that changes what itos prints",
+	);
 } finally {
 	sh(`git worktree remove --force ${scratch}`, undefined, root);
 	rmSync(scratch, { recursive: true, force: true });
