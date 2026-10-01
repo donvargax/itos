@@ -243,7 +243,7 @@ items:
     title: A release on a v* tag, with its checksum (v0.1.0)
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-020]
     kind: task
     refs: [tasks/phase-1.yaml]
@@ -259,6 +259,36 @@ items:
       The hooks and CI run the working tree's itos, so a commit that breaks a gate can approve
       itself. CI also running verify and the conformance corpus with the last released itos closes
       that; a release that changes a rule on purpose says so in its notes.
+
+  - id: p1-release-manifest
+    title: The released package's manifest holds only what a consumer needs
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-021]
+    kind: idea
+    why: >
+      itos-<version>.tgz carries the repository's package.json: its `prepare: vp config` script,
+      which npm lists on every consumer's install as an install script awaiting approval (and
+      which would fail without Vite+ if run), its devDependencies and packageManager, and no
+      `engines`, though the bundle needs Node 24 (import.meta.main). Packing a manifest of name,
+      version, type, bin, files and engines would fix it, and the release self-test can require an
+      install that warns of no install script.
+
+  - id: p1-ci-after-push-checks
+    title: CI waits on an after-push check the push itself cannot satisfy
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      CI runs a named task's `after: push` checks on every range that names it. T-021's check
+      needs the release a tag makes after the push, so every range naming T-021 was red until
+      v0.1.0 existed and green only when re-run after it; its check was made late so the red run
+      still proved everything else first. A check that waits on something after the push (a
+      release, a tag) could be reported pending by CI instead, so the push that lands the workflow
+      is green and the next release task does not meet the same red.
 
   - id: p1-config-check-gate
     title: itos config check in a gate
