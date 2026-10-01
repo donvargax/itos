@@ -753,7 +753,7 @@ items:
     title: A footer whose source is missing is a problem, not a crash
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-10]
     kind: slice
     refs: [features/footers.feature]
@@ -779,6 +779,33 @@ items:
       scenario instead of the ones a push names (slice 11's own run printed run @(?:)\b|@ID-A-01).
       An empty ids selection adds no pattern, and a run with nothing selected runs no named tests.
       @ID-CI-02 and 03.
+
+  - id: p1-ledger-folder-missing
+    title: A missing ledger folder is one problem in every command that reads the ledger
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-13]
+    kind: idea
+    why: >
+      Found in slice 13: the footer rules now report a missing ledger folder as one problem
+      (footer-source-missing, exit 2), but config check, task, task list, ci plan and ci run still
+      stop on it with itos: ENOENT … scandir 'tasks', exit 2, and config check --json then prints no
+      JSON. A consumer that configures a ledger before making its folder meets that first in config
+      check. The ledger's loader could report the folder once, as the footer rules do.
+
+  - id: p1-merged-check-without-a-run
+    title: A check merged into a run of named tests that does not happen runs as itself
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-12]
+    kind: idea
+    why: >
+      Found in slice 12: with an empty smoke set and a range that names no test, the plan has no run
+      of named tests, yet a task's check recognized as the smoke run (as: smoke) is still marked
+      merged, and ci run logs it "(in the scenario run above)" under no such run. It could run as
+      itself instead, or be logged as selecting nothing.
 
   - id: p1-several-test-kinds
     title: A CI run that merges more than one kind of named test

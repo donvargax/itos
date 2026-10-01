@@ -296,8 +296,9 @@ Global flags: `--config`, `--root`, `--json`, `-q`.
 | `version [--check]`                                                     | `--check` exits 1 if the binary does not satisfy `requires`.                                                                                          |
 
 **Exit codes:** 0 success; 1 a policy failure (a check failed, a commit
-rejected, an unknown task); 2 a usage or config error; 3 a missing
-environment. In `ci run` a failing step exits with its own code. A missing
+rejected, an unknown task); 2 a usage or config error, a file or folder the
+config names that is missing or unreadable among them (the ledger's folder a
+footer reads, a smoke set); 3 a missing environment. In `ci run` a failing step exits with its own code. A missing
 identity and a failing range provider are not errors.
 
 **JSON.** Every command takes `--json`: one object on stdout with
