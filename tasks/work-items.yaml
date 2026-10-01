@@ -776,18 +776,31 @@ items:
       smoke rule names the kind scenario: in a config with two kinds (scenarios and Go tests, say)
       every tests: step would take the first kind's merged command.
 
-  - id: p1-e2e-names
-    title: "The template's E2E names out of the code and its output"
+  - id: slice-11
+    title: ci run's log names a merged check by its kind of named tests
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
+    refs: [features/ci.feature]
     why: >
-      The code still says what the template ran: e2e-scope.ts and e2eStep for the smoke rule and the
-      plan's run of named tests, comments naming e2e/smoke.yaml and Playwright, and ci run's
-      "(in the E2E run above)" for a merged check. A refactor renames the modules; the wording, which
-      agents read, changes in a feat with its conformance case.
+      What the consumers found: ci run logs a task check merged into the run of named tests as
+      "(in the E2E run above)", the template's word for its Playwright suite, whatever the kind is
+      called. It names the kind instead. @ID-CI-01. Half of the old idea p1-e2e-names; T-031 is
+      the other half.
+
+  - id: T-031
+    title: The template's E2E names out of the code
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-11]
+    kind: task
+    refs: [tasks/phase-1.yaml]
+    why: >
+      e2e-scope.ts, e2eStep and the comments naming e2e/smoke.yaml and Playwright are renamed for
+      what they do. After slice 11, which changes the one line itos prints with the word.
 
   - id: p1-range-check-since-diverged
     title: A range check given commits.since when the range has diverged from it

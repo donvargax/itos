@@ -348,3 +348,22 @@
         sh -c 'printf "chore: x\n\nTask: T-999\n" | tools/bin/itos commit check-message - --json
         | grep -c "\"rule\": \"task-footer\"" | grep -qx 1'
       cost: static
+
+- id: T-031
+  type: refactor
+  title: The template's E2E names out of the code
+  why: >
+    itos came out of a template whose named tests were a Playwright E2E
+    suite, and the code still says so: e2e-scope.ts and e2eStep hold the
+    smoke rule and the plan's run of named tests, and comments name
+    e2e/smoke.yaml, e2e/features and Playwright. An agent reading the code
+    meets names for a suite this repository does not have. The modules and
+    functions are renamed for what they do and the comments name the
+    config's keys. What itos prints changes in slice 11, not here. The
+    default root of scenario-moves (e2e/features) is behaviour, and goes with
+    p1-config-names-from-config.
+  done_when:
+    - run: vp check
+    - fails: git grep -n -i -E "e2e|playwright" -- "tools/itos/*.ts" ":!tools/itos/scenario-moves.ts"
+      cost: static
+    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos

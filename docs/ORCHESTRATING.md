@@ -121,7 +121,9 @@ the rest.
 >
 > Before pushing, run what this slice can reach beyond the scenarios it
 > names: `go test ./features -count=1 -scenarios='<the slice's and its neighbours' tags>'`<, and
-> the project's own checks that no gate runs>.
+> the project's own checks that no gate runs>. If the slice moves a rule from one command to
+> another, run `tools/bin/itos task` on the done tasks whose checks call either one: CI runs
+> only the tasks a push names, and a done task left relying on the old home goes red later.
 >
 > Other people push to `main` while you work. Commit, then
 > `git pull --rebase --no-autostash origin main`, then push in a separate
