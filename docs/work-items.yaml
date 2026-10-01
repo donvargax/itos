@@ -299,20 +299,6 @@ items:
     kind: task
     refs: [tasks/phase-1.yaml]
 
-  - id: p1-config-check-staged
-    title: The pre-commit hook checks the staged config, not the working tree's
-    phase: 1
-    owner: null
-    status: todo
-    depends_on: [T-022]
-    kind: idea
-    why: >
-      The pre-commit hook runs `itos config check` when itos.yaml, tasks/, docs/work-items.yaml
-      or features/smoke.yaml is staged, but the check reads the files on disk: a ledger staged
-      broken and fixed only in the working tree passes the hook, and a sound one staged beside an
-      unstaged broken edit is rejected. CI catches the first on the push. A check reading the index
-      (as `ci plan --data-at` reads a commit) would make the hook judge what is committed.
-
   - id: slice-3
     title: Every command itos runs goes through the configured shell, and ci.stop_at_first_failure is read
     phase: 1
@@ -326,16 +312,64 @@ items:
       the providers and the command adapter honoured it), and ci.stop_at_first_failure was validated
       but never read. @ID-CONFIG-01 to 06.
 
+  - id: slice-5
+    title: The work registry's default home is tasks/work-items.yaml
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    refs: [features/work.feature]
+    why: >
+      Asked by itos's consumers: the registry is itos's data like the ledger, read daily, so it sits
+      beside the ledger and docs/ is left for prose. The default moves; work.registry still overrides
+      it; and this repository's own registry moves there, with every place that names
+      docs/work-items.yaml (docs, ledger checks, conformance cases). @ID-WORK-01 to 03.
+
+  - id: slice-6
+    title: The commit-msg hook validates itos.yaml, the ledger, the registry and the smoke set as staged
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-5]
+    kind: slice
+    refs: [features/commit-data.feature]
+    why: >
+      Asked by itos's consumers, extending T-022: a project's pre-commit hook passes itos's data as
+      prose, and a rule a command can decide belongs in itos, not in each project's hook. The
+      commit-msg hook runs the config check when any of them is staged and the registry's check when
+      the registry is, from the staged tree as it reads footers, which also closes the gap T-022
+      left (its pre-commit check read the working tree). @ID-CDATA-01 to 05.
+
+  - id: T-023
+    title: The pre-commit hook leaves itos's data to the commit-msg hook
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-6]
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
+  - id: T-024
+    title: v0.2.0, with the version in one place
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-3, slice-5, slice-6, T-023]
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
   - id: slice-4
     title: The work, smoke and hooks keys read; the keys of unbuilt features dropped
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: [slice-3]
+    depends_on: [slice-3, T-024]
     kind: slice
     refs: [features/config.feature]
     why: >
-      work.statuses, work.groups_key, tests.<kind>.smoke.every_file and hooks.manager were validated
+      Waits for v0.2.0 (T-024): dropping keys a consumer's config may still set breaks its config
+      on the pin it moves to, so it ships in v0.3.0, with notes. work.statuses, work.groups_key, tests.<kind>.smoke.every_file and hooks.manager were validated
       but never read; each is now read. commits.header_lint.use and alongside wait on the built-in
       header lint, and ledger.check.pushed has one value: they leave the schema, and come back with
       the feature that gives them a second value. @ID-CONFIG-07 to 14.

@@ -156,3 +156,38 @@
   done_when:
     - run: tools/bin/itos config check
     - run: node tools/selftest/config-gate.ts
+
+- id: T-023
+  type: ci
+  title: The pre-commit hook leaves itos's data to the commit-msg hook
+  why: >
+    Once itos hook commit-msg validates itos.yaml, the ledger, the registry and
+    the smoke set from the staged tree (slice 6), the pre-commit hook's own
+    config check (T-022) runs the same check a second time, from the working
+    tree, which can judge what is not being committed. The pre-commit hook
+    drops it, and its early exit skips the tests and the audit when every
+    staged file is Markdown, under docs/**, under tasks/** (the ledger and the
+    registry) or a feature file. The self-test (tools/selftest/config-gate.ts)
+    proves the commit is still rejected, now by commit-msg, and that a
+    commit staging only docs/** and tasks/** runs no unit tests.
+  done_when:
+    - run: tools/bin/itos config check
+    - run: node tools/selftest/config-gate.ts
+
+- id: T-024
+  type: build
+  title: v0.2.0, with the version in one place
+  why: >
+    The consumers move their pin when the registry's new default and the
+    commit-time validation are released. The version was written twice,
+    package.json and tools/itos/version.ts, so a bump touched the
+    implementation and needed a code commit; version.ts now reads
+    package.json's at build time (the bundle inlines it), and a release is one
+    build commit and a tag. v0.2.0's notes say what a consumer must change: a
+    registry at docs/work-items.yaml moves to tasks/work-items.yaml, or
+    work.registry names it.
+  done_when:
+    - run: node tools/selftest/release.ts
+      timeout: 900
+    - run: sh -c 'd=$(mktemp -d) && gh release download v0.2.0 --dir "$d" --pattern "itos-0.2.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
+      after: push

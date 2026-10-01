@@ -67,7 +67,7 @@ Feature: Every key the config accepts is one itos reads
     Given work.statuses is "todo, done"
     And the work registry has the item "T-001" with the status "doing"
     When itos checks the work registry
-    Then itos exits with code 2
+    Then itos exits with code 1
     And its output says "unknown status"
 
   @ID-CONFIG-08 @slice-4 @wip
