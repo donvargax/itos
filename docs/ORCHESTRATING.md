@@ -161,6 +161,11 @@ teaches you a new one, stated as the rule and its reason.
   `git pull --rebase --no-autostash origin main` can fail with "Cannot rebase
   onto multiple branches"; `rtk proxy git pull --rebase --no-autostash origin
 main` runs git as written. Say so in a brief when an agent will pull.
+- **A release's tag waits for the user's review of its notes.** The
+  Upgrading section is what every consumer's session acts on, and a tag is
+  never moved: brief the release agent to stop before tagging and hand back
+  the notes file and the commit to tag; relay the Upgrading section to the
+  user, and push the tag yourself on their word.
 - **Never chain a push after a rebase in one command.** A
   `git pull --rebase && git push` chain can push a rebase that stopped on a
   conflict, so `main` takes part of the branch and the rest follows in a

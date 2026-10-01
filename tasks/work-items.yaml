@@ -456,27 +456,21 @@ items:
       hooks.commit_msg.task_checks turns it off and hooks.commit_msg.check_timeout caps each check.
       Ships after v0.2.0. @ID-CTASK-01 to 05.
 
-  - id: p1-hook-checks-worktree
-    title: The commit-msg hook's task checks judge the commit, not the unstaged edits beside it
-    phase: 1
-    owner: null
-    status: todo
-    depends_on: [slice-7]
-    kind: idea
-    why: >
-      Slice 7 runs a named task's static checks while the commit is made. vp check (T-002, T-014)
-      and itos config check (T-006, T-017, T-022, T-023) read the working tree, so there they also
-      see what the commit leaves unstaged or untracked: another session's half-written file, or an
-      edit left out of the commit, rejects a commit naming one of these done tasks. The hook could
-      run the checks in a checkout of the staged tree (git write-tree into a temporary worktree),
-      or a check could say it reads the working tree and wait for CI. Needs a scenario.
-
   - id: T-026
     title: The docs call itos task directly, and the task script goes
     phase: 1
     owner: donvargax
     status: done
     depends_on: []
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
+  - id: T-027
+    title: v0.3.0, the hook's task checks and a config with no unread keys
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-4, slice-7]
     kind: task
     refs: [tasks/phase-1.yaml]
 

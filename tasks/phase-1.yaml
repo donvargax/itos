@@ -251,3 +251,25 @@
     - fails: vp run task T-026
       cost: static
     - run: tools/bin/itos task list
+
+- id: T-027
+  type: build
+  title: v0.3.0, the hook's task checks and a config with no unread keys
+  why: >
+    v0.3.0 releases slice 7 (the commit-msg hook runs the static checks of the
+    tasks a commit names) and slice 4 (every accepted config key read, and the
+    keys of features not built yet dropped), with the notes PLAN.md §10 asks
+    for. Slice 4 removes keys a consumer's config may set
+    (commits.header_lint.use and alongside, ledger.check.pushed), which
+    config check then rejects as unknown, and slice 7 can reject a commit that
+    passed before: the Upgrading section names each, with what to do. The
+    notes check compares defaults only (p1-release-notes-schema-keys), so the
+    removed keys are named by hand unless that idea lands first. The tag waits
+    for the user's review of the notes.
+  done_when:
+    - run: node tools/selftest/release.ts
+      timeout: 900
+    - run: node tools/selftest/release-notes.ts
+      timeout: 300
+    - run: sh -c 'd=$(mktemp -d) && gh release download v0.3.0 --dir "$d" --pattern "itos-0.3.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
+      after: push
