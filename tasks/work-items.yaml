@@ -807,7 +807,7 @@ items:
     title: The template's E2E names out of the code
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-11]
     kind: task
     refs: [tasks/phase-1.yaml]
