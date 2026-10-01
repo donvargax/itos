@@ -19,10 +19,10 @@ ledger:
 
 commits:
   types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
-  header_lint: # delegated to commitlint: config-conventional plus one rule per footer
+  header_lint: # delegated to commitlint, config-conventional; itos runs the footers beside it
     hook: "vp exec commitlint --edit {file}"
     stdin: "vp exec commitlint"
-  footers: # tools/itos/footers.ts reads them, for the commit-msg rule and CI
+  footers: # tools/itos/footers.ts reads them, for the footer rules and CI
     Task:
       source: ledger
       # A revert names the task it undoes, so a failed piece of work leaves a trail.
