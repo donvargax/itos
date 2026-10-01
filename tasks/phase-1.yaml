@@ -401,7 +401,11 @@
     verify included, and a consumer whose commitlint config carries the
     footer plugin reports each footer problem twice until it drops it: the
     Upgrading section says so. The tag waits for the user's review of the
-    notes.
+    notes. Against v0.3.0 the notes check finds no changed default, and no
+    key is added, removed or has its accepted values changed, so the notes
+    say that by hand. Until the version is bumped the notes check judges
+    0.4.0 as untagged against this tree, which is how it proves the notes
+    before the tag.
   done_when:
     - run: node tools/selftest/release.ts
       timeout: 900
