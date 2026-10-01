@@ -77,83 +77,92 @@ cases:
     exit: 0
     json:
       schema: 1
-      version: 0.1.0
+      version: "{{version}}"
       requires: ">=0.1.0"
       satisfied: true
   - name: version --check passes when the binary satisfies requires
     argv: [version, --check]
     exit: 0
     stdout: |
-      itos 0.1.0
+      itos {{version}}
   - name: version --check fails when it does not
     argv: [version, --check]
     files:
-      itos.yaml: "version: 1\nrequires: \">=0.2.0\"\n"
+      itos.yaml: "version: 1\nrequires: \">=999.0.0\"\n"
     exit: 1
     stdout: |
-      itos 0.1.0
+      itos {{version}}
     stderr: |
-      itos 0.1.0 does not satisfy >=0.2.0 (the config's requires)
+      itos {{version}} does not satisfy >=999.0.0 (the config's requires)
   - name: version --check --json says whether it is satisfied
     argv: [version, --check, --json]
     files:
-      itos.yaml: "version: 1\nrequires: \">=0.2.0\"\n"
+      itos.yaml: "version: 1\nrequires: \">=999.0.0\"\n"
     exit: 1
     json:
       schema: 1
-      version: 0.1.0
-      requires: ">=0.2.0"
+      version: "{{version}}"
+      requires: ">=999.0.0"
       satisfied: false
     stderr: |
-      itos 0.1.0 does not satisfy >=0.2.0 (the config's requires)
+      itos {{version}} does not satisfy >=999.0.0 (the config's requires)
   - name: every comparator of requires must hold (a lower and an upper bound)
     argv: [version, --check]
     files:
-      itos.yaml: "version: 1\nrequires: \">=0.0.9 <0.2\"\n"
+      itos.yaml: "version: 1\nrequires: \">=0.0.9 <999\"\n"
     exit: 0
     stdout: |
-      itos 0.1.0
+      itos {{version}}
   - name: an upper bound that fails
     argv: [version, --check]
     files:
-      itos.yaml: "version: 1\nrequires: \">=0.0.1 <0.1.0\"\n"
+      itos.yaml: "version: 1\nrequires: \">=0.0.1 <{{version}}\"\n"
     exit: 1
     stdout: |
-      itos 0.1.0
+      itos {{version}}
     stderr: |
-      itos 0.1.0 does not satisfy >=0.0.1 <0.1.0 (the config's requires)
-  - name: a bare version is an exact one, missing parts are zero
+      itos {{version}} does not satisfy >=0.0.1 <{{version}} (the config's requires)
+  - name: a bare version is an exact one
     argv: [version, --check]
     files:
-      itos.yaml: "version: 1\nrequires: \"0.1\"\n"
+      itos.yaml: "version: 1\nrequires: \"{{version}}\"\n"
     exit: 0
     stdout: |
-      itos 0.1.0
+      itos {{version}}
+  - name: a bare version's missing parts are zero, so 0 is 0.0.0, not every 0.x
+    argv: [version, --check]
+    files:
+      itos.yaml: "version: 1\nrequires: \"0\"\n"
+    exit: 1
+    stdout: |
+      itos {{version}}
+    stderr: |
+      itos {{version}} does not satisfy 0 (the config's requires)
   - name: a v prefix and = are allowed
     argv: [version, --check]
     files:
-      itos.yaml: "version: 1\nrequires: \"=v0.1.0\"\n"
+      itos.yaml: "version: 1\nrequires: \"=v{{version}}\"\n"
     exit: 0
     stdout: |
-      itos 0.1.0
+      itos {{version}}
   - name: a comparator it cannot read never holds
     argv: [version, --check]
     files:
       itos.yaml: "version: 1\nrequires: \"~0.1\"\n"
     exit: 1
     stdout: |
-      itos 0.1.0
+      itos {{version}}
     stderr: |
-      itos 0.1.0 does not satisfy ~0.1 (the config's requires)
+      itos {{version}} does not satisfy ~0.1 (the config's requires)
   - name: greater than is strict
     argv: [version, --check]
     files:
-      itos.yaml: "version: 1\nrequires: \">0.1.0\"\n"
+      itos.yaml: "version: 1\nrequires: \">{{version}}\"\n"
     exit: 1
     stdout: |
-      itos 0.1.0
+      itos {{version}}
     stderr: |
-      itos 0.1.0 does not satisfy >0.1.0 (the config's requires)
+      itos {{version}} does not satisfy >{{version}} (the config's requires)
   - name: without requires every version is satisfied
     argv: [version, --check, --json]
     files:
@@ -161,7 +170,7 @@ cases:
     exit: 0
     json:
       schema: 1
-      version: 0.1.0
+      version: "{{version}}"
   - name: a missing config is a config error
     argv: [version]
     files:
@@ -181,9 +190,9 @@ cases:
       other.yaml: "version: 1\nrequires: \">=9\"\n"
     exit: 1
     stdout: |
-      itos 0.1.0
+      itos {{version}}
     stderr: |
-      itos 0.1.0 does not satisfy >=9 (the config's requires)
+      itos {{version}} does not satisfy >=9 (the config's requires)
   - name: ITOS_CONFIG names another config
     argv: [version, --check]
     env:
@@ -192,23 +201,23 @@ cases:
       other.yaml: "version: 1\nrequires: \">=9\"\n"
     exit: 1
     stdout: |
-      itos 0.1.0
+      itos {{version}}
     stderr: |
-      itos 0.1.0 does not satisfy >=9 (the config's requires)
+      itos {{version}} does not satisfy >=9 (the config's requires)
   - name: --root runs as if started in the folder
     argv: [--root, sub, version, --check]
     files:
       sub/itos.yaml: "version: 1\nrequires: \">=9\"\n"
     exit: 1
     stdout: |
-      itos 0.1.0
+      itos {{version}}
     stderr: |
-      itos 0.1.0 does not satisfy >=9 (the config's requires)
+      itos {{version}} does not satisfy >=9 (the config's requires)
   - name: global flags before the command
     argv: [--json, version]
     exit: 0
     json:
       schema: 1
-      version: 0.1.0
+      version: "{{version}}"
       requires: ">=0.1.0"
       satisfied: true

@@ -327,4 +327,4 @@ cases:
     files:
       itos.yaml: "version: 1\n"
     exit: 0
-    stdout: "itos 0.1.0\n"
+    stdout: "itos {{version}}\n"

@@ -31,7 +31,8 @@
 //
 // In every string, `{{dir}}` is the case's folder, `{{PATH}}` the runner's
 // PATH, `{{sha.<label>}}` and `{{short.<label>}}` a labelled commit (40 and 7
-// characters). The command runs in a clean environment: no GIT_*, ITOS_*,
+// characters), `{{version}}` package.json's version, the one itos must say it
+// is, so a release changes the version in package.json alone. The command runs in a clean environment: no GIT_*, ITOS_*,
 // GITHUB_* or CI variable of the caller's, HOME an empty folder, no global or
 // system git config. Nothing is shared between cases, so they run in parallel.
 import { spawn, spawnSync } from "node:child_process";
@@ -172,11 +173,18 @@ function cleanEnv(home: string): NodeJS.ProcessEnv {
 
 type Subst = (s: string) => string;
 
+const VERSION = (
+	JSON.parse(readFileSync(join(import.meta.dirname, "../../../package.json"), "utf8")) as {
+		version: string;
+	}
+).version;
+
 function substituter(dir: string, labels: Map<string, string>): Subst {
 	return (s) =>
-		s.replace(/\{\{(dir|PATH|sha\.[\w-]+|short\.[\w-]+)\}\}/g, (whole, name: string) => {
+		s.replace(/\{\{(dir|PATH|version|sha\.[\w-]+|short\.[\w-]+)\}\}/g, (whole, name: string) => {
 			if (name === "dir") return dir;
 			if (name === "PATH") return process.env.PATH ?? "";
+			if (name === "version") return VERSION;
 			const [form, label] = name.split(".") as [string, string];
 			const sha = labels.get(label);
 			if (sha === undefined) throw new FixtureError(`no commit is labelled ${label} (${whole})`);
