@@ -1,0 +1,117 @@
+# Where a CI run's range starts (`ci range`): a pull request's
+# base; else the start the `ci.range` provider proposes, when it is an
+# ancestor of the head; else empty, which runs everything. A provider that
+# fails, prints nothing or proposes a commit off the history is not an error.
+# The repository: main (root, one, two) and a branch off root (divergent).
+git:
+  - commit: "chore: root"
+    files: { root: "root\n" }
+    label: root
+  - branch: rewritten
+  - commit: "chore: divergent"
+    files: { divergent: "divergent\n" }
+    label: divergent
+  - checkout: main
+  - commit: "chore: one"
+    files: { one: "one\n" }
+    label: one
+  - commit: "chore: two"
+    files: { two: "two\n" }
+    label: two
+files:
+  itos.yaml: |
+    version: 1
+    ci:
+      steps: [{ run: vp check, cost: static }]
+      range: { provider: command, command: "cat green" }
+cases:
+  - name: an ancestor the provider proposes starts the range
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files: { green: "{{sha.root}}\n" }
+    exit: 0
+    stdout: |
+      FROM={{sha.root}}
+  - name: only the provider's first line counts, trimmed
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files: { green: "  {{sha.one}}  \nsomething else\n" }
+    exit: 0
+    stdout: |
+      FROM={{sha.one}}
+  - name: a commit off the head's history runs everything
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files: { green: "{{sha.divergent}}\n" }
+    exit: 0
+    stdout: |
+      FROM=
+  - name: a commit the repository does not have runs everything
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files: { green: "0000000000000000000000000000000000000000\n" }
+    exit: 0
+    stdout: |
+      FROM=
+  - name: a provider that fails runs everything, and is not an error
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files:
+      itos.yaml: "version: 1\nci: { steps: [vp check], range: { provider: command, command: \"echo no green run >&2; exit 3\" } }\n"
+    exit: 0
+    stdout: |
+      FROM=
+    stderr: |
+      no green run
+  - name: a provider that prints nothing runs everything
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files: { green: "" }
+    exit: 0
+    stdout: |
+      FROM=
+  - name: a pull request keeps its base, without asking the provider
+    argv: [ci, range, --head, "{{sha.two}}", --base, "{{sha.divergent}}"]
+    files:
+      itos.yaml: "version: 1\nci: { steps: [vp check], range: { provider: command, command: \"echo asked >&2; cat green\" } }\n"
+      green: "{{sha.root}}\n"
+    exit: 0
+    stdout: |
+      FROM={{sha.divergent}}
+    stderr: ""
+  - name: --json
+    argv: [ci, range, --head, "{{sha.two}}", --json]
+    files: { green: "{{sha.one}}\n" }
+    exit: 0
+    json:
+      schema: 1
+      from: "{{sha.one}}"
+  - name: provider none always runs everything
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files:
+      itos.yaml: "version: 1\nci: { steps: [vp check], range: { provider: none } }\n"
+    exit: 0
+    stdout: |
+      FROM=
+  - name: provider none still keeps a pull request's base
+    argv: [ci, range, --head, "{{sha.two}}", --base, "{{sha.one}}"]
+    files:
+      itos.yaml: "version: 1\nci: { steps: [vp check], range: { provider: none } }\n"
+    exit: 0
+    stdout: |
+      FROM={{sha.one}}
+  - name: provider github without a repository runs everything, asking no one
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files:
+      itos.yaml: "version: 1\nci: { steps: [vp check], range: { provider: github } }\n"
+    exit: 0
+    stdout: |
+      FROM=
+  - name: the provider's command runs in the repository, through the config's shell
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files:
+      itos.yaml: "version: 1\nshell: [sh, -c]\nci: { steps: [vp check], range: { provider: command, command: \"git rev-parse HEAD~1\" } }\n"
+    exit: 0
+    stdout: |
+      FROM={{sha.one}}
+  - name: a command provider needs its command
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files:
+      itos.yaml: "version: 1\nci: { steps: [vp check], range: { provider: command } }\n"
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: ci.range.provider is command, and ci.range.command is missing

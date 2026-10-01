@@ -1,0 +1,1 @@
+exec tools/bin/itos hook pre-push "$@"

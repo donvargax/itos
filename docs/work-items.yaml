@@ -1,0 +1,155 @@
+# Who works what, and what waits on what. A session reads this through
+# `vp run work`, which says who it is working for (the account `gh api user`
+# is signed in as, or `--as <handle>`) and proposes the next items that person
+# can take: `todo`, every dependency `done`, owned by them or by nobody. Who
+# works on the project is CONTRIBUTORS.md.
+#
+# What an item is and when it is done stays where it already lives: a slice's
+# scenarios in e2e/features/, a task's checks in tasks/. This file holds only
+# the routing. Change it in a `docs` commit: take an item by setting `owner`
+# and `status: doing` before starting it, mark it `done` in the commit that
+# lands it (or the next `docs` one), and add the items a slice discovers.
+#
+# Keys of an item: `id` (a slice as `slice-<n>`, a task by its T- ID, anything
+# not yet numbered as `p<phase>-<name>`), `title`, `phase`, `owner` (a GitHub
+# login that CONTRIBUTORS.md lists, or null), `status` (todo, doing, done,
+# blocked), `depends_on` (item IDs), optional `issue` (a GitHub issue number),
+# `refs` (where it is specified), `kind` (slice: needs scenarios and a feat;
+# task: a tasks/ entry with checks, its T- ID given when it is written; idea:
+# a gap with neither yet), optional `why` (a short reason, for an idea
+# above all), `deferred` (why it is put off; the item stays `todo`, is listed
+# apart and is never proposed as startable) and `blocked_by` (why, when
+# blocked on something outside this file).
+#
+# This file is the one list of open work: no TODO or ROADMAP file sits beside
+# it. A gap a slice leaves goes in as a `kind: idea` item, with a title, a
+# short `why`, its owner or null and its `depends_on`, in the slice's last
+# `docs` commit; `vp run work` lists the open ideas apart from what can start
+# now. A coordinator who picks an idea up specifies it (`@wip` scenarios, or a
+# task in tasks/) and changes its kind to `slice` or `task`, and its id if it
+# becomes a slice or a T- ID.
+#
+# CI reads it too: a task a pushed commit names whose item is still `todo`
+# waits (itos.yaml's `ci.wait_on_status`), since nobody has started it.
+
+phases:
+  0: donvargax
+
+items:
+  # ---- phase 0 ----------------------------------------------------------------
+  - id: T-001
+    title: Repository scaffold
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-002
+    title: Static quality gates
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-003
+    title: Unit tests and coverage thresholds
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-004
+    title: Audit gate
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-005
+    title: E2E harness and the smoke set
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-006
+    title: itos v0, the task tool
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-007
+    title: Commit rules and the hooks
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-008
+    title: GitHub Actions CI
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-009
+    title: The nightly, and the gates self-test
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-010
+    title: The changelog from the commits
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-011
+    title: Licences
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-012
+    title: README
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]
+
+  - id: T-013
+    title: Agent instructions
+    phase: 0
+    owner: donvargax
+    status: done
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-0.yaml]

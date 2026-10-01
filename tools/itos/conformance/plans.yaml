@@ -1,0 +1,1293 @@
+# The CI plan (`ci plan --json`, the contract two implementations are compared
+# on) and `ci scope`, for ranges of a scratch repository whose commits name
+# tasks and scenarios: the cost order, the written order (T-045's pair), the
+# prose shortcut and what it leaves out, the one merged run of named tests,
+# the checks a step covers or the nightly runs, tasks not started or unknown,
+# the nightly, an unread range, and a ledger, registry and smoke set read at
+# another commit (--data-at).
+git:
+  - commit: "build: start"
+    files: { tools/a.sh: "0\n" }
+    label: start
+  - commit: "build: the scratch project"
+    files:
+      e2e/smoke.yaml: |
+        - file: list.feature
+          scenarios: [{ id: "@ID-LIST-01", why: opens }]
+        - file: two.feature
+          scenarios: [{ id: "@ID-TWO-02", why: plays }]
+      e2e/features/list.feature: |
+        Feature: List
+
+          @ID-LIST-01
+          Scenario: Opens
+            When I open it
+
+          @ID-LIST-02
+          Scenario: Lists
+            When I list it
+      e2e/features/two.feature: |
+        Feature: Two
+
+          @ID-TWO-01
+          Scenario: One
+            When I press one
+
+          @ID-TWO-02
+          Scenario: Two
+            When I press two
+      docs/work-items.yaml: |
+        items:
+          - { id: T-040, status: todo }
+          - { id: T-050, status: doing }
+          - { id: T-099, status: done }
+      tasks/phase-1.yaml: |
+        # T-045's pair: the file check reads what the
+        # changelog above it writes, and a `sh -c` matches no static pattern.
+        - id: T-045
+          type: build
+          title: The pair
+          done_when:
+            - run: vp run changelog
+            - run: sh -c 'test -s docs/changelog/CHANGELOG.md'
+        # The same pair, the file check saying it is static: written order
+        # makes it late anyway.
+        - id: T-046
+          type: build
+          title: The pair, the second said static
+          done_when:
+            - run: vp run changelog
+            - run: sh -c 'test -s docs/changelog/CHANGELOG.md'
+              cost: static
+        # A static check written above a late one runs before the unit tests.
+        - id: T-047
+          type: build
+          title: Static above late
+          done_when:
+            - run: sh -c 'test -f package.json'
+              cost: static
+            - run: vp run changelog
+      tasks/phase-9.yaml: |
+        # A check of every kind.
+        - id: T-099
+          type: ci
+          title: A task with a check of every kind
+          done_when:
+            - run: sh -c 'test -f package.json'
+              cost: static
+            - run: actionlint
+            - run: vp test run tools/itos/work.test.ts
+              prose: true
+            - run: vp run measure fixture
+            - run: sh -c 'test -f dist/index.html'
+            - run: vp build
+            - run: test -f dist/index.html
+            - run: vp run docs:reference
+            - run: vp test run src/core
+            - run: vp run e2e --grep "@ID-LIST-02"
+        # E2E subsets, steps, the smoke set and a check of its own.
+        - id: T-030
+          type: refactor
+          title: Subsets and steps
+          done_when:
+            - run: vp run e2e --grep "@ID-(TWO|LIB)-"
+            - run: vp test run
+            - run: sh -c 'test -d src'
+            - run: vp run e2e:smoke
+            - fails: vp run e2e --grep '@ID-LIST-01|@ID-TWO-01'
+        # The nightly's check, which a push leaves to it (T-011).
+        - id: T-011
+          type: build
+          title: The gates self-test
+          done_when:
+            - run: node tools/selftest/gates.ts
+        # Static checks, a check that reads the build and one that needs the
+        # push.
+        - id: T-098
+          type: ci
+          title: Cost order
+          done_when:
+            - run: sh -c 'test -f package.json'
+              cost: static
+            - run: actionlint
+            - run: test -f dist/index.html
+            - run: gh run list --limit 1 --json conclusion --jq '.[0].conclusion' | grep -qx success
+              after: push
+        # The recognize templates: a pattern double- or single-quoted, the
+        # smoke set; a pattern the shell would expand, or other flags, run as
+        # they are.
+        - id: T-060
+          type: test
+          title: Checks read back as selections
+          done_when:
+            - run: vp run e2e --grep "@phase-4"
+            - run: vp run e2e --grep '@a|@b'
+            - run: vp run e2e --grep $X
+            - run: vp run e2e --workers 1
+            - run: vp run e2e:smoke
+        # A whole run wins over every selection.
+        - id: T-061
+          type: test
+          title: The whole suite
+          done_when:
+            - run: vp run e2e
+        - { id: T-040, type: build, title: Not started, done_when: [{ run: "true" }] }
+        - { id: T-050, type: build, title: Started, done_when: [{ run: "true" }] }
+      src/a.ts: "export {};\n"
+    label: base
+  - commit: "build: the pair\n\nTask: T-045\n"
+    files: { tools/a.sh: "1\n" }
+    label: pair
+  - commit: "build: the pair said static\n\nTask: T-046\n"
+    files: { tools/a.sh: "2\n" }
+    label: static-pair
+  - commit: "build: static above late\n\nTask: T-047\n"
+    files: { tools/a.sh: "3\n" }
+    label: static-above
+  - commit: "ci: every kind of check\n\nTask: T-099\n"
+    files: { .github/ci.yml: "on: push\n" }
+    label: every
+  - commit: "docs: prose only\n\nTask: T-099\n"
+    files: { docs/a.md: "# A\n", README.md: "# Readme\n" }
+    label: prose
+  - commit: "refactor: subsets and steps\n\nTask: T-030, T-011\n"
+    files: { src/a.ts: "export const a = 1;\n" }
+    label: subsets
+  - commit: "feat: name a scenario\n\nScenarios: @ID-TWO-01\n"
+    files: { src/a.ts: "export const a = 2;\n" }
+    label: scenario
+  - commit: "ci: cost order\n\nTask: T-098\n"
+    files: { .github/ci.yml: "on: [push]\n" }
+    label: cost
+  - commit: "build: tasks not started, started and unknown\n\nTask: T-040, T-050, T-044\n"
+    files: { tools/a.sh: "4\n" }
+    label: status
+  - commit: "test: selections\n\nTask: T-060\nScenarios: @ID-LIST-02, ID-LIST-02, @ID-TWO-02\n"
+    files: { tools/a.sh: "5\n" }
+    label: templates
+  - commit: "test: the whole suite\n\nTask: T-061, T-060\n"
+    files: { tools/a.sh: "6\n" }
+    label: whole
+files:
+  itos.yaml: |
+    version: 1
+    ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+    commits:
+      footers:
+        Task: { source: ledger, validate_for: all, read_at: commit }
+        Scenarios: { source: { tests: scenario }, strip_prefix: "@", validate_for: [feat], read_at: commit }
+    tests:
+      scenario:
+        root: e2e/features
+        id: "ID-[A-Z]+-\\d+"
+        tag_prefix: "@"
+        run:
+          whole: "vp run e2e"
+          select: "vp run e2e --grep {pattern}"
+          ids_pattern: "@(?:{ids})\\b"
+          join: { each: "(?:{p})", sep: "|" }
+        recognize:
+          - { command: "vp run e2e", as: whole }
+          - { command: "vp run e2e --grep {pattern}", as: pattern }
+          - { command: "vp run e2e:smoke", as: smoke }
+        smoke: { file: e2e/smoke.yaml }
+    ci:
+      steps:
+        - { run: vp check, cost: static }
+        - { run: itos tests smoke check scenario, cost: static }
+        - { run: vp run test:coverage, cost: late }
+        - { run: vp build, cost: late }
+        - { tests: scenario }
+      prose: { paths: ["**/*.md", "docs/**"], steps: [vp check] }
+      cost:
+        static: ["^vp check$", "^actionlint\\b"]
+        keep_written_order: true
+      covers:
+        - { by: "vp run test:coverage", matches: "^vp test run(?: [^\\s-]\\S*)*$" }
+      nightly_only: ["node tools/selftest/gates.ts"]
+      nightly: { steps: [{ tests: scenario, whole: true }, node tools/selftest/gates.ts] }
+      wait_on_status: [todo]
+    work: { registry: docs/work-items.yaml }
+cases:
+  - name: selections merge into one command, the IDs deduplicated, patterns joined
+    argv: [ci, plan, "{{sha.status}}", "{{sha.templates}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.status}}"
+        to: "{{sha.templates}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e --grep '(?:@(?:ID-LIST-01|ID-TWO-02|ID-LIST-02)\b)|(?:@phase-4)|(?:@a|@b)|(?:@(?:ID-LIST-01|ID-TWO-02)\b)'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e --grep '(?:@(?:ID-LIST-01|ID-TWO-02|ID-LIST-02)\b)|(?:@phase-4)|(?:@a|@b)|(?:@(?:ID-LIST-01|ID-TWO-02)\b)'
+          cost: late
+          cost_from: default
+        - check:
+            task: T-060
+            index: 0
+            command: vp run e2e --grep "@phase-4"
+          cost: late
+          cost_from: default
+          action: merged
+          kind: scenario
+        - check:
+            task: T-060
+            index: 1
+            command: vp run e2e --grep '@a|@b'
+          cost: late
+          cost_from: default
+          action: merged
+          kind: scenario
+        - check:
+            task: T-060
+            index: 2
+            command: vp run e2e --grep $X
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-060
+            index: 3
+            command: vp run e2e --workers 1
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-060
+            index: 4
+            command: vp run e2e:smoke
+          cost: late
+          cost_from: default
+          action: merged
+          kind: scenario
+      tasks:
+        - T-060
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: a whole run wins over every selection
+    argv: [ci, plan, "{{sha.templates}}", "{{sha.whole}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.templates}}"
+        to: "{{sha.whole}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e
+          cost: late
+          cost_from: default
+        - check:
+            task: T-060
+            index: 0
+            command: vp run e2e --grep "@phase-4"
+          cost: late
+          cost_from: default
+          action: merged
+          kind: scenario
+        - check:
+            task: T-060
+            index: 1
+            command: vp run e2e --grep '@a|@b'
+          cost: late
+          cost_from: default
+          action: merged
+          kind: scenario
+        - check:
+            task: T-060
+            index: 2
+            command: vp run e2e --grep $X
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-060
+            index: 3
+            command: vp run e2e --workers 1
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-060
+            index: 4
+            command: vp run e2e:smoke
+          cost: late
+          cost_from: default
+          action: merged
+          kind: scenario
+        - check:
+            task: T-061
+            index: 0
+            command: vp run e2e
+          cost: late
+          cost_from: default
+          action: merged
+          kind: scenario
+      tasks:
+        - T-060
+        - T-061
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: T-045's pair keeps its written order, the sh -c late by default
+    argv: [ci, plan, "{{sha.base}}", "{{sha.pair}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.base}}"
+        to: "{{sha.pair}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+          cost: late
+          cost_from: default
+        - check:
+            task: T-045
+            index: 0
+            command: vp run changelog
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-045
+            index: 1
+            command: sh -c 'test -s docs/changelog/CHANGELOG.md'
+          cost: late
+          cost_from: default
+          action: run
+      tasks:
+        - T-045
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: a check said static below a late one is late by order
+    argv: [ci, plan, "{{sha.pair}}", "{{sha.static-pair}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.pair}}"
+        to: "{{sha.static-pair}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+          cost: late
+          cost_from: default
+        - check:
+            task: T-046
+            index: 0
+            command: vp run changelog
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-046
+            index: 1
+            command: sh -c 'test -s docs/changelog/CHANGELOG.md'
+          cost: late
+          cost_from: order
+          action: run
+      tasks:
+        - T-046
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: a static check above a late one runs before the unit tests
+    argv: [ci, plan, "{{sha.static-pair}}", "{{sha.static-above}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.static-pair}}"
+        to: "{{sha.static-above}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - check:
+            task: T-047
+            index: 0
+            command: sh -c 'test -f package.json'
+          cost: static
+          cost_from: explicit
+          action: run
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+          cost: late
+          cost_from: default
+        - check:
+            task: T-047
+            index: 1
+            command: vp run changelog
+          cost: late
+          cost_from: default
+          action: run
+      tasks:
+        - T-047
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: a code range plans every check of the task, its subset in the one run
+    argv: [ci, plan, "{{sha.static-above}}", "{{sha.every}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.static-above}}"
+        to: "{{sha.every}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e --grep '(?:@(?:ID-LIST-01|ID-TWO-02)\b)|(?:@ID-LIST-02)'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - check:
+            task: T-099
+            index: 0
+            command: sh -c 'test -f package.json'
+          cost: static
+          cost_from: explicit
+          action: run
+        - check:
+            task: T-099
+            index: 1
+            command: actionlint
+          cost: static
+          cost_from: pattern
+          action: run
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e --grep '(?:@(?:ID-LIST-01|ID-TWO-02)\b)|(?:@ID-LIST-02)'
+          cost: late
+          cost_from: default
+        - check:
+            task: T-099
+            index: 2
+            command: vp test run tools/itos/work.test.ts
+          cost: late
+          cost_from: default
+          action: covered
+          covered_by: vp run test:coverage
+        - check:
+            task: T-099
+            index: 3
+            command: vp run measure fixture
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-099
+            index: 4
+            command: sh -c 'test -f dist/index.html'
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-099
+            index: 5
+            command: vp build
+          cost: late
+          cost_from: default
+          action: covered
+          covered_by: vp build
+        - check:
+            task: T-099
+            index: 6
+            command: test -f dist/index.html
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-099
+            index: 7
+            command: vp run docs:reference
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-099
+            index: 8
+            command: vp test run src/core
+          cost: late
+          cost_from: default
+          action: covered
+          covered_by: vp run test:coverage
+        - check:
+            task: T-099
+            index: 9
+            command: vp run e2e --grep "@ID-LIST-02"
+          cost: late
+          cost_from: default
+          action: merged
+          kind: scenario
+      tasks:
+        - T-099
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: a prose range runs vp check and the static and prose checks, and lists what it leaves out
+    argv: [ci, plan, "{{sha.every}}", "{{sha.prose}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.every}}"
+        to: "{{sha.prose}}"
+        readable: true
+        nightly: false
+      prose: true
+      steps:
+        - vp check
+      order:
+        - step: vp check
+          cost: static
+          cost_from: pattern
+        - check:
+            task: T-099
+            index: 0
+            command: sh -c 'test -f package.json'
+          cost: static
+          cost_from: explicit
+          action: run
+        - check:
+            task: T-099
+            index: 1
+            command: actionlint
+          cost: static
+          cost_from: pattern
+          action: run
+        - check:
+            task: T-099
+            index: 2
+            command: vp test run tools/itos/work.test.ts
+          cost: late
+          cost_from: default
+          action: run
+      tasks:
+        - T-099
+      left_out:
+        - task: T-099
+          index: 3
+          command: vp run measure fixture
+        - task: T-099
+          index: 4
+          command: sh -c 'test -f dist/index.html'
+        - task: T-099
+          index: 5
+          command: vp build
+        - task: T-099
+          index: 6
+          command: test -f dist/index.html
+        - task: T-099
+          index: 7
+          command: vp run docs:reference
+        - task: T-099
+          index: 8
+          command: vp test run src/core
+        - task: T-099
+          index: 9
+          command: vp run e2e --grep "@ID-LIST-02"
+      unknown: []
+      not_started: []
+  - name: subsets merge into one run, a step covers a check, the nightly's check waits
+    argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.prose}}"
+        to: "{{sha.subsets}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e --grep '(?:@(?:ID-LIST-01|ID-TWO-02)\b)|(?:@ID-(TWO|LIB)-)'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e --grep '(?:@(?:ID-LIST-01|ID-TWO-02)\b)|(?:@ID-(TWO|LIB)-)'
+          cost: late
+          cost_from: default
+        - check:
+            task: T-030
+            index: 0
+            command: vp run e2e --grep "@ID-(TWO|LIB)-"
+          cost: late
+          cost_from: default
+          action: merged
+          kind: scenario
+        - check:
+            task: T-030
+            index: 1
+            command: vp test run
+          cost: late
+          cost_from: default
+          action: covered
+          covered_by: vp run test:coverage
+        - check:
+            task: T-030
+            index: 2
+            command: sh -c 'test -d src'
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-030
+            index: 3
+            command: vp run e2e:smoke
+          cost: late
+          cost_from: default
+          action: merged
+          kind: scenario
+        - check:
+            task: T-030
+            index: 4
+            command: vp run e2e --grep '@ID-LIST-01|@ID-TWO-01'
+            fails: true
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-011
+            index: 0
+            command: node tools/selftest/gates.ts
+          cost: late
+          cost_from: default
+          action: nightly
+      tasks:
+        - T-030
+        - T-011
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: a named scenario joins the smoke set in the run
+    argv: [ci, plan, "{{sha.subsets}}", "{{sha.scenario}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.subsets}}"
+        to: "{{sha.scenario}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02|ID-TWO-01)\b'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02|ID-TWO-01)\b'
+          cost: late
+          cost_from: default
+      tasks: []
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: static checks first, the build's and the push's last
+    argv: [ci, plan, "{{sha.scenario}}", "{{sha.cost}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.scenario}}"
+        to: "{{sha.cost}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - check:
+            task: T-098
+            index: 0
+            command: sh -c 'test -f package.json'
+          cost: static
+          cost_from: explicit
+          action: run
+        - check:
+            task: T-098
+            index: 1
+            command: actionlint
+          cost: static
+          cost_from: pattern
+          action: run
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+          cost: late
+          cost_from: default
+        - check:
+            task: T-098
+            index: 2
+            command: test -f dist/index.html
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-098
+            index: 3
+            command: gh run list --limit 1 --json conclusion --jq '.[0].conclusion' | grep -qx success
+          cost: late
+          cost_from: default
+          action: run
+      tasks:
+        - T-098
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: a task not started waits, an unknown one is listed
+    argv: [ci, plan, "{{sha.cost}}", "{{sha.status}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.cost}}"
+        to: "{{sha.status}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+          cost: late
+          cost_from: default
+        - check:
+            task: T-050
+            index: 0
+            command: "true"
+          cost: late
+          cost_from: default
+          action: run
+      tasks:
+        - T-050
+      left_out: []
+      unknown:
+        - T-044
+      not_started:
+        - T-040
+  - name: the plan as text, one item a line
+    argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}"]
+    exit: 0
+    stdout: |
+      static  vp check
+      static  itos tests smoke check scenario
+      late  vp run test:coverage
+      late  vp build
+      late  vp run e2e --grep '(?:@(?:ID-LIST-01|ID-TWO-02)\b)|(?:@ID-(TWO|LIB)-)'
+      late  T-030: vp run e2e --grep "@ID-(TWO|LIB)-"   (merged)
+      late  T-030: vp test run   (covered)
+      late  T-030: sh -c 'test -d src'   (run)
+      late  T-030: vp run e2e:smoke   (merged)
+      late  T-030: vp run e2e --grep '@ID-LIST-01|@ID-TWO-01'   (run)
+      late  T-011: node tools/selftest/gates.ts   (nightly)
+  - name: the nightly runs every test, then its own steps, and no check
+    argv: [ci, plan, --nightly, --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: ""
+        to: ""
+        readable: false
+        nightly: true
+      prose: false
+      steps:
+        - vp run e2e
+        - node tools/selftest/gates.ts
+      order:
+        - step: vp run e2e
+          cost: late
+          cost_from: default
+        - step: node tools/selftest/gates.ts
+          cost: late
+          cost_from: default
+      tasks: []
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: a range with no start is unread and runs every test
+    argv: [ci, plan, "", "{{sha.pair}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: ""
+        to: "{{sha.pair}}"
+        readable: false
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e
+          cost: late
+          cost_from: default
+      tasks: []
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: a start the repository does not have is unread
+    argv: [ci, plan, "1111111111111111111111111111111111111111", "{{sha.pair}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "1111111111111111111111111111111111111111"
+        to: "{{sha.pair}}"
+        readable: false
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e
+          cost: late
+          cost_from: default
+      tasks: []
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: --whole plans every step with every test
+    argv: [ci, plan, --whole, --json]
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: ""
+        to: ""
+        readable: false
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e
+          cost: late
+          cost_from: default
+      tasks: []
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: --data-at reads the ledger, the registry and the smoke set at a commit
+    argv: [ci, plan, "{{sha.static-above}}", "{{sha.every}}", --data-at, "{{sha.base}}", --json]
+    files:
+      e2e/smoke.yaml: "- file: two.feature\n  scenarios: [{ id: \"@ID-TWO-01\", why: changed }]\n"
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.static-above}}"
+        to: "{{sha.every}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e --grep '(?:@(?:ID-LIST-01|ID-TWO-02)\b)|(?:@ID-LIST-02)'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - check:
+            task: T-099
+            index: 0
+            command: sh -c 'test -f package.json'
+          cost: static
+          cost_from: explicit
+          action: run
+        - check:
+            task: T-099
+            index: 1
+            command: actionlint
+          cost: static
+          cost_from: pattern
+          action: run
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e --grep '(?:@(?:ID-LIST-01|ID-TWO-02)\b)|(?:@ID-LIST-02)'
+          cost: late
+          cost_from: default
+        - check:
+            task: T-099
+            index: 2
+            command: vp test run tools/itos/work.test.ts
+          cost: late
+          cost_from: default
+          action: covered
+          covered_by: vp run test:coverage
+        - check:
+            task: T-099
+            index: 3
+            command: vp run measure fixture
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-099
+            index: 4
+            command: sh -c 'test -f dist/index.html'
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-099
+            index: 5
+            command: vp build
+          cost: late
+          cost_from: default
+          action: covered
+          covered_by: vp build
+        - check:
+            task: T-099
+            index: 6
+            command: test -f dist/index.html
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-099
+            index: 7
+            command: vp run docs:reference
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-099
+            index: 8
+            command: vp test run src/core
+          cost: late
+          cost_from: default
+          action: covered
+          covered_by: vp run test:coverage
+        - check:
+            task: T-099
+            index: 9
+            command: vp run e2e --grep "@ID-LIST-02"
+          cost: late
+          cost_from: default
+          action: merged
+          kind: scenario
+      tasks:
+        - T-099
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: ci scope of a prose-only range
+    argv: [ci, scope, "{{sha.every}}", "{{sha.prose}}"]
+    exit: 0
+    stdout: |
+      docs_only=true
+  - name: ci scope of a range that touches code
+    argv: [ci, scope, "{{sha.prose}}", "{{sha.subsets}}"]
+    exit: 0
+    stdout: |
+      docs_only=false
+  - name: ci scope of a range that touches the ledger is not prose
+    argv: [ci, scope, "{{sha.start}}", "{{sha.base}}"]
+    exit: 0
+    stdout: |
+      docs_only=false
+  - name: ci scope of a range it cannot read is not prose
+    argv: [ci, scope, "", "{{sha.prose}}"]
+    exit: 0
+    stdout: |
+      docs_only=false
+  - name: ci scope --json
+    argv: [ci, scope, "{{sha.every}}", "{{sha.prose}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      docs_only: true
+  - name: without prose paths nothing is prose
+    argv: [ci, scope, "{{sha.every}}", "{{sha.prose}}", --config, noprose.yaml]
+    files:
+      noprose.yaml: "version: 1\nci: { steps: [vp check] }\n"
+    exit: 0
+    stdout: |
+      docs_only=false
+  - name: without a registry no task waits
+    argv: [ci, plan, "{{sha.cost}}", "{{sha.status}}", --json]
+    files:
+      docs/work-items.yaml: null
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.cost}}"
+        to: "{{sha.status}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+        - vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - step: vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+          cost: late
+          cost_from: default
+        - check:
+            task: T-040
+            index: 0
+            command: "true"
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-050
+            index: 0
+            command: "true"
+          cost: late
+          cost_from: default
+          action: run
+      tasks:
+        - T-040
+        - T-050
+      left_out: []
+      unknown:
+        - T-044
+      not_started: []

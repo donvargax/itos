@@ -1,0 +1,28 @@
+# A kind of named test listed by a command, not built in: the command adapter
+# of tools/itos/tests.ts, proven with a script that prints three fixtures, and
+# a footer that names them.
+#
+#   ITOS_CONFIG=tools/itos/fixtures/command-adapter.yaml tools/bin/itos tests list fixture --json
+version: 1
+shell: [sh, -c]
+commits:
+  types: [feat, fix, docs]
+  footers:
+    Fixture:
+      source: { tests: fixture }
+      required_for: [feat, fix]
+      validate_for: [feat, fix]
+      must_be_live: true
+      read_at: commit # the script cannot list a tree, so this reads the working tree, and warns
+tests:
+  fixture:
+    adapter: { command: "sh tools/itos/fixtures/fixture-adapter.sh", supports_at: false }
+    id: "F-\\d+"
+    run:
+      whole: "sh tools/itos/fixtures/fixture-adapter.sh run"
+      select: "sh tools/itos/fixtures/fixture-adapter.sh run {pattern}"
+      ids_pattern: "^(?:{ids})$"
+      join: { each: "(?:{p})", sep: "|" }
+    recognize:
+      - { command: "sh tools/itos/fixtures/fixture-adapter.sh run", as: whole }
+      - { command: "sh tools/itos/fixtures/fixture-adapter.sh run {pattern}", as: pattern }

@@ -1,0 +1,4 @@
+#!/bin/sh
+# itos: the task tool's one command line, tools/itos/main.ts, wherever it is
+# called from. `itos --help` lists the commands.
+exec node "$(dirname "$0")/../itos/main.ts" "$@"

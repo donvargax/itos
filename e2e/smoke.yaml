@@ -1,0 +1,22 @@
+# The smoke set: the scenarios every push's CI runs, beside the ones its
+# commits name. The whole suite runs nightly (.github/workflows/nightly.yml).
+#
+# The rule, checked by `tools/bin/itos tests smoke check scenario` in CI:
+# every feature file with a live scenario has at least one here, every ID here
+# is a live scenario of the file it is listed under, and a file with more than
+# one says why (`more`). `vp run e2e:smoke` runs exactly this set.
+#
+# How to pick one: a fast scenario that exercises what its file is about, not
+# an edge of it, chosen from the per-scenario times of the full runs and from
+# what has failed on main; slow, narrow or timing-heavy ones stay in the
+# nightly.
+#
+# The shape (read by tools/itos/smoke.ts, the file itos.yaml's
+# `tests.scenario.smoke` names): one entry per feature file, `file` relative to
+# e2e/features, `more` saying why the file has more than one (required when it
+# does), and each scenario's `id` and `why`. Quote a value holding `: `, and
+# every ID (its `@` starts no plain scalar).
+- file: app.feature
+  scenarios:
+    - id: "@ID-APP-01"
+      why: the page opens and shows what it computed, the file's point

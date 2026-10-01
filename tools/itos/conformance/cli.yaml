@@ -1,0 +1,214 @@
+# The command line itself: the global flags wherever they stand, the
+# usage errors (exit 2, naming the help), a config that cannot be read (2), and
+# `version` held to the config's `requires`.
+files:
+  itos.yaml: |
+    version: 1
+    requires: ">=0.1.0"
+    ci: { steps: [] }
+cases:
+  - name: an unknown command is a usage error
+    argv: [bogus]
+    exit: 2
+    stderr: |
+      itos: unknown command: bogus (itos --help)
+  - name: an unknown subcommand is a usage error
+    argv: [commit, bogus]
+    exit: 2
+    stderr: |
+      itos: unknown command: commit bogus (itos --help)
+  - name: verify needs two commits
+    argv: [verify, HEAD]
+    exit: 2
+    stderr: |
+      itos: verify needs <from> <to> (itos --help)
+  - name: ci plan needs a range, --nightly or --whole
+    argv: [ci, plan]
+    exit: 2
+    stderr: |
+      itos: ci plan needs <from> <to>, --nightly or --whole (itos --help)
+  - name: ci scope needs a range
+    argv: [ci, scope, HEAD]
+    exit: 2
+    stderr: |
+      itos: ci scope needs <from> <to> (itos --help)
+  - name: ci range needs --head
+    argv: [ci, range]
+    exit: 2
+    stderr: |
+      itos: ci range needs --head <sha> (itos --help)
+  - name: commit check-paths needs --type
+    argv: [commit, check-paths, src/a.ts]
+    exit: 2
+    stderr: |
+      itos: commit check-paths needs --type <type> (itos --help)
+  - name: commit check-message needs a file or -
+    argv: [commit, check-message]
+    exit: 2
+    stderr: |
+      itos: commit check-message needs <file|-> (itos --help)
+  - name: tests list needs a kind
+    argv: [tests, list]
+    exit: 2
+    stderr: |
+      itos: tests list needs <kind> (itos --help)
+  - name: tests smoke needs an action and a kind
+    argv: [tests, smoke, check]
+    exit: 2
+    stderr: |
+      itos: tests smoke check needs <kind> (itos --help)
+  - name: hooks install takes only the managers it knows
+    argv: [hooks, install, --manager, bogus]
+    exit: 2
+    stderr: |
+      itos: hooks install --manager takes vp|git|husky|lefthook|pre-commit|prek (itos --help)
+  - name: hook needs commit-msg or pre-push
+    argv: [hook, pre-commit]
+    exit: 2
+    stderr: |
+      itos: unknown command: hook pre-commit (itos --help)
+  - name: config needs check
+    argv: [config, bogus]
+    exit: 2
+    stderr: |
+      itos: unknown command: config bogus (itos --help)
+  - name: version --json
+    argv: [version, --json]
+    exit: 0
+    json:
+      schema: 1
+      version: 0.1.0
+      requires: ">=0.1.0"
+      satisfied: true
+  - name: version --check passes when the binary satisfies requires
+    argv: [version, --check]
+    exit: 0
+    stdout: |
+      itos 0.1.0
+  - name: version --check fails when it does not
+    argv: [version, --check]
+    files:
+      itos.yaml: "version: 1\nrequires: \">=0.2.0\"\n"
+    exit: 1
+    stdout: |
+      itos 0.1.0
+    stderr: |
+      itos 0.1.0 does not satisfy >=0.2.0 (the config's requires)
+  - name: version --check --json says whether it is satisfied
+    argv: [version, --check, --json]
+    files:
+      itos.yaml: "version: 1\nrequires: \">=0.2.0\"\n"
+    exit: 1
+    json:
+      schema: 1
+      version: 0.1.0
+      requires: ">=0.2.0"
+      satisfied: false
+    stderr: |
+      itos 0.1.0 does not satisfy >=0.2.0 (the config's requires)
+  - name: every comparator of requires must hold (a lower and an upper bound)
+    argv: [version, --check]
+    files:
+      itos.yaml: "version: 1\nrequires: \">=0.0.9 <0.2\"\n"
+    exit: 0
+    stdout: |
+      itos 0.1.0
+  - name: an upper bound that fails
+    argv: [version, --check]
+    files:
+      itos.yaml: "version: 1\nrequires: \">=0.0.1 <0.1.0\"\n"
+    exit: 1
+    stdout: |
+      itos 0.1.0
+    stderr: |
+      itos 0.1.0 does not satisfy >=0.0.1 <0.1.0 (the config's requires)
+  - name: a bare version is an exact one, missing parts are zero
+    argv: [version, --check]
+    files:
+      itos.yaml: "version: 1\nrequires: \"0.1\"\n"
+    exit: 0
+    stdout: |
+      itos 0.1.0
+  - name: a v prefix and = are allowed
+    argv: [version, --check]
+    files:
+      itos.yaml: "version: 1\nrequires: \"=v0.1.0\"\n"
+    exit: 0
+    stdout: |
+      itos 0.1.0
+  - name: a comparator it cannot read never holds
+    argv: [version, --check]
+    files:
+      itos.yaml: "version: 1\nrequires: \"~0.1\"\n"
+    exit: 1
+    stdout: |
+      itos 0.1.0
+    stderr: |
+      itos 0.1.0 does not satisfy ~0.1 (the config's requires)
+  - name: greater than is strict
+    argv: [version, --check]
+    files:
+      itos.yaml: "version: 1\nrequires: \">0.1.0\"\n"
+    exit: 1
+    stdout: |
+      itos 0.1.0
+    stderr: |
+      itos 0.1.0 does not satisfy >0.1.0 (the config's requires)
+  - name: without requires every version is satisfied
+    argv: [version, --check, --json]
+    files:
+      itos.yaml: "version: 1\n"
+    exit: 0
+    json:
+      schema: 1
+      version: 0.1.0
+  - name: a missing config is a config error
+    argv: [version]
+    files:
+      itos.yaml: null
+    exit: 2
+    stderr_has: "FAIL itos.yaml: cannot be read: "
+  - name: a config that is not version 1
+    argv: [version]
+    files:
+      itos.yaml: "version: 2\n"
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: version 2 is not 1
+  - name: --config names another config, wherever it stands
+    argv: [version, --check, --config, other.yaml]
+    files:
+      other.yaml: "version: 1\nrequires: \">=9\"\n"
+    exit: 1
+    stdout: |
+      itos 0.1.0
+    stderr: |
+      itos 0.1.0 does not satisfy >=9 (the config's requires)
+  - name: ITOS_CONFIG names another config
+    argv: [version, --check]
+    env:
+      ITOS_CONFIG: other.yaml
+    files:
+      other.yaml: "version: 1\nrequires: \">=9\"\n"
+    exit: 1
+    stdout: |
+      itos 0.1.0
+    stderr: |
+      itos 0.1.0 does not satisfy >=9 (the config's requires)
+  - name: --root runs as if started in the folder
+    argv: [--root, sub, version, --check]
+    files:
+      sub/itos.yaml: "version: 1\nrequires: \">=9\"\n"
+    exit: 1
+    stdout: |
+      itos 0.1.0
+    stderr: |
+      itos 0.1.0 does not satisfy >=9 (the config's requires)
+  - name: global flags before the command
+    argv: [--json, version]
+    exit: 0
+    json:
+      schema: 1
+      version: 0.1.0
+      requires: ">=0.1.0"
+      satisfied: true

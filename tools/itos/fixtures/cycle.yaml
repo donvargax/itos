@@ -1,0 +1,7 @@
+# Two items that wait on each other: `itos work check` must refuse this file.
+# Owned by nobody, so it does not depend on who CONTRIBUTORS.md lists.
+phases:
+  1: null
+items:
+  - { id: a, title: A, phase: 1, owner: null, status: todo, depends_on: [b] }
+  - { id: b, title: B, phase: 1, owner: null, status: todo, depends_on: [a] }

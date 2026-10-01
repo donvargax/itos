@@ -1,0 +1,8 @@
+# A config with a misspelt key. `itos config check` must name it
+# (ci.cost.keep_writen_order) and fail, not ignore it.
+version: 1
+ci:
+  steps: [{ run: vp check, cost: static }]
+  cost:
+    static: ["^vp check$"]
+    keep_writen_order: true

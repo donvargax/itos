@@ -1,0 +1,144 @@
+# itos.yaml — the task tooling's policy (tasks/README.md explains it)
+#
+# One file for every table the task tool reads: the ledger's layout, the
+# commit rules, the named tests, the CI plan, the work routing and the hooks.
+# tools/itos/config.ts loads it and rejects a key it does not know;
+# `ITOS_CONFIG` names another file. `$name` in a path list stands for
+# `commits.path_sets.<name>`. The range, the identity and the people are
+# providers (tools/itos/providers.ts).
+version: 1
+requires: ">=0.1.0" # the oldest itos that reads this file
+shell: [sh, -c]
+
+ledger:
+  files: "tasks/phase-{group}.yaml" # one file per phase
+  group: { label: phase, pattern: "\\d+", numeric: true }
+  id: "T-\\d+"
+  check:
+    timeout: 600 # seconds
+    pushed: remote-branch-contains-head # what `after: push` waits for
+
+commits:
+  types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
+  header_lint:
+    use: command # commitlint: config-conventional plus one rule per footer
+    hook: "vp exec commitlint --edit {file}"
+    stdin: "vp exec commitlint"
+  footers: # tools/itos/footers.ts reads them, for the commit-msg rule and CI
+    Task:
+      source: ledger
+      # A revert names the task it undoes, so a failed piece of work leaves a trail.
+      required_for: [refactor, perf, test, build, ci, chore, revert]
+      validate_for: all
+      read_at: commit # a commit is judged against the ledger it carried
+    Scenarios:
+      source: { tests: scenario }
+      strip_prefix: "@"
+      required_for: [feat, fix]
+      validate_for: [feat, fix]
+      must_be_live: true # a feat or fix names scenarios it turns green, not @wip ones
+      read_at: commit
+  path_sets:
+    config: # what build and ci commits may touch
+      - "*.{json,yaml,yml,ts,toml}"
+      - .gitignore
+      - .editorconfig
+      - ".vite-hooks/**"
+      - ".github/**"
+      - "tools/**"
+      - .claude/settings.json
+      - index.html
+      - src/main.ts
+  scopes: # the paths each commit type may touch (tasks/README.md's table)
+    feat: { must_touch: ["src/**", "e2e/**"] }
+    fix: { must_touch: ["src/**"] }
+    refactor: { never: ["e2e/features/**"] }
+    perf: { never: ["e2e/features/**"] }
+    test: { only: ["e2e/**", "**/*.test.ts", "tools/**", playwright.config.ts] }
+    build: { only: [$config] }
+    ci: { only: [$config] }
+    chore: { never: ["src/**"] }
+    docs: { only: ["**/*.md", "docs/**", "tasks/**", "e2e/features/**"] }
+    style: {}
+  reject_message: "Commit rejected (see tasks/README.md):"
+
+tests: # named tests, each kind behind an adapter (tools/itos/tests.ts)
+  scenario:
+    adapter: gherkin # built in: tools/itos/gherkin.ts
+    root: e2e/features
+    id: "ID-[A-Z]+-\\d+"
+    tag_prefix: "@"
+    wip_tag: "@wip"
+    run: # the one command every selection of a push merges into
+      whole: "vp run e2e"
+      select: "vp run e2e --grep {pattern}"
+      ids_pattern: "@(?:{ids})\\b"
+      join: { each: "(?:{p})", sep: "|" }
+    recognize: # a task check read back as a selection, so CI runs it in the one run
+      - { command: "vp run e2e", as: whole }
+      - { command: "vp run e2e --grep {pattern}", as: pattern }
+      - { command: "vp run e2e:smoke", as: smoke }
+    smoke: { file: e2e/smoke.yaml, every_file: true, add_hint: "add one to e2e/smoke.yaml" }
+    range_checks:
+      - name: scenario-moves # outside feat and fix, live scenarios only move, unchanged
+        except_types: [feat, fix]
+        staged: "node tools/itos/scenario-moves.ts --type {type}"
+        range: "node tools/itos/scenario-moves.ts {from} {to}"
+
+ci:
+  env: { CI: "1" }
+  steps: # every step of CI, in order; each states its cost
+    - { run: vp check, cost: static }
+    - { run: tools/bin/itos tests smoke check scenario, cost: static }
+    - { run: vp run test:coverage, cost: late }
+    - { run: vp build, cost: late }
+    - { run: vp run audit, cost: late }
+    - { run: vp run task T-007, cost: late } # the commit rules, proven on every push
+    - { tests: scenario } # the one merged run; late, as no pattern matches it
+  prose: # a range that touches only these runs only the prose steps
+    paths: ["**/*.md", "docs/**"]
+    steps: [vp check]
+  cost:
+    # Checks with no `cost:` of their own: static if a pattern matches, else
+    # late. Only commands static by what they are: `sh -c` wraps anything, so a
+    # static sh -c check says `cost: static` in the ledger.
+    static:
+      - "^vp check$"
+      - "^(tools/bin/)?itos (tests smoke check|commit|verify|ci (plan|scope|range)|work|config check)\\b"
+      - "^actionlint\\b"
+      - "^git ls-remote "
+      - "\\| vp exec commitlint$"
+      - "^node tools/selftest/(ci-scope|ci-range)\\.ts$"
+    keep_written_order: true # a task's checks never run before the ones above them
+  covers: # a check a step has just done is not run again
+    - { by: "vp run test:coverage", matches: "^vp test run(?: [^\\s-]\\S*)*$" }
+  # Slow, and it proves the gates rather than the code: left to the nightly.
+  nightly_only: ["node tools/selftest/gates.ts"]
+  nightly:
+    steps: [{ tests: scenario, whole: true }, node tools/selftest/gates.ts]
+  wait_on_status: [todo] # a named task nobody has started waits
+  stop_at_first_failure: true
+  range:
+    provider: github # or command (with command:, its stdout) or none
+    github:
+      {
+        workflow: ci.yml,
+        branch: main,
+        repository_env: GITHUB_REPOSITORY,
+        token_env: [GITHUB_TOKEN, GH_TOKEN],
+      }
+
+work: # tools/itos/work.ts
+  registry: docs/work-items.yaml
+  groups_key: phases
+  statuses: [todo, doing, done, blocked]
+  # or all-contributorsrc (contributors[].login) or yaml (a list of logins)
+  people:
+    { source: all-contributors-md, file: CONTRIBUTORS.md, login_from: "https://github.com/{login}" }
+  # gh api user; or command (with command:, its stdout) or none (only --as)
+  identity: { provider: github, hint: "pass --as <handle>" }
+
+hooks:
+  manager: vp # shims in .vite-hooks/, written by `itos hooks install`
+  bin: tools/bin/itos # what the shims call
+  pre_push: { per_base: "vp test run --changed {base}", whole: "vp test run" }

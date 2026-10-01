@@ -1,0 +1,373 @@
+# One message through the footer rules (`commit check-message`):
+# the wording of each rejection, the tree each footer's IDs are read at (the
+# staged tree by default, the commit --at names, the working tree for a
+# commit that predates the source, or always with read_at: worktree), another
+# config's footers, a command adapter's tests named in a footer, and a
+# delegated header lint's report read into problems.
+#
+# The repository: a commit before the ledger (bare); a feat naming a live
+# scenario and T-002 (live); then the scenario set back to @wip and T-002
+# taken out of the ledger (head).
+git:
+  - commit: "docs: start"
+    files: { README.md: "scratch\n" }
+    label: bare
+  - commit: "feat: add a thing\n\nScenarios: @ID-SCRATCH-01\nTask: T-002\n"
+    files:
+      e2e/features/scratch.feature: &live |
+        @phase-1
+        Feature: Scratch
+
+          @ID-SCRATCH-01
+          Scenario: Lies down
+            When I press "Play"
+      tasks/phase-1.yaml: |
+        - { id: T-001, type: build, title: Scratch T-001 }
+        - { id: T-002, type: build, title: Scratch T-002 }
+    label: live
+  - commit: "docs: set the scenario back to @wip\n\nTask: T-001, T-001\n"
+    files:
+      e2e/features/scratch.feature: |
+        @phase-1
+        Feature: Scratch
+
+          @ID-SCRATCH-01 @wip
+          Scenario: Lies down
+            When I press "Play"
+      tasks/phase-1.yaml: |
+        - { id: T-001, type: build, title: Scratch T-001 }
+    label: head
+files:
+  itos.yaml: |
+    version: 1
+    ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+    commits:
+      types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
+      footers:
+        Task:
+          source: ledger
+          required_for: [refactor, perf, test, build, ci, chore, revert]
+          validate_for: all
+          read_at: commit
+        Scenarios:
+          source: { tests: scenario }
+          strip_prefix: "@"
+          required_for: [feat, fix]
+          validate_for: [feat, fix]
+          must_be_live: true
+          read_at: commit
+    tests:
+      scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", wip_tag: "@wip" }
+  other.yaml: |
+    version: 1
+    ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+    commits:
+      types: [feat, chore, docs]
+      footers:
+        Refs: { source: ledger, required_for: [chore], validate_for: all, read_at: worktree }
+        Tests:
+          source: { tests: scenario }
+          strip_prefix: "@"
+          required_for: [feat]
+          validate_for: [feat]
+          read_at: commit
+    tests:
+      scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", wip_tag: "@wip" }
+cases:
+  - name: a scenario now @wip is rejected in a new commit
+    argv: [commit, check-message, "-"]
+    stdin: "feat: x\n\nScenarios: @ID-SCRATCH-01\n"
+    exit: 1
+    stderr: |
+      ✖   still tagged @wip: ID-SCRATCH-01 [scenarios-footer]
+  - name: the message may come from a file
+    argv: [commit, check-message, msg.txt]
+    files: { msg.txt: "feat: x\n\nScenarios: @ID-SCRATCH-01\n" }
+    exit: 1
+    stderr: |
+      ✖   still tagged @wip: ID-SCRATCH-01 [scenarios-footer]
+  - name: --at reads the scenarios at that commit, where it was live
+    argv: [commit, check-message, "-", --at, "{{sha.live}}"]
+    stdin: "feat: x\n\nScenarios: @ID-SCRATCH-01\n"
+    exit: 0
+  - name: --at still rejects a scenario that commit did not have
+    argv: [commit, check-message, "-", --at, "{{sha.live}}"]
+    stdin: "feat: x\n\nScenarios: @ID-SCRATCH-02\n"
+    exit: 1
+    stderr: |
+      ✖   unknown scenarios: ID-SCRATCH-02 [scenarios-footer]
+  - name: --at HEAD reads the scenario as @wip
+    argv: [commit, check-message, --at, HEAD, "-"]
+    stdin: "feat: x\n\nScenarios: @ID-SCRATCH-01\n"
+    exit: 1
+    stderr: |
+      ✖   still tagged @wip: ID-SCRATCH-01 [scenarios-footer]
+  - name: a task the ledger had at the commit passes there
+    argv: [commit, check-message, "-", --at, "{{sha.live}}"]
+    stdin: "build: x\n\nTask: T-002\n"
+    exit: 0
+  - name: a task taken out of the ledger is unknown in a new commit
+    argv: [commit, check-message, "-"]
+    stdin: "build: x\n\nTask: T-002\n"
+    exit: 1
+    stderr: |
+      ✖   unknown tasks: T-002 [task-footer]
+  - name: the footers read the staged tree, not the working tree
+    argv: [commit, check-message, "-"]
+    stdin: "build: x\n\nTask: T-003\n"
+    git:
+      - commit: "docs: a ledger"
+        files: { tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
+      - stage: { tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n- { id: T-003, type: build, title: Three }\n" }
+      - write: { tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
+    exit: 0
+  - name: a task only the working tree has is unknown to a commit
+    argv: [commit, check-message, "-"]
+    stdin: "build: x\n\nTask: T-003\n"
+    git:
+      - commit: "docs: a ledger"
+        files: { tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
+      - write: { tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n- { id: T-003, type: build, title: Three }\n" }
+    exit: 1
+    stderr: |
+      ✖   unknown tasks: T-003 [task-footer]
+  - name: a commit that predates the ledger is read against the working tree, and says so
+    argv: [commit, check-message, "-", --at, "{{sha.bare}}"]
+    stdin: "build: x\n\nTask: T-001\n"
+    exit: 0
+    stderr: |
+      {{sha.bare}} has no tasks; its Task: footer is read against the working tree
+  - name: the working tree still rejects a task it lacks
+    argv: [commit, check-message, "-", --at, "{{sha.bare}}"]
+    stdin: "build: x\n\nTask: T-002\n"
+    exit: 1
+    stderr: |
+      {{sha.bare}} has no tasks; its Task: footer is read against the working tree
+      ✖   unknown tasks: T-002 [task-footer]
+  - name: a type that needs a Task footer, without one
+    argv: [commit, check-message, "-"]
+    stdin: "chore: x\n"
+    exit: 1
+    stderr: |
+      ✖   chore commits need a "Task: T-…" footer [task-footer]
+  - name: a type that needs a Scenarios footer, without one
+    argv: [commit, check-message, "-"]
+    stdin: "fix: x\n"
+    exit: 1
+    stderr: |
+      ✖   fix commits need a "Scenarios: @ID-…" footer [scenarios-footer]
+  - name: docs needs no footer
+    argv: [commit, check-message, "-"]
+    stdin: "docs: x\n"
+    exit: 0
+  - name: a footer over several lines, with and without its prefix
+    argv: [commit, check-message, "-"]
+    stdin: "feat: x\n\nScenarios: @ID-A-1, @ID-B-2\nScenarios: ID-C-3\n"
+    exit: 1
+    stderr: |
+      ✖   unknown scenarios: ID-A-1, ID-B-2, ID-C-3 [scenarios-footer]
+  - name: an ID without the prefix is the same ID
+    argv: [commit, check-message, "-", --at, "{{sha.live}}"]
+    stdin: "feat: x\n\nScenarios: ID-SCRATCH-01\n"
+    exit: 0
+  - name: every footer is checked, each problem on its line
+    argv: [commit, check-message, "-"]
+    stdin: "feat: x\n\nScenarios: @ID-NOPE-01\nTask: T-044\n"
+    exit: 1
+    stderr: |
+      ✖   unknown tasks: T-044 [task-footer]
+      ✖   unknown scenarios: ID-NOPE-01 [scenarios-footer]
+  - name: a Task footer on a type that needs none is still validated
+    argv: [commit, check-message, "-"]
+    stdin: "docs: x\n\nTask: T-044\n"
+    exit: 1
+    stderr: |
+      ✖   unknown tasks: T-044 [task-footer]
+  - name: --json gives each problem its rule and fix
+    argv: [commit, check-message, "-", --json]
+    stdin: "feat: x\n\nScenarios: @ID-SCRATCH-01, @ID-NOPE-01\nTask: T-044\n"
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: task-footer
+          message: "unknown tasks: T-044"
+          fix: name an id tasks/ has, or add it first in a docs commit
+        - rule: scenarios-footer
+          message: "unknown scenarios: ID-NOPE-01"
+          fix: name an id the scenario files has, or add it first in a docs commit
+  - name: --json of a missing footer
+    argv: [commit, check-message, --json, "-"]
+    stdin: "refactor: x\n"
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: task-footer
+          message: 'refactor commits need a "Task: T-…" footer'
+          fix: "add a line `Task: <id>` after a blank line at the end, naming what the commit belongs to"
+  - name: --json of a message that passes
+    argv: [commit, check-message, --json, "-"]
+    stdin: "build: x\n\nTask: T-001\n"
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      problems: []
+  - name: another config's footer, required for its types, with its ID hint
+    argv: [commit, check-message, "-", --config, other.yaml]
+    stdin: "chore: x\n"
+    exit: 1
+    stderr: |
+      ✖   chore commits need a "Refs: T-…" footer [refs-footer]
+  - name: another config's footer, given
+    argv: [commit, check-message, "-", --config, other.yaml]
+    stdin: "chore: x\n\nRefs: T-001\n"
+    exit: 0
+  - name: validate_for all checks a type that need not carry it
+    argv: [commit, check-message, "-", --config, other.yaml]
+    stdin: "docs: x\n\nRefs: T-009\n"
+    exit: 1
+    stderr: |
+      ✖   unknown tasks: T-009 [refs-footer]
+  - name: without must_be_live a @wip scenario may be named
+    argv: [commit, check-message, "-", --config, other.yaml]
+    stdin: "feat: x\n\nTests: @ID-SCRATCH-01\n"
+    exit: 0
+  - name: another config's footer hint for a kind of tests
+    argv: [commit, check-message, "-", --config, other.yaml]
+    stdin: "feat: x\n"
+    exit: 1
+    stderr: |
+      ✖   feat commits need a "Tests: @ID-…" footer [tests-footer]
+  - name: a footer the config does not define is not read
+    argv: [commit, check-message, "-", --config, other.yaml]
+    stdin: "chore: x\n\nTask: T-001\n"
+    exit: 1
+    stderr: |
+      ✖   chore commits need a "Refs: T-…" footer [refs-footer]
+  - name: read_at worktree reads the working tree even at a commit
+    argv: [commit, check-message, "-", --config, other.yaml, --at, "{{sha.live}}"]
+    stdin: "chore: x\n\nRefs: T-002\n"
+    exit: 1
+    stderr: |
+      ✖   unknown tasks: T-002 [refs-footer]
+  - name: read_at commit reads that commit beside it
+    argv: [commit, check-message, "-", --config, other.yaml, --at, "{{sha.live}}"]
+    stdin: "feat: x\n\nTests: @ID-SCRATCH-02\n"
+    exit: 1
+    stderr: |
+      ✖   unknown scenarios: ID-SCRATCH-02 [tests-footer]
+  - name: a header lint delegate's report is printed as it comes, and its failure is the message's
+    argv: [commit, check-message, "-", --config, delegate.yaml]
+    stdin: "update things\n"
+    files: &delegate
+      delegate.yaml: |
+        version: 1
+        commits:
+          header_lint: { use: command, stdin: "sh lint.sh" }
+      lint.sh: |
+        read header
+        case "$header" in
+          *:*) exit 0 ;;
+        esac
+        echo "⧗   input: $header"
+        echo "✖   subject may not be empty [subject-empty]"
+        echo "✖   type may not be empty [type-empty]"
+        echo "⚠   body's lines must not be longer than 100 characters [body-max-line-length]"
+        echo
+        echo "✖   found 2 problems, 1 warnings"
+        exit 1
+    exit: 1
+    stdout: |
+      ⧗   input: update things
+      ✖   subject may not be empty [subject-empty]
+      ✖   type may not be empty [type-empty]
+      ⚠   body's lines must not be longer than 100 characters [body-max-line-length]
+
+      ✖   found 2 problems, 1 warnings
+  - name: --json reads the delegate's report into problems, each with its level and fix
+    argv: [commit, check-message, "-", --json, --config, delegate.yaml]
+    stdin: "update things\n"
+    files: *delegate
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: subject-empty
+          message: subject may not be empty
+          fix: write a subject after the type's colon
+          level: error
+        - rule: type-empty
+          message: type may not be empty
+          fix: "start the header with a type and a colon, as in `fix: …`"
+          level: error
+        - rule: body-max-line-length
+          message: body's lines must not be longer than 100 characters
+          fix: wrap the body at 100 characters
+          level: warning
+  - name: a message the delegate passes
+    argv: [commit, check-message, "-", --config, delegate.yaml]
+    stdin: "docs: things\n"
+    files: *delegate
+    exit: 0
+  - name: a delegate that fails without a report of its rules is one header-lint problem
+    argv: [commit, check-message, "-", --json, --config, broken.yaml]
+    stdin: "docs: things\n"
+    files:
+      broken.yaml: |
+        version: 1
+        commits:
+          header_lint: { use: command, stdin: "cat >/dev/null; echo 'lint: no config found'; exit 9" }
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: header-lint
+          message: "lint: no config found"
+          level: error
+  - name: a delegate's footer rule gets the footer's fix
+    argv: [commit, check-message, "-", --json]
+    stdin: "feat: x\n"
+    env: { ITOS_CONFIG: footers-delegated.yaml }
+    git: []
+    files:
+      footers-delegated.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml" }
+        commits:
+          header_lint: { use: command, stdin: "cat >/dev/null; sh report.sh; exit 1" }
+          footers:
+            Task: { source: ledger, required_for: [chore], validate_for: all }
+            Scenarios: { source: { tests: scenario }, strip_prefix: "@", required_for: [feat], validate_for: [feat], must_be_live: true }
+        tests:
+          scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+" }
+      report.sh: |
+        echo '✖   unknown tasks: T-9 [task-footer]'
+        echo '✖   still tagged @wip: ID-A-01 [scenarios-footer]'
+        echo '✖   feat commits need a "Scenarios: @ID-…" footer [scenarios-footer]'
+        echo '✖   something else [local-rule]'
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: task-footer
+          message: "unknown tasks: T-9"
+          fix: name an id tasks/ has, or add it first in a docs commit
+          level: error
+        - rule: scenarios-footer
+          message: "still tagged @wip: ID-A-01"
+          fix: "make each id the Scenarios: footer names live in the same commit"
+          level: error
+        - rule: scenarios-footer
+          message: 'feat commits need a "Scenarios: @ID-…" footer'
+          fix: "add a line `Scenarios: <id>` after a blank line at the end, naming what the commit belongs to"
+          level: error
+        - rule: local-rule
+          message: something else
+          level: error

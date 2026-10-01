@@ -1,0 +1,64 @@
+# git-cliff (https://git-cliff.org) reads the changelog from the history.
+# `vp run changelog` writes it to docs/changelog/CHANGELOG.md, which git, the
+# formatter, the linter and the audit ignore; `vp run changelog -- --task <id>`
+# or `-- --scenario <id>` prints only the commits whose footers name it
+# (tools/changelog.ts). Git only: no remote, no links, no token (`--offline`).
+# Until a tag is cut, everything is "Unreleased".
+
+[changelog]
+header = """
+# Changelog
+
+Generated from the Conventional Commits by `vp run changelog` (git-cliff,
+`cliff.toml`); not committed. Each type's commits are newest first, with the
+short SHA, the date, the `Task:` / `Scenarios:` footers and the body, which
+says why.
+"""
+body = """
+{%- macro ids(commit) -%}
+  {%- for footer in commit.footers
+      | filter(attribute="breaking", value=false) -%}
+    {%- if footer.token in ["Task", "Scenarios", "Refs"] %} · {{ footer.token }}: {{ footer.value }}{% endif -%}
+  {%- endfor -%}
+{%- endmacro -%}
+
+{% if version %}## {{ version }} ({{ timestamp | date(format="%Y-%m-%d") }}){% else %}## Unreleased{% endif %}
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+{% for commit in commits %}
+- **{% if commit.scope %}{{ commit.scope }}: {% endif %}{{ commit.message | upper_first }}** \
+  `{{ commit.id | truncate(length=7, end="") }}` {{ commit.author.timestamp | date(format="%Y-%m-%d") }}\
+  {{ self::ids(commit=commit) }}
+{% if commit.body %}
+{{ commit.body | trim | indent(prefix="  ", first=true, blank=false) }}
+{% endif %}
+{%- endfor %}
+{%- endfor %}
+"""
+trim = false
+footer = ""
+render_always = true
+postprocessors = [{ pattern = "\n{3,}", replace = "\n\n" }]
+
+[git]
+conventional_commits = true
+filter_unconventional = false
+split_commits = false
+protect_breaking_commits = false
+filter_commits = false
+sort_commits = "newest"
+topo_order = false
+commit_parsers = [
+	{ message = "^feat", group = "<!-- 00 -->Features" },
+	{ message = "^fix", group = "<!-- 01 -->Fixes" },
+	{ message = "^perf", group = "<!-- 02 -->Performance" },
+	{ message = "^refactor", group = "<!-- 03 -->Refactoring" },
+	{ message = "^test", group = "<!-- 04 -->Tests" },
+	{ message = "^build", group = "<!-- 05 -->Build" },
+	{ message = "^ci", group = "<!-- 06 -->CI" },
+	{ message = "^docs", group = "<!-- 07 -->Documentation" },
+	{ message = "^chore", group = "<!-- 08 -->Chores" },
+	{ message = "^style", group = "<!-- 09 -->Style" },
+	{ message = "^[Rr]evert", group = "<!-- 10 -->Reverts" },
+	{ message = ".*", group = "<!-- 11 -->Other" },
+]

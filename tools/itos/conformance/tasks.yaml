@@ -1,0 +1,276 @@
+# The ledger and its checks (`itos task`, `task list`):
+# checks run in written order, a `fails:` one must fail, `after: push` waits
+# for a remote branch that holds HEAD, a check's timeout; verbose for one task,
+# one status line per task; --group (or --phase), --skip, --pending; unknown
+# IDs (1) and no match (2); --json with each check's result.
+git:
+  - commit: "docs: start"
+    files: { README.md: "scratch\n" }
+files:
+  itos.yaml: |
+    version: 1
+    ledger:
+      files: "tasks/phase-{group}.yaml"
+      group: { label: phase, pattern: "\\d+", numeric: true }
+      id: "T-\\d+"
+    commits: { types: [build, ci, docs, test] }
+  tasks/phase-1.yaml: |
+    - id: T-001
+      type: build
+      title: Checks that pass
+      done_when:
+        - run: echo first
+        - fails: sh -c 'echo second; exit 1'
+    - id: T-002
+      type: ci
+      title: A check that fails
+      done_when:
+        - run: "true"
+        - run: sh -c 'echo broken >&2; exit 5'
+        - run: echo still runs
+    - id: T-003
+      type: docs
+      title: Reviewed by hand
+      done_when: []
+  tasks/phase-2.yaml: |
+    - id: T-004
+      type: ci
+      title: Waits on the push
+      done_when:
+        - run: "true"
+        - run: echo pushed
+          after: push
+    - id: T-005
+      type: test
+      title: A check past its timeout
+      done_when:
+        - run: sleep 5
+          timeout: 1
+  tasks/notes.yaml: "- { id: T-090, type: build, title: Not a ledger file }\n"
+cases:
+  - name: one task runs verbosely, then its status line
+    argv: [task, T-001]
+    exit: 0
+    stdout: |
+
+      T-001 Checks that pass
+        $ echo first
+      first
+        $ sh -c 'echo second; exit 1'   (must fail)
+      second
+
+      done     T-001  build    Checks that pass
+  - name: a failing check fails the task, the rest still run
+    argv: [task, T-002]
+    exit: 1
+    stdout: |
+
+      T-002 A check that fails
+        $ true
+        $ sh -c 'echo broken >&2; exit 5'
+        $ echo still runs
+      still runs
+
+      failing  T-002  ci       A check that fails
+    stderr: |
+      broken
+  - name: several tasks, one status line each
+    argv: [task, T-001, T-003, T-004]
+    exit: 0
+    stdout: |
+
+      done     T-001  build    Checks that pass
+      review   T-003  docs     Reviewed by hand
+      pending  T-004  ci       Waits on the push
+  - name: after push waits while no remote branch holds HEAD
+    argv: [task, T-004]
+    exit: 0
+    stdout: |
+
+      T-004 Waits on the push
+        $ true
+
+      pending  T-004  ci       Waits on the push
+  - name: after push runs once a remote branch holds HEAD
+    argv: [task, T-004]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - run: git update-ref refs/remotes/origin/main HEAD
+    exit: 0
+    stdout: |
+
+      T-004 Waits on the push
+        $ true
+        $ echo pushed
+      pushed
+
+      done     T-004  ci       Waits on the push
+  - name: a check past its timeout fails
+    argv: [task, T-005]
+    exit: 1
+    stdout: |
+
+      T-005 A check past its timeout
+        $ sleep 5
+
+      failing  T-005  test     A check past its timeout
+  - name: a group of tasks
+    argv: [task, --group, "1"]
+    exit: 1
+    stdout: |
+
+      done     T-001  build    Checks that pass
+      failing  T-002  ci       A check that fails
+      review   T-003  docs     Reviewed by hand
+  - name: --phase is --group
+    argv: [task, --phase, "2", --skip, T-005]
+    exit: 0
+    stdout: |
+
+      T-004 Waits on the push
+        $ true
+
+      pending  T-004  ci       Waits on the push
+  - name: --pending shows the tasks not done
+    argv: [task, --pending, --skip, "T-005,T-002"]
+    exit: 0
+    stdout: |
+
+      review   T-003  docs     Reviewed by hand
+      pending  T-004  ci       Waits on the push
+  - name: an ID the ledger does not have
+    argv: [task, T-001, T-099]
+    exit: 1
+    stderr: |
+      No task T-099 in tasks/
+  - name: no task matches
+    argv: [task, --group, "7"]
+    exit: 2
+    stderr: |
+      No matching tasks. Usage: itos task <id>… | --group <g> [--skip <ids>] | --pending
+  - name: --json with each check's result, the verbose log on stderr
+    argv: [task, T-002, --json]
+    exit: 1
+    json:
+      schema: 1
+      tasks:
+        - id: T-002
+          type: ci
+          title: A check that fails
+          group: 1
+          status: failing
+          checks:
+            - command: "true"
+              result: pass
+            - command: sh -c 'echo broken >&2; exit 5'
+              result: fail
+            - command: echo still runs
+              result: pass
+    stderr: |
+
+      T-002 A check that fails
+        $ true
+        $ sh -c 'echo broken >&2; exit 5'
+      broken
+        $ echo still runs
+      still runs
+  - name: --json for several tasks
+    argv: [task, T-001, T-003, T-004, --json]
+    exit: 0
+    json:
+      schema: 1
+      tasks:
+        - id: T-001
+          type: build
+          title: Checks that pass
+          group: 1
+          status: done
+          checks:
+            - command: echo first
+              result: pass
+            - command: sh -c 'echo second; exit 1'
+              fails: true
+              result: pass
+        - id: T-003
+          type: docs
+          title: Reviewed by hand
+          group: 1
+          status: review
+          checks: []
+        - id: T-004
+          type: ci
+          title: Waits on the push
+          group: 2
+          status: pending
+          checks:
+            - command: "true"
+              result: pass
+            - command: echo pushed
+              result: pending
+  - name: task list
+    argv: [task, list]
+    exit: 0
+    stdout: |
+      T-001  1   build    Checks that pass
+      T-002  1   ci       A check that fails
+      T-003  1   docs     Reviewed by hand
+      T-004  2   ci       Waits on the push
+      T-005  2   test     A check past its timeout
+  - name: task list of a group
+    argv: [task, list, --group, "2"]
+    exit: 0
+    stdout: |
+      T-004  2   ci       Waits on the push
+      T-005  2   test     A check past its timeout
+  - name: task list --json
+    argv: [task, list, --json]
+    exit: 0
+    json:
+      schema: 1
+      tasks:
+        - id: T-001
+          type: build
+          title: Checks that pass
+          group: 1
+          checks: 2
+        - id: T-002
+          type: ci
+          title: A check that fails
+          group: 1
+          checks: 3
+        - id: T-003
+          type: docs
+          title: Reviewed by hand
+          group: 1
+          checks: 0
+        - id: T-004
+          type: ci
+          title: Waits on the push
+          group: 2
+          checks: 2
+        - id: T-005
+          type: test
+          title: A check past its timeout
+          group: 2
+          checks: 1
+  - name: a ledger whose groups are names
+    argv: [task, list]
+    files:
+      itos.yaml: "version: 1\nledger: { files: \"work/{group}.yaml\" }\n"
+      work/alpha.yaml: "- { id: A-1, type: build, title: First, done_when: [{ run: \"true\" }] }\n"
+      work/beta.yaml: "- { id: B-1, type: build, title: Second }\n"
+    exit: 0
+    stdout: |
+      A-1  alpha build    First
+      B-1  beta build    Second
+  - name: a group by its name
+    argv: [task, --group, beta]
+    files:
+      itos.yaml: "version: 1\nledger: { files: \"work/{group}.yaml\" }\n"
+      work/alpha.yaml: "- { id: A-1, type: build, title: First, done_when: [{ run: \"true\" }] }\n"
+      work/beta.yaml: "- { id: B-1, type: build, title: Second }\n"
+    exit: 0
+    stdout: |
+
+      review   B-1  build    Second

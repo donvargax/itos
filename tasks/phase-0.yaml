@@ -1,0 +1,185 @@
+# Phase 0: the scaffold, the gates, the task tool and CI. The only
+# user-facing scenario is @ID-APP-01 (the page opens and greets the visitor),
+# which drives the first feat commit.
+
+- id: T-001
+  type: build
+  title: Repository scaffold
+  why: >
+    A Vite+ project with TypeScript in its own git repository: one small page,
+    one pure function beside its unit test, so every gate below has something
+    real to run.
+  done_when:
+    - run: vp install
+    - run: vp build
+
+- id: T-002
+  type: build
+  title: Static quality gates
+  why: >
+    Formatting, type-aware lint and type checking, repo-wide in CI and on the
+    staged files before each commit.
+  done_when:
+    - run: vp check
+
+- id: T-003
+  type: build
+  title: Unit tests and coverage thresholds
+  why: >
+    The application's modules keep statements, lines and functions at 90% and
+    branches at 75%. The hooks run only the tests a change reaches, without
+    thresholds; CI runs the whole suite with them.
+  done_when:
+    - run: vp test run
+    - run: vp run test:coverage
+
+- id: T-004
+  type: build
+  title: Audit gate
+  why: >
+    No new dead code, unused exports or dependencies, no new duplication and no
+    new complex, uncovered functions (fallow), on the files each commit adds or
+    changes and over the whole tree in CI.
+  done_when:
+    - run: vp run audit
+
+- id: T-005
+  type: build
+  title: E2E harness and the smoke set
+  why: >
+    Playwright with playwright-bdd: scenarios in Gherkin under e2e/features,
+    steps that drive page objects only, the built app served for the run, a
+    recorded retry in CI that never hides a flaky scenario. A push's CI runs
+    the smoke set (e2e/smoke.yaml) and what its commits name in one run; the
+    self-test proves the plan's E2E command selects exactly that, against
+    Playwright's own listing.
+  done_when:
+    - run: tools/bin/itos tests smoke check scenario
+    - run: vp run e2e --grep @ID-APP-01
+    - run: vp run e2e:smoke
+    - run: node tools/selftest/e2e-scope.ts
+
+- id: T-006
+  type: build
+  title: itos v0, the task tool
+  why: >
+    The ledger, the commit rules, CI's plan and the work routing are one tool
+    read from one config (itos.yaml), so the policy is data and a project
+    changes it without forking code. Its conformance suite states what it does
+    as cases run through its command line; a tampered copy of the cases must
+    fail, so the runner compares what it claims to.
+  done_when:
+    - run: tools/bin/itos config check
+    - fails: ITOS_CONFIG=tools/itos/fixtures/typo.yaml tools/bin/itos config check
+    - fails: tools/bin/itos config check --ledger tools/itos/fixtures/static-after-late.yaml
+    - fails: tools/bin/itos work check tools/itos/fixtures/cycle.yaml
+    - fails: tools/bin/itos task T-000
+    - run: ITOS_CONFIG=tools/itos/fixtures/lax-refactor.yaml tools/bin/itos commit check-paths --type refactor e2e/features/app.feature
+    - run: ITOS_CONFIG=tools/itos/fixtures/command-adapter.yaml tools/bin/itos tests list fixture --json
+    - run: sh -c 'test "$(ITOS_CONFIG=tools/itos/fixtures/range-command-false.yaml tools/bin/itos ci range --head HEAD)" = FROM='
+    - run: sh -c 'ITOS_CONFIG=tools/itos/fixtures/identity-command.yaml tools/bin/itos work | grep -q "Working for someone"'
+    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos
+    - fails: node tools/itos/conformance/run.ts --bin tools/bin/itos --only tools/itos/conformance/fixtures/tampered.yaml
+    - run: vp test run tools/itos
+
+- id: T-007
+  type: build
+  title: Commit rules and the hooks
+  why: >
+    Conventional Commits with a Task: or Scenarios: footer naming what drives
+    the commit, and each type held to the paths it may touch, so a commit's
+    type is honest. The commit-msg hook applies the path rules, the scenario
+    moves and then commitlint (config-conventional plus one rule per footer,
+    from itos.yaml); pre-commit formats, lints and runs the unit tests the
+    change reaches and the audit; pre-push runs the unit tests the pushed
+    commits reach. CI runs this task on every push.
+  done_when:
+    - fails: "printf 'update things\\n' | vp exec commitlint"
+    - run: "printf 'build: scaffold\\n\\nTask: T-001\\n' | vp exec commitlint"
+    - fails: "printf 'build: scaffold\\n' | vp exec commitlint"
+    - fails: "printf 'feat: x\\n\\nScenarios: @ID-NOPE-01\\n' | vp exec commitlint"
+    - fails: tools/bin/itos commit check-paths --type refactor e2e/features/app.feature
+    - fails: tools/bin/itos commit check-paths --type build src/greeting.ts
+    - run: tools/bin/itos commit check-paths --type docs README.md tasks/phase-0.yaml
+    - fails: 'sh -c ''f=$(mktemp) && printf "build: x\n" > "$f" && tools/bin/itos hook commit-msg "$f"'''
+      cost: static
+    - run: 'sh -c ''f=$(mktemp) && printf "docs: x\n" > "$f" && tools/bin/itos hook commit-msg "$f"'''
+      cost: static
+
+- id: T-008
+  type: ci
+  title: GitHub Actions CI
+  why: >
+    Every push runs the same gates as local development, through one local
+    command (`vp run ci`, `itos ci run`), so the workflow is a thin wrapper:
+    the range from the last green run, the named tasks' checks in cost order,
+    one E2E run over the smoke set and what the range names, a prose-only
+    shortcut. It re-checks every pushed commit with the commit-msg rules, so a
+    commit made with the hooks bypassed fails CI.
+  done_when:
+    - run: actionlint
+    - run: node tools/selftest/ci-scope.ts
+    - run: node tools/selftest/ci-range.ts
+    - run: tools/bin/itos verify "" HEAD
+    - fails: tools/bin/itos verify HEAD "$(git commit-tree 'HEAD^{tree}' -p HEAD -m 'update things')"
+    - run: vp run ci
+
+- id: T-009
+  type: ci
+  title: The nightly, and the gates self-test
+  why: >
+    A push runs the smoke set and what it names; the nightly runs every
+    scenario, then the gates self-test, which proves in a scratch worktree that
+    the hooks run only what a change reaches and that CI's steps catch what
+    they leave out. A red nightly opens one issue (or comments on the open
+    one), and a green one closes it.
+  done_when:
+    - run: actionlint
+    - run: node tools/selftest/gates.ts
+
+- id: T-010
+  type: build
+  title: The changelog from the commits
+  why: >
+    The history is the changelog: git-cliff groups the Conventional Commits by
+    type, each with its footers and its body, written on demand into an
+    ignored folder; a filter prints the commits that name one task or one
+    scenario.
+  done_when:
+    - run: vp run changelog
+    - run: sh -c 'test -s docs/changelog/CHANGELOG.md'
+    - run: vp run changelog -- --task T-010
+
+- id: T-011
+  type: chore
+  title: Licences
+  why: >
+    The template is 0BSD, so a project made from it owes nothing; the task
+    tool it carries in tools/itos/ keeps its own licence, AGPL-3.0, in its
+    folder. The check asks GitHub which licence it detects for the repository.
+  done_when:
+    - run: gh api 'repos/{owner}/{repo}/license' --jq .license.spdx_id | grep -qx 0BSD
+      after: push
+
+- id: T-012
+  type: docs
+  title: README
+  why: >
+    What the template is, how to create a project from it, and the first steps
+    in a new one.
+  done_when: []
+
+- id: T-013
+  type: docs
+  title: Agent instructions
+  why: >
+    itos holds every rule a command can decide; the agent instructions hold
+    the rest, written for any project made from the template. AGENTS.md is
+    the implementing session's (which session you are, what drives a change,
+    the split, the gates as built, what no gate does, Never, Finishing),
+    docs/ORCHESTRATING.md the coordinator's (the loop, the brief, a slice that
+    fails, lessons, doc work beside a running agent, checking a result), and
+    docs/HANDOFF.md, PLAN.md and docs/ARCHITECTURE.md the skeletons a project
+    fills in. Where a gate enforces a rule, the docs name the gate rather than
+    restating it. Prose has no check that runs it: review is the proof.
+  done_when: []

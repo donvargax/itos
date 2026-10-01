@@ -1,0 +1,122 @@
+name: Nightly
+
+# The whole E2E suite. A push's CI runs the smoke set and the scenarios and
+# task subsets its commits name; every scenario runs here, once a night on
+# main, or by hand from the Actions tab, and then the gates self-test, which
+# a push's CI leaves to the nightly (itos.yaml's `ci.nightly`). A red run
+# opens one issue, "Nightly red", or comments on the open one; a green run
+# closes it. A push's CI opens nothing.
+on:
+  schedule:
+    - cron: "44 11 * * *" # 11:44 UTC every day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write # the Nightly red issue
+
+# A group of its own: the nightly never cancels a push's run, nor is cancelled
+# by one. A second nightly waits for the first.
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: voidzero-dev/setup-vp@v1.21.0
+        with:
+          node-version: "24"
+          cache: true
+      - run: vp install
+      - run: vp exec playwright install --with-deps chromium
+      # The output is kept for the issue below: the `✘` lines are the failing
+      # scenarios. pipefail, so tee does not hide the run's exit code.
+      - name: Nightly
+        run: |
+          set -o pipefail
+          tools/bin/itos ci run --nightly 2>&1 | tee "$RUNNER_TEMP/nightly.log"
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+      # The GitHub CLI, for the issue steps below. Pinned, from its release
+      # tarball, checked against the release's SHA-256, so the runner image's
+      # own copy, whatever its version, does not decide what runs. It runs
+      # whatever the nightly's result.
+      - name: GitHub CLI
+        if: always()
+        env:
+          GH_VERSION: 2.101.0
+          GH_SHA256: 9bca2d1c16825f109907a23307628a2f0698fbf99662b73a5cf0b020293072b8
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          tgz="$RUNNER_TEMP/gh.tar.gz"
+          curl -sSfL -o "$tgz" "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz"
+          echo "$GH_SHA256  $tgz" | sha256sum -c -
+          tar -xzf "$tgz" -C "$RUNNER_TEMP" "gh_${GH_VERSION}_linux_amd64/bin/gh"
+          mv "$RUNNER_TEMP/gh_${GH_VERSION}_linux_amd64/bin/gh" "$RUNNER_TEMP/bin/gh"
+          rm -rf "$tgz" "$RUNNER_TEMP/gh_${GH_VERSION}_linux_amd64"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bin/gh" --version
+      # Red: one open issue labelled nightly-red, opened by the first red run
+      # and commented on by every later one, with the failing scenarios and the
+      # run's URL. With no `✘` line saved, the run failed before Playwright
+      # ran, and the issue says so. The label is created on the first red run.
+      - name: Open or comment on the Nightly red issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          log="$RUNNER_TEMP/nightly.log"
+          body="$RUNNER_TEMP/nightly-red.md"
+          failing=""
+          if [ -f "$log" ]; then
+            failing=$(sed 's/\x1b\[[0-9;]*[A-Za-z]//g' "$log" | grep -F -- '✘' || true)
+          fi
+          {
+            echo "Nightly run $RUN_URL is red."
+            echo
+            if [ -n "$failing" ]; then
+              echo "Failing scenarios:"
+              echo
+              echo '```'
+              echo "$failing"
+              echo '```'
+            else
+              echo "No failing scenario in the Playwright output: the run failed before Playwright ran, or in a step after it. See the run's log."
+            fi
+          } > "$body"
+          gh label create nightly-red --description "The nightly E2E run is red" --color B60205 2>/dev/null || true
+          open=$(gh issue list --label nightly-red --state open --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            echo "Commenting on issue #$open"
+            gh issue comment "$open" --body-file "$body"
+          else
+            gh issue create --title "Nightly red" --label nightly-red --body-file "$body"
+          fi
+      # Green: close the open nightly-red issue, naming this run; with none
+      # open, nothing.
+      - name: Close the Nightly red issue
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          open=$(gh issue list --label nightly-red --state open --json number --jq '.[0].number // empty')
+          if [ -z "$open" ]; then
+            echo "No open nightly-red issue"
+            exit 0
+          fi
+          gh issue close "$open" --comment "Nightly run $RUN_URL is green."

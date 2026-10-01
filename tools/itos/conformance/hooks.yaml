@@ -1,0 +1,429 @@
+# The hooks: `hooks install` finding the hook manager by its markers
+# and writing one-line shims (never over a hook of the project's own without
+# --force), or printing the snippet a config-file manager takes; `hook
+# commit-msg` (the staged paths, each kind's staged range check, then the
+# header lint or the footer rules); `hook pre-push` (git's ref lines on stdin,
+# or pre-commit's environment: once per remote base, else the whole run, and
+# nothing for a deleted branch).
+git:
+  - commit: "docs: start"
+    files: { README.md: "scratch\n" }
+    label: base
+  - commit: "docs: more"
+    files: { README.md: "more\n" }
+    label: more
+files:
+  itos.yaml: |
+    version: 1
+    ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+    commits:
+      types: [feat, build, docs, test]
+      footers:
+        Task: { source: ledger, required_for: [build, test], validate_for: all, read_at: commit }
+      scopes:
+        build: { only: ["tools/**", "*.json"] }
+        docs: { only: ["**/*.md", "tasks/**"] }
+        test: { only: ["tools/**", "**/*.test.ts"] }
+    tests:
+      scenario:
+        root: features
+        id: "ID-[A-Z]+-\\d+"
+        range_checks:
+          - name: moves
+            except_types: [feat]
+            staged: "sh moves.sh {type}"
+    hooks:
+      bin: tools/bin/itos
+      pre_push: { per_base: "echo tests since {base}", whole: "echo every test" }
+  moves.sh: |
+    # A staged range check: fails for a test commit that stages tools/moved.ts.
+    if [ "$1" = test ] && git diff --cached --name-only | grep -qx tools/moved.ts; then
+      echo "Scenarios moved badly:" >&2
+      echo "  - a test commit changes the live scenario ID-A-01" >&2
+      echo "  - a test commit loses the scenario ID-A-02" >&2
+      exit 1
+    fi
+  tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n"
+cases:
+  - name: Vite+ is found by its folder, and the shims written there
+    argv: [hooks, install]
+    files: { .vite-hooks/: "" }
+    files_after:
+      .vite-hooks/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\n"
+      .vite-hooks/pre-push: "exec tools/bin/itos hook pre-push \"$@\"\n"
+    exit: 0
+    stdout: |
+      Found Vite+ (.vite-hooks/)
+      wrote .vite-hooks/commit-msg
+      wrote .vite-hooks/pre-push
+  - name: Vite+ is found by core.hooksPath, as vp config sets it
+    argv: [hooks, install, --print]
+    git:
+      - run: git config core.hooksPath .vite-hooks/_
+    exit: 0
+    stdout: |
+      Found Vite+ (core.hooksPath .vite-hooks/_)
+      ==> .vite-hooks/commit-msg
+      exec tools/bin/itos hook commit-msg "$1"
+      ==> .vite-hooks/pre-push
+      exec tools/bin/itos hook pre-push "$@"
+  - name: Vite+ wins over the other managers' markers beside it
+    argv: [hooks, install, --print]
+    files: { .vite-hooks/: "", .husky/: "", lefthook.yml: "" }
+    exit: 0
+    stdout: |
+      Found Vite+ (.vite-hooks/)
+      ==> .vite-hooks/commit-msg
+      exec tools/bin/itos hook commit-msg "$1"
+      ==> .vite-hooks/pre-push
+      exec tools/bin/itos hook pre-push "$@"
+  - name: --print prints the shims and writes nothing
+    argv: [hooks, install, --print]
+    files: { .husky/: "" }
+    files_after:
+      .husky/commit-msg: null
+    exit: 0
+    stdout: |
+      Found husky (.husky/)
+      ==> .husky/commit-msg
+      exec tools/bin/itos hook commit-msg "$1"
+      ==> .husky/pre-push
+      exec tools/bin/itos hook pre-push "$@"
+  - name: husky is found by its folder
+    argv: [hooks, install]
+    files: { .husky/: "" }
+    files_after:
+      .husky/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\n"
+    exit: 0
+    stdout: |
+      Found husky (.husky/)
+      wrote .husky/commit-msg
+      wrote .husky/pre-push
+  - name: husky is found by core.hooksPath
+    argv: [hooks, install, --print]
+    git:
+      - run: git config core.hooksPath .husky/_
+    exit: 0
+    stdout: |
+      Found husky (core.hooksPath .husky/_)
+      ==> .husky/commit-msg
+      exec tools/bin/itos hook commit-msg "$1"
+      ==> .husky/pre-push
+      exec tools/bin/itos hook pre-push "$@"
+  - name: plain git without any marker, its hooks executable in the repository's hooks folder
+    argv: [hooks, install]
+    files_after:
+      .git/hooks/commit-msg: { text: "#!/bin/sh\nexec tools/bin/itos hook commit-msg \"$1\"\n", executable: true }
+      .git/hooks/pre-push: { text: "#!/bin/sh\nexec tools/bin/itos hook pre-push \"$@\"\n", executable: true }
+    exit: 0
+    stdout: |
+      Found plain git (no hook manager's marker)
+      wrote .git/hooks/commit-msg
+      wrote .git/hooks/pre-push
+  - name: a hook of the project's own is never replaced without --force
+    argv: [hooks, install]
+    files:
+      .husky/commit-msg: &foreign "sh tools/own-check.sh \"$1\" || exit $?\nvp exec commitlint --edit \"$1\"\n"
+    files_after:
+      .husky/commit-msg: *foreign
+      .husky/pre-push: "exec tools/bin/itos hook pre-push \"$@\"\n"
+    exit: 1
+    stdout: |
+      Found husky (.husky/)
+      wrote .husky/pre-push
+    stderr: |
+      .husky/commit-msg is not an itos shim; pass --force to replace it
+  - name: --force replaces it
+    argv: [hooks, install, --force]
+    files:
+      .husky/commit-msg: *foreign
+    files_after:
+      .husky/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\n"
+    exit: 0
+    stdout: |
+      Found husky (.husky/)
+      replaced .husky/commit-msg
+      wrote .husky/pre-push
+  - name: a shim with a shebang and a comment is a shim, and is rewritten
+    argv: [hooks, install]
+    files:
+      .vite-hooks/commit-msg: "#!/bin/sh\n# written by hand\nexec .tools/bin/itos hook commit-msg \"$1\"\n"
+      .vite-hooks/pre-push: "exec tools/bin/itos hook pre-push \"$@\"\n"
+    files_after:
+      .vite-hooks/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\n"
+    exit: 0
+    stdout: |
+      Found Vite+ (.vite-hooks/)
+      wrote .vite-hooks/commit-msg
+      unchanged .vite-hooks/pre-push
+  - name: a shim with a second command is not a shim
+    argv: [hooks, install]
+    files:
+      .vite-hooks/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\necho more\n"
+    exit: 1
+    stdout: |
+      Found Vite+ (.vite-hooks/)
+      wrote .vite-hooks/pre-push
+    stderr: |
+      .vite-hooks/commit-msg is not an itos shim; pass --force to replace it
+  - name: hooks.bin names what the shims call
+    argv: [hooks, install, --print, --manager, vp]
+    files:
+      itos.yaml: "version: 1\nhooks: { bin: .tools/bin/itos }\n"
+    exit: 0
+    stdout: |
+      Using Vite+ (--manager vp)
+      ==> .vite-hooks/commit-msg
+      exec .tools/bin/itos hook commit-msg "$1"
+      ==> .vite-hooks/pre-push
+      exec .tools/bin/itos hook pre-push "$@"
+  - name: lefthook's snippet is printed, its config left alone
+    argv: [hooks, install]
+    files: { lefthook.yml: "pre-commit:\n" }
+    files_after:
+      lefthook.yml: "pre-commit:\n"
+    exit: 0
+    stdout: |
+      Found lefthook (lefthook.yml)
+      Add this to lefthook.yml:
+      commit-msg:
+        commands:
+          itos:
+            run: tools/bin/itos hook commit-msg {1}
+      pre-push:
+        commands:
+          itos:
+            run: tools/bin/itos hook pre-push {1} {2}
+            use_stdin: true
+  - name: a lefthook config that already calls itos
+    argv: [hooks, install]
+    files: { .lefthook.yaml: "commit-msg:\n  commands:\n    itos:\n      run: tools/bin/itos hook commit-msg {1}\n" }
+    exit: 0
+    stdout: |
+      Found lefthook (.lefthook.yaml)
+      .lefthook.yaml already calls itos; its snippet:
+      commit-msg:
+        commands:
+          itos:
+            run: tools/bin/itos hook commit-msg {1}
+      pre-push:
+        commands:
+          itos:
+            run: tools/bin/itos hook pre-push {1} {2}
+            use_stdin: true
+  - name: pre-commit's snippet
+    argv: [hooks, install]
+    files: { .pre-commit-config.yaml: "repos: []\n" }
+    exit: 0
+    stdout: |
+      Found pre-commit (.pre-commit-config.yaml)
+      Add this to .pre-commit-config.yaml:
+      default_install_hook_types: [pre-commit, commit-msg, pre-push]
+      repos:
+        - repo: local
+          hooks:
+            - id: itos-commit-msg
+              name: itos hook commit-msg
+              entry: tools/bin/itos hook commit-msg
+              language: system
+              stages: [commit-msg]
+            - id: itos-pre-push
+              name: itos hook pre-push
+              entry: tools/bin/itos hook pre-push
+              language: system
+              stages: [pre-push]
+              pass_filenames: false
+              always_run: true
+  - name: prek, named by --manager, takes pre-commit's snippet
+    argv: [hooks, install, --manager, prek]
+    files: { .pre-commit-config.yaml: "repos: []\n" }
+    exit: 0
+    stdout: |
+      Using prek (--manager prek)
+      Add this to .pre-commit-config.yaml:
+      default_install_hook_types: [pre-commit, commit-msg, pre-push]
+      repos:
+        - repo: local
+          hooks:
+            - id: itos-commit-msg
+              name: itos hook commit-msg
+              entry: tools/bin/itos hook commit-msg
+              language: system
+              stages: [commit-msg]
+            - id: itos-pre-push
+              name: itos hook pre-push
+              entry: tools/bin/itos hook pre-push
+              language: system
+              stages: [pre-push]
+              pass_filenames: false
+              always_run: true
+  - name: --json of the shims
+    argv: [hooks, install, --json]
+    files: { .vite-hooks/: "", .vite-hooks/pre-push: "exec tools/bin/itos hook pre-push \"$@\"\n" }
+    exit: 0
+    json:
+      schema: 1
+      manager: vp
+      marker: .vite-hooks/
+      files:
+        - path: .vite-hooks/commit-msg
+          content: |
+            exec tools/bin/itos hook commit-msg "$1"
+          action: wrote
+        - path: .vite-hooks/pre-push
+          content: |
+            exec tools/bin/itos hook pre-push "$@"
+          action: unchanged
+    stderr: |
+      Found Vite+ (.vite-hooks/)
+      wrote .vite-hooks/commit-msg
+      unchanged .vite-hooks/pre-push
+  - name: --json of a snippet
+    argv: [hooks, install, --json, --manager, lefthook]
+    exit: 0
+    json:
+      schema: 1
+      manager: lefthook
+      marker: --manager lefthook
+      file: lefthook.yml
+      snippet: |-
+        commit-msg:
+          commands:
+            itos:
+              run: tools/bin/itos hook commit-msg {1}
+        pre-push:
+          commands:
+            itos:
+              run: tools/bin/itos hook pre-push {1} {2}
+              use_stdin: true
+      installed: false
+    stderr: |
+      Using lefthook (--manager lefthook)
+  - name: commit-msg rejects a staged path the type may not touch
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { src/a.ts: "export {};\n" }
+    files: { msg: "docs: touch the source\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - docs commits may not touch src/a.ts
+  - name: commit-msg runs the kind's staged range check for the commit's type
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { tools/moved.ts: "export {};\n", README.test.ts: "" }
+    files: { msg: "test: move\n\nTask: T-001\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - a test commit changes the live scenario ID-A-01
+        - a test commit loses the scenario ID-A-02
+  - name: a type the range check leaves out skips it
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { tools/moved.ts: "export {};\n" }
+    files: { msg: "feat: move\n" }
+    exit: 0
+    stderr: |
+      index has no tasks; its Task: footer is read against the working tree
+  - name: commit-msg then runs the footer rules when there is no header lint
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { tools/a.sh: "true\n" }
+    files: { msg: "build: a script\n" }
+    exit: 1
+    stderr: |
+      ✖   build commits need a "Task: T-…" footer [task-footer]
+  - name: a sound commit passes
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n", tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
+      - stage: { tools/a.sh: "true\n" }
+    files: { msg: "build: a script\n\nTask: T-001\n" }
+    exit: 0
+  - name: the header lint delegate gets the message file, and its exit code is the hook's
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { docs/a.md: "# A\n" }
+    files:
+      msg: "docs: a page\n"
+      delegated.yaml: "version: 1\ncommits:\n  header_lint: { use: command, hook: \"echo linting $(cat {file}) >&2; exit 7\" }\n"
+    env: { ITOS_CONFIG: delegated.yaml }
+    exit: 7
+    stderr: |
+      linting docs: a page
+  - name: a message file path with a space and a quote reaches the delegate as one word
+    argv: [hook, commit-msg, "it's a msg"]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+    files:
+      "it's a msg": "docs: a page\n"
+      delegated.yaml: "version: 1\ncommits:\n  header_lint: { use: command, hook: \"cat {file}\" }\n"
+    env: { ITOS_CONFIG: delegated.yaml }
+    exit: 0
+    stdout: |
+      docs: a page
+  - name: pre-push runs the per-base command once per remote base
+    argv: [hook, pre-push, upstream, git@example.invalid:x.git]
+    stdin: "refs/heads/main {{sha.more}} refs/heads/main {{sha.base}}\nrefs/heads/b {{sha.more}} refs/heads/b {{sha.base}}\n"
+    exit: 0
+    stdout: |
+      $ echo tests since {{sha.base}}
+      tests since {{sha.base}}
+  - name: pre-push runs the whole command for a new branch
+    argv: [hook, pre-push, upstream, git@example.invalid:x.git]
+    stdin: "refs/heads/new {{sha.more}} refs/heads/new 0000000000000000000000000000000000000000\n"
+    exit: 0
+    stdout: |
+      $ echo every test
+      every test
+  - name: pre-push runs the whole command for a remote commit the clone lacks
+    argv: [hook, pre-push, upstream, git@example.invalid:x.git]
+    stdin: "refs/heads/main {{sha.more}} refs/heads/main 1111111111111111111111111111111111111111\n"
+    exit: 0
+    stdout: |
+      $ echo every test
+      every test
+  - name: pre-push runs nothing for a deleted branch
+    argv: [hook, pre-push, upstream, git@example.invalid:x.git]
+    stdin: "(delete) 0000000000000000000000000000000000000000 refs/heads/old {{sha.base}}\n"
+    exit: 0
+  - name: pre-push fails when a command fails
+    argv: [hook, pre-push, upstream, git@example.invalid:x.git]
+    stdin: "refs/heads/main {{sha.more}} refs/heads/main {{sha.base}}\n"
+    files:
+      itos.yaml: "version: 1\nhooks: { pre_push: { per_base: \"echo tests since {base}; exit 1\", whole: \"true\" } }\n"
+    exit: 1
+    stdout: |
+      $ echo tests since {{sha.base}}; exit 1
+      tests since {{sha.base}}
+  - name: under pre-commit or prek the refs come from the environment
+    argv: [hook, pre-push, upstream, git@example.invalid:x.git]
+    env:
+      PRE_COMMIT_FROM_REF: "{{sha.base}}"
+      PRE_COMMIT_TO_REF: "{{sha.more}}"
+    exit: 0
+    stdout: |
+      $ echo tests since {{sha.base}}
+      tests since {{sha.base}}
+  - name: under pre-commit with no remote ref, the whole run
+    argv: [hook, pre-push, upstream, git@example.invalid:x.git]
+    env:
+      PRE_COMMIT_FROM_REF: ""
+      PRE_COMMIT_TO_REF: "{{sha.more}}"
+    exit: 0
+    stdout: |
+      $ echo every test
+      every test

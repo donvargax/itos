@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read # the last green run, where a push's range starts
+
+# A newer push replaces a run still waiting for the runner; a running one
+# finishes. The newest run checks every commit since the last green one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  TO: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  # One job, always run, always reported: a prose-only push still gets its
+  # green check, it just has less to prove. What each range has to run is
+  # decided by `tools/bin/itos ci run` (itos.yaml's `ci`), so it is the same
+  # decision locally.
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the commit re-check and the scope read the pushed range
+      - uses: voidzero-dev/setup-vp@v1.21.0
+        with:
+          node-version: "24"
+          cache: true
+      - run: vp install
+      # Where the range starts, computed once for every step below: a pull
+      # request's base, else the last green run on main, else empty (run
+      # everything). See `tools/bin/itos ci range --help`.
+      - name: Range
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          range=$(tools/bin/itos ci range --head "$TO" --base "$BASE")
+          echo "$range"
+          echo "$range" >> "$GITHUB_ENV"
+      - id: scope
+        run: tools/bin/itos ci scope "$FROM" "$TO" >> "$GITHUB_OUTPUT"
+      # The commit-msg hook's rules again, for commits made without hooks.
+      - run: tools/bin/itos verify "$FROM" "$TO"
+      - if: steps.scope.outputs.docs_only != 'true'
+        run: vp exec playwright install --with-deps chromium
+      # actionlint, for the task checks that lint the workflows: the runners
+      # don't carry it. Pinned, from its own release script.
+      - name: actionlint
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP/bin"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      # Every gate lives in one local command. Its E2E step is one Playwright
+      # run over the smoke set and the scenarios and task subsets the range
+      # names; the whole suite runs in nightly.yml. GH_TOKEN is for the task
+      # checks that ask GitHub.
+      - run: tools/bin/itos ci run "$FROM" "$TO"
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore

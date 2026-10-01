@@ -1,0 +1,220 @@
+# Each commit type's path rules as the project template sets them (itos.yaml's
+# `commits`, tasks/README.md's table), the traps they set when a piece of work
+# is split into commits, the rejection's wording and its --json with each
+# problem's rule and fix, and another project's rules (the rules are the
+# config's).
+files:
+  itos.yaml: |
+    version: 1
+    commits:
+      types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
+      path_sets:
+        config:
+          - "*.{json,yaml,yml,ts,toml}"
+          - .gitignore
+          - .editorconfig
+          - ".vite-hooks/**"
+          - ".github/**"
+          - "tools/**"
+          - .claude/settings.json
+          - index.html
+          - src/main.ts
+      scopes:
+        feat: { must_touch: ["src/**", "e2e/**"] }
+        fix: { must_touch: ["src/**"] }
+        refactor: { never: ["e2e/features/**"] }
+        perf: { never: ["e2e/features/**"] }
+        test: { only: ["e2e/**", "**/*.test.ts", "tools/**", playwright.config.ts] }
+        build: { only: [$config] }
+        ci: { only: [$config] }
+        chore: { never: ["src/**"] }
+        docs: { only: ["**/*.md", "docs/**", "tasks/**", "e2e/features/**"] }
+        style: {}
+      reject_message: "Commit rejected (see tasks/README.md):"
+cases:
+  - name: docs may touch prose, the ledger and the feature files
+    argv: [commit, check-paths, --type, docs, PLAN.md, tasks/phase-0.yaml, docs/work-items.yaml, e2e/features/list.feature, tools/README.md]
+    exit: 0
+  - name: docs may not touch config, tools or source
+    argv: [commit, check-paths, --type, docs, vite.config.ts, tools/itos/main.ts, src/app/view.ts]
+    exit: 1
+    stderr: |
+      Commit rejected (see tasks/README.md):
+        - docs commits may not touch vite.config.ts
+        - docs commits may not touch tools/itos/main.ts
+        - docs commits may not touch src/app/view.ts
+  - name: build may touch the root config, hooks, workflows, tools, index.html and src/main.ts
+    argv: [commit, check-paths, --type, build, package.json, vite.config.ts, .vite-hooks/pre-push, .github/workflows/ci.yml, tools/itos/main.ts, index.html, src/main.ts, .claude/settings.json, .gitignore]
+    exit: 0
+  - name: build may not touch the ledger, nor source beyond src/main.ts
+    argv: [commit, check-paths, --type, build, tasks/phase-3.yaml, src/app/view.ts, docs/config.yaml]
+    exit: 1
+    stderr: |
+      Commit rejected (see tasks/README.md):
+        - build commits may not touch tasks/phase-3.yaml
+        - build commits may not touch src/app/view.ts
+        - build commits may not touch docs/config.yaml
+  - name: ci follows the same rule as build
+    argv: [commit, check-paths, --type, ci, .github/workflows/nightly.yml, tasks/phase-3.yaml]
+    exit: 1
+    stderr: |
+      Commit rejected (see tasks/README.md):
+        - ci commits may not touch tasks/phase-3.yaml
+  - name: refactor may not touch the feature files
+    argv: [commit, check-paths, --type, refactor, src/a.ts, e2e/features/list.feature]
+    exit: 1
+    stderr: |
+      Commit rejected (see tasks/README.md):
+        - refactor commits may not touch e2e/features/list.feature
+  - name: perf may not touch the feature files
+    argv: [commit, check-paths, --type, perf, src/a.ts, e2e/features/list.feature]
+    exit: 1
+    stderr: |
+      Commit rejected (see tasks/README.md):
+        - perf commits may not touch e2e/features/list.feature
+  - name: test may touch e2e, unit tests, tools and the Playwright config
+    argv: [commit, check-paths, --type, test, e2e/steps/a.ts, src/a.test.ts, tools/x.ts, playwright.config.ts]
+    exit: 0
+  - name: test may not touch source or prose
+    argv: [commit, check-paths, --type, test, src/a.ts, README.md]
+    exit: 1
+    stderr: |
+      Commit rejected (see tasks/README.md):
+        - test commits may not touch src/a.ts
+        - test commits may not touch README.md
+  - name: feat must change src or e2e
+    argv: [commit, check-paths, --type, feat, docs/a.md]
+    exit: 1
+    stderr: |
+      Commit rejected (see tasks/README.md):
+        - feat commits must change src/** or e2e/**
+  - name: feat that changes e2e passes
+    argv: [commit, check-paths, --type, feat, e2e/features/list.feature, docs/a.md]
+    exit: 0
+  - name: fix must change src
+    argv: [commit, check-paths, --type, fix, e2e/steps/a.ts]
+    exit: 1
+    stderr: |
+      Commit rejected (see tasks/README.md):
+        - fix commits must change src/**
+  - name: chore may touch anything but src
+    argv: [commit, check-paths, --type, chore, package.json, docs/a.md, src/a.ts]
+    exit: 1
+    stderr: |
+      Commit rejected (see tasks/README.md):
+        - chore commits may not touch src/a.ts
+  - name: style has no rule
+    argv: [commit, check-paths, --type, style, src/a.ts, tasks/phase-1.yaml]
+    exit: 0
+  - name: a type with no scope passes any path (the header lint's business)
+    argv: [commit, check-paths, --type, revert, src/a.ts, tasks/phase-1.yaml]
+    exit: 0
+  - name: a type the config does not know passes any path
+    argv: [commit, check-paths, --type, wip, src/a.ts]
+    exit: 0
+  - name: --json names each problem's rule and the types that would take the path
+    argv: [commit, check-paths, --type, docs, --json, src/a.ts, tools/b.ts]
+    exit: 1
+    json:
+      schema: 1
+      type: docs
+      files:
+        - src/a.ts
+        - tools/b.ts
+      ok: false
+      problems:
+        - rule: scope-only
+          message: docs commits may not touch src/a.ts
+          fix: "split the commit: stage src/a.ts in a commit of another type (feat, fix, refactor, perf, style)"
+        - rule: scope-only
+          message: docs commits may not touch tools/b.ts
+          fix: "split the commit: stage tools/b.ts in a commit of another type (feat, fix, refactor, perf, test, build, ci, chore, style)"
+  - name: --json says must_touch's rule and fix
+    argv: [commit, check-paths, --json, --type, fix, docs/a.md]
+    exit: 1
+    json:
+      schema: 1
+      type: fix
+      files:
+        - docs/a.md
+      ok: false
+      problems:
+        - rule: scope-must-touch
+          message: fix commits must change src/**
+          fix: stage a change to src/**, or use the type that fits the change
+  - name: --json of a split that holds
+    argv: [commit, check-paths, --type, test, --json, tools/itos/run.ts]
+    exit: 0
+    json:
+      schema: 1
+      type: test
+      files:
+        - tools/itos/run.ts
+      ok: true
+      problems: []
+  - name: --json of never's rule
+    argv: [commit, check-paths, --type, refactor, --json, e2e/features/a.feature]
+    exit: 1
+    json:
+      schema: 1
+      type: refactor
+      files:
+        - e2e/features/a.feature
+      ok: false
+      problems:
+        - rule: scope-never
+          message: refactor commits may not touch e2e/features/a.feature
+          fix: "split the commit: stage e2e/features/a.feature in a commit of another type (feat, fix, test, chore, docs, style)"
+  - name: another project's rules, from the config ITOS_CONFIG names (lax-refactor)
+    argv: [commit, check-paths, --type, refactor, e2e/features/list.feature]
+    env: { ITOS_CONFIG: lax.yaml }
+    files:
+      lax.yaml: &lax |
+        version: 1
+        commits:
+          types: [feat, fix, refactor, docs]
+          scopes:
+            refactor: { never: ["data/**"] }
+          reject_message: "Commit rejected:"
+    exit: 0
+  - name: another project's rejection message
+    argv: [commit, check-paths, --type, refactor, data/a.json]
+    env: { ITOS_CONFIG: lax.yaml }
+    files:
+      lax.yaml: *lax
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - refactor commits may not touch data/a.json
+  - name: without reject_message the rejection says Commit rejected
+    argv: [commit, check-paths, --type, docs, src/a.ts]
+    files:
+      itos.yaml: |
+        version: 1
+        commits:
+          types: [docs]
+          scopes:
+            docs: { only: ["**/*.md"] }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - docs commits may not touch src/a.ts
+  - name: a scope for a type that is not a commit type is a config error
+    argv: [commit, check-paths, --type, docs, a.md]
+    files:
+      itos.yaml: |
+        version: 1
+        commits:
+          types: [docs]
+          scopes:
+            doc: { only: ["**/*.md"] }
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: commits.scopes.doc is not one of commits.types
+  - name: a config without commits cannot check paths
+    argv: [commit, check-paths, --type, docs, a.md]
+    files:
+      itos.yaml: "version: 1\n"
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: commits is missing

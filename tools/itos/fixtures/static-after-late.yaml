@@ -1,0 +1,9 @@
+# A ledger whose task says `cost: static` below a late check. Written order
+# runs the check late anyway, so `itos config check --ledger` rejects it.
+- id: T-090
+  type: build
+  title: A static check written below a late one
+  done_when:
+    - run: vp run changelog
+    - run: sh -c 'test -s docs/changelog/CHANGELOG.md'
+      cost: static

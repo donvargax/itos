@@ -1,0 +1,288 @@
+# The CI driver (`ci run`): the plan carried out in cost order with the
+# config's `ci.env`, the log lines agents and their instructions quote, the first failure ending the run (a failing step's
+# own exit code, a task check's 1, unknown tasks before anything runs), and
+# --json. The steps and checks are `echo`s, so the log shows what ran.
+git:
+  - commit: "build: the scratch project"
+    files:
+      e2e/smoke.yaml: "- file: a.feature\n  scenarios: [{ id: \"@ID-A-01\", why: opens }]\n"
+      e2e/features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: One\n    When I press one\n\n  @ID-A-02\n  Scenario: Two\n    When I press two\n"
+      docs/work-items.yaml: "items:\n  - { id: T-040, status: todo }\n"
+      tasks/phase-1.yaml: |
+        - id: T-010
+          type: build
+          title: Every kind of check
+          done_when:
+            - run: echo a static check
+              cost: static
+            - run: vp test run
+            - run: echo "a late check sees CI=$CI"
+            - run: run-scenarios "@ID-A-02"
+            - run: sh gates.sh
+            - fails: "false"
+            - run: echo only after the push
+              after: push
+        - id: T-011
+          type: build
+          title: A check that fails
+          done_when:
+            - run: echo first
+            - run: sh -c 'echo broken; exit 4'
+            - run: echo never
+        - { id: T-040, type: build, title: Not started, done_when: [{ run: echo waits }] }
+        - id: T-041
+          type: build
+          title: Prose and code
+          done_when:
+            - run: echo reads prose
+              prose: true
+            - run: echo reads code
+    label: base
+  - commit: "build: every kind\n\nTask: T-010\n"
+    files: { tools/a.sh: "1\n" }
+    label: every
+  - commit: "build: a failing check\n\nTask: T-011\n"
+    files: { tools/a.sh: "2\n" }
+    label: failing
+  - commit: "build: unknown and not started\n\nTask: T-044, T-040\n"
+    files: { tools/a.sh: "3\n" }
+    label: unknown
+  - commit: "build: not started\n\nTask: T-040\n"
+    files: { tools/a.sh: "4\n" }
+    label: waiting
+  - commit: "docs: prose\n\nTask: T-041\n"
+    files: { docs/a.md: "# A\n" }
+    label: prose
+files:
+  itos.yaml: |
+    version: 1
+    ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+    commits:
+      footers:
+        Task: { source: ledger, validate_for: all, read_at: commit }
+    tests:
+      scenario:
+        root: e2e/features
+        id: "ID-[A-Z]+-\\d+"
+        tag_prefix: "@"
+        run: { whole: "echo run every scenario", select: "printf 'run %s\\n' {pattern}", ids_pattern: "@(?:{ids})\\b" }
+        recognize:
+          - { command: "run-scenarios {pattern}", as: pattern }
+        smoke: { file: e2e/smoke.yaml }
+    ci:
+      env: { CI: "1" }
+      steps:
+        - { run: echo lint, cost: static }
+        - { run: echo unit tests, cost: late }
+        - { tests: scenario }
+      prose: { paths: ["**/*.md", "docs/**"], steps: [echo lint] }
+      cost: { static: ["^echo lint$"], keep_written_order: true }
+      covers: [{ by: echo unit tests, matches: "^vp test run$" }]
+      nightly_only: [sh gates.sh]
+      nightly: { steps: [{ tests: scenario, whole: true }, sh gates.sh] }
+    work: { registry: docs/work-items.yaml }
+  gates.sh: "echo the gates self-test\n"
+cases:
+  - name: a push's run, in cost order, with what it merged, covered and left to the nightly
+    argv: [ci, run, "{{sha.base}}", "{{sha.every}}"]
+    exit: 0
+    stdout: |
+
+      $ echo lint
+      lint
+
+      T-010
+        $ echo a static check
+      a static check
+
+      $ echo unit tests
+      unit tests
+
+      $ printf 'run %s\n' '@(?:ID-A-01)\b|@ID-A-02'
+      run @(?:ID-A-01)\b|@ID-A-02
+
+      T-010
+        = vp test run   (ran above as `echo unit tests`)
+
+      T-010
+        $ echo "a late check sees CI=$CI"
+      a late check sees CI=1
+
+      T-010
+        = run-scenarios "@ID-A-02"   (in the E2E run above)
+
+      T-010
+        = sh gates.sh   (runs in the nightly)
+
+      T-010
+        $ false   (must fail)
+
+      T-010
+
+      CI passed
+  - name: a failing check ends the run, naming the task
+    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}"]
+    exit: 1
+    stdout: |
+
+      $ echo lint
+      lint
+
+      $ echo unit tests
+      unit tests
+
+      $ printf 'run %s\n' '@(?:ID-A-01)\b'
+      run @(?:ID-A-01)\b
+
+      T-011
+        $ echo first
+      first
+
+      T-011
+        $ sh -c 'echo broken; exit 4'
+      broken
+    stderr: |
+
+      CI failed at T-011's check: sh -c 'echo broken; exit 4'
+  - name: a failing step ends the run with its own exit code
+    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}"]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps:
+            - { run: echo lint, cost: static }
+            - { run: "sh -c 'echo tests fail; exit 3'", cost: late }
+            - { run: echo never, cost: late }
+        tests:
+          scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: e2e/smoke.yaml } }
+        work: { registry: docs/work-items.yaml }
+    exit: 3
+    stdout: |
+
+      $ echo lint
+      lint
+
+      $ sh -c 'echo tests fail; exit 3'
+      tests fail
+    stderr: |
+
+      CI failed at: sh -c 'echo tests fail; exit 3'
+  - name: a task no task file has fails the run before anything runs
+    argv: [ci, run, "{{sha.failing}}", "{{sha.unknown}}"]
+    exit: 1
+    stderr: |
+      No task T-044 in tasks/, though a footer names it
+
+      CI failed at the tasks named: T-044
+  - name: a task not started is named, and its checks wait
+    argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}"]
+    exit: 0
+    stdout: |
+      T-040 is named but not started (todo in docs/work-items.yaml): its checks wait.
+
+      $ echo lint
+      lint
+
+      $ echo unit tests
+      unit tests
+
+      $ printf 'run %s\n' '@(?:ID-A-01)\b'
+      run @(?:ID-A-01)\b
+
+      CI passed
+  - name: a prose-only range runs the prose steps and says what it leaves out
+    argv: [ci, run, "{{sha.waiting}}", "{{sha.prose}}"]
+    exit: 0
+    stdout: |
+      Only prose changed: `vp check`, and the named tasks' static and `prose: true` checks.
+        - T-041: echo reads code   (reads no prose; left out)
+
+      $ echo lint
+      lint
+
+      T-041
+        $ echo reads prose
+      reads prose
+
+      CI passed
+  - name: --json keeps stdout for the verdict
+    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      failed_at:
+        task: T-011
+        command: sh -c 'echo broken; exit 4'
+        code: 1
+    stderr: |
+
+      $ echo lint
+      lint
+
+      $ echo unit tests
+      unit tests
+
+      $ printf 'run %s\n' '@(?:ID-A-01)\b'
+      run @(?:ID-A-01)\b
+
+      T-011
+        $ echo first
+      first
+
+      T-011
+        $ sh -c 'echo broken; exit 4'
+      broken
+
+      CI failed at T-011's check: sh -c 'echo broken; exit 4'
+  - name: --json of a run that passes
+    argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}", --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+    stderr: |
+      T-040 is named but not started (todo in docs/work-items.yaml): its checks wait.
+
+      $ echo lint
+      lint
+
+      $ echo unit tests
+      unit tests
+
+      $ printf 'run %s\n' '@(?:ID-A-01)\b'
+      run @(?:ID-A-01)\b
+
+      CI passed
+  - name: the nightly runs every scenario, then its own steps
+    argv: [ci, run, --nightly]
+    exit: 0
+    stdout: |
+
+      $ echo run every scenario
+      run every scenario
+
+      $ sh gates.sh
+      the gates self-test
+
+      CI passed
+  - name: with no range, every step and every test
+    argv: [ci, run]
+    exit: 0
+    stdout: |
+
+      $ echo lint
+      lint
+
+      $ echo unit tests
+      unit tests
+
+      $ echo run every scenario
+      run every scenario
+
+      CI passed

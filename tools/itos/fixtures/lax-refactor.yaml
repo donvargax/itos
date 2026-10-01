@@ -1,0 +1,9 @@
+# Another project's scopes. Its refactor commits may touch feature files,
+# which the template's may not: commit-scope.ts reads the rules from the
+# config ITOS_CONFIG names.
+version: 1
+commits:
+  types: [feat, fix, refactor, docs]
+  scopes:
+    refactor: { never: ["data/**"] }
+  reject_message: "Commit rejected:"

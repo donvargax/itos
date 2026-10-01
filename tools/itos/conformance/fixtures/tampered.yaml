@@ -1,0 +1,40 @@
+# Cases copied from the fixtures and each changed in one expectation, so the
+# runner must fail every one of them (a `fails:` check runs it): a runner that
+# compared nothing, or compared one field only, would pass this file.
+files:
+  itos.yaml: |
+    version: 1
+    requires: ">=0.1.0"
+    commits:
+      types: [docs]
+      scopes:
+        docs: { only: ["**/*.md"] }
+cases:
+  - name: the exit code (version --check passes, 1 expected)
+    argv: [version, --check]
+    exit: 1
+    stdout: "itos 0.1.0\n"
+  - name: stdout (another version)
+    argv: [version]
+    exit: 0
+    stdout: "itos 9.9.9\n"
+  - name: stderr (another wording of the rejection)
+    argv: [commit, check-paths, --type, docs, src/a.ts]
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - docs may not touch src/a.ts
+  - name: json (satisfied false)
+    argv: [version, --json]
+    exit: 0
+    json: { schema: 1, version: 0.1.0, requires: ">=0.1.0", satisfied: false }
+  - name: stdout_has (text it lacks)
+    argv: [version]
+    exit: 0
+    stdout_has: "itos 0.2"
+  - name: files_after (a file hooks install writes, expected absent)
+    argv: [hooks, install]
+    files: { .husky/: "" }
+    exit: 0
+    files_after:
+      .husky/commit-msg: null

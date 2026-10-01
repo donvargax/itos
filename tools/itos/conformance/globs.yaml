@@ -1,0 +1,109 @@
+# The path globs, through the path rules of
+# `commit check-paths`: `*` does not cross `/`, `**` does, `**/` may match
+# nothing, `{a,b}` is either, a glob matches the whole path, and a glob with no
+# `/` matches at the root only. Each commit type here is one glob under test.
+files:
+  itos.yaml: |
+    version: 1
+    commits:
+      types: [star, deep, anydir, brace, whole, literal, set, never, must]
+      path_sets:
+        prose: ["**/*.md", "docs/**"]
+      scopes:
+        star: { only: ["*.md"] }
+        deep: { only: ["docs/**"] }
+        anydir: { only: ["**/*.md"] }
+        brace: { only: ["*.{json,yaml}"] }
+        whole: { only: ["src/*.ts"] }
+        literal: { only: [.gitignore, "a+b(c).md"] }
+        set: { only: [$prose, index.html] }
+        never: { never: ["data/**", "e2e/features/**"] }
+        must: { must_touch: ["src/**", "e2e/**"] }
+cases:
+  - name: "* matches a file at the root"
+    argv: [commit, check-paths, --type, star, README.md]
+    exit: 0
+  - name: "* does not cross a slash"
+    argv: [commit, check-paths, --type, star, docs/a.md]
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - star commits may not touch docs/a.md
+  - name: "** crosses slashes"
+    argv: [commit, check-paths, --type, deep, docs/a/b/c.md, docs/x]
+    exit: 0
+  - name: "** after a folder does not match the folder's name alone, nor a longer name"
+    argv: [commit, check-paths, --type, deep, docs, docsx/a.md]
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - deep commits may not touch docs
+        - deep commits may not touch docsx/a.md
+  - name: "**/ may match no folder at all"
+    argv: [commit, check-paths, --type, anydir, a.md, x/y/b.md]
+    exit: 0
+  - name: "**/ still needs the rest to match"
+    argv: [commit, check-paths, --type, anydir, x/a.mdx]
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - anydir commits may not touch x/a.mdx
+  - name: "{a,b} is either"
+    argv: [commit, check-paths, --type, brace, a.json, b.yaml]
+    exit: 0
+  - name: "{a,b} is nothing else"
+    argv: [commit, check-paths, --type, brace, c.yml, d.json/e]
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - brace commits may not touch c.yml
+        - brace commits may not touch d.json/e
+  - name: a glob matches the whole path, not a part of it
+    argv: [commit, check-paths, --type, whole, src/a.ts, src/b/a.ts, xsrc/a.ts, src/a.tsx]
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - whole commits may not touch src/b/a.ts
+        - whole commits may not touch xsrc/a.ts
+        - whole commits may not touch src/a.tsx
+  - name: a dot and the regular expression characters are literal
+    argv: [commit, check-paths, --type, literal, .gitignore, a+b(c).md, xgitignore, aab(c).md]
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - literal commits may not touch xgitignore
+        - literal commits may not touch aab(c).md
+  - name: a $set stands for its path set
+    argv: [commit, check-paths, --type, set, docs/x.yaml, notes/a.md, index.html, src/index.html]
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - set commits may not touch src/index.html
+  - name: never rejects each path that matches
+    argv: [commit, check-paths, --type, never, src/a.ts, data/x/one.json, e2e/features/a.feature]
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - never commits may not touch data/x/one.json
+        - never commits may not touch e2e/features/a.feature
+  - name: must_touch needs one path that matches
+    argv: [commit, check-paths, --type, must, docs/a.md, e2e/steps/a.ts]
+    exit: 0
+  - name: must_touch fails when none does
+    argv: [commit, check-paths, --type, must, docs/a.md, tasks/phase-1.yaml]
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - must commits must change src/** or e2e/**
+  - name: a path set the config lacks is a config error
+    argv: [commit, check-paths, --type, set, a.md]
+    files:
+      itos.yaml: |
+        version: 1
+        commits:
+          types: [set]
+          scopes:
+            set: { only: [$prose] }
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: commits.scopes.set.only names $prose, which commits.path_sets does not have

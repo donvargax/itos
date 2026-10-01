@@ -1,0 +1,20 @@
+node_modules
+dist
+coverage/
+*.log
+*.local
+test-results/
+playwright-report/
+e2e/.features-gen/
+.fallow/
+# The changelog, written on demand from the commits by `vp run changelog`.
+docs/changelog/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+# Claude Code: the agents' worktrees stay local; the settings are shared.
+.claude/*
+!.claude/settings.json

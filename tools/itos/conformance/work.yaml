@@ -1,0 +1,604 @@
+# The work registry (`itos work`, `work check`):
+# what a person can start, what nobody owns, what waits and on what, ideas and
+# deferred items apart; every problem `work check` finds, with its rule and
+# fix; the people a registry's owners come from (the All Contributors table,
+# an .all-contributorsrc, a YAML list); and who a session works for (--as, or
+# the identity provider: a command, none, or gh, faked on the PATH).
+files:
+  itos.yaml: |
+    version: 1
+    work:
+      registry: work-items.yaml
+      people: { source: yaml, file: people.yaml }
+      identity: { provider: command, command: "echo a" }
+  people.yaml: "- a\n- b\n- a\n"
+  work-items.yaml: |
+    phases: { 1: a, 2: null }
+    items:
+      - { id: done, title: Done, phase: 1, owner: a, status: done, depends_on: [] }
+      - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [done], issue: 12 }
+      - { id: later, title: Later, phase: 1, owner: a, status: todo, depends_on: [ready] }
+      - { id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [] }
+      - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [] }
+      - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo }
+      - { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea, why: a gap a slice left }
+      - { id: idea-later, title: A later idea, phase: 1, owner: a, status: todo, kind: idea, depends_on: [ready] }
+      - { id: parked, title: Parked, phase: 1, owner: a, status: todo, kind: task, deferred: put off for now }
+      - { id: parked-idea, title: A parked idea, phase: 1, owner: a, status: todo, kind: idea, deferred: "  waits on a second runner  " }
+      - { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea }
+      - { id: theirs, title: Theirs, phase: 1, owner: b, status: todo, kind: idea }
+      - { id: slice, title: A slice, phase: 1, owner: b, status: todo, kind: slice }
+cases:
+  - name: what a person can start, then what nobody owns, what waits, ideas and deferred items
+    argv: [work, --as, a]
+    exit: 0
+    stdout: |
+      Working for a.
+
+      In progress:
+        busy  Busy
+
+      Can start now:
+        ready  Ready  (#12)
+        phased  Owned by the phase
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Waiting:
+        later  Later  ← ready
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        idea  An idea
+        idea-later  A later idea  ← ready
+        free-idea  A free idea
+
+      Deferred:
+        parked  Parked  — put off for now
+        parked-idea  A parked idea  — waits on a second runner
+  - name: the same as --json, the proposal agents read
+    argv: [work, --as, a, --json]
+    exit: 0
+    json:
+      schema: 1
+      person: a
+      doing:
+        - id: busy
+          title: Busy
+          phase: 1
+          owner: a
+          status: doing
+          depends_on: []
+      next:
+        - id: ready
+          title: Ready
+          phase: 1
+          owner: a
+          status: todo
+          depends_on:
+            - done
+          issue: 12
+        - id: phased
+          title: Owned by the phase
+          phase: 1
+          owner: null
+          status: todo
+          depends_on: []
+      unowned:
+        - id: free
+          title: Free
+          phase: 2
+          owner: null
+          status: todo
+          depends_on: []
+      waiting:
+        - item:
+            id: later
+            title: Later
+            phase: 1
+            owner: a
+            status: todo
+            depends_on:
+              - ready
+          on:
+            - ready
+      ideas:
+        - item:
+            id: idea
+            title: An idea
+            phase: 1
+            owner: a
+            status: todo
+            kind: idea
+            why: a gap a slice left
+            depends_on: []
+          on: []
+        - item:
+            id: idea-later
+            title: A later idea
+            phase: 1
+            owner: a
+            status: todo
+            kind: idea
+            depends_on:
+              - ready
+          on:
+            - ready
+        - item:
+            id: free-idea
+            title: A free idea
+            phase: 2
+            owner: null
+            status: todo
+            kind: idea
+            depends_on: []
+          on: []
+      deferred:
+        - id: parked
+          title: Parked
+          phase: 1
+          owner: a
+          status: todo
+          kind: task
+          deferred: put off for now
+          depends_on: []
+        - id: parked-idea
+          title: A parked idea
+          phase: 1
+          owner: a
+          status: todo
+          kind: idea
+          deferred: "  waits on a second runner  "
+          depends_on: []
+  - name: another person sees their own and the unowned
+    argv: [work, --as, b]
+    exit: 0
+    stdout: |
+      Working for b.
+
+      Can start now:
+        slice  A slice
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        free-idea  A free idea
+        theirs  Theirs
+  - name: the identity provider says who the session works for
+    argv: [work]
+    exit: 0
+    stdout: |
+      Working for a.
+
+      In progress:
+        busy  Busy
+
+      Can start now:
+        ready  Ready  (#12)
+        phased  Owned by the phase
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Waiting:
+        later  Later  ← ready
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        idea  An idea
+        idea-later  A later idea  ← ready
+        free-idea  A free idea
+
+      Deferred:
+        parked  Parked  — put off for now
+        parked-idea  A parked idea  — waits on a second runner
+  - name: a handle not among the people is a missing environment
+    argv: [work, --as, c]
+    exit: 3
+    stderr: |
+      "c" is not in people.yaml
+  - name: a registry that is not sound stops the proposal
+    argv: [work, --as, a]
+    files:
+      work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo, depends_on: [nope] }\n"
+    exit: 1
+    stderr: |
+      x: depends on unknown "nope"
+  - name: the registry is sound
+    argv: [work, check]
+    exit: 0
+    stdout: |
+      work-items.yaml: sound
+  - name: the registry is sound, quietly
+    argv: [work, check, -q]
+    exit: 0
+  - name: a registry file named on the command line
+    argv: [work, check, other.yaml]
+    files:
+      other.yaml: "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, owner: null, status: todo, depends_on: [b] }\n  - { id: b, title: B, phase: 1, owner: null, status: todo, depends_on: [a] }\n"
+    exit: 1
+    stderr: |
+      cycle: a → b → a
+  - name: a cycle, as --json with its rule and fix
+    argv: [work, check, other.yaml, --json]
+    files:
+      other.yaml: "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, owner: null, status: todo, depends_on: [b] }\n  - { id: b, title: B, phase: 1, owner: null, status: todo, depends_on: [a] }\n"
+    exit: 1
+    json:
+      schema: 1
+      file: other.yaml
+      sound: false
+      problems:
+        - rule: work-cycle
+          message: "cycle: a → b → a"
+          fix: remove one of the depends_on links a → b → a in other.yaml
+  - name: every problem of an item, as text
+    argv: [work, check]
+    files: &broken
+      work-items.yaml: |
+        phases: { 1: a, 3: z }
+        items:
+          - { id: x, title: X, phase: 1, owner: q, status: todo, depends_on: [nope] }
+          - { id: x, title: X again, phase: 1, owner: a, status: todo }
+          - { id: y, title: Y, phase: 1, owner: a, status: done, depends_on: [z] }
+          - { id: z, title: Z, phase: 1, owner: a, status: todo }
+          - { id: e, title: E, phase: 1, owner: a, status: todo, kind: epic }
+          - { id: i, title: I, phase: 1, owner: a, status: doing, kind: idea }
+          - { id: d, title: D, phase: 1, owner: a, status: todo, deferred: "" }
+          - { id: w, title: W, phase: 1, owner: a, status: done, deferred: later }
+          - { id: v, title: V, phase: 1, owner: a, status: todo, why: 3 }
+          - { id: s, title: S, phase: 1, owner: a, status: started }
+          - { id: p, title: P, phase: 2, owner: a, status: todo }
+          - { id: n, phase: 1, owner: a, status: todo }
+    exit: 1
+    stderr: |
+      x: listed twice
+      p: phase 2 is not listed
+      x: owner "q" is not in people.yaml
+      x: depends on unknown "nope"
+      y: done, but "z" is todo
+      e: unknown kind "epic"
+      i: an idea is doing; specify it first (kind slice or task)
+      d: deferred needs its reason
+      w: deferred, but done
+      v: why is not a text
+      s: unknown status "started"
+      n: no title
+      phase 3: owner "z" is not in people.yaml
+  - name: every problem of an item, as --json
+    argv: [work, check, --json]
+    files: *broken
+    exit: 1
+    json:
+      schema: 1
+      file: work-items.yaml
+      sound: false
+      problems:
+        - rule: work-duplicate-id
+          message: "x: listed twice"
+          fix: rename or remove one of the two x items
+        - rule: work-unknown-phase
+          message: "p: phase 2 is not listed"
+          fix: "add phase 2 to phases: in work-items.yaml, or move p to a listed one"
+        - rule: work-unknown-owner
+          message: 'x: owner "q" is not in people.yaml'
+          fix: add q to people.yaml, or set x's owner to one of its logins
+        - rule: work-unknown-dependency
+          message: 'x: depends on unknown "nope"'
+          fix: remove "nope" from x's depends_on, or add an item nope
+        - rule: work-done-before-dependency
+          message: 'y: done, but "z" is todo'
+          fix: finish z first, or set y back to doing
+        - rule: work-unknown-kind
+          message: 'e: unknown kind "epic"'
+          fix: set e's kind to one of slice, task, idea
+        - rule: work-idea-started
+          message: "i: an idea is doing; specify it first (kind slice or task)"
+          fix: "specify i (kind: slice or task, with its scenarios or ledger entry), or set it back to todo"
+        - rule: work-deferred-no-reason
+          message: "d: deferred needs its reason"
+          fix: write why d is deferred in its deferred:, or remove the key
+        - rule: work-deferred-started
+          message: "w: deferred, but done"
+          fix: remove w's deferred:, or set it back to todo
+        - rule: work-why-not-text
+          message: "v: why is not a text"
+          fix: write v's why as text, or remove it
+        - rule: work-unknown-status
+          message: 's: unknown status "started"'
+          fix: set s's status to one of todo, doing, done, blocked
+        - rule: work-no-title
+          message: "n: no title"
+          fix: give n a title
+        - rule: work-unknown-phase-owner
+          message: 'phase 3: owner "z" is not in people.yaml'
+          fix: add z to people.yaml, or set phase 3's owner to one of its logins
+  - name: the people from an All Contributors table, by their profile links
+    argv: [work, --as, a]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: all-contributors-md, file: CONTRIBUTORS.md }
+      CONTRIBUTORS.md: |
+        # Contributors
+
+        <a href="https://github.com/outside">not in the list</a>
+        <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+        <a href="https://github.com/a"><img src="https://github.com/a.png" /></a>
+        <a href="https://github.com/org/repo/commits?author=a" title="Code">💻</a>
+        <a href="https://github.com/b"><img src="https://github.com/b.png" /></a>
+        <!-- ALL-CONTRIBUTORS-LIST:END -->
+    exit: 0
+    stdout: |
+      Working for a.
+
+      In progress:
+        busy  Busy
+
+      Can start now:
+        ready  Ready  (#12)
+        phased  Owned by the phase
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Waiting:
+        later  Later  ← ready
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        idea  An idea
+        idea-later  A later idea  ← ready
+        free-idea  A free idea
+
+      Deferred:
+        parked  Parked  — put off for now
+        parked-idea  A parked idea  — waits on a second runner
+  - name: a table's links on another host name nobody by default
+    argv: [work, check]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: all-contributors-md, file: CONTRIBUTORS.md }
+      CONTRIBUTORS.md: &codeberg |
+        <!-- ALL-CONTRIBUTORS-LIST:START -->
+        <a href="https://codeberg.org/a"><img src="https://codeberg.org/a.png" /></a>
+        <a href="https://codeberg.org/b"><img src="https://codeberg.org/b.png" /></a>
+        <!-- ALL-CONTRIBUTORS-LIST:END -->
+    exit: 1
+    stderr: |
+      done: owner "a" is not in CONTRIBUTORS.md
+      ready: owner "a" is not in CONTRIBUTORS.md
+      later: owner "a" is not in CONTRIBUTORS.md
+      busy: owner "a" is not in CONTRIBUTORS.md
+      idea: owner "a" is not in CONTRIBUTORS.md
+      idea-later: owner "a" is not in CONTRIBUTORS.md
+      parked: owner "a" is not in CONTRIBUTORS.md
+      parked-idea: owner "a" is not in CONTRIBUTORS.md
+      theirs: owner "b" is not in CONTRIBUTORS.md
+      slice: owner "b" is not in CONTRIBUTORS.md
+      phase 1: owner "a" is not in CONTRIBUTORS.md
+  - name: login_from reads the logins from another host's links
+    argv: [work, check]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: all-contributors-md, file: CONTRIBUTORS.md, login_from: "https://codeberg.org/{login}" }
+      CONTRIBUTORS.md: *codeberg
+    exit: 0
+    stdout: |
+      work-items.yaml: sound
+  - name: login_from needs one {login}
+    argv: [work, check]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          people: { source: all-contributors-md, file: CONTRIBUTORS.md, login_from: "https://codeberg.org/" }
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: work.people.login_from needs one {login}: https://codeberg.org/
+  - name: login_from is read only from a table
+    argv: [work, check]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          people: { source: yaml, file: people.yaml, login_from: "https://codeberg.org/{login}" }
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: work.people.login_from is read only by all-contributors-md
+  - name: the people from an .all-contributorsrc
+    argv: [work, check]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: all-contributorsrc, file: .all-contributorsrc }
+      .all-contributorsrc: '{"projectName":"x","contributors":[{"login":"a","name":"A"},{"login":"b","contributions":["code"]}]}'
+    exit: 0
+    stdout: |
+      work-items.yaml: sound
+  - name: an .all-contributorsrc without a contributors list
+    argv: [work, check]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: all-contributorsrc, file: .all-contributorsrc }
+      .all-contributorsrc: '{"projectName":"x"}'
+    exit: 2
+    stderr: |
+      itos: .all-contributorsrc (work.people, all-contributorsrc) has no contributors list
+  - name: an .all-contributorsrc contributor without a login
+    argv: [work, check]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: all-contributorsrc, file: .all-contributorsrc }
+      .all-contributorsrc: '{"contributors":[{"name":"No Login"}]}'
+    exit: 2
+    stderr: |
+      itos: .all-contributorsrc (work.people, all-contributorsrc) contributors[0] has no login
+  - name: a YAML people file that is not a list
+    argv: [work, check]
+    files:
+      people.yaml: "people: [a]\n"
+    exit: 2
+    stderr: |
+      itos: people.yaml (work.people, yaml) is not a list of logins
+  - name: a YAML people entry that is not a login
+    argv: [work, check]
+    files:
+      people.yaml: "- a\n- 3\n"
+    exit: 2
+    stderr: |
+      itos: people.yaml (work.people, yaml) entry 1 is not a login
+  - name: the identity command gives no handle
+    argv: [work]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+          identity: { provider: command, command: "false" }
+    exit: 0
+    stdout: |
+      Working for nobody.
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        free-idea  A free idea
+    stderr: |
+      `false` gave no handle, so this session is nobody; pass --as <handle>
+  - name: identity none makes the session nobody, with its hint
+    argv: [work]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+          identity: { provider: none, hint: ask the coordinator }
+    exit: 0
+    stdout: |
+      Working for nobody.
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        free-idea  A free idea
+    stderr: |
+      work.identity is none, so this session is nobody; ask the coordinator
+  - name: --as works whatever the identity provider
+    argv: [work, --as, b]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+          identity: { provider: none }
+    exit: 0
+    stdout: |
+      Working for b.
+
+      Can start now:
+        slice  A slice
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        free-idea  A free idea
+        theirs  Theirs
+  - name: a handle the provider gives that is not among the people owns nothing yet
+    argv: [work]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+          identity: { provider: command, command: "echo newcomer" }
+    exit: 0
+    stdout: |
+      Working for newcomer.
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        free-idea  A free idea
+    stderr: |
+      newcomer is not in people.yaml: nothing is theirs yet
+  - name: the GitHub account gh is signed in as
+    argv: [work]
+    env: { PATH: "{{dir}}/bin:{{PATH}}" }
+    files:
+      itos.yaml: &github |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+          identity: { provider: github }
+      bin/gh: { text: "#!/bin/sh\n[ \"$*\" = \"api user --jq .login\" ] && echo b\n", executable: true }
+    exit: 0
+    stdout: |
+      Working for b.
+
+      Can start now:
+        slice  A slice
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        free-idea  A free idea
+        theirs  Theirs
+  - name: gh signed out makes the session nobody
+    argv: [work]
+    env: { PATH: "{{dir}}/bin:{{PATH}}" }
+    files:
+      itos.yaml: *github
+      bin/gh: { text: "#!/bin/sh\necho 'not logged in' >&2\nexit 4\n", executable: true }
+    exit: 0
+    stdout: |
+      Working for nobody.
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        free-idea  A free idea
+    stderr: |
+      gh is not signed in (gh auth login), so this session is nobody; pass --as <handle>
+  - name: gh missing makes the session nobody
+    argv: [work]
+    hide: [gh]
+    files:
+      itos.yaml: *github
+    exit: 0
+    stdout: |
+      Working for nobody.
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        free-idea  A free idea
+    stderr: |
+      gh is not installed, so this session is nobody; pass --as <handle>

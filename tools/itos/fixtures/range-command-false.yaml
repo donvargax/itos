@@ -1,0 +1,10 @@
+# A range provider that is a command. Its stdout is the start commit; `false`
+# fails, which means "run everything", so
+#
+#   ITOS_CONFIG=tools/itos/fixtures/range-command-false.yaml tools/bin/itos ci range --head HEAD
+#
+# prints `FROM=` without asking GitHub.
+version: 1
+ci:
+  steps: [{ run: vp check, cost: static }]
+  range: { provider: command, command: "false" }

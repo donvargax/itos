@@ -1,0 +1,18 @@
+vp staged || exit $?
+# Documentation-only commits need no test or audit gate.
+if [ -z "$(git diff --cached --name-only --diff-filter=ACMRD -- . ':(exclude)*.md' ':(exclude)docs/**/*.md' ':(exclude)tasks/**' ':(exclude)e2e/features/**')" ]; then
+	exit 0
+fi
+# Only the unit tests the change can affect: vitest follows the imports from
+# every file changed since HEAD, and `forceRerunTriggers` (vite.config.ts) adds
+# what the tests read from disk. The whole suite and its coverage thresholds are
+# CI's (`vp run test:coverage`); a partial run cannot hold a threshold, so they
+# are off here. Coverage is still collected, because the audit scores the
+# changed files by it (see .fallowrc.json), and a changed file's coverage is
+# exact: every test that runs it imports it, so every one of them ran.
+vp test run --changed HEAD --coverage --coverage.reporter=json \
+	--coverage.thresholds.statements=0 --coverage.thresholds.branches=0 \
+	--coverage.thresholds.functions=0 --coverage.thresholds.lines=0 || exit $?
+# The audit gate (new-only): skip until the repository has a first commit to diff against.
+git rev-parse --verify HEAD >/dev/null 2>&1 || exit 0
+vp exec fallow audit --quiet --gate-marker pre-commit

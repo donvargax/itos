@@ -1,0 +1,170 @@
+# The re-check of a pushed range (`itos verify`): every
+# non-merge commit's message against the footers as they were at that commit,
+# then its paths, then each kind's range check once; the summary line agents
+# quote, and --json.
+#
+# The repository: a commit before the ledger (bare); a feat naming a live
+# scenario and T-002 (live); the scenario set back to @wip and T-002 taken out
+# (head), which leaves the feat valid; then a build naming T-002, now gone
+# (gone), a docs commit touching source (source) and a sound chore (tidy).
+git:
+  - commit: "docs: start"
+    files: { README.md: "scratch\n" }
+    label: bare
+  - commit: "feat: add a thing\n\nScenarios: @ID-SCRATCH-01\nTask: T-002\n"
+    files:
+      e2e/features/scratch.feature: "@phase-1\nFeature: Scratch\n\n  @ID-SCRATCH-01\n  Scenario: Lies down\n    When I press \"Play\"\n"
+      tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n- { id: T-002, type: build, title: Two }\n"
+    label: live
+  - commit: "docs: set the scenario back to @wip\n\nTask: T-001\n"
+    files:
+      e2e/features/scratch.feature: "@phase-1\nFeature: Scratch\n\n  @ID-SCRATCH-01 @wip\n  Scenario: Lies down\n    When I press \"Play\"\n"
+      tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n"
+    label: head
+  - commit: "build: name a task that is gone\n\nTask: T-002\n"
+    files: { tools/a.sh: "true\n" }
+    label: gone
+  - commit: "docs: touch the source\n\nTask: T-001\n"
+    files: { src/a.ts: "export {};\n" }
+    label: source
+  - commit: "chore: tidy\n\nTask: T-001\n"
+    files: { package.json: "{}\n" }
+    label: tidy
+files:
+  itos.yaml: |
+    version: 1
+    ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+    commits:
+      types: [feat, fix, build, chore, docs]
+      footers:
+        Task: { source: ledger, required_for: [build, chore], validate_for: all, read_at: commit }
+        Scenarios:
+          source: { tests: scenario }
+          strip_prefix: "@"
+          required_for: [feat, fix]
+          validate_for: [feat, fix]
+          must_be_live: true
+          read_at: commit
+      scopes:
+        feat: { must_touch: ["src/**", "e2e/**"] }
+        build: { only: ["tools/**", "*.json"] }
+        chore: { never: ["src/**"] }
+        docs: { only: ["**/*.md", "tasks/**", "e2e/features/**"] }
+    tests:
+      scenario:
+        root: e2e/features
+        id: "ID-[A-Z]+-\\d+"
+        range_checks:
+          - { name: moves, except_types: [feat, fix], range: "echo checked {from}..{to}" }
+cases:
+  - name: every commit up to the head, a feat valid at its own commit though a later one set its scenario back
+    argv: [verify, "", "{{sha.head}}"]
+    exit: 0
+    stdout: |
+      3/3 commits pass the commit rules
+      checked ..{{sha.head}}
+    stderr: |
+      {{sha.bare}} has no tasks; its Task: footer is read against the working tree
+  - name: a from of zeros is every commit up to the head
+    argv: [verify, "0000000000000000000000000000000000000000", "{{sha.head}}"]
+    exit: 0
+    stdout: |
+      3/3 commits pass the commit rules
+      checked 0000000000000000000000000000000000000000..{{sha.head}}
+    stderr: |
+      {{sha.bare}} has no tasks; its Task: footer is read against the working tree
+  - name: a range with commits that fail, each named under its report
+    argv: [verify, "{{sha.head}}", "{{sha.tidy}}"]
+    exit: 1
+    stdout: |
+      1/3 commits pass the commit rules
+      checked {{sha.head}}..{{sha.tidy}}
+    stderr: |
+      ✖   unknown tasks: T-002 [task-footer]
+        ^ {{short.gone}} build: name a task that is gone
+      Commit rejected:
+        - docs commits may not touch src/a.ts
+        ^ {{short.source}} docs: touch the source
+  - name: --json of that range, the reports on stderr
+    argv: [verify, "{{sha.head}}", "{{sha.tidy}}", --json]
+    exit: 1
+    json:
+      schema: 1
+      range:
+        from: "{{sha.head}}"
+        to: "{{sha.tidy}}"
+      commits:
+        - sha: "{{sha.gone}}"
+          header: "build: name a task that is gone"
+          ok: false
+        - sha: "{{sha.source}}"
+          header: "docs: touch the source"
+          ok: false
+        - sha: "{{sha.tidy}}"
+          header: "chore: tidy"
+          ok: true
+      passed: 1
+      total: 3
+      range_checks: true
+    stderr: |
+      ✖   unknown tasks: T-002 [task-footer]
+        ^ {{short.gone}} build: name a task that is gone
+      Commit rejected:
+        - docs commits may not touch src/a.ts
+        ^ {{short.source}} docs: touch the source
+      1/3 commits pass the commit rules
+      checked {{sha.head}}..{{sha.tidy}}
+  - name: a range check that fails fails the range, its commits sound
+    argv: [verify, "{{sha.source}}", "{{sha.tidy}}", --config, failing.yaml]
+    files:
+      failing.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, required_for: [chore], validate_for: all, read_at: commit }
+        tests:
+          scenario:
+            root: e2e/features
+            id: "ID-[A-Z]+-\\d+"
+            range_checks:
+              - { name: moves, range: "echo 'a moved scenario changed' >&2; exit 1" }
+    exit: 1
+    stdout: |
+      1/1 commits pass the commit rules
+    stderr: |
+      a moved scenario changed
+  - name: the header lint delegate reads the commit it checks from ITOS_AT
+    argv: [verify, "{{sha.bare}}", "{{sha.head}}", --config, delegated.yaml]
+    files:
+      delegated.yaml: |
+        version: 1
+        commits:
+          header_lint: { use: command, stdin: "head -1 >&2; echo \"at $(git rev-parse --short $ITOS_AT)\" >&2" }
+    exit: 0
+    stdout: |
+      2/2 commits pass the commit rules
+    stderr: |
+      feat: add a thing
+      at {{short.live}}
+      docs: set the scenario back to @wip
+      at {{short.head}}
+  - name: a header the delegate rejects
+    argv: [verify, "{{sha.head}}", "{{sha.gone}}", --config, rejecting.yaml]
+    files:
+      rejecting.yaml: |
+        version: 1
+        commits:
+          header_lint: { use: command, stdin: "cat >/dev/null; echo '✖   type may not be empty [type-empty]'; exit 1" }
+    exit: 1
+    stdout: |
+      ✖   type may not be empty [type-empty]
+      0/1 commits pass the commit rules
+    stderr: |2
+        ^ {{short.gone}} build: name a task that is gone
+  - name: an empty range passes
+    argv: [verify, "{{sha.tidy}}", "{{sha.tidy}}"]
+    exit: 0
+    stdout: |
+      0/0 commits pass the commit rules
+      checked {{sha.tidy}}..{{sha.tidy}}

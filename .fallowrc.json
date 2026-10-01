@@ -1,0 +1,24 @@
+{
+	"$schema": "./node_modules/fallow/schema.json",
+	"entry": ["src/main.ts", "commitlint.config.ts", "playwright.config.ts", "tools/**/*.ts"],
+	"ignorePatterns": ["docs/changelog/**", "e2e/.features-gen/**"],
+	"framework": [
+		{
+			"name": "playwright-bdd",
+			"enablers": ["playwright-bdd"],
+			"entryPoints": ["e2e/steps/**/*.ts", "e2e/support/**/*.ts"],
+			"entryPointRole": "test"
+		}
+	],
+	"ignoreDependencies": ["yaml", "git-cliff"],
+	"health": {
+		"coverage": "coverage/coverage-final.json",
+		"thresholdOverrides": [
+			{
+				"files": ["tools/**"],
+				"maxCrap": 1000,
+				"reason": "Verified by the conformance suite and the self-tests, which run it as a command, not by unit coverage; cyclomatic and cognitive limits still apply."
+			}
+		]
+	}
+}
