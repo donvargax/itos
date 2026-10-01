@@ -444,7 +444,7 @@ items:
     title: The commit-msg hook runs the static checks of the tasks a commit names
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-5, T-024]
     kind: slice
     refs: [features/commit-tasks.feature]
