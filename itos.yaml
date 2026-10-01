@@ -41,44 +41,61 @@ commits:
   path_sets:
     config: # what build and ci commits may touch
       - "*.{json,yaml,yml,ts,toml}"
+      - go.mod
+      - go.sum
       - .gitignore
       - .editorconfig
       - ".vite-hooks/**"
       - ".github/**"
-      - "tools/**"
+      - "tools/bin/**"
+      - "tools/selftest/**"
+      - tools/changelog.ts
       - .claude/settings.json
-      - index.html
-      - src/main.ts
+    # itos itself: the TypeScript v0 (the Go port adds its packages here), the
+    # one place a feat or a fix must change unless it changes the features.
+    implementation:
+      - "tools/itos/*.ts"
   scopes: # the paths each commit type may touch (tasks/README.md's table)
-    feat: { must_touch: ["src/**", "e2e/**"] }
-    fix: { must_touch: ["src/**"] }
-    refactor: { never: ["e2e/features/**"] }
-    perf: { never: ["e2e/features/**"] }
-    test: { only: ["e2e/**", "**/*.test.ts", "tools/**", playwright.config.ts] }
+    feat: { must_touch: [$implementation, "features/**"] }
+    fix: { must_touch: [$implementation, "features/**"] }
+    refactor: { never: ["features/**/*.feature"] }
+    perf: { never: ["features/**/*.feature"] }
+    test:
+      only:
+        - "features/**"
+        - "**/*.test.ts"
+        - "tools/itos/conformance/**"
+        - "tools/itos/fixtures/**"
+        - "tools/selftest/**"
     build: { only: [$config] }
     ci: { only: [$config] }
-    chore: { never: ["src/**"] }
-    docs: { only: ["**/*.md", "docs/**", "tasks/**", "e2e/features/**"] }
+    chore: { never: [$implementation] }
+    docs: { only: ["**/*.md", "docs/**", "tasks/**", "features/**/*.feature"] }
     style: {}
   reject_message: "Commit rejected (see tasks/README.md):"
 
 tests: # named tests, each kind behind an adapter (tools/itos/tests.ts)
   scenario:
     adapter: gherkin # built in: tools/itos/gherkin.ts
-    root: e2e/features
+    root: features
     id: "ID-[A-Z]+-\\d+"
     tag_prefix: "@"
     wip_tag: "@wip"
-    run: # the one command every selection of a push merges into
-      whole: "vp run e2e"
-      select: "vp run e2e --grep {pattern}"
-      ids_pattern: "@(?:{ids})\\b"
+    # The one command every selection of a push merges into: godog, through go
+    # test. -scenarios= is a regular expression over the scenarios' tags, which
+    # the harness turns into godog's tag filter (features/README.md): godog's
+    # own filter takes only exact tags joined by commas.
+    run:
+      whole: "go test ./features -count=1"
+      select: "go test ./features -count=1 -scenarios={pattern}"
+      ids_pattern: "^@(?:{ids})$"
       join: { each: "(?:{p})", sep: "|" }
     recognize: # a task check read back as a selection, so CI runs it in the one run
-      - { command: "vp run e2e", as: whole }
-      - { command: "vp run e2e --grep {pattern}", as: pattern }
-      - { command: "vp run e2e:smoke", as: smoke }
-    smoke: { file: e2e/smoke.yaml, every_file: true, add_hint: "add one to e2e/smoke.yaml" }
+      - { command: "go test ./features -count=1", as: whole }
+      - { command: "go test ./features -count=1 -scenarios={pattern}", as: pattern }
+      - { command: "tools/bin/itos tests smoke run scenario", as: smoke }
+    smoke:
+      { file: features/smoke.yaml, every_file: true, add_hint: "add one to features/smoke.yaml" }
     range_checks:
       - name: scenario-moves # outside feat and fix, live scenarios only move, unchanged
         except_types: [feat, fix]
@@ -89,10 +106,14 @@ ci:
   env: { CI: "1" }
   steps: # every step of CI, in order; each states its cost
     - { run: vp check, cost: static }
+    - { run: "! gofmt -l features | grep .", cost: static } # names each file gofmt would change
+    - { run: go vet ./..., cost: static }
     - { run: tools/bin/itos tests smoke check scenario, cost: static }
     - { run: vp run test:coverage, cost: late }
-    - { run: vp build, cost: late }
     - { run: vp run audit, cost: late }
+    # The conformance corpus: what itos did when it was written, as cases run
+    # through its command line; a regression corpus, not named tests.
+    - { run: node tools/itos/conformance/run.ts --bin tools/bin/itos, cost: late }
     - { run: vp run task T-007, cost: late } # the commit rules, proven on every push
     - { tests: scenario } # the one merged run; late, as no pattern matches it
   prose: # a range that touches only these runs only the prose steps
@@ -109,6 +130,7 @@ ci:
       - "^git ls-remote "
       - "\\| vp exec commitlint$"
       - "^node tools/selftest/(ci-scope|ci-range)\\.ts$"
+      - "^go (vet|mod verify)\\b"
     keep_written_order: true # a task's checks never run before the ones above them
   covers: # a check a step has just done is not run again
     - { by: "vp run test:coverage", matches: "^vp test run(?: [^\\s-]\\S*)*$" }
