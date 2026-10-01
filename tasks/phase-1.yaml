@@ -258,8 +258,11 @@
   why: >
     v0.3.0 releases slice 7 (the commit-msg hook runs the static checks of the
     tasks a commit names) and slice 4 (every accepted config key read, and the
-    keys of features not built yet dropped), with the notes PLAN.md §10 asks
-    for. Slice 4 removes keys a consumer's config may set
+    keys of features not built yet dropped), slice 8 (a cost pattern written
+    for itos matches a command written as hooks.bin) and slice 9 (the task
+    runner runs each check once; task list shows the registry's status), with
+    the notes PLAN.md §10 asks for. Slice 8 can turn a consumer's check from
+    late to static, so the hook starts running it. Slice 4 removes keys a consumer's config may set
     (commits.header_lint.use and alongside, ledger.check.pushed), which
     config check then rejects as unknown, and slice 7 can reject a commit that
     passed before: the Upgrading section names each, with what to do. The

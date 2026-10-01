@@ -470,7 +470,7 @@ items:
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: [slice-4, slice-7]
+    depends_on: [slice-4, slice-7, slice-8, slice-9]
     kind: task
     refs: [tasks/phase-1.yaml]
 
@@ -488,6 +488,41 @@ items:
       but never read; each is now read. commits.header_lint.use and alongside wait on the built-in
       header lint, and ledger.check.pushed has one value: they leave the schema, and come back with
       the feature that gives them a second value. @ID-CONFIG-07 to 14.
+
+  - id: slice-8
+    title: The cost rule reads a command that starts with hooks.bin as itos
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-7]
+    kind: slice
+    refs: [features/cost.feature]
+    why: >
+      Asked by the user: ci.cost.static's patterns do not recognise itos's own commands written as
+      tools/bin/itos, so this repository's config spells out ^(tools/bin/)?itos, and each consumer
+      would have to as well. The cost rule reads a command whose first word is hooks.bin
+      (tools/bin/itos by default) as if that word were itos; any other path is matched as written.
+      This repository's patterns then become ^itos. A consumer whose pattern names itos sees a
+      check written as hooks.bin go from late to static, so it runs in the commit-msg hook and
+      early in CI: the release notes say so. @ID-COST-01 to 03.
+
+  - id: slice-9
+    title: The task runner runs each check once, and task list shows each task's registry status
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-7]
+    kind: slice
+    refs: [features/task.feature]
+    why: >
+      Asked by the user: task --pending and --group run a check once for every task that lists it
+      (the self-tests, config check), and nothing lists where tasks stand without running every
+      check. One invocation runs each check, its command and its timeout, once, and each task reads
+      that exit code by its own run: or fails:. A check that needs a fresh run because a check
+      above it in its task changed the tree would read the earlier result; the ledger has no such
+      pair today. task list prints each task's status from the work registry, or "no item", and
+      runs nothing; --json carries it too. The user chose the registry's status over running only
+      the static checks. @ID-TASK-01 to 04.
 
   - id: p1-release-checks-its-notes
     title: The release workflow runs the notes check before it publishes
