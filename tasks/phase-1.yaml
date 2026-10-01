@@ -129,9 +129,12 @@
     holding itos-<version>.tgz and checksums.txt (its SHA-256), so a consumer
     pins the tarball's URL and checks its hash. v0.1.0 is the first; the
     project template and the character editor then replace their copies of
-    tools/itos/ with the pin, from their own repositories.
+    tools/itos/ with the pin, from their own repositories. The release check
+    can pass only once the tag's release exists, and every CI run whose range
+    names T-021 runs it, so it is late: the run that lands the workflow proves
+    everything else before it fails there, the tag goes on that commit, and
+    the run is green when re-run after the release.
   done_when:
     - run: actionlint
     - run: sh -c 'd=$(mktemp -d) && gh release download v0.1.0 --dir "$d" --pattern "itos-0.1.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
       after: push
-      cost: static
