@@ -5,7 +5,7 @@
 # works on the project is CONTRIBUTORS.md.
 #
 # What an item is and when it is done stays where it already lives: a slice's
-# scenarios in e2e/features/, a task's checks in tasks/. This file holds only
+# scenarios in features/, a task's checks in tasks/. This file holds only
 # the routing. Change it in a `docs` commit: take an item by setting `owner`
 # and `status: doing` before starting it, mark it `done` in the commit that
 # lands it (or the next `docs` one), and add the items a slice discovers.
@@ -35,6 +35,7 @@
 phases:
   0: donvargax
   1: donvargax
+  2: donvargax
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
@@ -57,7 +58,7 @@ items:
     refs: [tasks/phase-0.yaml]
 
   - id: T-003
-    title: Unit tests and coverage thresholds
+    title: Unit tests, and coverage for the audit
     phase: 0
     owner: donvargax
     status: done
@@ -75,7 +76,7 @@ items:
     refs: [tasks/phase-0.yaml]
 
   - id: T-005
-    title: E2E harness and the smoke set
+    title: Named tests and the smoke set
     phase: 0
     owner: donvargax
     status: done
@@ -160,7 +161,7 @@ items:
     title: "Drop the template's demo app"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     refs: [tasks/phase-1.yaml]
@@ -169,7 +170,7 @@ items:
     title: The Go toolchain
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     refs: [tasks/phase-1.yaml]
@@ -178,7 +179,7 @@ items:
     title: The features, run by godog against the binary
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-015]
     kind: task
     refs: [tasks/phase-1.yaml, features/README.md]
@@ -187,7 +188,7 @@ items:
     title: Verification starts at commits.since
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-016]
     kind: slice
     refs: [features/since.feature]
@@ -196,7 +197,7 @@ items:
     title: "The commit-msg hook's core, pinned by scenarios"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-016]
     kind: slice
     refs: [features/commit-msg.feature]
@@ -205,7 +206,7 @@ items:
     title: "Verification starts after the template's squashed commit"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-1]
     kind: task
     refs: [tasks/phase-1.yaml]
@@ -214,7 +215,7 @@ items:
     title: AGPL-3.0 for the whole repository
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     refs: [tasks/phase-1.yaml]
@@ -223,7 +224,199 @@ items:
     title: "itos's README, plan and agent docs"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-014, T-016, T-017]
     kind: task
     refs: [tasks/phase-1.yaml, README.md, PLAN.md]
+
+  # ---- phase 1: what v0 leaves open --------------------------------------------
+  - id: p1-release-v0.1.0
+    title: itos v0.1.0 released, packed to JavaScript
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Consumers pin a release, never a branch. Node strips types only outside node_modules, so a
+      consumer that installs itos as a dependency cannot run tools/itos/*.ts as they are: the release
+      is packed to JavaScript (vp pack), with tools/bin/itos calling the packed entry point, and
+      published as a tarball with its checksum on a v0.1.0 tag. The project template then replaces its
+      copy of tools/itos/ with the pin, so the code has one home.
+
+  - id: p1-verify-with-last-release
+    title: CI verifies with the last released itos too
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [p1-release-v0.1.0]
+    kind: idea
+    why: >
+      The hooks and CI run the working tree's itos, so a commit that breaks a gate can approve
+      itself. CI also running verify and the conformance corpus with the last released itos closes
+      that; a release that changes a rule on purpose says so in its notes.
+
+  - id: p1-config-check-gate
+    title: itos config check in a gate
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      No hook runs it, and CI only when a pushed commit names a task that carries it, so a broken
+      config, ledger, registry or smoke set can land and fail a later push. A static CI step, or the
+      pre-commit hook when itos.yaml, tasks/, the registry or the smoke set is staged, would catch it
+      in the commit that breaks it.
+
+  - id: p1-config-keys-honoured
+    title: Every config key the loader accepts is one the tool reads
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Copying the tool into the project template found places that are not config-driven:
+      ci.stop_at_first_failure, ledger.check.pushed, work.statuses, work.groups_key,
+      tests.<kind>.smoke.every_file, hooks.manager and commits.header_lint.use/alongside are validated
+      but never read; checks, CI steps, header-lint delegates and range checks run sh -c whatever
+      shell says (only the providers and the command adapter honour it); scenario-moves' range mode
+      hardcodes feat and fix and ignores except_types, and it, ci-scope's Task key, ci plan --data-at
+      and the smoke rule default to the kind named scenario; ci run's messages name tasks/,
+      docs/work-items.yaml and vp check. Each is read from the config, or the key goes.
+
+  - id: p1-one-defaults-table
+    title: The defaults the tools apply, read from one table
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      config check --print-defaults prints a table beside the code, but each tool writes its own
+      fallback where it reads a key (?? 600, ?? "docs/work-items.yaml", ?? "@wip"), so the printed
+      table can drift from what runs: tests.<kind>.tag_prefix is @ in the table and the Gherkin adapter
+      but empty where a smoke ID loses its prefix. One table the loader merges under the file, which the
+      tools and the flag both read, closes it; it fits the Go port's config loader.
+
+  - id: p1-footers-beside-header-lint
+    title: The footer rules run by itos beside the header lint
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      With a header-lint delegate configured, the commit-msg hook and verify run only the delegate:
+      the footer rules run because the template's commitlint config carries them as a plugin
+      (commitlint.config.ts, calling tools/itos/footers.ts), and a delegate without that plugin skips
+      them silently. The plan has the hook run the scope rules, the range checks, the footer rules and
+      the header lint in turn, each itos's or the delegate's; until then, the features' header-lint
+      scenario uses commitlint without the plugin and the footer scenarios use no delegate.
+
+  - id: p1-several-test-kinds
+    title: A CI run that merges more than one kind of named test
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The plan merges only the kind of the first tests: step of ci.steps, with one smoke set, and the
+      smoke rule names the kind scenario: in a config with two kinds (scenarios and Go tests, say)
+      every tests: step would take the first kind's merged command.
+
+  - id: p1-e2e-names
+    title: "The template's E2E names out of the code and its output"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The code still says what the template ran: e2e-scope.ts and e2eStep for the smoke rule and the
+      plan's run of named tests, comments naming e2e/smoke.yaml and Playwright, and ci run's
+      "(in the E2E run above)" for a merged check. A refactor renames the modules; the wording, which
+      agents read, changes in a feat with its conformance case.
+
+  - id: p1-range-check-since-diverged
+    title: A range check given commits.since when the range has diverged from it
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A range check takes one {from}. verify gives it commits.since when the range's own start is
+      empty or older than it, but keeps the start when the two have diverged (a pull request based
+      before commits.since, say), so a project's own range check may judge commits before it;
+      scenario-moves leaves them out itself. A {since} in the template, or a range given as a commit
+      list, would close it.
+
+  - id: p1-hooks-config-write
+    title: "hooks install writes lefthook's and pre-commit's config"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      hooks install writes shim files for Vite+, husky and plain git, but for lefthook, pre-commit
+      and prek, whose hooks live in their YAML config, it only prints the snippet to add. Merging it into
+      the file, keeping the other hooks and comments, would make install one step for them too, and
+      hooks.manager could then override detection, which it does not yet.
+
+  - id: p1-identity-map
+    title: "An identity command's answer mapped to a login"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A command identity takes the command's output as the handle, so the command must print the
+      login itself. Asking git config user.email and mapping it through a people file that pairs a
+      login with an email needs a map: key and that file; it fits the people sources in the Go port.
+
+  - id: p1-conformance-http
+    title: Conformance cases for the providers that ask an HTTP API
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The corpus runs every provider that needs no network, but not which run the github range
+      provider takes from the API's answer (the newest success, whatever the list's order), which
+      stays in tools/selftest/ci-range.ts. A case serving a canned response, with the provider taking
+      its API's base URL from the environment as GITHUB_API_URL gives it in Actions, would cover it, and
+      GitLab and Forgejo after it.
+
+  - id: p1-agent-rules-as-checks
+    title: Agent rules a command can decide, moved into itos
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A rule moves from the agent instructions into itos once a command can decide it. Two
+      candidates: pre-push refusing a non-fast-forward push (AGENTS.md, "Force-push, in any form"),
+      and a commit refusing paths the config marks as someone's work in progress (AGENTS.md, "Stage
+      your own work"). The instructions then point to the check.
+
+  # ---- phase 2 ----------------------------------------------------------------
+  - id: p2-go-port
+    title: The Go port, one command group at a time
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      PLAN.md, phase 2: the Go binary built here beside the TypeScript, one command group at a
+      time, each shipped when it passes its features (ITOS_BIN pointed at it) and its part of the
+      conformance corpus. The gofmt step in itos.yaml and T-015's check name features/ only, and
+      the implementation path set tools/itos/*.ts: both grow with cmd/ and internal/.
+    refs: [PLAN.md]
