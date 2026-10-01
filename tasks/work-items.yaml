@@ -824,7 +824,7 @@ items:
     title: A missing ledger folder is one problem in every command that reads the ledger
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-13]
     kind: slice
     refs: [features/ledger.feature]
