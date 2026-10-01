@@ -1,0 +1,74 @@
+name: Release
+
+# A tag v<version> publishes that version: itos-<version>.tgz, the package
+# `vp pack` and `npm pack` make (tools/itos/ bundled to one JavaScript file),
+# and checksums.txt, its SHA-256 in `sha256sum` format, which a consumer pins
+# with the tarball's URL. A tag is never moved or re-pushed: a failed release
+# is fixed forward on main and released as the next version.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # the release and its assets
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: voidzero-dev/setup-vp@v1.21.0
+        with:
+          node-version: "24"
+          cache: true
+      # Go for the features' steps (godog), which the self-test runs against
+      # the installed tarball.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      - run: vp install
+      - name: Pack
+        run: |
+          vp pack
+          npm pack --ignore-scripts
+      # The tag, package.json and the packed itos must name one version, or
+      # the release would publish a tarball under another's name.
+      - name: The tag is the version
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          said=$(node dist/itos.mjs version)
+          if [ "$TAG" != "v$version" ]; then
+            echo "::error::tag $TAG, but package.json says $version"
+            exit 1
+          fi
+          if [ "$said" != "itos $version" ]; then
+            echo "::error::package.json says $version, but the packed itos says: $said"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      # The tarball as a consumer installs it, offline, against the corpus and
+      # every feature: the same bytes this job publishes.
+      - run: node tools/selftest/release.ts --tarball "itos-$VERSION.tgz"
+      - run: sha256sum "itos-$VERSION.tgz" > checksums.txt
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "itos $VERSION, the TypeScript v0 packed to one JavaScript file, built for Node 24."
+            echo
+            echo "Pin the tarball's URL and its SHA-256 (README.md, \"Install\"):"
+            echo
+            echo '```'
+            cat checksums.txt
+            echo '```'
+          } > notes.md
+          gh release create "$TAG" "itos-$VERSION.tgz" checksums.txt \
+            --verify-tag --title "itos $VERSION" --notes-file notes.md
