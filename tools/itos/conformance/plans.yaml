@@ -36,7 +36,7 @@ git:
           @ID-TWO-02
           Scenario: Two
             When I press two
-      docs/work-items.yaml: |
+      tasks/work-items.yaml: |
         items:
           - { id: T-040, status: todo }
           - { id: T-050, status: doing }
@@ -207,7 +207,7 @@ files:
       nightly_only: ["node tools/selftest/gates.ts"]
       nightly: { steps: [{ tests: scenario, whole: true }, node tools/selftest/gates.ts] }
       wait_on_status: [todo]
-    work: { registry: docs/work-items.yaml }
+    work: { registry: tasks/work-items.yaml }
 cases:
   - name: selections merge into one command, the IDs deduplicated, patterns joined
     argv: [ci, plan, "{{sha.status}}", "{{sha.templates}}", --json]
@@ -1238,7 +1238,7 @@ cases:
   - name: without a registry no task waits
     argv: [ci, plan, "{{sha.cost}}", "{{sha.status}}", --json]
     files:
-      docs/work-items.yaml: null
+      tasks/work-items.yaml: null
     exit: 0
     json:
       schema: 1

@@ -2,10 +2,9 @@
 #
 #   ITOS_CONFIG=tools/itos/fixtures/identity-command.yaml tools/bin/itos work
 #
-# works for someone without asking gh. The registry and the people are the
-# project's own.
+# works for someone without asking gh. The registry (at its default,
+# tasks/work-items.yaml) and the people are the project's own.
 version: 1
 work:
-  registry: docs/work-items.yaml
   people: { source: all-contributors-md, file: CONTRIBUTORS.md }
   identity: { provider: command, command: "echo someone" }

@@ -6,9 +6,10 @@
 //   - the pre-commit hook rejects a commit staging a ledger with a misspelt
 //     key, though the ledger is under tasks/, which its prose exit skips, and
 //     lets a sound ledger edit through;
-//   - CI's plan runs the check for a prose-only range that touches the
-//     registry (docs/work-items.yaml is under docs/**), and for a range that
-//     touches the ledger.
+//   - CI's plan runs the check for a range that touches the registry
+//     (tasks/work-items.yaml, beside the ledger, so not prose), for one that
+//     touches the ledger, and for a prose-only range that touches
+//     CONTRIBUTORS.md, the people the registry's owners must be among.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { scratchRepo } from "./scratch.ts";
@@ -28,6 +29,9 @@ const plan = (from: string, to: string) => {
 	const parsed = JSON.parse(run.output) as { prose: boolean; order: { step?: string }[] };
 	return { prose: parsed.prose, checks: parsed.order.some((o) => o.step === check) };
 };
+
+const prepend = (file: string, text: string) =>
+	writeFileSync(join(dir, file), text + readFileSync(join(dir, file), "utf8"));
 
 const problems: string[] = [];
 const expect = (ok: boolean, problem: string) => {
@@ -54,16 +58,14 @@ try {
 	run = preCommit(ledger);
 	expect(run.status === 0, `pre-commit rejected a sound ledger edit:\n${run.output}`);
 
-	// 3. A prose-only range that touches the registry runs the check in CI.
+	// 3. A range that touches only the registry runs the check in CI. The
+	// registry is under tasks/, beside the ledger, so the range is not prose.
 	git(`reset -q --hard ${base}`);
-	const registry = "docs/work-items.yaml";
-	writeFileSync(
-		join(dir, registry),
-		`# config gate self-test: a prose edit\n${readFileSync(join(dir, registry), "utf8")}`,
-	);
+	const registry = "tasks/work-items.yaml";
+	prepend(registry, "# config gate self-test: a registry edit\n");
 	let range = plan(base, commit("docs: edit the registry"));
-	expect(range.prose, `a range touching only ${registry} is no longer read as prose-only`);
-	expect(range.checks, `CI's plan for a prose-only range touching ${registry} skips \`${check}\``);
+	expect(!range.prose, `a range touching only ${registry} is read as prose-only`);
+	expect(range.checks, `CI's plan for a range touching ${registry} skips \`${check}\``);
 
 	// 4. So does a range that touches the ledger, which is not prose.
 	git(`reset -q --hard ${base}`);
@@ -71,6 +73,15 @@ try {
 	range = plan(base, commit("docs: edit the ledger"));
 	expect(!range.prose, `a range touching ${ledger} is read as prose-only`);
 	expect(range.checks, `CI's plan for a range touching ${ledger} skips \`${check}\``);
+
+	// 5. And a prose-only range that touches the people, whom a registry's
+	// owners must be among.
+	git(`reset -q --hard ${base}`);
+	const people = "CONTRIBUTORS.md";
+	prepend(people, "<!-- config gate self-test: a prose edit -->\n");
+	range = plan(base, commit("docs: edit the people"));
+	expect(range.prose, `a range touching only ${people} is no longer read as prose-only`);
+	expect(range.checks, `CI's plan for a prose-only range touching ${people} skips \`${check}\``);
 } finally {
 	repo.remove();
 }

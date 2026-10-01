@@ -33,7 +33,7 @@ files:
       reject_message: "Commit rejected (see tasks/README.md):"
 cases:
   - name: docs may touch prose, the ledger and the feature files
-    argv: [commit, check-paths, --type, docs, PLAN.md, tasks/phase-0.yaml, docs/work-items.yaml, e2e/features/list.feature, tools/README.md]
+    argv: [commit, check-paths, --type, docs, PLAN.md, tasks/phase-0.yaml, tasks/work-items.yaml, e2e/features/list.feature, tools/README.md]
     exit: 0
   - name: docs may not touch config, tools or source
     argv: [commit, check-paths, --type, docs, vite.config.ts, tools/itos/main.ts, src/app/view.ts]

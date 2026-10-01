@@ -123,7 +123,7 @@ ci:
     - { tests: scenario } # the one merged run; late, as no pattern matches it
   prose: # a range that touches only these runs only the prose steps
     paths: ["**/*.md", "docs/**"]
-    steps: [vp check, tools/bin/itos config check] # docs/work-items.yaml is under docs/**
+    steps: [vp check, tools/bin/itos config check] # CONTRIBUTORS.md, the people, is Markdown
   cost:
     # Checks with no `cost:` of their own: static if a pattern matches, else
     # late. Only commands static by what they are: `sh -c` wraps anything, so a
@@ -155,8 +155,7 @@ ci:
         token_env: [GITHUB_TOKEN, GH_TOKEN],
       }
 
-work: # tools/itos/work.ts
-  registry: docs/work-items.yaml
+work: # tools/itos/work.ts; the registry is at its default, tasks/work-items.yaml
   groups_key: phases
   statuses: [todo, doing, done, blocked]
   # or all-contributorsrc (contributors[].login) or yaml (a list of logins)
