@@ -724,7 +724,7 @@ items:
     title: The footer rules run by itos beside the header lint
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     refs: [features/footers.feature]
