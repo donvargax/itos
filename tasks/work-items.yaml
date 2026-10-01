@@ -469,7 +469,7 @@ items:
     title: v0.3.0, the hook's task checks and a config with no unread keys
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-4, slice-7, slice-8, slice-9]
     kind: task
     refs: [tasks/phase-1.yaml]
