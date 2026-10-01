@@ -749,33 +749,36 @@ items:
       Once itos runs the footer rules beside the header lint (slice 10), the commitlint plugin that
       ran them here reports each footer problem twice, so it goes, right after the feat.
 
-  - id: p1-footer-source-missing
+  - id: slice-13
     title: A footer whose source is missing is a problem, not a crash
     phase: 1
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: [slice-10]
-    kind: idea
+    kind: slice
+    refs: [features/footers.feature]
     why: >
-      The footer rules read a footer's source whenever its validate_for applies, even when the
-      message names no ID, so a config with a ledger footer and no ledger folder stops check-message,
-      the commit-msg hook and verify with `itos: ENOENT: … scandir 'tasks'` (exit 2). Since slice 10
-      they run behind every header lint delegate too, so a consumer whose delegate never reached
-      them meets it first there. A message naming no ID needs no source read, and a missing one
-      could be one problem naming the path, as config check would.
+      Found in slice 10: the footer rules read a footer's source whenever its validate_for applies,
+      even when the message names no ID, so a config with a ledger footer and no ledger folder
+      stopped check-message, the commit-msg hook and verify with itos: ENOENT … scandir 'tasks'
+      (exit 2). Since slice 10 they run behind every header-lint delegate too. A message naming no
+      ID reads no source; one naming an ID when the source is missing is one problem naming the
+      path, exit 2 (an environment error, PLAN §7). @ID-FOOT-05 and 06.
 
-  - id: p1-empty-selection-pattern
+  - id: slice-12
     title: An empty selection of named tests adds no pattern to the merged run
     phase: 1
-    owner: null
+    owner: donvargax
     status: todo
-    depends_on: []
-    kind: idea
+    depends_on: [slice-11]
+    kind: slice
+    refs: [features/ci.feature]
     why: >
-      Found specifying slice 11, from reading the code, not yet run against godog: with an empty
-      smoke set and a readable range, the plan's own selection is { ids: [] }, which renders as
-      the pattern @(?:)\b, and that matches every tag; the merged run would then run every
-      scenario instead of the ones the push names. An empty ids selection should add no pattern.
+      Found specifying slice 11: an ids selection renders through ids_pattern, so an empty smoke set
+      rendered "@(?:)\b", which matches every tag, and the merged run of named tests ran every
+      scenario instead of the ones a push names (slice 11's own run printed run @(?:)\b|@ID-A-01).
+      An empty ids selection adds no pattern, and a run with nothing selected runs no named tests.
+      @ID-CI-02 and 03.
 
   - id: p1-several-test-kinds
     title: A CI run that merges more than one kind of named test

@@ -19,3 +19,27 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And its output says "(in the scenario run above)"
     And its output does not say "E2E"
+
+  # An ids selection renders through ids_pattern, so an empty one rendered
+  # "@(?:)\b", which matches every tag: the run meant for one scenario ran
+  # them all.
+  @ID-CI-02 @slice-12 @wip
+  Scenario: An empty smoke set adds no pattern to the run of named tests
+    Given the CI steps run the named tests of the kind "scenario"
+    And the smoke set is empty
+    And the task "T-001" has a check that runs the scenario "@ID-A-01"
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And its output says "run @ID-A-01"
+    And its output does not say "@(?:)"
+
+  @ID-CI-03 @slice-12 @wip
+  Scenario: A range that names no test, with an empty smoke set, runs no named tests
+    Given the CI steps run the named tests of the kind "scenario"
+    And the smoke set is empty
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And its output does not say "printf"
+    And its output does not say "run every scenario"

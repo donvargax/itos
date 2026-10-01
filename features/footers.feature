@@ -55,3 +55,24 @@ Feature: The footer rules are itos's, whatever the header lint
     When itos verifies every commit up to HEAD
     Then itos exits with code 1
     And its output names the rule "task-footer"
+
+  # The footer rules read the footer's source even for a message that names
+  # no ID; with the ledger folder gone that was a raw ENOENT, exit 2.
+  @ID-FOOT-05 @slice-13 @wip
+  Scenario: A message that names no task needs no ledger
+    Given the ledger folder is missing
+    When the commit-msg hook checks the message "docs: write the readme"
+    Then itos exits with code 0
+
+  @ID-FOOT-06 @slice-13 @wip
+  Scenario: A footer naming a task when the ledger folder is missing is one problem naming the folder
+    Given the ledger folder is missing
+    When the commit-msg hook checks the message:
+      """
+      chore: tidy the readme
+
+      Task: T-001
+      """
+    Then itos exits with code 2
+    And its output says "tasks"
+    And its output does not say "ENOENT"
