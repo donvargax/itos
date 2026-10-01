@@ -294,10 +294,24 @@ items:
     title: itos config check in the gates
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     refs: [tasks/phase-1.yaml]
+
+  - id: p1-config-check-staged
+    title: The pre-commit hook checks the staged config, not the working tree's
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-022]
+    kind: idea
+    why: >
+      The pre-commit hook runs `itos config check` when itos.yaml, tasks/, docs/work-items.yaml
+      or features/smoke.yaml is staged, but the check reads the files on disk: a ledger staged
+      broken and fixed only in the working tree passes the hook, and a sound one staged beside an
+      unstaged broken edit is rejected. CI catches the first on the push. A check reading the index
+      (as `ci plan --data-at` reads a commit) would make the hook judge what is committed.
 
   - id: slice-3
     title: Every command itos runs goes through the configured shell, and ci.stop_at_first_failure is read

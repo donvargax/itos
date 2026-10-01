@@ -125,7 +125,9 @@ the commands, `itos <command> --help` each one). The code is
   (`prepare`, on `vp install`) points git at the folder.
   - **pre-commit** runs `vp staged` (each path's command in `vite.config.ts`'s
     `staged`: `vp check --fix`, or for Go `gofmt -w` and then `go vet` over the
-    module, since it reads packages rather than files), then, unless every staged file is Markdown, under `tasks/` or
+    module, since it reads packages rather than files), then `itos config check`
+    when `itos.yaml`, `tasks/`, `docs/work-items.yaml` or `features/smoke.yaml`
+    is staged (before the prose exit, which skips `tasks/`), then, unless every staged file is Markdown, under `tasks/` or
     a feature file, `vp test run --changed HEAD` with coverage collected but
     no thresholds, then `fallow audit` on what is new against HEAD. Vitest
     follows the imports from every changed file; `forceRerunTriggers` reruns
@@ -156,7 +158,7 @@ the commands, `itos <command> --help` each one). The code is
   `go.mod`.
   **The plan** (`ci-plan.ts`; `itos ci plan <from> <to>` prints it, running
   nothing) is one sequence in cost order: the static steps of `ci.steps`
-  (`vp check`, `gofmt`, `go vet`, the smoke rule) and every named task check
+  (`vp check`, `gofmt`, `go vet`, the smoke rule, `itos config check`) and every named task check
   that is static (its own `cost: static`, else a pattern of
   `ci.cost.static`); then the late steps (the whole unit suite, the audit, the
   conformance corpus, T-007); then **one run of the features** over the smoke
@@ -166,7 +168,8 @@ the commands, `itos <command> --help` each one). The code is
   (`ci.covers`), one in `ci.nightly_only` waits for the nightly, and a task
   whose work item is still `todo` waits (`ci.wait_on_status`). It stops at
   the first failure. A range of only `ci.prose.paths` (Markdown, `docs/**`)
-  runs `ci.prose.steps` and the named tasks' static and `prose: true` checks,
+  runs `ci.prose.steps` (`vp check`, and `itos config check`, since the
+  registry is under `docs/`) and the named tasks' static and `prose: true` checks,
   and no features.
 - **The nightly** (`.github/workflows/nightly.yml`, at 11:44 UTC on `main` or
   by hand) runs `itos ci run --nightly`: every feature, then the gates
@@ -181,6 +184,11 @@ TestFeatures/…` lines); a green run closes it.
   `ci-scope.ts`, `ci-range.ts` and `features-scope.ts` prove the scope, the
   range and that the plan's features command runs exactly the scenarios it
   claims, by go test's own record of what it ran (`-json`).
+  `config-gate.ts` proves `itos config check` gates what it guards: in a
+  scratch worktree the pre-commit hook rejects a ledger with a misspelt key
+  and passes a sound one, and CI's plan runs the check for a prose-only range
+  touching the registry. It and `gates.ts` build their worktree with
+  `scratch.ts`.
   `release.ts` proves the tarball rather than the source: it packs (or takes
   `--tarball`, the one a release publishes), installs it with
   `npm install --offline` and an empty cache into a scratch project, which
