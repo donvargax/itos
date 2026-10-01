@@ -109,7 +109,7 @@ cases:
       a late check sees CI=1
 
       T-010
-        = run-scenarios "@ID-A-02"   (in the E2E run above)
+        = run-scenarios "@ID-A-02"   (in the scenario run above)
 
       T-010
         = sh gates.sh   (runs in the nightly)

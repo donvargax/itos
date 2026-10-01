@@ -10,7 +10,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   Background:
     Given a repository whose ledger has the task "T-001"
 
-  @ID-CI-01 @slice-11 @wip
+  @ID-CI-01 @slice-11
   Scenario: A task's check that runs named tests is logged as part of its kind's run
     Given the CI steps run the named tests of the kind "scenario"
     And the task "T-001" has a check that runs the scenario "@ID-A-01"

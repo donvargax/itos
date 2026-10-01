@@ -42,6 +42,7 @@ type scratchConfig struct {
 	rangeCheck        bool     // a range check that records where its range starts
 	recordingShell    bool     // shell is the recording shell
 	ciSteps           []string // ci.steps
+	ciTests           string   // a kind of named tests, with run and recognize templates, run by the last of ci.steps
 	stopAtFirst       *bool    // ci.stop_at_first_failure
 	costStatic        []string // ci.cost.static
 	registry          string   // work.registry
@@ -94,6 +95,13 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the config's shell is the recording shell$`, w.recordingShell)
 	sc.Step(`^the task "([^"]*)" has the check "([^"]*)"$`, w.taskHasCheck)
 	sc.Step(`^the CI steps are "([^"]*)"$`, func(step string) error { return w.ciStepsAre(step) })
+	sc.Step(`^the CI steps run the named tests of the kind "([^"]*)"$`, w.ciStepsRunTests)
+	sc.Step(`^the task "([^"]*)" has a check that runs the scenario "([^"]*)"$`, func(task, id string) error {
+		return w.taskHasCheck(task, "run-scenarios "+id)
+	})
+	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" on top of it$`, func(message, task string) error {
+		return w.commitOnTop(message + "\n\nTask: " + task + "\n")
+	})
 	sc.Step(`^the CI steps are "([^"]*)" then a step that records it ran$`, func(step string) error {
 		return w.ciStepsAre(step, "printf 'ran\\n' > "+recordingStepFile)
 	})
@@ -155,6 +163,12 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	})
 	sc.Step(`^itos lists the tasks$`, func() error { return w.itos("task", "list") })
 	sc.Step(`^itos runs CI over every commit up to HEAD$`, func() error { return w.itos("ci", "run", "", "HEAD") })
+	sc.Step(`^itos runs CI over the commits after the first$`, func() error {
+		if len(w.commits) == 0 {
+			return errors.New("the repository has no commit yet")
+		}
+		return w.itos("ci", "run", w.commits[0], "HEAD")
+	})
 	sc.Step(`^the commit-msg hook checks the message "([^"]*)"$`, w.commitMsgHook)
 	sc.Step(`^the commit-msg hook checks the message:$`, func(message *godog.DocString) error {
 		return w.commitMsgHook(message.Content + "\n")
@@ -162,6 +176,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 
 	sc.Step(`^itos exits with code (\d+)$`, w.exitsWith)
 	sc.Step(`^its output says "([^"]*)"$`, w.outputSays)
+	sc.Step(`^its output does not say "([^"]*)"$`, w.outputDoesNotSay)
 	sc.Step(`^its output names the rule "([^"]*)"$`, w.outputNamesRule)
 	sc.Step(`^its output lists "([^"]*)" as "([^"]*)"$`, w.outputLists)
 	sc.Step(`^the counting check ran once$`, func() error { return w.countingCheckRan(1) })
@@ -328,15 +343,31 @@ func (w *world) writeConfig() error {
 		fmt.Fprintf(&b, "  header_lint:\n    hook: %q\n    stdin: %q\n", lint, lint)
 	}
 	b.WriteString(w.settingsUnder("commits"))
-	if w.config.rangeCheck || w.config.smoke {
-		b.WriteString(`tests:
-  scenario:
+	if w.config.rangeCheck || w.config.smoke || w.config.ciTests != "" {
+		kind := "scenario"
+		if w.config.ciTests != "" {
+			kind = w.config.ciTests
+		}
+		fmt.Fprintf(&b, `tests:
+  %s:
     root: features
     id: "ID-[A-Z]+-\\d+"
     tag_prefix: "@"
+`, kind)
+	}
+	if w.config.ciTests != "" {
+		// A runner that only says what it would run, as the conformance case's
+		// does, and a check written as "run-scenarios <pattern>" read back as a
+		// selection of the kind.
+		b.WriteString(`    run:
+      whole: "echo run every scenario"
+      select: "printf 'run %s\\n' {pattern}"
+      ids_pattern: "@(?:{ids})\\b"
+    recognize:
+      - { command: "run-scenarios {pattern}", as: pattern }
 `)
 	}
-	if w.config.smoke {
+	if w.config.smoke || w.config.ciTests != "" {
 		b.WriteString("    smoke:\n      file: features/smoke.yaml\n")
 		if w.config.smokeEveryFile != nil {
 			fmt.Fprintf(&b, "      every_file: %t\n", *w.config.smokeEveryFile)
@@ -346,14 +377,17 @@ func (w *world) writeConfig() error {
 		record := "printf '%s\\n' {from} > " + quote(filepath.Join(w.support, "range-from"))
 		fmt.Fprintf(&b, "    range_checks:\n      - name: record\n        range: %q\n", record)
 	}
-	if len(w.config.ciSteps) > 0 || w.config.stopAtFirst != nil || len(w.config.costStatic) > 0 {
+	if len(w.config.ciSteps) > 0 || w.config.ciTests != "" || w.config.stopAtFirst != nil || len(w.config.costStatic) > 0 {
 		b.WriteString("ci:\n  steps:")
-		if len(w.config.ciSteps) == 0 {
+		if len(w.config.ciSteps) == 0 && w.config.ciTests == "" {
 			b.WriteString(" []")
 		}
 		b.WriteString("\n")
 		for _, step := range w.config.ciSteps {
 			fmt.Fprintf(&b, "    - %q\n", step)
+		}
+		if w.config.ciTests != "" {
+			fmt.Fprintf(&b, "    - { tests: %s }\n", w.config.ciTests)
 		}
 		if w.config.stopAtFirst != nil {
 			fmt.Fprintf(&b, "  stop_at_first_failure: %t\n", *w.config.stopAtFirst)
@@ -687,6 +721,23 @@ func (w *world) configSets(key, value string) error {
 	return w.writeConfig()
 }
 
+// CI's one step runs the kind's named tests. The kind has a feature file with
+// two live scenarios, @ID-A-01 and @ID-A-02, and a smoke set of the second, so
+// a push's run selects the smoke set and what a check adds to it.
+func (w *world) ciStepsRunTests(kind string) error {
+	feature := "Feature: A\n\n  @ID-A-01\n  Scenario: One\n    When one runs\n\n" +
+		"  @ID-A-02\n  Scenario: Two\n    When two runs\n"
+	if err := w.write("features/a.feature", feature); err != nil {
+		return err
+	}
+	if err := w.write("features/smoke.yaml",
+		"- file: a.feature\n  scenarios: [{ id: \"@ID-A-02\", why: the one listed }]\n"); err != nil {
+		return err
+	}
+	w.config.ciTests = kind
+	return w.writeConfig()
+}
+
 func (w *world) ciStepsAre(steps ...string) error {
 	w.config.ciSteps = steps
 	return w.writeConfig()
@@ -819,6 +870,13 @@ func (w *world) exitsWith(code int) error {
 func (w *world) outputSays(text string) error {
 	if !strings.Contains(w.output(), text) {
 		return fmt.Errorf("the output does not say %q\n%s", text, w.report())
+	}
+	return nil
+}
+
+func (w *world) outputDoesNotSay(text string) error {
+	if strings.Contains(w.output(), text) {
+		return fmt.Errorf("the output says %q\n%s", text, w.report())
 	}
 	return nil
 }

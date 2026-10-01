@@ -102,7 +102,7 @@ function runTaskCheck(planned: PlannedCheck, out: Output): Failure | undefined {
 	const log = logger(out);
 	const command = commandOf(planned);
 	log(`\n${planned.task}`);
-	if (planned.merged) log(`  = ${command}   (in the E2E run above)`);
+	if (planned.merged) log(`  = ${command}   (in the ${planned.kind} run above)`);
 	else if (planned.coveredBy) log(`  = ${command}   (ran above as \`${planned.coveredBy}\`)`);
 	else if (planned.nightly) log(`  = ${command}   (runs in the nightly)`);
 	else if (runCheck(planned.check, true, out.json) === "fail") {

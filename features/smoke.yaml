@@ -16,6 +16,10 @@
 # features/, `more` saying why the file has more than one (required when it
 # does), and each scenario's `id` and `why`. Quote a value holding `: `, and
 # every ID (its `@` starts no plain scalar).
+- file: ci.feature
+  scenarios:
+    - id: "@ID-CI-01"
+      why: ci run logs a merged check under the kind it ran in, the file's point
 - file: commit-msg.feature
   scenarios:
     - id: "@ID-CMSG-03"
