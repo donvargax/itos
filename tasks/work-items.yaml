@@ -1061,6 +1061,137 @@ items:
       more than to itos: a helper that takes the message as a file or argument, or a hook that
       refuses an empty message read from stdin, would make the rule a check.
 
+  # More of the same, from the same session, refined with the user.
+  - id: p1-work-brief
+    title: "itos brief <item> fills the project's brief template from the registry and the ledger"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The coordinator writes each agent brief by hand from ORCHESTRATING.md's template. itos brief
+      <item> would fill a template the project owns (work.brief.template) with what it knows: the
+      item's title, why and refs; a slice's @slice-<n> scenarios and which are @wip, a task's
+      done_when as the ledger holds it; the earlier commits on the same feature file or task; the ideas
+      depending on it; the command that runs what the slice reaches, from the kind's run.select
+      template. The decisions the agent builds to stay the coordinator's, in an optional brief: field
+      on the item, written when it is specified. An idea is refused: specify it first. Output is text
+      or --json; nothing reads it back. Which done tasks a slice will reach cannot be known before the
+      work: p1-done-tasks-nightly catches that after.
+
+  - id: p1-work-queue-order
+    title: "The registry holds the order of the queue, not HANDOFF's prose"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The registry knows dependencies but not priority, so the real order lives in HANDOFF's Next
+      list and itos work lists ideas unordered. An optional order or priority on items (or an ordered
+      queue: list) would let itos work propose in the coordinator's order and HANDOFF point at it.
+
+  - id: p1-slice-done-check
+    title: "A slice is done when its scenarios are live and green, checked"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slices are marked done by hand. itos could check it, as itos task does for a task: every
+      scenario tagged @slice-<n> live (none @wip without a reason), green in the last CI run that named
+      them and in the nightly after; work check or work done <id> refusing a slice that is not.
+
+  - id: p1-checkout-lease
+    title: "A lease on the checkout, so a second session cannot commit over an agent's work"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      ORCHESTRATING.md asks the coordinator not to commit while an agent works in the same checkout:
+      the index is shared, and two vp staged runs at once break its backup. itos work take <id> could
+      write a lease into the git directory (per worktree, never committed): the item, the boot ID and
+      a timestamp each holder commit refreshes. With work.lease on, the commit-msg hook refuses a
+      commit whose footer does not belong to the leased item, naming it and how to release it, unless
+      every staged path is in work.lease.free_paths (default docs/** and tasks/**), so the
+      coordinator's docs commits pass but never sweep the agent's staged files. A reboot (boot ID
+      changed), work.lease.stale_after of no activity, itos work done or itos work release <id> ends
+      it, so a dead machine never wedges the checkout; the shared claim stays status: doing in the
+      registry. Left open: two vp staged backups racing in the same instant.
+
+  - id: p1-itos-upgrade
+    title: "itos upgrade walks a consumer through a release's Upgrading section"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user moves the consumers' pins by hand, following each release's Upgrading section. itos
+      upgrade <version> could fetch the notes, check the config against what they say (keys removed,
+      values narrowed, requires), apply what is mechanical and list the rest, and verify with itos
+      version and config check, as each section's last step asks.
+
+  - id: p1-tests-next-id-and-steps
+    title: "Spec help: the next free test ID, the steps that exist, the ones still undefined"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Writing a scenario meant grepping features/ for the next free ID and steps_test.go for the
+      phrases already defined. itos tests next-id <kind> <AREA> from the kind's IDs; an optional
+      tests.<kind>.steps command that prints the step definitions (godog and playwright-bdd both can),
+      which itos tests steps <kind> [--grep] runs; and itos tests undefined <kind> <ids>, a dry run of
+      @wip scenarios listing the steps nobody has written. Help only: nothing judges a scenario's
+      wording, which the user judged too restrictive.
+
+  - id: p1-handoff-status
+    title: "itos status, and the HANDOFF's state block written from it"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      HANDOFF's "Where things stand" is rewritten by hand from run IDs and the log. itos status could
+      print main's head and last green CI run, the last nightly, the last release and the commits since
+      it (feat and fix apart from the rest), the items doing and the ideas added since a date; itos
+      handoff update would rewrite only a marked block of the file (path and markers in the config),
+      leaving Next and User review the coordinator's prose. Overlaps p1-ci-watch's itos status.
+
+  - id: p1-work-spend
+    title: "The tokens each item cost, recorded by the coordinator and summed"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Each agent's completion notice carries its token spend (100k to 210k a slice in the v0.3.0 and
+      v0.4.0 session), and ORCHESTRATING asks the coordinator to mind it when proposing agents, with
+      nothing recorded. An optional spend: list on an item, written by the coordinator (itos work done
+      <id> --tokens 175k), and itos work cost printing totals and medians per kind and phase and an
+      estimate of the queue. No budgets and no refusals.
+
+  - id: p1-smoke-suggest
+    title: "itos tests smoke suggest proposes a smoke entry for a file that needs one"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Each new feature file needed a smoke scenario picked by hand: fast and central. itos tests smoke
+      suggest <kind> could print a YAML snippet per file lacking one, its live scenarios ranked by
+      duration from the last full run (an optional tests.<kind>.timings report the runner writes) and
+      marked when they failed on main recently, the why left for a person. Writes nothing.
+
   # ---- phase 2 ----------------------------------------------------------------
   - id: p2-go-port
     title: The Go port, one command group at a time

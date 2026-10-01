@@ -46,7 +46,13 @@ repositories: don't change any other repository. Nothing is unreleased.
    session did by hand, the same way every time:
    - `p1-work-take-done-promote`, `p1-itos-push`, `p1-ci-watch`;
    - `p1-upgrading-footer`, `p1-itos-release`;
-   - `p1-done-tasks-nightly`, `p1-wip-red-first`, `p1-commit-message-file`.
+   - `p1-done-tasks-nightly`, `p1-wip-red-first`, `p1-commit-message-file`;
+   - and a second set, refined with the user: `p1-work-brief`,
+     `p1-work-queue-order`, `p1-slice-done-check`, `p1-checkout-lease`,
+     `p1-itos-upgrade`, `p1-tests-next-id-and-steps`, `p1-handoff-status`,
+     `p1-work-spend`, `p1-smoke-suggest`.
+
+   The user has another idea they could not recall: ask.
 
    The user liked all of them; ask which come before the port.
 
