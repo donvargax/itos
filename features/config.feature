@@ -93,7 +93,7 @@ Feature: Every key the config accepts is one itos reads
     And the smoke set lists only "@ID-A-01"
     And smoke.every_file is true
     When itos checks the smoke set
-    Then itos exits with code 2
+    Then itos exits with code 1
     And its output says "b.feature"
 
   # Detection would pick husky from the .husky folder; the key overrides it.
