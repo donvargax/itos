@@ -18,6 +18,14 @@ A check **runs something that does real work** and uses its exit code:
 - a negative proof: a command that **must fail**, such as a commit message
   without a footer, or a config with a misspelt key.
 
+A check's result depends on the commit it runs at, **never on what is
+staged**: its input is its arguments, its stdin or the committed tree. The
+commit-msg hook runs the static checks of the tasks a commit names while the
+commit is being made, with the change in the index and HEAD its parent, and CI
+runs them on a clean checkout; a check that reads the index (running the hook
+itself on a fixed message, say) answers differently in the two. Prove a hook
+through the scenarios, which build their own repositories.
+
 A check is **never** a regex over a config or source file ("the workflow has
 a docker build step", "the hook mentions `vp staged`"). That proves the text
 exists, not that it works, and it breaks on harmless rewording. If the only

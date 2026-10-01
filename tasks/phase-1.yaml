@@ -70,6 +70,7 @@
   done_when:
     - run: tools/bin/itos config check
     - run: tools/bin/itos verify "" HEAD
+      cost: late # sized by the history, not by the change
 
 - id: T-018
   type: chore
