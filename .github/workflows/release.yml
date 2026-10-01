@@ -1,8 +1,8 @@
 name: Release
 
 # A tag v<version> publishes that version: itos-<version>.tgz, the package
-# `vp pack` and `npm pack` make (tools/itos/ bundled to one JavaScript file),
-# and checksums.txt, its SHA-256 in `sha256sum` format, which a consumer pins
+# tools/bin/pack.ts makes (tools/itos/ bundled to one JavaScript file, beside a
+# manifest holding only what a consumer needs), and checksums.txt, its SHA-256 in `sha256sum` format, which a consumer pins
 # with the tarball's URL. The release's body is that, then the committed
 # notes, docs/releases/v<version>.md, with the tarball's SHA-256 where they
 # write {sha256}. A tag is never moved or re-pushed: a failed release
@@ -36,10 +36,9 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
       - run: vp install
+      # The one way to pack, tools/selftest/release.ts's too.
       - name: Pack
-        run: |
-          vp pack
-          npm pack --ignore-scripts
+        run: node tools/bin/pack.ts .
       # The tag, package.json and the packed itos must name one version, or
       # the release would publish a tarball under another's name.
       - name: The tag is the version
