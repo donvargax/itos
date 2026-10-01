@@ -292,6 +292,15 @@ items:
     kind: task
     refs: [tasks/phase-1.yaml]
 
+  - id: T-035
+    title: This repository's nightly runs every done task's static checks
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-16]
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
   - id: p1-release-pnpm-install
     title: The release self-test installs the tarball with pnpm too
     phase: 1
@@ -811,32 +820,39 @@ items:
       An empty ids selection adds no pattern, and a run with nothing selected runs no named tests.
       @ID-CI-02 and 03.
 
-  - id: p1-ledger-folder-missing
+  - id: slice-14
     title: A missing ledger folder is one problem in every command that reads the ledger
     phase: 1
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: [slice-13]
-    kind: idea
+    kind: slice
+    refs: [features/ledger.feature]
     why: >
       Found in slice 13: the footer rules now report a missing ledger folder as one problem
       (footer-source-missing, exit 2), but config check, task, task list, ci plan and ci run still
       stop on it with itos: ENOENT … scandir 'tasks', exit 2, and config check --json then prints no
       JSON. A consumer that configures a ledger before making its folder meets that first in config
       check. The ledger's loader could report the folder once, as the footer rules do.
+      Each command reports the folder the way the footer rules do: one problem naming it, exit 2,
+      and config check --json the config error's report. Was the idea p1-ledger-folder-missing.
+      @ID-LEDGER-01 to 06.
 
-  - id: p1-merged-check-without-a-run
+  - id: slice-15
     title: A check merged into a run of named tests that does not happen runs as itself
     phase: 1
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: [slice-12]
-    kind: idea
+    kind: slice
+    refs: [features/ci.feature]
     why: >
       Found in slice 12: with an empty smoke set and a range that names no test, the plan has no run
       of named tests, yet a task's check recognized as the smoke run (as: smoke) is still marked
       merged, and ci run logs it "(in the scenario run above)" under no such run. It could run as
       itself instead, or be logged as selecting nothing.
+      Decided: it runs as the task wrote it, since nothing else proves it. Was the idea
+      p1-merged-check-without-a-run. @ID-CI-04.
 
   - id: p1-several-test-kinds
     title: A CI run that merges more than one kind of named test
@@ -1028,19 +1044,27 @@ items:
       line and marking the task done. itos release prepare|tag|close could do the mechanical parts;
       with p1-ci-after-push-checks the red-by-design run would read as pending instead.
 
-  - id: p1-done-tasks-nightly
+  - id: slice-16
     title: The nightly runs every done task's checks
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: []
-    kind: idea
+    depends_on: [slice-9]
+    kind: slice
+    refs: [features/nightly.feature]
     why: >
       Only a push that names a task runs its checks, so a done task rots unseen: T-024 was red from
       slice 7 to v0.3.0, and slice 10 broke T-007, caught only because CI runs it on every push.
       ORCHESTRATING's brief now tells agents to run the done tasks whose checks call a command a
       slice moves, a rule a command can decide. The nightly could run every done task's checks,
       cheaper since slice 9 runs a shared check once, and report a red one as a regression.
+      Asked for by the character editor, whose e2e-scope self-test failed unseen from the moment
+      a pose golden joined its nightly until someone ran every done task's checks by hand. A
+      nightly step { tasks: done, cost: static } runs the checks of every task whose work item is
+      done (the user's call: not every task wait_on_status lets through, since a task in progress
+      may be red until it lands), each shared check once, only the static ones with cost: static,
+      and a red one fails the nightly naming its task's ID and title. Was the idea
+      p1-done-tasks-nightly. @ID-NIGHTLY-01 to 04.
 
   - id: p1-wip-red-first
     title: A command that shows a slice's @wip scenarios fail against the current binary
@@ -1087,7 +1111,7 @@ items:
       template. The decisions the agent builds to stay the coordinator's, in an optional brief: field
       on the item, written when it is specified. An idea is refused: specify it first. Output is text
       or --json; nothing reads it back. Which done tasks a slice will reach cannot be known before the
-      work: p1-done-tasks-nightly catches that after.
+      work: slice-16 catches that after.
 
   - id: p1-work-queue-order
     title: "The registry holds the order of the queue, not HANDOFF's prose"

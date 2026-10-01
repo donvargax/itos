@@ -43,3 +43,20 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And its output does not say "printf"
     And its output does not say "run every scenario"
+
+  # A check recognized as the kind's smoke run merges into the run of named
+  # tests. With an empty smoke set and a range that names no test there is no
+  # such run, so the check runs as the task wrote it. The recording script is
+  # the check, so whether it ran is read from the tree.
+  @ID-CI-04 @slice-15 @wip
+  Scenario: A check recognized as the smoke run runs as itself when there is no run of named tests
+    Given the CI steps run the named tests of the kind "scenario"
+    And the smoke set is empty
+    And "run-smoke" is a script that records it ran
+    And the kind "scenario" recognizes "./run-smoke" as its smoke run
+    And the task "T-001" has the check "./run-smoke"
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And the recording check ran
+    And its output does not say "(in the scenario run above)"

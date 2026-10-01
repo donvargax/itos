@@ -38,26 +38,25 @@ Upgrading step that has consumers drop ledger checks of itos's own behavior
 
 ## Next
 
-1. **What the last slices found, cheap and consumer-facing** (ideas, specify
-   first): `p1-ledger-folder-missing` (`config check`, `task`, `ci plan` and
-   `ci run` still crash on a missing ledger folder), and
-   `p1-merged-check-without-a-run`.
-2. **The rest of the config contract, before the port:**
-   `p1-config-names-from-config`, `p1-one-defaults-table`,
+1. **Specified, in this order, one agent each:**
+   - `slice-14: A missing ledger folder is one problem in every command that
+reads the ledger` (`features/ledger.feature`);
+   - `slice-15: A check merged into a run of named tests that does not happen
+runs as itself` (`features/ci.feature`, @ID-CI-04);
+   - `slice-16: The nightly runs every done task's checks`
+     (`features/nightly.feature`), the character editor's request: a nightly
+     step `{ tasks: done, cost: static }`; "done" is the work item's status
+     (the user's call). Its agent also does `T-035: This repository's nightly
+runs every done task's static checks`, a `ci` commit adding the step to
+     `itos.yaml`.
+2. **The rest of the config contract, before the port** (ideas, specify
+   first): `p1-config-names-from-config`, `p1-one-defaults-table`,
    `p1-itos-in-every-pattern`, `p1-bin-in-defaults`, `p1-group-label-read`,
    `p1-verify-with-last-release`. Then **the Go port** (`p2-go-port`).
-3. **The hand work that could be itos's**, recorded at the user's request
-   (the block above phase 2 in the registry). Each one is something this
-   session did by hand, the same way every time:
-   - `p1-work-take-done-promote`, `p1-itos-push`, `p1-ci-watch`;
-   - `p1-upgrading-footer`, `p1-itos-release`;
-   - `p1-done-tasks-nightly`, `p1-wip-red-first`, `p1-commit-message-file`;
-   - and a second set, refined with the user: `p1-work-brief`,
-     `p1-work-queue-order`, `p1-slice-done-check`, `p1-checkout-lease`,
-     `p1-itos-upgrade`, `p1-tests-next-id-and-steps`, `p1-handoff-status`,
-     `p1-work-spend`, `p1-smoke-suggest`.
-
-   The user liked all of them; ask which come before the port.
+3. **The hand work that could be itos's** (the block above phase 2 in the
+   registry) comes after the port, the user agreed; the coordinator had
+   proposed `p1-itos-push` and `p1-ci-watch` before it, as they save work on
+   every landing.
 
 4. Continue with what `tools/bin/itos work` proposes.
 

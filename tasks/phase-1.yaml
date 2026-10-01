@@ -437,3 +437,19 @@
     there.
   done_when:
     - run: node tools/itos/conformance/run.ts --bin tools/bin/itos --only tools/itos/conformance/verify.yaml tools/itos/conformance/hooks.yaml
+
+- id: T-035
+  type: ci
+  title: This repository's nightly runs every done task's static checks
+  why: >
+    Slice 16 gives ci.nightly.steps a step that runs the checks of every task
+    whose work item is done. Here a done task's checks ran only when a push
+    named it: T-024 was red from slice 7 to v0.3.0 unseen. The nightly takes
+    { tasks: done, cost: static }, the checks that take seconds; the late ones
+    (the release self-tests, the whole suite) stay with the pushes that name
+    their tasks. The check reads the nightly's plan, which lists no task check
+    before the step.
+  done_when:
+    - run: >-
+        sh -c 'tools/bin/itos ci plan --nightly --json | grep -q "\"task\": \"T-"'
+      cost: static
