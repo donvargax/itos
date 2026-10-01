@@ -724,7 +724,7 @@ items:
     title: The footer rules run by itos beside the header lint
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     refs: [features/footers.feature]
@@ -741,13 +741,28 @@ items:
     title: This repository's commitlint config judges the header and body alone
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-10]
     kind: task
     refs: [tasks/phase-1.yaml, commitlint.config.ts]
     why: >
       Once itos runs the footer rules beside the header lint (slice 10), the commitlint plugin that
       ran them here reports each footer problem twice, so it goes, right after the feat.
+
+  - id: p1-footer-source-missing
+    title: A footer whose source is missing is a problem, not a crash
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-10]
+    kind: idea
+    why: >
+      The footer rules read a footer's source whenever its validate_for applies, even when the
+      message names no ID, so a config with a ledger footer and no ledger folder stops check-message,
+      the commit-msg hook and verify with `itos: ENOENT: … scandir 'tasks'` (exit 2). Since slice 10
+      they run behind every header lint delegate too, so a consumer whose delegate never reached
+      them meets it first there. A message naming no ID needs no source read, and a missing one
+      could be one problem naming the path, as config check would.
 
   - id: p1-several-test-kinds
     title: A CI run that merges more than one kind of named test

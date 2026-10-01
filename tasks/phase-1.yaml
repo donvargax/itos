@@ -335,7 +335,9 @@
     (one <key>-footer rule per footer, calling tools/itos/footers.ts) reports
     every footer problem a second time. The config goes back to
     config-conventional alone, in the commit right after the feat and in the
-    same push, so the double report lasts one commit. The first check passes
+    same push, so the double report lasts one commit. The plugin's unit test
+    moved to footers.test.ts first, calling checkFooter itself, since a
+    build commit may not touch a test. The first check passes
     a chore without its Task: footer through commitlint alone, which the
     plugin rejected; the second runs a footer naming an unknown task through
     commit check-message, delegate included, and counts its task-footer

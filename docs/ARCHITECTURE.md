@@ -119,10 +119,13 @@ the commands, `itos <command> --help` each one). The code is
   reads a task check as a selection of tests and merges every selection into
   one command; nothing else knows Gherkin or the runner. Another kind can be
   any command that prints the same JSON.
-- **The footers** have one reader (`footers.ts`), which the commit-msg rule
+- **The footers** have one reader (`footers.ts`), which the footer rules
   and CI share: which types need each footer, which IDs must exist, and
   `read_at: commit`, which reads the IDs that exist (the ledger's tasks, the
-  live scenarios) at the commit being checked.
+  live scenarios) at the commit being checked. The footer rules are itos's
+  whatever the header lint: `commit.ts` runs them after the delegate, if
+  any, in the commit-msg hook, `commit check-message` and `verify`, and
+  reports both, one list of problems under `--json`.
 - **One shell** (`shell.ts`): every command itos takes from the config or the
   ledger (a task check, a CI step, a header-lint delegate, a range check, a
   provider's or a command adapter's command, the pre-push commands, the smoke
@@ -177,8 +180,10 @@ the commands, `itos <command> --help` each one). The code is
     first because the other rules read the config. Then it applies the
     type's path rules (`commit-scope.ts`), then outside `feat` and `fix` the
     scenario moving rule (`scenario-moves.ts`), then the header lint:
-    commitlint (`commitlint.config.ts`, `config-conventional` plus one
-    `<key>-footer` rule per footer of `commits.footers`), then the static
+    commitlint (`commitlint.config.ts`, `config-conventional` alone), and
+    after it, always, itos's footer rules (`commit.ts`, one `<key>-footer`
+    rule per footer of `commits.footers`), both reported before the exit,
+    a failing delegate's code the hook's, then the static
     checks of the tasks the `Task:` footer names (`commit-tasks.ts`),
     stopping at the first that fails. The task checks come last because
     they are the slowest and read a footer the header lint has judged: each
