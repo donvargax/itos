@@ -299,22 +299,59 @@ items:
     kind: task
     refs: [tasks/phase-1.yaml]
 
-  - id: p1-config-keys-honoured
-    title: Every config key the loader accepts is one the tool reads
+  - id: slice-3
+    title: Every command itos runs goes through the configured shell, and ci.stop_at_first_failure is read
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    refs: [features/config.feature]
+    why: >
+      checks, CI steps, header-lint delegates and range checks ran sh -c whatever shell said (only
+      the providers and the command adapter honoured it), and ci.stop_at_first_failure was validated
+      but never read. @ID-CONFIG-01 to 06.
+
+  - id: slice-4
+    title: The work, smoke and hooks keys read; the keys of unbuilt features dropped
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-3]
+    kind: slice
+    refs: [features/config.feature]
+    why: >
+      work.statuses, work.groups_key, tests.<kind>.smoke.every_file and hooks.manager were validated
+      but never read; each is now read. commits.header_lint.use and alongside wait on the built-in
+      header lint, and ledger.check.pushed has one value: they leave the schema, and come back with
+      the feature that gives them a second value. @ID-CONFIG-07 to 14.
+
+  - id: p1-config-names-from-config
+    title: The names the tools hardcode, read from the config
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-4]
+    kind: idea
+    why: >
+      What is left of the config-keys audit: scenario-moves' range mode hardcodes feat and fix and
+      ignores except_types; it, ci-scope's Task key, ci plan --data-at and the smoke rule default to
+      the kind named scenario; ci run's messages name tasks/, docs/work-items.yaml and vp check.
+      Each is read from the config.
+
+  - id: p1-one-defaults-table
+    title: The defaults the tools apply, read from one table
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
     kind: idea
     why: >
-      Copying the tool into the project template found places that are not config-driven:
-      ci.stop_at_first_failure, ledger.check.pushed, work.statuses, work.groups_key,
-      tests.<kind>.smoke.every_file, hooks.manager and commits.header_lint.use/alongside are validated
-      but never read; checks, CI steps, header-lint delegates and range checks run sh -c whatever
-      shell says (only the providers and the command adapter honour it); scenario-moves' range mode
-      hardcodes feat and fix and ignores except_types, and it, ci-scope's Task key, ci plan --data-at
-      and the smoke rule default to the kind named scenario; ci run's messages name tasks/,
-      docs/work-items.yaml and vp check. Each is read from the config, or the key goes.
+      config check --print-defaults prints a table beside the code, but each tool writes its own
+      fallback where it reads a key (?? 600, ?? "docs/work-items.yaml", ?? "@wip"), so the printed
+      table can drift from what runs: tests.<kind>.tag_prefix is @ in the table and the Gherkin adapter
+      but empty where a smoke ID loses its prefix. One table the loader merges under the file, which the
+      tools and the flag both read, closes it; it fits the Go port's config loader.
 
   - id: p1-footers-beside-header-lint
     title: The footer rules run by itos beside the header lint
