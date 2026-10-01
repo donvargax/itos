@@ -1,7 +1,15 @@
 {
 	"name": "itos",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"private": true,
+	"bin": {
+		"itos": "dist/itos.mjs"
+	},
+	"files": [
+		"dist/itos.mjs",
+		"LICENSE",
+		"README.md"
+	],
 	"type": "module",
 	"scripts": {
 		"prepare": "vp config",
