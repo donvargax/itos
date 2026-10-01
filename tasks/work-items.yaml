@@ -519,7 +519,7 @@ items:
     title: The task runner runs each check once, and task list shows each task's registry status
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-7]
     kind: slice
     refs: [features/task.feature]
