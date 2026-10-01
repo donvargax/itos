@@ -28,7 +28,7 @@ import { lintMessageFile } from "./commit.ts";
 import { hook as dataRule } from "./commit-data.ts";
 import { hook as stagedRule } from "./commit-scope.ts";
 import { hook as tasksRule } from "./commit-tasks.ts";
-import { config, HOOK_MANAGERS, type HookManager } from "./config.ts";
+import { config, HOOK_MANAGERS, type HookManager, itosBin } from "./config.ts";
 import { emit, type Output, TEXT } from "./problem.ts";
 import { prePush } from "./pre-push.ts";
 
@@ -102,7 +102,7 @@ export function detectManager(root = "."): { manager: Manager; marker: string } 
 }
 
 // The two hooks' one-line bodies.
-export function shimLines(bin = config().hooks?.bin ?? "tools/bin/itos") {
+export function shimLines(bin = itosBin()) {
 	return {
 		"commit-msg": `exec ${bin} hook commit-msg "$1"`,
 		"pre-push": `exec ${bin} hook pre-push "$@"`,
@@ -218,7 +218,7 @@ function chosenManager(flag: Manager | undefined, root: string): Found & { named
 // that is not a shim stood in the way and --force was not given.
 export function hooksInstall(options: InstallOptions = {}, out: Output = TEXT): number {
 	const root = options.root ?? ".";
-	const bin = options.bin ?? config().hooks?.bin ?? "tools/bin/itos";
+	const bin = options.bin ?? itosBin();
 	const { named, ...found } = chosenManager(options.manager, root);
 	const { manager } = found;
 	const say: Say = (line) => (out.json ? console.error(line) : console.log(line));

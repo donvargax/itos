@@ -32,6 +32,10 @@
   scenarios:
     - id: "@ID-CONFIG-01"
       why: the config's shell, which nearly every command itos starts goes through, read by the quickest of them
+- file: cost.feature
+  scenarios:
+    - id: "@ID-COST-01"
+      why: a pattern written for itos matching a command that calls hooks.bin, the file's point
 - file: since.feature
   scenarios:
     - id: "@ID-SINCE-01"

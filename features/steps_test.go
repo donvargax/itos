@@ -40,6 +40,7 @@ type scratchConfig struct {
 	recordingShell    bool     // shell is the recording shell
 	ciSteps           []string // ci.steps
 	stopAtFirst       *bool    // ci.stop_at_first_failure
+	costStatic        []string // ci.cost.static
 	registry          string   // work.registry
 	taskChecks        *bool    // hooks.commit_msg.task_checks
 	checkTimeout      int      // hooks.commit_msg.check_timeout, when above 0
@@ -48,6 +49,7 @@ type scratchConfig struct {
 	smoke             bool     // tests.scenario has a smoke set, features/smoke.yaml
 	smokeEveryFile    *bool    // tests.scenario.smoke.every_file
 	hooksManager      string   // hooks.manager
+	hooksBin          string   // hooks.bin
 	settings          []setting
 }
 
@@ -112,6 +114,9 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^smoke\.every_file is (true|false)$`, w.smokeEveryFileIs)
 	sc.Step(`^a "([^"]*)" folder$`, w.folder)
 	sc.Step(`^hooks\.manager is "([^"]*)"$`, w.hooksManagerIs)
+	sc.Step(`^hooks\.bin is "([^"]*)"$`, w.hooksBinIs)
+	sc.Step(`^ci\.cost\.static is "([^"]*)"$`, w.costStaticIs)
+	sc.Step(`^"([^"]*)" is a script that records it ran$`, w.recordingScript)
 	sc.Step(`^the config sets "([^"]*)" to "([^"]*)"$`, w.configSets)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
@@ -134,6 +139,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the recording shell ran the range check$`, w.recordingShellRanRangeCheck)
 	sc.Step(`^the recording step ran$`, func() error { return w.recordingStepRan(true) })
 	sc.Step(`^the recording step did not run$`, func() error { return w.recordingStepRan(false) })
+	sc.Step(`^the recording check ran$`, func() error { return w.recordingCheckRan(true) })
 	sc.Step(`^the recording check did not run$`, func() error { return w.recordingCheckRan(false) })
 	sc.Step(`^the file "([^"]*)" calls itos$`, w.fileCallsItos)
 }
@@ -309,7 +315,7 @@ func (w *world) writeConfig() error {
 		record := "printf '%s\\n' {from} > " + quote(filepath.Join(w.support, "range-from"))
 		fmt.Fprintf(&b, "    range_checks:\n      - name: record\n        range: %q\n", record)
 	}
-	if len(w.config.ciSteps) > 0 || w.config.stopAtFirst != nil {
+	if len(w.config.ciSteps) > 0 || w.config.stopAtFirst != nil || len(w.config.costStatic) > 0 {
 		b.WriteString("ci:\n  steps:")
 		if len(w.config.ciSteps) == 0 {
 			b.WriteString(" []")
@@ -320,6 +326,12 @@ func (w *world) writeConfig() error {
 		}
 		if w.config.stopAtFirst != nil {
 			fmt.Fprintf(&b, "  stop_at_first_failure: %t\n", *w.config.stopAtFirst)
+		}
+		if len(w.config.costStatic) > 0 {
+			b.WriteString("  cost:\n    static:\n")
+			for _, pattern := range w.config.costStatic {
+				fmt.Fprintf(&b, "      - %q\n", pattern)
+			}
 		}
 	}
 	b.WriteString("work: { ")
@@ -333,11 +345,14 @@ func (w *world) writeConfig() error {
 		fmt.Fprintf(&b, "statuses: [%s], ", strings.Join(w.config.statuses, ", "))
 	}
 	b.WriteString("people: { source: yaml, file: people.yaml } }\n")
-	if w.config.hooksManager != "" || w.config.taskChecks != nil || w.config.checkTimeout > 0 {
+	if w.config.hooksManager != "" || w.config.hooksBin != "" || w.config.taskChecks != nil || w.config.checkTimeout > 0 {
 		b.WriteString("hooks:\n")
 	}
 	if w.config.hooksManager != "" {
 		fmt.Fprintf(&b, "  manager: %q\n", w.config.hooksManager)
+	}
+	if w.config.hooksBin != "" {
+		fmt.Fprintf(&b, "  bin: %q\n", w.config.hooksBin)
 	}
 	if w.config.taskChecks != nil || w.config.checkTimeout > 0 {
 		b.WriteString("  commit_msg:\n")
@@ -473,10 +488,22 @@ func (w *world) recordingShell() error {
 	return w.writeConfig()
 }
 
-// The ledger's one task, with one check.
+// The ledger's one task, with one check and no cost: of its own, staged: the
+// commit-msg hook reads the ledger as the commit will hold it, and itos task
+// reads the working tree, which holds the same.
 func (w *world) taskHasCheck(task, check string) error {
-	return w.write("tasks/phase-1.yaml",
-		fmt.Sprintf("- { id: %s, type: chore, title: Tidy, done_when: [{ run: %q }] }\n", task, check))
+	return w.stagedChecks(task, fmt.Sprintf("{ run: %q }", check))
+}
+
+// A script at the path in the scratch repository that writes the recording
+// check's file when it runs, whatever its arguments: a check that calls it
+// ran exactly when the file is there.
+func (w *world) recordingScript(path string) error {
+	script := "#!/bin/sh\nprintf 'ran\\n' > " + quote(filepath.Join(w.dir, recordingCheckFile)) + "\n"
+	if err := w.write(path, script); err != nil {
+		return err
+	}
+	return os.Chmod(filepath.Join(w.dir, path), 0o755)
 }
 
 // The file, in the scratch repository, that the recording step writes.
@@ -573,6 +600,16 @@ func (w *world) folder(path string) error {
 
 func (w *world) hooksManagerIs(manager string) error {
 	w.config.hooksManager = manager
+	return w.writeConfig()
+}
+
+func (w *world) hooksBinIs(bin string) error {
+	w.config.hooksBin = bin
+	return w.writeConfig()
+}
+
+func (w *world) costStaticIs(pattern string) error {
+	w.config.costStatic = []string{pattern}
 	return w.writeConfig()
 }
 

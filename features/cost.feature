@@ -15,7 +15,7 @@ Feature: The cost rule knows itos however the project calls it
 
   # The hook runs only a named task's static checks. Whether the recording
   # script ran tells you which class the cost rule gave its command.
-  @ID-COST-01 @slice-8 @wip
+  @ID-COST-01 @slice-8
   Scenario: A pattern written for itos matches a command that starts with hooks.bin
     Given "bin/itos" is a script that records it ran
     And hooks.bin is "bin/itos"
@@ -30,7 +30,7 @@ Feature: The cost rule knows itos however the project calls it
     Then itos exits with code 0
     And the recording check ran
 
-  @ID-COST-02 @slice-8 @wip
+  @ID-COST-02 @slice-8
   Scenario: Without hooks.bin, a pattern written for itos matches a command that starts with tools/bin/itos
     Given "tools/bin/itos" is a script that records it ran
     And ci.cost.static is "^itos work check$"
@@ -44,7 +44,7 @@ Feature: The cost rule knows itos however the project calls it
     Then itos exits with code 0
     And the recording check ran
 
-  @ID-COST-03 @slice-8 @wip
+  @ID-COST-03 @slice-8
   Scenario: A command under another path is matched as written, and stays late
     Given "other/itos" is a script that records it ran
     And hooks.bin is "bin/itos"

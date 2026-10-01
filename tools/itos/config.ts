@@ -709,8 +709,34 @@ export function staticPatterns(): RegExp[] {
 		};
 	return patterns.rules;
 }
-export const matchesStatic = (command: string) =>
-	staticPatterns().some((rule) => rule.test(normal(command)));
+
+// How the project calls itos when hooks.bin leaves it out: the wrapper this
+// repository and its template ship.
+const DEFAULT_BIN = "tools/bin/itos";
+export const itosBin = () => config().hooks?.bin ?? DEFAULT_BIN;
+
+// A command as the cost rule reads it: its whitespace collapsed, and, when its
+// first word is hooks.bin, that word read as `itos`. The ledger and ci.steps
+// call itos the way the project does, so a pattern written `^itos work check`
+// matches `tools/bin/itos work check` without spelling out the path. Only
+// hooks.bin itself is read so: a command under any other path is read as
+// written. (A hooks.bin of several words is read as its leading words.)
+function asItos(command: string): string {
+	const text = normal(command);
+	const bin = normal(itosBin());
+	return text === bin || text.startsWith(`${bin} `) ? `itos${text.slice(bin.length)}` : text;
+}
+
+// Whether a command is static by the patterns. Each pattern is tried on the
+// command as written and as the cost rule reads it, so a pattern that names
+// hooks.bin's path keeps matching: reading hooks.bin as itos only ever makes a
+// command static, never late. The rewrite is for matching alone; the command
+// runs as written. CI's plan, the commit-msg hook and config check's order
+// rule all come here.
+export function matchesStatic(command: string): boolean {
+	const forms = [normal(command), asItos(command)];
+	return staticPatterns().some((rule) => forms.some((form) => rule.test(form)));
+}
 
 const TASK_KEYS = ["id", "type", "title", "why", "done_when"];
 const CHECK_KEYS = ["run", "fails", "after", "timeout", "prose", "cost"];

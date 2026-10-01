@@ -2,7 +2,7 @@
 # config, ledger, registry and smoke set; each config problem with its rule
 # and fix (an unknown key and the key it misspells, a wrong type, a value not
 # allowed, a missing key, a pattern that does not compile, a name that refers
-# to nothing, a commits.since that is no full SHA or no commit here), exit 2; each ledger problem (written order among them), exit 1;
+# to nothing, a commits.since that is no full SHA or no commit here), exit 2; each ledger problem (written order among them, a check that calls hooks.bin read as itos), exit 1;
 # the registry's and the smoke set's problems beside them; --print-defaults.
 files:
   itos.yaml: |
@@ -226,6 +226,35 @@ cases:
     exit: 1
     stderr: |
       FAIL T-090: check 1 says cost: static below check 0, which is late: written order runs it late
+  - name: a check that calls hooks.bin is read as itos by the patterns, one under another path as written
+    argv: [config, check, --ledger, bin.yaml]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits: { types: [build, docs] }
+        ci:
+          steps: [{ run: vp check, cost: static }]
+          cost: { static: ["^vp check$", "^itos work check$"], keep_written_order: true }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+      bin.yaml: |
+        - id: T-091
+          type: build
+          title: hooks.bin by default, tools/bin/itos, read as itos
+          done_when:
+            - run: tools/bin/itos work check
+            - run: vp check
+              cost: static
+        - id: T-092
+          type: build
+          title: Another path, read as written, and late
+          done_when:
+            - run: other/itos work check
+            - run: vp check
+              cost: static
+    exit: 1
+    stderr: |
+      FAIL T-092: check 1 says cost: static below check 0, which is late: written order runs it late
   - name: every problem of a task, as --json
     argv: [config, check, --json, --ledger, bad.yaml]
     files:

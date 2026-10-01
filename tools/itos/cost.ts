@@ -1,8 +1,10 @@
 // The cost rule, one for CI's plan (ci-plan.ts) and the commit-msg hook's run
 // of the named tasks' checks (commit-tasks.ts): a step's or a check's cost
 // class is its own `cost:`, else static when one of `ci.cost.static`'s
-// patterns matches its command, else late; with `ci.cost.keep_written_order`,
-// a check below a late check of its task is late too.
+// patterns matches its command (whose first word, when it is hooks.bin, the
+// patterns also read as `itos`: matchesStatic in config.ts), else late; with
+// `ci.cost.keep_written_order`, a check below a late check of its task is
+// late too.
 import { type Cost, config, matchesStatic } from "./config.ts";
 import type { Check, Task } from "./repo.ts";
 
