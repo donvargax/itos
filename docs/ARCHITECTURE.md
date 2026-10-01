@@ -80,6 +80,11 @@ the commands, `itos <command> --help` each one). The code is
   ledger but not a ledger file, since it does not match `ledger.files`), the people
   `CONTRIBUTORS.md` (`work.people`), the smoke set `features/smoke.yaml`
   (`tests.scenario.smoke`). `itos config check` validates all of them.
+  Every reader of them goes through one source (`source.ts`): the working
+  tree by default, or, while a function runs, a tree git holds, the index or
+  a commit. So the commit-msg hook's check of the staged data is
+  `config check` itself, run over the index; a config the tree does not hold
+  (an `ITOS_CONFIG` outside the repository) is read where it is.
 - **One command line** (`tools/itos/main.ts`): exit 0 on success, 1 for a
   policy failure (a check failed, a commit rejected, an unknown task), 2 for a
   usage or config error, 3 for a missing environment. `--json` prints one
@@ -142,11 +147,18 @@ the commands, `itos <command> --help` each one). The code is
     file. The audit scores changed functions by that coverage
     (`.fallowrc.json`), exact for the changed files since every test that
     runs one imports it.
-  - **commit-msg** applies the type's path rules (`commit-scope.ts`), then
-    outside `feat` and `fix` the scenario moving rule
-    (`scenario-moves.ts`), then the header lint: commitlint
-    (`commitlint.config.ts`, `config-conventional` plus one `<key>-footer`
-    rule per footer of `commits.footers`), stopping at the first that fails.
+  - **commit-msg** first checks itos's own data when the commit stages any
+    of it (`commit-data.ts`): the config, a ledger file, the registry or a
+    smoke set, as the staged config names them, runs `config check`'s
+    problems over the index, the registry's own check among them, and rejects
+    the commit with them, since a project's pre-commit hook passes them as
+    prose and the working tree may hold what the commit does not. It comes
+    first because the other rules read the config. Then it applies the
+    type's path rules (`commit-scope.ts`), then outside `feat` and `fix` the
+    scenario moving rule (`scenario-moves.ts`), then the header lint:
+    commitlint (`commitlint.config.ts`, `config-conventional` plus one
+    `<key>-footer` rule per footer of `commits.footers`), stopping at the
+    first that fails.
   - **pre-push** runs `hooks.pre_push`: `vp test run --changed <remote sha>`
     for each pushed ref, or the whole unit suite when there is no remote
     commit to compare with. Nothing else: the scenarios and the task checks

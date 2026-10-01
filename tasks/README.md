@@ -83,8 +83,10 @@ Enforcement: the rules are `commits` in `itos.yaml`. The scope column above
 is `commits.scopes`; the footers are `commits.footers` (a `Task:` or
 `Scenarios:` ID must exist at the commit itself); the moving rule is the
 scenario kind's range check (`tests.scenario.range_checks`). The commit-msg
-hook (`tools/bin/itos hook commit-msg`) applies the path rules, then the
-moving rule to HEAD and the index, then the header lint
+hook (`tools/bin/itos hook commit-msg`) first runs `tools/bin/itos config
+check`'s problems over the staged tree when the commit stages `itos.yaml`, a
+ledger file, the work registry or the smoke set, then applies the path rules,
+then the moving rule to HEAD and the index, then the header lint
 (`commits.header_lint`: commitlint, `config-conventional` plus the footer
 rules). CI re-checks every pushed commit the same way with
 `tools/bin/itos verify <from> <to>`. `tools/bin/itos commit check-paths --type

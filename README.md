@@ -38,7 +38,8 @@ it, and the instructions then point to the check instead of restating it.
 - **Commit rules**: Conventional Commits; each `feat` or `fix` names the
   scenarios it turns green (`Scenarios: @ID-…`), every other type the task it
   belongs to (`Task: T-…`), and each type may touch only certain paths.
-  `itos hook commit-msg` applies them before a commit; `itos verify` re-checks
+  `itos hook commit-msg` applies them before a commit, and validates itos's
+  own files as the commit stages them; `itos verify` re-checks
   a pushed range in CI, from `commits.since` on.
 - **Named tests behind an adapter**: Gherkin is built in; any runner that can
   list its tests as JSON can be another kind. CI merges every selection of a

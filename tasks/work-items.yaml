@@ -339,7 +339,7 @@ items:
     title: The commit-msg hook validates itos.yaml, the ledger, the registry and the smoke set as staged
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-5]
     kind: slice
     refs: [features/commit-data.feature]
@@ -378,6 +378,34 @@ items:
       registry is staged, and T-023 drops the pre-commit check, which never watched the people file
       either; only CI's prose steps catch it, after the push. The commit-msg hook could run the
       registry's check when work.people's file is staged too.
+
+  - id: p1-smoke-rule-at-commit
+    title: A staged feature file runs the smoke rule at commit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-6]
+    kind: idea
+    why: >
+      The smoke rule reads the feature files as well as the smoke set: a feat that makes a file's
+      scenarios live without a smoke entry breaks it while staging no smoke file, so the commit-msg
+      hook's data check does not run (slice 6's own feat did this, and config check caught it only
+      by hand). CI's smoke step catches it after the push. The hook could run the smoke part of the
+      check, over the index, when a kind's test file is staged.
+
+  - id: p1-verify-data-per-commit
+    title: verify checks each commit's data at that commit, as the commit-msg hook does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-6]
+    kind: idea
+    why: >
+      verify re-checks every pushed commit with the commit-msg rules, but not the data check slice
+      6 added to the hook: a commit made past the hooks with a broken ledger or registry, mended
+      later in the same push, passes CI, whose config check reads only the head. source.ts can read
+      a commit's tree, so verify could run the check at each commit that touches the data. Needs a
+      scenario.
 
   - id: T-023
     title: The pre-commit hook leaves itos's data to the commit-msg hook
