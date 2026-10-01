@@ -43,34 +43,12 @@ import {
 } from "./ci-scope.ts";
 import { smokeIds } from "./e2e-scope.ts";
 import { loadSmoke } from "./smoke.ts";
-import { type Cost, config, DEFAULT_REGISTRY, matchesStatic, normal, section } from "./config.ts";
+import { config, DEFAULT_REGISTRY, normal, section } from "./config.ts";
+import { type Costed, costedChecks, costOf } from "./cost.ts";
 import { type Check, loadTasks, type Task } from "./repo.ts";
 import { commandFor, recognize, type Selection } from "./tests.ts";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
-
-// Where a cost came from: the item's own `cost:`, a pattern, the default
-// (late), or the order of the task's checks.
-export type CostFrom = "explicit" | "pattern" | "default" | "order";
-export interface Costed {
-	cost: Cost;
-	costFrom: CostFrom;
-}
-
-// A command's cost by the config's patterns alone: the commands that need
-// nothing built and take seconds. They run before the unit tests, the build
-// and the run of named tests, so a push that fails one of them fails in its
-// first minute, not after a long run of the scenarios. In doubt a command is
-// late: it runs after everything it might need.
-export const isStatic = (command: string) => matchesStatic(command);
-
-// A step's or check's cost: its own, else the patterns', else late.
-export const costOf = (command: string, own?: Cost): Costed =>
-	own
-		? { cost: own, costFrom: "explicit" }
-		: isStatic(command)
-			? { cost: "static", costFrom: "pattern" }
-			: { cost: "late", costFrom: "default" };
 
 // The kind of named tests CI's `tests:` step runs, which a push narrows to a
 // selection, if it has one.
@@ -177,21 +155,6 @@ function inCostOrder(steps: ({ step: string } & Costed)[], checks: PlannedCheck[
 		...steps.filter((item) => !isStaticItem(item)),
 		...checks.filter((item) => !isStaticItem(item)),
 	];
-}
-
-// A task's checks with their costs. With `keep_written_order`, a check below
-// a late one is late, whatever its own class: authors write a task's checks
-// in the order they depend on (a check that reads a file runs after the one
-// above it that writes the file).
-function costedChecks(task: Task): PlannedCheck[] {
-	const keep = config().ci?.cost?.keep_written_order === true;
-	let late = false;
-	return task.done_when.map((check, index) => {
-		let costed = costOf(check.run ?? check.fails!, check.cost);
-		if (keep && late && costed.cost === "static") costed = { cost: "late", costFrom: "order" };
-		if (costed.cost === "late") late = true;
-		return { task: task.id, check, index, ...costed };
-	});
 }
 
 // A check a prose-only range still runs: one that takes seconds, or

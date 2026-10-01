@@ -9,6 +9,7 @@ import {
 	config,
 	configIssues,
 	configPath,
+	DEFAULT_COMMIT_CHECK_TIMEOUT,
 	DEFAULT_REGISTRY,
 	ledgerFiles,
 	ledgerIssues,
@@ -30,6 +31,7 @@ export const DEFAULTS = {
 		people: DEFAULT_PEOPLE,
 		identity: { provider: "github", hint: "pass --as <handle>" },
 	},
+	hooks: { commit_msg: { task_checks: true, check_timeout: DEFAULT_COMMIT_CHECK_TIMEOUT } },
 };
 
 type Area = "config" | "ledger" | "registry" | "smoke";

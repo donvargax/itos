@@ -10,9 +10,9 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import type { Costed } from "./cost.ts";
 import {
 	commandOf,
-	type Costed,
 	notStartedIn,
 	type Plan,
 	type PlanData,

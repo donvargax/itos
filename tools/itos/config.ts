@@ -107,7 +107,14 @@ export interface Config {
 		people?: PeopleConfig;
 		identity?: IdentityConfig;
 	};
-	hooks?: { manager?: string; bin?: string; pre_push?: { per_base: string; whole: string } };
+	hooks?: {
+		manager?: string;
+		bin?: string;
+		pre_push?: { per_base: string; whole: string };
+		// The commit-msg hook's run of the named tasks' static checks
+		// (commit-tasks.ts): whether it runs, and each check's longest time.
+		commit_msg?: { task_checks?: boolean; check_timeout?: number };
+	};
 }
 
 // The schema, strict: an object's keys are the ones listed, a map's are free.
@@ -229,6 +236,7 @@ const SCHEMA: Spec = obj(
 			manager: str,
 			bin: str,
 			pre_push: obj({ per_base: str, whole: str }, ["per_base", "whole"]),
+			commit_msg: obj({ task_checks: bool, check_timeout: "number" }),
 		}),
 	},
 	["version"],
@@ -394,7 +402,21 @@ const crossProblems = (config: Config): Problem[] => [
 	...stepProblems(config),
 	...patternProblems(config),
 	...providerProblems(config),
+	...hookProblems(config),
 ];
+
+// A check_timeout of no seconds would be no timeout at all to the shell.
+function hookProblems(config: Config): Problem[] {
+	const seconds = config.hooks?.commit_msg?.check_timeout;
+	if (seconds === undefined || seconds > 0) return [];
+	return [
+		problem(
+			"config-check-timeout",
+			`hooks.commit_msg.check_timeout is a number of seconds above 0, not ${seconds}`,
+			"set hooks.commit_msg.check_timeout to the seconds a check may hold a commit, or set hooks.commit_msg.task_checks to false",
+		),
+	];
+}
 
 // A `command` provider needs its command, and only the markdown table reads
 // logins out of links.
@@ -633,6 +655,12 @@ export const normal = (command: string) => command.trim().replace(/\s+/g, " ");
 // Where the work registry is when work.registry leaves it out: beside the
 // ledger, since it is itos's data as the ledger is, and docs/ is prose.
 export const DEFAULT_REGISTRY = "tasks/work-items.yaml";
+
+// The longest the commit-msg hook lets one task check run, in seconds, when
+// hooks.commit_msg.check_timeout leaves it out. A static check takes seconds
+// (the cost rule), so a minute leaves room for a slow machine while a commit
+// is never held for minutes; a check that needs longer is late.
+export const DEFAULT_COMMIT_CHECK_TIMEOUT = 60;
 
 // The ledger's folder and how its files are named: `tasks/phase-{group}.yaml`
 // gives `tasks` and a pattern whose group is the phase.

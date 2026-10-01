@@ -40,6 +40,8 @@ type scratchConfig struct {
 	ciSteps           []string // ci.steps
 	stopAtFirst       *bool    // ci.stop_at_first_failure
 	registry          string   // work.registry
+	taskChecks        *bool    // hooks.commit_msg.task_checks
+	checkTimeout      int      // hooks.commit_msg.check_timeout, when above 0
 }
 
 func initializeScenario(sc *godog.ScenarioContext) {
@@ -76,6 +78,17 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the commit of a registry at "([^"]*)" with the item "([^"]*)" with the status "([^"]*)"$`, w.committedRegistryAt)
 	sc.Step(`^an itos\.yaml with the unknown key "([^"]*)" is staged$`, w.stagedConfigKey)
 	sc.Step(`^a ledger whose task "([^"]*)" has the unknown key "([^"]*)" is staged$`, w.stagedLedgerKey)
+	sc.Step(`^the task "([^"]*)" has the static check "([^"]*)"$`, func(task, check string) error {
+		return w.stagedChecks(task, staticCheck(check))
+	})
+	sc.Step(`^the task "([^"]*)" has a static check that records it ran$`, func(task string) error {
+		return w.stagedChecks(task, staticCheck(recordingCheck))
+	})
+	sc.Step(`^the task "([^"]*)" has the late check "([^"]*)" then a static check that records it ran$`, func(task, check string) error {
+		return w.stagedChecks(task, fmt.Sprintf("{ run: %q, cost: late }", check), staticCheck(recordingCheck))
+	})
+	sc.Step(`^hooks\.commit_msg\.task_checks is (true|false)$`, w.taskChecksAre)
+	sc.Step(`^hooks\.commit_msg\.check_timeout is (\d+)$`, w.checkTimeoutIs)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -95,6 +108,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the recording shell ran the range check$`, w.recordingShellRanRangeCheck)
 	sc.Step(`^the recording step ran$`, func() error { return w.recordingStepRan(true) })
 	sc.Step(`^the recording step did not run$`, func() error { return w.recordingStepRan(false) })
+	sc.Step(`^the recording check did not run$`, func() error { return w.recordingCheckRan(false) })
 }
 
 func (w *world) setUp() error {
@@ -274,6 +288,15 @@ commits:
 		fmt.Fprintf(&b, "registry: %q, ", w.config.registry)
 	}
 	b.WriteString("people: { source: yaml, file: people.yaml } }\n")
+	if w.config.taskChecks != nil || w.config.checkTimeout > 0 {
+		b.WriteString("hooks:\n  commit_msg:\n")
+		if w.config.taskChecks != nil {
+			fmt.Fprintf(&b, "    task_checks: %t\n", *w.config.taskChecks)
+		}
+		if w.config.checkTimeout > 0 {
+			fmt.Fprintf(&b, "    check_timeout: %d\n", w.config.checkTimeout)
+		}
+	}
 	return w.write("itos.yaml", b.String())
 }
 
@@ -378,6 +401,37 @@ func (w *world) taskHasCheck(task, check string) error {
 // The file, in the scratch repository, that the recording step writes.
 const recordingStepFile = "step-ran"
 
+// The file, in the scratch repository, that the recording check writes, and
+// the check.
+const recordingCheckFile = "check-ran"
+
+var recordingCheck = "printf 'ran\\n' > " + recordingCheckFile
+
+// A check of the ledger's that says cost: static, which its command alone
+// would not make it, as the scratch config has no static patterns.
+func staticCheck(command string) string { return fmt.Sprintf("{ run: %q, cost: static }", command) }
+
+// The ledger's one task with these checks, staged: the commit-msg hook reads
+// the ledger as the commit will hold it.
+func (w *world) stagedChecks(task string, checks ...string) error {
+	if err := w.write("tasks/phase-1.yaml", fmt.Sprintf(
+		"- { id: %s, type: chore, title: Tidy, done_when: [%s] }\n", task, strings.Join(checks, ", "))); err != nil {
+		return err
+	}
+	return w.git("add", "--", "tasks/phase-1.yaml")
+}
+
+func (w *world) taskChecksAre(value string) error {
+	on := value == "true"
+	w.config.taskChecks = &on
+	return w.writeConfig()
+}
+
+func (w *world) checkTimeoutIs(seconds int) error {
+	w.config.checkTimeout = seconds
+	return w.writeConfig()
+}
+
 func (w *world) ciStepsAre(steps ...string) error {
 	w.config.ciSteps = steps
 	return w.writeConfig()
@@ -401,14 +455,18 @@ func (w *world) registryIs(path string) error {
 
 // The repository's one work registry is at path, with one unowned item of
 // phase 1: the registry it started with is removed when it is elsewhere, so
-// nothing is left where itos would otherwise look.
+// nothing is left where itos would otherwise look. The working tree and the
+// index both hold it, so what reads the staged tree reads it too.
 func (w *world) registryAt(path, item, status string) error {
 	if path != startingRegistry {
 		if err := os.Remove(filepath.Join(w.dir, startingRegistry)); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
 	}
-	return w.workingRegistry(path, item, status)
+	if err := w.workingRegistry(path, item, status); err != nil {
+		return err
+	}
+	return w.git("add", "-A", "--", path, startingRegistry)
 }
 
 // The registry at path holds one unowned item of phase 1, in the working tree
@@ -421,10 +479,7 @@ func (w *world) workingRegistry(path, item, status string) error {
 
 // The same registry, staged, with the starting one's removal when it moved.
 func (w *world) stagedRegistryAt(path, item, status string) error {
-	if err := w.registryAt(path, item, status); err != nil {
-		return err
-	}
-	return w.git("add", "-A", "--", path, startingRegistry)
+	return w.registryAt(path, item, status)
 }
 
 // The same registry, committed past the hooks.
@@ -566,6 +621,18 @@ func (w *world) recordingShellRanRangeCheck() error {
 		}
 	}
 	return fmt.Errorf("the recording shell did not run the range check; it ran %q\n%s", log, w.report())
+}
+
+func (w *world) recordingCheckRan(want bool) error {
+	_, err := os.Stat(filepath.Join(w.dir, recordingCheckFile))
+	ran := err == nil
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if ran != want {
+		return fmt.Errorf("the recording check ran: %t, not %t\n%s", ran, want, w.report())
+	}
+	return nil
 }
 
 func (w *world) recordingStepRan(want bool) error {

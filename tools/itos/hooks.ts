@@ -4,7 +4,9 @@
 //                                    stages any (commit-data.ts), then the
 //                                    path rules and the kinds' staged range
 //                                    checks (commit-scope.ts), then the header
-//                                    lint with the footer rules (commit.ts)
+//                                    lint with the footer rules (commit.ts),
+//                                    then the static checks of the tasks the
+//                                    message names (commit-tasks.ts)
 //   itos hook pre-push <remote> <url> the unit tests the pushed commits reach
 //                                    (pre-push.ts, itos.yaml's hooks.pre_push)
 //   itos hooks install [--manager <m>] [--print] [--force]
@@ -24,15 +26,18 @@ import { dirname, join, resolve } from "node:path";
 import { lintMessageFile } from "./commit.ts";
 import { hook as dataRule } from "./commit-data.ts";
 import { hook as stagedRule } from "./commit-scope.ts";
+import { hook as tasksRule } from "./commit-tasks.ts";
 import { config } from "./config.ts";
 import { emit, type Output, TEXT } from "./problem.ts";
 import { prePush } from "./pre-push.ts";
 
 // `hook commit-msg <file>`: the staged data first, since the other rules read
 // the config, then the staged files' rules, then the header lint, in the order
-// and wording the two-line hook had; the first to fail decides.
+// and wording the two-line hook had, then the named tasks' static checks: the
+// slowest last, run only for a commit every other rule lets through, and with
+// the footer they read already judged. The first to fail decides.
 export function hookCommitMsg(file: string): number {
-	return dataRule() || stagedRule(file) || lintMessageFile(file);
+	return dataRule() || stagedRule(file) || lintMessageFile(file) || tasksRule(file);
 }
 
 // `hook pre-push <remote> <url>`: git's ref lines on stdin. Under pre-commit

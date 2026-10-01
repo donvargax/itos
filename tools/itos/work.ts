@@ -45,7 +45,7 @@ interface Registry {
 	items: Item[];
 }
 
-const registryPath = () => config().work?.registry ?? DEFAULT_REGISTRY;
+export const registryPath = () => config().work?.registry ?? DEFAULT_REGISTRY;
 const peopleSource = () => config().work?.people ?? DEFAULT_PEOPLE;
 // The file the people come from, as the messages name it.
 const listedIn = () => peopleSource().file;
@@ -57,6 +57,18 @@ export function load(path = registryPath(), source: PeopleConfig = peopleSource(
 		phases: raw.phases ?? {},
 		items: (raw.items ?? []).map((item) => ({ ...item, depends_on: item.depends_on ?? [] })),
 	};
+}
+
+// One item's status, from the registry where itos reads its data now
+// (source.ts); undefined when the registry, or the item, is not there or the
+// registry cannot be read.
+export function itemStatus(id: string, path = registryPath()): string | undefined {
+	try {
+		const raw = parse(current().read(path)) as Partial<Registry> | null;
+		return raw?.items?.find((item) => item.id === id)?.status;
+	} catch {
+		return undefined;
+	}
 }
 
 const text = (value: unknown) => typeof value === "string" && value.trim() !== "";

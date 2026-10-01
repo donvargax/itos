@@ -28,7 +28,7 @@ cases:
         ci scope <from> <to>             docs_only=true|false, for GITHUB_OUTPUT
         ci range --head <sha> [--base <sha>]
                                          FROM=<sha>: where a push's range starts
-        hook commit-msg <file>           the commit-msg hook: path rules, range checks, header lint
+        hook commit-msg <file>           the commit-msg hook: data, paths, header lint, task checks
         hook pre-push <remote> <url>     the pre-push hook: the tests the pushed commits reach
         hooks install [--manager <m>] [--print] [--force]
                                          write the hooks' one-line shims for the hook manager
@@ -235,8 +235,13 @@ cases:
       tree; then the staged files against the message's type (the path rules, then
       each kind's staged range check: the scenario moves here), then the header lint
       (commits.header_lint.hook, commitlint here, whose config runs the footer rules;
-      with no delegate, the footer rules alone). The first to fail prints its report
-      and decides: exit 1, or the header lint's own code.
+      with no delegate, the footer rules alone), then the checks of each task the
+      Task: footer names, as staged, in written order up to its first late one (CI's
+      cost rule; an after: push check waits), each capped at
+      hooks.commit_msg.check_timeout seconds (60). A failure rejects the commit when
+      the task's work item is done, and is printed with the task's status otherwise.
+      hooks.commit_msg.task_checks: false runs none. The first to fail prints its
+      report and decides: exit 1, or the header lint's own code.
   - name: itos hook pre-push --help
     argv: [hook, pre-push, --help]
     exit: 0

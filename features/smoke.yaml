@@ -24,6 +24,10 @@
   scenarios:
     - id: "@ID-CDATA-01"
       why: the hook rejects a commit whose staged data has a problem, with the problem, the file's point
+- file: commit-tasks.feature
+  scenarios:
+    - id: "@ID-CTASK-01"
+      why: the hook rejects a commit whose named done task's static check fails, the file's point
 - file: config.feature
   scenarios:
     - id: "@ID-CONFIG-01"

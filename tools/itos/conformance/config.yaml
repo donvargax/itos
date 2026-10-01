@@ -72,7 +72,7 @@ cases:
       problems:
         - rule: config-unknown-key
           message: "itos.yaml: unknown key hooks.shims"
-          fix: remove hooks.shims; the keys here are manager, bin, pre_push
+          fix: remove hooks.shims; the keys here are manager, bin, pre_push, commit_msg
           area: config
   - name: wrong types, a value not allowed, missing keys
     argv: [config, check, --json]
@@ -420,10 +420,16 @@ cases:
     exit: 2
     stderr: |
       FAIL since.yaml: commits.since names 0123456789abcdef0123456789abcdef01234567, which is not a commit of this repository
+  - name: a hooks.commit_msg.check_timeout of no seconds is refused, since it would be no timeout
+    argv: [config, check, --config, hook.yaml]
+    files: { hook.yaml: "version: 1\nhooks: { commit_msg: { check_timeout: 0 } }\n" }
+    exit: 2
+    stderr: |
+      FAIL hook.yaml: hooks.commit_msg.check_timeout is a number of seconds above 0, not 0
   - name: the defaults the tools take when a key is left out
     argv: [config, check, --print-defaults]
     exit: 0
-    stdout_has: ["registry: tasks/work-items.yaml", "timeout: 600", "adapter: gherkin", "hint: pass --as <handle>"]
+    stdout_has: ["registry: tasks/work-items.yaml", "timeout: 600", "adapter: gherkin", "hint: pass --as <handle>", "check_timeout: 60"]
   - name: the defaults as --json
     argv: [config, check, --print-defaults, --json]
     exit: 0
@@ -460,3 +466,7 @@ cases:
           identity:
             provider: github
             hint: pass --as <handle>
+        hooks:
+          commit_msg:
+            task_checks: true
+            check_timeout: 60

@@ -415,6 +415,168 @@ cases:
       - stage: { README.md: "more\n" }
     files: { msg: "docs: write the readme\n" }
     exit: 0
+  # The static checks of the tasks the Task: footer names, last: the ledger
+  # and the registry as staged (the working tree's ledger, written after the
+  # repository, has no checks), each check's output under its task and command.
+  - name: a done task whose static check fails rejects the commit, with the check's output
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - stage:
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: \"echo broken; exit 3\", cost: static }] }\n"
+          tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: null, status: done, depends_on: [] }\n"
+    files: { msg: "docs: note the check\n\nTask: T-001\n" }
+    exit: 1
+    stderr: |
+      T-001 One
+        $ echo broken; exit 3
+      broken
+      Commit rejected:
+        - failing T-001: `echo broken; exit 3` exited 3, and tasks/work-items.yaml says T-001 is done
+  - name: a task in progress whose static check fails is reported, and the commit goes through
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - stage:
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: \"exit 3\", cost: static }] }\n"
+          tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: null, status: doing, depends_on: [] }\n"
+    files: { msg: "docs: note the check\n\nTask: T-001\n" }
+    exit: 0
+    stderr: |
+      T-001 One
+        $ exit 3
+      failing T-001: `exit 3` exited 3; T-001 is doing in tasks/work-items.yaml, so the commit goes through, and CI judges the push
+  - name: a task with no work item counts as in progress
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - stage:
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ fails: \"true\", cost: static }] }\n"
+    files: { msg: "docs: note the check\n\nTask: T-001\n" }
+    exit: 0
+    stderr: |
+      T-001 One
+        $ true   (must fail)
+      failing T-001: `true` passed, and must fail; T-001 has no item in tasks/work-items.yaml, so the commit goes through, and CI judges the push
+  - name: a task stops at its first failing check, and its checks that pass print nothing
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - stage:
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: \"echo fine\", cost: static }, { run: \"exit 4\", cost: static }, { run: \"echo never; exit 5\", cost: static }] }\n"
+          tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: null, status: done, depends_on: [] }\n"
+    files: { msg: "docs: note the check\n\nTask: T-001\n" }
+    exit: 1
+    stderr: |
+      T-001 One
+        $ exit 4
+      Commit rejected:
+        - failing T-001: `exit 4` exited 4, and tasks/work-items.yaml says T-001 is done
+  - name: the checks stop at a task's first late one, by its cost or the patterns'
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - stage:
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: \"true\", cost: static }, { run: \"exit 6\" }, { run: \"exit 7\", cost: static }] }\n"
+          tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: null, status: done, depends_on: [] }\n"
+    files: { msg: "docs: note the check\n\nTask: T-001\n" }
+    exit: 0
+  - name: an after push check waits, since the commit being made is not pushed
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - run: git update-ref refs/remotes/origin/main HEAD
+      - stage:
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: \"exit 5\", cost: static, after: push }] }\n"
+          tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: null, status: done, depends_on: [] }\n"
+    files: { msg: "docs: note the check\n\nTask: T-001\n" }
+    exit: 0
+  - name: a check that outlasts hooks.commit_msg.check_timeout fails, naming the key
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - stage:
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: \"sleep 5\", cost: static }] }\n"
+          tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: null, status: done, depends_on: [] }\n"
+    files:
+      msg: "docs: note the check\n\nTask: T-001\n"
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          types: [feat, build, docs, test]
+          footers:
+            Task: { source: ledger, required_for: [build, test], validate_for: all, read_at: commit }
+          scopes:
+            docs: { only: ["**/*.md", "tasks/**"] }
+        work: { people: { source: yaml, file: people.yaml } }
+        hooks:
+          commit_msg: { check_timeout: 1 }
+    exit: 1
+    stderr: |
+      T-001 One
+        $ sleep 5
+      Commit rejected:
+        - failing T-001: `sleep 5` ran past hooks.commit_msg.check_timeout (1s), and tasks/work-items.yaml says T-001 is done
+  - name: a check's own shorter timeout is not the key's to name
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - stage:
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: \"sleep 5\", cost: static, timeout: 1 }] }\n"
+          tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: null, status: done, depends_on: [] }\n"
+    files: { msg: "docs: note the check\n\nTask: T-001\n" }
+    exit: 1
+    stderr: |
+      T-001 One
+        $ sleep 5
+      Commit rejected:
+        - failing T-001: `sleep 5` ran past its timeout (1s), and tasks/work-items.yaml says T-001 is done
+  - name: hooks.commit_msg.task_checks false runs no task check
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - stage:
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: \"exit 3\", cost: static }] }\n"
+          tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: null, status: done, depends_on: [] }\n"
+    files:
+      msg: "docs: note the check\n\nTask: T-001\n"
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          types: [feat, build, docs, test]
+          footers:
+            Task: { source: ledger, required_for: [build, test], validate_for: all, read_at: commit }
+          scopes:
+            docs: { only: ["**/*.md", "tasks/**"] }
+        work: { people: { source: yaml, file: people.yaml } }
+        hooks:
+          commit_msg: { task_checks: false }
+    exit: 0
+  - name: a commit another rule rejects runs no task check
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *data
+      - stage:
+          tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: \"echo ran >&2; exit 3\", cost: static }] }\n"
+          tasks/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: null, status: done, depends_on: [] }\n"
+          tools/a.sh: "true\n"
+    files: { msg: "docs: note the check\n\nTask: T-001\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - docs commits may not touch tools/a.sh
   - name: the header lint delegate gets the message file, and its exit code is the hook's
     argv: [hook, commit-msg, msg]
     git:
