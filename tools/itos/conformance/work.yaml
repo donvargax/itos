@@ -212,6 +212,53 @@ cases:
   - name: the registry is sound, quietly
     argv: [work, check, -q]
     exit: 0
+  - name: without work.registry, the registry is tasks/work-items.yaml
+    argv: [work, check]
+    files:
+      itos.yaml: "version: 1\nwork: { people: { source: yaml, file: people.yaml } }\n"
+      tasks/work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo }\n"
+    exit: 0
+    stdout: |
+      tasks/work-items.yaml: sound
+  - name: with no registry where itos looks, work check names the path
+    argv: [work, check]
+    files:
+      itos.yaml: "version: 1\nwork: { people: { source: yaml, file: people.yaml } }\n"
+      docs/work-items.yaml: "phases: { 1: a }\nitems: []\n"
+    exit: 1
+    stderr: |
+      no work registry at tasks/work-items.yaml
+  - name: the same as --json, with its rule and fix
+    argv: [work, check, --json]
+    files:
+      itos.yaml: "version: 1\nwork: { people: { source: yaml, file: people.yaml } }\n"
+    exit: 1
+    json:
+      schema: 1
+      file: tasks/work-items.yaml
+      sound: false
+      problems:
+        - rule: work-registry-missing
+          message: no work registry at tasks/work-items.yaml
+          fix: move the registry to tasks/work-items.yaml, or set work.registry to where it is
+  - name: with no registry where itos looks, the proposal stops there
+    argv: [work, --as, a]
+    files:
+      work-items.yaml: null
+    exit: 1
+    stderr: |
+      no work registry at work-items.yaml
+  - name: a registry file named on the command line that is not there
+    argv: [work, check, other.yaml, --json]
+    exit: 1
+    json:
+      schema: 1
+      file: other.yaml
+      sound: false
+      problems:
+        - rule: work-registry-missing
+          message: no work registry at other.yaml
+          fix: name the registry's file, or write one at other.yaml
   - name: a registry file named on the command line
     argv: [work, check, other.yaml]
     files:

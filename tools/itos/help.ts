@@ -77,9 +77,9 @@ Exit 1 when the registry is not sound, 3 when --as is not among the people.
 
 	"work check": `Usage: itos work check [<file>]
 
-Validates the work registry (the config's work.registry, or <file>): duplicate
-IDs, unknown phases, statuses, kinds, owners and dependencies, cycles. Exit 1
-on a problem.
+Validates the work registry (the config's work.registry, tasks/work-items.yaml
+by default, or <file>): that it is there, duplicate IDs, unknown phases,
+statuses, kinds, owners and dependencies, cycles. Exit 1 on a problem.
 
 --json: {"schema":1,"file","sound","problems":[{"rule","message","fix"?}]}`,
 

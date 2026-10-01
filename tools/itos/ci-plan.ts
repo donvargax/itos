@@ -43,7 +43,7 @@ import {
 } from "./ci-scope.ts";
 import { smokeIds } from "./e2e-scope.ts";
 import { loadSmoke } from "./smoke.ts";
-import { type Cost, config, matchesStatic, normal, section } from "./config.ts";
+import { type Cost, config, DEFAULT_REGISTRY, matchesStatic, normal, section } from "./config.ts";
 import { type Check, loadTasks, type Task } from "./repo.ts";
 import { commandFor, recognize, type Selection } from "./tests.ts";
 import { readFileSync } from "node:fs";
@@ -254,7 +254,7 @@ export const planFor = (
 	from: string,
 	to: string,
 	root?: string,
-	registry = section("work").registry ?? "docs/work-items.yaml",
+	registry = section("work").registry ?? DEFAULT_REGISTRY,
 ): Plan =>
 	planWith(from, to, { tasks: loadTasks(root), todo: notStartedIn(registry), smoke: planSmoke() });
 

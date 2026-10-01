@@ -30,7 +30,7 @@ import { ciPlan, commandOf, type Plan, type PlannedCheck, planFor, planWith } fr
 import { planData, planJson, rangeJson } from "./ci-plan-json.ts";
 import { changedIn, docsOnly, rangeStart } from "./ci-scope.ts";
 import { runCheck } from "./checks.ts";
-import { section } from "./config.ts";
+import { DEFAULT_REGISTRY, section } from "./config.ts";
 import { emit, logger, type Output, TEXT } from "./problem.ts";
 import { rangeProvider } from "./providers.ts";
 import { inShell } from "./shell.ts";
@@ -122,8 +122,9 @@ function preamble(plan: Plan, out: Output): Failure | undefined {
 		console.error(`\nCI failed at the tasks named: ${plan.unknown.join(", ")}`);
 		return { unknown: plan.unknown, code: 1 };
 	}
+	const registry = section("work").registry ?? DEFAULT_REGISTRY;
 	for (const id of plan.notStarted ?? [])
-		log(`${id} is named but not started (todo in docs/work-items.yaml): its checks wait.`);
+		log(`${id} is named but not started (todo in ${registry}): its checks wait.`);
 	if (plan.prose) {
 		log("Only prose changed: `vp check`, and the named tasks' static and `prose: true` checks.");
 		for (const planned of plan.leftOut)

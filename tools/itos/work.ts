@@ -1,5 +1,5 @@
 // What to take next: reads the work registry (`work.registry`,
-// docs/work-items.yaml), names the person a session works for, and proposes
+// tasks/work-items.yaml by default), names the person a session works for, and proposes
 // the items they can start — `todo`, every dependency done, theirs first,
 // then unowned ones in phases nobody owns. Ideas (`kind: idea`, a gap with no
 // scenarios or task entry yet) and deferred items (`deferred: <reason>`) are
@@ -13,9 +13,9 @@
 //   itos work check [<file>]             validate the registry, exit 1 on a problem
 //
 // Every problem carries a rule id and a fix for `--json`.
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { parse } from "yaml";
-import { config, type PeopleConfig } from "./config.ts";
+import { config, DEFAULT_REGISTRY, type PeopleConfig } from "./config.ts";
 import { emit, messages, type Output, problem, type Problem, TEXT } from "./problem.ts";
 import { type Answer, DEFAULT_PEOPLE, identityProvider, people } from "./providers.ts";
 
@@ -45,7 +45,7 @@ interface Registry {
 	items: Item[];
 }
 
-const registryPath = () => config().work?.registry ?? "docs/work-items.yaml";
+const registryPath = () => config().work?.registry ?? DEFAULT_REGISTRY;
 const peopleSource = () => config().work?.people ?? DEFAULT_PEOPLE;
 // The file the people come from, as the messages name it.
 const listedIn = () => peopleSource().file;
@@ -205,6 +205,24 @@ export function registryIssues(
 	];
 }
 
+// The registry's problems, or that there is none where itos looks: a project
+// whose registry is at the old default (docs/work-items.yaml) learns where
+// itos reads it now, and how to say otherwise.
+export function registryProblems(path?: string): Problem[] {
+	const file = path ?? registryPath();
+	if (!existsSync(file))
+		return [
+			problem(
+				"work-registry-missing",
+				`no work registry at ${file}`,
+				path === undefined
+					? `move the registry to ${file}, or set work.registry to where it is`
+					: `name the registry's file, or write one at ${file}`,
+			),
+		];
+	return registryIssues(load(path), file);
+}
+
 // The same, as one line each.
 export const problems = (registry: Registry): string[] => messages(registryIssues(registry));
 
@@ -286,10 +304,11 @@ function print(p: Proposal) {
 	}
 }
 
-// `work check [<file>]`: 0 when the registry is sound, 1 with its problems.
+// `work check [<file>]`: 0 when the registry is sound, 1 with its problems
+// (none there among them).
 export function workCheck(path?: string, out: Output = TEXT): number {
 	const file = path ?? registryPath();
-	const found = registryIssues(load(path), file);
+	const found = registryProblems(path);
 	if (out.json) emit({ file, sound: found.length === 0, problems: found });
 	else for (const p of found) console.error(p.message);
 	if (found.length) return 1;

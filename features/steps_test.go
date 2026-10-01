@@ -39,6 +39,7 @@ type scratchConfig struct {
 	recordingShell    bool     // shell is the recording shell
 	ciSteps           []string // ci.steps
 	stopAtFirst       *bool    // ci.stop_at_first_failure
+	registry          string   // work.registry
 }
 
 func initializeScenario(sc *godog.ScenarioContext) {
@@ -68,9 +69,12 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	})
 	sc.Step(`^the header lint is the command "([^"]*)"$`, w.headerLintIs)
 	sc.Step(`^ci\.stop_at_first_failure is (true|false)$`, w.stopAtFirstFailureIs)
+	sc.Step(`^work\.registry is "([^"]*)"$`, w.registryIs)
+	sc.Step(`^the work registry at "([^"]*)" has the item "([^"]*)" with the status "([^"]*)"$`, w.registryAt)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
+	sc.Step(`^itos checks the work registry$`, func() error { return w.itos("work", "check") })
 	sc.Step(`^itos runs the task "([^"]*)"$`, func(task string) error { return w.itos("task", task) })
 	sc.Step(`^itos runs CI over every commit up to HEAD$`, func() error { return w.itos("ci", "run", "", "HEAD") })
 	sc.Step(`^the commit-msg hook checks the message "([^"]*)"$`, w.commitMsgHook)
@@ -260,18 +264,25 @@ commits:
 			fmt.Fprintf(&b, "  stop_at_first_failure: %t\n", *w.config.stopAtFirst)
 		}
 	}
-	b.WriteString("work: { people: { source: yaml, file: people.yaml } }\n")
+	b.WriteString("work: { ")
+	if w.config.registry != "" {
+		fmt.Fprintf(&b, "registry: %q, ", w.config.registry)
+	}
+	b.WriteString("people: { source: yaml, file: people.yaml } }\n")
 	return w.write("itos.yaml", b.String())
 }
+
+// Where a scratch repository's work registry starts: itos's default.
+const startingRegistry = "tasks/work-items.yaml"
 
 // The files every scratch repository starts with: its config, a ledger with
 // one task, an empty work registry, its people and a README.
 func (w *world) startingFiles(task string) error {
 	files := map[string]string{
-		"tasks/phase-1.yaml":   fmt.Sprintf("- { id: %s, type: chore, title: Tidy }\n", task),
-		"docs/work-items.yaml": "phases: {}\nitems: []\n",
-		"people.yaml":          "- someone\n",
-		"README.md":            "# Scratch\n",
+		"tasks/phase-1.yaml": fmt.Sprintf("- { id: %s, type: chore, title: Tidy }\n", task),
+		startingRegistry:     "phases: {}\nitems: []\n",
+		"people.yaml":        "- someone\n",
+		"README.md":          "# Scratch\n",
 	}
 	for path, text := range files {
 		if err := w.write(path, text); err != nil {
@@ -376,6 +387,25 @@ func (w *world) stopAtFirstFailureIs(value string) error {
 	stop := value == "true"
 	w.config.stopAtFirst = &stop
 	return w.writeConfig()
+}
+
+func (w *world) registryIs(path string) error {
+	w.config.registry = path
+	return w.writeConfig()
+}
+
+// The repository's one work registry is at path, with one unowned item of
+// phase 1: the registry it started with is removed when it is elsewhere, so
+// nothing is left where itos would otherwise look.
+func (w *world) registryAt(path, item, status string) error {
+	if path != startingRegistry {
+		if err := os.Remove(filepath.Join(w.dir, startingRegistry)); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
+	return w.write(path, fmt.Sprintf(
+		"phases: { 1: null }\nitems:\n  - { id: %s, title: %s, phase: 1, owner: null, status: %s, depends_on: [] }\n",
+		item, item, status))
 }
 
 // When steps.

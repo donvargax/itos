@@ -28,3 +28,7 @@
   scenarios:
     - id: "@ID-SINCE-01"
       why: verify leaves out the commit commits.since names, the key's point
+- file: work.feature
+  scenarios:
+    - id: "@ID-WORK-01"
+      why: the registry read where itos looks by default, which every command reading it goes through

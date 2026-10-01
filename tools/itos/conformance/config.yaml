@@ -335,6 +335,20 @@ cases:
           message: the smoke list names @ID-A-02, which is not a live scenario of a.feature
           fix: "edit smoke.yaml: name a live scenario of a.feature in place of @ID-A-02"
           area: smoke
+  - name: no registry where itos looks is the registry's problem, naming the path
+    argv: [config, check, --json]
+    files:
+      work-items.yaml: null
+    exit: 1
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: work-registry-missing
+          message: no work registry at work-items.yaml
+          fix: move the registry to work-items.yaml, or set work.registry to where it is
+          area: registry
   - name: a smoke set that cannot be read is one problem
     argv: [config, check]
     files:
@@ -409,7 +423,7 @@ cases:
   - name: the defaults the tools take when a key is left out
     argv: [config, check, --print-defaults]
     exit: 0
-    stdout_has: ["registry: docs/work-items.yaml", "timeout: 600", "adapter: gherkin", "hint: pass --as <handle>"]
+    stdout_has: ["registry: tasks/work-items.yaml", "timeout: 600", "adapter: gherkin", "hint: pass --as <handle>"]
   - name: the defaults as --json
     argv: [config, check, --print-defaults, --json]
     exit: 0
@@ -439,7 +453,7 @@ cases:
           range:
             provider: github
         work:
-          registry: docs/work-items.yaml
+          registry: tasks/work-items.yaml
           people:
             source: all-contributors-md
             file: CONTRIBUTORS.md

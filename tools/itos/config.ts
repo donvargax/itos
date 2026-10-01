@@ -623,6 +623,10 @@ export const matchesAny = (file: string, globs: string[]) =>
 // A command with its whitespace collapsed, as the command patterns read it.
 export const normal = (command: string) => command.trim().replace(/\s+/g, " ");
 
+// Where the work registry is when work.registry leaves it out: beside the
+// ledger, since it is itos's data as the ledger is, and docs/ is prose.
+export const DEFAULT_REGISTRY = "tasks/work-items.yaml";
+
 // The ledger's folder and how its files are named: `tasks/phase-{group}.yaml`
 // gives `tasks` and a pattern whose group is the phase.
 export function ledgerLayout(): { dir: string; file: RegExp; numeric: boolean } {

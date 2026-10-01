@@ -4,8 +4,15 @@
 // (nothing else can be read), 1 for any other problem.
 import { stringify } from "yaml";
 import { smokeIds, smokeIssues } from "./e2e-scope.ts";
-import { load, registryIssues } from "./work.ts";
-import { config, configIssues, configPath, ledgerFiles, ledgerIssues } from "./config.ts";
+import { registryProblems } from "./work.ts";
+import {
+	config,
+	configIssues,
+	configPath,
+	DEFAULT_REGISTRY,
+	ledgerFiles,
+	ledgerIssues,
+} from "./config.ts";
 import { emit, type Output, problem, type Problem, TEXT } from "./problem.ts";
 import { DEFAULT_PEOPLE } from "./providers.ts";
 import { sinceIssue } from "./repo.ts";
@@ -19,7 +26,7 @@ export const DEFAULTS = {
 	tests: { "<kind>": { adapter: "gherkin", tag_prefix: "@", wip_tag: "@wip" } },
 	ci: { wait_on_status: ["todo"], stop_at_first_failure: true, range: { provider: "github" } },
 	work: {
-		registry: "docs/work-items.yaml",
+		registry: DEFAULT_REGISTRY,
 		people: DEFAULT_PEOPLE,
 		identity: { provider: "github", hint: "pass --as <handle>" },
 	},
@@ -76,7 +83,7 @@ export function configCheck(ledger: string | undefined, out: Output = TEXT): num
 	const smoke = smokeProblems();
 	const found = [
 		...tagged("ledger", ledgerIssues(files)),
-		...tagged("registry", registryIssues(load())),
+		...tagged("registry", registryProblems()),
 		...smoke.found,
 	];
 	report(

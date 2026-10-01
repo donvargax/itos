@@ -20,7 +20,7 @@ import {
 	planSmoke,
 } from "./ci-plan.ts";
 import { readable } from "./ci-scope.ts";
-import { ledgerLayout, section } from "./config.ts";
+import { DEFAULT_REGISTRY, ledgerLayout, section } from "./config.ts";
 import { git, loadTasks } from "./repo.ts";
 
 export interface RangeJson {
@@ -87,7 +87,7 @@ export function planJson(plan: Plan, range: RangeJson) {
 // through smoke.ts). The feature
 // files are not read by the plan; the config is always the working tree's.
 export async function planData(at?: string): Promise<PlanData> {
-	const registry = section("work").registry ?? "docs/work-items.yaml";
+	const registry = section("work").registry ?? DEFAULT_REGISTRY;
 	if (!at) return { tasks: loadTasks(), todo: notStartedIn(registry), smoke: planSmoke() };
 	const dir = mkdtempSync(join(tmpdir(), "plan-data-"));
 	const ledger = ledgerLayout();
