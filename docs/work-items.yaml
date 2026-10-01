@@ -34,6 +34,7 @@
 
 phases:
   0: donvargax
+  1: donvargax
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
@@ -153,3 +154,76 @@ items:
     depends_on: []
     kind: task
     refs: [tasks/phase-0.yaml]
+
+  # ---- phase 1 ----------------------------------------------------------------
+  - id: T-014
+    title: "Drop the template's demo app"
+    phase: 1
+    owner: donvargax
+    status: doing
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
+  - id: T-015
+    title: The Go toolchain
+    phase: 1
+    owner: donvargax
+    status: doing
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
+  - id: T-016
+    title: The features, run by godog against the binary
+    phase: 1
+    owner: donvargax
+    status: doing
+    depends_on: [T-015]
+    kind: task
+    refs: [tasks/phase-1.yaml, features/README.md]
+
+  - id: slice-1
+    title: Verification starts at commits.since
+    phase: 1
+    owner: donvargax
+    status: doing
+    depends_on: [T-016]
+    kind: slice
+    refs: [features/since.feature]
+
+  - id: slice-2
+    title: "The commit-msg hook's core, pinned by scenarios"
+    phase: 1
+    owner: donvargax
+    status: doing
+    depends_on: [T-016]
+    kind: slice
+    refs: [features/commit-msg.feature]
+
+  - id: T-017
+    title: "Verification starts after the template's squashed commit"
+    phase: 1
+    owner: donvargax
+    status: doing
+    depends_on: [slice-1]
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
+  - id: T-018
+    title: AGPL-3.0 for the whole repository
+    phase: 1
+    owner: donvargax
+    status: doing
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
+  - id: T-019
+    title: "itos's README, plan and agent docs"
+    phase: 1
+    owner: donvargax
+    status: doing
+    depends_on: [T-014, T-016, T-017]
+    kind: task
+    refs: [tasks/phase-1.yaml, README.md, PLAN.md]

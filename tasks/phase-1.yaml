@@ -1,0 +1,96 @@
+# Phase 1: itos v0 in its own repository. The template's demo app goes; the
+# named tests become Gherkin feature files at the root, run by godog against
+# the binary as a black box; verification starts at commits.since; and the
+# repository is AGPL-3.0 as a whole. The scenarios are in features/, tagged
+# @phase-1; the Go port that follows is judged by the same feature files.
+
+- id: T-014
+  type: chore
+  title: Drop the template's demo app
+  why: >
+    itos has no browser and no page. The template's demo (index.html, the
+    greeting module and its scenario, Playwright and playwright-bdd) goes, with
+    every reference to it in the config, the hooks, CI, the gates self-test and
+    the docs. The unit coverage thresholds were the demo's, over src/**: itos is
+    proven through its command line (the features and the conformance corpus),
+    which unit coverage cannot see, so coverage is still collected for the
+    audit's scores, without thresholds. The audit fails on a dependency nothing
+    uses, so Playwright left behind fails it.
+  done_when:
+    - run: sh -c 'test -z "$(git ls-files index.html playwright.config.ts src e2e)"'
+      cost: static
+    - run: vp check
+    - run: vp run audit
+
+- id: T-015
+  type: build
+  title: The Go toolchain
+  why: >
+    The features' steps are Go, run by godog, so that the same feature files
+    judge the TypeScript v0 and the Go port. go.mod pins Go with a toolchain
+    line and holds one dependency set, godog's; CI sets Go up from go.mod; gofmt
+    and go vet run where vp check does, on the staged files before a commit and
+    as static steps in CI.
+  done_when:
+    - run: sh -c '! gofmt -l features | grep .'
+      cost: static
+    - run: go mod verify
+    - run: go vet ./...
+
+- id: T-016
+  type: test
+  title: The features, run by godog against the binary
+  why: >
+    itos's named tests are Gherkin feature files at the root, features/, whose
+    steps treat itos as a black box: they run the binary ITOS_BIN names
+    (tools/bin/itos by default) in scratch git repositories and assert its exit
+    codes and output, so the same files judge any implementation. The run
+    selects by tag: godog's own tag filter takes only exact tags joined by
+    commas, which the kind's ids_pattern cannot produce from the IDs it joins
+    with |, so the harness takes a regular expression over the tags
+    (-scenarios=…) and turns it into godog's filter. The self-test proves that
+    the commands the plan builds run exactly the scenarios they claim. The
+    conformance YAML stays as a regression corpus, run by a CI step of its own.
+  done_when:
+    - run: tools/bin/itos tests smoke check scenario
+    - run: tools/bin/itos tests smoke run scenario
+    - run: node tools/selftest/features-scope.ts
+    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos
+
+- id: T-017
+  type: build
+  title: Verification starts after the template's squashed commit
+  why: >
+    GitHub made this repository from the project template as one squashed
+    commit, "Initial commit", which no rule passes: it is not a Conventional
+    Commit, and it adds a live scenario outside feat and fix. CI verifies every
+    commit after the last green run, and there was none, so every push was red.
+    commits.since names that commit; verify and the range checks start after
+    it.
+  done_when:
+    - run: tools/bin/itos config check
+    - run: tools/bin/itos verify "" HEAD
+
+- id: T-018
+  type: chore
+  title: AGPL-3.0 for the whole repository
+  why: >
+    The template is 0BSD, with the task tool's AGPL-3.0 licence in its folder;
+    itos is the tool, so the whole repository is AGPL-3.0 and the folder's own
+    licence goes. The check asks GitHub which licence it detects.
+  done_when:
+    - run: gh api 'repos/{owner}/{repo}/license' --jq .license.spdx_id | grep -qx AGPL-3.0
+      after: push
+
+- id: T-019
+  type: docs
+  title: itos's README, plan and agent docs
+  why: >
+    What itos is, its two halves (itos for the rules a command can decide, the
+    agent instructions for the rest), its status (v0 in TypeScript, the Go port
+    next, judged by the same features), and PLAN.md with the goals, the model,
+    the schema, the command line, the order of the work and the distribution;
+    AGENTS.md, docs/ARCHITECTURE.md, docs/PHASES.md and tasks/README.md describe
+    this repository's layout, not the template's demo. Prose has no check that
+    runs it: review is the proof.
+  done_when: []
