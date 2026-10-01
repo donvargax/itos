@@ -83,7 +83,10 @@ the commands, `itos <command> --help` each one). The code is
   starts (`commits.since`). `tools/itos/config.ts`
   loads it and rejects a key it does not know, naming the one it misspells;
   `ITOS_CONFIG` or `--config` names another file. A project changes its
-  policy here, not in the code.
+  policy here, not in the code, and every key accepted is one a tool reads:
+  a key waiting on a feature not built yet (the built-in header lint's
+  `use` and `alongside`, a second way to tell a commit is pushed) is
+  rejected until that feature reads it.
 - **What it reads.** The ledger is `tasks/phase-<n>.yaml` (`ledger.files`),
   the registry `tasks/work-items.yaml` (`work.registry`'s default, beside the
   ledger but not a ledger file, since it does not match `ledger.files`), the people
@@ -140,7 +143,8 @@ the commands, `itos <command> --help` each one). The code is
 ## The gates and CI
 
 - **The hooks** (`.vite-hooks/`): `commit-msg` and `pre-push` are one-line
-  shims `itos hooks install` writes, calling `itos hook commit-msg` and
+  shims `itos hooks install` writes for the manager `hooks.manager` names
+  (over the one its markers show), calling `itos hook commit-msg` and
   `itos hook pre-push`; `pre-commit` is the project's own. `vp config`
   (`prepare`, on `vp install`) points git at the folder.
   - **pre-commit** runs `vp staged` (each path's command in `vite.config.ts`'s

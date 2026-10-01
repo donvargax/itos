@@ -487,7 +487,9 @@ items:
       on the pin it moves to, so it ships in v0.3.0, with notes. work.statuses, work.groups_key, tests.<kind>.smoke.every_file and hooks.manager were validated
       but never read; each is now read. commits.header_lint.use and alongside wait on the built-in
       header lint, and ledger.check.pushed has one value: they leave the schema, and come back with
-      the feature that gives them a second value. @ID-CONFIG-07 to 14.
+      the feature that gives them a second value. @ID-CONFIG-07 to 14. All but @ID-CONFIG-10 are
+      green; it stays @wip until a coordinator settles its exit code: it expects 2 for a missing
+      smoke test, which tests smoke check, like every rule failure, reports with 1.
 
   - id: p1-release-checks-its-notes
     title: The release workflow runs the notes check before it publishes
@@ -571,6 +573,20 @@ items:
       scenario (the plan's smoke set reads the kind of its tests step since slice 3); ci run's
       messages name tasks/ and vp check. Each is read from the config.
 
+  - id: p1-group-label-read
+    title: ledger.group.label read, or dropped
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-4]
+    kind: idea
+    why: >
+      Slice 4 made every key it named read or dropped, but ledger.group.label (phase here) is
+      validated and read by nothing: the registry's items keep the key phase, work check's
+      messages say "phase 1 is not listed" and itos task takes --phase beside --group whatever the
+      label says. Either the tools read the word from it, or it leaves the schema until they do.
+      Needs a scenario in config.feature.
+
   - id: p1-one-defaults-table
     title: The defaults the tools apply, read from one table
     phase: 1
@@ -650,8 +666,8 @@ items:
     why: >
       hooks install writes shim files for Vite+, husky and plain git, but for lefthook, pre-commit
       and prek, whose hooks live in their YAML config, it only prints the snippet to add. Merging it into
-      the file, keeping the other hooks and comments, would make install one step for them too, and
-      hooks.manager could then override detection, which it does not yet.
+      the file, keeping the other hooks and comments, would make install one step for them too, for
+      a manager detected or named by hooks.manager (which overrides detection since slice 4).
 
   - id: p1-identity-map
     title: "An identity command's answer mapped to a login"

@@ -176,13 +176,17 @@ policy it sets.
 - **Templates** use `{name}`; a value going into a shell is single-quoted.
 - **`shell`** is the argv prefix for every command, `[sh, -c]` by default.
 - **`commits.since`**: the full SHA of the commit where verification starts.
+- **Every key it accepts is one a tool reads**: a key whose feature is not
+  built yet is not accepted until it is (`features/config.feature`).
 
 The sections: `ledger` (its files, the group in their names, the ID pattern,
 the check timeout), `commits` (types, the header lint, footers, path sets,
 scopes, `since`), `tests` (one entry per kind: adapter, root, ID pattern,
-run and recognize templates, smoke set, range checks), `ci` (steps, prose,
-cost patterns, covers, nightly, the range provider), `work` (registry,
-people, identity) and `hooks` (manager, the binary the shims call, the
+run and recognize templates, smoke set and whether every file needs a smoke
+test, range checks), `ci` (steps, prose, cost patterns, covers, nightly, the
+range provider), `work` (registry, its statuses, the key its owners per
+group are under, people, identity) and `hooks` (the manager, over the one
+detected, the binary the shims call, the
 commit-msg hook's task checks and their timeout, the
 pre-push commands).
 
@@ -210,10 +214,12 @@ pre-push commands).
 `commits.types`, lower case, never empty; a subject, not sentence-, start-,
 pascal- or upper-case, without a full stop; the header at most 100
 characters and trimmed; body and footer lines at most 100; a blank line
-before the body and the footers (warnings). `use: command` delegates
-(commitlint, `cog verify`), `use: none` turns it off, and `alongside:
-builtin` runs the built-in lint beside the delegate, warning only, until the
-two agree.
+before the body and the footers (warnings). Until it is built the lint is
+delegated (commitlint, `cog verify`): `commits.header_lint.hook` lints the
+message file and `stdin` a message on stdin, and without them only the
+footer rules run. The built-in lint brings its keys: `use`, to choose it or
+the delegate, and `alongside: builtin`, to run it beside the delegate,
+warning only, until the two agree.
 
 ## 6. Named tests and their adapters
 
