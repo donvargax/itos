@@ -73,6 +73,10 @@ commits:
     docs: { only: ["**/*.md", "docs/**", "tasks/**", "features/**/*.feature"] }
     style: {}
   reject_message: "Commit rejected (see tasks/README.md):"
+  # Where verification starts: verify and the range checks leave this commit
+  # and its ancestors out. GitHub made this repository from the project
+  # template as one squashed commit, which no rule passes.
+  since: "1545231b3fec872b460521fce024f5c3ef79594c"
 
 tests: # named tests, each kind behind an adapter (tools/itos/tests.ts)
   scenario:
