@@ -519,7 +519,7 @@ items:
     title: The task runner runs each check once, and task list shows each task's registry status
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-7]
     kind: slice
     refs: [features/task.feature]
@@ -655,6 +655,34 @@ items:
       slice 8, besides what the hook shims call, but the defaults --print-defaults prints leave it
       out (itosBin in config.ts holds it). Listing it changes the printed table, so the release
       notes check and its conformance cases move with it; p1-one-defaults-table would carry it.
+
+  - id: p1-ci-checks-once
+    title: CI's plan runs a check two named tasks list once
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-9]
+    kind: idea
+    why: >
+      Slice 9 runs a check once per itos task invocation, but CI's plan (ci-plan.ts) still runs a
+      check once for every named task that lists it, unless a step covers it: a push naming two
+      tasks that share a late check runs it twice. Planning it once, each task reading the one exit
+      status by its run: or fails:, changes ci plan's output and its corpus cases; it needs a
+      scenario in ci.feature or task.feature.
+
+  - id: p1-hook-checks-once
+    title: The commit-msg hook runs a static check two named tasks list once
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-9]
+    kind: idea
+    why: >
+      The hook (commit-tasks.ts) runs each named task's static checks on their own, so a commit
+      naming two tasks that share one (config check, say) runs it twice while the committer waits.
+      itos task now keys a run by command and timeout (checks.ts); the hook's captured runs, capped
+      by hooks.commit_msg.check_timeout, could share them the same way. Needs a scenario in
+      commit-tasks.feature.
 
   - id: p1-one-defaults-table
     title: The defaults the tools apply, read from one table

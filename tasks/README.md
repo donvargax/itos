@@ -147,9 +147,22 @@ the work registry or the smoke set.
 tools/bin/itos task T-008            # run one task's checks
 tools/bin/itos task --phase 0        # every task of phase 0, as a done / pending / failing table
 tools/bin/itos task --pending        # tasks that aren't done yet
+tools/bin/itos task list             # every task with its work item's status, running nothing
 tools/bin/itos config check          # the config and the ledger are sound
 tools/bin/itos ci plan <from> <to>   # what CI would run for a range, running nothing
 ```
+
+One `itos task` invocation runs each check once, however many of its tasks
+list it: two checks are the same when they have the same command (whitespace
+collapsed) and the same timeout, the first task to list it runs it, and each
+later one reads that exit status by its own `run:` or `fails:`. Nothing is
+kept between invocations. The limit this accepts: a check whose answer a
+check above it in its own task would change (one that writes a file the
+check reads) reads the earlier run's result instead; run that task alone,
+`tools/bin/itos task <id>`, when it matters. `task list` prints each task's
+status in the work registry (`todo`, `doing`, `done`, `blocked`), or
+`no item` when the registry has no item with the task's ID: what the people
+working have recorded, not what the checks would find.
 
 CI's plan is `ci` in `itos.yaml`. It runs the checks of every task referenced
 by a `Task:` footer in the pushed commits; the commit-msg hook runs only their

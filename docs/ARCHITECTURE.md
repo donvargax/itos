@@ -103,7 +103,14 @@ the commands, `itos <command> --help` each one). The code is
   object with `"schema": 1`, logs on stderr; each problem in it has a
   sentence, a `rule` id and, where one exists, a `fix`. The task runner is
   called by its own name, `tools/bin/itos task <id>`; `vp run work` and
-  `vp run ci` are `package.json` scripts over it.
+  `vp run ci` are `package.json` scripts over it. One invocation of the
+  runner (`cli.ts`) runs each distinct check once: `runCheck` (`checks.ts`)
+  keys a run by the command, whitespace collapsed (`normal`), and the
+  timeout, and every later task that lists it reads the kept exit status by
+  its own `run:` or `fails:`. The runs live for the invocation alone; CI's
+  plan and the commit-msg hook run their checks their own way. `task list`
+  runs nothing: it reads each task's item status from the registry
+  (`itemStatuses` in `work.ts`, which the hook's `itemStatus` reads too).
 - **Named tests behind an adapter** (`tools/itos/tests.ts`). A kind of named
   test (here one, `scenario`) says how its tests are listed and run. The
   built-in Gherkin adapter (`gherkin.ts`) is the only module that parses a
