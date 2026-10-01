@@ -569,7 +569,7 @@ items:
     title: A release task's notes check judges its own release, not the current version
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-027]
     kind: task
     refs: [tasks/phase-1.yaml]
@@ -825,6 +825,20 @@ items:
       candidates: pre-push refusing a non-fast-forward push (AGENTS.md, "Force-push, in any form"),
       and a commit refusing paths the config marks as someone's work in progress (AGENTS.md, "Stage
       your own work"). The instructions then point to the check.
+
+  - id: p1-release-selftest-own-release
+    title: A release task's tarball check proves its own release
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-029]
+    kind: idea
+    why: >
+      T-024's and T-027's first check, node tools/selftest/release.ts, packs this tree and proves
+      that tarball under package.json's version, so a done release task says nothing about its
+      release and goes red with whatever later breaks the tree's pack. Given a tagged version it
+      could prove the released tarball (--tarball, downloaded and verified as release-notes.ts
+      does) against the tag's corpus and features.
 
   # ---- phase 2 ----------------------------------------------------------------
   - id: p2-go-port
