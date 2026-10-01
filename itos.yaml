@@ -125,10 +125,11 @@ ci:
   cost:
     # Checks with no `cost:` of their own: static if a pattern matches, else
     # late. Only commands static by what they are: `sh -c` wraps anything, so a
-    # static sh -c check says `cost: static` in the ledger.
+    # static sh -c check says `cost: static` in the ledger. A command whose
+    # first word is hooks.bin (tools/bin/itos) is read as starting with itos.
     static:
       - "^vp check$"
-      - "^(tools/bin/)?itos (tests smoke check|commit|verify|ci (plan|scope|range)|work|config check)\\b"
+      - "^itos (tests smoke check|commit|verify|ci (plan|scope|range)|work|config check)\\b"
       - "^actionlint\\b"
       - "^git ls-remote "
       - "\\| vp exec commitlint$"
