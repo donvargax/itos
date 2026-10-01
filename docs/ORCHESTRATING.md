@@ -15,6 +15,18 @@ do the work yourself and don't start subagents.
   recommendation plus its options, the recommended one first. Before asking
   design questions about a slice, say in a line what the slice is for: a
   question without its purpose cannot be answered well.
+- **Name work by its title, not only its ID.** Whenever you mention a task,
+  a work item, a slice or a phase to the user, give its title beside the ID,
+  in backticks, as in:
+  - `T-034: The corpus proves what consumers' ledgers stop checking of itos`
+  - `p1-itos-push: itos push, the pull-rebase-push routine as one command`
+  - `phase 2: the Go port`
+
+  An ID alone tells the user nothing; the titles are in `tasks/*.yaml`,
+  `tasks/work-items.yaml` and `PLAN.md` ("Phases"). Proposing what comes
+  next, give each item its why in a line or two as well: what it fixes or
+  saves, and what it waits on.
+
 - **Split before starting.** A slice that mixes a cheap job with an
   expensive one is two slices: the smaller one lands sooner, and less is lost
   if the other is interrupted.
