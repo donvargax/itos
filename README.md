@@ -67,6 +67,26 @@ codes and output. The conformance corpus (`tools/itos/conformance/`) is the
 regression record both implementations must pass. `PLAN.md` has the order of
 the work.
 
+## Install
+
+Each release on a `v*` tag holds `itos-<version>.tgz`, v0 packed to one
+JavaScript file with no runtime dependencies (built for Node 24), and
+`checksums.txt`, its SHA-256. Pin a release, never a branch: check the
+tarball against the hash its `checksums.txt` lists, then add the tarball's
+URL as a dependency, so `package.json` pins the URL and the lockfile the
+tarball's integrity, and a replaced release fails every later install:
+
+```sh
+version=0.1.0
+url="https://github.com/donvargax/itos/releases/download/v$version/itos-$version.tgz"
+curl -fsSLO "$url"
+echo "<the hash in the release's checksums.txt>  itos-$version.tgz" | sha256sum -c -
+npm install --save-dev "$url"   # or pnpm add -D "$url"
+```
+
+The package's bin is `itos` (`npx itos --help`). A version bump is the same
+again with the new version.
+
 ## Working on it
 
 ```sh
