@@ -565,13 +565,14 @@ items:
       which has no default, to six values: a key whose accepted values change is invisible to the
       defaults as well.
 
-  - id: p1-release-notes-at-tag
+  - id: T-029
     title: A release task's notes check judges its own release, not the current version
     phase: 1
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: [T-027]
-    kind: idea
+    kind: task
+    refs: [tasks/phase-1.yaml]
     why: >
       release-notes.ts with no argument judges the notes of package.json's version against this
       tree's defaults, so every release task's check (T-024's, T-027's) judges the newest release:
@@ -610,15 +611,17 @@ items:
   - id: p1-changelog-unconventional
     title: The changelog renders a release holding an unconventional commit
     phase: 1
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
+    refs: [tasks/phase-0.yaml]
     why: >
       vp run changelog, with or without --task or --scenario, fails: git-cliff gives the template's
       squashed "Initial commit" (1545231, in v0.1.0) no footers, and cliff.toml's body template and
       tools/changelog.ts's footer filter both read commit.footers. Leaving out commits.since and its
       ancestors, as verify does, or reading a missing footers as none, would fix both.
+      A fix under T-010, whose checks (vp run changelog, with and without --task) prove it.
 
   - id: p1-config-names-from-config
     title: The names the tools hardcode, read from the config

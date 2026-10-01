@@ -299,3 +299,23 @@
     - run: tools/bin/itos config check
     - run: tools/bin/itos ci plan --whole
       cost: static
+
+- id: T-029
+  type: test
+  title: A release task's notes check judges its own release
+  why: >
+    tools/selftest/release-notes.ts judges the notes of a version against this
+    tree's defaults, whatever version it is given, so every release task's
+    check judges the newest work: T-024's went red when slice 7 added
+    defaults, and T-027's goes red with the next default anyone changes,
+    though both releases are out and unchanged. Given a version whose tag
+    exists, the self-test reads that tag's defaults (its tree, or its
+    released tarball) and the release before it; only a version not yet
+    tagged is judged against this tree, which is how a release task proves its
+    notes before the tag. T-024's and T-027's checks name their versions, so a
+    finished release stays green while later work moves the defaults.
+  done_when:
+    - run: node tools/selftest/release-notes.ts 0.2.0
+      timeout: 300
+    - run: node tools/selftest/release-notes.ts 0.3.0
+      timeout: 300
