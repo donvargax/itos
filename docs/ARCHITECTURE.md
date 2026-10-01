@@ -136,17 +136,18 @@ the commands, `itos <command> --help` each one). The code is
   (`prepare`, on `vp install`) points git at the folder.
   - **pre-commit** runs `vp staged` (each path's command in `vite.config.ts`'s
     `staged`: `vp check --fix`, or for Go `gofmt -w` and then `go vet` over the
-    module, since it reads packages rather than files), then `itos config check`
-    when `itos.yaml`, `tasks/` (the ledger and the registry) or `features/smoke.yaml`
-    is staged (before the prose exit, which skips `tasks/`), then, unless every staged file is Markdown, under `tasks/` or
-    a feature file, `vp test run --changed HEAD` with coverage collected but
+    module, since it reads packages rather than files), then, unless every
+    staged file is Markdown, under `docs/**`, under `tasks/**` (the ledger and
+    the registry) or a feature file, `vp test run --changed HEAD` with coverage collected but
     no thresholds, then `fallow audit` on what is new against HEAD. Vitest
     follows the imports from every changed file; `forceRerunTriggers` reruns
     everything when the config, the lockfile or `itos.yaml` changes, written
     as the files themselves, since vitest's own defaults never match a changed
     file. The audit scores changed functions by that coverage
     (`.fallowrc.json`), exact for the changed files since every test that
-    runs one imports it.
+    runs one imports it. It does not check itos's own data: the commit-msg
+    hook does, from the staged tree (T-023 dropped T-022's check here, which
+    read the working tree).
   - **commit-msg** first checks itos's own data when the commit stages any
     of it (`commit-data.ts`): the config, a ledger file, the registry or a
     smoke set, as the staged config names them, runs `config check`'s
@@ -205,9 +206,11 @@ TestFeatures/…` lines); a green run closes it.
   `ci-scope.ts`, `ci-range.ts` and `features-scope.ts` prove the scope, the
   range and that the plan's features command runs exactly the scenarios it
   claims, by go test's own record of what it ran (`-json`).
-  `config-gate.ts` proves `itos config check` gates what it guards: in a
-  scratch worktree the pre-commit hook rejects a ledger with a misspelt key
-  and passes a sound one, and CI's plan runs the check for a range touching
+  `config-gate.ts` proves itos's data is checked where it is guarded: in a
+  scratch worktree, running both hooks as git does, the commit-msg hook
+  rejects a commit staging a ledger with a misspelt key and passes a sound
+  one, a commit staging only `docs/**` and `tasks/**` runs no unit tests, and
+  CI's plan runs `itos config check` for a range touching
   the registry or the ledger and for a prose-only range touching
   `CONTRIBUTORS.md`. It and `gates.ts` build their worktree with
   `scratch.ts`.

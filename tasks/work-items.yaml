@@ -407,11 +407,26 @@ items:
       a commit's tree, so verify could run the check at each commit that touches the data. Needs a
       scenario.
 
+  - id: p1-pre-commit-asks-what-skips
+    title: A project's pre-commit hook asks itos which staged files need no tests
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-023]
+    kind: idea
+    why: >
+      The pre-commit hook's early exit is a hand-written pathspec (Markdown, docs/**, tasks/**,
+      feature files) that restates what itos's config already says: ci.prose.paths, ledger.files,
+      work.registry and the scenario kind's paths. A project that moves its registry or its ledger
+      with work.registry or ledger.files leaves its hook skipping the wrong files, silently. An itos
+      command could answer from the config whether every staged file is prose or itos's data, so the
+      hook's exit is one line that follows the config.
+
   - id: T-023
     title: The pre-commit hook leaves itos's data to the commit-msg hook
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-6]
     kind: task
     refs: [tasks/phase-1.yaml]

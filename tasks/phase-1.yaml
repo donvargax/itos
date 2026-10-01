@@ -149,13 +149,15 @@
     later push. It is now a static CI step, in the prose steps too (the
     registry was then under docs/**, and CONTRIBUTORS.md, the people its
     owners must be among, is Markdown, so a prose-only push can break it), and
-    the pre-commit hook runs it when itos.yaml, tasks/ (the ledger and, since
-    T-025, the registry) or features/smoke.yaml is staged, before the early
-    exit for prose. The self-test proves both: in a scratch copy of the
-    repository, a commit staging a ledger with a misspelt key is rejected by
-    the pre-commit hook, and the CI plan runs the check for a range that
-    touches the registry and for a prose-only one that touches
-    CONTRIBUTORS.md.
+    the pre-commit hook ran it when itos.yaml, tasks/ (the ledger and, since
+    T-025, the registry) or features/smoke.yaml was staged, before the early
+    exit for prose. Slice 6 moved the commit-time check into itos hook
+    commit-msg, over the staged tree, and T-023 dropped the pre-commit one,
+    which read the working tree. The self-test proves both: in a scratch copy
+    of the repository, a commit staging a ledger with a misspelt key is
+    rejected (by the commit-msg hook, since T-023), and the CI plan runs the
+    check for a range that touches the registry and for a prose-only one that
+    touches CONTRIBUTORS.md.
   done_when:
     - run: tools/bin/itos config check
     - run: node tools/selftest/config-gate.ts
