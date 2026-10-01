@@ -1,5 +1,5 @@
 // The task runner: `itos task <id>… | --group <g> [--skip <ids>] | --pending`
-// and `itos task list` (main.ts dispatches them; `vp run task` runs the first).
+// and `itos task list` (main.ts dispatches them).
 import { runCheck } from "./checks.ts";
 import { ledgerLayout, section } from "./config.ts";
 import { emit, type Output, TEXT } from "./problem.ts";

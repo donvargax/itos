@@ -11,7 +11,7 @@
 //   - A named task's check that is one of the steps this run has just run
 //     (`vp build`, `vp check`, …), or `vp test run` (whole or narrowed to
 //     paths) when the whole unit suite has run with coverage, is not run again.
-//     Every other check runs as before. `vp run task <id>` still runs them all.
+//     Every other check runs as before. `tools/bin/itos task <id>` still runs them all.
 //   - A check in `ci.nightly_only` (a slow self-test of the gates, say) runs
 //     only in the nightly: a push skips it even when a named task's
 //     `done_when` lists it.
