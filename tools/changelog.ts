@@ -21,8 +21,10 @@ interface Footer {
 	token: string;
 	value: string;
 }
+// git-cliff leaves `footers` out of a commit that is not Conventional (the
+// template's squashed "Initial commit"): read that as no footers.
 interface Release {
-	commits: { footers: Footer[] }[];
+	commits: { footers?: Footer[] }[];
 }
 
 function cliff(args: string[], input?: string): string {
@@ -58,7 +60,7 @@ if (flag === undefined) {
 	let kept = 0;
 	for (const release of releases) {
 		release.commits = release.commits.filter((commit) =>
-			commit.footers.some((footer) => footer.token === token && names(footer, id)),
+			(commit.footers ?? []).some((footer) => footer.token === token && names(footer, id)),
 		);
 		kept += release.commits.length;
 	}
@@ -66,7 +68,9 @@ if (flag === undefined) {
 		console.error(`no commit names ${id} in a ${token}: footer`);
 		process.exit(1);
 	}
-	process.stdout.write(cliff(["--from-context", "-"], JSON.stringify(releases)));
+	// A release none of whose commits names the id says nothing about it.
+	const named = releases.filter((release) => release.commits.length > 0);
+	process.stdout.write(cliff(["--from-context", "-"], JSON.stringify(named)));
 } else {
 	console.error("usage: vp run changelog [-- --task <T-id> | -- --scenario <@ID-…>]");
 	process.exit(2);

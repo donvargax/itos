@@ -3,7 +3,10 @@
 # formatter, the linter and the audit ignore; `vp run changelog -- --task <id>`
 # or `-- --scenario <id>` prints only the commits whose footers name it
 # (tools/changelog.ts). Git only: no remote, no links, no token (`--offline`).
-# Until a tag is cut, everything is "Unreleased".
+# Until a tag is cut, everything is "Unreleased". A commit that is not
+# Conventional (the template's squashed "Initial commit", which predates
+# commits.since) stays in, under Other: git-cliff gives it no footers, and the
+# template and the filter read that as none.
 
 [changelog]
 header = """
@@ -16,10 +19,12 @@ says why.
 """
 body = """
 {%- macro ids(commit) -%}
+  {%- if commit.footers is defined -%}
   {%- for footer in commit.footers
       | filter(attribute="breaking", value=false) -%}
     {%- if footer.token in ["Task", "Scenarios", "Refs"] %} · {{ footer.token }}: {{ footer.value }}{% endif -%}
   {%- endfor -%}
+  {%- endif -%}
 {%- endmacro -%}
 
 {% if version %}## {{ version }} ({{ timestamp | date(format="%Y-%m-%d") }}){% else %}## Unreleased{% endif %}
