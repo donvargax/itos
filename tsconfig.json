@@ -2,8 +2,8 @@
 	"compilerOptions": {
 		"target": "es2023",
 		"module": "esnext",
-		"lib": ["ES2023", "DOM", "DOM.Iterable"],
-		"types": ["vite-plus/client", "node"],
+		"lib": ["ES2023"],
+		"types": ["node"],
 		"skipLibCheck": true,
 
 		/* Bundler mode */
@@ -21,6 +21,5 @@
 		"noFallthroughCasesInSwitch": true,
 		"erasableSyntaxOnly": true
 	},
-	"include": ["src", "e2e", "tools", "*.config.ts"],
-	"exclude": ["e2e/.features-gen"]
+	"include": ["tools", "*.config.ts"]
 }

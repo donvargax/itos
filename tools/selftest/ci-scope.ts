@@ -13,10 +13,11 @@ import { docsOnly } from "../itos/ci-scope.ts";
 assert.equal(docsOnly(["docs/HANDOFF.md", "AGENTS.md", "PLAN.md"]), true);
 assert.equal(docsOnly(["docs/decisions/format.md"]), true);
 
-assert.equal(docsOnly(["AGENTS.md", "src/greeting.ts"]), false);
+assert.equal(docsOnly(["AGENTS.md", "tools/itos/main.ts"]), false);
 assert.equal(docsOnly(["tasks/phase-0.yaml"]), false);
-assert.equal(docsOnly(["e2e/features/app.feature"]), false);
+assert.equal(docsOnly(["features/since.feature"]), false);
 assert.equal(docsOnly(["package.json"]), false);
+assert.equal(docsOnly(["go.mod"]), false);
 assert.equal(docsOnly([".github/workflows/ci.yml"]), false);
 
 // Nothing known changed (a first push, a shallow clone): run everything.

@@ -1,6 +1,6 @@
 vp staged || exit $?
 # Documentation-only commits need no test or audit gate.
-if [ -z "$(git diff --cached --name-only --diff-filter=ACMRD -- . ':(exclude)*.md' ':(exclude)docs/**/*.md' ':(exclude)tasks/**' ':(exclude)e2e/features/**')" ]; then
+if [ -z "$(git diff --cached --name-only --diff-filter=ACMRD -- . ':(exclude)*.md' ':(exclude)docs/**/*.md' ':(exclude)tasks/**' ':(exclude)features/**/*.feature')" ]; then
 	exit 0
 fi
 # Only the unit tests the change can affect: vitest follows the imports from

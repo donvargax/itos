@@ -3,9 +3,6 @@ dist
 coverage/
 *.log
 *.local
-test-results/
-playwright-report/
-e2e/.features-gen/
 .fallow/
 # The changelog, written on demand from the commits by `vp run changelog`.
 docs/changelog/
