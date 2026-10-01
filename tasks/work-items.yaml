@@ -561,7 +561,25 @@ items:
       schema gains or drops: slice 4 removes commits.header_lint.use and alongside and
       ledger.check.pushed for v0.3.0, and the check would pass notes that never named them. A
       listing of the schema's keys (config check --print-schema, say, which the Go port's JSON
-      Schema gives anyway) would let it require those too.
+      Schema gives anyway) would let it require those too. v0.3.0 also narrows hooks.manager,
+      which has no default, to six values: a key whose accepted values change is invisible to the
+      defaults as well.
+
+  - id: p1-release-notes-at-tag
+    title: A release task's notes check judges its own release, not the current version
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-027]
+    kind: idea
+    why: >
+      release-notes.ts with no argument judges the notes of package.json's version against this
+      tree's defaults, so every release task's check (T-024's, T-027's) judges the newest release:
+      T-024's went red when slice 7 added defaults, and goes green with v0.3.0's notes, not its
+      own. Pinning the version does not help, since the defaults still come from the tree. The
+      check could take the release's tag and read that tree's defaults (or the released tarball's),
+      so a done release task stays green while later work changes defaults, and the notes of the
+      next release are judged by its own task.
 
   - id: p1-shell-not-empty
     title: config check rejects an empty shell
