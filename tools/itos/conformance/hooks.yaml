@@ -374,6 +374,15 @@ cases:
       - stage: { tools/a.sh: "true\n" }
     files: { msg: "build: a script\n\nTask: T-001\n" }
     exit: 0
+  - name: a docs commit may name a task it need not carry
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n", tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
+      - stage: { README.md: "more\n" }
+    files: { msg: "docs: say more\n\nTask: T-001\n" }
+    exit: 0
+    stderr: ""
   # itos's own data, as staged: the working tree's copy is sound in each
   # case (the files written after the repository), so a rejection shows the
   # index was read.

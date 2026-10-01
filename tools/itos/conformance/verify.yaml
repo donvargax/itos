@@ -161,6 +161,31 @@ cases:
       0/1 commits pass the commit rules
     stderr: |2
         ^ {{short.gone}} build: name a task that is gone
+  - name: a commit made without the hooks, no type and no footer, is the delegate's to reject
+    argv: [verify, "{{sha.start}}", "{{sha.wip}}", --config, skipped.yaml]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n", tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
+        label: start
+      - commit: "wip"
+        files: { tools/a.sh: "true\n" }
+        label: wip
+    files:
+      skipped.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          types: [build, docs]
+          header_lint:
+            stdin: "head -1 | grep -qE '^[a-z]+: ' || { echo '✖   type may not be empty [type-empty]'; exit 1; }"
+          footers:
+            Task: { source: ledger, required_for: [build], validate_for: all, read_at: commit }
+    exit: 1
+    stdout: |
+      ✖   type may not be empty [type-empty]
+      0/1 commits pass the commit rules
+    stderr: |2
+        ^ {{short.wip}} wip
   - name: an empty range passes
     argv: [verify, "{{sha.tidy}}", "{{sha.tidy}}"]
     exit: 0
