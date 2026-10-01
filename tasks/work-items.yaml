@@ -283,6 +283,20 @@ items:
     kind: task
     refs: [tasks/phase-1.yaml]
 
+  - id: p1-release-pnpm-install
+    title: The release self-test installs the tarball with pnpm too
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-032]
+    kind: idea
+    why: >
+      Found in T-032: release.ts proves the tarball through npm alone, its offline install, what it
+      holds and its report of install scripts (checked against a control package with a prepare
+      script), while consumers here install with pnpm as often (vp install). A pnpm install of the
+      same tarball, offline, with what pnpm reports of build scripts judged the same way, would
+      prove the package for both.
+
   - id: p1-ci-after-push-checks
     title: CI waits on an after-push check the push itself cannot satisfy
     phase: 1
