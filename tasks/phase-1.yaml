@@ -367,3 +367,40 @@
     - fails: git grep -n -i -E "e2e|playwright" -- "tools/itos/*.ts" ":!tools/itos/scenario-moves.ts"
       cost: static
     - run: node tools/itos/conformance/run.ts --bin tools/bin/itos
+
+- id: T-032
+  type: build
+  title: The released package's manifest holds only what a consumer needs
+  why: >
+    itos-<version>.tgz carries this repository's package.json whole: its
+    prepare script (vp config), which npm lists on every consumer's install
+    as an install script awaiting approval and which would fail without
+    Vite+, its devDependencies and packageManager, and no engines, though the
+    bundle needs Node 24 (import.meta.main). The packed manifest holds name,
+    version, type, bin, files and engines, and nothing else; the release
+    self-test proves it and that an install reports no install script.
+  done_when:
+    - run: node tools/selftest/release.ts
+      timeout: 900
+
+- id: T-033
+  type: build
+  title: v0.4.0, the footer rules beside the header lint and a manifest without scripts
+  why: >
+    v0.4.0 releases slice 10 (itos runs the footer rules beside any
+    header-lint delegate), slice 11 (ci run names a merged check's kind),
+    slice 12 (an empty selection of named tests adds no pattern), slice 13 (a
+    missing footer source is a problem, not a crash) and T-032 (the packed
+    manifest holds only what a consumer needs), with the notes PLAN.md §10
+    asks for. Slice 10 can reject a commit a footer-less delegate passed,
+    verify included, and a consumer whose commitlint config carries the
+    footer plugin reports each footer problem twice until it drops it: the
+    Upgrading section says so. The tag waits for the user's review of the
+    notes.
+  done_when:
+    - run: node tools/selftest/release.ts
+      timeout: 900
+    - run: node tools/selftest/release-notes.ts 0.4.0
+      timeout: 300
+    - run: sh -c 'd=$(mktemp -d) && gh release download v0.4.0 --dir "$d" --pattern "itos-0.4.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
+      after: push

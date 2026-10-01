@@ -260,20 +260,28 @@ items:
       itself. CI also running verify and the conformance corpus with the last released itos closes
       that; a release that changes a rule on purpose says so in its notes.
 
-  - id: p1-release-manifest
+  - id: T-032
     title: The released package's manifest holds only what a consumer needs
     phase: 1
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: [T-021]
-    kind: idea
+    kind: task
+    refs: [tasks/phase-1.yaml]
     why: >
-      itos-<version>.tgz carries the repository's package.json: its `prepare: vp config` script,
-      which npm lists on every consumer's install as an install script awaiting approval (and
-      which would fail without Vite+ if run), its devDependencies and packageManager, and no
-      `engines`, though the bundle needs Node 24 (import.meta.main). Packing a manifest of name,
-      version, type, bin, files and engines would fix it, and the release self-test can require an
-      install that warns of no install script.
+      itos-<version>.tgz carries the repository's package.json: its prepare: vp config script,
+      which npm lists on every consumer's install as an install script awaiting approval, its
+      devDependencies and packageManager, and no engines, though the bundle needs Node 24. Was the
+      idea p1-release-manifest.
+
+  - id: T-033
+    title: v0.4.0, the footer rules beside the header lint and a manifest without scripts
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-10, slice-11, slice-12, slice-13, T-032]
+    kind: task
+    refs: [tasks/phase-1.yaml]
 
   - id: p1-ci-after-push-checks
     title: CI waits on an after-push check the push itself cannot satisfy
