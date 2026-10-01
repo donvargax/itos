@@ -793,7 +793,7 @@ items:
     title: ci run's log names a merged check by its kind of named tests
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     refs: [features/ci.feature]
