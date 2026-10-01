@@ -24,7 +24,9 @@ commit-msg hook runs the static checks of the tasks a commit names while the
 commit is being made, with the change in the index and HEAD its parent, and CI
 runs them on a clean checkout; a check that reads the index (running the hook
 itself on a fixed message, say) answers differently in the two. Prove a hook
-through the scenarios, which build their own repositories.
+through the scenarios, which build their own repositories. A check that reads
+the working tree (`vp check`, `itos config check`) also sees, in the hook, the
+edits the commit leaves unstaged.
 
 A check is **never** a regex over a config or source file ("the workflow has
 a docker build step", "the hook mentions `vp staged`"). That proves the text
@@ -88,7 +90,13 @@ check`'s problems over the staged tree when the commit stages `itos.yaml`, a
 ledger file, the work registry or the smoke set, then applies the path rules,
 then the moving rule to HEAD and the index, then the header lint
 (`commits.header_lint`: commitlint, `config-conventional` plus the footer
-rules). CI re-checks every pushed commit the same way with
+rules), then the checks of each task the `Task:` footer names, as staged, in
+written order up to its first late one (CI's cost rule below; an `after: push`
+check waits). A failure rejects the commit when the task's item in
+`tasks/work-items.yaml` is `done`, since a finished task that fails is a
+regression; for a task in progress it is printed, `failing T-…`, and the
+commit goes through. `hooks.commit_msg.check_timeout` (60 seconds) caps each
+check, and `hooks.commit_msg.task_checks: false` runs none. CI re-checks every pushed commit the same way with
 `tools/bin/itos verify <from> <to>`. `tools/bin/itos commit check-paths --type
 <type> <path>…` applies the path rules to any list of files, to plan a split
 before committing.
@@ -142,8 +150,9 @@ tools/bin/itos ci plan <from> <to>   # what CI would run for a range, running no
 ```
 
 CI's plan is `ci` in `itos.yaml`. It runs the checks of every task referenced
-by a `Task:` footer in the pushed commits; the pre-push hook does not, to keep
-pushes quick. CI does not replay what it has just done: a check the scenario
+by a `Task:` footer in the pushed commits; the commit-msg hook runs only their
+static ones, up to the first late one, and the pre-push hook none, to keep
+commits and pushes quick. CI does not replay what it has just done: a check the scenario
 kind's `recognize` reads as a run of the features (`go test ./features
 -count=1`, with or without one `-scenarios=`, or
 `tools/bin/itos tests smoke run scenario`) joins CI's one run of them; a check that

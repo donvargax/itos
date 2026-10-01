@@ -167,8 +167,17 @@ the commands, `itos <command> --help` each one). The code is
     type's path rules (`commit-scope.ts`), then outside `feat` and `fix` the
     scenario moving rule (`scenario-moves.ts`), then the header lint:
     commitlint (`commitlint.config.ts`, `config-conventional` plus one
-    `<key>-footer` rule per footer of `commits.footers`), stopping at the
-    first that fails.
+    `<key>-footer` rule per footer of `commits.footers`), then the static
+    checks of the tasks the `Task:` footer names (`commit-tasks.ts`),
+    stopping at the first that fails. The task checks come last because
+    they are the slowest and read a footer the header lint has judged: each
+    named task's checks, as the staged ledger holds them, run in written
+    order up to its first late one by CI's cost rule (`cost.ts`), quietly,
+    through the shell, without the commit's `GIT_INDEX_FILE`, each capped
+    by `hooks.commit_msg.check_timeout`; an `after: push` check waits. A
+    failure rejects the commit when the task's item in the staged registry
+    is `done`, else it is printed with the task's status and the commit
+    goes through. `hooks.commit_msg.task_checks: false` turns them off.
   - **pre-push** runs `hooks.pre_push`: `vp test run --changed <remote sha>`
     for each pushed ref, or the whole unit suite when there is no remote
     commit to compare with. Nothing else: the scenarios and the task checks
@@ -184,7 +193,7 @@ the commands, `itos <command> --help` each one). The code is
   `commits.since` with the commit-msg rules, so a commit made with the hooks
   bypassed fails CI. The workflow sets Node and Vite+ up, and Go from
   `go.mod`.
-  **The plan** (`ci-plan.ts`; `itos ci plan <from> <to>` prints it, running
+  **The plan** (`ci-plan.ts`, its cost rule in `cost.ts`; `itos ci plan <from> <to>` prints it, running
   nothing) is one sequence in cost order: the static steps of `ci.steps`
   (`vp check`, `gofmt`, `go vet`, the smoke rule, `itos config check`) and every named task check
   that is static (its own `cost: static`, else a pattern of
