@@ -143,7 +143,10 @@ try {
 	run = prePush("a push naming a scenario and a task", base, sha);
 	expect(run.status === 0, `pre-push failed on a footed push:\n${run.output}`);
 	expect(!run.output.includes(features), "pre-push ran the scenarios a footer names");
-	expect(!run.output.includes("$ vp run task"), "pre-push ran the checks of a task a footer names");
+	expect(
+		!run.output.includes("$ tools/bin/itos task"),
+		"pre-push ran the checks of a task a footer names",
+	);
 	// ...and CI finds the task in the pushed range.
 	expect(
 		tasksIn(base, sha).includes("T-007"),
