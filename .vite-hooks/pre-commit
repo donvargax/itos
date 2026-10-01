@@ -1,13 +1,9 @@
 vp staged || exit $?
-# The config, the ledger and the work registry (both under tasks/) and the
-# smoke set are what every later gate reads, and the prose exit below skips
-# tasks/: check them whenever one is staged, so a broken one stops here rather
-# than failing a later push.
-if [ -n "$(git diff --cached --name-only --diff-filter=ACMRD -- itos.yaml tasks features/smoke.yaml)" ]; then
-	tools/bin/itos config check || exit $?
-fi
-# Documentation-only commits need no test or audit gate.
-if [ -z "$(git diff --cached --name-only --diff-filter=ACMRD -- . ':(exclude)*.md' ':(exclude)docs/**/*.md' ':(exclude)tasks/**' ':(exclude)features/**/*.feature')" ]; then
+# Prose and itos's own data need no test or audit gate: Markdown, docs/**,
+# tasks/** (the ledger and the work registry) and feature files. itos.yaml, the
+# ledger, the registry and the smoke set are checked by the commit-msg hook
+# (itos hook commit-msg), from the staged tree.
+if [ -z "$(git diff --cached --name-only --diff-filter=ACMRD -- . ':(exclude)*.md' ':(exclude)docs/**' ':(exclude)tasks/**' ':(exclude)features/**/*.feature')" ]; then
 	exit 0
 fi
 # Only the unit tests the change can affect: vitest follows the imports from
