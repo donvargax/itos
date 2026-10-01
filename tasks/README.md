@@ -143,7 +143,9 @@ a check in `ci.nightly_only` (the gates self-test) runs only in the nightly,
 after every feature. Every other check runs as it is, in cost order: the
 static ones (see `cost:` above) right after the static steps, before the unit
 tests, the corpus and the run of the features; the late ones after that
-run. CI stops at the first failure, a check's included. A task named while
+run. CI stops at the first failure, a check's included, unless
+`ci.stop_at_first_failure` is false: then it runs everything and the first
+failure is the run's. A task named while
 its work item is still `todo` in `docs/work-items.yaml` waits: nobody has
 started it, so its checks cannot pass yet.
 

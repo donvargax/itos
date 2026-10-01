@@ -317,7 +317,7 @@ items:
     title: Every command itos runs goes through the configured shell, and ci.stop_at_first_failure is read
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     refs: [features/config.feature]
@@ -340,6 +340,45 @@ items:
       header lint, and ledger.check.pushed has one value: they leave the schema, and come back with
       the feature that gives them a second value. @ID-CONFIG-07 to 14.
 
+  - id: p1-shell-not-empty
+    title: config check rejects an empty shell
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-3]
+    kind: idea
+    why: >
+      Every command now starts through shell, read as its argv prefix; `shell: []` is accepted and
+      then runs `sh <command>`, which reads the command as a script's path, so every check, step and
+      delegate fails with a message about a missing file. config check could require at least one
+      word, as it requires a list of strings.
+
+  - id: p1-ci-run-every-failure-json
+    title: "ci run --json lists every failure when it goes on past the first"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-3]
+    kind: idea
+    why: >
+      With ci.stop_at_first_failure false, ci run prints "CI failed at" for each failure but its
+      --json verdict names only the first (failed_at), so an agent reading the JSON learns of one
+      failure where the log shows several. A `failures` list beside failed_at, keys only added,
+      would carry them.
+
+  - id: p1-changelog-unconventional
+    title: The changelog renders a release holding an unconventional commit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      vp run changelog, with or without --task or --scenario, fails: git-cliff gives the template's
+      squashed "Initial commit" (1545231, in v0.1.0) no footers, and cliff.toml's body template and
+      tools/changelog.ts's footer filter both read commit.footers. Leaving out commits.since and its
+      ancestors, as verify does, or reading a missing footers as none, would fix both.
+
   - id: p1-config-names-from-config
     title: The names the tools hardcode, read from the config
     phase: 1
@@ -349,9 +388,9 @@ items:
     kind: idea
     why: >
       What is left of the config-keys audit: scenario-moves' range mode hardcodes feat and fix and
-      ignores except_types; it, ci-scope's Task key, ci plan --data-at and the smoke rule default to
-      the kind named scenario; ci run's messages name tasks/, docs/work-items.yaml and vp check.
-      Each is read from the config.
+      ignores except_types; it, ci-scope's Task key and the smoke rule default to the kind named
+      scenario (the plan's smoke set reads the kind of its tests step since slice 3); ci run's
+      messages name tasks/, docs/work-items.yaml and vp check. Each is read from the config.
 
   - id: p1-one-defaults-table
     title: The defaults the tools apply, read from one table

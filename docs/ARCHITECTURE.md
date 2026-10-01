@@ -98,6 +98,11 @@ the commands, `itos <command> --help` each one). The code is
   and CI share: which types need each footer, which IDs must exist, and
   `read_at: commit`, which reads the IDs that exist (the ledger's tasks, the
   live scenarios) at the commit being checked.
+- **One shell** (`shell.ts`): every command itos takes from the config or the
+  ledger (a task check, a CI step, a header-lint delegate, a range check, a
+  provider's or a command adapter's command, the pre-push commands, the smoke
+  run) starts through `inShell`, which appends it to `shell` (`[sh, -c]` by
+  default) as one argument. itos's own `git` calls start directly.
 - **The world outside the repository** is three providers
   (`providers.ts`): where a push's range starts (`ci.range`: the last green
   run on GitHub, a command, or none), who a session works for
@@ -162,12 +167,14 @@ the commands, `itos <command> --help` each one). The code is
   that is static (its own `cost: static`, else a pattern of
   `ci.cost.static`); then the late steps (the whole unit suite, the audit, the
   conformance corpus, T-007); then **one run of the features** over the smoke
-  set, the scenarios the `Scenarios:` footers name and the subsets of the
+  set (of the kind the `tests:` step names; a CI without one reads none), the scenarios the `Scenarios:` footers name and the subsets of the
   tasks the `Task:` footers name; then the named tasks' late checks. A task's checks
   keep their written order. A check a step has just done is skipped
   (`ci.covers`), one in `ci.nightly_only` waits for the nightly, and a task
   whose work item is still `todo` waits (`ci.wait_on_status`). It stops at
-  the first failure. A range of only `ci.prose.paths` (Markdown, `docs/**`)
+  the first failure; with `ci.stop_at_first_failure: false` it runs every step
+  and check, says where each failure was, and exits with the first one's code.
+  A range of only `ci.prose.paths` (Markdown, `docs/**`)
   runs `ci.prose.steps` (`vp check`, and `itos config check`, since the
   registry is under `docs/`) and the named tasks' static and `prose: true` checks,
   and no features.
