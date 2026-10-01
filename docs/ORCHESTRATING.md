@@ -29,8 +29,8 @@ do the work yourself and don't start subagents.
 
 **Before the loop, and again after every landing: read the last nightly.**
 `gh run list --workflow nightly.yml --limit 1` (its failing scenarios:
-`gh run view <id> --log-failed`, or the open "Nightly red" issue). The whole
-E2E suite runs only there, so a change that reaches scenarios no push names
+`gh run view <id> --log-failed`, or the open "Nightly red" issue). Every
+feature runs only there, so a change that reaches scenarios no push names
 shows up the next morning. A red nightly is the first item, a `fix` handed to
 an agent before any new slice; it is not left for whoever looks next.
 
@@ -57,13 +57,10 @@ an agent before any new slice; it is not left for whoever looks next.
      tool and fail every suite (`ln -s <main checkout>/node_modules
 node_modules`; the worktrees live under `.claude/worktrees/`, which the
      unit tests, the linter and the formatter leave out);
-   - one E2E run per checkout at a time, because runs in one checkout share
-     its build output and report folders (each checkout serves on a port of
-     its own, so separate checkouts don't collide);
    - pull with `--no-autostash` before every push;
    - and commit from a worktree of your own while they run.
 3. When it reports, check the result (below). Relay the report to the user
-   with what to look at in `vp dev`.
+   with what to try on the command line.
 4. The user reviews; that review is final. What they ask for next is
    **specified here and handed to an agent**, not built here: feedback that
    arrives mid-session is a slice like any other, however small it sounds
@@ -109,7 +106,7 @@ the rest.
 > earlier slices' commits (<which; `vp run changelog -- --scenario <id>` or
 > `git log --grep` finds them>), what the last one left missing (<the ideas
 > and `todo` items in `docs/work-items.yaml`, from `vp run work`>),
-> `docs/ARCHITECTURE.md`, `e2e/features/README.md` and `tasks/README.md`
+> `docs/ARCHITECTURE.md`, `features/README.md` and `tasks/README.md`
 > first, and follow `AGENTS.md` — in particular "The gates run themselves":
 > just commit and react to what a gate reports.
 >
@@ -123,7 +120,7 @@ the rest.
 > behaviour it names, stop and propose the change, as `AGENTS.md` says.
 >
 > Before pushing, run what this slice can reach beyond the scenarios it
-> names: `vp run e2e --grep "<the slice's and its neighbours' ids>"`<, and
+> names: `go test ./features -count=1 -scenarios='<the slice's and its neighbours' tags>'`<, and
 > the project's own checks that no gate runs>.
 >
 > Other people push to `main` while you work. Commit, then
@@ -241,8 +238,8 @@ runs the unit tests the pushed commits reach; CI re-checks every pushed
 commit against the commit rules, so a commit that skipped the hooks turns it
 red, and runs the plan `itos.yaml`'s `ci` states (the whole unit suite with
 coverage, the build, the audit, the checks of every task the pushed commits
-name, and one E2E run over the smoke set and what the commits name); the
-whole E2E suite runs nightly. Don't re-run what these cover. Check only:
+name, and one run of the features over the smoke set and what the commits
+name); every feature runs nightly. Don't re-run what these cover. Check only:
 
 - CI is green for the last pushed commit:
   `gh run list --commit <full sha> --json conclusion --jq '.[0].conclusion'`.

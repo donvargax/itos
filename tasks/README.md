@@ -1,7 +1,7 @@
 # Tasks: non-feature work with automated confirmation
 
-Feature files (`e2e/features/`) drive `feat:` and `fix:` commits and contain
-only user-observable behavior. Every other commit type is driven by a
+Feature files (`features/`) drive `feat:` and `fix:` commits and contain
+only behaviour a user of itos can observe through its command line. Every other commit type is driven by a
 **task** in this folder. Each task states its "done when" as executable
 checks, so completion is confirmed automatically without putting
 non-behavior checks into the test suites.
@@ -10,7 +10,7 @@ non-behavior checks into the test suites.
 
 A check **runs something that does real work** and uses its exit code:
 
-- a tool that validates its subject: `actionlint`, `vp check`, `vp build`,
+- a tool that validates its subject: `actionlint`, `vp check`, `go vet`,
   `fallow audit`, `tsc`;
 - the thing itself doing its job: the pre-commit hook rejecting a badly
   formatted file in a scratch repository, `vp run ci` executing the same steps
@@ -34,18 +34,21 @@ there, not in the commits.
 
 ## Commit types and what drives them
 
-| Type           | Driven by                                               | Scope rule (checked by the commit-msg hook)                                                                    | Extra checks, in CI                                     |
-| -------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `feat`         | scenarios (`Scenarios:` footer)                         | must touch `src/` or `e2e/`                                                                                    | the referenced scenarios                                |
-| `fix`          | a `@bug-<n>` scenario, or a failing referenced scenario | must touch `src/`                                                                                              | the referenced scenarios                                |
-| `refactor`     | task (`Task:` footer)                                   | must not touch `e2e/features/**`                                                                               | the task's checks; CI runs the full unit and E2E suites |
-| `perf`         | task                                                    | must not touch `e2e/features/**`                                                                               | the task's measurement check                            |
-| `test`         | task                                                    | only `e2e/**`, `**/*.test.ts`, `tools/**`, `playwright.config.ts`; in a feature file, `@wip` changes and moves | the changed tests pass                                  |
-| `build` / `ci` | task                                                    | only config, hooks, workflows, lockfile, `.claude/settings.json`, `tools/**`, `index.html`, `src/main.ts`      | the task's checks                                       |
-| `chore`        | task                                                    | no `src/**` changes                                                                                            | the task's checks                                       |
-| `revert`       | task (the one whose work it undoes)                     | none                                                                                                           | the task's checks                                       |
-| `docs`         | task (optional for typo-level edits)                    | only `*.md`, `docs/**`, `tasks/**`, and feature files when every change is `@wip`                              | none                                                    |
-| `style`        | none                                                    | formatting only                                                                                                | `vp check`                                              |
+"The implementation" is `commits.path_sets.implementation`: `tools/itos/*.ts`
+now, the Go port's packages beside it later.
+
+| Type           | Driven by                                               | Scope rule (checked by the commit-msg hook)                                                                                                                 | Extra checks, in CI                                      |
+| -------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `feat`         | scenarios (`Scenarios:` footer)                         | must touch the implementation or `features/`                                                                                                                | the referenced scenarios                                 |
+| `fix`          | a `@bug-<n>` scenario, or a failing referenced scenario | must touch the implementation or `features/`                                                                                                                | the referenced scenarios                                 |
+| `refactor`     | task (`Task:` footer)                                   | must not touch feature files                                                                                                                                | the task's checks; CI runs the unit suite and the corpus |
+| `perf`         | task                                                    | must not touch feature files                                                                                                                                | the task's measurement check                             |
+| `test`         | task                                                    | only `features/**`, `**/*.test.ts`, `tools/itos/conformance/**`, `tools/itos/fixtures/**`, `tools/selftest/**`; in a feature file, `@wip` changes and moves | the changed tests pass                                   |
+| `build` / `ci` | task                                                    | only config: root config files, `go.mod`, `go.sum`, hooks, workflows, `tools/bin/**`, `tools/selftest/**`, `tools/changelog.ts`, `.claude/settings.json`    | the task's checks                                        |
+| `chore`        | task                                                    | not the implementation                                                                                                                                      | the task's checks                                        |
+| `revert`       | task (the one whose work it undoes)                     | none                                                                                                                                                        | the task's checks                                        |
+| `docs`         | task (optional for typo-level edits)                    | only `*.md`, `docs/**`, `tasks/**`, and feature files when every change is `@wip`                                                                           | none                                                     |
+| `style`        | none                                                    | formatting only                                                                                                                                             | `vp check`                                               |
 
 The scope rules keep the commit type honest. A `refactor` that edits a feature
 file is rejected, because changing behavior needs `feat` or `fix`. Outside
@@ -62,7 +65,7 @@ scenario is lost or added (a `@wip` one may still come, go or change), and a
 file with a live scenario keeps its header and Background; comment lines are
 not compared, so a `docs` commit may write a scenario's reason beside it. The
 files are organised by area of behaviour, and a move is a `test` commit, one
-that also moves the file's smoke entries in `e2e/smoke.yaml`. A live
+that also moves the file's smoke entries in `features/smoke.yaml`. A live
 scenario's name may not change outside `feat` and `fix`, unless the rename is
 listed by ID and name in `ALLOWED_RENAMES` (`tools/itos/scenario-moves.ts`). A
 scenario that duplicates another stays: removing one is a `feat` or `fix`
@@ -131,21 +134,22 @@ tools/bin/itos ci plan <from> <to>          # what CI would run for a range, run
 CI's plan is `ci` in `itos.yaml`. It runs the checks of every task referenced
 by a `Task:` footer in the pushed commits; the pre-push hook does not, to keep
 pushes quick. CI does not replay what it has just done: a check the scenario
-kind's `recognize` reads as an E2E run (`vp run e2e`, with or without one
-`--grep`, or `vp run e2e:smoke`) joins CI's one Playwright run; a check that
+kind's `recognize` reads as a run of the features (`go test ./features
+-count=1`, with or without one `-scenarios=`, or
+`tools/bin/itos tests smoke run scenario`) joins CI's one run of them; a check that
 is one of `ci.steps`, or that `ci.covers` says a step has done (`vp test
 run`, whole or narrowed to paths, after the whole unit suite), is skipped; and
 a check in `ci.nightly_only` (the gates self-test) runs only in the nightly,
-after the whole E2E suite. Every other check runs as it is, in cost order: the
+after every feature. Every other check runs as it is, in cost order: the
 static ones (see `cost:` above) right after the static steps, before the unit
-tests, the build and the Playwright run; the late ones after the Playwright
+tests, the corpus and the run of the features; the late ones after that
 run. CI stops at the first failure, a check's included. A task named while
 its work item is still `todo` in `docs/work-items.yaml` waits: nobody has
 started it, so its checks cannot pass yet.
 
 A prose-only push (only the paths of `ci.prose.paths`) runs `ci.prose.steps`
 and, of the named tasks' checks, only the static ones and those marked
-`prose: true`: no build, no E2E subset, since a check that reads only code
+`prose: true`: no unit tests, no features, since a check that reads only code
 finds the same on prose. A push that also touches `tasks/**`, a feature file
 or code runs everything. `vp run task <id>` runs every check, the gates
 self-test included. A phase is complete when all its scenarios pass without

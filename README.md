@@ -1,86 +1,104 @@
-# Project template
+# itos
 
-A starting point for a project that works by its tasks, its scenarios and its
-gates: a small [Vite+](https://viteplus.dev) app with unit tests and
-Gherkin scenarios, a task ledger whose every task is proven by commands, and
-commit rules, git hooks and CI that hold every commit to them. The rules live
-in one file, `itos.yaml`, read by **itos**, the task tool carried in
-`tools/itos/`.
+**Every task is proven by commands, every commit names its work.** itos is a
+task tool for repositories where people and coding agents work side by side:
+a ledger of tasks whose "done" is a list of commands that must pass, commit
+rules that tie each commit to the task or the scenarios it serves, and a CI
+plan that runs what a push's commits name, in cost order. Its policy is one
+YAML file, `itos.yaml`, so a project changes its rules without changing
+code.
 
-What it gives a new project from its first commit:
+The name comes from _palitos_, the little sticks of a tally, the strokes
+work is counted with; `-itos` is the Spanish diminutive, and said aloud it is
+also _hitos_, milestones. It is not [withakay/ito](https://github.com/withakay/ito),
+one letter away and also a task tool for agents, where an agent _says_ a task
+is done; here a task is done when its commands pass.
 
-- **Commits that name their work.** Conventional Commits, each `feat` or `fix`
-  naming the scenarios it turns green (`Scenarios: @ID-…`) and every other
-  type the task it belongs to (`Task: T-…`); each type may touch only certain
-  paths. The commit-msg hook enforces it, and CI re-checks every pushed
-  commit.
-- **A ledger of tasks with executable checks** (`tasks/`): a task is done when
-  its `done_when` commands pass, `vp run task <id>` says so.
-- **Gates that run themselves.** pre-commit formats, lints, runs the unit
-  tests the change reaches and the audit; pre-push runs the unit tests the
-  pushed commits reach; CI runs everything from the last green run, in cost
-  order, with one E2E run over the smoke set and what the commits name; a
-  nightly runs every scenario and opens an issue when it goes red.
-- **Work routing** (`docs/work-items.yaml`, `CONTRIBUTORS.md`): `vp run work`
-  says what the person a session works for can start next.
-- **A changelog from the commits**: `vp run changelog`.
-- **Agent instructions for what no command can check.** `AGENTS.md` is the
-  implementing session's: which session it is, how to split work into
-  commits, the gates as built, what never to do, how to finish.
-  `docs/ORCHESTRATING.md` is the coordinator's: the loop of handing slices to
-  subagents, the brief, a slice that fails, checking a result.
+## Two halves
 
-`tasks/README.md` and `e2e/features/README.md` state the rules;
-`tools/bin/itos --help` lists the tool's commands.
+A project works by its rules, and a rule is one of two kinds:
+
+- **What a command can decide** is itos's: the commit's shape and footers,
+  the paths each commit type may touch, which checks prove a task, what a CI
+  run selects and in what order, who may take which work. A git hook or CI
+  enforces it on every commit, whoever or whatever made it.
+- **What no command can check** is the agent instructions': which session
+  you are, how to split work into commits, when to stop and ask, how to brief
+  and check an agent, what to do when a slice fails. They live in `AGENTS.md`
+  (the implementing session's) and `docs/ORCHESTRATING.md` (the
+  coordinator's).
+
+A rule moves from the instructions into itos as soon as a command can decide
+it, and the instructions then point to the check instead of restating it.
+
+## What it does
+
+- **A ledger of tasks with executable checks** (`tasks/`): `itos task <id>`
+  runs a task's `done_when` commands and says done, pending or failing.
+- **Commit rules**: Conventional Commits; each `feat` or `fix` names the
+  scenarios it turns green (`Scenarios: @ID-…`), every other type the task it
+  belongs to (`Task: T-…`), and each type may touch only certain paths.
+  `itos hook commit-msg` applies them before a commit; `itos verify` re-checks
+  a pushed range in CI, from `commits.since` on.
+- **Named tests behind an adapter**: Gherkin is built in; any runner that can
+  list its tests as JSON can be another kind. CI merges every selection of a
+  kind into one run.
+- **A CI plan**: `itos ci run` runs a push's steps and the checks of the
+  tasks its commits name, in cost order, stopping at the first failure, with a
+  shortcut for prose-only pushes; `itos ci plan` prints it without running
+  anything.
+- **Work routing**: `itos work` says what the person a session works for can
+  start next, from `docs/work-items.yaml` and `CONTRIBUTORS.md`.
+
+`tools/bin/itos --help` lists the commands, and `itos <command> --help` each
+one.
+
+## Status
+
+**v0, in TypeScript** (`tools/itos/`), run by Node directly. This repository
+governs itself with it: its own `itos.yaml`, ledger, hooks and CI.
+
+**Next, the Go port**: one binary, one YAML config, built here beside the
+TypeScript and judged by the same tests. itos's named tests are the Gherkin
+feature files in `features/`, whose steps (Go, run by
+[godog](https://github.com/cucumber/godog)) treat itos as a black box: they
+run whatever binary `ITOS_BIN` names in scratch repositories and read its exit
+codes and output. The conformance corpus (`tools/itos/conformance/`) is the
+regression record both implementations must pass. `PLAN.md` has the order of
+the work.
+
+## Working on it
+
+```sh
+vp install                               # dependencies and the git hooks
+go test ./features -count=1              # every feature, against tools/bin/itos
+vp test                                  # the unit tests
+tools/bin/itos task --phase 1            # the phase's tasks and their state
+vp run work                              # what you can take next
+```
+
+Read `AGENTS.md` before changing anything: the hooks run the checks on every
+commit, and it says how work is split into commits.
 
 ## Where things are
 
-| File                    | What it holds                                                                   |
-| ----------------------- | ------------------------------------------------------------------------------- |
-| `PLAN.md`               | The decisions, the intended architecture, the phases and the references.        |
-| `docs/ARCHITECTURE.md`  | How the code is put together as built, the task tooling and the gates included. |
-| `docs/HANDOFF.md`       | Only what the next session should do; the coordinator rewrites it.              |
-| `AGENTS.md`             | The working rules for a session that implements.                                |
-| `docs/ORCHESTRATING.md` | The working rules for the session that coordinates.                             |
-| `docs/PHASES.md`        | Who owns which phase, and how work is routed.                                   |
-| `docs/work-items.yaml`  | The one list of open work: owners, statuses, dependencies, ideas.               |
-| `tasks/`                | The ledger: every non-feature task and the checks that prove it.                |
-| `e2e/features/`         | The scenarios: the behaviour a user can observe.                                |
-| `itos.yaml`             | The policy every gate reads.                                                    |
+| File                    | What it holds                                                                |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `PLAN.md`               | What itos is for, its model, schema and command line, and the order of work. |
+| `docs/ARCHITECTURE.md`  | How the code is put together as built, the gates included.                   |
+| `docs/HANDOFF.md`       | Only what the next session should do; the coordinator rewrites it.           |
+| `AGENTS.md`             | The working rules for a session that implements.                             |
+| `docs/ORCHESTRATING.md` | The working rules for the session that coordinates.                          |
+| `docs/PHASES.md`        | Who owns which phase, and how work is routed.                                |
+| `docs/work-items.yaml`  | The one list of open work: owners, statuses, dependencies, ideas.            |
+| `tasks/`                | The ledger: every non-feature task and the checks that prove it.             |
+| `features/`             | The scenarios: what itos does, through its command line.                     |
+| `itos.yaml`             | This repository's policy, which every gate reads.                            |
 
-## Create a project from it
-
-On GitHub, **Use this template → Create a new repository**, or:
-
-```sh
-gh repo create <owner>/<name> --template donvargax/project-template --private --clone
-```
-
-## First steps in the new project
-
-1. **Install.** `vp install` installs the dependencies and, through
-   `prepare`, the git hooks (`vp config`). Install the browser for the
-   scenarios once: `vp exec playwright install chromium`.
-2. **Rename.** Set `name` in `package.json`, the page's `<title>` in
-   `index.html`, and this README's title and text.
-3. **Contributors.** Put the project's people in `CONTRIBUTORS.md` (their
-   GitHub logins are the owners `docs/work-items.yaml` names), and set the
-   phase owners in `docs/work-items.yaml` and `docs/PHASES.md`.
-4. **Licence.** The template is 0BSD (`LICENSE`): replace it with the
-   project's own. `tools/itos/LICENSE` is the task tool's (AGPL-3.0) and
-   stays with it.
-5. **Ledger.** `tasks/phase-0.yaml` holds the template's own setup tasks; keep
-   them as the project's phase 0, and add the project's phases after it.
-6. **Plan.** Fill in `PLAN.md` (what the project is, its decisions, its
-   phases), the application's sections of `docs/ARCHITECTURE.md`, and
-   `docs/HANDOFF.md` with the first steps. The agent instructions
-   (`AGENTS.md`, `docs/ORCHESTRATING.md`) are written for any project and
-   need no change to start; add a project's own rules to them as it finds
-   them, each with its reason.
-7. **Check.** `vp run task --phase 0` runs every setup task's checks; push to
-   `main` and CI runs on GitHub Actions with no secrets to configure.
+The repository was made from the project template
+[donvargax/project-template](https://github.com/donvargax/project-template),
+whose setup is phase 0 here.
 
 ## Licence
 
-The template is [0BSD](LICENSE). The task tool in `tools/itos/` is
-[AGPL-3.0](tools/itos/LICENSE).
+[AGPL-3.0](LICENSE).
