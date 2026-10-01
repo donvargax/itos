@@ -325,3 +325,24 @@
       timeout: 300
     - run: node tools/selftest/release-notes.ts 0.3.0
       timeout: 300
+
+- id: T-030
+  type: build
+  title: This repository's commitlint config judges the header and body alone
+  why: >
+    Slice 10 has itos run commits.footers itself, beside whatever header lint
+    the config delegates to, so the footer plugin commitlint.config.ts carried
+    (one <key>-footer rule per footer, calling tools/itos/footers.ts) reports
+    every footer problem a second time. The config goes back to
+    config-conventional alone, in the commit right after the feat and in the
+    same push, so the double report lasts one commit. The first check passes
+    a chore without its Task: footer through commitlint alone, which the
+    plugin rejected; the second runs a footer naming an unknown task through
+    commit check-message, delegate included, and counts its task-footer
+    problems: one, itos's own.
+  done_when:
+    - run: "printf 'chore: tidy the readme\\n' | vp exec commitlint"
+    - run: >-
+        sh -c 'printf "chore: x\n\nTask: T-999\n" | tools/bin/itos commit check-message - --json
+        | grep -c "\"rule\": \"task-footer\"" | grep -qx 1'
+      cost: static
