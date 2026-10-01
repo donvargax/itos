@@ -86,7 +86,7 @@ Feature: Every key the config accepts is one itos reads
     When itos checks the smoke set
     Then itos exits with code 0
 
-  @ID-CONFIG-10 @slice-4 @wip
+  @ID-CONFIG-10 @slice-4
   Scenario: With smoke.every_file, a feature file with live scenarios and no smoke test is rejected
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     And a feature file "b.feature" with the live scenario "@ID-B-01"
