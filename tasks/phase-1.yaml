@@ -379,6 +379,11 @@
     bundle needs Node 24 (import.meta.main). The packed manifest holds name,
     version, type, bin, files and engines, and nothing else; the release
     self-test proves it and that an install reports no install script.
+    tools/bin/pack.ts packs it, for the release workflow and release.ts alike.
+    The install report is npm's, so the self-test first installs a control
+    package with a prepare script and fails if npm reports nothing for it.
+    Against v0.3.0's way of packing the check fails on the keys, on engines
+    and on the install script.
   done_when:
     - run: node tools/selftest/release.ts
       timeout: 900

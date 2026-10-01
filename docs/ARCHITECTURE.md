@@ -18,8 +18,13 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   `pack` block of `vite.config.ts`, tsdown) bundles `tools/itos/main.ts` and
   everything it imports, `yaml` and the commands' lazy imports included, into
   one file, `dist/itos.mjs`, which `package.json`'s `bin` names; its `files`
-  are that, `LICENSE` and `README.md`, so `npm pack` gives
-  `itos-<version>.tgz` with no runtime dependencies. Here `tools/bin/itos`
+  are that, `LICENSE` and `README.md`. `tools/bin/pack.ts` is the one way to
+  pack it, for the release workflow and `release.ts` alike: it runs `vp pack`,
+  copies those files into a scratch folder beside a manifest of `package.json`'s
+  `name`, `version`, `type`, `bin` and `files` plus `engines` (Node 24), and
+  `npm pack`s that folder into `itos-<version>.tgz`, with no runtime
+  dependencies and no install script. This repository's `package.json`, with
+  its `prepare` script and devDependencies, is never packed. Here `tools/bin/itos`
   runs the working tree's TypeScript, since the hooks and CI judge the working
   tree. Nothing in the source reads a file beside itself, which is what lets
   one file carry it: the version is `package.json`'s, which `version.ts`
@@ -28,7 +33,8 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
 - **A release** (`.github/workflows/release.yml`, on a `v*` tag) refuses a tag
   that is not `v<package.json's version>`, a packed itos that says another,
   and a tag with no `docs/releases/v<version>.md`; it proves the tarball with
-  `release.ts`, then publishes it with `checksums.txt`, the release's body
+  `release.ts` (the packed manifest's keys, an offline install reporting no
+  install script, the corpus and every feature against the installed itos), then publishes it with `checksums.txt`, the release's body
   being a header, the checksum and that notes file with `{sha256}` replaced by
   the tarball's hash. The notes end with an "Upgrading" section a consumer
   updates from alone (`PLAN.md`, §10).
