@@ -84,7 +84,7 @@ the same thing waste both. Take one by setting its `owner` and
 
 - **Everything else** (`refactor`, `perf`, `test`, `build`, `ci`, `chore`,
   `docs`, `revert`): a task in `tasks/` (read its README). Commit with a
-  `Task: T-…` footer. `vp run task <id>` tells you when it's done. A `docs`
+  `Task: T-…` footer. `tools/bin/itos task <id>` tells you when it's done. A `docs`
   commit may leave the footer out for a typo-level edit; when it carries one,
   the task must exist.
 - **Conventional Commits.** `type: subject` in the imperative, no capital, no
@@ -173,9 +173,9 @@ What that means in practice:
 Run these yourself when they apply:
 
 - `vp install` after pulling, when the lockfile came down changed.
-- `vp run task <id>` while working a task, to see what its checks still want.
+- `tools/bin/itos task <id>` while working a task, to see what its checks still want.
   CI runs the checks of every task your commits name; the push does not.
-  `vp run task --phase <n>` shows the phase's non-feature work. A check
+  `tools/bin/itos task --phase <n>` shows the phase's non-feature work. A check
   marked `after: push` stays pending until the commit is on the remote.
 - `go test ./features -count=1 -scenarios='^@slice-<n>$'` once at the end of
   a slice, if your commits didn't already name every scenario in it between

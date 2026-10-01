@@ -98,9 +98,9 @@ the commands, `itos <command> --help` each one). The code is
   policy failure (a check failed, a commit rejected, an unknown task), 2 for a
   usage or config error, 3 for a missing environment. `--json` prints one
   object with `"schema": 1`, logs on stderr; each problem in it has a
-  sentence, a `rule` id and, where one exists, a `fix`. The everyday commands
-  are `package.json` scripts over it: `vp run task`, `vp run work`,
-  `vp run ci`.
+  sentence, a `rule` id and, where one exists, a `fix`. The task runner is
+  called by its own name, `tools/bin/itos task <id>`; `vp run work` and
+  `vp run ci` are `package.json` scripts over it.
 - **Named tests behind an adapter** (`tools/itos/tests.ts`). A kind of named
   test (here one, `scenario`) says how its tests are listed and run. The
   built-in Gherkin adapter (`gherkin.ts`) is the only module that parses a

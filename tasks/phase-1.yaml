@@ -243,7 +243,10 @@
     a second name for one command, which a project without Vite+ does not
     have. The docs (AGENTS.md, tasks/README.md, docs/**, the comments, the CI
     step that proves the commit rules) call `tools/bin/itos task <id>`, and the
-    script goes. The negative proof is that the script no longer runs.
+    script goes. The negative proof is that the script no longer runs. No
+    message or help text itos prints named the script, so no printed wording
+    changed; the gates self-test, which proves pre-push leaves a footer's task
+    to CI by the echo it must not print, looks for `$ tools/bin/itos task` now.
   done_when:
     - fails: vp run task T-026
       cost: static

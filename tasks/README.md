@@ -134,11 +134,11 @@ the work registry or the smoke set.
 ## Commands
 
 ```sh
-vp run task T-008          # run one task's checks
-vp run task --phase 0      # every task of phase 0, as a done / pending / failing table
-vp run task --pending      # tasks that aren't done yet
-tools/bin/itos config check                 # the config and the ledger are sound
-tools/bin/itos ci plan <from> <to>          # what CI would run for a range, running nothing
+tools/bin/itos task T-008            # run one task's checks
+tools/bin/itos task --phase 0        # every task of phase 0, as a done / pending / failing table
+tools/bin/itos task --pending        # tasks that aren't done yet
+tools/bin/itos config check          # the config and the ledger are sound
+tools/bin/itos ci plan <from> <to>   # what CI would run for a range, running nothing
 ```
 
 CI's plan is `ci` in `itos.yaml`. It runs the checks of every task referenced
@@ -163,6 +163,6 @@ A prose-only push (only the paths of `ci.prose.paths`) runs `ci.prose.steps`
 and, of the named tasks' checks, only the static ones and those marked
 `prose: true`: no unit tests, no features, since a check that reads only code
 finds the same on prose. A push that also touches `tasks/**`, a feature file
-or code runs everything. `vp run task <id>` runs every check, the gates
+or code runs everything. `tools/bin/itos task <id>` runs every check, the gates
 self-test included. A phase is complete when all its scenarios pass without
-`@wip` and `vp run task --phase <n>` reports every task done.
+`@wip` and `tools/bin/itos task --phase <n>` reports every task done.
