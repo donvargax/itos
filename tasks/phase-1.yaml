@@ -202,6 +202,9 @@
     the parts a command can: the section is there and last, its pin line names
     this version's tarball, and every key whose default differs between the
     last release's --print-defaults --json and this one's is named in it.
+    Against v0.1.0 those keys are work.registry and ci.stop_at_first_failure;
+    the check failed on scratch notes that left the second out, that ended
+    with another section, and whose pin line named v0.1.0's tarball.
   done_when:
     - run: node tools/selftest/release.ts
       timeout: 900

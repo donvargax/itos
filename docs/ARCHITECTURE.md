@@ -22,7 +22,16 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   `itos-<version>.tgz` with no runtime dependencies. Here `tools/bin/itos`
   runs the working tree's TypeScript, since the hooks and CI judge the working
   tree. Nothing in the source reads a file beside itself, which is what lets
-  one file carry it.
+  one file carry it: the version is `package.json`'s, which `version.ts`
+  imports as JSON and the bundle inlines, so a release is one `build` commit
+  to `package.json` and a tag.
+- **A release** (`.github/workflows/release.yml`, on a `v*` tag) refuses a tag
+  that is not `v<package.json's version>`, a packed itos that says another,
+  and a tag with no `docs/releases/v<version>.md`; it proves the tarball with
+  `release.ts`, then publishes it with `checksums.txt`, the release's body
+  being a header, the checksum and that notes file with `{sha256}` replaced by
+  the tarball's hash. The notes end with an "Upgrading" section a consumer
+  updates from alone (`PLAN.md`, §10).
 - `go.mod` is the module `github.com/donvargax/itos`, Go pinned by its
   `toolchain` line; its one dependency set is godog's. The Go port adds
   `cmd/itos` and `internal/` (`PLAN.md`, §8).
@@ -218,7 +227,12 @@ TestFeatures/…` lines); a green run closes it.
   `--tarball`, the one a release publishes), installs it with
   `npm install --offline` and an empty cache into a scratch project, which
   must then hold itos alone, and runs the conformance corpus and every
-  feature against the installed bin.
+  feature against the installed bin. `release-notes.ts` proves what a command
+  can of a release's notes: the file is there, its last `##` section is
+  "Upgrading" with the pin line naming this version's tarball, and every
+  config key whose default differs between the last release (its tarball
+  downloaded from GitHub, verified and installed offline) and this tree, by
+  `config check --print-defaults --json`, is named in that section.
 - **The changelog** (`tools/changelog.ts`, `cliff.toml`): git-cliff groups
   the Conventional Commits by type, each with its footers and body, into
   `docs/changelog/`, which git, the formatter, the linter and the audit
