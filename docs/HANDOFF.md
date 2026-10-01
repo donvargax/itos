@@ -18,10 +18,12 @@ Last rewritten 2026-10-01, after v0.3.0 and v0.4.0 were released.
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `0f1d884` (CI run 36896159158). The last nightly is green:
-run 36894008944 (commit `255b181`, dispatched by hand; nothing after it changes
-the implementation but T-032's packing). Read the newest nightly before
-beginning the next implementation. A red nightly takes priority over new work.
+`main` is green at `9fe7488` (CI run 36901260677), and every task in the
+ledger is done. The last nightly is green: run 36894008944 (commit `255b181`,
+dispatched by hand). Since then only docs, the registry and T-032's packing
+changed, and the release self-test covers the packing. Read the newest nightly
+before starting the next implementation. A red nightly takes priority over
+new work.
 
 Released: [v0.4.0](https://github.com/donvargax/itos/releases/tag/v0.4.0)
 (slices 10 to 13, T-032), after
@@ -55,6 +57,12 @@ repositories: don't change any other repository. Nothing is unreleased.
    The user liked all of them; ask which come before the port.
 
 4. Continue with what `tools/bin/itos work` proposes.
+
+Deferred, the user's to lift: `p1-backport-code-design`. The user is writing
+code-design rules (vertical slices, no mocks, unit tests for the core and
+integration tests for the rest, property-based testing) in the project
+template first; they come back here once that is done. When they do,
+`p1-several-test-kinds` moves up, for an integration-test kind.
 
 Agents in this repository: pull with
 `rtk proxy git pull --rebase --no-autostash origin main` (the rtk hook's

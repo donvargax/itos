@@ -1192,6 +1192,24 @@ items:
       duration from the last full run (an optional tests.<kind>.timings report the runner writes) and
       marked when they failed on main recently, the why left for a person. Writes nothing.
 
+  - id: p1-backport-code-design
+    title: Backport the template's code-design rules, and the gates that decide them
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    deferred: until the project template has its code-design rules, written there first by the user
+    why: >
+      The user wants rules around code design: vertical slices (DDD), no mocks, unit tests for the
+      core only and integration tests for the rest, property-based testing. They go into the
+      template first, which every project starts from, and come back here. What a command can
+      decide becomes a gate, not prose: import boundaries and the mock ban as lint rules run by
+      vp check, where unit test files may live as a path rule, integration tests as a named kind
+      (which moves p1-several-test-kinds up); slices and property-based tests stay prose. Here they
+      fit a TypeScript CLI with no domain layer, whose scenarios and conformance corpus are
+      already black-box integration tests.
+
   # ---- phase 2 ----------------------------------------------------------------
   - id: p2-go-port
     title: The Go port, one command group at a time
