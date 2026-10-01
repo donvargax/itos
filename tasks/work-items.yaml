@@ -612,7 +612,7 @@ items:
     title: The changelog renders a release holding an unconventional commit
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     refs: [tasks/phase-0.yaml]
