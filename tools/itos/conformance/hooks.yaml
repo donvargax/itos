@@ -355,8 +355,7 @@ cases:
       - stage: { tools/moved.ts: "export {};\n" }
     files: { msg: "feat: move\n" }
     exit: 0
-    stderr: |
-      index has no tasks; its Task: footer is read against the working tree
+    stderr: ""
   - name: commit-msg then runs the footer rules when there is no header lint
     argv: [hook, commit-msg, msg]
     git:

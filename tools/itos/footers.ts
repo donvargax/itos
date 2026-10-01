@@ -20,8 +20,17 @@
 //                 back to wip or drops a task does not fail an older one.
 //                 `worktree`: the working tree.
 import { spawnSync } from "node:child_process";
-import { config, type FooterConfig, section } from "./config.ts";
+import {
+	config,
+	ConfigError,
+	configPath,
+	type FooterConfig,
+	ledgerLayout,
+	section,
+} from "./config.ts";
+import { problem } from "./problem.ts";
 import { ledgerIds } from "./repo.ts";
+import { current } from "./source.ts";
 import { listTests } from "./tests.ts";
 
 export type Footer = FooterConfig & { key: string };
@@ -72,14 +81,33 @@ function knownAt(f: Footer, tree?: string): { all: Set<string>; notLive: Set<str
 	};
 }
 
+// A ledger footer's source in the working tree, which a project may have
+// configured without making yet: its folder missing is one problem naming
+// it, exit 2 (a file the config names that cannot be read), not the read's
+// own error.
+function needSource(f: Footer) {
+	if (f.source !== "ledger") return;
+	const { dir } = ledgerLayout();
+	if (current().has(dir)) return;
+	throw new ConfigError(configPath(), [
+		problem(
+			"footer-source-missing",
+			`the ${f.key}: footer names tasks of the ledger, and its folder ${dir} does not exist`,
+			`create ${dir} with the ledger's files (ledger.files is ${section("ledger").files}), or point ledger.files at the folder that holds them`,
+		),
+	]);
+}
+
 // The IDs that exist for a footer where its `read_at` says. A commit with none
 // at all predates its source (a project's first commits may name tasks
 // before the ledger is committed), so there is nothing to read at it: the
 // working tree is read instead, and a warning says so.
 function known(f: Footer) {
 	const tree = treeOf(f);
+	if (!tree) needSource(f);
 	const found = knownAt(f, tree);
 	if (!tree || found.all.size > 0) return found;
+	needSource(f);
 	console.warn(`${tree} has no ${noun(f)}; its ${f.key}: footer is read against the working tree`);
 	return knownAt(f);
 }
@@ -104,7 +132,8 @@ export function checkFooter(
 	const ids = footerIds(message, key);
 	if (applies(f.required_for, type ?? "") && ids.length === 0)
 		return [false, `${type} commits need a ${example(f)} footer`];
-	if (!applies(f.validate_for, type ?? "")) return [true];
+	// No ID, nothing to check: the footer's source is not read.
+	if (!applies(f.validate_for, type ?? "") || ids.length === 0) return [true];
 	const { all, notLive } = known(f);
 	const unknown = ids.filter((id) => !all.has(id));
 	if (unknown.length) return [false, `unknown ${noun(f)}: ${unknown.join(", ")}`];

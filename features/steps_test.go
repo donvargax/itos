@@ -88,6 +88,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.repositoryWithTask(a, b)
 	})
 	sc.Step(`^a change to "([^"]*)" is staged$`, w.stageChange)
+	sc.Step(`^the ledger folder is missing$`, w.ledgerFolderMissing)
 	sc.Step(`^the header lint is commitlint's conventional config$`, w.conventionalHeaderLint)
 	sc.Step(`^commits\.since names the first commit$`, w.sinceFirstCommit)
 	sc.Step(`^commits\.since is "([^"]*)"$`, w.sinceIs)
@@ -538,6 +539,29 @@ func (w *world) stageChange(path string) error {
 		return err
 	}
 	return w.git("add", "--", path)
+}
+
+// The ledger's folder, tasks/, gone from the working tree, the index and HEAD:
+// a repository whose config has a ledger footer and no ledger. Its removal is
+// committed alone, whatever else is staged, so that the commit-msg hook checks
+// a commit that stages none of itos's data, and reads no ledger in the index
+// or, falling back, in the working tree.
+func (w *world) ledgerFolderMissing() error {
+	if err := os.RemoveAll(filepath.Join(w.dir, "tasks")); err != nil {
+		return err
+	}
+	if err := w.git("rm", "-r", "-q", "--cached", "--", "tasks"); err != nil {
+		return err
+	}
+	if err := w.git("commit", "-q", "--no-verify", "-m", "chore: drop the ledger", "--", "tasks"); err != nil {
+		return err
+	}
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	w.commits = append(w.commits, sha)
+	return nil
 }
 
 func (w *world) conventionalHeaderLint() error {

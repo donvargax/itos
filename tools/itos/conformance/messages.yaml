@@ -1,7 +1,8 @@
 # One message through the footer rules (`commit check-message`):
 # the wording of each rejection, the tree each footer's IDs are read at (the
 # staged tree by default, the commit --at names, the working tree for a
-# commit that predates the source, or always with read_at: worktree), another
+# commit that predates the source, or always with read_at: worktree), a
+# ledger folder that is missing (read only for a message naming a task), another
 # config's footers, a command adapter's tests named in a footer, and a
 # delegated header lint's report read into problems, the footer rules run
 # beside it.
@@ -145,6 +146,45 @@ cases:
     stderr: |
       {{sha.bare}} has no tasks; its Task: footer is read against the working tree
       ✖   unknown tasks: T-002 [task-footer]
+  - name: a message that names no task reads no ledger, so a missing ledger folder is no problem
+    argv: [commit, check-message, "-", --config, no-ledger.yaml]
+    stdin: "docs: x\n"
+    files: &no-ledger
+      no-ledger.yaml: |
+        version: 1
+        ledger: { files: "gone/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          types: [chore, docs]
+          footers:
+            Task: { source: ledger, required_for: [chore], validate_for: all, read_at: commit }
+    exit: 0
+  - name: a missing footer is judged without the ledger folder
+    argv: [commit, check-message, "-", --config, no-ledger.yaml]
+    stdin: "chore: x\n"
+    files: *no-ledger
+    exit: 1
+    stderr: |
+      ✖   chore commits need a "Task: T-…" footer [task-footer]
+  - name: a task named when the ledger folder is missing is one problem naming the folder, exit 2
+    argv: [commit, check-message, "-", --config, no-ledger.yaml]
+    stdin: "chore: x\n\nTask: T-001\n"
+    files: *no-ledger
+    exit: 2
+    stderr: |
+      FAIL no-ledger.yaml: the Task: footer names tasks of the ledger, and its folder gone does not exist
+  - name: the missing ledger folder as --json, with its rule and fix
+    argv: [commit, check-message, "-", --config, no-ledger.yaml, --json]
+    stdin: "chore: x\n\nTask: T-001\n"
+    files: *no-ledger
+    exit: 2
+    json:
+      schema: 1
+      config: no-ledger.yaml
+      valid: false
+      problems:
+        - rule: footer-source-missing
+          message: "no-ledger.yaml: the Task: footer names tasks of the ledger, and its folder gone does not exist"
+          fix: "create gone with the ledger's files (ledger.files is gone/phase-{group}.yaml), or point ledger.files at the folder that holds them"
   - name: a type that needs a Task footer, without one
     argv: [commit, check-message, "-"]
     stdin: "chore: x\n"

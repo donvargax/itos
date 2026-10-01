@@ -58,13 +58,13 @@ Feature: The footer rules are itos's, whatever the header lint
 
   # The footer rules read the footer's source even for a message that names
   # no ID; with the ledger folder gone that was a raw ENOENT, exit 2.
-  @ID-FOOT-05 @slice-13 @wip
+  @ID-FOOT-05 @slice-13
   Scenario: A message that names no task needs no ledger
     Given the ledger folder is missing
     When the commit-msg hook checks the message "docs: write the readme"
     Then itos exits with code 0
 
-  @ID-FOOT-06 @slice-13 @wip
+  @ID-FOOT-06 @slice-13
   Scenario: A footer naming a task when the ledger folder is missing is one problem naming the folder
     Given the ledger folder is missing
     When the commit-msg hook checks the message:

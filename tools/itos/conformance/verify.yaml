@@ -64,16 +64,14 @@ cases:
     stdout: |
       3/3 commits pass the commit rules
       checked ..{{sha.head}}
-    stderr: |
-      {{sha.bare}} has no tasks; its Task: footer is read against the working tree
+    stderr: ""
   - name: a from of zeros is every commit up to the head
     argv: [verify, "0000000000000000000000000000000000000000", "{{sha.head}}"]
     exit: 0
     stdout: |
       3/3 commits pass the commit rules
       checked 0000000000000000000000000000000000000000..{{sha.head}}
-    stderr: |
-      {{sha.bare}} has no tasks; its Task: footer is read against the working tree
+    stderr: ""
   - name: a range with commits that fail, each named under its report
     argv: [verify, "{{sha.head}}", "{{sha.tidy}}"]
     exit: 1
