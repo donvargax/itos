@@ -720,20 +720,22 @@ items:
       but empty where a smoke ID loses its prefix. One table the loader merges under the file, which the
       tools and the flag both read, closes it; it fits the Go port's config loader.
 
-  - id: p1-footers-beside-header-lint
+  - id: slice-10
     title: The footer rules run by itos beside the header lint
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
+    refs: [features/footers.feature]
     why: >
-      With a header-lint delegate configured, the commit-msg hook and verify run only the delegate:
-      the footer rules run because the template's commitlint config carries them as a plugin
-      (commitlint.config.ts, calling tools/itos/footers.ts), and a delegate without that plugin skips
-      them silently. The plan has the hook run the scope rules, the range checks, the footer rules and
-      the header lint in turn, each itos's or the delegate's; until then, the features' header-lint
-      scenario uses commitlint without the plugin and the footer scenarios use no delegate.
+      Found by the consumers: with a header-lint delegate configured, the commit-msg hook, commit
+      check-message and verify ran only the delegate, so the footer rules ran only through the
+      commitlint plugin in this repository's commitlint.config.ts (calling tools/itos/footers.ts),
+      and a delegate without it skipped them silently. itos now runs the footer rules itself,
+      always, and reports them beside the delegate's problems. This repository's commitlint config
+      then drops its plugin, or every footer problem is reported twice; a consumer whose commitlint
+      config carries the plugin drops it too, which the next release's notes say. @ID-FOOT-01 to 04.
 
   - id: p1-several-test-kinds
     title: A CI run that merges more than one kind of named test
