@@ -119,7 +119,7 @@ ci:
     # The conformance corpus: what itos did when it was written, as cases run
     # through its command line; a regression corpus, not named tests.
     - { run: node tools/itos/conformance/run.ts --bin tools/bin/itos, cost: late }
-    - { run: vp run task T-007, cost: late } # the commit rules, proven on every push
+    - { run: tools/bin/itos task T-007, cost: late } # the commit rules, proven on every push
     - { tests: scenario } # the one merged run; late, as no pattern matches it
   prose: # a range that touches only these runs only the prose steps
     paths: ["**/*.md", "docs/**"]
