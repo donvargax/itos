@@ -52,8 +52,6 @@ repositories: don't change any other repository. Nothing is unreleased.
      `p1-itos-upgrade`, `p1-tests-next-id-and-steps`, `p1-handoff-status`,
      `p1-work-spend`, `p1-smoke-suggest`.
 
-   The user has another idea they could not recall: ask.
-
    The user liked all of them; ask which come before the port.
 
 4. Continue with what `tools/bin/itos work` proposes.
