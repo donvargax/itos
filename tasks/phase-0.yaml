@@ -93,19 +93,27 @@
     the commit, and each type held to the paths it may touch, so a commit's
     type is honest: here a build may not touch the implementation, nor a
     refactor a feature file. The commit-msg hook applies the path rules, the scenario
-    moves and then commitlint (config-conventional plus one rule per footer,
-    from itos.yaml); pre-commit formats, lints and runs the unit tests the
+    moves, then commitlint (config-conventional) and itos's footer rules
+    (one per footer of itos.yaml) beside it; pre-commit formats, lints and runs the unit tests the
     change reaches and the audit; pre-push runs the unit tests the pushed
     commits reach. CI runs this task on every push. The hook itself is proven
     by the commit-msg scenarios, in repositories the steps build: two checks
     that ran it here on "build: x" and "docs: x" judged whatever was staged,
     so the second failed in any commit staging more than prose once the hook
-    ran a named task's static checks mid-commit.
+    ran a named task's static checks mid-commit. The message checks go
+    through commit check-message, which runs commitlint and the footer rules
+    as the hook does: since slice 10 the footer rules are itos's, not a
+    commitlint plugin's, so commitlint alone no longer rejects a missing or
+    unknown footer.
   done_when:
-    - fails: "printf 'update things\\n' | vp exec commitlint"
-    - run: "printf 'build: scaffold\\n\\nTask: T-001\\n' | vp exec commitlint"
-    - fails: "printf 'build: scaffold\\n' | vp exec commitlint"
-    - fails: "printf 'feat: x\\n\\nScenarios: @ID-NOPE-01\\n' | vp exec commitlint"
+    - fails: "printf 'update things\\n' | tools/bin/itos commit check-message -"
+      cost: static
+    - run: "printf 'build: scaffold\\n\\nTask: T-001\\n' | tools/bin/itos commit check-message -"
+      cost: static
+    - fails: "printf 'build: scaffold\\n' | tools/bin/itos commit check-message -"
+      cost: static
+    - fails: "printf 'feat: x\\n\\nScenarios: @ID-NOPE-01\\n' | tools/bin/itos commit check-message -"
+      cost: static
     - fails: tools/bin/itos commit check-paths --type refactor features/since.feature
     - fails: tools/bin/itos commit check-paths --type build tools/itos/main.ts
     - fails: tools/bin/itos commit check-paths --type chore tools/itos/main.ts
