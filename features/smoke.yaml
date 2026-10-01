@@ -40,6 +40,10 @@
   scenarios:
     - id: "@ID-SINCE-01"
       why: verify leaves out the commit commits.since names, the key's point
+- file: task.feature
+  scenarios:
+    - id: "@ID-TASK-01"
+      why: task --pending runs a check two tasks list once and both read its result, the file's point
 - file: work.feature
   scenarios:
     - id: "@ID-WORK-01"

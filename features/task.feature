@@ -16,7 +16,7 @@ Feature: The task runner runs each check once, and lists task status without run
 
   # The counting check appends a line to a file each time it runs, then
   # exits 3, so its run count is read from that file.
-  @ID-TASK-01 @slice-9 @wip
+  @ID-TASK-01 @slice-9
   Scenario: task --pending runs a check two tasks list only once, and both report its result
     Given the tasks "T-001" and "T-002" each have the counting check
     When itos runs the pending tasks
@@ -25,14 +25,14 @@ Feature: The task runner runs each check once, and lists task status without run
     And its output lists "T-002" as "failing"
     And the counting check ran once
 
-  @ID-TASK-02 @slice-9 @wip
+  @ID-TASK-02 @slice-9
   Scenario: task --group runs a check two tasks list only once
     Given the tasks "T-001" and "T-002" each have the counting check
     When itos runs the tasks of the group "1"
     Then itos exits with code 1
     And the counting check ran once
 
-  @ID-TASK-03 @slice-9 @wip
+  @ID-TASK-03 @slice-9
   Scenario: A command one task lists as run and another as fails runs once, and each task reads the result its own way
     Given the task "T-001" has the counting check as run
     And the task "T-002" has the counting check as fails
@@ -42,7 +42,7 @@ Feature: The task runner runs each check once, and lists task status without run
     And its output lists "T-002" as "done"
     And the counting check ran once
 
-  @ID-TASK-04 @slice-9 @wip
+  @ID-TASK-04 @slice-9
   Scenario: task list prints each task's status from the work registry and runs no check
     Given the task "T-001" has a static check that records it ran
     And the work registry at "tasks/work-items.yaml" has the item "T-001" with the status "doing"

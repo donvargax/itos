@@ -2,7 +2,11 @@
 # checks run in written order, a `fails:` one must fail, `after: push` waits
 # for a remote branch that holds HEAD, a check's timeout; verbose for one task,
 # one status line per task; --group (or --phase), --skip, --pending; unknown
-# IDs (1) and no match (2); --json with each check's result.
+# IDs (1) and no match (2); --json with each check's result. One invocation
+# runs each check (its command, whitespace collapsed, and its timeout) once,
+# each task reading the exit status by its own run: or fails:; the counting
+# checks append to `runs`, so files_after counts their runs. task list prints
+# each task's status from the work registry, or "no item", and runs nothing.
 git:
   - commit: "docs: start"
     files: { README.md: "scratch\n" }
@@ -212,17 +216,19 @@ cases:
     argv: [task, list]
     exit: 0
     stdout: |
-      T-001  1   build    Checks that pass
-      T-002  1   ci       A check that fails
-      T-003  1   docs     Reviewed by hand
-      T-004  2   ci       Waits on the push
-      T-005  2   test     A check past its timeout
+      no item  T-001  1   build    Checks that pass
+      no item  T-002  1   ci       A check that fails
+      no item  T-003  1   docs     Reviewed by hand
+      no item  T-004  2   ci       Waits on the push
+      no item  T-005  2   test     A check past its timeout
+    stderr: |
+      No work registry at tasks/work-items.yaml, so no task has an item.
   - name: task list of a group
     argv: [task, list, --group, "2"]
     exit: 0
     stdout: |
-      T-004  2   ci       Waits on the push
-      T-005  2   test     A check past its timeout
+      no item  T-004  2   ci       Waits on the push
+      no item  T-005  2   test     A check past its timeout
   - name: task list --json
     argv: [task, list, --json]
     exit: 0
@@ -234,26 +240,200 @@ cases:
           title: Checks that pass
           group: 1
           checks: 2
+          status: null
         - id: T-002
           type: ci
           title: A check that fails
           group: 1
           checks: 3
+          status: null
         - id: T-003
           type: docs
           title: Reviewed by hand
           group: 1
           checks: 0
+          status: null
         - id: T-004
           type: ci
           title: Waits on the push
           group: 2
           checks: 2
+          status: null
         - id: T-005
           type: test
           title: A check past its timeout
           group: 2
           checks: 1
+          status: null
+  - name: task list with the work registry's statuses, running no check
+    argv: [task, list]
+    files:
+      tasks/work-items.yaml: |
+        phases: { 1: null, 2: null }
+        items:
+          - { id: T-001, title: One, phase: 1, owner: null, status: doing, depends_on: [] }
+          - { id: T-004, title: Four, phase: 2, owner: null, status: done, depends_on: [] }
+          - { id: W-1, title: Not a task, phase: 1, owner: null, status: todo, depends_on: [] }
+      tasks/phase-1.yaml: |
+        - id: T-001
+          type: build
+          title: Counts its runs
+          done_when:
+            - run: sh -c 'echo ran >> runs'
+    exit: 0
+    stdout: |
+      doing    T-001  1   build    Counts its runs
+      done     T-004  2   ci       Waits on the push
+      no item  T-005  2   test     A check past its timeout
+    stderr: ""
+    files_after:
+      runs: null
+  - name: task list --json with the registry's statuses
+    argv: [task, list, --group, "2", --json]
+    files:
+      tasks/work-items.yaml: |
+        phases: { 2: null }
+        items:
+          - { id: T-004, title: Four, phase: 2, owner: null, status: blocked, depends_on: [] }
+    exit: 0
+    json:
+      schema: 1
+      tasks:
+        - id: T-004
+          type: ci
+          title: Waits on the push
+          group: 2
+          checks: 2
+          status: blocked
+        - id: T-005
+          type: test
+          title: A check past its timeout
+          group: 2
+          checks: 1
+          status: null
+  - name: task list reads the registry work.registry names
+    argv: [task, list, --group, "2"]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger:
+          files: "tasks/phase-{group}.yaml"
+          group: { label: phase, pattern: "\\d+", numeric: true }
+          id: "T-\\d+"
+        commits: { types: [build, ci, docs, test] }
+        work: { registry: plans/items.yaml }
+      plans/items.yaml: "items:\n  - { id: T-005, status: todo }\n"
+    exit: 0
+    stdout: |
+      no item  T-004  2   ci       Waits on the push
+      todo     T-005  2   test     A check past its timeout
+    stderr: ""
+  - name: a check two tasks list runs once, and both read its result
+    argv: [task, --group, "3"]
+    files:
+      tasks/phase-3.yaml: |
+        - id: T-010
+          type: build
+          title: Counts
+          done_when:
+            - run: sh -c 'echo ran >> runs; exit 3'
+        - id: T-011
+          type: build
+          title: Counts too
+          done_when:
+            - run: sh  -c 'echo ran >> runs; exit 3'
+    exit: 1
+    stdout: |
+
+      failing  T-010  build    Counts
+      failing  T-011  build    Counts too
+    files_after:
+      runs: "ran\n"
+  - name: a command one task runs and another must fail runs once, each reading it its way
+    argv: [task, T-010, T-011]
+    files:
+      tasks/phase-3.yaml: |
+        - id: T-010
+          type: build
+          title: Must pass
+          done_when:
+            - run: sh -c 'echo ran >> runs; exit 3'
+        - id: T-011
+          type: build
+          title: Must fail
+          done_when:
+            - fails: sh -c 'echo ran >> runs; exit 3'
+    exit: 1
+    stdout: |
+
+      failing  T-010  build    Must pass
+      done     T-011  build    Must fail
+    files_after:
+      runs: "ran\n"
+  - name: the same command with another timeout is another check
+    argv: [task, --group, "3"]
+    files:
+      tasks/phase-3.yaml: |
+        - id: T-010
+          type: build
+          title: Counts
+          done_when:
+            - run: sh -c 'echo ran >> runs'
+        - id: T-011
+          type: build
+          title: Counts with its own timeout
+          done_when:
+            - run: sh -c 'echo ran >> runs'
+              timeout: 30
+        - id: T-012
+          type: build
+          title: The ledger's timeout written out
+          done_when:
+            - run: sh -c 'echo ran >> runs'
+              timeout: 600
+    exit: 0
+    stdout: |
+
+      done     T-010  build    Counts
+      done     T-011  build    Counts with its own timeout
+      done     T-012  build    The ledger's timeout written out
+    files_after:
+      runs: "ran\nran\n"
+  - name: one task listing a check twice runs it once and says the second is reused
+    argv: [task, T-010]
+    files:
+      tasks/phase-3.yaml: |
+        - id: T-010
+          type: build
+          title: Lists a check twice
+          done_when:
+            - run: sh -c 'echo ran >> runs; echo out'
+            - fails: sh -c 'echo ran >> runs; echo out'
+    exit: 1
+    stdout: |
+
+      T-010 Lists a check twice
+        $ sh -c 'echo ran >> runs; echo out'
+      out
+        $ sh -c 'echo ran >> runs; echo out'   (must fail)   (ran above; its exit status reused)
+
+      failing  T-010  build    Lists a check twice
+    files_after:
+      runs: "ran\n"
+  - name: an after push check waits though another task ran its command
+    argv: [task, T-001, T-004]
+    files:
+      tasks/phase-1.yaml: |
+        - id: T-001
+          type: build
+          title: Runs what T-004 waits on
+          done_when:
+            - run: echo pushed
+    exit: 0
+    stdout: |
+
+      done     T-001  build    Runs what T-004 waits on
+      pending  T-004  ci       Waits on the push
   - name: a ledger whose groups are names
     argv: [task, list]
     files:
@@ -262,8 +442,8 @@ cases:
       work/beta.yaml: "- { id: B-1, type: build, title: Second }\n"
     exit: 0
     stdout: |
-      A-1  alpha build    First
-      B-1  beta build    Second
+      no item  A-1  alpha build    First
+      no item  B-1  beta build    Second
   - name: a group by its name
     argv: [task, --group, beta]
     files:

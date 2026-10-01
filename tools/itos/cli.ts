@@ -1,17 +1,32 @@
 // The task runner: `itos task <id>… | --group <g> [--skip <ids>] | --pending`
 // and `itos task list` (main.ts dispatches them).
-import { runCheck } from "./checks.ts";
+//
+// One invocation runs each distinct check once: two checks are the same when
+// they have the same command and the same timeout (checks.ts). The first task
+// that lists it runs it, and every later task reads that exit status by its
+// own `run:` or `fails:`; an `after: push` check is pending before the push,
+// as always. The runs last for the invocation alone. A known limit, accepted:
+// a check that would need a fresh run because a check above it in its own
+// task changed the tree reads the earlier result instead.
+import { type Runs, runCheck } from "./checks.ts";
 import { ledgerLayout, section } from "./config.ts";
 import { emit, type Output, TEXT } from "./problem.ts";
+import { current } from "./source.ts";
 import { loadTasks, type Task } from "./repo.ts";
+import { itemStatuses, registryPath } from "./work.ts";
 
 type Status = "done" | "pending" | "failing" | "review";
 type Result = "pass" | "fail" | "pending";
 
-function runTask(task: Task, verbose: boolean, out: Output): { status: Status; results: Result[] } {
+function runTask(
+	task: Task,
+	verbose: boolean,
+	out: Output,
+	runs: Runs,
+): { status: Status; results: Result[] } {
 	if (task.done_when.length === 0) return { status: "review", results: [] };
 	if (verbose) (out.json ? console.error : console.log)(`\n${task.id} ${task.title}`);
-	const results = task.done_when.map((c) => runCheck(c, verbose, out.json));
+	const results = task.done_when.map((c) => runCheck(c, verbose, out.json, runs));
 	const status = results.includes("fail")
 		? "failing"
 		: results.includes("pending")
@@ -49,8 +64,8 @@ function unknownIds(args: string[], tasks: Task[]): string[] {
 	return args.filter((a) => pattern.test(a) && !values.has(a) && !tasks.some((t) => t.id === a));
 }
 
-// `task <id>…`: runs the tasks' checks in written order, verbose for one task,
-// and prints the status table. 1 when a check fails or an ID is unknown, 2
+// `task <id>…`: runs the tasks' checks in written order, each distinct check
+// once, verbose for one task, and prints the status table. 1 when a check fails or an ID is unknown, 2
 // when nothing matches.
 export function runTasks(args: string[], { out = TEXT }: TaskOptions = {}): number {
 	const tasks = loadTasks();
@@ -65,7 +80,8 @@ export function runTasks(args: string[], { out = TEXT }: TaskOptions = {}): numb
 		return 2;
 	}
 	const verbose = selected.length === 1;
-	const rows = selected.map((t) => ({ task: t, ...runTask(t, verbose, out) }));
+	const runs: Runs = new Map();
+	const rows = selected.map((t) => ({ task: t, ...runTask(t, verbose, out, runs) }));
 	const shown = args.includes("--pending") ? rows.filter((r) => r.status !== "done") : rows;
 	if (out.json)
 		emit({
@@ -90,10 +106,16 @@ export function runTasks(args: string[], { out = TEXT }: TaskOptions = {}): numb
 	return rows.some((r) => r.status === "failing") ? 1 : 0;
 }
 
-// `task list [--group <g>]`: the tasks, running nothing.
+// `task list [--group <g>]`: the tasks, each with its work item's status in
+// the registry (the item whose id is the task's), or "no item"; it runs
+// nothing. With no registry where itos looks, it says so, naming the path.
 export function listTasks(args: string[], out: Output = TEXT): number {
 	const group = flag(args, "--group") ?? flag(args, "--phase");
 	const tasks = loadTasks().filter((t) => group === undefined || t.phase === groupOf(group));
+	const registry = registryPath();
+	if (!current().has(registry))
+		console.error(`No work registry at ${registry}, so no task has an item.`);
+	const statuses = itemStatuses(registry);
 	if (out.json)
 		emit({
 			tasks: tasks.map((t) => ({
@@ -102,10 +124,15 @@ export function listTasks(args: string[], out: Output = TEXT): number {
 				title: t.title,
 				group: t.phase,
 				checks: t.done_when.length,
+				status: statuses.get(t.id) ?? null,
 			})),
 		});
 	else
-		for (const t of tasks)
-			console.log(`${t.id}  ${String(t.phase).padEnd(3)} ${t.type.padEnd(8)} ${t.title}`);
+		for (const t of tasks) {
+			const status = statuses.get(t.id) ?? "no item";
+			console.log(
+				`${status.padEnd(8)} ${t.id}  ${String(t.phase).padEnd(3)} ${t.type.padEnd(8)} ${t.title}`,
+			);
+		}
 	return 0;
 }

@@ -21,7 +21,7 @@ Usage: itos <command> [args] [global flags]
 
 Commands:
   task <id>…                       run the tasks' checks; the status table
-  task list [--group <g>]          list the tasks, running nothing
+  task list [--group <g>]          the tasks and their work items' status; runs nothing
   work [--as <handle>]             what the person can start, and what waits
   work check [<file>]              validate the work registry
   commit check-message <file|->    header lint and footer rules on one message
@@ -55,16 +55,19 @@ ${EXIT}`,
 Runs each task's done_when checks in written order: verbose (each command and
 its output) for one task, then one status line per task: done, pending (a check
 waits on the push), failing or review (no checks). --pending shows the tasks
-not done. Exit 1 when a check fails or an ID is not in the ledger, 2 when
-nothing matches.
+not done. A check that more than one task lists (the same command and timeout)
+runs once, and each task reads its exit status by its own run: or fails:.
+Exit 1 when a check fails or an ID is not in the ledger, 2 when nothing matches.
 
 --json: {"schema":1,"tasks":[{"id","type","title","group","status","checks":[{"command","fails"?,"result"}]}]}`,
 
 	"task list": `Usage: itos task list [--group <g>]
 
-Lists the ledger's tasks (id, group, type, title) without running anything.
+Lists the ledger's tasks (status, id, group, type, title) without running any
+check. The status is the task's work item's in the work registry (the item
+whose id is the task's), or "no item".
 
---json: {"schema":1,"tasks":[{"id","type","title","group","checks"}]}`,
+--json: {"schema":1,"tasks":[{"id","type","title","group","checks","status"}]}`,
 
 	work: `Usage: itos work [--as <handle>]
        itos work check [<file>]

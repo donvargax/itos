@@ -12,6 +12,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/cucumber/godog"
@@ -26,6 +28,7 @@ type world struct {
 	config        scratchConfig
 	commits       []string          // the scratch repository's commits, oldest first
 	scenarioFiles map[string]string // each scenario ID written, to its feature file
+	ledger        []ledgerTask      // the tasks of tasks/phase-1.yaml, in order
 
 	exit           int
 	stdout, stderr string
@@ -53,6 +56,12 @@ type scratchConfig struct {
 	settings          []setting
 }
 
+// One task of the scratch ledger: its ID and its checks, each written as YAML.
+type ledgerTask struct {
+	id     string
+	checks []string
+}
+
 // One key the scenario sets by its dotted path, to a string. A key under
 // ledger or commits goes into that section; any other starts a section of its
 // own, so it may not be one the config already writes.
@@ -71,7 +80,12 @@ func initializeScenario(sc *godog.ScenarioContext) {
 
 	sc.Step(`^a repository made from a template, its first commit "([^"]*)"$`, w.templateRepository)
 	sc.Step(`^the commit "([^"]*)" on top of it$`, w.commitOnTop)
-	sc.Step(`^a repository whose ledger has the task "([^"]*)"$`, w.repositoryWithTask)
+	sc.Step(`^a repository whose ledger has the task "([^"]*)"$`, func(task string) error {
+		return w.repositoryWithTask(task)
+	})
+	sc.Step(`^a repository whose ledger has the tasks "([^"]*)" and "([^"]*)"$`, func(a, b string) error {
+		return w.repositoryWithTask(a, b)
+	})
 	sc.Step(`^a change to "([^"]*)" is staged$`, w.stageChange)
 	sc.Step(`^the header lint is commitlint's conventional config$`, w.conventionalHeaderLint)
 	sc.Step(`^commits\.since names the first commit$`, w.sinceFirstCommit)
@@ -101,6 +115,15 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the task "([^"]*)" has the late check "([^"]*)" then a static check that records it ran$`, func(task, check string) error {
 		return w.stagedChecks(task, fmt.Sprintf("{ run: %q, cost: late }", check), staticCheck(recordingCheck))
 	})
+	sc.Step(`^the tasks "([^"]*)" and "([^"]*)" each have the counting check$`, func(a, b string) error {
+		if err := w.stagedChecks(a, countingCheck("run")); err != nil {
+			return err
+		}
+		return w.stagedChecks(b, countingCheck("run"))
+	})
+	sc.Step(`^the task "([^"]*)" has the counting check as (run|fails)$`, func(task, mode string) error {
+		return w.stagedChecks(task, countingCheck(mode))
+	})
 	sc.Step(`^hooks\.commit_msg\.task_checks is (true|false)$`, w.taskChecksAre)
 	sc.Step(`^hooks\.commit_msg\.check_timeout is (\d+)$`, w.checkTimeoutIs)
 	sc.Step(`^work\.statuses is "([^"]*)"$`, w.statusesAre)
@@ -125,6 +148,12 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^itos checks the smoke set$`, func() error { return w.itos("tests", "smoke", "check", "scenario") })
 	sc.Step(`^itos installs the hooks$`, func() error { return w.itos("hooks", "install") })
 	sc.Step(`^itos runs the task "([^"]*)"$`, func(task string) error { return w.itos("task", task) })
+	sc.Step(`^itos runs the tasks "([^"]*)" and "([^"]*)"$`, func(a, b string) error { return w.itos("task", a, b) })
+	sc.Step(`^itos runs the pending tasks$`, func() error { return w.itos("task", "--pending") })
+	sc.Step(`^itos runs the tasks of the group "([^"]*)"$`, func(group string) error {
+		return w.itos("task", "--group", group)
+	})
+	sc.Step(`^itos lists the tasks$`, func() error { return w.itos("task", "list") })
 	sc.Step(`^itos runs CI over every commit up to HEAD$`, func() error { return w.itos("ci", "run", "", "HEAD") })
 	sc.Step(`^the commit-msg hook checks the message "([^"]*)"$`, w.commitMsgHook)
 	sc.Step(`^the commit-msg hook checks the message:$`, func(message *godog.DocString) error {
@@ -134,6 +163,8 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^itos exits with code (\d+)$`, w.exitsWith)
 	sc.Step(`^its output says "([^"]*)"$`, w.outputSays)
 	sc.Step(`^its output names the rule "([^"]*)"$`, w.outputNamesRule)
+	sc.Step(`^its output lists "([^"]*)" as "([^"]*)"$`, w.outputLists)
+	sc.Step(`^the counting check ran once$`, func() error { return w.countingCheckRan(1) })
 	sc.Step(`^the range check started at the first commit$`, w.rangeCheckStartedAtFirst)
 	sc.Step(`^the recording shell ran "([^"]*)"$`, w.recordingShellRan)
 	sc.Step(`^the recording shell ran the range check$`, w.recordingShellRanRangeCheck)
@@ -400,10 +431,15 @@ func nested(path []string, value string, depth int) string {
 const startingRegistry = "tasks/work-items.yaml"
 
 // The files every scratch repository starts with: its config, a ledger with
-// one task, an empty work registry, its people and a README.
-func (w *world) startingFiles(task string) error {
+// the tasks, none with a check, an empty work registry, its people and a
+// README.
+func (w *world) startingFiles(tasks ...string) error {
+	w.ledger = nil
+	for _, id := range tasks {
+		w.ledger = append(w.ledger, ledgerTask{id: id})
+	}
 	files := map[string]string{
-		"tasks/phase-1.yaml": fmt.Sprintf("- { id: %s, type: chore, title: Tidy }\n", task),
+		"tasks/phase-1.yaml": w.ledgerText(),
 		startingRegistry:     "phases: {}\nitems: []\n",
 		"people.yaml":        "- someone\n",
 		"README.md":          "# Scratch\n",
@@ -414,6 +450,23 @@ func (w *world) startingFiles(task string) error {
 		}
 	}
 	return w.writeConfig()
+}
+
+// Each task's title, by its place in the ledger, so that no title is a word a
+// status line could be read as.
+var taskTitles = []string{"Tidy", "Sweep", "Dust"}
+
+// The scratch ledger, tasks/phase-1.yaml: one line a task, with its checks.
+func (w *world) ledgerText() string {
+	var b strings.Builder
+	for i, task := range w.ledger {
+		fmt.Fprintf(&b, "- { id: %s, type: chore, title: %s", task.id, taskTitles[i%len(taskTitles)])
+		if len(task.checks) > 0 {
+			fmt.Fprintf(&b, ", done_when: [%s]", strings.Join(task.checks, ", "))
+		}
+		b.WriteString(" }\n")
+	}
+	return b.String()
 }
 
 // Given steps.
@@ -433,11 +486,11 @@ func (w *world) commitOnTop(message string) error {
 	return w.commit(message)
 }
 
-func (w *world) repositoryWithTask(task string) error {
-	if err := w.startingFiles(task); err != nil {
+func (w *world) repositoryWithTask(tasks ...string) error {
+	if err := w.startingFiles(tasks...); err != nil {
 		return err
 	}
-	return w.commit("chore: start\n\nTask: " + task + "\n")
+	return w.commit("chore: start\n\nTask: " + strings.Join(tasks, " ") + "\n")
 }
 
 func (w *world) stageChange(path string) error {
@@ -488,7 +541,7 @@ func (w *world) recordingShell() error {
 	return w.writeConfig()
 }
 
-// The ledger's one task, with one check and no cost: of its own, staged: the
+// The ledger's task, with one check and no cost: of its own, staged: the
 // commit-msg hook reads the ledger as the commit will hold it, and itos task
 // reads the working tree, which holds the same.
 func (w *world) taskHasCheck(task, check string) error {
@@ -515,15 +568,31 @@ const recordingCheckFile = "check-ran"
 
 var recordingCheck = "printf 'ran\\n' > " + recordingCheckFile
 
+// The file, in the scratch repository, that the counting check appends a line
+// to each time it runs.
+const countingCheckFile = "check-runs"
+
+// The counting check, in the mode given (run or fails): it appends a line to
+// its file, then exits 3, so it fails as a run: and passes as a fails:.
+func countingCheck(mode string) string {
+	return fmt.Sprintf("{ %s: %q }", mode, "printf 'ran\\n' >> "+countingCheckFile+"; exit 3")
+}
+
 // A check of the ledger's that says cost: static, which its command alone
 // would not make it, as the scratch config has no static patterns.
 func staticCheck(command string) string { return fmt.Sprintf("{ run: %q, cost: static }", command) }
 
-// The ledger's one task with these checks, staged: the commit-msg hook reads
-// the ledger as the commit will hold it.
+// The ledger's task with these checks, its other tasks as they were, staged:
+// the commit-msg hook reads the ledger as the commit will hold it. A task the
+// ledger does not have is added after the others.
 func (w *world) stagedChecks(task string, checks ...string) error {
-	if err := w.write("tasks/phase-1.yaml", fmt.Sprintf(
-		"- { id: %s, type: chore, title: Tidy, done_when: [%s] }\n", task, strings.Join(checks, ", "))); err != nil {
+	i := slices.IndexFunc(w.ledger, func(t ledgerTask) bool { return t.id == task })
+	if i < 0 {
+		w.ledger = append(w.ledger, ledgerTask{id: task})
+		i = len(w.ledger) - 1
+	}
+	w.ledger[i].checks = checks
+	if err := w.write("tasks/phase-1.yaml", w.ledgerText()); err != nil {
 		return err
 	}
 	return w.git("add", "--", "tasks/phase-1.yaml")
@@ -757,6 +826,30 @@ func (w *world) outputSays(text string) error {
 func (w *world) outputNamesRule(rule string) error {
 	if !strings.Contains(w.output(), "["+rule+"]") {
 		return fmt.Errorf("the output does not name the rule [%s]\n%s", rule, w.report())
+	}
+	return nil
+}
+
+// A line of the output names the task, as a word of its own, and gives it the
+// status, as whole words: the status table's line for the task.
+func (w *world) outputLists(task, status string) error {
+	word := regexp.MustCompile(`(^|\s)` + regexp.QuoteMeta(status) + `(\s|$)`)
+	for _, line := range strings.Split(w.output(), "\n") {
+		if slices.Contains(strings.Fields(line), task) && word.MatchString(line) {
+			return nil
+		}
+	}
+	return fmt.Errorf("the output does not list %s as %q\n%s", task, status, w.report())
+}
+
+// The counting check's file has one line a run.
+func (w *world) countingCheckRan(times int) error {
+	text, err := os.ReadFile(filepath.Join(w.dir, countingCheckFile))
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if runs := strings.Count(string(text), "\n"); runs != times {
+		return fmt.Errorf("the counting check ran %d times, not %d\n%s", runs, times, w.report())
 	}
 	return nil
 }

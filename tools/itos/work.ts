@@ -69,17 +69,22 @@ export function load(path = registryPath(), source: PeopleConfig = peopleSource(
 	};
 }
 
-// One item's status, from the registry where itos reads its data now
-// (source.ts); undefined when the registry, or the item, is not there or the
-// registry cannot be read.
-export function itemStatus(id: string, path = registryPath()): string | undefined {
+// Each item's status by its id, from the registry where itos reads its data
+// now (source.ts); none when the registry is not there or cannot be read.
+export function itemStatuses(path = registryPath()): Map<string, string> {
 	try {
 		const raw = parse(current().read(path)) as Partial<Registry> | null;
-		return raw?.items?.find((item) => item.id === id)?.status;
+		// The first item of an id wins, as a duplicate is a registry problem.
+		return new Map((raw?.items ?? []).toReversed().map((item) => [item.id, item.status]));
 	} catch {
-		return undefined;
+		return new Map();
 	}
 }
+
+// One item's status; undefined when the registry, or the item, is not there or
+// the registry cannot be read.
+export const itemStatus = (id: string, path = registryPath()): string | undefined =>
+	itemStatuses(path).get(id);
 
 const text = (value: unknown) => typeof value === "string" && value.trim() !== "";
 

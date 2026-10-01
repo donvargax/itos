@@ -3,7 +3,7 @@
 import { closeSync, mkdtempSync, openSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { config } from "./config.ts";
+import { config, normal } from "./config.ts";
 import { git, type Check } from "./repo.ts";
 import { inShell } from "./shell.ts";
 
@@ -20,18 +20,36 @@ function pushed(): boolean {
 // A check's own timeout, in seconds: its `timeout:`, else the ledger's.
 const timeoutOf = (check: Check) => check.timeout ?? config().ledger?.check?.timeout ?? 600;
 
+// One invocation's runs, so that a check several tasks list runs once: each
+// distinct check's exit status, 0 or not, by its key. Kept for one
+// invocation only; nothing is cached across runs.
+export type Runs = Map<string, boolean>;
+
+// What makes two checks the same check: the same command, its whitespace
+// collapsed as the config's patterns read it, and the same timeout. Whether it
+// must pass or fail is not part of it: each task reads the one exit status by
+// its own `run:` or `fails:`.
+const runKey = (check: Check) => `${normal(check.run ?? check.fails!)}\0${timeoutOf(check)}`;
+
 // `toStderr`: a verbose check's command line and output go to stderr, so that
-// `--json` keeps stdout for its one object.
-export function runCheck(check: Check, verbose: boolean, toStderr = false): Result {
+// `--json` keeps stdout for its one object. `runs`: the invocation's runs
+// so far; a check already in it is not run again, and its command line, when
+// verbose, says so.
+export function runCheck(check: Check, verbose: boolean, toStderr = false, runs?: Runs): Result {
 	if (check.after === "push" && !pushed()) return "pending";
 	const command = check.run ?? check.fails!;
-	const line = `  $ ${command}${check.fails ? "   (must fail)" : ""}`;
-	if (verbose) (toStderr ? console.error : console.log)(line);
-	const result = inShell(command, {
-		stdio: verbose ? ["inherit", toStderr ? 2 : "inherit", "inherit"] : "ignore",
-		timeout: timeoutOf(check) * 1000,
-	});
-	const ok = result.status === 0;
+	const key = runKey(check);
+	const reused = runs?.get(key);
+	const mode = check.fails ? "   (must fail)" : "";
+	const note = reused === undefined ? "" : "   (ran above; its exit status reused)";
+	if (verbose) (toStderr ? console.error : console.log)(`  $ ${command}${mode}${note}`);
+	const run = () =>
+		inShell(command, {
+			stdio: verbose ? ["inherit", toStderr ? 2 : "inherit", "inherit"] : "ignore",
+			timeout: timeoutOf(check) * 1000,
+		}).status === 0;
+	const ok = reused ?? run();
+	runs?.set(key, ok);
 	return ok === !check.fails ? "pass" : "fail";
 }
 
