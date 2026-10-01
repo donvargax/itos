@@ -17,12 +17,11 @@ import {
 	type Plan,
 	type PlanData,
 	type PlannedCheck,
+	planSmoke,
 } from "./ci-plan.ts";
 import { readable } from "./ci-scope.ts";
-import { smokeIds } from "./e2e-scope.ts";
 import { ledgerLayout, section } from "./config.ts";
 import { git, loadTasks } from "./repo.ts";
-import { loadSmoke } from "./smoke.ts";
 
 export interface RangeJson {
 	from: string;
@@ -89,7 +88,7 @@ export function planJson(plan: Plan, range: RangeJson) {
 // files are not read by the plan; the config is always the working tree's.
 export async function planData(at?: string): Promise<PlanData> {
 	const registry = section("work").registry ?? "docs/work-items.yaml";
-	if (!at) return { tasks: loadTasks(), todo: notStartedIn(registry), smoke: smokeIds() };
+	if (!at) return { tasks: loadTasks(), todo: notStartedIn(registry), smoke: planSmoke() };
 	const dir = mkdtempSync(join(tmpdir(), "plan-data-"));
 	const ledger = ledgerLayout();
 	try {
@@ -107,7 +106,7 @@ export async function planData(at?: string): Promise<PlanData> {
 		return {
 			tasks: loadTasks(join(dir, ledger.dir)),
 			todo: notStartedIn(join(dir, registry)),
-			smoke: smokeIds(loadSmoke("scenario", { at })),
+			smoke: planSmoke(at),
 		};
 	} finally {
 		rmSync(dir, { recursive: true, force: true });

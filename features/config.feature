@@ -11,7 +11,7 @@ Feature: Every key the config accepts is one itos reads
 
   # The recording shell is a script that appends each command it is given to a
   # file, then runs it with sh -c: what it recorded is what went through it.
-  @ID-CONFIG-01 @slice-3 @wip
+  @ID-CONFIG-01 @slice-3
   Scenario: A task's check runs through the shell the config names
     Given the config's shell is the recording shell
     And the task "T-001" has the check "exit 0"
@@ -19,7 +19,7 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 0
     And the recording shell ran "exit 0"
 
-  @ID-CONFIG-02 @slice-3 @wip
+  @ID-CONFIG-02 @slice-3
   Scenario: A CI step runs through the shell the config names
     Given the config's shell is the recording shell
     And the CI steps are "exit 0"
@@ -27,7 +27,7 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 0
     And the recording shell ran "exit 0"
 
-  @ID-CONFIG-03 @slice-3 @wip
+  @ID-CONFIG-03 @slice-3
   Scenario: The header lint's delegate runs through the shell the config names
     Given the config's shell is the recording shell
     And the header lint is the command "exit 0"
@@ -36,7 +36,7 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 0
     And the recording shell ran "exit 0"
 
-  @ID-CONFIG-04 @slice-3 @wip
+  @ID-CONFIG-04 @slice-3
   Scenario: A range check runs through the shell the config names
     Given the config's shell is the recording shell
     And a range check that records where its range starts
@@ -45,7 +45,7 @@ Feature: Every key the config accepts is one itos reads
     Then the recording shell ran the range check
 
   # The second step writes a file, so whether it ran is read from the tree.
-  @ID-CONFIG-05 @slice-3 @wip
+  @ID-CONFIG-05 @slice-3
   Scenario: CI stops at the first failing step by default
     Given the CI steps are "exit 3" then a step that records it ran
     When itos runs CI over every commit up to HEAD
@@ -53,7 +53,7 @@ Feature: Every key the config accepts is one itos reads
     And its output says "CI failed at: exit 3"
     And the recording step did not run
 
-  @ID-CONFIG-06 @slice-3 @wip
+  @ID-CONFIG-06 @slice-3
   Scenario: CI goes on past a failing step when ci.stop_at_first_failure is false, and still fails
     Given the CI steps are "exit 3" then a step that records it ran
     And ci.stop_at_first_failure is false

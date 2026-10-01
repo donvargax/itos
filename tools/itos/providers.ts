@@ -13,16 +13,16 @@
 // Every provider answers or says it cannot; none of them throws for a lookup
 // that fails, since a failed range lookup means "run everything" and a failed
 // identity means "nobody".
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 import { config, type IdentityConfig, type PeopleConfig, type RangeConfig } from "./config.ts";
+import { inShell } from "./shell.ts";
 
 // A command run through the config's shell, and its trimmed first line of
 // output; undefined when it fails or prints nothing.
 function firstLine(command: string): string | undefined {
-	const [shell = "sh", ...flags] = config().shell ?? ["sh", "-c"];
-	const run = spawnSync(shell, [...flags, command], {
+	const run = inShell(command, {
 		encoding: "utf8",
 		stdio: ["ignore", "pipe", "inherit"],
 	});

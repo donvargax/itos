@@ -42,6 +42,7 @@ import {
 	testsNamedIn,
 } from "./ci-scope.ts";
 import { smokeIds } from "./e2e-scope.ts";
+import { loadSmoke } from "./smoke.ts";
 import { type Cost, config, matchesStatic, normal, section } from "./config.ts";
 import { type Check, loadTasks, type Task } from "./repo.ts";
 import { commandFor, recognize, type Selection } from "./tests.ts";
@@ -74,6 +75,12 @@ export const costOf = (command: string, own?: Cost): Costed =>
 // The kind of named tests CI's `tests:` step runs, which a push narrows to a
 // selection, if it has one.
 const testsKind = () => ciSteps().find((step) => step.tests)?.tests;
+// That kind's smoke set, in the working tree or at a commit; none when no step
+// runs named tests, so a CI without them needs no kind and no smoke set.
+export const planSmoke = (at?: string): string[] => {
+	const kind = testsKind();
+	return kind ? smokeIds(loadSmoke(kind, { at }), kind) : [];
+};
 // Checks a push leaves to the nightly, which runs them after the whole suite.
 const nightlyOnly = () => section("ci").nightly_only ?? [];
 
@@ -207,7 +214,7 @@ export function ciPlan({
 	scenarios = [],
 	tasks = [],
 	nightly = false,
-	smoke = smokeIds(),
+	smoke = planSmoke(),
 }: PlanInput): Plan {
 	const base = { prose, tasks: tasks.map((t) => t.id), leftOut: [], unknown: [] };
 	const costed = (step: Step) => ({ step: step.command, ...costOf(step.command, step.cost) });
@@ -249,7 +256,7 @@ export const planFor = (
 	root?: string,
 	registry = section("work").registry ?? "docs/work-items.yaml",
 ): Plan =>
-	planWith(from, to, { tasks: loadTasks(root), todo: notStartedIn(registry), smoke: smokeIds() });
+	planWith(from, to, { tasks: loadTasks(root), todo: notStartedIn(registry), smoke: planSmoke() });
 
 // What a plan reads besides the range's commits: the ledger, the registry's
 // `todo` items and the smoke set. ci-plan-json.ts reads them at another

@@ -7,18 +7,17 @@
 // and its ancestors, are left out, and the range checks start there: a
 // history written before the rules (a template's squashed first commit, a
 // project adopting itos) is not judged by them.
-import { spawnSync } from "node:child_process";
 import { messageHoldsAt } from "./commit.ts";
 import { checkPaths } from "./commit-scope.ts";
 import { config } from "./config.ts";
 import { emit, type Output, TEXT } from "./problem.ts";
 import { git, rangeArgs, rangeStartAfterSince, since, sinceIssue } from "./repo.ts";
+import { inShell } from "./shell.ts";
 import { shellWord } from "./tests.ts";
 
 // A range check, its output where the logs go: stderr under `--json`.
 const run = (command: string, out: Output) =>
-	spawnSync("sh", ["-c", command], { stdio: ["ignore", out.json ? 2 : "inherit", "inherit"] })
-		.status === 0;
+	inShell(command, { stdio: ["ignore", out.json ? 2 : "inherit", "inherit"] }).status === 0;
 
 // One commit: its message at that commit, then its paths.
 function verifyCommit(sha: string, out: Output): { sha: string; header: string; ok: boolean } {

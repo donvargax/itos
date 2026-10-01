@@ -28,9 +28,9 @@
 // `ids_pattern`, the patterns deduplicated in order and combined by `join`),
 // and its `recognize` templates read a task check back as a selection (a
 // `{pattern}` is one shell word, quoted or bare; `as: smoke` is the smoke set).
-import { spawnSync } from "node:child_process";
 import { config, ConfigError, configPath } from "./config.ts";
 import { gherkinList } from "./gherkin.ts";
+import { inShell } from "./shell.ts";
 
 export interface NamedTest {
 	id: string;
@@ -120,8 +120,7 @@ export function listTests(
 
 // A command adapter's list, held to the protocol.
 function commandList(name: string, command: string, at: string): TestList {
-	const [shell = "sh", ...flags] = config().shell ?? ["sh", "-c"];
-	const run = spawnSync(shell, [...flags, `${command} list --at ${shellWord(at)}`], {
+	const run = inShell(`${command} list --at ${shellWord(at)}`, {
 		encoding: "utf8",
 		maxBuffer: 64 * 1024 * 1024,
 	});

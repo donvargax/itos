@@ -5,11 +5,11 @@
 // scenario-moves.ts). `itos hook commit-msg` (hooks.ts) runs them before the
 // header lint; `itos commit check-paths` runs the path rules alone, for
 // planning a split.
-import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { config, matchesAny as matches, section } from "./config.ts";
 import { emit, type Output, problem, type Problem, TEXT } from "./problem.ts";
 import { stagedFiles } from "./repo.ts";
+import { inShell } from "./shell.ts";
 import { shellWord } from "./tests.ts";
 
 // The rules come from itos.yaml: `commits.scopes`, whose `$config`
@@ -77,7 +77,7 @@ const stagedChecks = (type: string) =>
 // fails without one is a problem too.
 function stagedCheckIssues(check: RangeCheck, type: string): Problem[] {
 	const command = check.staged!.replaceAll("{type}", shellWord(type));
-	const run = spawnSync("sh", ["-c", command], { encoding: "utf8", stdio: "pipe" });
+	const run = inShell(command, { encoding: "utf8", stdio: "pipe" });
 	if (run.status === 0) return [];
 	const lines = run.stderr.split("\n").flatMap((l) => /^\s+- (.*\S)/.exec(l)?.slice(1) ?? []);
 	if (lines.length === 0)

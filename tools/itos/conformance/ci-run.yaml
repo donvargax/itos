@@ -172,6 +172,132 @@ cases:
     stderr: |
 
       CI failed at: sh -c 'echo tests fail; exit 3'
+  - name: with ci.stop_at_first_failure false every step and check runs, and the first failure is the run's
+    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}"]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps:
+            - { run: echo lint, cost: static }
+            - { run: "sh -c 'echo tests fail; exit 3'", cost: late }
+            - { run: echo still runs, cost: late }
+          stop_at_first_failure: false
+        tests:
+          scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: e2e/smoke.yaml } }
+        work: { registry: docs/work-items.yaml }
+    exit: 3
+    stdout: |
+
+      $ echo lint
+      lint
+
+      $ sh -c 'echo tests fail; exit 3'
+      tests fail
+
+      $ echo still runs
+      still runs
+
+      T-011
+        $ echo first
+      first
+
+      T-011
+        $ sh -c 'echo broken; exit 4'
+      broken
+
+      T-011
+        $ echo never
+      never
+    stderr: |
+
+      CI failed at: sh -c 'echo tests fail; exit 3'
+
+      CI failed at T-011's check: sh -c 'echo broken; exit 4'
+  - name: the same as --json, its verdict the first failure
+    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps:
+            - { run: echo lint, cost: static }
+            - { run: "sh -c 'echo tests fail; exit 3'", cost: late }
+            - { run: echo still runs, cost: late }
+          stop_at_first_failure: false
+        tests:
+          scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: e2e/smoke.yaml } }
+        work: { registry: docs/work-items.yaml }
+    exit: 3
+    json:
+      schema: 1
+      ok: false
+      failed_at:
+        step: sh -c 'echo tests fail; exit 3'
+        code: 3
+  - name: a CI with no tests step reads no kind of named tests and no smoke set
+    argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}"]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps: [echo lint]
+        work: { registry: docs/work-items.yaml }
+    exit: 0
+    stdout: |
+      T-040 is named but not started (todo in docs/work-items.yaml): its checks wait.
+
+      $ echo lint
+      lint
+
+      CI passed
+  - name: a step and a check run through the config's shell
+    argv: [ci, run, "{{sha.every}}", "{{sha.failing}}"]
+    files:
+      itos.yaml: |
+        version: 1
+        shell: [sh, -c, 'echo "through the shell: $1"; eval "$1"', sh]
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps:
+            - { run: echo lint, cost: static }
+        tests:
+          scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: e2e/smoke.yaml } }
+        work: { registry: docs/work-items.yaml }
+    exit: 1
+    stdout: |
+
+      $ echo lint
+      through the shell: echo lint
+      lint
+
+      T-011
+        $ echo first
+      through the shell: echo first
+      first
+
+      T-011
+        $ sh -c 'echo broken; exit 4'
+      through the shell: sh -c 'echo broken; exit 4'
+      broken
+    stderr: |
+
+      CI failed at T-011's check: sh -c 'echo broken; exit 4'
   - name: a task no task file has fails the run before anything runs
     argv: [ci, run, "{{sha.failing}}", "{{sha.unknown}}"]
     exit: 1

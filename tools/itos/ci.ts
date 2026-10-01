@@ -26,7 +26,6 @@
 //                                    what itos.yaml's `ci.range` provider says
 //                                    if it is an ancestor of the head, else
 //                                    empty (run everything)
-import { spawnSync } from "node:child_process";
 import { ciPlan, commandOf, type Plan, type PlannedCheck, planFor, planWith } from "./ci-plan.ts";
 import { planData, planJson, rangeJson } from "./ci-plan-json.ts";
 import { changedIn, docsOnly, rangeStart } from "./ci-scope.ts";
@@ -34,6 +33,7 @@ import { runCheck } from "./checks.ts";
 import { section } from "./config.ts";
 import { emit, logger, type Output, TEXT } from "./problem.ts";
 import { rangeProvider } from "./providers.ts";
+import { inShell } from "./shell.ts";
 
 // `ci range --head <sha> [--base <sha>]`: where the range starts.
 export async function ciRange(head: string, base: string, out: Output = TEXT): Promise<number> {
@@ -88,7 +88,7 @@ type Failure = { code: number } & (
 // One of the run's steps: its exit code is the run's.
 function runStep(step: string, out: Output): Failure | undefined {
 	logger(out)(`\n$ ${step}`);
-	const { status } = spawnSync("sh", ["-c", step], {
+	const { status } = inShell(step, {
 		stdio: ["inherit", out.json ? 2 : "inherit", "inherit"],
 	});
 	if (status === 0) return undefined;
@@ -134,17 +134,23 @@ function preamble(plan: Plan, out: Output): Failure | undefined {
 
 // `ci run [<from> <to>] | --nightly`: the plan, carried out in cost order.
 // The first failure ends the run, so a static check that fails does so
-// before the unit tests, the build and the run of named tests. A failing step
-// exits with its own code.
+// before the unit tests, the build and the run of named tests; with
+// `ci.stop_at_first_failure: false` every step and check runs, each failure
+// says where, and the first one is the run's. A failing step exits with its
+// own code. Unknown tasks end the run whatever the setting: they name no
+// check to run.
 export function ciRun(from: string, to: string, nightly: boolean, out: Output = TEXT): number {
 	const plan: Plan = nightly ? ciPlan({ known: false, nightly }) : planFor(from, to);
+	const ci = section("ci");
 	// Every step and every task check sees CI's settings (`ci.env`: Playwright's
 	// full report, among others).
-	Object.assign(process.env, section("ci").env ?? {});
+	Object.assign(process.env, ci.env ?? {});
+	const stop = ci.stop_at_first_failure ?? true;
 	let failed = preamble(plan, out);
 	for (const item of plan.order) {
-		if (failed) break;
-		failed = "step" in item ? runStep(item.step, out) : runTaskCheck(item, out);
+		if (failed && (stop || "unknown" in failed)) break;
+		const failure = "step" in item ? runStep(item.step, out) : runTaskCheck(item, out);
+		failed ??= failure;
 	}
 	if (!failed) logger(out)("\nCI passed");
 	if (out.json) emit({ ok: !failed, ...(failed ? { failed_at: failed } : {}) });

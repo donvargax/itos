@@ -1,7 +1,7 @@
 // Running one task check, for the task runner (cli.ts) and for CI (ci.ts).
-import { spawnSync } from "node:child_process";
 import { config } from "./config.ts";
 import { git, type Check } from "./repo.ts";
+import { inShell } from "./shell.ts";
 
 function pushed(): boolean {
 	try {
@@ -22,7 +22,7 @@ export function runCheck(
 	const command = check.run ?? check.fails!;
 	const line = `  $ ${command}${check.fails ? "   (must fail)" : ""}`;
 	if (verbose) (toStderr ? console.error : console.log)(line);
-	const result = spawnSync("sh", ["-c", command], {
+	const result = inShell(command, {
 		stdio: verbose ? ["inherit", toStderr ? 2 : "inherit", "inherit"] : "ignore",
 		timeout: (check.timeout ?? config().ledger?.check?.timeout ?? 600) * 1000,
 	});

@@ -6,6 +6,7 @@
 // (hooks.ts) runs it, with git's lines on stdin.
 import { spawnSync } from "node:child_process";
 import { section } from "./config.ts";
+import { inShell } from "./shell.ts";
 
 const ZERO = /^0+$/;
 const known = (sha: string) => spawnSync("git", ["cat-file", "-e", `${sha}^{commit}`]).status === 0;
@@ -28,7 +29,7 @@ export function pushBases(input: string): { bases: string[]; whole: boolean } {
 
 const run = (command: string) => {
 	console.log(`$ ${command}`);
-	return spawnSync("sh", ["-c", command], { stdio: "inherit" }).status === 0;
+	return inShell(command, { stdio: "inherit" }).status === 0;
 };
 
 // Vitest follows the imports from every file changed since the base (plus

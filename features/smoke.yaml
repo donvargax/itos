@@ -20,6 +20,10 @@
   scenarios:
     - id: "@ID-CMSG-03"
       why: the hook rejects a commit by a footer rule of itos's own, no delegate in between
+- file: config.feature
+  scenarios:
+    - id: "@ID-CONFIG-01"
+      why: the config's shell, which nearly every command itos starts goes through, read by the quickest of them
 - file: since.feature
   scenarios:
     - id: "@ID-SINCE-01"

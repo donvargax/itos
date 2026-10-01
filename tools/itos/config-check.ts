@@ -17,7 +17,7 @@ export const DEFAULTS = {
 	ledger: { group: { pattern: "[^/]+", numeric: false }, check: { timeout: 600 } },
 	commits: { reject_message: "Commit rejected:" },
 	tests: { "<kind>": { adapter: "gherkin", tag_prefix: "@", wip_tag: "@wip" } },
-	ci: { wait_on_status: ["todo"], range: { provider: "github" } },
+	ci: { wait_on_status: ["todo"], stop_at_first_failure: true, range: { provider: "github" } },
 	work: {
 		registry: "docs/work-items.yaml",
 		people: DEFAULT_PEOPLE,

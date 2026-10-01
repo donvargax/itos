@@ -5,11 +5,11 @@
 // printed as it comes. Under `--json` each line it reports becomes a problem
 // with the delegate's rule id and a fix. With no delegate, the footer rules
 // run here.
-import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { config } from "./config.ts";
 import { checkFooter, footers } from "./footers.ts";
 import { emit, type Output, problem, type Problem, TEXT } from "./problem.ts";
+import { inShell } from "./shell.ts";
 import { shellWord } from "./tests.ts";
 
 // What resolves each rule of @commitlint/config-conventional an agent meets.
@@ -81,7 +81,7 @@ function footersOnly(message: string, out: Output): number {
 // The delegate, its report printed as it comes, or read into problems.
 function delegated(delegate: string, message: string, out: Output): number {
 	const stream = out.json ? "pipe" : "inherit";
-	const run = spawnSync("sh", ["-c", delegate], {
+	const run = inShell(delegate, {
 		input: message,
 		encoding: "utf8",
 		stdio: ["pipe", stream, stream],
@@ -108,7 +108,7 @@ export function messageHoldsAt(message: string, at: string, out: Output = TEXT):
 	const delegate = config().commits?.header_lint?.stdin;
 	if (delegate)
 		return (
-			spawnSync("sh", ["-c", delegate], {
+			inShell(delegate, {
 				input: message,
 				env: { ...process.env, ITOS_AT: at },
 				stdio: ["pipe", out.json ? 2 : "inherit", "inherit"],
@@ -134,5 +134,5 @@ export function lintMessageFile(file: string): number {
 	const delegate = config().commits?.header_lint?.hook;
 	if (!delegate) return footersOnly(readFileSync(file, "utf8"), TEXT);
 	const command = delegate.replaceAll("{file}", shellWord(file));
-	return spawnSync("sh", ["-c", command], { stdio: "inherit" }).status ?? 1;
+	return inShell(command, { stdio: "inherit" }).status ?? 1;
 }

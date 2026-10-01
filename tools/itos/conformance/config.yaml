@@ -435,6 +435,7 @@ cases:
         ci:
           wait_on_status:
             - todo
+          stop_at_first_failure: true
           range:
             provider: github
         work:

@@ -32,9 +32,13 @@ type world struct {
 
 // What a scenario sets in the scratch repository's itos.yaml.
 type scratchConfig struct {
-	headerLint bool   // the header lint delegated to commitlint's conventional config
-	since      string // commits.since
-	rangeCheck bool   // a range check that records where its range starts
+	headerLint        bool     // the header lint delegated to commitlint's conventional config
+	headerLintCommand string   // the header lint delegated to this command
+	since             string   // commits.since
+	rangeCheck        bool     // a range check that records where its range starts
+	recordingShell    bool     // shell is the recording shell
+	ciSteps           []string // ci.steps
+	stopAtFirst       *bool    // ci.stop_at_first_failure
 }
 
 func initializeScenario(sc *godog.ScenarioContext) {
@@ -56,9 +60,19 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^commits\.since names the first commit$`, w.sinceFirstCommit)
 	sc.Step(`^commits\.since is "([^"]*)"$`, w.sinceIs)
 	sc.Step(`^a range check that records where its range starts$`, w.recordingRangeCheck)
+	sc.Step(`^the config's shell is the recording shell$`, w.recordingShell)
+	sc.Step(`^the task "([^"]*)" has the check "([^"]*)"$`, w.taskHasCheck)
+	sc.Step(`^the CI steps are "([^"]*)"$`, func(step string) error { return w.ciStepsAre(step) })
+	sc.Step(`^the CI steps are "([^"]*)" then a step that records it ran$`, func(step string) error {
+		return w.ciStepsAre(step, "printf 'ran\\n' > "+recordingStepFile)
+	})
+	sc.Step(`^the header lint is the command "([^"]*)"$`, w.headerLintIs)
+	sc.Step(`^ci\.stop_at_first_failure is (true|false)$`, w.stopAtFirstFailureIs)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
+	sc.Step(`^itos runs the task "([^"]*)"$`, func(task string) error { return w.itos("task", task) })
+	sc.Step(`^itos runs CI over every commit up to HEAD$`, func() error { return w.itos("ci", "run", "", "HEAD") })
 	sc.Step(`^the commit-msg hook checks the message "([^"]*)"$`, w.commitMsgHook)
 	sc.Step(`^the commit-msg hook checks the message:$`, func(message *godog.DocString) error {
 		return w.commitMsgHook(message.Content + "\n")
@@ -68,6 +82,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^its output says "([^"]*)"$`, w.outputSays)
 	sc.Step(`^its output names the rule "([^"]*)"$`, w.outputNamesRule)
 	sc.Step(`^the range check started at the first commit$`, w.rangeCheckStartedAtFirst)
+	sc.Step(`^the recording shell ran "([^"]*)"$`, w.recordingShellRan)
+	sc.Step(`^the recording shell ran the range check$`, w.recordingShellRanRangeCheck)
+	sc.Step(`^the recording step ran$`, func() error { return w.recordingStepRan(true) })
+	sc.Step(`^the recording step did not run$`, func() error { return w.recordingStepRan(false) })
 }
 
 func (w *world) setUp() error {
@@ -184,8 +202,11 @@ func quote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + 
 // docs commits held to prose, and a people list, plus what the scenario set.
 func (w *world) writeConfig() error {
 	var b strings.Builder
-	b.WriteString(`version: 1
-ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+	b.WriteString("version: 1\n")
+	if w.config.recordingShell {
+		fmt.Fprintf(&b, "shell: [%q]\n", w.recordingShellPath())
+	}
+	b.WriteString(`ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
 commits:
   types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
   footers:
@@ -211,6 +232,9 @@ commits:
 		lint := fmt.Sprintf("%s --cwd %s --config %s",
 			quote(filepath.Join(w.root, "node_modules", ".bin", "commitlint")), quote(w.root), quote(config))
 		fmt.Fprintf(&b, "  header_lint:\n    use: command\n    hook: %q\n    stdin: %q\n", lint+" --edit {file}", lint)
+	} else if w.config.headerLintCommand != "" {
+		lint := w.config.headerLintCommand
+		fmt.Fprintf(&b, "  header_lint:\n    use: command\n    hook: %q\n    stdin: %q\n", lint, lint)
 	}
 	if w.config.rangeCheck {
 		record := "printf '%s\\n' {from} > " + quote(filepath.Join(w.support, "range-from"))
@@ -222,6 +246,19 @@ commits:
       - name: record
         range: %q
 `, record)
+	}
+	if len(w.config.ciSteps) > 0 || w.config.stopAtFirst != nil {
+		b.WriteString("ci:\n  steps:")
+		if len(w.config.ciSteps) == 0 {
+			b.WriteString(" []")
+		}
+		b.WriteString("\n")
+		for _, step := range w.config.ciSteps {
+			fmt.Fprintf(&b, "    - %q\n", step)
+		}
+		if w.config.stopAtFirst != nil {
+			fmt.Fprintf(&b, "  stop_at_first_failure: %t\n", *w.config.stopAtFirst)
+		}
 	}
 	b.WriteString("work: { people: { source: yaml, file: people.yaml } }\n")
 	return w.write("itos.yaml", b.String())
@@ -302,6 +339,45 @@ func (w *world) recordingRangeCheck() error {
 	return w.writeConfig()
 }
 
+// The recording shell: a script in the support folder that appends each
+// command it is given to shell-log beside it, then runs it with sh -c.
+func (w *world) recordingShellPath() string { return filepath.Join(w.support, "recording-shell") }
+
+func (w *world) recordingShell() error {
+	script := fmt.Sprintf("#!/bin/sh\nprintf '%%s\\n' \"$1\" >> %s\nexec sh -c \"$1\"\n",
+		quote(filepath.Join(w.support, "shell-log")))
+	if err := os.WriteFile(w.recordingShellPath(), []byte(script), 0o755); err != nil {
+		return err
+	}
+	w.config.recordingShell = true
+	return w.writeConfig()
+}
+
+// The ledger's one task, with one check.
+func (w *world) taskHasCheck(task, check string) error {
+	return w.write("tasks/phase-1.yaml",
+		fmt.Sprintf("- { id: %s, type: chore, title: Tidy, done_when: [{ run: %q }] }\n", task, check))
+}
+
+// The file, in the scratch repository, that the recording step writes.
+const recordingStepFile = "step-ran"
+
+func (w *world) ciStepsAre(steps ...string) error {
+	w.config.ciSteps = steps
+	return w.writeConfig()
+}
+
+func (w *world) headerLintIs(command string) error {
+	w.config.headerLintCommand = command
+	return w.writeConfig()
+}
+
+func (w *world) stopAtFirstFailureIs(value string) error {
+	stop := value == "true"
+	w.config.stopAtFirst = &stop
+	return w.writeConfig()
+}
+
 // When steps.
 
 // itos with these arguments, in the scratch repository.
@@ -370,6 +446,55 @@ func (w *world) rangeCheckStartedAtFirst() error {
 	}
 	if got := strings.TrimSpace(string(text)); got != w.commits[0] {
 		return fmt.Errorf("the range check started at %q, not the first commit %s\n%s", got, w.commits[0], w.report())
+	}
+	return nil
+}
+
+// The commands the recording shell was given, one a line.
+func (w *world) shellLog() ([]string, error) {
+	text, err := os.ReadFile(filepath.Join(w.support, "shell-log"))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	return strings.Split(strings.TrimSuffix(string(text), "\n"), "\n"), err
+}
+
+func (w *world) recordingShellRan(command string) error {
+	log, err := w.shellLog()
+	if err != nil {
+		return err
+	}
+	for _, line := range log {
+		if line == command {
+			return nil
+		}
+	}
+	return fmt.Errorf("the recording shell did not run %q; it ran %q\n%s", command, log, w.report())
+}
+
+// The range check is the only command that names the file it records to.
+func (w *world) recordingShellRanRangeCheck() error {
+	log, err := w.shellLog()
+	if err != nil {
+		return err
+	}
+	file := quote(filepath.Join(w.support, "range-from"))
+	for _, line := range log {
+		if strings.Contains(line, file) {
+			return nil
+		}
+	}
+	return fmt.Errorf("the recording shell did not run the range check; it ran %q\n%s", log, w.report())
+}
+
+func (w *world) recordingStepRan(want bool) error {
+	_, err := os.Stat(filepath.Join(w.dir, recordingStepFile))
+	ran := err == nil
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if ran != want {
+		return fmt.Errorf("the recording step ran: %t, not %t\n%s", ran, want, w.report())
 	}
 	return nil
 }

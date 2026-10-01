@@ -11,10 +11,10 @@
 //                       the smoke IDs, one a line
 //   itos tests smoke run <kind> [-- <runner args>…]
 //                       run exactly the smoke set (`vp run e2e:smoke`)
-import { spawnSync } from "node:child_process";
 import { emit, messages, type Output, problem, type Problem, TEXT } from "./problem.ts";
+import { inShell } from "./shell.ts";
 import { loadSmoke, type SmokeFile } from "./smoke.ts";
-import { bareId, commandFor, kind, listTests } from "./tests.ts";
+import { bareId, commandFor, kind, listTests, shellWord } from "./tests.ts";
 
 // The kind a caller means when it names none: itos.yaml's `tests.scenario`.
 const KIND = "scenario";
@@ -127,5 +127,6 @@ export function smokeIdsCommand(name: string, out: Output = TEXT): number {
 // arguments given; its exit code is the runner's.
 export function smokeRun(name: string, args: string[]): number {
 	const run = commandFor(name, [{ ids: smokeIds(smokeSet(name), name) }])!;
-	return spawnSync("sh", ["-c", `${run} "$@"`, "sh", ...args], { stdio: "inherit" }).status ?? 1;
+	const command = [run, ...args.map(shellWord)].join(" ");
+	return inShell(command, { stdio: "inherit" }).status ?? 1;
 }
