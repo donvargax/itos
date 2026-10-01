@@ -1,10 +1,12 @@
 // `itos commit check-message <file|->`: one message through the header lint
 // and the footer rules, as the commit-msg hook reads it. The header lint is
-// `commits.header_lint`'s delegate (commitlint, say, whose config runs the
-// footer rules of footers.ts); its text output is
+// `commits.header_lint`'s delegate (commitlint, say); its text output is
 // printed as it comes. Under `--json` each line it reports becomes a problem
-// with the delegate's rule id and a fix. With no delegate, the footer rules
-// run here.
+// with the delegate's rule id and a fix. The footer rules (`commits.footers`,
+// footers.ts) are itos's and run here always, after the delegate, whatever it
+// is: a delegate judges the header and body, and one without them never skips
+// them. Both report before the exit, so a header problem does not hide a
+// footer one.
 import { readFileSync } from "node:fs";
 import { config } from "./config.ts";
 import { checkFooter, footers } from "./footers.ts";
@@ -60,7 +62,8 @@ function parseReport(text: string, failed: boolean): (Problem & { level: string 
 	return found;
 }
 
-// The footer rules alone, for a config with no header lint delegate.
+// The footer rules, which run beside any header lint delegate and alone
+// without one.
 function footerProblems(message: string): Problem[] {
 	const type = /^(\w+)/.exec(message)?.[1] ?? "";
 	return footers().flatMap((f) => {
@@ -70,15 +73,21 @@ function footerProblems(message: string): Problem[] {
 	});
 }
 
-// With no delegate: the footer rules, printed as commitlint prints a problem.
+// Footer problems on stderr, printed as commitlint prints a problem.
+const printFooters = (found: Problem[]) => {
+	for (const p of found) console.error(`✖   ${p.message} [${p.rule}]`);
+};
+
+// With no delegate: the footer rules alone.
 function footersOnly(message: string, out: Output): number {
 	const found = footerProblems(message);
 	if (out.json) emit({ ok: found.length === 0, problems: found });
-	else for (const p of found) console.error(`✖   ${p.message} [${p.rule}]`);
+	else printFooters(found);
 	return found.length ? 1 : 0;
 }
 
-// The delegate, its report printed as it comes, or read into problems.
+// The delegate, its report printed as it comes, or read into problems, then
+// the footer rules; under `--json` one list, the delegate's problems first.
 function delegated(delegate: string, message: string, out: Output): number {
 	const stream = out.json ? "pipe" : "inherit";
 	const run = inShell(delegate, {
@@ -86,8 +95,18 @@ function delegated(delegate: string, message: string, out: Output): number {
 		encoding: "utf8",
 		stdio: ["pipe", stream, stream],
 	});
-	const ok = run.status === 0;
-	if (out.json) emit({ ok, problems: parseReport(`${run.stdout}\n${run.stderr}`, !ok) });
+	const linted = run.status === 0;
+	const found = footerProblems(message);
+	const ok = linted && found.length === 0;
+	if (out.json)
+		emit({
+			ok,
+			problems: [
+				...parseReport(`${run.stdout}\n${run.stderr}`, !linted),
+				...found.map((p) => ({ ...p, level: "error" })),
+			],
+		});
+	else printFooters(found);
 	return ok ? 0 : 1;
 }
 
@@ -103,23 +122,22 @@ export function checkMessage(source: string, at: string | undefined, out: Output
 // One message through the header lint and the footer rules as they were at a
 // commit, its report on stderr under `--json`: the re-check of a
 // pushed range (`itos verify`). The delegate reads the commit from ITOS_AT, as
-// the footer rules do here without one.
+// the footer rules do here, after it.
 export function messageHoldsAt(message: string, at: string, out: Output = TEXT): boolean {
 	const delegate = config().commits?.header_lint?.stdin;
-	if (delegate)
-		return (
-			inShell(delegate, {
-				input: message,
-				env: { ...process.env, ITOS_AT: at },
-				stdio: ["pipe", out.json ? 2 : "inherit", "inherit"],
-			}).status === 0
-		);
+	const linted =
+		!delegate ||
+		inShell(delegate, {
+			input: message,
+			env: { ...process.env, ITOS_AT: at },
+			stdio: ["pipe", out.json ? 2 : "inherit", "inherit"],
+		}).status === 0;
 	const saved = process.env.ITOS_AT;
 	process.env.ITOS_AT = at;
 	try {
 		const found = footerProblems(message);
-		for (const p of found) console.error(`✖   ${p.message} [${p.rule}]`);
-		return found.length === 0;
+		printFooters(found);
+		return linted && found.length === 0;
 	} finally {
 		if (saved === undefined) delete process.env.ITOS_AT;
 		else process.env.ITOS_AT = saved;
@@ -128,11 +146,15 @@ export function messageHoldsAt(message: string, at: string, out: Output = TEXT):
 
 // The commit-msg hook's second half (`itos hook commit-msg`): the
 // message file through `commits.header_lint.hook` ({file} filled in), whose
-// report and exit code are the hook's (commitlint's config runs the footer
-// rules too); with no delegate, the footer rules here.
+// report is printed as it comes, then the footer rules here, always. A failing
+// delegate's exit code is the hook's; footer problems alone exit 1.
 export function lintMessageFile(file: string): number {
+	const message = readFileSync(file, "utf8");
 	const delegate = config().commits?.header_lint?.hook;
-	if (!delegate) return footersOnly(readFileSync(file, "utf8"), TEXT);
+	if (!delegate) return footersOnly(message, TEXT);
 	const command = delegate.replaceAll("{file}", shellWord(file));
-	return inShell(command, { stdio: "inherit" }).status ?? 1;
+	const status = inShell(command, { stdio: "inherit" }).status ?? 1;
+	const found = footerProblems(message);
+	printFooters(found);
+	return status || (found.length ? 1 : 0);
 }

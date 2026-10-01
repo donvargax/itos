@@ -36,6 +36,10 @@
   scenarios:
     - id: "@ID-COST-01"
       why: a pattern written for itos matching a command that calls hooks.bin, the file's point
+- file: footers.feature
+  scenarios:
+    - id: "@ID-FOOT-01"
+      why: the hook rejects a footer by itos's own rule with a delegate that carries none, the file's point
 - file: since.feature
   scenarios:
     - id: "@ID-SINCE-01"

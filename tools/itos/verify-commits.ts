@@ -30,7 +30,8 @@ function verifyCommit(sha: string, out: Output): { sha: string; header: string; 
 	// The message against the IDs as they were at that commit, for each footer
 	// read `at: commit`: a later commit may have set a scenario back to @wip,
 	// as a revert does, or taken a task out of the ledger. The header lint is
-	// the config's delegate (commitlint, say), else the footer rules alone.
+	// the config's delegate (commitlint, say), if any; the footer rules are
+	// itos's, always.
 	const ok = messageHoldsAt(message, sha, out) && checkPaths(type, files) === 0;
 	if (!ok) console.error(`  ^ ${sha.slice(0, 7)} ${header}`);
 	return { sha, header, ok };

@@ -3,7 +3,8 @@
 # staged tree by default, the commit --at names, the working tree for a
 # commit that predates the source, or always with read_at: worktree), another
 # config's footers, a command adapter's tests named in a footer, and a
-# delegated header lint's report read into problems.
+# delegated header lint's report read into problems, the footer rules run
+# beside it.
 #
 # The repository: a commit before the ledger (bare); a feat naming a live
 # scenario and T-002 (live); then the scenario set back to @wip and T-002
@@ -314,6 +315,25 @@ cases:
     stdin: "docs: things\n"
     files: *delegate
     exit: 0
+  - name: the footer rules run after a delegate that passes, and reject the message
+    argv: [commit, check-message, "-"]
+    stdin: "feat: x\n\nTask: T-9\n"
+    env: { ITOS_CONFIG: passing-delegate.yaml }
+    git: []
+    files:
+      passing-delegate.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml" }
+        commits:
+          header_lint: { stdin: "cat >/dev/null; echo linted" }
+          footers:
+            Task: { source: ledger, required_for: [chore], validate_for: all }
+      tasks/phase-1.yaml: "- { id: T-001, type: chore, title: One }\n"
+    exit: 1
+    stdout: |
+      linted
+    stderr: |
+      ✖   unknown tasks: T-9 [task-footer]
   - name: a delegate that fails without a report of its rules is one header-lint problem
     argv: [commit, check-message, "-", --json, --config, broken.yaml]
     stdin: "docs: things\n"
@@ -346,6 +366,7 @@ cases:
             Scenarios: { source: { tests: scenario }, strip_prefix: "@", required_for: [feat], validate_for: [feat], must_be_live: true }
         tests:
           scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+" }
+      tasks/phase-1.yaml: "- { id: T-001, type: chore, title: One }\n"
       report.sh: |
         echo '✖   unknown tasks: T-9 [task-footer]'
         echo '✖   still tagged @wip: ID-A-01 [scenarios-footer]'
@@ -370,4 +391,8 @@ cases:
           level: error
         - rule: local-rule
           message: something else
+          level: error
+        - rule: scenarios-footer
+          message: 'feat commits need a "Scenarios: @ID-…" footer'
+          fix: "add a line `Scenarios: <id>` after a blank line at the end, naming what the commit belongs to"
           level: error

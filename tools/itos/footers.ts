@@ -1,7 +1,7 @@
 // The one footer reader: a message's footers as `itos.yaml`'s
-// `commits.footers` defines them. It answers the commit-msg rule (a
-// commitlint config makes one rule of `checkFooter` per key) and CI's lists
-// of the IDs a pushed range names (`ci-scope.ts`'s `tasksIn` and
+// `commits.footers` defines them. It answers the footer rules (`checkFooter`,
+// one rule per key, which commit.ts runs beside any header lint delegate) and
+// CI's lists of the IDs a pushed range names (`ci-scope.ts`'s `tasksIn` and
 // `testsNamedIn`). No key, type or rule is written here.
 //
 // A footer is `<Key>: <id> <id>, …` at the start of a line, and may repeat

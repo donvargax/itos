@@ -15,7 +15,7 @@ Feature: The footer rules are itos's, whatever the header lint
 
   # commitlint's conventional config carries no footer rule, so only itos can
   # reject this footer.
-  @ID-FOOT-01 @slice-10 @wip
+  @ID-FOOT-01 @slice-10
   Scenario: With a header lint delegate, a footer naming an unknown task is rejected
     Given the header lint is commitlint's conventional config
     When the commit-msg hook checks the message:
@@ -28,14 +28,14 @@ Feature: The footer rules are itos's, whatever the header lint
     And its output says "unknown tasks: T-999"
     And its output names the rule "task-footer"
 
-  @ID-FOOT-02 @slice-10 @wip
+  @ID-FOOT-02 @slice-10
   Scenario: With a header lint delegate, a commit without the footer its type needs is rejected
     Given the header lint is commitlint's conventional config
     When the commit-msg hook checks the message "chore: tidy the readme"
     Then itos exits with code 1
     And its output names the rule "task-footer"
 
-  @ID-FOOT-03 @slice-10 @wip
+  @ID-FOOT-03 @slice-10
   Scenario: The header lint's problems and the footer rules' are both reported
     Given the header lint is commitlint's conventional config
     When the commit-msg hook checks the message:
@@ -48,7 +48,7 @@ Feature: The footer rules are itos's, whatever the header lint
     And its output names the rule "type-empty"
     And its output names the rule "task-footer"
 
-  @ID-FOOT-04 @slice-10 @wip
+  @ID-FOOT-04 @slice-10
   Scenario: verify, with a header lint delegate, rejects a commit without the footer its type needs
     Given the header lint is commitlint's conventional config
     And the commit "chore: tidy the readme" on top of it

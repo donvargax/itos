@@ -2,7 +2,7 @@
 # hooks.manager names, else finding it by its markers, and writing one-line shims (never over a hook of the project's own without
 # --force), or printing the snippet a config-file manager takes; `hook
 # commit-msg` (the staged paths, each kind's staged range check, then the
-# header lint or the footer rules); `hook pre-push` (git's ref lines on stdin,
+# header lint, if any, and the footer rules, always); `hook pre-push` (git's ref lines on stdin,
 # or pre-commit's environment: once per remote base, else the whole run, and
 # nothing for a deleted branch).
 git:
@@ -614,6 +614,33 @@ cases:
     exit: 7
     stderr: |
       linting docs: a page
+  - name: the footer rules run beside a delegate, and a failing delegate's code is the hook's
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { tools/a.sh: "true\n" }
+    files:
+      msg: "build: a script\n"
+      delegated.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\ncommits:\n  header_lint: { hook: \"echo linting >&2; exit 7\" }\n  footers:\n    Task: { source: ledger, required_for: [build], validate_for: all }\n"
+    env: { ITOS_CONFIG: delegated.yaml }
+    exit: 7
+    stderr: |
+      linting
+      ✖   build commits need a "Task: T-…" footer [task-footer]
+  - name: a delegate that passes leaves the footer rules to reject the commit
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { tools/a.sh: "true\n" }
+    files:
+      msg: "build: a script\n"
+      delegated.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\ncommits:\n  header_lint: { hook: \"true\" }\n  footers:\n    Task: { source: ledger, required_for: [build], validate_for: all }\n"
+    env: { ITOS_CONFIG: delegated.yaml }
+    exit: 1
+    stderr: |
+      ✖   build commits need a "Task: T-…" footer [task-footer]
   - name: a message file path with a space and a quote reaches the delegate as one word
     argv: [hook, commit-msg, "it's a msg"]
     git:
