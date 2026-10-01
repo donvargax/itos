@@ -17,65 +17,15 @@
 //   - what the hooks leave out fails CI's own steps: a refactor that changes
 //     what itos prints, in a module no unit test imports, passes both hooks and
 //     fails the push's features step, whose smoke set reads that output.
-import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
-import { writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { join } from "node:path";
 import { e2eStep, planFor } from "../itos/ci-plan.ts";
 import { STEPS, tasksIn } from "../itos/ci-scope.ts";
+import { type Run, scratchRepo } from "./scratch.ts";
 
-const root = resolve(".");
-const scratch = mkdtempSync(join(tmpdir(), "gates-selftest-"));
-// Hooks export GIT_DIR and friends; the scratch tree must use its own.
-const env = Object.fromEntries(
-	Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_") && k !== "CI"),
-) as NodeJS.ProcessEnv;
-Object.assign(env, {
-	GIT_AUTHOR_NAME: "gates self-test",
-	GIT_AUTHOR_EMAIL: "selftest@localhost",
-	GIT_COMMITTER_NAME: "gates self-test",
-	GIT_COMMITTER_EMAIL: "selftest@localhost",
-});
-
-interface Run {
-	status: number;
-	output: string;
-	seconds: number;
-}
-function sh(command: string, input?: string, cwd = scratch): Run {
-	const started = performance.now();
-	const result = spawnSync("sh", ["-c", command], {
-		cwd,
-		env,
-		input,
-		encoding: "utf8",
-		maxBuffer: 64 * 1024 * 1024,
-	});
-	return {
-		status: result.status ?? 1,
-		output: `${result.stdout}${result.stderr}`,
-		seconds: (performance.now() - started) / 1000,
-	};
-}
-const git = (command: string, cwd = scratch) => {
-	const run = sh(`git ${command}`, undefined, cwd);
-	if (run.status !== 0) throw new Error(`git ${command} failed:\n${run.output}`);
-	return run.output.trim();
-};
-
-const edit = (file: string, from: string, to: string) => {
-	const path = join(scratch, file);
-	const text = readFileSync(path, "utf8");
-	if (!text.includes(from)) throw new Error(`${file} no longer contains ${JSON.stringify(from)}`);
-	writeFileSync(path, text.replace(from, to));
-};
-const commit = (message: string) => {
-	git("add -A");
-	const sha = git(`commit-tree ${git("write-tree")} -p HEAD -m "${message}"`);
-	git(`reset -q --hard ${sha}`);
-	return sha;
-};
+const repo = scratchRepo("gates-selftest");
+const { root, env, sh, git, edit, commit } = repo;
 
 // How many unit test files a run executed (vitest's summary line; without a
 // terminal it names only the files that failed), and the ones that failed.
@@ -120,27 +70,7 @@ const show = (files: Set<string>) => [...files].join(", ") || "none";
 
 let base = "";
 try {
-	// The scratch tree is the current tree: HEAD plus every tracked edit and the
-	// untracked files a gate could run, committed as the base the pushes build on.
-	git(`worktree add -q --detach ${scratch} HEAD`, root);
-	const diff = sh("git diff HEAD --binary", undefined, root).output;
-	if (diff.trim()) {
-		const applied = sh("git apply --whitespace=nowarn -", diff);
-		if (applied.status !== 0)
-			throw new Error(`could not copy the working tree:\n${applied.output}`);
-	}
-	for (const file of sh(
-		"git ls-files --others --exclude-standard -- tools .vite-hooks features",
-		undefined,
-		root,
-	)
-		.output.split("\n")
-		.filter(Boolean)) {
-		mkdirSync(dirname(join(scratch, file)), { recursive: true });
-		copyFileSync(join(root, file), join(scratch, file));
-	}
-	symlinkSync(join(root, "node_modules"), join(scratch, "node_modules"));
-	base = commit("gates self-test base");
+	base = repo.open();
 	// The audit's "new" is measured against the base, as it is against the
 	// upstream branch in the checkout.
 	env.FALLOW_AUDIT_BASE = base;
@@ -272,8 +202,7 @@ try {
 		"a push's features step passed a refactor that changes what itos prints",
 	);
 } finally {
-	sh(`git worktree remove --force ${scratch}`, undefined, root);
-	rmSync(scratch, { recursive: true, force: true });
+	repo.remove();
 	rmSync(messages, { recursive: true, force: true });
 }
 

@@ -18,6 +18,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { outsideEnv } from "./scratch.ts";
 
 const root = resolve(".");
 const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
@@ -25,9 +26,7 @@ const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
 };
 const scratch = mkdtempSync(join(tmpdir(), "release-selftest-"));
 // Inside a hook git exports GIT_DIR and friends; nothing here is that repository.
-const env = Object.fromEntries(
-	Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_") && k !== "CI"),
-) as NodeJS.ProcessEnv;
+const env = outsideEnv();
 
 const failures: string[] = [];
 function run(

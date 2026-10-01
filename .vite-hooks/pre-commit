@@ -1,4 +1,10 @@
 vp staged || exit $?
+# The config, the ledger, the work registry and the smoke set are what every
+# later gate reads, and the prose exit below skips tasks/: check them whenever
+# one is staged, so a broken one stops here rather than failing a later push.
+if [ -n "$(git diff --cached --name-only --diff-filter=ACMRD -- itos.yaml tasks docs/work-items.yaml features/smoke.yaml)" ]; then
+	tools/bin/itos config check || exit $?
+fi
 # Documentation-only commits need no test or audit gate.
 if [ -z "$(git diff --cached --name-only --diff-filter=ACMRD -- . ':(exclude)*.md' ':(exclude)docs/**/*.md' ':(exclude)tasks/**' ':(exclude)features/**/*.feature')" ]; then
 	exit 0

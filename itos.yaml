@@ -113,6 +113,7 @@ ci:
     - { run: "! gofmt -l features | grep .", cost: static } # names each file gofmt would change
     - { run: go vet ./..., cost: static }
     - { run: tools/bin/itos tests smoke check scenario, cost: static }
+    - { run: tools/bin/itos config check, cost: static } # the config, the ledger, the registry, the smoke set
     - { run: vp run test:coverage, cost: late }
     - { run: vp run audit, cost: late }
     # The conformance corpus: what itos did when it was written, as cases run
@@ -122,7 +123,7 @@ ci:
     - { tests: scenario } # the one merged run; late, as no pattern matches it
   prose: # a range that touches only these runs only the prose steps
     paths: ["**/*.md", "docs/**"]
-    steps: [vp check]
+    steps: [vp check, tools/bin/itos config check] # docs/work-items.yaml is under docs/**
   cost:
     # Checks with no `cost:` of their own: static if a pattern matches, else
     # late. Only commands static by what they are: `sh -c` wraps anything, so a
