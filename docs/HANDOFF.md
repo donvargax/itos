@@ -31,7 +31,10 @@ Released: [v0.4.0](https://github.com/donvargax/itos/releases/tag/v0.4.0)
 8, 9). Their Upgrading sections are what a consumer's session updates from;
 v0.4.0's has consumers drop the commitlint footer plugin. The user moves the
 consumers' pins (the project template, the character editor) from their own
-repositories: don't change any other repository. Nothing is unreleased.
+repositories: don't change any other repository. Nothing a consumer runs is
+unreleased; v0.5.0's notes are started, `docs/releases/v0.5.0.md`, with an
+Upgrading step that has consumers drop ledger checks of itos's own behavior
+(T-034). The next release's task builds on that file and keeps the step.
 
 ## Next
 
