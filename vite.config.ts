@@ -5,6 +5,9 @@ const staged = {
 	"tools/**/*.{ts,js,json}": "vp check --fix",
 	"*.{md,json,yaml,ts,toml}": "vp check --fix",
 	"{docs,tasks,features,.github}/**/*.{md,yml,yaml}": "vp check --fix",
+	// Go: formatted in place, then vetted as a whole, since go vet reads
+	// packages, not files (the files `vp staged` appends are ignored).
+	"**/*.go": ["gofmt -w", "sh -c 'go vet ./...' go-vet"],
 };
 
 const lint: NonNullable<UserConfig["lint"]> = {
