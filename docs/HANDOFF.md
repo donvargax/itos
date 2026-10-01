@@ -11,71 +11,53 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last rewritten 2026-10-01, after v0.3.0 was released and slices 10 and 11
-landed.
+Last rewritten 2026-10-01, after v0.3.0 and v0.4.0 were released.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `0b29300` (CI run 36886103010). The last nightly is green:
-run 36882519408 (commit `d547482`, dispatched by hand). Read the newest
-nightly before starting the next implementation. A red nightly takes priority
-over new work.
+`main` is green at `0f1d884` (CI run 36896159158). The last nightly is green:
+run 36894008944 (commit `255b181`, dispatched by hand; nothing after it changes
+the implementation but T-032's packing). Read the newest nightly before
+beginning the next implementation. A red nightly takes priority over new work.
 
-Released: [v0.3.0](https://github.com/donvargax/itos/releases/tag/v0.3.0),
-which holds slices 4, 7, 8 and 9. Its Upgrading section is what a consumer's
-session updates from. The user moves the consumers' pins (the project
-template, the character editor) from their own repositories: don't change
-any other repository.
-
-Since v0.3.0, on `main` and unreleased, these change what a consumer sees:
-
-- **Slice 10.** With a header-lint delegate configured, itos runs the footer
-  rules itself, beside the delegate, in the hook, `commit check-message` and
-  `verify`. A consumer's commitlint config that still carries the footer
-  plugin reports each footer problem twice until it drops the plugin. A
-  commit that a footer-less delegate used to pass can now be rejected,
-  `verify` included.
-- **Slice 11.** `ci run` logs a merged check as `(in the <kind> run above)`,
-  no longer `(in the E2E run above)`.
-
-These are internal only: the changelog renders again (T-010), the release
-tasks' notes checks judge their own release (T-029), the E2E names are out
-of the code (T-031), and this repository's own commitlint plugin and cost
-pattern changed (T-028, T-030).
+Released: [v0.4.0](https://github.com/donvargax/itos/releases/tag/v0.4.0)
+(slices 10 to 13, T-032), after
+[v0.3.0](https://github.com/donvargax/itos/releases/tag/v0.3.0) (slices 4, 7,
+8, 9). Their Upgrading sections are what a consumer's session updates from;
+v0.4.0's has consumers drop the commitlint footer plugin. The user moves the
+consumers' pins (the project template, the character editor) from their own
+repositories: don't change any other repository. Nothing is unreleased.
 
 ## Next
 
-1. **Cheap fixes a consumer can hit.** These are ideas, so specify them
-   first:
-   - `p1-footer-source-missing`: since slice 10, any config with a delegate
-     and no `tasks/` folder fails with a raw ENOENT;
-   - `p1-empty-selection-pattern`: an empty smoke set may run every scenario.
-     This was read from the code and not yet confirmed: confirm it before
-     writing the spec.
-2. **v0.4.0**, with slices 10 and 11 and whatever in step 1 lands. Its
-   Upgrading section tells consumers to drop the commitlint footer plugin.
-   Brief the release agent from T-027's brief (stop before the tag).
-   `p1-release-manifest` (every consumer's install prompts for this
-   repository's `prepare` script) is cheap to take with it.
-3. **The rest of the config contract, before the port:**
+1. **What the last slices found, cheap and consumer-facing** (ideas, specify
+   first): `p1-ledger-folder-missing` (`config check`, `task`, `ci plan` and
+   `ci run` still crash on a missing ledger folder), and
+   `p1-merged-check-without-a-run`.
+2. **The rest of the config contract, before the port:**
    `p1-config-names-from-config`, `p1-one-defaults-table`,
    `p1-itos-in-every-pattern`, `p1-bin-in-defaults`, `p1-group-label-read`,
    `p1-verify-with-last-release`. Then **the Go port** (`p2-go-port`).
+3. **The hand work that could be itos's**, recorded at the user's request
+   (the block above phase 2 in the registry). Each one is something this
+   session did by hand, the same way every time:
+   - `p1-work-take-done-promote`, `p1-itos-push`, `p1-ci-watch`;
+   - `p1-upgrading-footer`, `p1-itos-release`;
+   - `p1-done-tasks-nightly`, `p1-wip-red-first`, `p1-commit-message-file`.
+
+   The user liked all of them; ask which come before the port.
+
 4. Continue with what `tools/bin/itos work` proposes.
 
-When briefing agents in this repository:
-
-- They must pull with
-  `rtk proxy git pull --rebase --no-autostash origin main`. The rtk hook's
-  rewrite of a plain `git pull` can fail.
-- They hand back while their CI watch still runs, so watch the run yourself
-  before relaying.
-- Before committing a spec, check that its range and setup can actually
-  reach the line it checks (ORCHESTRATING.md, "Check a spec's words"). Two
-  specs this session needed a fix after an agent read them.
+Agents in this repository: pull with
+`rtk proxy git pull --rebase --no-autostash origin main` (the rtk hook's
+rewrite of a plain `git pull` can fail), and they are made to hand back
+while their CI watch still runs: watch the run yourself before relaying.
+Check before committing a spec that its range and setup can reach the line
+it checks: two specs this session needed a fix after an agent read them.
 
 ## User review
 
@@ -83,13 +65,12 @@ When briefing agents in this repository:
   is still collected over `tools/itos/*.ts`, with no threshold. Whether to
   set one is the user's call; it does not block implementation.
 - Coordinator calls to confirm or overturn:
-  - in slice 4, the keys of features not built yet are dropped rather than
-    read;
-  - in slice 7, a task with no work item counts as in progress (reported,
-    not rejected);
-  - in slice 8, each cost pattern is tried on the command as written as well
-    as on the hooks.bin → itos form, so the change can only move checks from
-    late to static;
-  - in slice 10, a failing delegate's own exit code stays the hook's;
-  - in slice 9, a check whose result depends on an earlier check in its own
-    task reads a reused run (accepted limit).
+  - slice 4 drops the keys of features not built yet rather than reading
+    them;
+  - in slice 7, a task with no work item counts as in progress;
+  - slice 8 tries each cost pattern on the command as written and as
+    hooks.bin → itos;
+  - in slice 9, a check's reused run is read even when an earlier check of
+    its own task changed the tree;
+  - in slice 10, a failing delegate keeps its own exit code in the hook;
+  - slice 13 makes a missing ledger folder exit 2, a config error (PLAN §7).
