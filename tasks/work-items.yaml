@@ -764,6 +764,19 @@ items:
       them meets it first there. A message naming no ID needs no source read, and a missing one
       could be one problem naming the path, as config check would.
 
+  - id: p1-empty-selection-pattern
+    title: An empty selection of named tests adds no pattern to the merged run
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found specifying slice 11, from reading the code, not yet run against godog: with an empty
+      smoke set and a readable range, the plan's own selection is { ids: [] }, which renders as
+      the pattern @(?:)\b, and that matches every tag; the merged run would then run every
+      scenario instead of the ones the push names. An empty ids selection should add no pattern.
+
   - id: p1-several-test-kinds
     title: A CI run that merges more than one kind of named test
     phase: 1
