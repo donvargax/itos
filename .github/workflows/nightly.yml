@@ -22,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  e2e:
+  nightly:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
