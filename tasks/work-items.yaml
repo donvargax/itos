@@ -474,6 +474,15 @@ items:
     kind: task
     refs: [tasks/phase-1.yaml]
 
+  - id: T-028
+    title: This repository's cost pattern names itos as itos
+    phase: 1
+    owner: donvargax
+    status: doing
+    depends_on: [slice-8]
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
   - id: slice-4
     title: The work, smoke and hooks keys read; the keys of unbuilt features dropped
     phase: 1

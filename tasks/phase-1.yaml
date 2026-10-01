@@ -276,3 +276,20 @@
       timeout: 300
     - run: sh -c 'd=$(mktemp -d) && gh release download v0.3.0 --dir "$d" --pattern "itos-0.3.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
       after: push
+
+- id: T-028
+  type: ci
+  title: This repository's cost pattern names itos as itos
+  why: >
+    Slice 8 reads a command whose first word is hooks.bin as itos in the cost
+    rule, so ci.cost.static's pattern for itos's own commands is written
+    ^itos (…) instead of ^(tools/bin/)?itos (…), as a consumer's would be. It
+    lands after the feat, so no commit's config classifies differently from
+    its own itos; ci plan from the first commit prints the same classes before
+    and after it. The second check says cost: static below the first, which
+    names itos as hooks.bin, so config check's written-order rule fails the
+    first check unless the new pattern still makes tools/bin/itos static.
+  done_when:
+    - run: tools/bin/itos config check
+    - run: tools/bin/itos ci plan --whole
+      cost: static
