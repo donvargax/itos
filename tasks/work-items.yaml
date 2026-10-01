@@ -478,7 +478,7 @@ items:
     title: The work, smoke and hooks keys read; the keys of unbuilt features dropped
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-3, T-024]
     kind: slice
     refs: [features/config.feature]
