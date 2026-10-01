@@ -257,7 +257,9 @@ working tree, with one warning per run.
 Without an adapter's own `plan` and `recognize`, the templates decide: the
 `whole` command if any selection is whole; otherwise each `ids` selection
 becomes a pattern by `ids_pattern` (its `{ids}` the IDs joined with `|`), the
-patterns are deduplicated in order and combined by `join`. In `recognize`, a
+patterns are deduplicated in order and combined by `join`. An `ids` selection
+with no IDs adds no pattern, since an empty alternation matches every test; with
+nothing selected, no command runs. In `recognize`, a
 `{pattern}` matches one shell word; a check matching no template runs as it
 is.
 
