@@ -264,7 +264,7 @@ items:
     title: The released package's manifest holds only what a consumer needs
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-021]
     kind: task
     refs: [tasks/phase-1.yaml]
