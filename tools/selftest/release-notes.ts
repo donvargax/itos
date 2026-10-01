@@ -8,14 +8,26 @@
 //   - that section has the pin line, naming
 //     releases/download/v<version>/itos-<version>.tgz;
 //   - every config key whose default differs, appears or disappears between
-//     the last release and this tree is named in that section (as its dotted
-//     path, `work.registry`), the defaults being each one's
+//     the last release and this version is named in that section (as its
+//     dotted path, `work.registry`), the defaults being each one's
 //     `itos config check --print-defaults --json`.
 //
+// A version whose tag v<version> exists is judged as released: its notes are
+// the tag's docs/releases/v<version>.md, the file the release published, and
+// its defaults are its released tarball's. So a release task's check stays
+// green while later work moves the defaults or edits the tree's copy of the
+// notes. Only a version not yet tagged is judged as this tree: its notes are
+// the tree's file and its defaults tools/bin/itos's, which is how a release
+// task proves its notes before its tag.
+//
 // The last release is the newest GitHub release of a v* tag older than this
-// version; its tarball is downloaded with its checksums.txt, verified, and
-// installed offline into a scratch project, as tools/selftest/release.ts
-// installs one. This tree's defaults are tools/bin/itos's.
+// version. A release's defaults come from its tarball, downloaded with its
+// checksums.txt, verified, and installed offline into a scratch project, as
+// tools/selftest/release.ts installs one, rather than from the tag's tree: the
+// tarball is the bundle consumers run, needing nothing from this checkout,
+// while the tag's source would run against this checkout's node_modules, which
+// move with the lockfile, so a finished release could go red when a dependency
+// does.
 //
 //   node tools/selftest/release-notes.ts                  package.json's version
 //   node tools/selftest/release-notes.ts <version>        another version's notes
@@ -35,7 +47,6 @@ const notesArg = at >= 0 ? args.splice(at, 2)[1] : undefined;
 const version =
 	args[0]?.replace(/^v/, "") ??
 	(JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { version: string }).version;
-const notesFile = resolve(notesArg ?? join(root, "docs", "releases", `v${version}.md`));
 const env = outsideEnv();
 const scratch = mkdtempSync(join(tmpdir(), "release-notes-selftest-"));
 const failures: string[] = [];
@@ -47,10 +58,39 @@ function sh(command: string[], cwd = root): string | undefined {
 	return undefined;
 }
 
+// This version's tag, when it is cut: the release it judges.
+const released =
+	spawnSync("git", ["rev-parse", "--quiet", "--verify", `refs/tags/v${version}^{commit}`], {
+		cwd: root,
+		env,
+		encoding: "utf8",
+	}).status === 0
+		? `v${version}`
+		: undefined;
+const notesPath = `docs/releases/v${version}.md`;
+const notesName = notesArg ?? (released ? `${released}:${notesPath}` : notesPath);
+
+// The notes' text, or undefined after saying why there is none.
+function notes(): string | undefined {
+	if (notesArg !== undefined || !released) {
+		const file = resolve(notesArg ?? join(root, notesPath));
+		if (!existsSync(file)) return void failures.push(`no release notes at ${file}`);
+		return readFileSync(file, "utf8");
+	}
+	const shown = spawnSync("git", ["show", `${released}:${notesPath}`], {
+		cwd: root,
+		env,
+		encoding: "utf8",
+	});
+	if (shown.status !== 0) return void failures.push(`no release notes at ${notesName}`);
+	return shown.stdout;
+}
+
 // The Upgrading section's text, or undefined after saying why there is none.
 function upgrading(): string | undefined {
-	if (!existsSync(notesFile)) return void failures.push(`no release notes at ${notesFile}`);
-	const sections = readFileSync(notesFile, "utf8").split(/^(?=## )/m);
+	const text = notes();
+	if (text === undefined) return undefined;
+	const sections = text.split(/^(?=## )/m);
 	const last = sections.at(-1)!;
 	const heading = /^## (.*)/.exec(last)?.[1]?.trim();
 	if (heading !== "Upgrading")
@@ -91,8 +131,8 @@ function defaultsOf(bin: string): Defaults | undefined {
 // The release's itos, installed offline from its verified tarball.
 function releasedBin(tag: string): string | undefined {
 	const v = tag.slice(1);
-	const download = join(scratch, "download");
-	mkdirSync(download);
+	const download = join(scratch, tag, "download");
+	mkdirSync(download, { recursive: true });
 	const got = sh([
 		"gh",
 		"release",
@@ -107,8 +147,8 @@ function releasedBin(tag: string): string | undefined {
 	]);
 	if (got === undefined || sh(["sha256sum", "-c", "checksums.txt"], download) === undefined)
 		return undefined;
-	const project = join(scratch, "consumer");
-	mkdirSync(project);
+	const project = join(scratch, tag, "consumer");
+	mkdirSync(project, { recursive: true });
 	writeFileSync(join(project, "package.json"), '{ "name": "consumer", "private": true }\n');
 	const installed = sh(
 		[
@@ -116,7 +156,7 @@ function releasedBin(tag: string): string | undefined {
 			"install",
 			"--offline",
 			"--cache",
-			join(scratch, "npm-cache"),
+			join(scratch, tag, "npm-cache"),
 			"--no-audit",
 			"--no-fund",
 			join(download, `itos-${v}.tgz`),
@@ -148,7 +188,9 @@ if (section !== undefined) {
 const tag = lastRelease();
 const bin = tag && releasedBin(tag);
 const before = bin && defaultsOf(bin);
-const after = defaultsOf(join(root, "tools", "bin", "itos"));
+// A tagged version's defaults are its release's; only an untagged one is this tree's.
+const afterBin = released ? releasedBin(released) : join(root, "tools", "bin", "itos");
+const after = afterBin ? defaultsOf(afterBin) : undefined;
 let changed: string[] = [];
 if (before && after) {
 	changed = changedKeys(before, after);
@@ -156,7 +198,7 @@ if (before && after) {
 		for (const key of changed)
 			if (!section.includes(key))
 				failures.push(
-					`the Upgrading section does not name ${key}, whose default changed since ${tag}`,
+					`the Upgrading section does not name ${key}, whose default changed between ${tag} and ${released ?? "this tree"}`,
 				);
 }
 rmSync(scratch, { recursive: true, force: true });
@@ -167,6 +209,6 @@ if (failures.length) {
 	process.exit(1);
 }
 console.log(
-	`release notes self-test: ${notesFile} ends with Upgrading, pins itos-${version}.tgz and names ` +
-		`every default changed since ${tag} (${changed.join(", ") || "none"})`,
+	`release notes self-test: ${notesName} ends with Upgrading, pins itos-${version}.tgz and names ` +
+		`every default changed between ${tag} and ${released ?? "this tree"} (${changed.join(", ") || "none"})`,
 );
