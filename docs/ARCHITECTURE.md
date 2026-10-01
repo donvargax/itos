@@ -201,7 +201,9 @@ the commands, `itos <command> --help` each one). The code is
   nothing) is one sequence in cost order: the static steps of `ci.steps`
   (`vp check`, `gofmt`, `go vet`, the smoke rule, `itos config check`) and every named task check
   that is static (its own `cost: static`, else a pattern of
-  `ci.cost.static`); then the late steps (the whole unit suite, the audit, the
+  `ci.cost.static`, which reads a command whose first word is `hooks.bin` as
+  starting with `itos`: `matchesStatic` in `config.ts`, which `config
+check`'s written-order rule reads too); then the late steps (the whole unit suite, the audit, the
   conformance corpus, T-007); then **one run of the features** over the smoke
   set (of the kind the `tests:` step names; a CI without one reads none), the scenarios the `Scenarios:` footers name and the subsets of the
   tasks the `Task:` footers name; then the named tasks' late checks. A task's checks

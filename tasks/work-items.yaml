@@ -478,7 +478,7 @@ items:
     title: This repository's cost pattern names itos as itos
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-8]
     kind: task
     refs: [tasks/phase-1.yaml]
@@ -502,7 +502,7 @@ items:
     title: The cost rule reads a command that starts with hooks.bin as itos
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-7]
     kind: slice
     refs: [features/cost.feature]
@@ -628,6 +628,33 @@ items:
       messages say "phase 1 is not listed" and itos task takes --phase beside --group whatever the
       label says. Either the tools read the word from it, or it leaves the schema until they do.
       Needs a scenario in config.feature.
+
+  - id: p1-itos-in-every-pattern
+    title: ci.covers, ci.nightly_only and recognize read hooks.bin as itos too
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-8]
+    kind: idea
+    why: >
+      Slice 8 reads a command whose first word is hooks.bin as itos in ci.cost.static alone. The
+      other places a command is matched against the config still read it as written: a ci.covers
+      matches pattern, a ci.nightly_only entry and a tests.<kind>.recognize template written for
+      itos miss tools/bin/itos. matchesStatic's reading, shared by every command pattern, closes
+      it; each needs a scenario.
+
+  - id: p1-bin-in-defaults
+    title: config check --print-defaults lists hooks.bin's default
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-8]
+    kind: idea
+    why: >
+      hooks.bin's default, tools/bin/itos, decides which commands the cost rule reads as itos since
+      slice 8, besides what the hook shims call, but the defaults --print-defaults prints leave it
+      out (itosBin in config.ts holds it). Listing it changes the printed table, so the release
+      notes check and its conformance cases move with it; p1-one-defaults-table would carry it.
 
   - id: p1-one-defaults-table
     title: The defaults the tools apply, read from one table

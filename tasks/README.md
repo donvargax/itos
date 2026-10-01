@@ -129,7 +129,9 @@ Keys:
   prose-only push runs it though it is not static.
 - `cost: static | late` (optional): its cost class in CI. Without it, a
   check is static when a pattern of `ci.cost.static` in `itos.yaml` matches
-  its command, else late. The patterns name only commands static by what they
+  its command, else late. A command that starts with `tools/bin/itos`
+  (`hooks.bin`) is matched as starting with `itos`, so the patterns say
+  `^itos …`. The patterns name only commands static by what they
   are and never match a `sh -c`, which may wrap anything: a `sh -c` that
   needs nothing built, no browser and no network says `cost: static`.
 
