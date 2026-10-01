@@ -1,6 +1,12 @@
 // itos's version, and whether it satisfies a config's `requires`: a list of comparators, each of `>=`, `>`, `<=`,
 // `<`, `=` (or none) and a version, all of which must hold.
-export const VERSION = "0.1.0";
+//
+// The version is package.json's, written nowhere else, so a release is one build commit to it and a
+// tag. Here Node reads the file beside the source; the bundle (`vp pack`) inlines it, so the
+// installed itos reads nothing beside itself.
+import manifest from "../../package.json" with { type: "json" };
+
+export const VERSION: string = manifest.version;
 
 const parts = (v: string) => v.split(".").map((n) => Number.parseInt(n, 10) || 0);
 
