@@ -208,7 +208,7 @@
   done_when:
     - run: node tools/selftest/release.ts
       timeout: 900
-    - run: node tools/selftest/release-notes.ts
+    - run: node tools/selftest/release-notes.ts 0.2.0
       timeout: 300
     - run: sh -c 'd=$(mktemp -d) && gh release download v0.2.0 --dir "$d" --pattern "itos-0.2.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
       after: push
@@ -278,7 +278,7 @@
   done_when:
     - run: node tools/selftest/release.ts
       timeout: 900
-    - run: node tools/selftest/release-notes.ts
+    - run: node tools/selftest/release-notes.ts 0.3.0
       timeout: 300
     - run: sh -c 'd=$(mktemp -d) && gh release download v0.3.0 --dir "$d" --pattern "itos-0.3.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
       after: push
@@ -313,7 +313,13 @@
     released tarball) and the release before it; only a version not yet
     tagged is judged against this tree, which is how a release task proves its
     notes before the tag. T-024's and T-027's checks name their versions, so a
-    finished release stays green while later work moves the defaults.
+    finished release stays green while later work moves the defaults. A
+    tagged release's defaults come from its released tarball, not the tag's
+    tree: the tarball is the bundle consumers run and installs offline with
+    nothing from this checkout, while the tag's source would run against this
+    checkout's node_modules, which move with the lockfile. Its notes are the
+    tag's file, the one the release published. The check failed on v0.3.0's
+    notes with hooks.commit_msg.check_timeout left out.
   done_when:
     - run: node tools/selftest/release-notes.ts 0.2.0
       timeout: 300
