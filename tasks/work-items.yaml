@@ -411,7 +411,7 @@ items:
     title: The pre-commit hook leaves itos's data to the commit-msg hook
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-6]
     kind: task
     refs: [tasks/phase-1.yaml]
