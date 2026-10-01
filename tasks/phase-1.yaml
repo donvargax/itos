@@ -94,3 +94,41 @@
     this repository's layout, not the template's demo. Prose has no check that
     runs it: review is the proof.
   done_when: []
+
+- id: T-020
+  type: build
+  title: itos packed to JavaScript, as a tarball a consumer installs
+  why: >
+    A consumer pins itos as a dependency, and Node strips types only outside
+    node_modules, so tools/itos/*.ts cannot run from an install as they are.
+    vp pack bundles tools/itos/main.ts and what it imports (yaml included) into
+    one JavaScript entry point under dist/, which package.json's bin names as
+    itos; the package's files are that entry point, LICENSE and README.md, and
+    packing it gives itos-<version>.tgz. In this repository tools/bin/itos keeps
+    running the TypeScript of the working tree, which the hooks and CI judge;
+    the packed entry point is for consumers. The self-test proves the tarball,
+    not the source: it packs, installs the tarball into a scratch project with
+    no network, and runs the conformance corpus and every feature against the
+    installed bin, so a file the bundle misses, or a path resolved beside the
+    source, fails it.
+  done_when:
+    - run: vp pack
+    - run: node tools/selftest/release.ts
+      timeout: 900
+
+- id: T-021
+  type: ci
+  title: A release on a v* tag, with its checksum
+  why: >
+    Consumers pin a release, never a branch. A tag v<version> runs the release
+    workflow, which refuses a tag that differs from package.json's version and
+    itos --version, runs the release self-test, and publishes a GitHub release
+    holding itos-<version>.tgz and checksums.txt (its SHA-256), so a consumer
+    pins the tarball's URL and checks its hash. v0.1.0 is the first; the
+    project template and the character editor then replace their copies of
+    tools/itos/ with the pin, from their own repositories.
+  done_when:
+    - run: actionlint
+    - run: sh -c 'd=$(mktemp -d) && gh release download v0.1.0 --dir "$d" --pattern "itos-0.1.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
+      after: push
+      cost: static
