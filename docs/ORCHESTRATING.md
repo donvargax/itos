@@ -152,6 +152,15 @@ teaches you a new one, stated as the rule and its reason.
 - **A checkpoint push that carries a task's footer runs that task's
   checks**, so a checkpoint pushed before the task's `done_when` is met is red
   by design. Expect it, and read the final push's run.
+- **A check only a later act can satisfy is red until that act.** An
+  `after: push` check waiting on a release, a tag or another repository runs
+  on every push that names its task, and fails each one until then. Write it
+  late, so the run proves everything else first, and expect the pushes before
+  the act to be red at that one check (T-021 tagged v0.1.0 on such a run).
+- **Pull through `rtk proxy` where the rtk hook rewrites git.** The rewritten
+  `git pull --rebase --no-autostash origin main` can fail with "Cannot rebase
+  onto multiple branches"; `rtk proxy git pull --rebase --no-autostash origin
+main` runs git as written. Say so in a brief when an agent will pull.
 - **Never chain a push after a rebase in one command.** A
   `git pull --rebase && git push` chain can push a rebase that stopped on a
   conflict, so `main` takes part of the branch and the rest follows in a
