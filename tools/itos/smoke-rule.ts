@@ -135,9 +135,14 @@ export function smokeIdsCommand(name: string, out: Output = TEXT): number {
 }
 
 // `tests smoke run <kind>`: the kind's run of exactly the smoke set, with the
-// arguments given; its exit code is the runner's.
+// arguments given; its exit code is the runner's. An empty smoke set runs
+// nothing, and says so.
 export function smokeRun(name: string, args: string[]): number {
-	const run = commandFor(name, [{ ids: smokeIds(smokeSet(name), name) }])!;
+	const run = commandFor(name, [{ ids: smokeIds(smokeSet(name), name) }]);
+	if (!run) {
+		console.error(`The smoke set of tests.${name} is empty: there is nothing to run`);
+		return 0;
+	}
 	const command = [run, ...args.map(shellWord)].join(" ");
 	return inShell(command, { stdio: "inherit" }).status ?? 1;
 }

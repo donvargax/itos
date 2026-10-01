@@ -3,7 +3,7 @@
 # index or a commit; a command adapter held to the adapter protocol, its failures
 # naming what the command said; its tests named in a footer; and the run
 # templates that merge selections into one command and read a check back as
-# one (through `ci plan` and `tests smoke run`).
+# one (through `ci plan` and `tests smoke run`), an empty smoke set selecting none.
 git:
   - commit: "test: the features"
     files:
@@ -269,6 +269,12 @@ cases:
       F-001
       F-003
       and: --json -q
+  - name: an empty smoke set runs nothing, and says so
+    argv: [tests, smoke, run, fixture]
+    files: { fixture-smoke.yaml: "[]\n" }
+    exit: 0
+    stderr: |
+      The smoke set of tests.fixture is empty: there is nothing to run
   - name: the smoke IDs
     argv: [tests, smoke, ids, fixture]
     exit: 0

@@ -983,6 +983,33 @@ cases:
       late  T-030: vp run e2e:smoke   (merged)
       late  T-030: vp run e2e --grep '@ID-LIST-01|@ID-TWO-01'   (run)
       late  T-011: node tools/selftest/gates.ts   (nightly)
+  - name: an empty smoke set adds no pattern, so the run is the subsets alone
+    argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}"]
+    files: { e2e/smoke.yaml: "[]\n" }
+    exit: 0
+    stdout: |
+      static  vp check
+      static  itos tests smoke check scenario
+      late  vp run test:coverage
+      late  vp build
+      late  vp run e2e --grep '@ID-(TWO|LIB)-'
+      late  T-030: vp run e2e --grep "@ID-(TWO|LIB)-"   (merged)
+      late  T-030: vp test run   (covered)
+      late  T-030: sh -c 'test -d src'   (run)
+      late  T-030: vp run e2e:smoke   (merged)
+      late  T-030: vp run e2e --grep '@ID-LIST-01|@ID-TWO-01'   (run)
+      late  T-011: node tools/selftest/gates.ts   (nightly)
+  - name: an empty smoke set and a range that names no test run no named tests
+    argv: [ci, plan, "{{sha.pair}}", "{{sha.static-pair}}"]
+    files: { e2e/smoke.yaml: "[]\n" }
+    exit: 0
+    stdout: |
+      static  vp check
+      static  itos tests smoke check scenario
+      late  vp run test:coverage
+      late  vp build
+      late  T-046: vp run changelog   (run)
+      late  T-046: sh -c 'test -s docs/changelog/CHANGELOG.md'   (run)
   - name: the nightly runs every test, then its own steps, and no check
     argv: [ci, plan, --nightly, --json]
     exit: 0

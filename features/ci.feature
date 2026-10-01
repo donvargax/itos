@@ -23,7 +23,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # An ids selection renders through ids_pattern, so an empty one rendered
   # "@(?:)\b", which matches every tag: the run meant for one scenario ran
   # them all.
-  @ID-CI-02 @slice-12 @wip
+  @ID-CI-02 @slice-12
   Scenario: An empty smoke set adds no pattern to the run of named tests
     Given the CI steps run the named tests of the kind "scenario"
     And the smoke set is empty
@@ -34,7 +34,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     And its output says "run @ID-A-01"
     And its output does not say "@(?:)"
 
-  @ID-CI-03 @slice-12 @wip
+  @ID-CI-03 @slice-12
   Scenario: A range that names no test, with an empty smoke set, runs no named tests
     Given the CI steps run the named tests of the kind "scenario"
     And the smoke set is empty

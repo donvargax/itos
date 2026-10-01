@@ -96,6 +96,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the task "([^"]*)" has the check "([^"]*)"$`, w.taskHasCheck)
 	sc.Step(`^the CI steps are "([^"]*)"$`, func(step string) error { return w.ciStepsAre(step) })
 	sc.Step(`^the CI steps run the named tests of the kind "([^"]*)"$`, w.ciStepsRunTests)
+	sc.Step(`^the smoke set is empty$`, w.emptySmokeSet)
 	sc.Step(`^the task "([^"]*)" has a check that runs the scenario "([^"]*)"$`, func(task, id string) error {
 		return w.taskHasCheck(task, "run-scenarios "+id)
 	})
@@ -736,6 +737,11 @@ func (w *world) ciStepsRunTests(kind string) error {
 	}
 	w.config.ciTests = kind
 	return w.writeConfig()
+}
+
+// The smoke set lists no file, so a push selects only what its commits name.
+func (w *world) emptySmokeSet() error {
+	return w.write("features/smoke.yaml", "[]\n")
 }
 
 func (w *world) ciStepsAre(steps ...string) error {

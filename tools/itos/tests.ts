@@ -165,8 +165,11 @@ const template = (name: string, key: "whole" | "select" | "ids_pattern") => {
 	return value;
 };
 
-// One command that runs every selection, or none for no selection.
-export function commandFor(name: string, selections: Selection[]): string | undefined {
+// One command that runs every selection, or none when nothing is selected. An
+// `ids` selection with no IDs selects nothing: rendered, its `ids_pattern`
+// would be an empty alternation (`@(?:)\b`), which matches every test.
+export function commandFor(name: string, all: Selection[]): string | undefined {
+	const selections = all.filter((s) => !("ids" in s) || s.ids.length > 0);
 	if (selections.length === 0) return undefined;
 	if (selections.some((s) => "whole" in s)) return template(name, "whole");
 	const patterns = [
