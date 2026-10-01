@@ -79,7 +79,7 @@ URL as a dependency, so `package.json` pins the URL and the lockfile the
 tarball's integrity, and a replaced release fails every later install:
 
 ```sh
-version=0.3.0
+version=0.4.0
 url="https://github.com/donvargax/itos/releases/download/v$version/itos-$version.tgz"
 curl -fsSLO "$url"
 echo "<the hash in the release's checksums.txt>  itos-$version.tgz" | sha256sum -c -
