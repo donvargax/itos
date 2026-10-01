@@ -569,7 +569,7 @@ items:
     title: A release task's notes check judges its own release, not the current version
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-027]
     kind: task
     refs: [tasks/phase-1.yaml]
