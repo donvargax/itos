@@ -413,3 +413,27 @@
       timeout: 300
     - run: sh -c 'd=$(mktemp -d) && gh release download v0.4.0 --dir "$d" --pattern "itos-0.4.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
       after: push
+
+- id: T-034
+  type: test
+  title: The corpus proves what consumers' ledgers stop checking of itos
+  why: >
+    The character editor, where itos was first built, kept done_when checks
+    that tested itos's own behavior: synthetic configs through ITOS_CONFIG,
+    messages piped to commit check-message and the commit-msg hook, verify and
+    ci plan over recorded ranges, --json shapes. Two re-verified history up to
+    HEAD and grew with every commit (179 s by 2026-10-01). It dropped them all:
+    a consumer's ledger checks its own code and config, itos's behavior is
+    proven here, and a regression a consumer finds is a bug raised here. Of
+    the eleven behaviors they proved, the corpus already had nine. It lacked
+    verify rejecting a commit made without the hooks (no type, no footer),
+    which a header-lint delegate rejects, as commitlint does there: without
+    one itos judges only the footers, and a typeless commit no footer is
+    required for passes. And it lacked the commit-msg hook accepting a docs
+    message that names a task, beside the build one it rejects without one.
+    The next release's Upgrading section tells consumers to drop such checks.
+    The check passes on the cases as they now stand; the corpus has no way to
+    fail on a case that is missing, so their review is what proves they are
+    there.
+  done_when:
+    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos --only tools/itos/conformance/verify.yaml tools/itos/conformance/hooks.yaml

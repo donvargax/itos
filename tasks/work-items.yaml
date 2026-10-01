@@ -283,6 +283,15 @@ items:
     kind: task
     refs: [tasks/phase-1.yaml]
 
+  - id: T-034
+    title: The corpus proves what consumers' ledgers stop checking of itos
+    phase: 1
+    owner: donvargax
+    status: doing
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
   - id: p1-release-pnpm-install
     title: The release self-test installs the tarball with pnpm too
     phase: 1
