@@ -16,12 +16,10 @@ ledger:
   id: "T-\\d+"
   check:
     timeout: 600 # seconds
-    pushed: remote-branch-contains-head # what `after: push` waits for
 
 commits:
   types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
-  header_lint:
-    use: command # commitlint: config-conventional plus one rule per footer
+  header_lint: # delegated to commitlint: config-conventional plus one rule per footer
     hook: "vp exec commitlint --edit {file}"
     stdin: "vp exec commitlint"
   footers: # tools/itos/footers.ts reads them, for the commit-msg rule and CI

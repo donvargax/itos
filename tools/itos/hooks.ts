@@ -13,7 +13,8 @@
 //                                    the one-line shims calling the two, for
 //                                    the hook manager in use
 //
-// A hook manager is found by its markers, in this order: Vite+ (a
+// The hook manager is the one --manager names, else hooks.manager, else the
+// one found by its markers, in this order: Vite+ (a
 // `.vite-hooks/` folder, or core.hooksPath set to `.vite-hooks/_` by `vp
 // config`), husky (`.husky/`), lefthook (`lefthook.yml`), pre-commit or prek
 // (`.pre-commit-config.yaml`), else plain git. Vite+, husky and git keep hooks as files, so their shims are
@@ -27,7 +28,7 @@ import { lintMessageFile } from "./commit.ts";
 import { hook as dataRule } from "./commit-data.ts";
 import { hook as stagedRule } from "./commit-scope.ts";
 import { hook as tasksRule } from "./commit-tasks.ts";
-import { config } from "./config.ts";
+import { config, HOOK_MANAGERS, type HookManager } from "./config.ts";
 import { emit, type Output, TEXT } from "./problem.ts";
 import { prePush } from "./pre-push.ts";
 
@@ -51,8 +52,8 @@ export function hookPrePush(env: NodeJS.ProcessEnv = process.env): number {
 	return prePush(input);
 }
 
-export const MANAGERS = ["vp", "git", "husky", "lefthook", "pre-commit", "prek"] as const;
-export type Manager = (typeof MANAGERS)[number];
+export const MANAGERS = HOOK_MANAGERS;
+export type Manager = HookManager;
 export const isManager = (m: string): m is Manager => (MANAGERS as readonly string[]).includes(m);
 
 const NAMES: Record<Manager, string> = {
@@ -204,17 +205,24 @@ function report(files: { path: string; content: string; action: Action }[], out:
 	}
 }
 
+// The manager --manager names, else the one hooks.manager names, else the one
+// its markers show; `named` when it was named rather than found.
+function chosenManager(flag: Manager | undefined, root: string): Found & { named: boolean } {
+	if (flag) return { manager: flag, marker: `--manager ${flag}`, named: true };
+	const key = config().hooks?.manager;
+	if (key) return { manager: key, marker: `hooks.manager ${key}`, named: true };
+	return { ...detectManager(root), named: false };
+}
+
 // `hooks install`: 0 when every shim is in place (or printed), 1 when a hook
 // that is not a shim stood in the way and --force was not given.
 export function hooksInstall(options: InstallOptions = {}, out: Output = TEXT): number {
 	const root = options.root ?? ".";
 	const bin = options.bin ?? config().hooks?.bin ?? "tools/bin/itos";
-	const found: Found = options.manager
-		? { manager: options.manager, marker: `--manager ${options.manager}` }
-		: detectManager(root);
+	const { named, ...found } = chosenManager(options.manager, root);
 	const { manager } = found;
 	const say: Say = (line) => (out.json ? console.error(line) : console.log(line));
-	say(`${options.manager ? "Using" : "Found"} ${NAMES[manager]} (${found.marker})`);
+	say(`${named ? "Using" : "Found"} ${NAMES[manager]} (${found.marker})`);
 	if (manager !== "vp" && manager !== "husky" && manager !== "git")
 		return printSnippet(found, root, bin, out, say);
 	const dir = hookDir(manager, root);

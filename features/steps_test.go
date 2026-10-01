@@ -19,12 +19,13 @@ import (
 
 // One scenario's state.
 type world struct {
-	root    string // the itos checkout: where go.mod is
-	bin     string // the itos binary under test
-	dir     string // the scratch repository
-	support string // files the scenario needs outside the repository
-	config  scratchConfig
-	commits []string // the scratch repository's commits, oldest first
+	root          string // the itos checkout: where go.mod is
+	bin           string // the itos binary under test
+	dir           string // the scratch repository
+	support       string // files the scenario needs outside the repository
+	config        scratchConfig
+	commits       []string          // the scratch repository's commits, oldest first
+	scenarioFiles map[string]string // each scenario ID written, to its feature file
 
 	exit           int
 	stdout, stderr string
@@ -42,7 +43,18 @@ type scratchConfig struct {
 	registry          string   // work.registry
 	taskChecks        *bool    // hooks.commit_msg.task_checks
 	checkTimeout      int      // hooks.commit_msg.check_timeout, when above 0
+	statuses          []string // work.statuses
+	groupsKey         string   // work.groups_key
+	smoke             bool     // tests.scenario has a smoke set, features/smoke.yaml
+	smokeEveryFile    *bool    // tests.scenario.smoke.every_file
+	hooksManager      string   // hooks.manager
+	settings          []setting
 }
+
+// One key the scenario sets by its dotted path, to a string. A key under
+// ledger or commits goes into that section; any other starts a section of its
+// own, so it may not be one the config already writes.
+type setting struct{ key, value string }
 
 func initializeScenario(sc *godog.ScenarioContext) {
 	w := &world{}
@@ -89,10 +101,24 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	})
 	sc.Step(`^hooks\.commit_msg\.task_checks is (true|false)$`, w.taskChecksAre)
 	sc.Step(`^hooks\.commit_msg\.check_timeout is (\d+)$`, w.checkTimeoutIs)
+	sc.Step(`^work\.statuses is "([^"]*)"$`, w.statusesAre)
+	sc.Step(`^the work registry has the item "([^"]*)" with the status "([^"]*)"$`, func(item, status string) error {
+		return w.workingRegistry(startingRegistry, item, status)
+	})
+	sc.Step(`^work\.groups_key is "([^"]*)"$`, w.groupsKeyIs)
+	sc.Step(`^the work registry gives the group "([^"]*)" to the owner "([^"]*)" under "([^"]*)"$`, w.registryGroupOwner)
+	sc.Step(`^a feature file "([^"]*)" with the live scenario "([^"]*)"$`, w.featureFile)
+	sc.Step(`^the smoke set lists only "([^"]*)"$`, w.smokeSetLists)
+	sc.Step(`^smoke\.every_file is (true|false)$`, w.smokeEveryFileIs)
+	sc.Step(`^a "([^"]*)" folder$`, w.folder)
+	sc.Step(`^hooks\.manager is "([^"]*)"$`, w.hooksManagerIs)
+	sc.Step(`^the config sets "([^"]*)" to "([^"]*)"$`, w.configSets)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
 	sc.Step(`^itos checks the work registry$`, func() error { return w.itos("work", "check") })
+	sc.Step(`^itos checks the smoke set$`, func() error { return w.itos("tests", "smoke", "check", "scenario") })
+	sc.Step(`^itos installs the hooks$`, func() error { return w.itos("hooks", "install") })
 	sc.Step(`^itos runs the task "([^"]*)"$`, func(task string) error { return w.itos("task", task) })
 	sc.Step(`^itos runs CI over every commit up to HEAD$`, func() error { return w.itos("ci", "run", "", "HEAD") })
 	sc.Step(`^the commit-msg hook checks the message "([^"]*)"$`, w.commitMsgHook)
@@ -109,6 +135,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the recording step ran$`, func() error { return w.recordingStepRan(true) })
 	sc.Step(`^the recording step did not run$`, func() error { return w.recordingStepRan(false) })
 	sc.Step(`^the recording check did not run$`, func() error { return w.recordingCheckRan(false) })
+	sc.Step(`^the file "([^"]*)" calls itos$`, w.fileCallsItos)
 }
 
 func (w *world) setUp() error {
@@ -229,8 +256,12 @@ func (w *world) writeConfig() error {
 	if w.config.recordingShell {
 		fmt.Fprintf(&b, "shell: [%q]\n", w.recordingShellPath())
 	}
-	b.WriteString(`ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
-commits:
+	b.WriteString(`ledger:
+  files: "tasks/phase-{group}.yaml"
+  id: "T-\\d+"
+`)
+	b.WriteString(w.settingsUnder("ledger"))
+	b.WriteString(`commits:
   types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
   footers:
     Task:
@@ -254,21 +285,29 @@ commits:
 		}
 		lint := fmt.Sprintf("%s --cwd %s --config %s",
 			quote(filepath.Join(w.root, "node_modules", ".bin", "commitlint")), quote(w.root), quote(config))
-		fmt.Fprintf(&b, "  header_lint:\n    use: command\n    hook: %q\n    stdin: %q\n", lint+" --edit {file}", lint)
+		fmt.Fprintf(&b, "  header_lint:\n    hook: %q\n    stdin: %q\n", lint+" --edit {file}", lint)
 	} else if w.config.headerLintCommand != "" {
 		lint := w.config.headerLintCommand
-		fmt.Fprintf(&b, "  header_lint:\n    use: command\n    hook: %q\n    stdin: %q\n", lint, lint)
+		fmt.Fprintf(&b, "  header_lint:\n    hook: %q\n    stdin: %q\n", lint, lint)
 	}
-	if w.config.rangeCheck {
-		record := "printf '%s\\n' {from} > " + quote(filepath.Join(w.support, "range-from"))
-		fmt.Fprintf(&b, `tests:
+	b.WriteString(w.settingsUnder("commits"))
+	if w.config.rangeCheck || w.config.smoke {
+		b.WriteString(`tests:
   scenario:
     root: features
     id: "ID-[A-Z]+-\\d+"
-    range_checks:
-      - name: record
-        range: %q
-`, record)
+    tag_prefix: "@"
+`)
+	}
+	if w.config.smoke {
+		b.WriteString("    smoke:\n      file: features/smoke.yaml\n")
+		if w.config.smokeEveryFile != nil {
+			fmt.Fprintf(&b, "      every_file: %t\n", *w.config.smokeEveryFile)
+		}
+	}
+	if w.config.rangeCheck {
+		record := "printf '%s\\n' {from} > " + quote(filepath.Join(w.support, "range-from"))
+		fmt.Fprintf(&b, "    range_checks:\n      - name: record\n        range: %q\n", record)
 	}
 	if len(w.config.ciSteps) > 0 || w.config.stopAtFirst != nil {
 		b.WriteString("ci:\n  steps:")
@@ -287,9 +326,21 @@ commits:
 	if w.config.registry != "" {
 		fmt.Fprintf(&b, "registry: %q, ", w.config.registry)
 	}
+	if w.config.groupsKey != "" {
+		fmt.Fprintf(&b, "groups_key: %q, ", w.config.groupsKey)
+	}
+	if w.config.statuses != nil {
+		fmt.Fprintf(&b, "statuses: [%s], ", strings.Join(w.config.statuses, ", "))
+	}
 	b.WriteString("people: { source: yaml, file: people.yaml } }\n")
+	if w.config.hooksManager != "" || w.config.taskChecks != nil || w.config.checkTimeout > 0 {
+		b.WriteString("hooks:\n")
+	}
+	if w.config.hooksManager != "" {
+		fmt.Fprintf(&b, "  manager: %q\n", w.config.hooksManager)
+	}
 	if w.config.taskChecks != nil || w.config.checkTimeout > 0 {
-		b.WriteString("hooks:\n  commit_msg:\n")
+		b.WriteString("  commit_msg:\n")
 		if w.config.taskChecks != nil {
 			fmt.Fprintf(&b, "    task_checks: %t\n", *w.config.taskChecks)
 		}
@@ -297,7 +348,37 @@ commits:
 			fmt.Fprintf(&b, "    check_timeout: %d\n", w.config.checkTimeout)
 		}
 	}
+	for _, s := range w.config.settings {
+		if path := strings.Split(s.key, "."); path[0] != "ledger" && path[0] != "commits" {
+			b.WriteString(nested(path, s.value, 0))
+		}
+	}
 	return w.write("itos.yaml", b.String())
+}
+
+// The scenario's settings under a section the config writes, as lines below it.
+func (w *world) settingsUnder(section string) string {
+	var b strings.Builder
+	for _, s := range w.config.settings {
+		if path := strings.Split(s.key, "."); path[0] == section && len(path) > 1 {
+			b.WriteString(nested(path[1:], s.value, 1))
+		}
+	}
+	return b.String()
+}
+
+// The YAML lines that set the key path to value, the first key at the given
+// depth.
+func nested(path []string, value string, depth int) string {
+	var b strings.Builder
+	for i, key := range path {
+		b.WriteString(strings.Repeat("  ", depth+i) + key + ":")
+		if i < len(path)-1 {
+			b.WriteString("\n")
+		}
+	}
+	fmt.Fprintf(&b, " %q\n", value)
+	return b.String()
 }
 
 // Where a scratch repository's work registry starts: itos's default.
@@ -429,6 +510,74 @@ func (w *world) taskChecksAre(value string) error {
 
 func (w *world) checkTimeoutIs(seconds int) error {
 	w.config.checkTimeout = seconds
+	return w.writeConfig()
+}
+
+func (w *world) statusesAre(list string) error {
+	w.config.statuses = strings.Split(list, ", ")
+	return w.writeConfig()
+}
+
+func (w *world) groupsKeyIs(key string) error {
+	w.config.groupsKey = key
+	return w.writeConfig()
+}
+
+// The registry at its default path gives the group to the owner under key,
+// and holds one unowned item of that group: a registry read for its owners
+// anywhere but key finds the group unlisted. The owner is made one of the
+// people, so that owning the group is no problem of its own.
+func (w *world) registryGroupOwner(group, owner, key string) error {
+	if err := w.write("people.yaml", "- someone\n- "+owner+"\n"); err != nil {
+		return err
+	}
+	return w.write(startingRegistry, fmt.Sprintf(
+		"%s: { %s: %s }\nitems:\n  - { id: W-1, title: One, phase: %s, owner: null, status: todo, depends_on: [] }\n",
+		key, group, owner, group))
+}
+
+// A feature file under features/ with one live scenario, which the config's
+// scenario kind (with a smoke set) reads.
+func (w *world) featureFile(file, id string) error {
+	if w.scenarioFiles == nil {
+		w.scenarioFiles = map[string]string{}
+	}
+	w.scenarioFiles[id] = file
+	text := fmt.Sprintf("Feature: %s\n\n  %s\n  Scenario: %s runs\n    When it runs\n", file, id, id)
+	if err := w.write(filepath.Join("features", file), text); err != nil {
+		return err
+	}
+	w.config.smoke = true
+	return w.writeConfig()
+}
+
+// The smoke set holds the one scenario, under the feature file it is in.
+func (w *world) smokeSetLists(id string) error {
+	file, ok := w.scenarioFiles[id]
+	if !ok {
+		return fmt.Errorf("no feature file has the scenario %s", id)
+	}
+	return w.write("features/smoke.yaml", fmt.Sprintf(
+		"- file: %s\n  scenarios: [{ id: %q, why: the one listed }]\n", file, id))
+}
+
+func (w *world) smokeEveryFileIs(value string) error {
+	every := value == "true"
+	w.config.smokeEveryFile = &every
+	return w.writeConfig()
+}
+
+func (w *world) folder(path string) error {
+	return os.MkdirAll(filepath.Join(w.dir, path), 0o755)
+}
+
+func (w *world) hooksManagerIs(manager string) error {
+	w.config.hooksManager = manager
+	return w.writeConfig()
+}
+
+func (w *world) configSets(key, value string) error {
+	w.config.settings = append(w.config.settings, setting{key, value})
 	return w.writeConfig()
 }
 
@@ -631,6 +780,18 @@ func (w *world) recordingCheckRan(want bool) error {
 	}
 	if ran != want {
 		return fmt.Errorf("the recording check ran: %t, not %t\n%s", ran, want, w.report())
+	}
+	return nil
+}
+
+// The file is a hook that hands its work to itos's hook command.
+func (w *world) fileCallsItos(path string) error {
+	text, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return fmt.Errorf("%s cannot be read: %w\n%s", path, err, w.report())
+	}
+	if !strings.Contains(string(text), "itos hook ") {
+		return fmt.Errorf("%s does not call itos:\n%s\n%s", path, text, w.report())
 	}
 	return nil
 }

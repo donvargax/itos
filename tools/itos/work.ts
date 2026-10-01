@@ -14,13 +14,21 @@
 //
 // Every problem carries a rule id and a fix for `--json`.
 import { parse } from "yaml";
-import { config, DEFAULT_REGISTRY, type PeopleConfig } from "./config.ts";
+import {
+	config,
+	DEFAULT_GROUPS_KEY,
+	DEFAULT_REGISTRY,
+	DEFAULT_STATUSES,
+	type PeopleConfig,
+} from "./config.ts";
 import { emit, messages, type Output, problem, type Problem, TEXT } from "./problem.ts";
 import { type Answer, DEFAULT_PEOPLE, identityProvider, people } from "./providers.ts";
 import { current } from "./source.ts";
 
-const STATUSES = ["todo", "doing", "done", "blocked"] as const;
-type Status = (typeof STATUSES)[number];
+// The statuses an item may have (work.statuses). todo, doing and done keep
+// their meaning whatever else the list holds: what can start, what is under
+// way, what dependencies wait on.
+const statuses = () => config().work?.statuses ?? DEFAULT_STATUSES;
 const KINDS = ["slice", "task", "idea"] as const;
 type Kind = (typeof KINDS)[number];
 
@@ -29,7 +37,7 @@ interface Item {
 	title: string;
 	phase: number;
 	owner: string | null;
-	status: Status;
+	status: string;
 	depends_on: string[];
 	kind?: Kind;
 	why?: string;
@@ -46,15 +54,17 @@ interface Registry {
 }
 
 export const registryPath = () => config().work?.registry ?? DEFAULT_REGISTRY;
+// The registry's key whose map gives each group (each phase) its owner.
+const groupsKey = () => config().work?.groups_key ?? DEFAULT_GROUPS_KEY;
 const peopleSource = () => config().work?.people ?? DEFAULT_PEOPLE;
 // The file the people come from, as the messages name it.
 const listedIn = () => peopleSource().file;
 
 export function load(path = registryPath(), source: PeopleConfig = peopleSource()): Registry {
-	const raw = parse(current().read(path)) as Partial<Registry>;
+	const raw = parse(current().read(path)) as Partial<Registry> & Record<string, unknown>;
 	return {
 		logins: people(source),
-		phases: raw.phases ?? {},
+		phases: (raw[groupsKey()] as Registry["phases"] | undefined) ?? {},
 		items: (raw.items ?? []).map((item) => ({ ...item, depends_on: item.depends_on ?? [] })),
 	};
 }
@@ -80,10 +90,10 @@ const when = (holds: boolean, rule: string, message: string, fix?: string): Prob
 
 const statusIssues = (item: Item): Problem[] => [
 	...when(
-		!STATUSES.includes(item.status),
+		!statuses().includes(item.status),
 		"work-unknown-status",
 		`${item.id}: unknown status "${item.status}"`,
-		`set ${item.id}'s status to one of ${STATUSES.join(", ")}`,
+		`set ${item.id}'s status to one of ${statuses().join(", ")}`,
 	),
 	...when(
 		item.kind !== undefined && !KINDS.includes(item.kind),
@@ -202,7 +212,7 @@ export function registryIssues(
 			problem(
 				"work-unknown-phase",
 				`${item.id}: phase ${item.phase} is not listed`,
-				`add phase ${item.phase} to phases: in ${file}, or move ${item.id} to a listed one`,
+				`add phase ${item.phase} to ${groupsKey()}: in ${file}, or move ${item.id} to a listed one`,
 			),
 		),
 		...items.flatMap((item) => itemIssues(item, byId, handles)),

@@ -74,6 +74,32 @@ cases:
           message: "itos.yaml: unknown key hooks.shims"
           fix: remove hooks.shims; the keys here are manager, bin, pre_push, commit_msg
           area: config
+  - name: the keys of features not built yet are unknown, and hooks.manager is one hooks install knows
+    argv: [config, check, --json]
+    files:
+      itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", check: { pushed: remote-branch-contains-head } }\ncommits:\n  header_lint: { use: command, alongside: builtin, stdin: lint }\nhooks: { manager: overcommit }\n"
+    exit: 2
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: config-unknown-key
+          message: "itos.yaml: unknown key ledger.check.pushed"
+          fix: remove ledger.check.pushed; the keys here are timeout
+          area: config
+        - rule: config-unknown-key
+          message: "itos.yaml: unknown key commits.header_lint.use"
+          fix: remove commits.header_lint.use; the keys here are hook, stdin
+          area: config
+        - rule: config-unknown-key
+          message: "itos.yaml: unknown key commits.header_lint.alongside"
+          fix: remove commits.header_lint.alongside; the keys here are hook, stdin
+          area: config
+        - rule: config-enum
+          message: 'itos.yaml: hooks.manager should be one of vp, git, husky, lefthook, pre-commit, prek, not "overcommit"'
+          fix: set hooks.manager to one of vp, git, husky, lefthook, pre-commit, prek
+          area: config
   - name: wrong types, a value not allowed, missing keys
     argv: [config, check, --json]
     files:
@@ -452,6 +478,8 @@ cases:
             adapter: gherkin
             tag_prefix: "@"
             wip_tag: "@wip"
+            smoke:
+              every_file: true
         ci:
           wait_on_status:
             - todo
@@ -460,6 +488,12 @@ cases:
             provider: github
         work:
           registry: tasks/work-items.yaml
+          groups_key: phases
+          statuses:
+            - todo
+            - doing
+            - done
+            - blocked
           people:
             source: all-contributors-md
             file: CONTRIBUTORS.md

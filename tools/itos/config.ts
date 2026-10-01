@@ -52,6 +52,9 @@ export interface PeopleConfig {
 	file: string;
 	login_from?: string;
 }
+// The hook managers `hooks install` writes or prints for (hooks.ts).
+export const HOOK_MANAGERS = ["vp", "git", "husky", "lefthook", "pre-commit", "prek"] as const;
+export type HookManager = (typeof HOOK_MANAGERS)[number];
 export interface ScopeRule {
 	only?: string[];
 	never?: string[];
@@ -65,11 +68,13 @@ export interface Config {
 		files: string;
 		group?: { label?: string; pattern?: string; numeric?: boolean };
 		id?: string;
-		check?: { timeout?: number; pushed?: string };
+		check?: { timeout?: number };
 	};
 	commits?: {
 		types?: string[];
-		header_lint?: Record<string, string>;
+		// The header lint's delegate: the message file through `hook`, a
+		// message on stdin through `stdin`.
+		header_lint?: { hook?: string; stdin?: string };
 		footers?: Record<string, FooterConfig>;
 		path_sets?: Record<string, string[]>;
 		scopes?: Record<string, ScopeRule>;
@@ -108,7 +113,8 @@ export interface Config {
 		identity?: IdentityConfig;
 	};
 	hooks?: {
-		manager?: string;
+		// The hook manager `hooks install` writes for, over the one it detects.
+		manager?: HookManager;
 		bin?: string;
 		pre_push?: { per_base: string; whole: string };
 		// The commit-msg hook's run of the named tasks' static checks
@@ -153,13 +159,13 @@ const SCHEMA: Spec = obj(
 				files: str,
 				group: obj({ label: str, pattern: str, numeric: bool }),
 				id: str,
-				check: obj({ timeout: "number", pushed: str }),
+				check: obj({ timeout: "number" }),
 			},
 			["files"],
 		),
 		commits: obj({
 			types: strs,
-			header_lint: obj({ use: str, hook: str, stdin: str, alongside: str }),
+			header_lint: obj({ hook: str, stdin: str }),
 			footers: {
 				map: obj(
 					{
@@ -233,7 +239,7 @@ const SCHEMA: Spec = obj(
 			identity: obj({ provider, command: str, hint: str }),
 		}),
 		hooks: obj({
-			manager: str,
+			manager: { enum: [...HOOK_MANAGERS] },
 			bin: str,
 			pre_push: obj({ per_base: str, whole: str }, ["per_base", "whole"]),
 			commit_msg: obj({ task_checks: bool, check_timeout: "number" }),
@@ -655,6 +661,11 @@ export const normal = (command: string) => command.trim().replace(/\s+/g, " ");
 // Where the work registry is when work.registry leaves it out: beside the
 // ledger, since it is itos's data as the ledger is, and docs/ is prose.
 export const DEFAULT_REGISTRY = "tasks/work-items.yaml";
+
+// The registry's statuses, and the key its owners per group are under, when
+// work.statuses and work.groups_key leave them out.
+export const DEFAULT_STATUSES = ["todo", "doing", "done", "blocked"];
+export const DEFAULT_GROUPS_KEY = "phases";
 
 // The longest the commit-msg hook lets one task check run, in seconds, when
 // hooks.commit_msg.check_timeout leaves it out. A static check takes seconds

@@ -62,7 +62,7 @@ Feature: Every key the config accepts is one itos reads
     And its output says "CI failed at: exit 3"
     And the recording step ran
 
-  @ID-CONFIG-07 @slice-4 @wip
+  @ID-CONFIG-07 @slice-4
   Scenario: work check rejects a status that work.statuses does not list
     Given work.statuses is "todo, done"
     And the work registry has the item "T-001" with the status "doing"
@@ -70,14 +70,14 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 1
     And its output says "unknown status"
 
-  @ID-CONFIG-08 @slice-4 @wip
+  @ID-CONFIG-08 @slice-4
   Scenario: The work registry's owners per group are read from the key work.groups_key names
     Given work.groups_key is "milestones"
     And the work registry gives the group "1" to the owner "ana" under "milestones"
     When itos checks the work registry
     Then itos exits with code 0
 
-  @ID-CONFIG-09 @slice-4 @wip
+  @ID-CONFIG-09 @slice-4
   Scenario: Without smoke.every_file, a feature file with live scenarios may have no smoke test
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     And a feature file "b.feature" with the live scenario "@ID-B-01"
@@ -97,7 +97,7 @@ Feature: Every key the config accepts is one itos reads
     And its output says "b.feature"
 
   # Detection would pick husky from the .husky folder; the key overrides it.
-  @ID-CONFIG-11 @slice-4 @wip
+  @ID-CONFIG-11 @slice-4
   Scenario: hooks install writes the shims of the manager hooks.manager names, over what it detects
     Given a ".husky" folder
     And hooks.manager is "git"
@@ -108,21 +108,21 @@ Feature: Every key the config accepts is one itos reads
   # Keys for features not built yet: they come back with the feature (the
   # built-in header lint, a second way to tell a commit is pushed). use has one
   # value, command, and only the built-in lint would give it a second.
-  @ID-CONFIG-12 @slice-4 @wip
+  @ID-CONFIG-12 @slice-4
   Scenario: config check rejects commits.header_lint.alongside, which nothing reads yet
     Given the config sets "commits.header_lint.alongside" to "builtin"
     When itos checks the config
     Then itos exits with code 2
     And its output says "commits.header_lint.alongside"
 
-  @ID-CONFIG-13 @slice-4 @wip
+  @ID-CONFIG-13 @slice-4
   Scenario: config check rejects ledger.check.pushed, which nothing reads yet
     Given the config sets "ledger.check.pushed" to "remote-branch-contains-head"
     When itos checks the config
     Then itos exits with code 2
     And its output says "ledger.check.pushed"
 
-  @ID-CONFIG-14 @slice-4 @wip
+  @ID-CONFIG-14 @slice-4
   Scenario: config check rejects commits.header_lint.use, which nothing reads yet
     Given the config sets "commits.header_lint.use" to "command"
     When itos checks the config

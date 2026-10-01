@@ -141,7 +141,7 @@ cases:
       delegated.yaml: |
         version: 1
         commits:
-          header_lint: { use: command, stdin: "head -1 >&2; echo \"at $(git rev-parse --short $ITOS_AT)\" >&2" }
+          header_lint: { stdin: "head -1 >&2; echo \"at $(git rev-parse --short $ITOS_AT)\" >&2" }
     exit: 0
     stdout: |
       2/2 commits pass the commit rules
@@ -156,7 +156,7 @@ cases:
       rejecting.yaml: |
         version: 1
         commits:
-          header_lint: { use: command, stdin: "cat >/dev/null; echo '✖   type may not be empty [type-empty]'; exit 1" }
+          header_lint: { stdin: "cat >/dev/null; echo '✖   type may not be empty [type-empty]'; exit 1" }
     exit: 1
     stdout: |
       ✖   type may not be empty [type-empty]

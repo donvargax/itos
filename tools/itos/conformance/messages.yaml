@@ -267,7 +267,7 @@ cases:
       delegate.yaml: |
         version: 1
         commits:
-          header_lint: { use: command, stdin: "sh lint.sh" }
+          header_lint: { stdin: "sh lint.sh" }
       lint.sh: |
         read header
         case "$header" in
@@ -321,7 +321,7 @@ cases:
       broken.yaml: |
         version: 1
         commits:
-          header_lint: { use: command, stdin: "cat >/dev/null; echo 'lint: no config found'; exit 9" }
+          header_lint: { stdin: "cat >/dev/null; echo 'lint: no config found'; exit 9" }
     exit: 1
     json:
       schema: 1
@@ -340,7 +340,7 @@ cases:
         version: 1
         ledger: { files: "tasks/phase-{group}.yaml" }
         commits:
-          header_lint: { use: command, stdin: "cat >/dev/null; sh report.sh; exit 1" }
+          header_lint: { stdin: "cat >/dev/null; sh report.sh; exit 1" }
           footers:
             Task: { source: ledger, required_for: [chore], validate_for: all }
             Scenarios: { source: { tests: scenario }, strip_prefix: "@", required_for: [feat], validate_for: [feat], must_be_live: true }

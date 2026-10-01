@@ -1,6 +1,7 @@
 # The smoke rule (`itos tests smoke check`): every file with a live test has a smoke test, every smoke ID is a
 # live test of the file it is listed under, each says why, and a file with
-# more than one says why it has more; the smoke file's shape; --features for
+# more than one says why it has more; the first rule off with
+# smoke.every_file false; the smoke file's shape; --features for
 # another folder of feature files; --json.
 files:
   itos.yaml: |
@@ -175,3 +176,19 @@ cases:
     exit: 2
     stderr: |
       itos: tests.scenario.smoke.file is missing
+  - name: with smoke.every_file false, a file with live tests may have no smoke test
+    argv: [tests, smoke, check, scenario]
+    files:
+      itos.yaml: "version: 1\ntests:\n  scenario: { root: e2e/features, id: \"ID-[A-Z]+-\\\\d+\", tag_prefix: \"@\", smoke: { file: e2e/smoke.yaml, every_file: false } }\n"
+      e2e/smoke.yaml: "- file: list.feature\n  scenarios: [{ id: \"@ID-LIST-01\", why: opens }]\n"
+    exit: 0
+    stdout: |
+      Every smoke scenario is live (1 in all)
+  - name: with smoke.every_file false, a smoke ID is still a live test
+    argv: [tests, smoke, check, scenario]
+    files:
+      itos.yaml: "version: 1\ntests:\n  scenario: { root: e2e/features, id: \"ID-[A-Z]+-\\\\d+\", tag_prefix: \"@\", smoke: { file: e2e/smoke.yaml, every_file: false } }\n"
+      e2e/smoke.yaml: "- file: list.feature\n  scenarios: [{ id: \"@ID-LIST-02\", why: waits }]\n"
+    exit: 1
+    stderr: |
+      FAIL the smoke list names @ID-LIST-02, which is not a live scenario of list.feature

@@ -1,7 +1,8 @@
 # The work registry (`itos work`, `work check`):
 # what a person can start, what nobody owns, what waits and on what, ideas and
 # deferred items apart; every problem `work check` finds, with its rule and
-# fix; the people a registry's owners come from (the All Contributors table,
+# fix, the groups' owners under work.groups_key and the statuses
+# work.statuses lists; the people a registry's owners come from (the All Contributors table,
 # an .all-contributorsrc, a YAML list); and who a session works for (--as, or
 # the identity provider: a command, none, or gh, faked on the PATH).
 files:
@@ -649,3 +650,20 @@ cases:
         free-idea  A free idea
     stderr: |
       gh is not installed, so this session is nobody; pass --as <handle>
+  - name: the owners per group under work.groups_key, the statuses work.statuses lists
+    argv: [work, check, --json, --config, milestones.yaml]
+    files:
+      milestones.yaml: "version: 1\nwork:\n  registry: milestones-items.yaml\n  groups_key: milestones\n  statuses: [open, closed]\n  people: { source: yaml, file: people.yaml }\n"
+      milestones-items.yaml: "milestones: { 1: a }\nitems:\n  - { id: m, title: M, phase: 1, owner: null, status: open }\n  - { id: n, title: N, phase: 2, owner: null, status: todo }\n"
+    exit: 1
+    json:
+      schema: 1
+      file: milestones-items.yaml
+      sound: false
+      problems:
+        - rule: work-unknown-phase
+          message: "n: phase 2 is not listed"
+          fix: "add phase 2 to milestones: in milestones-items.yaml, or move n to a listed one"
+        - rule: work-unknown-status
+          message: 'n: unknown status "todo"'
+          fix: set n's status to one of open, closed

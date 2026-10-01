@@ -5,8 +5,9 @@
 // that runs them its templates' (tests.ts).
 //
 //   itos tests smoke check <kind> [--features <dir>]
-//                       every file with a live test has a smoke test, and
-//                       every smoke ID is live
+//                       every file with a live test has a smoke test (unless
+//                       the kind's smoke.every_file is false), and every
+//                       smoke ID is live
 //   itos tests smoke ids <kind>
 //                       the smoke IDs, one a line
 //   itos tests smoke run <kind> [-- <runner args>…]
@@ -26,6 +27,10 @@ const smokeSet = (name = KIND) => {
 	if (!working.has(name)) working.set(name, loadSmoke(name));
 	return working.get(name)!;
 };
+
+// Whether every file with a live test needs a smoke test: the kind's
+// smoke.every_file, true when it leaves it out.
+export const everyFile = (name = KIND) => kind(name).smoke?.every_file ?? true;
 
 const addHint = (name: string) => {
 	const smoke = kind(name).smoke;
@@ -83,13 +88,13 @@ function entryProblems(entry: SmokeFile, live: Set<string> | undefined, name: st
 }
 
 // What breaks the rule, with its rule id: a feature file with a live scenario
-// and no smoke one, a smoke ID that is not a live scenario of its file, a
+// and no smoke one (unless smoke.every_file is false), a smoke ID that is not a live scenario of its file, a
 // missing reason.
 export function smokeIssues(smoke: SmokeFile[], root?: string, name = KIND): Problem[] {
 	const files = liveScenarios(root, name);
 	const listed = new Set(smoke.filter((e) => e.scenarios.length > 0).map((e) => e.file));
 	const found = [...files]
-		.filter(([file, live]) => live.size > 0 && !listed.has(file))
+		.filter(([file, live]) => everyFile(name) && live.size > 0 && !listed.has(file))
 		.map(([file]) =>
 			problem("smoke-missing", `${file} has no smoke scenario (${addHint(name)})`, addHint(name)),
 		);
@@ -113,7 +118,11 @@ export function smokeCheck(name: string, root?: string, out: Output = TEXT): num
 	else for (const p of found) console.error(`FAIL ${p.message}`);
 	if (found.length) return 1;
 	if (!out.json && !out.quiet)
-		console.log(`Every feature file has a smoke scenario (${count} in all)`);
+		console.log(
+			everyFile(name)
+				? `Every feature file has a smoke scenario (${count} in all)`
+				: `Every smoke scenario is live (${count} in all)`,
+		);
 	return 0;
 }
 

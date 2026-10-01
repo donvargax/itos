@@ -3,14 +3,16 @@
 // its rule id and, where one exists, a fix. Exit 2 when the config is invalid
 // (nothing else can be read), 1 for any other problem.
 import { stringify } from "yaml";
-import { smokeIds, smokeIssues } from "./e2e-scope.ts";
+import { everyFile, smokeIds, smokeIssues } from "./e2e-scope.ts";
 import { registryProblems } from "./work.ts";
 import {
 	config,
 	configIssues,
 	configPath,
 	DEFAULT_COMMIT_CHECK_TIMEOUT,
+	DEFAULT_GROUPS_KEY,
 	DEFAULT_REGISTRY,
+	DEFAULT_STATUSES,
 	ledgerFiles,
 	ledgerIssues,
 } from "./config.ts";
@@ -24,10 +26,14 @@ export const DEFAULTS = {
 	shell: ["sh", "-c"],
 	ledger: { group: { pattern: "[^/]+", numeric: false }, check: { timeout: 600 } },
 	commits: { reject_message: "Commit rejected:" },
-	tests: { "<kind>": { adapter: "gherkin", tag_prefix: "@", wip_tag: "@wip" } },
+	tests: {
+		"<kind>": { adapter: "gherkin", tag_prefix: "@", wip_tag: "@wip", smoke: { every_file: true } },
+	},
 	ci: { wait_on_status: ["todo"], stop_at_first_failure: true, range: { provider: "github" } },
 	work: {
 		registry: DEFAULT_REGISTRY,
+		groups_key: DEFAULT_GROUPS_KEY,
+		statuses: DEFAULT_STATUSES,
 		people: DEFAULT_PEOPLE,
 		identity: { provider: "github", hint: "pass --as <handle>" },
 	},
@@ -50,7 +56,12 @@ function smokeProblems(): { lines: string[]; found: Found[] } {
 			const smoke = loadSmoke(name);
 			const own = smokeIssues(smoke, undefined, name);
 			found.push(...tagged("smoke", own));
-			lines.push(`${file}: every file has a smoke test (${smokeIds(smoke, name).length} in all)`);
+			const count = smokeIds(smoke, name).length;
+			lines.push(
+				everyFile(name)
+					? `${file}: every file has a smoke test (${count} in all)`
+					: `${file}: every smoke test is live (${count} in all)`,
+			);
 		} catch (error) {
 			const message = (error as Error).message;
 			found.push({ ...problem("smoke-unreadable", message, `correct ${file}`), area: "smoke" });

@@ -78,8 +78,10 @@ Exit 1 when the registry is not sound, 3 when --as is not among the people.
 	"work check": `Usage: itos work check [<file>]
 
 Validates the work registry (the config's work.registry, tasks/work-items.yaml
-by default, or <file>): that it is there, duplicate IDs, unknown phases,
-statuses, kinds, owners and dependencies, cycles. Exit 1 on a problem.
+by default, or <file>): that it is there, duplicate IDs, unknown phases (the
+owners per phase under work.groups_key, phases by default), statuses (those
+work.statuses lists), kinds, owners and dependencies, cycles. Exit 1 on a
+problem.
 
 --json: {"schema":1,"file","sound","problems":[{"rule","message","fix"?}]}`,
 
@@ -126,9 +128,10 @@ live, at the working tree (default), the index or a commit.
        itos tests smoke ids <kind>
        itos tests smoke run <kind> [-- <runner args>…]
 
-check: every file with a live test has a smoke test, and every smoke ID is live
-(exit 1 when not). ids: the smoke set's IDs, one a line. run: the kind's run of
-exactly the smoke set; its exit code is the runner's.
+check: every file with a live test has a smoke test (unless the kind's
+smoke.every_file is false), and every smoke ID is live (exit 1 when not). ids:
+the smoke set's IDs, one a line. run: the kind's run of exactly the smoke set;
+its exit code is the runner's.
 
 --json (check): {"schema":1,"kind","ok","ids","problems":[{"rule","message","fix"}]}
 --json (ids):   {"schema":1,"kind","ids"}`,
@@ -201,8 +204,9 @@ when a command fails.`,
 	"hooks install": `Usage: itos hooks install [--manager vp|git|husky|lefthook|pre-commit|prek] [--print] [--force]
 
 Writes the commit-msg and pre-push hooks as one-line shims calling
-\`<hooks.bin> hook …\` (tools/bin/itos by default). Without --manager it
-detects the hook manager from its markers and says which it found: Vite+ (a
+\`<hooks.bin> hook …\` (tools/bin/itos by default), for the hook manager
+--manager names, else the one hooks.manager names. Without either it detects
+the hook manager from its markers and says which it found: Vite+ (a
 .vite-hooks/ folder, or core.hooksPath .vite-hooks/_), husky (.husky/),
 lefthook (lefthook.yml), pre-commit or prek (.pre-commit-config.yaml), else
 plain git (the repository's hooks folder). lefthook and pre-commit keep hooks
