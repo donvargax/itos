@@ -769,7 +769,7 @@ items:
     title: An empty selection of named tests adds no pattern to the merged run
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-11]
     kind: slice
     refs: [features/ci.feature]
