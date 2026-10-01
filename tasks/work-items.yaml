@@ -478,7 +478,7 @@ items:
     title: The work, smoke and hooks keys read; the keys of unbuilt features dropped
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-3, T-024]
     kind: slice
     refs: [features/config.feature]
@@ -487,9 +487,7 @@ items:
       on the pin it moves to, so it ships in v0.3.0, with notes. work.statuses, work.groups_key, tests.<kind>.smoke.every_file and hooks.manager were validated
       but never read; each is now read. commits.header_lint.use and alongside wait on the built-in
       header lint, and ledger.check.pushed has one value: they leave the schema, and come back with
-      the feature that gives them a second value. @ID-CONFIG-07 to 14. All but @ID-CONFIG-10 are
-      green; it stays @wip until a coordinator settles its exit code: it expects 2 for a missing
-      smoke test, which tests smoke check, like every rule failure, reports with 1.
+      the feature that gives them a second value. @ID-CONFIG-07 to 14.
 
   - id: p1-release-checks-its-notes
     title: The release workflow runs the notes check before it publishes
