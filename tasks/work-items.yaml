@@ -435,7 +435,7 @@ items:
     title: v0.2.0, with the version in one place and notes a consumer upgrades from
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-3, slice-5, slice-6, T-023]
     kind: task
     refs: [tasks/phase-1.yaml]
