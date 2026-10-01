@@ -493,7 +493,7 @@ items:
     title: The cost rule reads a command that starts with hooks.bin as itos
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-7]
     kind: slice
     refs: [features/cost.feature]
