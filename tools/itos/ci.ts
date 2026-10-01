@@ -1,7 +1,7 @@
 // The whole CI pipeline as one local command, so the workflows are thin
 // wrappers and everything they do can be run and checked on a workstation.
 //
-//   itos ci run                      every step, the whole E2E suite included
+//   itos ci run                      every step, every named test included
 //                                    (what `vp run ci` does)
 //   itos ci run <from> <to>          a push's run: every step, with one run of
 //                                    named tests over the smoke set and what
@@ -143,8 +143,8 @@ function preamble(plan: Plan, out: Output): Failure | undefined {
 export function ciRun(from: string, to: string, nightly: boolean, out: Output = TEXT): number {
 	const plan: Plan = nightly ? ciPlan({ known: false, nightly }) : planFor(from, to);
 	const ci = section("ci");
-	// Every step and every task check sees CI's settings (`ci.env`: Playwright's
-	// full report, among others).
+	// Every step and every task check sees CI's settings (`ci.env`: what a
+	// runner does only in CI, say).
 	Object.assign(process.env, ci.env ?? {});
 	const stop = ci.stop_at_first_failure ?? true;
 	let failed = preamble(plan, out);

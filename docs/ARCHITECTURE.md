@@ -92,6 +92,9 @@ the commands, `itos <command> --help` each one). The code is
   ledger but not a ledger file, since it does not match `ledger.files`), the people
   `CONTRIBUTORS.md` (`work.people`), the smoke set `features/smoke.yaml`
   (`tests.scenario.smoke`). `itos config check` validates all of them.
+  A kind's smoke set (`tests.<kind>.smoke.file`) has one loader
+  (`smoke.ts`); its rule and its run, `itos tests smoke`, are
+  `smoke-rule.ts`.
   Every reader of them goes through one source (`source.ts`): the working
   tree by default, or, while a function runs, a tree git holds, the index or
   a commit. So the commit-msg hook's check of the staged data is

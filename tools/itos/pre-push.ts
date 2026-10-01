@@ -1,7 +1,7 @@
 // pre-push hook: run what the pushed commits affect, and nothing slow — the
 // unit tests their changes reach. The scenarios their `Scenarios:` footers
 // name and the checks of the tasks their `Task:` footers name are CI's, with
-// the whole unit and E2E suites (ci.ts): on a shared machine they take
+// the whole unit suite and the named tests (ci.ts): on a shared machine they take
 // minutes, and CI runs them anyway. `itos hook pre-push <remote> <url>`
 // (hooks.ts) runs it, with git's lines on stdin.
 import { spawnSync } from "node:child_process";

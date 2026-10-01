@@ -1,6 +1,6 @@
 // A kind's smoke set: the tests every push's CI runs, beside the ones its
 // commits name. This is the one loader every reader goes through. The file is
-// the kind's `smoke.file` in itos.yaml (`e2e/smoke.yaml` for scenarios), a
+// the kind's `tests.<kind>.smoke.file` in itos.yaml, a
 // list in this shape:
 //
 //   - file: app.feature               relative to the kind's root

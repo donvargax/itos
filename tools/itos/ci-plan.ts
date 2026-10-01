@@ -2,7 +2,7 @@
 // self-tests read the same answer.
 //
 //   - A push whose range CI can read runs one run of the kind of named tests
-//     its `tests:` step names, over the kind's smoke set (e2e/smoke.yaml), the
+//     its `tests:` step names, over the kind's smoke set (tests.<kind>.smoke.file), the
 //     tests its footers name (`Scenarios:`) and the subsets in the `done_when`
 //     of the tasks its `Task:` footers name. A range it can't read runs every
 //     test, and the nightly runs every test and nothing else. Which command a
@@ -41,7 +41,7 @@ import {
 	tasksIn,
 	testsNamedIn,
 } from "./ci-scope.ts";
-import { smokeIds } from "./e2e-scope.ts";
+import { smokeIds } from "./smoke-rule.ts";
 import { loadSmoke } from "./smoke.ts";
 import { config, DEFAULT_REGISTRY, normal, section } from "./config.ts";
 import { type Costed, costedChecks, costOf } from "./cost.ts";
@@ -103,7 +103,7 @@ export interface PlanInput {
 	// The tasks the range's `Task:` footers name.
 	tasks?: Task[];
 	nightly?: boolean;
-	// The kind's smoke set, without the tag prefix (e2e/smoke.yaml here).
+	// The kind's smoke set (tests.<kind>.smoke.file), without the tag prefix.
 	smoke?: string[];
 }
 
@@ -196,7 +196,7 @@ export function ciPlan({
 	const checks = prose ? named.filter(runsOnProse) : named;
 	const leftOut = prose ? named.filter((planned) => !runsOnProse(planned)) : [];
 	const kind = testsKind();
-	const e2e = kind
+	const testsRun = kind
 		? commandFor(kind, [
 				...ownSelection(prose, known, scenarios, smoke),
 				...mergeRuns(checks, kind, smoke),
@@ -205,8 +205,8 @@ export function ciPlan({
 	// The kind's run takes the merged selection's command, and keeps its cost.
 	const runs: Step[] = (
 		prose ? PROSE_STEPS().map((command): Step => ({ command })) : ciSteps()
-	).flatMap((step) => (step.tests ? (e2e ? [{ ...step, command: e2e }] : []) : [step]));
-	if (prose && e2e) runs.push({ command: e2e, tests: kind });
+	).flatMap((step) => (step.tests ? (testsRun ? [{ ...step, command: testsRun }] : []) : [step]));
+	if (prose && testsRun) runs.push({ command: testsRun, tests: kind });
 	const steps = runs.map((s) => s.command);
 	markDone(checks, steps);
 	return { ...base, order: inCostOrder(runs.map(costed), checks), steps, checks, leftOut };
@@ -261,7 +261,7 @@ export function notStartedIn(registry: string): Set<string> {
 }
 
 // The step that is the run's one run of named tests, if it has one.
-export const e2eStep = (plan: Plan) => {
+export const namedTestsStep = (plan: Plan) => {
 	const kind = testsKind();
 	const whole = kind && section("tests")[kind]?.run?.whole;
 	return whole ? plan.steps.find((s) => s.startsWith(whole)) : undefined;

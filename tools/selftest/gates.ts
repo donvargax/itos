@@ -20,7 +20,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { e2eStep, planFor } from "../itos/ci-plan.ts";
+import { namedTestsStep, planFor } from "../itos/ci-plan.ts";
 import { STEPS, tasksIn } from "../itos/ci-scope.ts";
 import { type Run, scratchRepo } from "./scratch.ts";
 
@@ -194,7 +194,7 @@ try {
 	run = prePush("that refactor", base, sha);
 	expect(run.status === 0, `pre-push should leave the features to CI:\n${run.output}`);
 	// ...and fails a push's features step, whose smoke set reads that line.
-	const step = e2eStep(planFor(base, sha)) ?? "";
+	const step = namedTestsStep(planFor(base, sha)) ?? "";
 	expect(
 		step.startsWith(`${features} -scenarios=`),
 		`a push's features step is not a selection: ${step}`,

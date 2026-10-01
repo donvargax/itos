@@ -3,7 +3,7 @@
 // its rule id and, where one exists, a fix. Exit 2 when the config is invalid
 // (nothing else can be read), 1 for any other problem.
 import { stringify } from "yaml";
-import { everyFile, smokeIds, smokeIssues } from "./e2e-scope.ts";
+import { everyFile, smokeIds, smokeIssues } from "./smoke-rule.ts";
 import { registryProblems } from "./work.ts";
 import {
 	config,

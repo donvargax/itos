@@ -20,8 +20,8 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ciPlan, e2eStep, planFor } from "../itos/ci-plan.ts";
-import { smokeIds, smokeProblems } from "../itos/e2e-scope.ts";
+import { ciPlan, namedTestsStep, planFor } from "../itos/ci-plan.ts";
+import { smokeIds, smokeProblems } from "../itos/smoke-rule.ts";
 import { featureTexts, parseFeature } from "../itos/gherkin.ts";
 import { kind, listTests, recognize } from "../itos/tests.ts";
 
@@ -103,7 +103,7 @@ try {
 	// set.
 	const named = [...live].find((x) => !smoke.has(x)) ?? [...live].at(-1)!;
 	let plan = planFor(head, range(`feat: name a scenario\n\nScenarios: @${named}\n`));
-	const step = e2eStep(plan);
+	const step = namedTestsStep(plan);
 	assert.ok(step, "a push naming a scenario ran no features step");
 	same(ran(step), new Set([...smoke, named]), `a range naming @${named}`);
 
@@ -112,7 +112,7 @@ try {
 		whole,
 		"node tools/selftest/gates.ts",
 	]);
-	assert.equal(e2eStep(planFor("", head)), whole, "an unread range should run everything");
+	assert.equal(namedTestsStep(planFor("", head)), whole, "an unread range should run everything");
 
 	// A range naming tasks whose checks are runs of the features and CI steps
 	// (T-016: the smoke check and the corpus, both steps, the smoke run and this

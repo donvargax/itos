@@ -31,7 +31,7 @@ export const STEPS = ciSteps().map((s) => s.command);
 export const PROSE_STEPS = (): string[] => section("ci").prose?.steps ?? [];
 
 // Prose (`ci.prose.paths`): Markdown anywhere, and everything under docs/.
-// `tasks/**` and `e2e/features/**` are deliberately absent, though the
+// `tasks/**` and a kind's tests (under `tests.<kind>.root`) are deliberately absent, though the
 // pre-commit hook skips them as well — `vp run ci` runs the task checks and
 // every scenario, so a change to either can turn CI red and has to be checked.
 export const docsOnly = (paths: string[]) => {

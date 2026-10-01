@@ -1,6 +1,6 @@
 // itos's one command line: every command, with its exit codes and `--json`
 // shapes, dispatched to the module that holds it (cli.ts, work.ts, ci.ts,
-// e2e-scope.ts, verify-commits.ts, commit-scope.ts, commit.ts, hooks.ts,
+// smoke-rule.ts, verify-commits.ts, commit-scope.ts, commit.ts, hooks.ts,
 // config-check.ts). `tools/bin/itos` wraps it, so the config and the ledger
 // say `tools/bin/itos …`.
 //
@@ -106,7 +106,7 @@ async function tests(args: string[], out: Out) {
 		return testsList(name ?? usage("tests list needs <kind>"), flagValue(rest, "--at"), out);
 	}
 	if (sub !== "smoke") return usage(`unknown command: tests ${sub ?? ""}`.trim());
-	const scope = await import("./e2e-scope.ts");
+	const scope = await import("./smoke-rule.ts");
 	const [action, ...more] = rest;
 	const [name] = positional(more, ["--features"]);
 	if (!name) usage(`tests smoke ${action ?? "check|ids|run"} needs <kind>`);

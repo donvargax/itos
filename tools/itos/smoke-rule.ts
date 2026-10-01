@@ -11,7 +11,7 @@
 //   itos tests smoke ids <kind>
 //                       the smoke IDs, one a line
 //   itos tests smoke run <kind> [-- <runner args>…]
-//                       run exactly the smoke set (`vp run e2e:smoke`)
+//                       run exactly the smoke set
 import { emit, messages, type Output, problem, type Problem, TEXT } from "./problem.ts";
 import { inShell } from "./shell.ts";
 import { loadSmoke, type SmokeFile } from "./smoke.ts";
