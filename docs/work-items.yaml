@@ -316,8 +316,8 @@ items:
     title: The work registry's default home is tasks/work-items.yaml
     phase: 1
     owner: donvargax
-    status: todo
-    depends_on: []
+    status: doing
+    depends_on: [T-025]
     kind: slice
     refs: [features/work.feature]
     why: >
@@ -325,6 +325,15 @@ items:
       beside the ledger and docs/ is left for prose. The default moves; work.registry still overrides
       it; and this repository's own registry moves there, with every place that names
       docs/work-items.yaml (docs, ledger checks, conformance cases). @ID-WORK-01 to 03.
+
+  - id: T-025
+    title: This repository's registry moves to tasks/work-items.yaml
+    phase: 1
+    owner: donvargax
+    status: doing
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-1.yaml]
 
   - id: slice-6
     title: The commit-msg hook validates itos.yaml, the ledger, the registry and the smoke set as staged

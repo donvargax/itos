@@ -191,3 +191,25 @@
       timeout: 900
     - run: sh -c 'd=$(mktemp -d) && gh release download v0.2.0 --dir "$d" --pattern "itos-0.2.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
       after: push
+
+- id: T-025
+  type: chore
+  title: This repository's registry moves to tasks/work-items.yaml
+  why: >
+    Slice 5 makes tasks/work-items.yaml the registry's default home; this
+    repository's own registry moves there with git mv, and itos.yaml's
+    work.registry line goes, since the default now says it. The two must land
+    in one commit: a docs commit may not touch itos.yaml and a build or ci one
+    may not touch tasks/**, and either half alone leaves a tree whose config
+    check fails (the config naming a registry that is not there). So it is a
+    chore, the type whose paths take both, with what names this repository's
+    path in passing: the pre-commit hook's paths, the identity fixture, the
+    config gate's self-test (a registry edit is no longer prose-only, so it
+    proves CI's plan runs config check for it as code, and for a prose-only
+    edit of CONTRIBUTORS.md, the people the registry's owners come from) and
+    the conformance cases whose scratch projects mirror this layout.
+  done_when:
+    - run: tools/bin/itos work check
+    - run: test ! -e docs/work-items.yaml
+      cost: static
+    - run: node tools/selftest/config-gate.ts
