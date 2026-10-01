@@ -3,7 +3,9 @@ name: Release
 # A tag v<version> publishes that version: itos-<version>.tgz, the package
 # `vp pack` and `npm pack` make (tools/itos/ bundled to one JavaScript file),
 # and checksums.txt, its SHA-256 in `sha256sum` format, which a consumer pins
-# with the tarball's URL. A tag is never moved or re-pushed: a failed release
+# with the tarball's URL. The release's body is that, then the committed
+# notes, docs/releases/v<version>.md, with the tarball's SHA-256 where they
+# write {sha256}. A tag is never moved or re-pushed: a failed release
 # is fixed forward on main and released as the next version.
 on:
   push:
@@ -53,6 +55,15 @@ jobs:
             exit 1
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
+      # Every release's notes are a committed file, ending with the Upgrading
+      # section a consumer updates from (PLAN.md, §10); a tag without them is
+      # refused before anything is proven or published.
+      - name: The notes are committed
+        run: |
+          if [ ! -f "docs/releases/v$VERSION.md" ]; then
+            echo "::error::no release notes at docs/releases/v$VERSION.md"
+            exit 1
+          fi
       # The tarball as a consumer installs it, offline, against the corpus and
       # every feature: the same bytes this job publishes.
       - run: node tools/selftest/release.ts --tarball "itos-$VERSION.tgz"
@@ -69,6 +80,8 @@ jobs:
             echo '```'
             cat checksums.txt
             echo '```'
+            echo
+            sed "s/{sha256}/$(cut -d' ' -f1 checksums.txt)/g" "docs/releases/v$VERSION.md"
           } > notes.md
           gh release create "$TAG" "itos-$VERSION.tgz" checksums.txt \
             --verify-tag --title "itos $VERSION" --notes-file notes.md
