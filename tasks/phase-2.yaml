@@ -1,0 +1,78 @@
+# Phase 2: the Go port. The Go binary is built beside the TypeScript, in
+# cmd/itos and internal/, one command group at a time (PLAN.md, phase 2). Each
+# group is a task here whose checks run its part of the conformance corpus,
+# and from the config group on its scenarios, against the Go build; the
+# ported set runs against it on every push (tools/selftest/go-port.ts), so a
+# later change to a ported group lands in both implementations at once. The
+# port's code lands as refactor commits with a Task: footer: the behaviour is
+# the TypeScript's, already specified, and a Scenarios: footer would run the
+# scenarios against the TypeScript alone.
+
+- id: T-039
+  type: refactor
+  title: The Go scaffold, held to the command line's corpus on every push
+  why: >
+    PLAN.md, phase 2, step 1. The module gains cmd/itos and internal/, and the
+    Go binary answers what tools/itos/conformance/cli.yaml records of the
+    command line itself: the command table with every command's argument
+    errors (exit 2, naming the help), the global flags wherever they stand,
+    the config found by --config, ITOS_CONFIG and --root, a config that
+    cannot be read or is not version 1 (exit 2), and version with --check and
+    --json held to the config's requires. A command not ported yet fails
+    loudly, never as a success. The version is package.json's, the one the
+    corpus expects: tools/bin/build-go.ts stamps it into the binary, so a
+    release still changes package.json alone, and a binary built without the
+    stamp falls back to the module version Go records (go install …@v<x>).
+    The implementation path set gains the Go packages, so feat and fix may
+    change them and chore, build, ci and docs may not; the test type gains
+    their unit tests (*_test.go under cmd/ and internal/). CI gofmt-checks
+    and unit-tests the Go packages, and runs tools/selftest/go-port.ts: it
+    builds the binary and runs the ported set against it (corpus files, and
+    later scenario selections run with ITOS_BIN pointed at the build), failing
+    when the set is empty, and each later group adds its part to that one
+    list. The first three checks fail before the work: the path rules know no
+    Go package yet.
+  done_when:
+    - run: tools/bin/itos commit check-paths --type feat cmd/itos/main.go internal/cli/cli.go
+    - fails: tools/bin/itos commit check-paths --type chore internal/cli/cli.go
+    - run: tools/bin/itos commit check-paths --type test internal/cli/cli_test.go
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/cli.yaml'
+      timeout: 600
+    - run: node tools/selftest/go-port.ts
+      timeout: 600
+
+- id: T-040
+  type: build
+  title: A snapshot release of the Go binary, built as a release will be
+  why: >
+    PLAN.md, phase 2, step 1, and §10. tools/bin/build-go.ts builds, besides
+    the native binary, the archives a Go release publishes: linux and darwin
+    on amd64 and arm64 and windows/amd64, each with the binary, LICENSE and
+    README.md, with CGO_ENABLED=0, plus checksums.txt in sha256sum's format,
+    named as the v1.0.0 release will name them, so the release workflow later
+    only uploads what this builds. tools/selftest/go-release.ts builds them
+    from the checkout into a scratch folder and proves them: every archive
+    holds its three files, checksums.txt passes sha256sum -c, and the native
+    archive's binary says it is itos at package.json's version. The nightly
+    runs it, so the build cannot rot before the first Go release. The config's
+    JSON Schema, which §10 also lists, is not part of it yet
+    (p2-config-json-schema).
+  done_when:
+    - run: node tools/selftest/go-release.ts
+      timeout: 900
+
+- id: T-041
+  type: refactor
+  title: The Go binary's --help texts, the corpus's help cases
+  why: >
+    Every --help text is a case of the corpus (PLAN.md §7), agents quote them,
+    and they are the command line's surface, so they are ported as one piece
+    beside the scaffold rather than group by group: the conformance runner
+    selects whole files. tools/itos/conformance/help.yaml joins the ported
+    set. Its first check fails before the work, since the scaffold leaves the
+    help out.
+  done_when:
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/help.yaml'
+      timeout: 600
+    - run: node tools/selftest/go-port.ts
+      timeout: 600

@@ -12,7 +12,7 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after v0.6.0 was released.
+Last updated 2026-10-02, after the Go port's first step was specified.
 
 ## Where things stand
 
@@ -22,8 +22,8 @@ are @donvargax's.
 `main` is green at `d68efea` (CI run 36961474674), after v0.6.0 and its
 close; this repository's `itos.yaml` requires itos 0.6.0, whose built-in
 moves rule it uses. The nightly ends with `{ tasks: done, cost: static }`, every done
-task's static checks. The last nightly, 36959769930 (dispatched by hand on
-`d8d08ec`, after slice 23), is green.
+task's static checks. The last nightly, 37003001717 (scheduled, on
+`e2b4f29`), is green.
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
 
@@ -39,8 +39,13 @@ report, in `docs/releases/v<next>.md`.
 ## Next
 
 1. **The Go port** (`p2-go-port: The Go port, one command group at a
-time`; PLAN.md, phase 2): specify its first slice. The config contract
-   is released in v0.6.0; small follow-ups the slices left wait, none
+time`; PLAN.md, phase 2, and its two new decisions: the port's proof, the
+   Go version). Step 1 is specified as three tasks in `tasks/phase-2.yaml`:
+   `T-039: The Go scaffold, held to the command line's corpus on every push`
+   first, then `T-040: A snapshot release of the Go binary, built as a
+release will be` and `T-041: The Go binary's --help texts, the corpus's
+help cases`. Then specify the config group (step 2: `config check`,
+   `task`, `task list`). Small follow-ups the slices left wait, none
    blocking: `p1-group-label-flag-word`, `p1-wip-tag-command-kind`,
    `p1-ledger-id-default`, `p1-own-recognize-for-itos`,
    `p1-release-defaults-per-config`, `p1-registry-old-default-hint`,

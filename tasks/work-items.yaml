@@ -1499,16 +1499,58 @@ items:
       already black-box integration tests.
 
   # ---- phase 2 ----------------------------------------------------------------
+  - id: T-039
+    title: The Go scaffold, held to the command line's corpus on every push
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
+  - id: T-040
+    title: A snapshot release of the Go binary, built as a release will be
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-039]
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
+  - id: T-041
+    title: The Go binary's --help texts, the corpus's help cases
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-039]
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
+  - id: p2-config-json-schema
+    title: The config's JSON Schema, published with each Go release
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-040]
+    kind: idea
+    why: >
+      PLAN.md §10 lists the config's JSON Schema among a Go release's assets, so an editor can
+      check an itos.yaml as it is written. T-040's snapshot leaves it out: nothing writes one yet,
+      and it should come from the one table of defaults and keys the config group ports, not be
+      kept by hand.
+    refs: [PLAN.md]
+
   - id: p2-go-port
     title: The Go port, one command group at a time
     phase: 2
     owner: donvargax
     status: todo
-    depends_on: []
+    depends_on: [T-039, T-041]
     kind: idea
     why: >
-      PLAN.md, phase 2: the Go binary built here beside the TypeScript, one command group at a
-      time, each shipped when it passes its features (ITOS_BIN pointed at it) and its part of the
-      conformance corpus. The gofmt step in itos.yaml and T-015's check name features/ only, and
-      the implementation path set tools/itos/*.ts: both grow with cmd/ and internal/.
-    refs: [PLAN.md]
+      PLAN.md, phase 2, steps 2 to 9: the command groups after the scaffold (T-039, T-040,
+      T-041), each a task in tasks/phase-2.yaml, landed as refactor commits with a Task: footer,
+      and done when its part of the conformance corpus and its scenarios (ITOS_BIN pointed at the
+      Go build) pass and join the ported set tools/selftest/go-port.ts runs on every push. The
+      config group comes next: config check, task, task list.
+    refs: [PLAN.md, tasks/phase-2.yaml]

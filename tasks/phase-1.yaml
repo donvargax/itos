@@ -32,7 +32,7 @@
     and go vet run where vp check does, on the staged files before a commit and
     as static steps in CI.
   done_when:
-    - run: sh -c '! gofmt -l features | grep .'
+    - run: sh -c '! gofmt -l features cmd internal | grep .'
       cost: static
     - run: go mod verify
     - run: go vet ./...
