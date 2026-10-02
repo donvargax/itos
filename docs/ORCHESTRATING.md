@@ -73,6 +73,15 @@ node_modules`; the worktrees live under `.claude/worktrees/`, which the
    - and commit from a worktree of your own while they run.
 3. When it reports, check the result (below). Relay the report to the user
    with what to try on the command line.
+   **Then bring `docs/HANDOFF.md` up to date before anything else**: its
+   "Where things stand" (main's green run, the newest nightly, what is
+   released and what is not) and its "Next" (what just landed comes off,
+   what the agent left that changes the order goes on), in the same `docs`
+   commit that records the landing, or one of its own, before the next agent
+   starts. Do the same after every other landing: a release, a red nightly
+   and its fix, a decision of the user's. A session can end at any point,
+   cut off by the spend limit or closed, and the next one reads only that
+   file: it must be right after every landing, not only at the end.
 4. The user reviews; that review is final. What they ask for next is
    **specified here and handed to an agent**, not built here: feedback that
    arrives mid-session is a slice like any other, however small it sounds
@@ -80,8 +89,7 @@ node_modules`; the worktrees live under `.claude/worktrees/`, which the
    scenario, it is a slice and it goes to a subagent.** What the coordinator
    does itself is the work that changes no scenario — this file and the other
    docs, `PLAN.md`, the ledger and the registry, the briefs, landing and
-   pushing an agent's work, and the `docs/HANDOFF.md` rewrite at the end of
-   the session.
+   pushing an agent's work, and `docs/HANDOFF.md`, after every landing.
 
 Work goes straight to `main`: no branches, no pull requests. Every push runs
 CI (`.github/workflows/ci.yml`).
@@ -247,8 +255,9 @@ working tree, with the same index**, so:
   of what to commit and why. Apply and commit them once the agent has pushed
   and handed back; then push them yourself.
 - **Don't touch what the agent is writing.** `docs/HANDOFF.md` is yours, not
-  the agent's: rewrite it at the end of the session so it says only what the
-  next one should do. A `refactor` or `perf` agent may not touch feature
+  the agent's: update it after every landing (step 3 of the loop), and at
+  the end of the session trim it so it says only what the next one should
+  do. A `refactor` or `perf` agent may not touch feature
   files at all, so those, `PLAN.md` and `tasks/*.yaml` are usually safe to
   prepare — but prepare them, don't commit them.
 - **If the tree is lost anyway**, the hook's backup is still in the object

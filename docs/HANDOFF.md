@@ -1,7 +1,8 @@
 # Handoff
 
 This file holds only what is ahead, for the next session to act on. It is
-the coordinator's to rewrite at the end of each session, and kept short on
+the coordinator's to update after every landing (docs/ORCHESTRATING.md, the
+loop's step 3), so it is right whenever a session stops, and kept short on
 purpose: what was built, and why, is the history (`git log`, or `vp run
 changelog`), and open work beyond the next few steps is
 `tasks/work-items.yaml`.
@@ -11,19 +12,20 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last rewritten 2026-10-02, after v0.5.0 was released.
+Last updated 2026-10-02, after slice 21 landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `53a3b7b` (CI run 36951971591), after v0.5.0; every
-task in the ledger is done. The nightly ends with
-`{ tasks: done, cost: static }`, every done task's static checks; its last
-run, 36946722134 (dispatched by hand on `3210cc3`), is green. Read the
-newest nightly before starting the next implementation. A red nightly takes
-priority over new work.
+`main` is green at `f82d00b` (CI run 36956309733), after slices 18 to 21;
+every item in progress has landed. The nightly ends with
+`{ tasks: done, cost: static }`, every done task's static checks. The last
+green nightly is 36954645321 (on `3170b7a`, after slice 19); one was
+dispatched on `f82d00b` (run 36956479749) for slices 20 and 21: read it, or
+the newest one, before starting the next implementation. A red nightly
+takes priority over new work.
 
 Released: [v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0)
 (slices 14 to 17, T-034, T-035), after
@@ -33,19 +35,28 @@ v0.5.0's adds the nightly's `{ tasks: done, cost: static }` step the
 character editor asked for, and has consumers drop ledger checks of itos's
 own behaviour. The user moves the consumers' pins (the project template, the
 character editor) from their own repositories: don't change any other
-repository. Nothing is unreleased. Write the next release's notes as each
-slice lands, from its report, in `docs/releases/v<next>.md`: v0.5.0's were,
-and the release task only finished them.
+repository. Unreleased: slices 18 to 21, each already in
+`docs/releases/v0.6.0.md` (its notes check passes; the release adds the
+intro, known issues, the pin's hash and the check step). Write each slice
+into those notes as it lands, from its report.
 
 ## Next
 
-1. **The rest of the config contract, before the port**: slices 18 and 19
-   are done (in `docs/releases/v0.6.0.md`);
-   slice 20 is done too; `slice-21` (ledger.group.label read) is specified.
-   Then, ideas to specify first: `p1-registry-beside-ledger`,
-   `p1-verify-with-last-release`, and `p1-config-names-from-config` (what
-   slice 18 left: scenario-moves, a script the config runs, needs the user's
-   call on whether itos ships it). Then **the Go port** (`p2-go-port`).
+1. **The rest of the config contract, before the port.** Slices 18 to 21
+   are done. Left, ideas to specify first:
+   - `p1-verify-with-last-release: CI verifies with the last released itos
+too`, the coordinator's to specify;
+   - `p1-registry-beside-ledger: work.registry's default follows the
+ledger's folder, as PLAN says`, and `p1-config-names-from-config` (what
+     slice 18 left: `scenario-moves.ts`, a script the config runs): each
+     waits on a call the user has not made yet. The coordinator recommended
+     following the ledger, and shipping scenario-moves as an itos command.
+   - small follow-ups the slices left: `p1-group-label-flag-word`,
+     `p1-wip-tag-command-kind`, `p1-ledger-id-default`,
+     `p1-own-recognize-for-itos`.
+
+   Then a v0.6.0 release, then **the Go port** (`p2-go-port`).
+
 2. **The hand work that could be itos's** (the block above phase 2 in the
    registry) comes after the port, the user agreed; the coordinator had
    proposed `p1-itos-push` and `p1-ci-watch` before it, as they save work on
