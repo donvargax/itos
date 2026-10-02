@@ -6,10 +6,9 @@
 //
 // The Go port landed one command group at a time (PLAN.md, phase 2), and
 // every command of the table is ported now. Each takes its arguments as the
-// TypeScript does, so a usage error reads the same in both; a command whose
-// group was not ported yet failed loudly (NotPorted, exit 3) rather than
-// succeeding with nothing done, and the error stays for a command added to
-// the TypeScript ahead of the Go.
+// TypeScript does, so a usage error reads the same in both. A command added
+// to the TypeScript alone cannot land: every push runs the whole corpus and
+// every feature against the Go build (tools/selftest/go-port.ts).
 package cli
 
 import (
@@ -93,16 +92,6 @@ func usage(format string, a ...any) error {
 	return usageError{strings.TrimSpace(fmt.Sprintf(format, a...))}
 }
 
-// NotPorted is a command this build does not have yet: its group of the Go
-// port has not landed. Exit 3, the missing environment's code: nothing the
-// caller typed or configured is wrong (2), and no check failed (1); what is
-// missing is the command itself.
-type NotPorted struct{ Command string }
-
-func (e NotPorted) Error() string {
-	return e.Command + " is not in this build yet (the Go port has not reached it)"
-}
-
 // Exit codes (PLAN.md §7).
 const (
 	ExitPolicy  = 1
@@ -111,21 +100,17 @@ const (
 )
 
 // failure reports an error as main.ts does and gives its exit code: a usage
-// error naming the help, a config error as the config check prints it, a
-// command not ported yet, anything else as its message alone.
+// error naming the help, a config error as the config check prints it,
+// anything else as its message alone.
 func failure(err error, o Out) int {
 	var u usageError
 	var c *config.Error
-	var n NotPorted
 	switch {
 	case errors.As(err, &u):
 		fmt.Fprintf(o.Stderr, "itos: %s (itos --help)\n", u.message)
 		return ExitUsage
 	case errors.As(err, &c):
 		return configFailure(c, o)
-	case errors.As(err, &n):
-		fmt.Fprintf(o.Stderr, "itos: %s\n", n.Error())
-		return ExitMissing
 	}
 	fmt.Fprintf(o.Stderr, "itos: %s\n", err)
 	return ExitUsage

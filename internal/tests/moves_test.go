@@ -18,8 +18,8 @@ func featureSet(t *testing.T, files map[string]string) *FeatureSet {
 
 const base = "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n"
 
-// The cases moves.yaml gives the commit-msg hook, which is not ported yet,
-// judged by the comparison it will call.
+// The cases moves.yaml gives the commit-msg hook, judged by the comparison
+// it calls.
 func TestMoveProblems(t *testing.T) {
 	before := featureSet(t, map[string]string{"features/a.feature": base})
 	renames := map[string]string{"ID-A-01": "Opens again"}

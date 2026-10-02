@@ -31,18 +31,6 @@ func run(args ...string) (int, string, string) {
 	return code, stdout.String(), stderr.String()
 }
 
-// A command whose group is not ported fails loudly: exit 3, saying so, and
-// nothing on stdout. Every command of the table is ported now, so the path
-// is held by its error alone.
-func TestNotPortedFailsLoudly(t *testing.T) {
-	var stdout, stderr strings.Builder
-	code := failure(NotPorted{"hooks install"}, Out{Stdout: &stdout, Stderr: &stderr})
-	if code != ExitMissing || stdout.String() != "" ||
-		stderr.String() != "itos: hooks install is not in this build yet (the Go port has not reached it)\n" {
-		t.Errorf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
-	}
-}
-
 // The usage errors the corpus leaves out read as the TypeScript's.
 func TestUsageErrors(t *testing.T) {
 	for args, want := range map[string]string{
