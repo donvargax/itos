@@ -193,17 +193,17 @@ func oneStepProblems(c *Config, s Step, nightly bool) []out.Problem {
 	}}
 }
 
-// regexpProblem is a pattern that does not compile. The patterns were written
-// for JavaScript's regular expressions, which the message names; Go compiles
-// them as RE2, which lacks lookaround and backreferences.
+// regexpProblem is a pattern that does not compile as RE2, the config's
+// dialect (PLAN.md, "Pattern dialect"), which lacks lookaround and
+// backreferences; the TypeScript refuses those by hand (lacksInRE2).
 func regexpProblem(pattern, where string) []out.Problem {
 	if _, err := regexp.Compile(pattern); err == nil {
 		return nil
 	}
 	return []out.Problem{{
 		Rule:    "config-regexp",
-		Message: where + " is not a regular expression: " + pattern,
-		Fix:     "correct " + where + " so that it compiles as a JavaScript regular expression",
+		Message: where + " is not an RE2 regular expression: " + pattern,
+		Fix:     "correct " + where + " so that it compiles as an RE2 regular expression (no lookaround or backreference)",
 	}}
 }
 
@@ -214,6 +214,11 @@ func patternProblems(tree *value.Map, c *Config) []out.Problem {
 	}
 	for i, rule := range c.CI.Covers {
 		found = append(found, regexpProblem(rule.Matches, fmt.Sprintf("ci.covers[%d].matches", i))...)
+	}
+	for _, name := range c.Tests.Keys {
+		if id := c.Tests.Values[name].ID; id != nil && *id != "" {
+			found = append(found, regexpProblem(*id, "tests."+name+".id")...)
+		}
 	}
 	if !tree.Has("ledger") {
 		return found

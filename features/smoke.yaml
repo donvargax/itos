@@ -60,6 +60,10 @@
   scenarios:
     - id: "@ID-NIGHTLY-01"
       why: the nightly runs a done task's check and leaves out one in progress, the file's point
+- file: patterns.feature
+  scenarios:
+    - id: "@ID-PATTERN-01"
+      why: config check refuses a lookahead as RE2 does, the file's point, one config check in a scratch repository
 - file: since.feature
   scenarios:
     - id: "@ID-SINCE-01"

@@ -504,18 +504,48 @@ export class ConfigError extends Error {
 
 export const configPath = () => process.env.ITOS_CONFIG || "itos.yaml";
 
+// Whether a pattern JavaScript compiles has what RE2 lacks (PLAN.md, "Pattern
+// dialect"): a lookaround outside a character class, or an escape RE2 has no
+// reading for, a backreference's. RE2 reads \1 to \7 followed by an octal
+// digit as an octal escape and refuses any other \1 to \9, and has no \k, in
+// or out of a class; the escaped character is skipped, so \(?= is literal. The
+// class is JavaScript's, which the pattern compiled as: [] and [^] close at
+// their ]. The TypeScript cannot run RE2, so this is how it refuses what the Go
+// binary refuses. A pattern RE2 compiles and JavaScript cannot, such as
+// (?i)abc, is still refused, since the TypeScript could not run it.
+export function lacksInRE2(source: string): boolean {
+	let inClass = false;
+	for (let i = 0; i < source.length; i++) {
+		const c = source[i];
+		if (c === "\\") {
+			const next = source[i + 1] ?? "";
+			const octal = next >= "1" && next <= "7" && /[0-7]/.test(source[i + 2] ?? "");
+			if ((next >= "1" && next <= "9" && !octal) || next === "k") return true;
+			i++;
+		} else if (inClass) inClass = c !== "]";
+		else if (c === "[") inClass = true;
+		else if (["(?=", "(?!", "(?<=", "(?<!"].some((look) => source.startsWith(look, i))) return true;
+	}
+	return false;
+}
+
+// The config's patterns are RE2: one JavaScript cannot compile, which the
+// TypeScript could not run, or one with what RE2 lacks, is refused.
 const tryRegExp = (source: string, where: string, found: Problem[]) => {
+	let compiles = true;
 	try {
 		new RegExp(source);
 	} catch {
+		compiles = false;
+	}
+	if (!compiles || lacksInRE2(source))
 		found.push(
 			problem(
 				"config-regexp",
-				`${where} is not a regular expression: ${source}`,
-				`correct ${where} so that it compiles as a JavaScript regular expression`,
+				`${where} is not an RE2 regular expression: ${source}`,
+				`correct ${where} so that it compiles as an RE2 regular expression (no lookaround or backreference)`,
 			),
 		);
-	}
 };
 
 // `$name` entries of a path list, replaced by `commits.path_sets.<name>`.
@@ -793,6 +823,8 @@ function patternProblems(config: Config): Problem[] {
 		tryRegExp(pattern, `ci.cost.static[${i}]`, found);
 	for (const [i, rule] of (config.ci?.covers ?? []).entries())
 		tryRegExp(rule.matches, `ci.covers[${i}].matches`, found);
+	for (const [name, kind] of Object.entries(config.tests ?? {}))
+		if (kind.id) tryRegExp(kind.id, `tests.${name}.id`, found);
 	const ledger = config.ledger;
 	if (!ledger) return found;
 	if (ledger.id) tryRegExp(ledger.id, "ledger.id", found);

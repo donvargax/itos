@@ -9,12 +9,24 @@ Feature: The config's patterns are RE2 regular expressions
   linear time, so no pattern in a project's config can hang a commit hook.
   config check refuses what RE2 cannot compile, naming RE2 in its fix.
 
+  The TypeScript cannot run RE2: it compiles each pattern with JavaScript's
+  RegExp, which it needs to run it, and refuses beside that what RE2 lacks,
+  a lookaround outside a character class and a backreference's escape. On a
+  pattern both compile, matching is RE2's from now on, and the TypeScript's
+  differs where the dialects do (\s is JavaScript's whitespace and RE2's
+  ASCII one, and . does not match \r in JavaScript): a known gap, closed when
+  the TypeScript goes at the switch.
+
   Background:
     Given a repository whose ledger has the task "T-001"
 
   # The lookahead compiles in JavaScript, so the TypeScript passed it while
-  # the Go binary refused it, with a fix that named JavaScript.
-  @ID-PATTERN-01 @slice-24 @wip
+  # the Go binary refused it, with a fix that named JavaScript. The other
+  # direction, a pattern RE2 compiles and JavaScript cannot, such as (?i)abc,
+  # has no scenario: the TypeScript cannot run it, so it still refuses it, and
+  # that is safe, since the TypeScript goes at the switch and the Go binary,
+  # which accepts it, stays.
+  @ID-PATTERN-01 @slice-24
   Scenario: config check refuses a lookahead, which RE2 does not have
     Given the config sets "ledger.group.pattern" to "(?=\d)\d+"
     When itos checks the config
@@ -22,7 +34,8 @@ Feature: The config's patterns are RE2 regular expressions
     And its output says "ledger.group.pattern"
     And its output says "RE2"
 
-  @ID-PATTERN-02 @slice-24 @wip
+  # The backreference compiles in JavaScript too; RE2 has no \1 to match by.
+  @ID-PATTERN-02 @slice-24
   Scenario: config check refuses a backreference, which RE2 does not have
     Given the config sets "ledger.group.pattern" to "(\d)\1*"
     When itos checks the config
