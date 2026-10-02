@@ -453,3 +453,30 @@
     - run: >-
         sh -c 'tools/bin/itos ci plan --nightly --json | grep -q "\"task\": \"T-"'
       cost: static
+
+- id: T-036
+  type: build
+  title: v0.5.0, the done tasks' nightly step and three fixes consumers met
+  why: >
+    v0.5.0 releases slice 16 (a nightly step, { tasks: done }, runs the
+    checks of every done task, asked for by the character editor), slice 14
+    (a missing ledger folder is one problem in every command that reads the
+    ledger), slice 15 (a check merged into a run of named tests that does not
+    happen runs as itself) and slice 17 (a commits.since outside a shallow
+    clone says the clone is shallow), with the notes PLAN.md §10 asks for.
+    docs/releases/v0.5.0.md was written slice by slice as each landed, with
+    T-034's step that has consumers drop ledger checks of itos's own
+    behaviour; this task finishes it. Slice 16 changes the failure line of a
+    failing task check, which anything reading CI's log must match, and the
+    step needs the nightly's job to have the history and tools CI has: the
+    Upgrading section says both. The tag waits for the user's review of the
+    notes. Until the version is bumped the notes check judges 0.5.0 as
+    untagged against this tree, which is how it proves the notes before the
+    tag.
+  done_when:
+    - run: node tools/selftest/release.ts
+      timeout: 900
+    - run: node tools/selftest/release-notes.ts 0.5.0
+      timeout: 300
+    - run: sh -c 'd=$(mktemp -d) && gh release download v0.5.0 --dir "$d" --pattern "itos-0.5.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
+      after: push

@@ -301,6 +301,15 @@ items:
     kind: task
     refs: [tasks/phase-1.yaml]
 
+  - id: T-036
+    title: v0.5.0, the done tasks' nightly step and three fixes consumers met
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-14, slice-15, slice-16, slice-17, T-034, T-035]
+    kind: task
+    refs: [tasks/phase-1.yaml]
+
   - id: p1-release-pnpm-install
     title: The release self-test installs the tarball with pnpm too
     phase: 1
