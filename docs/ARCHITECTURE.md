@@ -247,8 +247,20 @@ check`'s written-order rule reads too); then the late steps (the whole unit suit
   Markdown; the registry and the ledger, under `tasks/`, are not prose) and the named tasks' static and `prose: true` checks,
   and no features.
 - **The nightly** (`.github/workflows/nightly.yml`, at 11:44 UTC on `main` or
-  by hand) runs `itos ci run --nightly`: every feature, then the gates
-  self-test. A red run opens one issue labelled `nightly-red`, or comments on
+  by hand) runs `itos ci run --nightly`: `ci.nightly.steps` in written order,
+  here every feature, then the gates self-test, then the static checks of every
+  done task. That last is the step `{ tasks: done, cost: static }`
+  (`nightlyPlan` in `ci-plan.ts`): the checks of each task whose work item is
+  `done` in the registry (`itemStatuses`, the status the commit-msg hook calls
+  a red check a regression by), in cost order where the step is written, only
+  the static ones with `cost: static`. A task in progress, or with no item, is
+  left out. A check a nightly step has done is not run again, one that is a run
+  of the kind is in the nightly's whole run, and `ci run` hands the step's
+  checks one `Runs` map (`checks.ts`), so a check two done tasks share runs
+  once, as in `itos task`; a push's run keeps each named task's checks its
+  own. `config check` refuses the step in `ci.steps`, where the tasks are the
+  ones the commits name. A failing task check names the task's ID and title,
+  in a push and in the nightly. A red run opens one issue labelled `nightly-red`, or comments on
   the open one with the failing scenarios (go test's `--- FAIL:
 TestFeatures/…` lines); a green run closes it.
 - **The self-tests** (`tools/selftest/`) prove the gates rather than the code:
