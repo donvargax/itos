@@ -396,12 +396,16 @@ report problems as issues that are then prioritised.
 1. The hooks run the Go unit tests a change reaches (T-059).
 2. Dogfood: this repository's hooks and CI run the Go binary, so it judges
    every commit here before any consumer's (T-060).
-3. The built-in header lint replaces commitlint, so a consumer of the Go
-   binary needs no Node (slice 25); it is held to commitlint's verdicts on
-   this repository's history before the switch to it.
-4. v2.0.0: the TypeScript implementation and its tarball go; consumers switch
-   to the binary on v2's Upgrading section, which asks for every
-   compatibility change at once.
+3. The TypeScript leaves the repository, with no release (T-062): every
+   feature runs against both implementations on every push, so anything
+   specified while it stays is built twice.
+4. The built-in header lint replaces commitlint, so a consumer of the Go
+   binary needs no Node (slice 25), built once, in Go; it is held to
+   commitlint's verdicts on this repository's history before this
+   repository switches to it (T-063).
+5. v2.0.0 (T-061): Go only, the tarball gone; consumers switch to the binary
+   on v2's Upgrading section, which asks for every compatibility change at
+   once.
 
 Each step is reverted, never forced, if it goes wrong. After v2, features are
 built once, in Go: extensions (`itos-<cmd>` on `PATH`), the stealth mode and

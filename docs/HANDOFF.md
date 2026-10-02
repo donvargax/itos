@@ -12,15 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after v1.1.0 was released and phase 3 planned.
+Last updated 2026-10-02, after T-059 (the Go unit tests in the hooks) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` was green at `d82ac60` (CI run 37069631051); v1.1.0's commit
-`9dd24c6` was red only at T-058's download check until the tag, as designed; this
+`main` is green at `e2ad4fb` (CI run 37072752161), after T-059; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`): since T-053 the whole corpus and every
@@ -50,14 +49,15 @@ slice lands, from its report, in `docs/releases/v<next>.md`.
 
 1. **Phase 3, Go only as soon as possible** (PLAN.md, phase 3, the user's
    calls: no shadow period, no two-week wait), one agent at a time:
-   - `T-059: The hooks run the Go unit tests a change reaches` (closes
-     `p2-go-unit-tests-in-hooks`);
    - `T-060: This repository's hooks and CI run the Go binary` (dogfood);
+   - `T-062: The TypeScript implementation leaves the repository` (no
+     release; reordered so slice 25 is built once, in Go);
    - `slice-25: The built-in header lint replaces commitlint`, to specify as
-     scenarios (held first to commitlint's verdicts on this history);
-   - `T-061: v2.0.0, Go only`, to specify once slice 25 lands: the
-     TypeScript and its tarball go, and v2's Upgrading asks for everything
-     at once.
+     scenarios (draft: `use: builtin`, config-conventional's errors with
+     `commits.types` as type-enum, commitlint's rule ids and words);
+   - `T-063: The built-in header lint agrees with commitlint, and this
+repository switches to it`;
+   - `T-061: v2.0.0, Go only`, to specify once T-063 lands.
 
    Proposed to the user, not yet decided: `p1-upgrading-footer` before v2,
    so v2's notes are gathered from commits. Follow-ups: the release cut by

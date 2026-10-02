@@ -35,3 +35,41 @@
   done_when:
     - run: node tools/selftest/go-dogfood.ts
       timeout: 600
+
+# Reordered so the built-in header lint is built once: every feature runs
+# against both implementations on every push (T-053), so the TypeScript leaves
+# the repository before slice 25 is specified, and v2.0.0 releases both.
+
+- id: T-062
+  type: refactor # a chore may not touch the implementation, and deleting it touches it
+  title: The TypeScript implementation leaves the repository
+  why: >
+    Go only (the user's call): with this repository running the Go binary
+    (T-060), the TypeScript is kept only to be held to the same corpus and
+    features, which doubles every new feature. tools/itos/*.ts (but the
+    conformance runner and its fixtures), tools/bin/pack.ts, the Vitest
+    unit tests of the implementation, the CI steps that run the corpus and
+    the features against the TypeScript, and the TypeScript from
+    commits.path_sets.implementation go; go-port.ts's whole-suite run
+    against the Go build is the corpus's and the features' run. Node stays
+    as this repository's dev tooling (vp, the corpus runner, the self-tests),
+    never a runtime for a consumer. No release: v2.0.0 (T-061) publishes it.
+  done_when:
+    - run: sh -c 'test -z "$(git ls-files "tools/itos/*.ts" | grep -v "^tools/itos/conformance/")"'
+      cost: static
+    - run: node tools/selftest/go-port.ts
+      timeout: 1200
+
+- id: T-063
+  type: build
+  title: The built-in header lint agrees with commitlint, and this repository switches to it
+  why: >
+    Before commitlint goes, the built-in lint (slice 25) is held to its
+    verdict: tools/selftest/header-agreement.ts runs both over every commit
+    message of this repository after commits.since and over the corpus's
+    messages, and fails on any commit where one rejects and the other does
+    not, naming it. Then itos.yaml's commits.header_lint is use: builtin,
+    and commitlint, its config and its packages leave the repository.
+  done_when:
+    - run: node tools/selftest/header-agreement.ts
+      timeout: 900

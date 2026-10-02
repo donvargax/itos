@@ -1733,12 +1733,21 @@ items:
     kind: task
     refs: [tasks/phase-3.yaml]
 
+  - id: T-062
+    title: The TypeScript implementation leaves the repository
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [T-060]
+    kind: task
+    refs: [tasks/phase-3.yaml]
+
   - id: slice-25
     title: The built-in header lint replaces commitlint
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [T-060]
+    depends_on: [T-062]
     kind: idea
     why: >
       The user's call (2026-10-02): v2.0.0 is Go only, so a consumer of the binary needs no Node,
@@ -1749,16 +1758,25 @@ items:
       starts.
     refs: [PLAN.md, tools/itos/conformance/messages.yaml]
 
+  - id: T-063
+    title: The built-in header lint agrees with commitlint, and this repository switches to it
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-25]
+    kind: task
+    refs: [tasks/phase-3.yaml]
+
   - id: T-061
     title: v2.0.0, Go only
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [slice-25]
+    depends_on: [T-063]
     kind: idea
     why: >
-      The TypeScript implementation and its tarball go (tools/itos/*.ts, tools/bin/pack.ts, the
-      release's tarball), the implementation path set is the Go packages alone, and v2's Upgrading
+      The release Go only: T-062 took the TypeScript out of the repository, so the release stops
+      publishing its tarball, and v2's Upgrading
       section asks consumers for everything at once: switch the pin to the binary (v1.0.0's
       install script), drop Node and commitlint for the built-in lint, and anything else the
       commits since v1.1.0 change. Released automatically (PLAN.md, "Releases"). To specify as a
