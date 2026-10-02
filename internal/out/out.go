@@ -1,0 +1,65 @@
+// Package out is how a command reports under --json (PLAN.md §7): one object
+// on stdout, "schema": 1 first and its keys in the order written, indented as
+// tools/itos/problem.ts's emit prints it, and the problems a check reports,
+// each a sentence with a stable rule id and, where one exists, a fix.
+package out
+
+import (
+	"bytes"
+	"encoding/json"
+	"io"
+)
+
+// Problem is one thing a check found wrong: the sentence the text output
+// prints, and for --json its rule id and the fix an agent can act on.
+type Problem struct {
+	Rule    string `json:"rule"`
+	Message string `json:"message"`
+	Fix     string `json:"fix,omitempty"`
+}
+
+// Field is one key of a JSON object, written in the order given: Go's maps
+// would sort the keys, and the output's order is part of what is quoted.
+type Field struct {
+	Key   string
+	Value any
+}
+
+// encode writes a value as JSON, leaving <, > and & as they are, as
+// JavaScript's JSON.stringify does.
+func encode(buf *bytes.Buffer, v any) error {
+	enc := json.NewEncoder(buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(v); err != nil {
+		return err
+	}
+	buf.Truncate(buf.Len() - 1) // Encode's newline
+	return nil
+}
+
+// Emit prints one object, "schema": 1 first, then the fields in order,
+// indented by two spaces and ended by a newline.
+func Emit(w io.Writer, fields ...Field) error {
+	var raw bytes.Buffer
+	raw.WriteByte('{')
+	for i, f := range append([]Field{{"schema", 1}}, fields...) {
+		if i > 0 {
+			raw.WriteByte(',')
+		}
+		if err := encode(&raw, f.Key); err != nil {
+			return err
+		}
+		raw.WriteByte(':')
+		if err := encode(&raw, f.Value); err != nil {
+			return err
+		}
+	}
+	raw.WriteByte('}')
+	var pretty bytes.Buffer
+	if err := json.Indent(&pretty, raw.Bytes(), "", "  "); err != nil {
+		return err
+	}
+	pretty.WriteByte('\n')
+	_, err := w.Write(pretty.Bytes())
+	return err
+}
