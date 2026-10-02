@@ -7,7 +7,9 @@
 //     of the tasks its `Task:` footers name. A range it can't read runs every
 //     test, and the nightly runs every test and nothing else. Which command a
 //     check is and which command runs the selections are the kind's templates
-//     (tests.ts).
+//     (tests.ts). A task check that is a run of that kind merges into the
+//     run, unless the plan has no such run (nothing at all selected): then
+//     it runs as itself.
 //   - A named task's check that is one of the steps this run has just run
 //     (`vp build`, `vp check`, …), or `vp test run` (whole or narrowed to
 //     paths) when the whole unit suite has run with coverage, is not run again.
@@ -118,18 +120,16 @@ function coveredBy(command: string, steps: string[]): string | undefined {
 	)?.by;
 }
 
-// Mark each task check that is a run of the kind as merged, and return its
-// selection.
-function mergeRuns(checks: PlannedCheck[], kind: string, smoke: string[]): Selection[] {
-	const selections: Selection[] = [];
-	for (const planned of checks) {
+// Each task check that is a run of the kind, with its selection.
+function runsOfKind(
+	checks: PlannedCheck[],
+	kind: string,
+	smoke: string[],
+): { planned: PlannedCheck; selection: Selection }[] {
+	return checks.flatMap((planned) => {
 		const selection = planned.check.run ? recognize(kind, planned.check.run, smoke) : undefined;
-		if (!selection) continue;
-		selections.push(selection);
-		planned.merged = true;
-		planned.kind = kind;
-	}
-	return selections;
+		return selection ? [{ planned, selection }] : [];
+	});
 }
 
 // Mark each other check that a step has done, or that the nightly runs.
@@ -196,12 +196,20 @@ export function ciPlan({
 	const checks = prose ? named.filter(runsOnProse) : named;
 	const leftOut = prose ? named.filter((planned) => !runsOnProse(planned)) : [];
 	const kind = testsKind();
+	const merging = kind ? runsOfKind(checks, kind, smoke) : [];
 	const testsRun = kind
 		? commandFor(kind, [
 				...ownSelection(prose, known, scenarios, smoke),
-				...mergeRuns(checks, kind, smoke),
+				...merging.map((m) => m.selection),
 			])
 		: undefined;
+	// A check is merged only into a run that happens: with nothing selected
+	// (an empty smoke set, a range that names no test) it runs as itself.
+	if (testsRun)
+		for (const { planned } of merging) {
+			planned.merged = true;
+			planned.kind = kind;
+		}
 	// The kind's run takes the merged selection's command, and keeps its cost.
 	const runs: Step[] = (
 		prose ? PROSE_STEPS().map((command): Step => ({ command })) : ciSteps()

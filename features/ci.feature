@@ -48,7 +48,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # tests. With an empty smoke set and a range that names no test there is no
   # such run, so the check runs as the task wrote it. The recording script is
   # the check, so whether it ran is read from the tree.
-  @ID-CI-04 @slice-15 @wip
+  @ID-CI-04 @slice-15
   Scenario: A check recognized as the smoke run runs as itself when there is no run of named tests
     Given the CI steps run the named tests of the kind "scenario"
     And the smoke set is empty

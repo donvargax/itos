@@ -44,6 +44,7 @@ type scratchConfig struct {
 	recordingShell    bool     // shell is the recording shell
 	ciSteps           []string // ci.steps
 	ciTests           string   // a kind of named tests, with run and recognize templates, run by the last of ci.steps
+	smokeRuns         []string // commands the kind of ciTests recognizes as its smoke run
 	stopAtFirst       *bool    // ci.stop_at_first_failure
 	costStatic        []string // ci.cost.static
 	registry          string   // work.registry
@@ -99,6 +100,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the CI steps are "([^"]*)"$`, func(step string) error { return w.ciStepsAre(step) })
 	sc.Step(`^the CI steps run the named tests of the kind "([^"]*)"$`, w.ciStepsRunTests)
 	sc.Step(`^the smoke set is empty$`, w.emptySmokeSet)
+	sc.Step(`^the kind "([^"]*)" recognizes "([^"]*)" as its smoke run$`, w.recognizesSmokeRun)
 	sc.Step(`^the task "([^"]*)" has a check that runs the scenario "([^"]*)"$`, func(task, id string) error {
 		return w.taskHasCheck(task, "run-scenarios "+id)
 	})
@@ -377,6 +379,9 @@ func (w *world) writeConfig() error {
     recognize:
       - { command: "run-scenarios {pattern}", as: pattern }
 `)
+		for _, command := range w.config.smokeRuns {
+			fmt.Fprintf(&b, "      - { command: %q, as: smoke }\n", command)
+		}
 	}
 	if w.config.smoke || w.config.ciTests != "" {
 		b.WriteString("    smoke:\n      file: features/smoke.yaml\n")
@@ -769,6 +774,16 @@ func (w *world) ciStepsRunTests(kind string) error {
 		return err
 	}
 	w.config.ciTests = kind
+	return w.writeConfig()
+}
+
+// A check written as this command is read back as the kind's smoke run, the
+// run of exactly its smoke set (as: smoke). The kind is the one CI runs.
+func (w *world) recognizesSmokeRun(kind, command string) error {
+	if kind != w.config.ciTests {
+		return fmt.Errorf("the CI steps run the kind %q, not %q", w.config.ciTests, kind)
+	}
+	w.config.smokeRuns = append(w.config.smokeRuns, command)
 	return w.writeConfig()
 }
 

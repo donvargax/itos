@@ -2,7 +2,8 @@
 # on) and `ci scope`, for ranges of a scratch repository whose commits name
 # tasks and scenarios: the cost order, a step that calls hooks.bin read as
 # itos, the written order (T-045's pair), the prose shortcut and what it
-# leaves out, the one merged run of named tests, the checks a step covers or
+# leaves out, the one merged run of named tests (and a check merged into none
+# when nothing is selected, run as itself), the checks a step covers or
 # the nightly runs, tasks not started or unknown, the nightly, an unread
 # range, a missing ledger folder (one problem naming it, exit 2), and a
 # ledger, registry and smoke set read at another commit (--data-at).
@@ -132,6 +133,12 @@ git:
           title: The whole suite
           done_when:
             - run: vp run e2e
+        # The smoke run alone, which selects nothing with an empty smoke set.
+        - id: T-062
+          type: test
+          title: The smoke run
+          done_when:
+            - run: vp run e2e:smoke
         - { id: T-040, type: build, title: Not started, done_when: [{ run: "true" }] }
         - { id: T-050, type: build, title: Started, done_when: [{ run: "true" }] }
       src/a.ts: "export {};\n"
@@ -169,6 +176,9 @@ git:
   - commit: "test: the whole suite\n\nTask: T-061, T-060\n"
     files: { tools/a.sh: "6\n" }
     label: whole
+  - commit: "test: the smoke run\n\nTask: T-062\n"
+    files: { tools/a.sh: "7\n" }
+    label: smoke
 files:
   itos.yaml: |
     version: 1
@@ -1028,6 +1038,55 @@ cases:
       late  vp build
       late  T-046: vp run changelog   (run)
       late  T-046: sh -c 'test -s docs/changelog/CHANGELOG.md'   (run)
+  - name: an empty smoke set and no test named leave no run, so the smoke run's check runs as itself
+    argv: [ci, plan, "{{sha.whole}}", "{{sha.smoke}}"]
+    files: { e2e/smoke.yaml: "[]\n" }
+    exit: 0
+    stdout: |
+      static  vp check
+      static  itos tests smoke check scenario
+      late  vp run test:coverage
+      late  vp build
+      late  T-062: vp run e2e:smoke   (run)
+  - name: the same as --json, the check's action run
+    argv: [ci, plan, "{{sha.whole}}", "{{sha.smoke}}", --json]
+    files: { e2e/smoke.yaml: "[]\n" }
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.whole}}"
+        to: "{{sha.smoke}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos tests smoke check scenario
+        - vp run test:coverage
+        - vp build
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos tests smoke check scenario
+          cost: static
+          cost_from: explicit
+        - step: vp run test:coverage
+          cost: late
+          cost_from: explicit
+        - step: vp build
+          cost: late
+          cost_from: explicit
+        - check: { task: T-062, index: 0, command: vp run e2e:smoke }
+          cost: late
+          cost_from: default
+          action: run
+      tasks:
+        - T-062
+      left_out: []
+      unknown: []
+      not_started: []
   - name: the nightly runs every test, then its own steps, and no check
     argv: [ci, plan, --nightly, --json]
     exit: 0

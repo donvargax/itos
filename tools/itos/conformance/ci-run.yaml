@@ -1,6 +1,8 @@
 # The CI driver (`ci run`): the plan carried out in cost order with the
 # config's `ci.env`, the log lines agents and their instructions quote, the first failure ending the run (a failing step's
 # own exit code, a task check's 1, unknown tasks before anything runs), a
+# check recognized as the smoke run merged when there is a run of named tests
+# and run as itself when there is none, a
 # missing ledger folder stopping it at the plan (2), and --json. The steps and checks are `echo`s, so the log shows what ran.
 git:
   - commit: "build: the scratch project"
@@ -37,6 +39,11 @@ git:
             - run: echo reads prose
               prose: true
             - run: echo reads code
+        - id: T-012
+          type: build
+          title: The smoke run
+          done_when:
+            - run: sh run-smoke.sh
     label: base
   - commit: "build: every kind\n\nTask: T-010\n"
     files: { tools/a.sh: "1\n" }
@@ -53,6 +60,9 @@ git:
   - commit: "docs: prose\n\nTask: T-041\n"
     files: { docs/a.md: "# A\n" }
     label: prose
+  - commit: "build: the smoke run\n\nTask: T-012\n"
+    files: { tools/a.sh: "5\n" }
+    label: smoke
 files:
   itos.yaml: |
     version: 1
@@ -68,6 +78,7 @@ files:
         run: { whole: "echo run every scenario", select: "printf 'run %s\\n' {pattern}", ids_pattern: "@(?:{ids})\\b" }
         recognize:
           - { command: "run-scenarios {pattern}", as: pattern }
+          - { command: "sh run-smoke.sh", as: smoke }
         smoke: { file: e2e/smoke.yaml }
     ci:
       env: { CI: "1" }
@@ -82,6 +93,7 @@ files:
       nightly: { steps: [{ tests: scenario, whole: true }, sh gates.sh] }
     work: { registry: tasks/work-items.yaml }
   gates.sh: "echo the gates self-test\n"
+  run-smoke.sh: "echo the smoke run as itself\n"
 cases:
   - name: a push's run, in cost order, with what it merged, covered and left to the nightly
     argv: [ci, run, "{{sha.base}}", "{{sha.every}}"]
@@ -118,6 +130,41 @@ cases:
         $ false   (must fail)
 
       T-010
+
+      CI passed
+  - name: a check recognized as the smoke run is in the run of named tests
+    argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}"]
+    exit: 0
+    stdout: |
+
+      $ echo lint
+      lint
+
+      $ echo unit tests
+      unit tests
+
+      $ printf 'run %s\n' '@(?:ID-A-01)\b'
+      run @(?:ID-A-01)\b
+
+      T-012
+        = sh run-smoke.sh   (in the scenario run above)
+
+      CI passed
+  - name: with an empty smoke set and no test named there is no such run, so the check runs as itself
+    argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}"]
+    files: { e2e/smoke.yaml: "[]\n" }
+    exit: 0
+    stdout: |
+
+      $ echo lint
+      lint
+
+      $ echo unit tests
+      unit tests
+
+      T-012
+        $ sh run-smoke.sh
+      the smoke run as itself
 
       CI passed
   - name: a failing check ends the run, naming the task
