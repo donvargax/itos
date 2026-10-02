@@ -12,20 +12,20 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after T-048 (the Go CI plan) landed.
+Last updated 2026-10-02, after T-049 (the Go CI driver) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `9be49b3` (CI run 37050536442), after T-048; this
+`main` is green at `f7f21ba` (CI run 37051983380), after T-049; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`, its one list `PORTED`: `cli.yaml`,
 `help.yaml`, `config.yaml`, `tasks.yaml`, `globs.yaml`, `scopes.yaml`, `messages.yaml`,
-`tests.yaml`, `smoke.yaml`, `verify.yaml`, `plans.yaml`
-and their scenarios so far, so a help text changes in help.ts, help.go and help.yaml
+`tests.yaml`, `smoke.yaml`, `verify.yaml`, `plans.yaml`,
+`ci-run.yaml` and their scenarios so far, so a help text changes in help.ts, help.go and help.yaml
 in one push). The
 nightly builds and proves the Go release archives
 (`tools/selftest/go-release.ts`, new with T-040, not yet run by a nightly),
@@ -39,7 +39,7 @@ Released: [v0.6.0](https://github.com/donvargax/itos/releases/tag/v0.6.0)
 [v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0). Each
 release's Upgrading section is what a consumer's session updates from. The
 user moves the consumers' pins (the project template, the character editor)
-from their own repositories: don't change any other repository. Unreleased: the Go port so far (T-039 to T-048), which changes nothing a
+from their own repositories: don't change any other repository. Unreleased: the Go port so far (T-039 to T-049), which changes nothing a
 consumer of the TypeScript sees. Write the next release's notes as each slice lands, from its
 report, in `docs/releases/v<next>.md`.
 
@@ -57,10 +57,10 @@ check-paths` (`T-044`), the footers and `commit check-message` with the
    `tests moves` (`T-047`; Go's verify output on this repository's history
    matches the TypeScript's), `ci plan` and `ci scope` (`T-048`; `ci plan
 --json`, phase 3's contract, is byte-identical to the TypeScript's over
-   this repository's history and `--nightly`). Next,
+   this repository's history and `--nightly`), `ci run` and the nightly
+   (`T-049`; `ci run --nightly` here logs the same with both). Next,
    one agent at a time, each specified in `tasks/phase-2.yaml`:
-   - the rest of step 5: `T-049: The Go CI driver, ci run and the nightly`, `T-050: The Go ci
-range and the range providers`;
+   - the rest of step 5: `T-050: The Go ci range and the range providers`;
    - then steps 7 and 8, specified: `T-051: The Go work routing, work and
 work check`, `T-052: The Go hooks, hook commit-msg, hook pre-push and
 hooks install` (it closes `p2-go-check-captured`, the hook's captured
