@@ -1626,7 +1626,7 @@ items:
     title: The Go work routing, work and work check
     phase: 2
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-045]
     kind: task
     refs: [tasks/phase-2.yaml]
