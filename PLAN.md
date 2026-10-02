@@ -329,7 +329,7 @@ instructions quote it (`Commit rejected (see tasks/README.md):`,
 itos/
   tools/itos/      v0, TypeScript: one module per concern, main.ts the CLI
   tools/itos/conformance/   the regression corpus and its runner
-  tools/bin/itos   the entry point the hooks and the scripts call
+  tools/bin/itos   the entry point the hooks and the scripts call: the Go binary
   features/        the named tests: Gherkin, godog steps, the smoke set
   cmd/itos/        the Go binary (the port)
   internal/        its packages: config, glob, git, shell, ledger, check,

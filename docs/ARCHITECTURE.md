@@ -7,7 +7,9 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
 ## The layout
 
 - `tools/itos/` is itos v0: TypeScript, one module per concern, run by Node
-  directly (`tools/bin/itos` is the entry point). The scope rules name it as
+  directly (`tools/bin/itos-ts` runs it, until T-062 removes it;
+  `tools/bin/itos`, the entry point the hooks, CI and the scripts call, runs
+  the Go binary, "The Go port" below). The scope rules name it as
   `commits.path_sets.implementation`; "Task tooling" below says what is in it.
 - `features/` holds itos's named tests: Gherkin feature files, their steps in
   Go (`*_test.go`, package `features`), and the smoke set (`smoke.yaml`).
@@ -24,9 +26,9 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   `name`, `version`, `type`, `bin` and `files` plus `engines` (Node 24), and
   `npm pack`s that folder into `itos-<version>.tgz`, with no runtime
   dependencies and no install script. This repository's `package.json`, with
-  its `prepare` script and devDependencies, is never packed. Here `tools/bin/itos`
-  runs the working tree's TypeScript, since the hooks and CI judge the working
-  tree. Nothing in the source reads a file beside itself, which is what lets
+  its `prepare` script and devDependencies, is never packed. Here `tools/bin/itos-ts`
+  runs the working tree's TypeScript unbundled, for the corpus and the
+  features. Nothing in the source reads a file beside itself, which is what lets
   one file carry it: the version is `package.json`'s, which `version.ts`
   imports as JSON and the bundle inlines, so a release is one `build` commit
   to `package.json` and a tag.
@@ -75,7 +77,8 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
 - **The steps** (`steps_test.go`) treat itos as a black box. Each scenario
   builds a scratch git repository in a temporary folder, writes its
   `itos.yaml` and ledger, runs the binary `ITOS_BIN` names
-  (`tools/bin/itos` by default, relative to the module's root) in it, and
+  (`tools/bin/itos-ts`, the TypeScript, by default until T-062, relative to
+  the module's root) in it, and
   asserts the exit code, the output and the files it leaves. A command runs
   in a clean environment: the caller's, less `GIT_*`, `ITOS_*`, `GITHUB_*`
   and `CI`, with no global or system git config and a fixed identity, so a
@@ -101,7 +104,8 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
 named tests and the smoke set, the CI plan and its driver, the work registry
 and the hooks, behind one command line, `tools/bin/itos` (`itos --help` lists
 the commands, `itos <command> --help` each one). The code is
-`tools/itos/`, TypeScript run by Node directly.
+`tools/itos/`, TypeScript run by Node directly, and its Go port ("The Go
+port"), which `tools/bin/itos` runs.
 
 - **One policy file.** `itos.yaml` at the root holds every table the tool
   reads: the ledger's layout (`ledger`), the commit types, footers, path sets
@@ -593,6 +597,26 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   repository's `itos.yaml` and the configs `config.yaml` calls sound pass,
   every corpus config it refuses is one itos refuses, and a misspelt key, a
   wrong type and a value not allowed are refused. The nightly runs it.
+- **This repository runs it** (T-060): `tools/bin/itos`, which the hooks,
+  CI's steps, the ledger's checks and the nightly call (`hooks.bin`), is a
+  POSIX sh script that builds `./cmd/itos` into `.tools/bin/itos` (ignored)
+  as `build-go.ts` does, stamped with `package.json`'s version (read with
+  sed, so it needs Go and git but never Node), and `exec`s it. It builds when
+  the binary is missing or when anything under `cmd/` or `internal/`,
+  `go.mod`, `go.sum` or `package.json` is newer than it (`find -newer`; a
+  folder counts, so a removed source does too); a fresh binary costs that
+  one `find`. The build goes to a name of its own and is moved over the
+  binary, dated from before it started, so concurrent calls never see half a
+  binary and a file changed during it still reads as newer. A build that
+  fails prints `itos: the Go binary does not build (go build ./cmd/itos):`
+  and the first error, the rest indented below, and exits 3, never running
+  the old binary. CI and the nightly build it once, as the step `Build
+itos`, before any other step calls it. `tools/selftest/go-dogfood.ts`
+  proves it with a PATH of links that holds go, git and sh but no node.
+  Until T-062 removes the TypeScript, `tools/bin/itos-ts` runs it, and is
+  what CI's conformance step and the features' default `ITOS_BIN` hold to
+  the corpus and every scenario, beside `go-port.ts`'s run against a fresh
+  Go build.
 - **The ported set is the whole suite.** `tools/selftest/go-port.ts` builds
   the binary into a scratch folder and runs the whole corpus through
   `run.ts --bin` and every feature as `go test ./features -count=1` with
@@ -683,7 +707,8 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   same range. `itos verify` re-checks every commit of the range after
   `commits.since` with the commit-msg rules, so a commit made with the hooks
   bypassed fails CI. The workflow sets Node and Vite+ up, and Go from
-  `go.mod`.
+  `go.mod`, and builds the Go itos once (`Build itos`) before any step calls
+  it.
   **The plan** (`ci-plan.ts`, its cost rule in `cost.ts`; `itos ci plan <from> <to>` prints it, running
   nothing) is one sequence in cost order: the static steps of `ci.steps`
   (`vp check`, `gofmt`, `go vet`, the smoke rule, `itos config check`) and every named task check

@@ -60,7 +60,7 @@ one.
 **v1, in Go and in TypeScript.** The Go binary (`cmd/itos`, `internal/`) is
 one file with no runtime; the TypeScript v0 (`tools/itos/`) is run by Node
 directly, and is released beside it until phase 3 switches consumers to the
-binary. This repository governs itself with itos: its own `itos.yaml`,
+binary. This repository governs itself with itos, the Go binary: its own `itos.yaml`,
 ledger, hooks and CI.
 
 Both are judged by the same tests on every push. itos's named tests are the
@@ -137,7 +137,7 @@ something different.
 
 ```sh
 vp install                               # dependencies and the git hooks
-go test ./features -count=1              # every feature, against tools/bin/itos
+go test ./features -count=1              # every feature, against the TypeScript
 vp test                                  # the unit tests
 tools/bin/itos task --phase 1            # the phase's tasks and their state
 vp run work                              # what you can take next
