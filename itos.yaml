@@ -144,9 +144,12 @@ ci:
     keep_written_order: true # a task's checks never run before the ones above them
   covers: # a check a step has just done is not run again
     - { by: "vp run test:coverage", matches: "^vp test run(?: [^\\s-]\\S*)*$" }
-    # A corpus file of the ported set, run against a fresh Go build (T-039).
+    # The corpus files of the ported set, each run against a fresh Go build:
+    # the command line (T-039), the help texts (T-041).
     - by: node tools/selftest/go-port.ts
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/cli\\.yaml'$"
+    - by: node tools/selftest/go-port.ts
+      matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/help\\.yaml'$"
   # Slow, and it proves the gates rather than the code: left to the nightly.
   nightly_only: ["node tools/selftest/gates.ts"]
   # Every feature, the gates self-test, then the static checks of every task

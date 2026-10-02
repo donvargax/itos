@@ -24,8 +24,9 @@ import { outsideEnv } from "./scratch.ts";
 
 // Each command group adds its part here when it lands (tasks/phase-2.yaml).
 const PORTED = {
-	// Corpus files, relative to the root: the command line itself (T-039).
-	corpus: ["tools/itos/conformance/cli.yaml"],
+	// Corpus files, relative to the root: the command line itself (T-039) and
+	// its help texts (T-041).
+	corpus: ["tools/itos/conformance/cli.yaml", "tools/itos/conformance/help.yaml"],
 	// -scenarios= regular expressions, as a group's checks write them.
 	scenarios: [] as string[],
 };
