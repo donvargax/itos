@@ -34,12 +34,17 @@ jobs:
         with:
           node-version: "24"
           cache: true
-      # Go for the features' steps (godog), the version go.mod's toolchain line
-      # pins.
+      # Go for itos itself and the features' steps (godog), the version go.mod's
+      # toolchain line pins.
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
+      # tools/bin/itos runs the Go binary, built here once into .tools/bin/ and
+      # stamped with package.json's version: every later call in the job finds
+      # it newer than the sources and runs it without building.
+      - name: Build itos
+        run: tools/bin/itos version
       - run: vp install
       # Where the range starts, computed once for every step below: a pull
       # request's base, else the last green run on main, else empty (run
