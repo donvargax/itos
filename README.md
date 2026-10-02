@@ -57,12 +57,14 @@ one.
 
 ## Status
 
-**v0, in TypeScript** (`tools/itos/`), run by Node directly. This repository
-governs itself with it: its own `itos.yaml`, ledger, hooks and CI.
+**v1, in Go and in TypeScript.** The Go binary (`cmd/itos`, `internal/`) is
+one file with no runtime; the TypeScript v0 (`tools/itos/`) is run by Node
+directly, and is released beside it until phase 3 switches consumers to the
+binary. This repository governs itself with itos: its own `itos.yaml`,
+ledger, hooks and CI.
 
-**Next, the Go port**: one binary, one YAML config, built here beside the
-TypeScript and judged by the same tests. itos's named tests are the Gherkin
-feature files in `features/`, whose steps (Go, run by
+Both are judged by the same tests on every push. itos's named tests are the
+Gherkin feature files in `features/`, whose steps (Go, run by
 [godog](https://github.com/cucumber/godog)) treat itos as a black box: they
 run whatever binary `ITOS_BIN` names in scratch repositories and read its exit
 codes and output. The conformance corpus (`tools/itos/conformance/`) is the
@@ -71,23 +73,65 @@ the work.
 
 ## Install
 
-Each release on a `v*` tag holds `itos-<version>.tgz`, v0 packed to one
-JavaScript file with no runtime dependencies (built for Node 24), and
-`checksums.txt`, its SHA-256. Pin a release, never a branch: check the
-tarball against the hash its `checksums.txt` lists, then add the tarball's
-URL as a dependency, so `package.json` pins the URL and the lockfile the
-tarball's integrity, and a replaced release fails every later install:
+Each release on a `v*` tag holds:
+
+- `itos-<version>-<os>-<arch>.tar.gz`, the Go binary, for linux and darwin on
+  amd64 and arm64, and `itos-<version>-windows-amd64.zip`; each holds the
+  binary (`itos`, or `itos.exe`), `LICENSE` and `README.md` at its top level;
+- `itos-<version>.tgz`, v0 packed to one JavaScript file with no runtime
+  dependencies (built for Node 24);
+- `itos.schema.json`, the config's JSON Schema;
+- `checksums.txt`, the SHA-256 of every file above.
+  `sha256sum --ignore-missing -c checksums.txt` checks the ones downloaded
+  beside it.
+
+Pin a release, never a branch, and pin each asset by its line in
+`checksums.txt`, so a replaced release fails every later install.
+
+**The TypeScript tarball**, which consumers use until phase 3: check it
+against its hash, then add its URL as a dependency, so `package.json` pins the
+URL and the lockfile the tarball's integrity:
 
 ```sh
-version=0.6.0
+version=1.0.0
 url="https://github.com/donvargax/itos/releases/download/v$version/itos-$version.tgz"
 curl -fsSLO "$url"
 echo "<the hash in the release's checksums.txt>  itos-$version.tgz" | sha256sum -c -
 npm install --save-dev "$url"   # or pnpm add -D "$url"
 ```
 
-The package's bin is `itos` (`npx itos --help`). A version bump is the same
-again with the new version.
+The package's bin is `itos` (`npx itos --help`).
+
+**The Go binary**: download your platform's archive, check it against its
+line, and unpack the binary into an ignored `.tools/bin/`. A project commits
+this as a script that pins the version and each platform's hash, and runs it
+from its package manager's install step and in CI
+(`docs/releases/v1.0.0.md`, Upgrading, has one for every platform):
+
+```sh
+version=1.0.0 platform=linux-amd64   # or linux-arm64, darwin-amd64, darwin-arm64
+archive="itos-$version-$platform.tar.gz"
+curl -fsSLO "https://github.com/donvargax/itos/releases/download/v$version/$archive"
+echo "<the hash in the release's checksums.txt>  $archive" | sha256sum -c -
+mkdir -p .tools/bin && tar -xzf "$archive" -C .tools/bin itos
+```
+
+Go developers can instead
+`go install github.com/donvargax/itos/cmd/itos@v<version>`.
+
+A version bump is the same again with the new version.
+
+**The schema, for editors.** An editor with a YAML language server checks an
+`itos.yaml` as it is written, completes its keys and shows each one's
+description and default, once the file's first line names the schema of the
+release the project pins:
+
+```yaml
+# yaml-language-server: $schema=https://github.com/donvargax/itos/releases/download/v1.0.0/itos.schema.json
+```
+
+`itos config check` stays the judge: the schema says less than it, never
+something different.
 
 ## Working on it
 
