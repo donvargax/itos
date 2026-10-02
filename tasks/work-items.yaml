@@ -296,7 +296,7 @@ items:
     title: This repository's nightly runs every done task's static checks
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-16]
     kind: task
     refs: [tasks/phase-1.yaml]
