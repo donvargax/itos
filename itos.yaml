@@ -7,7 +7,7 @@
 # `commits.path_sets.<name>`. The range, the identity and the people are
 # providers (tools/itos/providers.ts).
 version: 1
-requires: ">=0.1.0" # the oldest itos that reads this file
+requires: ">=0.6.0" # the oldest itos that reads this file: builtin: moves is 0.6.0's
 shell: [sh, -c]
 
 ledger:
