@@ -1,24 +1,25 @@
-// Package config finds and reads itos.yaml, the one policy file: the file
-// --config or ITOS_CONFIG names, else itos.yaml in the folder itos runs in
-// (--root changes that folder first).
+// Package config finds, reads and validates itos.yaml, the one policy file
+// (tools/itos/config.ts): the file --config or ITOS_CONFIG names, else
+// itos.yaml in the folder itos runs in (--root changes that folder first).
 //
-// What it reads so far is what the scaffold's one command needs, version and
-// requires, with tools/itos/config.ts's wording for what is wrong with them: a
-// file that cannot be read or parsed, one that is not a mapping, a version
-// that is missing, not a number or not 1, a requires that is not a string.
-// The rest of the schema (the unknown keys, every section), the defaults and
-// the cross-checks are the config group's (PLAN.md, phase 2, step 2), which
-// replaces Load's narrow reading with the whole one.
+// Load holds the file to the schema, where an unknown key is an error that
+// names the key it misspells, then to what the schema cannot say (names that
+// must refer to something, patterns that must compile, commits.since a full
+// SHA), and lays it over the one table of defaults (defaults.go), which
+// `config check --print-defaults` prints: a default is applied exactly when it
+// is printed. Every reader of the config goes through Load; none has a
+// fallback of its own.
 package config
 
 import (
-	"fmt"
+	"encoding/json"
 	"os"
-	"strconv"
+	"regexp"
 	"strings"
 
 	"github.com/donvargax/itos/internal/out"
-	"go.yaml.in/yaml/v3"
+	"github.com/donvargax/itos/internal/source"
+	"github.com/donvargax/itos/internal/value"
 )
 
 // Error is a config that cannot be used: exit 2, each problem printed as
@@ -36,11 +37,10 @@ func (e *Error) Error() string {
 	return e.File + ": " + strings.Join(messages, "; ")
 }
 
-// Config is the part of the file read so far.
-type Config struct {
-	// Requires is the config's requires, "" when it has none.
-	Requires    string
-	HasRequires bool
+// Invalid is a config error of one sentence and no fix, as a tool reports a
+// key it needs and the config lacks.
+func Invalid(file, message string) *Error {
+	return &Error{File: file, Problems: []out.Problem{{Rule: "config-invalid", Message: message}}}
 }
 
 // Path is the config's path: ITOS_CONFIG, which --config sets, else itos.yaml.
@@ -51,108 +51,178 @@ func Path() string {
 	return "itos.yaml"
 }
 
-// kind names a value's type as the TypeScript's messages do (JavaScript's
-// typeof, with a list and null told apart).
-func kind(v any) string {
-	switch v.(type) {
-	case nil:
-		return "null"
-	case []any:
-		return "a list"
-	case string:
-		return "string"
-	case bool:
-		return "boolean"
-	case int, int64, uint64, float64:
-		return "number"
-	default:
-		return "object"
-	}
+// Loaded is the config as the tools read it: the file laid over the table of
+// defaults, typed, with the file as written beside it.
+type Loaded struct {
+	Config
+	// Path is the file it was read from.
+	Path string
+	// file is the file as written, its $sets expanded.
+	file    *value.Map
+	statics []*regexp.Regexp
 }
 
-func number(v any) (float64, bool) {
-	switch n := v.(type) {
-	case int:
-		return float64(n), true
-	case int64:
-		return float64(n), true
-	case uint64:
-		return float64(n), true
-	case float64:
-		return n, true
+// File is the config file as written, without the defaults under it.
+func (l *Loaded) File() *value.Map { return l.file }
+
+// HasSection is whether the file has a section, rather than only its
+// defaults.
+func (l *Loaded) HasSection(key string) bool { return l.file.Has(key) }
+
+// Section is an error when the file lacks a section a tool cannot work
+// without.
+func (l *Loaded) Section(key string) error {
+	if l.HasSection(key) {
+		return nil
 	}
-	return 0, false
+	return &Error{File: l.Path, Problems: []out.Problem{{
+		Rule:    "config-missing-section",
+		Message: key + " is missing",
+		Fix:     "add a " + key + ": section",
+	}}}
 }
 
-// mapping is the file's top level as a mapping of string keys, as JavaScript
-// reads YAML's.
-func mapping(v any) (map[string]any, bool) {
-	switch m := v.(type) {
-	case map[string]any:
-		return m, true
-	case map[any]any:
-		keyed := make(map[string]any, len(m))
-		for k, value := range m {
-			keyed[fmt.Sprint(k)] = value
-		}
-		return keyed, true
-	}
-	return nil, false
+// decode reads a tree into the typed config.
+func decode(tree *value.Map, into *Config) error {
+	return json.Unmarshal([]byte(value.JSON(tree)), into)
 }
 
-func wrongType(at, want string, v any) out.Problem {
-	return out.Problem{
-		Rule:    "config-type",
-		Message: fmt.Sprintf("%s should be a %s, not %s", at, want, kind(v)),
-		Fix:     fmt.Sprintf("make %s a %s", at, want),
-	}
-}
-
-// Load reads the config at file.
-func Load(file string) (*Config, error) {
-	text, err := os.ReadFile(file)
+// Load reads, validates and lays over the defaults the config at file.
+func Load(file string) (*Loaded, error) {
+	text, err := source.Read(file)
 	var raw any
 	if err == nil {
-		err = yaml.Unmarshal(text, &raw)
+		raw, err = value.Parse(text)
 	}
 	if err != nil {
 		return nil, &Error{File: file, Problems: []out.Problem{{
 			Rule:    "config-unreadable",
 			Message: "cannot be read: " + err.Error(),
-			Fix:     fmt.Sprintf("create %s, or correct its YAML", file),
+			Fix:     "create " + file + ", or correct its YAML",
 		}}}
 	}
-	top, ok := mapping(raw)
-	if !ok {
-		return nil, &Error{File: file, Problems: []out.Problem{{
-			Rule:    "config-type",
-			Message: "the file should be a mapping, not " + kind(raw),
-			Fix:     "make the file a mapping",
-		}}}
-	}
-	var found []out.Problem
-	version, hasVersion := top["version"]
-	n, isNumber := number(version)
-	switch {
-	case !hasVersion:
-		found = append(found, out.Problem{Rule: "config-missing-key", Message: "version is missing", Fix: "add version"})
-	case !isNumber:
-		found = append(found, wrongType("version", "number", version))
-	}
-	requires, hasRequires := top["requires"]
-	requiresText, isString := requires.(string)
-	if hasRequires && !isString {
-		found = append(found, wrongType("requires", "string", requires))
-	}
-	if len(found) > 0 {
+	if found := problems(raw, schema, ""); len(found) > 0 {
 		return nil, &Error{File: file, Problems: found}
 	}
-	if n != 1 {
+	tree := raw.(*value.Map)
+	if version := tree.At("version"); version != 1.0 {
 		return nil, &Error{File: file, Problems: []out.Problem{{
 			Rule:    "config-version",
-			Message: fmt.Sprintf("version %s is not 1", strconv.FormatFloat(n, 'f', -1, 64)),
+			Message: "version " + value.String(version) + " is not 1",
 			Fix:     "set version: 1",
 		}}}
 	}
-	return &Config{Requires: requiresText, HasRequires: hasRequires}, nil
+	found := expandSets(tree)
+	var written Config
+	if err := decode(tree, &written); err != nil {
+		return nil, err
+	}
+	found = append(found, crossProblems(tree, &written)...)
+	if len(found) > 0 {
+		return nil, &Error{File: file, Problems: found}
+	}
+	loaded := &Loaded{Path: file, file: tree}
+	if err := decode(withDefaults(tree), &loaded.Config); err != nil {
+		return nil, err
+	}
+	return loaded, nil
+}
+
+// expandSets replaces each $name of a path list by commits.path_sets.<name>,
+// and is a problem for a name the sets do not have.
+func expandSets(tree *value.Map) []out.Problem {
+	commits := value.Prop(tree, "commits")
+	sets, _ := value.Prop(commits, "path_sets").(*value.Map)
+	var found []out.Problem
+	expand := func(globs []any, where string) []any {
+		expanded := []any{}
+		for _, g := range globs {
+			glob := g.(string)
+			if !strings.HasPrefix(glob, "$") {
+				expanded = append(expanded, glob)
+				continue
+			}
+			set, ok := sets.At(glob[1:]).([]any)
+			if !ok {
+				found = append(found, out.Problem{
+					Rule:    "config-path-set",
+					Message: where + " names " + glob + ", which commits.path_sets does not have",
+					Fix:     "add commits.path_sets." + glob[1:] + ", or remove " + glob + " from " + where,
+				})
+			}
+			expanded = append(expanded, set...)
+		}
+		return expanded
+	}
+	if scopes, ok := value.Prop(commits, "scopes").(*value.Map); ok {
+		for _, typ := range scopes.Keys() {
+			rule := scopes.At(typ).(*value.Map)
+			for _, k := range []string{"only", "never", "must_touch"} {
+				if globs, ok := rule.At(k).([]any); ok {
+					rule.Set(k, expand(globs, "commits.scopes."+typ+"."+k))
+				}
+			}
+		}
+	}
+	if prose, ok := value.Prop(value.Prop(tree, "ci"), "prose").(*value.Map); ok {
+		prose.Set("paths", expand(prose.At("paths").([]any), "ci.prose.paths"))
+	}
+	return found
+}
+
+// Normal is a command with its whitespace collapsed, as the command patterns
+// read it.
+func Normal(command string) string { return value.Collapse(value.Trim(command)) }
+
+// Readings are a command as every command pattern of the config reads it: as
+// written (trimmed), and, when its first word is hooks.bin, with that word
+// read as `itos`. The ledger and ci.steps call itos the way the project does,
+// so a pattern written for itos (`^itos work check` in ci.cost.static or a
+// ci.covers rule, `itos work check` in ci.nightly_only, a
+// tests.<kind>.recognize template) matches `tools/bin/itos work check`
+// without spelling out the path. Only hooks.bin itself is read so; a
+// hooks.bin of several words is read as its leading words. Each pattern is
+// tried on every reading, so the reading only ever adds a match. It is for
+// matching alone; the command runs as written.
+func (l *Loaded) Readings(command string) []string {
+	written := value.Trim(command)
+	bin := strings.Split(Normal(l.Hooks.Bin), " ")
+	words := value.Fields(written)
+	for i, word := range bin {
+		if word == "" || i >= len(words) || words[i] != word {
+			return []string{written}
+		}
+	}
+	quoted := make([]string, len(bin))
+	for i, word := range bin {
+		quoted[i] = regexp.QuoteMeta(word)
+	}
+	lead := regexp.MustCompile("^" + strings.Join(quoted, value.Space+"+"))
+	asItos := "itos" + lead.ReplaceAllLiteralString(written, "")
+	if asItos == written {
+		return []string{written}
+	}
+	return []string{written, asItos}
+}
+
+// MatchesStatic is whether a command is static by ci.cost.static, over each
+// of its readings with its whitespace collapsed: reading hooks.bin as itos
+// only ever makes a command static, never late. CI's plan, the commit-msg
+// hook and config check's order rule all come here.
+func (l *Loaded) MatchesStatic(command string) bool {
+	if l.statics == nil {
+		l.statics = []*regexp.Regexp{}
+		for _, p := range l.CI.Cost.Static {
+			l.statics = append(l.statics, regexp.MustCompile(p))
+		}
+	}
+	for _, reading := range l.Readings(command) {
+		form := Normal(reading)
+		for _, rule := range l.statics {
+			if rule.MatchString(form) {
+				return true
+			}
+		}
+	}
+	return false
 }

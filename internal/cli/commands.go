@@ -17,10 +17,10 @@ type command func(args []string, o Out) (int, error)
 // commands is the command table, main.ts's COMMANDS.
 var commands = map[string]command{
 	"task":    task,
-	"work":    work,
+	"work":    workCommand,
 	"commit":  commit,
 	"verify":  verify,
-	"tests":   tests,
+	"tests":   testsCommand,
 	"ci":      ci,
 	"hook":    hook,
 	"hooks":   hooks,
@@ -75,7 +75,7 @@ func task(args []string, _ Out) (int, error) {
 	return notPorted("task")
 }
 
-func work(args []string, _ Out) (int, error) {
+func workCommand(args []string, _ Out) (int, error) {
 	if sub, _ := split(args); sub == "check" {
 		return notPorted("work check")
 	}
@@ -106,7 +106,7 @@ func verify(args []string, _ Out) (int, error) {
 	return notPorted("verify")
 }
 
-func tests(args []string, _ Out) (int, error) {
+func testsCommand(args []string, _ Out) (int, error) {
 	sub, rest := split(args)
 	switch sub {
 	case "list":
@@ -179,9 +179,10 @@ func hook(args []string, _ Out) (int, error) {
 	return 0, usage("unknown command: hook %s", sub)
 }
 
-// managers are the hook managers `hooks install --manager` takes, as
-// hooks.ts's MANAGERS lists them; the hooks group ports what each one writes.
-var managers = []string{"vp", "git", "husky", "lefthook", "pre-commit", "prek"}
+// managers are the hook managers `hooks install --manager` takes: the ones
+// hooks.manager may name (hooks.ts's MANAGERS is config.ts's HOOK_MANAGERS);
+// the hooks group ports what each one writes.
+var managers = config.HookManagers
 
 func hooks(args []string, _ Out) (int, error) {
 	if sub, _ := split(args); sub != "install" {
@@ -193,9 +194,12 @@ func hooks(args []string, _ Out) (int, error) {
 	return notPorted("hooks install")
 }
 
-func configCommand(args []string, _ Out) (int, error) {
+func configCommand(args []string, o Out) (int, error) {
 	if sub, _ := split(args); sub != "check" {
 		return 0, usage("unknown command: config %s", sub)
+	}
+	if slices.Contains(args, "--print-defaults") {
+		return printDefaults(o)
 	}
 	return notPorted("config check")
 }
@@ -209,12 +213,13 @@ func versionCommand(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	v := version.Version()
-	ok := !cfg.HasRequires || version.Satisfies(v, cfg.Requires)
+	requires := cfg.Requires
+	ok := requires == nil || version.Satisfies(v, *requires)
 	if o.JSON {
 		fields := []out.Field{{Key: "version", Value: v}}
-		if cfg.HasRequires {
+		if requires != nil {
 			fields = append(fields,
-				out.Field{Key: "requires", Value: cfg.Requires},
+				out.Field{Key: "requires", Value: *requires},
 				out.Field{Key: "satisfied", Value: ok})
 		}
 		if err := out.Emit(o.Stdout, fields...); err != nil {
@@ -226,6 +231,6 @@ func versionCommand(args []string, o Out) (int, error) {
 	if !slices.Contains(args, "--check") || ok {
 		return 0, nil
 	}
-	fmt.Fprintf(o.Stderr, "itos %s does not satisfy %s (the config's requires)\n", v, cfg.Requires)
+	fmt.Fprintf(o.Stderr, "itos %s does not satisfy %s (the config's requires)\n", v, *requires)
 	return ExitPolicy, nil
 }
