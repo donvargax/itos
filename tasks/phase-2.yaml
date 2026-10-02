@@ -76,3 +76,53 @@
       timeout: 600
     - run: node tools/selftest/go-port.ts
       timeout: 600
+
+- id: T-042
+  type: refactor
+  title: The Go config loader and config check
+  why: >
+    PLAN.md, phase 2, step 2, first half. The one table of keys and defaults
+    (slice 19), the loader with its problems (unknown key and the key it
+    misspells, wrong type, value not allowed, missing key, a pattern that does
+    not compile, a name that refers to nothing, commits.since), the ledger and
+    its problems (written order, hooks.bin read as itos), and what config
+    check reads beside them: the registry's and the smoke set's problems and
+    --print-defaults. The corpus selects whole files, and config.yaml holds
+    all of that, so it is one task; every later group reads its config
+    through this loader, never a narrower one of its own.
+  done_when:
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/config.yaml'
+      timeout: 600
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-(CONFIG-1[2346]|LEDGER-0[12]|SINCE-0[4-7])$"'
+      timeout: 600
+    - run: node tools/selftest/go-port.ts
+      timeout: 900
+
+- id: T-043
+  type: refactor
+  title: The Go task runner, task and task list
+  why: >
+    PLAN.md, phase 2, step 2, second half: the check runner (run, fails,
+    after: push, timeouts, one run per check), the cost classes and written
+    order, --phase/--group/--pending, and task list's statuses from the
+    registry.
+  done_when:
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/tasks.yaml'
+      timeout: 600
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-(TASK-0[1-4]|LEDGER-0[34]|CONFIG-(01|18))$"'
+      timeout: 600
+    - run: node tools/selftest/go-port.ts
+      timeout: 900
+
+- id: T-044
+  type: refactor
+  title: The Go globs and path rules, commit check-paths
+  why: >
+    PLAN.md §12: the glob function ported as written, pinned by the corpus's
+    glob table; with the scope rules it is commit check-paths (step 3's first
+    command), which no scenario runs, so the corpus alone judges it.
+  done_when:
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/globs.yaml tools/itos/conformance/scopes.yaml'
+      timeout: 600
+    - run: node tools/selftest/go-port.ts
+      timeout: 900

@@ -12,18 +12,19 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after the Go port's first step was specified.
+Last updated 2026-10-02, after T-039 (the Go scaffold) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `d68efea` (CI run 36961474674), after v0.6.0 and its
-close; this repository's `itos.yaml` requires itos 0.6.0, whose built-in
-moves rule it uses. The nightly ends with `{ tasks: done, cost: static }`, every done
-task's static checks. The last nightly, 37003001717 (scheduled, on
-`e2b4f29`), is green.
+`main` is green at `f1e004c` (CI run 37033334134), after T-039; this
+repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
+uses. CI now builds the Go binary and runs the ported set against it
+(`tools/selftest/go-port.ts`, its one list `PORTED`: `cli.yaml` so far). The
+nightly ends with `{ tasks: done, cost: static }`, every done task's static
+checks. The last nightly, 37003001717 (scheduled, on `e2b4f29`), is green.
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
 
@@ -39,18 +40,24 @@ report, in `docs/releases/v<next>.md`.
 ## Next
 
 1. **The Go port** (`p2-go-port: The Go port, one command group at a
-time`; PLAN.md, phase 2, and its two new decisions: the port's proof, the
-   Go version). Step 1 is specified as three tasks in `tasks/phase-2.yaml`:
-   `T-039: The Go scaffold, held to the command line's corpus on every push`
-   first, then `T-040: A snapshot release of the Go binary, built as a
-release will be` and `T-041: The Go binary's --help texts, the corpus's
-help cases`. Then specify the config group (step 2: `config check`,
-   `task`, `task list`). Small follow-ups the slices left wait, none
-   blocking: `p1-group-label-flag-word`, `p1-wip-tag-command-kind`,
+time`; PLAN.md, phase 2, and its decisions "The port's proof" and "The Go
+   version"). The scaffold is in (`T-039`: commands not ported yet exit 3,
+   `itos: <command> is not in this build yet`). Next, one agent at a time:
+   `T-041: The Go binary's --help texts, the corpus's help cases`, `T-040: A
+snapshot release of the Go binary, built as a release will be`, then the
+   config group, specified: `T-042: The Go config loader and config check`
+   (it replaces the scaffold's narrow config reader), `T-043: The Go task
+runner, task and task list`, `T-044: The Go globs and path rules, commit
+check-paths`. Each group adds its corpus files and `-scenarios=`
+   selections to `PORTED`, and may widen `ci.covers` (one rule per ported
+   corpus file) only for files already in it, or CI would skip a task's
+   real check. Then specify step 3 on. Small follow-ups wait, none blocking:
+   `p1-group-label-flag-word`, `p1-wip-tag-command-kind`,
    `p1-ledger-id-default`, `p1-own-recognize-for-itos`,
    `p1-release-defaults-per-config`, `p1-registry-old-default-hint`,
-   `p1-moves-except-types-checked`, `p1-moves-merge-by-git`.
-   `p1-verify-with-last-release` comes with the port (the user's call).
+   `p1-moves-except-types-checked`, `p1-moves-merge-by-git`,
+   `p2-go-unit-tests-in-hooks`. `p1-verify-with-last-release` comes with
+   the port (the user's call).
 2. **The hand work that could be itos's** (the block above phase 2 in the
    registry) comes after the port, the user agreed; the coordinator had
    proposed `p1-itos-push` and `p1-ci-watch` before it, as they save work on
