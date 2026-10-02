@@ -1720,9 +1720,9 @@ items:
     title: README's install section takes the Go binary, and points an itos.yaml at its schema
     phase: 2
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-056]
-    kind: idea
+    kind: task
     why: >
       README.md's install section names the TypeScript tarball alone. From v1.0.0 a release also
       holds the Go archives and itos.schema.json (T-054), so once one is published the section can
