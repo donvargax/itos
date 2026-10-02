@@ -672,6 +672,22 @@ items:
       ancestors, as verify does, or reading a missing footers as none, would fix both.
       A fix under T-010, whose checks (vp run changelog, with and without --task) prove it.
 
+  - id: slice-18
+    title: CI names the ledger footer, the ledger's folder and the prose steps as the config does
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-4]
+    kind: slice
+    refs: [features/ci.feature]
+    why: >
+      Part of p1-config-names-from-config a user sees: ci scope and ci plan read only a footer
+      called Task: (ci-scope.ts's tasksIn), not the one whose source is the ledger, so a project
+      calling it Work: gets no task checks in CI; ci run says "No task <id> in tasks/" whatever
+      ledger.files names, and a prose-only range "`vp check`, and the named tasks' static and
+      prose: true checks" whatever ci.prose.steps are. Each is read from the config. @ID-CI-05 to
+      07.
+
   - id: p1-config-names-from-config
     title: The names the tools hardcode, read from the config
     phase: 1
@@ -680,10 +696,12 @@ items:
     depends_on: [slice-4]
     kind: idea
     why: >
-      What is left of the config-keys audit: scenario-moves' range mode hardcodes feat and fix and
-      ignores except_types; it, ci-scope's Task key and the smoke rule default to the kind named
-      scenario (the plan's smoke set reads the kind of its tests step since slice 3); ci run's
-      messages name tasks/ and vp check. Each is read from the config.
+      What is left of the config-keys audit once slice 18 reads the ledger footer, the ledger's
+      folder and the prose steps in CI: scenario-moves' range mode hardcodes feat and fix and
+      ignores except_types, and it and the smoke rule default to the kind named scenario (the
+      plan's smoke set reads the kind of its tests step since slice 3). scenario-moves is a script
+      this repository's config runs as a range check, not an itos command, so no scenario reaches
+      it until itos ships it as one; the smoke rule's default kind is reached by no command.
 
   - id: p1-group-label-read
     title: ledger.group.label read, or dropped

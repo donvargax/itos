@@ -60,3 +60,34 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And the recording check ran
     And its output does not say "(in the scenario run above)"
+
+  # The ledger's footer is whatever commits.footers calls the footer whose
+  # source is the ledger; Task: is only this repository's name for it.
+  @ID-CI-05 @slice-18 @wip
+  Scenario: A push's CI runs the checks of a task named in the ledger footer, whatever the config calls it
+    Given the ledger footer is called "Work"
+    And the task "T-001" has a static check that records it ran
+    And the commit "chore: tidy the readme" naming the task "T-001" in the footer "Work" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And the recording check ran
+
+  @ID-CI-06 @slice-18 @wip
+  Scenario: A footer naming a task the ledger lacks is reported against the ledger's own folder
+    Given the ledger's files are "work/phase-{group}.yaml"
+    And the CI steps are "exit 0"
+    And the commit "chore: tidy the readme" naming the task "T-009" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 1
+    And its output says "No task T-009 in work/"
+    And its output does not say "tasks/"
+
+  @ID-CI-07 @slice-18 @wip
+  Scenario: A prose-only range names the prose steps the config gives
+    Given the CI steps are "exit 0"
+    And the prose paths are "**/*.md" and the prose steps are "echo prose"
+    And the commit "docs: write the readme" touching only "README.md" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And its output says "echo prose"
+    And its output does not say "vp check"
