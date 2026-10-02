@@ -49,10 +49,11 @@ commits:
       - "tools/selftest/**"
       - tools/changelog.ts
       - .claude/settings.json
-    # itos itself: the TypeScript v0 (the Go port adds its packages here), the
+    # itos itself: the TypeScript v0 and the Go port's packages beside it, the
     # one place a feat or a fix must change unless it changes the features.
     implementation:
       - "tools/itos/*.ts"
+      - "{cmd,internal}/**/*.go"
   scopes: # the paths each commit type may touch (tasks/README.md's table)
     feat: { must_touch: [$implementation, "features/**"] }
     fix: { must_touch: [$implementation, "features/**"] }
@@ -62,6 +63,7 @@ commits:
       only:
         - "features/**"
         - "**/*.test.ts"
+        - "{cmd,internal}/**/*_test.go" # the Go packages' unit tests
         - "tools/itos/conformance/**"
         - "tools/itos/fixtures/**"
         - "tools/selftest/**"

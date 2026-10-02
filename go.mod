@@ -4,7 +4,10 @@ go 1.27
 
 toolchain go1.27.1
 
-require github.com/cucumber/godog v0.16.0
+require (
+	github.com/cucumber/godog v0.16.0
+	go.yaml.in/yaml/v3 v3.0.4
+)
 
 require (
 	github.com/cucumber/gherkin/go/v42 v42.0.0 // indirect
