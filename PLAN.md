@@ -399,9 +399,14 @@ goes wrong.
 A release on a `v*` tag: for the Go binary, archives for linux and darwin on
 amd64 and arm64 and windows/amd64, each with the binary, `LICENSE` and
 `README.md` at its top level, named `itos-<version>-<os>-<arch>.tar.gz`
-(`.zip` for windows), plus `checksums.txt` and the config's JSON Schema,
-`itos.schema.json`, which an editor checks an `itos.yaml` against. The
-repository is public, so no download needs a token.
+(`.zip` for windows), plus the config's JSON Schema, `itos.schema.json`,
+which an editor checks an `itos.yaml` against, and `checksums.txt`, one file
+holding every asset's SHA-256 (`sha256sum --ignore-missing -c checksums.txt`
+checks whichever were downloaded). Until phase 3 switches the consumers, the
+TypeScript tarball, `itos-<version>.tgz`, is published beside them and
+listed in the same `checksums.txt`. The release job proves the very folder it
+uploads before publishing anything. The repository is public, so no download
+needs a token.
 
 A consumer commits an install script that pins the version and each
 platform's SHA-256 (a replaced release cannot pass), installs into an ignored

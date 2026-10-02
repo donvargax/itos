@@ -30,13 +30,21 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   one file carry it: the version is `package.json`'s, which `version.ts`
   imports as JSON and the bundle inlines, so a release is one `build` commit
   to `package.json` and a tag.
-- **A release** (`.github/workflows/release.yml`, on a `v*` tag) refuses a tag
-  that is not `v<package.json's version>`, a packed itos that says another,
-  and a tag with no `docs/releases/v<version>.md`; it proves the tarball with
+- **A release** (`.github/workflows/release.yml`, on a `v*` tag) packs the
+  tarball and builds the Go release (`build-go.ts --release`, "The Go port"
+  below) into `dist/release`; it refuses a tag that is not
+  `v<package.json's version>`, a packed itos or a linux/amd64 Go binary that
+  says another, and a tag with no `docs/releases/v<version>.md`. It proves
+  the very folder it uploads with `go-release.ts --dir` and the tarball with
   `release.ts` (the packed manifest's keys, an offline install reporting no
-  install script, the corpus and every feature against the installed itos), then publishes it with `checksums.txt`, the release's body
-  being a header, the checksum and that notes file with `{sha256}` replaced by
-  the tarball's hash. The notes end with an "Upgrading" section a consumer
+  install script, the corpus and every feature against the installed itos),
+  then adds the tarball and its line to the Go release's `checksums.txt`, so
+  one file lists every asset (`sha256sum --ignore-missing -c checksums.txt`
+  checks the ones downloaded), and publishes the folder: the five archives,
+  `itos.schema.json`, the tarball and `checksums.txt`. The release's body says
+  what each asset is, lists `checksums.txt`, then that notes file with
+  `{sha256}` replaced by the tarball's hash. The tarball stays until phase 3
+  switches the consumers. The notes end with an "Upgrading" section a consumer
   updates from alone (`PLAN.md`, §10).
 - `go.mod` is the module `github.com/donvargax/itos`, Go pinned by its
   `toolchain` line; its dependencies are godog's and `go.yaml.in/yaml/v3`,
@@ -535,12 +543,14 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   `itos-<version>-<os>-<arch>.tar.gz` (`.zip` for windows), and
   `itos.schema.json` (below) and `checksums.txt` in `sha256sum`'s format
   beside them, naming the archives and the schema: what the release workflow
-  will upload at v1.0.0. The archives are written with Node's
+  uploads, from v1.0.0, with the tarball's line added. The archives are written with Node's
   `zlib`, not the machine's tar or zip, with HEAD's commit time on every
   entry, so a commit rebuilt by the same Go toolchain gives the same bytes.
   `tools/selftest/go-release.ts` builds them into a scratch folder and reads
   them back with the system's `tar`, `unzip` and `sha256sum`; the nightly
-  runs it (`ci.nightly.steps`), not every push.
+  runs it (`ci.nightly.steps`), not every push. With `--dir <dir>` it builds
+  nothing and proves a folder already built: the release workflow's, before
+  it uploads it.
 - **The config's JSON Schema** (`itos.schema.json`, draft 2020-12, for an
   editor: `# yaml-language-server: $schema=<its release URL>` atop an
   `itos.yaml`) is generated, never kept by hand: `tools/bin/config-schema`

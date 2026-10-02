@@ -1664,7 +1664,7 @@ items:
     title: "The release workflow publishes and proves the Go archives"
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-054]
     kind: task
     refs: [tasks/phase-2.yaml]
@@ -1721,7 +1721,7 @@ items:
     title: The Go release workflow proves the archives it publishes
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-040]
     kind: task
     why: >
