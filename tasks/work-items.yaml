@@ -676,7 +676,7 @@ items:
     title: CI names the ledger footer, the ledger's folder and the prose steps as the config does
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-4]
     kind: slice
     refs: [features/ci.feature]

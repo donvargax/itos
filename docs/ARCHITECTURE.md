@@ -142,7 +142,13 @@ the commands, `itos <command> --help` each one). The code is
   live scenarios) at the commit being checked. The footer rules are itos's
   whatever the header lint: `commit.ts` runs them after the delegate, if
   any, in the commit-msg hook, `commit check-message` and `verify`, and
-  reports both, one list of problems under `--json`.
+  reports both, one list of problems under `--json`. Nothing reads a footer
+  by its key: CI's tasks (`tasksIn` in `ci-scope.ts`) and the commit-msg
+  hook's are those of every footer whose `source` is `ledger`, a kind's named
+  tests those of every footer whose source is that kind, so `Task:` and
+  `Scenarios:` are only this repository's names for them. What itos prints
+  names the ledger's folder by `ledger.files` (`ledgerLayout`) and the prose
+  steps by `ci.prose.steps`, never `tasks/` or `vp check`.
 - **One shell** (`shell.ts`): every command itos takes from the config or the
   ledger (a task check, a CI step, a header-lint delegate, a range check, a
   provider's or a command adapter's command, the pre-push commands, the smoke
@@ -239,7 +245,7 @@ the commands, `itos <command> --help` each one). The code is
 check`'s written-order rule reads too); then the late steps (the whole unit suite, the audit, the
   conformance corpus, T-007); then **one run of the features** over the smoke
   set (of the kind the `tests:` step names; a CI without one reads none), the scenarios the `Scenarios:` footers name and the subsets of the
-  tasks the `Task:` footers name; then the named tasks' late checks. A task's checks
+  tasks the ledger footers (`Task:`) name; then the named tasks' late checks. A task's checks
   keep their written order. A check a step has just done is skipped
   (`ci.covers`), one in `ci.nightly_only` waits for the nightly, and a task
   whose work item is still `todo` waits (`ci.wait_on_status`). It stops at
