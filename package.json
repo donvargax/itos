@@ -13,8 +13,6 @@
 	"type": "module",
 	"scripts": {
 		"prepare": "vp config",
-		"test": "vp test run",
-		"test:coverage": "vp test run --coverage",
 		"audit": "fallow audit --quiet",
 		"itos": "tools/bin/itos",
 		"work": "tools/bin/itos work",
@@ -26,7 +24,6 @@
 		"@commitlint/config-conventional": "21.2.2",
 		"@commitlint/types": "21.2.0",
 		"@types/node": "^24.13.4",
-		"@vitest/coverage-v8": "catalog:",
 		"ajv": "8.20.0",
 		"fallow": "3.25.0",
 		"git-cliff": "2.14.2",

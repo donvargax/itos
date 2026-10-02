@@ -11,42 +11,10 @@ const staged = {
 };
 
 const lint: NonNullable<UserConfig["lint"]> = {
-	ignorePatterns: ["dist/**", "coverage/**", "docs/changelog/**", ".claude/**"],
+	ignorePatterns: ["dist/**", "docs/changelog/**", ".claude/**"],
 	jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
 	rules: { "vite-plus/prefer-vite-plus-imports": "error" },
 	options: { typeAware: true, typeCheck: true },
-};
-
-const test = {
-	passWithNoTests: true,
-	// The conformance suite runs the task tool's command line in scratch
-	// repositories; on a busy machine that outgrows Vitest's 5 s default.
-	testTimeout: 30_000,
-	// `--changed` (the git hooks) picks tests by what they import; a change to one
-	// of these reruns everything instead. Written as the files themselves: the
-	// defaults' `**/package.json/**` form never matches a changed file. The
-	// config, the dependencies and the task tooling's config, which the tests
-	// read from disk rather than import.
-	forceRerunTriggers: [
-		"**/package.json",
-		"**/pnpm-lock.yaml",
-		"**/{vitest,vite}.config.*",
-		"**/itos.yaml",
-	],
-	// Agents' git worktrees live under .claude/worktrees/, inside this folder:
-	// their tests are theirs, often half-written, and never this checkout's.
-	exclude: ["**/node_modules/**", "**/dist/**", ".claude/**"],
-	coverage: {
-		provider: "v8" as const,
-		reporter: ["text", "html", "json"],
-		// itos's own modules. Collected for the audit, which scores a changed
-		// function by it (.fallowrc.json), and held to no threshold: itos is
-		// proven through its command line, by the features (features/) and the
-		// conformance corpus, and a unit test's coverage cannot see a command
-		// it spawns.
-		include: ["tools/itos/*.ts"],
-		exclude: ["**/*.test.ts"],
-	},
 };
 
 const fmt = {
@@ -57,7 +25,6 @@ const fmt = {
 		// The conformance fixtures hold exact command output, byte for byte; the
 		// formatter would reflow it.
 		"tools/itos/conformance/**",
-		"coverage/**",
 		".claude/**",
 	],
 };
@@ -83,7 +50,6 @@ const pack: NonNullable<UserConfig["pack"]> = {
 export default defineConfig({
 	staged,
 	lint,
-	test,
 	fmt,
 	pack,
 });

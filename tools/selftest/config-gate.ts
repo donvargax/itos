@@ -37,10 +37,12 @@ const attempt = (files: string[], message: string) => {
 		output: `${preCommit.output}${commitMsg.output}`,
 	};
 };
-// Whether vitest ran, by its own banner or its empty-run line.
-const plain = (output: string) => output.replace(/\x1b\[[0-9;]*m/g, "");
-const ranTests = (output: string) =>
-	/\bRUN\s+v\d|No test files found|Test Files/.test(plain(output));
+// Whether the pre-commit hook went past its prose exit to the unit tests: the
+// scratch copy's tools/bin/go-unit-tests, which picks them, is replaced by one
+// that says it ran whatever is staged (the real one is silent when no Go file
+// is, so its silence would prove nothing).
+const RAN = "config gate self-test: the unit tests ran";
+const ranTests = (output: string) => output.includes(RAN);
 // Whether CI's plan for a range runs the check, and whether it read the range
 // as prose-only.
 const plan = (from: string, to: string) => {
@@ -81,8 +83,9 @@ try {
 	expect(run.stopped === "", `a sound ledger edit was rejected by ${run.stopped}:\n${run.output}`);
 
 	// 3. A commit staging only docs/** (not Markdown) and tasks/** runs no unit
-	// tests: neither is anything a test imports.
+	// tests: neither is anything a test reaches.
 	git(`reset -q --hard ${base}`);
+	writeFileSync(join(dir, "tools/bin/go-unit-tests"), `#!/bin/sh\necho "${RAN}"\n`);
 	const notes = "docs/config-gate-selftest.yaml";
 	writeFileSync(join(dir, notes), "note: a file under docs/ that is not Markdown\n");
 	const registry = "tasks/work-items.yaml";

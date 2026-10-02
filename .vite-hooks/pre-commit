@@ -6,20 +6,11 @@ vp staged || exit $?
 if [ -z "$(git diff --cached --name-only --diff-filter=ACMRD -- . ':(exclude)*.md' ':(exclude)docs/**' ':(exclude)tasks/**' ':(exclude)features/**/*.feature')" ]; then
 	exit 0
 fi
-# Only the unit tests the change can affect: vitest follows the imports from
-# every file changed since HEAD, and `forceRerunTriggers` (vite.config.ts) adds
-# what the tests read from disk. The whole suite and its coverage thresholds are
-# CI's (`vp run test:coverage`); a partial run cannot hold a threshold, so they
-# are off here. Coverage is still collected, because the audit scores the
-# changed files by it (see .fallowrc.json), and a changed file's coverage is
-# exact: every test that runs it imports it, so every one of them ran.
-vp test run --changed HEAD --coverage --coverage.reporter=json \
-	--coverage.thresholds.statements=0 --coverage.thresholds.branches=0 \
-	--coverage.thresholds.functions=0 --coverage.thresholds.lines=0 || exit $?
-# The Go unit tests the staged change reaches: the packages it touches and
-# those that import them (tools/bin/go-unit-tests, which pre-push runs too,
-# through itos.yaml's hooks.pre_push). Nothing when no file under cmd/ or
-# internal/, nor go.mod or go.sum, is staged.
+# The unit tests the staged change reaches, itos's Go packages': the packages
+# it touches and those that import them (tools/bin/go-unit-tests, which
+# pre-push runs too, through itos.yaml's hooks.pre_push). Nothing when no file
+# under cmd/ or internal/, nor go.mod or go.sum, is staged. The whole suite is
+# CI's.
 tools/bin/go-unit-tests --cached || exit $?
 # The audit gate (new-only): skip until the repository has a first commit to diff against.
 git rev-parse --verify HEAD >/dev/null 2>&1 || exit 0

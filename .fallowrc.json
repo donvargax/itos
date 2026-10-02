@@ -4,12 +4,11 @@
 	"ignorePatterns": ["docs/changelog/**"],
 	"ignoreDependencies": ["yaml", "git-cliff", "ajv"],
 	"health": {
-		"coverage": "coverage/coverage-final.json",
 		"thresholdOverrides": [
 			{
 				"files": ["tools/**"],
 				"maxCrap": 1000,
-				"reason": "Verified by the features, the conformance corpus and the self-tests, which run it as a command, not by unit coverage; cyclomatic and cognitive limits still apply."
+				"reason": "The repository's own tooling (the self-tests, the corpus runner, the builds), verified by running it as a command, with no unit tests or coverage; cyclomatic and cognitive limits still apply."
 			}
 		]
 	}

@@ -114,8 +114,7 @@ ci:
     - { run: go vet ./..., cost: static }
     - { run: tools/bin/itos tests smoke check scenario, cost: static }
     - { run: tools/bin/itos config check, cost: static } # the config, the ledger, the registry, the smoke set
-    - { run: vp run test:coverage, cost: late }
-    - { run: "go test ./cmd/... ./internal/...", cost: late } # the Go port's unit tests
+    - { run: "go test ./cmd/... ./internal/...", cost: late } # itos's unit tests, the Go packages'
     - { run: vp run audit, cost: late }
     # The conformance corpus: what itos did when it was written, as cases run
     # through its command line; a regression corpus, not named tests. Run
@@ -143,11 +142,10 @@ ci:
       - "^actionlint\\b"
       - "^git ls-remote "
       - "\\| vp exec commitlint$"
-      - "^node tools/selftest/(ci-scope|ci-range)\\.ts$"
+      - "^node tools/selftest/ci-scope\\.ts$"
       - "^go (vet|mod verify)\\b"
     keep_written_order: true # a task's checks never run before the ones above them
   covers: # a check a step has just done is not run again
-    - { by: "vp run test:coverage", matches: "^vp test run(?: [^\\s-]\\S*)*$" }
     # go-port.ts runs the whole corpus and every feature against a fresh Go
     # build, so the port's checks (T-039 to T-052) that build it and run part of
     # either are what it has just done: any corpus files by --only, any
@@ -158,7 +156,9 @@ ci:
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && ITOS_BIN=\"\\$PWD/dist/go/itos\" go test \\./features -count=1 -scenarios=\"[^\"']+\"'$"
   # Slow, and it proves the gates rather than the code: left to the nightly.
   nightly_only: ["node tools/selftest/gates.ts"]
-  # Every feature, the gates self-test, the Go release build (T-040) and the
+  # Every feature, the gates self-test, the hooks' choice of Go unit tests
+  # (T-059: since the TypeScript left, the one proof that the hooks run only
+  # the unit tests a change reaches), the Go release build (T-040) and the
   # config's JSON Schema held to config check over the corpus (T-054), then the
   # static checks of every task whose work item is done (T-035), each shared
   # check once: a task's checks otherwise run only when a push names it. Last,
@@ -169,6 +169,7 @@ ci:
     steps:
       - { tests: scenario, whole: true }
       - node tools/selftest/gates.ts
+      - node tools/selftest/go-hooks.ts
       - node tools/selftest/go-release.ts
       - node tools/selftest/go-schema.ts
       - { tasks: done, cost: static }
@@ -196,8 +197,8 @@ work: # tools/itos/work.ts; the registry is at its default, tasks/work-items.yam
 hooks:
   manager: vp # shims in .vite-hooks/, written by `itos hooks install`
   bin: tools/bin/itos # what the shims call: the Go binary, built from cmd/itos on demand
-  # Vitest's and Go's unit tests the push reaches (tools/bin/go-unit-tests, which pre-commit runs
-  # too), stopping at the first that fails, as CI does.
+  # The unit tests the push reaches, itos's Go packages' (tools/bin/go-unit-tests, which
+  # pre-commit runs too).
   pre_push:
-    per_base: "vp test run --changed {base} && tools/bin/go-unit-tests {base}"
-    whole: "vp test run && tools/bin/go-unit-tests --all"
+    per_base: "tools/bin/go-unit-tests {base}"
+    whole: "tools/bin/go-unit-tests --all"

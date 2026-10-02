@@ -1,12 +1,10 @@
-// The local gates run only what a change affects, and CI still catches what
-// they leave out. Run against the real hooks in a scratch worktree of the
-// current tree (uncommitted edits included), so nothing here touches the
-// checkout it was started from:
+// The local gates leave to CI what they do not run, and CI catches it. Run
+// against the real hooks in a scratch worktree of the current tree
+// (uncommitted edits included), so nothing here touches the checkout it was
+// started from:
 //
-//   - pre-commit runs exactly the unit tests a change reaches, by import or by
-//     vite.config.ts's forceRerunTriggers, and fails on a change that breaks one;
-//   - pre-push does the same against the remote commit it builds on, fails on
-//     that broken change, and passes a prose-only push;
+//   - CI runs the whole unit suite and the features, which the hooks leave to it;
+//   - pre-push passes a prose-only push;
 //   - pre-push runs neither the scenarios a commit's `Scenarios:` footer names
 //     nor the checks of the tasks its `Task:` footer names; CI reads those
 //     footers from the pushed range and runs them;
@@ -21,23 +19,17 @@
 //     from the changed source.
 //
 // The plan and the steps are the scratch copy's `tools/bin/itos ci plan --json`.
+// That the hooks run exactly the unit tests a change reaches, and fail on a
+// change that breaks one, is tools/selftest/go-hooks.ts's (T-059), which the
+// nightly runs beside this: since the TypeScript left (T-062) the unit tests
+// are the Go packages', and tools/bin/go-unit-tests picks them for both hooks.
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ciPlan, featuresStep, hookGates, scratchRepo } from "./scratch.ts";
 
 const repo = scratchRepo("gates-selftest");
-const { root, dir, env, sh, git, edit, commit } = repo;
-
-// How many unit test files a run executed (vitest's summary line; without a
-// terminal it names only the files that failed), and the ones that failed.
-const plain = (output: string) => output.replace(/\x1b\[[0-9;]*m/g, "");
-const ranFiles = (output: string) => Number(/Test Files .*\((\d+)\)/.exec(plain(output))?.[1] ?? 0);
-const failedFiles = (output: string) =>
-	new Set(
-		[...plain(output).matchAll(/FAIL\s+((?:src|tools)\/[\w./-]+\.test\.ts)/g)].map((m) => m[1]!),
-	);
-const allTests = sh("git ls-files '*.test.ts'", undefined, root).output.split("\n").filter(Boolean);
+const { dir, env, git, edit, commit } = repo;
 
 const { problems, timings, expect, gate, preCommit, prePush } = hookGates(repo);
 const messages = mkdtempSync(join(tmpdir(), "gates-selftest-msg-"));
@@ -47,7 +39,6 @@ const commitMsg = (label: string, message: string) => {
 	writeFileSync(file, message);
 	return gate(`commit-msg, ${label}`, `sh .vite-hooks/commit-msg ${file}`);
 };
-const show = (files: Set<string>) => [...files].join(", ") || "none";
 
 let base = "";
 try {
@@ -58,64 +49,14 @@ try {
 
 	const features = "go test ./features -count=1";
 	const steps = ciPlan(["--whole"], dir).steps;
-	for (const step of [features, "vp run test:coverage"])
+	for (const step of [features, "go test ./cmd/... ./internal/..."])
 		expect(steps.includes(step), `CI no longer runs \`${step}\`, which the hooks leave to it`);
 
-	// 1. A change to a leaf module runs the tests that reach it and not the
-	// whole suite, on both gates.
-	const module = "tools/itos/moves.ts";
-	const moduleTest = "tools/itos/moves.test.ts";
-	const moduleLine = "const SCENARIO_LINE";
-	edit(module, moduleLine, `// gates self-test: a harmless change\n${moduleLine}`);
-	let run = preCommit("a harmless change to a module");
-	expect(run.status === 0, `pre-commit failed on a harmless change:\n${run.output}`);
-	const reached = (n: number) => n >= 1 && n < allTests.length;
-	expect(
-		reached(ranFiles(run.output)),
-		`pre-commit should run only the test files that reach ${module}, ran ${ranFiles(run.output)} of ${allTests.length}`,
-	);
-	let sha = commit("refactor: touch the module");
-	run = prePush("that change as a refactor", base, sha);
-	expect(run.status === 0, `pre-push failed on a harmless refactor:\n${run.output}`);
-	expect(
-		reached(ranFiles(run.output)),
-		`pre-push should run only the test files that reach ${module}, ran ${ranFiles(run.output)} of ${allTests.length}`,
-	);
-	expect(!run.output.includes(features), "pre-push still runs the features for a refactor");
-
-	// 2. The negative proof: the same file, broken, fails both gates, and fails
-	// in the module's test alone.
-	git(`reset -q --hard ${base}`);
-	edit(module, "changes the live scenario ${id}", "alters the live scenario ${id}");
-	run = preCommit("a change that breaks the module's test");
-	expect(run.status !== 0, `pre-commit passed a change that breaks ${moduleTest}`);
-	expect(
-		reached(ranFiles(run.output)) &&
-			failedFiles(run.output).size === 1 &&
-			failedFiles(run.output).has(moduleTest),
-		`pre-commit should fail in ${moduleTest} alone, failed in ${show(failedFiles(run.output))}`,
-	);
-	sha = commit("refactor: break the module");
-	run = prePush("that change as a refactor", base, sha);
-	expect(run.status !== 0, `pre-push passed a change that breaks ${moduleTest}`);
-	expect(failedFiles(run.output).has(moduleTest), `pre-push did not fail in ${moduleTest}`);
-
-	// 3. What the tests read from disk counts as a change they depend on
-	// (forceRerunTriggers: the task tool's config reruns the whole suite).
-	git(`reset -q --hard ${base}`);
-	edit("itos.yaml", "version: 1", "# gates self-test: a harmless change\nversion: 1");
-	run = preCommit("a change to itos.yaml");
-	expect(run.status === 0, `pre-commit failed on a comment in itos.yaml:\n${run.output}`);
-	expect(
-		ranFiles(run.output) === allTests.length,
-		`a change to itos.yaml, which the tests read from disk, should rerun all ${allTests.length} test files; ran ${ranFiles(run.output)}`,
-	);
-
-	// 4. A push that touches only prose passes pre-push.
+	// A push that touches only prose passes pre-push.
 	git(`reset -q --hard ${base}`);
 	edit("README.md", "# ", "A prose edit.\n\n# ");
-	sha = commit("docs: edit the readme");
-	run = prePush("a prose-only push", base, sha);
+	let sha = commit("docs: edit the readme");
+	let run = prePush("a prose-only push", base, sha);
 	expect(run.status === 0, `pre-push failed on a prose-only push:\n${run.output}`);
 
 	// A commit that names a scenario and a task leaves both to CI...
@@ -168,7 +109,7 @@ try {
 	run = commitMsg("a sound docs commit", "docs: edit the readme\n\nTask: T-007\n");
 	expect(run.status === 0, `commit-msg rejected a sound docs commit:\n${run.output}`);
 
-	// 5. What the hooks leave out, CI's steps catch. A refactor that changes
+	// What the hooks leave out, CI's steps catch. A refactor that changes
 	// what verify prints, in a Go package whose unit tests do not read that
 	// line, passes both hooks...
 	git(`reset -q --hard ${base}`);
@@ -199,6 +140,6 @@ for (const problem of problems) console.error(`FAIL ${problem}`);
 console.log(
 	problems.length
 		? `\n${problems.length} gate check(s) failed`
-		: `\nThe hooks run what a change affects (${allTests.length} unit test files in all); CI catches the rest`,
+		: "\nThe hooks leave the features and the whole unit suite to CI, and CI catches what they let through",
 );
 process.exit(problems.length ? 1 : 0);
