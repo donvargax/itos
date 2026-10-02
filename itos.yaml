@@ -150,7 +150,7 @@ ci:
     # globs and path rules' two corpus files (T-044), the footer rules' (T-045),
     # the named tests' two corpus files and scenarios (T-046), verify's corpus
     # file and scenarios (T-047), CI's plan's (T-048), CI's driver's (T-049),
-    # ci range's corpus file (T-050).
+    # ci range's corpus file (T-050), the work routing's (T-051).
     - by: node tools/selftest/go-port.ts
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/cli\\.yaml'$"
     - by: node tools/selftest/go-port.ts
@@ -185,6 +185,10 @@ ci:
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && ITOS_BIN=\"\\$PWD/dist/go/itos\" go test \\./features -count=1 -scenarios=\"\\^@ID-\\(BIN-0\\[1-3\\]\\|CI-0\\[1-7\\]\\|CONFIG-0\\[256\\]\\|LEDGER-06\\|NIGHTLY-0\\[1-4\\]\\)\\$\"'$"
     - by: node tools/selftest/go-port.ts
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/range\\.yaml'$"
+    - by: node tools/selftest/go-port.ts
+      matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/work\\.yaml'$"
+    - by: node tools/selftest/go-port.ts
+      matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && ITOS_BIN=\"\\$PWD/dist/go/itos\" go test \\./features -count=1 -scenarios=\"\\^@ID-\\(CONFIG-\\(07\\|08\\|17\\)\\|WORK-0\\[1-4\\]\\)\\$\"'$"
   # Slow, and it proves the gates rather than the code: left to the nightly.
   nightly_only: ["node tools/selftest/gates.ts"]
   # Every feature, the gates self-test, the Go release build (T-040), then the

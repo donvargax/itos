@@ -31,8 +31,9 @@ const PORTED = {
 	// footer rules, commit check-message (T-045), the named tests, tests list
 	// and tests smoke (T-046), verify (T-047; moves.yaml joins with the
 	// commit-msg hook, T-052), CI's plan, ci plan and ci scope (T-048), CI's
-	// driver, ci run and the nightly (T-049), and where a range starts, ci
-	// range and the range providers (T-050).
+	// driver, ci run and the nightly (T-049), where a range starts, ci range
+	// and the range providers (T-050), and the work routing, work and work
+	// check (T-051).
 	corpus: [
 		"tools/itos/conformance/cli.yaml",
 		"tools/itos/conformance/help.yaml",
@@ -47,11 +48,12 @@ const PORTED = {
 		"tools/itos/conformance/plans.yaml",
 		"tools/itos/conformance/ci-run.yaml",
 		"tools/itos/conformance/range.yaml",
+		"tools/itos/conformance/work.yaml",
 	],
 	// -scenarios= regular expressions, as a group's checks write them: the
 	// scenarios that run config check (T-042), itos task (T-043), tests smoke
-	// check (T-046), verify or tests moves (T-047), ci plan (T-048), and ci
-	// run (T-049).
+	// check (T-046), verify or tests moves (T-047), ci plan (T-048), ci run
+	// (T-049), and work check (T-051).
 	scenarios: [
 		"^@ID-(CONFIG-1[2346]|LEDGER-0[12]|SINCE-0[4-7])$",
 		"^@ID-(TASK-0[1-4]|LEDGER-0[34]|CONFIG-(01|18))$",
@@ -59,6 +61,7 @@ const PORTED = {
 		"^@ID-(SINCE-0[1238]|FOOT-04|CONFIG-04|MOVES-0[56])$",
 		"^@ID-LEDGER-05$",
 		"^@ID-(BIN-0[1-3]|CI-0[1-7]|CONFIG-0[256]|LEDGER-06|NIGHTLY-0[1-4])$",
+		"^@ID-(CONFIG-(07|08|17)|WORK-0[1-4])$",
 	],
 };
 
