@@ -98,6 +98,10 @@ the commands, `itos <command> --help` each one). The code is
   ledger but not a ledger file, since it does not match `ledger.files`), the people
   `CONTRIBUTORS.md` (`work.people`), the smoke set `features/smoke.yaml`
   (`tests.scenario.smoke`). `itos config check` validates all of them.
+  The ledger's folder missing is one config error, `ledger-folder-missing`,
+  exit 2: the ledger's loader (`ledgerFiles` in `config.ts`) reports it for
+  every command that reads the ledger, and `config check` as its one problem;
+  the footer rules name it by their own rule, `footer-source-missing`.
   A kind's smoke set (`tests.<kind>.smoke.file`) has one loader
   (`smoke.ts`); its rule and its run, `itos tests smoke`, are
   `smoke-rule.ts`.

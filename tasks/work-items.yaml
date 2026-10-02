@@ -824,7 +824,7 @@ items:
     title: A missing ledger folder is one problem in every command that reads the ledger
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-13]
     kind: slice
     refs: [features/ledger.feature]
@@ -853,6 +853,20 @@ items:
       itself instead, or be logged as selecting nothing.
       Decided: it runs as the task wrote it, since nothing else proves it. Was the idea
       p1-merged-check-without-a-run. @ID-CI-04.
+
+  - id: p1-data-at-ledger-folder
+    title: ci plan --data-at names a commit's missing ledger folder by the commit, not a scratch path
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-14]
+    kind: idea
+    why: >
+      Found in slice 14: ci plan --data-at <sha> copies the ledger at the commit into a scratch
+      folder and reads it there, so a commit with no ledger folder is reported as "the ledger's
+      folder /tmp/plan-data-…/tasks does not exist" (ledger-folder-missing, exit 2): one problem as
+      the slice wants, but naming a path that is gone when the user reads it. It could name the
+      folder at the commit (tasks at <sha>), or read a commit before the ledger as having no tasks.
 
   - id: p1-several-test-kinds
     title: A CI run that merges more than one kind of named test
