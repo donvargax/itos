@@ -227,7 +227,7 @@ The Go build of itos lands beside the TypeScript one command group at a time
   (the layout, the files, every task and check problem, and the tasks and
   checks typed, and the task IDs at a tree), `internal/tests` (the Gherkin
   adapter and the command adapter at a tree, the smoke set and its rule,
-  the run templates; below),
+  the run templates, the moves rule; below),
   `internal/message` (below), `internal/providers` (the people),
   `internal/work` (the registry and its problems, and the items' statuses),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
@@ -371,6 +371,27 @@ run` is it over the smoke IDs, run through the config's shell with
   itos's streams, its exit the runner's or 1 (`status ?? 1`); CI's plan
   calls the same function for its one merged run. itos compiles none of
   the templates' patterns: the runner reads them in its own dialect.
+- **The moves rule and verify.** The moves rule is `tests.Moves`
+  (`internal/tests/moves.go`, `moves.ts`): one comparison, `MoveProblems`
+  over two `FeatureSet`s that `ReadFeatures` builds through `ParseFeature`
+  with comment lines dropped, its IDs and files kept in the order
+  JavaScript's Maps keep them (files by path, as git lists them; an ID
+  written twice keeps its first place and its last block), since the
+  problems are printed in that order. `NewMoves(cfg)` reads each kind's
+  feature files once per tree and gives the three callers: `Commit(sha,
+type)` for verify (the commit against `git.Parent`, the empty tree for a
+  root commit, nothing read when no check judges the type), `Staged(type)`
+  for the commit-msg hook (HEAD against the index) and `Index(kind)` for
+  `tests moves`. `verify` is `internal/cli/verify.go`: the range's commits
+  from `git rev-list --no-merges --reverse` over `cfg.RangeArgs(from, to)`
+  (commits.since and its ancestors left out), each one's message through
+  `message.Check` at that commit, the delegate's report on stdout (stderr
+  under `--json`), then, only when the message holds, its paths
+  (`git.CommitPaths`) through `scope` and its moves as one rejection; then
+  `tests.RangeCommands(cfg, from, to)`, each kind's `range` commands with
+  `{from}` at `cfg.RangeStart(from)`, run until one fails. The range
+  helpers sit beside `SinceIssue` in `internal/config/since.go`, where CI's
+  plan reads a range too.
 - **What is not ported yet** fails loudly: every command takes its arguments
   as the TypeScript does, so a usage error reads the same in both, and then a
   command whose group has not landed exits 3, the missing environment's code,

@@ -1590,7 +1590,7 @@ items:
     title: The Go verify and the built-in moves rule
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-045, T-046]
     kind: task
     refs: [tasks/phase-2.yaml]
