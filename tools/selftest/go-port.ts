@@ -27,7 +27,8 @@ const PORTED = {
 	// Corpus files, relative to the root: the command line itself (T-039), its
 	// help texts (T-041), the config, the ledger, the registry and the smoke
 	// sets as config check reads them (T-042), the task runner, task and task
-	// list (T-043), and the globs and path rules, commit check-paths (T-044).
+	// list (T-043), the globs and path rules, commit check-paths (T-044), and
+	// the footer rules, commit check-message (T-045).
 	corpus: [
 		"tools/itos/conformance/cli.yaml",
 		"tools/itos/conformance/help.yaml",
@@ -35,6 +36,7 @@ const PORTED = {
 		"tools/itos/conformance/tasks.yaml",
 		"tools/itos/conformance/globs.yaml",
 		"tools/itos/conformance/scopes.yaml",
+		"tools/itos/conformance/messages.yaml",
 	],
 	// -scenarios= regular expressions, as a group's checks write them: the
 	// scenarios that run config check (T-042) and itos task (T-043).
