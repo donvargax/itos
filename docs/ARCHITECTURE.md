@@ -418,6 +418,21 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
 --format=%B from..to`, newest first). That range is `from..to` as the
   TypeScript's plan reads it: `commits.since` does not narrow it, as it
   narrows verify's, and an empty start reads nothing and runs every test.
+- **CI's driver** is `internal/ci` (`ci.ts`'s `ciRun`), with `ci run` in
+  `internal/cli/ci.go` making the plan as `ci plan` does and handing it over:
+  the driver never plans, so a run carries out what `ci plan` prints. It sets
+  `ci.env` in its own environment, says the preamble (`Unknown`, named against
+  the ledger's folder, ends the run whatever `ci.stop_at_first_failure` says;
+  `NotStarted`; `Prose` with `LeftOut`), then walks `Order`: a `Step` runs
+  through `shell.Run` on itos's own streams (the log is stdout, stderr under
+  `--json`), so the command's output keeps its place beside itos's lines, and
+  a failing step's exit code is the run's (1 when it has none, `status ??
+1`); a `Check` whose `Action` is `run` goes through a verbose
+  `check.Runner`, a failure exiting 1 and naming the task and its title, and
+  the other actions are only logged. The nightly keeps the Runner's runs, so
+  a check its done tasks share runs once; a push runs each named task's
+  checks as its own, as the TypeScript does (its `runs` is the nightly's
+  only). `--json`'s `failed_at` is a `Failure`, its keys in `ci.ts`'s order.
 - **What is not ported yet** fails loudly: every command takes its arguments
   as the TypeScript does, so a usage error reads the same in both, and then a
   command whose group has not landed exits 3, the missing environment's code,

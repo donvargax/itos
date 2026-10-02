@@ -1608,7 +1608,7 @@ items:
     title: The Go CI driver, ci run and the nightly
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-048]
     kind: task
     refs: [tasks/phase-2.yaml]
