@@ -702,6 +702,8 @@ items:
       plan's smoke set reads the kind of its tests step since slice 3). scenario-moves is a script
       this repository's config runs as a range check, not an itos command, so no scenario reaches
       it until itos ships it as one; the smoke rule's default kind is reached by no command.
+      scenario-moves also roots the kind at e2e/features when tests.<kind>.root is left out, a
+      fallback slice 19 left outside the defaults table, since the kind's root has no default.
 
   - id: p1-group-label-read
     title: ledger.group.label read, or dropped
@@ -763,7 +765,7 @@ items:
     title: The defaults the tools apply are the ones config check prints, read from one table
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-8]
     kind: slice
     refs: [features/config.feature]
@@ -776,6 +778,21 @@ items:
       decides what the cost rule reads as itos, is not printed at all. One table the loader merges
       under the file, which the tools and the flag both read, closes it and fits the Go port's
       loader. Was the ideas p1-one-defaults-table and p1-bin-in-defaults. @ID-CONFIG-15 and 16.
+
+  - id: p1-ledger-id-default
+    title: ledger.id has one default, or none, for every command
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-19]
+    kind: idea
+    why: >
+      Found in slice 19, which moved every agreed fallback into the defaults table: without
+      ledger.id, itos task reads a command-line word as a task ID only when it matches T-\d+ (cli.ts),
+      while the ledger check and the ledger footers take any ID (.+). The two disagree, so neither
+      went into the table. Either the table gets T-\d+ (a changed default: the ledger check and the
+      footers start rejecting other IDs) or itos task finds its IDs another way, and the key stays
+      without a default. Needs a scenario in ledger.feature or task.feature.
 
   - id: p1-registry-beside-ledger
     title: work.registry's default follows the ledger's folder, as PLAN says

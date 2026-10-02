@@ -92,7 +92,14 @@ the commands, `itos <command> --help` each one). The code is
   policy here, not in the code, and every key accepted is one a tool reads:
   a key waiting on a feature not built yet (the built-in header lint's
   `use` and `alongside`, a second way to tell a commit is pushed) is
-  rejected until that feature reads it.
+  rejected until that feature reads it. **The defaults are one table**,
+  `DEFAULTS` in `config.ts`: the loader lays the file over it
+  (`withDefaults`, `tests.<kind>` under each kind the file has), and
+  `config check --print-defaults` prints it, so no tool writes a fallback of
+  its own and a default is applied exactly when it is printed. `section()`
+  still asks whether the file has a section (`hasSection`), since a section
+  the file leaves out holds only its defaults. A key with no default
+  (`ledger.id`, a kind's `root`) stays absent.
 - **What it reads.** The ledger is `tasks/phase-<n>.yaml` (`ledger.files`),
   the registry `tasks/work-items.yaml` (`work.registry`'s default, beside the
   ledger but not a ledger file, since it does not match `ledger.files`), the people

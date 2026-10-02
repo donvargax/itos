@@ -182,6 +182,11 @@ policy it sets.
 - **Templates** use `{name}`; a value going into a shell is single-quoted.
 - **`shell`** is the argv prefix for every command, `[sh, -c]` by default.
 - **`commits.since`**: the full SHA of the commit where verification starts.
+- **The defaults are one table**, which the loader lays the file over and
+  `config check --print-defaults` prints, so a default cannot be applied
+  without being printed or printed without being applied; `tests.<kind>`'s
+  apply to each kind. A key with no default stays absent. The Go port's
+  loader keeps the table and the flag as one.
 - **Every key it accepts is one a tool reads**: a key whose feature is not
   built yet is not accepted until it is (`features/config.feature`).
 
