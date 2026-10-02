@@ -96,13 +96,17 @@ the commands, `itos <command> --help` each one). The code is
   `DEFAULTS` in `config.ts`: the loader lays the file over it
   (`withDefaults`, `tests.<kind>` under each kind the file has), and
   `config check --print-defaults` prints it, so no tool writes a fallback of
-  its own and a default is applied exactly when it is printed. `section()`
+  its own and a default is applied exactly when it is printed. One default
+  depends on the config: `work.registry` is beside the config's ledger, so
+  `defaultsFor` gives the table as it applies to a file, and both the loader
+  and `--print-defaults` read it through that. `section()`
   still asks whether the file has a section (`hasSection`), since a section
   the file leaves out holds only its defaults. A key with no default
   (`ledger.id`, a kind's `root`) stays absent.
 - **What it reads.** The ledger is `tasks/phase-<n>.yaml` (`ledger.files`),
-  the registry `tasks/work-items.yaml` (`work.registry`'s default, beside the
-  ledger but not a ledger file, since it does not match `ledger.files`), the people
+  the registry `tasks/work-items.yaml` (`work.registry`'s default,
+  `work-items.yaml` beside the ledger in `ledger.files`' folder, but not a
+  ledger file, since it does not match `ledger.files`), the people
   `CONTRIBUTORS.md` (`work.people`), the smoke set `features/smoke.yaml`
   (`tests.scenario.smoke`). `itos config check` validates all of them.
   A ledger group is called by `ledger.group.label` (`phase` by default) in
