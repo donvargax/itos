@@ -10,8 +10,9 @@ Feature: The config's patterns are RE2 regular expressions
   config check refuses what RE2 cannot compile, naming RE2 in its fix.
 
   The TypeScript cannot run RE2: it compiles each pattern with JavaScript's
-  RegExp, which it needs to run it, and refuses beside that what RE2 lacks,
-  a lookaround outside a character class and a backreference's escape. On a
+  RegExp, which it needs to run it, and refuses beside that what RE2 cannot
+  compile: a lookaround, a backreference, a letter escape or a class RE2 has
+  no reading for, and a repeat count above RE2's 1000. On a
   pattern both compile, matching is RE2's from now on, and the TypeScript's
   differs where the dialects do (\s is JavaScript's whitespace and RE2's
   ASCII one, and . does not match \r in JavaScript): a known gap, closed when
@@ -48,7 +49,7 @@ Feature: The config's patterns are RE2 regular expressions
   # RE2's 1000, \c, letter escapes, [\b], [] and [^]. The TypeScript let them
   # through, the Go binary refused them; folded into v1.1.0, so consumers are
   # asked for the pattern change once.
-  @ID-PATTERN-03 @bug-1 @wip
+  @ID-PATTERN-03 @bug-1
   Scenario: config check refuses a repeat count above RE2's limit
     Given the config sets "ledger.group.pattern" to "\d{1,1001}"
     When itos checks the config

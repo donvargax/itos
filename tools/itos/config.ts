@@ -504,29 +504,278 @@ export class ConfigError extends Error {
 
 export const configPath = () => process.env.ITOS_CONFIG || "itos.yaml";
 
-// Whether a pattern JavaScript compiles has what RE2 lacks (PLAN.md, "Pattern
-// dialect"): a lookaround outside a character class, or an escape RE2 has no
-// reading for, a backreference's. RE2 reads \1 to \7 followed by an octal
-// digit as an octal escape and refuses any other \1 to \9, and has no \k, in
-// or out of a class; the escaped character is skipped, so \(?= is literal. The
-// class is JavaScript's, which the pattern compiled as: [] and [^] close at
-// their ]. The TypeScript cannot run RE2, so this is how it refuses what the Go
-// binary refuses. A pattern RE2 compiles and JavaScript cannot, such as
-// (?i)abc, is still refused, since the TypeScript could not run it.
-export function lacksInRE2(source: string): boolean {
-	let inClass = false;
-	for (let i = 0; i < source.length; i++) {
-		const c = source[i];
-		if (c === "\\") {
-			const next = source[i + 1] ?? "";
-			const octal = next >= "1" && next <= "7" && /[0-7]/.test(source[i + 2] ?? "");
-			if ((next >= "1" && next <= "9" && !octal) || next === "k") return true;
-			i++;
-		} else if (inClass) inClass = c !== "]";
-		else if (c === "[") inClass = true;
-		else if (["(?=", "(?!", "(?<=", "(?<!"].some((look) => source.startsWith(look, i))) return true;
+// RE2's names for a Unicode class, as in \p{Greek}, \pL or \P{^Lu}: the
+// categories, their aliases and the scripts of Go's unicode tables, with Any,
+// Assigned, ASCII and LC, which regexp/syntax matches ignoring case, _, - and
+// space. Generated from Go 1.27's tables, the Go binary's toolchain (go.mod).
+const re2Unicode = new Set(
+	`
+adlam ahom anatolianhieroglyphs any arabic armenian ascii assigned avestan balinese bamum
+bassavah batak bengali beriaerfe bhaiksuki bopomofo brahmi braille buginese buhid c
+canadianaboriginal carian casedletter caucasianalbanian cc cf chakma cham cherokee
+chorasmian closepunctuation cn cntrl co combiningmark common connectorpunctuation control
+coptic cs cuneiform currencysymbol cypriot cyprominoan cyrillic dashpunctuation
+decimalnumber deseret devanagari digit divesakuru dogra duployan egyptianhieroglyphs
+elbasan elymaic enclosingmark ethiopic finalpunctuation format garay georgian glagolitic
+gothic grantha greek gujarati gunjalagondi gurmukhi gurungkhema han hangul hanifirohingya
+hanunoo hatran hebrew hiragana imperialaramaic inherited initialpunctuation
+inscriptionalpahlavi inscriptionalparthian javanese kaithi kannada katakana kawi kayahli
+kharoshthi khitansmallscript khmer khojki khudawadi kiratrai l lao latin lc lepcha letter
+letternumber limbu lineara linearb lineseparator lisu ll lm lo lowercaseletter lt lu lycian
+lydian m mahajani makasar malayalam mandaic manichaean marchen mark masaramgondi mathsymbol
+mc me medefaidrin meeteimayek mendekikakui meroiticcursive meroitichieroglyphs miao mn modi
+modifierletter modifiersymbol mongolian mro multani myanmar n nabataean nagmundari
+nandinagari nd newa newtailue nko nl no nonspacingmark number nushu nyiakengpuachuehmong
+ogham olchiki oldhungarian olditalic oldnortharabian oldpermic oldpersian oldsogdian
+oldsoutharabian oldturkic olduyghur olonal openpunctuation oriya osage osmanya other
+otherletter othernumber otherpunctuation othersymbol p pahawhhmong palmyrene
+paragraphseparator paucinhau pc pd pe pf phagspa phoenician pi po privateuse ps
+psalterpahlavi punct punctuation rejang runic s samaritan saurashtra sc separator sharada
+shavian siddham sidetic signwriting sinhala sk sm so sogdian sorasompeng soyombo
+spaceseparator spacingmark sundanese sunuwar surrogate sylotinagri symbol syriac tagalog
+tagbanwa taile taitham taiviet taiyo takri tamil tangsa tangut telugu thaana thai tibetan
+tifinagh tirhuta titlecaseletter todhri tolongsiki toto tulutigalari ugaritic unassigned
+uppercaseletter vai vithkuqi wancho warangciti yezidi yi z zanabazarsquare zl zp zs
+`
+		.trim()
+		.split(/\s+/),
+);
+
+// RE2's POSIX classes, written inside a class: [[:alpha:]], [[:^alpha:]].
+const re2Posix =
+	/^\[:\^?(alnum|alpha|ascii|blank|cntrl|digit|graph|lower|print|punct|space|upper|word|xdigit):\]$/;
+
+// Where a parse step goes on in the pattern's code points, or undefined where
+// RE2 refuses the pattern.
+type Next = number | undefined;
+
+const isOctal = (c = "") => c >= "0" && c <= "7";
+const isHex = (c = "") => /^[0-9A-Fa-f]$/.test(c);
+
+// RE2's \x at s[i], the x: two hex digits, or one to six in braces up to
+// U+10FFFF. Its code point and where the parse goes on.
+function re2Hex(s: string[], i: number): [number, number] | undefined {
+	if (s[i + 1] !== "{")
+		return isHex(s[i + 1]) && isHex(s[i + 2])
+			? [parseInt(s[i + 1] + s[i + 2], 16), i + 3]
+			: undefined;
+	let j = i + 2;
+	let code = 0;
+	for (; isHex(s[j]); j++) if ((code = code * 16 + parseInt(s[j], 16)) > 0x10ffff) return undefined;
+	return s[j] === "}" && j > i + 2 ? [code, j + 1] : undefined;
+}
+
+// RE2's single-character escape at s[i], the backslash: its code point and
+// where the parse goes on. An octal escape is \0, or \1 to \7 with an octal
+// digit after it, since RE2 has no backreference; a letter is one of \a \f \n
+// \r \t \v \x, the letters RE2 escapes outside its classes (\A \b \B \d \D \p
+// \P \Q \s \S \w \W \z) being the parse's; any other ASCII character but a
+// letter or a digit is itself. So RE2 has no \c, \e, \u, \k or [\b], all of
+// which JavaScript reads.
+function re2Escape(s: string[], i: number): [number, number] | undefined {
+	const c = s[i + 1] ?? "";
+	if (c === "0" || (isOctal(c) && isOctal(s[i + 2]))) {
+		let j = i + 2;
+		while (j < i + 4 && isOctal(s[j])) j++;
+		return [parseInt(s.slice(i + 1, j).join(""), 8), j];
 	}
-	return false;
+	if (c === "x") return re2Hex(s, i + 1);
+	const control = "afnrtv".indexOf(c);
+	if (c && control >= 0) return [[7, 12, 10, 13, 9, 11][control], i + 2];
+	return /^[\0-\x7f]$/.test(c) && !/[0-9A-Za-z]/.test(c) ? [c.charCodeAt(0), i + 2] : undefined;
+}
+
+// RE2's \p or \P at s[i], the backslash: a one-letter name, or a name in
+// braces up to the first }, ^ before it negating it, that is RE2's.
+function re2UnicodeClass(s: string[], i: number): Next {
+	const braced = s[i + 2] === "{";
+	const end = braced ? s.indexOf("}", i) : i + 2;
+	if (end < 0 || end >= s.length) return undefined;
+	const name = braced ? s.slice(i + 3, end).join("") : s[end];
+	const key = name
+		.replace(/^\^/, "")
+		.replace(/[-_ ]/g, "")
+		.replace(/[A-Z]/g, (c) => c.toLowerCase());
+	return re2Unicode.has(key) ? end + 1 : undefined;
+}
+
+const re2ClassChar = (s: string[], i: number): [number, number] | undefined =>
+	s[i] === "\\" ? re2Escape(s, i) : s[i] === undefined ? undefined : [s[i].codePointAt(0)!, i + 1];
+
+// A character of an RE2 class at s[i], or a range of two in order, whose
+// bounds cannot be classes.
+function re2Range(s: string[], i: number): Next {
+	const lo = re2ClassChar(s, i);
+	if (!lo || s[lo[1]] !== "-" || s[lo[1] + 1] === undefined || s[lo[1] + 1] === "]") return lo?.[1];
+	const hi = re2ClassChar(s, lo[1] + 1);
+	return hi && hi[0] >= lo[0] ? hi[1] : undefined;
+}
+
+// One item of an RE2 class at s[i]: a POSIX class, which runs to the first :]
+// after [: wherever that is, a Unicode or Perl class (\d \s \w and their
+// capitals), or a character or a range.
+function re2ClassItem(s: string[], i: number): Next {
+	if (s[i] === "[" && s[i + 1] === ":" && i + 2 < s.length) {
+		const close = s.findIndex((c, k) => k > i + 1 && c === ":" && s[k + 1] === "]");
+		if (close >= 0) return re2Posix.test(s.slice(i, close + 2).join("")) ? close + 2 : undefined;
+	}
+	if (s[i] !== "\\" || !/^[dDsSwWpP]$/.test(s[i + 1] ?? "")) return re2Range(s, i);
+	return s[i + 1] === "p" || s[i + 1] === "P" ? re2UnicodeClass(s, i) : i + 2;
+}
+
+// RE2's class at s[i], the [. A ] right after [ or [^ is a member, not the
+// end, so [] and [^] never close by themselves, and [ inside is a member.
+function re2Class(s: string[], i: number): Next {
+	let j: Next = s[i + 1] === "^" ? i + 2 : i + 1;
+	for (let first = true; first || s[j] !== "]"; first = false) {
+		if (j >= s.length) return undefined;
+		j = re2ClassItem(s, j);
+		if (j === undefined) return undefined;
+	}
+	return j + 1;
+}
+
+// RE2's flags at s[j], after "(?": i, m, s and U, with - before those it
+// clears, then : to open a group or ) to set them for the rest of this one.
+function re2Flags(s: string[], j: number): [number, boolean] | undefined {
+	let negated = false;
+	let flagged = false;
+	for (; j < s.length; j++) {
+		const c = s[j];
+		if (c === ":" || c === ")") return flagged || !negated ? [j + 1, c === ":"] : undefined;
+		if (c === "-" && !negated) [negated, flagged] = [true, false];
+		else if ("imsU".includes(c)) flagged = true;
+		else return undefined;
+	}
+	return undefined;
+}
+
+// RE2's group at s[i], "(?": where the parse goes on, and whether a group opens
+// there. RE2 has (?: and its flags, and (?P<name> and (?<name>, of letters,
+// digits and _: no lookaround, no comment, no named backreference.
+function re2Group(s: string[], i: number): [number, boolean] | undefined {
+	const named = s[i + 2] === "<" ? i + 3 : s[i + 2] === "P" && s[i + 3] === "<" ? i + 4 : 0;
+	if (!named || named >= s.length) return re2Flags(s, i + 2);
+	const end = s.indexOf(">", i);
+	return end >= 0 && /^\w+$/.test(s.slice(named, end).join("")) ? [end + 1, true] : undefined;
+}
+
+// RE2's {n}, {n,} or {n,m} at s[i], numbers without a leading zero: its bounds
+// (m is -1 for {n,}) and where the parse goes on; undefined where the { is a
+// literal one.
+function re2Count(s: string[], i: number): [number, number, number] | undefined {
+	const count = /^\{(0|[1-9]\d*)(?:(,)(0|[1-9]\d*)?)?\}/.exec(s.slice(i, i + 24).join(""));
+	if (!count) return undefined;
+	const min = Number(count[1]);
+	const max = count[3] ? Number(count[3]) : count[2] ? -1 : min;
+	return [min, max, i + count[0].length];
+}
+
+// Whether RE2 cannot compile the pattern (PLAN.md, "Pattern dialect"): RE2's
+// parse, as Go's regexp/syntax does it, kept to whether it succeeds. The
+// TypeScript cannot run RE2, so this is how it refuses what the Go binary
+// refuses that JavaScript compiles: a lookaround, a backreference, a letter
+// escape RE2 has no reading for (\c, \e, \u, \k, ...), [\b], [] and [^], a
+// Unicode or POSIX class name RE2 does not have, a range bounded by a class,
+// (?i-:...), and a repeat count above 1000, nested counted repeats multiplying
+// (RE2 caps (a{100}){11}, 1100 copies of a). It does not model RE2's caps on
+// a compiled program's size and a parse tree's height, which only patterns
+// thousands of characters long reach. A pattern RE2 compiles and JavaScript
+// cannot, such as (?i)abc, is still refused, since the TypeScript could not
+// run it.
+export function lacksInRE2(source: string): boolean {
+	const s = Array.from(source);
+	const outer: number[] = []; // each open group's need before it
+	// What a repeat applies to: the last item's need, the copies of its
+	// innermost item its counted repeats make (undefined where there is no
+	// item to repeat, at the start of a group or an alternative), whether it is
+	// a repeat already, and the need of the group's items before it.
+	let last: number | undefined;
+	let repeated = false;
+	let need = 0;
+	const item = (n: number, at: Next): Next => {
+		need = Math.max(need, last ?? 0);
+		[last, repeated] = [n, false];
+		return at;
+	};
+	// A repeat of the last item, of the need copies(its need), which RE2
+	// checks when it is counted and a count is 2 or more; a lazy ? after it.
+	const repeat = (copies: (sub: number) => number, checked: boolean, at: number): Next => {
+		if (last === undefined || repeated) return undefined;
+		const n = copies(last);
+		if (checked && n > 1000) return undefined;
+		[last, repeated] = [n, true];
+		return s[at] === "?" ? at + 1 : at;
+	};
+	const counted = (i: number): Next => {
+		const count = re2Count(s, i);
+		if (!count) return item(0, i + 1);
+		const [min, max, at] = count;
+		if (min > 1000 || max > 1000 || (max >= 0 && min > max)) return undefined;
+		const copies = max < 0 ? min : max;
+		const need = (sub: number) =>
+			max === 0 ? 0 : copies > 0 ? Math.max(copies, copies * sub) : sub;
+		return repeat(need, min >= 2 || max >= 2, at);
+	};
+	const open = (i: number): Next => {
+		const group: [number, boolean] | undefined = s[i + 1] === "?" ? re2Group(s, i) : [i + 1, true];
+		if (!group) return undefined;
+		repeated = false;
+		if (group[1]) {
+			outer.push(Math.max(need, last ?? 0));
+			[need, last] = [0, undefined];
+		}
+		return group[0];
+	};
+	const close = (i: number): Next => {
+		if (!outer.length) return undefined;
+		const inner = Math.max(need, last ?? 0);
+		need = outer.pop()!;
+		[last, repeated] = [inner, false];
+		return i + 1;
+	};
+	// \Q...\E is literal up to the first \E, or the end.
+	const quoted = (i: number): Next => {
+		const end = s.findIndex((c, k) => k > i + 1 && c === "\\" && s[k + 1] === "E");
+		const stop = end < 0 ? s.length : end;
+		if (stop > i + 2) item(0, stop);
+		else repeated = false;
+		return end < 0 ? stop : end + 2;
+	};
+	const escaped = (i: number): Next => {
+		const c = s[i + 1] ?? "";
+		if (/^[AbBz]$/.test(c) || /^[dDsSwW]$/.test(c)) return item(0, i + 2);
+		if (c === "Q") return quoted(i);
+		if (c === "p" || c === "P") return item(0, re2UnicodeClass(s, i));
+		return item(0, re2Escape(s, i)?.[1]);
+	};
+	const step = (i: number): Next => {
+		switch (s[i]) {
+			case "(":
+				return open(i);
+			case ")":
+				return close(i);
+			case "|":
+				need = Math.max(need, last ?? 0);
+				[last, repeated] = [undefined, false];
+				return i + 1;
+			case "[":
+				return item(0, re2Class(s, i));
+			case "*":
+			case "+":
+			case "?":
+				return repeat((sub) => sub, false, i + 1);
+			case "{":
+				return counted(i);
+			case "\\":
+				return escaped(i);
+			default:
+				return item(0, i + 1);
+		}
+	};
+	let i: Next = 0;
+	while (i !== undefined && i < s.length) i = step(i);
+	return i === undefined || outer.length > 0;
 }
 
 // The config's patterns are RE2: one JavaScript cannot compile, which the

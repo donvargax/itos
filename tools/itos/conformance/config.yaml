@@ -2,7 +2,8 @@
 # config, ledger, registry and smoke set; each config problem with its rule
 # and fix (an unknown key and the key it misspells, a wrong type, a value not
 # allowed, a missing key, a pattern that does not compile as RE2 (a lookaround,
-# a backreference, a kind's ID pattern among them), a name that refers
+# a backreference, a repeat count above 1000, a letter escape, an empty class,
+# a kind's ID pattern among them), a name that refers
 # to nothing, a commits.since that is no full SHA or no commit here), exit 2;
 # a missing ledger folder, one problem naming it, exit 2; each ledger problem (written order among them, a check that calls hooks.bin read as itos), exit 1;
 # the registry's and the smoke set's problems beside them; the nightly's
@@ -217,6 +218,38 @@ cases:
       FAIL itos.yaml: tests.spec.id is not an RE2 regular expression: S-(?<n>\d)\k<n>
       FAIL itos.yaml: ledger.id is not an RE2 regular expression: T-(?!0)\d+
       FAIL itos.yaml: ledger.group.pattern is not an RE2 regular expression: (\d)\1*
+  # JavaScript compiles each of these too, and RE2 refuses them: a repeat count
+  # above 1000, nested counted repeats multiplying, \c, a letter escape RE2 has
+  # no reading for, [\b], [] and [^] (RE2 reads a ] right after [ or [^ as a
+  # member), and a Unicode class RE2 has no name for. tests.fine.id is RE2's.
+  - name: patterns RE2 does not have, a repeat count above 1000, letter escapes and empty classes
+    argv: [config, check]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/all-{group}.yaml", id: "T-\\e\\d+", group: { pattern: "\\d{1,1001}" } }
+        tests:
+          unit: { id: "U-\\cA" }
+          e2e: { id: "E-[\\b]" }
+          spec: { id: "S-[]" }
+          story: { id: "N-[^]" }
+          case: { id: "C-\\p{Foo}" }
+          fine: { id: "F-[]a]\\pL\\x{41}" }
+        ci:
+          steps: [vp check]
+          cost: { static: ["^vp check a{1001}"] }
+          covers: [{ by: vp check, matches: "^(vp check {100}){11}$" }]
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: ci.cost.static[0] is not an RE2 regular expression: ^vp check a{1001}
+      FAIL itos.yaml: ci.covers[0].matches is not an RE2 regular expression: ^(vp check {100}){11}$
+      FAIL itos.yaml: tests.unit.id is not an RE2 regular expression: U-\cA
+      FAIL itos.yaml: tests.e2e.id is not an RE2 regular expression: E-[\b]
+      FAIL itos.yaml: tests.spec.id is not an RE2 regular expression: S-[]
+      FAIL itos.yaml: tests.story.id is not an RE2 regular expression: N-[^]
+      FAIL itos.yaml: tests.case.id is not an RE2 regular expression: C-\p{Foo}
+      FAIL itos.yaml: ledger.id is not an RE2 regular expression: T-\e\d+
+      FAIL itos.yaml: ledger.group.pattern is not an RE2 regular expression: \d{1,1001}
   - name: names that refer to nothing
     argv: [config, check]
     files:
