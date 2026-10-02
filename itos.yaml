@@ -152,14 +152,17 @@ ci:
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/help\\.yaml'$"
   # Slow, and it proves the gates rather than the code: left to the nightly.
   nightly_only: ["node tools/selftest/gates.ts"]
-  # Every feature, the gates self-test, then the static checks of every task
-  # whose work item is done (T-035), each shared check once: a task's checks
-  # otherwise run only when a push names it. Last, so a red one does not keep
-  # the features from reporting; its late checks stay with the pushes.
+  # Every feature, the gates self-test, the Go release build (T-040), then the
+  # static checks of every task whose work item is done (T-035), each shared
+  # check once: a task's checks otherwise run only when a push names it. Last,
+  # so a red one does not keep the features from reporting; its late checks
+  # stay with the pushes. The release build is every night's, not every push's:
+  # it builds five platforms, and nothing publishes it until the Go release.
   nightly:
     steps:
       - { tests: scenario, whole: true }
       - node tools/selftest/gates.ts
+      - node tools/selftest/go-release.ts
       - { tasks: done, cost: static }
   wait_on_status: [todo] # a named task nobody has started waits
   stop_at_first_failure: true
