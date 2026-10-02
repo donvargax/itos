@@ -2,7 +2,8 @@
 # config, ledger, registry and smoke set; each config problem with its rule
 # and fix (an unknown key and the key it misspells, a wrong type, a value not
 # allowed, a missing key, a pattern that does not compile, a name that refers
-# to nothing, a commits.since that is no full SHA or no commit here), exit 2; each ledger problem (written order among them, a check that calls hooks.bin read as itos), exit 1;
+# to nothing, a commits.since that is no full SHA or no commit here), exit 2;
+# a missing ledger folder, one problem naming it, exit 2; each ledger problem (written order among them, a check that calls hooks.bin read as itos), exit 1;
 # the registry's and the smoke set's problems beside them; --print-defaults.
 files:
   itos.yaml: |
@@ -411,6 +412,25 @@ cases:
     exit: 1
     stderr: |
       FAIL smoke.yaml: is not a list of files
+  - name: a missing ledger folder is one problem naming it, exit 2
+    argv: [config, check]
+    files: { tasks: null }
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: the ledger's folder tasks does not exist
+  - name: a missing ledger folder as --json, the report with its rule and fix
+    argv: [config, check, --json]
+    files: { tasks: null }
+    exit: 2
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: ledger-folder-missing
+          message: "itos.yaml: the ledger's folder tasks does not exist"
+          fix: "create tasks with the ledger's files (ledger.files is tasks/phase-{group}.yaml), or point ledger.files at the folder that holds them"
+          area: ledger
   - name: commits.since naming a commit of the repository
     argv: [config, check, --config, since.yaml]
     git:

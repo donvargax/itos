@@ -4,8 +4,8 @@
 # itos, the written order (T-045's pair), the prose shortcut and what it
 # leaves out, the one merged run of named tests, the checks a step covers or
 # the nightly runs, tasks not started or unknown, the nightly, an unread
-# range, and a ledger, registry and smoke set read at another commit
-# (--data-at).
+# range, a missing ledger folder (one problem naming it, exit 2), and a
+# ledger, registry and smoke set read at another commit (--data-at).
 git:
   - commit: "build: start"
     files: { tools/a.sh: "0\n" }
@@ -983,6 +983,24 @@ cases:
       late  T-030: vp run e2e:smoke   (merged)
       late  T-030: vp run e2e --grep '@ID-LIST-01|@ID-TWO-01'   (run)
       late  T-011: node tools/selftest/gates.ts   (nightly)
+  - name: a plan with the ledger folder missing is one problem naming it, exit 2
+    argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}"]
+    files: { tasks: null }
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: the ledger's folder tasks does not exist
+  - name: the same as --json, the config error's report
+    argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}", --json]
+    files: { tasks: null }
+    exit: 2
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: ledger-folder-missing
+          message: "itos.yaml: the ledger's folder tasks does not exist"
+          fix: "create tasks with the ledger's files (ledger.files is tasks/phase-{group}.yaml), or point ledger.files at the folder that holds them"
   - name: an empty smoke set adds no pattern, so the run is the subsets alone
     argv: [ci, plan, "{{sha.prose}}", "{{sha.subsets}}"]
     files: { e2e/smoke.yaml: "[]\n" }

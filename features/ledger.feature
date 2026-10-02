@@ -12,28 +12,28 @@ Feature: A missing ledger folder is one problem in every command that reads the 
     Given a repository whose ledger has the task "T-001"
     And the ledger folder is missing
 
-  @ID-LEDGER-01 @slice-14 @wip
+  @ID-LEDGER-01 @slice-14
   Scenario: config check names the missing ledger folder
     When itos checks the config
     Then itos exits with code 2
     And its output says "tasks"
     And its output does not say "ENOENT"
 
-  @ID-LEDGER-02 @slice-14 @wip
+  @ID-LEDGER-02 @slice-14
   Scenario: config check --json reports the missing ledger folder as JSON
     When itos checks the config as JSON
     Then itos exits with code 2
     And its output is a JSON report that is not valid
     And its output does not say "ENOENT"
 
-  @ID-LEDGER-03 @slice-14 @wip
+  @ID-LEDGER-03 @slice-14
   Scenario: Running a task names the missing ledger folder
     When itos runs the task "T-001"
     Then itos exits with code 2
     And its output says "tasks"
     And its output does not say "ENOENT"
 
-  @ID-LEDGER-04 @slice-14 @wip
+  @ID-LEDGER-04 @slice-14
   Scenario: task list names the missing ledger folder
     When itos lists the tasks
     Then itos exits with code 2
@@ -41,7 +41,7 @@ Feature: A missing ledger folder is one problem in every command that reads the 
     And its output does not say "ENOENT"
 
   # The commit names a task, so the plan has a task to read from the ledger.
-  @ID-LEDGER-05 @slice-14 @wip
+  @ID-LEDGER-05 @slice-14
   Scenario: ci plan names the missing ledger folder
     Given the CI steps are "exit 0"
     And the commit "chore: tidy the readme" naming the task "T-001" on top of it
@@ -51,7 +51,7 @@ Feature: A missing ledger folder is one problem in every command that reads the 
     And its output does not say "ENOENT"
 
   # No step runs: the plan stops before the run.
-  @ID-LEDGER-06 @slice-14 @wip
+  @ID-LEDGER-06 @slice-14
   Scenario: ci run names the missing ledger folder, and runs no step
     Given the CI steps are "exit 0" then a step that records it ran
     And the commit "chore: tidy the readme" naming the task "T-001" on top of it

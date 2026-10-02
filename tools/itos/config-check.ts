@@ -1,12 +1,14 @@
 // `itos config check [--ledger <file>] [--print-defaults]`: the config, then
 // the ledger, the work registry and each kind's smoke set, every problem with
 // its rule id and, where one exists, a fix. Exit 2 when the config is invalid
-// (nothing else can be read), 1 for any other problem.
+// or the ledger's folder is missing (nothing else can be read), 1 for any
+// other problem.
 import { stringify } from "yaml";
 import { everyFile, smokeIds, smokeIssues } from "./smoke-rule.ts";
 import { registryProblems } from "./work.ts";
 import {
 	config,
+	ConfigError,
 	configIssues,
 	configPath,
 	DEFAULT_COMMIT_CHECK_TIMEOUT,
@@ -79,7 +81,8 @@ function report(found: Found[], lines: string[], out: Output) {
 // What the check finds, read from wherever itos reads its data (source.ts:
 // the working tree, or the staged tree for the commit-msg hook), and the lines
 // it prints when it finds nothing. Its exit code is 2 when the config is
-// invalid, since nothing else can be read, else 1 for any problem.
+// invalid or the ledger's folder is missing, since nothing else can be read,
+// else 1 for any problem.
 export function configFindings(ledger?: string): { code: number; found: Found[]; lines: string[] } {
 	const loaded = configIssues();
 	// A commits.since this repository does not have makes the config unusable
@@ -94,7 +97,20 @@ export function configFindings(ledger?: string): { code: number; found: Found[];
 		}));
 		return { code: 2, found, lines: [] };
 	}
-	const files = ledger ? [ledger] : ledgerFiles().map((f) => f.path);
+	let files: string[];
+	try {
+		files = ledger ? [ledger] : ledgerFiles().map((f) => f.path);
+	} catch (error) {
+		// The ledger's folder missing is a config error too: nothing of the
+		// ledger can be read, so it is the one problem.
+		if (!(error instanceof ConfigError)) throw error;
+		const found = error.issues.map((p) => ({
+			...p,
+			message: `${error.file}: ${p.message}`,
+			area: "ledger" as const,
+		}));
+		return { code: 2, found, lines: [] };
+	}
 	const registry = config().work?.registry ?? DEFAULTS.work.registry;
 	const smoke = smokeProblems();
 	const found = [

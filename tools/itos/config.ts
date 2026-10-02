@@ -687,11 +687,31 @@ export function ledgerLayout(): { dir: string; file: RegExp; numeric: boolean } 
 	};
 }
 
+// The names in the ledger's folder. A project may configure a ledger before it
+// makes the folder: the folder missing is one config error naming it, exit 2 (a
+// folder the config names that cannot be read), in every command that reads
+// the ledger, rather than the read's own error. A working tree's folder that is
+// there and cannot be listed keeps its own error.
+function ledgerNames(dir: string): string[] {
+	const source = current();
+	try {
+		return source.list(dir);
+	} catch (error) {
+		if (source.tree === "worktree" && source.has(dir)) throw error;
+		throw new ConfigError(configPath(), [
+			problem(
+				"ledger-folder-missing",
+				`the ledger's folder ${dir} does not exist`,
+				`create ${dir} with the ledger's files (ledger.files is ${section("ledger").files}), or point ledger.files at the folder that holds them`,
+			),
+		]);
+	}
+}
+
 // The ledger's files in a folder (its own by default), sorted, with their group.
 export function ledgerFiles(dir = ledgerLayout().dir): { path: string; group: string }[] {
 	const { file } = ledgerLayout();
-	return current()
-		.list(dir)
+	return ledgerNames(dir)
 		.map((name) => ({ name, m: file.exec(name) }))
 		.filter(({ m }) => m)
 		.sort((a, b) => a.name.localeCompare(b.name))

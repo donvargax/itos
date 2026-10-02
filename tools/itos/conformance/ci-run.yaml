@@ -1,7 +1,7 @@
 # The CI driver (`ci run`): the plan carried out in cost order with the
 # config's `ci.env`, the log lines agents and their instructions quote, the first failure ending the run (a failing step's
-# own exit code, a task check's 1, unknown tasks before anything runs), and
-# --json. The steps and checks are `echo`s, so the log shows what ran.
+# own exit code, a task check's 1, unknown tasks before anything runs), a
+# missing ledger folder stopping it at the plan (2), and --json. The steps and checks are `echo`s, so the log shows what ran.
 git:
   - commit: "build: the scratch project"
     files:
@@ -305,6 +305,13 @@ cases:
       No task T-044 in tasks/, though a footer names it
 
       CI failed at the tasks named: T-044
+  - name: the ledger folder missing stops the run at the plan, before any step
+    argv: [ci, run, "{{sha.base}}", "{{sha.every}}"]
+    files: { tasks: null }
+    exit: 2
+    stdout: ""
+    stderr: |
+      FAIL itos.yaml: the ledger's folder tasks does not exist
   - name: a task not started is named, and its checks wait
     argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}"]
     exit: 0

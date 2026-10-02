@@ -44,6 +44,10 @@
   scenarios:
     - id: "@ID-FOOT-01"
       why: the hook rejects a footer by itos's own rule with a delegate that carries none, the file's point
+- file: ledger.feature
+  scenarios:
+    - id: "@ID-LEDGER-01"
+      why: config check names the missing ledger folder, the first command a consumer meets it in
 - file: since.feature
   scenarios:
     - id: "@ID-SINCE-01"

@@ -7,6 +7,7 @@ package features
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -154,6 +155,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
+	sc.Step(`^itos checks the config as JSON$`, func() error { return w.itos("config", "check", "--json") })
 	sc.Step(`^itos checks the work registry$`, func() error { return w.itos("work", "check") })
 	sc.Step(`^itos checks the smoke set$`, func() error { return w.itos("tests", "smoke", "check", "scenario") })
 	sc.Step(`^itos installs the hooks$`, func() error { return w.itos("hooks", "install") })
@@ -171,6 +173,12 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		}
 		return w.itos("ci", "run", w.commits[0], "HEAD")
 	})
+	sc.Step(`^itos plans CI over the commits after the first$`, func() error {
+		if len(w.commits) == 0 {
+			return errors.New("the repository has no commit yet")
+		}
+		return w.itos("ci", "plan", w.commits[0], "HEAD")
+	})
 	sc.Step(`^the commit-msg hook checks the message "([^"]*)"$`, w.commitMsgHook)
 	sc.Step(`^the commit-msg hook checks the message:$`, func(message *godog.DocString) error {
 		return w.commitMsgHook(message.Content + "\n")
@@ -180,6 +188,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^its output says "([^"]*)"$`, w.outputSays)
 	sc.Step(`^its output does not say "([^"]*)"$`, w.outputDoesNotSay)
 	sc.Step(`^its output names the rule "([^"]*)"$`, w.outputNamesRule)
+	sc.Step(`^its output is a JSON report that is not valid$`, w.invalidJSONReport)
 	sc.Step(`^its output lists "([^"]*)" as "([^"]*)"$`, w.outputLists)
 	sc.Step(`^the counting check ran once$`, func() error { return w.countingCheckRan(1) })
 	sc.Step(`^the range check started at the first commit$`, w.rangeCheckStartedAtFirst)
@@ -914,6 +923,21 @@ func (w *world) outputDoesNotSay(text string) error {
 func (w *world) outputNamesRule(rule string) error {
 	if !strings.Contains(w.output(), "["+rule+"]") {
 		return fmt.Errorf("the output does not name the rule [%s]\n%s", rule, w.report())
+	}
+	return nil
+}
+
+// Standard output is one JSON object whose valid is false: a report, not a
+// crash's message, that says what it checked is not sound.
+func (w *world) invalidJSONReport() error {
+	var report struct {
+		Valid *bool `json:"valid"`
+	}
+	if err := json.Unmarshal([]byte(w.stdout), &report); err != nil {
+		return fmt.Errorf("the output is not JSON: %v\n%s", err, w.report())
+	}
+	if report.Valid == nil || *report.Valid {
+		return fmt.Errorf("the JSON report's valid is not false\n%s", w.report())
 	}
 	return nil
 }

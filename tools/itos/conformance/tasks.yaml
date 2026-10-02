@@ -2,7 +2,8 @@
 # checks run in written order, a `fails:` one must fail, `after: push` waits
 # for a remote branch that holds HEAD, a check's timeout; verbose for one task,
 # one status line per task; --group (or --phase), --skip, --pending; unknown
-# IDs (1) and no match (2); --json with each check's result. One invocation
+# IDs (1) and no match (2); a missing ledger folder, one problem naming it (2);
+# --json with each check's result. One invocation
 # runs each check (its command, whitespace collapsed, and its timeout) once,
 # each task reading the exit status by its own run: or fails:; the counting
 # checks append to `runs`, so files_after counts their runs. task list prints
@@ -153,6 +154,12 @@ cases:
     exit: 2
     stderr: |
       No matching tasks. Usage: itos task <id>… | --group <g> [--skip <ids>] | --pending
+  - name: a task run with the ledger folder missing is one problem naming it, exit 2
+    argv: [task, T-001]
+    files: { tasks: null }
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: the ledger's folder tasks does not exist
   - name: --json with each check's result, the verbose log on stderr
     argv: [task, T-002, --json]
     exit: 1
@@ -223,6 +230,24 @@ cases:
       no item  T-005  2   test     A check past its timeout
     stderr: |
       No work registry at tasks/work-items.yaml, so no task has an item.
+  - name: task list with the ledger folder missing is one problem naming it, exit 2
+    argv: [task, list]
+    files: { tasks: null }
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: the ledger's folder tasks does not exist
+  - name: task list --json with the ledger folder missing is the config error's report
+    argv: [task, list, --json]
+    files: { tasks: null }
+    exit: 2
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: ledger-folder-missing
+          message: "itos.yaml: the ledger's folder tasks does not exist"
+          fix: "create tasks with the ledger's files (ledger.files is tasks/phase-{group}.yaml), or point ledger.files at the folder that holds them"
   - name: task list of a group
     argv: [task, list, --group, "2"]
     exit: 0
