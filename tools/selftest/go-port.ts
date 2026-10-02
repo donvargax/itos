@@ -26,13 +26,15 @@ import { outsideEnv } from "./scratch.ts";
 const PORTED = {
 	// Corpus files, relative to the root: the command line itself (T-039), its
 	// help texts (T-041), the config, the ledger, the registry and the smoke
-	// sets as config check reads them (T-042), and the task runner, task and
-	// task list (T-043).
+	// sets as config check reads them (T-042), the task runner, task and task
+	// list (T-043), and the globs and path rules, commit check-paths (T-044).
 	corpus: [
 		"tools/itos/conformance/cli.yaml",
 		"tools/itos/conformance/help.yaml",
 		"tools/itos/conformance/config.yaml",
 		"tools/itos/conformance/tasks.yaml",
+		"tools/itos/conformance/globs.yaml",
+		"tools/itos/conformance/scopes.yaml",
 	],
 	// -scenarios= regular expressions, as a group's checks write them: the
 	// scenarios that run config check (T-042) and itos task (T-043).
