@@ -1563,7 +1563,7 @@ items:
     title: The Go globs and path rules, commit check-paths
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-042]
     kind: task
     refs: [tasks/phase-2.yaml]

@@ -228,7 +228,8 @@ The Go build of itos lands beside the TypeScript one command group at a time
   checks typed), `internal/tests` (the Gherkin adapter over the working tree,
   the smoke set and its rule), `internal/providers` (the people),
   `internal/work` (the registry and its problems, and the items' statuses),
-  `internal/shell`, `internal/check` (below) and `internal/git`, beside two
+  `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
+  (below) and `internal/git`, beside two
   the TypeScript has no module for:
   `internal/value` and `internal/source` (below). The port shells out to git
   where it needs it, as the TypeScript does.
@@ -293,6 +294,29 @@ The Go build of itos lands beside the TypeScript one command group at a time
   the status table pads by UTF-16 units (`value.PadEnd`). The runner's ID
   pattern is `^(?:<ledger.id>)$`, `T-\d+` without one, compiled as RE2
   like every config pattern.
+- **The globs and the path rules.** `internal/glob` is `globToRegExp` and
+  `matchesAny` ported as written: `Source` makes the TypeScript's five
+  replacements in the same order, so a glob means what it means there, its
+  quirks too (a `?` stays the regular expression's `?`; a `*` right after a
+  `.` is left alone, so `a.*` is `a` and any dots). RE2 forced two changes of
+  construction, not of meaning: the last replacement's lookbehind (a `*` not
+  after a `.`) is a scan, and every `.` the replacements write is spelled as
+  JavaScript's dot, `[^\n\r\x{2028}\x{2029}]`, since RE2's stops at `\n`
+  alone. A glob V8 refuses is an error worded as V8 words it
+  (`Invalid regular expression: /^?a$/: Nothing to repeat`), the leading `?`
+  RE2 would take included, and only when a path reaches it: `MatchesAny`
+  stops at the first match, as `some` does, so a bad glob after it is never
+  compiled. `internal/scope` is `commit-scope.ts`'s path rules: `scope.Of`
+  takes the loaded config (whose loader has expanded each `$set`) and is a
+  config error without a `commits` section, as `section("commits")` is; its
+  `Rules` give `Ruled` (whether a type has rules, even empty ones: the
+  commit-msg hook runs neither the paths nor the staged range checks for one
+  without), `Issues` (a type and its paths to the problems, with the rule
+  ids and the fixes naming the types that would take a path, from
+  `TypesFor`), and `Reject` (the rejection as the hook prints it). `commit
+check-paths` (`internal/cli/commit.go`) is a call to them, and the
+  commit-msg hook and `verify` call them on a commit's paths without going
+  through the command line.
 - **What is not ported yet** fails loudly: every command takes its arguments
   as the TypeScript does, so a usage error reads the same in both, and then a
   command whose group has not landed exits 3, the missing environment's code,
