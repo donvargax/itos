@@ -53,3 +53,25 @@ Feature: Verification starts at commits.since
     When itos checks the config
     Then itos exits with code 2
     And its output says "which is not a commit of this repository"
+
+  # actions/checkout clones one commit deep by default, so a nightly's
+  # checkout lacked the commit commits.since names though the repository has
+  # it. The clone is made after the config is written, with the config laid
+  # into it: only its history is shorter.
+  @ID-SINCE-07 @slice-17 @wip
+  Scenario: In a shallow clone, config check says the commits.since it cannot find may be outside the clone
+    Given commits.since names the first commit
+    And itos runs in a clone of the repository one commit deep
+    When itos checks the config
+    Then itos exits with code 2
+    And its output says "shallow"
+    And its output says "git fetch --unshallow"
+
+  @ID-SINCE-08 @slice-17 @wip
+  Scenario: In a shallow clone, verify says the commits.since it cannot find may be outside the clone
+    Given commits.since names the first commit
+    And itos runs in a clone of the repository one commit deep
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 2
+    And its output says "shallow"
+    And its output says "git fetch --unshallow"

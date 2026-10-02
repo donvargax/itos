@@ -1109,13 +1109,14 @@ items:
       always going on) would report everything red in one night; with p1-ci-run-every-failure-json
       its JSON would list them.
 
-  - id: p1-since-shallow-clone
+  - id: slice-17
     title: config check says a commits.since it cannot find may be outside a shallow clone
     phase: 1
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
+    refs: [features/since.feature]
     why: >
       The first nightly running the done tasks' static checks was red at itos config check: "commits.since
       names <sha>, which is not a commit of this repository", because actions/checkout's default is
@@ -1123,6 +1124,8 @@ items:
       rev-parse --is-shallow-repository true, config check (and verify) could say the clone is
       shallow and fix it with fetch-depth: 0 or git fetch --unshallow; a consumer's nightly that
       takes { tasks: done } meets the same.
+      Both keep exit 2 and say the clone is shallow, with the fix: git fetch --unshallow, or
+      fetch-depth: 0. Was the idea p1-since-shallow-clone. @ID-SINCE-07 and 08.
 
   - id: p1-wip-red-first
     title: A command that shows a slice's @wip scenarios fail against the current binary
