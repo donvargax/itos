@@ -1,6 +1,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/donvargax/itos/internal/git"
 	"github.com/donvargax/itos/internal/out"
 )
@@ -30,4 +32,45 @@ func (l *Loaded) SinceIssue() *out.Problem {
 		Message: "commits.since names " + sha + ", which is not a commit of this repository",
 		Fix:     "set commits.since to the full SHA of a commit this repository has, or fetch its history",
 	}
+}
+
+// Since is the commit commits.since names, "" when none: where verification
+// starts.
+func (l *Loaded) Since() string {
+	if l.Commits.Since == nil {
+		return ""
+	}
+	return *l.Commits.Since
+}
+
+// newBranch is whether a range's start is empty or all zeros: a new branch,
+// every commit up to its end.
+func newBranch(from string) bool { return strings.Trim(from, "0") == "" }
+
+// RangeArgs are a range's commits as git rev-list takes them: from..to, or
+// everything up to to when from is empty or all zeros (a new branch), less
+// commits.since and its ancestors.
+func (l *Loaded) RangeArgs(from, to string) []string {
+	args := []string{from + ".." + to}
+	if newBranch(from) {
+		args = []string{to}
+	}
+	if sha := l.Since(); sha != "" {
+		args = append(args, "^"+sha)
+	}
+	return args
+}
+
+// RangeStart is where a range starts for a range check, which takes one
+// {from}: from, or commits.since when from is empty, all zeros or one of its
+// ancestors.
+func (l *Loaded) RangeStart(from string) string {
+	sha := l.Since()
+	switch {
+	case sha == "":
+		return from
+	case newBranch(from), git.Succeeds("merge-base", "--is-ancestor", from, sha):
+		return sha
+	}
+	return from
 }

@@ -59,6 +59,40 @@ func listFields(list tests.List) []out.Field {
 	return fields
 }
 
+// testsMoves is `tests moves <kind>` (moves.ts's testsMoves): the staged
+// feature files against HEAD's by the built-in moves rule, by the kind's
+// moves checks' allowed renames. 0 when they only move scenarios, if
+// anything, 1 with each problem on stderr or under --json.
+func testsMoves(name string, o Out) (int, error) {
+	cfg, err := config.Load(config.Path())
+	if err != nil {
+		return 0, err
+	}
+	found, err := tests.NewMoves(cfg).Index(name)
+	if err != nil {
+		return 0, err
+	}
+	switch {
+	case o.JSON:
+		if err := out.Emit(o.Stdout,
+			out.Field{Key: "kind", Value: name},
+			out.Field{Key: "ok", Value: len(found) == 0},
+			out.Field{Key: "problems", Value: found}); err != nil {
+			return 0, err
+		}
+	case len(found) > 0:
+		for _, p := range found {
+			fmt.Fprintf(o.Stderr, "  - %s\n", p.Message)
+		}
+	case !o.Quiet:
+		fmt.Fprintln(o.Stdout, "The staged feature files only move scenarios, if anything")
+	}
+	if len(found) > 0 {
+		return ExitPolicy, nil
+	}
+	return 0, nil
+}
+
 // smokeSet is the config and the kind's smoke set in the working tree.
 func smokeSet(name string) (*config.Loaded, config.Kind, []tests.SmokeFile, error) {
 	cfg, err := config.Load(config.Path())

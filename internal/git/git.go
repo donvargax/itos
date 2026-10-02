@@ -3,6 +3,7 @@
 package git
 
 import (
+	"errors"
 	"os/exec"
 	"strings"
 )
@@ -27,4 +28,48 @@ func HasCommit(sha string) bool { return Succeeds("cat-file", "-e", sha+"^{commi
 func Shallow() bool {
 	out, err := Output("rev-parse", "--is-shallow-repository")
 	return err == nil && strings.TrimSpace(out) == "true"
+}
+
+// EmptyTree is the tree a commit with no parent is compared with.
+const EmptyTree = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
+// Parent is a commit's first parent, or EmptyTree for a root commit.
+func Parent(sha string) string {
+	out, err := Output("rev-parse", "--verify", "--quiet", sha+"^")
+	if parent := strings.TrimSpace(out); err == nil && parent != "" {
+		return parent
+	}
+	return EmptyTree
+}
+
+// Read is a git command's stdout, as Output; when git fails, an error worded
+// as Node's execFileSync words it (`Command failed: git …`), its stderr
+// dropped as the TypeScript's git() drops it.
+func Read(args ...string) (string, error) {
+	out, err := Output(args...)
+	if err != nil {
+		return "", errors.New("Command failed: git " + strings.Join(args, " "))
+	}
+	return out, nil
+}
+
+// Lines are a git command's output lines, the empty ones dropped.
+func Lines(args ...string) ([]string, error) {
+	out, err := Read(args...)
+	if err != nil {
+		return nil, err
+	}
+	var lines []string
+	for _, l := range strings.Split(out, "\n") {
+		if l != "" {
+			lines = append(lines, l)
+		}
+	}
+	return lines, nil
+}
+
+// CommitPaths are the paths a commit touches, against its parent, or every
+// path it holds for a root commit.
+func CommitPaths(sha string) ([]string, error) {
+	return Lines("diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha)
 }

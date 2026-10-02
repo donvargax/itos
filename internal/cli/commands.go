@@ -98,11 +98,11 @@ func commit(args []string, o Out) (int, error) {
 	return 0, usage("unknown command: commit %s", sub)
 }
 
-func verify(args []string, _ Out) (int, error) {
+func verify(args []string, o Out) (int, error) {
 	if len(args) < 2 {
 		return 0, usage("verify needs <from> <to>")
 	}
-	return notPorted("verify")
+	return verifyRange(args[0], args[1], o)
 }
 
 func testsCommand(args []string, o Out) (int, error) {
@@ -116,10 +116,11 @@ func testsCommand(args []string, o Out) (int, error) {
 		at, _ := flagValue(rest, "--at")
 		return testsList(name, at, o)
 	case "moves":
-		if _, ok := first(positional(rest)); !ok {
+		name, ok := first(positional(rest))
+		if !ok {
 			return 0, usage("tests moves needs <kind>")
 		}
-		return notPorted("tests moves")
+		return testsMoves(name, o)
 	case "smoke":
 	default:
 		return 0, usage("unknown command: tests %s", sub)
