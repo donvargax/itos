@@ -794,6 +794,19 @@ items:
       footers start rejecting other IDs) or itos task finds its IDs another way, and the key stays
       without a default. Needs a scenario in ledger.feature or task.feature.
 
+  - id: p1-wip-tag-command-kind
+    title: config check refuses wip_tag on a kind whose adapter is a command
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-19]
+    kind: idea
+    why: >
+      Found in slice 19: since the footer rule names the wip tag only for the Gherkin adapter, a
+      kind whose adapter is a command reads its wip_tag nowhere (the adapter says which tests are
+      live), yet config check accepts the key there, against "every key it accepts is one a tool
+      reads" (config.feature). It could refuse it on such a kind, as slice 4 refused unread keys.
+
   - id: p1-registry-beside-ledger
     title: work.registry's default follows the ledger's folder, as PLAN says
     phase: 1
