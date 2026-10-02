@@ -12,7 +12,7 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after v1.0.0 was released.
+Last updated 2026-10-02, after v1.0.0 was released and slice 24 specified.
 
 ## Where things stand
 
@@ -50,16 +50,22 @@ from its report, in `docs/releases/v<next>.md`.
 
 ## Next
 
-1. **Phase 3, the switch** (PLAN.md, phase 3): the Go binary shadows the
+1. **Slice 24: `slice-24: The config's patterns are RE2 regular
+expressions, in both implementations`** (`features/patterns.feature`,
+   `@ID-PATTERN-01` and `02`, `@wip`; PLAN.md, "Pattern dialect", the user's
+   call). The TypeScript refuses lookarounds and backreferences and both name
+   RE2, in one push; `tests.<kind>.id` is checked as a pattern too. It
+   refuses configs v1.0.0's TypeScript accepted, so release it as v1.1.0 with
+   an Upgrading step (the user's note: v1.0.0 went out before this was
+   settled; docs/ORCHESTRATING.md's new lesson).
+2. **Phase 3, the switch** (PLAN.md, phase 3): the Go binary shadows the
    TypeScript's `ci plan --json` and `verify` in CI, any difference a
    warning, until none shows over many pushes and a nightly; then consumers
    switch, and the TypeScript goes after two weeks of green nightlies.
-   Specify it first. Before it, the user should pick one regular-expression
-   dialect for the config's patterns (`p2-config-regexp-dialect`: Go reads
-   RE2, the TypeScript JavaScript's). Also open: `p1-verify-with-last-release`
-   (deferral lifted; since T-053 the two implementations judge each other on
-   every push, so what is left is whether CI also runs the released binary),
-   and `p2-go-port`'s remainder, step 6's HTTP providers, which wait for
+   Specify it first. Also open: `p1-verify-with-last-release` (deferral
+   lifted; since T-053 the two implementations judge each other on every
+   push, so what is left is whether CI also runs the released binary), and
+   `p2-go-port`'s remainder, step 6's HTTP providers, which wait for
    `p1-conformance-http`.
 
    Follow-ups wait, none blocking: `p1-group-label-flag-word`,
@@ -69,7 +75,7 @@ from its report, in `docs/releases/v<next>.md`.
    `p1-moves-merge-by-git`, `p2-go-unit-tests-in-hooks` (Go unit tests run
    only in CI), `p2-no-workflow-labels-check`.
 
-2. **After the port: `p2-stealth-mode: A local mode, itos as one person's
+3. **After the port: `p2-stealth-mode: A local mode, itos as one person's
 discipline in a repository that does not use it`** (the user's idea and
    calls, 2026-10-02: config, ledger and registry under `.git/itos/`, found
    with no environment variable; the task link in git notes, never a footer;
@@ -78,12 +84,12 @@ discipline in a repository that does not use it`** (the user's idea and
    `p2-github-hybrid` (issues as a second source of work items) and
    `p2-github-pure` (the registry as GitHub itself; labels or Projects is
    open for the user).
-3. **The hand work that could be itos's** (the block above phase 2 in the
+4. **The hand work that could be itos's** (the block above phase 2 in the
    registry) comes after the port, the user agreed; the coordinator had
    proposed `p1-itos-push` and `p1-ci-watch` before it, as they save work on
    every landing.
 
-4. Continue with what `tools/bin/itos work` proposes.
+5. Continue with what `tools/bin/itos work` proposes.
 
 Deferred, the user's to lift: `p1-backport-code-design`. The user is writing
 code-design rules (vertical slices, no mocks, unit tests for the core and

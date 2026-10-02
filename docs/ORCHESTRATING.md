@@ -210,6 +210,13 @@ teaches you a new one, stated as the rule and its reason.
   `git pull --rebase --no-autostash origin main` can fail with "Cannot rebase
   onto multiple branches"; `rtk proxy git pull --rebase --no-autostash origin
 main` runs git as written. Say so in a brief when an agent will pull.
+- **Settle what breaks compatibility before a major release.** A known
+  difference that will make a later release refuse what this one accepts
+  (v1.0.0 shipped with the two implementations disagreeing on the config's
+  regular-expression dialect) is a decision for the user before the tag, so
+  the major release's Upgrading section asks for the change once, instead of
+  a minor release breaking what 1.0 promised. Before preparing a major
+  release, list the open items that change what is accepted and ask.
 - **A release's tag waits for the user's review of its notes.** The
   Upgrading section is what every consumer's session acts on, and a tag is
   never moved: brief the release agent to stop before tagging and hand back
