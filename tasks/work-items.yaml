@@ -724,7 +724,7 @@ items:
     title: v0.6.0, the config contract before the Go port
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-18, slice-19, slice-20, slice-21, slice-22, slice-23, T-037]
     kind: task
     refs: [tasks/phase-1.yaml]
