@@ -12,19 +12,19 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after T-052 (the Go hooks, the last command group) landed.
+Last updated 2026-10-02, after T-053 (the Go build held to the whole suite) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `08cd150` (CI run 37056759180), after T-052; this
+`main` is green at `92adfa8` (CI run 37057722154), after T-053; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
-(`tools/selftest/go-port.ts`, its one list `PORTED`), which now names every
-corpus file and every live scenario: the Go build passes all 450 corpus cases
-and every feature. The
+(`tools/selftest/go-port.ts`): since T-053 the whole corpus and every
+feature, about 15 seconds, so a behaviour change lands in both implementations
+or CI is red. The
 nightly builds and proves the Go release archives
 (`tools/selftest/go-release.ts`, new with T-040, not yet run by a nightly),
 then ends with `{ tasks: done, cost: static }`, every done task's static
@@ -46,11 +46,8 @@ report, in `docs/releases/v<next>.md`.
 1. **The Go port's close** (`p2-go-port: The Go port, one command group at
 a time`; PLAN.md, phase 2, and its decisions "The port's proof", "The Go
    version" and "The first Go release"). Every command group is in, `T-039`
-   to `T-052`; nothing is left on the not-ported path (its unused `NotPorted`
-   type may go). Next, one agent at a time, each specified in
+   to `T-052`; the not-ported path is gone. Next, one agent at a time, each specified in
    `tasks/phase-2.yaml`:
-   - `T-053: The Go build held to the whole corpus and every feature on
-every push` (the lists go, so no future file is forgotten);
    - `T-054: The config's JSON Schema, generated from the Go config's
 table`;
    - `T-055: The release workflow publishes and proves the Go archives`;
