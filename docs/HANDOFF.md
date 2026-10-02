@@ -19,9 +19,9 @@ Last updated 2026-10-02, after v0.6.0 was released.
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `d8d08ec` (CI run 36959557625), after slices 18 to 23
-and T-037: the moving rule is itos's built-in now, and `scenario-moves.ts`
-is gone. The nightly ends with `{ tasks: done, cost: static }`, every done
+`main` is green at `d68efea` (CI run 36961474674), after v0.6.0 and its
+close; this repository's `itos.yaml` requires itos 0.6.0, whose built-in
+moves rule it uses. The nightly ends with `{ tasks: done, cost: static }`, every done
 task's static checks. The last nightly, 36959769930 (dispatched by hand on
 `d8d08ec`, after slice 23), is green.
 Read the newest nightly before starting the next implementation. A red
