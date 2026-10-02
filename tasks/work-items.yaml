@@ -1748,15 +1748,14 @@ items:
     owner: donvargax
     status: todo
     depends_on: [T-062]
-    kind: idea
+    kind: slice
     why: >
       The user's call (2026-10-02): v2.0.0 is Go only, so a consumer of the binary needs no Node,
       and commitlint is Node. itos's own header lint (Conventional Commits as
       config-conventional reads them: type, scope, subject, header length, body and footer
       lines) replaces the delegate, held first to commitlint's verdict on every commit of this
-      repository's history and on the corpus's messages. To specify as scenarios before an agent
-      starts.
-    refs: [PLAN.md, tools/itos/conformance/messages.yaml]
+      repository's history and on the corpus's messages. Specified in features/header.feature.
+    refs: [features/header.feature, PLAN.md, tools/itos/conformance/messages.yaml]
 
   - id: T-063
     title: The built-in header lint agrees with commitlint, and this repository switches to it

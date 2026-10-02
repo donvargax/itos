@@ -12,14 +12,17 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after T-059 (the Go unit tests in the hooks) landed.
+Last updated 2026-10-02, after T-060 (this repository runs the Go binary) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `e2ad4fb` (CI run 37072752161), after T-059; this
+`main` is green at `9bcb653` (CI run 37074010087), after T-060: `tools/bin/itos`
+runs the Go binary (a sh shim rebuilding `.tools/bin/itos` when the Go
+sources change); `tools/bin/itos-ts` runs the TypeScript, still held to the
+corpus and the features until T-062; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`): since T-053 the whole corpus and every
@@ -49,12 +52,12 @@ slice lands, from its report, in `docs/releases/v<next>.md`.
 
 1. **Phase 3, Go only as soon as possible** (PLAN.md, phase 3, the user's
    calls: no shadow period, no two-week wait), one agent at a time:
-   - `T-060: This repository's hooks and CI run the Go binary` (dogfood);
    - `T-062: The TypeScript implementation leaves the repository` (no
      release; reordered so slice 25 is built once, in Go);
-   - `slice-25: The built-in header lint replaces commitlint`, to specify as
-     scenarios (draft: `use: builtin`, config-conventional's errors with
-     `commits.types` as type-enum, commitlint's rule ids and words);
+   - `slice-25: The built-in header lint replaces commitlint`, specified in
+     `features/header.feature` (`@ID-HEADER-01` to `05`, `@wip`; it makes
+     `@ID-CONFIG-14` untrue, which its feat corrects), implemented only
+     after T-062;
    - `T-063: The built-in header lint agrees with commitlint, and this
 repository switches to it`;
    - `T-061: v2.0.0, Go only`, to specify once T-063 lands.
