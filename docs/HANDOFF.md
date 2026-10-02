@@ -12,14 +12,15 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after the RE2 escapes fix landed.
+Last updated 2026-10-02, after v1.1.0 was released and phase 3 planned.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `d82ac60` (CI run 37069631051), after the RE2 escapes fix; this
+`main` was green at `d82ac60` (CI run 37069631051); v1.1.0's commit
+`9dd24c6` was red only at T-058's download check until the tag, as designed; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`): since T-053 the whole corpus and every
@@ -35,60 +36,45 @@ docs/ORCHESTRATING.md's loop).
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
 
-Released: [v1.0.0](https://github.com/donvargax/itos/releases/tag/v1.0.0)
-(phase 2: the Go binary, T-039 to T-057, beside the unchanged TypeScript
-tarball; release run 37064071661), after
-[v0.6.0](https://github.com/donvargax/itos/releases/tag/v0.6.0). Its assets
-are the five Go archives, `itos.schema.json`, `itos-1.0.0.tgz` and one
-`checksums.txt`; every one was downloaded and verified after the release.
-Each release's Upgrading section is what a consumer's session updates from.
-The user moves the consumers' pins (the project template, the character
-editor) from their own repositories: don't change any other repository.
-Unreleased: slice 24 and its fix (`@bug-1`), whose notes are
-`docs/releases/v1.1.0.md` (its Upgrading step: rewrite a pattern RE2 cannot
-compile). Write the next release's notes as each slice lands,
-from its report, in `docs/releases/v<next>.md`.
+Released: [v1.1.0](https://github.com/donvargax/itos/releases/tag/v1.1.0)
+(slice 24 and its fix: the config's patterns as RE2 in both
+implementations; release run 37071299183), after
+[v1.0.0](https://github.com/donvargax/itos/releases/tag/v1.0.0), the Go
+binary. Every asset was downloaded and verified after each release. Releases
+are automated (PLAN.md, "Releases"): no tag waits for the user. The user moves
+the consumers' pins from their own repositories: don't change any other
+repository. Nothing is unreleased. Write the next release's notes as each
+slice lands, from its report, in `docs/releases/v<next>.md`.
 
 ## Next
 
-1. **v1.1.0, now** (the user's call): `T-058: v1.1.0, the config's
-patterns as RE2 in both implementations`, which stops before the tag for
-   the user's review of the Upgrading section. Slice 24 and its fix are in:
-   the TypeScript refuses exactly what Go's `regexp` cannot compile (635,992
-   patterns compared; the two left apart are RE2's size limits, which only
-   patterns thousands of characters long reach).
-2. **Phase 3, the switch** (PLAN.md, phase 3): the Go binary shadows the
-   TypeScript's `ci plan --json` and `verify` in CI, any difference a
-   warning, until none shows over many pushes and a nightly; then consumers
-   switch, and the TypeScript goes after two weeks of green nightlies.
-   Specify it first. Also open: `p1-verify-with-last-release` (deferral
-   lifted; since T-053 the two implementations judge each other on every
-   push, so what is left is whether CI also runs the released binary), and
-   `p2-go-port`'s remainder, step 6's HTTP providers, which wait for
-   `p1-conformance-http`.
+1. **Phase 3, Go only as soon as possible** (PLAN.md, phase 3, the user's
+   calls: no shadow period, no two-week wait), one agent at a time:
+   - `T-059: The hooks run the Go unit tests a change reaches` (closes
+     `p2-go-unit-tests-in-hooks`);
+   - `T-060: This repository's hooks and CI run the Go binary` (dogfood);
+   - `slice-25: The built-in header lint replaces commitlint`, to specify as
+     scenarios (held first to commitlint's verdicts on this history);
+   - `T-061: v2.0.0, Go only`, to specify once slice 25 lands: the
+     TypeScript and its tarball go, and v2's Upgrading asks for everything
+     at once.
 
-   Follow-ups wait, none blocking: `p1-group-label-flag-word`,
-   `p1-wip-tag-command-kind`, `p1-ledger-id-default`,
-   `p1-own-recognize-for-itos`, `p1-release-defaults-per-config`,
-   `p1-registry-old-default-hint`, `p1-moves-except-types-checked`,
-   `p1-moves-merge-by-git`, `p2-go-unit-tests-in-hooks` (Go unit tests run
-   only in CI), `p2-no-workflow-labels-check`.
+   Proposed to the user, not yet decided: `p1-upgrading-footer` before v2,
+   so v2's notes are gathered from commits. Follow-ups: the release cut by
+   CI (`p1-itos-release`), `p1-verify-with-last-release`, the HTTP
+   providers (after `p1-conformance-http`), `p2-no-workflow-labels-check`,
+   and the small `p1-*` config-check refinements.
 
-3. **After the port: `p2-stealth-mode: A local mode, itos as one person's
-discipline in a repository that does not use it`** (the user's idea and
-   calls, 2026-10-02: config, ledger and registry under `.git/itos/`, found
-   with no environment variable; the task link in git notes, never a footer;
-   hooks that chain to the project's own). Specify it as scenarios once the
-   Go binary is the one implementation. Beside it, the user's GitHub modes:
+2. **After v2, built once in Go:** `p3-extensions` (`itos-<cmd>` on the
+   PATH, a trivial `itos-hello` first); `p2-stealth-mode` (config, ledger and
+   registry under `.git/itos/`, found with no environment variable; the task
+   link in git notes, never a footer; hooks that chain to the project's own);
    `p2-github-hybrid` (issues as a second source of work items) and
    `p2-github-pure` (the registry as GitHub itself; labels or Projects is
-   open for the user).
-4. **The hand work that could be itos's** (the block above phase 2 in the
-   registry) comes after the port, the user agreed; the coordinator had
-   proposed `p1-itos-push` and `p1-ci-watch` before it, as they save work on
-   every landing.
-
-5. Continue with what `tools/bin/itos work` proposes.
+   open for the user). Each is specified as scenarios when its turn comes.
+3. **The hand work that could be itos's** (the block above phase 2 in the
+   registry), as extensions where it fits: `p1-itos-push`, `p1-ci-watch`.
+4. Continue with what `tools/bin/itos work` proposes.
 
 Deferred, the user's to lift: `p1-backport-code-design`. The user is writing
 code-design rules (vertical slices, no mocks, unit tests for the core and

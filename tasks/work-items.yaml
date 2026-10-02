@@ -36,6 +36,7 @@ phases:
   0: donvargax
   1: donvargax
   2: donvargax
+  3: donvargax
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
@@ -1236,6 +1237,8 @@ items:
       push red by design at the after-push download check, the user's review, tag, watch
       release.yml, download and checksum the tarball, and a closing commit moving README's install
       line and marking the task done. itos release prepare|tag|close could do the mechanical parts;
+      the user asked (2026-10-02) for the whole release to run from CI/CD, a follow-up to phase 3:
+      a version bump landing green on main cuts the tag and publishes, with no hand step;
       with p1-ci-after-push-checks the red-by-design run would read as pending instead.
 
   - id: slice-16
@@ -1706,10 +1709,78 @@ items:
     title: v1.1.0, the config's patterns as RE2 in both implementations
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-24, p2-pattern-re2-escapes]
     kind: task
     refs: [tasks/phase-2.yaml]
+
+  # ---- phase 3 ----------------------------------------------------------------
+  - id: T-059
+    title: The hooks run the Go unit tests a change reaches
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [T-058]
+    kind: task
+    refs: [tasks/phase-3.yaml]
+
+  - id: T-060
+    title: This repository's hooks and CI run the Go binary
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [T-059]
+    kind: task
+    refs: [tasks/phase-3.yaml]
+
+  - id: slice-25
+    title: The built-in header lint replaces commitlint
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [T-060]
+    kind: idea
+    why: >
+      The user's call (2026-10-02): v2.0.0 is Go only, so a consumer of the binary needs no Node,
+      and commitlint is Node. itos's own header lint (Conventional Commits as
+      config-conventional reads them: type, scope, subject, header length, body and footer
+      lines) replaces the delegate, held first to commitlint's verdict on every commit of this
+      repository's history and on the corpus's messages. To specify as scenarios before an agent
+      starts.
+    refs: [PLAN.md, tools/itos/conformance/messages.yaml]
+
+  - id: T-061
+    title: v2.0.0, Go only
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-25]
+    kind: idea
+    why: >
+      The TypeScript implementation and its tarball go (tools/itos/*.ts, tools/bin/pack.ts, the
+      release's tarball), the implementation path set is the Go packages alone, and v2's Upgrading
+      section asks consumers for everything at once: switch the pin to the binary (v1.0.0's
+      install script), drop Node and commitlint for the built-in lint, and anything else the
+      commits since v1.1.0 change. Released automatically (PLAN.md, "Releases"). To specify as a
+      task once slice 25 lands.
+    refs: [PLAN.md]
+
+  - id: p3-extensions
+    title: Extensions, itos <cmd> running itos-<cmd> from the PATH
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [T-061]
+    kind: idea
+    why: >
+      The user's idea (2026-10-02), for after v2.0.0 so it is built once, in Go: a command itos
+      does not have runs itos-<cmd> found on the PATH (the PATH only, the user's call), with the
+      rest of the arguments and its exit code; built-ins always win; the global flags apply first
+      and reach it as ITOS_CONFIG, ITOS_ROOT, ITOS_BIN, ITOS_VERSION and ITOS_JSON; itos help <cmd>
+      runs itos-<cmd> --help and itos --help lists the extensions found. The first is a trivial
+      one, itos-hello printing what it received, to prove the mechanism; the hand work
+      (itos push, itos ci watch, the inbox) can follow as extensions.
+    refs: [PLAN.md]
 
   - id: p2-config-json-schema
     title: The config's JSON Schema, published with each Go release

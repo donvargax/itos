@@ -1,0 +1,37 @@
+# Phase 3: the switch, Go only as soon as possible (PLAN.md, phase 3; the
+# user's calls, 2026-10-02): the hooks run the Go unit tests, this repository
+# runs the Go binary itself, the built-in header lint replaces commitlint
+# (slice 25, specified in features/ as scenarios), and v2.0.0 removes the
+# TypeScript. No shadow period and no two-week wait: every push already holds
+# the Go build to the whole corpus and every feature (T-053).
+
+- id: T-059
+  type: build
+  title: The hooks run the Go unit tests a change reaches
+  why: >
+    Go unit tests ran only in CI, so a change that broke one passed its hooks
+    and turned main red (T-050's first push). The pre-commit hook runs the
+    unit tests of the Go packages a staged change touches and of those that
+    import them, and the pre-push hook those the pushed commits reach, beside
+    Vitest's. Closes p2-go-unit-tests-in-hooks. tools/selftest/go-hooks.ts
+    proves it in a scratch copy of the repository: a staged Go change whose
+    unit test fails is refused at commit, and one whose tests pass is not.
+  done_when:
+    - run: node tools/selftest/go-hooks.ts
+      timeout: 900
+
+- id: T-060
+  type: build
+  title: This repository's hooks and CI run the Go binary
+  why: >
+    Dogfood before consumers switch: tools/bin/itos, which the hooks, CI's
+    steps, the ledger's checks and the nightly call (hooks.bin), runs the Go
+    binary built from cmd/itos, stamped with package.json's version, rebuilt
+    when the Go sources change, instead of the TypeScript, so every commit
+    here is judged by the binary consumers will run. The TypeScript stays,
+    still held to the corpus and every feature, until v2.0.0 removes it.
+    tools/selftest/go-dogfood.ts proves tools/bin/itos runs with no Node on
+    the PATH (version, config check, task list on this repository).
+  done_when:
+    - run: node tools/selftest/go-dogfood.ts
+      timeout: 600

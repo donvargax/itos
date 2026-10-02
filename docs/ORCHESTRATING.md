@@ -217,11 +217,14 @@ main` runs git as written. Say so in a brief when an agent will pull.
   the major release's Upgrading section asks for the change once, instead of
   a minor release breaking what 1.0 promised. Before preparing a major
   release, list the open items that change what is accepted and ask.
-- **A release's tag waits for the user's review of its notes.** The
-  Upgrading section is what every consumer's session acts on, and a tag is
-  never moved: brief the release agent to stop before tagging and hand back
-  the notes file and the commit to tag; relay the Upgrading section to the
-  user, and push the tag yourself on their word.
+- **Releases are automated; no tag waits for the user** (the user's call,
+  2026-10-02). Brief the release agent to stop before tagging and hand back
+  the notes and the commit to tag; read the Upgrading section against the
+  commits since the last release (or have a reviewer agent do it with that
+  checklist when the range is large), check the run is red only at the
+  after-push download check, then push the tag, watch the release workflow,
+  download and checksum the assets, and close the task. A tag is never moved:
+  a mistake is fixed forward in the next release.
 - **Never chain a push after a rebase in one command.** A
   `git pull --rebase && git push` chain can push a rebase that stopped on a
   conflict, so `main` takes part of the branch and the rest follows in a
