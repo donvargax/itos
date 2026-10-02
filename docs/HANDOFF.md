@@ -11,7 +11,7 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last rewritten 2026-10-01, after v0.3.0 and v0.4.0 were released.
+Last rewritten 2026-10-02, after v0.5.0 was released.
 
 ## Where things stand
 
@@ -27,16 +27,17 @@ those checks need; both are fixed in `nightly.yml`. Read the newest nightly
 before starting the next implementation. A red nightly takes priority over
 new work.
 
-Released: [v0.4.0](https://github.com/donvargax/itos/releases/tag/v0.4.0)
-(slices 10 to 13, T-032), after
-[v0.3.0](https://github.com/donvargax/itos/releases/tag/v0.3.0) (slices 4, 7,
-8, 9). Their Upgrading sections are what a consumer's session updates from.
-The user moves the consumers' pins (the project template, the character
-editor) from their own repositories: don't change any other repository.
-Unreleased: slices 14 to 16. `docs/releases/v0.5.0.md` already says what
-each changes and how to upgrade, written from each slice's report as it
-landed; the release task finishes that file (intro, known issues, the pin
-and check steps) rather than starting one.
+Released: [v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0)
+(slices 14 to 17, T-034, T-035), after
+[v0.4.0](https://github.com/donvargax/itos/releases/tag/v0.4.0). Each
+release's Upgrading section is what a consumer's session updates from;
+v0.5.0's adds the nightly's `{ tasks: done, cost: static }` step the
+character editor asked for, and has consumers drop ledger checks of itos's
+own behaviour. The user moves the consumers' pins (the project template, the
+character editor) from their own repositories: don't change any other
+repository. Nothing is unreleased. Write the next release's notes as each
+slice lands, from its report, in `docs/releases/v<next>.md`: v0.5.0's were,
+and the release task only finished them.
 
 ## Next
 
