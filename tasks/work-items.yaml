@@ -1737,10 +1737,26 @@ items:
     title: The TypeScript implementation leaves the repository
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-060]
     kind: task
     refs: [tasks/phase-3.yaml]
+
+  - id: p3-architecture-go-names
+    title: The architecture and the Go comments name the Go code, not the TypeScript modules
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [T-062]
+    kind: idea
+    why: >
+      Found in T-062: docs/ARCHITECTURE.md's task tooling section describes each mechanism by the
+      TypeScript module and camelCase function it was first built in (config.ts's withDefaults,
+      ci-plan.ts's ciPlan, commit-scope.ts), and only says that "The code" names the Go package
+      porting each; most Go package comments say which tools/itos/*.ts they port. Both name files
+      that no longer exist. Rewritten against the Go packages and functions, the architecture
+      would read without the TypeScript, and "The code" could stop reading as a port's map.
+    refs: [docs/ARCHITECTURE.md, internal/]
 
   - id: slice-25
     title: The built-in header lint replaces commitlint
@@ -1774,8 +1790,11 @@ items:
     depends_on: [T-063]
     kind: idea
     why: >
-      The release Go only: T-062 took the TypeScript out of the repository, so the release stops
-      publishing its tarball, and v2's Upgrading
+      The release Go only: T-062 took the TypeScript out of the repository and the release
+      workflow already publishes no tarball (Go archives, schema, checksums.txt; the notes as
+      committed, no {sha256} filled in). Left for v2.0.0: release-notes.ts still requires the
+      Upgrading section's pin line to name itos-<version>.tgz, so it needs the binary's pin line
+      instead, and README's Install section still describes the v1 tarball. v2's Upgrading
       section asks consumers for everything at once: switch the pin to the binary (v1.0.0's
       install script), drop Node and commitlint for the built-in lint, and anything else the
       commits since v1.1.0 change. Released automatically (PLAN.md, "Releases"). To specify as a
