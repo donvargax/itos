@@ -697,7 +697,7 @@ items:
     title: The moving rule is itos's, a built-in range check and a command
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-19]
     kind: slice
     refs: [features/moves.feature]
@@ -715,10 +715,38 @@ items:
     title: This repository's moving rule is itos's built-in, and its script goes
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-23]
     kind: task
     refs: [tasks/phase-1.yaml]
+
+  - id: p1-moves-except-types-checked
+    title: config check refuses an except_types type that is not one of commits.types
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-23]
+    kind: idea
+    why: >
+      Found in slice 23: a range check's except_types is read as a list of commit types, and the
+      moves rule leaves those types alone, but config check accepts any word there, as it does
+      for the command checks. A misspelt type (fead) leaves feat judged by the rule, and every
+      feat that turns a scenario live is rejected with no hint of why. The footers' required_for
+      and validate_for are already held to commits.types; except_types could be too.
+
+  - id: p1-moves-merge-by-git
+    title: The commit-msg hook knows a merge by git's state, not by its message
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-23]
+    kind: idea
+    why: >
+      Found in slice 23: the hook's moves rule leaves a merge alone because "Merge" is not one of
+      commits.types, so a config that lists no commits.types judges a merge commit, whose index
+      holds every scenario a merged feat made live, and rejects it. The path rules dodge it the
+      same way (a type with no scope). The hook could read MERGE_HEAD (or the commit being a
+      merge) and leave every staged-file rule to verify, which skips merges.
 
   - id: slice-21
     title: ledger.group.label read, or dropped
@@ -1057,9 +1085,9 @@ items:
     why: >
       A range check takes one {from}. verify gives it commits.since when the range's own start is
       empty or older than it, but keeps the start when the two have diverged (a pull request based
-      before commits.since, say), so a project's own range check may judge commits before it;
-      scenario-moves leaves them out itself. A {since} in the template, or a range given as a commit
-      list, would close it.
+      before commits.since, say), so a project's own range command may judge commits before it;
+      the built-in moves rule judges verify's own list of commits, which leaves them out. A {since}
+      in the template, or a range given as a commit list, would close it.
 
   - id: p1-hooks-config-write
     title: "hooks install writes lefthook's and pre-commit's config"

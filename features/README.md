@@ -118,8 +118,12 @@ ones left empty, provided
 - the file's smoke entries in `smoke.yaml` move with it, in the same commit.
 
 The scenario kind's range check (`tests.scenario.range_checks` in `itos.yaml`)
-compares the two sets of scenarios, HEAD against the index in the commit-msg
-hook and each commit of the pushed range in CI. Comment lines (`#`) are
+is itos's built-in moves rule, `{ builtin: moves, except_types: [feat, fix] }`.
+It compares the two sets of scenarios, HEAD against the index in the
+commit-msg hook and each commit of the pushed range against its parent in
+`itos verify`; `tools/bin/itos tests moves scenario` compares HEAD and the index
+by hand. A live scenario's name may change outside `feat` and `fix` only when
+the check's `allowed_renames` lists its ID and new name. Comment lines (`#`) are
 dropped before the comparison: a scenario's reason is written as a comment
 above its tag line, in any commit, and never as a change to the scenario.
 

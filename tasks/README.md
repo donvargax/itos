@@ -77,14 +77,15 @@ not compared, so a `docs` commit may write a scenario's reason beside it. The
 files are organised by area of behaviour, and a move is a `test` commit, one
 that also moves the file's smoke entries in `features/smoke.yaml`. A live
 scenario's name may not change outside `feat` and `fix`, unless the rename is
-listed by ID and name in `ALLOWED_RENAMES` (`tools/itos/scenario-moves.ts`). A
-scenario that duplicates another stays: removing one is a `feat` or `fix`
-decision.
+listed by ID and new name in the moving rule's `allowed_renames` in
+`itos.yaml`, with the reason in the task that allows it. A scenario that
+duplicates another stays: removing one is a `feat` or `fix` decision.
 
 Enforcement: the rules are `commits` in `itos.yaml`. The scope column above
 is `commits.scopes`; the footers are `commits.footers` (a `Task:` or
 `Scenarios:` ID must exist at the commit itself); the moving rule is the
-scenario kind's range check (`tests.scenario.range_checks`). The commit-msg
+scenario kind's range check (`tests.scenario.range_checks`), itos's built-in
+`builtin: moves` with `except_types: [feat, fix]`. The commit-msg
 hook (`tools/bin/itos hook commit-msg`) first runs `tools/bin/itos config
 check`'s problems over the staged tree when the commit stages `itos.yaml`, a
 ledger file, the work registry or the smoke set, then applies the path rules,

@@ -152,6 +152,23 @@ the commands, `itos <command> --help` each one). The code is
   (an empty smoke set, a range that names no test) the kind's run is left
   out, and a check read `as: smoke` runs as itself. `as: whole` and
   `as: pattern` always select something, so their run is always there.
+- **Range checks** (`tests.<kind>.range_checks`): a kind's rule on how its
+  tests may change between two trees. One is either commands (`staged`, run
+  by the commit-msg hook on the index, `range`, run once by `verify` over the
+  range with `{from}` and `{to}`) or the built-in moves rule
+  (`builtin: moves`, `moves.ts`), which reads a Gherkin kind's feature files
+  through `parseFeature` with the kind's root, ID pattern, tag prefix and wip
+  tag. The hook judges HEAD against the index (`stagedMoveIssues`, in
+  `commit-scope.ts`'s rejection beside the path rules), `verify` each commit
+  of its range against its parent, the empty tree for a root commit
+  (`commitMoveIssues`, in that commit's rejection, so it counts against the
+  commit), and `itos tests moves <kind>` HEAD against the index by hand. Both
+  hook and verify skip a type `except_types` names, and one that is not in
+  `commits.types` when the config lists them (a merge's message); the
+  command ranges wait for the type to have a path rule, the built-in does
+  not. A tree's feature set is read once per run. `config check` refuses
+  `builtin` beside a command, on a kind whose adapter is not `gherkin`, and
+  `allowed_renames` without it.
 - **The footers** have one reader (`footers.ts`), which the footer rules
   and CI share: which types need each footer, which IDs must exist, and
   `read_at: commit`, which reads the IDs that exist (the ledger's tasks, the
@@ -175,9 +192,9 @@ the commands, `itos <command> --help` each one). The code is
   run on GitHub, a command, or none), who a session works for
   (`work.identity`: `gh api user`, a command, or only `--as`), and who works
   on the project (`work.people`).
-- **Where verification starts** (`commits.since`, `repo.ts`): `verify` and
-  the scenario-move check list a range's commits less that commit and its
-  ancestors, and a range check's `{from}` is that commit when the range's own
+- **Where verification starts** (`commits.since`, `repo.ts`): `verify`, and
+  with it the built-in moves rule, lists a range's commits less that commit
+  and its ancestors, and a range command's `{from}` is that commit when the range's own
   start is empty or older. `config check` and `verify` fail with exit 2 when
   the repository does not have it; in a shallow clone (`git rev-parse
 --is-shallow-repository`, actions/checkout's default one commit deep) the
@@ -222,7 +239,7 @@ the commands, `itos <command> --help` each one). The code is
     prose and the working tree may hold what the commit does not. It comes
     first because the other rules read the config. Then it applies the
     type's path rules (`commit-scope.ts`), then outside `feat` and `fix` the
-    scenario moving rule (`scenario-moves.ts`), then the header lint:
+    scenario moving rule (the built-in, `moves.ts`), then the header lint:
     commitlint (`commitlint.config.ts`, `config-conventional` alone), and
     after it, always, itos's footer rules (`commit.ts`, one `<key>-footer`
     rule per footer of `commits.footers`), both reported before the exit,
