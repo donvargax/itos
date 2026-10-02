@@ -1,12 +1,22 @@
 name: Release
 
-# A tag v<version> publishes that version: itos-<version>.tgz, the package
-# tools/bin/pack.ts makes (tools/itos/ bundled to one JavaScript file, beside a
-# manifest holding only what a consumer needs), and checksums.txt, its SHA-256 in `sha256sum` format, which a consumer pins
-# with the tarball's URL. The release's body is that, then the committed
-# notes, docs/releases/v<version>.md, with the tarball's SHA-256 where they
-# write {sha256}. A tag is never moved or re-pushed: a failed release
-# is fixed forward on main and released as the next version.
+# A tag v<version> publishes that version (PLAN.md, §10):
+#   - the Go binary, one archive per platform, itos-<version>-<os>-<arch>.tar.gz
+#     (.zip for windows), and itos.schema.json, the config's JSON Schema, which
+#     tools/bin/build-go.ts --release builds into $OUT;
+#   - itos-<version>.tgz, the package tools/bin/pack.ts makes (tools/itos/
+#     bundled to one JavaScript file, beside a manifest holding only what a
+#     consumer needs), which stays until phase 3 switches the consumers;
+#   - checksums.txt, one file holding every asset's SHA-256 in `sha256sum`
+#     format, so `sha256sum --ignore-missing -c checksums.txt` checks whichever
+#     of them a consumer downloaded, and a consumer pins an asset's URL with
+#     its line.
+# Every one is proven before anything is published: the archives and the
+# schema in the very folder uploaded, the tarball as a consumer installs it.
+# The release's body says what each asset is and lists checksums.txt, then the
+# committed notes, docs/releases/v<version>.md, with the tarball's SHA-256
+# where they write {sha256}. A tag is never moved or re-pushed: a failed
+# release is fixed forward on main and released as the next version.
 on:
   push:
     tags: ["v*"]
@@ -23,14 +33,16 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TAG: ${{ github.ref_name }}
+      # The folder the Go release is built into, proven and published from.
+      OUT: dist/release
     steps:
       - uses: actions/checkout@v4
       - uses: voidzero-dev/setup-vp@v1.21.0
         with:
           node-version: "24"
           cache: true
-      # Go for the features' steps (godog), which the self-test runs against
-      # the installed tarball.
+      # Go for the release build, and for the features' steps (godog), which
+      # the self-test runs against the installed tarball.
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
@@ -39,8 +51,14 @@ jobs:
       # The one way to pack, tools/selftest/release.ts's too.
       - name: Pack
         run: node tools/bin/pack.ts .
-      # The tag, package.json and the packed itos must name one version, or
-      # the release would publish a tarball under another's name.
+      # The one way to build the Go release, tools/selftest/go-release.ts's too:
+      # the archives, itos.schema.json and their checksums.txt.
+      - name: Build the Go release
+        run: node tools/bin/build-go.ts --release "$OUT"
+      # The tag, package.json, the packed itos and the Go binary must name one
+      # version, or the release would publish a tarball or an archive under
+      # another's name. The runner is linux/amd64, so that archive's binary is
+      # the one run.
       - name: The tag is the version
         run: |
           version=$(node -p 'require("./package.json").version')
@@ -53,6 +71,13 @@ jobs:
             echo "::error::package.json says $version, but the packed itos says: $said"
             exit 1
           fi
+          bin=$(mktemp -d)
+          tar -xzf "$OUT/itos-$version-linux-amd64.tar.gz" -C "$bin" itos
+          said=$("$bin/itos" version)
+          if [ "$said" != "itos $version" ]; then
+            echo "::error::package.json says $version, but the Go binary says: $said"
+            exit 1
+          fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
       # Every release's notes are a committed file, ending with the Upgrading
       # section a consumer updates from (PLAN.md, §10); a tag without them is
@@ -63,24 +88,47 @@ jobs:
             echo "::error::no release notes at docs/releases/v$VERSION.md"
             exit 1
           fi
+      # The Go release as a consumer downloads it, read with the system's tar,
+      # unzip and sha256sum: exactly its seven files, each archive's binary,
+      # LICENSE and README.md, each binary's format and architecture, the
+      # checksums, and this machine's binary's version. The same folder this
+      # job publishes.
+      - run: node tools/selftest/go-release.ts --dir "$OUT"
       # The tarball as a consumer installs it, offline, against the corpus and
       # every feature: the same bytes this job publishes.
       - run: node tools/selftest/release.ts --tarball "itos-$VERSION.tgz"
-      - run: sha256sum "itos-$VERSION.tgz" > checksums.txt
+      # The tarball joins the folder, and its line joins the Go release's
+      # checksums.txt, so one file lists every asset; checked once more whole.
+      - name: Checksums
+        run: |
+          cp "itos-$VERSION.tgz" "$OUT/"
+          cd "$OUT"
+          sha256sum "itos-$VERSION.tgz" >> checksums.txt
+          sha256sum -c checksums.txt
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          tarball=$(sha256sum "$OUT/itos-$VERSION.tgz" | cut -d' ' -f1)
           {
-            echo "itos $VERSION, the TypeScript v0 packed to one JavaScript file, built for Node 24."
+            echo "itos $VERSION. The release holds:"
             echo
-            echo "Pin the tarball's URL and its SHA-256 (README.md, \"Install\"):"
+            echo "- \`itos-$VERSION-<os>-<arch>.tar.gz\`, the Go binary, for linux and darwin on amd64 and arm64,"
+            echo "  and \`itos-$VERSION-windows-amd64.zip\` for windows; each holds the binary (\`itos\`, or"
+            echo "  \`itos.exe\`), \`LICENSE\` and \`README.md\` at its top level."
+            echo "- \`itos.schema.json\`, the config's JSON Schema, which an editor checks an \`itos.yaml\` against"
+            echo "  (\`# yaml-language-server: \$schema=<its URL>\` atop the file)."
+            echo "- \`itos-$VERSION.tgz\`, the TypeScript v0 packed to one JavaScript file, built for Node 24."
+            echo "- \`checksums.txt\`, the SHA-256 of every file above, in \`sha256sum\`'s format:"
+            echo "  \`sha256sum --ignore-missing -c checksums.txt\` checks the ones downloaded beside it."
+            echo
+            echo "Pin an asset's URL and its SHA-256 (README.md, \"Install\"), as checksums.txt lists them:"
             echo
             echo '```'
-            cat checksums.txt
+            cat "$OUT/checksums.txt"
             echo '```'
             echo
-            sed "s/{sha256}/$(cut -d' ' -f1 checksums.txt)/g" "docs/releases/v$VERSION.md"
+            sed "s/{sha256}/$tarball/g" "docs/releases/v$VERSION.md"
           } > notes.md
-          gh release create "$TAG" "itos-$VERSION.tgz" checksums.txt \
+          gh release create "$TAG" "$OUT"/* \
             --verify-tag --title "itos $VERSION" --notes-file notes.md

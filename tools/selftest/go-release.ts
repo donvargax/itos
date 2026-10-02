@@ -1,14 +1,22 @@
-// The Go release, built as the release workflow will build it, works: the
+// The Go release, built as the release workflow builds it, works: the
 // archives, the config's JSON Schema and checksums.txt
 // `node tools/bin/build-go.ts --release` writes are what the release publishes
 // and a consumer's pinned install script downloads (PLAN.md §10), so they are
-// proven before the first Go release ever publishes them.
+// proven before a release publishes them.
 //
-//   node tools/selftest/go-release.ts
+//   node tools/selftest/go-release.ts              build the release from the
+//                                                  checkout into a scratch
+//                                                  folder, through the command
+//                                                  line the workflow calls, and
+//                                                  prove that
+//   node tools/selftest/go-release.ts --dir <dir>  prove a release already
+//                                                  built into <dir> (the
+//                                                  release workflow's, the
+//                                                  folder it publishes),
+//                                                  building nothing
 //
-// Builds the release from the checkout into a scratch folder, through the
-// command line the workflow will call, and then reads it only with the system's
-// own tools, not the code that wrote it:
+// Either way it reads the folder only with the system's own tools, not the
+// code that wrote it:
 //
 //   - the folder holds one archive per platform of PLATFORMS below, named as
 //     the release names them, itos.schema.json and checksums.txt, and nothing
@@ -23,13 +31,14 @@
 //   - this machine's archive, unpacked with tar, says `itos <package.json's
 //     version>` for `itos version`.
 //
-// Exits 1 on any failure, or when it built nothing. The nightly runs it
-// (itos.yaml's `ci.nightly.steps`), so the release build cannot rot before the
-// first Go release.
+// Exits 1 on any failure, or when the folder is empty or missing. The nightly
+// runs it without --dir (itos.yaml's `ci.nightly.steps`), so the release build
+// cannot rot between releases; the release workflow runs it with --dir on the
+// folder it is about to upload.
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { ROOT } from "../bin/build-go.ts";
 import { outsideEnv } from "./scratch.ts";
 
@@ -47,8 +56,16 @@ const binaryOf = (platform: string) => (platform.startsWith("windows") ? "itos.e
 // The config's JSON Schema, beside the archives.
 const SCHEMA = "itos.schema.json";
 
+const args = process.argv.slice(2);
+const at = args.indexOf("--dir");
+if ((at >= 0 && !args[at + 1]) || args.length !== (at >= 0 ? 2 : 0)) {
+	console.error("usage: node tools/selftest/go-release.ts [--dir <dir>]");
+	process.exit(2);
+}
+// The folder proven: the one given, or the one built here.
+const given = at >= 0 ? resolve(args[at + 1]!) : undefined;
 const scratch = mkdtempSync(join(tmpdir(), "go-release-"));
-const out = join(scratch, "release");
+const out = given ?? join(scratch, "release");
 // Inside a hook git exports GIT_DIR and friends; nothing here is that repository.
 const env = outsideEnv();
 const failures: string[] = [];
@@ -133,16 +150,21 @@ function proveNative() {
 }
 
 try {
-	console.log(`== the release: node tools/bin/build-go.ts --release ${out}`);
-	const build = spawnSync(process.execPath, ["tools/bin/build-go.ts", "--release", out], {
-		cwd: ROOT,
-		stdio: "inherit",
-	});
-	if (build.status !== 0) failures.push(`the release build (exit ${build.status ?? build.signal})`);
+	if (given) console.log(`== the release built into ${out}`);
+	else {
+		console.log(`== the release: node tools/bin/build-go.ts --release ${out}`);
+		const build = spawnSync(process.execPath, ["tools/bin/build-go.ts", "--release", out], {
+			cwd: ROOT,
+			stdio: "inherit",
+		});
+		if (build.status !== 0)
+			failures.push(`the release build (exit ${build.status ?? build.signal})`);
+	}
 	const archives = PLATFORMS.map(archiveOf);
 	const held = existsSync(out) ? readdirSync(out).sort() : [];
 	const expected = [...archives, SCHEMA, "checksums.txt"].sort();
-	if (held.length === 0) failures.push("the release build wrote nothing");
+	if (held.length === 0)
+		failures.push(given ? `${out} holds nothing` : "the release build wrote nothing");
 	else if (held.join() !== expected.join())
 		failures.push(`the release holds ${held.join(", ")}, not ${expected.join(", ")}`);
 	for (const platform of PLATFORMS) if (held.includes(archiveOf(platform))) proveArchive(platform);

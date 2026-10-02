@@ -145,7 +145,12 @@ function releasedBin(tag: string): string | undefined {
 		"--pattern",
 		"checksums.txt",
 	]);
-	if (got === undefined || sh(["sha256sum", "-c", "checksums.txt"], download) === undefined)
+	// From v1.0.0 checksums.txt lists every asset, the Go archives too; only the
+	// tarball is downloaded, and sha256sum fails when it verifies no file at all.
+	if (
+		got === undefined ||
+		sh(["sha256sum", "--ignore-missing", "-c", "checksums.txt"], download) === undefined
+	)
 		return undefined;
 	const project = join(scratch, tag, "consumer");
 	mkdirSync(project, { recursive: true });
