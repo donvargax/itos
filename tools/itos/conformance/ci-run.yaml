@@ -6,7 +6,8 @@
 # check recognized as the smoke run merged when there is a run of named tests
 # and run as itself when there is none, the nightly's tasks step (the done
 # tasks' checks, each shared one once, a failure naming the task's title), a
-# missing ledger folder stopping it at the plan (2), and --json. The steps and checks are `echo`s, so the log shows what ran.
+# missing ledger folder stopping it at the plan (2), a named task waiting on
+# the registry beside the ledger, and --json. The steps and checks are `echo`s, so the log shows what ran.
 git:
   - commit: "build: the scratch project"
     files:
@@ -376,6 +377,28 @@ cases:
       No task T-044 in work/, though a footer names it
 
       CI failed at the tasks named: T-044
+  - name: without work.registry, a named task waits on the registry beside a ledger in another folder
+    argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}"]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "work/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps: [echo lint]
+        work: {}
+      work/phase-1.yaml: "- { id: T-040, type: build, title: Not started, done_when: [{ run: echo waits }] }\n"
+      work/work-items.yaml: "items:\n  - { id: T-040, status: todo }\n"
+    exit: 0
+    stdout: |
+      T-040 is named but not started (todo in work/work-items.yaml): its checks wait.
+
+      $ echo lint
+      lint
+
+      CI passed
   - name: the tasks a range names are read from the ledger footer, whatever its key
     argv: [ci, run, "{{sha.smoke}}", "{{sha.work}}"]
     files:

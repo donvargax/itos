@@ -2,8 +2,9 @@
 Feature: The work registry
   The work registry says who owns each group and each item, and what each
   waits on. It is itos's data, like the ledger, and is read every day, so its
-  default home is beside the ledger, tasks/work-items.yaml, leaving docs/ for
-  prose; work.registry in itos.yaml puts it anywhere else.
+  default home is beside the ledger, work-items.yaml in the folder
+  ledger.files names (tasks/work-items.yaml for the default ledger), leaving
+  docs/ for prose; work.registry in itos.yaml puts it anywhere else.
 
   Background:
     Given a repository whose ledger has the task "T-001"
@@ -34,7 +35,7 @@ Feature: The work registry
 
   # The default is beside the ledger: in the folder ledger.files names, not
   # tasks/ whatever the ledger's folder (the user's call, after slice 18).
-  @ID-WORK-04 @slice-22 @wip
+  @ID-WORK-04 @slice-22
   Scenario: Without work.registry, itos reads the registry beside a ledger kept in another folder
     Given the ledger's files are "work/phase-{group}.yaml"
     And the work registry at "work/work-items.yaml" has the item "T-001" with the status "doing"

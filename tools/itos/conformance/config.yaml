@@ -5,7 +5,8 @@
 # to nothing, a commits.since that is no full SHA or no commit here), exit 2;
 # a missing ledger folder, one problem naming it, exit 2; each ledger problem (written order among them, a check that calls hooks.bin read as itos), exit 1;
 # the registry's and the smoke set's problems beside them; the nightly's
-# tasks step (tasks: done, refused in ci.steps, with no late cost); --print-defaults.
+# tasks step (tasks: done, refused in ci.steps, with no late cost); --print-defaults,
+# work.registry's beside the config's ledger.
 files:
   itos.yaml: |
     version: 1
@@ -624,6 +625,18 @@ cases:
     argv: [config, check, --print-defaults]
     exit: 0
     stdout_has: ["registry: tasks/work-items.yaml", "timeout: 600", "adapter: gherkin", "hint: pass --as <handle>", "check_timeout: 60", "bin: tools/bin/itos", "label: phase"]
+  - name: the defaults put the registry in the folder of this config's ledger
+    argv: [config, check, --print-defaults]
+    files:
+      itos.yaml: "version: 1\nledger: { files: \"work/phase-{group}.yaml\" }\n"
+    exit: 0
+    stdout_has: ["registry: work/work-items.yaml"]
+  - name: with no config to read, the defaults put the registry in tasks/
+    argv: [config, check, --print-defaults]
+    files:
+      itos.yaml: null
+    exit: 0
+    stdout_has: ["registry: tasks/work-items.yaml"]
   - name: the defaults as --json
     argv: [config, check, --print-defaults, --json]
     exit: 0

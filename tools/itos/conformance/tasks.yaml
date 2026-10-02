@@ -8,7 +8,8 @@
 # runs each check (its command, whitespace collapsed, and its timeout) once,
 # each task reading the exit status by its own run: or fails:; the counting
 # checks append to `runs`, so files_after counts their runs. task list prints
-# each task's status from the work registry, or "no item", and runs nothing.
+# each task's status from the work registry, or "no item", and runs nothing;
+# without work.registry, the registry beside the ledger.
 git:
   - commit: "docs: start"
     files: { README.md: "scratch\n" }
@@ -394,6 +395,39 @@ cases:
       no item  T-004  2   ci       Waits on the push
       todo     T-005  2   test     A check past its timeout
     stderr: ""
+  - name: task list reads the registry beside a ledger in another folder, not tasks/
+    argv: [task, list]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger:
+          files: "work/phase-{group}.yaml"
+          group: { label: phase, pattern: "\\d+", numeric: true }
+          id: "T-\\d+"
+        commits: { types: [build, ci, docs, test] }
+      work/phase-1.yaml: "- { id: T-010, type: build, title: In work, done_when: [] }\n"
+      work/work-items.yaml: "items:\n  - { id: T-010, status: doing }\n"
+      tasks/work-items.yaml: "items:\n  - { id: T-010, status: done }\n"
+    exit: 0
+    stdout: |
+      doing    T-010  1   build    In work
+    stderr: ""
+  - name: task list with no registry beside a ledger in another folder names that path
+    argv: [task, list]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger:
+          files: "work/phase-{group}.yaml"
+          group: { label: phase, pattern: "\\d+", numeric: true }
+          id: "T-\\d+"
+        commits: { types: [build, ci, docs, test] }
+      work/phase-1.yaml: "- { id: T-010, type: build, title: In work, done_when: [] }\n"
+    exit: 0
+    stdout: |
+      no item  T-010  1   build    In work
+    stderr: |
+      No work registry at work/work-items.yaml, so no task has an item.
   - name: a check two tasks list runs once, and both read its result
     argv: [task, --group, "3"]
     files:

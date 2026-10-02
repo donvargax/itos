@@ -83,11 +83,12 @@ Exit 1 when the registry is not sound, 3 when --as is not among the people.
 
 	"work check": `Usage: itos work check [<file>]
 
-Validates the work registry (the config's work.registry, tasks/work-items.yaml
-by default, or <file>): that it is there, duplicate IDs, unknown groups (the
-owners per group under work.groups_key, phases by default), statuses (those
-work.statuses lists), kinds, owners and dependencies, cycles. Exit 1 on a
-problem. The messages call a group by ledger.group.label (phase by default).
+Validates the work registry (the config's work.registry, by default
+work-items.yaml in the ledger's folder, or <file>): that it is there,
+duplicate IDs, unknown groups (the owners per group under work.groups_key,
+phases by default), statuses (those work.statuses lists), kinds, owners and
+dependencies, cycles. Exit 1 on a problem. The messages call a group by
+ledger.group.label (phase by default).
 
 --json: {"schema":1,"file","sound","problems":[{"rule","message","fix"?}]}`,
 
@@ -233,7 +234,7 @@ exit is 1, unless --force replaces it.
 Validates the config, then the ledger (or one ledger file), the work registry
 and each kind's smoke set. Exit 2 when the config is invalid, 1 for any other
 problem. --print-defaults prints the values the tools take when a key is left
-out, and checks nothing.
+out (work.registry's in this config's ledger folder), and checks nothing.
 
 --json: {"schema":1,"config","valid","problems":[{"rule","message","fix"?,"area"}]}`,
 

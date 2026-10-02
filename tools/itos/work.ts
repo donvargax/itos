@@ -1,5 +1,5 @@
-// What to take next: reads the work registry (`work.registry`,
-// tasks/work-items.yaml by default), names the person a session works for, and proposes
+// What to take next: reads the work registry (`work.registry`, work-items.yaml
+// in the ledger's folder by default), names the person a session works for, and proposes
 // the items they can start — `todo`, every dependency done, theirs first,
 // then unowned ones in phases nobody owns. Ideas (`kind: idea`, a gap with no
 // scenarios or task entry yet) and deferred items (`deferred: <reason>`) are

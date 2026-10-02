@@ -11,7 +11,9 @@ import {
 	ConfigError,
 	configIssues,
 	configPath,
-	DEFAULTS,
+	type Config,
+	defaultsFor,
+	fileBehind,
 	ledgerFiles,
 	ledgerIssues,
 } from "./config.ts";
@@ -109,9 +111,18 @@ export function configCheck(ledger: string | undefined, out: Output = TEXT): num
 	return code;
 }
 
-// `config check --print-defaults`: the defaults the loader applies (config.ts), as YAML or JSON.
+// `config check --print-defaults`: the defaults the loader applies (config.ts),
+// as YAML or JSON, as they apply to this config's ledger. It checks nothing, so a
+// config that does not load gets the table's own values.
 export function printDefaults(out: Output = TEXT): number {
-	if (out.json) emit({ defaults: DEFAULTS });
-	else process.stdout.write(stringify(DEFAULTS));
+	let file: Config | undefined;
+	try {
+		file = fileBehind(config());
+	} catch {
+		file = undefined;
+	}
+	const defaults = defaultsFor(file);
+	if (out.json) emit({ defaults });
+	else process.stdout.write(stringify(defaults));
 	return 0;
 }

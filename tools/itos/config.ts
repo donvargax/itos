@@ -164,7 +164,8 @@ export const DEFAULTS = {
 		},
 	},
 	work: {
-		// Beside the ledger, since it is itos's data as the ledger is, and docs/ is prose.
+		// Beside the ledger, since it is itos's data as the ledger is, and docs/ is prose:
+		// the folder of the config's ledger.files (defaultsFor); this, with no ledger.
 		registry: "tasks/work-items.yaml",
 		groups_key: "phases",
 		statuses: ["todo", "doing", "done", "blocked"],
@@ -205,9 +206,19 @@ function layered(under: unknown, over: unknown): unknown {
 // The file each loaded config was read from, for `section`.
 const fileOf = new WeakMap<Loaded, Config>();
 
+// The defaults as they apply to a config: DEFAULTS, with work.registry in the
+// folder of its ledger.files, so a ledger in work/ has its registry at
+// work/work-items.yaml. With no config, or no ledger, the table's own value.
+export function defaultsFor(file?: Config): typeof DEFAULTS {
+	const defaults = structuredClone(DEFAULTS);
+	if (file?.ledger?.files)
+		defaults.work.registry = join(dirname(file.ledger.files), "work-items.yaml");
+	return defaults;
+}
+
 // The file laid over the defaults, each kind over the per-kind ones.
 export function withDefaults(file: Config): Loaded {
-	const { tests: perKind, ...rest } = DEFAULTS;
+	const { tests: perKind, ...rest } = defaultsFor(file);
 	const loaded = layered(rest, file) as Loaded;
 	if (file.tests)
 		loaded.tests = Object.fromEntries(
@@ -768,6 +779,9 @@ export function config(): Loaded {
 	if (!loaded.has(key)) loaded.set(key, loadConfig());
 	return loaded.get(key)!;
 }
+
+// The file a loaded config was read from, without the defaults under it.
+export const fileBehind = (from: Loaded): Config | undefined => fileOf.get(from);
 
 // Whether the file has a section, rather than only its defaults.
 export const hasSection = (key: keyof Config, from = config()) =>
