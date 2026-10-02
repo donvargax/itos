@@ -39,8 +39,9 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   the tarball's hash. The notes end with an "Upgrading" section a consumer
   updates from alone (`PLAN.md`, §10).
 - `go.mod` is the module `github.com/donvargax/itos`, Go pinned by its
-  `toolchain` line; its one dependency set is godog's. The Go port adds
-  `cmd/itos` and `internal/` (`PLAN.md`, §8).
+  `toolchain` line; its dependencies are godog's and `go.yaml.in/yaml/v3`,
+  the port's one. The Go port is `cmd/itos` and `internal/` ("The Go port"
+  below).
 
 ## The features
 
@@ -210,6 +211,50 @@ the commands, `itos <command> --help` each one). The code is
   `features/` and, where a case records the old behaviour, the case. `tools/itos/fixtures/` holds the configs and ledgers the
   negative proofs in `tasks/phase-0.yaml` run against.
 
+## The Go port
+
+The Go build of itos lands beside the TypeScript one command group at a time
+(`PLAN.md`, phase 2), until it passes everything and the TypeScript goes.
+
+- **The packages.** `cmd/itos` is the binary, a call to `internal/cli`.
+  `internal/cli` is `main.ts`: the global flags wherever they stand, the
+  command table with every command's argument errors, and how a failure is
+  reported and which exit code it takes. `internal/config` finds the config
+  (`--config`, `ITOS_CONFIG`, after `--root`'s `chdir`) and reads so far only
+  `version` and `requires`, with `config.ts`'s wording; the config group
+  replaces it with the whole loader. `internal/version` is `version.ts`, and
+  `internal/out` prints a `--json` object with `"schema": 1` first and its
+  keys in the order written (Go's maps would sort them). The later groups add
+  the packages `PLAN.md` §8 lists. The port shells out to git where it needs
+  it, as the TypeScript does.
+- **What is not ported yet** fails loudly: every command takes its arguments
+  as the TypeScript does, so a usage error reads the same in both, and then a
+  command whose group has not landed exits 3, the missing environment's code,
+  with `itos: <command> is not in this build yet (the Go port has not reached
+it)`. The help texts are not ported yet either and fail the same way.
+- **The version** is `package.json`'s: `tools/bin/build-go.ts <out dir>`
+  builds `./cmd/itos` into `<out dir>/itos` with `CGO_ENABLED=0` and
+  `-trimpath`, stamping the version into `internal/version` (`-ldflags -X`).
+  A binary built without the stamp says the module version Go records
+  (`go install …@v<x>`), or `(devel)` when there is none. Every self-test
+  builds the binary through it; its `build` takes a target platform, for the
+  release archives.
+- **The ported set** is `PORTED` in `tools/selftest/go-port.ts`, the one list
+  of it: the conformance corpus files and the scenario selections (`-scenarios=`
+  expressions) of the groups that have landed. `go-port.ts` builds the binary
+  into a scratch folder and runs the corpus files through `run.ts --bin` and
+  each selection as `go test ./features` with `ITOS_BIN` pointed at the build,
+  and fails when the set is empty or anything in it fails. It is a late step
+  of every push's CI, so a later change to a ported group lands in both
+  implementations in one push; `ci.covers` skips a task check that builds the
+  binary and runs a ported corpus file again. A group adds its part to the
+  list when it lands.
+- **Its commits.** The port's code is `refactor` with a `Task:` footer: the
+  behaviour is the TypeScript's, already specified. The Go files under `cmd/`
+  and `internal/` are in `commits.path_sets.implementation`, and their
+  `*_test.go` are the `test` type's; CI's `gofmt` step covers them and a late
+  step runs their unit tests (`go test ./cmd/... ./internal/...`).
+
 ## The gates and CI
 
 - **The hooks** (`.vite-hooks/`): `commit-msg` and `pre-push` are one-line
@@ -274,8 +319,9 @@ the commands, `itos <command> --help` each one). The code is
   (`vp check`, `gofmt`, `go vet`, the smoke rule, `itos config check`) and every named task check
   that is static (its own `cost: static`, else a pattern of
   `ci.cost.static`: `matchesStatic` in `config.ts`, which `config
-check`'s written-order rule reads too); then the late steps (the whole unit suite, the audit, the
-  conformance corpus, T-007); then **one run of the features** over the smoke
+check`'s written-order rule reads too); then the late steps (the whole unit suite, the Go
+  packages' unit tests, the audit, the conformance corpus, the Go build against the
+  ported set, T-007); then **one run of the features** over the smoke
   set (of the kind the `tests:` step names; a CI without one reads none), the scenarios the `Scenarios:` footers name and the subsets of the
   tasks the ledger footers (`Task:`) name; then the named tasks' late checks. A task's checks
   keep their written order. A check a step has just done is skipped

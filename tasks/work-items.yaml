@@ -1503,7 +1503,7 @@ items:
     title: The Go scaffold, held to the command line's corpus on every push
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     refs: [tasks/phase-2.yaml]
@@ -1525,6 +1525,21 @@ items:
     depends_on: [T-039]
     kind: task
     refs: [tasks/phase-2.yaml]
+
+  - id: p2-go-unit-tests-in-hooks
+    title: The hooks run the Go packages' unit tests a change reaches
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-039]
+    kind: idea
+    why: >
+      The pre-commit and pre-push hooks run the Vitest unit tests a change reaches (vp test run
+      --changed) and, for Go, only gofmt and go vet, so a change to cmd/ or internal/ that breaks
+      their unit tests is first caught by CI's go test ./cmd/... ./internal/... step. As the port
+      grows, the hooks should run the tests of the Go packages a change touches and those that
+      import them, as they do for the TypeScript.
+    refs: [AGENTS.md, itos.yaml]
 
   - id: p2-config-json-schema
     title: The config's JSON Schema, published with each Go release
