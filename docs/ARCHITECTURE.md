@@ -512,20 +512,17 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   snippet; a hook that is not a shim (`isShim`: one line calling `itos hook`,
   besides comments and a shebang) is replaced only with `--force`. The hooks
   this repository's git calls stay the TypeScript's until phase 3.
-- **What is not ported** would fail loudly: every command takes its
-  arguments as the TypeScript does, so a usage error reads the same in both,
-  and then a command whose group had not landed exited 3, the missing
-  environment's code, with `itos: <command> is not in this build yet (the Go
-port has not reached it)`. Every command of the table is ported now; the
-  error (`NotPorted`) stays for a command the TypeScript gains ahead of the
-  Go, and `TestNotPortedFailsLoudly` holds it by itself.
+- **Every command is ported**, each taking its arguments as the TypeScript
+  does, so a usage error reads the same in both. While the groups landed, a
+  command whose group had not exited 3 saying so; since every push holds the
+  Go build to the whole suite (below), a command the TypeScript gains alone
+  turns CI red, so that error is gone.
 - **The help texts** are `internal/cli/help.go`, `help.ts` ported: every
   text in one table keyed by command path, as `HELP` is, not one beside each
   command, so the two read side by side. `itos`, `itos help …` and any
   `--help` print the longest command path the table knows, before any config
-  is read, whether or not the command is ported. A change to a text lands in
-  both files and `help.yaml` in one push, since the corpus file is in the
-  ported set.
+  is read. A change to a text lands in both files and `help.yaml` in one
+  push, since every push runs the whole corpus against the Go build.
 - **The version** is `package.json`'s: `tools/bin/build-go.ts <out dir>`
   builds `./cmd/itos` into `<out dir>/itos` with `CGO_ENABLED=0` and
   `-trimpath`, stamping the version into `internal/version` (`-ldflags -X`).
@@ -543,17 +540,18 @@ port has not reached it)`. Every command of the table is ported now; the
   `tools/selftest/go-release.ts` builds them into a scratch folder and reads
   them back with the system's `tar`, `unzip` and `sha256sum`; the nightly
   runs it (`ci.nightly.steps`), not every push.
-- **The ported set** is `PORTED` in `tools/selftest/go-port.ts`, the one list
-  of it: the conformance corpus files and the scenario selections (`-scenarios=`
-  expressions) of the groups that have landed. `go-port.ts` builds the binary
-  into a scratch folder and runs the corpus files through `run.ts --bin` and
-  each selection as `go test ./features` with `ITOS_BIN` pointed at the build,
-  and fails when the set is empty or anything in it fails. It is a late step
-  of every push's CI, so a later change to a ported group lands in both
-  implementations in one push; `ci.covers` skips a task check that builds the
-  binary and runs a ported corpus file again. A group added its part to the
-  list when it landed; since the hooks (T-052) the set holds every corpus
-  file and selections that cover every live scenario.
+- **The ported set is the whole suite.** `tools/selftest/go-port.ts` builds
+  the binary into a scratch folder and runs the whole corpus through
+  `run.ts --bin` and every feature as `go test ./features -count=1` with
+  `ITOS_BIN` pointed at the build, and fails, naming which, when the build,
+  the corpus or the features fail. It is a late step of every push's CI, so a
+  behaviour change lands in both implementations in one push, and a corpus
+  file or a scenario added later is judged against Go with no list to
+  remember. While the groups landed it held a list each group added its part
+  to (T-039 to T-052); once the list named everything it went (T-053). The
+  port's task checks build the binary and run part of the corpus by
+  `--only` or a `-scenarios=` selection, so two `ci.covers` rules skip any
+  such check as what the step has just done.
 - **Its commits.** The port's code is `refactor` with a `Task:` footer: the
   behaviour is the TypeScript's, already specified. The Go files under `cmd/`
   and `internal/` are in `commits.path_sets.implementation`, and their
@@ -626,7 +624,7 @@ port has not reached it)`. Every command of the table is ported now; the
   `ci.cost.static`: `matchesStatic` in `config.ts`, which `config
 check`'s written-order rule reads too); then the late steps (the whole unit suite, the Go
   packages' unit tests, the audit, the conformance corpus, the Go build against the
-  ported set, T-007); then **one run of the features** over the smoke
+  whole corpus and every feature, T-007); then **one run of the features** over the smoke
   set (of the kind the `tests:` step names; a CI without one reads none), the scenarios the `Scenarios:` footers name and the subsets of the
   tasks the ledger footers (`Task:`) name; then the named tasks' late checks. A task's checks
   keep their written order. A check a step has just done is skipped
