@@ -116,10 +116,12 @@ function known(f: Footer) {
 const example = (f: Footer) =>
 	`"${f.key}: ${f.strip_prefix ?? ""}${/^[\w-]*/.exec(idPattern(f) ?? "")![0]}…"`;
 const noun = (f: Footer) => `${f.source === "ledger" ? "task" : f.source.tests}s`;
-// Why a named test is not live: its kind's wip tag, when it has one.
+// Why a named test is not live: its kind's wip tag, when the built-in Gherkin
+// adapter, which reads that tag, lists the kind; a command adapter says what
+// is live itself.
 const notLiveWhy = (f: Footer) => {
-	const tag = f.source !== "ledger" && section("tests")[f.source.tests]?.wip_tag;
-	return typeof tag === "string" ? `still tagged ${tag}` : "not live";
+	const k = f.source === "ledger" ? undefined : section("tests")[f.source.tests];
+	return k?.adapter === "gherkin" ? `still tagged ${k.wip_tag}` : "not live";
 };
 
 // One footer's rule over one message: [true], or [false, why].

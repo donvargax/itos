@@ -6,7 +6,7 @@
 // working tree may differ from it. A commit that stages none of them is not
 // checked here.
 import { basename, dirname, posix } from "node:path";
-import { config, configPath, type Config, DEFAULT_REGISTRY, ledgerLayout } from "./config.ts";
+import { config, configPath, hasSection, ledgerLayout, type Loaded } from "./config.ts";
 import { configFindings } from "./config-check.ts";
 import { problem, type Problem } from "./problem.ts";
 import { stagedFiles } from "./repo.ts";
@@ -20,17 +20,17 @@ const norm = (path: string) => posix.normalize(path);
 function stagesData(staged: string[]): boolean {
 	const files = new Set(staged.map(norm));
 	if (files.has(norm(configPath()))) return true;
-	let read: Config;
+	let read: Loaded;
 	try {
 		read = config();
 	} catch {
 		return false;
 	}
-	const ledger = read.ledger ? ledgerLayout() : undefined;
+	const ledger = hasSection("ledger", read) ? ledgerLayout() : undefined;
 	const isLedger = (file: string) =>
 		ledger !== undefined && dirname(file) === norm(ledger.dir) && ledger.file.test(basename(file));
 	const named = [
-		read.work?.registry ?? DEFAULT_REGISTRY,
+		read.work.registry,
 		...Object.values(read.tests ?? {}).flatMap((k) => (k.smoke?.file ? [k.smoke.file] : [])),
 	];
 	return [...files].some(isLedger) || named.some((file) => files.has(norm(file)));
@@ -49,7 +49,7 @@ export function stagedDataIssues(staged = stagedFiles()): { found: Problem[]; he
 		}
 		let header = "Commit rejected:";
 		try {
-			header = config().commits?.reject_message ?? header;
+			header = config().commits.reject_message;
 		} catch {
 			// The staged config is what is wrong: the default says so.
 		}

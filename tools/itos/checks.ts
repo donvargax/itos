@@ -18,7 +18,7 @@ function pushed(): boolean {
 }
 
 // A check's own timeout, in seconds: its `timeout:`, else the ledger's.
-const timeoutOf = (check: Check) => check.timeout ?? config().ledger?.check?.timeout ?? 600;
+const timeoutOf = (check: Check) => check.timeout ?? config().ledger.check.timeout;
 
 // One invocation's runs, so that a check several tasks list runs once: each
 // distinct check's exit status, 0 or not, by its key. Kept for one

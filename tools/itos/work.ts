@@ -14,21 +14,15 @@
 //
 // Every problem carries a rule id and a fix for `--json`.
 import { parse } from "yaml";
-import {
-	config,
-	DEFAULT_GROUPS_KEY,
-	DEFAULT_REGISTRY,
-	DEFAULT_STATUSES,
-	type PeopleConfig,
-} from "./config.ts";
+import { config, type PeopleConfig } from "./config.ts";
 import { emit, messages, type Output, problem, type Problem, TEXT } from "./problem.ts";
-import { type Answer, DEFAULT_PEOPLE, identityProvider, people } from "./providers.ts";
+import { type Answer, identityProvider, people } from "./providers.ts";
 import { current } from "./source.ts";
 
 // The statuses an item may have (work.statuses). todo, doing and done keep
 // their meaning whatever else the list holds: what can start, what is under
 // way, what dependencies wait on.
-const statuses = () => config().work?.statuses ?? DEFAULT_STATUSES;
+const statuses = () => config().work.statuses;
 const KINDS = ["slice", "task", "idea"] as const;
 type Kind = (typeof KINDS)[number];
 
@@ -53,10 +47,10 @@ interface Registry {
 	items: Item[];
 }
 
-export const registryPath = () => config().work?.registry ?? DEFAULT_REGISTRY;
+export const registryPath = () => config().work.registry;
 // The registry's key whose map gives each group (each phase) its owner.
-const groupsKey = () => config().work?.groups_key ?? DEFAULT_GROUPS_KEY;
-const peopleSource = () => config().work?.people ?? DEFAULT_PEOPLE;
+const groupsKey = () => config().work.groups_key;
+const peopleSource = () => config().work.people;
 // The file the people come from, as the messages name it.
 const listedIn = () => peopleSource().file;
 

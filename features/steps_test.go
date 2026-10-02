@@ -56,6 +56,7 @@ type scratchConfig struct {
 	groupsKey         string   // work.groups_key
 	smoke             bool     // tests.scenario has a smoke set, features/smoke.yaml
 	smokeEveryFile    *bool    // tests.scenario.smoke.every_file
+	noTagPrefix       bool     // the kind written without tag_prefix
 	hooksManager      string   // hooks.manager
 	hooksBin          string   // hooks.bin
 	ledgerFooter      string   // the key of the footer whose source is the ledger; Task when empty
@@ -173,6 +174,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^a feature file "([^"]*)" with the live scenario "([^"]*)"$`, w.featureFile)
 	sc.Step(`^the smoke set lists only "([^"]*)"$`, w.smokeSetLists)
 	sc.Step(`^smoke\.every_file is (true|false)$`, w.smokeEveryFileIs)
+	sc.Step(`^the kind leaves out tag_prefix$`, w.noTagPrefix)
 	sc.Step(`^a "([^"]*)" folder$`, w.folder)
 	sc.Step(`^hooks\.manager is "([^"]*)"$`, w.hooksManagerIs)
 	sc.Step(`^hooks\.bin is "([^"]*)"$`, w.hooksBinIs)
@@ -183,6 +185,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
 	sc.Step(`^itos checks the config as JSON$`, func() error { return w.itos("config", "check", "--json") })
+	sc.Step(`^itos prints the defaults of the config$`, func() error { return w.itos("config", "check", "--print-defaults") })
 	sc.Step(`^itos checks the work registry$`, func() error { return w.itos("work", "check") })
 	sc.Step(`^itos checks the smoke set$`, func() error { return w.itos("tests", "smoke", "check", "scenario") })
 	sc.Step(`^itos installs the hooks$`, func() error { return w.itos("hooks", "install") })
@@ -396,8 +399,10 @@ func (w *world) writeConfig() error {
   %s:
     root: features
     id: "ID-[A-Z]+-\\d+"
-    tag_prefix: "@"
 `, kind)
+		if !w.config.noTagPrefix {
+			b.WriteString("    tag_prefix: \"@\"\n")
+		}
 	}
 	if w.config.ciTests != "" {
 		// A runner that only says what it would run, as the conformance case's
@@ -900,6 +905,13 @@ func (w *world) smokeSetLists(id string) error {
 func (w *world) smokeEveryFileIs(value string) error {
 	every := value == "true"
 	w.config.smokeEveryFile = &every
+	return w.writeConfig()
+}
+
+// The scratch config's kind is written without tag_prefix, so the kind takes
+// itos's default.
+func (w *world) noTagPrefix() error {
+	w.config.noTagPrefix = true
 	return w.writeConfig()
 }
 

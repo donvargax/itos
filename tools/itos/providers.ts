@@ -15,7 +15,7 @@
 // identity means "nobody".
 import { execFileSync } from "node:child_process";
 import { parse } from "yaml";
-import { config, type IdentityConfig, type PeopleConfig, type RangeConfig } from "./config.ts";
+import { config, type Loaded, type PeopleConfig } from "./config.ts";
 import { inShell } from "./shell.ts";
 import { current } from "./source.ts";
 
@@ -33,18 +33,16 @@ function firstLine(command: string): string | undefined {
 // The start commit a range provider proposes, before rangeStart holds it to
 // the head's ancestry. Undefined means "run everything".
 export function rangeProvider(
-	range: RangeConfig = config().ci?.range ?? {},
+	range: Loaded["ci"]["range"] = config().ci.range,
 	env: NodeJS.ProcessEnv = process.env,
 ): () => Promise<string | undefined> {
-	const provider = range.provider ?? "github";
+	const { provider, github } = range;
 	if (provider === "none") return async () => undefined;
 	if (provider === "command") return async () => firstLine(range.command ?? "");
-	const github = range.github ?? {};
-	const tokens = github.token_env ?? ["GITHUB_TOKEN", "GH_TOKEN"];
 	return () =>
 		lastGreenRun({
-			repository: env[github.repository_env ?? "GITHUB_REPOSITORY"] ?? "",
-			token: tokens.map((name) => env[name]).find(Boolean),
+			repository: env[github.repository_env] ?? "",
+			token: github.token_env.map((name) => env[name]).find(Boolean),
 			workflow: github.workflow,
 			branch: github.branch,
 		});
@@ -59,13 +57,13 @@ export function rangeProvider(
 async function lastGreenRun({
 	repository,
 	token,
-	workflow = "ci.yml",
-	branch = "main",
+	workflow,
+	branch,
 }: {
 	repository: string;
 	token?: string;
-	workflow?: string;
-	branch?: string;
+	workflow: string;
+	branch: string;
 }): Promise<string | undefined> {
 	if (!repository) return undefined;
 	const url =
@@ -118,9 +116,8 @@ export function githubIdentity(hint: string, login: () => string = ghLogin): () 
 }
 
 // Who a session works for when `--as` does not say.
-export function identityProvider(identity: IdentityConfig = config().work?.identity ?? {}) {
-	const hint = identity.hint ?? "pass --as <handle>";
-	const provider = identity.provider ?? "github";
+export function identityProvider(identity: Loaded["work"]["identity"] = config().work.identity) {
+	const { hint, provider } = identity;
 	if (provider === "github") return githubIdentity(hint);
 	if (provider === "none")
 		return (): Answer => ({
@@ -182,13 +179,8 @@ export function yamlLogins(text: string): string[] {
 	];
 }
 
-export const DEFAULT_PEOPLE: PeopleConfig = {
-	source: "all-contributors-md",
-	file: "CONTRIBUTORS.md",
-};
-
 // Who may own work, read from the file the people source names.
-export function people(source: PeopleConfig = config().work?.people ?? DEFAULT_PEOPLE): string[] {
+export function people(source: PeopleConfig = config().work.people): string[] {
 	const text = current().read(source.file);
 	try {
 		if (source.source === "all-contributorsrc") return allContributorsRc(text);

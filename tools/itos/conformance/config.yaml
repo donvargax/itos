@@ -623,7 +623,7 @@ cases:
   - name: the defaults the tools take when a key is left out
     argv: [config, check, --print-defaults]
     exit: 0
-    stdout_has: ["registry: tasks/work-items.yaml", "timeout: 600", "adapter: gherkin", "hint: pass --as <handle>", "check_timeout: 60"]
+    stdout_has: ["registry: tasks/work-items.yaml", "timeout: 600", "adapter: gherkin", "hint: pass --as <handle>", "check_timeout: 60", "bin: tools/bin/itos"]
   - name: the defaults as --json
     argv: [config, check, --print-defaults, --json]
     exit: 0
@@ -646,6 +646,10 @@ cases:
             adapter: gherkin
             tag_prefix: "@"
             wip_tag: "@wip"
+            run:
+              join:
+                each: "{p}"
+                sep: "|"
             smoke:
               every_file: true
         ci:
@@ -654,6 +658,13 @@ cases:
           stop_at_first_failure: true
           range:
             provider: github
+            github:
+              workflow: ci.yml
+              branch: main
+              repository_env: GITHUB_REPOSITORY
+              token_env:
+                - GITHUB_TOKEN
+                - GH_TOKEN
         work:
           registry: tasks/work-items.yaml
           groups_key: phases
@@ -669,6 +680,7 @@ cases:
             provider: github
             hint: pass --as <handle>
         hooks:
+          bin: tools/bin/itos
           commit_msg:
             task_checks: true
             check_timeout: 60

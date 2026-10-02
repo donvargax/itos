@@ -3,7 +3,8 @@
 # staged tree by default, the commit --at names, the working tree for a
 # commit that predates the source, or always with read_at: worktree), a
 # ledger folder that is missing (read only for a message naming a task), another
-# config's footers, a command adapter's tests named in a footer, and a
+# config's footers, a Gherkin kind's default wip tag named for a test not
+# live, a command adapter's tests named in a footer, and a
 # delegated header lint's report read into problems, the footer rules run
 # beside it.
 #
@@ -296,6 +297,21 @@ cases:
     argv: [commit, check-message, "-", --config, other.yaml]
     stdin: "feat: x\n\nTests: @ID-SCRATCH-01\n"
     exit: 0
+  - name: a kind without wip_tag names the default one for a test not live
+    argv: [commit, check-message, "-", --config, nowip.yaml]
+    files:
+      nowip.yaml: |
+        version: 1
+        commits:
+          types: [feat]
+          footers:
+            Scenarios: { source: { tests: scenario }, strip_prefix: "@", validate_for: [feat], must_be_live: true }
+        tests:
+          scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+" }
+    stdin: "feat: x\n\nScenarios: @ID-SCRATCH-01\n"
+    exit: 1
+    stderr: |
+      ✖   still tagged @wip: ID-SCRATCH-01 [scenarios-footer]
   - name: another config's footer hint for a kind of tests
     argv: [commit, check-message, "-", --config, other.yaml]
     stdin: "feat: x\n"

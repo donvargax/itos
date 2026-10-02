@@ -39,7 +39,7 @@ import {
 import { planData, planJson, rangeJson } from "./ci-plan-json.ts";
 import { changedIn, docsOnly, PROSE_STEPS, rangeStart } from "./ci-scope.ts";
 import { type Runs, runCheck } from "./checks.ts";
-import { DEFAULT_REGISTRY, ledgerLayout, section } from "./config.ts";
+import { ledgerLayout, section } from "./config.ts";
 import { emit, logger, type Output, TEXT } from "./problem.ts";
 import { rangeProvider } from "./providers.ts";
 import { inShell } from "./shell.ts";
@@ -143,7 +143,7 @@ function preamble(plan: Plan, out: Output): Failure | undefined {
 		console.error(`\nCI failed at the tasks named: ${plan.unknown.join(", ")}`);
 		return { unknown: plan.unknown, code: 1 };
 	}
-	const registry = section("work").registry ?? DEFAULT_REGISTRY;
+	const registry = section("work").registry;
 	for (const id of plan.notStarted ?? [])
 		log(`${id} is named but not started (todo in ${registry}): its checks wait.`);
 	if (plan.prose) {
@@ -173,7 +173,7 @@ export function ciRun(from: string, to: string, nightly: boolean, out: Output = 
 	// Every step and every task check sees CI's settings (`ci.env`: what a
 	// runner does only in CI, say).
 	Object.assign(process.env, ci.env ?? {});
-	const stop = ci.stop_at_first_failure ?? true;
+	const stop = ci.stop_at_first_failure;
 	let failed = preamble(plan, out);
 	for (const item of plan.order) {
 		if (failed && (stop || "unknown" in failed)) break;

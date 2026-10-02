@@ -17,6 +17,6 @@ export function inShell(
 ): SpawnSyncReturns<string>;
 export function inShell(command: string, options?: SpawnSyncOptions): SpawnSyncReturns<unknown>;
 export function inShell(command: string, options: SpawnSyncOptions = {}) {
-	const [shell = "sh", ...flags] = config().shell ?? ["sh", "-c"];
+	const [shell = "sh", ...flags] = config().shell;
 	return spawnSync(shell, [...flags, command], options);
 }

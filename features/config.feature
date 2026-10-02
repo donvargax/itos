@@ -133,7 +133,7 @@ Feature: Every key the config accepts is one itos reads
   # fallback where it read a key, so the two drifted: the table gives
   # tag_prefix "@", while the smoke rule took no prefix and compared
   # "@ID-A-01" with "ID-A-01".
-  @ID-CONFIG-15 @slice-19 @wip
+  @ID-CONFIG-15 @slice-19
   Scenario: Without tests.<kind>.tag_prefix, the smoke rule reads a smoke ID with the default prefix
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     And the smoke set lists only "@ID-A-01"
@@ -141,7 +141,7 @@ Feature: Every key the config accepts is one itos reads
     When itos checks the smoke set
     Then itos exits with code 0
 
-  @ID-CONFIG-16 @slice-19 @wip
+  @ID-CONFIG-16 @slice-19
   Scenario: config check --print-defaults lists hooks.bin's default
     When itos prints the defaults of the config
     Then itos exits with code 0

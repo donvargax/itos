@@ -16,7 +16,7 @@
 // other rules read. `hooks.commit_msg.task_checks: false` turns it off.
 import { readFileSync } from "node:fs";
 import { type Captured, runCheckCaptured } from "./checks.ts";
-import { config, DEFAULT_COMMIT_CHECK_TIMEOUT } from "./config.ts";
+import { config } from "./config.ts";
 import { checksBeforeLate } from "./cost.ts";
 import { footerIds, footers } from "./footers.ts";
 import { type Check, loadTasks, type Task } from "./repo.ts";
@@ -110,17 +110,17 @@ function verdict({ task, status, registry }: Named, why: string): string[] {
 // The rule: 0 when every named task's checks pass, or every one that fails is
 // not done; else the rejection, one line per done task that fails, and 1.
 export function hook(messageFile: string): number {
-	const settings = config().hooks?.commit_msg ?? {};
-	const ids = settings.task_checks === false ? [] : namedTasks(readFileSync(messageFile, "utf8"));
+	const settings = config().hooks.commit_msg;
+	const ids = settings.task_checks ? namedTasks(readFileSync(messageFile, "utf8")) : [];
 	if (!ids.length) return 0;
-	const cap = settings.check_timeout ?? DEFAULT_COMMIT_CHECK_TIMEOUT;
+	const cap = settings.check_timeout;
 	const env = checkEnv();
 	const rejected = stagedTasks(ids).flatMap((named) => {
 		const why = firstFailure(named, cap, env);
 		return why ? verdict(named, why) : [];
 	});
 	if (!rejected.length) return 0;
-	console.error(config().commits?.reject_message ?? "Commit rejected:");
+	console.error(config().commits.reject_message);
 	for (const line of rejected) console.error(`  - ${line}`);
 	return 1;
 }

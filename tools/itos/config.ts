@@ -126,6 +126,92 @@ export interface Config {
 	};
 }
 
+// The values the tools take when the config leaves a key out: the one table.
+// The loader lays the file over it (withDefaults), and `config check
+// --print-defaults` prints it, so a default is applied exactly when it is
+// printed. `tests.<kind>` is laid under each kind the file has. A key with no
+// default (ledger.id, a kind's root) is absent when the file leaves it out.
+export const DEFAULTS = {
+	shell: ["sh", "-c"],
+	ledger: { group: { pattern: "[^/]+", numeric: false }, check: { timeout: 600 } },
+	commits: { reject_message: "Commit rejected:" },
+	tests: {
+		"<kind>": {
+			adapter: "gherkin",
+			tag_prefix: "@",
+			wip_tag: "@wip",
+			// How a run of several patterns joins them: each in `each`'s {p}, by `sep`.
+			run: { join: { each: "{p}", sep: "|" } },
+			smoke: { every_file: true },
+		},
+	},
+	ci: {
+		wait_on_status: ["todo"],
+		stop_at_first_failure: true,
+		range: {
+			provider: "github",
+			github: {
+				workflow: "ci.yml",
+				branch: "main",
+				repository_env: "GITHUB_REPOSITORY",
+				token_env: ["GITHUB_TOKEN", "GH_TOKEN"],
+			},
+		},
+	},
+	work: {
+		// Beside the ledger, since it is itos's data as the ledger is, and docs/ is prose.
+		registry: "tasks/work-items.yaml",
+		groups_key: "phases",
+		statuses: ["todo", "doing", "done", "blocked"],
+		people: { source: "all-contributors-md", file: "CONTRIBUTORS.md" },
+		identity: { provider: "github", hint: "pass --as <handle>" },
+	},
+	hooks: {
+		// How the project calls itos: the wrapper this repository and its template ship.
+		bin: "tools/bin/itos",
+		// A static check takes seconds (the cost rule), so a minute leaves room
+		// for a slow machine while a commit is never held for minutes; a check
+		// that needs longer is late.
+		commit_msg: { task_checks: true, check_timeout: 60 },
+	},
+};
+
+// The per-kind defaults, less the adapter, which a kind may give as a mapping
+// (tests.ts reads it).
+type KindDefaults = Omit<(typeof DEFAULTS.tests)["<kind>"], "adapter">;
+
+// The config as the tools read it: the file laid over DEFAULTS. A section the
+// file leaves out holds only its defaults; `section` says whether the file has it.
+export type Loaded = Config &
+	Omit<typeof DEFAULTS, "tests"> & { tests?: Record<string, KindDefaults> };
+
+type Tree = Record<string, unknown>;
+const isMapping = (v: unknown): v is Tree => !!v && typeof v === "object" && !Array.isArray(v);
+
+// `over` laid on `under`: a mapping in both is merged key by key, anything else
+// (a list, a value) is over's when over has it, a copy of under's when not.
+function layered(under: unknown, over: unknown): unknown {
+	if (over === undefined) return structuredClone(under);
+	if (!isMapping(under) || !isMapping(over)) return over;
+	const keys = new Set([...Object.keys(under), ...Object.keys(over)]);
+	return Object.fromEntries([...keys].map((k) => [k, layered(under[k], over[k])]));
+}
+
+// The file each loaded config was read from, for `section`.
+const fileOf = new WeakMap<Loaded, Config>();
+
+// The file laid over the defaults, each kind over the per-kind ones.
+export function withDefaults(file: Config): Loaded {
+	const { tests: perKind, ...rest } = DEFAULTS;
+	const loaded = layered(rest, file) as Loaded;
+	if (file.tests)
+		loaded.tests = Object.fromEntries(
+			Object.entries(file.tests).map(([name, k]) => [name, layered(perKind["<kind>"], k)]),
+		) as Loaded["tests"];
+	fileOf.set(loaded, file);
+	return loaded;
+}
+
 // The schema, strict: an object's keys are the ones listed, a map's are free.
 type Spec =
 	| "string"
@@ -643,7 +729,7 @@ function patternProblems(config: Config): Problem[] {
 const configText = (file: string) =>
 	current().has(file) ? current().read(file) : readFileSync(file, "utf8");
 
-export function loadConfig(file = configPath()): Config {
+export function loadConfig(file = configPath()): Loaded {
 	let raw: unknown;
 	try {
 		raw = parse(configText(file));
@@ -666,25 +752,29 @@ export function loadConfig(file = configPath()): Config {
 	expandSets(config, found);
 	found.push(...crossProblems(config));
 	if (found.length) throw new ConfigError(file, found);
-	return config;
+	return withDefaults(config);
 }
 
-const loaded = new Map<string, Config>();
-// The config, read once per file and per tree it is read from.
-export function config(): Config {
+const loaded = new Map<string, Loaded>();
+// The config, read once per file and per tree it is read from, with the
+// defaults under it.
+export function config(): Loaded {
 	const key = `${current().tree}:${configPath()}`;
 	if (!loaded.has(key)) loaded.set(key, loadConfig());
 	return loaded.get(key)!;
 }
 
-// A section a tool cannot work without.
-export function section<K extends keyof Config>(key: K): NonNullable<Config[K]> {
-	const value = config()[key];
-	if (value === undefined)
+// Whether the file has a section, rather than only its defaults.
+export const hasSection = (key: keyof Config, from = config()) =>
+	fileOf.get(from)?.[key] !== undefined;
+
+// A section a tool cannot work without: the file must have it.
+export function section<K extends keyof Loaded>(key: K): NonNullable<Loaded[K]> {
+	if (!hasSection(key as keyof Config))
 		throw new ConfigError(configPath(), [
 			problem("config-missing-section", `${key} is missing`, `add a ${key}: section`),
 		]);
-	return value!;
+	return config()[key]!;
 }
 
 // The globs: `*` does not cross `/`, `**`
@@ -704,32 +794,16 @@ export const matchesAny = (file: string, globs: string[]) =>
 // A command with its whitespace collapsed, as the command patterns read it.
 export const normal = (command: string) => command.trim().replace(/\s+/g, " ");
 
-// Where the work registry is when work.registry leaves it out: beside the
-// ledger, since it is itos's data as the ledger is, and docs/ is prose.
-export const DEFAULT_REGISTRY = "tasks/work-items.yaml";
-
-// The registry's statuses, and the key its owners per group are under, when
-// work.statuses and work.groups_key leave them out.
-export const DEFAULT_STATUSES = ["todo", "doing", "done", "blocked"];
-export const DEFAULT_GROUPS_KEY = "phases";
-
-// The longest the commit-msg hook lets one task check run, in seconds, when
-// hooks.commit_msg.check_timeout leaves it out. A static check takes seconds
-// (the cost rule), so a minute leaves room for a slow machine while a commit
-// is never held for minutes; a check that needs longer is late.
-export const DEFAULT_COMMIT_CHECK_TIMEOUT = 60;
-
 // The ledger's folder and how its files are named: `tasks/phase-{group}.yaml`
 // gives `tasks` and a pattern whose group is the phase.
 export function ledgerLayout(): { dir: string; file: RegExp; numeric: boolean } {
 	const ledger = section("ledger");
 	const [before, after] = basename(ledger.files).split("{group}") as [string, string];
 	const quote = (s: string) => s.replace(/[.*+?^$()|[\]\\{}]/g, "\\$&");
-	const group = ledger.group?.pattern ?? "[^/]+";
 	return {
 		dir: dirname(ledger.files),
-		file: new RegExp(`^${quote(before)}(${group})${quote(after)}$`),
-		numeric: ledger.group?.numeric ?? false,
+		file: new RegExp(`^${quote(before)}(${ledger.group.pattern})${quote(after)}$`),
+		numeric: ledger.group.numeric,
 	};
 }
 
@@ -776,10 +850,8 @@ export function staticPatterns(): RegExp[] {
 	return patterns.rules;
 }
 
-// How the project calls itos when hooks.bin leaves it out: the wrapper this
-// repository and its template ship.
-const DEFAULT_BIN = "tools/bin/itos";
-export const itosBin = () => config().hooks?.bin ?? DEFAULT_BIN;
+// How the project calls itos: hooks.bin.
+export const itosBin = () => config().hooks.bin;
 
 // A command as the cost rule reads it: its whitespace collapsed, and, when its
 // first word is hooks.bin, that word read as `itos`. The ledger and ci.steps

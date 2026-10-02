@@ -29,12 +29,12 @@ const smokeSet = (name = KIND) => {
 };
 
 // Whether every file with a live test needs a smoke test: the kind's
-// smoke.every_file, true when it leaves it out.
-export const everyFile = (name = KIND) => kind(name).smoke?.every_file ?? true;
+// smoke.every_file.
+export const everyFile = (name = KIND) => kind(name).smoke.every_file;
 
 const addHint = (name: string) => {
 	const smoke = kind(name).smoke;
-	return smoke?.add_hint ?? `add one to ${smoke?.file}`;
+	return smoke.add_hint ?? `add one to ${smoke.file}`;
 };
 
 // Each file's live test IDs (without the tag prefix), keyed by its path
@@ -49,7 +49,7 @@ export function liveScenarios(root?: string, name = KIND): Map<string, Set<strin
 }
 
 function entryProblems(entry: SmokeFile, live: Set<string> | undefined, name: string): Problem[] {
-	const smokeFile = kind(name).smoke?.file;
+	const smokeFile = kind(name).smoke.file;
 	const edit = `edit ${smokeFile}`;
 	if (!live)
 		return [

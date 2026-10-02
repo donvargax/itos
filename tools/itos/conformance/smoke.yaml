@@ -2,7 +2,8 @@
 # live test of the file it is listed under, each says why, and a file with
 # more than one says why it has more; the first rule off with
 # smoke.every_file false; the smoke file's shape; --features for
-# another folder of feature files; --json.
+# another folder of feature files; --json; a kind without tag_prefix reading
+# a smoke ID with the default prefix, @.
 files:
   itos.yaml: |
     version: 1
@@ -133,6 +134,13 @@ cases:
     exit: 1
     stderr: |
       FAIL orphan.feature has no smoke scenario (add one to e2e/smoke.yaml)
+  - name: without tag_prefix, a smoke ID is read with the default prefix
+    argv: [tests, smoke, check, scenario]
+    files:
+      itos.yaml: "version: 1\ntests:\n  scenario: { root: e2e/features, id: \"ID-[A-Z]+-\\\\d+\", smoke: { file: e2e/smoke.yaml } }\n"
+    exit: 0
+    stdout: |
+      Every feature file has a smoke scenario (3 in all)
   - name: a smoke file that is not a list
     argv: [tests, smoke, check, scenario]
     files: { e2e/smoke.yaml: "file: a.feature\n" }

@@ -50,20 +50,21 @@ export interface TestList {
 export type Selection = { whole: true } | { ids: string[] } | { pattern: string };
 
 export type Adapter = string | { command: string; supports_at?: boolean };
+// A kind as the loader gives it, its defaults under it (config.ts's DEFAULTS).
 export interface Kind {
-	adapter?: Adapter;
+	adapter: Adapter;
 	root?: string;
 	id?: string;
-	tag_prefix?: string;
-	wip_tag?: string;
-	run?: {
+	tag_prefix: string;
+	wip_tag: string;
+	run: {
 		whole?: string;
 		select?: string;
 		ids_pattern?: string;
-		join?: { each?: string; sep?: string };
+		join: { each: string; sep: string };
 	};
 	recognize?: { command: string; as: string }[];
-	smoke?: { file?: string; every_file?: boolean; add_hint?: string };
+	smoke: { file?: string; every_file: boolean; add_hint?: string };
 }
 
 export function kind(name: string): Kind {
@@ -74,7 +75,7 @@ export function kind(name: string): Kind {
 
 // An ID as the kind's lists hold it: without its tag prefix.
 export const bareId = (name: string, id: string) => {
-	const prefix = kind(name).tag_prefix ?? "";
+	const prefix = kind(name).tag_prefix;
 	return prefix && id.startsWith(prefix) ? id.slice(prefix.length) : id;
 };
 
@@ -87,7 +88,7 @@ export function listTests(
 	{ at = "worktree", root }: { at?: string; root?: string } = {},
 ): TestList {
 	const k = kind(name);
-	const adapter = k.adapter ?? "gherkin";
+	const { adapter } = k;
 	if (adapter === "gherkin") {
 		// Gherkin's tags start with `@`; the root and the ID pattern are the kind's.
 		const need = (key: "root" | "id") => {
@@ -100,8 +101,8 @@ export function listTests(
 			{
 				root: need("root"),
 				id: need("id"),
-				tag_prefix: k.tag_prefix ?? "@",
-				wip_tag: k.wip_tag ?? "@wip",
+				tag_prefix: k.tag_prefix,
+				wip_tag: k.wip_tag,
 			},
 			at,
 		);
@@ -159,7 +160,7 @@ function protocolProblem(list: unknown): string | undefined {
 export const shellWord = (s: string) => `'${s.replaceAll("'", `'\\''`)}'`;
 
 const template = (name: string, key: "whole" | "select" | "ids_pattern") => {
-	const value = kind(name).run?.[key];
+	const value = kind(name).run[key];
 	if (value === undefined)
 		throw new ConfigError(configPath(), [`tests.${name}.run.${key} is missing`]);
 	return value;
@@ -183,11 +184,11 @@ export function commandFor(name: string, all: Selection[]): string | undefined {
 			),
 		),
 	];
-	const join = kind(name).run?.join ?? {};
+	const { join } = kind(name).run;
 	const pattern =
 		patterns.length === 1
 			? patterns[0]!
-			: patterns.map((p) => (join.each ?? "{p}").replace("{p}", () => p)).join(join.sep ?? "|");
+			: patterns.map((p) => join.each.replace("{p}", () => p)).join(join.sep);
 	return template(name, "select").replace("{pattern}", () => shellWord(pattern));
 }
 

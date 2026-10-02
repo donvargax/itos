@@ -50,7 +50,7 @@ export function scopeIssues(type: string, files: string[]): Problem[] {
 
 // The rejection, as the hook has always printed it.
 function reject(found: Problem[]) {
-	console.error(section("commits").reject_message ?? "Commit rejected:");
+	console.error(section("commits").reject_message);
 	for (const p of found) console.error(`  - ${p.message}`);
 }
 

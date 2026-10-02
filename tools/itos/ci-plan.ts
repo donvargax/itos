@@ -54,7 +54,7 @@ import {
 } from "./ci-scope.ts";
 import { smokeIds } from "./smoke-rule.ts";
 import { loadSmoke } from "./smoke.ts";
-import { config, DEFAULT_REGISTRY, normal, section, type StepConfig } from "./config.ts";
+import { config, normal, section, type StepConfig } from "./config.ts";
 import { type Costed, costedChecks, costOf } from "./cost.ts";
 import { type Check, loadTasks, type Task } from "./repo.ts";
 import { commandFor, recognize, type Selection } from "./tests.ts";
@@ -278,7 +278,7 @@ export const planFor = (
 	from: string,
 	to: string,
 	root?: string,
-	registry = section("work").registry ?? DEFAULT_REGISTRY,
+	registry = section("work").registry,
 ): Plan =>
 	planWith(from, to, { tasks: loadTasks(root), todo: notStartedIn(registry), smoke: planSmoke() });
 
@@ -314,7 +314,7 @@ export function notStartedIn(registry: string): Set<string> {
 		const items = (
 			parse(readFileSync(registry, "utf8")) as { items?: { id: string; status: string }[] }
 		).items;
-		const waiting = config().ci?.wait_on_status ?? ["todo"];
+		const waiting = config().ci.wait_on_status;
 		return new Set((items ?? []).filter((i) => waiting.includes(i.status)).map((i) => i.id));
 	} catch {
 		return new Set();

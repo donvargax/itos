@@ -11,36 +11,13 @@ import {
 	ConfigError,
 	configIssues,
 	configPath,
-	DEFAULT_COMMIT_CHECK_TIMEOUT,
-	DEFAULT_GROUPS_KEY,
-	DEFAULT_REGISTRY,
-	DEFAULT_STATUSES,
+	DEFAULTS,
 	ledgerFiles,
 	ledgerIssues,
 } from "./config.ts";
 import { emit, type Output, problem, type Problem, TEXT } from "./problem.ts";
-import { DEFAULT_PEOPLE } from "./providers.ts";
 import { sinceIssue } from "./repo.ts";
 import { loadSmoke } from "./smoke.ts";
-
-// The values the tools take when the config leaves a key out.
-export const DEFAULTS = {
-	shell: ["sh", "-c"],
-	ledger: { group: { pattern: "[^/]+", numeric: false }, check: { timeout: 600 } },
-	commits: { reject_message: "Commit rejected:" },
-	tests: {
-		"<kind>": { adapter: "gherkin", tag_prefix: "@", wip_tag: "@wip", smoke: { every_file: true } },
-	},
-	ci: { wait_on_status: ["todo"], stop_at_first_failure: true, range: { provider: "github" } },
-	work: {
-		registry: DEFAULT_REGISTRY,
-		groups_key: DEFAULT_GROUPS_KEY,
-		statuses: DEFAULT_STATUSES,
-		people: DEFAULT_PEOPLE,
-		identity: { provider: "github", hint: "pass --as <handle>" },
-	},
-	hooks: { commit_msg: { task_checks: true, check_timeout: DEFAULT_COMMIT_CHECK_TIMEOUT } },
-};
 
 type Area = "config" | "ledger" | "registry" | "smoke";
 type Found = Problem & { area: Area };
@@ -111,7 +88,7 @@ export function configFindings(ledger?: string): { code: number; found: Found[];
 		}));
 		return { code: 2, found, lines: [] };
 	}
-	const registry = config().work?.registry ?? DEFAULTS.work.registry;
+	const registry = config().work.registry;
 	const smoke = smokeProblems();
 	const found = [
 		...tagged("ledger", ledgerIssues(files)),
@@ -132,7 +109,7 @@ export function configCheck(ledger: string | undefined, out: Output = TEXT): num
 	return code;
 }
 
-// `config check --print-defaults`: the defaults, as YAML or JSON.
+// `config check --print-defaults`: the defaults the loader applies (config.ts), as YAML or JSON.
 export function printDefaults(out: Output = TEXT): number {
 	if (out.json) emit({ defaults: DEFAULTS });
 	else process.stdout.write(stringify(DEFAULTS));
