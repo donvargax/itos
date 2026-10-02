@@ -1,0 +1,140 @@
+package tests
+
+import (
+	"os"
+	"path/filepath"
+	"regexp"
+	"sort"
+	"strings"
+
+	"github.com/donvargax/itos/internal/value"
+)
+
+// Options are a Gherkin kind's: the folder of its feature files (a test's
+// file is relative to it), a scenario ID's pattern without its tag prefix,
+// the tag prefix and the wip tag.
+type Options struct {
+	Root, ID, TagPrefix, WipTag string
+}
+
+// Block is one scenario as written: its tag line, its Scenario line and its
+// steps, and whether its tag line holds the wip tag.
+type Block struct {
+	Wip  bool
+	Body string
+}
+
+// Feature is a feature file read: its header (everything before the first
+// scenario, the Background included), whether a tag line of the header holds
+// the wip tag, and its scenarios by ID, in the order written.
+type Feature struct {
+	Header  string
+	FileWip bool
+	IDs     []string
+	Blocks  map[string]Block
+}
+
+// startsWithTag is whether a line, trimmed, begins with a tag.
+func startsWithTag(line string) bool { return strings.HasPrefix(value.Trim(line), "@") }
+
+// ParseFeature reads a feature file's header and its scenario blocks. A
+// scenario is the block starting at a line that begins with a tag and holds
+// <tag_prefix><id> as a whole word, up to the next such line. An error when
+// the kind's ID pattern does not compile.
+func ParseFeature(text string, o Options) (Feature, error) {
+	idTag, err := regexp.Compile(regexp.QuoteMeta(o.TagPrefix) + "(" + o.ID + `)\b`)
+	if err != nil {
+		return Feature{}, err
+	}
+	wipTag := regexp.MustCompile("(^|" + value.Space + ")" + regexp.QuoteMeta(o.WipTag) + "(" + value.Space + "|$)")
+	f := Feature{Blocks: map[string]Block{}}
+	var header []string
+	var id string
+	var lines []string
+	flush := func() {
+		if lines == nil {
+			return
+		}
+		if _, ok := f.Blocks[id]; !ok {
+			f.IDs = append(f.IDs, id)
+		}
+		f.Blocks[id] = Block{
+			Wip:  wipTag.MatchString(lines[0]),
+			Body: strings.TrimRightFunc(strings.Join(lines, "\n"), isTrimmed),
+		}
+	}
+	for _, line := range strings.Split(text, "\n") {
+		m := idTag.FindStringSubmatch(line)
+		switch {
+		case m != nil && m[1] != "" && startsWithTag(line):
+			flush()
+			id, lines = m[1], []string{line}
+		case lines != nil:
+			lines = append(lines, line)
+		default:
+			header = append(header, line)
+		}
+	}
+	flush()
+	f.Header = strings.TrimRightFunc(strings.Join(header, "\n"), isTrimmed)
+	for _, line := range header {
+		if startsWithTag(line) && wipTag.MatchString(line) {
+			f.FileWip = true
+		}
+	}
+	return f, nil
+}
+
+// isTrimmed is what trimEnd removes.
+func isTrimmed(r rune) bool { return value.Trim(string(r)) == "" }
+
+// featureFiles are the feature files under a folder, depth first, each
+// folder's entries by name; none when it cannot be read.
+func featureFiles(dir string) []string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+	var files []string
+	for _, e := range entries {
+		path := filepath.Join(dir, e.Name())
+		switch {
+		case e.IsDir():
+			files = append(files, featureFiles(path)...)
+		case strings.HasSuffix(e.Name(), ".feature"):
+			files = append(files, path)
+		}
+	}
+	return files
+}
+
+// gherkinList is the adapter protocol's list of the working tree's
+// scenarios.
+func gherkinList(o Options) (List, error) {
+	texts := map[string]string{}
+	files := []string{}
+	for _, path := range featureFiles(o.Root) {
+		text, err := os.ReadFile(path)
+		if err != nil {
+			return List{}, err
+		}
+		rel, err := filepath.Rel(o.Root, path)
+		if err != nil {
+			return List{}, err
+		}
+		texts[rel] = string(text)
+		files = append(files, rel)
+	}
+	sort.Strings(files)
+	tests := []Test{}
+	for _, file := range files {
+		f, err := ParseFeature(texts[file], o)
+		if err != nil {
+			return List{}, err
+		}
+		for _, id := range f.IDs {
+			tests = append(tests, Test{ID: id, File: file, Live: !f.FileWip && !f.Blocks[id].Wip})
+		}
+	}
+	return List{Protocol: 1, Tests: tests, Files: files}, nil
+}

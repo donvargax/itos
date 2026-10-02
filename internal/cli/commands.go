@@ -201,7 +201,8 @@ func configCommand(args []string, o Out) (int, error) {
 	if slices.Contains(args, "--print-defaults") {
 		return printDefaults(o)
 	}
-	return notPorted("config check")
+	ledger, _ := flagValue(args, "--ledger")
+	return configCheck(ledger, o)
 }
 
 // versionCommand prints the version, or under --json the version with the

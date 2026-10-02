@@ -52,7 +52,6 @@ func TestNotPortedFailsLoudly(t *testing.T) {
 		{"hook", "commit-msg", "m"},
 		{"hook", "pre-push"},
 		{"hooks", "install", "--manager", "git"},
-		{"config", "check"},
 	} {
 		code, stdout, stderr := run(args...)
 		path := strings.Join(args, " ")
