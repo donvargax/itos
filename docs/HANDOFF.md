@@ -12,20 +12,22 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after T-041 (the Go help texts) landed.
+Last updated 2026-10-02, after T-040 (the Go snapshot release) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `b500322` (CI run 37034214009), after T-041; this
+`main` is green at `72eb9b7` (CI run 37035463362), after T-040; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`, its one list `PORTED`: `cli.yaml` and
 `help.yaml` so far, so a help text changes in help.ts, help.go and help.yaml
 in one push). The
-nightly ends with `{ tasks: done, cost: static }`, every done task's static
+nightly builds and proves the Go release archives
+(`tools/selftest/go-release.ts`, new with T-040, not yet run by a nightly),
+then ends with `{ tasks: done, cost: static }`, every done task's static
 checks. The last nightly, 37003001717 (scheduled, on `e2b4f29`), is green.
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
@@ -35,7 +37,7 @@ Released: [v0.6.0](https://github.com/donvargax/itos/releases/tag/v0.6.0)
 [v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0). Each
 release's Upgrading section is what a consumer's session updates from. The
 user moves the consumers' pins (the project template, the character editor)
-from their own repositories: don't change any other repository. Unreleased: the Go port so far (T-039, T-041), which changes nothing a
+from their own repositories: don't change any other repository. Unreleased: the Go port so far (T-039, T-040, T-041), which changes nothing a
 consumer of the TypeScript sees. Write the next release's notes as each slice lands, from its
 report, in `docs/releases/v<next>.md`.
 
@@ -44,7 +46,9 @@ report, in `docs/releases/v<next>.md`.
 1. **The Go port** (`p2-go-port: The Go port, one command group at a
 time`; PLAN.md, phase 2, and its decisions "The port's proof" and "The Go
    version"). The scaffold is in (`T-039`: commands not ported yet exit 3,
-   `itos: <command> is not in this build yet`). The help texts are in (`T-041`). Next, one agent at a time: `T-040: A snapshot release of the Go binary, built as a release will be`, then the
+   `itos: <command> is not in this build yet`). The help texts (`T-041`) and the release archives (`T-040`,
+   `node tools/bin/build-go.ts --release <dir>`) are in. Next, one agent at a
+   time, the
    config group, specified: `T-042: The Go config loader and config check`
    (it replaces the scaffold's narrow config reader), `T-043: The Go task
 runner, task and task list`, `T-044: The Go globs and path rules, commit
@@ -56,7 +60,7 @@ check-paths`. Each group adds its corpus files and `-scenarios=`
    `p1-ledger-id-default`, `p1-own-recognize-for-itos`,
    `p1-release-defaults-per-config`, `p1-registry-old-default-hint`,
    `p1-moves-except-types-checked`, `p1-moves-merge-by-git`,
-   `p2-go-unit-tests-in-hooks`. `p1-verify-with-last-release` comes with
+   `p2-go-unit-tests-in-hooks`, `p2-go-release-proves-its-archives`. `p1-verify-with-last-release` comes with
    the port (the user's call).
 2. **The hand work that could be itos's** (the block above phase 2 in the
    registry) comes after the port, the user agreed; the coordinator had
