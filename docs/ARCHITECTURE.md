@@ -231,7 +231,14 @@ The Go build of itos lands beside the TypeScript one command group at a time
   as the TypeScript does, so a usage error reads the same in both, and then a
   command whose group has not landed exits 3, the missing environment's code,
   with `itos: <command> is not in this build yet (the Go port has not reached
-it)`. The help texts are not ported yet either and fail the same way.
+it)`.
+- **The help texts** are `internal/cli/help.go`, `help.ts` ported: every
+  text in one table keyed by command path, as `HELP` is, not one beside each
+  command, so the two read side by side. `itos`, `itos help …` and any
+  `--help` print the longest command path the table knows, before any config
+  is read, whether or not the command is ported. A change to a text lands in
+  both files and `help.yaml` in one push, since the corpus file is in the
+  ported set.
 - **The version** is `package.json`'s: `tools/bin/build-go.ts <out dir>`
   builds `./cmd/itos` into `<out dir>/itos` with `CGO_ENABLED=0` and
   `-trimpath`, stamping the version into `internal/version` (`-ldflags -X`).

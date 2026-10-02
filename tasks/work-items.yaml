@@ -1521,7 +1521,7 @@ items:
     title: The Go binary's --help texts, the corpus's help cases
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-039]
     kind: task
     refs: [tasks/phase-2.yaml]
