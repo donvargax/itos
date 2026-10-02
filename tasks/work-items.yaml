@@ -317,20 +317,6 @@ items:
     kind: task
     refs: [tasks/phase-1.yaml]
 
-  - id: p1-release-pnpm-install
-    title: The release self-test installs the tarball with pnpm too
-    phase: 1
-    owner: null
-    status: todo
-    depends_on: [T-032]
-    kind: idea
-    why: >
-      Found in T-032: release.ts proves the tarball through npm alone, its offline install, what it
-      holds and its report of install scripts (checked against a control package with a prepare
-      script), while consumers here install with pnpm as often (vp install). A pnpm install of the
-      same tarball, offline, with what pnpm reports of build scripts judged the same way, would
-      prove the package for both.
-
   - id: p1-ci-after-push-checks
     title: CI waits on an after-push check the push itself cannot satisfy
     phase: 1
@@ -1153,20 +1139,6 @@ items:
       and a commit refusing paths the config marks as someone's work in progress (AGENTS.md, "Stage
       your own work"). The instructions then point to the check.
 
-  - id: p1-release-selftest-own-release
-    title: A release task's tarball check proves its own release
-    phase: 1
-    owner: null
-    status: todo
-    depends_on: [T-029]
-    kind: idea
-    why: >
-      T-024's and T-027's first check, node tools/selftest/release.ts, packs this tree and proves
-      that tarball under package.json's version, so a done release task says nothing about its
-      release and goes red with whatever later breaks the tree's pack. Given a tagged version it
-      could prove the released tarball (--tarball, downloaded and verified as release-notes.ts
-      does) against the tag's corpus and features.
-
   # What the coordinator and the agents did by hand, the same way each time, in the session that
   # released v0.3.0 and v0.4.0: each could be a command. Asked for by the user.
   - id: p1-work-take-done-promote
@@ -1223,6 +1195,8 @@ items:
       "what a consumer sees change", which the notes check cannot see beyond changed defaults. A
       feat or fix footer (Upgrading:, say) would record it where the change is made; release
       preparation would gather the range's, and the notes check would require each to appear.
+      The user's call (2026-10-02): it lands before v2.0.0, so v2's notes, the largest yet, are
+      gathered from the commits rather than read out of them; built once, in Go, after T-062.
       It would cover what p1-release-notes-schema-keys misses too: keys dropped, values narrowed.
 
   - id: p1-itos-release
@@ -1787,7 +1761,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [T-063]
+    depends_on: [T-063, p1-upgrading-footer]
     kind: idea
     why: >
       The release Go only: T-062 took the TypeScript out of the repository and the release
@@ -2000,4 +1974,41 @@ items:
       #<n>. Open for the user: status and order from labels, or from a GitHub Project's fields,
       which also hold the queue's order (p1-work-queue-order) at the cost of more API. The ledger
       stays in the repository either way, since a task's checks are commands run at a commit.
+    refs: [PLAN.md]
+
+  - id: p3-claude-code-plugin
+    title: The itos plugin for Claude Code, published from this repository
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [T-061]
+    kind: idea
+    why: >
+      The user's call (2026-10-02): the local itos-titles mod, which draws an itos ID's title beside
+      it in Claude's replies (ui.render on AssistantMessage, never the stream), ships as part of
+      itos, in this repository under integrations/claude-code/, the repository a Claude Code plugin
+      marketplace, versioned and released with itos. It asks the project's own itos for the titles
+      (itos work --json, itos task list --json, through tools/bin/itos or .tools/bin/itos), so a
+      registry moved by work.registry and ledger tasks without registry entries are found, and falls
+      back to reading tasks/work-items.yaml. Its changes are task-driven, proven by
+      claude plugin test in the task's checks: one commits.scopes entry for integrations/**. A home
+      later for other itos-aware pieces (an inbox pane, main's CI in the status line).
+    refs: [PLAN.md]
+
+  - id: p3-self-update
+    title: A global itos that updates itself and runs each repository's pinned version
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [T-061]
+    kind: idea
+    why: >
+      The user's idea (2026-10-02): install itos once, globally, instead of in each repository. A
+      plain self-updating binary would break the pin each repository relies on (PLAN.md §10), so the
+      proposal is a version manager, as rustup or corepack: the global itos updates itself, and in a
+      repository it downloads the exact version the repository pins into a cache, checks it against
+      the pinned checksum and runs it; with no pin (the stealth mode, a repository without itos) the
+      newest it has. ITOS_NO_UPDATE=1 stops self-update, ITOS_VERSION forces a version, CI never
+      self-updates, and releases are signed so an update checks a signature. Open for the user:
+      automatic update or a notice, and an exact version key beside requires.
     refs: [PLAN.md]
