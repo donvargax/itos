@@ -18,13 +18,14 @@ Last rewritten 2026-10-01, after v0.3.0 and v0.4.0 were released.
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `62214c4` (CI run 36946229433) after slices 14, 15 and
-16 and T-035; every task in the ledger is done. Slice 16 put
-`{ tasks: done, cost: static }` last in this repository's nightly, so the
-nightly now runs every done task's static checks (34 checks of 21 tasks, 7
-seconds, none red when added). A nightly was dispatched by hand on
-`62214c4` (run 36946417880): read it, or the newest one, before starting
-the next implementation. A red nightly takes priority over new work.
+`main` is green at `3210cc3` (CI run 36946719116) after slices 14, 15 and
+16 and T-035; every task in the ledger is done. The nightly is green on it
+(run 36946722134, dispatched by hand) and now ends with
+`{ tasks: done, cost: static }`, every done task's static checks. Its first
+run was red: the nightly's checkout was shallow and lacked actionlint, which
+those checks need; both are fixed in `nightly.yml`. Read the newest nightly
+before starting the next implementation. A red nightly takes priority over
+new work.
 
 Released: [v0.4.0](https://github.com/donvargax/itos/releases/tag/v0.4.0)
 (slices 10 to 13, T-032), after
