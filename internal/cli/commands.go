@@ -21,7 +21,7 @@ var commands = map[string]command{
 	"commit":  commit,
 	"verify":  verify,
 	"tests":   testsCommand,
-	"ci":      ci,
+	"ci":      ciCommand,
 	"hook":    hook,
 	"hooks":   hooks,
 	"config":  configCommand,
@@ -152,7 +152,7 @@ func testsCommand(args []string, o Out) (int, error) {
 	return 0, usage("unknown command: tests smoke %s", action)
 }
 
-func ci(args []string, o Out) (int, error) {
+func ciCommand(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	range_ := positional(rest, "--data-at", "--head", "--base")
 	from, to := "", ""
@@ -171,7 +171,7 @@ func ci(args []string, o Out) (int, error) {
 		dataAt, _ := flagValue(rest, "--data-at")
 		return ciPlan(from, to, nightly, dataAt, o)
 	case "run":
-		return notPorted("ci run")
+		return ciRun(from, to, nightly, o)
 	case "scope":
 		if to == "" {
 			return 0, usage("ci scope needs <from> <to>")

@@ -37,7 +37,6 @@ func TestNotPortedFailsLoudly(t *testing.T) {
 	for _, args := range [][]string{
 		{"work"},
 		{"work", "check"},
-		{"ci", "run"},
 		{"ci", "range", "--head", "x"},
 		{"hook", "commit-msg", "m"},
 		{"hook", "pre-push"},
