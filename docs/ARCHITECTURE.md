@@ -476,11 +476,49 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   the GitLab and Forgejo APIs wait for `p1-conformance-http`, as the range
   ones do: neither implementation's schema accepts them yet, so a config
   naming one is a config error, not a command that runs half-built.
-- **What is not ported yet** fails loudly: every command takes its arguments
-  as the TypeScript does, so a usage error reads the same in both, and then a
-  command whose group has not landed exits 3, the missing environment's code,
-  with `itos: <command> is not in this build yet (the Go port has not reached
-it)`.
+- **The hooks** are `hook commit-msg`, `hook pre-push`
+  (`internal/cli/hook.go`) and `hooks install` (`internal/cli/install.go`),
+  `hooks.ts` with `commit-data.ts`, `commit-scope.ts`, `commit-tasks.ts` and
+  `pre-push.ts`. `hook commit-msg` is four rules in the TypeScript's order,
+  the first to fail deciding, each a call to the judgement its own command
+  makes: itos's data at commit is `configFindings` under
+  `source.ReadingFrom(source.At("index"), …)` when a staged path (`git diff
+--cached --name-only --diff-filter=ACMRD`) is the config, a ledger file, the
+  registry or a smoke set as the staged config names them, data that cannot
+  be read one `data-unreadable` problem, the rejection's first line the
+  staged `commits.reject_message`; the staged rule is `scope.Of(cfg).Issues`
+  on the staged paths and each kind's `staged` range command (both only for
+  a type `Ruled`), then `tests.NewMoves(cfg).Staged(type)`; the header lint
+  is `message.LintFile`, the `commits.header_lint.hook` delegate with
+  `{file}` as one `tests.ShellWord`, inheriting the hook's streams, its exit
+  code the hook's, beside `FooterProblems` at the staged tree (or
+  `ITOS_AT`); last, the named tasks' checks up to each task's first late one
+  (`check.ChecksBeforeLate`), the ledger and the registry read from the
+  index by the staged config, the checks' costs and timeouts by the working
+  tree's, as the TypeScript reads each. Each check runs through
+  `check.RunCaptured`, `runCheckCaptured` ported: quiet, stdout and stderr in
+  one temporary file rather than a pipe, so a command it leaves running
+  cannot hold the commit past its timeout, the timeout capped by
+  `hooks.commit_msg.check_timeout` (`Capped` says the cap set it), a
+  timeout a failure whatever the code, in the hook's environment less
+  `GIT_INDEX_FILE`. A failure rejects the commit when `work.ItemStatuses`
+  says the task is `done`, and is only printed otherwise. `hook pre-push`
+  reads git's ref lines, or under pre-commit or prek the line their
+  environment gives, and runs `hooks.pre_push`'s `per_base` once per remote
+  base this clone has, else `whole`, nothing for a deleted branch. `hooks
+install` picks the manager (`--manager`, `hooks.manager`, then the markers)
+  and writes or prints the one-line shims (`#!/bin/sh` and executable for
+  plain git, written as a new file is), or prints a config-file manager's
+  snippet; a hook that is not a shim (`isShim`: one line calling `itos hook`,
+  besides comments and a shebang) is replaced only with `--force`. The hooks
+  this repository's git calls stay the TypeScript's until phase 3.
+- **What is not ported** would fail loudly: every command takes its
+  arguments as the TypeScript does, so a usage error reads the same in both,
+  and then a command whose group had not landed exited 3, the missing
+  environment's code, with `itos: <command> is not in this build yet (the Go
+port has not reached it)`. Every command of the table is ported now; the
+  error (`NotPorted`) stays for a command the TypeScript gains ahead of the
+  Go, and `TestNotPortedFailsLoudly` holds it by itself.
 - **The help texts** are `internal/cli/help.go`, `help.ts` ported: every
   text in one table keyed by command path, as `HELP` is, not one beside each
   command, so the two read side by side. `itos`, `itos help …` and any
@@ -513,8 +551,9 @@ it)`.
   and fails when the set is empty or anything in it fails. It is a late step
   of every push's CI, so a later change to a ported group lands in both
   implementations in one push; `ci.covers` skips a task check that builds the
-  binary and runs a ported corpus file again. A group adds its part to the
-  list when it lands.
+  binary and runs a ported corpus file again. A group added its part to the
+  list when it landed; since the hooks (T-052) the set holds every corpus
+  file and selections that cover every live scenario.
 - **Its commits.** The port's code is `refactor` with a `Task:` footer: the
   behaviour is the TypeScript's, already specified. The Go files under `cmd/`
   and `internal/` are in `commits.path_sets.implementation`, and their

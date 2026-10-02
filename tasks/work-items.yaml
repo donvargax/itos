@@ -1635,7 +1635,7 @@ items:
     title: The Go hooks, hook commit-msg, hook pre-push and hooks install
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-047, T-049, T-051]
     kind: task
     refs: [tasks/phase-2.yaml]
@@ -1707,9 +1707,9 @@ items:
     title: The Go check runner runs a check quietly, its output kept and its timeout capped
     phase: 2
     owner: donvargax
-    status: todo
+    status: done
     depends_on: [T-043]
-    kind: idea
+    kind: task
     why: >
       Found in T-043: internal/check has the task runner's Run (checks.ts's runCheck), which CI's
       run of its plan shares, but not runCheckCaptured, which the commit-msg hook runs a named
@@ -1737,7 +1737,7 @@ items:
       step 3, as the corpus judges globs through it); steps 3 and 4 are T-045, T-046 and T-047, split by corpus file;
       step 5 is T-048, T-049 and T-050; steps 7 and 8 are T-051 and T-052;
       this item holds what is left: step 6's HTTP providers (waiting for p1-conformance-http),
-      the ported set grown to the whole corpus and every feature, and step 9, v1.0.0, with moves.yaml joining the hook group.
+      the ported set grown to the whole corpus and every feature, and step 9, v1.0.0.
     refs: [PLAN.md, tasks/phase-2.yaml]
 
   - id: p2-stealth-mode
