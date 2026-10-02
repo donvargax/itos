@@ -178,10 +178,12 @@ func ciCommand(args []string, o Out) (int, error) {
 		}
 		return ciScope(from, to, o)
 	case "range":
-		if _, ok := flagValue(rest, "--head"); !ok {
+		head, ok := flagValue(rest, "--head")
+		if !ok {
 			return 0, usage("ci range needs --head <sha>")
 		}
-		return notPorted("ci range")
+		base, _ := flagValue(rest, "--base")
+		return ciRange(head, base, o)
 	}
 	return 0, usage("unknown command: ci %s", sub)
 }

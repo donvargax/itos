@@ -2,11 +2,13 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/donvargax/itos/internal/ci"
 	"github.com/donvargax/itos/internal/config"
 	"github.com/donvargax/itos/internal/out"
 	"github.com/donvargax/itos/internal/plan"
+	"github.com/donvargax/itos/internal/providers"
 )
 
 // planOf is the config and the plan a run of it carries out: the nightly's,
@@ -74,5 +76,23 @@ func ciScope(from, to string, o Out) (int, error) {
 		return 0, out.Emit(o.Stdout, out.Field{Key: "docs_only", Value: docs})
 	}
 	fmt.Fprintf(o.Stdout, "docs_only=%t\n", docs)
+	return 0, nil
+}
+
+// ciRange is `ci range --head <sha> [--base <sha>]` (ci.ts's ciRange): where
+// the range starts, `FROM=<sha>`, empty to run everything. The config is
+// read first, so a broken ci.range is a config error even for a pull
+// request, whose base is kept without asking the provider; a provider that
+// fails is not an error.
+func ciRange(head, base string, o Out) (int, error) {
+	cfg, err := config.Load(config.Path())
+	if err != nil {
+		return 0, err
+	}
+	from := providers.RangeStart(head, base, providers.RangeProvider(cfg, os.Getenv, o.Stderr))
+	if o.JSON {
+		return 0, out.Emit(o.Stdout, out.Field{Key: "from", Value: from})
+	}
+	fmt.Fprintf(o.Stdout, "FROM=%s\n", from)
 	return 0, nil
 }
