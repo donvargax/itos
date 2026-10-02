@@ -192,4 +192,8 @@ work: # tools/itos/work.ts; the registry is at its default, tasks/work-items.yam
 hooks:
   manager: vp # shims in .vite-hooks/, written by `itos hooks install`
   bin: tools/bin/itos # what the shims call
-  pre_push: { per_base: "vp test run --changed {base}", whole: "vp test run" }
+  # Vitest's and Go's unit tests the push reaches (tools/bin/go-unit-tests, which pre-commit runs
+  # too), stopping at the first that fails, as CI does.
+  pre_push:
+    per_base: "vp test run --changed {base} && tools/bin/go-unit-tests {base}"
+    whole: "vp test run && tools/bin/go-unit-tests --all"

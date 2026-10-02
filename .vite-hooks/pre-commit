@@ -16,6 +16,11 @@ fi
 vp test run --changed HEAD --coverage --coverage.reporter=json \
 	--coverage.thresholds.statements=0 --coverage.thresholds.branches=0 \
 	--coverage.thresholds.functions=0 --coverage.thresholds.lines=0 || exit $?
+# The Go unit tests the staged change reaches: the packages it touches and
+# those that import them (tools/bin/go-unit-tests, which pre-push runs too,
+# through itos.yaml's hooks.pre_push). Nothing when no file under cmd/ or
+# internal/, nor go.mod or go.sum, is staged.
+tools/bin/go-unit-tests --cached || exit $?
 # The audit gate (new-only): skip until the repository has a first commit to diff against.
 git rev-parse --verify HEAD >/dev/null 2>&1 || exit 0
 vp exec fallow audit --quiet --gate-marker pre-commit

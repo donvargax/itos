@@ -1,0 +1,81 @@
+#!/bin/sh
+# The Go unit tests a change reaches, as `vp test run --changed` is for the
+# TypeScript (T-059). Both hooks call it: pre-commit with --cached (what is
+# staged), pre-push through itos.yaml's hooks.pre_push with the remote commit
+# the push builds on (that commit against the working tree, as Vitest's
+# --changed reads it), or --all when there is none.
+#
+# A changed file belongs to the package whose folder holds it, the deepest one,
+# so a package's testdata/ and embedded files count as the package. The run is
+# those packages and every package whose imports, its tests' included, reach
+# one of them, transitively: `go list -deps -test` gives each package's Deps,
+# in well under a second and without building anything. go.mod and go.sum,
+# which every package builds with, run them all. Results stay in Go's test
+# cache, so a package whose inputs did not change answers at once.
+#
+# The packages are ./cmd/... and ./internal/..., CI's step: features/ is not a
+# unit suite but the named tests, run by CI and the nightly.
+#
+#   tools/bin/go-unit-tests --cached | <base> | --all
+set -eu
+patterns="./cmd/... ./internal/..."
+
+case "${1:-}" in
+--all) changed=go.mod ;;
+--cached) changed=$(git diff --cached --name-only --no-renames) ;;
+"" | -*)
+	echo "usage: tools/bin/go-unit-tests --cached | <base> | --all" >&2
+	exit 2
+	;;
+*) changed=$(git diff --name-only --no-renames "$1") ;;
+esac
+
+# Nothing a Go package is built or tested from: no `go` at all.
+printf '%s\n' "$changed" | grep -qE '^(cmd/|internal/|go\.(mod|sum)$)' || exit 0
+
+if printf '%s\n' "$changed" | grep -qE '^go\.(mod|sum)$'; then
+	echo "\$ go test $patterns"
+	exec go test $patterns
+fi
+
+# One line per package and per test variant: import path, folder, Deps. A test
+# variant's path is `p [p.test]` and its test main's `p.test`: both are p's
+# tests. A Dep recompiled for a test reads `q [p.test]`, which the space splits
+# into q and a word in brackets, dropped.
+root=$(git rev-parse --show-toplevel)
+# shellcheck disable=SC2086 # the patterns are words
+packages=$(go list -e -test -f '{{.ImportPath}}|{{.Dir}}|{{join .Deps " "}}' $patterns |
+	CHANGED="$changed" ROOT="$root/" awk -F'|' '
+	{
+		path = $1
+		sub(/ \[.*/, "", path)
+		sub(/\.test$/, "", path)
+		dir = substr($2, 1, length(ENVIRON["ROOT"])) == ENVIRON["ROOT"] ? substr($2, length(ENVIRON["ROOT"]) + 1) : $2
+		folder[path] = dir
+		deps[path] = deps[path] " " $3
+	}
+	END {
+		n = split(ENVIRON["CHANGED"], files, "\n")
+		for (i = 1; i <= n; i++) {
+			best = ""
+			longest = 0
+			for (p in folder)
+				if (index(files[i], folder[p] "/") == 1 && length(folder[p]) > longest) {
+					best = p
+					longest = length(folder[p])
+				}
+			if (best != "") touched[best] = 1
+		}
+		for (p in deps) {
+			hit = p in touched
+			m = split(deps[p], words, " ")
+			for (j = 1; j <= m && !hit; j++) hit = words[j] in touched
+			if (hit) print p
+		}
+	}' | sort)
+
+[ -n "$packages" ] || exit 0
+# shellcheck disable=SC2086 # one import path per word
+echo "\$ go test" $packages
+# shellcheck disable=SC2086
+exec go test $packages

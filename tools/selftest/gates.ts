@@ -22,7 +22,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { namedTestsStep, planFor } from "../itos/ci-plan.ts";
 import { STEPS, tasksIn } from "../itos/ci-scope.ts";
-import { type Run, scratchRepo } from "./scratch.ts";
+import { hookGates, scratchRepo } from "./scratch.ts";
 
 const repo = scratchRepo("gates-selftest");
 const { root, env, sh, git, edit, commit } = repo;
@@ -37,28 +37,7 @@ const failedFiles = (output: string) =>
 	);
 const allTests = sh("git ls-files '*.test.ts'", undefined, root).output.split("\n").filter(Boolean);
 
-const problems: string[] = [];
-const timings: string[] = [];
-const expect = (ok: boolean, problem: string) => {
-	if (!ok) problems.push(problem);
-};
-function gate(label: string, command: string, input?: string): Run {
-	const run = sh(command, input);
-	timings.push(
-		`${label.padEnd(58)} ${run.status === 0 ? "pass" : "FAIL"}  ${run.seconds.toFixed(1)} s`,
-	);
-	return run;
-}
-const preCommit = (label: string) => {
-	git("add -A");
-	return gate(`pre-commit, ${label}`, "sh .vite-hooks/pre-commit");
-};
-const prePush = (label: string, base: string, sha: string) =>
-	gate(
-		`pre-push, ${label}`,
-		"sh .vite-hooks/pre-push upstream git@example.invalid:upstream.git",
-		`refs/heads/main ${sha} refs/heads/main ${base}\n`,
-	);
+const { problems, timings, expect, gate, preCommit, prePush } = hookGates(repo);
 const messages = mkdtempSync(join(tmpdir(), "gates-selftest-msg-"));
 const commitMsg = (label: string, message: string) => {
 	git("add -A");

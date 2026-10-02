@@ -91,3 +91,31 @@ export function scratchRepo(name: string) {
 	};
 	return { root, dir, env, sh, git, edit, commit, open, remove };
 }
+
+// The real hooks, run in a scratch copy and timed for the report, and the
+// problems a self-test collects instead of stopping at the first.
+export function hookGates({ sh, git }: ReturnType<typeof scratchRepo>) {
+	const problems: string[] = [];
+	const timings: string[] = [];
+	const expect = (ok: boolean, problem: string) => {
+		if (!ok) problems.push(problem);
+	};
+	const gate = (label: string, command: string, input?: string): Run => {
+		const run = sh(command, input);
+		timings.push(
+			`${label.padEnd(58)} ${run.status === 0 ? "pass" : "FAIL"}  ${run.seconds.toFixed(1)} s`,
+		);
+		return run;
+	};
+	const preCommit = (label: string) => {
+		git("add -A");
+		return gate(`pre-commit, ${label}`, "sh .vite-hooks/pre-commit");
+	};
+	const prePush = (label: string, base: string, sha: string) =>
+		gate(
+			`pre-push, ${label}`,
+			"sh .vite-hooks/pre-push upstream git@example.invalid:upstream.git",
+			`refs/heads/main ${sha} refs/heads/main ${base}\n`,
+		);
+	return { problems, timings, expect, gate, preCommit, prePush };
+}
