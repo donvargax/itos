@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after T-054 (the config's JSON Schema) landed.
+Last updated 2026-10-02, after T-055 (the release workflow's Go archives) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `ba19a44` (CI run 37059558890), after T-054; this
+`main` is green at `10a14ed` (CI run 37060638559), after T-055; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`): since T-053 the whole corpus and every
@@ -28,7 +28,9 @@ or CI is red. The
 nightly builds and proves the Go release archives
 (`tools/selftest/go-release.ts`, new with T-040, not yet run by a nightly),
 then ends with `{ tasks: done, cost: static }`, every done task's static
-checks. The last nightly, 37003001717 (scheduled, on `e2b4f29`), is green.
+checks. The last nightly, 37061038901, was dispatched by hand on `10a14ed` before
+v1.0.0, the first to run the Go release, schema and whole-suite steps; read
+it before the tag.
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
 
@@ -48,7 +50,6 @@ a time`; PLAN.md, phase 2, and its decisions "The port's proof", "The Go
    version" and "The first Go release"). Every command group is in, `T-039`
    to `T-052`; the not-ported path is gone. Next, one agent at a time, each specified in
    `tasks/phase-2.yaml`:
-   - `T-055: The release workflow publishes and proves the Go archives`;
    - `T-057: Consumers report itos's problems as issues, triaged by the
 coordinator` (the user's call, part of v1.0.0: trusted only when opened
      by, or labelled `itos-accepted` by, a login on the allow-list,
@@ -59,7 +60,11 @@ coordinator` (the user's call, part of v1.0.0: trusted only when opened
      task (the port changed nothing a TypeScript consumer sees, so no slice
      wrote any), and the tag waits for the user's review of them.
 
-   The schema (`T-054`) is `itos.schema.json`, beside the archives.
+   The schema (`T-054`) is `itos.schema.json`, beside the archives; a
+   release (`T-055`) builds, proves and publishes the Go archives, the schema
+   and the TypeScript tarball with one `checksums.txt` for all of them (its
+   workflow first runs on GitHub at the v1.0.0 tag; it was run step by step
+   locally).
 
    Then `p1-verify-with-last-release` (deferral lifted by the user; since
    T-053 the two implementations judge each other on every push, so what is
