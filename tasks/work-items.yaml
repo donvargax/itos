@@ -1654,7 +1654,7 @@ items:
     title: "The config's JSON Schema, generated from the Go config's table"
     phase: 2
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-052]
     kind: task
     refs: [tasks/phase-2.yaml]
@@ -1681,9 +1681,9 @@ items:
     title: The config's JSON Schema, published with each Go release
     phase: 2
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-040]
-    kind: idea
+    kind: task
     why: >
       PLAN.md §10 lists the config's JSON Schema among a Go release's assets, so an editor can
       check an itos.yaml as it is written. T-040's snapshot leaves it out: nothing writes one yet,
