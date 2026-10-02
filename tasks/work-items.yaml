@@ -853,7 +853,7 @@ items:
     title: work.registry's default follows the ledger's folder, as PLAN says
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-18]
     kind: slice
     refs: [features/work.feature]
