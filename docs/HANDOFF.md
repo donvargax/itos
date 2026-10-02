@@ -12,14 +12,15 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after T-057 (the consumer issue inbox) landed.
+Last updated 2026-10-02, after v1.0.0 was released.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `5ce224a` (CI run 37061940480), after T-057; this
+`main` is green at `1176195` (CI run 37062227319); `c0f0f49`, v1.0.0's
+commit, was red only at T-056's download check until the tag, as designed; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`): since T-053 the whole corpus and every
@@ -35,50 +36,38 @@ docs/ORCHESTRATING.md's loop).
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
 
-Released: [v0.6.0](https://github.com/donvargax/itos/releases/tag/v0.6.0)
-(slices 18 to 23, T-037: the config contract the Go port copies), after
-[v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0). Each
-release's Upgrading section is what a consumer's session updates from. The
-user moves the consumers' pins (the project template, the character editor)
-from their own repositories: don't change any other repository. Unreleased: the Go port so far (T-039 to T-052), which changes nothing a
-consumer of the TypeScript sees. Write the next release's notes as each slice lands, from its
-report, in `docs/releases/v<next>.md`.
+Released: [v1.0.0](https://github.com/donvargax/itos/releases/tag/v1.0.0)
+(phase 2: the Go binary, T-039 to T-057, beside the unchanged TypeScript
+tarball; release run 37064071661), after
+[v0.6.0](https://github.com/donvargax/itos/releases/tag/v0.6.0). Its assets
+are the five Go archives, `itos.schema.json`, `itos-1.0.0.tgz` and one
+`checksums.txt`; every one was downloaded and verified after the release.
+Each release's Upgrading section is what a consumer's session updates from.
+The user moves the consumers' pins (the project template, the character
+editor) from their own repositories: don't change any other repository.
+Nothing is unreleased. Write the next release's notes as each slice lands,
+from its report, in `docs/releases/v<next>.md`.
 
 ## Next
 
-1. **The Go port's close** (`p2-go-port: The Go port, one command group at
-a time`; PLAN.md, phase 2, and its decisions "The port's proof", "The Go
-   version" and "The first Go release"). Every command group is in, `T-039`
-   to `T-052`; the not-ported path is gone. Next, one agent at a time, each specified in
-   `tasks/phase-2.yaml`:
-   - `T-056: v1.0.0, the Go binary released`, with the TypeScript tarball
-     beside it; its notes, `docs/releases/v1.0.0.md`, are written in that
-     task (the port changed nothing a TypeScript consumer sees, so no slice
-     wrote any), and the tag waits for the user's review of them.
-
-   The schema (`T-054`) is `itos.schema.json`, beside the archives; a
-   release (`T-055`) builds, proves and publishes the Go archives, the schema
-   and the TypeScript tarball with one `checksums.txt` for all of them (its
-   workflow first runs on GitHub at the v1.0.0 tag; it was run step by step
-   locally). The consumer inbox is in (`T-057`): the `consumer-report` form, and
-   `tools/bin/inbox.ts`, which trusts only issues opened by `donvargax` or
-   labelled `itos-accepted` by that login, per the timeline.
-
-   Then `p1-verify-with-last-release` (deferral lifted by the user; since
-   T-053 the two implementations judge each other on every push, so what is
-   left is whether CI also runs the last released binary) and phase 3, the
-   switch. Step 6's HTTP providers wait for `p1-conformance-http`.
+1. **Phase 3, the switch** (PLAN.md, phase 3): the Go binary shadows the
+   TypeScript's `ci plan --json` and `verify` in CI, any difference a
+   warning, until none shows over many pushes and a nightly; then consumers
+   switch, and the TypeScript goes after two weeks of green nightlies.
+   Specify it first. Before it, the user should pick one regular-expression
+   dialect for the config's patterns (`p2-config-regexp-dialect`: Go reads
+   RE2, the TypeScript JavaScript's). Also open: `p1-verify-with-last-release`
+   (deferral lifted; since T-053 the two implementations judge each other on
+   every push, so what is left is whether CI also runs the released binary),
+   and `p2-go-port`'s remainder, step 6's HTTP providers, which wait for
+   `p1-conformance-http`.
 
    Follow-ups wait, none blocking: `p1-group-label-flag-word`,
    `p1-wip-tag-command-kind`, `p1-ledger-id-default`,
    `p1-own-recognize-for-itos`, `p1-release-defaults-per-config`,
    `p1-registry-old-default-hint`, `p1-moves-except-types-checked`,
    `p1-moves-merge-by-git`, `p2-go-unit-tests-in-hooks` (Go unit tests run
-   only in CI; T-050's first push went red on one), and
-   `p2-no-workflow-labels-check` (the no-workflow-labels rule, checked),
-   and `p2-config-regexp-dialect`: Go validates the config's patterns as RE2,
-   the TypeScript as JavaScript's; none of today's patterns differ, but the
-   user should pick one dialect before the switch.
+   only in CI), `p2-no-workflow-labels-check`.
 
 2. **After the port: `p2-stealth-mode: A local mode, itos as one person's
 discipline in a repository that does not use it`** (the user's idea and

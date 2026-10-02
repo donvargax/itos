@@ -1673,7 +1673,7 @@ items:
     title: "v1.0.0, the Go binary released"
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-053, T-055, T-057]
     kind: task
     refs: [tasks/phase-2.yaml]
@@ -1720,7 +1720,7 @@ items:
     title: README's install section takes the Go binary, and points an itos.yaml at its schema
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-056]
     kind: task
     why: >
