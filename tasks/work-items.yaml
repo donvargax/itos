@@ -1622,6 +1622,24 @@ items:
     kind: task
     refs: [tasks/phase-2.yaml]
 
+  - id: T-051
+    title: The Go work routing, work and work check
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-045]
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
+  - id: T-052
+    title: The Go hooks, hook commit-msg, hook pre-push and hooks install
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-047, T-049, T-051]
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
   - id: p2-config-json-schema
     title: The config's JSON Schema, published with each Go release
     phase: 2
@@ -1708,7 +1726,7 @@ items:
     phase: 2
     owner: donvargax
     status: todo
-    depends_on: [T-049, T-050]
+    depends_on: [T-050, T-052]
     kind: idea
     why: >
       PLAN.md, phase 2, steps 2 to 9: the command groups after the scaffold (T-039, T-040,
@@ -1717,6 +1735,7 @@ items:
       Go build) pass and join the ported set tools/selftest/go-port.ts runs on every push. The
       config group is specified (T-042, T-043, T-044, with commit check-paths brought forward from
       step 3, as the corpus judges globs through it); steps 3 and 4 are T-045, T-046 and T-047, split by corpus file;
-      step 5 is T-048, T-049 and T-050; this item holds steps 6 to 9 after them
-      (step 6's HTTP providers wait for p1-conformance-http), with moves.yaml joining the hook group.
+      step 5 is T-048, T-049 and T-050; steps 7 and 8 are T-051 and T-052;
+      this item holds what is left: step 6's HTTP providers (waiting for p1-conformance-http),
+      the ported set grown to the whole corpus and every feature, and step 9, v1.0.0, with moves.yaml joining the hook group.
     refs: [PLAN.md, tasks/phase-2.yaml]

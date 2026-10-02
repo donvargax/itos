@@ -12,19 +12,19 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after T-044 (the Go globs and path rules) landed.
+Last updated 2026-10-02, after T-045 (the Go footers) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `c5cabd8` (CI run 37042568663), after T-044; this
+`main` is green at `868b257` (CI run 37045215237), after T-045; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`, its one list `PORTED`: `cli.yaml`,
-`help.yaml`, `config.yaml`, `tasks.yaml`, `globs.yaml`, `scopes.yaml` and their
-scenarios so far, so a help text changes in help.ts, help.go and help.yaml
+`help.yaml`, `config.yaml`, `tasks.yaml`, `globs.yaml`, `scopes.yaml`, `messages.yaml`
+and their scenarios so far, so a help text changes in help.ts, help.go and help.yaml
 in one push). The
 nightly builds and proves the Go release archives
 (`tools/selftest/go-release.ts`, new with T-040, not yet run by a nightly),
@@ -38,7 +38,7 @@ Released: [v0.6.0](https://github.com/donvargax/itos/releases/tag/v0.6.0)
 [v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0). Each
 release's Upgrading section is what a consumer's session updates from. The
 user moves the consumers' pins (the project template, the character editor)
-from their own repositories: don't change any other repository. Unreleased: the Go port so far (T-039 to T-044), which changes nothing a
+from their own repositories: don't change any other repository. Unreleased: the Go port so far (T-039 to T-045), which changes nothing a
 consumer of the TypeScript sees. Write the next release's notes as each slice lands, from its
 report, in `docs/releases/v<next>.md`.
 
@@ -50,19 +50,23 @@ time`; PLAN.md, phase 2, and its decisions "The port's proof" and "The Go
    `itos: <command> is not in this build yet`), the release archives
    (`T-040`), the help texts (`T-041`), the config loader and `config check`
    (`T-042`), the task runner, `task` and `task list` (`T-043`), the globs and `commit
-check-paths` (`T-044`). Next, one
-   agent at a time, each specified in `tasks/phase-2.yaml`:
-   - `T-045: The Go footers and commit check-message` (it closes
-     `p2-go-source-trees`, reading the index and a commit);
+check-paths` (`T-044`), the footers and `commit check-message` with the
+   source at the index and a commit and the command adapter (`T-045`). Next,
+   one agent at a time, each specified in `tasks/phase-2.yaml`:
    - `T-046: The Go named tests, tests list and tests smoke`;
    - `T-047: The Go verify and the built-in moves rule`;
    - then step 5, specified: `T-048: The Go CI plan, ci plan and ci scope`,
      `T-049: The Go CI driver, ci run and the nightly`, `T-050: The Go ci
-range and the range providers`.
+range and the range providers`;
+   - then steps 7 and 8, specified: `T-051: The Go work routing, work and
+work check`, `T-052: The Go hooks, hook commit-msg, hook pre-push and
+hooks install` (it closes `p2-go-check-captured`, the hook's captured
+     check run). Their selections and the earlier ones cover all 83 live
+     scenarios, so after T-052 the ported set becomes the whole corpus and
+     every feature.
 
-   Then specify steps 6 to 9 (step 6's HTTP providers wait for
-   `p1-conformance-http`); `moves.yaml` joins with the hook group, since eight of its cases run the
-   commit-msg hook. Each task adds its corpus files and `-scenarios=`
+   Then v1.0.0 (step 9) is left to specify; step 6's HTTP providers wait for
+   `p1-conformance-http`. Each task adds its corpus files and `-scenarios=`
    selections to `PORTED`, and covers a check in `ci.covers` only once its
    file is in it, or CI would skip the task's real check.
 
@@ -71,8 +75,7 @@ range and the range providers`.
    `p1-own-recognize-for-itos`, `p1-release-defaults-per-config`,
    `p1-registry-old-default-hint`, `p1-moves-except-types-checked`,
    `p1-moves-merge-by-git`, `p2-go-unit-tests-in-hooks`,
-   `p2-go-release-proves-its-archives`, `p2-go-check-captured` (the hook's
-   quiet check run, for step 8), and `p2-config-regexp-dialect`: Go
+   `p2-go-release-proves-its-archives`, and `p2-config-regexp-dialect`: Go
    validates the config's patterns as RE2, the TypeScript as JavaScript's;
    none of today's patterns differ, but the user should pick one dialect
    before the switch. `p1-verify-with-last-release` comes with the port (the
