@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   actions: read # the last green run, where a push's range starts
+  issues: read # the consumer inbox, tools/bin/inbox.ts, which T-057's check runs
 
 # A newer push replaces a run still waiting for the runner; a running one
 # finishes. The newest run checks every commit since the last green one.

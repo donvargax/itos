@@ -1,0 +1,55 @@
+# A repository that uses itos reports a problem with it here, usually from a
+# session running `gh issue create -R donvargax/itos --template
+# consumer-report.yml`. The form applies consumer-report and nothing else: an
+# issue form applies its labels for whoever files it, so a label it applies
+# proves nothing. It must never apply itos-accepted, which tools/bin/inbox.ts
+# trusts only when its timeline shows an allowed login applied it
+# (docs/ORCHESTRATING.md, the loop).
+name: Consumer report
+description: Report a problem itos caused in a repository that uses it.
+title: "consumer report: "
+labels: [consumer-report]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        One problem per issue. Paste the exact command and its exact output; trim the config to the
+        part that matters, and leave out anything private.
+  - type: textarea
+    id: command
+    attributes:
+      label: What was run
+      description: The exact command, and where (a hook, CI, a session's shell).
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Its output
+      description: What it printed, and its exit code.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: itos version
+      description: What `itos version` prints.
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: The config
+      description: The repository's itos.yaml, or the part of it that matters.
+      render: yaml
+    validations:
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: What was expected
+      description: What itos should have done instead, and why.
+    validations:
+      required: true
