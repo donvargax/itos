@@ -105,14 +105,16 @@ func verify(args []string, _ Out) (int, error) {
 	return notPorted("verify")
 }
 
-func testsCommand(args []string, _ Out) (int, error) {
+func testsCommand(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	switch sub {
 	case "list":
-		if _, ok := first(positional(rest, "--at")); !ok {
+		name, ok := first(positional(rest, "--at"))
+		if !ok {
 			return 0, usage("tests list needs <kind>")
 		}
-		return notPorted("tests list")
+		at, _ := flagValue(rest, "--at")
+		return testsList(name, at, o)
 	case "moves":
 		if _, ok := first(positional(rest)); !ok {
 			return 0, usage("tests moves needs <kind>")
@@ -123,14 +125,28 @@ func testsCommand(args []string, _ Out) (int, error) {
 		return 0, usage("unknown command: tests %s", sub)
 	}
 	action, more := split(rest)
-	if name, _ := first(positional(more, "--features")); name == "" {
+	name, _ := first(positional(more, "--features"))
+	if name == "" {
 		if len(rest) == 0 {
 			action = "check|ids|run"
 		}
 		return 0, usage("tests smoke %s needs <kind>", action)
 	}
-	if action == "check" || action == "ids" || action == "run" {
-		return notPorted("tests smoke " + action)
+	switch action {
+	case "check":
+		var root *string
+		if features, ok := flagValue(more, "--features"); ok {
+			root = &features
+		}
+		return smokeCheck(name, root, o)
+	case "ids":
+		return smokeIDs(name, o)
+	case "run":
+		var runner []string
+		if dash := slices.Index(more, "--"); dash >= 0 {
+			runner = more[dash+1:]
+		}
+		return smokeRun(name, runner, o)
 	}
 	return 0, usage("unknown command: tests smoke %s", action)
 }

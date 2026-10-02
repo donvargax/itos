@@ -5,8 +5,9 @@
 // built-in Gherkin adapter is the only reader of a feature file; a command
 // adapter is `<command> list --at <tree>`, held to the protocol.
 //
-// The run templates and recognition are later groups' (PLAN.md, phase 2,
-// step 4).
+// The kind's run templates turn selections into one command (run.go); the
+// recognize templates, which read a task check back as a selection, are CI's
+// plan's group (PLAN.md, phase 2, step 5).
 package tests
 
 import (
@@ -30,11 +31,14 @@ type Test struct {
 }
 
 // List is the adapter protocol's answer: the tests, and every file, the ones
-// without a test included.
+// without a test included. Raw is a command adapter's object as it printed
+// it, keys the protocol does not have included, which `tests list --json`
+// prints as the TypeScript does; nil for the built-in adapter.
 type List struct {
 	Protocol int      `json:"protocol"`
 	Tests    []Test   `json:"tests"`
 	Files    []string `json:"files"`
+	Raw      any      `json:"-"`
 }
 
 // Warnings is where a listing's warning goes: a command adapter that cannot
@@ -63,6 +67,13 @@ func BareID(k config.Kind, id string) string {
 
 // ListTests is the kind's tests at a tree: "worktree", "index" or a commit.
 func ListTests(cfg *config.Loaded, name, at string) (List, error) {
+	return ListTestsUnder(cfg, name, at, nil)
+}
+
+// ListTestsUnder is ListTests with root, when not nil, standing in for a
+// Gherkin kind's own (`tests smoke check --features <dir>`: a copy of its
+// files). A command adapter lists what it lists.
+func ListTestsUnder(cfg *config.Loaded, name, at string, root *string) (List, error) {
 	k, err := KindOf(cfg, name)
 	if err != nil {
 		return List{}, err
@@ -80,6 +91,9 @@ func ListTests(cfg *config.Loaded, name, at string) (List, error) {
 		return commandList(cfg, name, k.Adapter.Command, tree)
 	case k.Adapter.Name != "gherkin":
 		return List{}, config.Invalid(cfg.Path, "tests."+name+".adapter "+k.Adapter.Name+" is not built in")
+	}
+	if root != nil {
+		k.Root = root
 	}
 	options, err := gherkinOptions(cfg, name, k)
 	if err != nil {
@@ -150,6 +164,7 @@ func protocolList(raw any) (List, string) {
 		}
 		list.Tests = append(list.Tests, Test{ID: id, File: file, Live: live})
 	}
+	list.Raw = raw
 	return list, ""
 }
 

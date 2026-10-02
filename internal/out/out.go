@@ -38,11 +38,23 @@ func encode(buf *bytes.Buffer, v any) error {
 }
 
 // Emit prints one object, "schema": 1 first, then the fields in order,
-// indented by two spaces and ended by a newline.
+// indented by two spaces and ended by a newline. A key given twice keeps its
+// first place and takes its last value, as `{ schema: 1, ...value }` does,
+// so an object printed as an adapter gave it cannot write a key twice.
 func Emit(w io.Writer, fields ...Field) error {
+	all := []Field{{"schema", 1}}
+	at := map[string]int{"schema": 0}
+	for _, f := range fields {
+		if i, seen := at[f.Key]; seen {
+			all[i].Value = f.Value
+			continue
+		}
+		at[f.Key] = len(all)
+		all = append(all, f)
+	}
 	var raw bytes.Buffer
 	raw.WriteByte('{')
-	for i, f := range append([]Field{{"schema", 1}}, fields...) {
+	for i, f := range all {
 		if i > 0 {
 			raw.WriteByte(',')
 		}

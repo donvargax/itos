@@ -41,7 +41,7 @@ func smokeFindings(cfg *config.Loaded) ([]Found, []string, error) {
 		smoke, err := tests.LoadSmoke(cfg, name)
 		var own []out.Problem
 		if err == nil {
-			own, err = tests.SmokeIssues(cfg, name, smoke)
+			own, err = tests.SmokeIssues(cfg, name, smoke, nil)
 		}
 		if err != nil {
 			found = append(found, Found{out.Problem{Rule: "smoke-unreadable", Message: err.Error(), Fix: "correct " + file}, "smoke"})

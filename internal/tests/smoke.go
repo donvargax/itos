@@ -156,8 +156,8 @@ func SmokeIDs(k config.Kind, smoke []SmokeFile) []string {
 // liveScenarios are each file's live test IDs, keyed by its path relative to
 // the kind's root, in the order the adapter lists the files; a file with no
 // live test is there with none.
-func liveScenarios(cfg *config.Loaded, name string) ([]string, map[string]map[string]bool, error) {
-	list, err := ListTests(cfg, name, source.Current().Tree())
+func liveScenarios(cfg *config.Loaded, name string, root *string) ([]string, map[string]map[string]bool, error) {
+	list, err := ListTestsUnder(cfg, name, source.Current().Tree(), root)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -230,13 +230,14 @@ func entryProblems(k config.Kind, entry SmokeFile, live map[string]bool) []out.P
 
 // SmokeIssues is what breaks the smoke rule, with its rule id: a file with a
 // live test and no smoke test (unless the kind's smoke.every_file is false),
-// a smoke ID that is not a live test of its file, a missing reason.
-func SmokeIssues(cfg *config.Loaded, name string, smoke []SmokeFile) ([]out.Problem, error) {
+// a smoke ID that is not a live test of its file, a missing reason. root,
+// when not nil, stands in for a Gherkin kind's own (ListTestsUnder).
+func SmokeIssues(cfg *config.Loaded, name string, smoke []SmokeFile, root *string) ([]out.Problem, error) {
 	k, err := KindOf(cfg, name)
 	if err != nil {
 		return nil, err
 	}
-	files, live, err := liveScenarios(cfg, name)
+	files, live, err := liveScenarios(cfg, name, root)
 	if err != nil {
 		return nil, err
 	}
