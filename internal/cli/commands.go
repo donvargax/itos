@@ -75,7 +75,7 @@ func workCommand(args []string, _ Out) (int, error) {
 	return notPorted("work")
 }
 
-func commit(args []string, _ Out) (int, error) {
+func commit(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	switch sub {
 	case "check-message":
@@ -84,10 +84,11 @@ func commit(args []string, _ Out) (int, error) {
 		}
 		return notPorted("commit check-message")
 	case "check-paths":
-		if _, ok := flagValue(rest, "--type"); !ok {
+		typ, ok := flagValue(rest, "--type")
+		if !ok {
 			return 0, usage("commit check-paths needs --type <type>")
 		}
-		return notPorted("commit check-paths")
+		return checkPaths(typ, positional(rest, "--type"), o)
 	}
 	return 0, usage("unknown command: commit %s", sub)
 }
