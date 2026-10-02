@@ -68,13 +68,6 @@ func split(args []string) (string, []string) {
 
 func notPorted(path string) (int, error) { return 0, NotPorted{path} }
 
-func task(args []string, _ Out) (int, error) {
-	if sub, _ := split(args); sub == "list" {
-		return notPorted("task list")
-	}
-	return notPorted("task")
-}
-
 func workCommand(args []string, _ Out) (int, error) {
 	if sub, _ := split(args); sub == "check" {
 		return notPorted("work check")

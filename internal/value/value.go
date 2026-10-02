@@ -545,3 +545,46 @@ func Fields(s string) []string { return spaces.Split(s, -1) }
 
 // Collapse is a string with each run of space made one space.
 func Collapse(s string) string { return spaces.ReplaceAllString(s, " ") }
+
+var decimal = regexp.MustCompile(`^[+-]?(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$`)
+
+// ToNumber is a string as JavaScript's Number() reads it: trimmed, empty as
+// 0, Infinity with its sign, 0x, 0o and 0b integers, a decimal literal, and
+// NaN for anything else (Go's ParseFloat would also take inf, nan, hex floats
+// and underscores).
+func ToNumber(s string) float64 {
+	s = Trim(s)
+	switch s {
+	case "":
+		return 0
+	case "Infinity", "+Infinity":
+		return math.Inf(1)
+	case "-Infinity":
+		return math.Inf(-1)
+	}
+	if len(s) > 2 && s[0] == '0' {
+		base := map[byte]int{'x': 16, 'X': 16, 'o': 8, 'O': 8, 'b': 2, 'B': 2}[s[1]]
+		if base != 0 {
+			n, err := strconv.ParseUint(s[2:], base, 64)
+			if err != nil || strings.Contains(s, "_") {
+				return math.NaN()
+			}
+			return float64(n)
+		}
+	}
+	if !decimal.MatchString(s) {
+		return math.NaN()
+	}
+	f, _ := strconv.ParseFloat(s, 64)
+	return f
+}
+
+// PadEnd is a string padded with spaces to a length, counted as JavaScript
+// counts it, in UTF-16 code units (String.padEnd).
+func PadEnd(s string, length int) string {
+	n := len(Keys(s))
+	if n >= length {
+		return s
+	}
+	return s + strings.Repeat(" ", length-n)
+}

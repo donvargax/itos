@@ -82,3 +82,36 @@ func TestSpace(t *testing.T) {
 		t.Errorf("Collapse: %q", got)
 	}
 }
+
+// Number() as JavaScript reads a string: what a group flag's value is
+// compared by when the ledger's groups are numeric.
+func TestToNumber(t *testing.T) {
+	for text, want := range map[string]float64{
+		"1": 1, " 2 ": 2, "": 0, "01": 1, "0x10": 16, "0b11": 3, "0o7": 7, "1e2": 100,
+		".5": 0.5, "5.": 5, "-3": -3, "+4": 4,
+	} {
+		if got := ToNumber(text); got != want {
+			t.Errorf("%q: got %v, want %v", text, got, want)
+		}
+	}
+	for _, text := range []string{"abc", "1_000", "inf", "NaN", "0x", "-0x10", "1e", "0x1p-2"} {
+		if got := ToNumber(text); !math.IsNaN(got) {
+			t.Errorf("%q: got %v, want NaN", text, got)
+		}
+	}
+	if !math.IsInf(ToNumber("-Infinity"), -1) {
+		t.Error("-Infinity")
+	}
+}
+
+func TestPadEnd(t *testing.T) {
+	if got := PadEnd("ab", 4); got != "ab  " {
+		t.Errorf("got %q", got)
+	}
+	if got := PadEnd("𝄞", 3); got != "𝄞 " {
+		t.Errorf("got %q", got)
+	}
+	if got := PadEnd("failing", 3); got != "failing" {
+		t.Errorf("got %q", got)
+	}
+}
