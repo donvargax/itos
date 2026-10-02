@@ -1113,7 +1113,7 @@ items:
     title: config check says a commits.since it cannot find may be outside a shallow clone
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     refs: [features/since.feature]
@@ -1126,6 +1126,22 @@ items:
       takes { tasks: done } meets the same.
       Both keep exit 2 and say the clone is shallow, with the fix: git fetch --unshallow, or
       fetch-depth: 0. Was the idea p1-since-shallow-clone. @ID-SINCE-07 and 08.
+
+  - id: p1-range-start-shallow-clone
+    title: verify says a range start a shallow clone lacks may lie beyond its history
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-17]
+    kind: idea
+    why: >
+      slice-17 made a commits.since a shallow clone lacks a config error that says the clone is
+      shallow. A range's own start is not checked: verify <from> HEAD (and so ci run, whose range
+      starts at the last green run) with a <from> beyond a shallow clone's history ends in
+      "itos: Command failed: git rev-list --no-merges --reverse <from>..HEAD", exit 2, no word of
+      the clone. The same check (git cat-file -e, then --is-shallow-repository) could make it a
+      problem naming the commit, with git fetch --unshallow or fetch-depth: 0 as its fix, and a
+      <from> no clone has (a typo) one of its own.
 
   - id: p1-wip-red-first
     title: A command that shows a slice's @wip scenarios fail against the current binary

@@ -157,7 +157,11 @@ the commands, `itos <command> --help` each one). The code is
   the scenario-move check list a range's commits less that commit and its
   ancestors, and a range check's `{from}` is that commit when the range's own
   start is empty or older. `config check` and `verify` fail with exit 2 when
-  the repository does not have it; the commit-msg hook never reads it.
+  the repository does not have it; in a shallow clone (`git rev-parse
+--is-shallow-repository`, actions/checkout's default one commit deep) the
+  same problem says the commit may lie beyond the clone's history, with
+  `git fetch --unshallow` or `fetch-depth: 0` as its fix. The commit-msg hook
+  never reads it.
 - **Conformance** (`tools/itos/conformance/`): what itos does, as cases run
   through its command line in scratch repositories, one file per area, every
   `--help` text among them, since agents read them. `run.ts --bin <command>`
