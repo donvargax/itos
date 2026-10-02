@@ -12,18 +12,19 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after T-043 (the Go task runner) landed.
+Last updated 2026-10-02, after T-044 (the Go globs and path rules) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `5259b52` (CI run 37041103030), after T-043; this
+`main` is green at `c5cabd8` (CI run 37042568663), after T-044; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`, its one list `PORTED`: `cli.yaml`,
-`help.yaml`, `config.yaml`, `tasks.yaml` and their scenarios so far, so a help text changes in help.ts, help.go and help.yaml
+`help.yaml`, `config.yaml`, `tasks.yaml`, `globs.yaml`, `scopes.yaml` and their
+scenarios so far, so a help text changes in help.ts, help.go and help.yaml
 in one push). The
 nightly builds and proves the Go release archives
 (`tools/selftest/go-release.ts`, new with T-040, not yet run by a nightly),
@@ -37,7 +38,7 @@ Released: [v0.6.0](https://github.com/donvargax/itos/releases/tag/v0.6.0)
 [v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0). Each
 release's Upgrading section is what a consumer's session updates from. The
 user moves the consumers' pins (the project template, the character editor)
-from their own repositories: don't change any other repository. Unreleased: the Go port so far (T-039 to T-043), which changes nothing a
+from their own repositories: don't change any other repository. Unreleased: the Go port so far (T-039 to T-044), which changes nothing a
 consumer of the TypeScript sees. Write the next release's notes as each slice lands, from its
 report, in `docs/releases/v<next>.md`.
 
@@ -48,16 +49,19 @@ time`; PLAN.md, phase 2, and its decisions "The port's proof" and "The Go
    version"). In: the scaffold (`T-039`; a command not ported yet exits 3,
    `itos: <command> is not in this build yet`), the release archives
    (`T-040`), the help texts (`T-041`), the config loader and `config check`
-   (`T-042`), the task runner, `task` and `task list` (`T-043`). Next, one
+   (`T-042`), the task runner, `task` and `task list` (`T-043`), the globs and `commit
+check-paths` (`T-044`). Next, one
    agent at a time, each specified in `tasks/phase-2.yaml`:
-   - `T-044: The Go globs and path rules, commit check-paths`;
    - `T-045: The Go footers and commit check-message` (it closes
      `p2-go-source-trees`, reading the index and a commit);
    - `T-046: The Go named tests, tests list and tests smoke`;
-   - `T-047: The Go verify and the built-in moves rule`.
+   - `T-047: The Go verify and the built-in moves rule`;
+   - then step 5, specified: `T-048: The Go CI plan, ci plan and ci scope`,
+     `T-049: The Go CI driver, ci run and the nightly`, `T-050: The Go ci
+range and the range providers`.
 
-   Then specify step 5 on (`ci plan`, `ci run`, `ci scope`, `ci range`);
-   `moves.yaml` joins with the hook group, since eight of its cases run the
+   Then specify steps 6 to 9 (step 6's HTTP providers wait for
+   `p1-conformance-http`); `moves.yaml` joins with the hook group, since eight of its cases run the
    commit-msg hook. Each task adds its corpus files and `-scenarios=`
    selections to `PORTED`, and covers a check in `ci.covers` only once its
    file is in it, or CI would skip the task's real check.

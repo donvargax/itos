@@ -1595,6 +1595,33 @@ items:
     kind: task
     refs: [tasks/phase-2.yaml]
 
+  - id: T-048
+    title: The Go CI plan, ci plan and ci scope
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-047]
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
+  - id: T-049
+    title: The Go CI driver, ci run and the nightly
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-048]
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
+  - id: T-050
+    title: The Go ci range and the range providers
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-048]
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
   - id: p2-config-json-schema
     title: The config's JSON Schema, published with each Go release
     phase: 2
@@ -1681,7 +1708,7 @@ items:
     phase: 2
     owner: donvargax
     status: todo
-    depends_on: [T-047]
+    depends_on: [T-049, T-050]
     kind: idea
     why: >
       PLAN.md, phase 2, steps 2 to 9: the command groups after the scaffold (T-039, T-040,
@@ -1690,5 +1717,6 @@ items:
       Go build) pass and join the ported set tools/selftest/go-port.ts runs on every push. The
       config group is specified (T-042, T-043, T-044, with commit check-paths brought forward from
       step 3, as the corpus judges globs through it); steps 3 and 4 are T-045, T-046 and T-047, split by corpus file;
-      this item holds steps 5 to 9 after them, with moves.yaml joining the hook group.
+      step 5 is T-048, T-049 and T-050; this item holds steps 6 to 9 after them
+      (step 6's HTTP providers wait for p1-conformance-http), with moves.yaml joining the hook group.
     refs: [PLAN.md, tasks/phase-2.yaml]

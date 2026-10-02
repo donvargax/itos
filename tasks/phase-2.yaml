@@ -192,3 +192,58 @@
       timeout: 600
     - run: node tools/selftest/go-port.ts
       timeout: 900
+
+# Step 5: the plan and its driver, and where a push's range starts.
+
+- id: T-048
+  type: refactor
+  title: The Go CI plan, ci plan and ci scope
+  why: >
+    PLAN.md, phase 2, step 5, first part: the plan two implementations are
+    compared on (ci plan --json, phase 3's shadow), from a range's footers:
+    the cost order, written order, covers, nightly_only, recognize and the
+    one merged run of named tests, tasks not started or unknown, the prose
+    shortcut (ci scope), the nightly's plan with its done-tasks step, and a
+    missing ledger folder. Corpus: plans.yaml; scenario: the one that runs
+    ci plan.
+  done_when:
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/plans.yaml'
+      timeout: 600
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-LEDGER-05$"'
+      timeout: 600
+    - run: node tools/selftest/go-port.ts
+      timeout: 900
+
+- id: T-049
+  type: refactor
+  title: The Go CI driver, ci run and the nightly
+  why: >
+    PLAN.md, phase 2, step 5, second part: the plan carried out in cost order
+    with ci.env, the log lines agents quote, the first failure ending the run
+    with its own exit code, the merged run of named tests, the nightly's
+    steps and its done-tasks step through T-043's check runner, and --json.
+    Corpus: ci-run.yaml; scenarios: every one that runs ci run.
+  done_when:
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/ci-run.yaml'
+      timeout: 600
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-(BIN-0[1-3]|CI-0[1-7]|CONFIG-0[256]|LEDGER-06|NIGHTLY-0[1-4])$"'
+      timeout: 900
+    - run: node tools/selftest/go-port.ts
+      timeout: 900
+
+- id: T-050
+  type: refactor
+  title: The Go ci range and the range providers
+  why: >
+    PLAN.md, phase 2, step 5's last command and step 6's first provider:
+    where a push's range starts (a pull request's base, else the start the
+    ci.range provider proposes when it is an ancestor of the head, else
+    empty), with the command, none and github providers, a failing provider
+    never an error. GitLab and Forgejo, and the identity and people
+    providers over HTTP, wait for p1-conformance-http, which gives them cases
+    to be judged by. Corpus: range.yaml.
+  done_when:
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/range.yaml'
+      timeout: 600
+    - run: node tools/selftest/go-port.ts
+      timeout: 900
