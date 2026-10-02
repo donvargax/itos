@@ -1674,7 +1674,16 @@ items:
     phase: 2
     owner: donvargax
     status: todo
-    depends_on: [T-053, T-055]
+    depends_on: [T-053, T-055, T-057]
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
+  - id: T-057
+    title: Consumers report itos's problems as issues, triaged by the coordinator
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-053]
     kind: task
     refs: [tasks/phase-2.yaml]
 
@@ -1816,4 +1825,34 @@ items:
       others' commits follow no rules of theirs. After the port: one Go binary in ~/.local/bin
       needs no Node or node_modules in someone else's repository, which is what makes the mode
       practical, and new behaviour lands in one implementation, not two.
+    refs: [PLAN.md]
+
+  - id: p2-github-hybrid
+    title: GitHub issues as a second source of work items
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-057, p1-conformance-http]
+    kind: idea
+    why: >
+      The user's idea (2026-10-02): itos work reads the YAML registry and the issues under a label
+      as ideas, the issue number their id, and a command promotes one into a registry item that
+      links back. A provider beside identity, people and range, judged by corpus cases once
+      p1-conformance-http gives HTTP providers some, and bound by T-057's trust rule: only issues
+      a login on the allow-list opened, or labelled itos-accepted by such a login, are work.
+    refs: [PLAN.md]
+
+  - id: p2-github-pure
+    title: The work registry as GitHub itself
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [p2-github-hybrid]
+    kind: idea
+    why: >
+      The user's idea (2026-10-02), the other end from p2-stealth-mode: items are issues, the owner
+      the assignee, depends_on GitHub's issue dependencies and sub-issues, and footers may name
+      #<n>. Open for the user: status and order from labels, or from a GitHub Project's fields,
+      which also hold the queue's order (p1-work-queue-order) at the cost of more API. The ledger
+      stays in the repository either way, since a task's checks are commands run at a commit.
     refs: [PLAN.md]
