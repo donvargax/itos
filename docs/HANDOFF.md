@@ -19,8 +19,8 @@ Last updated 2026-10-02, after v1.0.0 was released.
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `1176195` (CI run 37062227319); `c0f0f49`, v1.0.0's
-commit, was red only at T-056's download check until the tag, as designed; this
+`main` is green at `9b9eb37` (CI run 37064539257), T-056's close, whose
+download check passed against the published v1.0.0; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`): since T-053 the whole corpus and every
