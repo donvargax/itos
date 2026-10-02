@@ -1,0 +1,267 @@
+# The built-in moves rule, a Gherkin kind's range check { name, builtin:
+# moves, except_types, allowed_renames }: the commit-msg hook judging HEAD
+# against the index for a type except_types does not name (and, when
+# commits.types lists the types, one of them), verify judging each commit of
+# its range against its parent, a root commit against the empty tree, and
+# `itos tests moves <kind>` judging HEAD against the index by hand; live
+# scenarios keep their ID, name, tags and steps, none is lost or added, a file
+# with a live scenario keeps its header; @wip ones and comment lines are free;
+# a rename allowed_renames lists passes. config check refuses builtin with a
+# command, on a kind that is not Gherkin, and allowed_renames without it.
+#
+# Every case starts from one feat committing features/a.feature, a live
+# scenario and a @wip one, and the ledger.
+git:
+  - &base
+    commit: "feat: start\n\nTask: T-001\n"
+    files:
+      features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n"
+      tasks/phase-1.yaml: "- { id: T-001, type: test, title: One }\n"
+    label: base
+files:
+  itos.yaml: |
+    version: 1
+    ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+    commits:
+      types: [feat, fix, test, docs]
+      footers:
+        Task: { source: ledger, required_for: [test, docs], validate_for: all, read_at: commit }
+    tests:
+      scenario:
+        root: features
+        id: "ID-[A-Z]+-\\d+"
+        range_checks:
+          - name: moves
+            builtin: moves
+            except_types: [feat, fix]
+            allowed_renames: { ID-A-01: "Opens again" }
+      command:
+        adapter: { command: "sh list.sh" }
+      rootless:
+        id: "ID-[A-Z]+-\\d+"
+    ci: { steps: [] }
+    work: { people: { source: yaml, file: people.yaml } }
+  msg: "test: tidy the scenario\n\nTask: T-001\n"
+cases:
+  - name: commit-msg rejects a test commit that changes a live scenario's steps
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it twice\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - a test commit changes the live scenario ID-A-01 in features/a.feature: a moved scenario keeps its ID, name, tags and steps exactly
+  - name: a type except_types names is left to its own rules
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it twice\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    files: { msg: "feat: change what the scenario checks\n" }
+    exit: 0
+    stderr: ""
+  - name: a message whose type is not one of commits.types is the header lint's, as a merge's is
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it twice\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    files: { msg: "Merge branch 'other'\n" }
+    exit: 0
+    stderr: ""
+  - name: a live scenario moved unchanged to a new file, the old one deleted, passes
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage:
+          features/a.feature: null
+          features/b.feature: "@phase-2\nFeature: B\n\n  Background:\n    Given it is closed\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n"
+    exit: 0
+    stderr: ""
+  - name: "@wip scenarios may change, and comment lines are never compared"
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  # why it opens\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it at once\n\n  @ID-A-03 @wip\n  Scenario: Locks\n    When I lock it\n" }
+    exit: 0
+    stderr: ""
+  - name: the rename allowed_renames lists passes
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens again\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    exit: 0
+    stderr: ""
+  - name: a rename allowed_renames does not list is a change
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens at last\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - a test commit changes the live scenario ID-A-01 in features/a.feature: a moved scenario keeps its ID, name, tags and steps exactly
+  - name: an added and a lost live scenario and a changed header, each a problem
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A, retitled\n\n  @ID-A-03\n  Scenario: Locks\n    When I lock it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - a test commit adds the live scenario ID-A-03 to features/a.feature
+        - a test commit loses the scenario ID-A-01 of features/a.feature
+        - a test commit changes the header or Background of features/a.feature
+  - name: verify judges each commit against its parent, skipping except_types, and names a failing one under its report
+    argv: [verify, "", HEAD]
+    git:
+      - *base
+      - commit: "feat: change what the scenario checks\n"
+        files: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it twice\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+      - commit: "test: tidy the scenario\n\nTask: T-001\n"
+        files: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it at once\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+        label: tidy
+      - commit: "test: move the scenario\n\nTask: T-001\n"
+        files: { features/a.feature: null, features/b.feature: "Feature: B\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it at once\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    exit: 1
+    stdout: |
+      3/4 commits pass the commit rules
+    stderr: |
+      Commit rejected:
+        - a test commit changes the live scenario ID-A-01 in features/a.feature: a moved scenario keeps its ID, name, tags and steps exactly
+        ^ {{short.tidy}} test: tidy the scenario
+  - name: the same as --json, the failing commit not ok
+    argv: [verify, "{{sha.base}}", HEAD, --json]
+    git:
+      - *base
+      - commit: "test: tidy the scenario\n\nTask: T-001\n"
+        files: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it at once\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+        label: tidy
+    exit: 1
+    json:
+      schema: 1
+      range: { from: "{{sha.base}}", to: HEAD }
+      commits:
+        - { sha: "{{sha.tidy}}", header: "test: tidy the scenario", ok: false }
+      passed: 0
+      total: 1
+      range_checks: true
+    stderr: |
+      Commit rejected:
+        - a test commit changes the live scenario ID-A-01 in features/a.feature: a moved scenario keeps its ID, name, tags and steps exactly
+        ^ {{short.tidy}} test: tidy the scenario
+      0/1 commits pass the commit rules
+  - name: a root commit is judged against the empty tree
+    argv: [verify, "", HEAD]
+    git:
+      - commit: "docs: start\n\nTask: T-001\n"
+        files:
+          features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n"
+          tasks/phase-1.yaml: "- { id: T-001, type: test, title: One }\n"
+        label: root
+    exit: 1
+    stdout: |
+      0/1 commits pass the commit rules
+    stderr: |
+      Commit rejected:
+        - a docs commit adds the live scenario ID-A-01 to features/a.feature
+        ^ {{short.root}} docs: start
+  - name: tests moves with nothing staged
+    argv: [tests, moves, scenario]
+    exit: 0
+    stdout: |
+      The staged feature files only move scenarios, if anything
+  - name: tests moves names each problem of the staged feature files
+    argv: [tests, moves, scenario]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it twice\n" }
+    exit: 1
+    stdout: ""
+    stderr: "  - the index changes the live scenario ID-A-01 in features/a.feature: a moved scenario keeps its ID, name, tags and steps exactly\n"
+  - name: tests moves allows the kind's allowed renames
+    argv: [tests, moves, scenario]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens again\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    exit: 0
+    stdout: |
+      The staged feature files only move scenarios, if anything
+  - name: tests moves as --json
+    argv: [tests, moves, scenario, --json]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it twice\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    exit: 1
+    json:
+      schema: 1
+      kind: scenario
+      ok: false
+      problems:
+        - rule: moves
+          message: "the index changes the live scenario ID-A-01 in features/a.feature: a moved scenario keeps its ID, name, tags and steps exactly"
+  - name: tests moves needs a kind
+    argv: [tests, moves]
+    exit: 2
+    stderr: |
+      itos: tests moves needs <kind> (itos --help)
+  - name: tests moves of a kind the config does not have
+    argv: [tests, moves, nope]
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: tests.nope is missing
+  - name: tests moves of a kind whose adapter is a command
+    argv: [tests, moves, command]
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: tests.command.adapter is not gherkin, and the moves rule reads feature files
+  - name: tests moves of a kind without a root, which has no default
+    argv: [tests, moves, rootless]
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: tests.rootless.root is missing
+  - name: config check refuses builtin beside a command, on a kind that is not Gherkin, and allowed_renames without builtin
+    argv: [config, check, --config, refused.yaml, --json]
+    files:
+      refused.yaml: |
+        version: 1
+        tests:
+          scenario:
+            root: features
+            id: "ID-[A-Z]+-\\d+"
+            range_checks:
+              - { name: both, builtin: moves, staged: "sh moves.sh", range: "sh moves.sh {from} {to}" }
+              - { name: renames, staged: "sh moves.sh", allowed_renames: { ID-A-01: Opens again } }
+          command:
+            adapter: { command: "sh list.sh" }
+            range_checks: [{ name: moves, builtin: moves }]
+    exit: 2
+    json:
+      schema: 1
+      config: refused.yaml
+      valid: false
+      problems:
+        - rule: config-range-check-builtin
+          message: "refused.yaml: tests.scenario.range_checks[0] is builtin: moves and has staged and range; a built-in check runs no command"
+          fix: remove staged and range from tests.scenario.range_checks[0], or builtin to run the commands
+          area: config
+        - rule: config-range-check-builtin
+          message: "refused.yaml: tests.scenario.range_checks[1] has allowed_renames, which only builtin: moves reads"
+          fix: "remove allowed_renames from tests.scenario.range_checks[1], or make it builtin: moves"
+          area: config
+        - rule: config-range-check-builtin
+          message: "refused.yaml: tests.command.range_checks[0] is builtin: moves, which reads feature files, and tests.command.adapter is not gherkin"
+          fix: remove tests.command.range_checks[0], or give it staged and range commands that judge the kind's tests
+          area: config
+  - name: builtin takes only moves
+    argv: [config, check, --config, other.yaml]
+    files:
+      other.yaml: |
+        version: 1
+        tests:
+          scenario:
+            root: features
+            id: "ID-[A-Z]+-\\d+"
+            range_checks: [{ name: other, builtin: other }]
+    exit: 2
+    stderr: |
+      FAIL other.yaml: tests.scenario.range_checks[0].builtin should be one of moves, not "other"

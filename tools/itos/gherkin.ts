@@ -1,7 +1,7 @@
 // The Gherkin adapter, built in: which scenarios the `*.feature` files under
 // a kind's `root` hold at a tree, and which are live. It is the only module
 // that reads a feature file; the tools ask `tests.ts` for a kind's list, and
-// the scenario-moves range check reads the blocks through `parseFeature`.
+// the moves rule (moves.ts) reads the blocks through `parseFeature`.
 //
 // A scenario is the block starting at a line that begins with a tag and holds
 // `<tag_prefix><id>` as a whole word, up to the next such line; the header is

@@ -1,12 +1,13 @@
 // Staged-file rules that a header lint can't see (it only reads the message):
-// which paths each commit type may touch, and each kind's staged range check
-// (for scenarios, that outside feat/fix a feature file only gains or changes
-// @wip scenarios, or has scenarios moved to or from it unchanged:
-// scenario-moves.ts). `itos hook commit-msg` (hooks.ts) runs them before the
-// header lint; `itos commit check-paths` runs the path rules alone, for
-// planning a split.
+// which paths each commit type may touch, and each kind's range checks on the
+// staged tree: its staged commands, and the built-in moves rule (for
+// scenarios, that outside feat/fix a feature file only gains or changes @wip
+// scenarios, or has scenarios moved to or from it unchanged: moves.ts).
+// `itos hook commit-msg` (hooks.ts) runs them before the header lint; `itos
+// commit check-paths` runs the path rules alone, for planning a split.
 import { readFileSync } from "node:fs";
-import { config, matchesAny as matches, section } from "./config.ts";
+import { config, matchesAny as matches, type RangeCheck, section } from "./config.ts";
+import { stagedMoveIssues } from "./moves.ts";
 import { emit, type Output, problem, type Problem, TEXT } from "./problem.ts";
 import { stagedFiles } from "./repo.ts";
 import { inShell } from "./shell.ts";
@@ -49,7 +50,7 @@ export function scopeIssues(type: string, files: string[]): Problem[] {
 }
 
 // The rejection, as the hook has always printed it.
-function reject(found: Problem[]) {
+export function reject(found: Problem[]) {
 	console.error(section("commits").reject_message);
 	for (const p of found) console.error(`  - ${p.message}`);
 }
@@ -63,13 +64,11 @@ export function checkPaths(type: string, files: string[], out: Output = TEXT): n
 	return found.length ? 1 : 0;
 }
 
-type RangeCheck = { name: string; except_types?: string[]; staged?: string };
-
 // The kinds' staged range checks (`tests.<kind>.range_checks[].staged`) that
 // apply to a commit of a type, such as the scenario moves.
 const stagedChecks = (type: string) =>
 	Object.values(config().tests ?? {})
-		.flatMap((k) => (k.range_checks ?? []) as RangeCheck[])
+		.flatMap((k) => k.range_checks ?? [])
 		.filter((c) => c.staged && !c.except_types?.includes(type));
 
 // One staged range check, its {type} filled in, run on the index. Each
@@ -86,15 +85,18 @@ function stagedCheckIssues(check: RangeCheck, type: string): Problem[] {
 }
 
 // The commit-msg rule on the staged files: the message's type against the
-// staged paths, then the kinds' staged range checks (outside feat and fix,
-// live scenarios may only move between files, unchanged). Nothing for a type
-// with no path rule (merges, reverts and unknown types are the header lint's).
+// staged paths, then the kinds' staged range checks, then their built-in
+// moves rule (outside feat and fix, live scenarios may only move between
+// files, unchanged). The paths and the staged commands are nothing for a type
+// with no path rule (merges, reverts and unknown types are the header
+// lint's); the moves rule judges the types it says it judges (moves.ts).
 export function stagedIssues(message: string): Problem[] {
 	const type = /^(\w+)/.exec(message)?.[1] ?? "";
-	if (!(section("commits").scopes ?? {})[type]) return [];
+	const ruled = !!(section("commits").scopes ?? {})[type];
 	return [
-		...scopeIssues(type, stagedFiles()),
-		...stagedChecks(type).flatMap((c) => stagedCheckIssues(c, type)),
+		...(ruled ? scopeIssues(type, stagedFiles()) : []),
+		...(ruled ? stagedChecks(type).flatMap((c) => stagedCheckIssues(c, type)) : []),
+		...stagedMoveIssues(type),
 	];
 }
 

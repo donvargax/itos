@@ -30,6 +30,7 @@ Commands:
   verify <from> <to>               re-check every commit of a range
   tests list <kind> [--at <tree>]  the kind's named tests
   tests smoke check|ids|run <kind> the smoke rule, the smoke IDs, the smoke run
+  tests moves <kind>               the staged feature files by the moves rule
   ci plan <from> <to> | --nightly | --whole
                                    print the CI plan; runs nothing
   ci run [<from> <to>] | --nightly run the CI plan
@@ -115,15 +116,18 @@ they reject, without committing. Exit 1 when a path is rejected.
 
 Re-checks every non-merge commit of the range (from may be empty or all zeros:
 every commit up to <to>): its message, with the footers read at that commit,
-and its paths; then each named-test kind's range check. The commit
-commits.since names and its ancestors are left out, and the range checks start
-there. Prints "<n>/<m> commits pass the commit rules". Exit 1 on any failure,
-2 when commits.since is not a commit of the repository.
+its paths, and, by a kind's built-in moves rule, its feature files against its
+parent's, unless the rule's except_types names its type; then each kind's
+range command. The commit commits.since names and its ancestors are left out,
+and the range commands start there. Prints "<n>/<m> commits pass the commit
+rules". Exit 1 on any failure, 2 when commits.since is not a commit of the
+repository.
 
 --json: {"schema":1,"range","since"?,"commits":[{"sha","header","ok"}],"passed","total","range_checks"}`,
 
 	tests: `Usage: itos tests list <kind> [--at <tree>]
-       itos tests smoke check|ids|run <kind>`,
+       itos tests smoke check|ids|run <kind>
+       itos tests moves <kind>`,
 
 	"tests list": `Usage: itos tests list <kind> [--at <tree>]
 
@@ -143,6 +147,18 @@ its exit code is the runner's.
 
 --json (check): {"schema":1,"kind","ok","ids","problems":[{"rule","message","fix"}]}
 --json (ids):   {"schema":1,"kind","ids"}`,
+
+	"tests moves": `Usage: itos tests moves <kind>
+
+Judges the staged feature files of a Gherkin kind against HEAD's by the moves
+rule, as the commit-msg hook does for a type the rule does not exempt: live
+scenarios keep their ID, name, tags and steps exactly, none is lost or added,
+and a file with a live scenario keeps its header and Background; @wip ones may
+come, go or change, and comment lines are never compared. A rename the kind's
+range check { builtin: moves } lists in allowed_renames passes. Exit 1 with
+each problem.
+
+--json: {"schema":1,"kind","ok","problems":[{"rule","message"}]}`,
 
 	ci: `Usage: itos ci plan <from> <to> | --nightly | --whole [--data-at <sha>]
        itos ci run [<from> <to>] | --nightly
@@ -191,12 +207,13 @@ what the ci.range provider says if it is an ancestor of the head, else empty
 The commit-msg hook. When the commit stages itos.yaml, a ledger file, the work
 registry or a smoke set, itos config check's problems, read from the staged
 tree; then the staged files against the message's type (the path rules, then
-each kind's staged range check: the scenario moves here), then the header lint
-(commits.header_lint.hook, commitlint here, if any) and itos's footer rules
-(commits.footers), always, both reported, then the checks of each task a
-ledger footer names (Task: here), as staged, in written order up to its first
-late one (CI's cost rule; an after: push check waits), each capped at
-hooks.commit_msg.check_timeout seconds (60). A failure rejects the commit when
+each kind's staged range checks: the built-in moves rule here, for a type its
+except_types does not name), then the header lint (commits.header_lint.hook,
+commitlint here, if any) and itos's footer rules (commits.footers), always,
+both reported, then the checks of each task a ledger footer names (Task:
+here), as staged, in written order up to its first late one (CI's cost rule;
+an after: push check waits), each capped at hooks.commit_msg.check_timeout
+seconds (60). A failure rejects the commit when
 the task's work item is done, and is printed with the task's status otherwise.
 hooks.commit_msg.task_checks: false runs none. The first to fail prints its
 report and decides: exit 1, or the header lint's own code.`,

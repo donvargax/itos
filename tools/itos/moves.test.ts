@@ -1,8 +1,12 @@
-// The scenario-moves rule: outside feat and fix, live scenarios may only
-// change file, unchanged; @wip ones may come, go and change; a file's header
-// stays; and an allowed rename passes, any other fails.
+// The moves rule: outside the exempt types, live scenarios may only change
+// file, unchanged; @wip ones may come, go and change; a file's header stays;
+// and an allowed rename passes, any other fails.
 import { describe, expect, it } from "vite-plus/test";
-import { moveProblems, readFeatures } from "./scenario-moves.ts";
+import { moveProblems, readFeatures as read } from "./moves.ts";
+
+// A kind's ID pattern, tag prefix and wip tag, as a config gives them.
+const OPTIONS = { id: "ID-[A-Z]+-\\d+", tag_prefix: "@", wip_tag: "@wip" };
+const readFeatures = (files: Record<string, string>) => read(files, OPTIONS);
 
 const header = (title: string, tags = "@phase-1") =>
 	`${tags}\nFeature: ${title}\n\n  Background:\n    Given the page is open\n`;
@@ -13,7 +17,7 @@ const one = header("One") + scenario("ID-A-01", "First") + scenario("ID-A-02", "
 const two = header("Two") + scenario("ID-B-01", "Third");
 const before = readFeatures({ "one.feature": one, "two.feature": two });
 
-describe("scenario moves", () => {
+describe("moves", () => {
 	it("passes an unchanged set", () => {
 		expect(moveProblems(before, before)).toEqual([]);
 	});

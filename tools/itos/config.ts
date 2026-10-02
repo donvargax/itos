@@ -58,6 +58,18 @@ export interface PeopleConfig {
 // The hook managers `hooks install` writes or prints for (hooks.ts).
 export const HOOK_MANAGERS = ["vp", "git", "husky", "lefthook", "pre-commit", "prek"] as const;
 export type HookManager = (typeof HOOK_MANAGERS)[number];
+// A kind's range check (`tests.<kind>.range_checks`): commands run on the
+// staged tree and over a range, or the built-in moves rule (moves.ts), which
+// leaves the types except_types names alone and allows the renames
+// allowed_renames lists, by ID and new name.
+export interface RangeCheck {
+	name: string;
+	except_types?: string[];
+	staged?: string;
+	range?: string;
+	builtin?: "moves";
+	allowed_renames?: Record<string, string>;
+}
 export interface ScopeRule {
 	only?: string[];
 	never?: string[];
@@ -94,6 +106,7 @@ export interface Config {
 			id?: string;
 			run?: { whole?: string; select?: string };
 			smoke?: { file?: string };
+			range_checks?: RangeCheck[];
 		} & Record<string, unknown>
 	>;
 	ci?: {
@@ -306,7 +319,17 @@ const SCHEMA: Spec = obj(
 				recognize: { list: obj({ command: str, as: str }, ["command", "as"]) },
 				smoke: obj({ file: str, every_file: bool, add_hint: str }),
 				range_checks: {
-					list: obj({ name: str, except_types: strs, staged: str, range: str }, ["name"]),
+					list: obj(
+						{
+							name: str,
+							except_types: strs,
+							staged: str,
+							range: str,
+							builtin: { enum: ["moves"] },
+							allowed_renames: { map: str },
+						},
+						["name"],
+					),
 				},
 			}),
 		},
@@ -528,7 +551,53 @@ const crossProblems = (config: Config): Problem[] => [
 	...patternProblems(config),
 	...providerProblems(config),
 	...hookProblems(config),
+	...rangeCheckProblems(config),
 ];
+
+// A built-in range check runs no command, and the moves rule reads feature
+// files, so it needs a Gherkin kind; its renames are read by it alone.
+const rangeCheckProblems = (config: Config): Problem[] =>
+	Object.entries(config.tests ?? {}).flatMap(([name, k]) =>
+		(k.range_checks ?? []).flatMap((check, i) =>
+			oneRangeCheckProblems(name, k.adapter, check, `tests.${name}.range_checks[${i}]`),
+		),
+	);
+
+function oneRangeCheckProblems(
+	name: string,
+	adapter: unknown,
+	check: RangeCheck,
+	at: string,
+): Problem[] {
+	const refused = (message: string, fix: string) =>
+		problem("config-range-check-builtin", `${at} ${message}`, fix);
+	if (!check.builtin)
+		return check.allowed_renames
+			? [
+					refused(
+						"has allowed_renames, which only builtin: moves reads",
+						`remove allowed_renames from ${at}, or make it builtin: moves`,
+					),
+				]
+			: [];
+	const found: Problem[] = [];
+	const commands = (["staged", "range"] as const).filter((key) => check[key] !== undefined);
+	if (commands.length)
+		found.push(
+			refused(
+				`is builtin: ${check.builtin} and has ${commands.join(" and ")}; a built-in check runs no command`,
+				`remove ${commands.join(" and ")} from ${at}, or builtin to run the commands`,
+			),
+		);
+	if ((adapter ?? DEFAULTS.tests["<kind>"].adapter) !== "gherkin")
+		found.push(
+			refused(
+				`is builtin: ${check.builtin}, which reads feature files, and tests.${name}.adapter is not gherkin`,
+				`remove ${at}, or give it staged and range commands that judge the kind's tests`,
+			),
+		);
+	return found;
+}
 
 // A check_timeout of no seconds would be no timeout at all to the shell.
 function hookProblems(config: Config): Problem[] {

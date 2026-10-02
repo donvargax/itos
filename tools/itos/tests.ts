@@ -28,8 +28,8 @@
 // `ids_pattern`, the patterns deduplicated in order and combined by `join`),
 // and its `recognize` templates read a task check back as a selection (a
 // `{pattern}` is one shell word, quoted or bare; `as: smoke` is the smoke set).
-import { config, ConfigError, configPath, readings } from "./config.ts";
-import { gherkinList } from "./gherkin.ts";
+import { config, ConfigError, configPath, type RangeCheck, readings } from "./config.ts";
+import { type GherkinOptions, gherkinList } from "./gherkin.ts";
 import { inShell } from "./shell.ts";
 
 export interface NamedTest {
@@ -64,6 +64,7 @@ export interface Kind {
 		join: { each: string; sep: string };
 	};
 	recognize?: { command: string; as: string }[];
+	range_checks?: RangeCheck[];
 	smoke: { file?: string; every_file: boolean; add_hint?: string };
 }
 
@@ -79,6 +80,20 @@ export const bareId = (name: string, id: string) => {
 	return prefix && id.startsWith(prefix) ? id.slice(prefix.length) : id;
 };
 
+// A Gherkin kind's options: its root (or `root` in its place) and ID pattern,
+// which have no default and are a config problem when left out, and its tag
+// prefix and wip tag.
+export function gherkinOptions(name: string, root?: string): GherkinOptions {
+	const k = kind(name);
+	const need = (key: "root" | "id") => {
+		const value = key === "root" ? (root ?? k.root) : k[key];
+		if (value === undefined)
+			throw new ConfigError(configPath(), [`tests.${name}.${key} is missing`]);
+		return value;
+	};
+	return { root: need("root"), id: need("id"), tag_prefix: k.tag_prefix, wip_tag: k.wip_tag };
+}
+
 const warned = new Set<string>();
 
 // The kind's tests at a tree: `worktree`, `index` or a commit. `root` stands
@@ -87,26 +102,8 @@ export function listTests(
 	name: string,
 	{ at = "worktree", root }: { at?: string; root?: string } = {},
 ): TestList {
-	const k = kind(name);
-	const { adapter } = k;
-	if (adapter === "gherkin") {
-		// Gherkin's tags start with `@`; the root and the ID pattern are the kind's.
-		const need = (key: "root" | "id") => {
-			const value = key === "root" ? (root ?? k.root) : k[key];
-			if (value === undefined)
-				throw new ConfigError(configPath(), [`tests.${name}.${key} is missing`]);
-			return value;
-		};
-		return gherkinList(
-			{
-				root: need("root"),
-				id: need("id"),
-				tag_prefix: k.tag_prefix,
-				wip_tag: k.wip_tag,
-			},
-			at,
-		);
-	}
+	const { adapter } = kind(name);
+	if (adapter === "gherkin") return gherkinList(gherkinOptions(name, root), at);
 	if (typeof adapter === "string")
 		throw new ConfigError(configPath(), [`tests.${name}.adapter ${adapter} is not built in`]);
 	let tree = at;

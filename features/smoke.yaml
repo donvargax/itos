@@ -52,6 +52,10 @@
   scenarios:
     - id: "@ID-LEDGER-01"
       why: config check names the missing ledger folder, the first command a consumer meets it in
+- file: moves.feature
+  scenarios:
+    - id: "@ID-MOVES-01"
+      why: the commit-msg hook rejects a test commit that changes a live scenario, the rule's point
 - file: nightly.feature
   scenarios:
     - id: "@ID-NIGHTLY-01"

@@ -42,6 +42,7 @@ type scratchConfig struct {
 	headerLintCommand string   // the header lint delegated to this command
 	since             string   // commits.since
 	rangeCheck        bool     // a range check that records where its range starts
+	moves             *moves   // the kind's range check is the built-in moves rule
 	recordingShell    bool     // shell is the recording shell
 	ciSteps           []string // ci.steps
 	ciTests           string   // a kind of named tests, with run and recognize templates, run by the last of ci.steps
@@ -66,6 +67,13 @@ type scratchConfig struct {
 	prosePaths        string   // ci.prose.paths, one glob
 	proseSteps        string   // ci.prose.steps, one command
 	settings          []setting
+}
+
+// The built-in moves rule as the kind's range check: the types it leaves
+// alone, and the renames it allows, each an ID and its new name.
+type moves struct {
+	exceptTypes []string
+	renames     [][2]string
 }
 
 // One ci.covers rule: the step that has done what a check matching the
@@ -182,6 +190,17 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.configSets("ledger.group.label", label)
 	})
 	sc.Step(`^a feature file "([^"]*)" with the live scenario "([^"]*)"$`, w.featureFile)
+	sc.Step(`^the committed feature file "([^"]*)" with the live scenario "([^"]*)"$`, w.committedFeatureFile)
+	sc.Step(`^the kind's range check is the built-in moves rule, except for "([^"]*)"$`, w.movesRule)
+	sc.Step(`^the moves rule allows renaming "([^"]*)" to "([^"]*)"$`, w.movesAllowRename)
+	sc.Step(`^a change to the steps of the scenario "([^"]*)" is staged$`, func(id string) error {
+		return w.stageScenarioEdit(id, changeSteps)
+	})
+	sc.Step(`^the scenario "([^"]*)" is staged renamed to "([^"]*)"$`, func(id, name string) error {
+		return w.stageScenarioEdit(id, rename(name))
+	})
+	sc.Step(`^the scenario "([^"]*)" is staged moved to "([^"]*)"$`, w.stageScenarioMove)
+	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" and changing the steps of the scenario "([^"]*)" on top of it$`, w.commitChangingSteps)
 	sc.Step(`^the smoke set lists only "([^"]*)"$`, w.smokeSetLists)
 	sc.Step(`^smoke\.every_file is (true|false)$`, w.smokeEveryFileIs)
 	sc.Step(`^the kind leaves out tag_prefix$`, w.noTagPrefix)
@@ -199,6 +218,15 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^itos checks the config as JSON$`, func() error { return w.itos("config", "check", "--json") })
 	sc.Step(`^itos prints the defaults of the config$`, func() error { return w.itos("config", "check", "--print-defaults") })
 	sc.Step(`^itos checks the work registry$`, func() error { return w.itos("work", "check") })
+	sc.Step(`^itos verifies the commits after the first$`, func() error {
+		if len(w.commits) == 0 {
+			return errors.New("the repository has no commit yet")
+		}
+		return w.itos("verify", w.commits[0], "HEAD")
+	})
+	sc.Step(`^itos checks the staged moves of the kind "([^"]*)"$`, func(kind string) error {
+		return w.itos("tests", "moves", kind)
+	})
 	sc.Step(`^itos checks the smoke set$`, func() error { return w.itos("tests", "smoke", "check", "scenario") })
 	sc.Step(`^itos installs the hooks$`, func() error { return w.itos("hooks", "install") })
 	sc.Step(`^itos runs the task "([^"]*)"$`, func(task string) error { return w.itos("task", task) })
@@ -405,7 +433,7 @@ func (w *world) writeConfig() error {
 		fmt.Fprintf(&b, "  header_lint:\n    hook: %q\n    stdin: %q\n", lint, lint)
 	}
 	b.WriteString(w.settingsUnder("commits"))
-	if w.config.rangeCheck || w.config.smoke || w.config.ciTests != "" {
+	if w.config.rangeCheck || w.config.smoke || w.config.ciTests != "" || w.config.moves != nil {
 		kind := "scenario"
 		if w.config.ciTests != "" {
 			kind = w.config.ciTests
@@ -440,9 +468,22 @@ func (w *world) writeConfig() error {
 			fmt.Fprintf(&b, "      every_file: %t\n", *w.config.smokeEveryFile)
 		}
 	}
+	if w.config.rangeCheck || w.config.moves != nil {
+		b.WriteString("    range_checks:\n")
+	}
 	if w.config.rangeCheck {
 		record := "printf '%s\\n' {from} > " + quote(filepath.Join(w.support, "range-from"))
-		fmt.Fprintf(&b, "    range_checks:\n      - name: record\n        range: %q\n", record)
+		fmt.Fprintf(&b, "      - name: record\n        range: %q\n", record)
+	}
+	if m := w.config.moves; m != nil {
+		fmt.Fprintf(&b, "      - name: moves\n        builtin: moves\n        except_types: [%s]\n",
+			strings.Join(m.exceptTypes, ", "))
+		if len(m.renames) > 0 {
+			b.WriteString("        allowed_renames:\n")
+			for _, r := range m.renames {
+				fmt.Fprintf(&b, "          %q: %q\n", r[0], r[1])
+			}
+		}
 	}
 	b.WriteString(w.ciSection())
 	b.WriteString("work: { ")
@@ -923,12 +964,122 @@ func (w *world) featureFile(file, id string) error {
 		w.scenarioFiles = map[string]string{}
 	}
 	w.scenarioFiles[id] = file
-	text := fmt.Sprintf("Feature: %s\n\n  %s\n  Scenario: %s runs\n    When it runs\n", file, id, id)
-	if err := w.write(filepath.Join("features", file), text); err != nil {
+	if err := w.write(filepath.Join("features", file), featureText(file, id)); err != nil {
 		return err
 	}
 	w.config.smoke = true
 	return w.writeConfig()
+}
+
+// The text of a feature file with one live scenario, named after it.
+func featureText(file, id string) string {
+	return fmt.Sprintf("Feature: %s\n\n  %s\n  Scenario: %s runs\n    When it runs\n", file, id, id)
+}
+
+// A feature file under features/ with one live scenario, committed as the
+// feat that adds it, with whatever else the working tree holds.
+func (w *world) committedFeatureFile(file, id string) error {
+	if w.scenarioFiles == nil {
+		w.scenarioFiles = map[string]string{}
+	}
+	w.scenarioFiles[id] = file
+	if err := w.write(filepath.Join("features", file), featureText(file, id)); err != nil {
+		return err
+	}
+	return w.commit("feat: add the scenario " + id)
+}
+
+// The kind's one range check is the built-in moves rule, leaving alone the
+// types the comma-separated list names.
+func (w *world) movesRule(types string) error {
+	m := &moves{}
+	for _, t := range strings.Split(types, ",") {
+		m.exceptTypes = append(m.exceptTypes, strings.TrimSpace(t))
+	}
+	w.config.moves = m
+	return w.writeConfig()
+}
+
+func (w *world) movesAllowRename(id, name string) error {
+	if w.config.moves == nil {
+		return errors.New("the kind's range check is not the moves rule")
+	}
+	w.config.moves.renames = append(w.config.moves.renames, [2]string{id, name})
+	return w.writeConfig()
+}
+
+// An edit of a scenario's text: its steps changed, or its name.
+type scenarioEdit func(text, id string) string
+
+func changeSteps(text, id string) string {
+	return strings.Replace(text, "    When it runs\n", "    When it runs twice\n", 1)
+}
+
+func rename(name string) scenarioEdit {
+	return func(text, id string) string {
+		return strings.Replace(text, "Scenario: "+id+" runs\n", "Scenario: "+name+"\n", 1)
+	}
+}
+
+// The feature file holding the scenario, edited in the working tree.
+func (w *world) editScenario(id string, edit scenarioEdit) (string, error) {
+	file, ok := w.scenarioFiles[id]
+	if !ok {
+		return "", fmt.Errorf("no feature file has the scenario %s", id)
+	}
+	path := filepath.Join("features", file)
+	text, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return "", err
+	}
+	changed := edit(string(text), id)
+	if changed == string(text) {
+		return "", fmt.Errorf("the edit left %s as it was", path)
+	}
+	return path, w.write(path, changed)
+}
+
+// The scenario's feature file, edited, staged alone.
+func (w *world) stageScenarioEdit(id string, edit scenarioEdit) error {
+	path, err := w.editScenario(id, edit)
+	if err != nil {
+		return err
+	}
+	return w.git("add", "--", path)
+}
+
+// The scenario taken out of its feature file, which is deleted, and written
+// unchanged in a new one under another header, both staged.
+func (w *world) stageScenarioMove(id, to string) error {
+	file, ok := w.scenarioFiles[id]
+	if !ok {
+		return fmt.Errorf("no feature file has the scenario %s", id)
+	}
+	from := filepath.Join("features", file)
+	text, err := os.ReadFile(filepath.Join(w.dir, from))
+	if err != nil {
+		return err
+	}
+	_, block, found := strings.Cut(string(text), "\n\n")
+	if !found {
+		return fmt.Errorf("%s has no scenario after its header", from)
+	}
+	if err := w.write(filepath.Join("features", to), "Feature: "+to+"\n\n"+block); err != nil {
+		return err
+	}
+	if err := w.git("rm", "-q", "--", from); err != nil {
+		return err
+	}
+	w.scenarioFiles[id] = to
+	return w.git("add", "--", filepath.Join("features", to))
+}
+
+// A commit naming the task whose one change is the scenario's steps.
+func (w *world) commitChangingSteps(message, task, id string) error {
+	if _, err := w.editScenario(id, changeSteps); err != nil {
+		return err
+	}
+	return w.commit(message + "\n\nTask: " + task + "\n")
 }
 
 // The smoke set holds the one scenario, under the feature file it is in.

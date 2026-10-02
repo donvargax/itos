@@ -81,8 +81,8 @@ try {
 
 	// 1. A change to a leaf module runs the tests that reach it and not the
 	// whole suite, on both gates.
-	const module = "tools/itos/scenario-moves.ts";
-	const moduleTest = "tools/itos/scenario-moves.test.ts";
+	const module = "tools/itos/moves.ts";
+	const moduleTest = "tools/itos/moves.test.ts";
 	const moduleLine = "const SCENARIO_LINE";
 	edit(module, moduleLine, `// gates self-test: a harmless change\n${moduleLine}`);
 	let run = preCommit("a harmless change to a module");

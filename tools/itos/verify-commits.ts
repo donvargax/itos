@@ -1,15 +1,16 @@
 // CI: re-check the commits in a pushed range with the commit-msg hook's rules,
 // so a commit made with the hooks bypassed still fails the build: each commit's
-// message (against the feature files and the ledger of that commit) and
-// paths, then each kind's range check over the range (the scenario-moves
-// rule). `itos verify <from> <to>` runs it; `from` may be empty or all zeros
+// message (against the feature files and the ledger of that commit), its
+// paths and the built-in moves rule against its parent (moves.ts), then each
+// kind's range commands over the range. `itos verify <from> <to>` runs it; `from` may be empty or all zeros
 // (a new branch): every commit up to `to`. The commit `commits.since` names,
 // and its ancestors, are left out, and the range checks start there: a
 // history written before the rules (a template's squashed first commit, a
 // project adopting itos) is not judged by them.
 import { messageHoldsAt } from "./commit.ts";
-import { checkPaths } from "./commit-scope.ts";
+import { reject, scopeIssues } from "./commit-scope.ts";
 import { config } from "./config.ts";
+import { commitMoveIssues } from "./moves.ts";
 import { emit, type Output, TEXT } from "./problem.ts";
 import { git, rangeArgs, rangeStartAfterSince, since, sinceIssue } from "./repo.ts";
 import { inShell } from "./shell.ts";
@@ -19,7 +20,8 @@ import { shellWord } from "./tests.ts";
 const run = (command: string, out: Output) =>
 	inShell(command, { stdio: ["ignore", out.json ? 2 : "inherit", "inherit"] }).status === 0;
 
-// One commit: its message at that commit, then its paths.
+// One commit: its message at that commit, then its paths and its moves, one
+// rejection.
 function verifyCommit(sha: string, out: Output): { sha: string; header: string; ok: boolean } {
 	const message = git("log", "-1", "--format=%B", sha);
 	const header = message.split("\n")[0]!;
@@ -32,9 +34,17 @@ function verifyCommit(sha: string, out: Output): { sha: string; header: string; 
 	// as a revert does, or taken a task out of the ledger. The header lint is
 	// the config's delegate (commitlint, say), if any; the footer rules are
 	// itos's, always.
-	const ok = messageHoldsAt(message, sha, out) && checkPaths(type, files) === 0;
+	const ok = messageHoldsAt(message, sha, out) && holds(type, files, sha);
 	if (!ok) console.error(`  ^ ${sha.slice(0, 7)} ${header}`);
 	return { sha, header, ok };
+}
+
+// A commit's paths against its type's rules and its feature files against
+// its parent's by the moves rule, the problems of both one rejection.
+function holds(type: string, files: string[], sha: string): boolean {
+	const found = [...scopeIssues(type, files), ...commitMoveIssues(sha, type)];
+	if (found.length) reject(found);
+	return found.length === 0;
 }
 
 // Each kind's range checks (`tests.<kind>.range_checks[].range`), their
@@ -42,7 +52,7 @@ function verifyCommit(sha: string, out: Output): { sha: string; header: string; 
 // commits.since.
 const rangeChecks = (from: string, to: string) =>
 	Object.values(config().tests ?? {}).flatMap((k) =>
-		((k.range_checks ?? []) as { range?: string }[]).flatMap((c) =>
+		(k.range_checks ?? []).flatMap((c) =>
 			c.range
 				? [
 						c.range
