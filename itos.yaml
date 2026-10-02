@@ -110,15 +110,19 @@ ci:
   env: { CI: "1" }
   steps: # every step of CI, in order; each states its cost
     - { run: vp check, cost: static }
-    - { run: "! gofmt -l features | grep .", cost: static } # names each file gofmt would change
+    - { run: "! gofmt -l features cmd internal | grep .", cost: static } # names each file gofmt would change
     - { run: go vet ./..., cost: static }
     - { run: tools/bin/itos tests smoke check scenario, cost: static }
     - { run: tools/bin/itos config check, cost: static } # the config, the ledger, the registry, the smoke set
     - { run: vp run test:coverage, cost: late }
+    - { run: "go test ./cmd/... ./internal/...", cost: late } # the Go port's unit tests
     - { run: vp run audit, cost: late }
     # The conformance corpus: what itos did when it was written, as cases run
     # through its command line; a regression corpus, not named tests.
     - { run: node tools/itos/conformance/run.ts --bin tools/bin/itos, cost: late }
+    # The Go build against the ported set (its corpus files and scenarios), so a
+    # change to a ported group lands in both implementations in one push.
+    - { run: node tools/selftest/go-port.ts, cost: late }
     - { run: tools/bin/itos task T-007, cost: late } # the commit rules, proven on every push
     - { tests: scenario } # the one merged run; late, as no pattern matches it
   prose: # a range that touches only these runs only the prose steps
@@ -140,6 +144,9 @@ ci:
     keep_written_order: true # a task's checks never run before the ones above them
   covers: # a check a step has just done is not run again
     - { by: "vp run test:coverage", matches: "^vp test run(?: [^\\s-]\\S*)*$" }
+    # A corpus file of the ported set, run against a fresh Go build (T-039).
+    - by: node tools/selftest/go-port.ts
+      matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/cli\\.yaml'$"
   # Slow, and it proves the gates rather than the code: left to the nightly.
   nightly_only: ["node tools/selftest/gates.ts"]
   # Every feature, the gates self-test, then the static checks of every task
