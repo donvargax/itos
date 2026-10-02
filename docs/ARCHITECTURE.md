@@ -609,7 +609,8 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   behaviour is the TypeScript's, already specified. The Go files under `cmd/`
   and `internal/` are in `commits.path_sets.implementation`, and their
   `*_test.go` are the `test` type's; CI's `gofmt` step covers them and a late
-  step runs their unit tests (`go test ./cmd/... ./internal/...`).
+  step runs their unit tests (`go test ./cmd/... ./internal/...`), of which
+  the hooks run those a change reaches (T-059).
 
 ## The gates and CI
 
@@ -623,13 +624,22 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
     module, since it reads packages rather than files), then, unless every
     staged file is Markdown, under `docs/**`, under `tasks/**` (the ledger and
     the registry) or a feature file, `vp test run --changed HEAD` with coverage collected but
-    no thresholds, then `fallow audit` on what is new against HEAD. Vitest
+    no thresholds, then `tools/bin/go-unit-tests --cached`, then `fallow audit`
+    on what is new against HEAD. Vitest
     follows the imports from every changed file; `forceRerunTriggers` reruns
     everything when the config, the lockfile or `itos.yaml` changes, written
     as the files themselves, since vitest's own defaults never match a changed
     file. The audit scores changed functions by that coverage
     (`.fallowrc.json`), exact for the changed files since every test that
-    runs one imports it. It does not check itos's own data: the commit-msg
+    runs one imports it. `tools/bin/go-unit-tests` does the same for Go,
+    without building anything to choose: a changed file belongs to the
+    deepest package folder holding it (testdata and embedded files count),
+    and one `go list -e -test -deps` over `./cmd/... ./internal/...` gives
+    every package whose Deps, its tests' included, reach one of those, which
+    `go test` then runs, Go's test cache answering for what did not change;
+    `go.mod` or `go.sum` runs them all, and a change under neither `cmd/` nor
+    `internal/` starts no `go` at all. `features/` is not among them: it is
+    the named tests, CI's and the nightly's. It does not check itos's own data: the commit-msg
     hook does, from the staged tree (T-023 dropped T-022's check here, which
     read the working tree).
   - **commit-msg** first checks itos's own data when the commit stages any
@@ -656,9 +666,13 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
     is `done`, else it is printed with the task's status and the commit
     goes through. `hooks.commit_msg.task_checks: false` turns them off.
   - **pre-push** runs `hooks.pre_push`: `vp test run --changed <remote sha>`
-    for each pushed ref, or the whole unit suite when there is no remote
-    commit to compare with. Nothing else: the scenarios and the task checks
-    are CI's.
+    and then `tools/bin/go-unit-tests <remote sha>` (the base against the
+    working tree, as Vitest reads it) for each pushed ref, or both whole
+    unit suites (`--all`) when there is no remote commit to compare with.
+    The Go step is there rather than in a script so that one section says
+    what pre-push runs, whichever implementation reads it, and the package
+    choice is the script's alone, shared with pre-commit. Nothing else: the
+    scenarios and the task checks are CI's.
 - **CI** (`.github/workflows/ci.yml`) is one job, a thin wrapper around
   `itos ci run`, so everything it does runs locally too. A newer push
   replaces a run still waiting for the runner; a running one finishes, and

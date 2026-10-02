@@ -1535,16 +1535,16 @@ items:
     title: The hooks run the Go packages' unit tests a change reaches
     phase: 2
     owner: donvargax
-    status: todo
+    status: done
     depends_on: [T-039]
-    kind: idea
+    kind: task
     why: >
       The pre-commit and pre-push hooks run the Vitest unit tests a change reaches (vp test run
       --changed) and, for Go, only gofmt and go vet, so a change to cmd/ or internal/ that breaks
       their unit tests is first caught by CI's go test ./cmd/... ./internal/... step. As the port
       grows, the hooks should run the tests of the Go packages a change touches and those that
-      import them, as they do for the TypeScript.
-    refs: [AGENTS.md, itos.yaml]
+      import them, as they do for the TypeScript. Done by T-059, as a task.
+    refs: [AGENTS.md, itos.yaml, tasks/phase-3.yaml]
 
   - id: T-042
     title: The Go config loader and config check
@@ -1719,7 +1719,7 @@ items:
     title: The hooks run the Go unit tests a change reaches
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-058]
     kind: task
     refs: [tasks/phase-3.yaml]
