@@ -224,10 +224,12 @@ The Go build of itos lands beside the TypeScript one command group at a time
   prints a `--json` object with `"schema": 1` first and its keys in the order
   written (Go's maps would sort them). The rest are the packages `PLAN.md` §8
   lists, each holding what the groups ported so far need: `internal/ledger`
-  (the layout, the files, every task and check problem), `internal/tests` (the
-  Gherkin adapter over the working tree, the smoke set and its rule),
-  `internal/providers` (the people), `internal/work` (the registry and its
-  problems) and `internal/git`, beside two the TypeScript has no module for:
+  (the layout, the files, every task and check problem, and the tasks and
+  checks typed), `internal/tests` (the Gherkin adapter over the working tree,
+  the smoke set and its rule), `internal/providers` (the people),
+  `internal/work` (the registry and its problems, and the items' statuses),
+  `internal/shell`, `internal/check` (below) and `internal/git`, beside two
+  the TypeScript has no module for:
   `internal/value` and `internal/source` (below). The port shells out to git
   where it needs it, as the TypeScript does.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
@@ -264,6 +266,33 @@ The Go build of itos lands beside the TypeScript one command group at a time
   (`ENOENT: no such file or directory, open 'people.yaml'`). It has the
   working tree alone so far; the hooks group adds the index, so the
   commit-msg hook's check of the staged data is `config check` again.
+- **The task runner** is `internal/cli/task.go`, `cli.ts` ported, over three
+  packages the later groups share. `internal/shell` is `shell.ts`: `Run`
+  starts a command through the config's `shell`, with its streams (an
+  `*os.File` handed over as it is, so a check's output keeps its place beside
+  what itos prints; nil is `/dev/null`), its timeout and its environment, and
+  says how it ended (`Result`: the code, whether it timed out, why it could
+  not start). Past its timeout a command gets SIGTERM, as `spawnSync`'s
+  default `killSignal`, then `shell.Grace` (10 seconds) before it is killed,
+  where Node would wait however long it takes; a command that traps the
+  signal and exits 0 has code 0, as `spawnSync`'s status is 0, so a caller
+  that fails it whatever its code reads `TimedOut`. `internal/check` is
+  `checks.ts` and `cost.ts`: a `Runner` is one invocation's runs, keyed by
+  `Key` (the command through `config.Normal` and the timeout), its `Run`
+  printing the verbose command line and reusing a run as `runCheck` does,
+  and `CostOf`, `CostedChecks` and `ChecksBeforeLate` are the cost classes
+  and written order, for CI's plan and the commit-msg hook (config check's
+  written-order rule stays in `internal/ledger`, since it reads the ledger
+  before it is typed). `ledger.Tasks` is `loadTasks`, through `ledger.Files`:
+  a task whose checks cannot run (a `done_when` that is not a list, a check
+  without a command) carries its error and fails only the command that runs
+  it, as the TypeScript fails only there. `work.ItemStatuses` is
+  `itemStatuses`, the registry read alone, without the people, so `task list`
+  works over a registry with problems. A group flag's value is read by
+  JavaScript's `Number()` (`value.ToNumber`, so `--group 01` is group 1) and
+  the status table pads by UTF-16 units (`value.PadEnd`). The runner's ID
+  pattern is `^(?:<ledger.id>)$`, `T-\d+` without one, compiled as RE2
+  like every config pattern.
 - **What is not ported yet** fails loudly: every command takes its arguments
   as the TypeScript does, so a usage error reads the same in both, and then a
   command whose group has not landed exits 3, the missing environment's code,

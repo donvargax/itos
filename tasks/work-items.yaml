@@ -1554,7 +1554,7 @@ items:
     title: The Go task runner, task and task list
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-042]
     kind: task
     refs: [tasks/phase-2.yaml]
@@ -1630,6 +1630,24 @@ items:
       implementations should refuse what the other cannot compile, and the wording name the
       dialect itos keeps, with its corpus case.
     refs: [PLAN.md, tools/itos/conformance/config.yaml]
+
+  - id: p2-go-check-captured
+    title: The Go check runner runs a check quietly, its output kept and its timeout capped
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-043]
+    kind: idea
+    why: >
+      Found in T-043: internal/check has the task runner's Run (checks.ts's runCheck), which CI's
+      run of its plan shares, but not runCheckCaptured, which the commit-msg hook runs a named
+      task's checks through: quiet, stdout and stderr together in a file rather than a pipe (so a
+      command it leaves running cannot hold the hook past its timeout), the timeout capped at
+      hooks.commit_msg.check_timeout with whether the cap set it, whether it timed out (a check
+      past its timeout fails whatever its code), and the environment it runs in. internal/shell
+      already reports TimedOut and takes the streams and the environment; the hooks group needs the
+      captured run on top of it before hook commit-msg can land.
+    refs: [tasks/phase-2.yaml, docs/ARCHITECTURE.md]
 
   - id: p2-go-port
     title: The Go port, one command group at a time
