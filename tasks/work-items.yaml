@@ -697,7 +697,7 @@ items:
     title: The moving rule is itos's, a built-in range check and a command
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-19]
     kind: slice
     refs: [features/moves.feature]
