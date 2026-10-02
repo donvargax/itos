@@ -28,8 +28,9 @@ const PORTED = {
 	// help texts (T-041), the config, the ledger, the registry and the smoke
 	// sets as config check reads them (T-042), the task runner, task and task
 	// list (T-043), the globs and path rules, commit check-paths (T-044), the
-	// footer rules, commit check-message (T-045), and the named tests, tests
-	// list and tests smoke (T-046).
+	// footer rules, commit check-message (T-045), the named tests, tests list
+	// and tests smoke (T-046), and verify (T-047; moves.yaml joins with the
+	// commit-msg hook, T-052).
 	corpus: [
 		"tools/itos/conformance/cli.yaml",
 		"tools/itos/conformance/help.yaml",
@@ -40,14 +41,16 @@ const PORTED = {
 		"tools/itos/conformance/messages.yaml",
 		"tools/itos/conformance/tests.yaml",
 		"tools/itos/conformance/smoke.yaml",
+		"tools/itos/conformance/verify.yaml",
 	],
 	// -scenarios= regular expressions, as a group's checks write them: the
-	// scenarios that run config check (T-042), itos task (T-043) and tests
-	// smoke check (T-046).
+	// scenarios that run config check (T-042), itos task (T-043), tests smoke
+	// check (T-046), and verify or tests moves (T-047).
 	scenarios: [
 		"^@ID-(CONFIG-1[2346]|LEDGER-0[12]|SINCE-0[4-7])$",
 		"^@ID-(TASK-0[1-4]|LEDGER-0[34]|CONFIG-(01|18))$",
 		"^@ID-CONFIG-(09|10|15)$",
+		"^@ID-(SINCE-0[1238]|FOOT-04|CONFIG-04|MOVES-0[56])$",
 	],
 };
 
