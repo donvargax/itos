@@ -842,7 +842,7 @@ items:
     title: A check merged into a run of named tests that does not happen runs as itself
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-12]
     kind: slice
     refs: [features/ci.feature]

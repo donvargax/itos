@@ -131,7 +131,11 @@ the commands, `itos <command> --help` each one). The code is
   header holds `@wip`. The kind's `run` and `recognize` templates are how CI
   reads a task check as a selection of tests and merges every selection into
   one command; nothing else knows Gherkin or the runner. Another kind can be
-  any command that prints the same JSON.
+  any command that prints the same JSON. `ciPlan` (`ci-plan.ts`) marks a
+  check merged only when that command is in the plan: with nothing selected
+  (an empty smoke set, a range that names no test) the kind's run is left
+  out, and a check read `as: smoke` runs as itself. `as: whole` and
+  `as: pattern` always select something, so their run is always there.
 - **The footers** have one reader (`footers.ts`), which the footer rules
   and CI share: which types need each footer, which IDs must exist, and
   `read_at: commit`, which reads the IDs that exist (the ledger's tasks, the
