@@ -229,7 +229,7 @@ The Go build of itos lands beside the TypeScript one command group at a time
   adapter and the command adapter at a tree, the smoke set and its rule,
   the run templates, the moves rule; below),
   `internal/message` (below), `internal/plan` (CI's plan; below),
-  `internal/providers` (the people),
+  `internal/providers` (the range providers and the people; below),
   `internal/work` (the registry and its problems, and the items' statuses),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git`, beside two
@@ -433,6 +433,26 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   a check its done tasks share runs once; a push runs each named task's
   checks as its own, as the TypeScript does (its `runs` is the nightly's
   only). `--json`'s `failed_at` is a `Failure`, its keys in `ci.ts`'s order.
+- **Where a range starts** is `ci range` (`internal/cli/ci.go`) over
+  `internal/providers/range.go` (`providers.ts`'s range half and
+  `ci-scope.ts`'s `rangeStart`). It reads the config first, so a broken
+  `ci.range` is a config error even with `--base`, then `RangeStart` keeps a
+  pull request's base without asking the provider, else holds the provider's
+  start to the head with `git merge-base --is-ancestor`. A provider is a
+  `Range`, a function giving the start or `""`, never an error, made by
+  `RangeProvider(cfg, env, stderr)` from `ci.range` and the environment:
+  `none`; `command`, which is `FirstLine` (the command through the config's
+  shell, its stderr on itos's, its output's first line trimmed as JavaScript
+  trims), the reading the `command` identity provider shares; and `github`,
+  a `GitHub` value (repository, token, workflow, branch) whose `LastGreenRun`
+  lists the workflow's runs from the API through `net/http` and takes
+  `FirstGreen`, the newest success. A provider over another forge's API
+  (GitLab, Forgejo, waiting for `p1-conformance-http`) is another such value
+  and another case in `RangeProvider`; the API's address is a variable
+  (`GitHubAPI`), so a unit test points it at an `httptest` server, as no
+  conformance case can reach the network. Node's `fetch` waits however long
+  the API takes; the port gives up after `Timeout` (a minute), which reads as
+  no green run and runs everything.
 - **What is not ported yet** fails loudly: every command takes its arguments
   as the TypeScript does, so a usage error reads the same in both, and then a
   command whose group has not landed exits 3, the missing environment's code,
