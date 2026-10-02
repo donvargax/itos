@@ -482,3 +482,21 @@
       timeout: 300
     - run: sh -c 'd=$(mktemp -d) && gh release download v0.5.0 --dir "$d" --pattern "itos-0.5.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
       after: push
+
+- id: T-037
+  type: build
+  title: This repository's moving rule is itos's built-in, and its script goes
+  why: >
+    Slice 23 ships the moving rule as a built-in range check, { builtin:
+    moves, except_types, allowed_renames }, so this repository's
+    tests.scenario.range_checks takes it in place of the two commands that ran
+    tools/itos/scenario-moves.ts, and the script, with its ALLOWED_RENAMES
+    table, goes: the rule's one home is itos, as for every consumer. Once the
+    script is gone, a config still naming it would fail every verify, so CI's
+    verify of the range proves the switch; the checks run the built-in
+    command on this tree and prove the script is gone.
+  done_when:
+    - run: tools/bin/itos tests moves scenario
+      cost: static
+    - run: sh -c 'test ! -e tools/itos/scenario-moves.ts'
+      cost: static

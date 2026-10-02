@@ -12,19 +12,19 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after slice 21 landed.
+Last updated 2026-10-02, after slice 22 landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `f82d00b` (CI run 36956309733), after slices 18 to 21;
-every item in progress has landed. The nightly ends with
-`{ tasks: done, cost: static }`, every done task's static checks. The last
-nightly, 36956479749 (dispatched by hand on `f82d00b`), is green. Read the
-newest nightly before starting the next implementation. A red nightly
-takes priority over new work.
+`main` is green at `4740dbf` (CI run 36957634139), after slices 18 to 22.
+The nightly ends with `{ tasks: done, cost: static }`, every done task's
+static checks. The last green nightly is 36956479749 (on `f82d00b`); one was
+dispatched on `4740dbf` for slice 22. Read the newest nightly before
+starting the next implementation. A red nightly takes priority over new
+work.
 
 Released: [v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0)
 (slices 14 to 17, T-034, T-035), after
@@ -34,24 +34,24 @@ v0.5.0's adds the nightly's `{ tasks: done, cost: static }` step the
 character editor asked for, and has consumers drop ledger checks of itos's
 own behaviour. The user moves the consumers' pins (the project template, the
 character editor) from their own repositories: don't change any other
-repository. Unreleased: slices 18 to 21, each already in
+repository. Unreleased: slices 18 to 22, each already in
 `docs/releases/v0.6.0.md` (its notes check passes; the release adds the
 intro, known issues, the pin's hash and the check step). Write each slice
 into those notes as it lands, from its report.
 
 ## Next
 
-1. **The rest of the config contract, before the port.** Slices 18 to 21
-   are done. The user decided the open calls on 2026-10-02:
-   - `slice-22: work.registry's default follows the ledger's folder`,
-     specified (`@ID-WORK-04`), with an agent;
-   - `p1-config-names-from-config`: ship `scenario-moves.ts` as an itos
-     command, reading the exempt types from the range check's
-     `except_types`; to specify next;
-   - `p1-verify-with-last-release`: deferred until the Go port.
+1. **The rest of the config contract, before the port.** Slices 18 to 22
+   are done. Next:
+   - `slice-23: The moving rule is itos's, a built-in range check and a
+command` (`features/moves.feature`), then `T-037: This repository's
+moving rule is itos's built-in, and its script goes`, one agent;
+   - `p1-verify-with-last-release`: deferred until the Go port (the user's
+     call);
    - small follow-ups the slices left: `p1-group-label-flag-word`,
      `p1-wip-tag-command-kind`, `p1-ledger-id-default`,
-     `p1-own-recognize-for-itos`.
+     `p1-own-recognize-for-itos`, `p1-release-defaults-per-config`,
+     `p1-registry-old-default-hint`.
 
    Then a v0.6.0 release, then **the Go port** (`p2-go-port`).
 

@@ -693,22 +693,32 @@ items:
       prose: true checks" whatever ci.prose.steps are. Each is read from the config. @ID-CI-05 to
       07.
 
-  - id: p1-config-names-from-config
-    title: The names the tools hardcode, read from the config
+  - id: slice-23
+    title: The moving rule is itos's, a built-in range check and a command
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: [slice-4]
-    kind: idea
+    depends_on: [slice-19]
+    kind: slice
+    refs: [features/moves.feature]
     why: >
-      What is left of the config-keys audit once slice 18 reads the ledger footer, the ledger's
-      folder and the prose steps in CI: scenario-moves' range mode hardcodes feat and fix and
-      ignores except_types, and it and the smoke rule default to the kind named scenario (the
-      plan's smoke set reads the kind of its tests step since slice 3). scenario-moves is a script
-      this repository's config runs as a range check, not an itos command, so no scenario reaches
-      it until itos ships it as one; the smoke rule's default kind is reached by no command.
-      scenario-moves also roots the kind at e2e/features when tests.<kind>.root is left out, a
-      fallback slice 19 left outside the defaults table, since the kind's root has no default.
+      What p1-config-names-from-config left, the user's call: ship scenario-moves as itos's. The
+      rule (outside feat and fix, live scenarios only move, unchanged) was this repository's
+      script, which hardcoded feat and fix, ignored except_types, fell back to e2e/features for
+      the kind's root and kept its allowed renames in code; no consumer had it. A Gherkin kind's
+      range check takes { name, builtin: moves, except_types, allowed_renames }: the commit-msg
+      hook judges the staged feature files for a type except_types does not name, verify each
+      commit of a range against its parent, skipping those types; itos tests moves <kind> judges
+      the staged files by hand. Was the idea p1-config-names-from-config. @ID-MOVES-01 to 06.
+
+  - id: T-037
+    title: This repository's moving rule is itos's built-in, and its script goes
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-23]
+    kind: task
+    refs: [tasks/phase-1.yaml]
 
   - id: slice-21
     title: ledger.group.label read, or dropped
