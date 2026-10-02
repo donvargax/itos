@@ -1,4 +1,57 @@
 #!/bin/sh
-# itos: the task tool's one command line, tools/itos/main.ts, wherever it is
-# called from. `itos --help` lists the commands.
-exec node "$(dirname "$0")/../itos/main.ts" "$@"
+# itos: the task tool's one command line, wherever it is called from. It runs
+# the Go binary built from cmd/itos into .tools/bin/itos (ignored by git),
+# stamped with package.json's version as tools/bin/build-go.ts stamps it. The
+# binary is built when missing and rebuilt when anything under cmd/ or
+# internal/, go.mod, go.sum or package.json is newer than it (a file removed
+# counts, by its folder's time), so the first call after a change pays for the
+# build, Go's build cache keeping it short, and every other call runs the
+# binary at once. It needs Go, only to build, and git, never Node: the binary
+# is the itos a consumer runs, and this repository judges its commits with it.
+# A build that fails prints one line naming it and exits 3; the old binary is
+# never run in its place. `itos --help` lists the commands.
+#
+# The TypeScript, held to the corpus and the features until it leaves the
+# repository (T-062), is tools/bin/itos-ts.
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd) || exit 3
+dir=$root/.tools/bin
+bin=$dir/itos
+
+# Prints the reason the binary cannot be built, and exits 3.
+fail() {
+	printf 'itos: the Go binary does not build (go build ./cmd/itos): %s\n' "$1" >&2
+	[ -z "${2:-}" ] || printf '%s\n' "$2" | sed 's/^/  /' >&2
+	exit 3
+}
+
+# True when the binary is missing or older than a file it is built from.
+stale() {
+	[ -x "$bin" ] || return 0
+	[ -n "$(cd "$root" && find cmd internal go.mod go.sum package.json -newer "$bin" 2>/dev/null | head -n 1)" ]
+}
+
+if stale; then
+	command -v go >/dev/null 2>&1 || fail "go is not on the PATH"
+	version=$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$root/package.json" | head -n 1)
+	[ -n "$version" ] || fail "package.json says no version"
+	mkdir -p "$dir" || fail "cannot create $dir"
+	# Built beside the binary under a name of its own and moved over it, so
+	# calls running at once never see half a binary; dated from before the
+	# build, so a file changed while it ran is still newer.
+	tmp=$dir/itos.$$
+	touch "$tmp.start"
+	out=$(cd "$root" && CGO_ENABLED=0 go build -trimpath \
+		-ldflags "-s -w -X github.com/donvargax/itos/internal/version.stamp=$version" \
+		-o "$tmp" ./cmd/itos 2>&1)
+	status=$?
+	if [ "$status" -ne 0 ]; then
+		rm -f "$tmp" "$tmp.start"
+		# go build heads each package's errors with a "# <package>" line.
+		errors=$(printf '%s\n' "$out" | grep -v '^#')
+		[ -n "$errors" ] || errors="exit $status"
+		fail "$(printf '%s\n' "$errors" | head -n 1)" "$(printf '%s\n' "$errors" | sed '1d')"
+	fi
+	touch -r "$tmp.start" "$tmp" && rm -f "$tmp.start" && mv -f "$tmp" "$bin" ||
+		fail "cannot move the build to $bin"
+fi
+exec "$bin" "$@"

@@ -118,13 +118,17 @@ ci:
     - { run: "go test ./cmd/... ./internal/...", cost: late } # the Go port's unit tests
     - { run: vp run audit, cost: late }
     # The conformance corpus: what itos did when it was written, as cases run
-    # through its command line; a regression corpus, not named tests.
-    - { run: node tools/itos/conformance/run.ts --bin tools/bin/itos, cost: late }
+    # through its command line; a regression corpus, not named tests. Run
+    # against the TypeScript (tools/bin/itos-ts) until it leaves (T-062):
+    # tools/bin/itos is the Go binary, which go-port.ts holds to the corpus.
+    - { run: node tools/itos/conformance/run.ts --bin tools/bin/itos-ts, cost: late }
     # The Go build against the whole corpus and every feature, so a behaviour
     # change lands in both implementations in one push.
     - { run: node tools/selftest/go-port.ts, cost: late }
     - { run: tools/bin/itos task T-007, cost: late } # the commit rules, proven on every push
-    - { tests: scenario } # the one merged run; late, as no pattern matches it
+    # The one merged run; late, as no pattern matches it. Against the
+    # TypeScript, the features' default ITOS_BIN, until T-062.
+    - { tests: scenario }
   prose: # a range that touches only these runs only the prose steps
     paths: ["**/*.md", "docs/**"]
     steps: [vp check, tools/bin/itos config check] # CONTRIBUTORS.md, the people, is Markdown
@@ -191,7 +195,7 @@ work: # tools/itos/work.ts; the registry is at its default, tasks/work-items.yam
 
 hooks:
   manager: vp # shims in .vite-hooks/, written by `itos hooks install`
-  bin: tools/bin/itos # what the shims call
+  bin: tools/bin/itos # what the shims call: the Go binary, built from cmd/itos on demand
   # Vitest's and Go's unit tests the push reaches (tools/bin/go-unit-tests, which pre-commit runs
   # too), stopping at the first that fails, as CI does.
   pre_push:

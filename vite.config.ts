@@ -66,8 +66,8 @@ const fmt = {
 // and everything it imports, `yaml` included, in one file, so the install has no
 // runtime dependencies and Node never meets TypeScript inside node_modules, where
 // it strips no types. package.json's `bin` names it. In this repository
-// tools/bin/itos runs the TypeScript instead: the hooks and CI judge the working
-// tree, and tools/selftest/release.ts proves this file.
+// tools/bin/itos runs the Go binary and tools/bin/itos-ts the working tree's
+// TypeScript unbundled, and tools/selftest/release.ts proves this file.
 const pack: NonNullable<UserConfig["pack"]> = {
 	entry: { itos: "tools/itos/main.ts" },
 	format: "esm",

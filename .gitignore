@@ -15,3 +15,6 @@ docs/changelog/
 # Claude Code: the agents' worktrees stay local; the settings are shared.
 .claude/*
 !.claude/settings.json
+
+# The Go binary tools/bin/itos builds and runs.
+.tools/
