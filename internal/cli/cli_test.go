@@ -31,19 +31,15 @@ func run(args ...string) (int, string, string) {
 	return code, stdout.String(), stderr.String()
 }
 
-// A command whose group is not ported fails loudly, once its arguments are
-// right: exit 3, saying so, and nothing on stdout.
+// A command whose group is not ported fails loudly: exit 3, saying so, and
+// nothing on stdout. Every command of the table is ported now, so the path
+// is held by its error alone.
 func TestNotPortedFailsLoudly(t *testing.T) {
-	for _, args := range [][]string{
-		{"hook", "commit-msg", "m"},
-		{"hook", "pre-push"},
-		{"hooks", "install", "--manager", "git"},
-	} {
-		code, stdout, stderr := run(args...)
-		path := strings.Join(args, " ")
-		if code != ExitMissing || stdout != "" || !strings.Contains(stderr, " is not in this build yet") {
-			t.Errorf("itos %s: exit %d, stdout %q, stderr %q", path, code, stdout, stderr)
-		}
+	var stdout, stderr strings.Builder
+	code := failure(NotPorted{"hooks install"}, Out{Stdout: &stdout, Stderr: &stderr})
+	if code != ExitMissing || stdout.String() != "" ||
+		stderr.String() != "itos: hooks install is not in this build yet (the Go port has not reached it)\n" {
+		t.Errorf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 	}
 }
 

@@ -11,6 +11,7 @@ import (
 	"github.com/donvargax/itos/internal/ledger"
 	"github.com/donvargax/itos/internal/out"
 	"github.com/donvargax/itos/internal/shell"
+	"github.com/donvargax/itos/internal/tests"
 	"github.com/donvargax/itos/internal/value"
 )
 
@@ -183,4 +184,40 @@ func delegated(cfg *config.Loaded, delegate, message string, r Reading, s Stream
 		return 0, nil
 	}
 	return 1, nil
+}
+
+// HookStreams are the commit-msg hook's streams, which its header lint
+// delegate inherits.
+type HookStreams struct {
+	Stdin          io.Reader
+	Stdout, Stderr io.Writer
+}
+
+// LintFile is the commit-msg hook's header lint (commit.ts's
+// lintMessageFile): the message file through commits.header_lint.hook, {file}
+// filled in as one shell word, its report printed as it comes, then the
+// footer rules, always, read where r says. A failing delegate's exit code is
+// the hook's (1 when it did not exit by itself); footer problems alone exit
+// 1. Without a delegate, the footer rules alone.
+func LintFile(cfg *config.Loaded, file, message string, r Reading, s HookStreams) (int, error) {
+	delegate := cfg.Commits.HeaderLint.Hook
+	if delegate == nil || *delegate == "" {
+		return footersOnly(cfg, message, r, Streams{Stdout: s.Stdout, Stderr: s.Stderr})
+	}
+	command := strings.ReplaceAll(*delegate, "{file}", tests.ShellWord(file))
+	run := shell.Run(cfg, command, shell.Options{Stdin: s.Stdin, Stdout: s.Stdout, Stderr: s.Stderr})
+	found, err := FooterProblems(cfg, message, r)
+	if err != nil {
+		return 0, err
+	}
+	PrintFooters(s.Stderr, found)
+	switch {
+	case run.Code > 0:
+		return run.Code, nil
+	case run.Code < 0 || run.Err != nil:
+		return 1, nil
+	case len(found) > 0:
+		return 1, nil
+	}
+	return 0, nil
 }

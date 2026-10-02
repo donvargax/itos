@@ -103,3 +103,31 @@ func TestCostedChecks(t *testing.T) {
 		t.Errorf("before the first late one: %d checks", len(before))
 	}
 }
+
+// A captured run keeps stdout and stderr together in one file, and a check
+// past its capped timeout fails, saying the cap set it, even one that must
+// fail.
+func TestRunCaptured(t *testing.T) {
+	cfg := load(t, "version: 1\n")
+	run, err := RunCaptured(cfg, ledger.Check{Run: text("echo out; echo err >&2; exit 3")}, NoCap, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if run.Result != Fail || run.Code != 3 || run.Output != "out\nerr\n" || run.Capped || run.TimedOut {
+		t.Errorf("failing check: %+v", run)
+	}
+	run, err = RunCaptured(cfg, ledger.Check{Fails: text("sleep 5"), Timeout: seconds(30)}, 0.2, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if run.Result != Fail || !run.TimedOut || !run.Capped || run.Seconds != 0.2 {
+		t.Errorf("capped check: %+v", run)
+	}
+	run, err = RunCaptured(cfg, ledger.Check{Run: text(`test "$X" = y`)}, NoCap, []string{"X=y", "PATH=" + os.Getenv("PATH")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if run.Result != Pass || run.Capped {
+		t.Errorf("its own environment: %+v", run)
+	}
+}

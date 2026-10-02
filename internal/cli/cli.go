@@ -4,11 +4,12 @@
 // takes (PLAN.md §7): 0 success, 1 a policy failure, 2 a usage or config
 // error, 3 a missing environment.
 //
-// The Go port lands one command group at a time (PLAN.md, phase 2). Every
-// command of the table takes its arguments as the TypeScript does, so a
-// usage error reads the same in both; a command whose group is not ported
-// yet then fails loudly (NotPorted, exit 3) rather than succeeding with
-// nothing done.
+// The Go port landed one command group at a time (PLAN.md, phase 2), and
+// every command of the table is ported now. Each takes its arguments as the
+// TypeScript does, so a usage error reads the same in both; a command whose
+// group was not ported yet failed loudly (NotPorted, exit 3) rather than
+// succeeding with nothing done, and the error stays for a command added to
+// the TypeScript ahead of the Go.
 package cli
 
 import (

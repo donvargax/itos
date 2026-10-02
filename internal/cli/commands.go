@@ -66,8 +66,6 @@ func split(args []string) (string, []string) {
 	return args[0], args[1:]
 }
 
-func notPorted(path string) (int, error) { return 0, NotPorted{path} }
-
 // workCommand is `work check [<file>]`, the file the argument after check
 // whatever it is, as main.ts takes it, or `work [--as <handle>]`.
 func workCommand(args []string, o Out) (int, error) {
@@ -192,33 +190,33 @@ func ciCommand(args []string, o Out) (int, error) {
 	return 0, usage("unknown command: ci %s", sub)
 }
 
-func hook(args []string, _ Out) (int, error) {
+func hook(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	switch sub {
 	case "commit-msg":
 		if len(rest) == 0 {
 			return 0, usage("hook commit-msg needs <file>")
 		}
-		return notPorted("hook commit-msg")
+		return hookCommitMsg(rest[0], o)
 	case "pre-push":
-		return notPorted("hook pre-push")
+		return hookPrePush(o)
 	}
 	return 0, usage("unknown command: hook %s", sub)
 }
 
 // managers are the hook managers `hooks install --manager` takes: the ones
-// hooks.manager may name (hooks.ts's MANAGERS is config.ts's HOOK_MANAGERS);
-// the hooks group ports what each one writes.
+// hooks.manager may name (hooks.ts's MANAGERS is config.ts's HOOK_MANAGERS).
 var managers = config.HookManagers
 
-func hooks(args []string, _ Out) (int, error) {
+func hooks(args []string, o Out) (int, error) {
 	if sub, _ := split(args); sub != "install" {
 		return 0, usage("unknown command: hooks %s", sub)
 	}
-	if manager, ok := flagValue(args, "--manager"); ok && !slices.Contains(managers, manager) {
+	manager, ok := flagValue(args, "--manager")
+	if ok && !slices.Contains(managers, manager) {
 		return 0, usage("hooks install --manager takes %s", strings.Join(managers, "|"))
 	}
-	return notPorted("hooks install")
+	return hooksInstall(manager, slices.Contains(args, "--print"), slices.Contains(args, "--force"), o)
 }
 
 func configCommand(args []string, o Out) (int, error) {
