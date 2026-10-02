@@ -228,7 +228,8 @@ The Go build of itos lands beside the TypeScript one command group at a time
   checks typed, and the task IDs at a tree), `internal/tests` (the Gherkin
   adapter and the command adapter at a tree, the smoke set and its rule,
   the run templates, the moves rule; below),
-  `internal/message` (below), `internal/providers` (the people),
+  `internal/message` (below), `internal/plan` (CI's plan; below),
+  `internal/providers` (the people),
   `internal/work` (the registry and its problems, and the items' statuses),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git`, beside two
@@ -390,8 +391,33 @@ type)` for verify (the commit against `git.Parent`, the empty tree for a
   (`git.CommitPaths`) through `scope` and its moves as one rejection; then
   `tests.RangeCommands(cfg, from, to)`, each kind's `range` commands with
   `{from}` at `cfg.RangeStart(from)`, run until one fails. The range
-  helpers sit beside `SinceIssue` in `internal/config/since.go`, where CI's
-  plan reads a range too.
+  helpers sit beside `SinceIssue` in `internal/config/since.go`.
+- **CI's plan** is `internal/plan` (`ci-plan.ts`, `ci-plan-json.ts` and the
+  plan's half of `ci-scope.ts`), with `ci plan` and `ci scope` in
+  `internal/cli/ci.go`. A `Plan` is a value the driver walks, not text:
+  `Order` is every `Item` in the order the run takes it, a `Step` (its
+  command, its cost, and `Tests`, the kind, when it is the one run of named
+  tests) or a `Check` (a `check.CostedCheck`, so its task with the title a
+  failure names, its place in `done_when` and its cost, plus its `Action`:
+  `run`, `merged` into the kind's run, `covered` by a step, or `nightly`);
+  `Steps`, `Tasks`, `LeftOut`, `Unknown` and `NotStarted` sit beside it for
+  the preamble. `Make` is `ciPlan` over an `Input`; `For(cfg, from, to,
+Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
+  smoke set from the working tree or, for `--data-at`, from a commit under
+  `source.ReadingFrom` (the config stays the working tree's); `ForNightly`
+  is `planNightly`, its `{ tasks: done }` step the checks of `DoneTasks`
+  (`work.ItemStatuses` says `done`). `Fields` and `Print` are the JSON and
+  text `ci plan` prints, the contract phase 3's shadow compares, so their
+  keys, order and values are the TypeScript's. It builds on
+  `check.CostedChecks` for the cost classes and written order and on
+  `tests.CommandFor` for the merged run. A task check becomes a selection
+  through `tests.Recognize` (`internal/tests/recognize.go`), each template a
+  pattern whose `{pattern}` is one shell word, the bare word bounded by
+  JavaScript's whitespace rather than RE2's. A range's commits name tasks and
+  tests through `message.IDsIn`, `footers.ts`'s range log (`git log
+--format=%B from..to`, newest first). That range is `from..to` as the
+  TypeScript's plan reads it: `commits.since` does not narrow it, as it
+  narrows verify's, and an empty start reads nothing and runs every test.
 - **What is not ported yet** fails loudly: every command takes its arguments
   as the TypeScript does, so a usage error reads the same in both, and then a
   command whose group has not landed exits 3, the missing environment's code,

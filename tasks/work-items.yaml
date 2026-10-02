@@ -1599,7 +1599,7 @@ items:
     title: The Go CI plan, ci plan and ci scope
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-047]
     kind: task
     refs: [tasks/phase-2.yaml]
