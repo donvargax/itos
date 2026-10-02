@@ -30,8 +30,9 @@ const PORTED = {
 	// list (T-043), the globs and path rules, commit check-paths (T-044), the
 	// footer rules, commit check-message (T-045), the named tests, tests list
 	// and tests smoke (T-046), verify (T-047; moves.yaml joins with the
-	// commit-msg hook, T-052), CI's plan, ci plan and ci scope (T-048), and
-	// CI's driver, ci run and the nightly (T-049).
+	// commit-msg hook, T-052), CI's plan, ci plan and ci scope (T-048), CI's
+	// driver, ci run and the nightly (T-049), and where a range starts, ci
+	// range and the range providers (T-050).
 	corpus: [
 		"tools/itos/conformance/cli.yaml",
 		"tools/itos/conformance/help.yaml",
@@ -45,6 +46,7 @@ const PORTED = {
 		"tools/itos/conformance/verify.yaml",
 		"tools/itos/conformance/plans.yaml",
 		"tools/itos/conformance/ci-run.yaml",
+		"tools/itos/conformance/range.yaml",
 	],
 	// -scenarios= regular expressions, as a group's checks write them: the
 	// scenarios that run config check (T-042), itos task (T-043), tests smoke
