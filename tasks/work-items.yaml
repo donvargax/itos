@@ -1728,7 +1728,7 @@ items:
     title: This repository's hooks and CI run the Go binary
     phase: 3
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-059]
     kind: task
     refs: [tasks/phase-3.yaml]
