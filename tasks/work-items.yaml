@@ -709,7 +709,7 @@ items:
     title: ledger.group.label read, or dropped
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-4]
     kind: slice
     refs: [features/config.feature]
