@@ -27,8 +27,9 @@ const PORTED = {
 	// Corpus files, relative to the root: the command line itself (T-039), its
 	// help texts (T-041), the config, the ledger, the registry and the smoke
 	// sets as config check reads them (T-042), the task runner, task and task
-	// list (T-043), the globs and path rules, commit check-paths (T-044), and
-	// the footer rules, commit check-message (T-045).
+	// list (T-043), the globs and path rules, commit check-paths (T-044), the
+	// footer rules, commit check-message (T-045), and the named tests, tests
+	// list and tests smoke (T-046).
 	corpus: [
 		"tools/itos/conformance/cli.yaml",
 		"tools/itos/conformance/help.yaml",
@@ -37,12 +38,16 @@ const PORTED = {
 		"tools/itos/conformance/globs.yaml",
 		"tools/itos/conformance/scopes.yaml",
 		"tools/itos/conformance/messages.yaml",
+		"tools/itos/conformance/tests.yaml",
+		"tools/itos/conformance/smoke.yaml",
 	],
 	// -scenarios= regular expressions, as a group's checks write them: the
-	// scenarios that run config check (T-042) and itos task (T-043).
+	// scenarios that run config check (T-042), itos task (T-043) and tests
+	// smoke check (T-046).
 	scenarios: [
 		"^@ID-(CONFIG-1[2346]|LEDGER-0[12]|SINCE-0[4-7])$",
 		"^@ID-(TASK-0[1-4]|LEDGER-0[34]|CONFIG-(01|18))$",
+		"^@ID-CONFIG-(09|10|15)$",
 	],
 };
 
