@@ -470,9 +470,11 @@
     failing task check, which anything reading CI's log must match, and the
     step needs the nightly's job to have the history and tools CI has: the
     Upgrading section says both. The tag waits for the user's review of the
-    notes. Until the version is bumped the notes check judges 0.5.0 as
-    untagged against this tree, which is how it proves the notes before the
-    tag.
+    notes. Against v0.4.0 the notes check finds no changed default, and no
+    key is added, removed or renamed; ci.nightly.steps gains a step shape,
+    which the notes say by hand. Until the version is bumped the notes check
+    judges 0.5.0 as untagged against this tree, which is how it proves the
+    notes before the tag.
   done_when:
     - run: node tools/selftest/release.ts
       timeout: 900
