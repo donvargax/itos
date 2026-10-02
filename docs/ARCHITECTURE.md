@@ -148,6 +148,17 @@ the commands, `itos <command> --help` each one). The code is
   a commit. So the commit-msg hook's check of the staged data is
   `config check` itself, run over the index; a config the tree does not hold
   (an `ITOS_CONFIG` outside the repository) is read where it is.
+  The five pattern keys (`ledger.id`, `ledger.group.pattern`,
+  `tests.<kind>.id`, `ci.cost.static`, `ci.covers[].matches`) are RE2, the
+  Go binary's dialect, and `config check` refuses one RE2 cannot compile
+  (`config-regexp`). The TypeScript cannot run RE2: `tryRegExp` compiles
+  each with JavaScript's `RegExp`, which it runs them with, and refuses
+  beside that what RE2 lacks (`lacksInRE2`), a lookaround outside a
+  character class and a backreference's escape (`\1` to `\9` but RE2's octal
+  `\1x` to `\7x`, and `\k`) in or out of one. A pattern only RE2 compiles
+  (`(?i)abc`) stays refused by the TypeScript, which could not run it; on a
+  pattern both compile, the TypeScript matches by JavaScript's rules (`\s`,
+  `.`), a gap until it goes.
 - **One command line** (`tools/itos/main.ts`): exit 0 on success, 1 for a
   policy failure (a check failed, a commit rejected, an unknown task), 2 for a
   usage or config error, 3 for a missing environment. `--json` prints one
@@ -280,10 +291,9 @@ The Go build of itos lands beside the TypeScript one command group at a time
   messages render a value as a template literal (`String`), `typeof`
   (`TypeOf`) and `JSON.stringify` (`JSON`) would, so a problem quoting an odd
   value reads the same in both. `YAML` writes the `yaml` package's block
-  style, for `--print-defaults`. The patterns are compiled as RE2: the
-  config's patterns were written for JavaScript, so one using lookaround or a
-  backreference is refused by Go and accepted by the TypeScript, and the
-  reverse for an inline flag such as `(?i)`; where itos builds a pattern
+  style, for `--print-defaults`. The patterns are compiled as RE2, the
+  config's dialect, which the TypeScript holds them to by refusing what RE2
+  lacks (the config loader, above); where itos builds a pattern
   around `\s` or trims, it uses `value.Space` and `value.Trim`, JavaScript's
   whitespace, not RE2's ASCII one.
 - **Where itos reads its data** (`internal/source`) is `source.ts`: every
