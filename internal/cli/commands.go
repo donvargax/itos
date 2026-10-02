@@ -152,26 +152,31 @@ func testsCommand(args []string, o Out) (int, error) {
 	return 0, usage("unknown command: tests smoke %s", action)
 }
 
-func ci(args []string, _ Out) (int, error) {
+func ci(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	range_ := positional(rest, "--data-at", "--head", "--base")
-	to := ""
+	from, to := "", ""
+	if len(range_) > 0 {
+		from = range_[0]
+	}
 	if len(range_) > 1 {
 		to = range_[1]
 	}
+	nightly := slices.Contains(rest, "--nightly")
 	switch sub {
 	case "plan":
-		if !slices.Contains(rest, "--nightly") && !slices.Contains(rest, "--whole") && to == "" {
+		if !nightly && !slices.Contains(rest, "--whole") && to == "" {
 			return 0, usage("ci plan needs <from> <to>, --nightly or --whole")
 		}
-		return notPorted("ci plan")
+		dataAt, _ := flagValue(rest, "--data-at")
+		return ciPlan(from, to, nightly, dataAt, o)
 	case "run":
 		return notPorted("ci run")
 	case "scope":
 		if to == "" {
 			return 0, usage("ci scope needs <from> <to>")
 		}
-		return notPorted("ci scope")
+		return ciScope(from, to, o)
 	case "range":
 		if _, ok := flagValue(rest, "--head"); !ok {
 			return 0, usage("ci range needs --head <sha>")

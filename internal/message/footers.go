@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/internal/config"
+	"github.com/donvargax/itos/internal/git"
 	"github.com/donvargax/itos/internal/ledger"
 	"github.com/donvargax/itos/internal/out"
 	"github.com/donvargax/itos/internal/source"
@@ -278,4 +279,60 @@ func PrintFooters(w io.Writer, found []out.Problem) {
 	for _, p := range found {
 		fmt.Fprintf(w, "✖   %s [%s]\n", p.Message, p.Rule)
 	}
+}
+
+// IDsIn are the IDs a pushed range's commits give in one footer (footers.ts's
+// footerIdsIn, the range log CI's plan reads): `git log --format=%B
+// from..to`, newest commit first, each ID once in the order first given, the
+// footer's strip_prefix taken off, and only those whose whole matches the
+// footer's ID pattern (the ledger's id, or its kind's; any ID without one). A
+// range that cannot be read, or has no start or end, gives none. The range is
+// the one CI plans, from..to as git reads it: commits.since does not narrow
+// it, as it narrows verify's, since the TypeScript's plan does not.
+func IDsIn(cfg *config.Loaded, from, to, key string) []string {
+	if from == "" || to == "" {
+		return nil
+	}
+	log, err := git.Output("log", "--format=%B", from+".."+to)
+	if err != nil {
+		return nil
+	}
+	f, _ := cfg.Commits.Footers.Get(key)
+	var pattern *string
+	if isLedger(f) {
+		pattern = cfg.Ledger.ID
+	} else if k, ok := cfg.Tests.Get(f.Source.Tests); ok {
+		pattern = k.ID
+	}
+	whole := ".+"
+	if pattern != nil {
+		whole = *pattern
+	}
+	matches, err := regexp.Compile("^(?:" + whole + ")$")
+	if err != nil {
+		return nil
+	}
+	var ids []string
+	for _, id := range unique(IDs(log, key, "")) {
+		if s := strip(f); s != "" && strings.HasPrefix(id, s) {
+			id = id[len(s):]
+		}
+		if matches.MatchString(id) {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+// unique is a list without its repeats, in the order first seen.
+func unique(list []string) []string {
+	seen := map[string]bool{}
+	var kept []string
+	for _, s := range list {
+		if !seen[s] {
+			seen[s] = true
+			kept = append(kept, s)
+		}
+	}
+	return kept
 }

@@ -142,6 +142,29 @@ func LoadSmoke(cfg *config.Loaded, name string) ([]SmokeFile, error) {
 	return parseSmoke(text, path)
 }
 
+// LoadSmokeAt is the kind's smoke set at a commit (smoke.ts's loadSmoke with
+// `at`), as `ci plan --data-at` reads it, or LoadSmoke's when at is "". A
+// commit without the file is an error saying so, and a problem with its
+// shape names the file at the commit (`<sha>:<path>`).
+func LoadSmokeAt(cfg *config.Loaded, name, at string) ([]SmokeFile, error) {
+	if at == "" {
+		return LoadSmoke(cfg, name)
+	}
+	path, err := SmokeFileOf(cfg, name)
+	if err != nil {
+		return nil, err
+	}
+	tree, err := source.At(at)
+	if err != nil {
+		return nil, err
+	}
+	text, err := tree.Read(path)
+	if err != nil {
+		return nil, fmt.Errorf("%s holds no %s", at, path)
+	}
+	return parseSmoke(text, at+":"+path)
+}
+
 // SmokeIDs are the smoke set's IDs, without the tag prefix.
 func SmokeIDs(k config.Kind, smoke []SmokeFile) []string {
 	ids := []string{}

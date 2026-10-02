@@ -5,9 +5,9 @@
 // built-in Gherkin adapter is the only reader of a feature file; a command
 // adapter is `<command> list --at <tree>`, held to the protocol.
 //
-// The kind's run templates turn selections into one command (run.go); the
-// recognize templates, which read a task check back as a selection, are CI's
-// plan's group (PLAN.md, phase 2, step 5).
+// The kind's run templates turn selections into one command (run.go), and
+// its recognize templates read a task check back as a selection
+// (recognize.go), for CI's plan's one merged run.
 package tests
 
 import (
