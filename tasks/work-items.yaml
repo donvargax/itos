@@ -1113,7 +1113,7 @@ items:
     title: config check says a commits.since it cannot find may be outside a shallow clone
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     refs: [features/since.feature]
