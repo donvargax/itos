@@ -146,7 +146,7 @@ ci:
     - { by: "vp run test:coverage", matches: "^vp test run(?: [^\\s-]\\S*)*$" }
     # The ported set's corpus files and scenarios, each run against a fresh Go
     # build: the command line (T-039), the help texts (T-041), the config
-    # check's corpus file and scenarios (T-042).
+    # check's corpus file and scenarios (T-042), the task runner's (T-043).
     - by: node tools/selftest/go-port.ts
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/cli\\.yaml'$"
     - by: node tools/selftest/go-port.ts
@@ -155,6 +155,10 @@ ci:
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/config\\.yaml'$"
     - by: node tools/selftest/go-port.ts
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && ITOS_BIN=\"\\$PWD/dist/go/itos\" go test \\./features -count=1 -scenarios=\"\\^@ID-\\(CONFIG-1\\[2346\\]\\|LEDGER-0\\[12\\]\\|SINCE-0\\[4-7\\]\\)\\$\"'$"
+    - by: node tools/selftest/go-port.ts
+      matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/tasks\\.yaml'$"
+    - by: node tools/selftest/go-port.ts
+      matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && ITOS_BIN=\"\\$PWD/dist/go/itos\" go test \\./features -count=1 -scenarios=\"\\^@ID-\\(TASK-0\\[1-4\\]\\|LEDGER-0\\[34\\]\\|CONFIG-\\(01\\|18\\)\\)\\$\"'$"
   # Slow, and it proves the gates rather than the code: left to the nightly.
   nightly_only: ["node tools/selftest/gates.ts"]
   # Every feature, the gates self-test, the Go release build (T-040), then the

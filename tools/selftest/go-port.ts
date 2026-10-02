@@ -25,16 +25,21 @@ import { outsideEnv } from "./scratch.ts";
 // Each command group adds its part here when it lands (tasks/phase-2.yaml).
 const PORTED = {
 	// Corpus files, relative to the root: the command line itself (T-039), its
-	// help texts (T-041), and the config, the ledger, the registry and the
-	// smoke sets as config check reads them (T-042).
+	// help texts (T-041), the config, the ledger, the registry and the smoke
+	// sets as config check reads them (T-042), and the task runner, task and
+	// task list (T-043).
 	corpus: [
 		"tools/itos/conformance/cli.yaml",
 		"tools/itos/conformance/help.yaml",
 		"tools/itos/conformance/config.yaml",
+		"tools/itos/conformance/tasks.yaml",
 	],
 	// -scenarios= regular expressions, as a group's checks write them: the
-	// scenarios that run config check (T-042).
-	scenarios: ["^@ID-(CONFIG-1[2346]|LEDGER-0[12]|SINCE-0[4-7])$"],
+	// scenarios that run config check (T-042) and itos task (T-043).
+	scenarios: [
+		"^@ID-(CONFIG-1[2346]|LEDGER-0[12]|SINCE-0[4-7])$",
+		"^@ID-(TASK-0[1-4]|LEDGER-0[34]|CONFIG-(01|18))$",
+	],
 };
 
 if (PORTED.corpus.length + PORTED.scenarios.length === 0) {
