@@ -1,6 +1,7 @@
-// The Go port held to the whole suite, on every push (PLAN.md, "The port's
-// proof"): builds the Go binary with tools/bin/build-go.ts into a scratch
-// folder and runs the whole conformance corpus and every feature against it.
+// The Go build held to the whole suite (PLAN.md, "The port's proof"): builds
+// the Go binary with tools/bin/build-go.ts into a scratch folder, as the
+// release does, and runs the whole conformance corpus and every feature
+// against it.
 //
 //   node tools/selftest/go-port.ts
 //
@@ -8,10 +9,10 @@
 // the build, every file of it; the features run as
 // `go test ./features -count=1` with ITOS_BIN pointed at the build, every live
 // scenario. There is no list of what is ported: every command group is
-// (T-039 to T-052), so a corpus file or a scenario added later is judged
-// against Go with nothing to remember, and a behaviour change must land in
-// both implementations in one push, since the corpus and the features judge
-// the TypeScript in the same CI run.
+// (T-039 to T-052). While the TypeScript was the implementation it was a step
+// of every push (T-053); since it left (T-062), CI's corpus step and its one
+// features run judge tools/bin/itos, the same tree built on demand, and this
+// is the port's tasks' check: the whole of both against the release's build.
 //
 // Exits 1 when the build, the corpus or the features fail, naming which.
 import { spawnSync } from "node:child_process";

@@ -1,9 +1,9 @@
 #!/bin/sh
-# The Go unit tests a change reaches, as `vp test run --changed` is for the
-# TypeScript (T-059). Both hooks call it: pre-commit with --cached (what is
-# staged), pre-push through itos.yaml's hooks.pre_push with the remote commit
-# the push builds on (that commit against the working tree, as Vitest's
-# --changed reads it), or --all when there is none.
+# The Go unit tests a change reaches (T-059), itos's unit tests since the
+# TypeScript and its Vitest suite left (T-062). Both hooks call it: pre-commit
+# with --cached (what is staged), pre-push through itos.yaml's hooks.pre_push
+# with the remote commit the push builds on (that commit against the working
+# tree), or --all when there is none.
 #
 # A changed file belongs to the package whose folder holds it, the deepest one,
 # so a package's testdata/ and embedded files count as the package. The run is

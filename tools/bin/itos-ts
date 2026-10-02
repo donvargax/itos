@@ -1,7 +1,0 @@
-#!/bin/sh
-# The TypeScript implementation of itos, tools/itos/main.ts, run by Node: what
-# CI's conformance step and the features (their default ITOS_BIN) still hold to
-# the corpus and every scenario beside the Go build, until the TypeScript
-# leaves the repository (T-062). Everything else calls tools/bin/itos, the Go
-# binary.
-exec node "$(dirname "$0")/../itos/main.ts" "$@"

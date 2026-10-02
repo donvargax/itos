@@ -5,7 +5,7 @@
 //
 // builds ./cmd/itos into <out dir>/itos for this machine and prints its path.
 // The binary is stamped with package.json's version (-ldflags -X), the one the
-// TypeScript says and the conformance corpus's {{version}} expects, so a
+// conformance corpus's {{version}} expects, as tools/bin/itos stamps it, so a
 // release still changes package.json alone; a binary built any other way says
 // the module version Go records instead (internal/version). CGO_ENABLED=0, so
 // the binary needs no C library, and -trimpath, so it holds no path of the

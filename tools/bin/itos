@@ -10,9 +10,6 @@
 # is the itos a consumer runs, and this repository judges its commits with it.
 # A build that fails prints one line naming it and exits 3; the old binary is
 # never run in its place. `itos --help` lists the commands.
-#
-# The TypeScript, held to the corpus and the features until it leaves the
-# repository (T-062), is tools/bin/itos-ts.
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd) || exit 3
 dir=$root/.tools/bin
 bin=$dir/itos

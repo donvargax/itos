@@ -117,16 +117,12 @@ ci:
     - { run: "go test ./cmd/... ./internal/...", cost: late } # itos's unit tests, the Go packages'
     - { run: vp run audit, cost: late }
     # The conformance corpus: what itos did when it was written, as cases run
-    # through its command line; a regression corpus, not named tests. Run
-    # against the TypeScript (tools/bin/itos-ts) until it leaves (T-062):
-    # tools/bin/itos is the Go binary, which go-port.ts holds to the corpus.
-    - { run: node tools/itos/conformance/run.ts --bin tools/bin/itos-ts, cost: late }
-    # The Go build against the whole corpus and every feature, so a behaviour
-    # change lands in both implementations in one push.
-    - { run: node tools/selftest/go-port.ts, cost: late }
+    # through its command line; a regression corpus, not named tests. Against
+    # tools/bin/itos, the Go binary built from this tree.
+    - { run: node tools/itos/conformance/run.ts --bin tools/bin/itos, cost: late }
     - { run: tools/bin/itos task T-007, cost: late } # the commit rules, proven on every push
-    # The one merged run; late, as no pattern matches it. Against the
-    # TypeScript, the features' default ITOS_BIN, until T-062.
+    # The one merged run; late, as no pattern matches it. Against the Go
+    # binary, tools/bin/itos, the features' default ITOS_BIN.
     - { tests: scenario }
   prose: # a range that touches only these runs only the prose steps
     paths: ["**/*.md", "docs/**"]
@@ -146,14 +142,14 @@ ci:
       - "^go (vet|mod verify)\\b"
     keep_written_order: true # a task's checks never run before the ones above them
   covers: # a check a step has just done is not run again
-    # go-port.ts runs the whole corpus and every feature against a fresh Go
-    # build, so the port's checks (T-039 to T-052) that build it and run part of
-    # either are what it has just done: any corpus files by --only, any
-    # -scenarios= selection.
-    - by: node tools/selftest/go-port.ts
+    # The corpus step runs every corpus file against the Go binary built from
+    # this tree, so a check running some of them by --only, against it or
+    # against the port's own build of the same tree (T-039 to T-052), is what
+    # it has just done.
+    - by: node tools/itos/conformance/run.ts --bin tools/bin/itos
+      matches: "^node tools/itos/conformance/run\\.ts --bin tools/bin/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*$"
+    - by: node tools/itos/conformance/run.ts --bin tools/bin/itos
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*'$"
-    - by: node tools/selftest/go-port.ts
-      matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && ITOS_BIN=\"\\$PWD/dist/go/itos\" go test \\./features -count=1 -scenarios=\"[^\"']+\"'$"
   # Slow, and it proves the gates rather than the code: left to the nightly.
   nightly_only: ["node tools/selftest/gates.ts"]
   # Every feature, the gates self-test, the hooks' choice of Go unit tests
