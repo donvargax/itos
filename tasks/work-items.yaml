@@ -1767,7 +1767,7 @@ items:
     title: The config's patterns are RE2 regular expressions, in both implementations
     phase: 2
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-056]
     kind: slice
     why: >
