@@ -1545,7 +1545,7 @@ items:
     title: The Go config loader and config check
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-039]
     kind: task
     refs: [tasks/phase-2.yaml]
@@ -1596,6 +1596,40 @@ items:
       wrote in that job, before gh release create uploads it: the self-test needs a mode that
       reads an already built folder rather than building one.
     refs: [tasks/phase-2.yaml, PLAN.md]
+
+  - id: p2-go-source-trees
+    title: The Go port reads itos's data from the index and from a commit
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-042]
+    kind: idea
+    why: >
+      Found in T-042: internal/source, where every Go reader of the config, the ledger, the
+      registry, the people and the smoke sets reads, has the working tree alone. The commit-msg
+      hook checks the staged data by running config check over the index (source.ts's
+      treeSource and readingFrom), the footer rules read a commit's ledger and scenarios
+      (read_at: commit), and the Gherkin adapter lists a tree git holds; each needs the source to
+      read the index or a commit, through the same readers, before its group can land.
+    refs: [tasks/phase-2.yaml, docs/ARCHITECTURE.md]
+
+  - id: p2-config-regexp-dialect
+    title: One regular-expression dialect for the config's patterns
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-042]
+    kind: idea
+    why: >
+      Found in T-042: config check compiles the config's patterns (ci.cost.static, ci.covers,
+      ledger.id, ledger.group.pattern) with JavaScript's RegExp in the TypeScript and RE2 in Go,
+      and its fix says "compiles as a JavaScript regular expression". They disagree on a pattern
+      neither the corpus nor this repository's itos.yaml uses: lookaround and backreferences pass
+      the TypeScript and fail Go, an inline flag such as (?i) the reverse, and \s matches ASCII
+      whitespace alone in RE2. PLAN.md says the patterns are RE2 in Go; before the switch, both
+      implementations should refuse what the other cannot compile, and the wording name the
+      dialect itos keeps, with its corpus case.
+    refs: [PLAN.md, tools/itos/conformance/config.yaml]
 
   - id: p2-go-port
     title: The Go port, one command group at a time

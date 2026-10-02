@@ -330,7 +330,9 @@ itos/
   features/        the named tests: Gherkin, godog steps, the smoke set
   cmd/itos/        the Go binary (the port)
   internal/        its packages: config, glob, git, shell, ledger, check,
-                   message, scope, tests, plan, ci, providers, work, hook, out
+                   message, scope, tests, plan, ci, providers, work, hook, out,
+                   and value and source (YAML as JavaScript reads it; where
+                   itos reads its data)
   tasks/           the ledger
   itos.yaml        this repository's own policy
 ```

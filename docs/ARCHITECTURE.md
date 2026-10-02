@@ -219,14 +219,51 @@ The Go build of itos lands beside the TypeScript one command group at a time
 - **The packages.** `cmd/itos` is the binary, a call to `internal/cli`.
   `internal/cli` is `main.ts`: the global flags wherever they stand, the
   command table with every command's argument errors, and how a failure is
-  reported and which exit code it takes. `internal/config` finds the config
-  (`--config`, `ITOS_CONFIG`, after `--root`'s `chdir`) and reads so far only
-  `version` and `requires`, with `config.ts`'s wording; the config group
-  replaces it with the whole loader. `internal/version` is `version.ts`, and
-  `internal/out` prints a `--json` object with `"schema": 1` first and its
-  keys in the order written (Go's maps would sort them). The later groups add
-  the packages `PLAN.md` §8 lists. The port shells out to git where it needs
-  it, as the TypeScript does.
+  reported and which exit code it takes; `configcheck.go` in it is
+  `config-check.ts`. `internal/version` is `version.ts`, and `internal/out`
+  prints a `--json` object with `"schema": 1` first and its keys in the order
+  written (Go's maps would sort them). The rest are the packages `PLAN.md` §8
+  lists, each holding what the groups ported so far need: `internal/ledger`
+  (the layout, the files, every task and check problem), `internal/tests` (the
+  Gherkin adapter over the working tree, the smoke set and its rule),
+  `internal/providers` (the people), `internal/work` (the registry and its
+  problems) and `internal/git`, beside two the TypeScript has no module for:
+  `internal/value` and `internal/source` (below). The port shells out to git
+  where it needs it, as the TypeScript does.
+- **The config** (`internal/config`) is `config.ts`'s loader, and every Go
+  reader of the config goes through it. It finds the file (`--config`,
+  `ITOS_CONFIG`, after `--root`'s `chdir`), holds it to the schema
+  (`schema.go`, `SCHEMA`'s specs as data, with its problems' wording), then to
+  the cross-checks (`cross.go`), and lays it over **the one table of
+  defaults**, `defaults()` in `defaults.go`: one ordered tree, as `DEFAULTS`
+  is one object, merged under the file by `layered` (`tests.<kind>` under each
+  kind) and decoded into the typed `Config` the tools read. `DefaultsFor` is
+  `defaultsFor`, the registry beside the config's ledger, and `config check
+--print-defaults` prints exactly that tree, so a default cannot be applied
+  without being printed. A key with no default is a nil pointer, a nil list or
+  an empty `Ordered` (a mapping whose order matters, as written); the file as
+  written stays beside the loaded config for `HasSection` and `Section`.
+  `Readings` and `MatchesStatic` are `readings` and `matchesStatic`.
+- **YAML as JavaScript reads it** (`internal/value`). go.yaml.in/yaml/v3
+  parses, but every value is JavaScript's: each plain scalar is resolved by
+  the YAML 1.2 core schema the `yaml` package uses (yaml/v3 would read `017`
+  as octal and `1_000` or `0b1` as numbers), mappings keep JavaScript's key
+  order (array indices first), absent is `Undefined` apart from null, and the
+  messages render a value as a template literal (`String`), `typeof`
+  (`TypeOf`) and `JSON.stringify` (`JSON`) would, so a problem quoting an odd
+  value reads the same in both. `YAML` writes the `yaml` package's block
+  style, for `--print-defaults`. The patterns are compiled as RE2: the
+  config's patterns were written for JavaScript, so one using lookaround or a
+  backreference is refused by Go and accepted by the TypeScript, and the
+  reverse for an inline flag such as `(?i)`; where itos builds a pattern
+  around `\s` or trims, it uses `value.Space` and `value.Trim`, JavaScript's
+  whitespace, not RE2's ASCII one.
+- **Where itos reads its data** (`internal/source`) is `source.ts`: every
+  reader of the config, the ledger, the registry, the people and the smoke
+  sets reads through it, with Node's wording for a failed read
+  (`ENOENT: no such file or directory, open 'people.yaml'`). It has the
+  working tree alone so far; the hooks group adds the index, so the
+  commit-msg hook's check of the staged data is `config check` again.
 - **What is not ported yet** fails loudly: every command takes its arguments
   as the TypeScript does, so a usage error reads the same in both, and then a
   command whose group has not landed exits 3, the missing environment's code,
