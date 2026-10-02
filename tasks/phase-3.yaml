@@ -47,17 +47,23 @@
     Go only (the user's call): with this repository running the Go binary
     (T-060), the TypeScript is kept only to be held to the same corpus and
     features, which doubles every new feature. tools/itos/*.ts (but the
-    conformance runner and its fixtures), tools/bin/pack.ts, the Vitest
-    unit tests of the implementation, the CI steps that run the corpus and
-    the features against the TypeScript (the corpus step's --bin
-    tools/bin/itos-ts, and tools/bin/itos-ts itself, which T-060 left as the
-    TypeScript's one entry), and the TypeScript from
+    conformance runner and its fixtures), tools/bin/pack.ts and the tarball
+    it made, the Vitest unit tests of the implementation (Vitest with them:
+    nothing else here had unit tests), tools/bin/itos-ts, which T-060 left as
+    the TypeScript's one entry, and the TypeScript from
     commits.path_sets.implementation go; the features' default ITOS_BIN
     (features/steps_test.go) goes back from tools/bin/itos-ts to
-    tools/bin/itos, the Go binary; go-port.ts's whole-suite run
-    against the Go build is the corpus's and the features' run. Node stays
-    as this repository's dev tooling (vp, the corpus runner, the self-tests),
-    never a runtime for a consumer. No release: v2.0.0 (T-061) publishes it.
+    tools/bin/itos, the Go binary. CI keeps one run of each suite: the corpus
+    step and the features step run tools/bin/itos, the tree built on demand,
+    and go-port.ts, which built it again for the whole of both, leaves CI's
+    steps and stays the port's tasks' check, so a push runs the smoke set and
+    what it names again, the nightly every scenario. The release stops
+    packing the tarball (the notes are T-061's), the self-tests that imported
+    the TypeScript ask the binary, and done tasks whose checks proved the
+    TypeScript or its tarball check the Go equivalent. Node stays as this
+    repository's dev tooling (vp, the corpus runner, the self-tests, the
+    builds), never a runtime for a consumer. No release: v2.0.0 (T-061)
+    publishes it.
   done_when:
     - run: sh -c 'test -z "$(git ls-files "tools/itos/*.ts" | grep -v "^tools/itos/conformance/")"'
       cost: static

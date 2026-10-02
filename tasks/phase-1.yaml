@@ -116,9 +116,11 @@
     failed three ways: the installed itos could not say its version, and the
     corpus and the features failed.
   done_when:
-    - run: vp pack
-    - run: node tools/selftest/release.ts
+    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
+    - run: node tools/selftest/go-release.ts
       timeout: 900
+    - run: node tools/selftest/go-port.ts
+      timeout: 1200
 
 - id: T-021
   type: ci
@@ -206,7 +208,8 @@
     the check failed on scratch notes that left the second out, that ended
     with another section, and whose pin line named v0.1.0's tarball.
   done_when:
-    - run: node tools/selftest/release.ts
+    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
+    - run: node tools/selftest/go-release.ts
       timeout: 900
     - run: node tools/selftest/release-notes.ts 0.2.0
       timeout: 300
@@ -276,7 +279,8 @@
     fails, and pinning it to 0.2.0 would not help: it would compare v0.1.0's
     defaults with this tree's.
   done_when:
-    - run: node tools/selftest/release.ts
+    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
+    - run: node tools/selftest/go-release.ts
       timeout: 900
     - run: node tools/selftest/release-notes.ts 0.3.0
       timeout: 300
@@ -364,7 +368,8 @@
     p1-config-names-from-config.
   done_when:
     - run: vp check
-    - fails: git grep -n -i -E "e2e|playwright" -- "tools/itos/*.ts" ":!tools/itos/scenario-moves.ts"
+    # The code is the Go packages' since T-062; their unit tests name commands "e2e" as fixtures.
+    - fails: git grep -n -i -E "e2e|playwright" -- cmd internal ":!*_test.go"
       cost: static
     - run: node tools/itos/conformance/run.ts --bin tools/bin/itos
 
@@ -385,7 +390,8 @@
     Against v0.3.0's way of packing the check fails on the keys, on engines
     and on the install script.
   done_when:
-    - run: node tools/selftest/release.ts
+    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
+    - run: node tools/selftest/go-release.ts
       timeout: 900
 
 - id: T-033
@@ -407,7 +413,8 @@
     0.4.0 as untagged against this tree, which is how it proves the notes
     before the tag.
   done_when:
-    - run: node tools/selftest/release.ts
+    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
+    - run: node tools/selftest/go-release.ts
       timeout: 900
     - run: node tools/selftest/release-notes.ts 0.4.0
       timeout: 300
@@ -476,7 +483,8 @@
     judges 0.5.0 as untagged against this tree, which is how it proves the
     notes before the tag.
   done_when:
-    - run: node tools/selftest/release.ts
+    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
+    - run: node tools/selftest/go-release.ts
       timeout: 900
     - run: node tools/selftest/release-notes.ts 0.5.0
       timeout: 300
@@ -516,7 +524,8 @@
     it. The user waived the review of the notes for this release, so the tag
     follows CI being green but for the after-push download check.
   done_when:
-    - run: node tools/selftest/release.ts
+    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
+    - run: node tools/selftest/go-release.ts
       timeout: 900
     - run: node tools/selftest/release-notes.ts 0.6.0
       timeout: 300

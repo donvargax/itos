@@ -361,8 +361,7 @@
     README.md's install gains the Go binary and the schema line for editors
     (closes p2-readme-go-install).
   done_when:
-    - run: node tools/selftest/release.ts
-      timeout: 900
+    # T-062: release.ts, the tarball's proof, left with the TypeScript; go-release.ts proves the release.
     - run: node tools/selftest/go-release.ts
       timeout: 900
     - run: node tools/selftest/release-notes.ts 1.0.0
@@ -408,8 +407,7 @@
     24; this task finishes it, bumps the version and runs the release's
     proofs, and the tag waits for the user's review of the Upgrading section.
   done_when:
-    - run: node tools/selftest/release.ts
-      timeout: 900
+    # T-062: release.ts, the tarball's proof, left with the TypeScript; go-release.ts proves the release.
     - run: node tools/selftest/go-release.ts
       timeout: 900
     - run: node tools/selftest/release-notes.ts 1.1.0

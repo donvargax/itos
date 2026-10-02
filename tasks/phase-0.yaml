@@ -32,10 +32,13 @@
     with coverage. The template held its demo's modules to coverage
     thresholds; itos is proven through its command line (the features, the
     conformance corpus), which a unit test's coverage cannot see, so the
-    coverage feeds the audit's scores and holds no threshold (T-014).
+    coverage feeds the audit's scores and holds no threshold (T-014). Since
+    the TypeScript left (T-062) the unit tests are the Go packages': the hooks
+    run those a change reaches (tools/bin/go-unit-tests, T-059) and CI the
+    whole suite, and with Vitest went the coverage, so the audit scores what
+    is left (this repository's own tooling) by complexity alone.
   done_when:
-    - run: vp test run
-    - run: vp run test:coverage
+    - run: go test ./cmd/... ./internal/...
 
 - id: T-004
   type: build
@@ -83,7 +86,7 @@
     - run: sh -c 'ITOS_CONFIG=tools/itos/fixtures/identity-command.yaml tools/bin/itos work | grep -q "Working for someone"'
     - run: node tools/itos/conformance/run.ts --bin tools/bin/itos
     - fails: node tools/itos/conformance/run.ts --bin tools/bin/itos --only tools/itos/conformance/fixtures/tampered.yaml
-    - run: vp test run tools/itos
+    - run: go test ./cmd/... ./internal/... # its unit tests, the Go packages' since T-062
 
 - id: T-007
   type: build
@@ -115,8 +118,8 @@
     - fails: "printf 'feat: x\\n\\nScenarios: @ID-NOPE-01\\n' | tools/bin/itos commit check-message -"
       cost: static
     - fails: tools/bin/itos commit check-paths --type refactor features/since.feature
-    - fails: tools/bin/itos commit check-paths --type build tools/itos/main.ts
-    - fails: tools/bin/itos commit check-paths --type chore tools/itos/main.ts
+    - fails: tools/bin/itos commit check-paths --type build cmd/itos/main.go
+    - fails: tools/bin/itos commit check-paths --type chore cmd/itos/main.go
     - run: tools/bin/itos commit check-paths --type docs README.md tasks/phase-0.yaml
     - run: go test ./features -count=1 -scenarios='^@ID-CMSG-'
 
@@ -133,7 +136,9 @@
   done_when:
     - run: actionlint
     - run: node tools/selftest/ci-scope.ts
-    - run: node tools/selftest/ci-range.ts
+    # The github provider's choice of run, ci-range.ts's until the TypeScript left (T-062).
+    - run: go test ./internal/providers -run '^TestFirstGreen$'
+      cost: static
     - run: tools/bin/itos verify "" HEAD
       cost: late # sized by the history, not by the change
     - fails: tools/bin/itos verify HEAD "$(git commit-tree 'HEAD^{tree}' -p HEAD -m 'update things')"
@@ -147,10 +152,14 @@
     scenario, then the gates self-test, which proves in a scratch worktree that
     the hooks run only what a change reaches and that CI's steps catch what
     they leave out. A red nightly opens one issue (or comments on the open
-    one), and a green one closes it.
+    one), and a green one closes it. Since the TypeScript and its Vitest
+    suite left (T-062), that the hooks run only the unit tests a change
+    reaches is go-hooks.ts's, which the nightly runs beside gates.ts.
   done_when:
     - run: actionlint
     - run: node tools/selftest/gates.ts
+    - run: node tools/selftest/go-hooks.ts
+      timeout: 900
 
 - id: T-010
   type: build
