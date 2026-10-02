@@ -225,8 +225,9 @@ The Go build of itos lands beside the TypeScript one command group at a time
   written (Go's maps would sort them). The rest are the packages `PLAN.md` §8
   lists, each holding what the groups ported so far need: `internal/ledger`
   (the layout, the files, every task and check problem, and the tasks and
-  checks typed), `internal/tests` (the Gherkin adapter over the working tree,
-  the smoke set and its rule), `internal/providers` (the people),
+  checks typed, and the task IDs at a tree), `internal/tests` (the Gherkin
+  adapter and the command adapter at a tree, the smoke set and its rule),
+  `internal/message` (below), `internal/providers` (the people),
   `internal/work` (the registry and its problems, and the items' statuses),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git`, beside two
@@ -263,10 +264,40 @@ The Go build of itos lands beside the TypeScript one command group at a time
   whitespace, not RE2's ASCII one.
 - **Where itos reads its data** (`internal/source`) is `source.ts`: every
   reader of the config, the ledger, the registry, the people and the smoke
-  sets reads through it, with Node's wording for a failed read
-  (`ENOENT: no such file or directory, open 'people.yaml'`). It has the
-  working tree alone so far; the hooks group adds the index, so the
-  commit-msg hook's check of the staged data is `config check` again.
+  sets reads through `Has`, `Read` and `List`, with Node's wording for a
+  failed read of the working tree (`ENOENT: no such file or directory, open
+'people.yaml'`). They read the current `Source`: `Worktree` by default, and
+  `ReadingFrom(s, fn)` swaps in `At("index")` or `At(<commit>)` while `fn`
+  runs, a tree git holds read by path from the repository's top (`git
+cat-file -e`, `git show`, `ls-files` or `ls-tree`), so the commit-msg hook's
+  check of the staged data is `config check` again under `ReadingFrom`. The
+  config is read from the source when it holds it and where it is otherwise
+  (an `ITOS_CONFIG` outside the repository), and a ledger folder a git tree
+  lacks is the folder-missing error, as `source.ts` has them. Beside the
+  source, `Texts(tree, dir, keep)` is `treeTexts`: a git tree's files under a
+  folder, read in one `git cat-file --batch` run (the TypeScript runs `git
+show` per file), none when the tree cannot be read. `ledger.IDs` and the
+  Gherkin adapter read a footer's or `--at`'s tree through it, whatever the
+  source is.
+- **The footers and the message** (`internal/message`) are `footers.ts` and
+  `commit.ts`. `FooterProblems(cfg, message, Reading)` runs each footer's
+  rule in the config's order, a `read_at: commit` footer at `Reading.At` (the
+  staged tree when empty; `commit check-message` sets it from `--at`, else
+  `ITOS_AT`) and the others at the working tree, with a commit that predates
+  the source read against the working tree and its warning on
+  `Reading.Warn`; `PrintFooters` prints them as commitlint does. `Check` is
+  `commit check-message`: the delegate (`commits.header_lint.stdin`) through
+  `internal/shell` with the message on stdin and `ITOS_AT` in its
+  environment, its report printed as it comes or read by `ParseReport` into
+  leveled problems under `--json`, then the footer rules always. Verify reads
+  each commit's footers through `FooterProblems` with `At` set to it, and the
+  commit-msg hook through the same call with the hook delegate beside it. A
+  command adapter (`internal/tests`) is `<command> list --at <tree>` through
+  the config's shell, its output read by `value.ParseJSON` (`JSON.parse`'s
+  reading, keys in JavaScript's order) and held to the protocol, its failures
+  carrying its stderr and its exit written as `spawnSync`'s `status ??
+signal` (`shell.Result.Status`); `supports_at: false` warns once a run on
+  `tests.Warnings`, which `cli.Main` points at its stderr.
 - **The task runner** is `internal/cli/task.go`, `cli.ts` ported, over three
   packages the later groups share. `internal/shell` is `shell.ts`: `Run`
   starts a command through the config's `shell`, with its streams (an

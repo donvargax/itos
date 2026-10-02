@@ -1572,7 +1572,7 @@ items:
     title: The Go footers and commit check-message
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-043, T-044]
     kind: task
     refs: [tasks/phase-2.yaml]
@@ -1655,9 +1655,9 @@ items:
     title: The Go port reads itos's data from the index and from a commit
     phase: 2
     owner: donvargax
-    status: todo
+    status: done
     depends_on: [T-042]
-    kind: idea
+    kind: task
     why: >
       Found in T-042: internal/source, where every Go reader of the config, the ledger, the
       registry, the people and the smoke sets reads, has the working tree alone. The commit-msg
