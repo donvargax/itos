@@ -12,20 +12,20 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after T-050 (the Go ci range) landed.
+Last updated 2026-10-02, after T-051 (the Go work routing) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `dfecbb0` (CI run 37053208405), after T-050; this
+`main` is green at `3bb773c` (CI run 37054599667), after T-051; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`, its one list `PORTED`: `cli.yaml`,
 `help.yaml`, `config.yaml`, `tasks.yaml`, `globs.yaml`, `scopes.yaml`, `messages.yaml`,
 `tests.yaml`, `smoke.yaml`, `verify.yaml`, `plans.yaml`,
-`ci-run.yaml`, `range.yaml` and their scenarios so far, so a help text changes in help.ts, help.go and help.yaml
+`ci-run.yaml`, `range.yaml`, `work.yaml` and their scenarios so far, so a help text changes in help.ts, help.go and help.yaml
 in one push). The
 nightly builds and proves the Go release archives
 (`tools/selftest/go-release.ts`, new with T-040, not yet run by a nightly),
@@ -39,7 +39,7 @@ Released: [v0.6.0](https://github.com/donvargax/itos/releases/tag/v0.6.0)
 [v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0). Each
 release's Upgrading section is what a consumer's session updates from. The
 user moves the consumers' pins (the project template, the character editor)
-from their own repositories: don't change any other repository. Unreleased: the Go port so far (T-039 to T-050), which changes nothing a
+from their own repositories: don't change any other repository. Unreleased: the Go port so far (T-039 to T-051), which changes nothing a
 consumer of the TypeScript sees. Write the next release's notes as each slice lands, from its
 report, in `docs/releases/v<next>.md`.
 
@@ -60,12 +60,11 @@ check-paths` (`T-044`), the footers and `commit check-message` with the
    this repository's history and `--nightly`), `ci run` and the nightly
    (`T-049`; `ci run --nightly` here logs the same with both), `ci range` with the none,
    command and github providers (`T-050`; both give the same start on this
-   repository). Next,
+   repository), `work` and `work check` (`T-051`; byte-identical here). Next,
    one agent at a time, each specified in `tasks/phase-2.yaml`:
-   - steps 7 and 8, specified: `T-051: The Go work routing, work and
-work check`, `T-052: The Go hooks, hook commit-msg, hook pre-push and
+   - step 8, specified: `T-052: The Go hooks, hook commit-msg, hook pre-push and
 hooks install` (it closes `p2-go-check-captured`, the hook's captured
-     check run). Their selections and the earlier ones cover all 83 live
+     check run). Its selection and the earlier ones cover all 83 live
      scenarios, so after T-052 the ported set becomes the whole corpus and
      every feature.
 
@@ -87,12 +86,18 @@ hooks install` (it closes `p2-go-check-captured`, the hook's captured
    before the switch. `p1-verify-with-last-release` comes with the port (the
    user's call).
 
-2. **The hand work that could be itos's** (the block above phase 2 in the
+2. **After the port: `p2-stealth-mode: A local mode, itos as one person's
+discipline in a repository that does not use it`** (the user's idea and
+   calls, 2026-10-02: config, ledger and registry under `.git/itos/`, found
+   with no environment variable; the task link in git notes, never a footer;
+   hooks that chain to the project's own). Specify it as scenarios once the
+   Go binary is the one implementation.
+3. **The hand work that could be itos's** (the block above phase 2 in the
    registry) comes after the port, the user agreed; the coordinator had
    proposed `p1-itos-push` and `p1-ci-watch` before it, as they save work on
    every landing.
 
-3. Continue with what `tools/bin/itos work` proposes.
+4. Continue with what `tools/bin/itos work` proposes.
 
 Deferred, the user's to lift: `p1-backport-code-design`. The user is writing
 code-design rules (vertical slices, no mocks, unit tests for the core and
