@@ -4,7 +4,7 @@
 //   - A push whose range CI can read runs one run of the kind of named tests
 //     its `tests:` step names, over the kind's smoke set (tests.<kind>.smoke.file), the
 //     tests its footers name (`Scenarios:`) and the subsets in the `done_when`
-//     of the tasks its `Task:` footers name. A range it can't read runs every
+//     of the tasks its ledger footers (`Task:`) name. A range it can't read runs every
 //     test, and the nightly runs every test and nothing else. Which command a
 //     check is and which command runs the selections are the kind's templates
 //     (tests.ts). A task check that is a run of that kind merges into the
@@ -114,7 +114,7 @@ export interface PlanInput {
 	known: boolean;
 	// The kind's test IDs the range's footers name (`Scenarios:`).
 	scenarios?: string[];
-	// The tasks the range's `Task:` footers name; for the nightly, the tasks
+	// The tasks the range's ledger footers name; for the nightly, the tasks
 	// whose work item is done.
 	tasks?: Task[];
 	nightly?: boolean;

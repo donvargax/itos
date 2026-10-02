@@ -30,7 +30,7 @@ type world struct {
 	config        scratchConfig
 	commits       []string          // the scratch repository's commits, oldest first
 	scenarioFiles map[string]string // each scenario ID written, to its feature file
-	ledger        []ledgerTask      // the tasks of tasks/phase-1.yaml, in order
+	ledger        []ledgerTask      // the tasks of the ledger's one file (ledgerPath), in order
 
 	exit           int
 	stdout, stderr string
@@ -58,6 +58,10 @@ type scratchConfig struct {
 	smokeEveryFile    *bool    // tests.scenario.smoke.every_file
 	hooksManager      string   // hooks.manager
 	hooksBin          string   // hooks.bin
+	ledgerFooter      string   // the key of the footer whose source is the ledger; Task when empty
+	ledgerFiles       string   // ledger.files; tasks/phase-{group}.yaml when empty
+	prosePaths        string   // ci.prose.paths, one glob
+	proseSteps        string   // ci.prose.steps, one command
 	settings          []setting
 }
 
@@ -113,6 +117,13 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" on top of it$`, func(message, task string) error {
 		return w.commitOnTop(message + "\n\nTask: " + task + "\n")
 	})
+	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" in the footer "([^"]*)" on top of it$`, func(message, task, key string) error {
+		return w.commitOnTop(message + "\n\n" + key + ": " + task + "\n")
+	})
+	sc.Step(`^the commit "([^"]*)" touching only "([^"]*)" on top of it$`, w.commitTouchingOnly)
+	sc.Step(`^the ledger footer is called "([^"]*)"$`, w.ledgerFooterIs)
+	sc.Step(`^the ledger's files are "([^"]*)"$`, w.ledgerFilesAre)
+	sc.Step(`^the prose paths are "([^"]*)" and the prose steps are "([^"]*)"$`, w.proseIs)
 	sc.Step(`^the CI steps are "([^"]*)" then a step that records it ran$`, func(step string) error {
 		return w.ciStepsAre(step, "printf 'ran\\n' > "+recordingStepFile)
 	})
@@ -328,26 +339,30 @@ func (w *world) commit(message string) error {
 // A word for sh: the text in single quotes.
 func quote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
-// The scratch repository's itos.yaml: a ledger of tasks/phase-<n>.yaml, the
-// Conventional Commit types, a Task: footer the non-feature types need,
-// docs commits held to prose, and a people list, plus what the scenario set.
+// The scratch repository's itos.yaml: a ledger of tasks/phase-<n>.yaml (or
+// where the scenario moved it), the Conventional Commit types, a ledger footer
+// the non-feature types need (Task:, unless the scenario calls it otherwise),
+// docs commits held to prose, a CI, and a people list, plus what the scenario
+// set.
 func (w *world) writeConfig() error {
 	var b strings.Builder
 	b.WriteString("version: 1\n")
 	if w.config.recordingShell {
 		fmt.Fprintf(&b, "shell: [%q]\n", w.recordingShellPath())
 	}
-	b.WriteString(`ledger:
-  files: "tasks/phase-{group}.yaml"
-  id: "T-\\d+"
-`)
+	fmt.Fprintf(&b, "ledger:\n  files: %q\n  id: \"T-\\\\d+\"\n", w.ledgerFilesPattern())
 	b.WriteString(w.settingsUnder("ledger"))
-	b.WriteString(`commits:
+	footer := w.config.ledgerFooter
+	if footer == "" {
+		footer = "Task"
+	}
+	fmt.Fprintf(&b, `commits:
   types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
   footers:
-    Task:
+    %s:
       source: ledger
-      required_for: [refactor, perf, test, build, ci, chore, revert]
+`, footer)
+	b.WriteString(`      required_for: [refactor, perf, test, build, ci, chore, revert]
       validate_for: all
       read_at: commit
   scopes:
@@ -409,34 +424,7 @@ func (w *world) writeConfig() error {
 		record := "printf '%s\\n' {from} > " + quote(filepath.Join(w.support, "range-from"))
 		fmt.Fprintf(&b, "    range_checks:\n      - name: record\n        range: %q\n", record)
 	}
-	if len(w.config.ciSteps) > 0 || w.config.ciTests != "" || w.config.stopAtFirst != nil || len(w.config.costStatic) > 0 || w.config.nightlyTasks != "" {
-		b.WriteString("ci:\n  steps:")
-		if len(w.config.ciSteps) == 0 && w.config.ciTests == "" {
-			b.WriteString(" []")
-		}
-		b.WriteString("\n")
-		for _, step := range w.config.ciSteps {
-			fmt.Fprintf(&b, "    - %q\n", step)
-		}
-		if w.config.ciTests != "" {
-			fmt.Fprintf(&b, "    - { tests: %s }\n", w.config.ciTests)
-		}
-		if w.config.stopAtFirst != nil {
-			fmt.Fprintf(&b, "  stop_at_first_failure: %t\n", *w.config.stopAtFirst)
-		}
-		if len(w.config.costStatic) > 0 {
-			b.WriteString("  cost:\n    static:\n")
-			for _, pattern := range w.config.costStatic {
-				fmt.Fprintf(&b, "      - %q\n", pattern)
-			}
-		}
-		switch w.config.nightlyTasks {
-		case "every":
-			b.WriteString("  nightly:\n    steps: [{ tasks: done }]\n")
-		case "static":
-			b.WriteString("  nightly:\n    steps: [{ tasks: done, cost: static }]\n")
-		}
-	}
+	b.WriteString(w.ciSection())
 	b.WriteString("work: { ")
 	if w.config.registry != "" {
 		fmt.Fprintf(&b, "registry: %q, ", w.config.registry)
@@ -472,6 +460,43 @@ func (w *world) writeConfig() error {
 		}
 	}
 	return w.write("itos.yaml", b.String())
+}
+
+// The scratch config's ci section: the CI steps the scenario gives, none when
+// it gives none, since a scenario that runs CI for a task's checks or a
+// footer's names needs no step of its own, and the CI settings it sets.
+func (w *world) ciSection() string {
+	var b strings.Builder
+	b.WriteString("ci:\n  steps:")
+	if len(w.config.ciSteps) == 0 && w.config.ciTests == "" {
+		b.WriteString(" []")
+	}
+	b.WriteString("\n")
+	for _, step := range w.config.ciSteps {
+		fmt.Fprintf(&b, "    - %q\n", step)
+	}
+	if w.config.ciTests != "" {
+		fmt.Fprintf(&b, "    - { tests: %s }\n", w.config.ciTests)
+	}
+	if w.config.stopAtFirst != nil {
+		fmt.Fprintf(&b, "  stop_at_first_failure: %t\n", *w.config.stopAtFirst)
+	}
+	if len(w.config.costStatic) > 0 {
+		b.WriteString("  cost:\n    static:\n")
+		for _, pattern := range w.config.costStatic {
+			fmt.Fprintf(&b, "      - %q\n", pattern)
+		}
+	}
+	if w.config.proseSteps != "" {
+		fmt.Fprintf(&b, "  prose: { paths: [%q], steps: [%q] }\n", w.config.prosePaths, w.config.proseSteps)
+	}
+	switch w.config.nightlyTasks {
+	case "every":
+		b.WriteString("  nightly:\n    steps: [{ tasks: done }]\n")
+	case "static":
+		b.WriteString("  nightly:\n    steps: [{ tasks: done, cost: static }]\n")
+	}
+	return b.String()
 }
 
 // The scenario's settings under a section the config writes, as lines below it.
@@ -511,10 +536,10 @@ func (w *world) startingFiles(tasks ...string) error {
 		w.ledger = append(w.ledger, ledgerTask{id: id})
 	}
 	files := map[string]string{
-		"tasks/phase-1.yaml": w.ledgerText(),
-		startingRegistry:     "phases: {}\nitems: []\n",
-		"people.yaml":        "- someone\n",
-		"README.md":          "# Scratch\n",
+		w.ledgerPath():   w.ledgerText(),
+		startingRegistry: "phases: {}\nitems: []\n",
+		"people.yaml":    "- someone\n",
+		"README.md":      "# Scratch\n",
 	}
 	for path, text := range files {
 		if err := w.write(path, text); err != nil {
@@ -528,7 +553,21 @@ func (w *world) startingFiles(tasks ...string) error {
 // status line could be read as.
 var taskTitles = []string{"Tidy", "Sweep", "Dust"}
 
-// The scratch ledger, tasks/phase-1.yaml: one line a task, with its checks.
+// The scratch ledger's files, as ledger.files gives them.
+func (w *world) ledgerFilesPattern() string {
+	if w.config.ledgerFiles == "" {
+		return "tasks/phase-{group}.yaml"
+	}
+	return w.config.ledgerFiles
+}
+
+// The scratch ledger's one file, of phase 1.
+func (w *world) ledgerPath() string {
+	return strings.ReplaceAll(w.ledgerFilesPattern(), "{group}", "1")
+}
+
+// The scratch ledger, the one file ledgerPath names: one line a task, with its
+// checks.
 func (w *world) ledgerText() string {
 	var b strings.Builder
 	for i, task := range w.ledger {
@@ -549,6 +588,58 @@ func (w *world) templateRepository(message string) error {
 		return err
 	}
 	return w.commit(message)
+}
+
+// One commit of the one path, changed, whatever else the working tree holds:
+// a range that touches only it.
+func (w *world) commitTouchingOnly(message, path string) error {
+	full := filepath.Join(w.dir, path)
+	text, err := os.ReadFile(full)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := w.write(path, string(text)+"A line for "+message+".\n"); err != nil {
+		return err
+	}
+	if err := w.git("add", "--", path); err != nil {
+		return err
+	}
+	if err := w.git("commit", "-q", "--no-verify", "-m", message, "--", path); err != nil {
+		return err
+	}
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	w.commits = append(w.commits, sha)
+	return nil
+}
+
+// The config's ledger footer, the one whose source is the ledger, under this
+// key instead of Task.
+func (w *world) ledgerFooterIs(key string) error {
+	w.config.ledgerFooter = key
+	return w.writeConfig()
+}
+
+// The scratch ledger moved to the file of phase 1 the pattern names, its tasks
+// as they were, and ledger.files following it. The old file is removed, so
+// nothing is left where itos read the ledger before; the registry stays where
+// it is.
+func (w *world) ledgerFilesAre(pattern string) error {
+	if err := os.Remove(filepath.Join(w.dir, w.ledgerPath())); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	w.config.ledgerFiles = pattern
+	if err := w.write(w.ledgerPath(), w.ledgerText()); err != nil {
+		return err
+	}
+	return w.writeConfig()
+}
+
+func (w *world) proseIs(paths, steps string) error {
+	w.config.prosePaths, w.config.proseSteps = paths, steps
+	return w.writeConfig()
 }
 
 func (w *world) commitOnTop(message string) error {
@@ -741,10 +832,10 @@ func (w *world) stagedChecks(task string, checks ...string) error {
 		i = len(w.ledger) - 1
 	}
 	w.ledger[i].checks = checks
-	if err := w.write("tasks/phase-1.yaml", w.ledgerText()); err != nil {
+	if err := w.write(w.ledgerPath(), w.ledgerText()); err != nil {
 		return err
 	}
-	return w.git("add", "--", "tasks/phase-1.yaml")
+	return w.git("add", "--", w.ledgerPath())
 }
 
 func (w *world) taskChecksAre(value string) error {

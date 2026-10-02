@@ -37,9 +37,9 @@ import {
 	planWith,
 } from "./ci-plan.ts";
 import { planData, planJson, rangeJson } from "./ci-plan-json.ts";
-import { changedIn, docsOnly, rangeStart } from "./ci-scope.ts";
+import { changedIn, docsOnly, PROSE_STEPS, rangeStart } from "./ci-scope.ts";
 import { type Runs, runCheck } from "./checks.ts";
-import { DEFAULT_REGISTRY, section } from "./config.ts";
+import { DEFAULT_REGISTRY, ledgerLayout, section } from "./config.ts";
 import { emit, logger, type Output, TEXT } from "./problem.ts";
 import { rangeProvider } from "./providers.ts";
 import { inShell } from "./shell.ts";
@@ -122,12 +122,23 @@ function runTaskCheck(planned: PlannedCheck, out: Output, runs?: Runs): Failure 
 	return undefined;
 }
 
+// What a prose-only range runs: the prose steps as `ci.prose.steps` gives
+// them, then the named tasks' checks that read prose.
+function proseLine(): string {
+	const steps = PROSE_STEPS()
+		.map((step) => `\`${step}\`, `)
+		.join("");
+	return `Only prose changed: ${steps}${steps ? "and " : ""}the named tasks' static and \`prose: true\` checks.`;
+}
+
 // What the run says before its first item: unknown tasks (which end it),
 // tasks not started, and what a prose-only range leaves out.
 function preamble(plan: Plan, out: Output): Failure | undefined {
 	const log = logger(out);
 	// A footer naming a task no task file has is the cheapest failure there is.
-	for (const id of plan.unknown) console.error(`No task ${id} in tasks/, though a footer names it`);
+	// It names the ledger's folder as ledger.files gives it.
+	for (const id of plan.unknown)
+		console.error(`No task ${id} in ${ledgerLayout().dir}/, though a footer names it`);
 	if (plan.unknown.length) {
 		console.error(`\nCI failed at the tasks named: ${plan.unknown.join(", ")}`);
 		return { unknown: plan.unknown, code: 1 };
@@ -136,7 +147,7 @@ function preamble(plan: Plan, out: Output): Failure | undefined {
 	for (const id of plan.notStarted ?? [])
 		log(`${id} is named but not started (todo in ${registry}): its checks wait.`);
 	if (plan.prose) {
-		log("Only prose changed: `vp check`, and the named tasks' static and `prose: true` checks.");
+		log(proseLine());
 		for (const planned of plan.leftOut)
 			log(`  - ${planned.task}: ${commandOf(planned)}   (reads no prose; left out)`);
 	}

@@ -8,7 +8,7 @@
 // them. Both report before the exit, so a header problem does not hide a
 // footer one.
 import { readFileSync } from "node:fs";
-import { config } from "./config.ts";
+import { config, ledgerLayout } from "./config.ts";
 import { checkFooter, footers } from "./footers.ts";
 import { emit, type Output, problem, type Problem, TEXT } from "./problem.ts";
 import { inShell } from "./shell.ts";
@@ -35,7 +35,7 @@ const FIXES: Record<string, string> = {
 function footerFix(rule: string, message: string): string | undefined {
 	const f = footers().find((footer) => `${footer.key.toLowerCase()}-footer` === rule);
 	if (!f) return undefined;
-	const source = f.source === "ledger" ? "tasks/" : `the ${f.source.tests} files`;
+	const source = f.source === "ledger" ? `${ledgerLayout().dir}/` : `the ${f.source.tests} files`;
 	if (/ need a /.test(message))
 		return `add a line \`${f.key}: <id>\` after a blank line at the end, naming what the commit belongs to`;
 	if (message.startsWith("unknown "))

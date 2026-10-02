@@ -63,7 +63,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
 
   # The ledger's footer is whatever commits.footers calls the footer whose
   # source is the ledger; Task: is only this repository's name for it.
-  @ID-CI-05 @slice-18 @wip
+  @ID-CI-05 @slice-18
   Scenario: A push's CI runs the checks of a task named in the ledger footer, whatever the config calls it
     Given the ledger footer is called "Work"
     And the task "T-001" has a static check that records it ran
@@ -72,7 +72,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And the recording check ran
 
-  @ID-CI-06 @slice-18 @wip
+  @ID-CI-06 @slice-18
   Scenario: A footer naming a task the ledger lacks is reported against the ledger's own folder
     Given the ledger's files are "work/phase-{group}.yaml"
     And the CI steps are "exit 0"
@@ -82,7 +82,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     And its output says "No task T-009 in work/"
     And its output does not say "tasks/"
 
-  @ID-CI-07 @slice-18 @wip
+  @ID-CI-07 @slice-18
   Scenario: A prose-only range names the prose steps the config gives
     Given the CI steps are "exit 0"
     And the prose paths are "**/*.md" and the prose steps are "echo prose"

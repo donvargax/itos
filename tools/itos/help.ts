@@ -189,9 +189,9 @@ registry or a smoke set, itos config check's problems, read from the staged
 tree; then the staged files against the message's type (the path rules, then
 each kind's staged range check: the scenario moves here), then the header lint
 (commits.header_lint.hook, commitlint here, if any) and itos's footer rules
-(commits.footers), always, both reported, then the checks of each task the
-Task: footer names, as staged, in written order up to its first late one (CI's
-cost rule; an after: push check waits), each capped at
+(commits.footers), always, both reported, then the checks of each task a
+ledger footer names (Task: here), as staged, in written order up to its first
+late one (CI's cost rule; an after: push check waits), each capped at
 hooks.commit_msg.check_timeout seconds (60). A failure rejects the commit when
 the task's work item is done, and is printed with the task's status otherwise.
 hooks.commit_msg.task_checks: false runs none. The first to fail prints its

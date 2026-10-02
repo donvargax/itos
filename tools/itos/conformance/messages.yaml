@@ -238,6 +238,25 @@ cases:
         - rule: scenarios-footer
           message: "unknown scenarios: ID-NOPE-01"
           fix: name an id the scenario files has, or add it first in a docs commit
+  - name: an unknown task's fix names the ledger's own folder
+    argv: [commit, check-message, "-", --json]
+    stdin: "docs: x\n\nTask: T-044\n"
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "work/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: worktree }
+      work/phase-1.yaml: "- { id: T-001, type: build, title: Scratch T-001 }\n"
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: task-footer
+          message: "unknown tasks: T-044"
+          fix: name an id work/ has, or add it first in a docs commit
   - name: --json of a missing footer
     argv: [commit, check-message, --json, "-"]
     stdin: "refactor: x\n"

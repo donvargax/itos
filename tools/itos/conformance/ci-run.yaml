@@ -1,6 +1,8 @@
 # The CI driver (`ci run`): the plan carried out in cost order with the
 # config's `ci.env`, the log lines agents and their instructions quote, the first failure ending the run (a failing step's
-# own exit code, a task check's 1, unknown tasks before anything runs), a
+# own exit code, a task check's 1, unknown tasks before anything runs, named
+# against the ledger's folder), the tasks read from the footer whose source is
+# the ledger whatever its key, a
 # check recognized as the smoke run merged when there is a run of named tests
 # and run as itself when there is none, the nightly's tasks step (the done
 # tasks' checks, each shared one once, a failure naming the task's title), a
@@ -64,6 +66,9 @@ git:
   - commit: "build: the smoke run\n\nTask: T-012\n"
     files: { tools/a.sh: "5\n" }
     label: smoke
+  - commit: "build: named in another footer\n\nWork: T-041\n"
+    files: { tools/a.sh: "6\n" }
+    label: work
 files:
   itos.yaml: |
     version: 1
@@ -353,6 +358,51 @@ cases:
       No task T-044 in tasks/, though a footer names it
 
       CI failed at the tasks named: T-044
+  - name: a task the ledger lacks is reported against the ledger's own folder
+    argv: [ci, run, "{{sha.failing}}", "{{sha.unknown}}"]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "work/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps: [echo lint]
+        work: { registry: tasks/work-items.yaml }
+      work/phase-1.yaml: "- { id: T-040, type: build, title: Not started }\n"
+    exit: 1
+    stderr: |
+      No task T-044 in work/, though a footer names it
+
+      CI failed at the tasks named: T-044
+  - name: the tasks a range names are read from the ledger footer, whatever its key
+    argv: [ci, run, "{{sha.smoke}}", "{{sha.work}}"]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Work: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps: [echo lint]
+        work: { registry: tasks/work-items.yaml }
+    exit: 0
+    stdout: |
+
+      $ echo lint
+      lint
+
+      T-041
+        $ echo reads prose
+      reads prose
+
+      T-041
+        $ echo reads code
+      reads code
+
+      CI passed
   - name: the ledger folder missing stops the run at the plan, before any step
     argv: [ci, run, "{{sha.base}}", "{{sha.every}}"]
     files: { tasks: null }
@@ -380,7 +430,7 @@ cases:
     argv: [ci, run, "{{sha.waiting}}", "{{sha.prose}}"]
     exit: 0
     stdout: |
-      Only prose changed: `vp check`, and the named tasks' static and `prose: true` checks.
+      Only prose changed: `echo lint`, and the named tasks' static and `prose: true` checks.
         - T-041: echo reads code   (reads no prose; left out)
 
       $ echo lint

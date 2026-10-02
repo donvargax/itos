@@ -2,7 +2,7 @@
 // own formatting doesn't need the build, the suites, the audit or a browser.
 import { spawnSync } from "node:child_process";
 import { type Cost, matchesAny, section, type StepConfig } from "./config.ts";
-import { footerIdsIn, footers } from "./footers.ts";
+import { type Footer, footerIdsIn, footers } from "./footers.ts";
 
 // Every step of CI, in order (what `vp run ci` runs), from itos.yaml's
 // `ci.steps`. The local hooks run only what a change affects and leave the
@@ -50,22 +50,28 @@ export function changedIn(from: string, to: string): string[] {
 	return status === 0 ? stdout.split("\n").filter(Boolean) : [];
 }
 
-// The tasks a pushed range's commits name in their `Task:` footers, read by
-// the footer reader (footers.ts). Their checks are CI's: the pre-push hook
-// does not run them, so the push stays quick on a shared machine. A range we
-// can't read gives none.
-export const tasksIn = (from: string, to: string) => footerIdsIn(from, to, "Task");
-
-// The tests of a kind a pushed range's footers name (`Scenarios:` for the
-// scenario kind), without their prefix, each once: a push's run
-// of the kind is its smoke set and these.
-export const testsNamedIn = (from: string, to: string, kind: string) => [
+// The IDs a pushed range's commits give in every footer of commits.footers
+// that `of` picks, without their prefix, each once, read by the footer reader
+// (footers.ts). A range we can't read gives none.
+const namedIn = (from: string, to: string, of: (f: Footer) => boolean) => [
 	...new Set(
 		footers()
-			.filter((f) => typeof f.source === "object" && f.source.tests === kind)
+			.filter(of)
 			.flatMap((f) => footerIdsIn(from, to, f.key)),
 	),
 ];
+
+// The tasks a pushed range's commits name in their ledger footers: each footer
+// whose source is the ledger, whatever commits.footers calls it (`Task:`
+// here). Their checks are CI's: the pre-push hook does not run them, so the
+// push stays quick on a shared machine.
+export const tasksIn = (from: string, to: string) =>
+	namedIn(from, to, (f) => f.source === "ledger");
+
+// The tests of a kind a pushed range's footers name (`Scenarios:` for the
+// scenario kind): a push's run of the kind is its smoke set and these.
+export const testsNamedIn = (from: string, to: string, kind: string) =>
+	namedIn(from, to, (f) => typeof f.source === "object" && f.source.tests === kind);
 
 // Whether a range can be read at all. One that can't (a first push, an empty
 // start, a rewritten history) runs every scenario, as it runs everything else.
