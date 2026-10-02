@@ -29,11 +29,12 @@ const PORTED = {
 	// sets as config check reads them (T-042), the task runner, task and task
 	// list (T-043), the globs and path rules, commit check-paths (T-044), the
 	// footer rules, commit check-message (T-045), the named tests, tests list
-	// and tests smoke (T-046), verify (T-047; moves.yaml joins with the
-	// commit-msg hook, T-052), CI's plan, ci plan and ci scope (T-048), CI's
-	// driver, ci run and the nightly (T-049), where a range starts, ci range
-	// and the range providers (T-050), and the work routing, work and work
-	// check (T-051).
+	// and tests smoke (T-046), verify (T-047), CI's plan, ci plan and ci
+	// scope (T-048), CI's driver, ci run and the nightly (T-049), where a
+	// range starts, ci range and the range providers (T-050), the work
+	// routing, work and work check (T-051), and the hooks, hook commit-msg,
+	// hook pre-push and hooks install, with the moves rule the commit-msg
+	// hook runs (T-052).
 	corpus: [
 		"tools/itos/conformance/cli.yaml",
 		"tools/itos/conformance/help.yaml",
@@ -49,11 +50,14 @@ const PORTED = {
 		"tools/itos/conformance/ci-run.yaml",
 		"tools/itos/conformance/range.yaml",
 		"tools/itos/conformance/work.yaml",
+		"tools/itos/conformance/hooks.yaml",
+		"tools/itos/conformance/moves.yaml",
 	],
 	// -scenarios= regular expressions, as a group's checks write them: the
 	// scenarios that run config check (T-042), itos task (T-043), tests smoke
 	// check (T-046), verify or tests moves (T-047), ci plan (T-048), ci run
-	// (T-049), and work check (T-051).
+	// (T-049), work check (T-051), and the commit-msg hook or hooks install
+	// (T-052).
 	scenarios: [
 		"^@ID-(CONFIG-1[2346]|LEDGER-0[12]|SINCE-0[4-7])$",
 		"^@ID-(TASK-0[1-4]|LEDGER-0[34]|CONFIG-(01|18))$",
@@ -62,6 +66,7 @@ const PORTED = {
 		"^@ID-LEDGER-05$",
 		"^@ID-(BIN-0[1-3]|CI-0[1-7]|CONFIG-0[256]|LEDGER-06|NIGHTLY-0[1-4])$",
 		"^@ID-(CONFIG-(07|08|17)|WORK-0[1-4])$",
+		"^@ID-(CDATA-0[1-5]|CMSG-0[1-4]|CTASK-0[1-5]|COST-0[1-3]|FOOT-0[1-35-6]|MOVES-0[1-4]|CONFIG-(03|11))$",
 	],
 };
 
