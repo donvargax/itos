@@ -48,9 +48,8 @@ into those notes as it lands, from its report.
    `p1-own-recognize-for-itos`, `p1-release-defaults-per-config`,
    `p1-registry-old-default-hint`, `p1-moves-except-types-checked`,
    `p1-moves-merge-by-git`. `p1-verify-with-last-release` waits for the port
-   (the user's call). Next: **release v0.6.0** (its notes are written, slice
-   by slice, in `docs/releases/v0.6.0.md`), then **the Go port**
-   (`p2-go-port`), unless the user wants some follow-ups first.
+   (the user's call). Next: **release v0.6.0** (`T-038`, with an agent; the user
+   waived the notes' review for it), then **the Go port** (`p2-go-port`).
 2. **The hand work that could be itos's** (the block above phase 2 in the
    registry) comes after the port, the user agreed; the coordinator had
    proposed `p1-itos-push` and `p1-ci-watch` before it, as they save work on

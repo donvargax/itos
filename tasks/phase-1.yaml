@@ -500,3 +500,25 @@
       cost: static
     - run: sh -c 'test ! -e tools/itos/scenario-moves.ts'
       cost: static
+
+- id: T-038
+  type: build
+  title: v0.6.0, the config contract before the Go port
+  why: >
+    v0.6.0 releases the config contract the Go port will copy: slice 18 (CI
+    reads the ledger footer, the ledger's folder and the prose steps from the
+    config), slice 19 (one table of defaults, applied and printed alike),
+    slice 20 (every command pattern reads hooks.bin as itos), slice 21
+    (ledger.group.label read), slice 22 (work.registry's default beside the
+    ledger) and slice 23 with T-037 (the moving rule as itos's built-in, a
+    range check and itos tests moves), with the notes PLAN.md §10 asks for.
+    docs/releases/v0.6.0.md was written slice by slice; this task finishes
+    it. The user waived the review of the notes for this release, so the tag
+    follows CI being green but for the after-push download check.
+  done_when:
+    - run: node tools/selftest/release.ts
+      timeout: 900
+    - run: node tools/selftest/release-notes.ts 0.6.0
+      timeout: 300
+    - run: sh -c 'd=$(mktemp -d) && gh release download v0.6.0 --dir "$d" --pattern "itos-0.6.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
+      after: push
