@@ -1664,7 +1664,7 @@ items:
     title: "The release workflow publishes and proves the Go archives"
     phase: 2
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-054]
     kind: task
     refs: [tasks/phase-2.yaml]
@@ -1721,9 +1721,9 @@ items:
     title: The Go release workflow proves the archives it publishes
     phase: 2
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-040]
-    kind: idea
+    kind: task
     why: >
       Found in T-040: tools/selftest/go-release.ts proves a release it builds itself, from the
       checkout. The TypeScript release proves the very tarball it uploads (release.ts --tarball),
