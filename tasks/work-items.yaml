@@ -763,7 +763,7 @@ items:
     title: The defaults the tools apply are the ones config check prints, read from one table
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-8]
     kind: slice
     refs: [features/config.feature]
