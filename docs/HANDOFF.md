@@ -39,12 +39,14 @@ and the release task only finished them.
 
 ## Next
 
-1. **The rest of the config contract, before the port**: `slice-18` (CI
-   names the ledger footer, folder and prose steps from the config) is
-   specified; then, ideas to specify first: `p1-config-names-from-config`
-   (what slice 18 leaves), `p1-one-defaults-table`,
-   `p1-itos-in-every-pattern`, `p1-bin-in-defaults`, `p1-group-label-read`,
-   `p1-verify-with-last-release`. Then **the Go port** (`p2-go-port`).
+1. **The rest of the config contract, before the port**: `slice-18` is done
+   (in `docs/releases/v0.6.0.md`); `slice-19` (the defaults the tools apply
+   are the ones `--print-defaults` prints, from one table) is specified.
+   Then, ideas to specify first: `p1-itos-in-every-pattern`,
+   `p1-group-label-read`, `p1-registry-beside-ledger`,
+   `p1-verify-with-last-release`, and `p1-config-names-from-config` (what
+   slice 18 left: scenario-moves, a script the config runs, needs the user's
+   call on whether itos ships it). Then **the Go port** (`p2-go-port`).
 2. **The hand work that could be itos's** (the block above phase 2 in the
    registry) comes after the port, the user agreed; the coordinator had
    proposed `p1-itos-push` and `p1-ci-watch` before it, as they save work on

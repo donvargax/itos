@@ -731,19 +731,6 @@ items:
       itos miss tools/bin/itos. matchesStatic's reading, shared by every command pattern, closes
       it; each needs a scenario.
 
-  - id: p1-bin-in-defaults
-    title: config check --print-defaults lists hooks.bin's default
-    phase: 1
-    owner: null
-    status: todo
-    depends_on: [slice-8]
-    kind: idea
-    why: >
-      hooks.bin's default, tools/bin/itos, decides which commands the cost rule reads as itos since
-      slice 8, besides what the hook shims call, but the defaults --print-defaults prints leave it
-      out (itosBin in config.ts holds it). Listing it changes the printed table, so the release
-      notes check and its conformance cases move with it; p1-one-defaults-table would carry it.
-
   - id: p1-ci-checks-once
     title: CI's plan runs a check two named tasks list once
     phase: 1
@@ -772,20 +759,36 @@ items:
       by hooks.commit_msg.check_timeout, could share them the same way. Needs a scenario in
       commit-tasks.feature.
 
-  - id: p1-one-defaults-table
-    title: The defaults the tools apply, read from one table
+  - id: slice-19
+    title: The defaults the tools apply are the ones config check prints, read from one table
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: []
-    kind: idea
+    depends_on: [slice-8]
+    kind: slice
+    refs: [features/config.feature]
     why: >
       config check --print-defaults prints a table beside the code, but each tool writes its own
-      fallback where it reads a key (?? 600, ?? "@wip"; the registry's is one constant since slice 5,
-      DEFAULT_REGISTRY in config.ts, which the table and the tools share), so the printed
-      table can drift from what runs: tests.<kind>.tag_prefix is @ in the table and the Gherkin adapter
-      but empty where a smoke ID loses its prefix. One table the loader merges under the file, which the
-      tools and the flag both read, closes it; it fits the Go port's config loader.
+      fallback where it reads a key (?? 600, ?? "@wip"), so the printed table drifted from what
+      runs: tests.<kind>.tag_prefix is @ in the table and the Gherkin adapter but empty where the
+      smoke rule strips a smoke ID's prefix, so tests smoke check rejects a sound smoke set when
+      the key is left out; and hooks.bin's default, tools/bin/itos (itosBin in config.ts), which
+      decides what the cost rule reads as itos, is not printed at all. One table the loader merges
+      under the file, which the tools and the flag both read, closes it and fits the Go port's
+      loader. Was the ideas p1-one-defaults-table and p1-bin-in-defaults. @ID-CONFIG-15 and 16.
+
+  - id: p1-registry-beside-ledger
+    title: work.registry's default follows the ledger's folder, as PLAN says
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-18]
+    kind: idea
+    why: >
+      Found in slice 18: work.registry defaults to tasks/work-items.yaml whatever folder
+      ledger.files names, while PLAN.md calls the default "beside the ledger". A project whose
+      ledger is in work/ gets a registry looked for in tasks/. Either the default follows the
+      ledger's folder (a changed default, for the release notes) or PLAN says tasks/.
 
   - id: slice-10
     title: The footer rules run by itos beside the header lint
