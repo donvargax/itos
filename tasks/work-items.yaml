@@ -705,19 +705,24 @@ items:
       scenario-moves also roots the kind at e2e/features when tests.<kind>.root is left out, a
       fallback slice 19 left outside the defaults table, since the kind's root has no default.
 
-  - id: p1-group-label-read
+  - id: slice-21
     title: ledger.group.label read, or dropped
     phase: 1
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: [slice-4]
-    kind: idea
+    kind: slice
+    refs: [features/config.feature]
     why: >
       Slice 4 made every key it named read or dropped, but ledger.group.label (phase here) is
       validated and read by nothing: the registry's items keep the key phase, work check's
       messages say "phase 1 is not listed" and itos task takes --phase beside --group whatever the
       label says. Either the tools read the word from it, or it leaves the schema until they do.
       Needs a scenario in config.feature.
+      Decided (the coordinator's call): read it. The words the tools print for a group (work check's
+      rules, itos task's usage) take the label, and itos task takes --<label> beside --group and
+      --phase; its default stays phase, so nothing changes without the key. The registry's item key
+      phase is data and stays. Was the idea p1-group-label-read. @ID-CONFIG-17 and 18.
 
   - id: slice-20
     title: ci.covers, ci.nightly_only and recognize read hooks.bin as itos too

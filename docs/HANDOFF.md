@@ -41,8 +41,8 @@ and the release task only finished them.
 
 1. **The rest of the config contract, before the port**: slices 18 and 19
    are done (in `docs/releases/v0.6.0.md`);
-   `slice-20` (every command pattern reads hooks.bin as itos) is specified.
-   Then, ideas to specify first: `p1-group-label-read`, `p1-registry-beside-ledger`,
+   slice 20 is done too; `slice-21` (ledger.group.label read) is specified.
+   Then, ideas to specify first: `p1-registry-beside-ledger`,
    `p1-verify-with-last-release`, and `p1-config-names-from-config` (what
    slice 18 left: scenario-moves, a script the config runs, needs the user's
    call on whether itos ships it). Then **the Go port** (`p2-go-port`).
