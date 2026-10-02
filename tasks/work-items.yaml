@@ -305,7 +305,7 @@ items:
     title: v0.5.0, the done tasks' nightly step and three fixes consumers met
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-14, slice-15, slice-16, slice-17, T-034, T-035]
     kind: task
     refs: [tasks/phase-1.yaml]
