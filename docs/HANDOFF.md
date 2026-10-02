@@ -22,8 +22,8 @@ are @donvargax's.
 `main` is green at `d8d08ec` (CI run 36959557625), after slices 18 to 23
 and T-037: the moving rule is itos's built-in now, and `scenario-moves.ts`
 is gone. The nightly ends with `{ tasks: done, cost: static }`, every done
-task's static checks. The last green nightly is 36957821730 (on `4740dbf`,
-after slice 22); one was dispatched on `d8d08ec` (run 36959769930) for slice 23.
+task's static checks. The last nightly, 36959769930 (dispatched by hand on
+`d8d08ec`, after slice 23), is green.
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
 
