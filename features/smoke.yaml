@@ -48,6 +48,10 @@
   scenarios:
     - id: "@ID-LEDGER-01"
       why: config check names the missing ledger folder, the first command a consumer meets it in
+- file: nightly.feature
+  scenarios:
+    - id: "@ID-NIGHTLY-01"
+      why: the nightly runs a done task's check and leaves out one in progress, the file's point
 - file: since.feature
   scenarios:
     - id: "@ID-SINCE-01"

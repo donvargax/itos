@@ -26,6 +26,15 @@
 //     its command, else late; with `keep_written_order`, a check below
 //     a late check of its task is late too, so it never runs before a check
 //     written above it.
+//   - The nightly runs its own steps (`ci.nightly.steps`) in the order they
+//     are written. Its `{ tasks: done }` step stands for the checks of every
+//     task whose work item is `done` in the registry, in cost order where it
+//     is written (with `cost: static`, only the static ones): a done task's
+//     check runs though no push names it, so a change elsewhere that breaks
+//     it shows the next morning. A task in progress, or with no work item, is
+//     left out, as its checks may be red until it lands. A check one of the
+//     nightly's steps has done is not run again, and one that is a run of
+//     the kind the nightly runs whole is in that run.
 //   - A prose-only range runs the prose steps (`ci.prose.steps`), then the
 //     named tasks' static checks and those whose `done_when` entry says
 //     `prose: true` (a late check that reads Markdown or `docs/**`), and
@@ -45,10 +54,11 @@ import {
 } from "./ci-scope.ts";
 import { smokeIds } from "./smoke-rule.ts";
 import { loadSmoke } from "./smoke.ts";
-import { config, DEFAULT_REGISTRY, normal, section } from "./config.ts";
+import { config, DEFAULT_REGISTRY, normal, section, type StepConfig } from "./config.ts";
 import { type Costed, costedChecks, costOf } from "./cost.ts";
 import { type Check, loadTasks, type Task } from "./repo.ts";
 import { commandFor, recognize, type Selection } from "./tests.ts";
+import { itemStatuses, registryPath } from "./work.ts";
 import { readFileSync } from "node:fs";
 import { parse } from "yaml";
 
@@ -66,6 +76,8 @@ const nightlyOnly = () => section("ci").nightly_only ?? [];
 
 export interface PlannedCheck extends Costed {
 	task: string;
+	// The task's title, which a failure names.
+	title?: string;
 	check: Check;
 	// Its place in the task's `done_when`, from 0.
 	index?: number;
@@ -102,7 +114,8 @@ export interface PlanInput {
 	known: boolean;
 	// The kind's test IDs the range's footers name (`Scenarios:`).
 	scenarios?: string[];
-	// The tasks the range's `Task:` footers name.
+	// The tasks the range's `Task:` footers name; for the nightly, the tasks
+	// whose work item is done.
 	tasks?: Task[];
 	nightly?: boolean;
 	// The kind's smoke set (tests.<kind>.smoke.file), without the tag prefix.
@@ -132,12 +145,14 @@ function runsOfKind(
 	});
 }
 
-// Mark each other check that a step has done, or that the nightly runs.
-function markDone(checks: PlannedCheck[], steps: string[]) {
+// Mark each other check that a step has done, or, in a push, that the
+// nightly runs.
+function markDone(checks: PlannedCheck[], steps: string[], nightly = false) {
 	for (const planned of checks) {
 		if (planned.merged || !planned.check.run) continue;
 		planned.coveredBy = coveredBy(planned.check.run, steps);
-		planned.nightly = !planned.coveredBy && nightlyOnly().includes(normal(planned.check.run));
+		planned.nightly =
+			!nightly && !planned.coveredBy && nightlyOnly().includes(normal(planned.check.run));
 	}
 }
 
@@ -181,17 +196,7 @@ export function ciPlan({
 }: PlanInput): Plan {
 	const base = { prose, tasks: tasks.map((t) => t.id), leftOut: [], unknown: [] };
 	const costed = (step: Step) => ({ step: step.command, ...costOf(step.command, step.cost) });
-	if (nightly) {
-		const steps = (section("ci").nightly?.steps ?? []).map(stepOf);
-		return {
-			...base,
-			prose: false,
-			order: steps.map(costed),
-			steps: steps.map((s) => s.command),
-			tasks: [],
-			checks: [],
-		};
-	}
+	if (nightly) return nightlyPlan(base, tasks, smoke);
 	const named: PlannedCheck[] = tasks.flatMap(costedChecks);
 	const checks = prose ? named.filter(runsOnProse) : named;
 	const leftOut = prose ? named.filter((planned) => !runsOnProse(planned)) : [];
@@ -219,6 +224,54 @@ export function ciPlan({
 	markDone(checks, steps);
 	return { ...base, order: inCostOrder(runs.map(costed), checks), steps, checks, leftOut };
 }
+
+// Whether a nightly step is the one that runs the done tasks' checks.
+const isTasksStep = (step: string | StepConfig): step is StepConfig =>
+	typeof step === "object" && step.tasks !== undefined;
+
+// The nightly's plan: its steps in written order, its tasks step standing for
+// the checks of `done`, static then late (only the static ones with
+// `cost: static`). Each is merged into the nightly's whole run of its kind,
+// covered by one of its steps, or run.
+function nightlyPlan(base: Pick<Plan, "leftOut" | "unknown">, done: Task[], smoke: string[]): Plan {
+	const order: PlanItem[] = [];
+	const steps: string[] = [];
+	const checks: PlannedCheck[] = [];
+	let kind: string | undefined;
+	for (const configured of section("ci").nightly?.steps ?? []) {
+		if (isTasksStep(configured)) {
+			const planned: PlannedCheck[] = done
+				.flatMap(costedChecks)
+				.filter((p) => configured.cost !== "static" || p.cost === "static");
+			checks.push(...planned);
+			order.push(...inCostOrder([], planned));
+			continue;
+		}
+		const step = stepOf(configured);
+		kind ??= step.tests;
+		steps.push(step.command);
+		order.push({ step: step.command, ...costOf(step.command, step.cost) });
+	}
+	if (kind)
+		for (const { planned } of runsOfKind(checks, kind, smoke)) {
+			planned.merged = true;
+			planned.kind = kind;
+		}
+	markDone(checks, steps, true);
+	const tasks = [...new Set(checks.map((p) => p.task))];
+	return { ...base, prose: false, order, steps, tasks, checks };
+}
+
+// The tasks whose work item is `done` in the registry, for the nightly's
+// tasks step; none, and the ledger unread, when the nightly has no such step.
+export function doneTasks(registry = registryPath()): Task[] {
+	if (!(section("ci").nightly?.steps ?? []).some(isTasksStep)) return [];
+	const statuses = itemStatuses(registry);
+	return loadTasks().filter((task) => statuses.get(task.id) === "done");
+}
+
+// The nightly's plan, the done tasks read from the ledger and the registry.
+export const planNightly = (): Plan => ciPlan({ known: false, nightly: true, tasks: doneTasks() });
 
 // The plan for a pushed range, read from git and the task files.
 export const planFor = (

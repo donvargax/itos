@@ -46,6 +46,7 @@ type scratchConfig struct {
 	ciTests           string   // a kind of named tests, with run and recognize templates, run by the last of ci.steps
 	smokeRuns         []string // commands the kind of ciTests recognizes as its smoke run
 	stopAtFirst       *bool    // ci.stop_at_first_failure
+	nightlyTasks      string   // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
 	costStatic        []string // ci.cost.static
 	registry          string   // work.registry
 	taskChecks        *bool    // hooks.commit_msg.task_checks
@@ -125,6 +126,9 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the task "([^"]*)" has a static check that records it ran$`, func(task string) error {
 		return w.stagedChecks(task, staticCheck(recordingCheck))
 	})
+	sc.Step(`^the task "([^"]*)" has the late check "([^"]*)"$`, func(task, check string) error {
+		return w.stagedChecks(task, fmt.Sprintf("{ run: %q, cost: late }", check))
+	})
 	sc.Step(`^the task "([^"]*)" has the late check "([^"]*)" then a static check that records it ran$`, func(task, check string) error {
 		return w.stagedChecks(task, fmt.Sprintf("{ run: %q, cost: late }", check), staticCheck(recordingCheck))
 	})
@@ -143,6 +147,11 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the work registry has the item "([^"]*)" with the status "([^"]*)"$`, func(item, status string) error {
 		return w.workingRegistry(startingRegistry, item, status)
 	})
+	sc.Step(`^the work registry has the item "([^"]*)" with the status "([^"]*)" and the item "([^"]*)" with the status "([^"]*)"$`, func(a, aStatus, b, bStatus string) error {
+		return w.workingRegistryItems(startingRegistry, [][2]string{{a, aStatus}, {b, bStatus}})
+	})
+	sc.Step(`^the nightly steps run the checks of the done tasks$`, func() error { return w.nightlyTasksAre("every") })
+	sc.Step(`^the nightly steps run the static checks of the done tasks$`, func() error { return w.nightlyTasksAre("static") })
 	sc.Step(`^work\.groups_key is "([^"]*)"$`, w.groupsKeyIs)
 	sc.Step(`^the work registry gives the group "([^"]*)" to the owner "([^"]*)" under "([^"]*)"$`, w.registryGroupOwner)
 	sc.Step(`^a feature file "([^"]*)" with the live scenario "([^"]*)"$`, w.featureFile)
@@ -168,6 +177,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.itos("task", "--group", group)
 	})
 	sc.Step(`^itos lists the tasks$`, func() error { return w.itos("task", "list") })
+	sc.Step(`^itos runs the nightly$`, func() error { return w.itos("ci", "run", "--nightly") })
 	sc.Step(`^itos runs CI over every commit up to HEAD$`, func() error { return w.itos("ci", "run", "", "HEAD") })
 	sc.Step(`^itos runs CI over the commits after the first$`, func() error {
 		if len(w.commits) == 0 {
@@ -193,6 +203,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^its output is a JSON report that is not valid$`, w.invalidJSONReport)
 	sc.Step(`^its output lists "([^"]*)" as "([^"]*)"$`, w.outputLists)
 	sc.Step(`^the counting check ran once$`, func() error { return w.countingCheckRan(1) })
+	sc.Step(`^the counting check did not run$`, func() error { return w.countingCheckRan(0) })
 	sc.Step(`^the range check started at the first commit$`, w.rangeCheckStartedAtFirst)
 	sc.Step(`^the recording shell ran "([^"]*)"$`, w.recordingShellRan)
 	sc.Step(`^the recording shell ran the range check$`, w.recordingShellRanRangeCheck)
@@ -393,7 +404,7 @@ func (w *world) writeConfig() error {
 		record := "printf '%s\\n' {from} > " + quote(filepath.Join(w.support, "range-from"))
 		fmt.Fprintf(&b, "    range_checks:\n      - name: record\n        range: %q\n", record)
 	}
-	if len(w.config.ciSteps) > 0 || w.config.ciTests != "" || w.config.stopAtFirst != nil || len(w.config.costStatic) > 0 {
+	if len(w.config.ciSteps) > 0 || w.config.ciTests != "" || w.config.stopAtFirst != nil || len(w.config.costStatic) > 0 || w.config.nightlyTasks != "" {
 		b.WriteString("ci:\n  steps:")
 		if len(w.config.ciSteps) == 0 && w.config.ciTests == "" {
 			b.WriteString(" []")
@@ -413,6 +424,12 @@ func (w *world) writeConfig() error {
 			for _, pattern := range w.config.costStatic {
 				fmt.Fprintf(&b, "      - %q\n", pattern)
 			}
+		}
+		switch w.config.nightlyTasks {
+		case "every":
+			b.WriteString("  nightly:\n    steps: [{ tasks: done }]\n")
+		case "static":
+			b.WriteString("  nightly:\n    steps: [{ tasks: done, cost: static }]\n")
 		}
 	}
 	b.WriteString("work: { ")
@@ -835,6 +852,25 @@ func (w *world) workingRegistry(path, item, status string) error {
 	return w.write(path, fmt.Sprintf(
 		"phases: { 1: null }\nitems:\n  - { id: %s, title: %s, phase: 1, owner: null, status: %s, depends_on: [] }\n",
 		item, item, status))
+}
+
+// The registry at path holds these unowned items of phase 1, each with its
+// status, in the working tree alone.
+func (w *world) workingRegistryItems(path string, items [][2]string) error {
+	var b strings.Builder
+	b.WriteString("phases: { 1: null }\nitems:\n")
+	for _, item := range items {
+		fmt.Fprintf(&b, "  - { id: %s, title: %s, phase: 1, owner: null, status: %s, depends_on: [] }\n",
+			item[0], item[0], item[1])
+	}
+	return w.write(path, b.String())
+}
+
+// The nightly's one step runs the checks of the tasks whose work item is
+// done: every one of them, or only the static ones.
+func (w *world) nightlyTasksAre(which string) error {
+	w.config.nightlyTasks = which
+	return w.writeConfig()
 }
 
 // The same registry, staged, with the starting one's removal when it moved.

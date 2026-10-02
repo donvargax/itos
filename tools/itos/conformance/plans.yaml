@@ -4,7 +4,8 @@
 # itos, the written order (T-045's pair), the prose shortcut and what it
 # leaves out, the one merged run of named tests (and a check merged into none
 # when nothing is selected, run as itself), the checks a step covers or
-# the nightly runs, tasks not started or unknown, the nightly, an unread
+# the nightly runs, tasks not started or unknown, the nightly (and its step
+# that runs the checks of the done tasks, T-099 the one done), an unread
 # range, a missing ledger folder (one problem naming it, exit 2), and a
 # ledger, registry and smoke set read at another commit (--data-at).
 git:
@@ -1109,6 +1110,131 @@ cases:
           cost: late
           cost_from: default
       tasks: []
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: the nightly's tasks step plans every check of the done tasks, where it is written, in cost order
+    argv: [ci, plan, --nightly]
+    files:
+      itos.yaml: |
+          version: 1
+          ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+          commits:
+            footers:
+              Task: { source: ledger, validate_for: all, read_at: commit }
+              Scenarios: { source: { tests: scenario }, strip_prefix: "@", validate_for: [feat], read_at: commit }
+          tests:
+            scenario:
+              root: e2e/features
+              id: "ID-[A-Z]+-\\d+"
+              tag_prefix: "@"
+              run:
+                whole: "vp run e2e"
+                select: "vp run e2e --grep {pattern}"
+                ids_pattern: "@(?:{ids})\\b"
+                join: { each: "(?:{p})", sep: "|" }
+              recognize:
+                - { command: "vp run e2e", as: whole }
+                - { command: "vp run e2e --grep {pattern}", as: pattern }
+                - { command: "vp run e2e:smoke", as: smoke }
+              smoke: { file: e2e/smoke.yaml }
+          ci:
+            steps:
+              - { run: vp check, cost: static }
+              - { run: itos tests smoke check scenario, cost: static }
+              - { run: vp run test:coverage, cost: late }
+              - { run: vp build, cost: late }
+              - { tests: scenario }
+            prose: { paths: ["**/*.md", "docs/**"], steps: [vp check] }
+            cost:
+              static: ["^vp check$", "^actionlint\\b"]
+              keep_written_order: true
+            covers:
+              - { by: "vp run test:coverage", matches: "^vp test run(?: [^\\s-]\\S*)*$" }
+            nightly_only: ["node tools/selftest/gates.ts"]
+            nightly: { steps: [{ tests: scenario, whole: true }, { tasks: done }, node tools/selftest/gates.ts] }
+            wait_on_status: [todo]
+          work: { registry: tasks/work-items.yaml }
+    exit: 0
+    stdout: |
+      late  vp run e2e
+      static  T-099: sh -c 'test -f package.json'   (run)
+      static  T-099: actionlint   (run)
+      late  T-099: vp test run tools/itos/work.test.ts   (run)
+      late  T-099: vp run measure fixture   (run)
+      late  T-099: sh -c 'test -f dist/index.html'   (run)
+      late  T-099: vp build   (run)
+      late  T-099: test -f dist/index.html   (run)
+      late  T-099: vp run docs:reference   (run)
+      late  T-099: vp test run src/core   (run)
+      late  T-099: vp run e2e --grep "@ID-LIST-02"   (merged)
+      late  node tools/selftest/gates.ts
+  - name: with cost static, only their static checks, as --json, the tasks they are of listed
+    argv: [ci, plan, --nightly, --json]
+    files:
+      itos.yaml: |
+          version: 1
+          ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+          commits:
+            footers:
+              Task: { source: ledger, validate_for: all, read_at: commit }
+              Scenarios: { source: { tests: scenario }, strip_prefix: "@", validate_for: [feat], read_at: commit }
+          tests:
+            scenario:
+              root: e2e/features
+              id: "ID-[A-Z]+-\\d+"
+              tag_prefix: "@"
+              run:
+                whole: "vp run e2e"
+                select: "vp run e2e --grep {pattern}"
+                ids_pattern: "@(?:{ids})\\b"
+                join: { each: "(?:{p})", sep: "|" }
+              recognize:
+                - { command: "vp run e2e", as: whole }
+                - { command: "vp run e2e --grep {pattern}", as: pattern }
+                - { command: "vp run e2e:smoke", as: smoke }
+              smoke: { file: e2e/smoke.yaml }
+          ci:
+            steps:
+              - { run: vp check, cost: static }
+              - { run: itos tests smoke check scenario, cost: static }
+              - { run: vp run test:coverage, cost: late }
+              - { run: vp build, cost: late }
+              - { tests: scenario }
+            prose: { paths: ["**/*.md", "docs/**"], steps: [vp check] }
+            cost:
+              static: ["^vp check$", "^actionlint\\b"]
+              keep_written_order: true
+            covers:
+              - { by: "vp run test:coverage", matches: "^vp test run(?: [^\\s-]\\S*)*$" }
+            nightly_only: ["node tools/selftest/gates.ts"]
+            nightly: { steps: [{ tasks: done, cost: static }, { tests: scenario, whole: true }] }
+            wait_on_status: [todo]
+          work: { registry: tasks/work-items.yaml }
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: ""
+        to: ""
+        readable: false
+        nightly: true
+      prose: false
+      steps:
+        - vp run e2e
+      order:
+        - check: { task: T-099, index: 0, command: "sh -c 'test -f package.json'" }
+          cost: static
+          cost_from: explicit
+          action: run
+        - check: { task: T-099, index: 1, command: actionlint }
+          cost: static
+          cost_from: pattern
+          action: run
+        - step: vp run e2e
+          cost: late
+          cost_from: default
+      tasks: [T-099]
       left_out: []
       unknown: []
       not_started: []

@@ -26,6 +26,9 @@ export interface StepConfig {
 	tests?: string;
 	whole?: boolean;
 	cost?: Cost;
+	// The nightly's step that runs the checks of every task whose work item
+	// is done; with cost: static, only their static ones.
+	tasks?: "done";
 }
 // One footer of `commits.footers` (footers.ts reads them).
 export interface FooterConfig {
@@ -144,7 +147,7 @@ const obj = (object: Record<string, Spec>, required: string[] = []): Spec => ({
 	required,
 });
 const step: Spec = {
-	either: [str, obj({ run: str, tests: str, whole: bool, cost })],
+	either: [str, obj({ run: str, tests: str, whole: bool, cost, tasks: { enum: ["done"] } })],
 };
 const typesOrAll: Spec = { either: [str, strs] };
 const provider: Spec = { enum: ["github", "command", "none"] };
@@ -269,7 +272,10 @@ function problems(value: unknown, spec: Spec, path: string): Problem[] {
 					),
 				];
 	if ("either" in spec) {
-		const each = spec.either.map((s) => problems(value, s, path));
+		// The specs of the value's shape are judged first, so a mapping with a
+		// wrong value is told about that value, not that it is no string.
+		const shaped = spec.either.filter((s) => fits(value, s));
+		const each = (shaped.length ? shaped : spec.either).map((s) => problems(value, s, path));
 		return each.some((p) => p.length === 0)
 			? []
 			: each.reduce((a, b) => (b.length < a.length ? b : a));
@@ -279,6 +285,17 @@ function problems(value: unknown, spec: Spec, path: string): Problem[] {
 			? value.flatMap((v, i) => problems(v, spec.list, `${path}[${i}]`))
 			: [wrongType(path, `${path} should be a list`, "a list")];
 	return mappingProblems(value, spec, path);
+}
+
+// Whether a value has the shape a spec wants: a mapping for an object or a
+// map, a list for a list, a scalar of the type for the rest.
+function fits(value: unknown, spec: Spec): boolean {
+	if (spec === "strings" || (typeof spec === "object" && "list" in spec))
+		return Array.isArray(value);
+	if (typeof spec === "string") return typeof value === spec;
+	if ("enum" in spec) return typeof value === "string";
+	if ("either" in spec) return spec.either.some((s) => fits(value, s));
+	return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
 function scalarProblems(value: unknown, spec: Spec & string, at: string): Problem[] {
@@ -547,27 +564,56 @@ function namedTypeProblems(config: Config, where: string, named?: string | strin
 		);
 }
 
-function stepProblems(config: Config): Problem[] {
-	const steps = [...(config.ci?.steps ?? []), ...(config.ci?.nightly?.steps ?? [])];
-	return steps.flatMap((s) => {
-		if (typeof s === "string") return [];
-		if ((s.run === undefined) === (s.tests === undefined))
-			return [
-				problem(
-					"config-step",
-					`a CI step needs exactly one of run and tests: ${JSON.stringify(s)}`,
-					"give the step either run: <command> or tests: <kind>, not both",
-				),
-			];
-		if (s.tests === undefined || config.tests?.[s.tests]?.run?.whole) return [];
+// A step runs a command, a kind's tests or, in the nightly alone, the checks
+// of the done tasks: a push runs the checks of the tasks its commits name.
+const stepProblems = (config: Config): Problem[] => [
+	...(config.ci?.steps ?? []).flatMap((s) => oneStepProblems(config, s, false)),
+	...(config.ci?.nightly?.steps ?? []).flatMap((s) => oneStepProblems(config, s, true)),
+];
+
+function oneStepProblems(config: Config, s: string | StepConfig, nightly: boolean): Problem[] {
+	if (typeof s === "string") return [];
+	if (!nightly && s.tasks !== undefined)
 		return [
 			problem(
-				"config-step-tests",
-				`a CI step runs tests: ${s.tests}, and tests.${s.tests}.run.whole is missing`,
-				`add tests.${s.tests}.run.whole, the command that runs every ${s.tests}`,
+				"config-step-tasks",
+				`a CI step runs tasks: ${s.tasks}, which only a nightly step does: ${JSON.stringify(s)}`,
+				"move the step to ci.nightly.steps; a push runs the checks of the tasks its commits name",
 			),
 		];
-	});
+	const given = [s.run, s.tests, s.tasks].filter((v) => v !== undefined).length;
+	if (given !== 1)
+		return [
+			nightly
+				? problem(
+						"config-step",
+						`a nightly step needs exactly one of run, tests and tasks: ${JSON.stringify(s)}`,
+						"give the step one of run: <command>, tests: <kind> or tasks: done",
+					)
+				: problem(
+						"config-step",
+						`a CI step needs exactly one of run and tests: ${JSON.stringify(s)}`,
+						"give the step either run: <command> or tests: <kind>, not both",
+					),
+		];
+	if (s.tasks !== undefined)
+		return s.cost === "late"
+			? [
+					problem(
+						"config-step-cost",
+						`a nightly step runs tasks: ${s.tasks} with cost: late; its cost is static or left out`,
+						"write cost: static to run only the static checks, or leave cost out to run them all",
+					),
+				]
+			: [];
+	if (s.tests === undefined || config.tests?.[s.tests]?.run?.whole) return [];
+	return [
+		problem(
+			"config-step-tests",
+			`a CI step runs tests: ${s.tests}, and tests.${s.tests}.run.whole is missing`,
+			`add tests.${s.tests}.run.whole, the command that runs every ${s.tests}`,
+		),
+	];
 }
 
 function patternProblems(config: Config): Problem[] {

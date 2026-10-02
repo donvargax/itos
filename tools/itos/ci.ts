@@ -13,7 +13,9 @@
 //                                    steps and only the named tasks' static
 //                                    and `prose: true` checks
 //   itos ci run --nightly            the nightly: its steps (every scenario,
-//                                    then the checks a push leaves to it)
+//                                    then the checks a push leaves to it), a
+//                                    `tasks: done` step running the checks of
+//                                    every done task, each shared check once
 //   itos ci scope <from> <to>        print the range's scope, for the workflow
 //   itos ci plan <from> <to> | --nightly | --whole [--json] [--data-at <sha>]
 //                                    print the plan the run would carry out,
@@ -26,10 +28,17 @@
 //                                    what itos.yaml's `ci.range` provider says
 //                                    if it is an ancestor of the head, else
 //                                    empty (run everything)
-import { ciPlan, commandOf, type Plan, type PlannedCheck, planFor, planWith } from "./ci-plan.ts";
+import {
+	commandOf,
+	type Plan,
+	type PlannedCheck,
+	planFor,
+	planNightly,
+	planWith,
+} from "./ci-plan.ts";
 import { planData, planJson, rangeJson } from "./ci-plan-json.ts";
 import { changedIn, docsOnly, rangeStart } from "./ci-scope.ts";
-import { runCheck } from "./checks.ts";
+import { type Runs, runCheck } from "./checks.ts";
 import { DEFAULT_REGISTRY, section } from "./config.ts";
 import { emit, logger, type Output, TEXT } from "./problem.ts";
 import { rangeProvider } from "./providers.ts";
@@ -63,9 +72,7 @@ export async function ciPlanCommand(
 	{ from, to, nightly, dataAt }: PlanRequest,
 	out: Output = TEXT,
 ): Promise<number> {
-	const plan = nightly
-		? ciPlan({ known: false, nightly })
-		: planWith(from, to, await planData(dataAt));
+	const plan = nightly ? planNightly() : planWith(from, to, await planData(dataAt));
 	const json = planJson(plan, rangeJson(from, to, nightly));
 	if (out.json) console.log(JSON.stringify(json, null, 2));
 	else
@@ -81,7 +88,7 @@ export async function ciPlanCommand(
 // Where a run stopped: a step (whose exit code is the run's) or a task check.
 type Failure = { code: number } & (
 	| { step: string }
-	| { task: string; command: string }
+	| { task: string; title?: string; command: string }
 	| { unknown: string[] }
 );
 
@@ -96,18 +103,21 @@ function runStep(step: string, out: Output): Failure | undefined {
 	return { step, code: status ?? 1 };
 }
 
-// One check of a task the range's commits name, unless a step of this run has
-// just done it.
-function runTaskCheck(planned: PlannedCheck, out: Output): Failure | undefined {
+// One check of a task the range's commits name (or, in the nightly, of a done
+// task), unless a step of this run has just done it. With `runs`, a check
+// already run in this run is not run again, and this task reads its exit
+// status by its own run: or fails:. A failure names the task and its title.
+function runTaskCheck(planned: PlannedCheck, out: Output, runs?: Runs): Failure | undefined {
 	const log = logger(out);
 	const command = commandOf(planned);
 	log(`\n${planned.task}`);
 	if (planned.merged) log(`  = ${command}   (in the ${planned.kind} run above)`);
 	else if (planned.coveredBy) log(`  = ${command}   (ran above as \`${planned.coveredBy}\`)`);
 	else if (planned.nightly) log(`  = ${command}   (runs in the nightly)`);
-	else if (runCheck(planned.check, true, out.json) === "fail") {
-		console.error(`\nCI failed at ${planned.task}'s check: ${command}`);
-		return { task: planned.task, command, code: 1 };
+	else if (runCheck(planned.check, true, out.json, runs) === "fail") {
+		const { task, title } = planned;
+		console.error(`\nCI failed at ${task}${title ? ` (${title})` : ""}, its check: ${command}`);
+		return { task, ...(title ? { title } : {}), command, code: 1 };
 	}
 	return undefined;
 }
@@ -133,6 +143,12 @@ function preamble(plan: Plan, out: Output): Failure | undefined {
 	return undefined;
 }
 
+// The plan a run carries out and, for the nightly, the runs its task checks
+// share: the nightly runs each check its done tasks share once, as `itos task`
+// does, while a push runs each named task's checks as its own.
+const toRun = (from: string, to: string, nightly: boolean): { plan: Plan; runs?: Runs } =>
+	nightly ? { plan: planNightly(), runs: new Map() } : { plan: planFor(from, to) };
+
 // `ci run [<from> <to>] | --nightly`: the plan, carried out in cost order.
 // The first failure ends the run, so a static check that fails does so
 // before the unit tests, the build and the run of named tests; with
@@ -141,7 +157,7 @@ function preamble(plan: Plan, out: Output): Failure | undefined {
 // own code. Unknown tasks end the run whatever the setting: they name no
 // check to run.
 export function ciRun(from: string, to: string, nightly: boolean, out: Output = TEXT): number {
-	const plan: Plan = nightly ? ciPlan({ known: false, nightly }) : planFor(from, to);
+	const { plan, runs } = toRun(from, to, nightly);
 	const ci = section("ci");
 	// Every step and every task check sees CI's settings (`ci.env`: what a
 	// runner does only in CI, say).
@@ -150,7 +166,7 @@ export function ciRun(from: string, to: string, nightly: boolean, out: Output = 
 	let failed = preamble(plan, out);
 	for (const item of plan.order) {
 		if (failed && (stop || "unknown" in failed)) break;
-		const failure = "step" in item ? runStep(item.step, out) : runTaskCheck(item, out);
+		const failure = "step" in item ? runStep(item.step, out) : runTaskCheck(item, out, runs);
 		failed ??= failure;
 	}
 	if (!failed) logger(out)("\nCI passed");

@@ -33,6 +33,8 @@ export const costOf = (command: string, own?: Cost): Costed =>
 
 interface CostedCheck extends Costed {
 	task: string;
+	// The task's title, for a failure to name it by.
+	title: string;
 	check: Check;
 	// Its place in the task's `done_when`, from 0.
 	index: number;
@@ -49,7 +51,7 @@ export function costedChecks(task: Task): CostedCheck[] {
 		let costed = costOf(check.run ?? check.fails!, check.cost);
 		if (keep && late && costed.cost === "static") costed = { cost: "late", costFrom: "order" };
 		if (costed.cost === "late") late = true;
-		return { task: task.id, check, index, ...costed };
+		return { task: task.id, title: task.title, check, index, ...costed };
 	});
 }
 

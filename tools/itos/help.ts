@@ -159,7 +159,9 @@ Runs the plan: unknown task IDs fail first, tasks not started and checks a
 prose-only range leaves out are listed, then each step and task check in cost
 order, stopping at the first failure; with ci.stop_at_first_failure false,
 every one runs and the first failure is the run's. With no range, every step
-and every test. A failing step exits with its own code.
+and every test. A failing step exits with its own code. --nightly runs
+ci.nightly.steps; a { tasks: done } step there runs the checks of every task
+whose work item is done, each shared check once, and a failure names the task.
 
 --json: the run's log on stderr; {"schema":1,"ok","failed_at"?} on stdout`,
 

@@ -16,7 +16,7 @@ Feature: The nightly runs the checks of every done task
 
   # The recording check passes and leaves a file; the counting check fails
   # (exit 3) and counts its runs, so each is read from the tree.
-  @ID-NIGHTLY-01 @slice-16 @wip
+  @ID-NIGHTLY-01 @slice-16
   Scenario: The nightly runs a done task's checks and leaves out a task in progress
     Given the task "T-001" has a static check that records it ran
     And the task "T-002" has the counting check as run
@@ -27,7 +27,7 @@ Feature: The nightly runs the checks of every done task
     And the recording check ran
     And the counting check did not run
 
-  @ID-NIGHTLY-02 @slice-16 @wip
+  @ID-NIGHTLY-02 @slice-16
   Scenario: With cost static, the nightly runs a done task's static checks and leaves out its late ones
     Given the task "T-001" has a static check that records it ran
     And the task "T-002" has the late check "exit 3"
@@ -39,7 +39,7 @@ Feature: The nightly runs the checks of every done task
 
   # ci.stop_at_first_failure false, so the second task is reached after the
   # first one's check fails.
-  @ID-NIGHTLY-03 @slice-16 @wip
+  @ID-NIGHTLY-03 @slice-16
   Scenario: A check two done tasks share runs once in the nightly
     Given the tasks "T-001" and "T-002" each have the counting check
     And the work registry has the item "T-001" with the status "done" and the item "T-002" with the status "done"
@@ -50,7 +50,7 @@ Feature: The nightly runs the checks of every done task
     And the counting check ran once
 
   # The scratch ledger titles T-001 "Tidy".
-  @ID-NIGHTLY-04 @slice-16 @wip
+  @ID-NIGHTLY-04 @slice-16
   Scenario: A done task's red check fails the nightly, naming the task's ID and title
     Given the task "T-001" has the check "exit 3"
     And the work registry has the item "T-001" with the status "done" and the item "T-002" with the status "doing"
