@@ -10,7 +10,9 @@ import (
 )
 
 // spec is the schema of one value, strict: an object's keys are the ones it
-// lists, a map's are free (config.ts's Spec).
+// lists, a map's are free (config.ts's Spec). desc is what the value is for,
+// in words: the description the config's JSON Schema gives it (Schema), which
+// config check never reads.
 type spec struct {
 	scalar   string // "string", "number", "boolean" or "strings"
 	enum     []string
@@ -20,6 +22,7 @@ type spec struct {
 	mapOf    *spec
 	list     *spec
 	either   []*spec
+	desc     string
 }
 
 type field struct {
@@ -38,6 +41,14 @@ func enum(values ...string) *spec { return &spec{enum: values} }
 func mapOf(s *spec) *spec         { return &spec{mapOf: s} }
 func list(s *spec) *spec          { return &spec{list: s} }
 func either(s ...*spec) *spec     { return &spec{either: s} }
+
+// about is a spec with words for what it is for; the spec it copies, which
+// may be shared (str, num…), is left as it was.
+func about(desc string, s *spec) *spec {
+	described := *s
+	described.desc = desc
+	return &described
+}
 
 // obj is an object of the keys given as key, spec, key, spec…, with the
 // required ones.
@@ -66,9 +77,19 @@ func (s *spec) keys() []string {
 	return keys
 }
 
-var cost = enum("static", "late")
+var cost = about("static (seconds, run first) or late.", enum("static", "late"))
 
-var step = either(str, obj(nil, "run", str, "tests", str, "whole", boo, "cost", cost, "tasks", enum("done")))
+var step = about(
+	"A command, or a mapping that runs a command (run), a kind's tests (tests) or, in the nightly "+
+		"alone, the checks of every done task (tasks: done).",
+	either(str, obj(nil,
+		"run", about("The command the step runs.", str),
+		"tests", about("The kind of named tests the step runs, by its run.whole.", str),
+		"whole", about("Whether the step runs every test of its kind, rather than the ones a range names.", boo),
+		"cost", cost,
+		"tasks", about("done: the checks of every task whose work item is done (a nightly step).", enum("done")),
+	)),
+)
 
 var typesOrAll = either(str, strs)
 
@@ -78,90 +99,164 @@ var provider = enum("github", "command", "none")
 var HookManagers = []string{"vp", "git", "husky", "lefthook", "pre-commit", "prek"}
 
 // schema is every key the config accepts, each one a tool reads.
-var schema = obj([]string{"version"},
-	"version", num,
-	"requires", str,
-	"shell", strs,
-	"ledger", obj([]string{"files"},
-		"files", str,
-		"group", obj(nil, "label", str, "pattern", str, "numeric", boo),
-		"id", str,
-		"check", obj(nil, "timeout", num),
-	),
-	"commits", obj(nil,
-		"types", strs,
-		"header_lint", obj(nil, "hook", str, "stdin", str),
-		"footers", mapOf(obj([]string{"source"},
-			"source", either(str, obj([]string{"tests"}, "tests", str)),
-			"strip_prefix", str,
-			"required_for", typesOrAll,
-			"validate_for", typesOrAll,
-			"must_be_live", boo,
-			"read_at", enum("commit", "worktree"),
+var schema = about("itos's policy: the ledger, the commit rules, the named tests, CI's plan, the work routing and the hooks.", obj([]string{"version"},
+	"version", about("The config's format: 1.", num),
+	"requires", about("The oldest itos that reads this file, as a version range (>=0.6.0); itos version --check holds the running itos to it.", str),
+	"shell", about("The argv prefix every command runs under.", strs),
+	"ledger", about("The ledger: the task files, the group in their names, the ID pattern and the checks' timeout.", obj([]string{"files"},
+		"files", about("The ledger's files, {group} standing where a file's group is (tasks/phase-{group}.yaml).", str),
+		"group", about("The group in the files' names.", obj(nil,
+			"label", about("What a group is called in what the tools print, and the flag itos task takes one by beside --group.", str),
+			"pattern", about("A regular expression a group matches.", str),
+			"numeric", about("Whether groups sort as numbers.", boo),
 		)),
-		"path_sets", mapOf(strs),
-		"scopes", mapOf(obj(nil, "only", strs, "never", strs, "must_touch", strs)),
-		"reject_message", str,
-		"since", str,
-	),
-	"tests", mapOf(obj(nil,
-		// Built in (gherkin) or a command that speaks the adapter protocol.
-		"adapter", either(str, obj([]string{"command"}, "command", str, "supports_at", boo)),
-		"root", str,
-		"id", str,
-		"tag_prefix", str,
-		"wip_tag", str,
-		"run", obj(nil,
-			"whole", str,
-			"select", str,
-			"ids_pattern", str,
-			"join", obj(nil, "each", str, "sep", str),
-		),
-		"recognize", list(obj([]string{"command", "as"}, "command", str, "as", str)),
-		"smoke", obj(nil, "file", str, "every_file", boo, "add_hint", str),
-		"range_checks", list(obj([]string{"name"},
+		"id", about("A regular expression every task ID matches.", str),
+		"check", about("How a task's checks run.", obj(nil, "timeout", about("The seconds a check may run.", num))),
+	)),
+	"commits", about("The commit rules: the types, the header lint, the footers, the paths each type may touch.", obj(nil,
+		"types", about("The commit types a header may have.", strs),
+		"header_lint", about("The header lint's delegate, which itos runs the footer rules beside.", obj(nil,
+			"hook", about("The command that lints the message file, {file} standing for its path.", str),
+			"stdin", about("The command that lints a message on its stdin.", str),
+		)),
+		"footers", about("The footers, by key: where the IDs each names come from, and which types need it.", mapOf(obj([]string{"source"},
+			"source", about("Where the footer's IDs come from: ledger, or { tests: <kind> }.", either(str, obj([]string{"tests"}, "tests", about("The kind of named tests.", str)))),
+			"strip_prefix", about("A prefix the IDs are written with and read without.", str),
+			"required_for", about("The commit types that must carry the footer: a list, or all.", typesOrAll),
+			"validate_for", about("The commit types whose footer IDs must exist: a list, or all.", typesOrAll),
+			"must_be_live", about("Whether every scenario the footer names must be live, not wip.", boo),
+			"read_at", about("Where the IDs that exist are read: at the commit being checked, or in the working tree.", enum("commit", "worktree")),
+		))),
+		"path_sets", about("Named path lists; $<name> in a path list stands for one.", mapOf(strs)),
+		"scopes", about("The paths each commit type may touch, by type.", mapOf(obj(nil,
+			"only", about("The globs the commit's paths must all match.", strs),
+			"never", about("The globs no path of the commit may match.", strs),
+			"must_touch", about("The globs one path of the commit at least must match.", strs),
+		))),
+		"reject_message", about("The line a rejected commit's problems are printed under.", str),
+		"since", about("The full SHA of the commit where verification starts: verify and the range checks leave it and its ancestors out.", str),
+	)),
+	"tests", about("The kinds of named tests, by name, each behind an adapter.", mapOf(obj(nil,
+		"adapter", about("gherkin, built in, or { command } that speaks the adapter protocol.", either(str, obj([]string{"command"},
+			"command", about("The command that lists the tests (<command> list --at <tree>).", str),
+			"supports_at", about("Whether the command lists the tests of a historical tree; when not, the working tree's are read.", boo),
+		))),
+		"root", about("The folder the tests are under.", str),
+		"id", about("A regular expression every test ID matches.", str),
+		"tag_prefix", about("What a Gherkin tag line writes before an ID.", str),
+		"wip_tag", about("The tag that makes a scenario, or a file's scenarios, not live.", str),
+		"run", about("How a selection of the tests runs.", obj(nil,
+			"whole", about("The command that runs every test of the kind.", str),
+			"select", about("The command that runs a selection, {pattern} standing for it.", str),
+			"ids_pattern", about("How IDs become a pattern, {ids} standing for them joined with |.", str),
+			"join", about("How several patterns join into one: each in each's {p}, joined by sep.", obj(nil, "each", str, "sep", str)),
+		)),
+		"recognize", about("Templates that read a task check back as a selection, so CI runs it in the kind's one run.", list(obj([]string{"command", "as"}, "command", str, "as", str))),
+		"smoke", about("The smoke set: the tests every push runs.", obj(nil,
+			"file", about("The smoke set's file.", str),
+			"every_file", about("Whether every test file needs a smoke test.", boo),
+			"add_hint", about("What a missing smoke test's fix says.", str),
+		)),
+		"range_checks", about("Rules on how the tests may change between two trees: commands, or builtin: moves.", list(obj([]string{"name"},
 			"name", str,
-			"except_types", strs,
-			"staged", str,
-			"range", str,
-			"builtin", enum("moves"),
-			"allowed_renames", mapOf(str),
+			"except_types", about("The commit types the rule skips.", strs),
+			"staged", about("The command the commit-msg hook runs on the staged tree.", str),
+			"range", about("The command verify runs over a range, {from} and {to} standing for its ends.", str),
+			"builtin", about("moves: itos's rule that, outside the types excepted, live scenarios only move, unchanged.", enum("moves")),
+			"allowed_renames", about("Scenario renames builtin: moves allows, new name by ID.", mapOf(str)),
+		))),
+	))),
+	"ci", about("CI's plan: its steps, the prose shortcut, the cost patterns, what covers a check, the nightly and the range provider.", obj([]string{"steps"},
+		"env", about("Variables every step runs with.", mapOf(str)),
+		"steps", about("Every step of CI, in order.", list(step)),
+		"prose", about("A range touching only paths is prose, and runs only steps.", obj([]string{"paths", "steps"}, "paths", strs, "steps", strs)),
+		"cost", about("Which checks with no cost of their own are static.", obj(nil,
+			"static", about("Regular expressions over a command: static when one matches, else late.", strs),
+			"keep_written_order", about("Whether a task's checks keep their written order, so no static check runs before a late one above it.", boo),
+		)),
+		"covers", about("A check matching matches is not run again after the step by.", list(obj([]string{"by", "matches"}, "by", str, "matches", str))),
+		"nightly_only", about("Checks left to the nightly.", strs),
+		"nightly", about("The nightly's steps.", obj([]string{"steps"}, "steps", list(step))),
+		"wait_on_status", about("The work item statuses whose named tasks wait rather than run.", strs),
+		"stop_at_first_failure", about("Whether CI stops at its first failure, or runs every step and check.", boo),
+		"range", about("Where a push's range starts.", obj(nil,
+			"provider", about("github (the last green run), command (its stdout) or none.", provider),
+			"command", about("The command a command provider runs.", str),
+			"github", about("The GitHub provider's workflow, branch and environment.", obj(nil, "workflow", str, "branch", str, "repository_env", str, "token_env", strs)),
 		)),
 	)),
-	"ci", obj([]string{"steps"},
-		"env", mapOf(str),
-		"steps", list(step),
-		"prose", obj([]string{"paths", "steps"}, "paths", strs, "steps", strs),
-		"cost", obj(nil, "static", strs, "keep_written_order", boo),
-		"covers", list(obj([]string{"by", "matches"}, "by", str, "matches", str)),
-		"nightly_only", strs,
-		"nightly", obj([]string{"steps"}, "steps", list(step)),
-		"wait_on_status", strs,
-		"stop_at_first_failure", boo,
-		"range", obj(nil,
-			"provider", provider,
-			"command", str,
-			"github", obj(nil, "workflow", str, "branch", str, "repository_env", str, "token_env", strs),
-		),
-	),
-	"work", obj(nil,
-		"registry", str,
-		"groups_key", str,
-		"statuses", strs,
-		"people", obj([]string{"source", "file"},
+	"work", about("The work registry, its statuses, the people and the identity.", obj(nil,
+		"registry", about("The work registry's file; by default work-items.yaml beside the ledger's files.", str),
+		"groups_key", about("The registry's key whose entries name each group's owner.", str),
+		"statuses", about("The statuses a work item may have.", strs),
+		"people", about("Who may own work: the source and the file it reads.", obj([]string{"source", "file"},
 			"source", enum("all-contributors-md", "all-contributorsrc", "yaml"),
 			"file", str,
-			"login_from", str,
-		),
-		"identity", obj(nil, "provider", provider, "command", str, "hint", str),
-	),
-	"hooks", obj(nil,
-		"manager", enum(HookManagers...),
-		"bin", str,
-		"pre_push", obj([]string{"per_base", "whole"}, "per_base", str, "whole", str),
-		"commit_msg", obj(nil, "task_checks", boo, "check_timeout", num),
-	),
-)
+			"login_from", about("The link a login is read out of, {login} standing for it (all-contributors-md).", str),
+		)),
+		"identity", about("Who itos works for: github (gh's account), command (its stdout) or none (only --as).", obj(nil, "provider", provider, "command", str, "hint", str)),
+	)),
+	"hooks", about("The hook manager, the binary the shims call, the pre-push commands and the commit-msg hook's task checks.", obj(nil,
+		"manager", about("The hook manager itos hooks install writes for, over the one it detects.", enum(HookManagers...)),
+		"bin", about("How the project calls itos: what the shims call.", str),
+		"pre_push", about("The pre-push hook's commands.", obj([]string{"per_base", "whole"},
+			"per_base", about("Run once per remote base the clone has, {base} standing for it.", str),
+			"whole", about("Run when there is no base.", str),
+		)),
+		"commit_msg", about("The commit-msg hook's task checks.", obj(nil,
+			"task_checks", about("Whether the hook runs the static checks of the tasks a commit names.", boo),
+			"check_timeout", about("The seconds a check may hold a commit, above 0.", num),
+		)),
+	)),
+))
+
+// Node is one value of the config's schema as data, for what describes the
+// config outside itos: tools/bin/config-schema writes the config's JSON
+// Schema from it. Kind is string, number, boolean, strings (a list of
+// strings), enum, object, map, list or either.
+type Node struct {
+	Kind        string
+	Description string
+	Enum        []string // an enum's values
+	Fields      []Field  // an object's keys, in the order the schema writes them
+	Required    []string // an object's keys it cannot lack
+	Of          *Node    // a map's values, a list's items
+	Either      []*Node  // the shapes a value may take
+}
+
+// Field is one key of an object Node.
+type Field struct {
+	Key  string
+	Node *Node
+}
+
+// Schema is the schema config check holds a file to, as data.
+func Schema() *Node { return node(schema) }
+
+func node(s *spec) *Node {
+	n := &Node{Description: s.desc}
+	switch {
+	case s.scalar != "":
+		n.Kind = s.scalar
+	case s.enum != nil:
+		n.Kind, n.Enum = "enum", s.enum
+	case s.either != nil:
+		n.Kind = "either"
+		for _, e := range s.either {
+			n.Either = append(n.Either, node(e))
+		}
+	case s.list != nil:
+		n.Kind, n.Of = "list", node(s.list)
+	case s.mapOf != nil:
+		n.Kind, n.Of = "map", node(s.mapOf)
+	default:
+		n.Kind, n.Required = "object", s.required
+		for _, f := range s.object {
+			n.Fields = append(n.Fields, Field{f.key, node(f.spec)})
+		}
+	}
+	return n
+}
 
 func wrongType(at, message, want string) out.Problem {
 	return out.Problem{Rule: "config-type", Message: message, Fix: "make " + at + " " + want}
