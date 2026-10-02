@@ -723,7 +723,7 @@ items:
     title: ci.covers, ci.nightly_only and recognize read hooks.bin as itos too
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-8]
     kind: slice
     refs: [features/bin.feature]
