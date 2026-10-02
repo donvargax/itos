@@ -397,3 +397,22 @@
     - run: node tools/bin/inbox.ts --self-test
     - run: node tools/bin/inbox.ts
       after: push # asks GitHub for the open issues; exit 0 with the trusted ones and the rest apart
+
+- id: T-058
+  type: build
+  title: v1.1.0, the config's patterns as RE2 in both implementations
+  why: >
+    The user's call (2026-10-02): release slice 24 and its fix (@bug-1,
+    p2-pattern-re2-escapes) now, so consumers are asked once to rewrite a
+    pattern RE2 cannot compile. docs/releases/v1.1.0.md was started in slice
+    24; this task finishes it, bumps the version and runs the release's
+    proofs, and the tag waits for the user's review of the Upgrading section.
+  done_when:
+    - run: node tools/selftest/release.ts
+      timeout: 900
+    - run: node tools/selftest/go-release.ts
+      timeout: 900
+    - run: node tools/selftest/release-notes.ts 1.1.0
+      timeout: 300
+    - run: sh -c 'd=$(mktemp -d) && gh release download v1.1.0 --dir "$d" --pattern "itos-1.1.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
+      after: push

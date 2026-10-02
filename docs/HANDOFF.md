@@ -12,15 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after v1.0.0 was released and slice 24 specified.
+Last updated 2026-10-02, after slice 24 (the config's patterns as RE2) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `9b9eb37` (CI run 37064539257), T-056's close, whose
-download check passed against the published v1.0.0; this
+`main` is green at `5c453ba` (CI run 37067546015), after slice 24; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`): since T-053 the whole corpus and every
@@ -45,19 +44,22 @@ are the five Go archives, `itos.schema.json`, `itos-1.0.0.tgz` and one
 Each release's Upgrading section is what a consumer's session updates from.
 The user moves the consumers' pins (the project template, the character
 editor) from their own repositories: don't change any other repository.
-Nothing is unreleased. Write the next release's notes as each slice lands,
+Unreleased: slice 24, whose notes are started in
+`docs/releases/v1.1.0.md` (its Upgrading step: rewrite a pattern that uses a
+lookaround or a backreference). Write the next release's notes as each slice lands,
 from its report, in `docs/releases/v<next>.md`.
 
 ## Next
 
-1. **Slice 24: `slice-24: The config's patterns are RE2 regular
-expressions, in both implementations`** (`features/patterns.feature`,
-   `@ID-PATTERN-01` and `02`, `@wip`; PLAN.md, "Pattern dialect", the user's
-   call). The TypeScript refuses lookarounds and backreferences and both name
-   RE2, in one push; `tests.<kind>.id` is checked as a pattern too. It
-   refuses configs v1.0.0's TypeScript accepted, so release it as v1.1.0 with
-   an Upgrading step (the user's note: v1.0.0 went out before this was
-   settled; docs/ORCHESTRATING.md's new lesson).
+1. **v1.1.0, now** (the user's call). Slice 24 is in: both implementations
+   refuse a pattern RE2 cannot compile with `<key> is not an RE2 regular
+expression: <pattern>`, `tests.<kind>.id` checked too. Before the
+   release, the fix `p2-pattern-re2-escapes` (`@ID-PATTERN-03`, `@bug-1`,
+   `@wip`): the TypeScript also refuses the escapes and counts RE2 refuses
+   (`\cA`, `\e`, `[\b]`, `a{1001}`, `[]`, `[^]`), so consumers are asked for
+   the pattern change once. Then `T-058: v1.1.0, the config's patterns as
+RE2 in both implementations`, which stops before the tag for the user's
+   review of the Upgrading section.
 2. **Phase 3, the switch** (PLAN.md, phase 3): the Go binary shadows the
    TypeScript's `ci plan --json` and `verify` in CI, any difference a
    warning, until none shows over many pushes and a nightly; then consumers

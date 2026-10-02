@@ -42,3 +42,16 @@ Feature: The config's patterns are RE2 regular expressions
     Then itos exits with code 2
     And its output says "ledger.group.pattern"
     And its output says "RE2"
+
+  # Slice 24 refused lookarounds and backreferences, but JavaScript compiles
+  # other patterns RE2 refuses (p2-pattern-re2-escapes): a repeat count above
+  # RE2's 1000, \c, letter escapes, [\b], [] and [^]. The TypeScript let them
+  # through, the Go binary refused them; folded into v1.1.0, so consumers are
+  # asked for the pattern change once.
+  @ID-PATTERN-03 @bug-1 @wip
+  Scenario: config check refuses a repeat count above RE2's limit
+    Given the config sets "ledger.group.pattern" to "\d{1,1001}"
+    When itos checks the config
+    Then itos exits with code 2
+    And its output says "ledger.group.pattern"
+    And its output says "RE2"
