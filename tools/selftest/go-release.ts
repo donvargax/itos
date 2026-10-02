@@ -1,6 +1,7 @@
 // The Go release, built as the release workflow will build it, works: the
-// archives and checksums.txt `node tools/bin/build-go.ts --release` writes are
-// what a consumer's pinned install script downloads (PLAN.md §10), so they are
+// archives, the config's JSON Schema and checksums.txt
+// `node tools/bin/build-go.ts --release` writes are what the release publishes
+// and a consumer's pinned install script downloads (PLAN.md §10), so they are
 // proven before the first Go release ever publishes them.
 //
 //   node tools/selftest/go-release.ts
@@ -10,11 +11,15 @@
 // own tools, not the code that wrote it:
 //
 //   - the folder holds one archive per platform of PLATFORMS below, named as
-//     the release names them, and checksums.txt, and nothing else;
+//     the release names them, itos.schema.json and checksums.txt, and nothing
+//     else;
 //   - every archive lists exactly its binary (itos, or itos.exe), LICENSE and
 //     README.md (`tar -tzf`, `unzip -Z1`), and its binary is an executable of
 //     its platform's format and architecture;
-//   - checksums.txt names every archive once and passes `sha256sum -c`;
+//   - itos.schema.json is JSON (tools/selftest/go-schema.ts proves what it
+//     says);
+//   - checksums.txt names every archive and the schema once and passes
+//     `sha256sum -c`;
 //   - this machine's archive, unpacked with tar, says `itos <package.json's
 //     version>` for `itos version`.
 //
@@ -39,6 +44,8 @@ const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"))
 const archiveOf = (platform: string) =>
 	`itos-${version}-${platform}.${platform.startsWith("windows") ? "zip" : "tar.gz"}`;
 const binaryOf = (platform: string) => (platform.startsWith("windows") ? "itos.exe" : "itos");
+// The config's JSON Schema, beside the archives.
+const SCHEMA = "itos.schema.json";
 
 const scratch = mkdtempSync(join(tmpdir(), "go-release-"));
 const out = join(scratch, "release");
@@ -93,13 +100,14 @@ function proveArchive(platform: string) {
 		failures.push(`${archiveOf(platform)}'s binary is built for ${built ?? "no known platform"}`);
 }
 
-// checksums.txt names every archive once, and sha256sum agrees with it.
-function proveChecksums(archives: string[]) {
+// checksums.txt names every archive and the schema once, and sha256sum
+// agrees with it.
+function proveChecksums(named: string[]) {
 	const sums = join(out, "checksums.txt");
 	if (!existsSync(sums)) return void failures.push("the release has no checksums.txt");
-	const named = lines(readFileSync(sums)).map((line) => line.split(/\s+\*?/)[1]);
-	if (named.sort().join() !== [...archives].sort().join())
-		failures.push(`checksums.txt names ${named.join(", ")}, not ${archives.join(", ")}`);
+	const listed = lines(readFileSync(sums)).map((line) => line.split(/\s+\*?/)[1]);
+	if (listed.sort().join() !== [...named].sort().join())
+		failures.push(`checksums.txt names ${listed.join(", ")}, not ${named.join(", ")}`);
 	run(["sha256sum", "-c", "checksums.txt"], out);
 }
 
@@ -133,12 +141,19 @@ try {
 	if (build.status !== 0) failures.push(`the release build (exit ${build.status ?? build.signal})`);
 	const archives = PLATFORMS.map(archiveOf);
 	const held = existsSync(out) ? readdirSync(out).sort() : [];
-	const expected = [...archives, "checksums.txt"].sort();
+	const expected = [...archives, SCHEMA, "checksums.txt"].sort();
 	if (held.length === 0) failures.push("the release build wrote nothing");
 	else if (held.join() !== expected.join())
 		failures.push(`the release holds ${held.join(", ")}, not ${expected.join(", ")}`);
 	for (const platform of PLATFORMS) if (held.includes(archiveOf(platform))) proveArchive(platform);
-	if (held.length) proveChecksums(archives);
+	if (held.includes(SCHEMA)) {
+		try {
+			JSON.parse(readFileSync(join(out, SCHEMA), "utf8"));
+		} catch (error) {
+			failures.push(`${SCHEMA} is not JSON: ${(error as Error).message}`);
+		}
+	}
+	if (held.length) proveChecksums([...archives, SCHEMA]);
 	if (held.length) proveNative();
 } finally {
 	rmSync(scratch, { recursive: true, force: true });
@@ -150,5 +165,5 @@ if (failures.length) {
 }
 console.log(
 	`\ngo release: ${PLATFORMS.length} archives of itos ${version}, each holding its binary, ` +
-		"LICENSE and README.md, pass sha256sum -c, and this machine's says its version",
+		`LICENSE and README.md, and ${SCHEMA} pass sha256sum -c, and this machine's says its version`,
 );

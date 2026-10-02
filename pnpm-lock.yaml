@@ -200,6 +200,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 'catalog:'
         version: 4.1.11(@vitest/browser@4.1.11)(vitest@4.1.11)
+      ajv:
+        specifier: 8.20.0
+        version: 8.20.0
       fallow:
         specifier: 3.25.0
         version: 3.25.0

@@ -27,6 +27,7 @@
 		"@commitlint/types": "21.2.0",
 		"@types/node": "^24.13.4",
 		"@vitest/coverage-v8": "catalog:",
+		"ajv": "8.20.0",
 		"fallow": "3.25.0",
 		"git-cliff": "2.14.2",
 		"typescript": "~6.0.2",

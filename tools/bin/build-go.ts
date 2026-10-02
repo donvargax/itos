@@ -16,11 +16,16 @@
 //   node tools/bin/build-go.ts --release <out dir>
 //
 // runs that same build once per platform a release publishes (PLAN.md §10)
-// and writes into <out dir> one archive per platform and checksums.txt, then
-// prints their paths. An archive is itos-<version>-<os>-<arch>.tar.gz, or .zip
-// for windows, holding at its top level the binary (itos, or itos.exe), LICENSE
-// and README.md; checksums.txt is each archive's SHA-256 in sha256sum's format,
-// so `sha256sum -c checksums.txt` checks them all. The archives are written
+// and writes into <out dir> one archive per platform, the config's JSON Schema
+// and checksums.txt, then prints their paths. An archive is
+// itos-<version>-<os>-<arch>.tar.gz, or .zip for windows, holding at its top
+// level the binary (itos, or itos.exe), LICENSE and README.md. The schema is
+// itos.schema.json, written by tools/bin/config-schema from the Go config's
+// table, so an editor can check an itos.yaml against the release's
+// (`# yaml-language-server: $schema=<its URL>`). checksums.txt is the SHA-256
+// of each archive and of the schema in sha256sum's format, so
+// `sha256sum -c checksums.txt` checks them all; it and the files it names are
+// what the release publishes. The archives are written
 // here, with Node's zlib, not by a tar or zip on the machine: the same bytes on
 // every machine, the binary executable once unpacked, and no tool a runner
 // might lack. Every entry's timestamp is HEAD's commit time, so a commit
@@ -180,12 +185,30 @@ const u32 = (value: number) => {
 	return bytes;
 };
 
+// The config's JSON Schema, as the release publishes it.
+export const SCHEMA = "itos.schema.json";
+
+// Writes the config's JSON Schema to `path`, generated from the Go config's
+// table by tools/bin/config-schema, and returns the path. Throws when the
+// generator fails, its output printed.
+export function buildSchema(path: string): string {
+	const out = resolve(path);
+	mkdirSync(resolve(out, ".."), { recursive: true });
+	const args = ["run", "./tools/bin/config-schema", out];
+	const result = spawnSync("go", args, { cwd: ROOT, stdio: "inherit" });
+	if (result.status !== 0)
+		throw new Error(`go ${args.join(" ")} failed (exit ${result.status ?? result.signal})`);
+	return out;
+}
+
+const sha256 = (data: Buffer) => createHash("sha256").update(data).digest("hex");
+
 // The archive's name, as the release publishes it.
 const archiveName = ({ goos, goarch }: Target) =>
 	`itos-${VERSION}-${goos}-${goarch}.${goos === "windows" ? "zip" : "tar.gz"}`;
 
-// Builds every platform's archive and checksums.txt into `dir`, and returns
-// their paths, checksums.txt last.
+// Builds every platform's archive, the schema and checksums.txt into `dir`,
+// and returns their paths, checksums.txt last.
 export function buildRelease(dir: string): string[] {
 	const out = resolve(dir);
 	mkdirSync(out, { recursive: true });
@@ -206,12 +229,15 @@ export function buildRelease(dir: string): string[] {
 			const archive = target.goos === "windows" ? zip(entries, mtime) : tarGz(entries, mtime);
 			const name = archiveName(target);
 			writeFileSync(join(out, name), archive);
-			sums.push(`${createHash("sha256").update(archive).digest("hex")}  ${name}\n`);
+			sums.push(`${sha256(archive)}  ${name}\n`);
 			paths.push(join(out, name));
 		}
 	} finally {
 		rmSync(stage, { recursive: true, force: true });
 	}
+	const schema = buildSchema(join(out, SCHEMA));
+	sums.push(`${sha256(readFileSync(schema))}  ${SCHEMA}\n`);
+	paths.push(schema);
 	writeFileSync(join(out, "checksums.txt"), sums.join(""));
 	return [...paths, join(out, "checksums.txt")];
 }
