@@ -1581,7 +1581,7 @@ items:
     title: The Go named tests, tests list and tests smoke
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-045]
     kind: task
     refs: [tasks/phase-2.yaml]

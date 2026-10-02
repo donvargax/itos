@@ -226,7 +226,8 @@ The Go build of itos lands beside the TypeScript one command group at a time
   lists, each holding what the groups ported so far need: `internal/ledger`
   (the layout, the files, every task and check problem, and the tasks and
   checks typed, and the task IDs at a tree), `internal/tests` (the Gherkin
-  adapter and the command adapter at a tree, the smoke set and its rule),
+  adapter and the command adapter at a tree, the smoke set and its rule,
+  the run templates; below),
   `internal/message` (below), `internal/providers` (the people),
   `internal/work` (the registry and its problems, and the items' statuses),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
@@ -348,6 +349,28 @@ signal` (`shell.Result.Status`); `supports_at: false` warns once a run on
 check-paths` (`internal/cli/commit.go`) is a call to them, and the
   commit-msg hook and `verify` call them on a commit's paths without going
   through the command line.
+- **The named tests** are `internal/tests` and `internal/cli/tests.go`
+  (`tests.ts`, `smoke.ts`, `smoke-rule.ts` and `tests-command.ts`).
+  `ListTests` is the adapter's listing at a tree, and `ListTestsUnder` the
+  same with `tests smoke check --features <dir>` standing in for a Gherkin
+  kind's root; a command adapter's `List` keeps its object as printed in
+  `Raw`, which `tests list --json` prints key for key, extra keys included,
+  as the TypeScript prints the parsed object (`out.Emit` gives a key written
+  twice its first place and its last value, as `{ schema: 1, ...value }`
+  does). `CommandFor(cfg, kind, selections)` is `commandFor`, the one
+  function that turns `Selection`s (`Whole()`, `IDs(…)`, `Pattern(p)`) into
+  one command through the kind's run templates: `whole` if any selection is
+  whole, else a pattern per IDs selection by `ids_pattern` (its `{ids}` the
+  bare IDs, deduplicated, joined by `|`), the patterns deduplicated in order
+  and, when more than one, each in `join.each`'s `{p}` joined by `join.sep`,
+  the result one shell word in `select`'s `{pattern}`; each placeholder is
+  replaced once, as `String.replace` does. It says false when nothing is
+  selected (an IDs selection with no IDs adds no pattern), and a template
+  the selections need and the kind lacks is a config error. `tests smoke
+run` is it over the smoke IDs, run through the config's shell with
+  itos's streams, its exit the runner's or 1 (`status ?? 1`); CI's plan
+  calls the same function for its one merged run. itos compiles none of
+  the templates' patterns: the runner reads them in its own dialect.
 - **What is not ported yet** fails loudly: every command takes its arguments
   as the TypeScript does, so a usage error reads the same in both, and then a
   command whose group has not landed exits 3, the missing environment's code,
