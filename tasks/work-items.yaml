@@ -1568,6 +1568,33 @@ items:
     kind: task
     refs: [tasks/phase-2.yaml]
 
+  - id: T-045
+    title: The Go footers and commit check-message
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-043, T-044]
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
+  - id: T-046
+    title: The Go named tests, tests list and tests smoke
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-045]
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
+  - id: T-047
+    title: The Go verify and the built-in moves rule
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-045, T-046]
+    kind: task
+    refs: [tasks/phase-2.yaml]
+
   - id: p2-config-json-schema
     title: The config's JSON Schema, published with each Go release
     phase: 2
@@ -1654,7 +1681,7 @@ items:
     phase: 2
     owner: donvargax
     status: todo
-    depends_on: [T-043, T-044]
+    depends_on: [T-047]
     kind: idea
     why: >
       PLAN.md, phase 2, steps 2 to 9: the command groups after the scaffold (T-039, T-040,
@@ -1662,5 +1689,6 @@ items:
       and done when its part of the conformance corpus and its scenarios (ITOS_BIN pointed at the
       Go build) pass and join the ported set tools/selftest/go-port.ts runs on every push. The
       config group is specified (T-042, T-043, T-044, with commit check-paths brought forward from
-      step 3, as the corpus judges globs through it); this item holds steps 3 to 9 after it.
+      step 3, as the corpus judges globs through it); steps 3 and 4 are T-045, T-046 and T-047, split by corpus file;
+      this item holds steps 5 to 9 after them, with moves.yaml joining the hook group.
     refs: [PLAN.md, tasks/phase-2.yaml]

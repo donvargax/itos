@@ -131,3 +131,64 @@
       timeout: 600
     - run: node tools/selftest/go-port.ts
       timeout: 900
+
+# Steps 3 and 4 split by corpus file, since the runner selects whole files
+# and the files mix commands: moves.yaml runs the commit-msg hook in eight of
+# its cases, so it waits for the hook group; plans.yaml, ci-run.yaml and
+# range.yaml are step 5's, work.yaml step 7's, hooks.yaml step 8's.
+
+- id: T-045
+  type: refactor
+  title: The Go footers and commit check-message
+  why: >
+    PLAN.md, phase 2, step 3. One message through the footer rules, as the
+    corpus's messages.yaml records it: each rejection's wording, the tree a
+    footer's IDs are read at (the staged tree by default, the commit --at
+    names, the working tree for a commit that predates the source, or always
+    with read_at: worktree), a missing ledger folder read only for a message
+    naming a task, a command adapter's tests named in a footer, a Gherkin
+    kind's default wip tag, and the delegated header lint's report read into
+    problems with the footer rules run beside it. Reading the index and a
+    commit is p2-go-source-trees, which internal/source lacks, so this task
+    closes that item. No scenario runs check-message; the corpus judges it.
+  done_when:
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/messages.yaml'
+      timeout: 600
+    - run: node tools/selftest/go-port.ts
+      timeout: 900
+
+- id: T-046
+  type: refactor
+  title: The Go named tests, tests list and tests smoke
+  why: >
+    PLAN.md, phase 2, step 4, and §6: the adapters' listing at a tree (the
+    built-in Gherkin adapter's one definition of live, a command adapter's
+    JSON and its failures), and the smoke rule, the smoke IDs and the smoke
+    run through the kind's run templates. Corpus: tests.yaml and smoke.yaml;
+    scenarios: the three that run tests smoke check.
+  done_when:
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/tests.yaml tools/itos/conformance/smoke.yaml'
+      timeout: 600
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-CONFIG-(09|10|15)$"'
+      timeout: 600
+    - run: node tools/selftest/go-port.ts
+      timeout: 900
+
+- id: T-047
+  type: refactor
+  title: The Go verify and the built-in moves rule
+  why: >
+    PLAN.md, phase 2, steps 3 and 4: verify re-checks every non-merge commit
+    of a range after commits.since (its message with the footers at that
+    commit, its paths, the built-in moves rule against its parent), then each
+    range check once, with the summary line agents quote; tests moves runs the
+    moves rule on HEAD and the index by hand. Corpus: verify.yaml (moves.yaml
+    joins with the hook group); scenarios: the ones that run verify or tests
+    moves.
+  done_when:
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/verify.yaml'
+      timeout: 600
+    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-(SINCE-0[1238]|FOOT-04|CONFIG-04|MOVES-0[56])$"'
+      timeout: 600
+    - run: node tools/selftest/go-port.ts
+      timeout: 900
