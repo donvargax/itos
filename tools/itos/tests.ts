@@ -28,7 +28,7 @@
 // `ids_pattern`, the patterns deduplicated in order and combined by `join`),
 // and its `recognize` templates read a task check back as a selection (a
 // `{pattern}` is one shell word, quoted or bare; `as: smoke` is the smoke set).
-import { config, ConfigError, configPath } from "./config.ts";
+import { config, ConfigError, configPath, readings } from "./config.ts";
 import { gherkinList } from "./gherkin.ts";
 import { inShell } from "./shell.ts";
 
@@ -211,15 +211,18 @@ const templateRegExp = (command: string) =>
 
 // A task check read as a selection of the kind, or undefined for a check that
 // is not one of its runs (other flags, a pattern the shell would expand): that
-// check runs as it is. `smoke` is the kind's smoke set, for `as: smoke`.
+// check runs as it is. Each template is tried on each of the check's readings,
+// so one written for itos reads a check that calls hooks.bin. `smoke` is the
+// kind's smoke set, for `as: smoke`.
 export function recognize(
 	name: string,
 	command: string,
 	smoke: string[] = [],
 ): Selection | undefined {
-	const c = command.trim();
+	const forms = readings(command);
 	for (const rule of kind(name).recognize ?? []) {
-		const m = templateRegExp(rule.command).exec(c);
+		const template = templateRegExp(rule.command);
+		const m = forms.map((form) => template.exec(form)).find((match) => match !== null);
 		if (!m) continue;
 		if (rule.as === "whole") return { whole: true };
 		if (rule.as === "smoke") return { ids: smoke };

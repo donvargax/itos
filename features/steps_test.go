@@ -49,6 +49,8 @@ type scratchConfig struct {
 	stopAtFirst       *bool    // ci.stop_at_first_failure
 	nightlyTasks      string   // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
 	costStatic        []string // ci.cost.static
+	covers            []cover  // ci.covers
+	nightlyOnly       []string // ci.nightly_only
 	registry          string   // work.registry
 	taskChecks        *bool    // hooks.commit_msg.task_checks
 	checkTimeout      int      // hooks.commit_msg.check_timeout, when above 0
@@ -65,6 +67,10 @@ type scratchConfig struct {
 	proseSteps        string   // ci.prose.steps, one command
 	settings          []setting
 }
+
+// One ci.covers rule: the step that has done what a check matching the
+// pattern does.
+type cover struct{ by, matches string }
 
 // One task of the scratch ledger: its ID and its checks, each written as YAML.
 type ledgerTask struct {
@@ -179,6 +185,8 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^hooks\.manager is "([^"]*)"$`, w.hooksManagerIs)
 	sc.Step(`^hooks\.bin is "([^"]*)"$`, w.hooksBinIs)
 	sc.Step(`^ci\.cost\.static is "([^"]*)"$`, w.costStaticIs)
+	sc.Step(`^ci\.covers says the step "([^"]*)" covers "([^"]*)"$`, w.coversIs)
+	sc.Step(`^ci\.nightly_only is "([^"]*)"$`, w.nightlyOnlyIs)
 	sc.Step(`^"([^"]*)" is a script that records it ran$`, w.recordingScript)
 	sc.Step(`^the config sets "([^"]*)" to "([^"]*)"$`, w.configSets)
 
@@ -490,6 +498,18 @@ func (w *world) ciSection() string {
 		b.WriteString("  cost:\n    static:\n")
 		for _, pattern := range w.config.costStatic {
 			fmt.Fprintf(&b, "      - %q\n", pattern)
+		}
+	}
+	if len(w.config.covers) > 0 {
+		b.WriteString("  covers:\n")
+		for _, rule := range w.config.covers {
+			fmt.Fprintf(&b, "    - { by: %q, matches: %q }\n", rule.by, rule.matches)
+		}
+	}
+	if len(w.config.nightlyOnly) > 0 {
+		b.WriteString("  nightly_only:\n")
+		for _, command := range w.config.nightlyOnly {
+			fmt.Fprintf(&b, "    - %q\n", command)
 		}
 	}
 	if w.config.proseSteps != "" {
@@ -931,6 +951,16 @@ func (w *world) hooksBinIs(bin string) error {
 
 func (w *world) costStaticIs(pattern string) error {
 	w.config.costStatic = []string{pattern}
+	return w.writeConfig()
+}
+
+func (w *world) coversIs(step, pattern string) error {
+	w.config.covers = append(w.config.covers, cover{step, pattern})
+	return w.writeConfig()
+}
+
+func (w *world) nightlyOnlyIs(command string) error {
+	w.config.nightlyOnly = []string{command}
 	return w.writeConfig()
 }
 

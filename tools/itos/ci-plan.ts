@@ -54,7 +54,7 @@ import {
 } from "./ci-scope.ts";
 import { smokeIds } from "./smoke-rule.ts";
 import { loadSmoke } from "./smoke.ts";
-import { config, normal, section, type StepConfig } from "./config.ts";
+import { config, normal, readings, section, type StepConfig } from "./config.ts";
 import { type Costed, costedChecks, costOf } from "./cost.ts";
 import { type Check, loadTasks, type Task } from "./repo.ts";
 import { commandFor, recognize, type Selection } from "./tests.ts";
@@ -124,14 +124,21 @@ export interface PlanInput {
 
 // The step that has done what a check does: the same command, or one of
 // `ci.covers` (`vp test run`, whole or narrowed to paths, is a part of the
-// unit suite `vp run test:coverage` ran).
+// unit suite `vp run test:coverage` ran), its pattern tried on each of the
+// check's readings, so one written for itos covers a check that calls hooks.bin.
 function coveredBy(command: string, steps: string[]): string | undefined {
 	const c = normal(command);
 	if (steps.includes(c)) return c;
+	const forms = readings(command).map(normal);
 	return (section("ci").covers ?? []).find(
-		(rule) => new RegExp(rule.matches).test(c) && steps.includes(rule.by),
+		(rule) => steps.includes(rule.by) && forms.some((form) => new RegExp(rule.matches).test(form)),
 	)?.by;
 }
+
+// Whether a check is one `ci.nightly_only` lists, an entry written for itos
+// naming a check that calls hooks.bin too.
+const leftToNightly = (command: string) =>
+	readings(command).some((form) => nightlyOnly().includes(normal(form)));
 
 // Each task check that is a run of the kind, with its selection.
 function runsOfKind(
@@ -151,8 +158,7 @@ function markDone(checks: PlannedCheck[], steps: string[], nightly = false) {
 	for (const planned of checks) {
 		if (planned.merged || !planned.check.run) continue;
 		planned.coveredBy = coveredBy(planned.check.run, steps);
-		planned.nightly =
-			!nightly && !planned.coveredBy && nightlyOnly().includes(normal(planned.check.run));
+		planned.nightly = !nightly && !planned.coveredBy && leftToNightly(planned.check.run);
 	}
 }
 

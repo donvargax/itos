@@ -853,26 +853,37 @@ export function staticPatterns(): RegExp[] {
 // How the project calls itos: hooks.bin.
 export const itosBin = () => config().hooks.bin;
 
-// A command as the cost rule reads it: its whitespace collapsed, and, when its
-// first word is hooks.bin, that word read as `itos`. The ledger and ci.steps
-// call itos the way the project does, so a pattern written `^itos work check`
-// matches `tools/bin/itos work check` without spelling out the path. Only
-// hooks.bin itself is read so: a command under any other path is read as
-// written. (A hooks.bin of several words is read as its leading words.)
-function asItos(command: string): string {
-	const text = normal(command);
-	const bin = normal(itosBin());
-	return text === bin || text.startsWith(`${bin} `) ? `itos${text.slice(bin.length)}` : text;
+// A command as every command pattern of the config reads it: as written
+// (trimmed), and, when its first word is hooks.bin, with that word read as
+// `itos`. The ledger and ci.steps call itos the way the project does, so a
+// pattern written for itos (`^itos work check` in ci.cost.static or a
+// ci.covers rule, `itos work check` in ci.nightly_only, a
+// tests.<kind>.recognize template) matches `tools/bin/itos work check` without
+// spelling out the path. Only hooks.bin itself is read so: a command under any
+// other path has only its written reading. The rest of the command is kept as
+// written, for a template that reads a quoted word; a pattern over the
+// collapsed command collapses each reading (normal). A hooks.bin of several
+// words is read as its leading words. Each pattern is tried on every reading,
+// so one that names hooks.bin's path keeps matching: the reading only ever
+// adds a match. It is for matching alone; the command runs as written.
+export function readings(command: string): string[] {
+	const written = command.trim();
+	const bin = normal(itosBin()).split(" ");
+	const words = written.split(/\s+/);
+	if (!bin.every((word, i) => word !== "" && words[i] === word)) return [written];
+	const rest = written.replace(new RegExp(`^${bin.map(escapeRegExp).join("\\s+")}`), "");
+	const asItos = `itos${rest}`;
+	return asItos === written ? [written] : [written, asItos];
 }
 
-// Whether a command is static by the patterns. Each pattern is tried on the
-// command as written and as the cost rule reads it, so a pattern that names
-// hooks.bin's path keeps matching: reading hooks.bin as itos only ever makes a
-// command static, never late. The rewrite is for matching alone; the command
-// runs as written. CI's plan, the commit-msg hook and config check's order
-// rule all come here.
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// Whether a command is static by the patterns, over each of its readings with
+// its whitespace collapsed: reading hooks.bin as itos only ever makes a
+// command static, never late. CI's plan, the commit-msg hook and config
+// check's order rule all come here.
 export function matchesStatic(command: string): boolean {
-	const forms = [normal(command), asItos(command)];
+	const forms = readings(command).map(normal);
 	return staticPatterns().some((rule) => forms.some((form) => rule.test(form)));
 }
 

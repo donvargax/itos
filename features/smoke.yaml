@@ -16,6 +16,10 @@
 # features/, `more` saying why the file has more than one (required when it
 # does), and each scenario's `id` and `why`. Quote a value holding `: `, and
 # every ID (its `@` starts no plain scalar).
+- file: bin.feature
+  scenarios:
+    - id: "@ID-BIN-01"
+      why: a ci.covers pattern written for itos covering a check that calls hooks.bin, the reading every pattern shares
 - file: ci.feature
   scenarios:
     - id: "@ID-CI-01"
