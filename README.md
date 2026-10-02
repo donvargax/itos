@@ -93,7 +93,7 @@ against its hash, then add its URL as a dependency, so `package.json` pins the
 URL and the lockfile the tarball's integrity:
 
 ```sh
-version=1.0.0
+version=1.1.0
 url="https://github.com/donvargax/itos/releases/download/v$version/itos-$version.tgz"
 curl -fsSLO "$url"
 echo "<the hash in the release's checksums.txt>  itos-$version.tgz" | sha256sum -c -
@@ -109,7 +109,7 @@ from its package manager's install step and in CI
 (`docs/releases/v1.0.0.md`, Upgrading, has one for every platform):
 
 ```sh
-version=1.0.0 platform=linux-amd64   # or linux-arm64, darwin-amd64, darwin-arm64
+version=1.1.0 platform=linux-amd64   # or linux-arm64, darwin-amd64, darwin-arm64
 archive="itos-$version-$platform.tar.gz"
 curl -fsSLO "https://github.com/donvargax/itos/releases/download/v$version/$archive"
 echo "<the hash in the release's checksums.txt>  $archive" | sha256sum -c -
@@ -127,7 +127,7 @@ description and default, once the file's first line names the schema of the
 release the project pins:
 
 ```yaml
-# yaml-language-server: $schema=https://github.com/donvargax/itos/releases/download/v1.0.0/itos.schema.json
+# yaml-language-server: $schema=https://github.com/donvargax/itos/releases/download/v1.1.0/itos.schema.json
 ```
 
 `itos config check` stays the judge: the schema says less than it, never
