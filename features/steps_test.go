@@ -24,7 +24,8 @@ import (
 type world struct {
 	root          string // the itos checkout: where go.mod is
 	bin           string // the itos binary under test
-	dir           string // the scratch repository
+	dir           string // the scratch repository, or the clone of it itos runs in
+	origin        string // the scratch repository a clone was made of, if one was
 	support       string // files the scenario needs outside the repository
 	config        scratchConfig
 	commits       []string          // the scratch repository's commits, oldest first
@@ -79,6 +80,9 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.After(func(ctx context.Context, _ *godog.Scenario, err error) (context.Context, error) {
 		os.RemoveAll(w.dir)
 		os.RemoveAll(w.support)
+		if w.origin != "" {
+			os.RemoveAll(w.origin)
+		}
 		return ctx, err
 	})
 
@@ -95,6 +99,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the header lint is commitlint's conventional config$`, w.conventionalHeaderLint)
 	sc.Step(`^commits\.since names the first commit$`, w.sinceFirstCommit)
 	sc.Step(`^commits\.since is "([^"]*)"$`, w.sinceIs)
+	sc.Step(`^itos runs in a clone of the repository one commit deep$`, w.shallowClone)
 	sc.Step(`^a range check that records where its range starts$`, w.recordingRangeCheck)
 	sc.Step(`^the config's shell is the recording shell$`, w.recordingShell)
 	sc.Step(`^the task "([^"]*)" has the check "([^"]*)"$`, w.taskHasCheck)
@@ -610,6 +615,60 @@ func (w *world) sinceFirstCommit() error {
 func (w *world) sinceIs(value string) error {
 	w.config.since = value
 	return w.writeConfig()
+}
+
+// A clone of the scratch repository one commit deep, as actions/checkout
+// makes by default, with the files the repository has not committed (its
+// config among them) laid into it: only its history is shorter. itos and every
+// later step run in the clone. A plain path clone ignores --depth, so the
+// clone is of a file:// URL.
+func (w *world) shallowClone() error {
+	clone, err := os.MkdirTemp("", "itos-features-clone-")
+	if err != nil {
+		return err
+	}
+	if err := w.git("clone", "-q", "--depth", "1", "file://"+w.dir, clone); err != nil {
+		os.RemoveAll(clone)
+		return err
+	}
+	cmd := exec.Command("git", "ls-files", "-z", "--modified", "--others", "--exclude-standard")
+	cmd.Dir = w.dir
+	cmd.Env = w.env()
+	out, err := cmd.Output()
+	if err != nil {
+		os.RemoveAll(clone)
+		return fmt.Errorf("git ls-files: %w", err)
+	}
+	for _, path := range strings.Split(strings.TrimRight(string(out), "\x00"), "\x00") {
+		if path == "" {
+			continue
+		}
+		if err := layFile(filepath.Join(w.dir, path), filepath.Join(clone, path)); err != nil {
+			os.RemoveAll(clone)
+			return err
+		}
+	}
+	w.origin, w.dir = w.dir, clone
+	return nil
+}
+
+// The file at from, its mode kept, written at to; to removed when from is.
+func layFile(from, to string) error {
+	info, err := os.Stat(from)
+	if errors.Is(err, os.ErrNotExist) {
+		return os.RemoveAll(to)
+	}
+	if err != nil {
+		return err
+	}
+	text, err := os.ReadFile(from)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(to), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(to, text, info.Mode().Perm())
 }
 
 func (w *world) recordingRangeCheck() error {

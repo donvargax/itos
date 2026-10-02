@@ -58,7 +58,7 @@ Feature: Verification starts at commits.since
   # checkout lacked the commit commits.since names though the repository has
   # it. The clone is made after the config is written, with the config laid
   # into it: only its history is shorter.
-  @ID-SINCE-07 @slice-17 @wip
+  @ID-SINCE-07 @slice-17
   Scenario: In a shallow clone, config check says the commits.since it cannot find may be outside the clone
     Given commits.since names the first commit
     And itos runs in a clone of the repository one commit deep
@@ -67,7 +67,7 @@ Feature: Verification starts at commits.since
     And its output says "shallow"
     And its output says "git fetch --unshallow"
 
-  @ID-SINCE-08 @slice-17 @wip
+  @ID-SINCE-08 @slice-17
   Scenario: In a shallow clone, verify says the commits.since it cannot find may be outside the clone
     Given commits.since names the first commit
     And itos runs in a clone of the repository one commit deep

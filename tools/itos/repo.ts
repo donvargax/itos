@@ -90,16 +90,35 @@ export const since = (): string | undefined => config().commits?.since;
 
 // Whether the repository has the commit commits.since names, as a problem
 // when it does not (a typo, a commit of another repository, a shallow clone).
+// A shallow clone (actions/checkout's default, one commit deep) lacks the
+// commit though the repository has it, so there the problem says so and how
+// to fetch the history.
 export function sinceIssue(): Problem | undefined {
 	const sha = since();
 	if (!sha) return undefined;
 	const found = spawnSync("git", ["cat-file", "-e", `${sha}^{commit}`], { stdio: "ignore" });
 	if (found.status === 0) return undefined;
+	if (shallow())
+		return problem(
+			"config-since-commit",
+			`commits.since names ${sha}, which this clone does not have: the clone is shallow, and the commit may lie beyond its history. Fetch the whole history with git fetch --unshallow, or with fetch-depth: 0 for actions/checkout`,
+			"run git fetch --unshallow, or give actions/checkout fetch-depth: 0",
+		);
 	return problem(
 		"config-since-commit",
 		`commits.since names ${sha}, which is not a commit of this repository`,
 		"set commits.since to the full SHA of a commit this repository has, or fetch its history",
 	);
+}
+
+// Whether the repository is a shallow clone: its history stops short of
+// commits the repository it was cloned from has.
+function shallow(): boolean {
+	try {
+		return git("rev-parse", "--is-shallow-repository").trim() === "true";
+	} catch {
+		return false;
+	}
 }
 
 // A range's commits as `git rev-list` takes them: `from..to`, or everything up

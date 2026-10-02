@@ -290,3 +290,24 @@ cases:
     exit: 2
     stderr: |
       FAIL commits.since names 0123456789abcdef0123456789abcdef01234567, which is not a commit of this repository
+  # actions/checkout clones one commit deep by default: the clone lacks the
+  # commit commits.since names, though the repository it was cloned from has it.
+  - name: commits.since beyond a shallow clone's history
+    argv: [verify, "", HEAD, --config, since.yaml]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+        label: first
+      - commit: "docs: write the readme"
+        files: { README.md: "scratch, written\n" }
+      - run: "git clone -q --depth 1 'file://{{dir}}' shallow"
+    cwd: shallow
+    files:
+      shallow/since.yaml: |
+        version: 1
+        commits:
+          types: [docs]
+          since: "{{sha.first}}"
+    exit: 2
+    stderr: |
+      FAIL commits.since names {{sha.first}}, which this clone does not have: the clone is shallow, and the commit may lie beyond its history. Fetch the whole history with git fetch --unshallow, or with fetch-depth: 0 for actions/checkout
