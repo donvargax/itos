@@ -49,8 +49,12 @@
     features, which doubles every new feature. tools/itos/*.ts (but the
     conformance runner and its fixtures), tools/bin/pack.ts, the Vitest
     unit tests of the implementation, the CI steps that run the corpus and
-    the features against the TypeScript, and the TypeScript from
-    commits.path_sets.implementation go; go-port.ts's whole-suite run
+    the features against the TypeScript (the corpus step's --bin
+    tools/bin/itos-ts, and tools/bin/itos-ts itself, which T-060 left as the
+    TypeScript's one entry), and the TypeScript from
+    commits.path_sets.implementation go; the features' default ITOS_BIN
+    (features/steps_test.go) goes back from tools/bin/itos-ts to
+    tools/bin/itos, the Go binary; go-port.ts's whole-suite run
     against the Go build is the corpus's and the features' run. Node stays
     as this repository's dev tooling (vp, the corpus runner, the self-tests),
     never a runtime for a consumer. No release: v2.0.0 (T-061) publishes it.
