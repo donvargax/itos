@@ -1792,7 +1792,7 @@ items:
     title: The TypeScript refuses every escape and class RE2 cannot compile, not only backreferences
     phase: 2
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-24]
     kind: slice
     why: >
