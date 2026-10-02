@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/donvargax/itos/internal/source"
 	"github.com/donvargax/itos/internal/value"
 )
 
@@ -108,21 +109,39 @@ func featureFiles(dir string) []string {
 	return files
 }
 
-// gherkinList is the adapter protocol's list of the working tree's
-// scenarios.
-func gherkinList(o Options) (List, error) {
+// featureTexts are the feature files under a folder as path to text, paths
+// as git gives them: from the working tree's file system, the index or a
+// commit. A tree that cannot be read has none.
+func featureTexts(tree, root string) (map[string]string, error) {
+	if tree != "worktree" {
+		return source.Texts(tree, root, func(p string) bool { return strings.HasSuffix(p, ".feature") }), nil
+	}
 	texts := map[string]string{}
-	files := []string{}
-	for _, path := range featureFiles(o.Root) {
+	for _, path := range featureFiles(root) {
 		text, err := os.ReadFile(path)
 		if err != nil {
-			return List{}, err
+			return nil, err
 		}
+		texts[path] = string(text)
+	}
+	return texts, nil
+}
+
+// gherkinList is the adapter protocol's list of a tree's scenarios.
+func gherkinList(o Options, at string) (List, error) {
+	byPath, err := featureTexts(at, o.Root)
+	if err != nil {
+		return List{}, err
+	}
+	texts := map[string]string{}
+	files := []string{}
+	for path, text := range byPath {
 		rel, err := filepath.Rel(o.Root, path)
 		if err != nil {
 			return List{}, err
 		}
-		texts[rel] = string(text)
+		rel = filepath.ToSlash(rel)
+		texts[rel] = text
 		files = append(files, rel)
 	}
 	sort.Strings(files)

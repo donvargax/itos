@@ -43,9 +43,6 @@ func smokeFindings(cfg *config.Loaded) ([]Found, []string, error) {
 		if err == nil {
 			own, err = tests.SmokeIssues(cfg, name, smoke)
 		}
-		if errors.Is(err, tests.ErrCommandAdapter) {
-			return nil, nil, NotPorted{"tests." + name + "'s command adapter"}
-		}
 		if err != nil {
 			found = append(found, Found{out.Problem{Rule: "smoke-unreadable", Message: err.Error(), Fix: "correct " + file}, "smoke"})
 			continue

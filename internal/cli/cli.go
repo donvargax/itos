@@ -20,6 +20,7 @@ import (
 
 	"github.com/donvargax/itos/internal/config"
 	"github.com/donvargax/itos/internal/out"
+	"github.com/donvargax/itos/internal/tests"
 )
 
 // Globals are the global flags, read out of the arguments up to a "--".
@@ -171,6 +172,7 @@ func applyGlobals(g Globals) error {
 func Main(args []string, stdout, stderr io.Writer) int {
 	g := ParseGlobals(args)
 	o := Out{JSON: g.JSON, Quiet: g.Quiet, Stdout: stdout, Stderr: stderr}
+	tests.Warnings = stderr
 	if err := applyGlobals(g); err != nil {
 		return failure(err, o)
 	}

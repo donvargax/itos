@@ -55,8 +55,9 @@ type File struct {
 // Files are the ledger's files in its folder, sorted, with their group. A
 // project may configure a ledger before it makes the folder: the folder
 // missing is one config error naming it (exit 2, a folder the config names
-// that cannot be read), in every command that reads the ledger. A folder that
-// is there and cannot be listed keeps its own error.
+// that cannot be read), in every command that reads the ledger, at whatever
+// tree the source reads. A working tree's folder that is there and cannot be
+// listed keeps its own error.
 func Files(cfg *config.Loaded) ([]File, error) {
 	layout, err := LayoutOf(cfg)
 	if err != nil {
@@ -64,7 +65,7 @@ func Files(cfg *config.Loaded) ([]File, error) {
 	}
 	names, err := source.List(layout.Dir)
 	if err != nil {
-		if source.Has(layout.Dir) {
+		if source.Current().Tree() == "worktree" && source.Has(layout.Dir) {
 			return nil, err
 		}
 		return nil, &config.Error{File: config.Path(), Problems: []out.Problem{{

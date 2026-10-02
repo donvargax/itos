@@ -12,6 +12,7 @@ import (
 	"errors"
 	"io"
 	"os/exec"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -44,6 +45,31 @@ type Result struct {
 	Code     int
 	TimedOut bool
 	Err      error
+	// Signal is the signal that stopped it, 0 when none did.
+	Signal syscall.Signal
+}
+
+// signals are the names Node gives the signals a command most often dies of.
+var signals = map[syscall.Signal]string{
+	syscall.SIGHUP: "SIGHUP", syscall.SIGINT: "SIGINT", syscall.SIGQUIT: "SIGQUIT",
+	syscall.SIGILL: "SIGILL", syscall.SIGTRAP: "SIGTRAP", syscall.SIGABRT: "SIGABRT",
+	syscall.SIGBUS: "SIGBUS", syscall.SIGFPE: "SIGFPE", syscall.SIGKILL: "SIGKILL",
+	syscall.SIGSEGV: "SIGSEGV", syscall.SIGPIPE: "SIGPIPE", syscall.SIGALRM: "SIGALRM",
+	syscall.SIGTERM: "SIGTERM",
+}
+
+// Status is how the command ended as spawnSync's `status ?? signal` writes
+// it: its exit code, else the signal's name, else null (it never started).
+func (r Result) Status() string {
+	switch {
+	case r.Code >= 0:
+		return strconv.Itoa(r.Code)
+	case r.Signal != 0 && signals[r.Signal] != "":
+		return signals[r.Signal]
+	case r.Signal != 0:
+		return r.Signal.String()
+	}
+	return "null"
 }
 
 // OK is whether the command exited 0: spawnSync's status 0, which a command
@@ -88,7 +114,11 @@ func Run(cfg *config.Loaded, command string, o Options) Result {
 	case err == nil:
 		return Result{Code: 0}
 	case errors.As(err, &exit):
-		return Result{Code: exit.ExitCode(), TimedOut: timedOut}
+		r := Result{Code: exit.ExitCode(), TimedOut: timedOut}
+		if ws, ok := exit.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
+			r.Signal = ws.Signal()
+		}
+		return r
 	case cmd.ProcessState != nil:
 		// It ran and exited, and Wait still failed: it trapped the timeout's
 		// SIGTERM and exited 0 (Wait gives the context's error), or left a

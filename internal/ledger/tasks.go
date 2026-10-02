@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"fmt"
+	"path"
 
 	"github.com/donvargax/itos/internal/config"
 	"github.com/donvargax/itos/internal/source"
@@ -145,4 +146,40 @@ func checkOf(raw any) (Check, bool) {
 	}
 	check.Prose = value.Prop(raw, "prose") == true
 	return check, check.Run != nil || check.Fails != nil
+}
+
+// IDs are the ledger's task IDs (repo.ts's ledgerIds): the working tree's
+// tasks when tree is "", else the ledger files a tree git holds, "index" or a
+// commit, as a kind's tests are read at a tree. There a file that cannot be
+// parsed gives none, and a tree that cannot be read has none.
+func IDs(cfg *config.Loaded, tree string) (map[string]bool, error) {
+	ids := map[string]bool{}
+	if tree == "" {
+		tasks, err := Tasks(cfg)
+		if err != nil {
+			return nil, err
+		}
+		for _, t := range tasks {
+			ids[t.ID] = true
+		}
+		return ids, nil
+	}
+	layout, err := LayoutOf(cfg)
+	if err != nil {
+		return nil, err
+	}
+	keep := func(p string) bool { return path.Dir(p) == layout.Dir && layout.File.MatchString(path.Base(p)) }
+	for _, text := range source.Texts(tree, layout.Dir, keep) {
+		tasks, err := value.Parse(text)
+		list, ok := tasks.([]any)
+		if err != nil || !ok {
+			continue
+		}
+		for _, task := range list {
+			if id, ok := value.Prop(task, "id").(string); ok {
+				ids[id] = true
+			}
+		}
+	}
+	return ids, nil
 }

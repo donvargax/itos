@@ -157,7 +157,7 @@ func SmokeIDs(k config.Kind, smoke []SmokeFile) []string {
 // the kind's root, in the order the adapter lists the files; a file with no
 // live test is there with none.
 func liveScenarios(cfg *config.Loaded, name string) ([]string, map[string]map[string]bool, error) {
-	list, err := ListTests(cfg, name)
+	list, err := ListTests(cfg, name, source.Current().Tree())
 	if err != nil {
 		return nil, nil, err
 	}

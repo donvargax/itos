@@ -79,10 +79,15 @@ func commit(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	switch sub {
 	case "check-message":
-		if _, ok := first(positional(rest, "--at")); !ok && !slices.Contains(rest, "-") {
+		file, ok := first(positional(rest, "--at"))
+		if !ok && !slices.Contains(rest, "-") {
 			return 0, usage("commit check-message needs <file|->")
 		}
-		return notPorted("commit check-message")
+		if !ok {
+			file = "-"
+		}
+		at, _ := flagValue(rest, "--at")
+		return checkMessage(file, at, o)
 	case "check-paths":
 		typ, ok := flagValue(rest, "--type")
 		if !ok {
