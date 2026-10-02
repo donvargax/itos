@@ -53,8 +53,6 @@ func TestNotPortedFailsLoudly(t *testing.T) {
 		{"hook", "pre-push"},
 		{"hooks", "install", "--manager", "git"},
 		{"config", "check"},
-		{"--help"},
-		{},
 	} {
 		code, stdout, stderr := run(args...)
 		path := strings.Join(args, " ")
@@ -79,6 +77,30 @@ func TestUsageErrors(t *testing.T) {
 		code, _, stderr := run(strings.Fields(args)...)
 		if code != ExitUsage || stderr != "itos: "+want+" (itos --help)\n" {
 			t.Errorf("itos %s: exit %d, stderr %q", args, code, stderr)
+		}
+	}
+}
+
+// The help is the longest command path it knows, whatever else the
+// arguments hold; a bare itos prints itos's own and exits 2.
+func TestHelp(t *testing.T) {
+	for _, c := range []struct {
+		args []string
+		code int
+		want string
+	}{
+		{nil, ExitUsage, mainHelp},
+		{[]string{"--help"}, 0, mainHelp},
+		{[]string{"bogus", "--help"}, 0, mainHelp},
+		{[]string{"help", "ci", "plan"}, 0, helpTexts["ci plan"]},
+		{[]string{"verify", "-h"}, 0, helpTexts["verify"]},
+		{[]string{"tests", "smoke", "check", "scenario", "--help"}, 0, helpTexts["tests smoke"]},
+		{[]string{"task", "T-007", "--help"}, 0, helpTexts["task"]},
+		{[]string{"--json", "commit", "--help"}, 0, helpTexts["commit"]},
+	} {
+		code, stdout, stderr := run(c.args...)
+		if code != c.code || stdout != c.want+"\n" || stderr != "" {
+			t.Errorf("itos %s: exit %d, stdout %q, stderr %q", strings.Join(c.args, " "), code, stdout, stderr)
 		}
 	}
 }

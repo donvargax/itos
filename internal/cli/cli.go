@@ -178,9 +178,9 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	if len(g.Rest) > 0 {
 		name, rest = g.Rest[0], g.Rest[1:]
 	}
-	// `itos`, `itos help …` and any --help: the help texts are not ported yet.
+	// `itos`, `itos help …` and any --help print the help, before any config.
 	if g.Help || name == "" || name == "help" {
-		return failure(NotPorted{"help"}, o)
+		return help(g, o)
 	}
 	command, ok := commands[name]
 	if !ok {
