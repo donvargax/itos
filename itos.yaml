@@ -2,10 +2,10 @@
 #
 # One file for every table the task tool reads: the ledger's layout, the
 # commit rules, the named tests, the CI plan, the work routing and the hooks.
-# tools/itos/config.ts loads it and rejects a key it does not know;
+# internal/config loads it and rejects a key it does not know;
 # `ITOS_CONFIG` names another file. `$name` in a path list stands for
 # `commits.path_sets.<name>`. The range, the identity and the people are
-# providers (tools/itos/providers.ts).
+# providers (internal/providers).
 version: 1
 requires: ">=0.6.0" # the oldest itos that reads this file: builtin: moves is 0.6.0's
 shell: [sh, -c]
@@ -22,7 +22,7 @@ commits:
   header_lint: # delegated to commitlint, config-conventional; itos runs the footers beside it
     hook: "vp exec commitlint --edit {file}"
     stdin: "vp exec commitlint"
-  footers: # tools/itos/footers.ts reads them, for the footer rules and CI
+  footers: # internal/message reads them, for the footer rules and CI
     Task:
       source: ledger
       # A revert names the task it undoes, so a failed piece of work leaves a trail.
@@ -49,10 +49,9 @@ commits:
       - "tools/selftest/**"
       - tools/changelog.ts
       - .claude/settings.json
-    # itos itself: the TypeScript v0 and the Go port's packages beside it, the
+    # itos itself, its Go packages since the TypeScript v0 left (T-062): the
     # one place a feat or a fix must change unless it changes the features.
     implementation:
-      - "tools/itos/*.ts"
       - "{cmd,internal}/**/*.go"
   scopes: # the paths each commit type may touch (tasks/README.md's table)
     feat: { must_touch: [$implementation, "features/**"] }
@@ -62,8 +61,10 @@ commits:
     test:
       only:
         - "features/**"
+        # The TypeScript's unit tests, gone with it (T-062), stay for verify,
+        # which judges every commit after commits.since by these rules.
         - "**/*.test.ts"
-        - "{cmd,internal}/**/*_test.go" # the Go packages' unit tests
+        - "{cmd,internal}/**/*_test.go" # itos's unit tests, the Go packages'
         - "tools/itos/conformance/**"
         - "tools/itos/fixtures/**"
         - "tools/selftest/**"
@@ -78,9 +79,9 @@ commits:
   # template as one squashed commit, which no rule passes.
   since: "1545231b3fec872b460521fce024f5c3ef79594c"
 
-tests: # named tests, each kind behind an adapter (tools/itos/tests.ts)
+tests: # named tests, each kind behind an adapter (internal/tests)
   scenario:
-    adapter: gherkin # built in: tools/itos/gherkin.ts
+    adapter: gherkin # built in: internal/tests/gherkin.go
     root: features
     id: "ID-[A-Z]+-\\d+"
     tag_prefix: "@"
@@ -181,7 +182,7 @@ ci:
         token_env: [GITHUB_TOKEN, GH_TOKEN],
       }
 
-work: # tools/itos/work.ts; the registry is at its default, tasks/work-items.yaml
+work: # internal/work; the registry is at its default, tasks/work-items.yaml
   groups_key: phases
   statuses: [todo, doing, done, blocked]
   # or all-contributorsrc (contributors[].login) or yaml (a list of logins)
