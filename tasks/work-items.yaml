@@ -1673,7 +1673,7 @@ items:
     title: "v1.0.0, the Go binary released"
     phase: 2
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-053, T-055, T-057]
     kind: task
     refs: [tasks/phase-2.yaml]
