@@ -1,9 +1,8 @@
 // Package work is the work registry (tools/itos/work.ts): work.registry,
 // work-items.yaml in the ledger's folder by default, which says who owns each
 // group and each work item, its status and what it waits on. The port has the
-// registry's reading and its problems so far, which config check reports;
-// `work` and `work check` are the work-routing group's (PLAN.md, phase 2,
-// step 7).
+// registry's reading and its problems, which config check and work check
+// report, and the proposal `work` prints (propose.go).
 package work
 
 import (
@@ -283,14 +282,29 @@ func Issues(cfg *config.Loaded, r Registry, file string) ([]out.Problem, error) 
 // looks: a project whose registry is at the old default (docs/work-items.yaml)
 // learns where itos reads it now, and how to say otherwise.
 func Problems(cfg *config.Loaded) ([]out.Problem, error) {
-	file := cfg.Work.Registry
+	return ProblemsAt(cfg, cfg.Work.Registry, false)
+}
+
+// ProblemsAt are the problems of the registry at file, the config's
+// work.registry or, named, a file given on the command line, whose fix when
+// it is not there says so.
+func ProblemsAt(cfg *config.Loaded, file string, named bool) ([]out.Problem, error) {
 	if !source.Has(file) {
-		return []out.Problem{problem("work-registry-missing", "no work registry at "+file,
-			"move the registry to "+file+", or set work.registry to where it is")}, nil
+		return []out.Problem{Missing(file, named)}, nil
 	}
 	r, err := Load(cfg, file)
 	if err != nil {
 		return nil, err
 	}
 	return Issues(cfg, r, file)
+}
+
+// Missing is the problem of no registry at file: the config's work.registry,
+// or a file named on the command line.
+func Missing(file string, named bool) out.Problem {
+	fix := "move the registry to " + file + ", or set work.registry to where it is"
+	if named {
+		fix = "name the registry's file, or write one at " + file
+	}
+	return problem("work-registry-missing", "no work registry at "+file, fix)
 }

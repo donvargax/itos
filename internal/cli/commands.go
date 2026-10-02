@@ -68,11 +68,15 @@ func split(args []string) (string, []string) {
 
 func notPorted(path string) (int, error) { return 0, NotPorted{path} }
 
-func workCommand(args []string, _ Out) (int, error) {
-	if sub, _ := split(args); sub == "check" {
-		return notPorted("work check")
+// workCommand is `work check [<file>]`, the file the argument after check
+// whatever it is, as main.ts takes it, or `work [--as <handle>]`.
+func workCommand(args []string, o Out) (int, error) {
+	if sub, rest := split(args); sub == "check" {
+		file, named := first(rest)
+		return workCheck(file, named, o)
 	}
-	return notPorted("work")
+	as, _ := flagValue(args, "--as")
+	return workProposal(as, o)
 }
 
 func commit(args []string, o Out) (int, error) {

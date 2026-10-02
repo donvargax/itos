@@ -35,8 +35,6 @@ func run(args ...string) (int, string, string) {
 // right: exit 3, saying so, and nothing on stdout.
 func TestNotPortedFailsLoudly(t *testing.T) {
 	for _, args := range [][]string{
-		{"work"},
-		{"work", "check"},
 		{"hook", "commit-msg", "m"},
 		{"hook", "pre-push"},
 		{"hooks", "install", "--manager", "git"},
