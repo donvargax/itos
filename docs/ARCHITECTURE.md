@@ -153,9 +153,15 @@ the commands, `itos <command> --help` each one). The code is
   Go binary's dialect, and `config check` refuses one RE2 cannot compile
   (`config-regexp`). The TypeScript cannot run RE2: `tryRegExp` compiles
   each with JavaScript's `RegExp`, which it runs them with, and refuses
-  beside that what RE2 lacks (`lacksInRE2`), a lookaround outside a
-  character class and a backreference's escape (`\1` to `\9` but RE2's octal
-  `\1x` to `\7x`, and `\k`) in or out of one. A pattern only RE2 compiles
+  beside that what RE2 cannot compile (`lacksInRE2`), by parsing the pattern
+  as Go's `regexp/syntax` does, kept to whether the parse succeeds: a
+  lookaround, a backreference, a letter escape or a class RE2 has no reading
+  for (`\c`, `\e`, `[\b]`, `[]`, `\p{Foo}`), a repeat count above 1000, nested
+  counted repeats multiplying. Its Unicode class names are generated from the
+  Go toolchain's tables; RE2's caps on a program's size and a tree's height
+  are not modelled, since only patterns thousands of characters long reach
+  them. A differential run against Go's `regexp` (p2-pattern-re2-escapes)
+  found no other disagreement. A pattern only RE2 compiles
   (`(?i)abc`) stays refused by the TypeScript, which could not run it; on a
   pattern both compile, the TypeScript matches by JavaScript's rules (`\s`,
   `.`), a gap until it goes.
@@ -293,7 +299,7 @@ The Go build of itos lands beside the TypeScript one command group at a time
   value reads the same in both. `YAML` writes the `yaml` package's block
   style, for `--print-defaults`. The patterns are compiled as RE2, the
   config's dialect, which the TypeScript holds them to by refusing what RE2
-  lacks (the config loader, above); where itos builds a pattern
+  cannot compile (the config loader, above); where itos builds a pattern
   around `\s` or trims, it uses `value.Space` and `value.Trim`, JavaScript's
   whitespace, not RE2's ASCII one.
 - **Where itos reads its data** (`internal/source`) is `source.ts`: every
