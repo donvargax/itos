@@ -1617,7 +1617,7 @@ items:
     title: The Go ci range and the range providers
     phase: 2
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-048]
     kind: task
     refs: [tasks/phase-2.yaml]
