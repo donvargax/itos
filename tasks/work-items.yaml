@@ -719,19 +719,22 @@ items:
       label says. Either the tools read the word from it, or it leaves the schema until they do.
       Needs a scenario in config.feature.
 
-  - id: p1-itos-in-every-pattern
+  - id: slice-20
     title: ci.covers, ci.nightly_only and recognize read hooks.bin as itos too
     phase: 1
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: [slice-8]
-    kind: idea
+    kind: slice
+    refs: [features/bin.feature]
     why: >
       Slice 8 reads a command whose first word is hooks.bin as itos in ci.cost.static alone. The
       other places a command is matched against the config still read it as written: a ci.covers
       matches pattern, a ci.nightly_only entry and a tests.<kind>.recognize template written for
       itos miss tools/bin/itos. matchesStatic's reading, shared by every command pattern, closes
       it; each needs a scenario.
+      Was the idea p1-itos-in-every-pattern. @ID-BIN-01 to 03, in a feature file of their own, since
+      cost.feature's header is about the cost rule.
 
   - id: p1-ci-checks-once
     title: CI's plan runs a check two named tasks list once

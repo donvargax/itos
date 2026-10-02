@@ -39,11 +39,10 @@ and the release task only finished them.
 
 ## Next
 
-1. **The rest of the config contract, before the port**: `slice-18` is done
-   (in `docs/releases/v0.6.0.md`); `slice-19` (the defaults the tools apply
-   are the ones `--print-defaults` prints, from one table) is specified.
-   Then, ideas to specify first: `p1-itos-in-every-pattern`,
-   `p1-group-label-read`, `p1-registry-beside-ledger`,
+1. **The rest of the config contract, before the port**: slices 18 and 19
+   are done (in `docs/releases/v0.6.0.md`);
+   `slice-20` (every command pattern reads hooks.bin as itos) is specified.
+   Then, ideas to specify first: `p1-group-label-read`, `p1-registry-beside-ledger`,
    `p1-verify-with-last-release`, and `p1-config-names-from-config` (what
    slice 18 left: scenario-moves, a script the config runs, needs the user's
    call on whether itos ships it). Then **the Go port** (`p2-go-port`).
