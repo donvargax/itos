@@ -183,6 +183,13 @@ failure is the run's. A task named while
 its work item is still `todo` in `tasks/work-items.yaml` waits: nobody has
 started it, so its checks cannot pass yet.
 
+A done task's checks run every night too: the nightly's step
+`{ tasks: done, cost: static }` (`ci.nightly` in `itos.yaml`, T-035) runs the
+static checks of every task whose work item is `done`, each shared check once,
+so a change elsewhere that turns one red shows the next morning, naming the
+task. Its late checks still run only when a push names it. A task in progress
+is left out until it is marked `done`.
+
 A prose-only push (only the paths of `ci.prose.paths`) runs `ci.prose.steps`
 and, of the named tasks' checks, only the static ones and those marked
 `prose: true`: no unit tests, no features, since a check that reads only code
