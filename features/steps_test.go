@@ -1,7 +1,7 @@
 // The steps. itos is a black box here: each scenario builds a scratch git
 // repository in a temporary folder, runs the binary ITOS_BIN names
-// (tools/bin/itos by default, relative to the repository's root) in it, and
-// reads its exit code and output. Nothing here imports or reads itos's code,
+// (tools/bin/itos-ts by default, the TypeScript, relative to the repository's
+// root) in it, and reads its exit code and output. Nothing here imports or reads itos's code,
 // so the same steps judge any implementation of it.
 package features
 
@@ -284,7 +284,10 @@ func (w *world) setUp() error {
 	w.root = root
 	w.bin = os.Getenv("ITOS_BIN")
 	if w.bin == "" {
-		w.bin = "tools/bin/itos"
+		// The TypeScript, which CI holds to every scenario beside the Go build
+		// (go-port.ts) until it leaves the repository (T-062); tools/bin/itos,
+		// the Go binary, is what the hooks and CI run.
+		w.bin = "tools/bin/itos-ts"
 	}
 	if !filepath.IsAbs(w.bin) {
 		w.bin = filepath.Join(root, w.bin)
