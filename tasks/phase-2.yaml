@@ -56,7 +56,12 @@
     archive's binary says it is itos at package.json's version. The nightly
     runs it, so the build cannot rot before the first Go release. The config's
     JSON Schema, which §10 also lists, is not part of it yet
-    (p2-config-json-schema).
+    (p2-config-json-schema). The archives are itos-<version>-<os>-<arch>.tar.gz,
+    .zip for windows, the files at their top level, written by build-go.ts with
+    Node's zlib rather than the machine's tar and zip; the self-test reads them
+    back with tar, unzip and sha256sum, and checks each binary's format and
+    architecture from its header, since a wrong GOOS or GOARCH would still
+    pack.
   done_when:
     - run: node tools/selftest/go-release.ts
       timeout: 900

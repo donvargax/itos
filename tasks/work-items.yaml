@@ -1512,7 +1512,7 @@ items:
     title: A snapshot release of the Go binary, built as a release will be
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-039]
     kind: task
     refs: [tasks/phase-2.yaml]
@@ -1581,6 +1581,21 @@ items:
       and it should come from the one table of defaults and keys the config group ports, not be
       kept by hand.
     refs: [PLAN.md]
+
+  - id: p2-go-release-proves-its-archives
+    title: The Go release workflow proves the archives it publishes
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-040]
+    kind: idea
+    why: >
+      Found in T-040: tools/selftest/go-release.ts proves a release it builds itself, from the
+      checkout. The TypeScript release proves the very tarball it uploads (release.ts --tarball),
+      so the Go release at v1.0.0 should run the same checks on the folder build-go.ts --release
+      wrote in that job, before gh release create uploads it: the self-test needs a mode that
+      reads an already built folder rather than building one.
+    refs: [tasks/phase-2.yaml, PLAN.md]
 
   - id: p2-go-port
     title: The Go port, one command group at a time

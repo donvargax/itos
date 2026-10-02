@@ -244,8 +244,18 @@ it)`.
   `-trimpath`, stamping the version into `internal/version` (`-ldflags -X`).
   A binary built without the stamp says the module version Go records
   (`go install …@v<x>`), or `(devel)` when there is none. Every self-test
-  builds the binary through it; its `build` takes a target platform, for the
-  release archives.
+  builds the binary through it.
+- **The release build** is `tools/bin/build-go.ts --release <out dir>`: the
+  same build once per platform `PLAN.md` §10 lists, each binary packed with
+  `LICENSE` and `README.md` at the top level of
+  `itos-<version>-<os>-<arch>.tar.gz` (`.zip` for windows), and
+  `checksums.txt` in `sha256sum`'s format beside them, what the release
+  workflow will upload at v1.0.0. The archives are written with Node's
+  `zlib`, not the machine's tar or zip, with HEAD's commit time on every
+  entry, so a commit rebuilt by the same Go toolchain gives the same bytes.
+  `tools/selftest/go-release.ts` builds them into a scratch folder and reads
+  them back with the system's `tar`, `unzip` and `sha256sum`; the nightly
+  runs it (`ci.nightly.steps`), not every push.
 - **The ported set** is `PORTED` in `tools/selftest/go-port.ts`, the one list
   of it: the conformance corpus files and the scenario selections (`-scenarios=`
   expressions) of the groups that have landed. `go-port.ts` builds the binary
