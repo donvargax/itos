@@ -46,6 +46,19 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   `{sha256}` replaced by the tarball's hash. The tarball stays until phase 3
   switches the consumers. The notes end with an "Upgrading" section a consumer
   updates from alone (`PLAN.md`, §10).
+- **Consumer reports** come in as issues: `.github/ISSUE_TEMPLATE/consumer-report.yml`
+  is an issue form (the command, its output, `itos version`, the config, what
+  was expected) that applies `consumer-report` and nothing else.
+  `tools/bin/inbox.ts` is the coordinator's view of them (`docs/ORCHESTRATING.md`,
+  the loop): it asks `gh api` for the repository's open issues, leaving pull
+  requests out, and for the timeline of each issue that no allowed login
+  opened. It prints two lists, actionable and the rest, with number, title,
+  author and labels and no issue's text. An issue is actionable when a login
+  on `ALLOWED`, the allow-list kept in the script alone, opened it, or when its
+  timeline's last `itos-accepted` event is such a login applying it. The labels
+  an issue carries count for nothing: a form or a workflow can apply them for
+  anyone. `--self-test` runs fixture issues through the same judging; CI's
+  token has `issues: read` for the task check that runs the live inbox.
 - `go.mod` is the module `github.com/donvargax/itos`, Go pinned by its
   `toolchain` line; its dependencies are godog's and `go.yaml.in/yaml/v3`,
   the port's one. The Go port is `cmd/itos` and `internal/` ("The Go port"
