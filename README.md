@@ -57,19 +57,18 @@ one.
 
 ## Status
 
-**v1, in Go and in TypeScript.** The Go binary (`cmd/itos`, `internal/`) is
-one file with no runtime; the TypeScript v0 (`tools/itos/`) is run by Node
-directly, and is released beside it until phase 3 switches consumers to the
-binary. This repository governs itself with itos, the Go binary: its own `itos.yaml`,
-ledger, hooks and CI.
+**v1, moving to Go only.** itos is the Go binary (`cmd/itos`, `internal/`),
+one file with no runtime. The TypeScript v0 it began as has left the
+repository; the v1 releases still carry it as a tarball, which v2.0.0 drops
+when consumers switch to the binary. This repository governs itself with
+itos, the Go binary: its own `itos.yaml`, ledger, hooks and CI.
 
-Both are judged by the same tests on every push. itos's named tests are the
-Gherkin feature files in `features/`, whose steps (Go, run by
-[godog](https://github.com/cucumber/godog)) treat itos as a black box: they
-run whatever binary `ITOS_BIN` names in scratch repositories and read its exit
-codes and output. The conformance corpus (`tools/itos/conformance/`) is the
-regression record both implementations must pass. `PLAN.md` has the order of
-the work.
+itos's named tests are the Gherkin feature files in `features/`, whose steps
+(Go, run by [godog](https://github.com/cucumber/godog)) treat itos as a black
+box: they run whatever binary `ITOS_BIN` names in scratch repositories and
+read its exit codes and output. The conformance corpus
+(`tools/itos/conformance/`) is the regression record it must pass. `PLAN.md`
+has the order of the work.
 
 ## Install
 
@@ -88,7 +87,7 @@ Each release on a `v*` tag holds:
 Pin a release, never a branch, and pin each asset by its line in
 `checksums.txt`, so a replaced release fails every later install.
 
-**The TypeScript tarball**, which consumers use until phase 3: check it
+**The TypeScript tarball**, in the v1 releases, which consumers use until v2.0.0: check it
 against its hash, then add its URL as a dependency, so `package.json` pins the
 URL and the lockfile the tarball's integrity:
 
@@ -137,8 +136,8 @@ something different.
 
 ```sh
 vp install                               # dependencies and the git hooks
-go test ./features -count=1              # every feature, against the TypeScript
-vp test                                  # the unit tests
+go test ./features -count=1              # every feature, against tools/bin/itos
+go test ./cmd/... ./internal/...         # the unit tests
 tools/bin/itos task --phase 1            # the phase's tasks and their state
 vp run work                              # what you can take next
 ```

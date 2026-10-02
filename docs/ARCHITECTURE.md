@@ -6,48 +6,32 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
 
 ## The layout
 
-- `tools/itos/` is itos v0: TypeScript, one module per concern, run by Node
-  directly (`tools/bin/itos-ts` runs it, until T-062 removes it;
-  `tools/bin/itos`, the entry point the hooks, CI and the scripts call, runs
-  the Go binary, "The Go port" below). The scope rules name it as
-  `commits.path_sets.implementation`; "Task tooling" below says what is in it.
+- itos is Go: `cmd/itos` is the binary and `internal/` its packages ("The
+  code" below). `tools/bin/itos`, the entry point the hooks, CI and the
+  scripts call, builds it from the tree on demand and runs it. The scope rules
+  name the Go files as `commits.path_sets.implementation`. v0 was TypeScript
+  in `tools/itos/`, run by Node; it left the repository once the Go port
+  passed everything and this repository ran the Go binary (T-062).
 - `features/` holds itos's named tests: Gherkin feature files, their steps in
   Go (`*_test.go`, package `features`), and the smoke set (`smoke.yaml`).
-- `tools/itos/conformance/` is the regression corpus, `tools/selftest/` the
-  self-tests of the gates and of the release, `tools/changelog.ts` the
-  changelog's filter.
-- **The package** is for consumers, not for this repository: `vp pack` (the
-  `pack` block of `vite.config.ts`, tsdown) bundles `tools/itos/main.ts` and
-  everything it imports, `yaml` and the commands' lazy imports included, into
-  one file, `dist/itos.mjs`, which `package.json`'s `bin` names; its `files`
-  are that, `LICENSE` and `README.md`. `tools/bin/pack.ts` is the one way to
-  pack it, for the release workflow and `release.ts` alike: it runs `vp pack`,
-  copies those files into a scratch folder beside a manifest of `package.json`'s
-  `name`, `version`, `type`, `bin` and `files` plus `engines` (Node 24), and
-  `npm pack`s that folder into `itos-<version>.tgz`, with no runtime
-  dependencies and no install script. This repository's `package.json`, with
-  its `prepare` script and devDependencies, is never packed. Here `tools/bin/itos-ts`
-  runs the working tree's TypeScript unbundled, for the corpus and the
-  features. Nothing in the source reads a file beside itself, which is what lets
-  one file carry it: the version is `package.json`'s, which `version.ts`
-  imports as JSON and the bundle inlines, so a release is one `build` commit
-  to `package.json` and a tag.
-- **A release** (`.github/workflows/release.yml`, on a `v*` tag) packs the
-  tarball and builds the Go release (`build-go.ts --release`, "The Go port"
-  below) into `dist/release`; it refuses a tag that is not
-  `v<package.json's version>`, a packed itos or a linux/amd64 Go binary that
-  says another, and a tag with no `docs/releases/v<version>.md`. It proves
-  the very folder it uploads with `go-release.ts --dir` and the tarball with
-  `release.ts` (the packed manifest's keys, an offline install reporting no
-  install script, the corpus and every feature against the installed itos),
-  then adds the tarball and its line to the Go release's `checksums.txt`, so
-  one file lists every asset (`sha256sum --ignore-missing -c checksums.txt`
-  checks the ones downloaded), and publishes the folder: the five archives,
-  `itos.schema.json`, the tarball and `checksums.txt`. The release's body says
-  what each asset is, lists `checksums.txt`, then that notes file with
-  `{sha256}` replaced by the tarball's hash. The tarball stays until phase 3
-  switches the consumers. The notes end with an "Upgrading" section a consumer
-  updates from alone (`PLAN.md`, §10).
+- `tools/itos/conformance/` is the regression corpus and `tools/itos/fixtures/`
+  the configs and ledgers the ledger's negative proofs hand itos, both where
+  the TypeScript was; `tools/selftest/` holds the self-tests of the gates and
+  of the release, `tools/changelog.ts` the changelog's filter. These, the
+  builds (`tools/bin/build-go.ts`) and the consumer inbox are this
+  repository's tooling, run by Node; no consumer of itos needs Node.
+- **A release** (`.github/workflows/release.yml`, on a `v*` tag) builds the Go
+  release (`build-go.ts --release`, "The code" below) into `dist/release`; it
+  refuses a tag that is not `v<package.json's version>`, a linux/amd64 binary
+  that says another, and a tag with no `docs/releases/v<version>.md`. It
+  proves the very folder it uploads with `go-release.ts --dir` and publishes
+  it: the five archives, `itos.schema.json` and `checksums.txt`
+  (`sha256sum --ignore-missing -c checksums.txt` checks the ones downloaded).
+  The release's body says what each asset is, lists `checksums.txt`, then
+  that notes file. The v1 releases also carried the TypeScript packed to one
+  JavaScript file, `itos-<version>.tgz`, which left with it (T-062). The
+  notes end with an "Upgrading" section a consumer updates from alone
+  (`PLAN.md`, §10).
 - **Consumer reports** come in as issues: `.github/ISSUE_TEMPLATE/consumer-report.yml`
   is an issue form (the command, its output, `itos version`, the config, what
   was expected) that applies `consumer-report` and nothing else.
@@ -63,8 +47,7 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   token has `issues: read` for the task check that runs the live inbox.
 - `go.mod` is the module `github.com/donvargax/itos`, Go pinned by its
   `toolchain` line; its dependencies are godog's and `go.yaml.in/yaml/v3`,
-  the port's one. The Go port is `cmd/itos` and `internal/` ("The Go port"
-  below).
+  itos's one. itos is `cmd/itos` and `internal/` ("The code" below).
 
 ## The features
 
@@ -77,13 +60,14 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
 - **The steps** (`steps_test.go`) treat itos as a black box. Each scenario
   builds a scratch git repository in a temporary folder, writes its
   `itos.yaml` and ledger, runs the binary `ITOS_BIN` names
-  (`tools/bin/itos-ts`, the TypeScript, by default until T-062, relative to
-  the module's root) in it, and
+  (`tools/bin/itos` by default, the Go binary built from the tree, relative
+  to the module's root) in it, and
   asserts the exit code, the output and the files it leaves. A command runs
   in a clean environment: the caller's, less `GIT_*`, `ITOS_*`, `GITHUB_*`
   and `CI`, with no global or system git config and a fixed identity, so a
   run inside a git hook or on a runner sees what it sees locally. A step
-  never reads itos's code, so the same steps judge the Go port.
+  never reads itos's code, so the same steps judged the TypeScript and the
+  Go port alike.
 - **The header lint**, where a scenario needs one, is this checkout's
   commitlint with only `@commitlint/config-conventional` (its config written
   to the scenario's temporary folder, `--cwd` the checkout so the extends
@@ -103,9 +87,11 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
 **itos** is the task tooling: the ledger and its checks, the commit rules,
 named tests and the smoke set, the CI plan and its driver, the work registry
 and the hooks, behind one command line, `tools/bin/itos` (`itos --help` lists
-the commands, `itos <command> --help` each one). The code is
-`tools/itos/`, TypeScript run by Node directly, and its Go port ("The Go
-port"), which `tools/bin/itos` runs.
+the commands, `itos <command> --help` each one). The code is Go, `cmd/itos`
+and `internal/` ("The code" below). The mechanisms below were first built in
+the TypeScript v0, and where one names a `.ts` module or a function in
+camelCase it is that module's; "The code" names the Go package that ports
+each, and holds it since the TypeScript left (T-062).
 
 - **One policy file.** `itos.yaml` at the root holds every table the tool
   reads: the ledger's layout (`ledger`), the commit types, footers, path sets
@@ -155,21 +141,10 @@ port"), which `tools/bin/itos` runs.
   The five pattern keys (`ledger.id`, `ledger.group.pattern`,
   `tests.<kind>.id`, `ci.cost.static`, `ci.covers[].matches`) are RE2, the
   Go binary's dialect, and `config check` refuses one RE2 cannot compile
-  (`config-regexp`). The TypeScript cannot run RE2: `tryRegExp` compiles
-  each with JavaScript's `RegExp`, which it runs them with, and refuses
-  beside that what RE2 cannot compile (`lacksInRE2`), by parsing the pattern
-  as Go's `regexp/syntax` does, kept to whether the parse succeeds: a
-  lookaround, a backreference, a letter escape or a class RE2 has no reading
-  for (`\c`, `\e`, `[\b]`, `[]`, `\p{Foo}`), a repeat count above 1000, nested
-  counted repeats multiplying. Its Unicode class names are generated from the
-  Go toolchain's tables; RE2's caps on a program's size and a tree's height
-  are not modelled, since only patterns thousands of characters long reach
-  them. A differential run against Go's `regexp` (p2-pattern-re2-escapes)
-  found no other disagreement. A pattern only RE2 compiles
-  (`(?i)abc`) stays refused by the TypeScript, which could not run it; on a
-  pattern both compile, the TypeScript matches by JavaScript's rules (`\s`,
-  `.`), a gap until it goes.
-- **One command line** (`tools/itos/main.ts`): exit 0 on success, 1 for a
+  (`config-regexp`). While the TypeScript lasted it ran them with
+  JavaScript's `RegExp` and refused beside that what RE2 cannot compile, so
+  a config that passed one implementation passed the other.
+- **One command line** (`internal/cli`): exit 0 on success, 1 for a
   policy failure (a check failed, a commit rejected, an unknown task), 2 for a
   usage or config error, 3 for a missing environment. `--json` prints one
   object with `"schema": 1`, logs on stderr; each problem in it has a
@@ -183,7 +158,7 @@ port"), which `tools/bin/itos` runs.
   plan and the commit-msg hook run their checks their own way. `task list`
   runs nothing: it reads each task's item status from the registry
   (`itemStatuses` in `work.ts`, which the hook's `itemStatus` reads too).
-- **Named tests behind an adapter** (`tools/itos/tests.ts`). A kind of named
+- **Named tests behind an adapter** (`internal/tests`). A kind of named
   test (here one, `scenario`) says how its tests are listed and run. The
   built-in Gherkin adapter (`gherkin.ts`) is the only module that parses a
   feature file; a scenario is live when neither its tag line nor its file's
@@ -253,10 +228,12 @@ port"), which `tools/bin/itos` runs.
   `features/` and, where a case records the old behaviour, the case. `tools/itos/fixtures/` holds the configs and ledgers the
   negative proofs in `tasks/phase-0.yaml` run against.
 
-## The Go port
+## The code
 
-The Go build of itos lands beside the TypeScript one command group at a time
-(`PLAN.md`, phase 2), until it passes everything and the TypeScript goes.
+The Go build of itos landed beside the TypeScript one command group at a time
+(`PLAN.md`, phase 2), until it passed everything and the TypeScript went
+(T-062). Each package below says which TypeScript module it ports, so the
+mechanisms above, written against those modules, read across.
 
 - **The packages.** `cmd/itos` is the binary, a call to `internal/cli`.
   `internal/cli` is `main.ts`: the global flags wherever they stand, the
@@ -278,7 +255,7 @@ The Go build of itos lands beside the TypeScript one command group at a time
   (below) and `internal/git`, beside two
   the TypeScript has no module for:
   `internal/value` and `internal/source` (below). The port shells out to git
-  where it needs it, as the TypeScript does.
+  where it needs it, as the TypeScript did.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
   `ITOS_CONFIG`, after `--root`'s `chdir`), holds it to the schema
@@ -302,7 +279,7 @@ The Go build of itos lands beside the TypeScript one command group at a time
   (`TypeOf`) and `JSON.stringify` (`JSON`) would, so a problem quoting an odd
   value reads the same in both. `YAML` writes the `yaml` package's block
   style, for `--print-defaults`. The patterns are compiled as RE2, the
-  config's dialect, which the TypeScript holds them to by refusing what RE2
+  config's dialect, which the TypeScript held them to by refusing what RE2
   cannot compile (the config loader, above); where itos builds a pattern
   around `\s` or trims, it uses `value.Space` and `value.Trim`, JavaScript's
   whitespace, not RE2's ASCII one.
@@ -319,7 +296,7 @@ cat-file -e`, `git show`, `ls-files` or `ls-tree`), so the commit-msg hook's
   (an `ITOS_CONFIG` outside the repository), and a ledger folder a git tree
   lacks is the folder-missing error, as `source.ts` has them. Beside the
   source, `Texts(tree, dir, keep)` is `treeTexts`: a git tree's files under a
-  folder, read in one `git cat-file --batch` run (the TypeScript runs `git
+  folder, read in one `git cat-file --batch` run (the TypeScript ran `git
 show` per file), none when the tree cannot be read. `ledger.IDs` and the
   Gherkin adapter read a footer's or `--at`'s tree through it, whatever the
   source is.
@@ -362,7 +339,7 @@ signal` (`shell.Result.Status`); `supports_at: false` warns once a run on
   before it is typed). `ledger.Tasks` is `loadTasks`, through `ledger.Files`:
   a task whose checks cannot run (a `done_when` that is not a list, a check
   without a command) carries its error and fails only the command that runs
-  it, as the TypeScript fails only there. `work.ItemStatuses` is
+  it, as the TypeScript failed only there. `work.ItemStatuses` is
   `itemStatuses`, the registry read alone, without the people, so `task list`
   works over a registry with problems. A group flag's value is read by
   JavaScript's `Number()` (`value.ToNumber`, so `--group 01` is group 1) and
@@ -398,7 +375,7 @@ check-paths` (`internal/cli/commit.go`) is a call to them, and the
   same with `tests smoke check --features <dir>` standing in for a Gherkin
   kind's root; a command adapter's `List` keeps its object as printed in
   `Raw`, which `tests list --json` prints key for key, extra keys included,
-  as the TypeScript prints the parsed object (`out.Emit` gives a key written
+  as the TypeScript printed the parsed object (`out.Emit` gives a key written
   twice its first place and its last value, as `{ schema: 1, ...value }`
   does). `CommandFor(cfg, kind, selections)` is `commandFor`, the one
   function that turns `Selection`s (`Whole()`, `IDs(…)`, `Pattern(p)`) into
@@ -458,7 +435,7 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   JavaScript's whitespace rather than RE2's. A range's commits name tasks and
   tests through `message.IDsIn`, `footers.ts`'s range log (`git log
 --format=%B from..to`, newest first). That range is `from..to` as the
-  TypeScript's plan reads it: `commits.since` does not narrow it, as it
+  TypeScript's plan read it: `commits.since` does not narrow it, as it
   narrows verify's, and an empty start reads nothing and runs every test.
 - **CI's driver** is `internal/ci` (`ci.ts`'s `ciRun`), with `ci run` in
   `internal/cli/ci.go` making the plan as `ci plan` does and handing it over:
@@ -473,7 +450,7 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   `check.Runner`, a failure exiting 1 and naming the task and its title, and
   the other actions are only logged. The nightly keeps the Runner's runs, so
   a check its done tasks share runs once; a push runs each named task's
-  checks as its own, as the TypeScript does (its `runs` is the nightly's
+  checks as its own, as the TypeScript did (its `runs` is the nightly's
   only). `--json`'s `failed_at` is a `Failure`, its keys in `ci.ts`'s order.
 - **Where a range starts** is `ci range` (`internal/cli/ci.go`) over
   `internal/providers/range.go` (`providers.ts`'s range half and
@@ -501,14 +478,14 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   `ProblemsAt`, the config's `work.registry` or a file named after `check`
   (the argument whatever it is, as `main.ts` takes it), whose missing-file
   fix differs (`Missing`); a named file that is not there is found before
-  the config is read, as the TypeScript reads the config only to load the
+  the config is read, as the TypeScript read the config only to load the
   registry. `work` runs that check quietly, its problems on stderr even
   under `--json`, then `Whoami`: `--as`, which must be among the people
   (exit 3), else the `work.identity` provider, an `Identity` function made
   by `IdentityProvider` (`internal/providers/identity.go`) that answers a
   handle or why it has none, never an error: `command` through `FirstLine`,
   `none` with its hint, and `github` running `gh api user --jq .login` as the
-  TypeScript does, gh's stderr dropped and gh missing (`exec.ErrNotFound`)
+  TypeScript did, gh's stderr dropped and gh missing (`exec.ErrNotFound`)
   told apart from gh failing. A session with no handle is nobody, and one
   the people do not list owns nothing yet; both still see what nobody owns.
   `Propose` keeps each item the mapping as written (`value.Map`, its keys in
@@ -536,7 +513,7 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   `ITOS_AT`); last, the named tasks' checks up to each task's first late one
   (`check.ChecksBeforeLate`), the ledger and the registry read from the
   index by the staged config, the checks' costs and timeouts by the working
-  tree's, as the TypeScript reads each. Each check runs through
+  tree's, as the TypeScript read each. Each check runs through
   `check.RunCaptured`, `runCheckCaptured` ported: quiet, stdout and stderr in
   one temporary file rather than a pipe, so a command it leaves running
   cannot hold the commit past its timeout, the timeout capped by
@@ -552,18 +529,17 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   plain git, written as a new file is), or prints a config-file manager's
   snippet; a hook that is not a shim (`isShim`: one line calling `itos hook`,
   besides comments and a shebang) is replaced only with `--force`. The hooks
-  this repository's git calls stay the TypeScript's until phase 3.
+  this repository's git calls run the Go binary since T-060.
 - **Every command is ported**, each taking its arguments as the TypeScript
-  does, so a usage error reads the same in both. While the groups landed, a
-  command whose group had not exited 3 saying so; since every push holds the
-  Go build to the whole suite (below), a command the TypeScript gains alone
-  turns CI red, so that error is gone.
+  did, so a usage error read the same in both. While the groups landed, a
+  command whose group had not exited 3 saying so; once every push held the
+  Go build to the whole suite (T-053) that error went.
 - **The help texts** are `internal/cli/help.go`, `help.ts` ported: every
   text in one table keyed by command path, as `HELP` is, not one beside each
-  command, so the two read side by side. `itos`, `itos help …` and any
-  `--help` print the longest command path the table knows, before any config
-  is read. A change to a text lands in both files and `help.yaml` in one
-  push, since every push runs the whole corpus against the Go build.
+  command, so the two read side by side while both lasted. `itos`,
+  `itos help …` and any `--help` print the longest command path the table
+  knows, before any config is read. A change to a text lands with its case in
+  `help.yaml`, which CI's corpus step runs on every push.
 - **The version** is `package.json`'s: `tools/bin/build-go.ts <out dir>`
   builds `./cmd/itos` into `<out dir>/itos` with `CGO_ENABLED=0` and
   `-trimpath`, stamping the version into `internal/version` (`-ldflags -X`).
@@ -576,7 +552,8 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   `itos-<version>-<os>-<arch>.tar.gz` (`.zip` for windows), and
   `itos.schema.json` (below) and `checksums.txt` in `sha256sum`'s format
   beside them, naming the archives and the schema: what the release workflow
-  uploads, from v1.0.0, with the tarball's line added. The archives are written with Node's
+  uploads, from v1.0.0 (with the TypeScript tarball's line added until it
+  left, T-062). The archives are written with Node's
   `zlib`, not the machine's tar or zip, with HEAD's commit time on every
   entry, so a commit rebuilt by the same Go toolchain gives the same bytes.
   `tools/selftest/go-release.ts` builds them into a scratch folder and reads
@@ -613,26 +590,24 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   the old binary. CI and the nightly build it once, as the step `Build
 itos`, before any other step calls it. `tools/selftest/go-dogfood.ts`
   proves it with a PATH of links that holds go, git and sh but no node.
-  Until T-062 removes the TypeScript, `tools/bin/itos-ts` runs it, and is
-  what CI's conformance step and the features' default `ITOS_BIN` hold to
-  the corpus and every scenario, beside `go-port.ts`'s run against a fresh
-  Go build.
+  CI's conformance step and the features (their default `ITOS_BIN`) run it.
 - **The ported set is the whole suite.** `tools/selftest/go-port.ts` builds
   the binary into a scratch folder and runs the whole corpus through
   `run.ts --bin` and every feature as `go test ./features -count=1` with
   `ITOS_BIN` pointed at the build, and fails, naming which, when the build,
-  the corpus or the features fail. It is a late step of every push's CI, so a
-  behaviour change lands in both implementations in one push, and a corpus
-  file or a scenario added later is judged against Go with no list to
-  remember. While the groups landed it held a list each group added its part
-  to (T-039 to T-052); once the list named everything it went (T-053). The
-  port's task checks build the binary and run part of the corpus by
-  `--only` or a `-scenarios=` selection, so two `ci.covers` rules skip any
-  such check as what the step has just done.
-- **Its commits.** The port's code is `refactor` with a `Task:` footer: the
-  behaviour is the TypeScript's, already specified. The Go files under `cmd/`
-  and `internal/` are in `commits.path_sets.implementation`, and their
-  `*_test.go` are the `test` type's; CI's `gofmt` step covers them and a late
+  the corpus or the features fail. While the groups landed it held a list
+  each group added its part to (T-039 to T-052); once the list named
+  everything it went, and the script became a late step of every push's CI,
+  so a behaviour change landed in both implementations in one push (T-053).
+  With the TypeScript gone (T-062) it left CI's steps, since the corpus step
+  and the features step run `tools/bin/itos`, the same tree, and it is the
+  port's tasks' check. Those tasks' checks that build the binary and run part
+  of the corpus by `--only` are skipped after the corpus step (`ci.covers`).
+- **Its commits.** The port's code was `refactor` with a `Task:` footer: the
+  behaviour was the TypeScript's, already specified; a change to what itos
+  does is now a `feat` or a `fix`. The Go files under `cmd/` and `internal/`
+  are `commits.path_sets.implementation`, and their `*_test.go` are the
+  `test` type's; CI's `gofmt` step covers them and a late
   step runs their unit tests (`go test ./cmd/... ./internal/...`), of which
   the hooks run those a change reaches (T-059).
 
@@ -647,16 +622,12 @@ itos`, before any other step calls it. `tools/selftest/go-dogfood.ts`
     `staged`: `vp check --fix`, or for Go `gofmt -w` and then `go vet` over the
     module, since it reads packages rather than files), then, unless every
     staged file is Markdown, under `docs/**`, under `tasks/**` (the ledger and
-    the registry) or a feature file, `vp test run --changed HEAD` with coverage collected but
-    no thresholds, then `tools/bin/go-unit-tests --cached`, then `fallow audit`
-    on what is new against HEAD. Vitest
-    follows the imports from every changed file; `forceRerunTriggers` reruns
-    everything when the config, the lockfile or `itos.yaml` changes, written
-    as the files themselves, since vitest's own defaults never match a changed
-    file. The audit scores changed functions by that coverage
-    (`.fallowrc.json`), exact for the changed files since every test that
-    runs one imports it. `tools/bin/go-unit-tests` does the same for Go,
-    without building anything to choose: a changed file belongs to the
+    the registry) or a feature file, the unit tests the change reaches
+    (`tools/bin/go-unit-tests --cached`), then `fallow audit` on what is new
+    against HEAD, which reads this repository's own TypeScript tooling (the
+    self-tests, the corpus runner, the builds) and scores it by complexity,
+    with no coverage. The unit tests are itos's Go packages' (the TypeScript's
+    Vitest suite left with it, T-062), chosen without building anything: a changed file belongs to the
     deepest package folder holding it (testdata and embedded files count),
     and one `go list -e -test -deps` over `./cmd/... ./internal/...` gives
     every package whose Deps, its tests' included, reach one of those, which
@@ -689,13 +660,10 @@ itos`, before any other step calls it. `tools/selftest/go-dogfood.ts`
     failure rejects the commit when the task's item in the staged registry
     is `done`, else it is printed with the task's status and the commit
     goes through. `hooks.commit_msg.task_checks: false` turns them off.
-  - **pre-push** runs `hooks.pre_push`: `vp test run --changed <remote sha>`
-    and then `tools/bin/go-unit-tests <remote sha>` (the base against the
-    working tree, as Vitest reads it) for each pushed ref, or both whole
-    unit suites (`--all`) when there is no remote commit to compare with.
-    The Go step is there rather than in a script so that one section says
-    what pre-push runs, whichever implementation reads it, and the package
-    choice is the script's alone, shared with pre-commit. Nothing else: the
+  - **pre-push** runs `hooks.pre_push`: `tools/bin/go-unit-tests <remote
+sha>` (the base against the working tree) for each pushed ref, or the
+    whole unit suite (`--all`) when there is no remote commit to compare
+    with. The package choice is the script's alone, shared with pre-commit. Nothing else: the
     scenarios and the task checks are CI's.
 - **CI** (`.github/workflows/ci.yml`) is one job, a thin wrapper around
   `itos ci run`, so everything it does runs locally too. A newer push
@@ -715,8 +683,7 @@ itos`, before any other step calls it. `tools/selftest/go-dogfood.ts`
   that is static (its own `cost: static`, else a pattern of
   `ci.cost.static`: `matchesStatic` in `config.ts`, which `config
 check`'s written-order rule reads too); then the late steps (the whole unit suite, the Go
-  packages' unit tests, the audit, the conformance corpus, the Go build against the
-  whole corpus and every feature, T-007); then **one run of the features** over the smoke
+  packages', the audit, the conformance corpus against `tools/bin/itos`, T-007); then **one run of the features** over the smoke
   set (of the kind the `tests:` step names; a CI without one reads none), the scenarios the `Scenarios:` footers name and the subsets of the
   tasks the ledger footers (`Task:`) name; then the named tasks' late checks. A task's checks
   keep their written order. A check a step has just done is skipped
@@ -736,8 +703,9 @@ check`'s written-order rule reads too); then the late steps (the whole unit suit
   and no features.
 - **The nightly** (`.github/workflows/nightly.yml`, at 11:44 UTC on `main` or
   by hand) runs `itos ci run --nightly`: `ci.nightly.steps` in written order,
-  here every feature, then the gates self-test, then the static checks of every
-  done task. That last is the step `{ tasks: done, cost: static }`
+  here every feature, then the gates self-tests (`gates.ts`, `go-hooks.ts`),
+  the Go release build (`go-release.ts`) and the config's schema
+  (`go-schema.ts`), then the static checks of every done task. That last is the step `{ tasks: done, cost: static }`
   (`nightlyPlan` in `ci-plan.ts`): the checks of each task whose work item is
   `done` in the registry (`itemStatuses`, the status the commit-msg hook calls
   a red check a regression by), in cost order where the step is written, only
@@ -752,13 +720,19 @@ check`'s written-order rule reads too); then the late steps (the whole unit suit
   the open one with the failing scenarios (go test's `--- FAIL:
 TestFeatures/…` lines); a green run closes it.
 - **The self-tests** (`tools/selftest/`) prove the gates rather than the code:
-  `gates.ts` runs the real hooks in a scratch worktree and shows that they run
-  only what a change reaches and that CI's steps catch what they leave out
-  (a refactor that changes what itos prints, in a module no unit test
-  imports, passes both hooks and fails the push's features step);
-  `ci-scope.ts`, `ci-range.ts` and `features-scope.ts` prove the scope, the
-  range and that the plan's features command runs exactly the scenarios it
-  claims, by go test's own record of what it ran (`-json`).
+  `gates.ts` runs the real hooks in a scratch worktree and shows that CI runs
+  the whole unit suite and the features they leave to it, and that CI's steps
+  catch what they let through (a refactor that changes what itos prints, in a
+  Go package whose unit tests do not read it, passes both hooks and fails the
+  push's features step); `go-hooks.ts` that the hooks run exactly the Go unit
+  tests a change reaches, which the nightly runs beside it;
+  `ci-scope.ts` and `features-scope.ts` prove the scope and that the plan's
+  features command runs exactly the scenarios it claims, by go test's own
+  record of what it ran (`-json`). They ask `tools/bin/itos` for the plan and
+  the tests (`ci plan --json`, `ci scope`, `tests list --json`), so they hold
+  the binary to this repository's config; the github provider's choice of
+  run, which no command reaches without a network, is `TestFirstGreen` in
+  `internal/providers`.
   `config-gate.ts` proves itos's data is checked where it is guarded: in a
   scratch worktree, running both hooks as git does, the commit-msg hook
   rejects a commit staging a ledger with a misspelt key and passes a sound
@@ -766,12 +740,7 @@ TestFeatures/…` lines); a green run closes it.
   CI's plan runs `itos config check` for a range touching
   the registry or the ledger and for a prose-only range touching
   `CONTRIBUTORS.md`. It and `gates.ts` build their worktree with
-  `scratch.ts`.
-  `release.ts` proves the tarball rather than the source: it packs (or takes
-  `--tarball`, the one a release publishes), installs it with
-  `npm install --offline` and an empty cache into a scratch project, which
-  must then hold itos alone, and runs the conformance corpus and every
-  feature against the installed bin. `release-notes.ts` proves what a command
+  `scratch.ts`. `release-notes.ts` proves what a command
   can of a release's notes: the file is there, its last `##` section is
   "Upgrading" with the pin line naming this version's tarball, and every
   config key whose default differs between the last release (its tarball
@@ -783,5 +752,5 @@ TestFeatures/…` lines); a green run closes it.
   ignore; `-- --task <id>` and `-- --scenario <id>` print one footer's
   commits.
 - **Agents' worktrees** live under `.claude/worktrees/`, ignored by git, and
-  left out of the unit tests, the linter and the formatter: their files are
+  left out of the linter and the formatter: their files are
   theirs, often half-written, and never this checkout's.

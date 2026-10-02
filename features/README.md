@@ -20,12 +20,13 @@ Never here:
 
 The steps (`*_test.go`, Go, run by [godog](https://github.com/cucumber/godog))
 treat itos as a black box. Each scenario builds a scratch git repository in a
-temporary folder, runs the binary `ITOS_BIN` names in it (`tools/bin/itos-ts`, the
-TypeScript, by default until T-062 removes it, relative to the repository's
-root) and reads its exit code, its
-output and the files it leaves. A step never imports itos's code, reads its
-source or calls anything but its command line: the same feature files judge
-the TypeScript v0 and the Go port, unchanged, which is what they are for.
+temporary folder, runs the binary `ITOS_BIN` names in it (`tools/bin/itos` by
+default, the Go binary built from this tree on demand, relative to the
+repository's root) and reads its exit code, its output and the files it
+leaves. A step never imports itos's code, reads its source or calls anything
+but its command line, so the same feature files judge any implementation
+unchanged, which is what they are for: they judged the TypeScript v0 and the
+Go port side by side until the TypeScript left (T-062).
 
 Commands run in a clean environment: no `GIT_*`, `ITOS_*`, `GITHUB_*` or
 `CI` variable of the caller's, no global or system git config, a fixed author.
@@ -38,8 +39,7 @@ footer rules in such a scenario are itos's, not a commitlint plugin's.
 ```sh
 go test ./features -count=1                          # every live scenario
 go test ./features -count=1 -scenarios='^@ID-SINCE-' # the live scenarios with a matching tag
-ITOS_BIN=/path/to/itos go test ./features -count=1   # another implementation
-ITOS_BIN=tools/bin/itos go test ./features -count=1  # the Go binary the hooks run
+ITOS_BIN=/path/to/itos go test ./features -count=1   # another build, a release's binary say
 tools/bin/itos tests smoke run scenario              # exactly the smoke set
 ```
 

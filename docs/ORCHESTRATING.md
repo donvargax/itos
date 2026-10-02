@@ -315,8 +315,8 @@ themselves"): the commit hooks enforce format, lint, types, the unit tests the
 change reaches, the audit, and commit footers and scope; the pre-push hook
 runs the unit tests the pushed commits reach; CI re-checks every pushed
 commit against the commit rules, so a commit that skipped the hooks turns it
-red, and runs the plan `itos.yaml`'s `ci` states (the whole unit suite with
-coverage, the build, the audit, the checks of every task the pushed commits
+red, and runs the plan `itos.yaml`'s `ci` states (the whole unit suite, the
+audit, the conformance corpus, the checks of every task the pushed commits
 name, and one run of the features over the smoke set and what the commits
 name); every feature runs nightly. Don't re-run what these cover. Check only:
 
