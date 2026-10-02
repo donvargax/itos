@@ -9,9 +9,9 @@ import (
 func success() *string { s := "success"; return &s }
 
 // The github provider's choice of run, which no conformance case reaches
-// without a network (tools/selftest/ci-range.ts holds the TypeScript's to the
-// same list): the newest success, whatever the order and however many failed,
-// cancelled or running runs are newer.
+// without a network: the newest success, whatever the order and however many
+// failed, cancelled or running runs are newer. T-008 runs it, in place of
+// tools/selftest/ci-range.ts, which held the TypeScript to the same list.
 func TestFirstGreen(t *testing.T) {
 	failure, cancelled := "failure", "cancelled"
 	runs := []WorkflowRun{
@@ -29,7 +29,7 @@ func TestFirstGreen(t *testing.T) {
 	}
 }
 
-// The request the TypeScript makes, and every failure read as no green run.
+// The request the provider makes, and every failure read as no green run.
 func TestLastGreenRun(t *testing.T) {
 	var asked *http.Request
 	answer, status := `{"workflow_runs":[{"head_sha":"abc","conclusion":"success","created_at":"x"}]}`, 200

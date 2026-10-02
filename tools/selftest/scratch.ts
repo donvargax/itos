@@ -15,6 +15,36 @@ export const outsideEnv = () =>
 		Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_") && k !== "CI"),
 	) as NodeJS.ProcessEnv;
 
+// tools/bin/itos, the Go binary, run in cwd (the checkout by default): its
+// stdout, or an error naming the command and what it printed.
+export function itos(args: string[], cwd = resolve(".")): string {
+	const result = spawnSync(join(cwd, "tools/bin/itos"), args, {
+		cwd,
+		env: outsideEnv(),
+		encoding: "utf8",
+		maxBuffer: 64 * 1024 * 1024,
+	});
+	if (result.status !== 0)
+		throw new Error(
+			`tools/bin/itos ${args.join(" ")} exited ${result.status ?? result.signal}:\n${result.stdout}${result.stderr}`,
+		);
+	return result.stdout;
+}
+
+// What `itos ci plan --json` says a CI run does (its plan contract), as much
+// of it as the self-tests read.
+export interface Plan {
+	prose: boolean;
+	steps: string[];
+	tasks: string[];
+	order: { step?: string; check?: { task: string; command?: string }; action?: string }[];
+}
+export const ciPlan = (args: string[], cwd?: string) =>
+	JSON.parse(itos(["ci", "plan", ...args, "--json"], cwd)) as Plan;
+// The plan's run of the features, the step that starts with the kind's whole run.
+export const featuresStep = (plan: Plan, whole = "go test ./features -count=1") =>
+	plan.steps.find((step) => step.startsWith(whole));
+
 export interface Run {
 	status: number;
 	output: string;

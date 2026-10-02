@@ -12,18 +12,31 @@
 //     self-test is left to the nightly;
 //   - the smoke rule holds today.
 //
+// The plan, the scenarios, the smoke set and the rule are tools/bin/itos's
+// answers (`ci plan --json`, `tests list`, `tests smoke ids` and `check`), the
+// feature files are read here only to name go test's subtests.
+//
 // What the plan does whatever the repository (the cost order, the written
 // order, the prose shortcut, merging, covering, the smoke rule's failures) is
 // tools/itos/conformance/plans.yaml's and smoke.yaml's.
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ciPlan, namedTestsStep, planFor } from "../itos/ci-plan.ts";
-import { smokeIds, smokeProblems } from "../itos/smoke-rule.ts";
-import { featureTexts, parseFeature } from "../itos/gherkin.ts";
-import { kind, listTests, recognize } from "../itos/tests.ts";
+import { parse } from "yaml";
+import { ciPlan, featuresStep, itos } from "./scratch.ts";
+
+// The scenario kind, as itos.yaml states it.
+interface Kind {
+	root: string;
+	id: string;
+	tag_prefix: string;
+	run: { whole: string };
+	recognize: { command: string }[];
+}
+const kind = (parse(readFileSync("itos.yaml", "utf8")) as { tests: { scenario: Kind } }).tests
+	.scenario;
 
 // Hooks export GIT_DIR and friends; the steps' own scratch repositories clean
 // their environment, the commits made here need it clean too.
@@ -51,14 +64,30 @@ const range = (message: string) => {
 };
 
 // Each scenario's ID by its subtest's name: go test names a subtest after the
-// scenario, its spaces turned to underscores.
-const { root = "features", id = "", tag_prefix = "@", wip_tag = "@wip" } = kind("scenario");
+// scenario, its spaces turned to underscores; the ID is the tag above it.
+const idTag = new RegExp(`^${kind.tag_prefix}(${kind.id})$`);
 const byName = new Map<string, string>();
-for (const text of Object.values(featureTexts("worktree", root)))
-	for (const [scenario, block] of parseFeature(text, { id, tag_prefix, wip_tag }).blocks) {
-		const name = /^\s*Scenario(?: Outline)?:\s*(.*?)\s*$/m.exec(block.body)?.[1] ?? "";
-		byName.set(`TestFeatures/${name.replaceAll(" ", "_")}`, scenario);
+for (const file of readdirSync(kind.root).filter((f) => f.endsWith(".feature"))) {
+	let tags: string[] = [];
+	for (const line of readFileSync(join(kind.root, file), "utf8").split("\n")) {
+		const text = line.trim();
+		if (text.startsWith(kind.tag_prefix)) tags.push(...text.split(/\s+/));
+		const name = /^Scenario(?: Outline)?:\s*(.*?)\s*$/.exec(text)?.[1];
+		if (name === undefined) continue;
+		const id = tags.map((t) => idTag.exec(t)?.[1]).find(Boolean);
+		if (id) byName.set(`TestFeatures/${name.replaceAll(" ", "_")}`, id);
+		tags = [];
 	}
+}
+// Whether a task check is a run of the features the plan merges into its one
+// run: one of the kind's recognize templates, {pattern} standing for anything.
+const recognized = (command: string) =>
+	kind.recognize.some(({ command: template }) => {
+		const [before, after] = template.split("{pattern}");
+		return after === undefined
+			? command === template
+			: command.startsWith(before!) && command.endsWith(after);
+	});
 
 // The scenario IDs a command runs, as go test reports them.
 function ran(command: string): Set<string> {
@@ -85,13 +114,12 @@ const same = (a: Set<string>, b: Set<string>, what: string) => {
 };
 
 try {
-	const whole = kind("scenario").run?.whole ?? "";
-	const live = new Set(
-		listTests("scenario")
-			.tests.filter((t) => t.live)
-			.map((t) => t.id),
-	);
-	const smoke = new Set(smokeIds());
+	const whole = kind.run.whole;
+	const { tests } = JSON.parse(itos(["tests", "list", "scenario", "--json"])) as {
+		tests: { id: string; live: boolean }[];
+	};
+	const live = new Set(tests.filter((t) => t.live).map((t) => t.id));
+	const smoke = new Set(itos(["tests", "smoke", "ids", "scenario"]).split("\n").filter(Boolean));
 	same(ran(whole), live, "the whole run is not every live scenario");
 	same(
 		ran("tools/bin/itos tests smoke run scenario --"),
@@ -102,55 +130,55 @@ try {
 	// A range naming one scenario: the smoke set and it, one outside the smoke
 	// set.
 	const named = [...live].find((x) => !smoke.has(x)) ?? [...live].at(-1)!;
-	let plan = planFor(head, range(`feat: name a scenario\n\nScenarios: @${named}\n`));
-	const step = namedTestsStep(plan);
+	let plan = ciPlan([head, range(`feat: name a scenario\n\nScenarios: @${named}\n`)]);
+	const step = featuresStep(plan, whole);
 	assert.ok(step, "a push naming a scenario ran no features step");
 	same(ran(step), new Set([...smoke, named]), `a range naming @${named}`);
 
 	// The nightly, and a range that can't be read, run every scenario.
-	assert.deepEqual(ciPlan({ known: false, nightly: true }).steps, [
+	const nightly = ciPlan(["--nightly"]).steps;
+	assert.equal(nightly[0], whole, `the nightly's first step is not every scenario: ${nightly[0]}`);
+	assert.ok(
+		nightly.includes("node tools/selftest/gates.ts"),
+		"the nightly runs no gates self-test",
+	);
+	assert.equal(
+		featuresStep(ciPlan(["", head]), whole),
 		whole,
-		"node tools/selftest/gates.ts",
-	]);
-	assert.equal(namedTestsStep(planFor("", head)), whole, "an unread range should run everything");
+		"an unread range should run everything",
+	);
 
 	// A range naming tasks whose checks are runs of the features and CI steps
 	// (T-016: the smoke check and the corpus, both steps, the smoke run and this
 	// self-test; T-009: the gates self-test, the nightly's).
-	plan = planFor(head, range("test: name two tasks\n\nTask: T-016, T-009\n"));
+	plan = ciPlan([head, range("test: name two tasks\n\nTask: T-016, T-009\n")]);
 	const runs = plan.steps.filter((s) => s.startsWith(whole));
 	assert.equal(runs.length, 1, `expected one go test run, got:\n${runs.join("\n")}`);
 	const steps = new Set(plan.steps);
-	for (const planned of plan.checks) {
-		const command = planned.check.run ?? "";
-		const expected = recognize("scenario", command, [...smoke])
+	const checks = plan.order.flatMap((o) => (o.check ? [{ ...o.check, action: o.action }] : []));
+	for (const check of checks) {
+		const command = check.command ?? "";
+		const expected = recognized(command)
 			? "merged"
 			: steps.has(command)
 				? "covered"
 				: command === "node tools/selftest/gates.ts"
 					? "nightly"
 					: "run";
-		const got = planned.merged
-			? "merged"
-			: planned.coveredBy
-				? "covered"
-				: planned.nightly
-					? "nightly"
-					: "run";
-		assert.equal(got, expected, `${planned.task}'s \`${command}\` should be ${expected}`);
+		assert.equal(check.action, expected, `${check.task}'s \`${command}\` should be ${expected}`);
 	}
 	assert.ok(
-		plan.checks.some((c) => c.task === "T-016" && c.merged),
+		checks.some((c) => c.task === "T-016" && c.action === "merged"),
 		"T-016's smoke run is not merged into the features step",
 	);
 	assert.ok(
-		plan.checks.some((c) => c.task === "T-009" && c.nightly),
+		checks.some((c) => c.task === "T-009" && c.action === "nightly"),
 		"a push runs the gates self-test",
 	);
 	same(ran(runs[0]!), smoke, "the merged run");
 
 	// The smoke rule holds today.
-	assert.deepEqual(smokeProblems(), []);
+	itos(["tests", "smoke", "check", "scenario"]);
 } finally {
 	rmSync(scratch, { recursive: true, force: true });
 }

@@ -15,17 +15,19 @@
 //     renamed outside feat and fix, and a header commitlint rejects, and lets a
 //     sound commit through;
 //   - what the hooks leave out fails CI's own steps: a refactor that changes
-//     what itos prints, in a module no unit test imports, passes both hooks and
-//     fails the push's features step, whose smoke set reads that output.
+//     what itos prints, in a Go package whose unit tests do not read that
+//     line, passes both hooks and fails the push's features step, whose smoke
+//     set reads that output from the scratch copy's tools/bin/itos, rebuilt
+//     from the changed source.
+//
+// The plan and the steps are the scratch copy's `tools/bin/itos ci plan --json`.
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { namedTestsStep, planFor } from "../itos/ci-plan.ts";
-import { STEPS, tasksIn } from "../itos/ci-scope.ts";
-import { hookGates, scratchRepo } from "./scratch.ts";
+import { ciPlan, featuresStep, hookGates, scratchRepo } from "./scratch.ts";
 
 const repo = scratchRepo("gates-selftest");
-const { root, env, sh, git, edit, commit } = repo;
+const { root, dir, env, sh, git, edit, commit } = repo;
 
 // How many unit test files a run executed (vitest's summary line; without a
 // terminal it names only the files that failed), and the ones that failed.
@@ -55,8 +57,9 @@ try {
 	env.FALLOW_AUDIT_BASE = base;
 
 	const features = "go test ./features -count=1";
+	const steps = ciPlan(["--whole"], dir).steps;
 	for (const step of [features, "vp run test:coverage"])
-		expect(STEPS.includes(step), `CI no longer runs \`${step}\`, which the hooks leave to it`);
+		expect(steps.includes(step), `CI no longer runs \`${step}\`, which the hooks leave to it`);
 
 	// 1. A change to a leaf module runs the tests that reach it and not the
 	// whole suite, on both gates.
@@ -127,20 +130,22 @@ try {
 		"pre-push ran the checks of a task a footer names",
 	);
 	// ...and CI finds the task in the pushed range.
+	const named = ciPlan([base, sha], dir).tasks;
 	expect(
-		tasksIn(base, sha).includes("T-007"),
-		`CI did not find T-007 in the pushed range: ${tasksIn(base, sha).join(", ") || "none"}`,
+		named.includes("T-007"),
+		`CI did not find T-007 in the pushed range: ${named.join(", ") || "none"}`,
 	);
 
 	// The commit-msg hook, through its shim. A docs commit may not touch itos;
 	// a test commit may not rename a live scenario; commitlint rejects a header
 	// without a type; a docs commit with its footer passes.
 	git(`reset -q --hard ${base}`);
-	edit(module, moduleLine, `// gates self-test: a docs commit\n${moduleLine}`);
-	run = commitMsg("a docs commit touching itos", "docs: touch the module\n\nTask: T-007\n");
+	const goSource = "internal/version/version.go";
+	edit(goSource, "\npackage version\n", "\n// gates self-test: a docs commit\npackage version\n");
+	run = commitMsg("a docs commit touching itos", "docs: touch the package\n\nTask: T-007\n");
 	expect(
-		run.status === 1 && run.output.includes(`docs commits may not touch ${module}`),
-		`commit-msg did not reject a docs commit touching ${module}:\n${run.output}`,
+		run.status === 1 && run.output.includes(`docs commits may not touch ${goSource}`),
+		`commit-msg did not reject a docs commit touching ${goSource}:\n${run.output}`,
 	);
 	git(`reset -q --hard ${base}`);
 	edit(
@@ -164,16 +169,17 @@ try {
 	expect(run.status === 0, `commit-msg rejected a sound docs commit:\n${run.output}`);
 
 	// 5. What the hooks leave out, CI's steps catch. A refactor that changes
-	// what verify prints, in a module no unit test imports, passes both hooks...
+	// what verify prints, in a Go package whose unit tests do not read that
+	// line, passes both hooks...
 	git(`reset -q --hard ${base}`);
-	edit("tools/itos/verify-commits.ts", "commits pass the commit rules", "commits pass");
+	edit("internal/cli/verify.go", "commits pass the commit rules", "commits pass");
 	run = preCommit("a refactor that changes what itos prints");
 	expect(run.status === 0, `pre-commit should not see the changed output:\n${run.output}`);
 	sha = commit("refactor: shorten the summary");
 	run = prePush("that refactor", base, sha);
 	expect(run.status === 0, `pre-push should leave the features to CI:\n${run.output}`);
 	// ...and fails a push's features step, whose smoke set reads that line.
-	const step = namedTestsStep(planFor(base, sha)) ?? "";
+	const step = featuresStep(ciPlan([base, sha], dir)) ?? "";
 	expect(
 		step.startsWith(`${features} -scenarios=`),
 		`a push's features step is not a selection: ${step}`,
