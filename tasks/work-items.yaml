@@ -709,7 +709,7 @@ items:
     title: ledger.group.label read, or dropped
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-4]
     kind: slice
     refs: [features/config.feature]
@@ -829,6 +829,20 @@ items:
       kind whose adapter is a command reads its wip_tag nowhere (the adapter says which tests are
       live), yet config check accepts the key there, against "every key it accepts is one a tool
       reads" (config.feature). It could refuse it on such a kind, as slice 4 refused unread keys.
+
+  - id: p1-group-label-flag-word
+    title: config check refuses a ledger.group.label that cannot be itos task's flag
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-21]
+    kind: idea
+    why: >
+      Found in slice 21: itos task takes --<label> as a group flag, but config check accepts any
+      string as the label. One with a space can never be typed as a flag, and one that is another
+      of the task runner's flags (skip, pending) makes that flag read as a group, so --skip T-005
+      selects nothing. The v0.6.0 notes ask for one word that is no other flag; config check could
+      refuse the rest, naming the key.
 
   - id: p1-registry-beside-ledger
     title: work.registry's default follows the ledger's folder, as PLAN says

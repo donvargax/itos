@@ -105,6 +105,11 @@ the commands, `itos <command> --help` each one). The code is
   ledger but not a ledger file, since it does not match `ledger.files`), the people
   `CONTRIBUTORS.md` (`work.people`), the smoke set `features/smoke.yaml`
   (`tests.scenario.smoke`). `itos config check` validates all of them.
+  A ledger group is called by `ledger.group.label` (`phase` by default) in
+  what the tools print (`work check`'s messages, `itos task`'s usage), and
+  `itos task` takes `--<label>` beside `--group` and `--phase`; the rule IDs,
+  the registry's item key `phase` and `work.groups_key` are data, and keep
+  their names whatever the label.
   The ledger's folder missing is one config error, `ledger-folder-missing`,
   exit 2: the ledger's loader (`ledgerFiles` in `config.ts`) reports it for
   every command that reads the ledger, and `config check` as its one problem;
