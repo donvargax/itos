@@ -255,10 +255,15 @@ items:
     status: todo
     depends_on: [T-021]
     kind: idea
+    deferred: until the Go port, the user's call
     why: >
       The hooks and CI run the working tree's itos, so a commit that breaks a gate can approve
       itself. CI also running verify and the conformance corpus with the last released itos closes
       that; a release that changes a rule on purpose says so in its notes.
+      Deferred by the user: the last release's itos fails on every config key added since it and
+      on every intentional change the corpus records, so it would be red between releases. Once
+      the Go port exists, the released TypeScript itos and the Go one can judge each other on the
+      same corpus and features, which answers the same worry.
 
   - id: T-032
     title: The released package's manifest holds only what a consumer needs
@@ -844,18 +849,22 @@ items:
       selects nothing. The v0.6.0 notes ask for one word that is no other flag; config check could
       refuse the rest, naming the key.
 
-  - id: p1-registry-beside-ledger
+  - id: slice-22
     title: work.registry's default follows the ledger's folder, as PLAN says
     phase: 1
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: [slice-18]
-    kind: idea
+    kind: slice
+    refs: [features/work.feature]
     why: >
       Found in slice 18: work.registry defaults to tasks/work-items.yaml whatever folder
       ledger.files names, while PLAN.md calls the default "beside the ledger". A project whose
       ledger is in work/ gets a registry looked for in tasks/. Either the default follows the
       ledger's folder (a changed default, for the release notes) or PLAN says tasks/.
+      The user's call: the default follows the ledger, <ledger folder>/work-items.yaml, a changed
+      default for the release notes; nothing changes for a ledger in tasks/. Was the idea
+      p1-registry-beside-ledger. @ID-WORK-04.
 
   - id: slice-10
     title: The footer rules run by itos beside the header lint

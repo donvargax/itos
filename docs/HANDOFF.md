@@ -42,14 +42,13 @@ into those notes as it lands, from its report.
 ## Next
 
 1. **The rest of the config contract, before the port.** Slices 18 to 21
-   are done. Left, ideas to specify first:
-   - `p1-verify-with-last-release: CI verifies with the last released itos
-too`, the coordinator's to specify;
-   - `p1-registry-beside-ledger: work.registry's default follows the
-ledger's folder, as PLAN says`, and `p1-config-names-from-config` (what
-     slice 18 left: `scenario-moves.ts`, a script the config runs): each
-     waits on a call the user has not made yet. The coordinator recommended
-     following the ledger, and shipping scenario-moves as an itos command.
+   are done. The user decided the open calls on 2026-10-02:
+   - `slice-22: work.registry's default follows the ledger's folder`,
+     specified (`@ID-WORK-04`), with an agent;
+   - `p1-config-names-from-config`: ship `scenario-moves.ts` as an itos
+     command, reading the exempt types from the range check's
+     `except_types`; to specify next;
+   - `p1-verify-with-last-release`: deferred until the Go port.
    - small follow-ups the slices left: `p1-group-label-flag-word`,
      `p1-wip-tag-command-kind`, `p1-ledger-id-default`,
      `p1-own-recognize-for-itos`.

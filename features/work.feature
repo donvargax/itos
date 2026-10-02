@@ -31,3 +31,13 @@ Feature: The work registry
     When itos checks the work registry
     Then itos exits with code 1
     And its output says "tasks/work-items.yaml"
+
+  # The default is beside the ledger: in the folder ledger.files names, not
+  # tasks/ whatever the ledger's folder (the user's call, after slice 18).
+  @ID-WORK-04 @slice-22 @wip
+  Scenario: Without work.registry, itos reads the registry beside a ledger kept in another folder
+    Given the ledger's files are "work/phase-{group}.yaml"
+    And the work registry at "work/work-items.yaml" has the item "T-001" with the status "doing"
+    When itos checks the work registry
+    Then itos exits with code 0
+    And its output says "work/work-items.yaml: sound"
