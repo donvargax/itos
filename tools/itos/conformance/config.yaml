@@ -623,7 +623,7 @@ cases:
   - name: the defaults the tools take when a key is left out
     argv: [config, check, --print-defaults]
     exit: 0
-    stdout_has: ["registry: tasks/work-items.yaml", "timeout: 600", "adapter: gherkin", "hint: pass --as <handle>", "check_timeout: 60", "bin: tools/bin/itos"]
+    stdout_has: ["registry: tasks/work-items.yaml", "timeout: 600", "adapter: gherkin", "hint: pass --as <handle>", "check_timeout: 60", "bin: tools/bin/itos", "label: phase"]
   - name: the defaults as --json
     argv: [config, check, --print-defaults, --json]
     exit: 0
@@ -635,6 +635,7 @@ cases:
           - -c
         ledger:
           group:
+            label: phase
             pattern: "[^/]+"
             numeric: false
           check:

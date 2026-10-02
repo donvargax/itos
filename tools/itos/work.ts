@@ -14,7 +14,7 @@
 //
 // Every problem carries a rule id and a fix for `--json`.
 import { parse } from "yaml";
-import { config, type PeopleConfig } from "./config.ts";
+import { config, groupLabel, type PeopleConfig } from "./config.ts";
 import { emit, messages, type Output, problem, type Problem, TEXT } from "./problem.ts";
 import { type Answer, identityProvider, people } from "./providers.ts";
 import { current } from "./source.ts";
@@ -199,6 +199,8 @@ export function registryIssues(
 	const twice = items.filter((item, i) => items.findIndex((o) => o.id === item.id) !== i);
 	const unlisted = items.filter((item) => !(String(item.phase) in phases));
 	const strangers = Object.entries(phases).filter(([, o]) => o !== null && !handles.has(o));
+	// A group, as the messages name it: by ledger.group.label.
+	const group = (g: string | number) => `${groupLabel()} ${g}`;
 	return [
 		...twice.map((item) =>
 			problem(
@@ -210,16 +212,16 @@ export function registryIssues(
 		...unlisted.map((item) =>
 			problem(
 				"work-unknown-phase",
-				`${item.id}: phase ${item.phase} is not listed`,
-				`add phase ${item.phase} to ${groupsKey()}: in ${file}, or move ${item.id} to a listed one`,
+				`${item.id}: ${group(item.phase)} is not listed`,
+				`add ${group(item.phase)} to ${groupsKey()}: in ${file}, or move ${item.id} to a listed one`,
 			),
 		),
 		...items.flatMap((item) => itemIssues(item, byId, handles)),
 		...strangers.map(([phase, owner]) =>
 			problem(
 				"work-unknown-phase-owner",
-				`phase ${phase}: owner "${owner}" is not in ${listedIn()}`,
-				`add ${owner} to ${listedIn()}, or set phase ${phase}'s owner to one of its logins`,
+				`${group(phase)}: owner "${owner}" is not in ${listedIn()}`,
+				`add ${owner} to ${listedIn()}, or set ${group(phase)}'s owner to one of its logins`,
 			),
 		),
 		...cycles(byId, file),

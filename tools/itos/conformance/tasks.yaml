@@ -1,7 +1,8 @@
 # The ledger and its checks (`itos task`, `task list`):
 # checks run in written order, a `fails:` one must fail, `after: push` waits
 # for a remote branch that holds HEAD, a check's timeout; verbose for one task,
-# one status line per task; --group (or --phase), --skip, --pending; unknown
+# one status line per task; --group (or --phase, or --<ledger.group.label>),
+# the usage naming the label's flag; --skip, --pending; unknown
 # IDs (1) and no match (2); a missing ledger folder, one problem naming it (2);
 # --json with each check's result. One invocation
 # runs each check (its command, whitespace collapsed, and its timeout) once,
@@ -137,6 +138,39 @@ cases:
         $ true
 
       pending  T-004  ci       Waits on the push
+  - name: --<ledger.group.label> is --group
+    argv: [task, --milestone, "2", --skip, T-005]
+    files: &milestone
+      itos.yaml: |
+        version: 1
+        ledger:
+          files: "tasks/phase-{group}.yaml"
+          group: { label: milestone, pattern: "\\d+", numeric: true }
+          id: "T-\\d+"
+        commits: { types: [build, ci, docs, test] }
+    exit: 0
+    stdout: |
+
+      T-004 Waits on the push
+        $ true
+
+      pending  T-004  ci       Waits on the push
+  - name: --phase is --group whatever the label
+    argv: [task, --phase, "2", --skip, T-005]
+    files: *milestone
+    exit: 0
+    stdout: |
+
+      T-004 Waits on the push
+        $ true
+
+      pending  T-004  ci       Waits on the push
+  - name: no task matches, the usage naming the label's flag
+    argv: [task, --milestone, "7"]
+    files: *milestone
+    exit: 2
+    stderr: |
+      No matching tasks. Usage: itos task <id>… | --group|--milestone <g> [--skip <ids>] | --pending
   - name: --pending shows the tasks not done
     argv: [task, --pending, --skip, "T-005,T-002"]
     exit: 0
@@ -153,7 +187,7 @@ cases:
     argv: [task, --group, "7"]
     exit: 2
     stderr: |
-      No matching tasks. Usage: itos task <id>… | --group <g> [--skip <ids>] | --pending
+      No matching tasks. Usage: itos task <id>… | --group|--phase <g> [--skip <ids>] | --pending
   - name: a task run with the ledger folder missing is one problem naming it, exit 2
     argv: [task, T-001]
     files: { tasks: null }
@@ -250,6 +284,13 @@ cases:
           fix: "create tasks with the ledger's files (ledger.files is tasks/phase-{group}.yaml), or point ledger.files at the folder that holds them"
   - name: task list of a group
     argv: [task, list, --group, "2"]
+    exit: 0
+    stdout: |
+      no item  T-004  2   ci       Waits on the push
+      no item  T-005  2   test     A check past its timeout
+  - name: task list of a group by the label's flag
+    argv: [task, list, --milestone, "2"]
+    files: *milestone
     exit: 0
     stdout: |
       no item  T-004  2   ci       Waits on the push

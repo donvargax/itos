@@ -1,8 +1,9 @@
 # The work registry (`itos work`, `work check`):
 # what a person can start, what nobody owns, what waits and on what, ideas and
 # deferred items apart; every problem `work check` finds, with its rule and
-# fix, the groups' owners under work.groups_key and the statuses
-# work.statuses lists; the people a registry's owners come from (the All Contributors table,
+# fix, a group called by ledger.group.label, the groups' owners under
+# work.groups_key and the statuses work.statuses lists; the people a registry's
+# owners come from (the All Contributors table,
 # an .all-contributorsrc, a YAML list); and who a session works for (--as, or
 # the identity provider: a command, none, or gh, faked on the PATH).
 files:
@@ -361,6 +362,38 @@ cases:
         - rule: work-unknown-phase-owner
           message: 'phase 3: owner "z" is not in people.yaml'
           fix: add z to people.yaml, or set phase 3's owner to one of its logins
+  - name: a group called by ledger.group.label in the messages and fixes
+    argv: [work, check]
+    files: &labelled
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { label: milestone } }
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+      work-items.yaml: |
+        phases: { 1: a, 3: z }
+        items:
+          - { id: p, title: P, phase: 2, owner: a, status: todo }
+    exit: 1
+    stderr: |
+      p: milestone 2 is not listed
+      milestone 3: owner "z" is not in people.yaml
+  - name: the same as --json, the rule IDs as they are
+    argv: [work, check, --json]
+    files: *labelled
+    exit: 1
+    json:
+      schema: 1
+      file: work-items.yaml
+      sound: false
+      problems:
+        - rule: work-unknown-phase
+          message: "p: milestone 2 is not listed"
+          fix: "add milestone 2 to phases: in work-items.yaml, or move p to a listed one"
+        - rule: work-unknown-phase-owner
+          message: 'milestone 3: owner "z" is not in people.yaml'
+          fix: add z to people.yaml, or set milestone 3's owner to one of its logins
   - name: the people from an All Contributors table, by their profile links
     argv: [work, --as, a]
     files:

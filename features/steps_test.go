@@ -177,6 +177,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the nightly steps run the static checks of the done tasks$`, func() error { return w.nightlyTasksAre("static") })
 	sc.Step(`^work\.groups_key is "([^"]*)"$`, w.groupsKeyIs)
 	sc.Step(`^the work registry gives the group "([^"]*)" to the owner "([^"]*)" under "([^"]*)"$`, w.registryGroupOwner)
+	sc.Step(`^the work registry has the item "([^"]*)" in the group "([^"]*)", which it does not list$`, w.registryUnlistedGroup)
+	sc.Step(`^ledger\.group\.label is "([^"]*)"$`, func(label string) error {
+		return w.configSets("ledger.group.label", label)
+	})
 	sc.Step(`^a feature file "([^"]*)" with the live scenario "([^"]*)"$`, w.featureFile)
 	sc.Step(`^the smoke set lists only "([^"]*)"$`, w.smokeSetLists)
 	sc.Step(`^smoke\.every_file is (true|false)$`, w.smokeEveryFileIs)
@@ -202,6 +206,9 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^itos runs the pending tasks$`, func() error { return w.itos("task", "--pending") })
 	sc.Step(`^itos runs the tasks of the group "([^"]*)"$`, func(group string) error {
 		return w.itos("task", "--group", group)
+	})
+	sc.Step(`^itos runs the tasks of the group "([^"]*)" by the flag "([^"]*)"$`, func(group, flag string) error {
+		return w.itos("task", flag, group)
 	})
 	sc.Step(`^itos lists the tasks$`, func() error { return w.itos("task", "list") })
 	sc.Step(`^itos runs the nightly$`, func() error { return w.itos("ci", "run", "--nightly") })
@@ -895,6 +902,18 @@ func (w *world) registryGroupOwner(group, owner, key string) error {
 	return w.write(startingRegistry, fmt.Sprintf(
 		"%s: { %s: %s }\nitems:\n  - { id: W-1, title: One, phase: %s, owner: null, status: todo, depends_on: [] }\n",
 		key, group, owner, group))
+}
+
+// The registry at its default path lists no group under its groups key and
+// holds one unowned item of the group: an item whose group it does not list.
+func (w *world) registryUnlistedGroup(item, group string) error {
+	key := w.config.groupsKey
+	if key == "" {
+		key = "phases"
+	}
+	return w.write(startingRegistry, fmt.Sprintf(
+		"%s: {}\nitems:\n  - { id: %s, title: %s, phase: %s, owner: null, status: todo, depends_on: [] }\n",
+		key, item, item, group))
 }
 
 // A feature file under features/ with one live scenario, which the config's

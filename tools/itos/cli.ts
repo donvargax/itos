@@ -1,4 +1,5 @@
 // The task runner: `itos task <id>… | --group <g> [--skip <ids>] | --pending`
+// (`--phase` and `--<ledger.group.label>` are `--group` too)
 // and `itos task list` (main.ts dispatches them).
 //
 // One invocation runs each distinct check once: two checks are the same when
@@ -9,7 +10,7 @@
 // a check that would need a fresh run because a check above it in its own
 // task changed the tree reads the earlier result instead.
 import { type Runs, runCheck } from "./checks.ts";
-import { ledgerLayout, section } from "./config.ts";
+import { groupLabel, ledgerLayout, section } from "./config.ts";
 import { emit, type Output, TEXT } from "./problem.ts";
 import { current } from "./source.ts";
 import { loadTasks, type Task } from "./repo.ts";
@@ -40,7 +41,17 @@ const flag = (args: string[], name: string) => {
 	return i >= 0 ? args[i + 1] : undefined;
 };
 
-// The group a `--group` (or `--phase`) names, as the ledger's tasks hold it.
+// The flags that name a group: --group, --phase, and the label's own
+// (ledger.group.label), all the same.
+const groupFlags = () => [...new Set(["--group", "--phase", `--${groupLabel()}`])];
+
+// The group the first of them on the command line names, if any.
+const groupFlag = (args: string[]) =>
+	groupFlags()
+		.map((f) => flag(args, f))
+		.find((value) => value !== undefined);
+
+// The group a group flag names, as the ledger's tasks hold it.
 const groupOf = (value: string) => (ledgerLayout().numeric ? Number(value) : value);
 
 interface TaskOptions {
@@ -48,7 +59,7 @@ interface TaskOptions {
 }
 
 function select(args: string[], tasks: Task[]): Task[] {
-	const group = flag(args, "--group") ?? flag(args, "--phase");
+	const group = groupFlag(args);
 	const skip = new Set(flag(args, "--skip")?.split(",") ?? []);
 	let selected: Task[];
 	if (group !== undefined) selected = tasks.filter((t) => t.phase === groupOf(group));
@@ -60,7 +71,7 @@ function select(args: string[], tasks: Task[]): Task[] {
 // The IDs named on the command line that the ledger does not have.
 function unknownIds(args: string[], tasks: Task[]): string[] {
 	const pattern = new RegExp(`^(?:${section("ledger").id ?? "T-\\d+"})$`);
-	const values = new Set(["--group", "--phase", "--skip"].map((f) => flag(args, f)));
+	const values = new Set([...groupFlags(), "--skip"].map((f) => flag(args, f)));
 	return args.filter((a) => pattern.test(a) && !values.has(a) && !tasks.some((t) => t.id === a));
 }
 
@@ -74,8 +85,9 @@ export function runTasks(args: string[], { out = TEXT }: TaskOptions = {}): numb
 	if (unknown.length) return 1;
 	const selected = select(args, tasks);
 	if (selected.length === 0) {
+		const by = [...new Set(["--group", `--${groupLabel()}`])].join("|");
 		console.error(
-			"No matching tasks. Usage: itos task <id>… | --group <g> [--skip <ids>] | --pending",
+			`No matching tasks. Usage: itos task <id>… | ${by} <g> [--skip <ids>] | --pending`,
 		);
 		return 2;
 	}
@@ -110,7 +122,7 @@ export function runTasks(args: string[], { out = TEXT }: TaskOptions = {}): numb
 // the registry (the item whose id is the task's), or "no item"; it runs
 // nothing. With no registry where itos looks, it says so, naming the path.
 export function listTasks(args: string[], out: Output = TEXT): number {
-	const group = flag(args, "--group") ?? flag(args, "--phase");
+	const group = groupFlag(args);
 	const tasks = loadTasks().filter((t) => group === undefined || t.phase === groupOf(group));
 	const registry = registryPath();
 	if (!current().has(registry))

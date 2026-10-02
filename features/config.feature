@@ -149,7 +149,7 @@ Feature: Every key the config accepts is one itos reads
 
   # ledger.group.label names what a ledger's groups are (phases here). It was
   # accepted and read by nothing: the tools said "phase" whatever it was.
-  @ID-CONFIG-17 @slice-21 @wip
+  @ID-CONFIG-17 @slice-21
   Scenario: work check names a group the registry does not list by ledger.group.label
     Given ledger.group.label is "milestone"
     And the work registry has the item "T-001" in the group "7", which it does not list
@@ -157,7 +157,7 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 1
     And its output says "milestone 7 is not listed"
 
-  @ID-CONFIG-18 @slice-21 @wip
+  @ID-CONFIG-18 @slice-21
   Scenario: itos task takes a group by ledger.group.label as a flag
     Given ledger.group.label is "milestone"
     And the task "T-001" has the check "exit 0"

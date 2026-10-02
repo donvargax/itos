@@ -133,7 +133,12 @@ export interface Config {
 // default (ledger.id, a kind's root) is absent when the file leaves it out.
 export const DEFAULTS = {
 	shell: ["sh", "-c"],
-	ledger: { group: { pattern: "[^/]+", numeric: false }, check: { timeout: 600 } },
+	// What the ledger's groups are called in what the tools print, and the flag
+	// itos task takes a group by beside --group.
+	ledger: {
+		group: { label: "phase", pattern: "[^/]+", numeric: false },
+		check: { timeout: 600 },
+	},
 	commits: { reject_message: "Commit rejected:" },
 	tests: {
 		"<kind>": {
@@ -806,6 +811,10 @@ export function ledgerLayout(): { dir: string; file: RegExp; numeric: boolean } 
 		numeric: ledger.group.numeric,
 	};
 }
+
+// What a ledger group is called (ledger.group.label): the word the tools print
+// before a group, and the flag itos task takes one by beside --group.
+export const groupLabel = () => config().ledger.group.label;
 
 // The names in the ledger's folder. A project may configure a ledger before it
 // makes the folder: the folder missing is one config error naming it, exit 2 (a

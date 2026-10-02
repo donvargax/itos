@@ -48,9 +48,12 @@ ${GLOBAL}
 ${EXIT}`,
 
 	task: `Usage: itos task <id>… [--skip <ids>]
-       itos task --group <g> [--skip <ids>]   (--phase is the same)
+       itos task --group <g> [--skip <ids>]
        itos task --pending
        itos task list [--group <g>]
+
+--phase <g> and --<label> <g> are --group <g>, the label being the config's
+ledger.group.label (phase by default).
 
 Runs each task's done_when checks in written order: verbose (each command and
 its output) for one task, then one status line per task: done, pending (a check
@@ -81,10 +84,10 @@ Exit 1 when the registry is not sound, 3 when --as is not among the people.
 	"work check": `Usage: itos work check [<file>]
 
 Validates the work registry (the config's work.registry, tasks/work-items.yaml
-by default, or <file>): that it is there, duplicate IDs, unknown phases (the
-owners per phase under work.groups_key, phases by default), statuses (those
+by default, or <file>): that it is there, duplicate IDs, unknown groups (the
+owners per group under work.groups_key, phases by default), statuses (those
 work.statuses lists), kinds, owners and dependencies, cycles. Exit 1 on a
-problem.
+problem. The messages call a group by ledger.group.label (phase by default).
 
 --json: {"schema":1,"file","sound","problems":[{"rule","message","fix"?}]}`,
 
