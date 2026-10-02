@@ -324,7 +324,12 @@
     checksums.txt. tools/selftest/go-schema.ts generates it and proves it
     with a JSON Schema validator: this repository's itos.yaml and every
     config the corpus calls sound pass, and a misspelt key, a wrong type and
-    a value not allowed are refused. Closes p2-config-json-schema.
+    a value not allowed are refused. It is itos.schema.json, draft
+    2020-12; what it cannot say (version 1, the cross-checks: names that
+    refer to something, patterns that compile, commits.since a full SHA, a
+    step with exactly one of run, tests and tasks) it leaves to config check,
+    so a config it refuses is one config check refuses, which the check
+    proves over the whole corpus. Closes p2-config-json-schema.
   done_when:
     - run: node tools/selftest/go-schema.ts
       timeout: 600

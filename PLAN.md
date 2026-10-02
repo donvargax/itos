@@ -399,7 +399,8 @@ goes wrong.
 A release on a `v*` tag: for the Go binary, archives for linux and darwin on
 amd64 and arm64 and windows/amd64, each with the binary, `LICENSE` and
 `README.md` at its top level, named `itos-<version>-<os>-<arch>.tar.gz`
-(`.zip` for windows), plus `checksums.txt` and the config's JSON Schema. The
+(`.zip` for windows), plus `checksums.txt` and the config's JSON Schema,
+`itos.schema.json`, which an editor checks an `itos.yaml` against. The
 repository is public, so no download needs a token.
 
 A consumer commits an install script that pins the version and each

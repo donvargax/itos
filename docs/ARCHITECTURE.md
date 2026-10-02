@@ -533,13 +533,27 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   same build once per platform `PLAN.md` §10 lists, each binary packed with
   `LICENSE` and `README.md` at the top level of
   `itos-<version>-<os>-<arch>.tar.gz` (`.zip` for windows), and
-  `checksums.txt` in `sha256sum`'s format beside them, what the release
-  workflow will upload at v1.0.0. The archives are written with Node's
+  `itos.schema.json` (below) and `checksums.txt` in `sha256sum`'s format
+  beside them, naming the archives and the schema: what the release workflow
+  will upload at v1.0.0. The archives are written with Node's
   `zlib`, not the machine's tar or zip, with HEAD's commit time on every
   entry, so a commit rebuilt by the same Go toolchain gives the same bytes.
   `tools/selftest/go-release.ts` builds them into a scratch folder and reads
   them back with the system's `tar`, `unzip` and `sha256sum`; the nightly
   runs it (`ci.nightly.steps`), not every push.
+- **The config's JSON Schema** (`itos.schema.json`, draft 2020-12, for an
+  editor: `# yaml-language-server: $schema=<its release URL>` atop an
+  `itos.yaml`) is generated, never kept by hand: `tools/bin/config-schema`
+  (`go run`, from `build-go.ts`'s `buildSchema`) converts `config.Schema()`,
+  the schema table as exported data with each key's words (`about` in
+  `schema.go`), and lays `DefaultsFor(nil)` on it as `default`s, refusing a
+  default the schema has no key for. An object refuses an unknown key, as
+  config check does; what the schema cannot say (version 1, the cross-checks)
+  it leaves to config check, so it says less, never something different.
+  `tools/selftest/go-schema.ts` generates it and validates with ajv: this
+  repository's `itos.yaml` and the configs `config.yaml` calls sound pass,
+  every corpus config it refuses is one itos refuses, and a misspelt key, a
+  wrong type and a value not allowed are refused. The nightly runs it.
 - **The ported set is the whole suite.** `tools/selftest/go-port.ts` builds
   the binary into a scratch folder and runs the whole corpus through
   `run.ts --bin` and every feature as `go test ./features -count=1` with

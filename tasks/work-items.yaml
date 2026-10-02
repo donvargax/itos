@@ -618,7 +618,8 @@ items:
       listing of the schema's keys (config check --print-schema, say, which the Go port's JSON
       Schema gives anyway) would let it require those too. v0.3.0 also narrows hooks.manager,
       which has no default, to six values: a key whose accepted values change is invisible to the
-      defaults as well.
+      defaults as well. From v1.0.0 each release publishes itos.schema.json (T-054), every key and
+      the values each allows: the check could compare the two releases' schemas.
 
   - id: T-029
     title: A release task's notes check judges its own release, not the current version
@@ -1654,7 +1655,7 @@ items:
     title: "The config's JSON Schema, generated from the Go config's table"
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-052]
     kind: task
     refs: [tasks/phase-2.yaml]
@@ -1681,7 +1682,7 @@ items:
     title: The config's JSON Schema, published with each Go release
     phase: 2
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-040]
     kind: task
     why: >
@@ -1690,6 +1691,22 @@ items:
       and it should come from the one table of defaults and keys the config group ports, not be
       kept by hand.
     refs: [PLAN.md]
+
+  - id: p2-readme-go-install
+    title: README's install section takes the Go binary, and points an itos.yaml at its schema
+    phase: 2
+    owner: donvargax
+    status: todo
+    depends_on: [T-056]
+    kind: idea
+    why: >
+      README.md's install section names the TypeScript tarball alone. From v1.0.0 a release also
+      holds the Go archives and itos.schema.json (T-054), so once one is published the section can
+      say how to pin an archive and how an editor checks an itos.yaml against the schema:
+      `# yaml-language-server: $schema=` and the schema's release URL,
+      https://github.com/donvargax/itos/releases/download/v<version>/itos.schema.json. Until a
+      release holds it, that URL names nothing.
+    refs: [README.md, PLAN.md]
 
   - id: p2-go-release-proves-its-archives
     title: The Go release workflow proves the archives it publishes
