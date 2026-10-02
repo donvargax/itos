@@ -12,7 +12,7 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after slice 23 landed.
+Last updated 2026-10-02, after v0.6.0 was released.
 
 ## Where things stand
 
@@ -27,29 +27,25 @@ task's static checks. The last nightly, 36959769930 (dispatched by hand on
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
 
-Released: [v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0)
-(slices 14 to 17, T-034, T-035), after
-[v0.4.0](https://github.com/donvargax/itos/releases/tag/v0.4.0). Each
-release's Upgrading section is what a consumer's session updates from;
-v0.5.0's adds the nightly's `{ tasks: done, cost: static }` step the
-character editor asked for, and has consumers drop ledger checks of itos's
-own behaviour. The user moves the consumers' pins (the project template, the
-character editor) from their own repositories: don't change any other
-repository. Unreleased: slices 18 to 23 and T-037, each already in
-`docs/releases/v0.6.0.md` (its notes check passes; the release adds the
-intro, known issues, the pin's hash and the check step). Write each slice
-into those notes as it lands, from its report.
+Released: [v0.6.0](https://github.com/donvargax/itos/releases/tag/v0.6.0)
+(slices 18 to 23, T-037: the config contract the Go port copies), after
+[v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0). Each
+release's Upgrading section is what a consumer's session updates from. The
+user moves the consumers' pins (the project template, the character editor)
+from their own repositories: don't change any other repository. Nothing is
+unreleased. Write the next release's notes as each slice lands, from its
+report, in `docs/releases/v<next>.md`.
 
 ## Next
 
-1. **The config contract is done** (slices 18 to 23, T-037), but for
-   small follow-ups the slices left, none blocking: `p1-group-label-flag-word`,
-   `p1-wip-tag-command-kind`, `p1-ledger-id-default`,
-   `p1-own-recognize-for-itos`, `p1-release-defaults-per-config`,
-   `p1-registry-old-default-hint`, `p1-moves-except-types-checked`,
-   `p1-moves-merge-by-git`. `p1-verify-with-last-release` waits for the port
-   (the user's call). Next: **release v0.6.0** (`T-038`, with an agent; the user
-   waived the notes' review for it), then **the Go port** (`p2-go-port`).
+1. **The Go port** (`p2-go-port: The Go port, one command group at a
+time`; PLAN.md, phase 2): specify its first slice. The config contract
+   is released in v0.6.0; small follow-ups the slices left wait, none
+   blocking: `p1-group-label-flag-word`, `p1-wip-tag-command-kind`,
+   `p1-ledger-id-default`, `p1-own-recognize-for-itos`,
+   `p1-release-defaults-per-config`, `p1-registry-old-default-hint`,
+   `p1-moves-except-types-checked`, `p1-moves-merge-by-git`.
+   `p1-verify-with-last-release` comes with the port (the user's call).
 2. **The hand work that could be itos's** (the block above phase 2 in the
    registry) comes after the port, the user agreed; the coordinator had
    proposed `p1-itos-push` and `p1-ci-watch` before it, as they save work on
