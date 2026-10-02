@@ -229,8 +229,9 @@ The Go build of itos lands beside the TypeScript one command group at a time
   adapter and the command adapter at a tree, the smoke set and its rule,
   the run templates, the moves rule; below),
   `internal/message` (below), `internal/plan` (CI's plan; below),
-  `internal/providers` (the range providers and the people; below),
-  `internal/work` (the registry and its problems, and the items' statuses),
+  `internal/providers` (the range and identity providers and the people;
+  below), `internal/work` (the registry and its problems, the items'
+  statuses, and the proposal; below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git`, beside two
   the TypeScript has no module for:
@@ -453,6 +454,28 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   conformance case can reach the network. Node's `fetch` waits however long
   the API takes; the port gives up after `Timeout` (a minute), which reads as
   no green run and runs everything.
+- **The work routing** is `work` and `work check` (`internal/cli/work.go`,
+  `work.ts`'s two commands) over the registry reading the config group
+  ported (`work.Load`, `Issues`), never a second one. `work check` is
+  `ProblemsAt`, the config's `work.registry` or a file named after `check`
+  (the argument whatever it is, as `main.ts` takes it), whose missing-file
+  fix differs (`Missing`); a named file that is not there is found before
+  the config is read, as the TypeScript reads the config only to load the
+  registry. `work` runs that check quietly, its problems on stderr even
+  under `--json`, then `Whoami`: `--as`, which must be among the people
+  (exit 3), else the `work.identity` provider, an `Identity` function made
+  by `IdentityProvider` (`internal/providers/identity.go`) that answers a
+  handle or why it has none, never an error: `command` through `FirstLine`,
+  `none` with its hint, and `github` running `gh api user --jq .login` as the
+  TypeScript does, gh's stderr dropped and gh missing (`exec.ErrNotFound`)
+  told apart from gh failing. A session with no handle is nobody, and one
+  the people do not list owns nothing yet; both still see what nobody owns.
+  `Propose` keeps each item the mapping as written (`value.Map`, its keys in
+  JavaScript's order, `depends_on` added last when absent), so the `--json`
+  proposal is the TypeScript's byte for byte. The identity providers over
+  the GitLab and Forgejo APIs wait for `p1-conformance-http`, as the range
+  ones do: neither implementation's schema accepts them yet, so a config
+  naming one is a config error, not a command that runs half-built.
 - **What is not ported yet** fails loudly: every command takes its arguments
   as the TypeScript does, so a usage error reads the same in both, and then a
   command whose group has not landed exits 3, the missing environment's code,
