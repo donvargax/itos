@@ -287,3 +287,78 @@
       timeout: 900
     - run: node tools/selftest/go-port.ts
       timeout: 900
+
+# The port's close: the ported set grown to everything, then v1.0.0, split so
+# the cheap pieces land apart (the user's calls, 2026-10-02: v1.0.0 publishes
+# the TypeScript tarball beside the Go archives until phase 3 switches the
+# consumers; the config's JSON Schema ships with it).
+
+- id: T-053
+  type: ci
+  title: The Go build held to the whole corpus and every feature on every push
+  why: >
+    After T-052 the ported set names every corpus file and every live
+    scenario, so its lists only add a way to forget: a corpus file or a
+    scenario added later would go untested in Go without a word. go-port.ts
+    runs the whole corpus and every feature against the Go build instead, and
+    the per-file ci.covers rules collapse to what that run covers, so from now
+    on a behaviour change lands in both implementations or CI is red. The
+    check passes before the change too (the whole suite already passes in
+    Go); what it closes is the future file, which review of go-port.ts
+    confirms.
+  done_when:
+    - run: node tools/selftest/go-port.ts
+      timeout: 1200
+
+- id: T-054
+  type: build
+  title: The config's JSON Schema, generated from the Go config's table
+  why: >
+    PLAN.md §10 lists the config's JSON Schema among a Go release's assets, so
+    an editor checks an itos.yaml as it is written (yaml-language-server,
+    JetBrains, SchemaStore read a JSON Schema for YAML). It is generated from
+    internal/config's schema and defaults, the one table config check reads,
+    never kept by hand: a small Go program under tools/bin/ (a config path,
+    so a build commit, importing the module's internal packages) writes it,
+    and tools/bin/build-go.ts --release puts it beside the archives and in
+    checksums.txt. tools/selftest/go-schema.ts generates it and proves it
+    with a JSON Schema validator: this repository's itos.yaml and every
+    config the corpus calls sound pass, and a misspelt key, a wrong type and
+    a value not allowed are refused. Closes p2-config-json-schema.
+  done_when:
+    - run: node tools/selftest/go-schema.ts
+      timeout: 600
+
+- id: T-055
+  type: ci
+  title: The release workflow publishes and proves the Go archives
+  why: >
+    The release job builds the Go archives with build-go.ts --release, proves
+    the very files it uploads with go-release.ts reading that folder (today it
+    proves only archives it builds itself), and publishes them, checksums.txt
+    and the schema beside the TypeScript tarball, which stays until phase 3
+    switches the consumers. Closes p2-go-release-proves-its-archives.
+  done_when:
+    - run: sh -c 'd=$(mktemp -d) && node tools/bin/build-go.ts --release "$d" && node tools/selftest/go-release.ts --dir "$d"'
+      timeout: 900
+    - run: actionlint
+
+- id: T-056
+  type: build
+  title: v1.0.0, the Go binary released
+  why: >
+    PLAN.md, phase 2, step 9: the Go binary, judged by every corpus case and
+    every feature on every push, released as v1.0.0 with the TypeScript
+    tarball beside it. docs/releases/v1.0.0.md says what the port is and ends
+    with the Upgrading section: for a consumer, nothing changes until it
+    switches its pin to the Go binary (phase 3), and how to. The tag waits
+    for the user's review of the notes (docs/ORCHESTRATING.md's lesson).
+  done_when:
+    - run: node tools/selftest/release.ts
+      timeout: 900
+    - run: node tools/selftest/go-release.ts
+      timeout: 900
+    - run: node tools/selftest/release-notes.ts 1.0.0
+      timeout: 300
+    - run: sh -c 'd=$(mktemp -d) && gh release download v1.0.0 --dir "$d" --pattern "itos-1.0.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
+      after: push
