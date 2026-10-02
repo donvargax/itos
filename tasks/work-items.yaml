@@ -723,7 +723,7 @@ items:
     title: ci.covers, ci.nightly_only and recognize read hooks.bin as itos too
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-8]
     kind: slice
     refs: [features/bin.feature]
@@ -735,6 +735,21 @@ items:
       it; each needs a scenario.
       Was the idea p1-itos-in-every-pattern. @ID-BIN-01 to 03, in a feature file of their own, since
       cost.feature's header is about the cost rule.
+
+  - id: p1-own-recognize-for-itos
+    title: This repository's recognize template written for itos
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-20]
+    kind: idea
+    why: >
+      Found in slice 20, which made a tests.<kind>.recognize template read a check that starts
+      with hooks.bin as itos: this repository's own itos.yaml still spells the path out in its
+      smoke-run template (tools/bin/itos tests smoke run scenario), as cost.static no longer does.
+      Writing it for itos makes the worked example show what a consumer may now write; the plan
+      is the same either way (ci plan --whole and --nightly unchanged), so it is a build commit
+      with a task whose check compares the plan before and after.
 
   - id: p1-ci-checks-once
     title: CI's plan runs a check two named tasks list once

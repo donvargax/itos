@@ -247,15 +247,19 @@ the commands, `itos <command> --help` each one). The code is
   nothing) is one sequence in cost order: the static steps of `ci.steps`
   (`vp check`, `gofmt`, `go vet`, the smoke rule, `itos config check`) and every named task check
   that is static (its own `cost: static`, else a pattern of
-  `ci.cost.static`, which reads a command whose first word is `hooks.bin` as
-  starting with `itos`: `matchesStatic` in `config.ts`, which `config
+  `ci.cost.static`: `matchesStatic` in `config.ts`, which `config
 check`'s written-order rule reads too); then the late steps (the whole unit suite, the audit, the
   conformance corpus, T-007); then **one run of the features** over the smoke
   set (of the kind the `tests:` step names; a CI without one reads none), the scenarios the `Scenarios:` footers name and the subsets of the
   tasks the ledger footers (`Task:`) name; then the named tasks' late checks. A task's checks
   keep their written order. A check a step has just done is skipped
   (`ci.covers`), one in `ci.nightly_only` waits for the nightly, and a task
-  whose work item is still `todo` waits (`ci.wait_on_status`). It stops at
+  whose work item is still `todo` waits (`ci.wait_on_status`). Every one of
+  these patterns (`ci.cost.static`, `ci.covers`, `ci.nightly_only` and the
+  kind's `recognize` templates) reads a command whose first word is
+  `hooks.bin` as starting with `itos`, through one function, `readings` in
+  `config.ts`: each is tried on the command as written and as so read, so a
+  pattern written for `itos` and one naming the path both match. It stops at
   the first failure; with `ci.stop_at_first_failure: false` it runs every step
   and check, says where each failure was, and exits with the first one's code.
   A range of only `ci.prose.paths` (Markdown, `docs/**`)
