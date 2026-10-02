@@ -22,9 +22,8 @@ are @donvargax's.
 `main` is green at `f82d00b` (CI run 36956309733), after slices 18 to 21;
 every item in progress has landed. The nightly ends with
 `{ tasks: done, cost: static }`, every done task's static checks. The last
-green nightly is 36954645321 (on `3170b7a`, after slice 19); one was
-dispatched on `f82d00b` (run 36956479749) for slices 20 and 21: read it, or
-the newest one, before starting the next implementation. A red nightly
+nightly, 36956479749 (dispatched by hand on `f82d00b`), is green. Read the
+newest nightly before starting the next implementation. A red nightly
 takes priority over new work.
 
 Released: [v0.5.0](https://github.com/donvargax/itos/releases/tag/v0.5.0)
