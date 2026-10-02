@@ -99,10 +99,10 @@ tests: # named tests, each kind behind an adapter (tools/itos/tests.ts)
     smoke:
       { file: features/smoke.yaml, every_file: true, add_hint: "add one to features/smoke.yaml" }
     range_checks:
-      - name: scenario-moves # outside feat and fix, live scenarios only move, unchanged
-        except_types: [feat, fix]
-        staged: "node tools/itos/scenario-moves.ts --type {type}"
-        range: "node tools/itos/scenario-moves.ts {from} {to}"
+      # Outside feat and fix, live scenarios only move, unchanged: itos's own rule,
+      # judged by the commit-msg hook and verify. A rename allowed outside feat and
+      # fix goes in allowed_renames, by ID and new name, with why in its task.
+      - { name: scenario-moves, builtin: moves, except_types: [feat, fix] }
 
 ci:
   env: { CI: "1" }
