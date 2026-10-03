@@ -1764,7 +1764,7 @@ items:
     title: v2.0.0, Go only
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-063, slice-26]
     kind: task
     refs: [tasks/phase-3.yaml]
@@ -2045,7 +2045,7 @@ items:
     refs: [features/upgrading.feature]
 
   - id: p3-header-lint-unread-keys
-    title: config check refuses header_lint's hook and stdin when use is builtin
+    title: config check warns of header_lint's hook and stdin when use is builtin
     phase: 3
     owner: null
     status: todo
@@ -2054,6 +2054,7 @@ items:
     why: >
       Found in slice 25: under use: builtin, a hook or stdin left in commits.header_lint is read by
       nothing, against PLAN.md §5's rule that every key accepted is one a tool reads. config check
-      could refuse them, with a scenario; a consumer switching to builtin would then be told to drop
-      them.
+      warns of them, with a scenario, and never refuses them: v2.0.0 accepts them (its Known issues),
+      and a refusal in a v2.x would break a config v2.0 accepted (docs/ORCHESTRATING.md's lesson on
+      compatibility), the coordinator's call (2026-10-03).
     refs: [PLAN.md]

@@ -12,15 +12,17 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after slice 26 (the Upgrading footer) landed.
+Last updated 2026-10-03, after v2.0.0 was released: phase 3 is done.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `09cca08` (CI run 37084633696), after slice 26; since T-063
-the built-in header lint judges this repository's commits; since T-062 itos is Go
+`main` was green at `5975fd4` (CI run 37084782516); v2.0.0's commit `5d51353`
+was red only at T-061's download check until the tag, as designed; this
+repository requires an `Upgrading:` footer of every feat and fix (since
+`2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
 repository's dev tooling (vp, the corpus runner, the self-tests), never a
 consumer's runtime; this
@@ -39,33 +41,26 @@ docs/ORCHESTRATING.md's loop).
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
 
-Released: [v1.1.0](https://github.com/donvargax/itos/releases/tag/v1.1.0)
-(slice 24 and its fix: the config's patterns as RE2 in both
-implementations; release run 37071299183), after
-[v1.0.0](https://github.com/donvargax/itos/releases/tag/v1.0.0), the Go
-binary. Every asset was downloaded and verified after each release. Releases
-are automated (PLAN.md, "Releases"): no tag waits for the user. The user moves
-the consumers' pins from their own repositories: don't change any other
-repository. Unreleased: T-059 to T-063 and slices 25 and 26, whose notes are started in
-`docs/releases/v2.0.0.md`. Write the next release's notes as each
-slice lands, from its report, in `docs/releases/v<next>.md`.
+Released: [v2.0.0](https://github.com/donvargax/itos/releases/tag/v2.0.0),
+Go only (phase 3: the TypeScript gone, the built-in header lint, the
+`Upgrading:` footer; release run 37086752429), after v1.1.0 and v1.0.0. Its
+assets (five archives, `itos.schema.json`, `checksums.txt`) were downloaded
+and verified, and `go install github.com/donvargax/itos/v2/cmd/itos@v2.0.0`
+works (the module path is `/v2` since T-061). Releases are automated
+(PLAN.md, "Releases"). The user moves the consumers' pins from their own
+repositories: don't change any other repository. Nothing is unreleased.
+From v2.1.0 on, `tools/selftest/release-notes.ts` holds every `Upgrading:`
+footer of the range to the notes.
 
 ## Next
 
-1. **Phase 3, to v2.0.0** (PLAN.md, phase 3), one agent at a time:
-   - `T-061: v2.0.0, Go only`, specified in `tasks/phase-3.yaml`: this
-     repository requires the `Upgrading:` footer, the notes check reads the
-     footers (`itos commit footers`) and the notes Go only, then the
-     release, tagged when CI and the release checks are green after a
-     reviewer agent reads the notes against the commits since v1.1.0 (their
-     footers start only now).
-
-   Follow-ups: the release cut by CI (`p1-itos-release`),
-   `p1-verify-with-last-release`, the HTTP providers (after
-   `p1-conformance-http`), `p2-no-workflow-labels-check`,
-   `p3-architecture-go-names`, and the small `p1-*` config-check
-   refinements.
-
+1. **Phase 3 is done.** What waits, none blocking: the release cut by CI
+   (`p1-itos-release`), `p1-verify-with-last-release`, the HTTP providers
+   (after `p1-conformance-http`), `p2-no-workflow-labels-check`,
+   `p3-architecture-go-names`, `p3-header-lint-unread-keys` (a warning,
+   never a refusal), `p3-header-case-decomposition`, `p3-text-footer-lines`,
+   and the small `p1-*` config-check refinements. The user picks what comes
+   next among them and item 2.
 2. **After v2, built once in Go:** `p3-claude-code-plugin` (the local
    itos-titles mod, published from this repository), `p3-self-update` (a
    global itos as a version manager: automatic self-update, an exact pin, a
