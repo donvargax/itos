@@ -5,13 +5,19 @@
 // cases and two help cases run by this repository's own conformance runner.
 // The binary under test is a script; the broken one breaks one scenario, one
 // case and both help cases, the wordy one only the help cases, and each says
-// a version the tag never had, as T-069's builds will.
+// a version the tag never had, as T-069's builds will. Three more cases
+// are refusals: two usage errors and a config error; the reworded binary says
+// other words for all three and changes one usage error's exit code.
 //
 //   - the binary the release was written for passes, its version the
 //     corpus's {{version}} whatever the tag's package.json says, and the help
 //     cases are left out, said with their count;
 //   - the wordy one passes: help text is documentation, not compatibility, so
-//     an old help case that differs is never judged;
+//     an old help case that differs is never judged; nor are an old usage
+//     error's words, which differ too, its exit code alone judged (T-075);
+//   - the reworded one fails naming the usage error whose exit code differs
+//     and the config error whose words differ, never the usage error whose
+//     words alone differ;
 //   - the broken one fails with no commit since the tag that says why, naming
 //     the scenario, the case and the remedy, and no help case; a fix and a !
 //     before the tag do not count;
@@ -110,6 +116,23 @@ func TestFeatures(t *testing.T) {
     exit: 0
     stdout: "itos {{version}}\\n"
 `,
+	// Refusals: two usage errors, whose words the new binary may change and
+	// whose exit code it may not, and a config error, whose words it may not.
+	"tools/itos/conformance/refuse.yaml": `cases:
+  - name: an unknown command is a usage error
+    argv: [wave]
+    exit: 2
+    stderr: "itos: unknown command: wave (itos --help)\\n"
+  - name: greet takes no argument
+    argv: [greet, loudly]
+    exit: 2
+    stdout: ""
+    stderr: "itos: greet takes no argument (loudly) (itos --help)\\n"
+  - name: a config that is not version 1
+    argv: [check]
+    exit: 2
+    stderr: "FAIL itos.yaml: version 2 is not 1\\n"
+`,
 	// Help cases, whose text the new binary may change freely: one asking with
 	// --help, one with help <command>.
 	"tools/itos/conformance/help.yaml": `cases:
@@ -124,25 +147,52 @@ func TestFeatures(t *testing.T) {
 `,
 };
 
-// The binary the release was written for, one whose help says more, and one
-// that also greets otherwise.
-const binary = (greeting: string, help = "usage: itos greet|name|version") => `#!/bin/sh
+// The binary the release was written for, one whose help and usage errors say
+// more, one that also greets otherwise, and one that refuses otherwise: other
+// words for every refusal, and exit 1 for greet's argument.
+interface Says {
+	greeting?: string;
+	help?: string;
+	takes?: string;
+	refusal?: number;
+	config?: string;
+}
+const binary = ({
+	greeting = "hello",
+	help = "usage: itos greet|name|version",
+	takes = "",
+	refusal = 2,
+	config = "version 2 is not 1",
+}: Says) => `#!/bin/sh
 case "$1" in
 --help | help) echo "${help}" ;;
-greet) echo ${greeting} ;;
+greet)
+	if [ $# -gt 1 ]; then
+		echo "itos: greet takes no argument${takes} ($2) (itos --help)" >&2
+		exit ${refusal}
+	fi
+	echo ${greeting} ;;
 name) echo itos ;;
 version) echo "itos 1.0.1-dev.3+gabcdef0" ;;
-*) exit 2 ;;
+check)
+	echo "FAIL itos.yaml: ${config}" >&2
+	exit 2 ;;
+*)
+	echo "itos: unknown command: $1${takes} (itos --help)" >&2
+	exit 2 ;;
 esac
 `;
 const good = join(tmp, "good");
 const wordy = join(tmp, "wordy");
 const broken = join(tmp, "broken");
+const reworded = join(tmp, "reworded");
 const moreHelp = "usage: itos greet|name|version|wave";
-writeFileSync(good, binary("hello"));
-writeFileSync(wordy, binary("hello", moreHelp));
-writeFileSync(broken, binary("bye", moreHelp));
-for (const bin of [good, wordy, broken]) chmodSync(bin, 0o755);
+const takes = "; the commands are greet, name and version";
+writeFileSync(good, binary({}));
+writeFileSync(wordy, binary({ help: moreHelp, takes }));
+writeFileSync(broken, binary({ greeting: "bye", help: moreHelp }));
+writeFileSync(reworded, binary({ takes, refusal: 1, config: "version should be 1, not 2" }));
+for (const bin of [good, wordy, broken, reworded]) chmodSync(bin, 0o755);
 
 const run = (cwd: string, args: string[]) => {
 	const r = spawnSync(check, args, { cwd, env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
@@ -210,24 +260,46 @@ try {
 	on("main");
 	let r = run(repo, ["-bin", good]);
 	const leftOut = "2 help cases (help.yaml 2) not judged, since help text is documentation";
+	const relaxed =
+		"2 usage errors (refuse.yaml 2) judged by their exit code, 2, alone, since a usage message is";
 	expect(
 		r.status === 0 &&
 			r.output.includes("v1.0.0's scenarios: all 2 pass") &&
-			r.output.includes("3/3 conformance cases pass") &&
-			r.output.includes(leftOut),
-		`the release's own binary should pass every scenario and case, the help cases left out and counted, exited ${r.status}:\n${r.output}`,
+			r.output.includes("6/6 conformance cases pass") &&
+			r.output.includes(leftOut) &&
+			r.output.includes(relaxed),
+		`the release's own binary should pass every scenario and case, the help cases left out and the usage errors relaxed, both counted, exited ${r.status}:\n${r.output}`,
 	);
 
-	// 1a. One whose help differs, and nothing else, passes with no commit that
-	// says why: an old help case is never judged.
+	// 1a. One whose help and usage errors' words differ, and nothing else,
+	// passes with no commit that says why: an old help case is never judged,
+	// nor an old usage error's words.
 	r = run(repo, ["-bin", wordy]);
 	expect(
 		r.status === 0 &&
 			r.output.includes(leftOut) &&
-			r.output.includes("3/3 conformance cases pass") &&
+			r.output.includes(relaxed) &&
+			r.output.includes("6/6 conformance cases pass") &&
 			!r.output.includes("help.yaml: itos --help") &&
 			!r.output.includes("fails"),
-		`a binary whose help alone differs should pass, its old help cases not judged, exited ${r.status}:\n${r.output}`,
+		`a binary whose help and usage errors' words alone differ should pass, its old help cases not judged and its usage errors judged by their exit code, exited ${r.status}:\n${r.output}`,
+	);
+
+	// 1b. One whose usage error's exit code differs, or whose config error's
+	// words do, is refused, naming those two cases and not the usage error
+	// whose words alone differ.
+	r = run(repo, ["-bin", reworded]);
+	expect(
+		r.status === 1 &&
+			r.output.includes("v1.0.0's conformance case refuse.yaml: greet takes no argument fails") &&
+			r.output.includes("exit: expected 2, got 1") &&
+			r.output.includes(
+				"v1.0.0's conformance case refuse.yaml: a config that is not version 1 fails",
+			) &&
+			r.output.includes("- FAIL itos.yaml: version 2 is not 1") &&
+			!r.output.includes("an unknown command is a usage error") &&
+			r.output.includes("4/6 conformance cases pass"),
+		`a usage error whose exit code differs and a config error whose words differ should be refused, and a usage error whose words alone differ not named, exited ${r.status}:\n${r.output}`,
 	);
 
 	// 2. The broken binary, with no commit since the tag that says why: refused,
@@ -246,7 +318,7 @@ try {
 	expect(
 		r.output.includes("1 of 2 fail") &&
 			!r.output.includes("says its name") &&
-			r.output.includes("2/3 conformance cases pass") &&
+			r.output.includes("5/6 conformance cases pass") &&
 			!r.output.includes("help.yaml: itos --help") &&
 			!r.output.includes("help greet"),
 		`only the scenario and the case the binary breaks should be named, no help case, exited ${r.status}:\n${r.output}`,
@@ -364,5 +436,5 @@ try {
 finish(
 	problems,
 	"previous-release",
-	"An old scenario or case the new binary breaks is refused, unless a breaking change or a fix's Changes: footer says why; a feat's never does; an old help case is never judged; and a run that cannot check out the release never passes",
+	"An old scenario or case the new binary breaks is refused, unless a breaking change or a fix's Changes: footer says why; a feat's never does; an old help case is never judged, an old usage error only by its exit code, an old config error word for word; and a run that cannot check out the release never passes",
 );

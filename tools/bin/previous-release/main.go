@@ -35,9 +35,22 @@
 // interface (PLAN.md), and this tree's own corpus still pins its help exactly.
 // Judged, every feat that adds a flag or a command, which changes itos --help,
 // could pass only as a breaking change. They are taken out of the worktree's
-// fixtures before its runner reads them (skipHelpScript, with the checkout's
+// fixtures before its runner reads them (oldCorpusScript, with the checkout's
 // yaml), and the check says how many it left out and why. help.yaml's other
 // cases, such as itos version's, stay judged.
+//
+// The old corpus's usage errors are judged by their exit code alone (T-075):
+// a case whose argv the command refuses, exit 2 with one "itos: <message>
+// (itos --help)" line on stderr and nothing on stdout, pins a usage message
+// that lists what the command takes, documentation as help is, and judged
+// word for word every feat that adds a flag to a command could not say so
+// there without a breaking change. The same script takes such a case's stdout
+// and stderr out, keeping its exit code, 2, and the check says how many it
+// relaxed and why. A config error (config check's "FAIL …" lines, or an
+// "itos: … is missing" about a file the config names) keeps its words judged,
+// since what a config may hold is the stable interface too, and so does any
+// case that pins its output another way. This tree's own corpus still pins
+// every usage message exactly.
 //
 // An old scenario or case that fails is accepted when a commit since the tag
 // is marked as breaking (a ! before its header's colon, or a BREAKING-CHANGE:
@@ -190,13 +203,17 @@ func run() int {
 	}
 	fmt.Printf("%s: %s's scenarios and conformance corpus against %s (itos %s), in a scratch worktree of %s\n",
 		self, tag, what, version, tag)
-	skipped, err := skipHelp(tree)
+	skipped, relaxed, err := readyOldCorpus(tree)
 	if err != nil {
-		return fail("%s's corpus: cannot leave out its help cases: %v", tag, err)
+		return fail("%s's corpus: cannot leave out its help cases and relax its usage errors: %v", tag, err)
 	}
 	fmt.Printf("%s: %s's conformance corpus: %s not judged, since help text is documentation, not compatibility:\n"+
 		"  --json and exit codes are the stable interface (PLAN.md), and this tree's own corpus pins its help exactly\n",
 		self, tag, skipped)
+	fmt.Printf("%s: %s's conformance corpus: %s judged by their exit code, 2, alone, since a usage message is\n"+
+		"  documentation too: a refused argument's exit code is the interface (PLAN.md §7), and this tree's own corpus\n"+
+		"  pins its usage messages exactly; a config error's words stay judged\n",
+		self, tag, relaxed)
 
 	var features, corpus suite
 	var wg sync.WaitGroup
@@ -265,15 +282,28 @@ func prepare(tree, version string) error {
 	return os.Symlink(modules, filepath.Join(tree, "node_modules"))
 }
 
-// skipHelpScript takes the help cases out of the fixtures of the corpus in its
-// working directory, keeping the rest of each file as written, and prints how
-// many it took from each file as JSON ({"<file>": n}). It runs with the yaml
-// package prepare links in, the one the corpus runner parses fixtures with; a
-// file that does not parse is left for the runner to report.
-const skipHelpScript = `
+// oldCorpusScript readies the fixtures of the corpus in its working directory
+// for the run, keeping the rest of each file as written: it takes the help
+// cases out, and takes the stdout and stderr out of each usage error's case,
+// so the runner judges it by its exit code alone. It prints how many of each
+// it touched in each file as JSON ({"help": {"<file>": n}, "usage": {…}}).
+//
+// A usage error's case is one whose argv the command refuses as a usage
+// error: exit 2, nothing on stdout (or stdout not compared), and on stderr
+// exactly one line, "itos: <message> (itos --help)", the line cli's failure
+// prints for a usage error and for nothing else. A config error prints
+// config check's "FAIL <config>: …" lines, or "itos: …" without the help's
+// name ("… is missing" about a file the config names); a case pinning its
+// output any other way (stdout_has, stderr_has, json) is not read as one.
+// Either stays judged word for word. A case's files_after stays judged.
+//
+// It runs with the yaml package prepare links in, the one the corpus runner
+// parses fixtures with; a file that does not parse is left for the runner to
+// report.
+const oldCorpusScript = `
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { isSeq, parse, parseDocument } from "yaml";
+import { isMap, isSeq, parse, parseDocument } from "yaml";
 
 const dir = "tools/itos/conformance";
 const asksHelp = (argv) => {
@@ -283,7 +313,15 @@ const asksHelp = (argv) => {
 	const flags = end < 0 ? argv : argv.slice(0, end);
 	return flags.includes("--help") || flags.includes("-h");
 };
-const skipped = {};
+const usageError = (c) =>
+	c !== null &&
+	typeof c === "object" &&
+	c.exit === 2 &&
+	typeof c.stderr === "string" &&
+	/^itos: [^\n]* \(itos --help\)\n$/.test(c.stderr) &&
+	(c.stdout === undefined || c.stdout === "") &&
+	["stdout_has", "stderr_has", "json"].every((key) => c[key] === undefined);
+const touched = { help: {}, usage: {} };
 for (const file of readdirSync(dir).filter((f) => f.endsWith(".yaml")).sort()) {
 	const path = join(dir, file);
 	const doc = parseDocument(readFileSync(path, "utf8"));
@@ -291,34 +329,51 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".yaml")).sort()) {
 	if (doc.errors.length || !isSeq(cases)) continue;
 	const plain = doc.toJS().cases;
 	const help = new Set(plain.flatMap((c, i) => (asksHelp(c && c.argv) ? [i] : [])));
-	if (!help.size) continue;
+	const usage = plain.flatMap((c, i) => (!help.has(i) && usageError(c) ? [c.name] : []));
+	if (!help.size && !usage.length) continue;
+	for (const item of cases.items)
+		if (isMap(item) && usage.includes(item.get("name"))) for (const key of ["stdout", "stderr"]) item.delete(key);
 	cases.items = cases.items.filter((_, i) => !help.has(i));
 	const text = String(doc);
-	if (parse(text).cases.length !== plain.length - help.size)
-		throw new Error(file + ": the cases left after taking out its help cases do not read back");
+	const meant = plain.flatMap((c, i) => {
+		if (help.has(i)) return [];
+		if (!usage.includes(c.name)) return [c];
+		const { stdout, stderr, ...judged } = c;
+		return [judged];
+	});
+	if (JSON.stringify(parse(text).cases) !== JSON.stringify(meant))
+		throw new Error(file + ": its cases do not read back as written, less its help cases and its usage errors' words");
 	writeFileSync(path, text);
-	skipped[file] = help.size;
+	if (help.size) touched.help[file] = help.size;
+	if (usage.length) touched.usage[file] = usage.length;
 }
-console.log(JSON.stringify(skipped));
+console.log(JSON.stringify(touched));
 `
 
-// skipHelp takes the help cases out of the release's corpus in tree, and says
-// how many it took: "37 help cases (help.yaml 37)".
-func skipHelp(tree string) (string, error) {
+// readyOldCorpus readies the release's corpus in tree as oldCorpusScript
+// does, and says what it touched: "37 help cases (help.yaml 37)" and "34 usage
+// errors (cli.yaml 19, …)".
+func readyOldCorpus(tree string) (help, usage string, err error) {
 	cmd := exec.Command("node", "--input-type=module", "-")
 	cmd.Dir = tree
 	cmd.Env = env()
-	cmd.Stdin = strings.NewReader(skipHelpScript)
+	cmd.Stdin = strings.NewReader(oldCorpusScript)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("node: %v\n%s", err, stderr.String())
+		return "", "", fmt.Errorf("node: %v\n%s", err, stderr.String())
 	}
-	var counts map[string]int
-	if err := json.Unmarshal(out, &counts); err != nil {
-		return "", fmt.Errorf("node said %q: %v", out, err)
+	var touched struct{ Help, Usage map[string]int }
+	if err := json.Unmarshal(out, &touched); err != nil {
+		return "", "", fmt.Errorf("node said %q: %v", out, err)
 	}
+	return counted(touched.Help, "help case", "help cases"), counted(touched.Usage, "usage error", "usage errors"), nil
+}
+
+// counted says how many cases counts holds, and how many in each file:
+// "37 help cases (help.yaml 37)", or "no help cases".
+func counted(counts map[string]int, one, many string) string {
 	files := make([]string, 0, len(counts))
 	total := 0
 	for file, n := range counts {
@@ -326,14 +381,13 @@ func skipHelp(tree string) (string, error) {
 		total += n
 	}
 	sort.Strings(files)
-	noun := "help cases"
-	if total == 1 {
-		noun = "help case"
+	switch total {
+	case 0:
+		return "no " + many
+	case 1:
+		return fmt.Sprintf("1 %s (%s)", one, files[0])
 	}
-	if total == 0 {
-		return "no " + noun, nil
-	}
-	return fmt.Sprintf("%d %s (%s)", total, noun, strings.Join(files, ", ")), nil
+	return fmt.Sprintf("%d %s (%s)", total, many, strings.Join(files, ", "))
 }
 
 // buildAsReleased builds this tree's ./cmd/itos into dir, stamped as
