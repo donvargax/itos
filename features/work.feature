@@ -52,3 +52,25 @@ Feature: The work registry
     When itos runs "work"
     Then itos exits with code 0
     And its output does not say "people"
+
+  # Slice 43: itos work lists only what a person can start and what waits,
+  # but the plugin's titles (T-066) need every item's title, done ones
+  # included, from wherever work.registry puts the registry. work list prints
+  # every item in the registry's order, with its kind, status and title,
+  # whoever owns it; --json gives the same as items, each with its id and
+  # title.
+  @ID-WORK-06 @slice-43 @wip
+  Scenario: work list prints every item of the registry, done ones included
+    Given the work registry has the item "T-001" with the status "done" and the item "slice-1" with the status "todo"
+    When itos runs "work list"
+    Then itos exits with code 0
+    And its output says "T-001"
+    And its output says "slice-1"
+
+  @ID-WORK-07 @slice-43 @wip
+  Scenario: work list reads the registry where work.registry puts it
+    Given work.registry is "plans/work.yaml"
+    And the work registry at "plans/work.yaml" has the item "T-001" with the status "done"
+    When itos runs "work list --json"
+    Then itos exits with code 0
+    And its JSON lists the item "T-001" with its title

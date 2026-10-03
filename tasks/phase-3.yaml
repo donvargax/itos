@@ -182,3 +182,34 @@
       timeout: 300
     - run: sh -c 'd=$(mktemp -d) && gh release download v2.2.0 --dir "$d" --pattern "itos-2.2.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
       after: push
+
+# Adoption, toward v2.3.0 (PLAN.md §10, "Adoption"): the plugin is built on
+# slice 42's guard and slice 43's work list, both itos commands, so its hooks
+# call itos and a repository's pin picks the version that answers.
+
+- id: T-066
+  type: chore
+  title: The itos plugin for Claude Code, published from this repository
+  why: >
+    Was p3-claude-code-plugin, the user's calls (2026-10-02 and 2026-10-03). This repository is
+    a Claude Code plugin marketplace: .claude-plugin/marketplace.json at the root names the itos
+    plugin in integrations/claude-code/, whose version is itos's (package.json's), so a release
+    of itos is a release of the plugin. The plugin carries three things. The titles: the user's
+    local itos-titles mod (a function-hooks module, ui.render on AssistantMessage, never the
+    stream or the transcript), which writes an itos ID's title beside it in Claude's replies,
+    moved here with its tests, asking the project's own itos for the titles (itos work list
+    --json, slice 43, and itos task list --json), so a registry moved by work.registry and ledger
+    tasks without registry entries are found, and reading tasks/work-items.yaml when no itos
+    answers. A short skill on working with itos: find work with itos work, commit with itos
+    commit --task or --scenarios, push with itos push, read what a gate says and fix that cause,
+    never run the gates by hand. And a PreToolUse hook on Bash that runs itos hook pre-tool-use
+    (slice 42), the guard against an agent's git commit and git push. integrations/** is not the
+    implementation, so these are chore commits; docs commits may touch its Markdown. The checks
+    run Claude Code's own validator over the marketplace and the plugin, and the plugin's tests
+    with claude plugin test, so CI and the nightly install Claude Code, pinned, to run them (a
+    ci commit). A guardrail, not a fortress: the guard stops agents that follow it.
+  done_when:
+    - run: claude plugin validate --strict .
+    - run: claude plugin validate --strict integrations/claude-code
+    - run: claude plugin test integrations/claude-code
+      timeout: 300

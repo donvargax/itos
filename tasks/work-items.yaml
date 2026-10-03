@@ -2143,7 +2143,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [p3-claude-code-plugin]
+    depends_on: [T-066]
     kind: idea
     why: >
       The user's calls (2026-10-03): a bad commit on main is a human's doing, so its fix is easy
@@ -2188,7 +2188,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [slice-33, p3-claude-code-plugin, p3-pin-bump]
+    depends_on: [slice-33, T-066, p3-pin-bump]
     kind: idea
     why: >
       The user's idea (2026-10-03): one command readies a repository, new (git init first) or
@@ -2205,35 +2205,52 @@ items:
       work-people-unreadable).
     refs: [PLAN.md]
 
-  - id: p3-claude-code-plugin
+  - id: slice-42
+    title: itos hook pre-tool-use, Claude Code's guard against an agent's git commit and git push
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-40]
+    kind: slice
+    why: >
+      Specified in features/guard.feature, for T-066's plugin. The user's calls (2026-10-03): a
+      PreToolUse hook rather than permission rules, since a rule matches a command's prefix and
+      git -C . commit slips past it; its hooks call itos, so a pin picks the version. In a
+      repository itos manages, found from the input's folder, a Bash command running git commit
+      or git push is denied, the reason naming itos commit or itos push; everything else gets no
+      answer, never an allow, so the person's permission rules still decide. A guardrail: sh -c
+      and scripts are not looked into. p3-human-waiver adds itos waive to what it denies.
+    refs: [features/guard.feature, PLAN.md]
+
+  - id: slice-43
+    title: itos work list, every item of the registry with its title
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified as @ID-WORK-06 and @ID-WORK-07 in features/work.feature, for T-066's titles.
+      itos work lists only what a person can start and what waits, so done items, the ones a reply
+      most often names, had no title from itos; the titles need every item from wherever
+      work.registry puts the registry.
+    refs: [features/work.feature]
+
+  - id: T-066
     title: The itos plugin for Claude Code, published from this repository
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [slice-31, slice-39]
-    kind: idea
+    depends_on: [slice-42, slice-43]
+    kind: task
     why: >
-      The user's call (2026-10-02): the local itos-titles mod, which draws an itos ID's title beside
-      it in Claude's replies (ui.render on AssistantMessage, never the stream), ships as part of
-      itos, in this repository under integrations/claude-code/, the repository a Claude Code plugin
-      marketplace, versioned and released with itos. It asks the project's own itos for the titles
-      (itos work --json, itos task list --json, through tools/bin/itos or .tools/bin/itos), so a
-      registry moved by work.registry and ledger tasks without registry entries are found, and falls
-      back to reading tasks/work-items.yaml. Its changes are task-driven, proven by
-      claude plugin test in the task's checks: one commits.scopes entry for integrations/**. A home
-      later for other itos-aware pieces: an inbox pane, main's CI in the status line.
-      The dev mod lives in the dev-mods folder of the session that made it, so other sessions
-      run without it (2026-10-03, an ID left untitled): the plugin is what makes it everywhere.
-      The user's calls (2026-10-03): the repository a marketplace (.claude-plugin/marketplace.json
-      at the root); the plugin carries, beside the titles, a short skill on working with itos
-      (itos work, itos commit --task, itos push, reading a gate, never running gates by hand) and
-      a PreToolUse hook answering git commit and git push, in a repository with an itos config,
-      with the itos command to use (a hook, since a permission rule matches a prefix and
-      git -C . commit slips past it). Its hooks call itos, so a pin picks the version. PLAN.md
-      §10, "Adoption".
-      The guard is a guardrail, the user's call (2026-10-03): it stops agents that follow it,
-      not one working around it (sh -c, a script); it denies itos waive too (p3-human-waiver).
-    refs: [PLAN.md]
+      Was p3-claude-code-plugin; the task is T-066 in tasks/phase-3.yaml, after slice 42's guard
+      and slice 43's work list, both itos commands the plugin calls. A home later for other
+      itos-aware pieces: an inbox pane, main's CI in the status line. The dev mod lives in the
+      dev-mods folder of the session that made it, so other sessions run without it (2026-10-03,
+      an ID left untitled): the plugin is what makes it everywhere. Once it is installed, the
+      user drops the local mod, or every ID is titled twice.
+    refs: [tasks/phase-3.yaml, PLAN.md]
 
   - id: slice-27
     title: A global itos runs the version a repository pins

@@ -12,7 +12,7 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after v2.2.0 was released.
+Last updated 2026-10-03, after the plugin was specified.
 
 ## Where things stand
 
@@ -33,8 +33,7 @@ or CI is red. The
 nightly builds and proves the Go release archives
 (`tools/selftest/go-release.ts`, new with T-040, not yet run by a nightly),
 then ends with `{ tasks: done, cost: static }`, every done task's static
-checks. The last nightly, 37083475482 (dispatched by hand on `719e0e8`, after T-063),
-is green.
+checks. The last nightly, 37125737029 (scheduled, on `d4b0865`), is green.
 Read the consumer inbox beside it (`node tools/bin/inbox.ts`,
 docs/ORCHESTRATING.md's loop).
 Read the newest nightly before starting the next implementation. A red
@@ -58,8 +57,12 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
    `p3-finish-with-itos-push`, whether this repository's finishing routine
    switches to `itos push`; and `p3-shim-push-args` (`git push` takes no
    arguments through the shim), small, when it bites.
-2. **Toward v2.3.0, adoption**: **`p3-claude-code-plugin`**: the marketplace, the titles, the skill, the
-   git commit/push guard (PLAN.md §10, "Adoption").
+2. **Toward v2.3.0, adoption**: the plugin, split in three and specified
+   (PLAN.md §10, "Adoption"): **slice 42** (`itos hook pre-tool-use`, the
+   guard, features/guard.feature), **slice 43** (`itos work list`,
+   @ID-WORK-06 and 07), then **T-066** (the marketplace and the plugin: the
+   titles, the skill, the guard's hook; CI installs Claude Code for its
+   checks).
 3. **`p3-pre-push-verify`** and **`p3-human-waiver`** (`itos waive`, a
    plain config list; the guard keeps agents off it).
 4. **`p3-itos-init`**, after `p3-pin-bump`: ties the above together.

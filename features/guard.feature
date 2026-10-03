@@ -1,0 +1,91 @@
+@phase-3
+Feature: itos hook pre-tool-use, Claude Code's guard against git commit and git push
+  An agent that commits or pushes with git by hand skips what itos commit
+  writes (the footers) and what itos push checks (no stash, no force, no
+  stopped rebase). Claude Code asks a PreToolUse hook before each tool runs,
+  sending the tool's name, its input and the session's folder as JSON on
+  stdin; the itos plugin's hook is itos hook pre-tool-use, so a
+  repository's pin picks the version that answers (PLAN.md §10,
+  "Adoption"). In a repository itos manages, found from the folder the input
+  names as everywhere else, a Bash command that runs git commit or git push
+  is denied, the reason naming the itos command to use instead; Claude Code
+  shows the reason to the agent. Everything else gets no answer at all, so
+  Claude Code's own permission rules decide as if no hook ran: the guard
+  never allows anything. It reads the command as a shell would, word by
+  word, so git's options before the subcommand and a command later in a
+  chain are caught, and a git commit that is only text an argument carries
+  is not. A guardrail for agents that follow it, not a fortress (the user's
+  call, 2026-10-03): a command hidden in sh -c or a script is not looked
+  into, and the commit-msg hook and CI's verify stay the gates.
+
+  Background:
+    Given a repository whose ledger has the task "T-001"
+
+  @ID-GUARD-01 @slice-42 @wip
+  Scenario: In an itos repository an agent's git commit is denied, the reason naming itos commit
+    When Claude Code asks itos about the Bash command "git commit -m 'chore: tidy the readme'"
+    Then itos exits with code 0
+    And itos denies the command, its reason saying "itos commit --task"
+
+  @ID-GUARD-02 @slice-42 @wip
+  Scenario: In an itos repository an agent's git push is denied, the reason naming itos push
+    When Claude Code asks itos about the Bash command "git push origin main"
+    Then itos exits with code 0
+    And itos denies the command, its reason saying "itos push"
+
+  # A permission rule matches a command's prefix, which is why this is a
+  # hook: git -C . commit and git -c key=value push slip past a rule.
+  @ID-GUARD-03 @slice-42 @wip
+  Scenario: git's options before the subcommand do not hide it
+    When Claude Code asks itos about the Bash command "git -C . -c core.editor=true commit -m 'chore: tidy the readme'"
+    Then itos exits with code 0
+    And itos denies the command, its reason saying "itos commit"
+
+  @ID-GUARD-04 @slice-42 @wip
+  Scenario: A git push later in a chain of commands is denied
+    When Claude Code asks itos about the Bash command "go vet ./... && git pull --rebase && git push"
+    Then itos exits with code 0
+    And itos denies the command, its reason saying "itos push"
+
+  @ID-GUARD-05 @slice-42 @wip
+  Scenario: From a subfolder of an itos repository the command is still denied
+    Given a "sub" folder
+    When Claude Code asks itos about the Bash command "git commit -m 'chore: tidy the readme'" run in "sub"
+    Then itos exits with code 0
+    And itos denies the command, its reason saying "itos commit"
+
+  # No answer, not an allow: an allow would skip the person's own permission
+  # rules for every command the guard lets through.
+  @ID-GUARD-06 @slice-42 @wip
+  Scenario: Every other git command gets no answer
+    When Claude Code asks itos about the Bash command "git status --short && git log --oneline -3"
+    Then itos exits with code 0
+    And itos writes nothing to stdout
+
+  @ID-GUARD-07 @slice-42 @wip
+  Scenario: A command that only names git commit in its arguments gets no answer
+    When Claude Code asks itos about the Bash command "grep -n 'git commit' AGENTS.md"
+    Then itos exits with code 0
+    And itos writes nothing to stdout
+
+  @ID-GUARD-08 @slice-42 @wip
+  Scenario: In a repository itos does not manage git commit gets no answer
+    Given a repository with no itos config, its change to "notes.md" staged
+    When Claude Code asks itos about the Bash command "git commit -m 'whatever I like'" in that repository
+    Then itos exits with code 0
+    And itos writes nothing to stdout
+
+  @ID-GUARD-09 @slice-42 @wip
+  Scenario: A tool other than Bash gets no answer
+    When Claude Code asks itos about the tool "Edit" on the file "README.md"
+    Then itos exits with code 0
+    And itos writes nothing to stdout
+
+  # Claude Code blocks the tool on exit code 2 and goes on after any other
+  # failure, so a guard that cannot read its input must not exit 2.
+  @ID-GUARD-10 @slice-42 @wip
+  Scenario: An input itos cannot read blocks nothing
+    When Claude Code sends itos "not json" as a PreToolUse input
+    Then itos exits with code 1
+    And itos writes nothing to stdout
+    And its output says "PreToolUse"
