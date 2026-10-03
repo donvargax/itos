@@ -57,6 +57,9 @@ commits:
       - "tools/selftest/**"
       - tools/changelog.ts
       - .claude/settings.json
+      # The Claude Code plugin's manifest holds its version, which is itos's (T-066), so a
+      # release's version bump changes it beside package.json in one build commit.
+      - integrations/claude-code/.claude-plugin/plugin.json
     # itos itself, its Go packages since the TypeScript v0 left (T-062): the
     # one place a feat or a fix must change unless it changes the features.
     implementation:
