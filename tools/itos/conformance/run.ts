@@ -6,6 +6,9 @@
 //       run every case of tools/itos/conformance/*.yaml (or of the files
 //       given) through <command>; print each failure with its diff; exit 1
 //       if any case fails, 2 if a fixture cannot be read
+//   node tools/itos/conformance/run.ts --bin <command> --additive [--only <file>…]
+//       the same, judging each case's stdout, stderr and json by what they
+//       must still hold, an output that only adds passing (below)
 //
 // A fixture file is YAML: `files`, `git` and `env` at the top are every case's
 // defaults, and `cases` is a list. A case is:
@@ -28,6 +31,15 @@
 //   stdout, stderr         the exact text; stdout_has, stderr_has: text each
 //                          must contain (one, or a list); json: stdout's JSON
 //   files_after            files as they must be after the run (null: absent)
+//
+// With --additive, which tools/bin/previous-release turns on for the last
+// release's corpus (T-076), stdout and stderr are lines that must all appear
+// in the output in the same order, lines added before, between or after them
+// passing, and json is what the output's JSON must hold: every key it names
+// there with the value it gives, at every depth, an array element by element
+// at the same length, a key added anywhere passing (PLAN.md §7: keys only ever
+// added). The exit code, stdout_has, stderr_has and files_after are judged as
+// ever. Without it, as this corpus runs, every output is pinned exactly.
 //
 // In every string, `{{dir}}` is the case's folder, `{{PATH}}` the runner's
 // PATH, `{{sha.<label>}}` and `{{short.<label>}}` a labelled commit (40 and 7
@@ -421,12 +433,63 @@ function hasProblems(stream: "stdout" | "stderr", wanted: string[], outcome: Out
 	return missing === undefined ? [] : lines(`${stream} lacks ${JSON.stringify(missing)}:`, outcome[stream]);
 }
 
-function jsonProblems(expected: unknown, stdout: string): string[] {
+function jsonProblems(expected: unknown, stdout: string, additive: boolean): string[] {
+	let actual: unknown;
 	try {
-		return textProblems("json", pretty(expected), pretty(JSON.parse(stdout)));
+		actual = JSON.parse(stdout);
 	} catch {
 		return lines("stdout is not JSON:", stdout);
 	}
+	if (!additive) return textProblems("json", pretty(expected), pretty(actual));
+	const lacks = jsonLacks(expected, actual, "");
+	return lacks.length ? ["json lacks what it held (a key added is compatible):", ...lacks.map((l) => `    ${l}`)] : [];
+}
+
+const show = (value: unknown) => JSON.stringify(value) ?? "nothing";
+
+// Where actual does not hold expected: every key of an object still there with
+// what expected gives it, an array element by element at the same length, any
+// other value equal. Each line names its place, a path from the top ("." for
+// the whole).
+function jsonLacks(expected: unknown, actual: unknown, at: string): string[] {
+	const place = at || ".";
+	const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
+	if (Array.isArray(expected)) {
+		if (!Array.isArray(actual)) return [`${place}: expected ${show(expected)}, got ${show(actual)}`];
+		if (actual.length !== expected.length)
+			return [`${place}: expected ${expected.length} elements, got ${actual.length}: ${show(actual)}`];
+		return expected.flatMap((v, i) => jsonLacks(v, actual[i], `${at}[${i}]`));
+	}
+	if (isObject(expected)) {
+		if (!isObject(actual)) return [`${place}: expected ${show(expected)}, got ${show(actual)}`];
+		return Object.entries(expected).flatMap(([key, v]) =>
+			Object.hasOwn(actual, key) ? jsonLacks(v, actual[key], `${at}.${key}`) : [`${at}.${key}: expected ${show(v)}, got none`],
+		);
+	}
+	return expected === actual ? [] : [`${place}: expected ${show(expected)}, got ${show(actual)}`];
+}
+
+// A text's lines, each with its newline (the last may have none).
+const textLines = (text: string) => text.match(/[^\n]*\n|[^\n]+$/g) ?? [];
+
+// Whether every line of expected is in actual, in the same order, whatever
+// lines actual adds around and between them.
+function holdsLines(expected: string, actual: string): boolean {
+	const have = textLines(actual);
+	let at = 0;
+	for (const line of textLines(expected)) {
+		while (at < have.length && have[at] !== line) at++;
+		if (at++ >= have.length) return false;
+	}
+	return true;
+}
+
+function linesProblems(what: string, expected: string, actual: string): string[] {
+	if (holdsLines(expected, actual)) return [];
+	return [
+		`${what} lacks, in order, the lines marked - (- expected, + got; a line added is compatible):`,
+		...diff(expected, actual).map((l) => `    ${l}`),
+	];
 }
 
 function fileProblems(path: string, value: FileValue, actual: Outcome["files"][string], subst: Subst): string[] {
@@ -441,16 +504,23 @@ function fileProblems(path: string, value: FileValue, actual: Outcome["files"][s
 }
 
 // What differs between a case's expectations and its outcome, as lines to print.
-export function compare(c: Case, { outcome, subst }: { outcome: Outcome; subst: Subst }): string[] {
+// With additive, stdout, stderr and json are judged by what they must still hold.
+export function compare(
+	c: Case,
+	{ outcome, subst }: { outcome: Outcome; subst: Subst },
+	additive = false,
+): string[] {
 	const text = (what: "stdout" | "stderr") =>
-		c[what] === undefined ? [] : textProblems(what, subst(c[what]!), outcome[what]);
+		c[what] === undefined
+			? []
+			: (additive ? linesProblems : textProblems)(what, subst(c[what]!), outcome[what]);
 	return [
 		...(outcome.exit === c.exit ? [] : [`exit: expected ${c.exit}, got ${outcome.exit}`]),
 		...text("stdout"),
 		...text("stderr"),
 		...hasProblems("stdout", list(c.stdout_has).map(subst), outcome),
 		...hasProblems("stderr", list(c.stderr_has).map(subst), outcome),
-		...(c.json === undefined ? [] : jsonProblems(deep(c.json, subst), outcome.stdout)),
+		...(c.json === undefined ? [] : jsonProblems(deep(c.json, subst), outcome.stdout, additive)),
 		...Object.entries(c.files_after ?? {}).flatMap(([path, value]) =>
 			fileProblems(path, value, outcome.files[path], subst),
 		),
@@ -487,6 +557,7 @@ async function main(args: string[]): Promise<number> {
 	let bin: string | undefined;
 	const only: string[] = [];
 	let listing = false;
+	const additive = args.includes("--additive");
 	for (let i = 0; i < args.length; i++) {
 		if (args[i] === "--bin") bin = args[++i];
 		else if (args[i] === "--only") listing = true;
@@ -494,7 +565,7 @@ async function main(args: string[]): Promise<number> {
 		else listing = false;
 	}
 	if (!bin) {
-		console.error("Usage: node tools/itos/conformance/run.ts --bin <command> [--only <file>…]");
+		console.error("Usage: node tools/itos/conformance/run.ts --bin <command> [--additive] [--only <file>…]");
 		return 2;
 	}
 	const started = performance.now();
@@ -510,7 +581,7 @@ async function main(args: string[]): Promise<number> {
 	const jobs = Math.max(1, Math.min(4, availableParallelism() - 1));
 	const results = await pool(cases, jobs, async ({ file, c }) => {
 		try {
-			return { file, c, problems: compare(c, await runCase(binary(bin), c)) };
+			return { file, c, problems: compare(c, await runCase(binary(bin), c), additive) };
 		} catch (error) {
 			return { file, c, problems: [`could not run: ${(error as Error).message}`] };
 		}
