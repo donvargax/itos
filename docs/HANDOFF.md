@@ -12,12 +12,12 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after T-076 landed.
+Last updated 2026-10-03, after slice 50 landed (v2.10.0).
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `04412f9` (CI run 37159171253,
-every job; v2.9.0 is the newest release). The coordinator commits docs from
+All work is @donvargax's. `main` is green at `ad9a258`'s parent `64942de` (CI
+run 37159814702, every job, `release` cutting v2.10.0). The coordinator commits docs from
 its own worktree, `.claude/worktrees/coord-docs` (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
@@ -37,7 +37,8 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.9.0 (`itos init --git-shim`, untagged features need no Scenarios
+Released: v2.10.0 (init's rerun notes a pin behind the newest and a missing
+people file, slice 50's rest), v2.9.0 (`itos init --git-shim`, untagged features need no Scenarios
 footer, slice 50's first half), v2.8.1 (`ci plan` and `ci run` without a `work:` section, bug 10),
 v2.8.0 (`itos init --plugin`, slice 49), v2.7.0 (`itos init`, slice 48), v2.6.0 (`itos pin [<version>]`, slice 47), v2.5.0 (the pre-push hook verifies the commits it pushes, slice 46;
 silent when they pass), v2.4.0 (`itos config get`), v2.3.2 (Windows paths, bug 9), v2.3.1
@@ -49,24 +50,23 @@ change any other repository.
 
 One slice at a time, the user's order:
 
-1. The rest of **`slice-50`**: @ID-INIT-20 and 21, the rerun's people-file
-   and pin-behind notes. Built and held as `slice50-held.patch` in the
-   coordinator's scratchpad; T-076 landed, so v2.9.0's corpus judged
-   additively passes against it. Needs help, corpus and ARCHITECTURE
-   updates. A feat.
-2. **`p3-help-tests-own-path`**, so no brief has to mention it again.
-3. The orchestration commands, the user's order (2026-10-03), ahead of the
-   rest of init: **`p1-ci-watch`** (`itos push` waits for CI),
-   **`p1-work-take-done-promote`** with `p1-slice-done-check` (`itos work
-done` verifies before it writes), **`p1-handoff-status`** after
-   `p1-work-queue-order` and `p1-follow-ups` (`itos status` replaces this
-   file), **`p1-tests-next-id-and-steps`**, **`p1-work-brief`** (now `itos
-work show`), and `p1-push-needs-hooks`. Each to specify first.
-4. Then `p3-init-agent-rules` and `p3-init-orchestration` (agent files;
+1. **`p3-help-tests-own-path`**, so no brief has to mention it again.
+2. The orchestration commands, the user's order (2026-10-03), ahead of the
+   rest of init, each to specify first:
+   - **`p1-ci-watch`**: `itos push` waits for CI;
+   - **`p1-work-take-done-promote`** with `p1-slice-done-check`: `itos work
+done` verifies before it writes;
+   - **`p1-handoff-status`**, after `p1-work-queue-order` and
+     `p1-follow-ups`: `itos status` replaces this file;
+   - **`p1-tests-next-id-and-steps`**;
+   - **`p1-work-brief`**, now `itos work show`;
+   - **`p1-push-needs-hooks`**: `itos commit` and `itos push` check the
+     gates they rely on.
+3. Then `p3-init-agent-rules` and `p3-init-orchestration` (agent files;
    PLAN.md §10, "Adoption"), `p3-pr-rebase-merge` and `p3-init-starter-ci`.
-5. **`p3-human-waiver`** (`itos waive`, a plain config list; the guard keeps
+4. **`p3-human-waiver`** (`itos waive`, a plain config list; the guard keeps
    agents off it), after those.
-6. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
+5. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
    open for the user).
 
 Small ideas, any time: `p3-guard-windows-paths` (the guard reads a Git Bash
