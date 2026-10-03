@@ -3142,7 +3142,7 @@ items:
     title: ci plan and ci run read work's defaults where the config has no work section
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     why: >
