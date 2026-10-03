@@ -77,12 +77,14 @@ func workCommand(args []string, o Out) (int, error) {
 	return workProposal(as, o)
 }
 
-// commit is one of commit's subcommands when the first argument names one,
-// else a commit itself (gitCommit), every argument git commit's but itos's
-// own flags.
+// commit is a commit itself (gitCommit), every argument git commit's but
+// itos's own flags, when there is no argument or the first is a flag or "--";
+// a bare first word is itos's, one of commit's subcommands or a usage error
+// (bug 5), so a mistyped subcommand never reaches git as a pathspec. Paths for
+// git go after a flag or after "--".
 func commit(args []string, o Out) (int, error) {
 	sub, rest := split(args)
-	if !slices.Contains(commitSubcommands, sub) {
+	if sub == "" || strings.HasPrefix(sub, "-") {
 		return gitCommit(args, o)
 	}
 	switch sub {
@@ -102,12 +104,14 @@ func commit(args []string, o Out) (int, error) {
 			return 0, usage("commit check-paths needs --type <type>")
 		}
 		return checkPaths(typ, positional(rest, "--type"), o)
+	case "footers":
+		footers := positional(rest)
+		if len(footers) < 3 {
+			return 0, usage("commit footers needs <name> <from> <to>")
+		}
+		return listFooters(footers[0], footers[1], footers[2], o)
 	}
-	footers := positional(rest)
-	if len(footers) < 3 {
-		return 0, usage("commit footers needs <name> <from> <to>")
-	}
-	return listFooters(footers[0], footers[1], footers[2], o)
+	return 0, usage("unknown command: commit %s", sub)
 }
 
 func verify(args []string, o Out) (int, error) {

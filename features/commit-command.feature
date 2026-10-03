@@ -46,7 +46,7 @@ Feature: itos commit, a commit whose footers itos writes
   # the word names a file, a commit of that file. A bare first word is
   # itos's: the subcommand, or the usage error it was before slice 31. Paths
   # for git still go after a flag or --.
-  @ID-COMMITCMD-05 @bug-5 @wip
+  @ID-COMMITCMD-05 @bug-5
   Scenario: A first word that is not a subcommand is a usage error, and commits nothing
     Given a change to "check-mesage" is staged
     When itos commits with the arguments "check-mesage -m 'chore: tidy the readme'"
@@ -54,7 +54,7 @@ Feature: itos commit, a commit whose footers itos writes
     And its output says "unknown command: commit check-mesage"
     And no commit was made
 
-  @ID-COMMITCMD-06 @bug-5 @wip
+  @ID-COMMITCMD-06 @bug-5
   Scenario: Paths after -- are git commit's
     When itos commits with the arguments "--task T-001 -m 'chore: tidy the readme' -- README.md"
     Then itos exits with code 0

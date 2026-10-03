@@ -143,8 +143,11 @@ cases:
       the footers are never written into the message: they are handed to the hook
       in ITOS_FOOTERS and written as the new commit's note in refs/notes/itos, and
       notes.rewriteRef is set to that ref, so an amend or a rebase carries the note.
-      -q is git's --quiet. A first argument that names a subcommand runs it. Exit:
-      git's own code; 2 when a flag has no value or the config no footer for it.
+      -q is git's --quiet. A first argument that is not a flag is a subcommand or a
+      usage error, never a path: paths for git go after a flag or after --, as in
+      itos commit --task T-1 -m '…' -- README.md. Exit: git's own code; 2 when the
+      first word is no subcommand, a flag has no value or the config no footer for
+      it.
 
       --json: git's output on stderr; {"schema":1,"ok","commit"?}
   - name: itos commit check-message --help

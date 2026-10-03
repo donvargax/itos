@@ -13,12 +13,12 @@ cases:
     stderr: |
       itos: unknown command: bogus (itos --help)
   - name: an unknown subcommand is a usage error
-    argv: [tests, bogus]
+    argv: [commit, bogus]
     exit: 2
     stderr: |
-      itos: unknown command: tests bogus (itos --help)
-  - name: commit with no subcommand is git commit, and gives git's exit code
-    argv: [commit, bogus]
+      itos: unknown command: commit bogus (itos --help)
+  - name: commit whose first argument is a flag is git commit, and gives git's exit code
+    argv: [commit, -m, "chore: x", --, bogus]
     exit: 128
     stderr_has: "not a git repository"
   - name: commit --task needs an ID

@@ -32,10 +32,6 @@ import (
 	"github.com/donvargax/itos/v2/internal/out"
 )
 
-// commitSubcommands are the words that, first after commit, name one of its
-// subcommands; any other first argument is git commit's.
-var commitSubcommands = []string{"check-message", "check-paths", "footers"}
-
 // commitFlags are what itos commit reads of its arguments: the IDs --task
 // and --scenarios give, each flag as often as wanted, written --task <ids> or
 // --task=<ids>, its value one ID or several separated by commas or spaces;
