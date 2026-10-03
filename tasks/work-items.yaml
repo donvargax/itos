@@ -2019,7 +2019,7 @@ items:
     title: A global itos keeps to the newest release, and says when a pin falls behind
     phase: 3
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-27]
     kind: slice
     why: >
