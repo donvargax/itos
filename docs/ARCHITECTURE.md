@@ -154,6 +154,19 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   `git rev-list --merges main`), so what was pushed is what the remote has,
   not what the clone thinks it pushed; an uncommitted change is a known line
   appended to the file, read back with `git diff HEAD` still seeing it.
+- **The git shim's scenarios** (`shim_test.go`, `shim.feature`): the link
+  is to the binary the itos under test runs, never `tools/bin/itos`, a
+  script that finds its checkout from its own path; a throwaway extension in
+  a temporary folder prints the `ITOS_BIN` itos tells it, asked once per
+  run. The link lives in the support folder's `shim/`, which `env` puts
+  first on every command's `PATH` (`pathFirst`, before the extensions'
+  folder), and "git runs" runs the link itself, so the shim finds the real
+  git after it. The repository with no itos config is `plain/` in the
+  support folder, outside the scratch one. The `PATH` is only ever a
+  command's own environment and the link goes with the support folder, so
+  no step leaves a shim on the `PATH` of anything else; `env` strips the
+  caller's `ITOS_*`, `ITOS_GIT` among them, so a run under itos (a hook's
+  `go test`) does not have the shim pass every git straight through.
 - **The header lint**, where a scenario needs one, is itos's built-in one,
   `use: builtin` in the scratch config, which needs nothing installed and
   holds no footer rule, so a scenario's footer rules are itos's own. The
@@ -358,10 +371,11 @@ mechanisms above, written against those modules, read across.
   statuses, and the proposal; below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git` (the repository's state and ranges, read
-  through git; below), beside two
+  through the real git; below), beside three
   the TypeScript has no module for:
-  `internal/value` and `internal/source` (below). The port shells out to git
-  where it needs it, as the TypeScript did.
+  `internal/value`, `internal/source` and `internal/shim` (below). The port
+  shells out to git where it needs it, as the TypeScript did, but always to
+  `git.Bin`, never to a `git` looked up on the `PATH`, which may be itos.
 - **The launcher** (`internal/launch`, slice 27) runs before the command
   line: `cmd/itos` calls `launch.Main`, and only when it hands the run back
   `cli.Main`. It picks the version to run, `ITOS_VERSION` when set, else the
@@ -527,6 +541,47 @@ mechanisms above, written against those modules, read across.
 "commit"?}`; a global `-q` passes `--quiet` to the rebase and the push and
   leaves out the success line. itos push reads no config, so it runs where
   itos is not set up, as itos commit does.
+- **The git shim** (`internal/shim`, `internal/git/bin.go`,
+  `internal/config/managed.go`, `internal/cli/gitshim.go`, slice 41):
+  `cmd/itos` asks `shim.Named(os.Args[0])` first (base name `git`, or on
+  windows `git`/`git.exe` in any case) and, when it is, `shim.Main` before
+  anything else. The real git is `git.Inherited` (`ITOS_GIT`, unless it is
+  this binary) or `git.Real`: the first `git` (on windows each `PATHEXT`
+  extension) in the `PATH`'s absolute folders that is an executable regular
+  file and not `os.SameFile` with `os.Executable`, so a symbolic or hard link
+  to itos is skipped; none is exit 3. With `ITOS_GIT` inherited, a git
+  started under an itos run, the shim passes through at once. Otherwise
+  `parse` reads git's options before the command (`-C` joined as git joins
+  them, `-c` kept, `--no-pager`/`-P` passed over, anything else not the
+  shim's), and for `commit` or `push`, with no `GIT_DIR` or `GIT_WORK_TREE`,
+  `config.Managed` decides by file checks alone: `ITOS_CONFIG` naming a file,
+  else `itos.yaml` in the folder, else `WorkTree`'s top (the first folder up
+  from the physical one with a `.git`, a `.git` file's `gitdir:` and that
+  gitdir's `commondir` giving the common dir, and none inside a git folder,
+  told by `HEAD`, `objects` and `refs`) holding `itos.yaml` or its common dir
+  the stealth config; `managed_test.go` holds it to `Top` and `Locate` on
+  each layout. Then `apply` `chdir`s to the `-C` folder, appends each `-c` to
+  `GIT_CONFIG_COUNT`/`_KEY_<n>`/`_VALUE_<n>` and sets `ITOS_GIT`, and the
+  arguments become `git-shim run -- <command> <args>…`, which go through
+  `launch.Main` and `cli.Main` as any run's: the `--` keeps every git
+  argument from `ParseGlobals`, and `git-shim run` calls `gitCommit` or
+  `push` directly, so `git commit check-paths` stays a commit. Anything else
+  is `run`: `syscall.Exec` of the real git with the arguments and the
+  environment untouched on unix, a child with the terminal's streams, an
+  interrupt left to it and its exit code handed back elsewhere. Every git
+  itos itself starts (`git.Output`, `git.Succeeds`, `runGit`, the notes, the
+  git config hooks, `source`'s `cat-file`) is `git.Bin()`: `Inherited`, else
+  `Real`, else `git`, found again when `ITOS_GIT` or the `PATH` changes (a
+  unit test swaps the `PATH`'s git); `cmd/itos` calls `git.Export` before the
+  launcher, setting `ITOS_GIT` for all a run starts, the version the launcher
+  runs included. `git-shim install` and `uninstall` (`gitshim.go`) link
+  `os.Executable` as `git` (`git.exe`) in `--dir`, typed from where the
+  person stood, or its own folder, a symbolic link or on windows a hard link
+  where that fails; a git there that is this binary is kept, a symbolic link
+  to another binary named `itos` replaced, anything else refused (exit 1);
+  `pathStanding` places the folder and `git.Real`'s folder among the `PATH`'s
+  by `os.SameFile`. The launcher's `binaryCommand` leaves both to the binary
+  called, so a pin never links a cached version.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
   `ITOS_CONFIG`, else `itos.yaml`, else the stealth config, after `--root`'s

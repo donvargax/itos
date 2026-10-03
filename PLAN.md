@@ -364,6 +364,7 @@ config at the top and runs from there (§5).
 | `commit check-message <file\|->`, `commit check-paths --type <t> <p>…`                                  | The header lint and the footer rules on one message; the scope rules alone, to plan a split.                                                                                                                |
 | `commit footers <name> <from> <to>`                                                                     | A range's free-text footers with their commits, leaving out `none`, for a release's notes.                                                                                                                  |
 | `push`                                                                                                  | Pulls the upstream with a rebase whatever git's settings say, then pushes HEAD to it in a separate step; refuses uncommitted changes, stops with a stopped rebase, never forces.                            |
+| `git-shim install\|uninstall [--dir <folder>]`, `git-shim run <commit\|push> [<git args>…]`             | Links itos as `git` (or removes the link) and says where the folder stands on the `PATH`; what the link runs in a repository itos manages (below).                                                          |
 | `verify <from> <to>`, `verify` (stealth)                                                                | Re-checks every non-merge commit of the range after `commits.since` (message with footers at that commit, paths, the built-in moves rule against its parent), then each range command once.                 |
 | `tests list <kind> [--at <tree>]`, `tests smoke check\|ids\|run <kind>`                                 | The adapter's listing; the smoke rule, the smoke IDs, the smoke run.                                                                                                                                        |
 | `tests moves <kind>`                                                                                    | The staged feature files against HEAD's by the built-in moves rule, by hand.                                                                                                                                |
@@ -460,6 +461,43 @@ is a new branch, pushed with no rebase. Outside a repository, or with no
 upstream and no `origin`, it exits 3. Printing the CI run the push started
 is `p1-ci-watch`'s.
 
+**The git shim** (slice 41, the user's calls of 2026-10-03): an alias reaches
+no script, editor or agent, so itos can stand in for git on the `PATH`. One
+binary, busybox's trick: started under the name `git` (argv[0]'s base name,
+`git` or `git.exe`), through a link named git in a folder before the real git,
+itos is the shim, so the shim is the itos version in effect. The real git is
+the first `git` on the `PATH` that is not this binary, compared as files, so
+a link to itos is skipped; with none, exit 3, saying so. In a repository itos
+manages (an `itos.yaml` in the folder git runs in or at its top, or a stealth
+config), found from any folder of it by plain file checks walking up to the
+`.git`, which agree with §5's lookup and run no git, `git commit …` runs as
+`itos commit …` and `git push …` as `itos push …`, with the same arguments,
+none read as an itos global flag (the shim runs `itos git-shim run -- <command>
+<args>…`). Of git's options before the command, `-C <path>` is honoured (the
+shim moves there before it looks) and so is `-c <name>=<value>`, handed to
+every git itos runs in `GIT_CONFIG_COUNT`, since editors commit with
+`git -c <key>=<value> commit`; `--no-pager` and `-P` change nothing. Any other
+option there (`--git-dir`, `--work-tree`, …), or `GIT_DIR` or `GIT_WORK_TREE`
+set, names a repository the file checks do not follow, and runs the real git.
+Every other command, and every command elsewhere, replaces the process by the
+real git on unix (a child whose exit code is handed back elsewhere), with its
+arguments, stdin, terminal and exit code untouched, for the cost of a start and
+a few file checks. itos itself never runs the git on the `PATH`: every git it
+starts is the real one, and it sets `ITOS_GIT` to it for everything it starts,
+so a git that a hook, a check or an older pinned itos runs under an itos run
+passes straight through the shim, and `itos commit` cannot recurse into itself.
+The launcher and the pin apply to `git-shim run` as to any run, so in a pinned
+repository `git commit` is the pinned itos's (one that predates the shim says
+`unknown command: git-shim`); `git-shim install` and `uninstall` always run the
+binary called, the one they link. `install` links it as git in `--dir`
+(default: the folder holding it), replaces only a link to an itos, refuses any
+other git (exit 1), and says whether the folder comes before the real git on
+the `PATH`; `uninstall` removes the link, and only a link to itos. Per machine
+and opt-in: the hooks and CI's `verify` stay the gates, and with the shim on a
+hand-typed `git commit` goes through `itos commit`, so the hook guesses an
+amend only for a git the shim does not wrap, and the plugin's guard (§10) is a
+backstop.
+
 **Hooks in the git config** (slice 33, the user's calls of 2026-10-03): git
 2.5x runs a hook declared in its config, `hook.<name>.event` and
 `hook.<name>.command`, as well as the one in `core.hooksPath` or the hooks
@@ -493,8 +531,8 @@ they grow from, empty as a new branch's when there is none or several.
 rejected, an unknown task); 2 a usage or config error, a file or folder the
 config names that is missing or unreadable among them (the ledger's folder a
 footer reads, a smoke set); 3 a missing environment, a pinned release the
-launcher cannot fetch or check among them (§10), and an extension that cannot
-start. In `ci run` a failing step exits with its own code, an extension's
+launcher cannot fetch or check among them (§10), an extension that cannot
+start, and a git shim with no other git on the `PATH`. In `ci run` a failing step exits with its own code, an extension's
 exit code is the run's, `itos commit`'s is git's, and so is `itos push`'s
 when the fetch or the push fails. A missing
 identity and a failing range provider are not errors, nor is a project's
@@ -522,8 +560,9 @@ itos/
   cmd/itos/        the Go binary (v0 was TypeScript, in tools/itos/, until T-062)
   internal/        its packages: config, glob, git, shell, ledger, check,
                    message, scope, tests, plan, ci, providers, work, hook, out,
-                   and value and source (YAML as JavaScript reads it; where
-                   itos reads its data)
+                   value and source (YAML as JavaScript reads it; where
+                   itos reads its data), launch (the launcher) and shim (itos
+                   started as git)
   tasks/           the ledger
   itos.yaml        this repository's own policy
 ```
@@ -613,7 +652,9 @@ footer a commit needs, refusing one that lacks a required footer before git
 runs (slice 36, §7). A stealth session owns every item, `itos work` looking
 no identity up (slice 38, §5). `itos push` pulls with a rebase and pushes,
 never forcing (slice 39, §7). From a subfolder, itos and the launcher find the
-config at the repository's top and run from there (slice 40, §5).
+config at the repository's top and run from there (slice 40, §5). Linked as
+git before the real one, itos runs git commit and git push as its own in a
+repository it manages, and the real git for everything else (slice 41, §7).
 
 ## 10. Distribution
 
@@ -659,7 +700,8 @@ smoke set when feature files exist, a pin on the running version), then the hook
 `--stealth`, all of it under the git folder and the hooks in `.git/config`, nothing tracked
 touched. It finds whether the plugin is installed and offers to install it for the project or
 the user (only the user, or `settings.local.json`, in stealth mode, since the project's settings
-are committed), asking only on a terminal, a flag answering for an agent. Run again, it changes
+are committed), asking only on a terminal, a flag answering for an agent, and
+offers the git shim (§7) the same way, which `itos git-shim install` makes. Run again, it changes
 nothing and reports what is missing (hooks, the git config-based hooks need, the plugin, a pin
 behind the newest), so it doubles as a doctor.
 

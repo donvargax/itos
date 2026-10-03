@@ -56,6 +56,10 @@ it, and the instructions then point to the check instead of restating it.
   (`git rebase --continue`, then `itos push` again, or `git rebase --abort`)
   with nothing pushed, and never forces: a push the remote refuses is
   reported, not retried.
+- **The git shim**: linked as `git` before the real git on your `PATH`, itos
+  makes a hand-typed, scripted or editor's `git commit` and `git push` in a
+  repository it manages run as `itos commit` and `itos push`, and passes
+  everything else to the real git (below).
 - **Named tests behind an adapter**: Gherkin is built in; any runner that can
   list its tests as JSON can be another kind. CI merges every selection of a
   kind into one run.
@@ -171,6 +175,40 @@ the config names means what it means at the top, and the launcher runs the
 version pinned there. A path you type (`itos commit check-paths`'s, a message
 file, `itos commit`'s pathspecs) is still read from the folder you are in, as
 git reads one.
+
+**The git shim** (from v2.2.0): to have every `git commit` and `git push` in
+a repository itos manages go through itos, whoever types them (you, a script,
+an editor, an agent), link itos as `git` in a folder that comes before the real
+git on your `PATH`:
+
+```sh
+itos git-shim install                 # a link named git beside the itos binary
+itos git-shim install --dir ~/.local/bin/itos-shim   # or in a folder of your choice
+```
+
+It says whether that folder comes before the real git on the `PATH`; if not,
+put it first (`export PATH="$HOME/.local/bin/itos-shim:$PATH"` in your shell's
+profile), and run `hash -r` in a shell that has already looked git up. In a
+repository with an `itos.yaml` (at its top, or in the folder you are in) or a
+stealth config, from any folder of it, `git commit …` is then
+`itos commit …` and `git push …` is `itos push …`, with the same arguments:
+a commit missing a footer is refused before git runs, `git commit --task
+T-001 -m …` writes the footer, and `git push --force` is refused. git's
+`-C <dir>` and `-c <key>=<value>` before the command are honoured. Every other
+command, and every command in any other repository, runs the real git (the
+first `git` on the `PATH` that is not itos) with its arguments, input,
+terminal and exit code untouched, at the cost of starting itos and a few file
+checks. itos's own git, and any git a hook or check started by itos runs, is
+always the real one. In a repository that pins a version, `git commit` is that
+version's `itos commit` (v2.2.0 or later). The hooks and CI's `itos verify`
+stay the gates: the shim is per machine and opt-in. To turn it off, remove the
+link:
+
+```sh
+itos git-shim uninstall               # or: itos git-shim uninstall --dir <the folder>
+```
+
+Neither command touches a `git` that is not a link to itos.
 
 **The schema, for editors.** An editor with a YAML language server checks an
 `itos.yaml` as it is written, completes its keys and shows each one's
