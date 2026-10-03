@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 40 (itos.yaml found from a subfolder) landed.
+Last updated 2026-10-03, after slice 41 (the git shim) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `76f1137` (CI run 37104040140), slice 40's close; this
+`main` is green at `a9ba268` (CI run 37105230252), slice 41's close; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -49,7 +49,7 @@ says `itos 2.1.0`, and `go install github.com/donvargax/itos/v2/cmd/itos@v2.1.0`
 works. The nightly dispatched on its commit, 37101959993, is green. Before it,
 v2.0.0, v1.1.0 and v1.0.0. The user moves the other repositories at v2.3.0
 and does it from their own repositories: don't change any other repository.
-Unreleased: slices 39 and 40, `itos push` and the config found from a subfolder.
+Unreleased: slices 39 to 41, `itos push`, the config found from a subfolder and the git shim.
 
 ## Next
 
@@ -58,8 +58,9 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 1. **v2.1.0 is out**: self-update, extensions, the stealth mode, `itos
 commit` (slices 27 to 38, bugs 4 to 6).
 2. **Toward v2.2.0, git through itos**: slices 39 (`itos push`) and 40
-   (the config found from a subfolder) are done; next slice 41, the git
-   shim (`features/shim.feature`), then v2.2.0. Open for the user: `p3-finish-with-itos-push`, whether
+   (the config found from a subfolder) are done; slice 41, the git
+   shim, is done. Next the `@bug-7` fix (a pin older than the shim made every
+   commit through it fail), then v2.2.0. Open for the user: `p3-finish-with-itos-push`, whether
    this repository's finishing routine switches to `itos push`.
 3. **Toward v2.3.0, adoption**: **`p3-claude-code-plugin`**: the marketplace, the titles, the skill, the
    git commit/push guard (PLAN.md §10, "Adoption").

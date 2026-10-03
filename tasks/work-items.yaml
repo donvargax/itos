@@ -2343,21 +2343,6 @@ items:
       itos push cannot take, saying so.
     refs: [features/shim.feature, internal/cli/push.go]
 
-  - id: p3-shim-old-pin
-    title: The git shim in a repository pinned to an itos without it
-    phase: 3
-    owner: null
-    status: todo
-    depends_on: [slice-41]
-    kind: idea
-    why: >
-      In a repository pinned to a release older than the shim (before v2.2.0), git commit and git
-      push through the shim launch the pinned itos with git-shim run, which it does not have, so
-      every commit there fails with unknown command: git-shim until the pin moves or the shim is
-      removed. The shim could tell such a pin from its version and run the real git, or the
-      pinned itos commit with no global flags read, saying which.
-    refs: [internal/shim/shim.go, internal/launch/launch.go]
-
   - id: p3-global-install-ci
     title: A repository relying on a global itos runs it from its hooks and its CI
     phase: 3
