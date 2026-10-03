@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 35 (a stealth config's defaults) landed: the stealth mode is done.
+Last updated 2026-10-03, after slice 36 (itos commit's content flags) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `6a347ff` (CI run 37098540999), slice 35's close; this
+`main` is green at `aaaabb5` (CI run 37100537137), slice 36's close; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -50,7 +50,8 @@ works (the module path is `/v2` since T-061). Releases are automated
 repositories: don't change any other repository. Unreleased: slices 27 to 31
 (the launcher, `pin`, the newest release and the notice, extensions, the
 stealth config, `itos commit`, stealth footers in notes, hooks in the git
-config, the unpushed range, a stealth config's defaults) and
+config, the unpushed range, a stealth config's defaults, the amend signal,
+`itos commit`'s content flags) and the `@bug-6` fix and
 the `itos version` fix (issue #2).
 From v2.1.0 on, `tools/selftest/release-notes.ts` holds every `Upgrading:`
 footer of the range to the notes.
@@ -66,11 +67,8 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 3. **Stealth mode** is done: slices 30 to 35, with `itos commit` (slice 31)
    and the `@bug-5` fix. The coordinator proposed cutting v2.1.0 now; the
    user has not answered. `hooks.bin` stays through v2 (`v3-drop-hooks-bin`).
-4. **Toward v2.1.0**, in order: slice 37 (the hook knows an amend from git's
-   prepare-commit-msg, not the author's second), the `@bug-6` fix (an amend
-   judged by its parent's paths), slice 36 (`itos commit` writes every
-   footer a commit needs: `--upgrading`, `--breaking`), slice 38 (a stealth
-   session owns every item); then cut v2.1.0, the user's call (2026-10-03).
+4. **Toward v2.1.0**: slice 37, the `@bug-6` fix and slice 36 are done;
+   next slice 38 (a stealth session owns every item), then cut v2.1.0.
 5. **`p1-itos-push`**, itos commit's other half (built in or an extension,
    the first call).
 6. **`p3-claude-code-plugin`**: the marketplace, the titles, the skill, the
@@ -80,6 +78,14 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 8. **`p3-itos-init`**, after `p3-pin-bump`: ties the above together.
 9. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
    open for the user).
+
+Releases, the user's plan (2026-10-03): v2.1.0 when item 4 is done (global
+install, extensions, the stealth mode, `itos commit`); v2.2.0, git through
+itos (`p1-itos-push`, `p3-launcher-subfolder`, `p3-git-shim`); v2.3.0,
+adoption (the plugin, `p3-pre-push-verify`, `p3-human-waiver`,
+`p3-itos-init`); v3.0.0 the breaking cleanup (`v3-drop-hooks-bin`, the
+notes gathering once git-cliff writes them). The user moves the other
+repositories at v2.3.0, so v2.1.0 and v2.2.0 ask nothing of them.
 
 Each is specified as scenarios when its turn comes. Left for later, the
 user's: the release cut by CI (`p1-itos-release`), which the user solves

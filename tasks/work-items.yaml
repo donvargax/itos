@@ -2138,6 +2138,13 @@ items:
       intact. Commits made by hand then go through itos too, so the hook guesses an amend only
       for a git the shim does not wrap, and the plugin's guard becomes a backstop. Per machine and
       opt-in: the hooks and CI's verify stay the gates.
+      How (the user's call, 2026-10-03): one binary, no separate program: a git symlink to itos,
+      which acts as the shim when started under that name (busybox's trick), so the shim is the
+      itos version in effect, launcher and pin included. It finds the real git as the first git
+      on the PATH that is not itself, finds an itos repository by plain file checks up to the
+      .git (no extra git process), runs commit (later push) as itos's there, and execs the real
+      git for everything else. itos init, or a small itos git-shim install, offers the symlink.
+      Planned for v2.2.0, with itos push and the subfolder lookup.
     refs: [PLAN.md]
 
   - id: p3-itos-init
