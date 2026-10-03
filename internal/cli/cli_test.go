@@ -142,3 +142,32 @@ func TestHelpListsExtensions(t *testing.T) {
 		t.Errorf("verify --help: %q", stdout)
 	}
 }
+
+// From a subfolder, itos runs at the repository's top, where its config is,
+// and reads a path the person typed from the folder they stood in, as git
+// does; --root keeps reading it from the root.
+func TestSubfolderPaths(t *testing.T) {
+	dir := gitConfigRepo(t, "version: 1\ncommits: { types: [docs], scopes: { docs: { only: [\"**/*.md\"] } } }\n")
+	if err := os.MkdirAll(filepath.Join(dir, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(filepath.Join(dir, "sub"))
+	code, stdout, stderr := run("commit", "check-paths", "--type", "docs", "a.md", "../b.go", "--json")
+	if code != ExitPolicy || !strings.Contains(stdout, `"sub/a.md"`) || !strings.Contains(stdout, `"b.go"`) {
+		t.Errorf("from sub: exit %d, stdout %s, stderr %s", code, stdout, stderr)
+	}
+	if here, _ := os.Getwd(); !sameDir(here, dir) {
+		t.Errorf("from sub, itos ran in %s, not the top %s", here, dir)
+	}
+	t.Chdir(filepath.Join(dir, "sub"))
+	code, stdout, _ = run("--root", dir, "commit", "check-paths", "--type", "docs", "a.md", "--json")
+	if code != 0 || !strings.Contains(stdout, `"a.md"`) || strings.Contains(stdout, "sub/") {
+		t.Errorf("under --root: exit %d, stdout %s", code, stdout)
+	}
+}
+
+func sameDir(a, b string) bool {
+	x, errX := os.Stat(a)
+	y, errY := os.Stat(b)
+	return errX == nil && errY == nil && os.SameFile(x, y)
+}

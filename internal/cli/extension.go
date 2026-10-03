@@ -5,8 +5,9 @@ package cli
 // arguments after its name, unread, as git runs git-<command>; its exit code
 // is the run's. A built-in command always wins, and a command that is neither
 // stays the usage error it was. The global flags written before the name
-// apply first (--root is the folder it runs in) and reach it in the
-// environment (extensionEnv).
+// apply first (--root is the folder it runs in, and so is the repository's
+// top when a run from a subfolder moves there to read its config) and reach
+// it in the environment (extensionEnv).
 
 import (
 	"fmt"
@@ -27,7 +28,7 @@ const extensionPrefix = "itos-"
 // The environment an extension is given.
 const (
 	envConfig  = "ITOS_CONFIG"  // the config itos would read, absolute
-	envRoot    = "ITOS_ROOT"    // the folder itos runs in, after --root, absolute
+	envRoot    = "ITOS_ROOT"    // the folder itos runs in, after --root or the move to the top, absolute
 	envJSON    = "ITOS_JSON"    // 1 with --json, else unset
 	envBin     = "ITOS_BIN"     // the itos binary running, to call back
 	envVersion = "ITOS_VERSION" // its version, which the launcher keeps a call back to

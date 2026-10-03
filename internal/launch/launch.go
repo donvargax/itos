@@ -148,19 +148,25 @@ type foundConfig struct {
 }
 
 // readConfig reads the config where itos reads it (--config, ITOS_CONFIG,
-// itos.yaml or the stealth config, under --root, the global flags read as the
-// command line reads them: for an extension, only those before its name).
-// Only the pin is read, not the rest of the config, so a config written for a
-// newer itos than the launcher still reaches the version it pins.
+// itos.yaml or the stealth config, under --root, or, from a subfolder of a
+// repository whose config is at its top, there (config.Top), the global flags
+// read as the command line reads them: for an extension, only those before
+// its name). Only the pin is read, not the rest of the config, so a config
+// written for a newer itos than the launcher still reaches the version it
+// pins.
 func readConfig(args []string) foundConfig {
 	g := cli.Parse(args)
+	root := g.Root
+	if g.Config == "" && root == "" {
+		root = config.Top("")
+	}
 	file := g.Config
 	if file == "" {
-		file = config.Locate(g.Root)
+		file = config.Locate(root)
 	}
-	stealth := config.IsStealthIn(g.Root, file)
-	if !filepath.IsAbs(file) && g.Root != "" {
-		file = filepath.Join(g.Root, file)
+	stealth := config.IsStealthIn(root, file)
+	if !filepath.IsAbs(file) && root != "" {
+		file = filepath.Join(root, file)
 	}
 	c := foundConfig{file: file}
 	text, err := os.ReadFile(file)

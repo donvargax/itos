@@ -12,7 +12,9 @@ import (
 
 const globalFlags = `Global flags:
   --config <file>   the config (default ITOS_CONFIG, else itos.yaml, else the
-                    stealth mode's <git common dir>/itos/itos.yaml)
+                    stealth mode's <git common dir>/itos/itos.yaml; in a
+                    subfolder with no itos.yaml, the repository top's, and
+                    itos runs as if started there)
   --root <dir>      run as if started in <dir>
   --json            one object on stdout ("schema": 1, keys only ever added); logs on stderr
   --no-color        no colour (itos prints none; passed on as NO_COLOR)
@@ -192,7 +194,9 @@ built-in lint's warnings alone do not.
 	"commit check-paths": `Usage: itos commit check-paths --type <type> <path>…
 
 Applies the type's path rules (commits.scopes) to the paths and prints what
-they reject, without committing. Exit 1 when a path is rejected.
+they reject, without committing. A path is read from the folder itos is run
+in, as git reads one, and named from the repository's top. Exit 1 when a path
+is rejected.
 
 --json: {"schema":1,"type","files","ok","problems":[{"rule","message","fix"}]}`,
 

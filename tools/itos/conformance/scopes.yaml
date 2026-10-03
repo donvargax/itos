@@ -43,6 +43,20 @@ cases:
         - docs commits may not touch vite.config.ts
         - docs commits may not touch tools/itos/main.ts
         - docs commits may not touch src/app/view.ts
+  # From a subfolder itos runs at the repository's top, where itos.yaml is
+  # (slice 40), and reads a path typed there from the subfolder, as git
+  # reads one, naming it from the top.
+  - name: from a subfolder, a path is read from it and named from the top
+    argv: [commit, check-paths, --type, docs, list.feature, ../../src/app/view.ts]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+    files: { e2e/features/: "" }
+    cwd: e2e/features
+    exit: 1
+    stderr: |
+      Commit rejected (see tasks/README.md):
+        - docs commits may not touch src/app/view.ts
   - name: build may touch the root config, hooks, workflows, tools, index.html and src/main.ts
     argv: [commit, check-paths, --type, build, package.json, vite.config.ts, .vite-hooks/pre-push, .github/workflows/ci.yml, tools/itos/main.ts, index.html, src/main.ts, .claude/settings.json, .gitignore]
     exit: 0

@@ -184,7 +184,7 @@ Feature: Every key the config accepts is one itos reads
   # --root, a run from inside a repository finds the itos.yaml at its top
   # (git rev-parse --show-toplevel) and runs as if started there, so every
   # path the config names means what it means at the top.
-  @ID-CONFIG-20 @slice-40 @wip
+  @ID-CONFIG-20 @slice-40
   Scenario: From a subfolder, itos reads the itos.yaml at the repository's top and runs as from there
     Given a "sub" folder
     When itos runs the task "T-001" from "sub"

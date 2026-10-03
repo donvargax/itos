@@ -41,7 +41,8 @@ func Path() string { return Locate("") }
 
 // Locate is the config itos reads for the folder dir ("" for the current
 // one), as Path picks it, relative to dir unless it is absolute. The
-// launcher calls it before --root applies.
+// launcher calls it before --root applies, with the folder --root names or
+// the top Top finds.
 func Locate(dir string) string {
 	if p := os.Getenv("ITOS_CONFIG"); p != "" {
 		return p

@@ -270,7 +270,7 @@ func (g gitArgs) message() (string, bool) {
 	case len(g.messages) > 0:
 		return strings.Join(g.messages, "\n\n"), true
 	case g.file != "" && g.file != "-":
-		text, err := os.ReadFile(g.file)
+		text, err := os.ReadFile(typed(g.file))
 		return string(text), err == nil
 	case g.amend && g.noEdit:
 		text, err := git.Output("log", "-1", "--format=%B", "HEAD")
@@ -424,9 +424,12 @@ func gitCommit(args []string, o Out) (int, error) {
 // runGit runs git with the terminal's stdin, so an editor can open, and gives
 // its exit code; the error is why it could not start. An interrupt is git's
 // and the editor's to act on while it runs, not a reason for itos to leave
-// first.
+// first. It runs in the folder the person stood in, so the paths and the
+// files they gave git mean what they mean there, though itos moved to the
+// repository's top to read its config (slice 40).
 func runGit(argv, env []string, stdout io.Writer, o Out) (int, error) {
 	cmd := exec.Command("git", argv...)
+	cmd.Dir = origin
 	cmd.Env = env
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, stdout, o.Stderr
 	interrupts := make(chan os.Signal, 1)

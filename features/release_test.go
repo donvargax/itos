@@ -120,6 +120,9 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^itos has already run "([^"]*)"$`, w.alreadyRan)
 
 	sc.Step(`^itos runs "([^"]*)"$`, func(args string) error { return w.itos(strings.Fields(args)...) })
+	sc.Step(`^itos runs "([^"]*)" from "([^"]*)"$`, func(args, folder string) error {
+		return w.itosIn(filepath.Join(w.dir, folder), strings.Fields(args)...)
+	})
 
 	sc.Step(`^the version "([^"]*)" ran with the arguments "([^"]*)"$`, w.versionRanWithArguments)
 	sc.Step(`^the version "([^"]*)" ran with ITOS_VERSION "([^"]*)"$`, w.versionRanWithVersion)

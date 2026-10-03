@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -73,7 +74,7 @@ func split(args []string) (string, []string) {
 func workCommand(args []string, o Out) (int, error) {
 	if sub, rest := split(args); sub == "check" {
 		file, named := first(rest)
-		return workCheck(file, named, o)
+		return workCheck(typed(file), named, o)
 	}
 	as, _ := flagValue(args, "--as")
 	return workProposal(as, o)
@@ -99,13 +100,17 @@ func commit(args []string, o Out) (int, error) {
 			file = "-"
 		}
 		at, _ := flagValue(rest, "--at")
-		return checkMessage(file, at, o)
+		return checkMessage(typed(file), at, o)
 	case "check-paths":
 		typ, ok := flagValue(rest, "--type")
 		if !ok {
 			return 0, usage("commit check-paths needs --type <type>")
 		}
-		return checkPaths(typ, positional(rest, "--type"), o)
+		var files []string
+		for _, f := range positional(rest, "--type") {
+			files = append(files, filepath.ToSlash(typed(f)))
+		}
+		return checkPaths(typ, files, o)
 	case "footers":
 		footers := positional(rest)
 		if len(footers) < 3 {
@@ -158,6 +163,7 @@ func testsCommand(args []string, o Out) (int, error) {
 	case "check":
 		var root *string
 		if features, ok := flagValue(more, "--features"); ok {
+			features = typed(features)
 			root = &features
 		}
 		return smokeCheck(name, root, o)
@@ -220,7 +226,7 @@ func hook(args []string, o Out) (int, error) {
 		if len(rest) == 0 {
 			return 0, usage("hook commit-msg needs <file>")
 		}
-		return hookCommitMsg(rest[0], o)
+		return hookCommitMsg(typed(rest[0]), o)
 	case "pre-push":
 		return hookPrePush(o)
 	}
@@ -250,7 +256,7 @@ func configCommand(args []string, o Out) (int, error) {
 		return printDefaults(o)
 	}
 	ledger, _ := flagValue(args, "--ledger")
-	return configCheck(ledger, o)
+	return configCheck(typed(ledger), o)
 }
 
 // versionCommand prints the version, or under --json the version with the
