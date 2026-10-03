@@ -21,7 +21,7 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   builds (`tools/bin/build-go.ts`) and the consumer inbox are this
   repository's tooling, run by Node; no consumer of itos needs Node.
 - **A release** is cut by CI (T-069): `ci.yml`'s `release` job, after its
-  `ci` job passes on a push to `main`, calls `.github/workflows/release.yml`,
+  `ci` job and its three `platform` jobs (T-072) pass on a push to `main`, calls `.github/workflows/release.yml`,
   a reusable workflow and the only job given `contents: write`,
   `id-token: write` and `attestations: write`, one at a time in the
   `release` concurrency group, never cancelled. It adds no gate: the push's CI
@@ -1447,6 +1447,16 @@ check`'s written-order rule reads too); then the late steps (the dependency chec
   `CONTRIBUTORS.md`, the people a registry's owners must be among, is
   Markdown; the registry and the ledger, under `tasks/`, are not prose) and the named tasks' static and `prose: true` checks,
   and no features.
+- **The platform jobs** (`ci.yml`'s `platform`, T-072) run beside it on every
+  push, a matrix of `ubuntu-latest`, `macos-latest` and `windows-latest`,
+  each named `platform (<runner>)`: itos built natively, stamped as
+  `tools/bin/itos` stamps it, into `ITOS_BIN` (`itos.exe` on windows, where
+  Go runs no shell script and `tools/bin/itos` is one), then the Go unit
+  tests and every feature against that build, in Git for Windows' `bash` on
+  windows, the features whatever the unit tests said. They block, and the
+  `release` job needs them, so a platform break stops a release; the releases
+  are still built on Linux alone. Their actions are pinned by commit, as
+  `release.yml`'s are.
 - **The nightly** (`.github/workflows/nightly.yml`, at 11:44 UTC on `main` or
   by hand) runs `itos ci run --nightly`: `ci.nightly.steps` in written order,
   here every feature, then the gates self-tests (`gates.ts`, `go-hooks.ts`),
@@ -1456,7 +1466,9 @@ check`'s written-order rule reads too); then the late steps (the dependency chec
   `gh attestation verify`, which `ci.nightly_only` keeps out of pushes: it
   passes only once the release job has cut a release, which needs a green
   push, and a push's range starts at the last green run, so in pushes it
-  would hold every one red. The done tasks' checks are the step `{ tasks: done, cost: static }`
+  would hold every one red; then T-072's, that the newest completed CI run on
+  `main` passed its three platform jobs, also kept out of pushes, since a
+  push's own run is still going when its task checks run. The done tasks' checks are the step `{ tasks: done, cost: static }`
   (`nightlyPlan` in `ci-plan.ts`): the checks of each task whose work item is
   `done` in the registry (`itemStatuses`, the status the commit-msg hook calls
   a red check a regression by), in cost order where the step is written, only
