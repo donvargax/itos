@@ -2792,7 +2792,7 @@ items:
     title: v2.3.0, the itos plugin for Claude Code
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-42, slice-43, slice-44, T-066]
     kind: task
     refs: [tasks/phase-3.yaml]

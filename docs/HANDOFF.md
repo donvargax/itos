@@ -12,7 +12,7 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after T-067 landed.
+Last updated 2026-10-03, after v2.3.0 was released.
 
 ## Where things stand
 
@@ -39,15 +39,13 @@ docs/ORCHESTRATING.md's loop).
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
 
-Released: [v2.2.0](https://github.com/donvargax/itos/releases/tag/v2.2.0)
-(T-065, release run 37106400735): `itos push`, the config found from a
-subfolder, the git shim (`itos git-shim install`), additive. Its assets were
-downloaded and checksummed, the linux binary says `itos 2.2.0`, and `go
-install github.com/donvargax/itos/v2/cmd/itos@v2.2.0` works; the nightly on
-its commit, 37106291515, is green. Before it, v2.1.0 (the global install,
-extensions, the stealth mode, `itos commit`), v2.0.0, v1.1.0, v1.0.0. The
-user moves the other repositories at v2.3.0, from their own repositories:
-don't change any other repository. Unreleased: slices 42 to 44 and T-066, the plugin.
+Released: [v2.3.0](https://github.com/donvargax/itos/releases/tag/v2.3.0)
+(T-068, release run 37131270855): `itos hook pre-tool-use`, the guard;
+`itos work list`; the guard under an old pin; the itos plugin for Claude Code,
+this repository a plugin marketplace. Additive. The nightly on its commit,
+37131118750, is green. Before it, v2.2.0 (`itos push`, the git shim), v2.1.0,
+v2.0.0, v1.1.0, v1.0.0. Don't change any other repository. Unreleased: T-067,
+the dependency check (this repository's own).
 
 ## Next
 
@@ -55,11 +53,9 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 
 1. **v2.1.0 and v2.2.0 are out.** Open: `p3-shim-push-args` (`git push`
    takes no arguments through the shim), small, when it bites.
-2. **v2.3.0 is tagged** (`1435336`, CI red only at T-068's download check,
-   nightly 37131118750 green on it); the release workflow's run was not
-   watched, the coordinator's watch denied by the permission check: confirm it
-   published, then close T-068 (the download check, README's install lines).
-   Then **T-070** (the config schema held to the last release's) and
+2. **v2.3.0 is out** (release run 37131270855; its assets downloaded and
+   checksummed, the linux binary says `itos 2.3.0`).
+   Next **T-070** (the config schema held to the last release's) and
    **T-071** (the last release's scenarios run against the new binary; a
    fix may change one it names in `Changes:`, a feat never), then
    **T-069**, the user's call (2026-10-03): a push to `main` carrying a
