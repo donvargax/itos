@@ -96,7 +96,7 @@ var typesOrAll = either(str, strs)
 var provider = enum("github", "command", "none")
 
 // HookManagers are the hook managers `hooks install` writes or prints for.
-var HookManagers = []string{"vp", "git", "husky", "lefthook", "pre-commit", "prek"}
+var HookManagers = []string{"vp", "git", "husky", "lefthook", "pre-commit", "prek", "git-config"}
 
 // schema is every key the config accepts, each one a tool reads.
 var schema = about("itos's policy: the ledger, the commit rules, the named tests, CI's plan, the work routing and the hooks.", obj([]string{"version"},

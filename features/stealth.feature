@@ -130,14 +130,14 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
   # files or settings, and a hook manager resetting core.hooksPath cannot
   # remove them. hooks install --manager git-config writes them, and is what
   # hooks install picks in stealth mode.
-  @ID-STEALTH-13 @slice-33 @wip
+  @ID-STEALTH-13 @slice-33
   Scenario: In stealth mode hooks install declares itos's hooks in the git config
     When itos installs the hooks
     Then itos exits with code 0
     And the git config declares a "commit-msg" hook that runs itos
     And git status shows nothing to commit
 
-  @ID-STEALTH-14 @slice-33 @wip
+  @ID-STEALTH-14 @slice-33
   Scenario: itos's hook runs beside the project's own, whose files and settings are untouched
     Given the project's hooks are in ".husky" by core.hooksPath, with a commit-msg hook that records it ran
     And itos has installed the hooks

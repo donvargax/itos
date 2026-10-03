@@ -10,7 +10,8 @@ package cli
 // hooks as files, so their shims are written; lefthook and pre-commit keep
 // them in their config, so their snippet is printed to add there. A hook file
 // that is not a shim is never replaced without --force: the pre-commit hook,
-// say, is the project's own.
+// say, is the project's own. Under a stealth config the manager is the git
+// config (gitconfig.go), unless --manager or hooks.manager names another.
 
 import (
 	"fmt"
@@ -34,6 +35,7 @@ var managerNames = map[string]string{
 	"lefthook":   "lefthook",
 	"pre-commit": "pre-commit",
 	"prek":       "prek",
+	"git-config": "the git config",
 }
 
 // lefthookFiles are the files lefthook reads its config from.
@@ -110,13 +112,17 @@ func detectManager(root string) foundManager {
 }
 
 // chosenManager is the manager --manager names, else the one hooks.manager
-// names, else the one its markers show.
-func chosenManager(flag string, cfg *config.Loaded, root string) foundManager {
+// names, else the git config for a stealth config, whose hooks must not touch
+// the project's, else the one its markers show.
+func chosenManager(flag string, cfg *config.Loaded, file, root string) foundManager {
 	if flag != "" {
 		return foundManager{flag, "--manager " + flag, true}
 	}
 	if m := cfg.Hooks.Manager; m != nil && *m != "" {
 		return foundManager{*m, "hooks.manager " + *m, true}
+	}
+	if cfg.Stealth {
+		return foundManager{"git-config", "stealth config " + file, true}
 	}
 	return detectManager(root)
 }
@@ -270,12 +276,13 @@ func place(full, content string, print, force, executable bool) (string, error) 
 // not given.
 func hooksInstall(flag string, print, force bool, o Out) (int, error) {
 	const root = "."
-	cfg, err := config.Load(config.Path())
+	file := config.Path()
+	cfg, err := config.Load(file)
 	if err != nil {
 		return 0, err
 	}
 	bin := cfg.Hooks.Bin
-	found := chosenManager(flag, cfg, root)
+	found := chosenManager(flag, cfg, file, root)
 	log := o.Stdout
 	if o.JSON {
 		log = o.Stderr
@@ -286,6 +293,9 @@ func hooksInstall(flag string, print, force bool, o Out) (int, error) {
 		verb = "Using"
 	}
 	say(fmt.Sprintf("%s %s (%s)", verb, managerNames[found.manager], found.marker))
+	if found.manager == "git-config" {
+		return declareHooks(found, root, bin, cfg.Hooks.PrePush != nil, print, force, o, say)
+	}
 	if found.manager != "vp" && found.manager != "husky" && found.manager != "git" {
 		return printSnippet(found, root, bin, o, say)
 	}

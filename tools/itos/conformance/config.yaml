@@ -103,8 +103,8 @@ cases:
           fix: remove commits.header_lint.alongside; the keys here are use, hook, stdin
           area: config
         - rule: config-enum
-          message: 'itos.yaml: hooks.manager should be one of vp, git, husky, lefthook, pre-commit, prek, not "overcommit"'
-          fix: set hooks.manager to one of vp, git, husky, lefthook, pre-commit, prek
+          message: 'itos.yaml: hooks.manager should be one of vp, git, husky, lefthook, pre-commit, prek, git-config, not "overcommit"'
+          fix: set hooks.manager to one of vp, git, husky, lefthook, pre-commit, prek, git-config
           area: config
   - name: wrong types, a value not allowed, missing keys
     argv: [config, check, --json]

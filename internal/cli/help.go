@@ -304,23 +304,32 @@ once per remote commit the push builds on, else hooks.pre_push.whole (a new
 branch, or a base this clone lacks). A deleted branch runs nothing. Exit 1
 when a command fails.`,
 
-	"hooks": `Usage: itos hooks install [--manager vp|git|husky|lefthook|pre-commit|prek] [--print] [--force]`,
+	"hooks": `Usage: itos hooks install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]`,
 
-	"hooks install": `Usage: itos hooks install [--manager vp|git|husky|lefthook|pre-commit|prek] [--print] [--force]
+	"hooks install": `Usage: itos hooks install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]
 
 Writes the commit-msg and pre-push hooks as one-line shims calling
 ` + "`" + `<hooks.bin> hook …` + "`" + ` (tools/bin/itos by default), for the hook manager
---manager names, else the one hooks.manager names. Without either it detects
-the hook manager from its markers and says which it found: Vite+ (a
-.vite-hooks/ folder, or core.hooksPath .vite-hooks/_), husky (.husky/),
-lefthook (lefthook.yml), pre-commit or prek (.pre-commit-config.yaml), else
-plain git (the repository's hooks folder). lefthook and pre-commit keep hooks
-in their config, so their snippet is printed to add there. --print prints the
-shims and writes nothing. A hook that is not a shim is left alone, and the
-exit is 1, unless --force replaces it.
+--manager names, else the one hooks.manager names. Without either, a stealth
+config declares them in the git config; any other detects the hook manager
+from its markers and says which it found: Vite+ (a .vite-hooks/ folder, or
+core.hooksPath .vite-hooks/_), husky (.husky/), lefthook (lefthook.yml),
+pre-commit or prek (.pre-commit-config.yaml), else plain git (the
+repository's hooks folder). lefthook and pre-commit keep hooks in their
+config, so their snippet is printed to add there. --print prints the shims
+and writes nothing. A hook that is not a shim is left alone, and the exit is
+1, unless --force replaces it.
+
+git-config declares the hooks in the repository's own git config, never
+committed: hook.itos-commit-msg, and hook.itos-pre-push when hooks.pre_push
+is set, each running ` + "`" + `<hooks.bin> hook <event>` + "`" + `. Git runs them beside the
+hook in core.hooksPath or the hooks folder, so the project's hooks and
+settings stay as they are. It needs a git that runs the hooks its config
+declares (git hook list shows them), else it exits 3.
 
 --json: {"schema":1,"manager","marker","files":[{"path","content","action"}]}
-        or, for lefthook, pre-commit and prek, {"schema":1,"manager","marker","file","snippet","installed"}`,
+        or, for lefthook, pre-commit and prek, {"schema":1,"manager","marker","file","snippet","installed"}
+        or, for git-config, {"schema":1,"manager","marker","hooks":[{"name","event","command","action"}]}`,
 
 	"config": `Usage: itos config check [--ledger <file>] [--print-defaults]`,
 

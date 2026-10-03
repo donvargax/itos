@@ -1,6 +1,7 @@
 # The hooks: `hooks install` taking the hook manager --manager or
-# hooks.manager names, else finding it by its markers, and writing one-line shims (never over a hook of the project's own without
-# --force), or printing the snippet a config-file manager takes; `hook
+# hooks.manager names, else the git config for a stealth config, else finding it by its markers, and writing one-line shims
+# (never over a hook of the project's own without --force), printing the snippet a config-file manager takes, or declaring
+# the hooks in the git config; `hook
 # commit-msg` (the staged paths, each kind's staged range check, then the
 # header lint, if any, built in or a delegate, and the footer rules, always);
 # `hook pre-push` (git's ref lines on stdin,
@@ -325,6 +326,31 @@ cases:
       installed: false
     stderr: |
       Using lefthook (--manager lefthook)
+  - name: the git config's entries, printed
+    argv: [hooks, install, --print, --manager, git-config]
+    exit: 0
+    stdout: "Using the git config (--manager git-config)\n[hook \"itos-commit-msg\"]\n\tevent = commit-msg\n\tcommand = tools/bin/itos hook commit-msg\n[hook \"itos-pre-push\"]\n\tevent = pre-push\n\tcommand = tools/bin/itos hook pre-push\n"
+  - name: a stealth config declares the hooks in the git config, over the markers, and no pre-push entry without hooks.pre_push
+    argv: [hooks, install, --json]
+    files:
+      itos.yaml: null
+      .husky/: ""
+      .git/itos/itos.yaml: "version: 1\nhooks: { bin: itos }\n"
+    files_after:
+      .husky/commit-msg: null
+    exit: 0
+    json:
+      schema: 1
+      manager: git-config
+      marker: stealth config .git/itos/itos.yaml
+      hooks:
+        - name: itos-commit-msg
+          event: commit-msg
+          command: itos hook commit-msg
+          action: wrote
+    stderr: |
+      Using the git config (stealth config .git/itos/itos.yaml)
+      wrote hook.itos-commit-msg
   - name: commit-msg rejects a staged path the type may not touch
     argv: [hook, commit-msg, msg]
     git:

@@ -75,7 +75,7 @@ cases:
     argv: [hooks, install, --manager, bogus]
     exit: 2
     stderr: |
-      itos: hooks install --manager takes vp|git|husky|lefthook|pre-commit|prek (itos --help)
+      itos: hooks install --manager takes vp|git|husky|lefthook|pre-commit|prek|git-config (itos --help)
   - name: hook needs commit-msg or pre-push
     argv: [hook, pre-commit]
     exit: 2
