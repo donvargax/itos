@@ -373,7 +373,7 @@ config at the top and runs from there (§5).
 | `tests moves <kind>`                                                                                    | The staged feature files against HEAD's by the built-in moves rule, by hand.                                                                                                                                |
 | `ci plan [<from> <to>]`, `ci run [<from> <to>]`, `--nightly`                                            | Prints the plan (with no range, only in stealth mode); runs it, stopping at the first failure unless `ci.stop_at_first_failure` is false.                                                                   |
 | `ci scope <from> <to>`, `ci range --head <sha> [--base <sha>]`                                          | Whether a range is prose only; where a push's range starts.                                                                                                                                                 |
-| `hook commit-msg <file>`, `hook pre-push <remote> <url>`, `hook pre-tool-use`                           | The hooks' entry points: git's two, and Claude Code's PreToolUse guard against an agent's `git commit` and `git push` (below).                                                                              |
+| `hook commit-msg <file>`, `hook pre-push <remote> <url>`, `hook pre-tool-use`                           | The hooks' entry points: git's two (the pre-push one verifies the pushed commits first), and Claude Code's PreToolUse guard against an agent's `git commit` and `git push` (below).                         |
 | `hooks install [--manager <m>] [--print] [--force]`                                                     | Writes the one-line shims for the hook manager it detects, or prints its snippet; under a stealth config, declares the hooks in the git config.                                                             |
 | `config check [--print-defaults]`, `config get <key>`                                                   | Validates the config, the ledger, the registry and the smoke sets; prints a key's value as the tools read it, defaults applied (slice 45).                                                                  |
 | `version [--check]`                                                                                     | Needs no config; `--check` exits 1 if the binary does not satisfy `requires`.                                                                                                                               |
@@ -463,6 +463,28 @@ Nothing to push is success (exit 0, saying so); a remote without the branch
 is a new branch, pushed with no rebase. Outside a repository, or with no
 upstream and no `origin`, it exits 3. Printing the CI run the push started
 is `p1-ci-watch`'s.
+
+**The pre-push hook verifies** (slice 46, the user's question of
+2026-10-03): a commit that skipped the commit-msg hook (`--no-verify`, a
+clone without the hooks) was first judged by CI, once on the remote and no
+longer the person's to amend. `itos hook pre-push` now runs verify first,
+over what each pushed ref adds: `<remote sha>..<local sha>` when the clone
+has the remote's commit, else (a new branch, or a remote commit the clone
+lacks) the local commit's commits on no remote-tracking branch, as `verify`
+with no range takes them under a stealth config; a deleted ref adds
+nothing. `commits.since` and the range checks apply as in verify. It prints
+nothing when every commit passes, so a push of passing commits reads as it
+did, and the released corpus's cases of the hook keep their output, which
+let it ship as a feat. A failure prints verify's report and how to fix the
+commits (`git commit --amend` for the last one, `git rebase -i` from the
+parent of the first failing one for an earlier one), exits 1 and runs none
+of `hooks.pre_push`'s commands; without `hooks.pre_push` the hook is the
+verify alone, and a config with no `commits` section has nothing to verify.
+No key turns it off. CI still verifies every commit since its last green
+run: it is the gate nobody can skip on their own machine. Under a stealth
+config `hooks install` still declares no pre-push entry without
+`hooks.pre_push`, as a released corpus case promises; declaring it always is
+`v3-stealth-pre-push`'s.
 
 **The git shim** (slice 41, the user's calls of 2026-10-03): an alias reaches
 no script, editor or agent, so itos can stand in for git on the `PATH`. One
@@ -694,7 +716,8 @@ config at the repository's top and run from there (slice 40, §5). Linked as
 git before the real one, itos runs git commit and git push as its own in a
 repository it manages, and the real git for everything else (slice 41, §7).
 `itos hook pre-tool-use` denies an agent's git commit and git push in Claude
-Code, naming the itos command to use (slice 42, §7).
+Code, naming the itos command to use (slice 42, §7). The pre-push hook
+verifies the commits it pushes before its commands run (slice 46, §7).
 
 ## 10. Distribution
 

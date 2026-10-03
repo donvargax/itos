@@ -1021,7 +1021,10 @@ type)` for verify (the commit against `git.Parent`, the empty tree for a
   under `--json`), then, only when the message holds, its paths
   (`git.CommitPaths`) through `scope` and its moves as one rejection; then
   `tests.RangeCommands(cfg, from, to)`, each kind's `range` commands with
-  `{from}` at `cfg.RangeStart(from)`, run until one fails. The range
+  `{from}` at `cfg.RangeStart(from)`, run until one fails. That walk is
+  `verifier.over`, which returns each commit's result (`verifyRun`), so
+  `verifyRange` adds only the config's checks, `--json` and the exit code,
+  and the pre-push hook calls it on each pushed range. The range
   helpers sit beside `SinceIssue` in `internal/config/since.go`.
 - **CI's plan** is `internal/plan` (`ci-plan.ts`, `ci-plan-json.ts` and the
   plan's half of `ci-scope.ts`), with `ci plan` and `ci scope` in
@@ -1154,8 +1157,20 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   `GIT_INDEX_FILE`. A failure rejects the commit when `work.ItemStatuses`
   says the task is `done`, and is only printed otherwise. `hook pre-push`
   reads git's ref lines, or under pre-commit or prek the line their
-  environment gives, and runs `hooks.pre_push`'s `per_base` once per remote
-  base this clone has, else `whole`, nothing for a deleted branch. `hooks
+  environment gives, as `pushedRefs`: each ref's local commit and the
+  remote's commit it replaces when this clone has it, a deleted ref left
+  out. It verifies first (`verifyPush`, slice 46): verify's
+  `verifier.over` on each distinct `pushedRange`, `<remote sha>..<local
+sha>`, or `git.Unpushed` up to the local commit when there is no remote
+  commit to compare with, each run's report written to a buffer, so a push
+  whose commits pass prints nothing and the commands' output is all the
+  hook says, as before. A failing range's report is printed on stderr with
+  `fixAdvice` (`git commit --amend`, or `git rebase -i` from the parent of
+  the first failing commit, `--root` for a root commit) and the hook exits 1
+  with no command run. A config with no `commits` section has no rules to
+  verify. Then it runs `hooks.pre_push`'s `per_base` once per remote base
+  this clone has (`pushBases`), else `whole`, nothing for a deleted branch,
+  and nothing at all without `hooks.pre_push`. `hooks
 install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   and writes or prints the one-line shims (`#!/bin/sh` and executable for
   plain git, written as a new file is), or prints a config-file manager's
@@ -1449,7 +1464,9 @@ diff --name-only --no-renames`, so a change undone within the range is
     failure rejects the commit when the task's item in the staged registry
     is `done`, else it is printed with the task's status and the commit
     goes through. `hooks.commit_msg.task_checks: false` turns them off.
-  - **pre-push** runs `hooks.pre_push`: `tools/bin/go-unit-tests <remote
+  - **pre-push** verifies the commits each pushed ref adds, as `itos verify`
+    does (slice 46), printing nothing when they pass and refusing the push
+    when one fails; then it runs `hooks.pre_push`: `tools/bin/go-unit-tests <remote
 sha>` (the base against the working tree) for each pushed ref, or the
     whole unit suite (`--all`) when there is no remote commit to compare
     with. The package choice is the script's alone, shared with pre-commit. Nothing else: the

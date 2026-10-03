@@ -40,8 +40,11 @@ it, and the instructions then point to the check instead of restating it.
   belongs to (`Task: T-…`), and each type may touch only certain paths.
   `itos hook commit-msg` applies them before a commit, validates itos's
   own files as the commit stages them, and runs the static checks of the
-  tasks it names, rejecting it when a finished task's check fails; `itos verify` re-checks
-  a pushed range in CI, from `commits.since` on. `itos commit --task <id>` (or
+  tasks it names, rejecting it when a finished task's check fails; `itos hook
+pre-push` verifies the commits a push adds before they leave, refusing the
+  push with how to fix them when one fails (and printing nothing when they
+  pass), and `itos verify` re-checks a pushed range in CI, from
+  `commits.since` on. `itos commit --task <id>` (or
   `--scenarios <ids>`, a flag for each footer of free text such as
   `--upgrading <text>`, and `--breaking <text>`) is `git commit` with the
   footers written for you, as git trailers, whether the message comes from
