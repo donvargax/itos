@@ -1201,6 +1201,10 @@ items:
       the user asked (2026-10-02) for the whole release to run from CI/CD, a follow-up to phase 3:
       a version bump landing green on main cuts the tag and publishes, with no hand step;
       with p1-ci-after-push-checks the red-by-design run would read as pending instead.
+      The notes stay prose for a consumer's session; git-cliff, which vp run changelog already
+      runs, could draft them from the commits and their Upgrading footers, and
+      tools/selftest/release-notes.ts prove the draft misses none (the user's question,
+      2026-10-03).
 
   - id: slice-16
     title: The nightly runs every done task's checks
@@ -1956,9 +1960,9 @@ items:
     refs: [features/stealth.feature, PLAN.md]
 
   - id: p3-stealth-defaults
-    title: A stealth config's defaults fit a repository of one person
+    title: A stealth config uses the global itos and reads no people file
     phase: 3
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: [slice-30, slice-33]
     kind: idea
@@ -1969,7 +1973,31 @@ items:
       fail until the person writes a people file there (README.md's example sets both). A stealth
       config could default hooks.bin to itos, the global install, and its people to the one
       identity, through defaultsFor as work.registry's default already depends on the config.
+      The user's calls (2026-10-03): a config in <git common dir>/itos/ is stealth however it was
+      found; in it hooks.bin is itos, the global launcher, and no people file is read, the person
+      being the only one. In a project a missing or malformed people file is reported by itos init
+      (and its re-run) and silent elsewhere: work runs with no identity, already no error (config
+      check at most a warning that never fails). A project's hooks.bin default stays
+      tools/bin/itos through v2; v3 drops the key (v3-drop-hooks-bin).
     refs: [internal/config/defaults.go, internal/config/stealth.go, README.md]
+
+  - id: v3-drop-hooks-bin
+    title: "v3: hooks.bin goes, every hook and pattern calling itos"
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [p3-global-install-ci, p3-pin-bump]
+    kind: idea
+    deferred: the next major release, the user's call (2026-10-03)
+    why: >
+      With the launcher and pin, a repository needs no hooks.bin: the hooks and the command
+      patterns call itos, and the pin picks the version. Dropping it, or flipping its default,
+      breaks every consumer relying on tools/bin/itos (v2.0.0's notes told them to), so the user
+      keeps it through v2. v3's Upgrading asks each consumer to move to pin and a global itos;
+      until then itos init writes hooks.bin: itos for a repository on a global itos, and this
+      repository, judged by its own build, needs a way to keep calling it (an ITOS_VERSION-style
+      override, or a pin to a local build) before the key can go.
+    refs: [PLAN.md, docs/releases/v2.0.0.md]
 
   - id: slice-31
     title: itos commit, a commit whose footers itos writes
