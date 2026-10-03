@@ -19,8 +19,8 @@ Last updated 2026-10-03, after v2.0.0 was released: phase 3 is done.
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` was green at `5975fd4` (CI run 37084782516); v2.0.0's commit `5d51353`
-was red only at T-061's download check until the tag, as designed; this
+`main` is green at `26bde05` (CI run 37086973283), T-061's close, whose
+download check passed against the published v2.0.0; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
