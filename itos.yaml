@@ -36,6 +36,14 @@ commits:
       validate_for: [feat, fix]
       must_be_live: true # a feat or fix names scenarios it turns green, not @wip ones
       read_at: commit
+    # What a consumer of itos must change for the commit, or none: feat and fix are
+    # what a consumer can feel. itos commit footers gathers them into a release's
+    # Upgrading section, and release-notes.ts holds each to it. since: the commit
+    # before the rule, so verify judges no commit written before it by it.
+    Upgrading:
+      source: text
+      required_for: [feat, fix]
+      since: "2e522f25cd21dd28eab41e320854ff8beb9856ae"
   path_sets:
     config: # what build and ci commits may touch
       - "*.{json,yaml,yml,ts,toml}"
