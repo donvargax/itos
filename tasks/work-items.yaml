@@ -2222,22 +2222,23 @@ items:
       and scripts are not looked into. p3-human-waiver adds itos waive to what it denies.
     refs: [features/guard.feature, PLAN.md]
 
-  - id: p3-guard-old-pin
+  - id: slice-44
     title: itos hook pre-tool-use under a pin older than the guard answers nothing, not exit 2
     phase: 3
     owner: donvargax
     status: todo
     depends_on: [slice-42]
-    kind: idea
+    kind: slice
     why: >
-      Left by slice 42. The launcher hands hook pre-tool-use to the version a repository pins, and
+      Was p3-guard-old-pin, specified as @ID-GUARD-11 and 12 in features/guard.feature, before
+      T-066 wires the hook. Left by slice 42. The launcher hands hook pre-tool-use to the version a repository pins, and
       one older than the guard (v2.3.0) has no such hook: its usage error exits 2, which Claude Code
       takes as a block, so in such a repository every Bash command is blocked once T-066's plugin
       wires the hook. As bug 7 did for the git shim, the launcher (launch.Handed and a
       cli.GuardSince) should answer nothing, exit 0, where the version it would hand the hook to
       predates it, so the plugin can call itos hook pre-tool-use plainly; until then README.md says
       to wire it only under a pin of v2.3.0 or later.
-    refs: [internal/launch/launch.go, internal/cli/pretooluse.go]
+    refs: [features/guard.feature, internal/launch/launch.go, internal/cli/pretooluse.go]
 
   - id: slice-43
     title: itos work list, every item of the registry with its title
@@ -2258,7 +2259,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [slice-42, slice-43]
+    depends_on: [slice-42, slice-43, slice-44]
     kind: task
     why: >
       Was p3-claude-code-plugin; the task is T-066 in tasks/phase-3.yaml, after slice 42's guard
