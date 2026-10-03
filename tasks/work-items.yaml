@@ -2760,7 +2760,7 @@ items:
     title: The Claude Code plugin runs the itos the repository's hooks.bin names
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-066, slice-45]
     kind: task
     why: >
@@ -2772,6 +2772,34 @@ items:
         integrations/claude-code/hooks/hooks.json,
         integrations/claude-code/hooks/register.ts,
       ]
+
+  - id: p3-plugin-guard-tested
+    title: A test runs the plugin's guard script through each case of the resolution
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-073]
+    kind: idea
+    why: >
+      T-073 left it: the rule that picks the itos is written twice, resolveItos in the module,
+      which the plugin's tests prove case by case, and hooks/guard.sh, the command hook's, which
+      no test runs, since claude plugin test runs no process. A test that runs guard.sh with fake
+      itos scripts on a PATH of its own (an answer, a subfolder, an old itos's exit 2, tools/bin/itos
+      alone, neither, an exit 2 from the hook) would hold the two copies together.
+    refs: [integrations/claude-code/hooks/guard.sh, integrations/claude-code/hooks/register.ts]
+
+  - id: p3-plugin-registry-at-top
+    title: The plugin's titles read the registry file at the repository's top
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-073]
+    kind: idea
+    why: >
+      T-073 left it: with no itos that answers, the titles read tasks/work-items.yaml under the
+      session's root, so a session started in a subfolder gets no titles, though the resolution
+      now knows the repository's top (git rev-parse --show-toplevel) and could read it there.
+    refs: [integrations/claude-code/hooks/register.ts]
 
   - id: p3-plugin-type-check
     title: Type-check the Claude Code plugin's hooks module in CI
