@@ -168,3 +168,46 @@ export function hookGates({ sh, git }: ReturnType<typeof scratchRepo>) {
 		);
 	return { problems, timings, expect, gate, preCommit, prePush };
 }
+
+// The scratch repositories of a check held to the last release
+// (tools/bin/schema-contract, tools/bin/previous-release): git run in a folder
+// with a fixed author, in outsideEnv() with extra laid over it; an empty
+// commit; and the two repositories every such check must not pass blindly, one
+// with no release tag and a shallow clone of repo.
+export function releaseRepos(tmp: string, extra: NodeJS.ProcessEnv = {}) {
+	const env: NodeJS.ProcessEnv = {
+		...outsideEnv(),
+		...extra,
+		GIT_AUTHOR_NAME: "selftest",
+		GIT_AUTHOR_EMAIL: "selftest@localhost",
+		GIT_COMMITTER_NAME: "selftest",
+		GIT_COMMITTER_EMAIL: "selftest@localhost",
+	};
+	const git = (cwd: string, ...args: string[]) => {
+		const r = spawnSync("git", args, { cwd, env, encoding: "utf8" });
+		if (r.status !== 0) throw new Error(`git ${args.join(" ")}:\n${r.stderr}`);
+		return r.stdout.trim();
+	};
+	const commit = (cwd: string, message: string) =>
+		git(cwd, "commit", "-q", "--allow-empty", "-m", message);
+	const untagged = () => {
+		const dir = join(tmp, "untagged");
+		git(tmp, "init", "-q", "-b", "main", dir);
+		commit(dir, "feat: the first");
+		return dir;
+	};
+	const shallow = (repo: string) => {
+		const dir = join(tmp, "shallow");
+		git(tmp, "clone", "-q", "--depth", "1", "--no-tags", `file://${repo}`, dir);
+		return dir;
+	};
+	return { env, git, commit, untagged, shallow };
+}
+
+// A self-test's end: each problem, then one line saying how it went; exit 1
+// on a problem.
+export function finish(problems: string[], what: string, passed: string): never {
+	for (const problem of problems) console.error(`FAIL ${problem}`);
+	console.log(problems.length ? `\n${problems.length} ${what} check(s) failed` : `\n${passed}`);
+	process.exit(problems.length ? 1 : 0);
+}

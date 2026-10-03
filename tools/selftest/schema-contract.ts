@@ -23,7 +23,7 @@ import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { outsideEnv, spawnOutput } from "./scratch.ts";
+import { finish, outsideEnv, releaseRepos, spawnOutput } from "./scratch.ts";
 
 const tmp = mkdtempSync(join(tmpdir(), "schema-contract-selftest-"));
 const repo = join(tmp, "repo");
@@ -32,8 +32,7 @@ const problems: string[] = [];
 const expect = (ok: boolean, problem: string) => ok || problems.push(problem);
 
 const closed = "http://127.0.0.1:9";
-const env: NodeJS.ProcessEnv = {
-	...outsideEnv(),
+const { env, git, commit, untagged, shallow } = releaseRepos(tmp, {
 	GITHUB_REPOSITORY: "example/itos",
 	HTTP_PROXY: closed,
 	HTTPS_PROXY: closed,
@@ -41,18 +40,7 @@ const env: NodeJS.ProcessEnv = {
 	https_proxy: closed,
 	NO_PROXY: "",
 	no_proxy: "",
-	GIT_AUTHOR_NAME: "selftest",
-	GIT_AUTHOR_EMAIL: "selftest@localhost",
-	GIT_COMMITTER_NAME: "selftest",
-	GIT_COMMITTER_EMAIL: "selftest@localhost",
-};
-const git = (cwd: string, ...args: string[]) => {
-	const r = spawnSync("git", args, { cwd, env, encoding: "utf8" });
-	if (r.status !== 0) throw new Error(`git ${args.join(" ")}:\n${r.stderr}`);
-	return r.stdout.trim();
-};
-const commit = (cwd: string, message: string) =>
-	git(cwd, "commit", "-q", "--allow-empty", "-m", message);
+});
 
 // The release's schema, in the shape tools/bin/config-schema writes.
 type Schema = Record<string, any>;
@@ -309,19 +297,14 @@ try {
 	);
 
 	// 8. No release tag: nothing to hold the tree to, said, and passed.
-	const untagged = join(tmp, "untagged");
-	git(tmp, "init", "-q", "-b", "main", untagged);
-	commit(untagged, "feat: the first");
-	r = check(untagged, ["-release-url", closed, "-new", removed]);
+	r = check(untagged(), ["-release-url", closed, "-new", removed]);
 	expect(
 		r.status === 0 && r.output.includes("no vX.Y.Z tag"),
 		`a repository with no release tag should pass, saying so, exited ${r.status}:\n${r.output}`,
 	);
 
 	// 9. A shallow clone, which may hide the tag, stops it.
-	const shallow = join(tmp, "shallow");
-	git(tmp, "clone", "-q", "--depth", "1", "--no-tags", `file://${repo}`, shallow);
-	r = check(shallow, ["-old", releaseFile, "-new", removed]);
+	r = check(shallow(repo), ["-old", releaseFile, "-new", removed]);
 	expect(
 		r.status === 2 && r.output.includes("shallow"),
 		`a shallow clone should stop the check (exit 2), exited ${r.status}:\n${r.output}`,
@@ -332,10 +315,8 @@ try {
 	rmSync(tmp, { recursive: true, force: true });
 }
 
-for (const problem of problems) console.error(`FAIL ${problem}`);
-console.log(
-	problems.length
-		? `\n${problems.length} schema contract check(s) failed`
-		: `\nThe schema contract refuses each of ${breaking.length} breaking changes unless a commit since the release marks one, passes each of ${compatible.length} compatible ones, and never passes a failed download`,
+finish(
+	problems,
+	"schema contract",
+	`The schema contract refuses each of ${breaking.length} breaking changes unless a commit since the release marks one, passes each of ${compatible.length} compatible ones, and never passes a failed download`,
 );
-process.exit(problems.length ? 1 : 0);
