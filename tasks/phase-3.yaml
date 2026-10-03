@@ -430,6 +430,9 @@
     nothing in the darwin archives, and signing and notarising them waits for an Apple
     developer account, if ever (curl, the launcher and go install mark nothing for Gatekeeper).
     Every action the job uses is pinned by commit, each version at least 7 days old (T-067).
+    Its check runs in the nightly, not in pushes (ci.nightly_only), and reads the newest completed
+    ci.yml run on main: a push's own run is still going when its task checks run, so read in a
+    push it would find that run's platform jobs unfinished and hold every push naming T-072 red.
   done_when:
-    - run: sh -c 'id=$(gh run list --workflow ci.yml --branch main --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'
+    - run: sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'
       after: push
