@@ -489,6 +489,26 @@ checked; a config with no pin runs the binary that was called, and with no `itos
 config (§5) that pins nothing, it runs the newest release, asked for at most once a day. Later channels: the aqua or mise registry, a Homebrew tap,
 npm (as `palitos`) and PyPI wrappers, signatures.
 
+**Adoption** (the user's calls, 2026-10-03). This repository is also a Claude Code plugin
+marketplace: `.claude-plugin/marketplace.json` at the root names the itos plugin in
+`integrations/claude-code/`, versioned and released with itos. The plugin carries the titles (an
+itos ID drawn with its title in Claude's replies, from the project's own itos), a short skill on
+working with itos (find work with `itos work`, commit with `itos commit --task`, push with
+`itos push`, read what a gate says, never run the gates by hand), and a `PreToolUse` hook that,
+in a repository with an itos config, answers a `git commit` or `git push` with the itos command to
+use instead: a guardrail for agents, a hook rather than permission rules, since a rule matches a
+command's prefix and `git -C . commit` slips past it; the commit-msg hook stays the gate. Its
+hooks call `itos`, so a repository's pin picks the version. `itos init` makes a repository ready,
+new (`git init` first) or existing: an `itos.yaml` from what it detects (`commits.since` at HEAD
+so history written before itos is never judged, the hook manager, a ledger and a registry, a
+smoke set when feature files exist, a pin on the running version), then the hooks; with
+`--stealth`, all of it under the git folder and the hooks in `.git/config`, nothing tracked
+touched. It finds whether the plugin is installed and offers to install it for the project or
+the user (only the user, or `settings.local.json`, in stealth mode, since the project's settings
+are committed), asking only on a terminal, a flag answering for an agent. Run again, it changes
+nothing and reports what is missing (hooks, the git config-based hooks need, the plugin, a pin
+behind the newest), so it doubles as a doctor.
+
 v0 releases are the TypeScript packed to JavaScript, since Node strips types
 only outside `node_modules`, published as a tarball a consumer pins.
 

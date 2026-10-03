@@ -55,7 +55,7 @@ footer of the range to the notes.
 
 ## Next
 
-The user's order (2026-10-02), one slice at a time:
+The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 
 1. **Self-update** is done: slices 27 and 28. Their ideas wait in the
    registry (`p3-pin-bump`, `p3-launcher-subfolder`,
@@ -63,9 +63,16 @@ The user's order (2026-10-02), one slice at a time:
 2. **Extensions** is done: slice 29.
 3. **Stealth mode**: slices 30 to 34 (`features/stealth.feature`), with
    slice 31, `itos commit --task`, in `features/commit-command.feature`.
-   Specified, the user's answers in slice-30's why.
-4. **`p3-claude-code-plugin`**, the itos-titles mod published from here.
-5. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
+   Specified, the user's answers in slice-30's why. Slice 30 is done; with
+   slice 33 comes `p3-stealth-defaults` (a stealth config still defaults to
+   a project's `hooks.bin` and `CONTRIBUTORS.md`, so it needs both written
+   until then).
+4. **`p1-itos-push`**, itos commit's other half (built in or an extension,
+   the first call).
+5. **`p3-claude-code-plugin`**: the marketplace, the titles, the skill, the
+   git commit/push guard (PLAN.md §10, "Adoption").
+6. **`p3-itos-init`**, after `p3-pin-bump`: ties the above together.
+7. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
    open for the user).
 
 Each is specified as scenarios when its turn comes. Left for later, the

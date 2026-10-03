@@ -2058,12 +2058,31 @@ items:
       stays in the repository either way, since a task's checks are commands run at a commit.
     refs: [PLAN.md]
 
+  - id: p3-itos-init
+    title: itos init, a new or existing repository made ready for itos
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-33, p3-claude-code-plugin, p3-pin-bump]
+    kind: idea
+    why: >
+      The user's idea (2026-10-03): one command readies a repository, new (git init first) or
+      existing: an itos.yaml from what it detects (commits.since at HEAD, the hook manager, a
+      ledger and a registry, a smoke set when feature files exist, a pin on the running version),
+      then the hooks; --stealth puts it all under the git folder with the hooks in .git/config. It
+      finds whether the Claude Code plugin is installed and offers to install it for the project
+      or the user (only the user, or settings.local.json, in stealth mode), asking only on a
+      terminal, a flag answering for an agent. Run again it changes nothing and reports what is
+      missing, so it doubles as a doctor. Last of the adoption work, since it ties the stealth
+      mode, itos commit, itos push, the plugin and the pin together. PLAN.md §10, "Adoption".
+    refs: [PLAN.md]
+
   - id: p3-claude-code-plugin
     title: The itos plugin for Claude Code, published from this repository
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [T-061]
+    depends_on: [slice-31, p1-itos-push]
     kind: idea
     why: >
       The user's call (2026-10-02): the local itos-titles mod, which draws an itos ID's title beside
@@ -2077,6 +2096,13 @@ items:
       later for other itos-aware pieces: an inbox pane, main's CI in the status line.
       The dev mod lives in the dev-mods folder of the session that made it, so other sessions
       run without it (2026-10-03, an ID left untitled): the plugin is what makes it everywhere.
+      The user's calls (2026-10-03): the repository a marketplace (.claude-plugin/marketplace.json
+      at the root); the plugin carries, beside the titles, a short skill on working with itos
+      (itos work, itos commit --task, itos push, reading a gate, never running gates by hand) and
+      a PreToolUse hook answering git commit and git push, in a repository with an itos config,
+      with the itos command to use (a hook, since a permission rule matches a prefix and
+      git -C . commit slips past it). Its hooks call itos, so a pin picks the version. PLAN.md
+      §10, "Adoption".
     refs: [PLAN.md]
 
   - id: slice-27
