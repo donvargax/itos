@@ -53,16 +53,13 @@ don't change any other repository. Unreleased: slices 42 to 44 and T-066, the pl
 
 The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 
-1. **v2.1.0 and v2.2.0 are out.** Open for the user:
-   `p3-finish-with-itos-push`, whether this repository's finishing routine
-   switches to `itos push`; and `p3-shim-push-args` (`git push` takes no
-   arguments through the shim), small, when it bites.
+1. **v2.1.0 and v2.2.0 are out.** Open: `p3-shim-push-args` (`git push`
+   takes no arguments through the shim), small, when it bites.
 2. **v2.3.0, the plugin** (PLAN.md §10, "Adoption"), on `main`: slices 42
    to 44 (the guard, `itos work list`, the guard under an old pin) and T-066
-   (the marketplace and the plugin). Before the release,
-   **`p3-agents-through-itos`**: this repository's AGENTS.md and
-   docs/ORCHESTRATING.md still say git commit and git push, which the guard
-   denies once an itos 2.3.0 is on the PATH. Then the release task.
+   (the marketplace and the plugin). This repository's
+   rules now commit and push through `itos commit` and `itos push` (the
+   user's call, 2026-10-03). Next the release task.
    T-066 also left `p3-plugin-project-itos` and `p3-plugin-type-check`.
 3. **v2.4.0**: **`p3-pre-push-verify`**, **`p3-pin-bump`** and
    **`p3-itos-init`**.
@@ -103,10 +100,9 @@ integration tests for the rest, property-based testing) in the project
 template first; they come back here once that is done. When they do,
 `p1-several-test-kinds` moves up, for an integration-test kind.
 
-Agents in this repository: pull with
-`rtk proxy git pull --rebase --no-autostash origin main` (the rtk hook's
-rewrite of a plain `git pull` can fail), and they are made to hand back
-while their CI watch still runs: watch the run yourself before relaying.
+Agents in this repository commit with `tools/bin/itos commit` and push with
+`tools/bin/itos push` (AGENTS.md), and they are made to hand back while their
+CI watch still runs: watch the run yourself before relaying.
 Check before committing a spec that its range and setup can reach the line
 it checks: two specs this session needed a fix after an agent read them.
 

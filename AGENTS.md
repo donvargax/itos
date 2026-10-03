@@ -96,6 +96,14 @@ the same thing waste both. Take one by setting its `owner` and
   footer. The commit-msg hook enforces the shape and the footers
   (`commits.header_lint` and `commits.footers` in `itos.yaml`); the body's
   reason is yours, because it is the changelog.
+- **Commit with `tools/bin/itos commit`, never `git commit`.** It runs git
+  commit and writes the footers from its flags: `--task T-…`, or
+  `--scenarios '@ID-… @ID-…' --upgrading '…'` (or `--upgrading none`), so
+  the message file holds the header and the body alone:
+  `tools/bin/itos commit --task T-067 -F <file>`. A commit whose type needs a
+  footer the flags do not give is refused before git runs. With the itos
+  plugin for Claude Code and an itos on the PATH, its guard denies a plain
+  `git commit` or `git push` here and names these commands.
 - **Decide the split before you start editing.** Each type may touch only
   certain paths, so one piece of work is often two or three commits. The
   rules are `commits.scopes` in `itos.yaml`, and `tasks/README.md` has them
@@ -197,13 +205,13 @@ Run these yourself when they apply:
 
 - **Bypass a hook** (`--no-verify`, `VP_GIT_HOOKS=0`, `HUSKY=0`). CI re-checks
   every pushed commit, so a skipped hook turns it red anyway.
-- **Pipe `git commit` or `git push` into anything** (`| tail`, `| tee`,
+- **Pipe `itos commit` or `itos push` into anything** (`| tail`, `| tee`,
   `| head`). A pipeline's exit status is its last command's, so a failed
   commit or a rejected push reads as success and the next `&&` carries on.
   Write the output to a file and read it. A heredoc fails the same way:
-  `git commit -F - <<EOF … EOF | tail` hands the heredoc to the last command,
-  and git waits on an empty stdin until you kill it. Write the message to a
-  file and pass it: `git commit -F <file>`.
+  `itos commit -F - <<EOF … EOF | tail` hands the heredoc to the last
+  command, and git waits on an empty stdin until you kill it. Write the
+  message to a file and pass it: `tools/bin/itos commit --task T-… -F <file>`.
 - **Stage with `git add -A`, `git add .`, `git add -u` or a directory.** Stage
   your own work, by explicit path, every time, and read `git status --short`
   before you commit. Untracked files you did not make are someone's work in
@@ -224,19 +232,19 @@ Run these yourself when they apply:
 **You are not alone on this repository.** Other people and other sessions
 push to `main` too, so expect the remote to have moved while you worked.
 
-1. **Pull before you push, every time:** commit your work, then
-   `git pull --rebase --no-autostash origin main`, read what came down, and
-   only then push to `main` (no branches or pull requests) **in a separate
-   command**. A push the remote has moved past is rejected _after_ the
-   pre-push hook has run, so rebasing first is the difference between one
-   hook run and two. `--no-autostash` so a rebase cannot pocket uncommitted
-   work that is not yours; commit yours first. Never chain the push onto the
-   rebase (`git pull --rebase … && git push`): a rebase that stops on a
-   conflict can leave a chained push to land half the branch. If the rebase
-   stops, resolve it, check that `git rebase --continue` succeeded, then
-   push. **Never force**, whatever the rejection says, and read a rejection
-   before diagnosing it: the pre-push hook failing is as likely as the remote
-   having moved.
+1. **Push with `tools/bin/itos push`, every time:** commit your work first,
+   then run it, with no arguments, and read what it says. It is the whole
+   routine: it rebases onto `main` with `--no-autostash`, so a rebase cannot
+   pocket uncommitted work that is not yours (it refuses to start with
+   uncommitted changes to tracked files), checks that no rebase stopped and
+   no conflict is left, and only then pushes to `main` (no branches or pull
+   requests) in a separate step, so a stale push never costs a second
+   pre-push hook run. If the rebase stops on a conflict, nothing is pushed:
+   resolve it, check that `git rebase --continue` succeeded, then
+   `tools/bin/itos push` again. It never forces, and **neither do you**,
+   whatever a rejection says. Read a rejection before diagnosing it (its
+   exit code and outcome are in `tools/bin/itos push --help`): the pre-push
+   hook failing is as likely as the remote having moved.
 2. Watch CI on your last commit with a `Monitor` over
    `gh run watch <run id> --exit-status` (`gh run list --commit <sha>` gives
    the id, and needs the full 40-character SHA), and carry on with something

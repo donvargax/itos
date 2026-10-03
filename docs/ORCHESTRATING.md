@@ -164,10 +164,10 @@ the rest.
 > another, run `tools/bin/itos task` on the done tasks whose checks call either one: CI runs
 > only the tasks a push names, and a done task left relying on the old home goes red later.
 >
-> Other people push to `main` while you work. Commit, then
-> `git pull --rebase --no-autostash origin main`, then push in a separate
-> command — always in that order, because a stale push is rejected only
-> after the pre-push hook has run. Never force-push.
+> Other people push to `main` while you work. Commit with
+> `tools/bin/itos commit`, then push with `tools/bin/itos push`, which
+> rebases first, because a stale push is rejected only after the pre-push
+> hook has run. Never force-push.
 >
 > Do the work yourself; don't start subagents. Don't add `Co-Authored-By` or
 > any other attribution lines. Each commit's body says why, and is the
@@ -198,10 +198,6 @@ teaches you a new one, stated as the rule and its reason.
   on every push that names its task, and fails each one until then. Write it
   late, so the run proves everything else first, and expect the pushes before
   the act to be red at that one check (T-021 tagged v0.1.0 on such a run).
-- **Pull through `rtk proxy` where the rtk hook rewrites git.** The rewritten
-  `git pull --rebase --no-autostash origin main` can fail with "Cannot rebase
-  onto multiple branches"; `rtk proxy git pull --rebase --no-autostash origin
-main` runs git as written. Say so in a brief when an agent will pull.
 - **Settle what breaks compatibility before a major release.** A known
   difference that will make a later release refuse what this one accepts
   (v1.0.0 shipped with the two implementations disagreeing on the config's
@@ -217,13 +213,14 @@ main` runs git as written. Say so in a brief when an agent will pull.
   after-push download check, then push the tag, watch the release workflow,
   download and checksum the assets, and close the task. A tag is never moved:
   a mistake is fixed forward in the next release.
-- **Never chain a push after a rebase in one command.** A
+- **Land with `tools/bin/itos push`, never a pull chained to a push.** A
   `git pull --rebase && git push` chain can push a rebase that stopped on a
   conflict, so `main` takes part of the branch and the rest follows in a
-  second push. Rebase, read the result, then push in a separate command
-  behind a guard:
-  `g=$(git rev-parse --git-dir); [ ! -d "$g/rebase-merge" ] && [ ! -d "$g/rebase-apply" ] && [ -z "$(git diff --name-only --diff-filter=U)" ] && git push origin HEAD:main`.
-  Check `git rebase --continue`'s exit before any amend (an amend after a
+  second push; `itos push` checks that no rebase stopped and no conflict is
+  left before it pushes, runs git itself (so the rtk hook's rewrite of
+  `git pull`, which could fail with "Cannot rebase onto multiple branches",
+  never comes in), and never forces. Check `git rebase --continue`'s exit
+  before any amend (an amend after a
   failed continue folds conflict markers into the previous commit), and stop
   an interactive rebase on a commit's SHA, not its subject, which may repeat.
   A landing that rewrites nothing on `main` is done in a worktree of its own
@@ -284,7 +281,7 @@ interruption. A subagent without a worktree of its own works in **this same
 working tree, with the same index**, so:
 
 - **Don't stage or commit while an agent is running.** Not even with explicit
-  paths. `git commit` takes everything in the index, and the agent's staged
+  paths. A commit takes everything in the index, and the agent's staged
   files are in it too; and two pre-commit hooks at once break `vp staged`'s
   backup and restore of the index, which can reset the tree to HEAD and leave
   both sessions' work only in that backup. Explicit `git add` paths protect

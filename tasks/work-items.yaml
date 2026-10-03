@@ -1174,21 +1174,6 @@ items:
       p1-itos-push; specified in features/push.feature.
     refs: [features/push.feature]
 
-  - id: p3-finish-with-itos-push
-    title: This repository's finishing routine through itos push
-    phase: 3
-    owner: donvargax
-    status: todo
-    depends_on: [slice-39]
-    kind: idea
-    why: >
-      Slice 39 built itos push, the routine AGENTS.md's "Finishing" and ORCHESTRATING's lessons
-      spell out by hand (pull with --rebase --no-autostash, the guard one-liner, never chaining the
-      push onto the rebase, rtk proxy for the pull), and left both files as they were: whether
-      this repository's sessions finish with tools/bin/itos push instead is the coordinator's
-      call. If they do, the section shrinks to commit, tools/bin/itos push, read what it says, and
-      the briefs stop naming rtk proxy, since itos runs git itself.
-
   - id: p1-ci-watch
     title: itos ci watch and itos status, the run for a commit and the state of main
     phase: 1
@@ -2704,21 +2689,6 @@ items:
       untitled; this repository is such a case today. The plugin could find the config and run its
       hooks.bin when no itos is on the PATH.
     refs: [integrations/claude-code/hooks/register.ts, integrations/claude-code/hooks/hooks.json]
-
-  - id: p3-agents-through-itos
-    title: This repository's working rules commit and push through itos commit and itos push
-    phase: 3
-    owner: null
-    status: todo
-    depends_on: [T-066]
-    kind: idea
-    why: >
-      Left by T-066: AGENTS.md and docs/ORCHESTRATING.md tell a session to commit with git commit
-      -F and to push with git pull --rebase, then git push in a separate command. With the plugin
-      installed and an itos on the PATH, its guard denies both in this repository, naming itos
-      commit and itos push, which do the same with the footers written and the rebase checked. The
-      rules should say those, keeping why (never pipe a commit, never force).
-    refs: [AGENTS.md, docs/ORCHESTRATING.md]
 
   - id: p3-plugin-type-check
     title: Type-check the Claude Code plugin's hooks module in CI
