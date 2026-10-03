@@ -178,3 +178,15 @@ Feature: Every key the config accepts is one itos reads
     When itos checks the config
     Then itos exits with code 0
     And its output says "people"
+
+  # Slice 40: itos read itos.yaml only from the working folder, so a run from
+  # a subfolder found no config. With no --config, no ITOS_CONFIG and no
+  # --root, a run from inside a repository finds the itos.yaml at its top
+  # (git rev-parse --show-toplevel) and runs as if started there, so every
+  # path the config names means what it means at the top.
+  @ID-CONFIG-20 @slice-40 @wip
+  Scenario: From a subfolder, itos reads the itos.yaml at the repository's top and runs as from there
+    Given a "sub" folder
+    When itos runs the task "T-001" from "sub"
+    Then itos exits with code 0
+    And its output says "T-001"

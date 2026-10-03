@@ -106,3 +106,12 @@ Feature: A global itos runs the version a repository pins
     And no version of the release server ran
     And its output says "itos "
     And its output does not say "itos.yaml"
+
+  # Slice 40: the launcher finds the config as itos does, so a global itos run
+  # from a subfolder of a pinned repository runs the pin, not the newest.
+  @ID-PIN-10 @slice-40 @wip
+  Scenario: From a subfolder, the launcher runs the version the repository pins
+    Given the config pins the version "9.1.0" of the release server
+    And a "sub" folder
+    When itos runs "version" from "sub"
+    Then the version "9.1.0" ran with the arguments "version"

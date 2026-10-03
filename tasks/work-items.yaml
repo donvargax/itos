@@ -2153,7 +2153,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [slice-39, p3-launcher-subfolder]
+    depends_on: [slice-39, slice-40]
     kind: idea
     why: >
       The user's idea (2026-10-03): a git placed before the real one on the PATH (an alias reaches
@@ -2293,19 +2293,22 @@ items:
       to be.
     refs: [features/update.feature, README.md]
 
-  - id: p3-launcher-subfolder
+  - id: slice-40
     title: The launcher finds a repository's config from a subfolder of it
     phase: 3
     owner: null
     status: todo
     depends_on: [slice-28]
-    kind: idea
+    kind: slice
     why: >
+      Was p3-launcher-subfolder. Specified as @ID-CONFIG-20 and @ID-PIN-10: with no --config,
+      ITOS_CONFIG or --root, a run inside a repository finds itos.yaml at git's top level and
+      runs as if started there; the git shim needs it for git commit from a subfolder.
       The launcher reads the config where itos does, itos.yaml in the working folder (or --config,
       ITOS_CONFIG, --root), so a run from a subfolder of a pinned repository finds no config and,
       since slice 28, runs the newest release instead of the pin, which then fails to find the
       config as itos always has. Looking up to the repository's top for both would close it.
-    refs: [internal/launch/launch.go, internal/config/config.go]
+    refs: [features/config.feature, features/pin.feature]
 
   - id: p3-global-install-ci
     title: A repository relying on a global itos runs it from its hooks and its CI
