@@ -2186,20 +2186,40 @@ items:
       stays in the repository either way, since a task's checks are commands run at a commit.
     refs: [PLAN.md]
 
-  - id: p3-pre-push-verify
+  - id: slice-46
     title: The pre-push hook verifies the commits it pushes
     phase: 3
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p3-pre-push-verify. Specified as @ID-PREPUSH-01 to 05 in features/pre-push.feature. The
+      hook prints nothing for commits that pass, so the last release's corpus cases of hook
+      pre-push keep their output and this ships as a feat, not a major release.
       A commit that skipped the commit-msg hook (--no-verify, a clone without hooks) is first seen
       by CI, once it is on main and can no longer be amended. itos verify over the pushed range
       checks only messages and paths, well under a second, so the pre-push hook can catch it while
       it is still the person's to fix (the user's question, 2026-10-03). CI keeps verifying the
       range since its last green run: it is the one gate nobody can skip on their own machine.
-    refs: [itos.yaml, internal/cli/hook.go]
+    refs: [features/pre-push.feature, internal/cli/hook.go]
+
+  - id: v3-stealth-pre-push
+    title: "v3: a stealth config declares the pre-push hook without hooks.pre_push"
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-46]
+    kind: idea
+    deferred: the next major release, since it changes a released corpus case
+    why: >
+      Once the pre-push hook verifies the pushed commits (slice 46) it has work without
+      hooks.pre_push, but hooks install under a stealth config still declares no pre-push entry
+      without it, as the last release's corpus case "a stealth config declares the hooks in the
+      git config, over the markers, and no pre-push entry without hooks.pre_push" promises. So a
+      stealth user's commits are first judged by nobody. Declaring it always changes that case,
+      a breaking change, so it waits for v3 beside v3-hooks-bin-default.
+    refs: [internal/cli/gitconfig.go, tools/itos/conformance/hooks.yaml]
 
   - id: p3-human-waiver
     title: itos waive, a human's fix for a bad commit already on main

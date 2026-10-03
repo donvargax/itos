@@ -47,9 +47,10 @@ change any other repository.
 
 One slice at a time, the user's order:
 
-1. **`p3-pre-push-verify`**, **`p3-pin-bump`**, then **`p3-itos-init`**:
-   the adoption slices, each specified as scenarios first (ideas now), each
-   a feat, so each cuts a minor release.
+1. **`slice-46`** (was `p3-pre-push-verify`; `features/pre-push.feature`,
+   handed to an agent), **`p3-pin-bump`**, then **`p3-itos-init`**: the
+   adoption slices, the last two specified as scenarios first (ideas now),
+   each a feat, so each cuts a minor release.
 2. **`p3-human-waiver`** (`itos waive`, a plain config list; the guard keeps
    agents off it), after those.
 3. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
