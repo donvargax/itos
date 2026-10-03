@@ -45,7 +45,8 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   an issue carries count for nothing: a form or a workflow can apply them for
   anyone. `--self-test` runs fixture issues through the same judging; CI's
   token has `issues: read` for the task check that runs the live inbox.
-- `go.mod` is the module `github.com/donvargax/itos`, Go pinned by its
+- `go.mod` is the module `github.com/donvargax/itos/v2` (from v2.0.0 a
+  module path ends in its major version, or Go refuses its tag), Go pinned by its
   `toolchain` line; its dependencies are godog's and `go.yaml.in/yaml/v3`,
   itos's one. itos is `cmd/itos` and `internal/` ("The code" below).
 

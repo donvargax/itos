@@ -436,9 +436,11 @@ needs a token.
 
 A consumer commits an install script that pins the version and each
 platform's SHA-256 (a replaced release cannot pass), installs into an ignored
-`.tools/bin/` from its package manager's install step, and points its hook
-shims there; CI installs into the runner's path; Go developers can
-`go install github.com/donvargax/itos/cmd/itos@<version>`. A version bump is
+`.tools/bin/`, and the script `hooks.bin` names runs it before the binary, so
+it installs on first use, in a clone and on a CI runner alike, and does
+nothing once that version is there (v2.0.0's Upgrading); Go developers can
+`go install github.com/donvargax/itos/v2/cmd/itos@<version>` (the module path
+ends in its major version from v2, as Go requires). A version bump is
 one `build` commit. Later channels: the aqua or mise registry, a Homebrew tap,
 npm (as `palitos`) and PyPI wrappers, signatures.
 
