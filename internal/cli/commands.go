@@ -263,7 +263,15 @@ func hooks(args []string, o Out) (int, error) {
 }
 
 func configCommand(args []string, o Out) (int, error) {
-	if sub, _ := split(args); sub != "check" {
+	sub, rest := split(args)
+	if sub == "get" {
+		keys := positional(rest)
+		if len(keys) != 1 || keys[0] == "" {
+			return 0, usage("config get needs one <key>, a dotted path such as hooks.bin")
+		}
+		return configGet(keys[0], o)
+	}
+	if sub != "check" {
 		return 0, usage("unknown command: config %s", sub)
 	}
 	if slices.Contains(args, "--print-defaults") {

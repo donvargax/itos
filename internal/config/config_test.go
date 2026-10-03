@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"slices"
 	"testing"
+
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 func load(t *testing.T, text string) (*Loaded, error) {
@@ -125,5 +127,54 @@ func TestPath(t *testing.T) {
 	t.Setenv("ITOS_CONFIG", "other.yaml")
 	if Path() != "other.yaml" {
 		t.Errorf("Path() = %q with ITOS_CONFIG=other.yaml", Path())
+	}
+}
+
+func TestKnownKey(t *testing.T) {
+	for _, key := range []string{
+		"version", "hooks.bin", "hooks.commit_msg.check_timeout", "tests.scenario.root",
+		"tests.scenario.adapter.command", "commits.footers.Task.source", "ci.steps", "pin",
+	} {
+		if known, _ := KnownKey(key); !known {
+			t.Errorf("%s is not known", key)
+		}
+	}
+	cases := map[string][]string{
+		"hooks.no_such_key": {"manager", "bin", "pre_push", "commit_msg"},
+		"hooks.bin.x":       nil,
+		"ci.steps.0":        nil,
+		"hooks.":            {"manager", "bin", "pre_push", "commit_msg"},
+	}
+	for key, want := range cases {
+		known, keys := KnownKey(key)
+		if known || !slices.Equal(keys, want) {
+			t.Errorf("%s: got %v %v, want false %v", key, known, keys, want)
+		}
+	}
+}
+
+func TestGet(t *testing.T) {
+	c, err := load(t, "version: 1\nhooks: { bin: bin/mine }\ntests: { scenario: { root: features } }\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]any{
+		"hooks.bin":                      c.Get("hooks.bin"),
+		"hooks.commit_msg.check_timeout": c.Get("hooks.commit_msg.check_timeout"),
+		"tests.scenario.wip_tag":         c.Get("tests.scenario.wip_tag"),
+		"ledger.id":                      c.Get("ledger.id"),
+		"hooks.bin.x":                    c.Get("hooks.bin.x"),
+	}
+	want := map[string]any{
+		"hooks.bin":                      "bin/mine",
+		"hooks.commit_msg.check_timeout": 60.0,
+		"tests.scenario.wip_tag":         "@wip",
+		"ledger.id":                      value.Undefined,
+		"hooks.bin.x":                    value.Undefined,
+	}
+	for key, w := range want {
+		if got[key] != w {
+			t.Errorf("%s: got %v, want %v", key, got[key], w)
+		}
 	}
 }

@@ -54,13 +54,28 @@ type Loaded struct {
 	// Stealth is whether it is the stealth config (stealth.go), whose own
 	// data is read beside it, in the git folder, and never at a commit.
 	Stealth bool
-	// file is the file as written, its $sets expanded.
+	// file is the file as written, its $sets expanded; tree is it laid over
+	// the defaults, as the typed config is decoded from.
 	file    *value.Map
+	tree    *value.Map
 	statics []*regexp.Regexp
 }
 
 // File is the config file as written, without the defaults under it.
 func (l *Loaded) File() *value.Map { return l.file }
+
+// Get is the value at a dotted key path (hooks.bin, tests.scenario.root) as
+// the tools read it: the file's, else its default, a stealth config's own
+// values over both, and its own data's paths beside it (beside);
+// value.Undefined when the key has neither. KnownKey says whether the schema
+// has the key.
+func (l *Loaded) Get(key string) any {
+	var at any = l.tree
+	for _, part := range strings.Split(key, ".") {
+		at = value.Prop(at, part)
+	}
+	return at
+}
 
 // HasSection is whether the file has a section, rather than only its
 // defaults.
@@ -129,11 +144,12 @@ func Load(file string) (*Loaded, error) {
 		return nil, &Error{File: file, Problems: found}
 	}
 	loaded := &Loaded{Path: file, file: tree, Stealth: IsStealth(file)}
-	if err := decode(withDefaults(tree, loaded.Stealth), &loaded.Config); err != nil {
-		return nil, err
-	}
+	loaded.tree = withDefaults(tree, loaded.Stealth)
 	if loaded.Stealth {
-		loaded.beside()
+		beside(loaded.tree, file)
+	}
+	if err := decode(loaded.tree, &loaded.Config); err != nil {
+		return nil, err
 	}
 	return loaded, nil
 }

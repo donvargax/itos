@@ -79,6 +79,7 @@ Commands:
   hooks install [--manager <m>] [--print] [--force]
                                    write the hooks' one-line shims for the hook manager
   config check [--print-defaults]  validate the config, ledger, registry and smoke sets
+  config get <key>                 a config key's value as itos reads it, defaults applied
   version [--check]                the version; --check against the config's requires`
 
 const mainHelpTail = globalFlags + `
@@ -439,7 +440,8 @@ declares (git hook list shows them), else it exits 3.
         or, for lefthook, pre-commit and prek, {"schema":1,"manager","marker","file","snippet","installed"}
         or, for git-config, {"schema":1,"manager","marker","hooks":[{"name","event","command","action"}]}`,
 
-	"config": `Usage: itos config check [--ledger <file>] [--print-defaults]`,
+	"config": `Usage: itos config check [--ledger <file>] [--print-defaults]
+       itos config get <key>`,
 
 	"config check": `Usage: itos config check [--ledger <file>] [--print-defaults]
 
@@ -452,6 +454,21 @@ ledger folder; a stealth config's hooks.bin, itos, and no work.people), and
 checks nothing.
 
 --json: {"schema":1,"config","valid","problems":[{"rule","message","fix"?,"area"}],"warnings"?}`,
+
+	"config get": `Usage: itos config get <key>
+
+Prints the value of a config key, a dotted path (hooks.bin,
+hooks.commit_msg.check_timeout, tests.scenario.root), as itos reads it: the
+config's own, else its default, a stealth config's hooks.bin itos whatever it
+says, from the config every command finds. A string, a number or a boolean
+prints bare on one line, a mapping or a list as JSON on one line, and a key
+with no value and no default prints nothing. A path is relative to the
+repository's top, the files a stealth config names for itos's own data
+resolved beside it, where itos reads them. A key the config does not have is
+a usage error, exit 2; a config that cannot be read exits 2, as for every
+command.
+
+--json: {"schema":1,"key","value"}, value null for a key with no value`,
 
 	"git-shim": `Usage: itos git-shim install [--dir <folder>]
        itos git-shim uninstall [--dir <folder>]

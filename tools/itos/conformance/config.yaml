@@ -10,7 +10,10 @@
 # the registry's and the smoke set's problems beside them; a project's people
 # file missing or unreadable, a warning that passes; the nightly's
 # tasks step (tasks: done, refused in ci.steps, with no late cost); --print-defaults,
-# work.registry's beside the config's ledger; a pin, its keys and their shapes.
+# work.registry's beside the config's ledger; config get, a key's value as
+# the tools read it (the config's, a default, a stealth config's own, from a
+# subfolder; a scalar bare, a mapping or a list as JSON, nothing for no value;
+# an unknown key a usage error); a pin, its keys and their shapes.
 files:
   itos.yaml: |
     version: 1
@@ -901,6 +904,117 @@ cases:
           commit_msg:
             task_checks: true
             check_timeout: 60
+  # config get: a key's value as the tools read it, for a program beside itos
+  # (the Claude Code plugin asks for hooks.bin) that would get the defaults,
+  # the stealth config and a subfolder wrong reading itos.yaml itself.
+  - name: config get prints a value the config sets, bare
+    argv: [config, get, work.registry]
+    exit: 0
+    stdout: |
+      work-items.yaml
+  - name: config get prints the hooks.bin the config sets, not its default
+    argv: [config, get, hooks.bin]
+    files:
+      itos.yaml: "version: 1\nhooks: { bin: bin/mine }\n"
+    exit: 0
+    stdout: |
+      bin/mine
+  - name: config get prints a default the config leaves out
+    argv: [config, get, hooks.bin]
+    exit: 0
+    stdout: |
+      tools/bin/itos
+  - name: config get prints a number default bare
+    argv: [config, get, hooks.commit_msg.check_timeout]
+    exit: 0
+    stdout: |
+      60
+  - name: config get prints a boolean default
+    argv: [config, get, ci.stop_at_first_failure]
+    exit: 0
+    stdout: |
+      true
+  - name: config get prints a kind's default under the kind the config has
+    argv: [config, get, tests.scenario.wip_tag]
+    exit: 0
+    stdout: |
+      @wip
+  - name: config get prints a list as JSON on one line
+    argv: [config, get, commits.types]
+    exit: 0
+    stdout: |
+      ["build","docs"]
+  - name: config get prints a mapping as JSON on one line, defaults laid under it
+    argv: [config, get, ledger.group]
+    exit: 0
+    stdout: |
+      {"label":"phase","pattern":"\\d+","numeric":true}
+  - name: config get prints nothing for a key with no value and no default
+    argv: [config, get, pin]
+    exit: 0
+    stdout: ""
+  - name: config get as --json
+    argv: [config, get, hooks.bin, --json]
+    exit: 0
+    json:
+      schema: 1
+      key: hooks.bin
+      value: tools/bin/itos
+  - name: config get as --json, a key with no value null
+    argv: [config, get, pin, --json]
+    exit: 0
+    json:
+      schema: 1
+      key: pin
+      value: null
+  - name: config get reads a stealth config, whose hooks.bin is itos whatever it says
+    argv: [config, get, hooks.bin]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: "version: 1\nhooks: { bin: bin/mine }\n"
+    exit: 0
+    stdout: |
+      itos
+  - name: config get gives a stealth config's own data where itos reads it, beside it
+    argv: [config, get, work.registry]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: "version: 1\nwork: { registry: work-items.yaml }\n"
+    exit: 0
+    stdout: |
+      .git/itos/work-items.yaml
+  - name: config get from a subfolder reads the config at the repository's top
+    argv: [config, get, work.registry]
+    git: []
+    files:
+      sub/: ""
+    cwd: sub
+    exit: 0
+    stdout: |
+      work-items.yaml
+  - name: config get refuses a key the config does not have, naming the keys there
+    argv: [config, get, hooks.no_such_key]
+    exit: 2
+    stderr: |
+      itos: config get: unknown key hooks.no_such_key; the keys there are manager, bin, pre_push, commit_msg (itos --help)
+  - name: config get refuses a key under a value that has none
+    argv: [config, get, hooks.bin.x]
+    exit: 2
+    stderr: |
+      itos: config get: unknown key hooks.bin.x (itos --help)
+  - name: config get needs one key
+    argv: [config, get]
+    exit: 2
+    stderr: |
+      itos: config get needs one <key>, a dotted path such as hooks.bin (itos --help)
+  - name: config get with no config to read fails as every command does
+    argv: [config, get, hooks.bin]
+    files:
+      itos.yaml: null
+    exit: 2
+    stderr_has: "FAIL itos.yaml: cannot be read: "
   # pin: the one release a repository runs (pin.feature). Pinned to the
   # binary's own version, so the launcher runs the binary itself and fetches
   # nothing; the malformed pins are read by no launcher either.

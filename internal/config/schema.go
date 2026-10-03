@@ -222,6 +222,43 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 	)),
 ))
 
+// KnownKey is whether the schema has a dotted key path, each part a key of
+// the object above it or any key of a map (tests.scenario, a footer's name);
+// a list's items and a scalar have no keys under them. When it has not, keys
+// are the keys of the object the path last stood on, for the message that
+// names the key, nil where there was none.
+func KnownKey(key string) (bool, []string) {
+	return knownIn(schema, strings.Split(key, "."))
+}
+
+func knownIn(s *spec, parts []string) (bool, []string) {
+	if len(parts) == 0 {
+		return true, nil
+	}
+	switch {
+	case parts[0] == "":
+		return false, s.keys()
+	case s.either != nil:
+		var keys []string
+		for _, e := range s.either {
+			ok, under := knownIn(e, parts)
+			if ok {
+				return true, nil
+			}
+			keys = append(keys, under...)
+		}
+		return false, keys
+	case s.mapOf != nil:
+		return knownIn(s.mapOf, parts[1:])
+	case s.isObject:
+		if f := s.field(parts[0]); f != nil {
+			return knownIn(f, parts[1:])
+		}
+		return false, s.keys()
+	}
+	return false, nil
+}
+
 // Node is one value of the config's schema as data, for what describes the
 // config outside itos: tools/bin/config-schema writes the config's JSON
 // Schema from it. Kind is string, number, boolean, strings (a list of

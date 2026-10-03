@@ -3,6 +3,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/ledger"
@@ -187,5 +188,40 @@ func printDefaults(o Out) (int, error) {
 		return 0, out.Emit(o.Stdout, out.Field{Key: "defaults", Value: table})
 	}
 	_, err := fmt.Fprint(o.Stdout, value.YAML(table))
+	return 0, err
+}
+
+// configGet is `config get <key>`: the value at a dotted key path as the
+// tools read it, the config's own or its default, from the config every
+// command finds. A scalar prints bare on one line, a mapping or a list as
+// JSON on one line, and a key with no value and no default prints nothing;
+// under --json, {"schema":1,"key","value"}, value null for no value. A key
+// the schema does not have is a usage error, before any config is read; a
+// config that cannot be loaded fails as it does for every command.
+func configGet(key string, o Out) (int, error) {
+	if known, keys := config.KnownKey(key); !known {
+		if len(keys) > 0 {
+			return 0, usage("config get: unknown key %s; the keys there are %s", key, strings.Join(keys, ", "))
+		}
+		return 0, usage("config get: unknown key %s", key)
+	}
+	cfg, err := config.Load(config.Path())
+	if err != nil {
+		return 0, err
+	}
+	got := cfg.Get(key)
+	if o.JSON {
+		var v any = got
+		if got == value.Undefined {
+			v = nil
+		}
+		return 0, out.Emit(o.Stdout, out.Field{Key: "key", Value: key}, out.Field{Key: "value", Value: v})
+	}
+	switch got.(type) {
+	case string, float64, bool:
+		_, err = fmt.Fprintln(o.Stdout, value.String(got))
+	case *value.Map, []any:
+		_, err = fmt.Fprintln(o.Stdout, value.JSON(got))
+	}
 	return 0, err
 }

@@ -26,6 +26,7 @@ import (
 
 	"github.com/donvargax/itos/v2/internal/git"
 	"github.com/donvargax/itos/v2/internal/source"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // The config's name, in the root and in the stealth folder.
@@ -126,23 +127,25 @@ func stealthFile(dir string) string {
 }
 
 // beside resolves the stealth config's own data, the files it names for
-// itos to read, in its folder; an absolute path stays where it is.
-func (l *Loaded) beside() {
-	dir := filepath.Dir(l.Path)
-	at := func(p string) string {
-		if p == "" || filepath.IsAbs(p) {
-			return p
+// itos to read, in its folder, in the config as the tools read it (the file
+// laid over the defaults), so the typed config and config get agree; an
+// absolute path stays where it is.
+func beside(tree *value.Map, file string) {
+	dir := filepath.Dir(file)
+	at := func(m any, key string) {
+		holder, ok := m.(*value.Map)
+		if !ok {
+			return
 		}
-		return filepath.Join(dir, p)
+		if p, ok := holder.At(key).(string); ok && p != "" && !filepath.IsAbs(p) {
+			holder.Set(key, filepath.Join(dir, p))
+		}
 	}
-	l.Ledger.Files = at(l.Ledger.Files)
-	l.Work.Registry = at(l.Work.Registry)
-	for _, name := range l.Tests.Keys {
-		k := l.Tests.Values[name]
-		if k.Smoke.File != nil {
-			file := at(*k.Smoke.File)
-			k.Smoke.File = &file
+	at(tree.At("ledger"), "files")
+	at(tree.At("work"), "registry")
+	if kinds, ok := tree.At("tests").(*value.Map); ok {
+		for _, name := range kinds.Keys() {
+			at(value.Prop(kinds.At(name), "smoke"), "file")
 		}
-		l.Tests.Values[name] = k
 	}
 }
