@@ -107,7 +107,8 @@ the same thing waste both. Take one by setting its `owner` and
   - `build` and `ci` may touch only config: root `*.json`, `*.yaml`, `*.yml`,
     `*.ts` and `*.toml` files, `go.mod`, `go.sum`, `.gitignore`,
     `.editorconfig`, `.vite-hooks/**`, `.github/**`, `tools/bin/**`,
-    `tools/selftest/**`, `tools/changelog.ts` and `.claude/settings.json` —
+    `tools/selftest/**`, `tools/changelog.ts`, `.claude/settings.json` and the
+    Claude Code plugin's manifest (`integrations/claude-code/.claude-plugin/plugin.json`, its version) —
     **not** `tasks/**`. A ledger edit that accompanies a config change is its
     own `docs` commit.
   - `docs` may touch `**/*.md`, `docs/**`, `tasks/**` and feature files —

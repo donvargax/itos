@@ -45,6 +45,43 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   an issue carries count for nothing: a form or a workflow can apply them for
   anyone. `--self-test` runs fixture issues through the same judging; CI's
   token has `issues: read` for the task check that runs the live inbox.
+- **The Claude Code plugin** (T-066): the repository is a Claude Code plugin
+  marketplace. `.claude-plugin/marketplace.json` names one plugin, `itos`, at
+  `integrations/claude-code/`; a person adds the marketplace by the GitHub
+  repository and installs `itos@itos`, and Claude Code reads the plugin from
+  the default branch's tree, so a commit there is what the next update gets.
+  The version lives in `integrations/claude-code/.claude-plugin/plugin.json`
+  alone (the marketplace entry gives none, so the two cannot disagree) and is
+  package.json's: a release's `build` bump changes both, which
+  `commits.path_sets.config` allows, and `tools/selftest/go-release.ts` fails
+  when they differ, in the nightly and in the release workflow before it
+  publishes. `hooks/hooks.json` holds both kinds of hook Claude Code reads
+  there: `modules`, the function-hooks module `hooks/register.ts`, and
+  `hooks`, the command hooks. The module draws the titles: a `ui.render` hook
+  on `AssistantMessage` rewrites the props it hands on (the stream, the
+  transcript and what the model reads back stay as written), with the titles
+  `hooks/titles.ts` writes beside each known ID in prose, never in fenced code
+  or a longer code span. The titles are asked for at `session.start` (a hot
+  reload fires it again) and `turn.start`, never while drawing:
+  `$.process.run` of `itos work list --json` and `itos task list --json` in
+  the session's root, the items first and then the tasks with no item; a run
+  that cannot start, exits non-zero or prints no `items` (an itos older than
+  v2.3.0 reads `work list` as `work`) falls back to reading
+  `tasks/work-items.yaml` with `$.fs`. Its tests (`*.test.ts`, run by
+  `claude plugin test`) drive the module through the engine's own `$`, the
+  test's hooks beneath it answering `session.root`, `process.run` and
+  `fs.read`. The command hook is `PreToolUse` on Bash, `itos hook
+pre-tool-use` behind two shell guards: no `itos` on the `PATH` answers
+  nothing, and an exit code 2 (an itos older than the guard, whose usage
+  error Claude Code would take as a block) becomes 1, which Claude Code
+  reports and lets the command run; the guard itself never exits 2.
+  `skills/itos/SKILL.md` is the skill. The module and tests are typed by the
+  declarations Claude Code writes beside a plugin it loads
+  (`.claude-plugin/types/`, git-ignored, which the plugin's `tsconfig.json`
+  extends), so the repository's type-aware lint leaves the plugin out;
+  `claude plugin validate --strict` and `claude plugin test` judge it, in
+  T-066's checks. The formatter and the audit read it, the audit told that
+  `hooks.json` loads the module and that `claude-code` is the engine's.
 - `go.mod` is the module `github.com/donvargax/itos/v2` (from v2.0.0 a
   module path ends in its major version, or Go refuses its tag), Go pinned by its
   `toolchain` line; its dependencies are godog's and `go.yaml.in/yaml/v3`,
@@ -1219,7 +1256,11 @@ sha>` (the base against the working tree) for each pushed ref, or the
   `commits.since` with the commit-msg rules, so a commit made with the hooks
   bypassed fails CI. The workflow sets Node and Vite+ up, and Go from
   `go.mod`, and builds the Go itos once (`Build itos`) before any step calls
-  it.
+  it. Claude Code, which T-066's checks run, is installed (the latest release,
+  by its own native installer, into `~/.local/bin`) only when the plan for the
+  range (`itos ci plan --json`) will run a check that starts with `claude`;
+  neither of those checks needs a login, the step is handed no token, and
+  the nightly never installs it, since those checks are late.
   **The plan** (`ci-plan.ts`, its cost rule in `cost.ts`; `itos ci plan <from> <to>` prints it, running
   nothing) is one sequence in cost order: the static steps of `ci.steps`
   (`vp check`, `gofmt`, `go vet`, the smoke rule, `itos config check`) and every named task check

@@ -213,19 +213,44 @@ itos git-shim uninstall               # or: itos git-shim uninstall --dir <the f
 
 Neither command touches a `git` that is not a link to itos.
 
-**A guard for Claude Code** (from v2.3.0): `itos hook pre-tool-use` is a
-Claude Code `PreToolUse` hook that, in a repository itos manages, denies an
-agent's Bash command running `git commit` or `git push`, its reason naming
-`itos commit --task <id>` (or `--scenarios <ids>`) or `itos push`, so the
-agent commits with the footers and pushes without forcing. Everything else
-gets no answer, so your own permission rules still decide. It reads the
-command as bash does, so `git -C . commit` and `make && git push` are caught;
-`sh -c '…'`, `eval` and scripts are not looked into, and the hooks stay the
-gates. Until the itos plugin wires it, add it to `.claude/settings.json`,
-with the `itos` on your `PATH` at v2.3.0 or later. A repository may pin an
-older itos, which has no such hook: there the launcher answers the hook with
-nothing itself, rather than hand it a command whose usage error (exit code 2)
-would make Claude Code block every Bash command:
+**The Claude Code plugin**: this repository is also a Claude Code plugin
+marketplace, and its one plugin, `itos`, is released with itos at the same
+version. Install it from Claude Code:
+
+```
+/plugin marketplace add donvargax/itos
+/plugin install itos@itos
+```
+
+It calls the `itos` on your `PATH` (v2.3.0 or later; a global install,
+above, lets each repository's pin pick the version), in every repository
+you open, and does something only where itos manages the repository:
+
+- **Titles.** An itos ID in Claude's replies is drawn with its title beside
+  it, `T-066` as `` `T-066: The itos plugin for Claude Code` ``, and "slice 43"
+  as the registry's `slice-43`. Only the drawing changes: the transcript and
+  what Claude reads back stay as written. The titles come from
+  `itos work list --json` and `itos task list --json`, asked at the start of
+  the session and of each turn; with no itos that answers, from
+  `tasks/work-items.yaml`.
+- **A skill**, `itos`, on working in such a repository: find work with
+  `itos work`, commit with `itos commit --task <id>` or `--scenarios <ids>`,
+  push with `itos push`, and fix what a gate reports rather than run the
+  gates by hand or skip them.
+- **A guard.** A `PreToolUse` hook on Bash runs `itos hook pre-tool-use`, which
+  denies an agent's `git commit` or `git push`, its reason naming
+  `itos commit --task <id>` (or `--scenarios <ids>`) or `itos push`, so the
+  agent commits with the footers and pushes without forcing. Everything else
+  gets no answer, so your own permission rules still decide. It reads the
+  command as bash does, so `git -C . commit` and `make && git push` are
+  caught; `sh -c '…'`, `eval` and scripts are not looked into, and the hooks
+  stay the gates. Under a pin older than v2.3.0 the launcher answers for the
+  hook with nothing; with no `itos` on the `PATH` the plugin answers nothing.
+
+Try it in a repository itos manages: ask Claude what to work on next (it runs
+`itos work`, and the IDs in its answer carry their titles), or ask it to
+commit with `git commit`, which the guard turns into `itos commit`. To wire
+only the guard, without the plugin, put the hook in `.claude/settings.json`:
 
 ```json
 {
