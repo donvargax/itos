@@ -12,13 +12,19 @@
 // go.mod and corpus, and runs there
 //
 //	ITOS_BIN=<bin> go test ./features -count=1 -json
-//	node tools/itos/conformance/run.ts --bin <bin>
+//	node <this tree>/tools/itos/conformance/run.ts --bin <bin> --additive --only <its corpus>
 //
-// The corpus's {{version}} is the version the binary must say it is, which a
-// release's runner read from package.json beside it until T-069: the
-// worktree's package.json, when it says a version, is given the binary's own
-// first (`<bin> version`), so a binary stamped with a version the tag never
-// had is not failed for saying it; a later release's runner asks the binary.
+// The release's corpus runs through this tree's runner, in its --additive
+// mode (T-076): an old case's JSON is judged as what the new output must still
+// hold, every key it expects there with the value it expects, at every depth,
+// an array element by element at the same length, and its stdout and stderr as
+// lines that must all still appear, in the same order. A key or a line added
+// passes, since an output that only adds breaks no consumer (PLAN.md §7: keys
+// only ever added); one removed, changed or reordered fails. Its exit code,
+// stdout_has, stderr_has and files_after are judged as ever. This tree's own
+// corpus, run without the mode, still pins every output exactly. The runner
+// asks the binary its version for the corpus's {{version}}, so a binary
+// stamped with a version the tag never had is not failed for saying it.
 //
 // The binary judged is, by default, this tree's itos as its release would be
 // built: ./cmd/itos stamped with the version go run ./tools/bin/release-version
@@ -191,10 +197,15 @@ func run() int {
 	if err != nil {
 		return fail("%v", err)
 	}
+	top, err := git("rev-parse", "--show-toplevel")
+	if err != nil {
+		return fail("%v", err)
+	}
+	top = strings.TrimSpace(top)
 	if _, err := git("worktree", "add", "--detach", tree, tag); err != nil {
 		return fail("cannot check out %s into a scratch worktree: %v", tag, err)
 	}
-	if err := prepare(tree, version); err != nil {
+	if err := prepare(tree, top); err != nil {
 		return fail("%s's worktree: %v", tag, err)
 	}
 	what := judged
@@ -214,12 +225,17 @@ func run() int {
 		"  a usage message is documentation, as help is, and a refused argument's exit code, 2, the stable interface\n"+
 		"  (PLAN.md §7); this tree's own corpus pins its usage messages exactly, and a config error's words stay judged\n",
 		self, tag, relaxed)
+	fmt.Printf("%s: %s's conformance corpus: judged additively, by this tree's runner (--additive):\n"+
+		"  an old case's JSON must still hold every key it expects with the value it expects, and its stdout and\n"+
+		"  stderr every line it expects, in order; a key or a line added passes (PLAN.md §7: keys only ever added),\n"+
+		"  one removed, changed or reordered does not, and this tree's own corpus pins every output exactly\n",
+		self, tag)
 
 	var features, corpus suite
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() { defer wg.Done(); features = runFeatures(tree, binary) }()
-	go func() { defer wg.Done(); corpus = runCorpus(tree, binary) }()
+	go func() { defer wg.Done(); corpus = runCorpus(tree, top, binary) }()
 	wg.Wait()
 	for _, s := range []suite{features, corpus} {
 		if s.err != nil {
@@ -250,32 +266,10 @@ type suite struct {
 	err                   error
 }
 
-// prepare readies the release's worktree: package.json says the binary's own
-// version, for the corpus's {{version}}, and the checkout's node_modules is
-// linked in, for the corpus runner's YAML parser.
-func prepare(tree, version string) error {
-	pkg := filepath.Join(tree, "package.json")
-	text, err := os.ReadFile(pkg)
-	if err != nil {
-		return err
-	}
-	field := regexp.MustCompile(`"version"\s*:\s*"[^"]*"`)
-	done := !field.Match(text) // a release whose runner asks the binary (T-069)
-	text = field.ReplaceAllFunc(text, func(m []byte) []byte {
-		if done {
-			return m
-		}
-		done = true
-		return []byte(fmt.Sprintf(`"version": %q`, version))
-	})
-	if err := os.WriteFile(pkg, text, 0o644); err != nil {
-		return err
-	}
-	top, err := git("rev-parse", "--show-toplevel")
-	if err != nil {
-		return err
-	}
-	modules := filepath.Join(strings.TrimSpace(top), "node_modules")
+// prepare readies the release's worktree: the checkout top's node_modules is
+// linked in, for the YAML parser oldCorpusScript reads its fixtures with.
+func prepare(tree, top string) error {
+	modules := filepath.Join(top, "node_modules")
 	if _, err := os.Stat(modules); err != nil {
 		return fmt.Errorf("no node_modules in this checkout, which the corpus runner needs (vp install)")
 	}
@@ -531,12 +525,23 @@ func runFeatures(tree, bin string) suite {
 
 var corpusFail = regexp.MustCompile(`^FAIL (\S+\.yaml): (.+)$`)
 
-// runCorpus runs the release's corpus against bin with the release's runner,
-// and names each case that fails by its file and its name.
-func runCorpus(tree, bin string) suite {
+// runCorpus runs the release's corpus against bin with the runner of the
+// checkout at top, judging it additively, and names each case that fails by
+// its file and its name.
+func runCorpus(tree, top, bin string) suite {
 	s := suite{name: "conformance corpus"}
+	runner := filepath.Join(top, "tools/itos/conformance/run.ts")
+	fixtures, err := filepath.Glob(filepath.Join(tree, "tools/itos/conformance/*.yaml"))
+	if err == nil && len(fixtures) == 0 {
+		err = fmt.Errorf("it has no tools/itos/conformance/*.yaml")
+	}
+	if err != nil {
+		s.err = err
+		return s
+	}
+	sort.Strings(fixtures)
 	started := time.Now()
-	cmd := exec.Command("node", "tools/itos/conformance/run.ts", "--bin", bin)
+	cmd := exec.Command("node", append([]string{runner, "--bin", bin, "--additive", "--only"}, fixtures...)...)
 	cmd.Dir = tree
 	cmd.Env = env()
 	var stdout, stderr bytes.Buffer
@@ -553,7 +558,7 @@ func runCorpus(tree, bin string) suite {
 	}
 	if exit, ok := runErr.(*exec.ExitError); !ok || exit.ExitCode() != 1 {
 		s.output = stdout.String() + stderr.String()
-		s.err = fmt.Errorf("node tools/itos/conformance/run.ts: %v", runErr)
+		s.err = fmt.Errorf("node %s: %v", runner, runErr)
 		return s
 	}
 	for _, line := range strings.Split(stderr.String(), "\n") {

@@ -7,7 +7,9 @@
 // case and both help cases, the wordy one only the help cases, and each says
 // a version the tag never had, as T-069's builds will. Three more cases
 // are refusals: two usage errors and a config error; the reworded binary says
-// other words for all three and changes one usage error's exit code.
+// other words for all three and changes one usage error's exit code. Two more
+// pin a report's lines and a JSON object: the adding binary adds lines to the
+// one and keys to the other, and four more each break one of them.
 //
 //   - the binary the release was written for passes, its version the
 //     corpus's {{version}} whatever the tag's package.json says, and the help
@@ -18,6 +20,10 @@
 //   - the reworded one fails naming the usage error whose exit code differs
 //     and the config error whose words differ, never the usage error whose
 //     words alone differ;
+//   - the adding one passes, the old corpus judged additively (T-076): a key
+//     added to the JSON, at the top and deeper, and lines added between and
+//     after the report's pass; one with a key removed, a value changed, a line
+//     changed or two lines swapped fails, naming that case alone;
 //   - the broken one fails with no commit since the tag that says why, naming
 //     the scenario, the case and the remedy, and no help case; a fix and a !
 //     before the tag do not count;
@@ -116,6 +122,18 @@ func TestFeatures(t *testing.T) {
     exit: 0
     stdout: "itos {{version}}\\n"
 `,
+	// A report's lines and a JSON object, to which a new binary may add, and
+	// from which it may take nothing.
+	"tools/itos/conformance/report.yaml": `cases:
+  - name: reports three lines
+    argv: [report]
+    exit: 0
+    stdout: "one\\ntwo\\nthree\\n"
+  - name: says its state as JSON
+    argv: [state]
+    exit: 0
+    json: { state: { ready: true, items: [a, b] }, count: 2 }
+`,
 	// Refusals: two usage errors, whose words the new binary may change and
 	// whose exit code it may not, and a config error, whose words it may not.
 	"tools/itos/conformance/refuse.yaml": `cases:
@@ -156,16 +174,24 @@ interface Says {
 	takes?: string;
 	refusal?: number;
 	config?: string;
+	report?: string;
+	state?: string;
 }
+const lines = "one\\ntwo\\nthree\\n";
+const state = '{"count":2,"state":{"ready":true,"items":["a","b"]}}';
 const binary = ({
 	greeting = "hello",
 	help = "usage: itos greet|name|version",
 	takes = "",
 	refusal = 2,
 	config = "version 2 is not 1",
+	report = lines,
+	state: said = state,
 }: Says) => `#!/bin/sh
 case "$1" in
 --help | help) echo "${help}" ;;
+report) printf '${report}' ;;
+state) echo '${said}' ;;
 greet)
 	if [ $# -gt 1 ]; then
 		echo "itos: greet takes no argument${takes} ($2) (itos --help)" >&2
@@ -192,7 +218,36 @@ writeFileSync(good, binary({}));
 writeFileSync(wordy, binary({ help: moreHelp, takes }));
 writeFileSync(broken, binary({ greeting: "bye", help: moreHelp }));
 writeFileSync(reworded, binary({ takes, refusal: 1, config: "version should be 1, not 2" }));
-for (const bin of [good, wordy, broken, reworded]) chmodSync(bin, 0o755);
+const adding = join(tmp, "adding");
+writeFileSync(
+	adding,
+	binary({
+		report: "one\\ntwo\\nand a half\\nthree\\nfour\\n",
+		state: '{"count":2,"since":1,"state":{"ready":true,"items":["a","b"],"note":"x"}}',
+	}),
+);
+// Each takes something away: a key, a value, a line, an order.
+const taking = [
+	{
+		what: "a key removed",
+		case: "says its state as JSON",
+		says: { state: '{"state":{"ready":true,"items":["a","b"]}}' },
+	},
+	{
+		what: "a value changed",
+		case: "says its state as JSON",
+		says: { state: state.replace("true", "false") },
+	},
+	{ what: "a line changed", case: "reports three lines", says: { report: "one\\n2\\nthree\\n" } },
+	{
+		what: "two lines swapped",
+		case: "reports three lines",
+		says: { report: "one\\nthree\\ntwo\\n" },
+	},
+].map((t, i) => ({ ...t, bin: join(tmp, `taking-${i}`) }));
+for (const t of taking) writeFileSync(t.bin, binary(t.says));
+for (const bin of [good, wordy, broken, reworded, adding, ...taking.map((t) => t.bin)])
+	chmodSync(bin, 0o755);
 
 const run = (cwd: string, args: string[]) => {
 	const r = spawnSync(check, args, { cwd, env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
@@ -261,13 +316,15 @@ try {
 	let r = run(repo, ["-bin", good]);
 	const leftOut = "2 help cases (help.yaml 2) not judged, since help text is documentation";
 	const relaxed = "2 usage errors (refuse.yaml 2) judged by their exit code alone:";
+	const additively = "v1.0.0's conformance corpus: judged additively";
 	expect(
 		r.status === 0 &&
 			r.output.includes("v1.0.0's scenarios: all 2 pass") &&
-			r.output.includes("6/6 conformance cases pass") &&
+			r.output.includes("8/8 conformance cases pass") &&
 			r.output.includes(leftOut) &&
-			r.output.includes(relaxed),
-		`the release's own binary should pass every scenario and case, the help cases left out and the usage errors relaxed, both counted, exited ${r.status}:\n${r.output}`,
+			r.output.includes(relaxed) &&
+			r.output.includes(additively),
+		`the release's own binary should pass every scenario and case, the help cases left out and the usage errors relaxed, both counted, and the corpus judged additively, said, exited ${r.status}:\n${r.output}`,
 	);
 
 	// 1a. One whose help and usage errors' words differ, and nothing else,
@@ -278,7 +335,7 @@ try {
 		r.status === 0 &&
 			r.output.includes(leftOut) &&
 			r.output.includes(relaxed) &&
-			r.output.includes("6/6 conformance cases pass") &&
+			r.output.includes("8/8 conformance cases pass") &&
 			!r.output.includes("help.yaml: itos --help") &&
 			!r.output.includes("fails"),
 		`a binary whose help and usage errors' words alone differ should pass, its old help cases not judged and its usage errors judged by their exit code, exited ${r.status}:\n${r.output}`,
@@ -297,9 +354,33 @@ try {
 			) &&
 			r.output.includes("- FAIL itos.yaml: version 2 is not 1") &&
 			!r.output.includes("an unknown command is a usage error") &&
-			r.output.includes("4/6 conformance cases pass"),
+			r.output.includes("6/8 conformance cases pass"),
 		`a usage error whose exit code differs and a config error whose words differ should be refused, and a usage error whose words alone differ not named, exited ${r.status}:\n${r.output}`,
 	);
+
+	// 1c. One that only adds, keys to the JSON at the top and deeper, lines to
+	// the report between and after its own, passes: the old corpus is judged
+	// additively.
+	r = run(repo, ["-bin", adding]);
+	expect(
+		r.status === 0 &&
+			r.output.includes("8/8 conformance cases pass") &&
+			!r.output.includes("fails"),
+		`a binary that only adds keys to an old case's JSON and lines to its stdout should pass, exited ${r.status}:\n${r.output}`,
+	);
+	// One that takes a key away, changes a value, changes a line or swaps two
+	// lines is refused, naming that case alone.
+	for (const t of taking) {
+		r = run(repo, ["-bin", t.bin]);
+		const other = taking.find((o) => o.case !== t.case)!.case;
+		expect(
+			r.status === 1 &&
+				r.output.includes(`v1.0.0's conformance case report.yaml: ${t.case}`) &&
+				!r.output.includes(`report.yaml: ${other}`) &&
+				r.output.includes("7/8 conformance cases pass"),
+			`a binary with ${t.what} in an old case's output should be refused, naming that case alone, exited ${r.status}:\n${r.output}`,
+		);
+	}
 
 	// 2. The broken binary, with no commit since the tag that says why: refused,
 	// naming the scenario, the case and the remedy; the fix and the ! before the
@@ -317,7 +398,7 @@ try {
 	expect(
 		r.output.includes("1 of 2 fail") &&
 			!r.output.includes("says its name") &&
-			r.output.includes("5/6 conformance cases pass") &&
+			r.output.includes("7/8 conformance cases pass") &&
 			!r.output.includes("help.yaml: itos --help") &&
 			!r.output.includes("help greet"),
 		`only the scenario and the case the binary breaks should be named, no help case, exited ${r.status}:\n${r.output}`,
@@ -435,5 +516,5 @@ try {
 finish(
 	problems,
 	"previous-release",
-	"An old scenario or case the new binary breaks is refused, unless a breaking change or a fix's Changes: footer says why; a feat's never does; an old help case is never judged, an old usage error only by its exit code, an old config error word for word; and a run that cannot check out the release never passes",
+	"An old scenario or case the new binary breaks is refused, unless a breaking change or a fix's Changes: footer says why; a feat's never does; an old case's output is judged additively, a key or a line added passing and one removed, changed or reordered refused; an old help case is never judged, an old usage error only by its exit code, an old config error word for word; and a run that cannot check out the release never passes",
 );
