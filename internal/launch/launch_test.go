@@ -116,6 +116,34 @@ func TestHanded(t *testing.T) {
 	}
 }
 
+// Only hook pre-tool-use, and only for a version older than the guard, is
+// answered by the launcher.
+func TestUnguarded(t *testing.T) {
+	hook := []string{"hook", "pre-tool-use"}
+	cases := []struct {
+		name string
+		args []string
+		v    string
+		want bool
+	}{
+		{"the hook for a version before the guard", hook, "2.0.0", true},
+		{"the hook after global flags", []string{"--root", "x", "hook", "pre-tool-use"}, "2.2.9", true},
+		{"the hook for the guard's first version", hook, "2.3.0", false},
+		{"the hook for a later version", hook, "9.1.0", false},
+		{"the hook for no version", hook, "latest", false},
+		{"another hook", []string{"hook", "commit-msg", "msg"}, "2.0.0", false},
+		{"another command", []string{"task", "T-001"}, "2.0.0", false},
+		{"the hook's help", []string{"help", "hook", "pre-tool-use"}, "2.0.0", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := unguarded(c.args, target{version: c.v}); got != c.want {
+				t.Errorf("unguarded(%q, %q) = %t; want %t", c.args, c.v, got, c.want)
+			}
+		})
+	}
+}
+
 func TestChooseReadsTheConfigWhereItosDoes(t *testing.T) {
 	offline(t)
 	writeConfig(t, "version: 1\n")

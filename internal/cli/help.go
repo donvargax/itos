@@ -404,7 +404,10 @@ the subcommand; text an argument carries is not a command. sh -c, eval,
 scripts, git aliases and words built from variables are not looked into.
 Everything else gets no answer (exit 0, nothing on stdout), never an allow,
 so Claude Code's permission rules decide. An input it cannot read: exit 1,
-the reason on stderr; Claude Code blocks a tool on exit 2 alone.`,
+the reason on stderr; Claude Code blocks a tool on exit 2 alone. Where the
+launcher would hand it to an itos older than 2.3.0, which has no such hook (a
+pin, ITOS_VERSION or the newest release), it gets no answer either, after a
+line on stderr saying why.`,
 
 	"hooks": `Usage: itos hooks install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]`,
 

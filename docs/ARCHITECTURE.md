@@ -412,7 +412,13 @@ mechanisms above, written against those modules, read across.
   failure is one line on stderr and exit 3 (`cli.ExitMissing`), and nothing
   runs. `run` is `syscall.Exec` on unix, so the version run owns the
   process, its signals and its exit code, and a child whose exit code is
-  passed back elsewhere.
+  passed back elsewhere. Before `ensure`, `unguarded` catches `hook
+pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
+  `cli.GuardSince` (`pretooluse.go`, the first itos with the guard), by any
+  of `choose`'s branches: `answerNothing` reads stdin to its end (not a
+  terminal's), says why in one stderr line and the run exits 0 with nothing
+  on stdout, fetching nothing (slice 44); an `ITOS_VERSION` that is no
+  version is handed on, to fail as for any command.
 - **Keeping to the newest release** (`internal/launch/update.go`, slice 28)
   hangs off two branches of `choose`. `absent` calls `newest`, which runs the
   newest of the binary's own version and the stable releases the cache holds
@@ -622,7 +628,9 @@ mechanisms above, written against those modules, read across.
   call's folder and names each guarded subcommand once, in `Guarded`'s
   order; `guard.Deny` encodes Claude Code's `hookSpecificOutput`, with no
   HTML escaping so the reason reads as written. A command bash cannot parse
-  gets no answer. The corpus (`hooks.yaml`) pins the deny's bytes.
+  gets no answer. The corpus (`hooks.yaml`) pins the deny's bytes. The
+  launcher answers for the guard where it would hand it to an itos without
+  one (`launch.unguarded`, above).
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
   `ITOS_CONFIG`, else `itos.yaml`, else the stealth config, after `--root`'s

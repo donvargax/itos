@@ -8,6 +8,12 @@ import (
 	"github.com/donvargax/itos/v2/internal/guard"
 )
 
+// GuardSince is the first itos with hook pre-tool-use: the launcher answers
+// nothing for the hook where it would hand it to an older itos, whose usage
+// error's exit 2 Claude Code would take as a block (slice 44,
+// internal/launch).
+const GuardSince = "2.3.0"
+
 // hookPreToolUse is `hook pre-tool-use`, Claude Code's PreToolUse hook
 // (internal/guard): Claude Code's input on stdin, a deny on stdout for a git
 // commit or git push in a repository itos manages, nothing for anything else,

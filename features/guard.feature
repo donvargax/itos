@@ -97,7 +97,7 @@ Feature: itos hook pre-tool-use, Claude Code's guard against git commit and git 
   # blocked once the plugin wires the hook. Where the version the hook would
   # go to predates the guard, the command gets no answer, as bug 7 did for
   # the git shim.
-  @ID-GUARD-11 @slice-44 @wip
+  @ID-GUARD-11 @slice-44
   Scenario: In a repository pinned to an itos older than the guard, the command gets no answer
     Given a release server offering the versions "1.9.0" and "2.0.0"
     And the config pins the version "2.0.0" of the release server

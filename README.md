@@ -221,9 +221,11 @@ agent commits with the footers and pushes without forcing. Everything else
 gets no answer, so your own permission rules still decide. It reads the
 command as bash does, so `git -C . commit` and `make && git push` are caught;
 `sh -c '…'`, `eval` and scripts are not looked into, and the hooks stay the
-gates. Until the itos plugin wires it, add it to `.claude/settings.json`
-where the pin is v2.3.0 or later (an older itos has no such hook, and its
-usage error's exit code 2 makes Claude Code block every Bash command):
+gates. Until the itos plugin wires it, add it to `.claude/settings.json`,
+with the `itos` on your `PATH` at v2.3.0 or later. A repository may pin an
+older itos, which has no such hook: there the launcher answers the hook with
+nothing itself, rather than hand it a command whose usage error (exit code 2)
+would make Claude Code block every Bash command:
 
 ```json
 {

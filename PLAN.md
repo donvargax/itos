@@ -525,7 +525,13 @@ values, passed over), then the subcommand; text an argument carries
 follow it, not a fortress: `sh -c`, `eval`, scripts, git aliases, words built
 from variables, a `cd` before the command and a command bash cannot parse are
 not looked into, and the commit-msg hook and CI's `verify` stay the gates.
-`itos waive` joins what it denies with p3-human-waiver.
+`itos waive` joins what it denies with p3-human-waiver. Where the launcher
+would hand `hook pre-tool-use` to an itos older than the guard (2.3.0, by the
+pin, `ITOS_VERSION` or the newest release), which has no such hook and whose
+usage error's exit 2 Claude Code takes as a block, it runs nothing and answers
+nothing itself, exit 0, after one line on stderr naming the version (slice
+44, as bug 7 did for the shim), so the plugin calls `itos hook pre-tool-use`
+plainly whatever a repository pins.
 
 **Hooks in the git config** (slice 33, the user's calls of 2026-10-03): git
 2.5x runs a hook declared in its config, `hook.<name>.event` and
@@ -725,7 +731,8 @@ working with itos (find work with `itos work`, commit with `itos commit --task`,
 in a repository with an itos config, answers a `git commit` or `git push` with the itos command to
 use instead: a guardrail for agents, a hook rather than permission rules, since a rule matches a
 command's prefix and `git -C . commit` slips past it; the commit-msg hook stays the gate. Its
-hooks call `itos`, so a repository's pin picks the version. `itos init` makes a repository ready,
+hooks call `itos`, so a repository's pin picks the version, and a pin older than the guard gets
+no answer from the launcher rather than a block (slice 44, §7). `itos init` makes a repository ready,
 new (`git init` first) or existing: an `itos.yaml` from what it detects (`commits.since` at HEAD
 so history written before itos is never judged, the hook manager, a ledger and a registry, a
 smoke set when feature files exist, a pin on the running version), then the hooks; with

@@ -27,6 +27,11 @@
 // one they link as git; the git shim's own runs (git-shim run) are launched
 // as any other, so in a pinned repository git commit is the pinned itos's,
 // when it has the shim (Handed tells internal/shim the version, bug 7).
+//
+// hook pre-tool-use, Claude Code's guard, is handed on as any other run, but
+// not to an itos older than the guard (cli.GuardSince), which has no such
+// hook: its usage error's exit 2 would make Claude Code block the tool, so
+// the launcher reads the input and answers nothing, exit 0 (slice 44).
 package launch
 
 import (
@@ -90,6 +95,10 @@ func Main(args []string, stderr io.Writer) (int, bool) {
 	if !ok {
 		return 0, false
 	}
+	if unguarded(args, t) {
+		answerNothing(t, os.Stdin, stderr)
+		return 0, true
+	}
 	bin, err := ensure(t)
 	if err == nil {
 		var code int
@@ -109,6 +118,36 @@ func Main(args []string, stderr io.Writer) (int, bool) {
 func binaryCommand(args []string) bool {
 	rest := cli.Parse(args).Rest
 	return len(rest) >= 2 && rest[0] == "git-shim" && (rest[1] == "install" || rest[1] == "uninstall")
+}
+
+// unguarded is whether the arguments run hook pre-tool-use and the version
+// they would be handed to predates the guard, so has no such hook to answer
+// it (slice 44). A version the launcher cannot read (an ITOS_VERSION that is
+// none) is handed on, to fail as it does for any command.
+func unguarded(args []string, t target) bool {
+	rest := cli.Parse(args).Rest
+	return len(rest) >= 2 && rest[0] == "hook" && rest[1] == "pre-tool-use" &&
+		config.PinVersion.MatchString(t.version) && version.Compare(t.version, cli.GuardSince) < 0
+}
+
+// answerNothing is the guard's answer for the version t, which has none:
+// nothing on stdout, and on stderr, which Claude Code shows only in its debug
+// output, one line saying why. It reads the input Claude Code sends, as the
+// guard would, so the writer never meets a closed pipe; a terminal is not
+// read, where nothing would end the input.
+func answerNothing(t target, stdin *os.File, stderr io.Writer) {
+	if info, err := stdin.Stat(); err == nil && info.Mode()&os.ModeCharDevice == 0 {
+		_, _ = io.Copy(io.Discard, stdin)
+	}
+	who := "the newest release is"
+	switch {
+	case os.Getenv(EnvVersion) != "":
+		who = EnvVersion + " names"
+	case t.checksums != "":
+		who = "this repository pins"
+	}
+	fmt.Fprintf(stderr, "itos: hook pre-tool-use answers nothing: %s itos %s, and the guard needs itos %s or later\n",
+		who, t.version, cli.GuardSince)
 }
 
 // choose is the version to run and whether it is another than this binary:
