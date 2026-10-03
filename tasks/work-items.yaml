@@ -2818,7 +2818,12 @@ items:
       launcher would fetch them into its cache, check them and run that version for itos <name>,
       as it does for itos; an undeclared extension still comes from the PATH. Its first user is
       the dependency checks (T-067) if they move out of this repository into an itos-security
-      extension, which waits for the user's repository template.
+      extension, which waits for the user's repository template. The roles design (2026-10-03,
+      p3-role-protocol) adds two questions for it: a role's source command that is missing is an
+      error, never a pass, as an adapter's failure is (PLAN.md §12), so a role filled by an
+      extension makes that extension a requirement of every hook and CI run that calls it, which
+      pinning and installing it would make bearable; and a role-level check command, so config
+      check can validate a source's own files (itos-cc's itos-cc-debt.yaml).
     refs: [features/extensions.feature, features/pin.feature, PLAN.md]
 
   - id: p3-nightly-govulncheck
@@ -2907,3 +2912,77 @@ items:
       git push into an itos repository named that way is not denied. Reading such a folder as the
       sh would hand it to git (a drive from /<letter>/, a rooted path on the current drive) is a
       fix with its scenario, which only the windows platform job can run.
+
+  - id: p3-role-protocol
+    title: One adapter protocol for every role a command fills, the test kinds' own
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-29]
+    kind: idea
+    deferred: until itos-cc is published, the user's call (2026-10-03)
+    why: >
+      The design agreed with itos-cc's maintainer (2026-10-03), itos-cc being a code-quality tool
+      (CRAP, mutation testing, duplication) that will run as the extension itos cc. Three layers:
+      commands (itos <ext>, exists), checks (any command in ci.steps or a task, exists) and roles,
+      a protocol itos defines and enforces rules over, filled by any command; extensions fill
+      roles, they do not invent them. Test kinds are the one role today. Every role shares the
+      test kinds' adapter protocol as it stands (PLAN.md §6): <command> list --at <tree>
+      (worktree, index or a SHA) printing one JSON object with "protocol": 1, and range checks
+      with staged and range commands ({from}, {to}), so a later role costs no new protocol.
+      Where the brief that proposed this differs, itos's protocol wins: the key is "protocol",
+      not "schema", which stays the key of every command's own --json output. Exit codes stay
+      0/1/2/3 (pass, policy, usage, environment), read from a source as from an extension; detail
+      goes in each problem's rule ID, prefixed by its source (cc/mutant-survived).
+    refs: [PLAN.md, docs/extensions.md]
+
+  - id: p3-debt-role
+    title: A debt role, the known-wrong things a project accepts for now, listed by a source
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [p3-role-protocol]
+    kind: idea
+    deferred: until itos-cc is published, the user's call (2026-10-03)
+    why: >
+      The second role (p3-role-protocol): a list of things known to be wrong, accepted for now,
+      each to be owned: CRAP or mutation debt from itos-cc, later quarantined scenarios, TODOs,
+      accepted security findings. Configured role first, then source, as test kinds are:
+      debt: { code-quality: { list: "itos cc debt list", range_checks: [{ staged: "itos cc check
+      --staged", range: "itos cc check --range {from}..{to}" }] } }, the source's name the prefix
+      of its entries' IDs; a source need not be an extension, as godog is not one. Decided
+      (2026-10-03): debt is a committed baseline its source lists without measuring (itos-cc
+      keeps itos-cc-debt.yaml at the repository's top; its own range check refuses a new
+      violation the baseline lacks), so listing is cheap, and the hook calls a source only when
+      the commit stages its baseline or the work registry, as it lists only the test kinds a
+      message names; measuring (running tests, mutants) stays a late CI step. A source that is
+      missing or fails is an error, never a pass (PLAN.md §12). itos treats entry IDs as opaque
+      and never reads the source's files; the source never sees a work item: the two share IDs,
+      never formats. Open: moves, since an entry's ID holds a file path (itos-cc reads an
+      unchanged function hash under a new ID as a move, and a claim by glob may still break),
+      which may want a moves rule like the scenarios' builtin.
+    refs: [PLAN.md]
+
+  - id: p3-debt-claims
+    title: Work items claim debt entries, and itos refuses debt nobody owns
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [p3-debt-role]
+    kind: idea
+    deferred: until itos-cc is published, the user's call (2026-10-03)
+    why: >
+      A work item claims debt entries by ID or glob, pays: ["code-quality:crap:billing/**"], a new
+      registry key, so a feat with scenarios. itos refuses, in config check, the commit-msg hook
+      and verify: an entry no open item claims; an item marked done while it still claims an
+      entry; a claim that matches nothing. An item that pays debt is then proven done without a
+      hand-written check. Decided (2026-10-03), option A with a start point: every entry owned at
+      every commit, which the committed baseline makes cheap (p3-debt-role); entries already in
+      the baseline at a start commit, as commits.since starts verification, are exempt or claimed
+      by an explicit legacy item, so adopting it in an existing codebase needs no claim per old
+      entry and verify does not judge history written before it; only entries added after it
+      must be claimed. A commit that adds debt must be able to carry its claim, so a project's
+      commits.scopes has to let the commit adding debt touch the registry. Open: a glob claim lets
+      new debt join an item quietly, so itos work list could show how many entries each item
+      claims.
+    refs: [PLAN.md]
