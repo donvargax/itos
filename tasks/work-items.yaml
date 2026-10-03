@@ -2016,13 +2016,13 @@ items:
       being the only one. In a project a missing or malformed people file is reported by itos init
       (and its re-run) and silent elsewhere: work runs with no identity, already no error (config
       check at most a warning that never fails). A project's hooks.bin default stays
-      tools/bin/itos through v2; v3 drops the key (v3-drop-hooks-bin).
+      tools/bin/itos through v2; v3 drops the key (v3-hooks-bin-default).
       Was p3-stealth-defaults. Specified as @ID-STEALTH-17 and -18, @ID-WORK-05 and
       @ID-CONFIG-19.
     refs: [features/stealth.feature, features/work.feature, features/config.feature]
 
-  - id: v3-drop-hooks-bin
-    title: "v3: hooks.bin goes, every hook and pattern calling itos"
+  - id: v3-hooks-bin-default
+    title: "v3: hooks.bin defaults to itos, the key kept as internal and unsupported"
     phase: 3
     owner: donvargax
     status: todo
@@ -2030,13 +2030,16 @@ items:
     kind: idea
     deferred: the next major release, the user's call (2026-10-03)
     why: >
-      With the launcher and pin, a repository needs no hooks.bin: the hooks and the command
-      patterns call itos, and the pin picks the version. Dropping it, or flipping its default,
-      breaks every consumer relying on tools/bin/itos (v2.0.0's notes told them to), so the user
-      keeps it through v2. v3's Upgrading asks each consumer to move to pin and a global itos;
-      until then itos init writes hooks.bin: itos for a repository on a global itos, and this
-      repository, judged by its own build, needs a way to keep calling it (an ITOS_VERSION-style
-      override, or a pin to a local build) before the key can go.
+      Was v3-hooks-bin-default. The user's calls (2026-10-03): hooks.bin is not dropped, since this
+      repository needs it, judged by its own build through tools/bin/itos; it is marked internal
+      and unsupported, use at your own risk (the schema's description, the help, the docs no
+      longer recommending it to consumers), for a repository that must run its own build of itos.
+      What v3 changes is its default, flipped from tools/bin/itos to itos, the global launcher,
+      so a repository with no hooks.bin runs the global itos and its pin, and a new repository
+      gets no default naming a script it lacks. Breaking for every consumer relying on the
+      default (v2.0.0's notes told them to), so v3's Upgrading asks each to move to a pin and a
+      global itos, or write hooks.bin: tools/bin/itos explicitly. This repository writes it
+      explicitly before v3.
     refs: [PLAN.md, docs/releases/v2.0.0.md]
 
   - id: slice-31
@@ -2693,19 +2696,21 @@ items:
     refs: [internal/cli/gitcommit.go, features/stealth.feature]
 
   - id: p3-plugin-project-itos
-    title: The Claude Code plugin runs the repository's own itos when none is on the PATH
+    title: The Claude Code plugin runs the itos the repository's hooks.bin names
     phase: 3
-    owner: null
+    owner: donvargax
     status: todo
-    depends_on: [T-066]
+    depends_on: [T-066, T-069]
     kind: idea
     why: >
-      Left by T-066: the plugin's guard and titles run the itos on the PATH. A repository that
-      installs itos for itself (hooks.bin naming a committed script, as this repository's
-      tools/bin/itos does) on a machine with no global itos gets no guard, and titles only from
-      tasks/work-items.yaml, so a registry moved by work.registry and ledger tasks with no item go
-      untitled; this repository is such a case today. The plugin could find the config and run its
-      hooks.bin when no itos is on the PATH.
+      Left by T-066, the user's call (2026-10-03): the plugin respects hooks.bin. Its guard and
+      titles run the itos on the PATH, so this repository's are answered by the global release,
+      not by its own build, and a repository that installs itos for itself (hooks.bin naming a
+      committed script) on a machine with no global itos gets no guard, and titles only from
+      tasks/work-items.yaml. The plugin should run what the repository's config names in
+      hooks.bin, the itos its git hooks run, falling back to the itos on the PATH only with no
+      config or no hooks.bin; the first call after a Go change here rebuilds tools/bin/itos, a few
+      seconds, inside the hook's timeout. After T-069, the user's order.
     refs: [integrations/claude-code/hooks/register.ts, integrations/claude-code/hooks/hooks.json]
 
   - id: p3-plugin-type-check

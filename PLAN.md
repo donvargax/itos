@@ -207,7 +207,9 @@ every item as the session's, whatever owner it names (slice 38, the user's call
 of 2026-10-03): owners stay in the registry as written and stop deciding what
 is proposed, and `--as` still proposes a handle's items by owner, as in a
 project. A project's `hooks.bin` default stays
-`tools/bin/itos` through v2 (`v3-drop-hooks-bin`). A config is the stealth one by where it is, so an extension's
+`tools/bin/itos` through v2 and flips to `itos` in v3 (`v3-hooks-bin-default`); the key itself
+stays, internal and unsupported, for a repository that must run its own build of itos, as this
+one does (the user's call, 2026-10-03). A config is the stealth one by where it is, so an extension's
 call back reads the same files; one anywhere else that `--config` or
 `ITOS_CONFIG` names resolves its paths from the root, as it always has. Since
 no commit carries that ledger, a footer naming a task is checked against its

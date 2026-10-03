@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after v2.3.0 was released.
+Last updated 2026-10-03, after T-070 landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `c99276b` (CI run 37130620622); this
+`main` is green at `2057406` (CI run 37133131878), T-070's close; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -55,13 +55,14 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
    takes no arguments through the shim), small, when it bites.
 2. **v2.3.0 is out** (release run 37131270855; its assets downloaded and
    checksummed, the linux binary says `itos 2.3.0`).
-   Next **T-070** (the config schema held to the last release's) and
+   T-070 (the config schema held to the last release's) landed. Next
    **T-071** (the last release's scenarios run against the new binary; a
    fix may change one it names in `Changes:`, a feat never), then
    **T-069**, the user's call (2026-10-03): a push to `main` carrying a
    `feat` or a `fix` with CI green cuts the release itself (version from the
    commits, GoReleaser, attestations, generated notes, no commit by the
    releaser), before v2.4.0's slices, so v2.4.0 is the first cut by CI.
+   Then `p3-plugin-project-itos` (the plugin runs what `hooks.bin` names).
 3. **v2.4.0**: **`p3-pre-push-verify`**, **`p3-pin-bump`** and
    **`p3-itos-init`**.
 4. **After v2.4.0**: **`p3-human-waiver`** (`itos waive`, a plain config
@@ -79,7 +80,8 @@ itos-security extension once the user's repository template is ready
 Releases, the user's plan (2026-10-03): v2.1.0 and v2.2.0 released; v2.3.0
 the plugin and the guard; v2.4.0 pre-push verify, the pin bump and
 `itos init`; the waiver after it; v3.0.0 the breaking cleanup
-(`v3-drop-hooks-bin`, the notes gathering once git-cliff writes them).
+(`v3-hooks-bin-default`: `hooks.bin` defaults to `itos`, the key kept as
+internal and unsupported).
 Open for the user: whether the other repositories move at v2.3.0, by hand
 from the Upgrading sections, or at v2.4.0 with `p3-pin-bump` (`itos init`
 as specified only reports what an existing repository lacks; it migrates
