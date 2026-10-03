@@ -726,7 +726,13 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
 --print-defaults` prints exactly that tree, so a default cannot be applied
   without being printed. A key with no default is a nil pointer, a nil list or
   an empty `Ordered` (a mapping whose order matters, as written); the file as
-  written stays beside the loaded config for `HasSection` and `Section`.
+  written stays beside the loaded config for `HasSection` and `Section`, and
+  the tree it was decoded from for `Get`, which `itos config get <key>`
+  (slice 45) reads a dotted key out of, after `KnownKey` has held the key to
+  the schema (an object's keys, any key of a map, nothing under a list or a
+  scalar), so it prints what the tools use. A stealth config's own data
+  (`ledger.files`, `work.registry`, each smoke file) is resolved beside it in
+  that tree before the typed config is decoded (`beside`), so the two agree.
   `Readings` and `MatchesStatic` are `readings` and `matchesStatic`.
 - **From a subfolder** (`internal/config/top.go`, slice 40): with no
   `--config`, no `ITOS_CONFIG` and no `--root`, and no `itos.yaml` in the

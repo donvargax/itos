@@ -464,7 +464,11 @@
     that is not a path (itos itself) is that command on the PATH. The guard keeps its two shell
     guards (nothing found answers nothing; an exit 2 becomes 1). The first call after a Go
     change here rebuilds tools/bin/itos, a few seconds, inside the hook's 30-second timeout.
-    The plugin's tests prove each case of the resolution.
+    The plugin's tests prove each case of the resolution. As slice 45 built it, config get prints
+    hooks.bin as the config writes it, relative to the repository's top, which the hook resolves
+    against the top (git rev-parse --show-toplevel) when the session root is a subfolder; an itos
+    older than v2.4.0 has no config get and answers with the usage error "unknown command: config
+    get", exit 2, the "too old to answer" case.
   done_when:
     - run: claude plugin validate --strict integrations/claude-code
     - run: claude plugin test integrations/claude-code
