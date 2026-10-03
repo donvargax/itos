@@ -1192,7 +1192,7 @@ items:
     title: A config that the last release accepts is accepted unless the range carries a breaking change
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     why: >
@@ -2787,6 +2787,39 @@ items:
       ci.prose.paths is, would leave such a step out of the plan, show it in itos ci plan, and
       drop the step's dependence on the workflow's environment. An itos feature, so a slice.
     refs: [itos.yaml, PLAN.md]
+
+  - id: p3-schema-contract-unpublished
+    title: The schema contract reads the last release's schema from its tag while the release uploads
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-069]
+    kind: idea
+    why: >
+      T-070 left it: the schema contract downloads itos.schema.json from the GitHub release of
+      the newest tag reachable from HEAD, and a 404 stops it (exit 2), never a pass. Once T-069
+      tags and uploads in its release job, a push that lands while the upload runs sees the tag
+      and no asset, and its CI is red until re-run. The release build generates that file with
+      go run ./tools/bin/config-schema at the tag, so the check could generate it the same way
+      from a scratch worktree of the tag on a 404 (or always, needing no network), saying which
+      it compared.
+    refs: [tools/bin/schema-contract/main.go, tasks/phase-3.yaml]
+
+  - id: p3-schema-contract-json
+    title: The schema contract gives its findings as JSON, for the release notes T-069 generates
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-070]
+    kind: idea
+    why: >
+      T-070 left it: the check prints each compatible change, and each breaking one a commit
+      marks, as a line for a person (schema-contract: compatible since v2.3.0: pin: key added).
+      The notes' Upgrading section must list each config key added, removed or with a changed
+      default (PLAN.md's distribution), so T-069's notes would read those lines; a -json output
+      (the release, and each finding's path, change and whether it breaks) would hand them over
+      without parsing words.
+    refs: [tools/bin/schema-contract/main.go, PLAN.md]
 
   - id: T-068
     title: v2.3.0, the itos plugin for Claude Code
