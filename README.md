@@ -107,11 +107,11 @@ Pin a release, never a branch, and pin each asset by its line in
 and unpack the binary into an ignored `.tools/bin/`. A project commits this as
 a script that pins the version and each platform's hash
 (`docs/releases/v2.0.0.md`, Upgrading, step 1, has one for every platform, and
-the shim that runs it from your hooks and CI; `docs/releases/v2.1.0.md`,
-Upgrading, step 1, has the script at 2.1.0):
+the shim that runs it from your hooks and CI; `docs/releases/v2.2.0.md`,
+Upgrading, step 1, has the script at 2.2.0):
 
 ```sh
-version=2.1.0 platform=linux-amd64   # or linux-arm64, darwin-amd64, darwin-arm64
+version=2.2.0 platform=linux-amd64   # or linux-arm64, darwin-amd64, darwin-arm64
 archive="itos-$version-$platform.tar.gz"
 curl -fsSLO "https://github.com/donvargax/itos/releases/download/v$version/$archive"
 echo "<the hash in the release's checksums.txt>  $archive" | sha256sum -c -
@@ -130,7 +130,7 @@ release each repository runs in its `itos.yaml`:
 
 ```yaml
 pin:
-  version: 2.1.0 # the release, without its v
+  version: 2.2.0 # the release, without its v
   checksums: <the SHA-256 of that release's checksums.txt> # sha256sum checksums.txt
 ```
 
@@ -151,7 +151,7 @@ releases the cache holds. In a repository that pins an older release than the
 newest it runs the pin and says so on stderr, once a day per repository:
 
 ```
-itos 2.1.0 is out (this repository pins 2.0.0): https://github.com/donvargax/itos/releases/tag/v2.1.0
+itos 2.2.0 is out (this repository pins 2.1.0): https://github.com/donvargax/itos/releases/tag/v2.2.0
 ```
 
 It asks nothing where the answer goes unused (a config without `pin`), never
@@ -218,7 +218,7 @@ description and default, once the file's first line names the schema of the
 release the project pins:
 
 ```yaml
-# yaml-language-server: $schema=https://github.com/donvargax/itos/releases/download/v2.1.0/itos.schema.json
+# yaml-language-server: $schema=https://github.com/donvargax/itos/releases/download/v2.2.0/itos.schema.json
 ```
 
 `itos config check` stays the judge: the schema says less than it, never
