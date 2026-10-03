@@ -28,12 +28,12 @@ const show = (packages: Set<string>) => [...packages].sort().join(", ") || "none
 
 const { problems, timings, expect, preCommit, prePush } = hookGates(repo);
 
-// internal/version is imported by internal/cli (and cmd/itos, which has no
-// tests) and by nothing else, so its change reaches those and not, say,
-// internal/glob.
+// internal/version is imported by internal/cli and internal/launch (and
+// cmd/itos, which imports both and has no tests) and by nothing else, so its
+// change reaches those and not, say, internal/glob.
 const pkg = "internal/version";
 const file = `${pkg}/version.go`;
-const reached = ["internal/version", "internal/cli", "cmd/itos"];
+const reached = ["internal/version", "internal/cli", "internal/launch", "cmd/itos"];
 const unreached = "internal/glob";
 const testsReached = (hook: string, output: string) => {
 	const ran = tested(output);
