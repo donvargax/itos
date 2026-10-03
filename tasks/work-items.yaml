@@ -2327,8 +2327,27 @@ items:
       lacks, neither counted as missing; slice 48 left config check's warnings out of the report
       for this. It also takes p3-init-untagged-features (@ID-INIT-22, the user's call): where no
       scenario carries an ID tag, the starter does not require the Scenarios footer, and init
-      says how to tag one.
+      says how to tag one. Landed: @ID-INIT-18, 19 and 22, and --git-shim on a rerun. Held:
+      @ID-INIT-20 and 21 and a rerun's line on a shim not linked, which change the words and
+      keys of v2.8.1's init corpus cases; they wait on p3-old-corpus-additive-report.
     refs: [features/init.feature]
+  - id: p3-old-corpus-additive-report
+    title: The last release's corpus reads a key or a report line added as a breaking change
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-071]
+    kind: idea
+    why: >
+      Found by slice 50. tools/bin/previous-release compares an old case's JSON and stdout exactly,
+      so a key added to a command's --json object, which PLAN.md calls compatible (keys only ever
+      added), and a line added to a report fail v2.8.1's init.yaml cases ("init with a config
+      there writes nothing…", "run again where nothing is missing…", "run again with the plugin
+      installed, init's JSON says so"), and a feat's Changes: cannot excuse them. @ID-INIT-20 and
+      21 (the rerun's notes: a pin behind the newest, a people file missing) and the rerun's line
+      on a git shim not linked wait on the user's call: judge an old case's JSON as a subset of
+      the new, and its human report as documentation, as T-075 did for usage errors, or ship
+      them as a breaking change.
   - id: slice-42
     title: itos hook pre-tool-use, Claude Code's guard against an agent's git commit and git push
     phase: 3
