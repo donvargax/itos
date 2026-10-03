@@ -190,3 +190,28 @@ Feature: Every key the config accepts is one itos reads
     When itos runs the task "T-001" from "sub"
     Then itos exits with code 0
     And its output says "T-001"
+
+  # Slice 45: a program that works beside itos (the Claude Code plugin, a
+  # script) needs a config value as itos reads it, defaults applied and the
+  # config found as everywhere else (a subfolder, a stealth config), and
+  # parsing itos.yaml itself gets those wrong. itos config get <key> prints a
+  # key's value, a dotted path, as itos would use it; --json gives it as
+  # {"schema": 1, "key", "value"}. A key itos does not know is a usage error.
+  @ID-CONFIG-21 @slice-45 @wip
+  Scenario: config get prints a key's value as the config sets it
+    Given hooks.bin is "bin/itos"
+    When itos runs "config get hooks.bin"
+    Then itos exits with code 0
+    And its output says "bin/itos"
+
+  @ID-CONFIG-22 @slice-45 @wip
+  Scenario: config get prints a key's default when the config leaves it out
+    When itos runs "config get hooks.commit_msg.check_timeout"
+    Then itos exits with code 0
+    And its output says "60"
+
+  @ID-CONFIG-23 @slice-45 @wip
+  Scenario: config get refuses a key itos does not know
+    When itos runs "config get hooks.no_such_key"
+    Then itos exits with code 2
+    And its output says "hooks.no_such_key"

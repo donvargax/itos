@@ -51,8 +51,9 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 
 1. **v2.1.0 and v2.2.0 are out.** Open: `p3-shim-push-args` (`git push`
    takes no arguments through the shim), small, when it bites.
-2. **Next**: `p3-plugin-project-itos` (the plugin runs what `hooks.bin`
-   names), then v2.4.0's slices. Ideas the release work left:
+2. **Next**: **slice 45** (`itos config get`, @ID-CONFIG-21 to 23), then
+   **T-073** (the plugin runs what `hooks.bin` names, asked with
+   `itos config get`), then v2.4.0's slices. Ideas the release work left:
    `p3-guard-windows-paths` (the guard reads a Git Bash `/c/…` folder as
    relative), `p3-plugin-version`, `p3-release-notes-bodies`,
    `p3-version-prerelease`, `p3-changes-at-commit`.

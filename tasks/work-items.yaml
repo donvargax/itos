@@ -2743,23 +2743,35 @@ items:
       make an amend mean the same in both modes.
     refs: [internal/cli/gitcommit.go, features/stealth.feature]
 
-  - id: p3-plugin-project-itos
+  - id: slice-45
+    title: itos config get prints a config key's value as itos reads it
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified as @ID-CONFIG-21 to 23 in features/config.feature, for T-073: the plugin needs a
+      repository's effective hooks.bin (defaults applied, the config found from a subfolder or
+      the stealth mode), and parsing itos.yaml outside itos gets those wrong.
+    refs: [features/config.feature]
+
+  - id: T-073
     title: The Claude Code plugin runs the itos the repository's hooks.bin names
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [T-066, T-069]
-    kind: idea
+    depends_on: [T-066, slice-45]
+    kind: task
     why: >
-      Left by T-066, the user's call (2026-10-03): the plugin respects hooks.bin. Its guard and
-      titles run the itos on the PATH, so this repository's are answered by the global release,
-      not by its own build, and a repository that installs itos for itself (hooks.bin naming a
-      committed script) on a machine with no global itos gets no guard, and titles only from
-      tasks/work-items.yaml. The plugin should run what the repository's config names in
-      hooks.bin, the itos its git hooks run, falling back to the itos on the PATH only with no
-      config or no hooks.bin; the first call after a Go change here rebuilds tools/bin/itos, a few
-      seconds, inside the hook's timeout. After T-069, the user's order.
-    refs: [integrations/claude-code/hooks/register.ts, integrations/claude-code/hooks/hooks.json]
+      Was p3-plugin-project-itos, the user's call (2026-10-03): the plugin respects hooks.bin.
+      The task is T-073 in tasks/phase-3.yaml.
+    refs:
+      [
+        tasks/phase-3.yaml,
+        integrations/claude-code/hooks/hooks.json,
+        integrations/claude-code/hooks/register.ts,
+      ]
 
   - id: p3-plugin-type-check
     title: Type-check the Claude Code plugin's hooks module in CI

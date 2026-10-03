@@ -447,3 +447,25 @@
   done_when:
     - run: sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'
       after: push
+
+- id: T-073
+  type: chore
+  title: The Claude Code plugin runs the itos the repository's hooks.bin names
+  why: >
+    Was p3-plugin-project-itos, the user's call (2026-10-03): the plugin respects hooks.bin. Its
+    guard and its titles ran the itos on the PATH, so this repository's were answered by the
+    global release rather than its own build, and a repository that installs itos for itself
+    (hooks.bin naming a committed script) on a machine with no global itos got no guard and
+    titles only from tasks/work-items.yaml. Both now run the itos the repository's git hooks
+    run: its effective hooks.bin, asked of the itos on the PATH with itos config get hooks.bin
+    (slice 45), so defaults, a stealth config and a subfolder count as itos counts them; with no
+    itos on the PATH, or one too old to answer, the v2 default tools/bin/itos at the
+    repository's top when it is executable; else the itos on the PATH as before. A hooks.bin
+    that is not a path (itos itself) is that command on the PATH. The guard keeps its two shell
+    guards (nothing found answers nothing; an exit 2 becomes 1). The first call after a Go
+    change here rebuilds tools/bin/itos, a few seconds, inside the hook's 30-second timeout.
+    The plugin's tests prove each case of the resolution.
+  done_when:
+    - run: claude plugin validate --strict integrations/claude-code
+    - run: claude plugin test integrations/claude-code
+      timeout: 300
