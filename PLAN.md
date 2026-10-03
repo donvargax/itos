@@ -464,7 +464,7 @@ or the hook refuses is reported with git's exit code, never retried.
 Nothing to push is success (exit 0, saying so); a remote without the branch
 is a new branch, pushed with no rebase. Outside a repository, or with no
 upstream and no `origin`, it exits 3. Printing the CI run the push started
-is `p1-ci-watch`'s.
+is slice 51's: with `ci.watch` (opt-in) it waits for that run and exits with its result.
 
 **The pre-push hook verifies** (slice 46, the user's question of
 2026-10-03): a commit that skipped the commit-msg hook (`--no-verify`, a

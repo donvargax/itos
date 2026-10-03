@@ -265,7 +265,7 @@ teaches you a new one, stated as the rule and its reason.
   brief cannot prevent it, and the brief does not blame the agent for it.
   Watch the run yourself with a `Monitor` on its id (from
   `gh run list --commit <full sha>`), and treat the slice as done only when
-  it is green, until `itos push` waits for CI itself (`p1-ci-watch`).
+  it is green, until `itos push` waits for CI itself (slice 51, `ci.watch`).
 - **The coordinator never sets `doing`.** The agent takes the item in its
   first commit. A push that names a task runs that task's checks unless its
   item is `todo`, so a spec pushed with its item already `doing` is red until

@@ -1182,14 +1182,17 @@ items:
       p1-itos-push; specified in features/push.feature.
     refs: [features/push.feature]
 
-  - id: p1-ci-watch
+  - id: slice-51
     title: "itos push waits for CI, and itos ci watch for any commit"
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ci-watch. Specified as @ID-WATCH-01 to 09 in features/watch.feature. The user's calls
+      (2026-10-03): opt-in through ci.watch (provider none by default, so v2's push is unchanged and
+      this is a minor release), and the github provider's token from token_env, else gh auth token.
       After every push the coordinator wrote the same watch: find the run for the full SHA, wait,
       grep --log-failed for "CI failed at"; and checked each agent's claimed run, since a report's
       link is a claim. itos ci watch [<sha>] could find the run, wait and print the failed step.

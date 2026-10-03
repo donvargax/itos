@@ -52,7 +52,8 @@ One slice at a time, the user's order:
 
 1. The orchestration commands, the user's order (2026-10-03), ahead of the
    rest of init, each to specify first:
-   - **`p1-ci-watch`**: `itos push` waits for CI;
+   - **`slice-51`** (was `p1-ci-watch`; @ID-WATCH-01 to 09 in
+     `features/watch.feature`, `@wip`): `itos push` waits for CI, opt-in;
    - **`p1-work-take-done-promote`** with `p1-slice-done-check`: `itos work
 done` verifies before it writes;
    - **`p1-work-edit`**: `itos work add`, `edit` and `itos task add` write
