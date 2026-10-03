@@ -92,9 +92,9 @@ jobs:
 
   # The unit tests and every feature on Linux, macOS and Windows (T-072): itos built natively on
   # each runner and run as a person on that platform meets it, with that platform's git, shell and
-  # paths. The release archives are cross-compiled on Linux (T-069); this is what runs them. Not
-  # blocking yet: a platform that fails is reported without stopping the release, until all three
-  # pass. The job's name holds the runner's OS word, which T-072's check reads.
+  # paths. The release archives are cross-compiled on Linux (T-069); this is what runs them. It
+  # blocks, and the release job needs it, so a platform break stops a release as every other check
+  # of a push does. The job's name holds the runner's OS word, which T-072's check reads.
   platform:
     name: platform (${{ matrix.os }})
     strategy:
@@ -102,7 +102,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    continue-on-error: true
     defaults:
       run:
         shell: bash # Git for Windows' bash on windows
@@ -137,11 +136,11 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: go test ./features -count=1
 
-  # A push to main whose ci job is green cuts a release when its commits since the last tag carry a
-  # feat, a fix or a breaking change (T-069; release.yml says how). The only job with write access,
-  # granted here and to nothing else; a pull request never releases.
+  # A push to main whose ci job and platform jobs are green cuts a release when its commits since
+  # the last tag carry a feat, a fix or a breaking change (T-069; release.yml says how). The only
+  # job with write access, granted here and to nothing else; a pull request never releases.
   release:
-    needs: ci
+    needs: [ci, platform]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: write
