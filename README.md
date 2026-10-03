@@ -229,8 +229,10 @@ unless you ask (`git push origin refs/notes/itos`), and `git log
 hands it, and refuses a commit that needs one made with a bare `git commit`,
 and a footer typed into the message. `itos commit` adds `refs/notes/itos` to
 `notes.rewriteRef` in the repository's config, so `git commit --amend` and
-`git rebase` carry a commit's note to the commit they make; an amend through
-plain git passes the hook on the note it will carry. `itos verify`, `ci plan`
+`git rebase` carry a commit's note to the commit they make, and an amend
+passes the hook on the note it will carry: `itos commit --amend` tells the
+hook it amends, while for a plain `git commit --amend` the hook guesses it
+from the author's date, which `--date` or `--reset-author` defeats. `itos verify`, `ci plan`
 and `itos commit footers` read each commit's footers from its note.
 
 Others' commits here follow none of your rules, so `itos verify` and `itos ci

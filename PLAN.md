@@ -201,8 +201,10 @@ it, in `refs/notes/itos`, which `git push` does not send unless asked (slice
 flags and hands the same lines to the commit-msg hook in `ITOS_FOOTERS`; the
 hook judges them as typed ones, refuses a commit that needs a footer made
 without `itos commit` and a footer typed into the message, each naming the
-`itos commit` flag, and takes an amend (an author HEAD's to the second) on
-HEAD's note; itos adds `refs/notes/itos` to `notes.rewriteRef` in the local
+`itos commit` flag, and takes an amend on HEAD's note, knowing it from
+`itos commit`, which says in `ITOS_AMEND` whether `--amend` is among the
+arguments it hands git (slice 37), and guessing it only for a commit made
+without it, from an author HEAD's to the second; itos adds `refs/notes/itos` to `notes.rewriteRef` in the local
 config, so an amend or a rebase carries the note; verify, ci plan's named
 tasks and `commit footers` read each commit's note. A project's config keeps
 its footers in the message. Slice 33 declares the hooks in the git config,
@@ -374,7 +376,10 @@ git's own `--trailer`, so they land whether the message comes from `-m`, `-F`
 or the editor. IDs go on lines of at most 100 characters, the key repeated,
 since a wrapped footer is read only from its first line. The hooks run as for
 any commit and judge a footer itos writes as they judge a typed one; a commit
-they refuse is not made, and itos hands back git's exit code. A first argument
+they refuse is not made, and itos hands back git's exit code. git tells a
+hook nothing of an amend, so itos commit does (slice 37): `ITOS_AMEND` is 1
+when `--amend` is among the options it hands git, 0 otherwise, set every
+time, and the hook guesses from the author's date only when it is absent. A first argument
 naming a subcommand (`check-message`, `check-paths`, `footers`) is that
 subcommand, anything else a commit. It is the habit an agent is pointed to
 (the plugin answers a bare `git commit` with it, §10), the other half of
@@ -527,7 +532,8 @@ the GitHub modes. The stealth mode's config in the git folder is done (slice
 flags (slice 31, §7), the stealth mode's footers in git notes (slice 32,
 §5), its hooks in the git config (slice 33, §7) and its range, the person's
 unpushed commits (slice 34, §7), and its defaults, one person's: the global
-`itos` in its hooks and no people file (slice 35, §5).
+`itos` in its hooks and no people file (slice 35, §5). `itos commit` tells
+the hook an amend, which it guessed before (slice 37, §7).
 
 ## 10. Distribution
 

@@ -2444,7 +2444,7 @@ items:
     title: itos commit tells the hook an amend, the author's second kept only as a fallback
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-32]
     kind: slice
     why: >

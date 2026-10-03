@@ -434,7 +434,17 @@ mechanisms above, written against those modules, read across.
   `writeNote` writes them as its note in `refs/notes/itos`
   (`git notes add -f`, replacing what an amend carried over), while
   `rewriteNotes` first adds that ref to `notes.rewriteRef` in the local
-  config unless a value (a glob too) already names it. `runGit` runs
+  config unless a value (a glob too) already names it. git tells a hook
+  nothing of an amend, so `gitCommit` sets `ITOS_AMEND` (`AmendEnv`) to 1
+  or 0 every time (slice 37), by `amends`: `--amend` among git's options
+  before any `--`, the last of it and `--no-amend` winning, a valued
+  option's value skipped as git skips it (`gitValued`, `gitShortValued`,
+  so `-m --amend` is a message). The hook's `amending` takes that word, and
+  only when the variable is absent, a commit made without itos commit,
+  guesses from the author git exports (`GIT_AUTHOR_NAME`, `_EMAIL`,
+  `_DATE`), which an amend keeps from HEAD to the second; `withoutFooters`
+  drops an inherited one and `checkEnv` keeps it from the task checks.
+  `runGit` runs
   `git commit` as a child, not by `exec`, so itos can act after it, with the
   terminal's stdin for the editor and an interrupt left to git; its exit
   code is itos's, and one git cannot start exits 3. A global `-q` is passed
@@ -490,9 +500,7 @@ mechanisms above, written against those modules, read across.
   footer's problem (`typedFooter`), and a missing one's sentence ends with
   the `itos commit` flag that writes it (`stealthNeed`, `stealthFix` for the
   fix). Who fills `Note`: the commit-msg hook's `handedFooters`, from
-  `ITOS_FOOTERS` or, for what `amending` takes for an amend (git tells a
-  hook nothing of one, but exports the author, and an amend keeps HEAD's to
-  the second), HEAD's note, which the rewrite carries to the new commit; it
+  `ITOS_FOOTERS` or, for what `amending` takes for an amend, HEAD's note, which the rewrite carries to the new commit; it
   hands the same lines to the task checks rule, and `checkEnv` keeps them
   from the checks; `check-message`, from `ITOS_FOOTERS`; verify, from
   `message.Note` of each commit. The range readers, `IDsIn` (ci plan's
