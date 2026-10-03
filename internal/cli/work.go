@@ -102,3 +102,37 @@ func workProposal(as string, o Out) (int, error) {
 	proposal.Print(o.Stdout)
 	return 0, nil
 }
+
+// workList is `work list` (slice 43): every item of the registry, in its
+// order, whatever its status, kind or owner, done ones too, which work
+// leaves out. It judges nothing, as task list does not, so a registry with
+// problems still lists; a registry that is not there is the one problem it
+// reports, on stderr whatever --json says, exit 1. Under --json each item
+// is written as work --json writes it, so the two describe an item alike,
+// and file says where the registry was read.
+func workList(o Out) (int, error) {
+	cfg, err := config.Load(config.Path())
+	if err != nil {
+		return 0, err
+	}
+	file := cfg.Work.Registry
+	if !source.Has(file) {
+		fmt.Fprintln(o.Stderr, work.Missing(file, false).Message)
+		return ExitPolicy, nil
+	}
+	registry, err := work.Load(cfg, file)
+	if err != nil {
+		return 0, err
+	}
+	if o.JSON {
+		items := make([]any, len(registry.Items))
+		for i, item := range registry.Items {
+			items[i] = item
+		}
+		return 0, out.Emit(o.Stdout,
+			out.Field{Key: "file", Value: file},
+			out.Field{Key: "items", Value: items})
+	}
+	work.PrintList(o.Stdout, registry.Items)
+	return 0, nil
+}

@@ -320,6 +320,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^its output does not say "([^"]*)"$`, w.outputDoesNotSay)
 	sc.Step(`^its output names the rule "([^"]*)"$`, w.outputNamesRule)
 	sc.Step(`^its output is a JSON report that is not valid$`, w.invalidJSONReport)
+	sc.Step(`^its JSON lists the item "([^"]*)" with its title$`, w.jsonListsItem)
 	sc.Step(`^its output lists "([^"]*)" as "([^"]*)"$`, w.outputLists)
 	sc.Step(`^the counting check ran once$`, func() error { return w.countingCheckRan(1) })
 	sc.Step(`^the counting check did not run$`, func() error { return w.countingCheckRan(0) })
@@ -1578,6 +1579,27 @@ func (w *world) invalidJSONReport() error {
 		return fmt.Errorf("the JSON report's valid is not false\n%s", w.report())
 	}
 	return nil
+}
+
+// Standard output is one JSON object whose items list the item, by its id,
+// with a title that is not empty: what a reader of the registry's titles
+// asks work list --json for.
+func (w *world) jsonListsItem(id string) error {
+	var listing struct {
+		Items []struct {
+			ID    string `json:"id"`
+			Title string `json:"title"`
+		} `json:"items"`
+	}
+	if err := json.Unmarshal([]byte(w.stdout), &listing); err != nil {
+		return fmt.Errorf("the output is not JSON: %v\n%s", err, w.report())
+	}
+	for _, item := range listing.Items {
+		if item.ID == id && strings.TrimSpace(item.Title) != "" {
+			return nil
+		}
+	}
+	return fmt.Errorf("the JSON's items do not list %s with a title\n%s", id, w.report())
 }
 
 // A line of the output names the task, as a word of its own, and gives it the

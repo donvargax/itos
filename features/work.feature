@@ -59,7 +59,7 @@ Feature: The work registry
   # every item in the registry's order, with its kind, status and title,
   # whoever owns it; --json gives the same as items, each with its id and
   # title.
-  @ID-WORK-06 @slice-43 @wip
+  @ID-WORK-06 @slice-43
   Scenario: work list prints every item of the registry, done ones included
     Given the work registry has the item "T-001" with the status "done" and the item "slice-1" with the status "todo"
     When itos runs "work list"
@@ -67,7 +67,7 @@ Feature: The work registry
     And its output says "T-001"
     And its output says "slice-1"
 
-  @ID-WORK-07 @slice-43 @wip
+  @ID-WORK-07 @slice-43
   Scenario: work list reads the registry where work.registry puts it
     Given work.registry is "plans/work.yaml"
     And the work registry at "plans/work.yaml" has the item "T-001" with the status "done"

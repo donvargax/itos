@@ -71,11 +71,18 @@ func split(args []string) (string, []string) {
 }
 
 // workCommand is `work check [<file>]`, the file the argument after check
-// whatever it is, as main.ts takes it, or `work [--as <handle>]`.
+// whatever it is, as main.ts takes it, `work list`, which takes nothing
+// else, or `work [--as <handle>]`.
 func workCommand(args []string, o Out) (int, error) {
-	if sub, rest := split(args); sub == "check" {
+	switch sub, rest := split(args); sub {
+	case "check":
 		file, named := first(rest)
 		return workCheck(typed(file), named, o)
+	case "list":
+		if len(rest) > 0 {
+			return 0, usage("work list takes no arguments: %s", strings.Join(rest, " "))
+		}
+		return workList(o)
 	}
 	as, _ := flagValue(args, "--as")
 	return workProposal(as, o)

@@ -51,6 +51,7 @@ Commands:
   task <id>…                       run the tasks' checks; the status table
   task list [--group <g>]          the tasks and their work items' status; runs nothing
   work [--as <handle>]             what the person can start, and what waits
+  work list                        every item of the work registry, done ones too
   work check [<file>]              validate the work registry
   commit [--task <id>] [--scenarios <ids>] [--<footer> <text>] [<git commit args>…]
                                    git commit, with the footers itos writes
@@ -125,6 +126,7 @@ whose id is the task's), or "no item".
 --json: {"schema":1,"tasks":[{"id","type","title","group","checks","status"}]}`,
 
 	"work": `Usage: itos work [--as <handle>]
+       itos work list
        itos work check [<file>]
 
 Who the session works for (--as, else the config's work.identity provider) and
@@ -135,7 +137,20 @@ unreadable) any handle is taken, and nothing is said of them. Under a stealth
 config with no --as, no identity is looked up: every item is the session's,
 whatever owner it names (every_item: true in --json).
 
---json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"}`,
+--json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"}
+
+work list prints every item of the registry instead (itos help work list).`,
+
+	"work list": `Usage: itos work list
+
+Prints every item of the work registry (the config's work.registry, by default
+work-items.yaml in the ledger's folder), in its order, whatever its status,
+kind or owner, done ones too: its id, kind, status and title, "-" for a kind
+or status it does not give. It judges nothing, so a registry that is not sound
+still lists; exit 1 when there is no registry where itos looks.
+
+--json: {"schema":1,"file","items":[{"id","title",…}]}, each item with its
+fields as work --json writes it`,
 
 	"work check": `Usage: itos work check [<file>]
 

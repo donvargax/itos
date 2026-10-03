@@ -1,4 +1,5 @@
-# The work registry (`itos work`, `work check`):
+# The work registry (`itos work`, `work list`, `work check`):
+# every item listed, done ones too, judged or not;
 # what a person can start, what nobody owns, what waits and on what, ideas and
 # deferred items apart; every problem `work check` finds, with its rule and
 # fix, a group called by ledger.group.label, the groups' owners under
@@ -813,3 +814,61 @@ cases:
         - rule: work-unknown-status
           message: 'n: unknown status "todo"'
           fix: set n's status to one of open, closed
+  - name: work list prints every item in the registry's order, done ones and other people's too
+    argv: [work, list]
+    exit: 0
+    stdout: |
+      done         -      done   Done
+      ready        -      todo   Ready
+      later        -      todo   Later
+      busy         -      doing  Busy
+      free         -      todo   Free
+      phased       -      todo   Owned by the phase
+      idea         idea   todo   An idea
+      idea-later   idea   todo   A later idea
+      parked       task   todo   Parked
+      parked-idea  idea   todo   A parked idea
+      free-idea    idea   todo   A free idea
+      theirs       idea   todo   Theirs
+      slice        slice  todo   A slice
+  - name: work list --json, each item as work --json writes it, and where the registry was read
+    argv: [work, list, --json]
+    files:
+      work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: done, issue: 3 }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea, depends_on: [x] }\n"
+    exit: 0
+    json:
+      schema: 1
+      file: work-items.yaml
+      items:
+        - { id: x, title: X, phase: 1, owner: a, status: done, issue: 3, depends_on: [] }
+        - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea, depends_on: [x] }
+  - name: work list judges nothing, so a registry that is not sound still lists
+    argv: [work, list]
+    files:
+      work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: nobody, status: todo, depends_on: [nope] }\n  - { id: y, phase: 1 }\n"
+    exit: 0
+    stdout: |
+      x  -  todo  X
+      y  -  -
+  - name: with no registry where itos looks, work list says where that is
+    argv: [work, list, --json]
+    files:
+      work-items.yaml: null
+    exit: 1
+    stderr: |
+      no work registry at work-items.yaml
+  - name: work list takes no arguments
+    argv: [work, list, --as, a]
+    exit: 2
+    stderr: |
+      itos: work list takes no arguments: --as a (itos --help)
+  - name: work list reads a stealth config's registry in the git folder
+    argv: [work, list]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases: { 1: q }\nitems:\n  - { id: x, title: X, phase: 1, owner: q, status: done }\n"
+    exit: 0
+    stdout: |
+      x  -  done  X
