@@ -57,8 +57,9 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 
 1. **v2.1.0 is out**: self-update, extensions, the stealth mode, `itos
 commit` (slices 27 to 38, bugs 4 to 6).
-2. **Toward v2.2.0, git through itos**: **`p1-itos-push`**, itos commit's other half (built in or an extension,
-   the first call), then `p3-launcher-subfolder` and `p3-git-shim`.
+2. **Toward v2.2.0, git through itos**: slice 39, `itos push`
+   (`features/push.feature`, built in: extensions are for what is not core,
+   the user's call), then `p3-launcher-subfolder` and `p3-git-shim`.
 3. **Toward v2.3.0, adoption**: **`p3-claude-code-plugin`**: the marketplace, the titles, the skill, the
    git commit/push guard (PLAN.md §10, "Adoption").
 4. **`p3-pre-push-verify`** and **`p3-human-waiver`** (`itos waive`, a
@@ -69,7 +70,7 @@ commit` (slices 27 to 38, bugs 4 to 6).
 
 Releases, the user's plan (2026-10-03): v2.1.0, released (global
 install, extensions, the stealth mode, `itos commit`); v2.2.0, git through
-itos (`p1-itos-push`, `p3-launcher-subfolder`, `p3-git-shim`); v2.3.0,
+itos (slice 39, `p3-launcher-subfolder`, `p3-git-shim`); v2.3.0,
 adoption (the plugin, `p3-pre-push-verify`, `p3-human-waiver`,
 `p3-itos-init`); v3.0.0 the breaking cleanup (`v3-drop-hooks-bin`, the
 notes gathering once git-cliff writes them). The user moves the other
@@ -83,8 +84,7 @@ blocking: issues #3 and #4 (`p1-smoke-run-arguments`,
 HTTP providers (after `p1-conformance-http`), `p2-no-workflow-labels-check`,
 `p3-architecture-go-names`, `p3-header-lint-unread-keys`,
 `p3-header-case-decomposition`, `p3-text-footer-lines`, the small `p1-*`
-config-check refinements, and the hand work as extensions (`p1-itos-push`,
-`p1-ci-watch`).
+config-check refinements, and the hand work as extensions (`p1-ci-watch`).
 
 Deferred, the user's to lift: `p1-backport-code-design`. The user is writing
 code-design rules (vertical slices, no mocks, unit tests for the core and
