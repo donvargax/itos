@@ -12,12 +12,12 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 49 landed (v2.8.0).
+Last updated 2026-10-03, after bug 10 landed (v2.8.1).
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `43d616e` (CI run 37156007990,
-every job: `ci`, the three `platform` jobs, `release`, which cut v2.8.0). itos is Go only; `tools/bin/itos` builds and runs this
+All work is @donvargax's. `main` is green at `6783446` (CI run 37156585012,
+every job: `ci`, the three `platform` jobs, `release`, which cut v2.8.1). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
 
@@ -36,7 +36,8 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.8.0 (`itos init --plugin`, slice 49), v2.7.0 (`itos init`, slice 48), v2.6.0 (`itos pin [<version>]`, slice 47), v2.5.0 (the pre-push hook verifies the commits it pushes, slice 46;
+Released: v2.8.1 (`ci plan` and `ci run` without a `work:` section, bug 10),
+v2.8.0 (`itos init --plugin`, slice 49), v2.7.0 (`itos init`, slice 48), v2.6.0 (`itos pin [<version>]`, slice 47), v2.5.0 (the pre-push hook verifies the commits it pushes, slice 46;
 silent when they pass), v2.4.0 (`itos config get`), v2.3.2 (Windows paths, bug 9), v2.3.1
 (issue #3, bug 8), all cut by CI; v2.3.0 by hand (the guard, `itos work
 list`, the itos plugin for Claude Code, now at plugin version 2.4.0). Don't
@@ -46,9 +47,8 @@ change any other repository.
 
 One slice at a time, the user's order:
 
-1. **`bug-10`** (@ID-CI-08 in `features/ci.feature`, `@wip`: `ci plan` and
-   `ci run` read work's defaults where a config has no `work:` section; a
-   fix, a patch release), then **`slice-50`** (@ID-INIT-18 to 22: the git
+1. **`T-075`** (the last release's corpus judges a usage error by its exit
+   code, not its words; `tasks/phase-3.yaml`), then **`slice-50`** (@ID-INIT-18 to 22: the git
    shim offer; the report names a pin behind the newest and a missing people
    file; no Scenarios footer required where no scenario has an ID tag), then
    `p3-init-agent-rules` and `p3-init-orchestration` (agent files; PLAN.md
@@ -92,11 +92,6 @@ ID-CONFIG-21, T-072's self-reading check).
 - The unit coverage thresholds left with the template's demo app; coverage
   is still collected over `tools/itos/*.ts`, with no threshold. Whether to
   set one is the user's call; it does not block implementation.
-- `p3-usage-words-judged` (slice 49): the last release's corpus judges a
-  usage error's words, so `itos init`'s usage message cannot name
-  `--plugin` (or slice 50's `--git-shim`) without a breaking change. The
-  coordinator recommends judging only a usage error's exit code, as help
-  cases are left out. Slice 50 adds `--git-shim`, so answer before it.
 - Slice 46's calls: silent when the pushed commits pass (anything printed
   would change released corpus cases, a major release); no opt-out.
 - Coordinator calls to confirm or overturn:

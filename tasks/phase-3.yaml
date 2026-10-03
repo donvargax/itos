@@ -348,6 +348,29 @@
     - run: node tools/selftest/previous-release.ts
       timeout: 900
 
+- id: T-075
+  type: ci
+  title: The last release's corpus judges a usage error by its exit code, not its words
+  why: >
+    Was p3-usage-words-judged, the user's call (2026-10-03): a usage error that lists what a
+    command takes ("itos: init takes only --stealth") is documentation in the way help is, and
+    judged word for word against the last release's corpus (T-071), every feat that adds a flag
+    to a command could not say so there without a breaking change; slice 49 left init's message
+    naming only --stealth for that reason, and slice 50's --git-shim meets the same. The exit
+    code is the stable interface (PLAN.md §7), so an old case that expects a usage error stays
+    judged by its exit code, 2, while its stdout and stderr are no longer compared;
+    tools/bin/previous-release rewrites those cases of the old corpus before its runner reads
+    them, as it leaves out the help cases, and says how many it relaxed and why. A usage error
+    is an argument the command refuses: exit 2 with one "itos: …" line on stderr and nothing on
+    stdout; a config error (exit 2 with the config check's FAIL lines, or a "<key> is missing")
+    keeps its words judged, since what a config may hold is the stable interface too. This
+    tree's own corpus still pins every usage message exactly. The self-test proves an old usage
+    case whose words differ passes, one whose exit code differs still fails, and an old config
+    error whose words differ still fails.
+  done_when:
+    - run: node tools/selftest/previous-release.ts
+      timeout: 900
+
 - id: T-069
   type: ci
   title: A push to main whose CI is green cuts a release when it carries a feat or a fix

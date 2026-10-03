@@ -2317,7 +2317,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [slice-49]
+    depends_on: [slice-49, T-075]
     kind: slice
     why: >
       Specified as @ID-INIT-18 to 21 in features/init.feature, the last of init's three slices
@@ -3227,20 +3227,15 @@ items:
       p1-work-brief, which fills the brief template from the registry.
     refs: [docs/ORCHESTRATING.md, docs/HANDOFF.md]
 
-  - id: p3-usage-words-judged
-    title: Decide whether the last release's corpus judges a usage error's words
+  - id: T-075
+    title: The last release's corpus judges a usage error by its exit code, not its words
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: []
-    kind: idea
+    depends_on: [T-071]
+    kind: task
     why: >
-      Found by slice 49: init's unknown-argument message still says "init takes only --stealth",
-      though init takes --plugin now, because v2.7.0's corpus holds those words
-      (tools/bin/previous-release, T-071) and naming --plugin would fail it as a breaking change;
-      slice 50's --git-shim meets the same. A usage error that lists a command's flags is
-      documentation in the way help is, which the old corpus leaves out (the user's call,
-      2026-10-03), while PLAN.md keeps wording verbatim for agents. The user's call: leave a
-      usage error's words out of the old corpus's judgment, its exit code 2 still judged, or
-      keep them, and word such messages so they need not change.
-    refs: [tools/bin/previous-release/main.go, internal/cli/init.go]
+      Was p3-usage-words-judged, the user's call (2026-10-03): a usage error's words are
+      documentation, its exit code the interface. The task is T-075 in tasks/phase-3.yaml. Before
+      slice 50, so init's usage message can name --plugin and --git-shim.
+    refs: [tasks/phase-3.yaml, tools/bin/previous-release/main.go]
