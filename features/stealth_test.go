@@ -37,6 +37,10 @@ func initializeStealthSteps(sc *godog.ScenarioContext, w *world) {
 
 	sc.Step(`^git status shows nothing to commit$`, w.nothingToCommit)
 
+	sc.Step(`^a remote that has the commit "([^"]*)" with no task$`, w.remoteWithCommit)
+	sc.Step(`^itos verifies with no range$`, func() error { return w.itos("verify") })
+	sc.Step(`^itos plans CI with no range$`, func() error { return w.itos("ci", "plan") })
+
 	sc.Step(`^the project's hooks are in "([^"]*)" by core\.hooksPath, with a commit-msg hook that records it ran$`, w.projectHooks)
 	sc.Step(`^itos has installed the hooks$`, w.itosHasInstalledHooks)
 	sc.Step(`^the git config declares a "([^"]*)" hook that runs itos$`, w.declaresHookRunningItos)
@@ -214,4 +218,23 @@ func (w *world) nothingToCommit() error {
 		return fmt.Errorf("git status shows changes:\n%s", out)
 	}
 	return nil
+}
+
+// A remote, a bare repository in the scenario's support folder, that has
+// every commit so far and one more on top, whose type needs a task and which
+// names none: someone else's, following no rules of the person's. git push
+// sends the branch and leaves the itos notes behind, and sets the
+// remote-tracking branch that --remotes reads.
+func (w *world) remoteWithCommit(subject string) error {
+	if err := w.commitOnTop("chore: " + subject); err != nil {
+		return err
+	}
+	remote := filepath.Join(w.support, "remote.git")
+	if err := w.git("init", "-q", "--bare", remote); err != nil {
+		return err
+	}
+	if err := w.git("remote", "add", "origin", remote); err != nil {
+		return err
+	}
+	return w.git("push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main")
 }

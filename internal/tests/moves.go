@@ -328,13 +328,17 @@ func (m *Moves) Index(name string) ([]out.Problem, error) {
 // .range), their {from} and {to} filled in, each one shell word; {from}
 // starts after commits.since.
 func RangeCommands(cfg *config.Loaded, from, to string) []string {
+	start := from
+	if from == git.Unpushed {
+		start = git.UnpushedBase(to)
+	}
 	var commands []string
 	for _, name := range cfg.Tests.Keys {
 		for _, c := range cfg.Tests.Values[name].RangeChecks {
 			if c.Range == nil || *c.Range == "" {
 				continue
 			}
-			command := strings.ReplaceAll(*c.Range, "{from}", ShellWord(cfg.RangeStart(from)))
+			command := strings.ReplaceAll(*c.Range, "{from}", ShellWord(cfg.RangeStart(start)))
 			commands = append(commands, strings.ReplaceAll(command, "{to}", ShellWord(to)))
 		}
 	}

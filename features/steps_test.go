@@ -997,7 +997,8 @@ func staticCheck(command string) string { return fmt.Sprintf("{ run: %q, cost: s
 
 // The ledger's task with these checks, its other tasks as they were, staged:
 // the commit-msg hook reads the ledger as the commit will hold it. A task the
-// ledger does not have is added after the others.
+// ledger does not have is added after the others. The stealth mode's ledger,
+// in the git folder, is only written.
 func (w *world) stagedChecks(task string, checks ...string) error {
 	i := slices.IndexFunc(w.ledger, func(t ledgerTask) bool { return t.id == task })
 	if i < 0 {
@@ -1005,8 +1006,12 @@ func (w *world) stagedChecks(task string, checks ...string) error {
 		i = len(w.ledger) - 1
 	}
 	w.ledger[i].checks = checks
-	if err := w.write(w.ledgerPath(), w.ledgerText()); err != nil {
+	if err := w.write(w.data(w.ledgerPath()), w.ledgerText()); err != nil {
 		return err
+	}
+	if w.dataDir != "" {
+		// The stealth mode's ledger, in the git folder, which git never stages.
+		return nil
 	}
 	return w.git("add", "--", w.ledgerPath())
 }

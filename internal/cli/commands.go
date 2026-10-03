@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/git"
 	"github.com/donvargax/itos/v2/internal/out"
 	"github.com/donvargax/itos/v2/internal/version"
 )
@@ -115,6 +116,9 @@ func commit(args []string, o Out) (int, error) {
 }
 
 func verify(args []string, o Out) (int, error) {
+	if len(args) == 0 && config.IsStealth(config.Path()) {
+		return verifyRange(git.Unpushed, "HEAD", o)
+	}
 	if len(args) < 2 {
 		return 0, usage("verify needs <from> <to>")
 	}
@@ -181,7 +185,11 @@ func ciCommand(args []string, o Out) (int, error) {
 	nightly := slices.Contains(rest, "--nightly")
 	switch sub {
 	case "plan":
-		if !nightly && !slices.Contains(rest, "--whole") && to == "" {
+		whole := slices.Contains(rest, "--whole")
+		if !nightly && !whole && len(range_) == 0 && config.IsStealth(config.Path()) {
+			from, to = git.Unpushed, "HEAD"
+		}
+		if !nightly && !whole && to == "" {
 			return 0, usage("ci plan needs <from> <to>, --nightly or --whole")
 		}
 		dataAt, _ := flagValue(rest, "--data-at")

@@ -151,17 +151,20 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
   # follow no rules of theirs, so verify and ci plan given no range judge
   # the commits on no remote branch (HEAD --not --remotes): the person's,
   # not yet pushed.
-  @ID-STEALTH-15 @slice-34 @wip
+  @ID-STEALTH-15 @slice-34
   Scenario: verify with no range judges only the commits no remote has
     Given a remote that has the commit "tidy the readme" with no task
+    And a change to "README.md" is staged
     And itos has committed with the arguments "--task T-001 -m 'chore: tidy the docs'"
     When itos verifies with no range
     Then itos exits with code 0
     And its output says "1/1 commits pass the commit rules"
 
-  @ID-STEALTH-16 @slice-34 @wip
+  @ID-STEALTH-16 @slice-34
   Scenario: ci plan with no range plans the commits no remote has
     Given a remote that has the commit "tidy the readme" with no task
+    And the task "T-001" has the check "exit 0"
+    And a change to "README.md" is staged
     And itos has committed with the arguments "--task T-001 -m 'chore: tidy the docs'"
     When itos plans CI with no range
     Then itos exits with code 0

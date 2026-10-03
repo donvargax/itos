@@ -59,16 +59,17 @@ func Before(f Footer, sha string) bool {
 // every commit up to its end.
 func newBranch(from string) bool { return strings.Trim(from, "0") == "" }
 
-// RangeArgs are a range's commits as git rev-list takes them: from..to, or
-// everything up to to when from is empty or all zeros (a new branch), less
-// commits.since and its ancestors.
+// RangeArgs are a range's commits as git rev-list takes them: from..to,
+// everything up to to when from is empty or all zeros (a new branch), or the
+// commits of to on no remote branch from git.Unpushed, less commits.since and
+// its ancestors (first, since --not would turn it round).
 func (l *Loaded) RangeArgs(from, to string) []string {
-	args := []string{from + ".." + to}
+	args := git.Revs(from, to)
 	if newBranch(from) {
 		args = []string{to}
 	}
 	if sha := l.Since(); sha != "" {
-		args = append(args, "^"+sha)
+		args = append([]string{"^" + sha}, args...)
 	}
 	return args
 }

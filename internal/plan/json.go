@@ -27,9 +27,9 @@ type Range struct {
 }
 
 // fullSHA is a commit's full SHA, or what was given when git cannot resolve
-// it.
+// it: git.Unpushed, the start of the unpushed commits, as itself.
 func fullSHA(ref string) string {
-	if ref == "" {
+	if ref == "" || ref == git.Unpushed {
 		return ref
 	}
 	sha, err := git.Output("rev-parse", "--verify", "--quiet", ref+"^{commit}")

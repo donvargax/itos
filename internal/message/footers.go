@@ -373,7 +373,7 @@ func IDsIn(cfg *config.Loaded, from, to, key string) []string {
 	if from == "" || to == "" {
 		return nil
 	}
-	log, err := git.Output(append(append([]string{"log"}, footersFormat(cfg)...), from+".."+to)...)
+	log, err := git.Output(append(append([]string{"log"}, footersFormat(cfg)...), git.Revs(from, to)...)...)
 	if err != nil {
 		return nil
 	}

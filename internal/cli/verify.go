@@ -118,7 +118,10 @@ func (v *verifier) holds(typ string, files []string, sha string) (bool, error) {
 // verifyRange is `verify <from> <to>`: 0 when every non-merge commit of the
 // range passes and its range checks hold, else 1; 2 when commits.since is no
 // commit here. from may be empty or all zeros (a new branch): every commit up
-// to to.
+// to to; or git.Unpushed, the commits of to on no remote branch, which
+// `verify` with no range judges under a stealth config (slice 34), since
+// others' commits in a repository that does not use itos follow no rules of
+// the person's.
 func verifyRange(from, to string, o Out) (int, error) {
 	cfg, err := config.Load(config.Path())
 	if err != nil {

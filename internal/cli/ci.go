@@ -47,7 +47,8 @@ func ciRun(from, to string, nightly bool, o Out) (int, error) {
 // line, or under --json the plan as JSON (internal/plan); it runs nothing.
 // --whole is the range with neither end, which cannot be read, so every
 // test runs. --data-at reads the ledger, the registry and the smoke set at
-// that commit.
+// that commit. Under a stealth config `ci plan` with no range plans the
+// commits of HEAD on no remote branch (from git.Unpushed, slice 34).
 func ciPlan(from, to string, nightly bool, dataAt string, o Out) (int, error) {
 	_, p, err := planOf(from, to, nightly, dataAt)
 	if err != nil {

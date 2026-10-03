@@ -16,10 +16,15 @@ import (
 // prose, so the shortcut is never taken on a guess and every test runs.
 
 // Changed are the files a pushed range touched (`git diff --name-only from
-// to`); none when it cannot be read or has no start or end.
+// to`), the paths its commits touch for the unpushed commits (git.Unpushed);
+// none when it cannot be read or has no start or end.
 func Changed(from, to string) []string {
 	if from == "" || to == "" {
 		return nil
+	}
+	if from == git.Unpushed {
+		paths, _ := git.UnpushedPaths(to)
+		return paths
 	}
 	diff, err := git.Output("diff", "--name-only", from, to)
 	if err != nil {
@@ -35,9 +40,10 @@ func Changed(from, to string) []string {
 }
 
 // Readable is whether git can read a range at all (`git rev-list --quiet
-// from..to`); not with no start or end.
+// from..to`, or to --not --remotes for the unpushed commits); not with no
+// start or end.
 func Readable(from, to string) bool {
-	return from != "" && to != "" && git.Succeeds("rev-list", "--quiet", from+".."+to)
+	return from != "" && to != "" && git.Succeeds(append([]string{"rev-list", "--quiet"}, git.Revs(from, to)...)...)
 }
 
 // DocsOnly is whether every path is prose (ci.prose.paths), and there is at

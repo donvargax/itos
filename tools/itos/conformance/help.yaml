@@ -195,6 +195,7 @@ cases:
     exit: 0
     stdout: |
       Usage: itos verify <from> <to>
+             itos verify
 
       Re-checks every non-merge commit of the range (from may be empty or all zeros:
       every commit up to <to>): its message, with the footers read at that commit,
@@ -203,7 +204,9 @@ cases:
       range command. The commit commits.since names and its ancestors are left out,
       and the range commands start there; a footer's own since leaves that commit
       and its ancestors out of the footer's required_for. Under a stealth config a
-      commit's footers are read from its note in refs/notes/itos. Prints "<n>/<m>
+      commit's footers are read from its note in refs/notes/itos, and with no range
+      the commits are HEAD's on no remote branch (every one with no remote), the
+      range's from "--remotes": the person's own, not yet pushed. Prints "<n>/<m>
       commits pass the commit rules". Exit 1 on any failure, 2 when commits.since or
       a footer's since is not a commit of the repository.
 
@@ -271,6 +274,8 @@ cases:
 
       Prints the plan a CI run would carry out, in cost order, and runs nothing.
       --data-at reads the ledger, the registry and the smoke set at that commit.
+      Under a stealth config, given no range, it plans the commits of HEAD on no
+      remote branch (every one with no remote), the range's from "--remotes".
 
       --json: the plan contract, keys only ever added
               {"schema":1,"range","prose","steps","order","tasks","left_out","unknown","not_started"}
