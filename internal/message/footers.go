@@ -13,7 +13,8 @@
 // must_be_live, and read_at: `commit` reads the IDs that exist at the commit
 // being checked (the staged tree by default, the commit Reading.At names),
 // so a later commit that sets a test back to wip or drops a task does not
-// fail an older one; `worktree`, or none, the working tree; since, a commit
+// fail an older one, but for the stealth config's ledger, in no commit, read
+// in the working tree; `worktree`, or none, the working tree; since, a commit
 // that verify leaves out of required_for with its ancestors (Reading.Made).
 //
 // A footer whose source is text carries no IDs: `<Key>: <text>`, each line
@@ -228,9 +229,14 @@ func needSource(cfg *config.Loaded, key string, f config.Footer) error {
 // knownFor are the IDs that exist for a footer where its read_at says. A
 // commit with none at all predates its source (a project's first commits may
 // name tasks before the ledger is committed), so there is nothing to read at
-// it: the working tree is read instead, and a warning says so.
+// it: the working tree is read instead, and a warning says so. The stealth
+// config's ledger is in the git folder, which no commit carries: a footer of
+// the ledger is read against its file there, at every commit, saying nothing.
 func knownFor(cfg *config.Loaded, key string, f config.Footer, r Reading) (known, error) {
 	tree := r.tree(f)
+	if cfg.Stealth && isLedger(f) {
+		tree = ""
+	}
 	if tree == "" {
 		if err := needSource(cfg, key, f); err != nil {
 			return known{}, err

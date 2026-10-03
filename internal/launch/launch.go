@@ -5,8 +5,9 @@
 // features/pin.feature). The binary that was called is never rewritten.
 //
 // The version to run is ITOS_VERSION when it is set, else the config's
-// pin.version, else, where there is no config at all, the newest release the
-// launcher knows of (update.go, features/update.feature). A binary whose own
+// pin.version, else, where there is no config at all or the stealth config
+// pins nothing, the newest release the launcher knows of (update.go,
+// features/update.feature, features/stealth.feature). A binary whose own
 // version is the one to run runs itself, so the version the launcher runs,
 // which it tells by ITOS_VERSION, never launches again. A config with no pin,
 // or one the launcher cannot read, runs the binary that was called (which
@@ -94,8 +95,9 @@ func Main(args []string, stderr io.Writer) (int, bool) {
 }
 
 // choose is the version to run and whether it is another than this binary:
-// ITOS_VERSION's, else the pin's, else, with no config at all, the newest
-// release the launcher knows of. A config with no pin runs this binary.
+// ITOS_VERSION's, else the pin's, else, with no config at all or a stealth
+// config with no pin, the newest release the launcher knows of. A project's
+// config with no pin runs this binary.
 func choose(args []string, stderr io.Writer) (target, bool) {
 	own := version.Version()
 	c := readConfig(args)
@@ -129,7 +131,9 @@ const (
 	// unpinned: a config with no pin, or one the launcher cannot read or
 	// whose pin it cannot use.
 	unpinned configState = iota
-	// absent: no config at all.
+	// absent: no config at all, or the stealth config pinning nothing: one
+	// person's itos in a repository that does not use it, as where there is
+	// none.
 	absent
 	// pinned: a config pinning a version the launcher can fetch.
 	pinned
@@ -143,17 +147,18 @@ type foundConfig struct {
 	pin   config.Pin
 }
 
-// readConfig reads the config where itos reads it (--config or ITOS_CONFIG,
-// under --root, the global flags read as the command line reads them: for an
-// extension, only those before its name). Only the pin is read, not the rest of the config, so a
-// config written for a newer itos than the launcher still reaches the
-// version it pins.
+// readConfig reads the config where itos reads it (--config, ITOS_CONFIG,
+// itos.yaml or the stealth config, under --root, the global flags read as the
+// command line reads them: for an extension, only those before its name).
+// Only the pin is read, not the rest of the config, so a config written for a
+// newer itos than the launcher still reaches the version it pins.
 func readConfig(args []string) foundConfig {
 	g := cli.Parse(args)
 	file := g.Config
 	if file == "" {
-		file = config.Path()
+		file = config.Locate(g.Root)
 	}
+	stealth := config.IsStealthIn(g.Root, file)
 	if !filepath.IsAbs(file) && g.Root != "" {
 		file = filepath.Join(g.Root, file)
 	}
@@ -171,6 +176,10 @@ func readConfig(args []string) foundConfig {
 		return c
 	}
 	pin := value.Prop(tree, "pin")
+	if stealth && (pin == nil || pin == value.Undefined) {
+		c.state = absent
+		return c
+	}
 	v, _ := value.Prop(pin, "version").(string)
 	sums, _ := value.Prop(pin, "checksums").(string)
 	if !config.PinVersion.MatchString(v) || !config.PinChecksums.MatchString(sums) {

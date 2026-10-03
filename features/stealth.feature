@@ -5,10 +5,10 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
   CI, not in the history. With no --config, no ITOS_CONFIG and no itos.yaml
   in the root, itos reads <git common dir>/itos/itos.yaml (git rev-parse
   --git-common-dir), with no environment variable to set, so every linked
-  worktree shares it. The ledger, the work registry and the smoke sets that
-  config names are read beside it, in that folder, which git never commits,
-  so a footer naming a task is checked against the ledger file there, at
-  every commit, since no commit carries it. A project's own itos.yaml in the
+  worktree shares it. The ledger, the work registry, the people and the
+  smoke sets that config names are read beside it, in that folder, which git
+  never commits, so a footer naming a task is checked against the ledger
+  file there, at every commit, since no commit carries it. A project's own itos.yaml in the
   root always wins: that is the project's mode. Where nothing is pinned, a
   global itos runs the newest release for a stealth config, as where there
   is no config at all (update.feature).
@@ -16,13 +16,13 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
   Background:
     Given a repository whose ledger has the task "T-001", kept in its git folder
 
-  @ID-STEALTH-01 @slice-30 @wip
+  @ID-STEALTH-01 @slice-30
   Scenario: With no itos.yaml in the root, itos reads the config in the git folder, and the ledger beside it
     When itos runs the task "T-001"
     Then itos exits with code 0
     And its output says "T-001"
 
-  @ID-STEALTH-02 @slice-30 @wip
+  @ID-STEALTH-02 @slice-30
   Scenario: The commit-msg hook checks a footer against the ledger beside the config, which no commit carries
     Given a change to "README.md" is staged
     When the commit-msg hook checks the message:
@@ -35,14 +35,14 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     And its output says "T-999"
 
   # A status the config does not list, so only reading that file can fail it.
-  @ID-STEALTH-03 @slice-30 @wip
+  @ID-STEALTH-03 @slice-30
   Scenario: The work registry is read beside the config in the git folder
     Given the work registry beside the config has the item "slice-1" with the status "bogus"
     When itos checks the work registry
     Then itos exits with code 1
     And its output says "bogus"
 
-  @ID-STEALTH-04 @slice-30 @wip
+  @ID-STEALTH-04 @slice-30
   Scenario: A linked worktree reads the same config in the git folder
     Given a linked worktree of the repository at "../wt"
     When itos runs the task "T-001" in the linked worktree
@@ -51,18 +51,18 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
 
   # The project's mode: a repository that adopts itos commits its config,
   # and the person's own copy stops applying.
-  @ID-STEALTH-05 @slice-30 @wip
+  @ID-STEALTH-05 @slice-30
   Scenario: An itos.yaml in the root wins over the config in the git folder
     Given an itos.yaml in the root whose ledger has no task "T-001"
     When itos runs the task "T-001"
     Then itos exits with code 1
 
-  @ID-STEALTH-06 @slice-30 @wip
+  @ID-STEALTH-06 @slice-30
   Scenario: Nothing of the stealth mode is in the tree git sees
     When itos runs the task "T-001"
     Then git status shows nothing to commit
 
-  @ID-STEALTH-07 @slice-30 @wip
+  @ID-STEALTH-07 @slice-30
   Scenario: A global itos runs the newest release for a stealth config that pins nothing
     Given a release server offering the versions "9.1.0" and "9.2.0"
     When itos runs "version"

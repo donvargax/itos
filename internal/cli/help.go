@@ -11,7 +11,8 @@ import (
 // byte for byte, and a change here is the same change to help.ts.
 
 const globalFlags = `Global flags:
-  --config <file>   the config (default itos.yaml, or ITOS_CONFIG)
+  --config <file>   the config (default ITOS_CONFIG, else itos.yaml, else the
+                    stealth mode's <git common dir>/itos/itos.yaml)
   --root <dir>      run as if started in <dir>
   --json            one object on stdout ("schema": 1, keys only ever added); logs on stderr
   --no-color        no colour (itos prints none; passed on as NO_COLOR)
@@ -20,9 +21,10 @@ const globalFlags = `Global flags:
 
 const versions = `Versions: a config's pin (pin.version, pin.checksums) runs that itos release,
 fetched from ITOS_RELEASES into ITOS_CACHE and checked first; ITOS_VERSION
-runs another. A config with no pin runs this binary; no config runs the newest
-release, asked for once a day, never in CI or with ITOS_NO_UPDATE=1;
-ITOS_NO_UPDATE_NOTICE=1 hides the notice that a pin has fallen behind it.`
+runs another. A project's config with no pin runs this binary; no config, or a
+stealth one with no pin, runs the newest release, asked for once a day, never
+in CI or with ITOS_NO_UPDATE=1; ITOS_NO_UPDATE_NOTICE=1 hides the notice that a
+pin has fallen behind it.`
 
 const otherCommands = `Other commands: one itos does not have runs itos-<command> from the PATH, its
 exit code the run's, with the arguments after its name unread; global flags

@@ -10,6 +10,10 @@
 // (repo.ts's treeTexts): the ledger's IDs and the Gherkin adapter's feature
 // files at the tree a footer or `--at` names, whatever the source is.
 //
+// A path in the git folder (the stealth mode's config and its data, in
+// <git common dir>/itos) is in no tree git holds, the index or a commit, so
+// it is read from the file where it is, whatever the source.
+//
 // A working tree's read that fails says so in Node's words (`ENOENT: no such
 // file or directory, open 'people.yaml'`), since what itos prints quotes them.
 package source
@@ -86,8 +90,9 @@ func At(tree string) (Source, error) {
 	if tree == "worktree" {
 		return Worktree, nil
 	}
-	top, err := git.Output("rev-parse", "--show-toplevel")
-	if err != nil {
+	out, err := git.Output("rev-parse", "--show-toplevel", "--path-format=absolute", "--git-common-dir")
+	lines := strings.Split(strings.TrimSpace(out), "\n")
+	if err != nil || len(lines) != 2 {
 		return nil, fmt.Errorf("%s cannot be read outside a git repository", tree)
 	}
 	cwd, err := os.Getwd()
@@ -98,11 +103,22 @@ func At(tree string) (Source, error) {
 	if real, err := filepath.EvalSymlinks(cwd); err == nil {
 		cwd = real
 	}
-	return gitTree{tree: tree, top: strings.TrimSpace(top), cwd: cwd}, nil
+	return gitTree{tree: tree, top: lines[0], common: filepath.Clean(lines[1]), cwd: cwd}, nil
 }
 
-// gitTree is a tree git holds: the index or a commit.
-type gitTree struct{ tree, top, cwd string }
+// gitTree is a tree git holds: the index or a commit. common is the git
+// common dir, absolute.
+type gitTree struct{ tree, top, common, cwd string }
+
+// aside is whether a path is in the git folder, which no tree git holds can
+// have: it is read from the file where it is.
+func (t gitTree) aside(p string) bool {
+	if !filepath.IsAbs(p) {
+		p = filepath.Join(t.cwd, p)
+	}
+	p = filepath.Clean(p)
+	return p == t.common || strings.HasPrefix(p, t.common+string(filepath.Separator))
+}
 
 func (t gitTree) Tree() string { return t.tree }
 
@@ -135,9 +151,17 @@ func (t gitTree) spec(p string) string {
 	return t.tree + ":" + t.inRepo(p)
 }
 
-func (t gitTree) Has(p string) bool { return git.Succeeds("cat-file", "-e", t.spec(p)) }
+func (t gitTree) Has(p string) bool {
+	if t.aside(p) {
+		return Worktree.Has(p)
+	}
+	return git.Succeeds("cat-file", "-e", t.spec(p))
+}
 
 func (t gitTree) Read(p string) (string, error) {
+	if t.aside(p) {
+		return Worktree.Read(p)
+	}
 	text, err := git.Output("show", t.spec(p))
 	if err != nil {
 		return "", fmt.Errorf("%s holds no %s", t.name(), p)
@@ -146,6 +170,9 @@ func (t gitTree) Read(p string) (string, error) {
 }
 
 func (t gitTree) List(dir string) ([]string, error) {
+	if t.aside(dir) {
+		return Worktree.List(dir)
+	}
 	at := t.inRepo(dir)
 	listed, err := listTree(t.tree, at)
 	if err != nil {

@@ -31,6 +31,8 @@ type world struct {
 	commits       []string          // the scratch repository's commits, oldest first
 	scenarioFiles map[string]string // each scenario ID written, to its feature file
 	ledger        []ledgerTask      // the tasks of the ledger's one file (ledgerPath), in order
+	dataDir       string            // where itos's config and data are written: the root, or the git folder (stealth)
+	linked        string            // the linked worktree of the scratch repository, when the scenario adds one
 
 	exit           int
 	stdout, stderr string
@@ -240,6 +242,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 
 	initializeReleaseSteps(sc, w)
 	initializeExtensionSteps(sc, w)
+	initializeStealthSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -564,8 +567,12 @@ func (w *world) writeConfig() error {
 			b.WriteString(nested(path, s.value, 0))
 		}
 	}
-	return w.write("itos.yaml", b.String())
+	return w.write(w.data("itos.yaml"), b.String())
 }
+
+// A path of itos's config and data as the scratch repository holds it: in
+// the root, or in the folder of the git folder that the stealth mode reads.
+func (w *world) data(path string) string { return filepath.Join(w.dataDir, path) }
 
 // The scratch config's ci section: the CI steps the scenario gives, none when
 // it gives none, since a scenario that runs CI for a task's checks or a
@@ -645,18 +652,18 @@ func nested(path []string, value string, depth int) string {
 const startingRegistry = "tasks/work-items.yaml"
 
 // The files every scratch repository starts with: its config, a ledger with
-// the tasks, none with a check, an empty work registry, its people and a
-// README.
+// the tasks, none with a check, an empty work registry and its people, where
+// the scenario keeps itos's data, and a README.
 func (w *world) startingFiles(tasks ...string) error {
 	w.ledger = nil
 	for _, id := range tasks {
 		w.ledger = append(w.ledger, ledgerTask{id: id})
 	}
 	files := map[string]string{
-		w.ledgerPath():   w.ledgerText(),
-		startingRegistry: "phases: {}\nitems: []\n",
-		"people.yaml":    "- someone\n",
-		"README.md":      "# Scratch\n",
+		w.data(w.ledgerPath()):   w.ledgerText(),
+		w.data(startingRegistry): "phases: {}\nitems: []\n",
+		w.data("people.yaml"):    "- someone\n",
+		"README.md":              "# Scratch\n",
 	}
 	for path, text := range files {
 		if err := w.write(path, text); err != nil {
@@ -1355,10 +1362,13 @@ func (w *world) stagedLedgerKey(task, key string) error {
 // When steps.
 
 // itos with these arguments, in the scratch repository.
-func (w *world) itos(args ...string) error {
+func (w *world) itos(args ...string) error { return w.itosIn(w.dir, args...) }
+
+// itos run in the folder dir.
+func (w *world) itosIn(dir string, args ...string) error {
 	w.markRun()
 	cmd := exec.Command(w.bin, args...)
-	cmd.Dir = w.dir
+	cmd.Dir = dir
 	cmd.Env = w.env()
 	var stdout, stderr strings.Builder
 	cmd.Stdout = &stdout

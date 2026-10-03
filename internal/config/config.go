@@ -1,6 +1,7 @@
 // Package config finds, reads and validates itos.yaml, the one policy file
 // (tools/itos/config.ts): the file --config or ITOS_CONFIG names, else
-// itos.yaml in the folder itos runs in (--root changes that folder first).
+// itos.yaml in the folder itos runs in (--root changes that folder first),
+// else the stealth mode's <git common dir>/itos/itos.yaml (stealth.go).
 //
 // Load holds the file to the schema, where an unknown key is an error that
 // names the key it misspells, then to what the schema cannot say (names that
@@ -13,7 +14,6 @@ package config
 
 import (
 	"encoding/json"
-	"os"
 	"regexp"
 	"strings"
 
@@ -43,20 +43,15 @@ func Invalid(file, message string) *Error {
 	return &Error{File: file, Problems: []out.Problem{{Rule: "config-invalid", Message: message}}}
 }
 
-// Path is the config's path: ITOS_CONFIG, which --config sets, else itos.yaml.
-func Path() string {
-	if p := os.Getenv("ITOS_CONFIG"); p != "" {
-		return p
-	}
-	return "itos.yaml"
-}
-
 // Loaded is the config as the tools read it: the file laid over the table of
 // defaults, typed, with the file as written beside it.
 type Loaded struct {
 	Config
 	// Path is the file it was read from.
 	Path string
+	// Stealth is whether it is the stealth config (stealth.go), whose own
+	// data is read beside it, in the git folder, and never at a commit.
+	Stealth bool
 	// file is the file as written, its $sets expanded.
 	file    *value.Map
 	statics []*regexp.Regexp
@@ -134,6 +129,10 @@ func Load(file string) (*Loaded, error) {
 	loaded := &Loaded{Path: file, file: tree}
 	if err := decode(withDefaults(tree), &loaded.Config); err != nil {
 		return nil, err
+	}
+	if IsStealth(file) {
+		loaded.Stealth = true
+		loaded.beside()
 	}
 	return loaded, nil
 }

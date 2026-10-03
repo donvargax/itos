@@ -81,3 +81,28 @@ func TestTrees(t *testing.T) {
 		t.Errorf("unreadable tree's texts %q", got)
 	}
 }
+
+// A file in the git folder, which no tree git holds can have, is read where
+// it is whatever the source: the stealth mode's config and data.
+func TestGitFolderIsReadWhereItIs(t *testing.T) {
+	dir := t.TempDir()
+	gitIn(t, dir, "init", "-q")
+	write(t, filepath.Join(dir, ".git/itos/tasks/phase-1.yaml"), "aside\n")
+	t.Chdir(dir)
+	index, err := At("index")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !index.Has(".git/itos/tasks/phase-1.yaml") {
+		t.Error("the index does not have the git folder's file")
+	}
+	if text, err := index.Read(".git/itos/tasks/phase-1.yaml"); err != nil || text != "aside\n" {
+		t.Errorf("Read = %q, %v", text, err)
+	}
+	if names, err := index.List(".git/itos/tasks"); err != nil || !reflect.DeepEqual(names, []string{"phase-1.yaml"}) {
+		t.Errorf("List = %v, %v", names, err)
+	}
+	if index.Has("tasks/phase-1.yaml") {
+		t.Error("the index has a file it does not hold")
+	}
+}

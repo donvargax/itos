@@ -80,6 +80,10 @@
   scenarios:
     - id: "@ID-SINCE-01"
       why: verify leaves out the commit commits.since names, the key's point
+- file: stealth.feature
+  scenarios:
+    - id: "@ID-STEALTH-01"
+      why: with no itos.yaml in the root, itos finds the config in the git folder and the ledger beside it, the mode's root
 - file: task.feature
   scenarios:
     - id: "@ID-TASK-01"

@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -105,6 +106,49 @@ func TestChooseReadsTheConfigWhereItosDoes(t *testing.T) {
 		if got, launch := choose(args, io.Discard); !launch || got.version != "9.1.0" {
 			t.Errorf("choose(%q) = %v, %t; want 9.1.0", args, got, launch)
 		}
+	}
+}
+
+// The stealth config, in the git folder of a repository with no itos.yaml,
+// is read for its pin, and one with no pin is as no config at all: the
+// newest release; a project's config with no pin is not.
+func TestReadConfigFindsTheStealthConfig(t *testing.T) {
+	offline(t)
+	t.Setenv(EnvVersion, "")
+	t.Setenv("ITOS_CONFIG", "")
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
+		t.Setenv(name, "")
+		os.Unsetenv(name)
+	}
+	dir := t.TempDir()
+	if out, err := exec.Command("git", "init", "-q", dir).CombinedOutput(); err != nil {
+		t.Fatalf("git init: %s", out)
+	}
+	t.Chdir(dir)
+	stealth := filepath.Join(".git", "itos", "itos.yaml")
+	if err := os.MkdirAll(filepath.Dir(stealth), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write := func(file, text string) {
+		t.Helper()
+		if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(stealth, "version: 1\npin: { version: \"9.1.0\", checksums: \""+sums+"\" }\n")
+	if got, launch := choose(nil, io.Discard); !launch || got.version != "9.1.0" {
+		t.Errorf("a pinned stealth config: choose = %v, %t; want 9.1.0", got, launch)
+	}
+	if c := readConfig([]string{"--root", dir, "version"}); c.state != pinned {
+		t.Errorf("a pinned stealth config under --root: %+v", c)
+	}
+	write(stealth, "version: 1\n")
+	if c := readConfig(nil); c.state != absent {
+		t.Errorf("a stealth config with no pin: %+v, want absent", c)
+	}
+	write("itos.yaml", "version: 1\n")
+	if c := readConfig(nil); c.state != unpinned || c.file != "itos.yaml" {
+		t.Errorf("an itos.yaml in the root with no pin: %+v, want unpinned", c)
 	}
 }
 
