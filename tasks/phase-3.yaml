@@ -207,8 +207,12 @@
     (slice 42), the guard against an agent's git commit and git push. integrations/** is not the
     implementation, so these are chore commits; docs commits may touch its Markdown. The checks
     run Claude Code's own validator over the marketplace and the plugin, and the plugin's tests
-    with claude plugin test, so CI and the nightly install Claude Code, pinned, to run them (a
-    ci commit). A guardrail, not a fortress: the guard stops agents that follow it.
+    with claude plugin test. Neither needs a login (checked 2026-10-03 with an empty home and no
+    key), so CI installs the latest Claude Code, unpinned, the user's call (2026-10-03: it
+    releases several times a day, and the latest is what a person runs), with Claude Code's own
+    installer, in CI's job, whose token stays read-only and which is handed no secret (a ci
+    commit). The checks stay late, so the nightly, whose token can write issues, never runs
+    Claude Code. A guardrail, not a fortress: the guard stops agents that follow it.
   done_when:
     - run: claude plugin validate --strict .
     - run: claude plugin validate --strict integrations/claude-code
