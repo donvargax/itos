@@ -46,11 +46,14 @@ change any other repository.
 
 One slice at a time, the user's order:
 
-1. **`slice-50`** (@ID-INIT-18 to 21: the git shim offer; the report names a
-   pin behind the newest and a missing people file), then
+1. **`bug-10`** (@ID-CI-08 in `features/ci.feature`, `@wip`: `ci plan` and
+   `ci run` read work's defaults where a config has no `work:` section; a
+   fix, a patch release), then **`slice-50`** (@ID-INIT-18 to 22: the git
+   shim offer; the report names a pin behind the newest and a missing people
+   file; no Scenarios footer required where no scenario has an ID tag), then
    `p3-init-agent-rules` and `p3-init-orchestration` (agent files; PLAN.md
-   §10, "Adoption"), `p3-pr-rebase-merge`, and slice 48's `p3-init-starter-ci`
-   and `p3-init-untagged-features`. Each a feat, a minor release.
+   §10, "Adoption"), `p3-pr-rebase-merge` and `p3-init-starter-ci`. Each a
+   feat, a minor release.
 2. **`p3-human-waiver`** (`itos waive`, a plain config list; the guard keeps
    agents off it), after those.
 3. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
@@ -93,16 +96,7 @@ ID-CONFIG-21, T-072's self-reading check).
   usage error's words, so `itos init`'s usage message cannot name
   `--plugin` (or slice 50's `--git-shim`) without a breaking change. The
   coordinator recommends judging only a usage error's exit code, as help
-  cases are left out.
-- `p3-init-starter-ci` is a general bug, not the starter's: any config
-  without a `work:` section makes `itos ci plan` exit 2 ("work is
-  missing"), even with `ci.steps`. Proposed as a `@bug` fix before slice
-  50, with `p3-init-untagged-features` (the starter's Scenarios rule only
-  when tagged scenarios exist) folded into slice 50.
-- Slice 48's agent's call: the starter ledger holds a task T-1, "Adopt
-  itos" (its check `itos config check`), so the first commit after init,
-  a chore, has a task to name; init prints the `itos commit --task T-1`
-  line. Under `--stealth` the ledger starts empty. Keep, or start empty?
+  cases are left out. Slice 50 adds `--git-shim`, so answer before it.
 - Slice 46's calls: silent when the pushed commits pass (anything printed
   would change released corpus cases, a major release); no opt-out.
 - Coordinator calls to confirm or overturn:

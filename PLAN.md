@@ -778,8 +778,10 @@ new (`git init` first) or existing: where there is no config, a starter `itos.ya
 commented (the Conventional Commits types under the built-in header lint, a `Task` footer every
 type but feat and fix needs, `commits.since` at HEAD so history written before itos is never
 judged, `hooks.bin: itos`, no path scopes, which are each project's own), a ledger holding `T-1`,
-the task the adoption commit names, and an empty registry under `tasks/`, a `Scenarios` footer and
-a smoke set naming each file's first live scenario when feature files exist, a pin on the newest
+the task the adoption commit names (kept, the user's call, 2026-10-03; under `--stealth` the
+ledger starts empty, since nothing is committed), and an empty registry under `tasks/`, a `Scenarios` footer and
+a smoke set naming each file's first live scenario when feature files exist (the footer required
+only once a scenario carries an ID tag, slice 50), a pin on the newest
 release (none, said so, where the release server cannot be reached), then the hooks, as `hooks
 install` detects their manager; with `--stealth`, all of it under the git folder and the hooks in
 `.git/config`, nothing tracked touched. It is the launcher's own command, as `pin` is: where there

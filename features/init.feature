@@ -245,3 +245,22 @@ Feature: itos init, a repository made ready for itos
     When itos runs "init"
     Then itos exits with code 0
     And its output says "CONTRIBUTORS.md"
+
+  # p3-init-untagged-features, folded into slice 50 (the user's call,
+  # 2026-10-03): most Cucumber projects tag no scenario with an ID, and a
+  # Scenarios footer required of feat and fix would then refuse every feat,
+  # with nothing to name. Where no scenario carries an ID tag, init writes the
+  # scenario kind without requiring the footer, and says how to tag a
+  # scenario so that it can be required.
+  @ID-INIT-22 @slice-50 @wip
+  Scenario: With feature files whose scenarios carry no ID tag, a feat needs no Scenarios footer, and init says how to tag them
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the feature file "features/pages.feature" with a scenario that has no tag
+    When itos runs "init"
+    Then itos exits with code 0
+    And its output says "@ID-"
+    When itos runs "tests smoke check scenario"
+    Then itos exits with code 0
+    Given a change to "README.md" is staged
+    When the commit-msg hook checks the message "feat: add a page"
+    Then itos exits with code 0

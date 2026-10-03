@@ -91,3 +91,18 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And its output says "echo prose"
     And its output does not say "vp check"
+
+  # Bug 10, found by slice 48's agent on the starter itos init writes: ci plan
+  # and ci run required a work: section though every work key has a default,
+  # so a config without one, the starter's among them, could not plan CI
+  # ("itos.yaml: work is missing"), while itos work read the defaults.
+  @ID-CI-08 @bug-10 @wip
+  Scenario: A config without a work section plans and runs CI, reading work's defaults
+    Given the config has no work section
+    And the CI steps are "exit 0"
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos plans CI over the commits after the first
+    Then itos exits with code 0
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And its output does not say "work is missing"
