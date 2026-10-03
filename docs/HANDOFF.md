@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after T-070 landed.
+Last updated 2026-10-03, after T-071 landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `2057406` (CI run 37133131878), T-070's close; this
+`main` is green at `2ef69ec` (CI run 37134154458), T-071's work; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -55,9 +55,9 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
    takes no arguments through the shim), small, when it bites.
 2. **v2.3.0 is out** (release run 37131270855; its assets downloaded and
    checksummed, the linux binary says `itos 2.3.0`).
-   T-070 (the config schema held to the last release's) landed. Next
-   **T-071** (the last release's scenarios run against the new binary; a
-   fix may change one it names in `Changes:`, a feat never), then
+   T-070 (the config schema held to the last release's) and T-071 (the
+   last release's scenarios and corpus run against the new binary; a fix may
+   change one it names in `Changes:`, a feat never) landed. Next
    **T-069**, the user's call (2026-10-03): a push to `main` carrying a
    `feat` or a `fix` with CI green cuts the release itself (version from the
    commits, GoReleaser, attestations, generated notes, no commit by the
