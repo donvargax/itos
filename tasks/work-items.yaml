@@ -2740,7 +2740,7 @@ items:
     title: A dependency check refuses Go modules younger than a week, and known vulnerabilities
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     why: >
@@ -2767,3 +2767,35 @@ items:
       the dependency checks (T-067) if they move out of this repository into an itos-security
       extension, which waits for the user's repository template.
     refs: [features/extensions.feature, features/pin.feature, PLAN.md]
+
+  - id: p3-nightly-govulncheck
+    title: The nightly runs govulncheck, so a vulnerability disclosed later is found
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-067]
+    kind: idea
+    why: >
+      T-067 left it: the dependency check runs only where a module can come in (a commit that
+      stages go.mod or go.sum, a CI range that changes them), so a vulnerability disclosed after
+      a module came in is found only when go.mod next changes, which may be months. A nightly
+      step running the check (go run ./tools/bin/deps-check, the whole of it, which would also
+      flag an exception a week old as no longer needed) would find it the next morning; it needs
+      the network, which the nightly has.
+    refs: [tasks/phase-3.yaml, itos.yaml]
+
+  - id: p3-ci-step-paths
+    title: A CI step says which paths it is for, so a range that leaves them alone skips it
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-067 left it: the dependency check's CI step should run only for a range that changes
+      go.mod or go.sum, but a step of ci.steps cannot be given the range, so the step reads the
+      range's start from FROM, which the workflow's Range step puts in the job's environment,
+      and decides itself (-changed-since). A paths list on a step, read by itos ci plan as
+      ci.prose.paths is, would leave such a step out of the plan, show it in itos ci plan, and
+      drop the step's dependence on the workflow's environment. An itos feature, so a slice.
+    refs: [itos.yaml, PLAN.md]
