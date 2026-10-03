@@ -12,12 +12,13 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after bug 10 landed (v2.8.1).
+Last updated 2026-10-03, after T-075 landed (slice 50 handed out).
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `6783446` (CI run 37156585012,
-every job: `ci`, the three `platform` jobs, `release`, which cut v2.8.1). itos is Go only; `tools/bin/itos` builds and runs this
+All work is @donvargax's. `main` is green at `9b6cd31` (CI run 37157179937,
+every job: `ci`, the three `platform` jobs, `release`; v2.8.1 is the newest
+release, T-075's `ci` commits cutting none). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
 
@@ -47,8 +48,9 @@ change any other repository.
 
 One slice at a time, the user's order:
 
-1. **`T-075`** (the last release's corpus judges a usage error by its exit
-   code, not its words; `tasks/phase-3.yaml`), then **`slice-50`** (@ID-INIT-18 to 22: the git
+1. **`slice-50`** (handed to an agent; T-075 landed, so the last release's
+   usage errors are judged by their exit code alone and init's usage message
+   may name `--plugin` and `--git-shim`) (@ID-INIT-18 to 22: the git
    shim offer; the report names a pin behind the newest and a missing people
    file; no Scenarios footer required where no scenario has an ID tag), then
    `p3-init-agent-rules` and `p3-init-orchestration` (agent files; PLAN.md
