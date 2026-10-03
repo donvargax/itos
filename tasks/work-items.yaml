@@ -1764,7 +1764,7 @@ items:
     title: v2.0.0, Go only
     phase: 3
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-063, slice-26]
     kind: task
     refs: [tasks/phase-3.yaml]
