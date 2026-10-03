@@ -489,7 +489,13 @@
     2.4.0, ships T-073 (the plugin running what hooks.bin names). Manual, but impossible to
     forget, and it keeps working if the plugin moves to a repository of its own. Its self-test
     proves a range that changes the plugin without a bump refused, one with a bump passed, a
-    lower or equal version refused, and a range that leaves the plugin alone passed.
+    lower or equal version refused, and a range that leaves the plugin alone passed. Built as
+    tools/bin/plugin-version, a static step of itos.yaml's ci and a prose step too, since a range
+    that touches only the plugin's SKILL.md is prose-only. It compares the trees, so a change
+    undone within the range is none, and orders versions by semver 2.0.0's precedence (a
+    pre-release below its release, build metadata ignored). Like T-070's check it never passes on
+    what it cannot read: the self-test also proves an empty range start, a start the clone lacks
+    and a shallow clone each stop it (exit 2), and that both step lists run it.
   done_when:
     - run: node tools/selftest/plugin-version.ts
       timeout: 300

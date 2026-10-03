@@ -85,7 +85,13 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   The version lives in `integrations/claude-code/.claude-plugin/plugin.json`
   alone (the marketplace entry gives none, so the two cannot disagree) and is
   the plugin's own: it followed itos's until T-069, which made the tag itos's
-  version, and nothing compares the two now. `hooks/hooks.json` holds both kinds of hook Claude Code reads
+  version, and nothing compares the two now. Claude Code offers an installed
+  plugin an update only when that version changes, so a change to anything
+  under `integrations/claude-code/` carries a raise of it, semver for the
+  plugin itself (a fix a patch, a new behaviour a minor, a breaking change a
+  major), in a `chore` commit of the same push: CI's plugin version rule
+  (T-074, below) refuses a range that changes the folder and leaves the
+  version where it was. `hooks/hooks.json` holds both kinds of hook Claude Code reads
   there: `modules`, the function-hooks module `hooks/register.ts`, and
   `hooks`, the command hooks. The module draws the titles: a `ui.render` hook
   on `AssistantMessage` rewrites the props it hands on (the stream, the
@@ -1347,6 +1353,28 @@ all`; a module replaced by a version is checked as that version, one
     instead of lines, both for the release notes. `-old` and `-new` take the
     two schemas from files, which `tools/selftest/schema-contract.ts` does, in a scratch repository
     with a tag and a local server standing for GitHub.
+  - **The plugin's version rule** (`tools/bin/plugin-version`, T-074; by
+    hand, `go run ./tools/bin/plugin-version -range-from <rev>`) holds a
+    change to the Claude Code plugin to a raise of its version, since Claude
+    Code offers an installed plugin an update only when that version changes.
+    It runs in CI as a static step with `-range-from "$FROM"`, and as a prose
+    step too, as a range that touches only the plugin's `SKILL.md` is
+    prose-only. It compares the trees at the range's start and at HEAD (`git
+diff --name-only --no-renames`, so a change undone within the range is
+    none) under the plugin's folder (`-plugin`, `integrations/claude-code` by
+    default, `.` for a plugin with a repository of its own); when they differ,
+    `.claude-plugin/plugin.json`'s `version` at HEAD must be higher by semver
+    2.0.0's precedence than at the start (build metadata does not count, a
+    pre-release sorts below its release), or it fails (exit 1) naming the
+    files changed, both versions and the patch, minor and major to raise it
+    to. A plugin.json new in the range passes with any version; one gone, or
+    whose version is not semver, fails. A range that leaves the folder alone
+    passes, saying so. It never passes on what it cannot read: an empty range
+    start (no green run to start from, or a range provider that failed), a
+    start that is not a commit of the clone, and a shallow clone each stop it
+    with exit 2. Standard library only, git alone, no network.
+    `tools/selftest/plugin-version.ts` proves each case in a scratch
+    repository laid out as this one, and that both step lists run it.
   - **The last release's suite** (`tools/bin/previous-release`, T-071; by
     hand, `go run ./tools/bin/previous-release [-bin <itos>]`) holds this
     tree's itos to what the last release's scenarios and corpus promised, as
@@ -1444,7 +1472,7 @@ sha>` (the base against the working tree) for each pushed ref, or the
   the nightly never installs it, since those checks are late.
   **The plan** (`ci-plan.ts`, its cost rule in `cost.ts`; `itos ci plan <from> <to>` prints it, running
   nothing) is one sequence in cost order: the static steps of `ci.steps`
-  (`vp check`, `gofmt`, `go vet`, the smoke rule, `itos config check`) and every named task check
+  (`vp check`, `gofmt`, `go vet`, the smoke rule, `itos config check`, the plugin's version rule) and every named task check
   that is static (its own `cost: static`, else a pattern of
   `ci.cost.static`: `matchesStatic` in `config.ts`, which `config
 check`'s written-order rule reads too); then the late steps (the dependency check, for a range that changes
@@ -1464,7 +1492,8 @@ check`'s written-order rule reads too); then the late steps (the dependency chec
   A range of only `ci.prose.paths` (Markdown, `docs/**`)
   runs `ci.prose.steps` (`vp check`, and `itos config check`, since
   `CONTRIBUTORS.md`, the people a registry's owners must be among, is
-  Markdown; the registry and the ledger, under `tasks/`, are not prose) and the named tasks' static and `prose: true` checks,
+  Markdown; the registry and the ledger, under `tasks/`, are not prose; and
+  the plugin's version rule, since the plugin's skill is Markdown) and the named tasks' static and `prose: true` checks,
   and no features.
 - **The platform jobs** (`ci.yml`'s `platform`, T-072) run beside it on every
   push, a matrix of `ubuntu-latest`, `macos-latest` and `windows-latest`,
