@@ -6,7 +6,8 @@
 # header lint, if any, built in or a delegate, and the footer rules, always);
 # `hook pre-push` (git's ref lines on stdin,
 # or pre-commit's environment: once per remote base, else the whole run, and
-# nothing for a deleted branch).
+# nothing for a deleted branch), after verifying the commits each pushed ref adds, printing
+# nothing for those that pass and refusing the push, running no command, for one that fails.
 git:
   - commit: "docs: start"
     files: { README.md: "scratch\n" }
@@ -814,6 +815,53 @@ cases:
     stdout: |
       $ echo every test
       every test
+  - name: pre-push refuses a pushed commit that breaks the commit rules, running no command, and says how to fix it
+    argv: [hook, pre-push, upstream, git@example.invalid:x.git]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+        label: base
+      - commit: "build: no task"
+        files: { tools/x.json: "{}\n" }
+        label: bad
+    stdin: "refs/heads/main {{sha.bad}} refs/heads/main {{sha.base}}\n"
+    exit: 1
+    stdout: ""
+    stderr: |
+      ✖   build commits need a "Task: T-…" footer [task-footer]
+        ^ {{short.bad}} build: no task
+      0/1 commits pass the commit rules
+      The push is refused: fix the commits above, then push again.
+        - the last commit: git commit --amend
+        - an earlier one: git rebase -i {{short.base}}, marking it reword or edit
+  - name: pre-push judges a new branch by the commits on no remote-tracking branch
+    argv: [hook, pre-push, upstream, git@example.invalid:x.git]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+        label: base
+      - run: git update-ref refs/remotes/upstream/main HEAD
+      - commit: "build: no task"
+        files: { tools/x.json: "{}\n" }
+        label: bad
+    stdin: "refs/heads/topic {{sha.bad}} refs/heads/topic 0000000000000000000000000000000000000000\n"
+    exit: 1
+    stdout: ""
+    stderr: |
+      ✖   build commits need a "Task: T-…" footer [task-footer]
+        ^ {{short.bad}} build: no task
+      0/1 commits pass the commit rules
+      The push is refused: fix the commits above, then push again.
+        - the last commit: git commit --amend
+        - an earlier one: git rebase -i {{short.base}}, marking it reword or edit
+  - name: pre-push without hooks.pre_push verifies alone, printing nothing for commits that pass
+    argv: [hook, pre-push, upstream, git@example.invalid:x.git]
+    stdin: "refs/heads/main {{sha.more}} refs/heads/main {{sha.base}}\n"
+    files:
+      itos.yaml: "version: 1\ncommits: { types: [docs] }\n"
+    exit: 0
+    stdout: ""
+    stderr: ""
   - name: pre-tool-use denies a git commit in an itos repository, naming itos commit
     argv: [hook, pre-tool-use]
     stdin: '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git commit -m x"},"cwd":"{{dir}}"}'

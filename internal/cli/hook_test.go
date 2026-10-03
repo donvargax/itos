@@ -3,6 +3,8 @@ package cli
 import (
 	"slices"
 	"testing"
+
+	"github.com/donvargax/itos/v2/internal/git"
 )
 
 // A hook file is a shim when its one line, besides comments and a shebang,
@@ -24,16 +26,22 @@ func TestIsShim(t *testing.T) {
 	}
 }
 
-// A deleted branch runs nothing, a new one the whole run; neither asks git.
-func TestPushBases(t *testing.T) {
+// A deleted branch sends nothing, so it runs nothing; a new one is judged by
+// the commits on no remote branch and runs the whole run; neither asks git.
+func TestPushedRefs(t *testing.T) {
 	zero := "0000000000000000000000000000000000000000"
-	bases, whole := pushBases("(delete) " + zero + " refs/heads/old abc\n\n")
-	if len(bases) != 0 || whole {
-		t.Errorf("deleted branch: %q %v", bases, whole)
+	refs := pushedRefs("(delete) " + zero + " refs/heads/old abc\n\n")
+	bases, whole := pushBases(refs)
+	if len(refs) != 0 || len(bases) != 0 || whole {
+		t.Errorf("deleted branch: %v %q %v", refs, bases, whole)
 	}
-	bases, whole = pushBases("refs/heads/new abc refs/heads/new " + zero + "\n")
+	refs = pushedRefs("refs/heads/new abc refs/heads/new " + zero + "\n")
+	bases, whole = pushBases(refs)
 	if len(bases) != 0 || !whole {
 		t.Errorf("new branch: %q %v", bases, whole)
+	}
+	if len(refs) != 1 || refs[0].pushedRange() != (span{git.Unpushed, "abc"}) {
+		t.Errorf("new branch's range: %v", refs)
 	}
 }
 

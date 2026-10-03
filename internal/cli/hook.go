@@ -504,15 +504,16 @@ func tasksRule(cfg *config.Loaded, text string, o Out) (int, error) {
 // deleted branch's local side.
 var zeros = regexp.MustCompile(`^0+$`)
 
-// pushBases are the remote commits a push builds on, from git's `<local ref>
-// <local sha> <remote ref> <remote sha>` lines (pre-push.ts's pushBases). A
-// new branch, or a remote commit this clone does not have, gives no base to
-// compare with, so the whole run is wanted; a deleted branch (zero local SHA)
-// runs nothing.
-func pushBases(input string) ([]string, bool) {
-	var bases []string
-	seen := map[string]bool{}
-	whole := false
+// pushedRef is one ref a push sends, from git's `<local ref> <local sha>
+// <remote ref> <remote sha>` line: the commit it sends, and the remote's
+// commit it replaces when this clone has that one, else "" (a new branch, or
+// a remote commit the clone lacks).
+type pushedRef struct{ local, base string }
+
+// pushedRefs are the refs a push sends, a deleted one (zero local SHA) left
+// out, since it sends nothing.
+func pushedRefs(input string) []pushedRef {
+	var refs []pushedRef
 	for _, line := range strings.Split(input, "\n") {
 		if line == "" {
 			continue
@@ -528,16 +529,114 @@ func pushBases(input string) ([]string, bool) {
 		if local == "" || zeros.MatchString(local) {
 			continue
 		}
+		ref := pushedRef{local: local}
 		if remote != "" && !zeros.MatchString(remote) && git.HasCommit(remote) {
-			if !seen[remote] {
-				seen[remote] = true
-				bases = append(bases, remote)
-			}
-		} else {
+			ref.base = remote
+		}
+		refs = append(refs, ref)
+	}
+	return refs
+}
+
+// pushBases are the remote commits a push builds on (pre-push.ts's
+// pushBases). A new branch, or a remote commit this clone does not have,
+// gives no base to compare with, so the whole run is wanted; a deleted branch
+// runs nothing.
+func pushBases(refs []pushedRef) ([]string, bool) {
+	var bases []string
+	seen := map[string]bool{}
+	whole := false
+	for _, ref := range refs {
+		switch {
+		case ref.base == "":
 			whole = true
+		case !seen[ref.base]:
+			seen[ref.base] = true
+			bases = append(bases, ref.base)
 		}
 	}
 	return bases, whole
+}
+
+// pushedRange is the range of the commits a pushed ref adds, as verify takes
+// it: the ones after the remote's commit it replaces, or, with no such commit
+// in this clone, the ones on no remote-tracking branch (git.Unpushed), as
+// verify with no range judges them under a stealth config. Others' commits
+// already on the remote are not the pusher's to fix.
+func (r pushedRef) pushedRange() span {
+	if r.base == "" {
+		return span{git.Unpushed, r.local}
+	}
+	return span{r.base, r.local}
+}
+
+// verifyPush is the hook's first step: verify over what each pushed ref
+// adds, each range once, its report kept. It prints nothing when every
+// commit passes and the range checks hold, so a push of passing commits reads
+// as it did before the hook verified; else each failing range's report, how
+// to fix the commits, and 1 (2 when commits.since is no commit here, as
+// verify). A config with no commits section sets no commit rules, so there
+// is nothing to verify, and the hook runs hooks.pre_push's commands as
+// before.
+func verifyPush(cfg *config.Loaded, refs []pushedRef, o Out) (int, error) {
+	if !cfg.HasSection("commits") {
+		return 0, nil
+	}
+	if missing := cfg.SinceIssues(); len(missing) > 0 {
+		printSinceIssues(missing, o)
+		return ExitUsage, nil
+	}
+	var report strings.Builder
+	first := ""
+	refused := false
+	seen := map[span]bool{}
+	for _, ref := range refs {
+		r := ref.pushedRange()
+		if seen[r] {
+			continue
+		}
+		seen[r] = true
+		var log strings.Builder
+		run, err := newVerifier(cfg, Out{Stdout: &log, Stderr: &log}).over(r.From, r.To)
+		if err != nil {
+			return 0, err
+		}
+		if run.ok() {
+			continue
+		}
+		refused = true
+		report.WriteString(log.String())
+		for _, c := range run.results {
+			if !c.OK && first == "" {
+				first = c.SHA
+			}
+		}
+	}
+	if !refused {
+		return 0, nil
+	}
+	fmt.Fprint(o.Stderr, report.String())
+	fmt.Fprint(o.Stderr, fixAdvice(first))
+	return ExitPolicy, nil
+}
+
+// fixAdvice is what the refusal tells the person to do: amend the last
+// commit, or rebase from the parent of the first commit that fails (--root
+// for a root commit) to reword or edit an earlier one, then push again. With
+// no failing commit, only the range checks failed.
+func fixAdvice(first string) string {
+	if first == "" {
+		return "The push is refused: fix what the range checks above report, then push again.\n"
+	}
+	base := git.Parent(first)
+	if base == git.EmptyTree {
+		base = "--root"
+	} else {
+		base = short(base)
+	}
+	return "The push is refused: fix the commits above, then push again.\n" +
+		"  - the last commit: git commit --amend\n" +
+		"  - an earlier one: git rebase -i " + base + ", marking it reword or edit\n"
 }
 
 // prePushInput is git's ref lines on stdin, or under pre-commit or prek,
@@ -563,10 +662,12 @@ func prePushInput() (string, error) {
 	return fmt.Sprintf("%s %s %s %s\n", local, to, remote, from), nil
 }
 
-// hookPrePush is `hook pre-push <remote> <url>` (pre-push.ts's prePush): the
-// commands of hooks.pre_push, per_base once per remote base with {base}
-// filled in, else whole, each printed and run with the hook's streams. 0 when
-// they pass, 1 when not.
+// hookPrePush is `hook pre-push <remote> <url>` (pre-push.ts's prePush, and
+// slice 46): verify over what each pushed ref adds, then, when every commit
+// passes, the commands of hooks.pre_push, per_base once per remote base with
+// {base} filled in, else whole, each printed and run with the hook's
+// streams; without hooks.pre_push (or a hooks section), the verify alone,
+// where it was an error before. 0 when all pass, 1 when not.
 func hookPrePush(o Out) (int, error) {
 	input, err := prePushInput()
 	if err != nil {
@@ -576,33 +677,25 @@ func hookPrePush(o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	bases, whole := pushBases(input)
-	if err := cfg.Section("hooks"); err != nil {
-		return 0, err
+	refs := pushedRefs(input)
+	if code, err := verifyPush(cfg, refs, o); code != 0 || err != nil {
+		return code, err
 	}
 	commands := cfg.Hooks.PrePush
-	run := func(key string, command func() string) (bool, error) {
-		if commands == nil {
-			return false, fmt.Errorf("Cannot read properties of undefined (reading '%s')", key)
-		}
-		line := command()
-		fmt.Fprintf(o.Stdout, "$ %s\n", line)
-		return shell.Run(cfg, line, shell.Options{Stdin: os.Stdin, Stdout: o.Stdout, Stderr: o.Stderr}).OK(), nil
+	if commands == nil {
+		return 0, nil
 	}
+	run := func(line string) bool {
+		fmt.Fprintf(o.Stdout, "$ %s\n", line)
+		return shell.Run(cfg, line, shell.Options{Stdin: os.Stdin, Stdout: o.Stdout, Stderr: o.Stderr}).OK()
+	}
+	bases, whole := pushBases(refs)
 	ok := true
 	if whole {
-		passed, err := run("whole", func() string { return commands.Whole })
-		if err != nil {
-			return 0, err
-		}
-		ok = passed && ok
+		ok = run(commands.Whole)
 	} else {
 		for _, base := range bases {
-			passed, err := run("per_base", func() string { return strings.ReplaceAll(commands.PerBase, "{base}", base) })
-			if err != nil {
-				return 0, err
-			}
-			ok = passed && ok
+			ok = run(strings.ReplaceAll(commands.PerBase, "{base}", base)) && ok
 		}
 	}
 	if !ok {

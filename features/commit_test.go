@@ -91,7 +91,11 @@ func (w *world) amendHead(message string) error {
 // The commit-msg hook in the repository's hooks folder (git's own, no hook
 // manager): a shim that runs the itos under test, as the one hooks install
 // writes runs hooks.bin.
-func (w *world) commitMsgHookInstalled() error {
+func (w *world) commitMsgHookInstalled() error { return w.hookInstalled("commit-msg", `"$1"`) }
+
+// The hook in the repository's hooks folder, a shim running the itos under
+// test's `hook <name>` with the arguments git gives it.
+func (w *world) hookInstalled(name, args string) error {
 	out, err := w.gitOutput("rev-parse", "--git-path", "hooks")
 	if err != nil {
 		return err
@@ -103,8 +107,8 @@ func (w *world) commitMsgHookInstalled() error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	shim := "#!/bin/sh\nexec " + quote(w.bin) + " hook commit-msg \"$1\"\n"
-	return os.WriteFile(filepath.Join(dir, "commit-msg"), []byte(shim), 0o755)
+	shim := "#!/bin/sh\nexec " + quote(w.bin) + " hook " + name + " " + args + "\n"
+	return os.WriteFile(filepath.Join(dir, name), []byte(shim), 0o755)
 }
 
 // A line split into words as sh splits it, for the quoting the scenarios

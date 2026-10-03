@@ -21,7 +21,7 @@ Feature: The pre-push hook verifies the commits it pushes
 
   # The clone's commits are made with --no-verify, as a commit that skipped
   # the commit-msg hook is; a chore needs a Task footer.
-  @ID-PREPUSH-01 @slice-46 @wip
+  @ID-PREPUSH-01 @slice-46
   Scenario: A pushed commit that breaks the commit rules refuses the push, saying how to fix it
     Given the clone has the commit "chore: tidy the readme" touching "README.md"
     When itos runs "push"
@@ -32,7 +32,7 @@ Feature: The pre-push hook verifies the commits it pushes
 
   # The scratch config has no hooks.pre_push, so the hook has nothing to run
   # but the verify; before this a push there failed on the missing key.
-  @ID-PREPUSH-02 @slice-46 @wip
+  @ID-PREPUSH-02 @slice-46
   Scenario: Commits that pass are pushed, the hook printing nothing for them
     Given the commit "chore: tidy the readme" naming the task "T-001"
     When itos runs "push"
@@ -42,7 +42,7 @@ Feature: The pre-push hook verifies the commits it pushes
 
   # The remote's commit breaks the rules too, but it is already there: only
   # what this push adds is the pusher's to fix.
-  @ID-PREPUSH-03 @slice-46 @wip
+  @ID-PREPUSH-03 @slice-46
   Scenario: Only the commits the push adds are judged, not the remote's
     Given the remote has gained the commit "chore: tidy the docs" touching "docs.md"
     And the commit "chore: tidy the readme" naming the task "T-001"
@@ -53,7 +53,7 @@ Feature: The pre-push hook verifies the commits it pushes
   # The remote has no commit the new branch replaces; the commits the clone
   # shares with the remote's main are on origin/main, so only the new one is
   # judged: 0/1, not every commit of the history.
-  @ID-PREPUSH-04 @slice-46 @wip
+  @ID-PREPUSH-04 @slice-46
   Scenario: A new branch is judged by the commits no remote-tracking branch has
     Given the clone has the commit "chore: tidy the readme" touching "README.md"
     When git pushes HEAD to the remote's new branch "topic"
@@ -61,7 +61,7 @@ Feature: The pre-push hook verifies the commits it pushes
     And its output says "0/1 commits pass the commit rules"
     And the remote has no branch "topic"
 
-  @ID-PREPUSH-05 @slice-46 @wip
+  @ID-PREPUSH-05 @slice-46
   Scenario: A commit that fails runs none of hooks.pre_push's commands
     Given hooks.pre_push's commands record that they ran
     And the clone has the commit "chore: tidy the readme" touching "README.md"

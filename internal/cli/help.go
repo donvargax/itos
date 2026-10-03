@@ -74,7 +74,7 @@ Commands:
   ci range --head <sha> [--base <sha>]
                                    FROM=<sha>: where a push's range starts
   hook commit-msg <file>           the commit-msg hook: data, paths, header lint, task checks
-  hook pre-push <remote> <url>     the pre-push hook: the tests the pushed commits reach
+  hook pre-push <remote> <url>     the pre-push hook: verify, then the tests the push reaches
   hook pre-tool-use                Claude Code's PreToolUse hook: denies git commit and git push
   hooks install [--manager <m>] [--print] [--force]
                                    write the hooks' one-line shims for the hook manager
@@ -387,10 +387,17 @@ prints its report and decides: exit 1, or the header lint's own code.`,
 	"hook pre-push": `Usage: itos hook pre-push <remote> <url>
 
 The pre-push hook. Reads git's ref lines on stdin (or PRE_COMMIT_FROM_REF and
-PRE_COMMIT_TO_REF under pre-commit or prek) and runs hooks.pre_push.per_base
-once per remote commit the push builds on, else hooks.pre_push.whole (a new
-branch, or a base this clone lacks). A deleted branch runs nothing. Exit 1
-when a command fails.`,
+PRE_COMMIT_TO_REF under pre-commit or prek) and first verifies the commits
+each pushed ref adds, as itos verify does (messages, paths, range checks,
+commits.since left out): the ones after the remote's commit it replaces, else
+(a new branch, or a remote commit this clone lacks) the ones on no
+remote-tracking branch. It prints nothing for commits that pass. A failure
+prints verify's report and how to fix the commits (git commit --amend for the
+last one, git rebase -i for an earlier one), runs nothing more and exits 1.
+Then it runs hooks.pre_push.per_base once per remote commit the push builds
+on, else hooks.pre_push.whole (a new branch, or a base this clone lacks);
+without hooks.pre_push, nothing. A deleted branch runs nothing. Exit 1 when
+a command fails.`,
 
 	"hook pre-tool-use": `Usage: itos hook pre-tool-use
 

@@ -72,6 +72,7 @@ type scratchConfig struct {
 	noTagPrefix       bool        // the kind written without tag_prefix
 	hooksManager      string      // hooks.manager
 	hooksBin          string      // hooks.bin
+	prePushRecord     bool        // hooks.pre_push's commands record that they ran
 	ledgerFooter      string      // the key of the footer whose source is the ledger; Task when empty
 	textFooter        *textFooter // a footer of free text
 	featMustTouch     string      // commits.scopes.feat.must_touch, one glob, when set
@@ -590,7 +591,8 @@ func (w *world) writeConfig() error {
 		b.WriteString("people: { source: yaml, file: people.yaml } ")
 	}
 	b.WriteString("}\n")
-	if w.config.hooksManager != "" || w.config.hooksBin != "" || w.config.taskChecks != nil || w.config.checkTimeout > 0 {
+	if w.config.hooksManager != "" || w.config.hooksBin != "" || w.config.taskChecks != nil || w.config.checkTimeout > 0 ||
+		w.config.prePushRecord {
 		b.WriteString("hooks:\n")
 	}
 	if w.config.hooksManager != "" {
@@ -598,6 +600,10 @@ func (w *world) writeConfig() error {
 	}
 	if w.config.hooksBin != "" {
 		fmt.Fprintf(&b, "  bin: %q\n", w.config.hooksBin)
+	}
+	if w.config.prePushRecord {
+		record := "printf '%s\\n' ran >> " + quote(w.prePushRecord())
+		fmt.Fprintf(&b, "  pre_push: { per_base: %q, whole: %q }\n", record, record)
 	}
 	if w.config.taskChecks != nil || w.config.checkTimeout > 0 {
 		b.WriteString("  commit_msg:\n")

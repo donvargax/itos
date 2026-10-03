@@ -1,9 +1,12 @@
-// The steps of itos push (push.feature): a remote, a bare repository made
-// from the scratch one, a clone of it where itos runs, commits the remote
-// gains from another clone, and what the remote's branch holds afterwards.
+// The steps of itos push (push.feature) and of the pre-push hook
+// (pre-push.feature): a remote, a bare repository made from the scratch one,
+// a clone of it where itos runs, commits the remote gains from another clone,
+// the pre-push hook and hooks.pre_push's commands, a push of a new branch,
+// and what the remote's branches hold afterwards.
 package features
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -28,6 +31,69 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the clone's "([^"]*)" still has its uncommitted change$`, w.stillUncommitted)
 	sc.Step(`^the remote's branch ends with "([^"]*)" then "([^"]*)", with no merge commit$`, w.remoteEndsWith)
 	sc.Step(`^the remote's branch does not have "([^"]*)"$`, w.remoteLacks)
+	sc.Step(`^the remote's branch has "([^"]*)"$`, w.remoteHas)
+
+	sc.Step(`^the pre-push hook is installed$`, func() error {
+		return w.hookInstalled("pre-push", `"$@"`)
+	})
+	sc.Step(`^hooks\.pre_push's commands record that they ran$`, w.recordingPrePush)
+	sc.Step(`^git pushes HEAD to the remote's new branch "([^"]*)"$`, func(branch string) error {
+		return w.run(w.dir, "git", "push", "origin", "HEAD:refs/heads/"+branch)
+	})
+	sc.Step(`^the remote has no branch "([^"]*)"$`, w.remoteHasNoBranch)
+	sc.Step(`^none of hooks\.pre_push's commands ran$`, func() error {
+		if _, err := os.Stat(w.prePushRecord()); err == nil {
+			text, _ := os.ReadFile(w.prePushRecord())
+			return fmt.Errorf("hooks.pre_push's commands ran:\n%s\n%s", text, w.report())
+		}
+		return nil
+	})
+}
+
+// The file hooks.pre_push's commands write when they run.
+func (w *world) prePushRecord() string { return filepath.Join(w.support, "pre-push-ran") }
+
+// hooks.pre_push's per_base and whole each record that they ran, in the
+// clone's config, committed and pushed to the remote's main with the hook
+// left out, as a project's config would be there already: the clone holds
+// no uncommitted change, which itos push would refuse, and no commit of it
+// but the scenario's is pushed afterwards.
+func (w *world) recordingPrePush() error {
+	if len(w.ledger) == 0 {
+		return errors.New("the ledger has no task for the config's commit to name")
+	}
+	w.config.prePushRecord = true
+	if err := w.writeConfig(); err != nil {
+		return err
+	}
+	if err := w.git("add", "--", w.data("itos.yaml")); err != nil {
+		return err
+	}
+	if err := w.git("commit", "-q", "--no-verify", "-m", "chore: record the pre-push commands\n\nTask: "+w.ledger[0].id+"\n"); err != nil {
+		return err
+	}
+	return w.git("push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main")
+}
+
+func (w *world) remoteHas(subject string) error {
+	subjects, _, err := w.remoteHistory()
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(subjects, subject) {
+		return fmt.Errorf("the remote's main does not have %q:\n%s\n%s", subject, strings.Join(subjects, "\n"), w.report())
+	}
+	return nil
+}
+
+func (w *world) remoteHasNoBranch(branch string) error {
+	cmd := exec.Command("git", "show-ref", "--verify", "--quiet", "refs/heads/"+branch)
+	cmd.Dir = w.remote()
+	cmd.Env = w.env()
+	if err := cmd.Run(); err == nil {
+		return fmt.Errorf("the remote has the branch %q\n%s", branch, w.report())
+	}
+	return nil
 }
 
 // The remote: a bare repository in the support folder, as a host keeps one.

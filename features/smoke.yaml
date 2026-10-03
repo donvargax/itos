@@ -84,6 +84,10 @@
   scenarios:
     - id: "@ID-PIN-01"
       why: a pinned release fetched, checked and run with the arguments and its exit code, the launcher's whole path
+- file: pre-push.feature
+  scenarios:
+    - id: "@ID-PREPUSH-01"
+      why: a pushed commit that breaks the commit rules refused by the hook, saying how to fix it, the file's point
 - file: push.feature
   scenarios:
     - id: "@ID-PUSH-01"

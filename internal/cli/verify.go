@@ -127,65 +127,99 @@ func verifyRange(from, to string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	v := &verifier{cfg: cfg, moves: tests.NewMoves(cfg), log: o.Stdout, o: o}
-	if o.JSON {
-		v.log = o.Stderr
-	}
 	if missing := cfg.SinceIssues(); len(missing) > 0 {
 		if o.JSON {
 			return ExitUsage, out.Emit(o.Stdout,
 				out.Field{Key: "range", Value: span{from, to}},
 				out.Field{Key: "problems", Value: missing})
 		}
-		for _, p := range missing {
-			fmt.Fprintf(o.Stderr, "FAIL %s\n", p.Message)
-		}
+		printSinceIssues(missing, o)
 		return ExitUsage, nil
 	}
-	start := cfg.Since()
-	if start != "" {
-		fmt.Fprintf(v.log, "Not checked: %s (commits.since) and its ancestors\n", short(start))
-	}
-	commits, err := git.Lines(append([]string{"rev-list", "--no-merges", "--reverse"}, cfg.RangeArgs(from, to)...)...)
+	v := newVerifier(cfg, o)
+	run, err := v.over(from, to)
 	if err != nil {
 		return 0, err
 	}
-	results := []verified{}
-	passed := 0
-	for _, sha := range commits {
-		r, err := v.commit(sha)
-		if err != nil {
-			return 0, err
-		}
-		results = append(results, r)
-		if r.OK {
-			passed++
-		}
-	}
-	fmt.Fprintf(v.log, "%d/%d commits pass the commit rules\n", passed, len(commits))
-	ranged := true
-	for _, command := range tests.RangeCommands(cfg, from, to) {
-		if !shell.Run(cfg, command, shell.Options{Stdout: v.log, Stderr: o.Stderr}).OK() {
-			ranged = false
-			break
-		}
-	}
 	if o.JSON {
 		fields := []out.Field{{Key: "range", Value: span{from, to}}}
-		if start != "" {
-			fields = append(fields, out.Field{Key: "since", Value: start})
+		if run.since != "" {
+			fields = append(fields, out.Field{Key: "since", Value: run.since})
 		}
 		fields = append(fields,
-			out.Field{Key: "commits", Value: results},
-			out.Field{Key: "passed", Value: passed},
-			out.Field{Key: "total", Value: len(commits)},
-			out.Field{Key: "range_checks", Value: ranged})
+			out.Field{Key: "commits", Value: run.results},
+			out.Field{Key: "passed", Value: run.passed},
+			out.Field{Key: "total", Value: len(run.results)},
+			out.Field{Key: "range_checks", Value: run.ranged})
 		if err := out.Emit(o.Stdout, fields...); err != nil {
 			return 0, err
 		}
 	}
-	if passed < len(commits) || !ranged {
+	if !run.ok() {
 		return ExitPolicy, nil
 	}
 	return 0, nil
+}
+
+// printSinceIssues says commits.since is no commit here, one FAIL line a
+// problem.
+func printSinceIssues(missing []out.Problem, o Out) {
+	for _, p := range missing {
+		fmt.Fprintf(o.Stderr, "FAIL %s\n", p.Message)
+	}
+}
+
+// newVerifier is a run of verify writing to o: its logs on stdout, or on
+// stderr under --json.
+func newVerifier(cfg *config.Loaded, o Out) *verifier {
+	v := &verifier{cfg: cfg, moves: tests.NewMoves(cfg), log: o.Stdout, o: o}
+	if o.JSON {
+		v.log = o.Stderr
+	}
+	return v
+}
+
+// verifyRun is what verify found over one range: commits.since when the
+// config names one, each commit's result, how many passed, and whether the
+// range checks held.
+type verifyRun struct {
+	since   string
+	results []verified
+	passed  int
+	ranged  bool
+}
+
+// ok is whether every commit passed and the range checks held.
+func (r verifyRun) ok() bool { return r.passed == len(r.results) && r.ranged }
+
+// over judges the range's commits after commits.since, printing each
+// failing one's report and the count, then runs each range command once,
+// up to the first that fails.
+func (v *verifier) over(from, to string) (verifyRun, error) {
+	run := verifyRun{since: v.cfg.Since(), results: []verified{}, ranged: true}
+	if run.since != "" {
+		fmt.Fprintf(v.log, "Not checked: %s (commits.since) and its ancestors\n", short(run.since))
+	}
+	commits, err := git.Lines(append([]string{"rev-list", "--no-merges", "--reverse"}, v.cfg.RangeArgs(from, to)...)...)
+	if err != nil {
+		return run, err
+	}
+	for _, sha := range commits {
+		r, err := v.commit(sha)
+		if err != nil {
+			return run, err
+		}
+		run.results = append(run.results, r)
+		if r.OK {
+			run.passed++
+		}
+	}
+	fmt.Fprintf(v.log, "%d/%d commits pass the commit rules\n", run.passed, len(commits))
+	for _, command := range tests.RangeCommands(v.cfg, from, to) {
+		if !shell.Run(v.cfg, command, shell.Options{Stdout: v.log, Stderr: v.o.Stderr}).OK() {
+			run.ranged = false
+			break
+		}
+	}
+	return run, nil
 }
