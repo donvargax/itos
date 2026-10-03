@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -60,6 +61,9 @@ func TestDeclareHooks(t *testing.T) {
 
 // A git that runs no hook its config declares is a missing environment.
 func TestDeclareHooksOldGit(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the fake git is a shell script, which windows does not run as git")
+	}
 	gitConfigRepo(t, "version: 1\n")
 	real, err := exec.LookPath("git")
 	if err != nil {

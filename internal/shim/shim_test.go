@@ -2,6 +2,7 @@ package shim
 
 import (
 	"path/filepath"
+	"runtime"
 	"slices"
 	"testing"
 )
@@ -25,7 +26,8 @@ func TestParse(t *testing.T) {
 		l.name != "commit" || !slices.Equal(l.rest, []string{"-m", "-C"}) {
 		t.Errorf("parse = %+v, %v", l, ok)
 	}
-	if l, ok := parse([]string{"-C", "/abs", "push"}); !ok || l.dir != "/abs" || l.name != "push" {
+	abs := map[bool]string{false: "/abs", true: `C:\abs`}[runtime.GOOS == "windows"]
+	if l, ok := parse([]string{"-C", abs, "push"}); !ok || l.dir != abs || l.name != "push" {
 		t.Errorf("an absolute -C: %+v, %v", l, ok)
 	}
 	for _, args := range [][]string{

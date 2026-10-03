@@ -47,7 +47,8 @@ func TestKey(t *testing.T) {
 // own way, and says so on the verbose command line.
 func TestRunnerRunsEachCheckOnce(t *testing.T) {
 	cfg := load(t, "version: 1\n")
-	count := filepath.Join(t.TempDir(), "runs")
+	// Slashes, as sh reads a windows path's backslashes as escapes.
+	count := filepath.ToSlash(filepath.Join(t.TempDir(), "runs"))
 	command := "echo ran >> " + count + "; exit 3"
 	var stdout, stderr bytes.Buffer
 	r := NewRunner(cfg, &stdout, &stderr)

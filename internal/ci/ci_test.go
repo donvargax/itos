@@ -3,6 +3,7 @@ package ci
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -39,6 +40,9 @@ func run(t *testing.T, p *plan.Plan, o Options) (int, string, string) {
 // A step with no exit code of its own (stopped by a signal) fails the run
 // with 1, as spawnSync's `status ?? 1` reads it.
 func TestStepStoppedBySignalExitsOne(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("windows has no signals: Git for Windows' sh reports a killed step as an exit code")
+	}
 	step := plan.Step{Command: "kill -TERM $$"}
 	code, _, stderr := run(t, &plan.Plan{Order: []plan.Item{{Step: &step}}}, Options{})
 	if code != 1 || stderr != "\nCI failed at: kill -TERM $$\n" {
@@ -49,7 +53,8 @@ func TestStepStoppedBySignalExitsOne(t *testing.T) {
 // The nightly runs a check its done tasks share once; a push runs each named
 // task's checks as its own.
 func TestOnlyTheNightlySharesRuns(t *testing.T) {
-	count := filepath.Join(t.TempDir(), "runs")
+	// Slashes, as sh reads a windows path's backslashes as escapes.
+	count := filepath.ToSlash(filepath.Join(t.TempDir(), "runs"))
 	command := "echo run >> " + count
 	shared := func(id string) plan.Item {
 		return plan.Item{Check: &plan.Check{

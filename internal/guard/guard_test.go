@@ -4,9 +4,14 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
+
+// abs is an absolute folder on this platform, as a command line writes it: on windows with a
+// drive and slashes, since sh reads a backslash as an escape.
+var abs = map[bool]string{false: "/abs", true: "C:/abs"}[runtime.GOOS == "windows"]
 
 func TestGitCalls(t *testing.T) {
 	cases := []struct {
@@ -16,7 +21,7 @@ func TestGitCalls(t *testing.T) {
 		{"git commit -m 'x'", []GitCall{{".", "commit"}}},
 		{"/usr/bin/git push", []GitCall{{".", "push"}}},
 		{"git -C sub -C ../other -c core.editor=true --no-pager commit", []GitCall{{"other", "commit"}}},
-		{"git -C /abs push", []GitCall{{"/abs", "push"}}},
+		{"git -C " + abs + " push", []GitCall{{abs, "push"}}},
 		{"git --git-dir=.git --work-tree . -p status", []GitCall{{".", "status"}}},
 		{"go vet ./... && git pull --rebase && git push", []GitCall{{".", "pull"}, {".", "push"}}},
 		{"A=1 B=2 git commit", []GitCall{{".", "commit"}}},
@@ -91,9 +96,9 @@ func TestReason(t *testing.T) {
 		{Input{"Bash", "git push && git commit", filepath.Join(repo, "sub")}, elsewhere, []string{"itos commit", "itos push"}},
 		{Input{"Bash", "git commit", "sub"}, repo, []string{"itos commit"}},
 		{Input{"Bash", "git commit", ""}, filepath.Join(repo, "sub"), []string{"itos commit"}},
-		{Input{"Bash", "git -C " + repo + " push", elsewhere}, elsewhere, []string{"itos push"}},
+		{Input{"Bash", "git -C " + filepath.ToSlash(repo) + " push", elsewhere}, elsewhere, []string{"itos push"}},
 		{Input{"Bash", "git commit", elsewhere}, repo, nil},
-		{Input{"Bash", "git -C " + elsewhere + " commit", repo}, repo, nil},
+		{Input{"Bash", "git -C " + filepath.ToSlash(elsewhere) + " commit", repo}, repo, nil},
 		{Input{"Bash", "git status", repo}, repo, nil},
 		{Input{"Bash", "git commit 'unclosed", repo}, repo, nil},
 		{Input{"Edit", "", repo}, repo, nil},
