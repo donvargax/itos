@@ -86,6 +86,33 @@ cases:
     exit: 2
     stderr: |
       itos: unknown command: hook pre-commit (itos --help)
+  - name: pin takes a release's version
+    argv: [pin, latest]
+    exit: 2
+    stderr: |
+      itos: pin needs a release's version, such as 2.5.0, not latest (itos --help)
+  - name: pin takes one version at most
+    argv: [pin, 2.5.0, 2.6.0]
+    exit: 2
+    stderr: |
+      itos: pin takes one <version> at most: 2.5.0 2.6.0 (itos --help)
+  - name: pin takes no flag of its own
+    argv: [pin, --force]
+    exit: 2
+    stderr: |
+      itos: pin takes only a <version> (--force) (itos --help)
+  - name: pin with no release to ask exits 3, naming it, and leaves the config as it was
+    argv: [pin]
+    exit: 3
+    stderr_has:
+      - "itos: cannot ask for the newest itos: "
+      - "/latest/download/checksums.txt"
+      - "itos.yaml is left as it was"
+    files_after:
+      itos.yaml: |
+        version: 1
+        requires: ">=0.1.0"
+        ci: { steps: [] }
   - name: config needs check
     argv: [config, bogus]
     exit: 2

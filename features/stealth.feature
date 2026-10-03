@@ -232,7 +232,7 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
 
   # Slice 47: itos pin (pin.feature) writes the config it finds, here the one
   # under the git folder, so the bump touches nothing the project tracks.
-  @ID-STEALTH-22 @slice-47 @wip
+  @ID-STEALTH-22 @slice-47
   Scenario: Under a stealth config itos pin writes the config in the git folder
     Given a release server offering the versions "9.1.0" and "9.2.0"
     And the config pins the version "9.1.0" of the release server

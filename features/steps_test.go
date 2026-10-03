@@ -42,6 +42,9 @@ type world struct {
 	vars      []string       // variables the scenario sets in itos's environment, NAME=value
 	ranMark   int            // the fake itos runs recorded before the last run of itos began
 	askedMark int            // the requests the release server had before the last run of itos began
+	// The config's text before the last run of itos began, nil when there was
+	// none.
+	configBefore []byte
 }
 
 // What a scenario sets in the scratch repository's itos.yaml.
@@ -80,6 +83,7 @@ type scratchConfig struct {
 	prosePaths        string      // ci.prose.paths, one glob
 	proseSteps        string      // ci.prose.steps, one command
 	pin               *[2]string  // pin.version and pin.checksums
+	comments          []string    // comment lines written after the pin's line
 	settings          []setting
 }
 
@@ -475,6 +479,9 @@ func (w *world) writeConfig() error {
 	b.WriteString("version: 1\n")
 	if p := w.config.pin; p != nil {
 		fmt.Fprintf(&b, "pin: { version: %q, checksums: %q }\n", p[0], p[1])
+	}
+	for _, c := range w.config.comments {
+		b.WriteString(c + "\n")
 	}
 	if w.config.recordingShell {
 		fmt.Fprintf(&b, "shell: [%q]\n", w.recordingShellPath())

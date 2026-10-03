@@ -31,6 +31,7 @@ import (
 	"sync"
 
 	"github.com/cucumber/godog"
+	"go.yaml.in/yaml/v3"
 )
 
 // Where ITOS_RELEASES points when the scenario starts no release server: a
@@ -124,6 +125,11 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 		return w.itosIn(filepath.Join(w.dir, folder), strings.Fields(args)...)
 	})
 
+	sc.Step(`^the config has the comment "([^"]*)"$`, w.configComment)
+
+	sc.Step(`^the config's pin is the version "([^"]*)" of the release server, with its checksums$`, w.configPins)
+	sc.Step(`^the config still has the comment "([^"]*)"$`, w.configStillHasComment)
+	sc.Step(`^the config is unchanged$`, w.configUnchanged)
 	sc.Step(`^the version "([^"]*)" ran with the arguments "([^"]*)"$`, w.versionRanWithArguments)
 	sc.Step(`^the version "([^"]*)" ran with ITOS_VERSION "([^"]*)"$`, w.versionRanWithVersion)
 	sc.Step(`^no version of the release server ran$`, func() error { return w.noVersionRan(false) })
@@ -450,6 +456,73 @@ func (w *world) markRun() {
 	if w.releases != nil {
 		w.askedMark = len(w.releases.requests())
 	}
+	w.configBefore, _ = os.ReadFile(w.configPath())
+}
+
+// The config itos finds in the scratch repository: itos.yaml in the root, or
+// the stealth one in the git folder.
+func (w *world) configPath() string { return filepath.Join(w.dir, w.data("itos.yaml")) }
+
+// The config pins the version, with the SHA-256 of the checksums.txt the
+// release server has for it, read back from the file as YAML.
+func (w *world) configPins(version string) error {
+	if err := w.needReleases(); err != nil {
+		return err
+	}
+	sums := w.releases.get(releasePath(version, "checksums.txt"))
+	if sums == nil {
+		return fmt.Errorf("the release server has no version %s", version)
+	}
+	text, err := os.ReadFile(w.configPath())
+	if err != nil {
+		return err
+	}
+	var config struct {
+		Pin struct{ Version, Checksums string }
+	}
+	if err := yaml.Unmarshal(text, &config); err != nil {
+		return fmt.Errorf("the config is not YAML: %v\n%s", err, text)
+	}
+	if config.Pin.Version != version || config.Pin.Checksums != sha256Hex(sums) {
+		return fmt.Errorf("the config pins %q with the checksums %q, not %q with %q\n%s\n%s",
+			config.Pin.Version, config.Pin.Checksums, version, sha256Hex(sums), text, w.report())
+	}
+	return nil
+}
+
+// A comment line in the config, after the pin's line, kept whenever the
+// scenario writes the config again.
+func (w *world) configComment(comment string) error {
+	w.config.comments = append(w.config.comments, comment)
+	return w.writeConfig()
+}
+
+func (w *world) configStillHasComment(comment string) error {
+	text, err := os.ReadFile(w.configPath())
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(string(text), "\n") {
+		if line == comment {
+			return nil
+		}
+	}
+	return fmt.Errorf("the config has no line %q:\n%s\n%s", comment, text, w.report())
+}
+
+// The config byte for byte as it was before the last run of itos.
+func (w *world) configUnchanged() error {
+	if w.configBefore == nil {
+		return fmt.Errorf("there was no config before the last run")
+	}
+	text, err := os.ReadFile(w.configPath())
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(text, w.configBefore) {
+		return fmt.Errorf("the config changed; it was:\n%s\nit is:\n%s\n%s", w.configBefore, text, w.report())
+	}
+	return nil
 }
 
 func (w *world) stopReleaseServer() {

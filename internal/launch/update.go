@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/donvargax/itos/v2/internal/release"
 	"github.com/donvargax/itos/v2/internal/version"
 )
 
@@ -127,7 +128,7 @@ func notice(file, pin string, stderr io.Writer) {
 	if err != nil {
 		return
 	}
-	said := filepath.Join(cache, "state", "notice-"+sha256Hex([]byte(repo))[:16])
+	said := filepath.Join(cache, "state", "notice-"+release.SHA256([]byte(repo))[:16])
 	if _, at, ok := readState(said); ok && now().Sub(at) < day {
 		return
 	}
@@ -135,7 +136,7 @@ func notice(file, pin string, stderr io.Writer) {
 		// A notice that cannot be remembered would be said on every run.
 		return
 	}
-	fmt.Fprintf(stderr, "itos %s is out (this repository pins %s): %s/tag/v%s\n", latest, pin, releases(), latest)
+	fmt.Fprintf(stderr, "itos %s is out (this repository pins %s): %s\n", latest, pin, release.NotesURL(latest))
 }
 
 // announced is the newest version the release server announced, as the
@@ -148,33 +149,14 @@ func announced(cache string, ask bool) (v string, sums []byte, asked bool) {
 	if !ask || (ok && now().Sub(at) < day) {
 		return known, nil, false
 	}
-	body, err := get(releases()+"/latest/download/checksums.txt", askTimeout)
+	body, err := release.Get(release.LatestURL("checksums.txt"), askTimeout)
 	if err == nil {
-		if got := versionOf(body); got != "" {
+		if got := release.VersionOf(body); got != "" {
 			known, sums = got, body
 		}
 	}
 	_ = writeState(file, known)
 	return known, sums, true
-}
-
-// archiveLine is an archive's name in a release's checksums.txt, its version
-// first.
-var archiveLine = regexp.MustCompile(`^itos-(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)-[0-9a-z]+-[0-9a-z]+\.(?:tar\.gz|zip)$`)
-
-// versionOf is the version of the release whose checksums.txt this is, read
-// from its archives' names, "" when it names none.
-func versionOf(sums []byte) string {
-	for _, line := range strings.Split(string(sums), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) != 2 {
-			continue
-		}
-		if m := archiveLine.FindStringSubmatch(strings.TrimPrefix(fields[1], "*")); m != nil {
-			return m[1]
-		}
-	}
-	return ""
 }
 
 // readState reads a state file of the cache: the Unix time it was written at

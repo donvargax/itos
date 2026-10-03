@@ -24,7 +24,8 @@
 // checked against.
 //
 // git-shim install and uninstall always run the binary that was called, the
-// one they link as git; the git shim's own runs (git-shim run) are launched
+// one they link as git, and so does pin, which moves the pin and may be newer
+// than the version pinned (slice 47); the git shim's own runs (git-shim run) are launched
 // as any other, so in a pinned repository git commit is the pinned itos's,
 // when it has the shim (Handed tells internal/shim the version, bug 7).
 //
@@ -39,13 +40,10 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"io/fs"
-	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -54,6 +52,7 @@ import (
 
 	"github.com/donvargax/itos/v2/internal/cli"
 	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/release"
 	"github.com/donvargax/itos/v2/internal/value"
 	"github.com/donvargax/itos/v2/internal/version"
 )
@@ -64,14 +63,10 @@ const (
 	// sets it for the version it runs, so it means "the itos version in
 	// effect" to whatever that version starts.
 	EnvVersion = "ITOS_VERSION"
-	// EnvReleases is the base the releases are fetched from.
-	EnvReleases = "ITOS_RELEASES"
-	// EnvCache is the folder the releases are kept in.
+	// EnvCache is the folder the releases are kept in. The base the releases
+	// are fetched from is release.Env, ITOS_RELEASES.
 	EnvCache = "ITOS_CACHE"
 )
-
-// DefaultReleases is where releases come from when ITOS_RELEASES is not set.
-const DefaultReleases = "https://github.com/donvargax/itos/releases"
 
 // fetchTimeout bounds each download, so a server that stops answering cannot
 // hold a commit for ever.
@@ -111,13 +106,20 @@ func Main(args []string, stderr io.Writer) (int, bool) {
 	return cli.ExitMissing, true
 }
 
-// binaryCommand is whether the arguments run a command about the binary that
-// was called rather than a repository: git-shim install and uninstall link
-// that binary as git (slice 41), so no version a pin picks runs them, or the
-// link would point into the cache.
+// binaryCommand is whether the arguments run one of the launcher's own
+// commands, which the binary that was called runs whatever the pin says:
+// git-shim install and uninstall link that binary as git (slice 41), so no
+// version a pin picks runs them, or the link would point into the cache; pin
+// moves the pin (slice 47), which the version it names may predate.
 func binaryCommand(args []string) bool {
 	rest := cli.Parse(args).Rest
-	return len(rest) >= 2 && rest[0] == "git-shim" && (rest[1] == "install" || rest[1] == "uninstall")
+	switch {
+	case len(rest) >= 1 && rest[0] == "pin":
+		return true
+	case len(rest) >= 2 && rest[0] == "git-shim":
+		return rest[1] == "install" || rest[1] == "uninstall"
+	}
+	return false
 }
 
 // unguarded is whether the arguments run hook pre-tool-use and the version
@@ -330,17 +332,17 @@ func cached(dir string, t target) bool {
 		return true
 	}
 	sums, err := os.ReadFile(filepath.Join(dir, "checksums.txt"))
-	return err == nil && sha256Hex(sums) == t.checksums
+	return err == nil && release.SHA256(sums) == t.checksums
 }
 
 // fetch downloads the target's release, checks it and puts its binary and
 // checksums.txt in dir.
 func fetch(cache, dir string, t target) error {
-	sums, err := get(releaseURL(t.version, "checksums.txt"), fetchTimeout)
+	sums, err := release.Get(release.URL(t.version, "checksums.txt"), fetchTimeout)
 	if err != nil {
 		return fmt.Errorf("cannot fetch itos %s: %w", t.version, err)
 	}
-	if got := sha256Hex(sums); t.checksums != "" && got != t.checksums {
+	if got := release.SHA256(sums); t.checksums != "" && got != t.checksums {
 		return fmt.Errorf("the checksums.txt of itos %s is not the one pinned (pin.checksums): its SHA-256 is %s, the pin %s",
 			t.version, got, t.checksums)
 	}
@@ -357,11 +359,11 @@ func install(cache, dir, v string, sums []byte) error {
 	if !ok {
 		return fmt.Errorf("the checksums.txt of itos %s lists no %s: no release of it for this platform", v, asset)
 	}
-	archive, err := get(releaseURL(v, asset), fetchTimeout)
+	archive, err := release.Get(release.URL(v, asset), fetchTimeout)
 	if err != nil {
 		return fmt.Errorf("cannot fetch itos %s: %w", v, err)
 	}
-	if got := sha256Hex(archive); got != want {
+	if got := release.SHA256(archive); got != want {
 		return fmt.Errorf("%s is not the archive the checksums.txt of itos %s lists: its SHA-256 is %s, the list's %s",
 			asset, v, got, want)
 	}
@@ -370,43 +372,6 @@ func install(cache, dir, v string, sums []byte) error {
 		return fmt.Errorf("itos %s: %w", v, err)
 	}
 	return store(cache, dir, binary, sums)
-}
-
-// releases is the base the releases are fetched from: ITOS_RELEASES, else
-// the GitHub releases of itos.
-func releases() string {
-	if base := strings.TrimRight(os.Getenv(EnvReleases), "/"); base != "" {
-		return base
-	}
-	return DefaultReleases
-}
-
-// releaseURL is where the version's asset is fetched from.
-func releaseURL(v, asset string) string {
-	return releases() + "/download/v" + v + "/" + asset
-}
-
-// get is the body at the address, or why it cannot be had within timeout.
-func get(url string, timeout time.Duration) ([]byte, error) {
-	client := &http.Client{Timeout: timeout}
-	resp, err := client.Get(url)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s: %s", url, resp.Status)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", url, err)
-	}
-	return body, nil
-}
-
-func sha256Hex(b []byte) string {
-	sum := sha256.Sum256(b)
-	return hex.EncodeToString(sum[:])
 }
 
 // listed is the SHA-256 checksums.txt gives the asset, as sha256sum writes a
@@ -484,7 +449,7 @@ func store(cache, dir string, binary, sums []byte) error {
 	}
 	if err := os.Rename(tmp, dir); err != nil {
 		// Another run may have put the same release there meanwhile.
-		if cached(dir, target{checksums: sha256Hex(sums)}) {
+		if cached(dir, target{checksums: release.SHA256(sums)}) {
 			return nil
 		}
 		return fmt.Errorf("cannot write to the cache %s: %w", cache, err)

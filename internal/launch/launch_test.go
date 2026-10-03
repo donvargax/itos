@@ -8,8 +8,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v2/internal/release"
 	"github.com/donvargax/itos/v2/internal/version"
 )
 
@@ -40,7 +42,7 @@ func offline(t *testing.T) string {
 	t.Helper()
 	cache := t.TempDir()
 	t.Setenv(EnvCache, cache)
-	t.Setenv(EnvReleases, "http://127.0.0.1:1/no-release-server")
+	t.Setenv(release.Env, "http://127.0.0.1:1/no-release-server")
 	t.Setenv(EnvNoUpdate, "1")
 	t.Setenv(EnvNoUpdateNotice, "")
 	t.Setenv("CI", "")
@@ -242,7 +244,7 @@ func TestStoreAndCached(t *testing.T) {
 	cache := t.TempDir()
 	dir := filepath.Join(cache, "9.1.0")
 	text := []byte("checksums\n")
-	pinned := target{"9.1.0", sha256Hex(text)}
+	pinned := target{"9.1.0", release.SHA256(text)}
 	if cached(dir, pinned) {
 		t.Fatal("an empty cache holds the release")
 	}
@@ -258,5 +260,23 @@ func TestStoreAndCached(t *testing.T) {
 	entries, err := os.ReadDir(cache)
 	if err != nil || len(entries) != 1 {
 		t.Errorf("the cache holds %v, not the release alone", entries)
+	}
+}
+
+func TestBinaryCommand(t *testing.T) {
+	for args, want := range map[string]bool{
+		"pin":                    true,
+		"pin 9.1.0":              true,
+		"--json pin":             true,
+		"git-shim install":       true,
+		"git-shim uninstall":     true,
+		"git-shim run commit":    false,
+		"version":                false,
+		"work --as someone":      false,
+		"--config pin.yaml work": false,
+	} {
+		if got := binaryCommand(strings.Fields(args)); got != want {
+			t.Errorf("binaryCommand(%s) = %v, want %v", args, got, want)
+		}
 	}
 }

@@ -9,21 +9,9 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-)
 
-func TestVersionOf(t *testing.T) {
-	cases := map[string]string{
-		"aa  itos-9.2.0-linux-amd64.tar.gz\nbb  itos.schema.json\n":     "9.2.0",
-		"bb  itos.schema.json\naa *itos-1.0.0-rc.1-windows-amd64.zip\n": "1.0.0-rc.1",
-		"bb  itos.schema.json\n":           "",
-		"aa  itos-v9-linux-amd64.tar.gz\n": "",
-	}
-	for text, want := range cases {
-		if got := versionOf([]byte(text)); got != want {
-			t.Errorf("versionOf(%q) = %q, want %q", text, got, want)
-		}
-	}
-}
+	"github.com/donvargax/itos/v2/internal/release"
+)
 
 func TestReadConfigTellsNoConfigFromNoPin(t *testing.T) {
 	t.Chdir(t.TempDir())
@@ -50,7 +38,7 @@ func latestServer(t *testing.T, v string) (*httptest.Server, *atomic.Int32) {
 		_, _ = rw.Write([]byte("aa  itos-" + v + "-linux-amd64.tar.gz\n"))
 	}))
 	t.Cleanup(s.Close)
-	t.Setenv(EnvReleases, s.URL)
+	t.Setenv(release.Env, s.URL)
 	return s, &asked
 }
 
