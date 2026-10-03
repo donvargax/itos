@@ -2019,7 +2019,7 @@ items:
     title: A global itos keeps to the newest release, and says when a pin falls behind
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-27]
     kind: slice
     why: >
@@ -2042,9 +2042,38 @@ items:
     why: >
       Slice 27's cache (ITOS_CACHE, <version>/itos beside its checksums.txt) keeps every release it
       has fetched, about ten megabytes each, for ever: every version bump of every repository on
-      the machine adds one. Nothing removes them but the user; a run could drop the versions it
+      the machine adds one, and since slice 28 every release a run outside a project fetches as
+      the newest. Nothing removes them but the user; a run could drop the versions it
       has not run for some months, or the cache could keep a few.
     refs: [internal/launch/launch.go]
+
+  - id: p3-pin-bump
+    title: One command moves a repository's pin to a release
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-28]
+    kind: idea
+    why: >
+      Slice 28's notice says a pin has fallen behind, but moving it still means downloading that
+      release's checksums.txt and hashing it by hand for pin.checksums. A command writing both
+      keys for a version, or for the newest, would make the bump the one build commit it is meant
+      to be.
+    refs: [features/update.feature, README.md]
+
+  - id: p3-launcher-subfolder
+    title: The launcher finds a repository's config from a subfolder of it
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-28]
+    kind: idea
+    why: >
+      The launcher reads the config where itos does, itos.yaml in the working folder (or --config,
+      ITOS_CONFIG, --root), so a run from a subfolder of a pinned repository finds no config and,
+      since slice 28, runs the newest release instead of the pin, which then fails to find the
+      config as itos always has. Looking up to the repository's top for both would close it.
+    refs: [internal/launch/launch.go, internal/config/config.go]
 
   - id: p3-global-install-ci
     title: A repository relying on a global itos runs it from its hooks and its CI

@@ -72,12 +72,17 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
 - **The release server** (`release_test.go`), for the launcher's scenarios
   (`pin.feature`): an `httptest` server inside the test, logging every path
   asked of it, offering fake releases as real ones are laid out
-  (`/download/v<version>/<asset>`): the archive for the running platform,
+  (`/download/v<version>/<asset>`, and the last version it is given under
+  `/latest/download/<asset>`, as GitHub serves its latest release): the
+  archive for the running platform,
   whose `itos` is a shell script that appends its version, the
   `ITOS_VERSION` it ran with and its arguments to a file of the scenario's
   and exits with the code the scenario chose, and a real `checksums.txt`.
   Steps replace a release's `checksums.txt` or archive after the config pins
-  it. Every command's environment sets `ITOS_CACHE` to a folder of the
+  it, or make the server unreachable (itos is then given the address nothing
+  answers on, without `ITOS_NO_UPDATE`). The launcher's daily state in the
+  cache is never read by a step: a scenario tells "once a day" by what the
+  server was asked and what ran since the last run. Every command's environment sets `ITOS_CACHE` to a folder of the
   scenario's and `ITOS_RELEASES` to that server, or, with none, to an address
   nothing answers on beside `ITOS_NO_UPDATE=1`, so no scenario reaches the
   network or a real cache. The conformance runner does the same for every
@@ -292,10 +297,11 @@ mechanisms above, written against those modules, read across.
   so the version the launcher runs (to which it passes `ITOS_VERSION`) never
   launches again. It reads the config where `cli` does (`--config` or
   `ITOS_CONFIG`, under `--root`), from the working tree, and only its `pin`,
-  so a config written for a newer itos still reaches the version it pins; a
-  config with no pin, none, or one it cannot read (or whose pin fails
-  `config.PinVersion` and `config.PinChecksums`, the patterns config check
-  holds the keys to) runs the binary that was called. Otherwise `ensure`
+  so a config written for a newer itos still reaches the version it pins;
+  `readConfig` tells three states apart: `pinned`, `absent` (no file there at
+  all) and `unpinned` (a config with no pin, one it cannot read, or one whose
+  pin fails `config.PinVersion` and `config.PinChecksums`, the patterns config
+  check holds the keys to), which runs the binary that was called. Otherwise `ensure`
   finds `<cache>/<version>/itos` (`ITOS_CACHE`, else `itos/` under
   `os.UserCacheDir`), cached when present and, under a pin, when the
   `checksums.txt` beside it hashes to `pin.checksums`; else `fetch` gets
@@ -308,8 +314,29 @@ mechanisms above, written against those modules, read across.
   failure is one line on stderr and exit 3 (`cli.ExitMissing`), and nothing
   runs. `run` is `syscall.Exec` on unix, so the version run owns the
   process, its signals and its exit code, and a child whose exit code is
-  passed back elsewhere. Slice 28 adds the newest release where there is no
-  `itos.yaml`, at the branch of `choose` that now runs the called binary.
+  passed back elsewhere.
+- **Keeping to the newest release** (`internal/launch/update.go`, slice 28)
+  hangs off two branches of `choose`. `absent` calls `newest`, which runs the
+  newest of the binary's own version and the stable releases the cache holds
+  (`cachedVersions`: the `<version>` folders whose binary is there,
+  pre-releases left out, as GitHub's latest release is never one), after
+  `install`ing the release the server announces when the cache lacks it,
+  checked against the announced `checksums.txt` (`fetch` is the pinned path:
+  its `checksums.txt` held to the pin, then the same `install`). `pinned`
+  calls `notice` before the pin runs, even when the pin is this binary.
+  Both read `announced`: the newest version the server named, kept with the
+  time it was had in `<cache>/state/latest` ("<unix seconds> <version>"),
+  asked for again (`<base>/latest/download/checksums.txt`, its version read
+  from the archive names, within `askTimeout`, three seconds) only when that
+  is a day old and the run may ask (`CI` and `ITOS_NO_UPDATE` both unset). A
+  question with no answer is written as asked, so an offline machine pays
+  the timeout once a day. `notice` compares the announced version with the
+  pin (`version.Compare`), and says it once a day per repository, keyed by
+  the config's absolute path in `<cache>/state/notice-<hash>`, written
+  before the line is said so a cache it cannot write to stays silent rather
+  than saying it every run. Nothing here is ever an error: every failure
+  falls through to what the cache has. A binary built without a version
+  (`version.Unstamped`) runs itself where there is no config.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
   `ITOS_CONFIG`, after `--root`'s `chdir`), holds it to the schema
