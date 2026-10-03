@@ -2,9 +2,12 @@
 // requires: a list of comparators, each of >=, >, <=, <, = (or none) and a
 // version, all of which must hold. It is tools/itos/version.ts, ported.
 //
-// The version is package.json's, written nowhere else, so a release is still
-// one build commit to it and a tag: tools/bin/build-go.ts stamps it into the
-// binary with -ldflags "-X github.com/donvargax/itos/v2/internal/version.stamp=<v>".
+// The version is the release's tag, written nowhere in the tree (T-069): a
+// release's GoReleaser stamps it into the binary with -ldflags
+// "-X github.com/donvargax/itos/v2/internal/version.stamp=<v>", and
+// tools/bin/itos and tools/bin/build-go.ts stamp a build of a checkout with
+// the version tools/bin/dev-version reads from git describe (the release's at
+// its tag, 2.3.1-dev.5.g1234abc five commits after v2.3.0).
 // A binary built without the stamp says the module version Go records, which
 // `go install github.com/donvargax/itos/v2/cmd/itos@v<x>` sets (from v2 the
 // module path ends in its major version, as Go requires of a v2 tag).
@@ -17,7 +20,7 @@ import (
 	"unicode"
 )
 
-// stamp is package.json's version, set at link time by tools/bin/build-go.ts.
+// stamp is the version, set at link time (-ldflags -X).
 var stamp string
 
 // Unstamped is what a binary says it is when it was built with neither the
