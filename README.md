@@ -222,9 +222,13 @@ of its own. Install it from Claude Code:
 /plugin install itos@itos
 ```
 
-It calls the `itos` on your `PATH` (v2.3.0 or later; a global install,
-above, lets each repository's pin pick the version), in every repository
-you open, and does something only where itos manages the repository:
+It runs the itos the repository's own git hooks run, its `hooks.bin`, in
+every repository you open, and does something only where itos manages the
+repository. It asks the `itos` on your `PATH` for that value
+(`itos config get hooks.bin`, v2.4.0 or later); with no `itos` there, or an
+older one, it runs `tools/bin/itos` at the repository's top when that is
+executable, and else the `itos` on your `PATH` (v2.3.0 or later; a global
+install, above, lets each repository's pin pick the version).
 
 - **Titles.** An itos ID in Claude's replies is drawn with its title beside
   it, `T-066` as `` `T-066: The itos plugin for Claude Code` ``, and "slice 43"
@@ -245,7 +249,7 @@ you open, and does something only where itos manages the repository:
   command as bash does, so `git -C . commit` and `make && git push` are
   caught; `sh -c '…'`, `eval` and scripts are not looked into, and the hooks
   stay the gates. Under a pin older than v2.3.0 the launcher answers for the
-  hook with nothing; with no `itos` on the `PATH` the plugin answers nothing.
+  hook with nothing; with no itos found the plugin answers nothing.
 
 Try it in a repository itos manages: ask Claude what to work on next (it runs
 `itos work`, and the IDs in its answer carry their titles), or ask it to

@@ -738,7 +738,11 @@ working with itos (find work with `itos work`, commit with `itos commit --task`,
 in a repository with an itos config, answers a `git commit` or `git push` with the itos command to
 use instead: a guardrail for agents, a hook rather than permission rules, since a rule matches a
 command's prefix and `git -C . commit` slips past it; the commit-msg hook stays the gate. Its
-hooks call `itos`, so a repository's pin picks the version, and a pin older than the guard gets
+hooks run the itos the repository's git hooks run (T-073, the user's call): its effective
+`hooks.bin`, asked of the `itos` on the `PATH` with `itos config get hooks.bin`, a path resolved
+against the repository's top; with no answer (no `itos`, or one older than v2.4.0), the v2 default
+`tools/bin/itos` when it is executable; else the `itos` on the `PATH`. So a repository's own
+build or install script answers, and through the launcher its pin picks the version: a pin older than the guard gets
 no answer from the launcher rather than a block (slice 44, §7). `itos init` makes a repository ready,
 new (`git init` first) or existing: an `itos.yaml` from what it detects (`commits.since` at HEAD
 so history written before itos is never judged, the hook manager, a ledger and a registry, a
