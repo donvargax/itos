@@ -111,7 +111,13 @@ func (w *world) extensionRanIn(name, folder string) error {
 	if err != nil {
 		return err
 	}
-	if got := filepath.Clean(strings.TrimSpace(text)); got != want {
+	// Its links followed as the folder's are, which on windows also gives a
+	// short name (RUNNER~1) its long one.
+	got := strings.TrimSpace(text)
+	if real, err := filepath.EvalSymlinks(got); err == nil {
+		got = real
+	}
+	if got != want {
 		return fmt.Errorf("the extension %s ran in %s, not %s\n%s", name, got, want, w.report())
 	}
 	return nil
