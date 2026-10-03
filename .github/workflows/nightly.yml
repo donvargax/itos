@@ -16,6 +16,7 @@ permissions:
   contents: read
   issues: write # the Nightly red issue
   attestations: read # the newest release's, which T-069's check verifies
+  actions: read # the newest completed CI run's platform jobs, which T-072's check reads
 
 # A group of its own: the nightly never cancels a push's run, nor is cancelled
 # by one. A second nightly waits for the first.
