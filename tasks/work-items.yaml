@@ -1802,6 +1802,15 @@ items:
     kind: task
     refs: [tasks/phase-3.yaml]
 
+  - id: T-065
+    title: v2.2.0, git through itos
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-41]
+    kind: task
+    refs: [tasks/phase-3.yaml]
+
   - id: slice-29
     title: Extensions, itos <cmd> running itos-<cmd> from the PATH
     phase: 3

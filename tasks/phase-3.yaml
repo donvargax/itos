@@ -159,3 +159,26 @@
       timeout: 300
     - run: sh -c 'd=$(mktemp -d) && gh release download v2.1.0 --dir "$d" --pattern "itos-2.1.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
       after: push
+
+- id: T-065
+  type: build
+  title: v2.2.0, git through itos
+  why: >
+    The user's plan (2026-10-03): the second release after v2.0.0, additive,
+    asking nothing of a consumer. It carries slices 39 to 41 and the bug 7
+    fix: itos push, the config found from a subfolder, and the git shim
+    (git commit and git push as itos's in a repository itos manages,
+    everything else the real git's). The notes' Upgrading section holds every
+    Upgrading footer since v2.1.0 that says more than none, how to turn the
+    shim on and off, and the install lines of the new version. The user moves
+    the other repositories at v2.3.0, so nothing here may require a change of
+    them. Automated: the coordinator tags when CI, a nightly on the release
+    commit and the release checks are green, after reading the notes against
+    the range.
+  done_when:
+    - run: node tools/selftest/go-release.ts
+      timeout: 900
+    - run: node tools/selftest/release-notes.ts 2.2.0
+      timeout: 300
+    - run: sh -c 'd=$(mktemp -d) && gh release download v2.2.0 --dir "$d" --pattern "itos-2.2.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
+      after: push
