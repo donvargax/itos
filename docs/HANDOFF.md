@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 29 (extensions) landed.
+Last updated 2026-10-03, after slice 30 (the stealth config) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `ee198bd` (CI run 37091767777), slice 29's close; this
+`main` is green at `e90905e` (CI run 37092776284), slice 30's close; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -47,8 +47,9 @@ assets (five archives, `itos.schema.json`, `checksums.txt`) were downloaded
 and verified, and `go install github.com/donvargax/itos/v2/cmd/itos@v2.0.0`
 works (the module path is `/v2` since T-061). Releases are automated
 (PLAN.md, "Releases"). The user moves the consumers' pins from their own
-repositories: don't change any other repository. Unreleased: slices 27 to 29
-(the launcher, `pin`, the newest release and the notice, extensions) and
+repositories: don't change any other repository. Unreleased: slices 27 to 30
+(the launcher, `pin`, the newest release and the notice, extensions, the
+stealth config) and
 the `itos version` fix (issue #2).
 From v2.1.0 on, `tools/selftest/release-notes.ts` holds every `Upgrading:`
 footer of the range to the notes.
