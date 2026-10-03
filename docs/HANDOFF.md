@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after T-071 landed.
+Last updated 2026-10-03, after T-069 landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `2ef69ec` (CI run 37134154458), T-071's work; this
+`main` is green at `ff19610` (CI run 37136683207), T-069's work; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -62,7 +62,11 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
    `feat` or a `fix` with CI green cuts the release itself (version from the
    commits, GoReleaser, attestations, generated notes, no commit by the
    releaser), before v2.4.0's slices, so v2.4.0 is the first cut by CI.
-   Then `p3-plugin-project-itos` (the plugin runs what `hooks.bin` names).
+   T-069 landed: a feat or fix landing green now releases itself. Next
+   **bug 8** (issue #3, `tests smoke run` passing runner arguments), the
+   first release cut by CI (v2.3.1); then `p3-plugin-project-itos` (the
+   plugin runs what `hooks.bin` names). The nightly is red at T-069's
+   attestation check until that first release.
 3. **v2.4.0**: **`p3-pre-push-verify`**, **`p3-pin-bump`** and
    **`p3-itos-init`**.
 4. **After v2.4.0**: **`p3-human-waiver`** (`itos waive`, a plain config

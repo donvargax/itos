@@ -2466,19 +2466,20 @@ items:
       elsewhere and will port back, so a signature the launcher checks lands with it.
     refs: [PLAN.md]
 
-  - id: p1-smoke-run-arguments
-    title: tests smoke run passes the runner arguments not behind --, or refuses them
+  - id: bug-8
+    title: tests smoke run passes the runner arguments not behind --
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: []
-    kind: idea
+    depends_on: [T-069]
+    kind: slice
     why: >
-      Issue #3 (character-editor): itos tests smoke run <kind> --workers=1 drops --workers=1 without
-      a word, since internal/cli reads runner arguments only after a --. Asked for, the first
-      preferred: pass everything after <kind> to the runner, a -- still allowed; or refuse the
-      rest with exit 2, so a run never looks like it took a flag it did not.
-    refs: [internal/cli/commands.go]
+      Was p1-smoke-run-arguments, issue #3 (character-editor): itos tests smoke run <kind>
+      --workers=1 dropped --workers=1 without a word, since internal/cli read runner arguments
+      only after a --. Specified as @ID-SMOKE-01 and 02 in features/smoke.feature, the reporter's
+      first choice: everything after <kind> goes to the runner, a -- still taken and not passed
+      on. A fix, so the first release T-069 cuts by itself, a patch.
+    refs: [features/smoke.feature, internal/cli/commands.go]
 
   - id: p1-ledger-pattern-static-after-late
     title: config check reports a check static by ci.cost.static written below a late one
