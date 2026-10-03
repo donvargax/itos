@@ -751,7 +751,10 @@ SHA-256 of that release's `checksums.txt`, one hash for every platform), fetched
 checked; a config with no pin runs the binary that was called, and with no `itos.yaml`, or a stealth
 config (§5) that pins nothing, it runs the newest release, asked for at most once a day.
 `itos pin [<version>]` (slice 47) moves a pin to a release, the newest by default, writing both
-keys in place and committing nothing, so a bump is the project's own build commit. Later channels: the aqua or mise registry, a Homebrew tap,
+keys in place and committing nothing, so a bump is the project's own build commit. Asked for the
+version already pinned, it refuses (exit 1) when that release's `checksums.txt` no longer hashes to
+the pin, rather than re-pinning: the release changed after it was pinned, which the pin exists to
+catch (the user's call, 2026-10-03). Later channels: the aqua or mise registry, a Homebrew tap,
 npm (as `palitos`) and PyPI wrappers, signatures.
 
 **Adoption** (the user's calls, 2026-10-03). This repository is also a Claude Code plugin

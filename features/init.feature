@@ -116,3 +116,132 @@ Feature: itos init, a repository made ready for itos
     And the git config declares a "commit-msg" hook that runs itos
     When itos checks the config
     Then itos exits with code 0
+
+  # Slice 49: the Claude Code plugin (PLAN.md §10, "Adoption") is offered,
+  # through Claude Code's own CLI: claude plugin list --json to see whether
+  # itos@itos is installed, claude plugin marketplace add donvargax/itos and
+  # claude plugin install itos@itos, both with --scope, to install it.
+  # The offer is opt-in everywhere (the user's call, 2026-10-03): --plugin
+  # <scope> answers it, project, user, local or no, and a bare --plugin takes
+  # the mode's default scope, local under --stealth (.claude/settings.local.json,
+  # this project and this person only), project otherwise. On a terminal with
+  # no --plugin init asks, its default answer that same scope; anywhere else
+  # (an agent, CI) it installs nothing and says how to. Under --stealth project
+  # is refused, since it writes the committed .claude/settings.json, and the
+  # local settings file is listed in .git/info/exclude when git would
+  # otherwise show it. A plugin not installed is reported, never counted as
+  # missing: it is an offer. Given --plugin, init installs it even where a
+  # config already is, the flag being the ask.
+  @ID-INIT-10 @slice-49 @wip
+  Scenario: With --plugin init installs the itos plugin for Claude Code at that scope
+    Given a repository that does not use itos, its one commit "docs: start"
+    And a claude on the PATH that records its arguments
+    When itos runs "init --plugin project"
+    Then itos exits with code 0
+    And claude was given "plugin marketplace add donvargax/itos --scope project"
+    And claude was given "plugin install itos@itos --scope project"
+
+  @ID-INIT-11 @slice-49 @wip
+  Scenario: Away from a terminal and with no --plugin, init installs nothing and says how to
+    Given a repository that does not use itos, its one commit "docs: start"
+    And a claude on the PATH that records its arguments
+    When itos runs "init"
+    Then itos exits with code 0
+    And claude was not given "plugin install"
+    And its output says "--plugin"
+
+  @ID-INIT-12 @slice-49 @wip
+  Scenario: A plugin already installed is not installed again
+    Given a repository that does not use itos, its one commit "docs: start"
+    And a claude on the PATH that lists the plugin "itos@itos" as installed
+    When itos runs "init --plugin user"
+    Then itos exits with code 0
+    And claude was not given "plugin install"
+    And its output says "itos@itos"
+
+  @ID-INIT-13 @slice-49 @wip
+  Scenario: Under --stealth the plugin is not installed for the project, whose settings are committed
+    Given a repository that does not use itos, its one commit "docs: start"
+    And a claude on the PATH that records its arguments
+    When itos runs "init --stealth --plugin project"
+    Then itos exits with code 2
+    And its output says "--plugin local"
+    And claude was not given "plugin install"
+
+  @ID-INIT-14 @slice-49 @wip
+  Scenario: Without Claude Code on the PATH init says so and goes on
+    Given a repository that does not use itos, its one commit "docs: start"
+    And no claude on the PATH
+    When itos runs "init --plugin user"
+    Then itos exits with code 0
+    And its output says "Claude Code"
+    And the file ".git/hooks/commit-msg" calls itos
+
+  @ID-INIT-15 @slice-49 @wip
+  Scenario: Run again where the plugin is not installed, init reports it and still finds nothing missing
+    Given a repository that does not use itos, its one commit "docs: start"
+    And a claude on the PATH that records its arguments
+    And itos has already run "init"
+    When itos runs "init"
+    Then itos exits with code 0
+    And its output says "itos init --plugin"
+
+  @ID-INIT-16 @slice-49 @wip
+  Scenario: Under --stealth a bare --plugin installs it for this project alone, leaving git status clean
+    Given a repository that does not use itos, its one commit "docs: start"
+    And a claude on the PATH that records its arguments, writing .claude/settings.local.json as claude does
+    When itos runs "init --stealth --plugin"
+    Then itos exits with code 0
+    And claude was given "plugin install itos@itos --scope local"
+    And git status shows nothing to commit
+
+  @ID-INIT-17 @slice-49 @wip
+  Scenario: Under --stealth, away from a terminal and with no --plugin, init installs nothing and says how to
+    Given a repository that does not use itos, its one commit "docs: start"
+    And a claude on the PATH that records its arguments
+    When itos runs "init --stealth"
+    Then itos exits with code 0
+    And claude was not given "plugin install"
+    And its output says "--plugin"
+
+  # Slice 50: the git shim (PLAN.md §7) is offered as the plugin is:
+  # --git-shim installs it as git-shim install does (--git-shim-dir is its
+  # --dir), --no-git-shim declines, a terminal is asked, anywhere else
+  # nothing is installed and the report says how. The report also says, never
+  # counting them as missing, a pin behind the newest release (naming itos
+  # pin) and a people file the config names but the repository lacks.
+  @ID-INIT-18 @slice-50 @wip
+  Scenario: With --git-shim init links itos as git in the folder given
+    Given a repository that does not use itos, its one commit "docs: start"
+    And a "shims" folder
+    When itos runs "init --git-shim --git-shim-dir shims"
+    Then itos exits with code 0
+    And "shims/git" is a link to itos
+
+  @ID-INIT-19 @slice-50 @wip
+  Scenario: Away from a terminal and with no --git-shim, init links nothing and says how to
+    Given a repository that does not use itos, its one commit "docs: start"
+    When itos runs "init"
+    Then itos exits with code 0
+    And its output says "--git-shim"
+
+  @ID-INIT-20 @slice-50 @wip
+  Scenario: Run again where the pin is behind the newest release, init says so and names itos pin
+    Given a release server offering the versions "9.1.0" and "9.2.0"
+    And a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init"
+    And itos has already run "pin 9.1.0"
+    When itos runs "init"
+    Then itos exits with code 0
+    And its output says "9.2.0"
+    And its output says "itos pin"
+
+  # The starter names no work section, so the people file is the default,
+  # CONTRIBUTORS.md, which init does not write; config check only warns.
+  @ID-INIT-21 @slice-50 @wip
+  Scenario: Run again where the people file the config names is missing, init says which file and goes on
+    Given a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init"
+    When itos runs "init"
+    Then itos exits with code 0
+    And its output says "CONTRIBUTORS.md"
