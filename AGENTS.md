@@ -264,11 +264,11 @@ push to `main` too, so expect the remote to have moved while you worked.
    else while it runs. If it's red, read `gh run view <id> --log-failed`, fix
    the cause with a commit of the right type, and push again until it's
    green.
-3. Report the green run's URL with your results. **Done is that run green
-   and the next nightly green for what your change reaches**: a push runs
-   the smoke set and what your commits name, the whole suite runs nightly,
-   and a nightly red on a scenario your change reaches is yours the next
-   morning, before new work.
+3. Report the green run's URL with your results. **Done is that run green**,
+   and don't hand back while it runs. CI is the fast feedback; the nightly is
+   the slow one (every feature, the gates' self-tests, every done task's
+   checks), and a red nightly on what your change reaches is the next
+   session's first item, before new work.
 
 There is no changelog to write and no release to cut: the changelog is
 generated from the commits, so each commit's body is its entry, what changed

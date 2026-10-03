@@ -134,6 +134,15 @@ and the registry; a branch is one more thing to clean up.
 
 ## Brief for an implementing subagent
 
+A brief is a message to one agent, kept nowhere: once the agent hands back,
+nothing reads it again. So **every decision goes into the spec before the
+agent starts** (the scenarios and the comments above them, the item's or
+the task's `why`, `PLAN.md`), and the brief points at it. A decision only a
+brief holds is lost with the agent; a brief that needs more than the slice,
+the reads and what is new since the spec was written is a sign the spec is
+incomplete (the user's call, 2026-10-03; `p1-work-brief` becomes
+`itos work show <item>`, the reads listed by itos).
+
 Fill in the slice, its scenarios or task and the reads specific to it; keep
 the rest.
 
@@ -295,25 +304,27 @@ teaches you a new one, stated as the rule and its reason.
 
 The user keeps refining `PLAN.md`, the feature files and the ledger while
 implementation is in flight, so this is the normal case, not an
-interruption. A subagent without a worktree of its own works in **this same
-working tree, with the same index**, so:
+interruption. A subagent without a worktree of its own works in the main
+checkout, with its index, so:
 
-- **Don't stage or commit while an agent is running.** Not even with explicit
-  paths. A commit takes everything in the index, and the agent's staged
-  files are in it too; and two pre-commit hooks at once break `vp staged`'s
-  backup and restore of the index, which can reset the tree to HEAD and leave
-  both sessions' work only in that backup. Explicit `git add` paths protect
-  against sweeping the agent's _unstaged_ files and nothing else.
-- **Keep your edits in the scratchpad until the agent reports**: new files as
-  copies, changes to existing files as a patch (`git diff > …`), plus a note
-  of what to commit and why. Apply and commit them once the agent has pushed
-  and handed back; then push them yourself.
+- **Commit docs from a worktree of your own**, never from the main checkout
+  while an agent runs (the user's call, 2026-10-03). Its branch tracks
+  `origin/main` (`git worktree add -b coord-docs .claude/worktrees/coord-docs
+  origin/main`, then `git branch --set-upstream-to=origin/main coord-docs`
+  and a `node_modules` link to the main checkout's), and `tools/bin/itos
+  push` there rebases and pushes as anywhere. It is safe because the paths
+  are disjoint by construction: a coordinator's commits are `docs` commits
+  (`docs/**`, `**/*.md`, `tasks/**`, feature files), an implementing agent's
+  are the code. The one overlap is `tasks/work-items.yaml`, which the agent's
+  closing commit edits: leave the registry, and a feature file the agent is
+  turning live, to after it hands back.
+- **Don't stage or commit in the main checkout while an agent is running.**
+  A commit takes everything in the index, the agent's staged files too; and
+  two pre-commit hooks at once break `vp staged`'s backup and restore of the
+  index, which can reset the tree to HEAD and leave both sessions' work only
+  in that backup.
 - **Don't touch what the agent is writing.** `docs/HANDOFF.md` is yours, not
-  the agent's: update it after every landing (step 3 of the loop), and at
-  the end of the session trim it so it says only what the next one should
-  do. A `refactor` or `perf` agent may not touch feature
-  files at all, so those, `PLAN.md` and `tasks/*.yaml` are usually safe to
-  prepare — but prepare them, don't commit them.
+  the agent's: update it after every landing (step 3 of the loop).
 - **If the tree is lost anyway**, the hook's backup is still in the object
   store: `git fsck --no-reflog --unreachable`, and the newest `WIP on main`
   commit is the working tree (its second parent, `index on main`, is what was
@@ -334,11 +345,13 @@ name); every feature runs nightly. Don't re-run what these cover. Check only:
 
 - CI is green for the last pushed commit:
   `gh run list --commit <full sha> --json conclusion --jq '.[0].conclusion'`.
-- **And the next nightly is green for what the slice reaches.** A push runs
-  the smoke set and what its commits name; the whole suite runs nightly. A
-  slice is done when the nightly after it is green too, or red only on what
-  it did not touch; a red on a scenario it reaches is that slice's, the next
-  morning, before new work.
+- That run is the slice's done. The nightly is the slow feedback, read at
+  the start of each session (the loop's first step): a red one is the first
+  item, a fix for whichever slice reached what failed. Push CI may run more
+  than the smoke set while that is cheap (every feature on three platforms
+  today, T-072); when it gets slow, it drops back to the smoke set and the
+  nightly carries the rest, the user's call (2026-10-03), which is why every
+  feature file keeps a smoke entry.
 - Nothing is left unpushed (`git status -sb` shows no "ahead").
 - No `@slice-<n>` scenario is still `@wip` without a reason in the report.
 - The slice's commits say why in their bodies
