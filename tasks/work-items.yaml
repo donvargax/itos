@@ -2049,7 +2049,7 @@ items:
     title: In stealth mode verify and ci plan judge the person's unpushed commits by default
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-32]
     kind: slice
     why: >
@@ -2421,3 +2421,17 @@ items:
       both run on every commit and push. hooks install --manager git-config could say so, or remove
       a file there that isShim takes for itos's, as itos init's doctor run would report it.
     refs: [internal/cli/gitconfig.go, README.md]
+
+  - id: p3-stealth-ci-run-unpushed
+    title: In stealth mode ci run and ci scope with no range take the person's unpushed commits
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-34]
+    kind: idea
+    why: >
+      Found in slice 34: under a stealth config ci plan with no range plans HEAD --not --remotes,
+      but ci run with no range still runs every step and every test, so it does not carry out what
+      ci plan prints, and ci scope with no range is a usage error. Both could take git.Unpushed as
+      verify and ci plan do, with a scenario each.
+    refs: [internal/cli/commands.go, features/stealth.feature]

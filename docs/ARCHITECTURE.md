@@ -112,6 +112,10 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   name on the scenario's `PATH` that runs the itos under test (a link would
   not do: `tools/bin/itos` finds its checkout from its own path), and runs
   it once, so a hook that cannot start does not pass for one that refuses.
+  A remote is a bare repository in the support folder that the scratch
+  repository pushes its branch to with `origin` set, so `--remotes` sees it
+  and the itos notes stay behind; a task's check in a stealth ledger is
+  written in the git folder and not staged.
 - **itos commit's scenarios** (`commit_test.go`, `commit-command.feature`):
   the commit-msg hook is a shim in git's own hooks folder
   (`git rev-parse --git-path hooks`) that runs the itos under test, so a
@@ -484,6 +488,24 @@ mechanisms above, written against those modules, read across.
   `message.Note` of each commit. The range readers, `IDsIn` (ci plan's
   named tasks) and `Gathered` (`commit footers`), log `%N` with
   `--no-notes --notes=refs/notes/itos` in place of `%B`.
+- **The stealth mode's range** (`internal/git/unpushed.go`, slice 34) is
+  the person's unpushed commits, `HEAD --not --remotes` (every commit of
+  HEAD with no remote), which `verify` and `ci plan` take when given no
+  range under a stealth config; `internal/cli/commands.go` asks
+  `config.IsStealth(config.Path())` before the usage error, so a project's
+  is unchanged and needs no config load. A range's start is a string
+  everywhere a range goes, so these commits are the range from
+  `git.Unpushed` (`"--remotes"`), and `git.Revs(from, to)` is the arguments
+  `git rev-list` and `git log` take for any range: `from..to`, or
+  `to --not --remotes`. Its readers: `cfg.RangeArgs` (verify's commits,
+  `^<commits.since>` put first, since `--not` turns round what follows),
+  `message.IDsIn` (ci plan's tasks and scenarios) and `plan.Readable`;
+  `plan.Changed` takes `git.UnpushedPaths`, the paths its commits touch,
+  there being no one commit to diff from in general; `tests.RangeCommands`
+  gives `{from}` `git.UnpushedBase`, the pushed commit they grow from (one
+  boundary of `rev-list --boundary` left by `merge-base --independent`),
+  the end itself when nothing is unpushed, else empty, as a new branch's;
+  and `plan.RangeOf` gives the JSON's `from` as `--remotes`.
 - **YAML as JavaScript reads it** (`internal/value`). go.yaml.in/yaml/v3
   parses, but every value is JavaScript's: each plain scalar is resolved by
   the YAML 1.2 core schema the `yaml` package uses (yaml/v3 would read `017`
@@ -699,6 +721,8 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
 --format=%B from..to`, newest first). That range is `from..to` as the
   TypeScript's plan read it: `commits.since` does not narrow it, as it
   narrows verify's, and an empty start reads nothing and runs every test.
+  A stealth config's `ci plan` with no range plans the unpushed commits
+  (`git.Unpushed`, above).
 - **CI's driver** is `internal/ci` (`ci.ts`'s `ciRun`), with `ci run` in
   `internal/cli/ci.go` making the plan as `ci plan` does and handing it over:
   the driver never plans, so a run carries out what `ci plan` prints. It sets

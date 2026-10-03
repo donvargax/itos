@@ -201,8 +201,9 @@ without `itos commit` and a footer typed into the message, each naming the
 HEAD's note; itos adds `refs/notes/itos` to `notes.rewriteRef` in the local
 config, so an amend or a rebase carries the note; verify, ci plan's named
 tasks and `commit footers` read each commit's note. A project's config keeps
-its footers in the message. Slices 33 and 34 declare the hooks in the git
-config and judge the person's unpushed commits (`features/stealth.feature`). This repository's own `itos.yaml` is
+its footers in the message. Slice 33 declares the hooks in the git config,
+and slice 34 has verify and ci plan given no range judge the person's
+unpushed commits (§7, `features/stealth.feature`). This repository's own `itos.yaml` is
 the worked example, every table commented; `tasks/README.md` explains the
 policy it sets.
 
@@ -334,10 +335,10 @@ built-in command and before the name for an extension.
 | `commit [--task <id>] [--scenarios <ids>] [<git commit args>…]`         | `git commit` with the footers itos writes from its flags, as git's `--trailer`; the hooks judge them as typed ones, and git's exit code is itos's.                                          |
 | `commit check-message <file\|->`, `commit check-paths --type <t> <p>…`  | The header lint and the footer rules on one message; the scope rules alone, to plan a split.                                                                                                |
 | `commit footers <name> <from> <to>`                                     | A range's free-text footers with their commits, leaving out `none`, for a release's notes.                                                                                                  |
-| `verify <from> <to>`                                                    | Re-checks every non-merge commit of the range after `commits.since` (message with footers at that commit, paths, the built-in moves rule against its parent), then each range command once. |
+| `verify <from> <to>`, `verify` (stealth)                                | Re-checks every non-merge commit of the range after `commits.since` (message with footers at that commit, paths, the built-in moves rule against its parent), then each range command once. |
 | `tests list <kind> [--at <tree>]`, `tests smoke check\|ids\|run <kind>` | The adapter's listing; the smoke rule, the smoke IDs, the smoke run.                                                                                                                        |
 | `tests moves <kind>`                                                    | The staged feature files against HEAD's by the built-in moves rule, by hand.                                                                                                                |
-| `ci plan <from> <to>`, `ci run [<from> <to>]`, `--nightly`              | Prints the plan; runs it, stopping at the first failure unless `ci.stop_at_first_failure` is false.                                                                                         |
+| `ci plan [<from> <to>]`, `ci run [<from> <to>]`, `--nightly`            | Prints the plan (with no range, only in stealth mode); runs it, stopping at the first failure unless `ci.stop_at_first_failure` is false.                                                   |
 | `ci scope <from> <to>`, `ci range --head <sha> [--base <sha>]`          | Whether a range is prose only; where a push's range starts.                                                                                                                                 |
 | `hook commit-msg <file>`, `hook pre-push <remote> <url>`                | The hooks' entry points.                                                                                                                                                                    |
 | `hooks install [--manager <m>] [--print] [--force]`                     | Writes the one-line shims for the hook manager it detects, or prints its snippet; under a stealth config, declares the hooks in the git config.                                             |
@@ -391,6 +392,19 @@ nothing, and a git that does not run config hooks (asked by `git hook list`
 of a hook declared with `-c`, the feature rather than a version) exits 3.
 With `itos commit`'s note (slice 32) and a `hooks.bin` of `itos` (slice 35),
 the stealth mode then touches nothing tracked and nothing shared.
+
+**The person's own commits** (slice 34): in a repository that does not use
+itos, others' commits follow no rules of the person's, so under a stealth
+config `verify` and `ci plan` given no range judge the commits of HEAD on no
+remote branch, `HEAD --not --remotes`: the person's, not yet pushed, and
+every commit of HEAD when there is no remote. Their footers come from each
+commit's note (slice 32). In a project both still require their range, the
+usage error unchanged, and a range given in stealth mode is read as before.
+The range starts at `--remotes` (`git.Unpushed`), which `ci plan --json`
+gives as its `from`; the files it touched, for the prose shortcut, are the
+paths its commits touch, and a range command's `{from}` is the pushed commit
+they grow from, empty as a new branch's when there is none or several.
+`ci run` with no range still runs every step and every test.
 
 **Exit codes:** 0 success; 1 a policy failure (a check failed, a commit
 rejected, an unknown task); 2 a usage or config error, a file or folder the
@@ -503,8 +517,9 @@ Each step is reverted, never forced, if it goes wrong. After v2, features are
 built once, in Go: extensions (`itos-<cmd>` on `PATH`; done, slice 29, §7), the stealth mode and
 the GitHub modes. The stealth mode's config in the git folder is done (slice
 30, §5), and so is `itos commit`, which writes a commit's footers from its
-flags (slice 31, §7), and the stealth mode's footers in git notes (slice 32,
-§5); its hooks and its range follow (slices 33 and 34).
+flags (slice 31, §7), the stealth mode's footers in git notes (slice 32,
+§5), its hooks in the git config (slice 33, §7) and its range, the person's
+unpushed commits (slice 34, §7); its defaults follow (slice 35).
 
 ## 10. Distribution
 

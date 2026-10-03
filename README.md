@@ -234,6 +234,12 @@ and a footer typed into the message. `itos commit` adds `refs/notes/itos` to
 plain git passes the hook on the note it will carry. `itos verify`, `ci plan`
 and `itos commit footers` read each commit's footers from its note.
 
+Others' commits here follow none of your rules, so `itos verify` and `itos ci
+plan` with no range judge only yours: the commits of HEAD that no remote
+branch has (`git rev-list HEAD --not --remotes`), every commit when there is
+no remote. Run `itos verify` before you push, and it checks exactly what the
+push will send. In a project's own repository both still need `<from> <to>`.
+
 ## Working on it
 
 ```sh
