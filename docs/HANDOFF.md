@@ -54,26 +54,27 @@ footer of the range to the notes.
 
 ## Next
 
-1. **Phase 3 is done.** What waits, none blocking: the release cut by CI
-   (`p1-itos-release`), `p1-verify-with-last-release`, the HTTP providers
-   (after `p1-conformance-http`), `p2-no-workflow-labels-check`,
-   `p3-architecture-go-names`, `p3-header-lint-unread-keys` (a warning,
-   never a refusal), `p3-header-case-decomposition`, `p3-text-footer-lines`,
-   and the small `p1-*` config-check refinements. The user picks what comes
-   next among them and item 2.
-2. **After v2, built once in Go:** `p3-claude-code-plugin` (the local
-   itos-titles mod, published from this repository), `p3-self-update` (a
-   global itos as a version manager: automatic self-update, an exact pin, a
-   plain note when a newer version is out), `p3-extensions` (`itos-<cmd>` on the
-   PATH, a trivial `itos-hello` first); `p2-stealth-mode` (config, ledger and
-   registry under `.git/itos/`, found with no environment variable; the task
-   link in git notes, never a footer; hooks that chain to the project's own);
-   `p2-github-hybrid` (issues as a second source of work items) and
-   `p2-github-pure` (the registry as GitHub itself; labels or Projects is
-   open for the user). Each is specified as scenarios when its turn comes.
-3. **The hand work that could be itos's** (the block above phase 2 in the
-   registry), as extensions where it fits: `p1-itos-push`, `p1-ci-watch`.
-4. Continue with what `tools/bin/itos work` proposes.
+The user's order (2026-10-02), one slice at a time:
+
+1. **Self-update**: slice 27 (`features/pin.feature`, the launcher runs a
+   repository's pin; carries issue #2 as `@bug-4`), then slice 28
+   (`features/update.feature`, the newest release and the notice). Specified.
+2. **`p3-extensions`**: `itos-<cmd>` on the PATH, `itos-hello` first.
+3. **`p2-stealth-mode`**.
+4. **`p3-claude-code-plugin`**, the itos-titles mod published from here.
+5. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
+   open for the user).
+
+Each is specified as scenarios when its turn comes. Left for later, the
+user's: the release cut by CI (`p1-itos-release`), which the user solves
+elsewhere and ports back, and with it `p3-release-signatures`. Waiting, none
+blocking: issues #3 and #4 (`p1-smoke-run-arguments`,
+`p1-ledger-pattern-static-after-late`), `p1-verify-with-last-release`, the
+HTTP providers (after `p1-conformance-http`), `p2-no-workflow-labels-check`,
+`p3-architecture-go-names`, `p3-header-lint-unread-keys`,
+`p3-header-case-decomposition`, `p3-text-footer-lines`, the small `p1-*`
+config-check refinements, and the hand work as extensions (`p1-itos-push`,
+`p1-ci-watch`).
 
 Deferred, the user's to lift: `p1-backport-code-design`. The user is writing
 code-design rules (vertical slices, no mocks, unit tests for the core and

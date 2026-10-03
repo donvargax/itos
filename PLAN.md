@@ -441,7 +441,11 @@ it installs on first use, in a clone and on a CI runner alike, and does
 nothing once that version is there (v2.0.0's Upgrading); Go developers can
 `go install github.com/donvargax/itos/v2/cmd/itos@<version>` (the module path
 ends in its major version from v2, as Go requires). A version bump is
-one `build` commit. Later channels: the aqua or mise registry, a Homebrew tap,
+one `build` commit. A global install (slices 27 and 28): the installed binary is a launcher,
+never rewritten, that runs the version a repository pins (`pin.version`, and `pin.checksums`, the
+SHA-256 of that release's `checksums.txt`, one hash for every platform), fetched into a cache and
+checked; a config with no pin runs the binary that was called, and with no `itos.yaml` it runs the
+newest release, asked for at most once a day. Later channels: the aqua or mise registry, a Homebrew tap,
 npm (as `palitos`) and PyPI wrappers, signatures.
 
 v0 releases are the TypeScript packed to JavaScript, since Node strips types

@@ -1781,8 +1781,10 @@ items:
       does not have runs itos-<cmd> found on the PATH (the PATH only, the user's call), with the
       rest of the arguments and its exit code; built-ins always win; the global flags apply first
       and reach it as ITOS_CONFIG, ITOS_ROOT, ITOS_BIN, ITOS_VERSION and ITOS_JSON; itos help <cmd>
-      runs itos-<cmd> --help and itos --help lists the extensions found. The first is a trivial
-      one, itos-hello printing what it received, to prove the mechanism; the hand work
+      runs itos-<cmd> --help and itos --help lists the extensions found. ITOS_VERSION means what
+      the launcher reads (slice 27): an extension calling itos back runs the same version. The
+      first is a trivial one, itos-hello printing what it received, to prove the mechanism; the
+      hand work
       (itos push, itos ci watch, the inbox) can follow as extensions.
     refs: [PLAN.md]
 
@@ -1989,29 +1991,85 @@ items:
       later for other itos-aware pieces: an inbox pane, main's CI in the status line.
     refs: [PLAN.md]
 
-  - id: p3-self-update
-    title: A global itos that updates itself and runs each repository's pinned version
+  - id: slice-27
+    title: A global itos runs the version a repository pins
     phase: 3
     owner: donvargax
     status: todo
     depends_on: [T-061]
+    kind: slice
+    why: >
+      Was p3-self-update, the user's idea (2026-10-02): install itos once, globally, instead of in
+      each repository, without breaking the pin each repository relies on (PLAN.md §10). The
+      user's answers (2026-10-02): the installed binary is a launcher that is never rewritten; it
+      fetches the version to run into a cache (ITOS_CACHE), checks it and runs it with the same
+      arguments and exit code. A repository pins pin.version and pin.checksums, the SHA-256 of that
+      release's checksums.txt, one hash for every platform; requires stays the oldest itos that
+      reads the config. ITOS_VERSION forces a version and is set for the version run, so it does
+      not launch again; ITOS_RELEASES names the release server, so a scenario serves its own.
+      Signatures wait for p3-release-signatures. The coordinator's call: a config with no pin runs
+      the binary that was called, so a repository installing itos by script or from source keeps
+      it. Carries issue #2 (itos version outside a project) as @bug-4. Specified in
+      features/pin.feature.
+    refs: [features/pin.feature, PLAN.md]
+
+  - id: slice-28
+    title: A global itos keeps to the newest release, and says when a pin falls behind
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-27]
+    kind: slice
+    why: >
+      The rest of p3-self-update: the launcher asks for the newest release at most once a day,
+      only where the answer is used, and runs it where there is no itos.yaml; where a pin is older
+      it says so on stderr once a day per repository, "itos 2.1.0 is out (this repository pins
+      2.0.0): <release notes URL>". Never in CI; ITOS_NO_UPDATE=1 stops the asking,
+      ITOS_NO_UPDATE_NOTICE=1 the saying. Nothing more, the user's answers kept simple on purpose:
+      no wording aimed at agents, no notice in --json, no range-aware notices, no config key to
+      silence a team. Specified in features/update.feature.
+    refs: [features/update.feature, PLAN.md]
+
+  - id: p3-release-signatures
+    title: Signed releases, checked by the launcher before it trusts checksums.txt
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-27, p1-itos-release]
     kind: idea
     why: >
-      The user's idea (2026-10-02): install itos once, globally, instead of in each repository. A
-      plain self-updating binary would break the pin each repository relies on (PLAN.md §10), so the
-      proposal is a version manager, as rustup or corepack: the global itos updates itself, and in a
-      repository it downloads the exact version the repository pins into a cache, checks it against
-      the pinned checksum and runs it; with no pin (the stealth mode, a repository without itos) the
-      newest it has. ITOS_NO_UPDATE=1 stops self-update, ITOS_VERSION forces a version, CI never
-      self-updates, and releases are signed so an update checks a signature. The user's answers
-      (2026-10-02), kept simple on purpose: the manager updates itself automatically; a repository
-      pins one exact version (a key beside requires, which stays the oldest itos that reads the
-      config); when a newer version is out, a plain note at most once a day per repository,
-      "itos 2.1.0 is out (this repository pins 2.0.0): <release notes URL>", never in CI;
-      ITOS_NO_UPDATE_NOTICE=1 silences it, ITOS_NO_UPDATE=1 stops self-update. Nothing more: no
-      wording aimed at agents, no notice in --json, no range-aware notices, no config key to silence
-      a team.
+      The user's call (2026-10-02): the launcher trusts checksums over HTTPS for now, and a pin's
+      hash of checksums.txt; signing belongs to the release cut by CI, which the user is solving
+      elsewhere and will port back, so a signature the launcher checks lands with it.
     refs: [PLAN.md]
+
+  - id: p1-smoke-run-arguments
+    title: tests smoke run passes the runner arguments not behind --, or refuses them
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #3 (character-editor): itos tests smoke run <kind> --workers=1 drops --workers=1 without
+      a word, since internal/cli reads runner arguments only after a --. Asked for, the first
+      preferred: pass everything after <kind> to the runner, a -- still allowed; or refuse the
+      rest with exit 2, so a run never looks like it took a flag it did not.
+    refs: [internal/cli/commands.go]
+
+  - id: p1-ledger-pattern-static-after-late
+    title: config check reports a check static by ci.cost.static written below a late one
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #4: ledger-static-after-late (internal/ledger, orderProblems) sees only an explicit
+      cost: static, so with keep_written_order a check static by a ci.cost.static pattern below a
+      late one runs late without a word, and the hook and the nightly's done-task step leave it
+      out. Asked for: report it too, as a problem or at least a warning.
+    refs: [internal/ledger/ledger.go]
 
   - id: slice-26
     title: A free-text footer that says what a consumer changes, gathered for the release notes
