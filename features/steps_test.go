@@ -72,6 +72,7 @@ type scratchConfig struct {
 	hooksBin          string      // hooks.bin
 	ledgerFooter      string      // the key of the footer whose source is the ledger; Task when empty
 	textFooter        *textFooter // a footer of free text
+	featMustTouch     string      // commits.scopes.feat.must_touch, one glob, when set
 	ledgerFiles       string      // ledger.files; tasks/phase-{group}.yaml when empty
 	prosePaths        string      // ci.prose.paths, one glob
 	proseSteps        string      // ci.prose.steps, one command
@@ -162,6 +163,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.commitOnTop(message + "\n\nTask: " + task + "\n" + footer + "\n")
 	})
 	sc.Step(`^the config requires an? "([^"]*)" footer of free text for "([^"]*)"$`, w.requiresTextFooter)
+	sc.Step(`^the config's feat commits must touch "([^"]*)"$`, func(glob string) error {
+		w.config.featMustTouch = glob
+		return w.writeConfig()
+	})
 	sc.Step(`^the "([^"]*)" footer is required only after HEAD$`, w.textFooterSinceHead)
 	sc.Step(`^the ledger footer is called "([^"]*)"$`, w.ledgerFooterIs)
 	sc.Step(`^the ledger's files are "([^"]*)"$`, w.ledgerFilesAre)
@@ -481,6 +486,9 @@ func (w *world) writeConfig() error {
 	b.WriteString(`  scopes:
     docs: { only: ["**/*.md", "docs/**", "tasks/**"] }
 `)
+	if w.config.featMustTouch != "" {
+		fmt.Fprintf(&b, "    feat: { must_touch: [%q] }\n", w.config.featMustTouch)
+	}
 	if w.config.since != "" {
 		fmt.Fprintf(&b, "  since: %q\n", w.config.since)
 	}
@@ -1074,13 +1082,18 @@ func (w *world) registryUnlistedGroup(item, group string) error {
 }
 
 // A feature file under features/ with one live scenario, which the config's
-// scenario kind (with a smoke set) reads.
+// scenario kind (with a smoke set) reads, staged, so a commit made next adds
+// it, as a feat adds the scenario it names.
 func (w *world) featureFile(file, id string) error {
 	if w.scenarioFiles == nil {
 		w.scenarioFiles = map[string]string{}
 	}
 	w.scenarioFiles[id] = file
-	if err := w.write(filepath.Join("features", file), featureText(file, id)); err != nil {
+	path := filepath.Join("features", file)
+	if err := w.write(path, featureText(file, id)); err != nil {
+		return err
+	}
+	if err := w.git("add", "--", path); err != nil {
 		return err
 	}
 	w.config.smoke = true

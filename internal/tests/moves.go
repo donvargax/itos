@@ -14,9 +14,9 @@ package tests
 // is compared: a reason may be written beside a scenario in any commit.
 //
 // One judgement, Moves.Between, and its callers: the commit-msg hook judges
-// HEAD against the index (Staged), verify each commit of its range against
-// its parent (Commit), and `itos tests moves <kind>` HEAD against the index
-// by hand (Index).
+// HEAD against the index, or for an amend HEAD's parent against it, verify
+// each commit of its range against its parent (Commit), and `itos tests
+// moves <kind>` HEAD against the index by hand (Index).
 
 import (
 	"regexp"
@@ -267,9 +267,6 @@ func (m *Moves) Between(typ, before, after string) ([]out.Problem, error) {
 	}
 	return found, nil
 }
-
-// Staged is the commit-msg hook's moves rule: HEAD against the index.
-func (m *Moves) Staged(typ string) ([]out.Problem, error) { return m.Between(typ, "HEAD", "index") }
 
 // Commit is verify's moves rule for one commit: the commit against its
 // parent, or the empty tree for a root commit. Nothing is read when no check

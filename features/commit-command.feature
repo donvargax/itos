@@ -112,7 +112,7 @@ Feature: itos commit, a commit whose footers itos writes
   # met it). An amend is judged as the commit it makes: its parent's tree
   # against the new one. The scratch config gives feat no path rule of its
   # own, so the scenario sets one, or the amend would pass either way.
-  @ID-COMMITCMD-12 @bug-6 @wip
+  @ID-COMMITCMD-12 @bug-6
   Scenario: An amend that changes only the message of a feat is judged by the paths of the commit it makes
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     And the config's feat commits must touch "features/**"

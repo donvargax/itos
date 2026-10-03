@@ -302,8 +302,10 @@ here), as staged, in written order up to its first late one (CI's cost rule;
 an after: push check waits), each capped at hooks.commit_msg.check_timeout
 seconds (60). A failure rejects the commit when
 the task's work item is done, and is printed with the task's status otherwise.
-hooks.commit_msg.task_checks: false runs none. The first to fail prints its
-report and decides: exit 1, or the header lint's own code.`,
+hooks.commit_msg.task_checks: false runs none. An amend, which itos commit
+says in ITOS_AMEND (else an author HEAD's to the second), is judged as the
+commit it makes: its staged files against HEAD's parent. The first to fail
+prints its report and decides: exit 1, or the header lint's own code.`,
 
 	"hook pre-push": `Usage: itos hook pre-push <remote> <url>
 

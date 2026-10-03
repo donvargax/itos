@@ -39,14 +39,31 @@ import (
 )
 
 // stagedFiles are the paths the commit stages, as git names them (repo.ts's
-// stagedFiles): added, copied, modified, renamed or deleted.
-func stagedFiles() ([]string, error) {
-	return git.Lines("diff", "--cached", "--name-only", "--diff-filter=ACMRD")
+// stagedFiles): added, copied, modified, renamed or deleted, against base,
+// or against HEAD when base is "".
+func stagedFiles(base string) ([]string, error) {
+	args := []string{"diff", "--cached", "--name-only", "--diff-filter=ACMRD"}
+	if base != "" {
+		args = append(args, base)
+	}
+	return git.Lines(args...)
+}
+
+// judgedBase is the commit the commit being made is judged against, "" for
+// HEAD: an amend is judged as the commit it makes (bug 6), so against HEAD's
+// parent, the empty tree for a root commit, never against the commit it
+// replaces, which would leave a reworded amend touching nothing.
+func judgedBase() string {
+	if !amending() {
+		return ""
+	}
+	return git.Parent("HEAD")
 }
 
 // hookCommitMsg is `hook commit-msg <file>` (hooks.ts's hookCommitMsg).
 func hookCommitMsg(file string, o Out) (int, error) {
-	if code, err := stagedDataRule(o); code != 0 || err != nil {
+	base := judgedBase()
+	if code, err := stagedDataRule(base, o); code != 0 || err != nil {
 		return code, err
 	}
 	text, err := source.Worktree.Read(file)
@@ -57,7 +74,7 @@ func hookCommitMsg(file string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if code, err := stagedRule(cfg, text, o); code != 0 || err != nil {
+	if code, err := stagedRule(cfg, text, base, o); code != 0 || err != nil {
 		return code, err
 	}
 	reading := message.Reading{At: os.Getenv("ITOS_AT"), Warn: o.Stderr}
@@ -159,9 +176,9 @@ func stagesData(staged []string) bool {
 // (commit-data.ts's stagedDataIssues): config check's findings when the
 // commit stages any of itos's data, data that cannot be read one problem
 // saying so; and the rejection's first line, commits.reject_message as
-// staged, if it loads.
-func stagedDataIssues() ([]out.Problem, string, error) {
-	staged, err := stagedFiles()
+// staged, if it loads. The staged paths are against base, as stagedFiles.
+func stagedDataIssues(base string) ([]out.Problem, string, error) {
+	staged, err := stagedFiles(base)
 	if err != nil {
 		return nil, "", err
 	}
@@ -194,8 +211,8 @@ func stagedDataIssues() ([]out.Problem, string, error) {
 // stagedDataRule is the hook's first rule (commit-data.ts's hook): 0 when the
 // staged data is sound or none is staged, else the rejection, its problems
 // one a line, and 1.
-func stagedDataRule(o Out) (int, error) {
-	found, header, err := stagedDataIssues()
+func stagedDataRule(base string, o Out) (int, error) {
+	found, header, err := stagedDataIssues(base)
 	if err != nil || len(found) == 0 {
 		return 0, err
 	}
@@ -240,11 +257,12 @@ func stagedCheckIssues(cfg *config.Loaded, c config.RangeCheck, typ string) []ou
 // stagedRule is the hook's second rule (commit-scope.ts's hook): the
 // message's type against the staged paths, then the kinds' staged range
 // commands that apply to the type, then the built-in moves rule, HEAD
-// against the index. The paths and the staged commands are nothing for a
-// type with no path rule (merges, reverts and unknown types are the header
-// lint's); the moves rule judges the types it says it judges. 0 when they
-// hold, else the rejection and 1.
-func stagedRule(cfg *config.Loaded, text string, o Out) (int, error) {
+// against the index. The paths and the moves rule judge an amend against
+// base, HEAD's parent (judgedBase). The paths and the staged commands are
+// nothing for a type with no path rule (merges, reverts and unknown types
+// are the header lint's); the moves rule judges the types it says it
+// judges. 0 when they hold, else the rejection and 1.
+func stagedRule(cfg *config.Loaded, text, base string, o Out) (int, error) {
 	typ := message.Type(text)
 	rules, err := scope.Of(cfg)
 	if err != nil {
@@ -252,7 +270,7 @@ func stagedRule(cfg *config.Loaded, text string, o Out) (int, error) {
 	}
 	found := []out.Problem{}
 	if rules.Ruled(typ) {
-		staged, err := stagedFiles()
+		staged, err := stagedFiles(base)
 		if err != nil {
 			return 0, err
 		}
@@ -269,7 +287,11 @@ func stagedRule(cfg *config.Loaded, text string, o Out) (int, error) {
 			}
 		}
 	}
-	moved, err := tests.NewMoves(cfg).Staged(typ)
+	before := "HEAD"
+	if base != "" {
+		before = base
+	}
+	moved, err := tests.NewMoves(cfg).Between(typ, before, "index")
 	if err != nil {
 		return 0, err
 	}
