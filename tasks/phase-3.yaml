@@ -201,10 +201,14 @@
     --json, slice 43, and itos task list --json), so a registry moved by work.registry and ledger
     tasks without registry entries are found, and reading tasks/work-items.yaml when no itos
     answers. An itos older than v2.3.0 has no work list and reads it as work, printing the
-    proposal, which has no items key: the titles read that as no itos answering. A short skill on working with itos: find work with itos work, commit with itos
-    commit --task or --scenarios, push with itos push, read what a gate says and fix that cause,
-    never run the gates by hand. And a PreToolUse hook on Bash that runs itos hook pre-tool-use
-    (slice 42), the guard against an agent's git commit and git push. integrations/** is not the
+    proposal, which has no items key: the titles read that as no itos answering. A short skill
+    on working with itos: find work with itos work, commit with itos commit --task or
+    --scenarios, push with itos push, read what a gate says and fix that cause, never run the
+    gates by hand. And a PreToolUse hook on Bash that runs itos hook pre-tool-use (slice 42), the
+    guard against an agent's git commit and git push, behind two shell guards: no itos on the
+    PATH answers nothing, and an exit 2 becomes 1, since an itos on the PATH older than the guard
+    would otherwise block every Bash command. The guard is a guardrail, not a fortress (the
+    user's call): it stops agents that follow it. integrations/** is not the
     implementation, so these are chore commits; docs commits may touch its Markdown. The checks
     run Claude Code's own validator over the marketplace and the plugin, and the plugin's tests
     with claude plugin test. Neither needs a login (checked 2026-10-03 with an empty home and no
@@ -212,9 +216,32 @@
     releases several times a day, and the latest is what a person runs), with Claude Code's own
     installer, in CI's job, whose token stays read-only and which is handed no secret (a ci
     commit). The checks stay late, so the nightly, whose token can write issues, never runs
-    Claude Code. A guardrail, not a fortress: the guard stops agents that follow it.
+    Claude Code.
   done_when:
     - run: claude plugin validate --strict .
     - run: claude plugin validate --strict integrations/claude-code
     - run: claude plugin test integrations/claude-code
+      timeout: 300
+
+- id: T-067
+  type: build
+  title: A dependency check refuses Go modules younger than a week, and known vulnerabilities
+  why: >
+    The user's call (2026-10-03): supply-chain attacks are common and easy, so a dependency is
+    trusted only once it has been public for a while, as this repository's pnpm settings do for
+    npm. Go has no such setting: go get takes any version, though it runs no code of the
+    dependency, so a check between go get and the commit is safe. A script in this repository for
+    now (moved to an itos-security extension later, if it earns it, once the user's repository
+    template is ready; p3-extension-pins) checks every module of the build (go list -m all, the
+    tools' too) against the Go module proxy's publication time and refuses one younger than 7
+    days, unless a committed exceptions file names that module and version with a reason (an
+    urgent security fix is exactly a young version); and it runs govulncheck over the module,
+    itself a pinned tool dependency, so its own version is held to the same age. It runs where a
+    dependency can come in: the pre-commit hook when go.mod or go.sum is staged (it needs the
+    network there, as go get did), and CI on a push whose range changes them. Written in Go, so
+    it moves into an extension as it is. A self-test proves both refusals against a local
+    module proxy, with no network: a version a day old is refused and passes once excepted, and
+    an old one passes.
+  done_when:
+    - run: node tools/selftest/deps-check.ts
       timeout: 300

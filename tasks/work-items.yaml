@@ -2735,3 +2735,35 @@ items:
       -p --plugin-dir run writes them, but needs a login; if Claude Code gains a way to write them
       without a session, T-066's checks could run tsc over the plugin with them.
     refs: [integrations/claude-code/tsconfig.json, vite.config.ts]
+
+  - id: T-067
+    title: A dependency check refuses Go modules younger than a week, and known vulnerabilities
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      The user's call (2026-10-03), after govulncheck found nothing in this module: a script in
+      this repository for now, an itos-security extension later if it earns it, once the user's
+      repository template is ready. The task is T-067 in tasks/phase-3.yaml.
+    refs: [tasks/phase-3.yaml]
+
+  - id: p3-extension-pins
+    title: A repository pins the extensions it runs, fetched and checked like itos's own pin
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-27, slice-29]
+    kind: idea
+    why: >
+      The user's call (2026-10-03), from the itos-security discussion: the launcher pins and
+      checksums itos itself (pin.version, pin.checksums), but an extension is whatever itos-<name>
+      comes first on the PATH, unpinned and unchecked, which a supply-chain check run as an
+      extension would make ironic. A repository could declare the extensions it relies on in
+      itos.yaml, each with a version, where to fetch it and the hash of its checksums, and the
+      launcher would fetch them into its cache, check them and run that version for itos <name>,
+      as it does for itos; an undeclared extension still comes from the PATH. Its first user is
+      the dependency checks (T-067) if they move out of this repository into an itos-security
+      extension, which waits for the user's repository template.
+    refs: [features/extensions.feature, features/pin.feature, PLAN.md]
