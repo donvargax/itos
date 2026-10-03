@@ -90,6 +90,50 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+  # The unit tests and every feature on Linux, macOS and Windows (T-072): itos built natively on
+  # each runner and run as a person on that platform meets it, with that platform's git, shell and
+  # paths. The release archives are cross-compiled on Linux (T-069); this is what runs them. Not
+  # blocking yet: a platform that fails is reported without stopping the release, until all three
+  # pass. The job's name holds the runner's OS word, which T-072's check reads.
+  platform:
+    name: platform (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    defaults:
+      run:
+        shell: bash # Git for Windows' bash on windows
+    steps:
+      # Every action pinned to a commit, each release at least 7 days old when pinned (T-067's
+      # rule), as release.yml pins them: actions/checkout v4.4.0, actions/setup-go v7.0.0.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0 # the tags, for the version the build is stamped with
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: go.sum
+      # The build tools/bin/itos makes, stamped with tools/bin/dev-version's version, but written
+      # where the features find it on every platform: ITOS_BIN, itos.exe on windows, since Go runs
+      # no shell script there and tools/bin/itos is one.
+      - name: Build itos
+        run: |
+          exe=""
+          [ "$RUNNER_OS" != Windows ] || exe=.exe
+          bin="$RUNNER_TEMP/itos/itos$exe"
+          CGO_ENABLED=0 go build -trimpath \
+            -ldflags "-s -w -X github.com/donvargax/itos/v2/internal/version.stamp=$(tools/bin/dev-version)" \
+            -o "$bin" ./cmd/itos
+          "$bin" version
+          echo "ITOS_BIN=$bin" >> "$GITHUB_ENV"
+      - name: Unit tests
+        run: go test ./cmd/... ./internal/...
+      - name: Features
+        run: go test ./features -count=1
+
   # A push to main whose ci job is green cuts a release when its commits since the last tag carry a
   # feat, a fix or a breaking change (T-069; release.yml says how). The only job with write access,
   # granted here and to nothing else; a pull request never releases.
