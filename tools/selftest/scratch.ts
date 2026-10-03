@@ -2,7 +2,7 @@
 // current tree, HEAD plus every tracked edit and the untracked files a gate
 // could run, committed as a base, so nothing they do touches the checkout
 // they were started from.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from "node:fs";
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -14,6 +14,25 @@ export const outsideEnv = () =>
 	Object.fromEntries(
 		Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_") && k !== "CI"),
 	) as NodeJS.ProcessEnv;
+
+// A command run asynchronously with its stdin given, so many can run at
+// once: its exit code (null when a signal ended it) and stdout and stderr
+// together.
+export function spawnOutput(
+	command: string,
+	args: string[],
+	options: { cwd: string; env: NodeJS.ProcessEnv; input: string },
+): Promise<{ code: number | null; output: string }> {
+	return new Promise((done, fail) => {
+		const child = spawn(command, args, { cwd: options.cwd, env: options.env });
+		let output = "";
+		child.stdout.on("data", (d: Buffer) => (output += d.toString()));
+		child.stderr.on("data", (d: Buffer) => (output += d.toString()));
+		child.on("error", fail);
+		child.on("close", (code) => done({ code, output }));
+		child.stdin.end(options.input);
+	});
+}
 
 // tools/bin/itos, the Go binary, run in cwd (the checkout by default): its
 // stdout, or an error naming the command and what it printed.
