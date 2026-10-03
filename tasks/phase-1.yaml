@@ -345,9 +345,15 @@
     a chore without its Task: footer through commitlint alone, which the
     plugin rejected; the second runs a footer naming an unknown task through
     commit check-message, delegate included, and counts its task-footer
-    problems: one, itos's own.
+    problems: one, itos's own. Since commitlint left (T-063) the header lint
+    is the built-in one, and the first check counts every problem
+    check-message finds in that chore: one, the footer's, none the header
+    lint's.
   done_when:
-    - run: "printf 'chore: tidy the readme\\n' | vp exec commitlint"
+    - run: >-
+        sh -c 'printf "chore: tidy the readme\n" | tools/bin/itos commit check-message - --json
+        | grep -c "\"rule\":" | grep -qx 1'
+      cost: static
     - run: >-
         sh -c 'printf "chore: x\n\nTask: T-999\n" | tools/bin/itos commit check-message - --json
         | grep -c "\"rule\": \"task-footer\"" | grep -qx 1'
