@@ -3231,7 +3231,7 @@ items:
     title: The last release's corpus judges a usage error by its exit code, not its words
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-071]
     kind: task
     why: >

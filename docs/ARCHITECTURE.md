@@ -1510,7 +1510,19 @@ diff --name-only --no-renames`, so a change undone within the range is
     command, with the linked `yaml`, deletes them from each fixture's `cases`
     in place, keeping the rest of the file as written, and the check prints
     how many it left out of which file and why (v2.3.0: 37 of `help.yaml`'s
-    38, its `itos version` case still judged). A failing subtest
+    38, its `itos version` case still judged). The same script takes the
+    words out of each usage error's case (T-075, the user's call,
+    2026-10-03): a case expecting exit 2, nothing on stdout, and on stderr
+    exactly one `itos: <message> (itos --help)` line, the suffix cli's
+    `failure` prints for a usage error and for nothing else, loses its
+    `stdout` and `stderr` and is judged by its exit code alone, since a usage
+    message that lists what a command takes is documentation as help is. A
+    config error (config check's `FAIL …` lines, or an `itos: … is missing`
+    about a file the config names) and a case pinning its output with
+    `stdout_has`, `stderr_has` or `json` keep their words judged. Each
+    rewritten fixture must parse back equal to the old one less those keys,
+    or the check stops, and it prints how many it relaxed in which file
+    (v2.8.1: 34, in seven files). A failing subtest
     (`TestFeatures/<name>`, spaces as underscores) is named by the `@ID-` tag
     above its `Scenario:` line in the release's feature files, a failing case
     by the runner's `FAIL <file>: <name>` line as `<file base name>: <name>`.
