@@ -2346,20 +2346,20 @@ items:
     title: itos init offers the git shim, and reports a pin behind the newest and a missing people file
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-49, T-075, T-076]
     kind: slice
     why: >
-      Specified as @ID-INIT-18 to 21 in features/init.feature, the last of init's three slices
+      Specified as @ID-INIT-18 to 22 in features/init.feature, the last of init's three slices
       (the user's split, 2026-10-03). --git-shim installs it as git-shim install does
-      (--git-shim-dir its --dir), opt-in as the plugin is. The rerun's report gains a pin behind
+      (--git-shim-dir its --dir), opt-in as the plugin is. The rerun's report notes a pin behind
       the newest release (naming itos pin) and a people file the config names but the repository
-      lacks, neither counted as missing; slice 48 left config check's warnings out of the report
-      for this. It also takes p3-init-untagged-features (@ID-INIT-22, the user's call): where no
-      scenario carries an ID tag, the starter does not require the Scenarios footer, and init
-      says how to tag one. Landed: @ID-INIT-18, 19 and 22, and --git-shim on a rerun. Held:
-      @ID-INIT-20 and 21 and a rerun's line on a shim not linked, which change the words and
-      keys of v2.8.1's init corpus cases; they wait on p3-old-corpus-additive-report.
+      lacks, neither counted as missing, and says how to link a shim not linked; slice 48 left
+      config check's warnings out of the report for this. It also takes
+      p3-init-untagged-features (@ID-INIT-22, the user's call): where no scenario carries an ID
+      tag, the starter does not require the Scenarios footer, and init says how to tag one. The
+      rerun's notes (@ID-INIT-20 and 21) waited on T-076, which judges the last release's corpus
+      additively, since they add lines and keys to v2.9.0's init cases.
     refs: [features/init.feature]
   - id: T-076
     title: The last release's corpus accepts what an output only adds
