@@ -1145,7 +1145,7 @@ items:
     title: itos work take, done and promote write the registry
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
