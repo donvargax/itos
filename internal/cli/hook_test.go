@@ -50,3 +50,28 @@ func TestProblemLine(t *testing.T) {
 		t.Errorf("problem lines: %q", got)
 	}
 }
+
+// An amend is --amend among git commit's options, never a value of one, nor
+// a path after --.
+func TestAmends(t *testing.T) {
+	for _, c := range []struct {
+		args []string
+		want bool
+	}{
+		{[]string{"--amend", "--no-edit"}, true},
+		{[]string{"-m", "x", "--amend"}, true},
+		{[]string{"-am", "x", "--amend"}, true},
+		{[]string{"-m", "--amend"}, false},
+		{[]string{"-m--amend"}, false},
+		{[]string{"--message", "--amend"}, false},
+		{[]string{"--message=--amend"}, false},
+		{[]string{"-C", "--amend"}, false},
+		{[]string{"-q", "--", "--amend"}, false},
+		{[]string{"--amend", "--no-amend"}, false},
+		{[]string{"-m", "x"}, false},
+	} {
+		if got := amends(c.args); got != c.want {
+			t.Errorf("amends(%q) = %v", c.args, got)
+		}
+	}
+}

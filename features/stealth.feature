@@ -209,7 +209,7 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
   # hook being told can let this one through. (prepare-commit-msg was weighed
   # and dropped: git tells it nothing of an amend whose message comes from -m
   # or -F.)
-  @ID-STEALTH-20 @slice-37 @wip
+  @ID-STEALTH-20 @slice-37
   Scenario: An amend through itos commit that sets another author date is known for an amend, and keeps its note
     Given the commit-msg hook is installed
     And a change to "README.md" is staged

@@ -15,6 +15,10 @@ package cli
 // written as a git note on the new commit, in refs/notes/itos, never into the
 // message, and itos makes sure notes.rewriteRef names that ref, so an amend
 // or a rebase carries the note to the commit it makes.
+//
+// git tells the commit-msg hook nothing of an amend, so itos commit tells it
+// (slice 37): AmendEnv says whether --amend is among the arguments it hands
+// git, always, so the hook never guesses for a commit made through itos.
 
 import (
 	"errors"
@@ -24,6 +28,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v2/internal/config"
@@ -112,6 +117,48 @@ func (f commitFlags) footerLines() ([]string, error) {
 	return lines, nil
 }
 
+// AmendEnv is the variable itos commit tells the commit-msg hook in whether
+// the commit amends HEAD: "1" when it does, "0" when it does not.
+const AmendEnv = "ITOS_AMEND"
+
+// gitValued are git commit's long options that take their value as the next
+// argument when it is not joined by "=", and gitShortValued its short ones
+// that do when nothing follows them in their cluster: the value is never an
+// option, so `-m --amend` is a message, not an amend.
+var (
+	gitValued = []string{"--message", "--file", "--reuse-message", "--reedit-message", "--fixup",
+		"--squash", "--author", "--date", "--template", "--cleanup", "--trailer", "--pathspec-from-file"}
+	gitShortValued = "mFCct"
+)
+
+// amends is whether git commit's arguments amend HEAD: --amend among its
+// options, before any "--", the last of --amend and --no-amend winning.
+func amends(args []string) bool {
+	amend := false
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch {
+		case arg == "--":
+			return amend
+		case arg == "--amend":
+			amend = true
+		case arg == "--no-amend":
+			amend = false
+		case strings.HasPrefix(arg, "--"):
+			if slices.Contains(gitValued, arg) {
+				i++
+			}
+		case strings.HasPrefix(arg, "-") && len(arg) > 1:
+			if j := strings.IndexAny(arg[1:], gitShortValued+"uS"); j >= 0 {
+				if c := arg[1+j]; strings.IndexByte(gitShortValued, c) >= 0 && j+2 == len(arg) {
+					i++
+				}
+			}
+		}
+	}
+	return amend
+}
+
 // trailers are the footers as git commit's own --trailer arguments.
 func trailers(lines []string) []string {
 	var args []string
@@ -138,6 +185,11 @@ func gitCommit(args []string, o Out) (int, error) {
 	stealth := config.IsStealth(config.Path())
 	argv := []string{"commit"}
 	env := withoutFooters(os.Environ())
+	amend := "0"
+	if amends(flags.git) {
+		amend = "1"
+	}
+	env = append(env, AmendEnv+"="+amend)
 	before := ""
 	if stealth {
 		if err := rewriteNotes(); err != nil {
@@ -206,12 +258,13 @@ func runGit(argv, env []string, stdout io.Writer, o Out) (int, error) {
 	return 0, err
 }
 
-// withoutFooters is an environment less ITOS_FOOTERS, so only the footers
-// this itos commit writes reach the hook.
+// withoutFooters is an environment less ITOS_FOOTERS and ITOS_AMEND, so only
+// the footers this itos commit writes, and its own word on an amend, reach
+// the hook.
 func withoutFooters(env []string) []string {
 	var kept []string
 	for _, kv := range env {
-		if !strings.HasPrefix(kv, message.FootersEnv+"=") {
+		if !strings.HasPrefix(kv, message.FootersEnv+"=") && !strings.HasPrefix(kv, AmendEnv+"=") {
 			kept = append(kept, kv)
 		}
 	}

@@ -90,14 +90,18 @@ func handedFooters() (string, error) {
 	return message.Note("HEAD")
 }
 
-// amending is whether the commit being made looks like an amend of HEAD:
-// git tells a hook nothing of an amend, but hands it the author in
-// GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL and GIT_AUTHOR_DATE, and an amend keeps
-// HEAD's, to the second, where a new commit's date is the time it is made. A
-// new commit by HEAD's author in the same second as HEAD reads as one too,
-// and is judged by HEAD's footers; verify, reading the notes, still finds it
-// without one.
+// amending is whether the commit being made amends HEAD. itos commit says so
+// in AmendEnv, always (slice 37), and its word is taken. A commit made
+// without it is guessed at: git tells a hook nothing of an amend, but hands
+// it the author in GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL and GIT_AUTHOR_DATE, and
+// an amend keeps HEAD's, to the second, where a new commit's date is the time
+// it is made. A new commit by HEAD's author in the same second as HEAD reads
+// as one too, and an amend that sets another date (--date, --reset-author)
+// does not; verify, reading the commits made, still judges both.
 func amending() bool {
+	if told, ok := os.LookupEnv(AmendEnv); ok {
+		return told == "1"
+	}
 	name, okName := os.LookupEnv("GIT_AUTHOR_NAME")
 	email, okEmail := os.LookupEnv("GIT_AUTHOR_EMAIL")
 	date, okDate := os.LookupEnv("GIT_AUTHOR_DATE")
@@ -348,12 +352,13 @@ func stagedTasks(ids []string) ([]namedTask, error) {
 // checkEnv is the environment a task's check runs in under the hook: the
 // hook's, less the index git made the commit from, so that a check's own git
 // commands (in a scratch repository too) never read or write the commit's
-// index, as under `itos task`, and less the footers itos commit handed the
-// hook, which are this commit's and no commit a check makes.
+// index, as under `itos task`, and less the footers and the amend itos commit
+// handed the hook, which are this commit's and no commit a check makes.
 func checkEnv() []string {
 	var env []string
 	for _, kv := range os.Environ() {
-		if !strings.HasPrefix(kv, "GIT_INDEX_FILE=") && !strings.HasPrefix(kv, message.FootersEnv+"=") {
+		if !strings.HasPrefix(kv, "GIT_INDEX_FILE=") && !strings.HasPrefix(kv, message.FootersEnv+"=") &&
+			!strings.HasPrefix(kv, AmendEnv+"=") {
 			env = append(env, kv)
 		}
 	}

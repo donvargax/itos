@@ -141,10 +141,12 @@ cases:
       commits.footers each. A flag may repeat, its value one ID or several
       separated by commas or spaces, written on lines of 100 characters at most,
       the key on each. The hooks judge the commit as any other, so a commit they
-      refuse is not made. Under a stealth config (<git common dir>/itos/itos.yaml)
-      the footers are never written into the message: they are handed to the hook
-      in ITOS_FOOTERS and written as the new commit's note in refs/notes/itos, and
-      notes.rewriteRef is set to that ref, so an amend or a rebase carries the note.
+      refuse is not made, and ITOS_AMEND tells them whether --amend is among git's
+      arguments, so they know an amend rather than guess one. Under a stealth
+      config (<git common dir>/itos/itos.yaml) the footers are never written into
+      the message: they are handed to the hook in ITOS_FOOTERS and written as the
+      new commit's note in refs/notes/itos, and notes.rewriteRef is set to that
+      ref, so an amend or a rebase carries the note.
       -q is git's --quiet. A first argument that is not a flag is a subcommand or a
       usage error, never a path: paths for git go after a flag or after --, as in
       itos commit --task T-1 -m '…' -- README.md. Exit: git's own code; 2 when the
