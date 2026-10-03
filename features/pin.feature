@@ -97,7 +97,7 @@ Feature: A global itos runs the version a repository pins
   # Issue #2: version failed outside a project, reading the itos.yaml it does
   # not need. A global itos is run outside projects first of all; only
   # version --check reads the config.
-  @ID-PIN-09 @bug-4 @wip
+  @ID-PIN-09 @bug-4
   Scenario: itos version prints its version outside a project
     Given the repository has no itos.yaml
     And ITOS_NO_UPDATE is "1"

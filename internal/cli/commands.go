@@ -238,14 +238,20 @@ func configCommand(args []string, o Out) (int, error) {
 
 // versionCommand prints the version, or under --json the version with the
 // config's requires and whether it holds; with --check, a version that does
-// not satisfy requires exits 1.
+// not satisfy requires exits 1. Only --check needs the config: a global itos
+// is run outside any project first of all (issue #2), so without it a config
+// that is missing or cannot be read leaves requires out rather than failing.
 func versionCommand(args []string, o Out) (int, error) {
+	check := slices.Contains(args, "--check")
+	var requires *string
 	cfg, err := config.Load(config.Path())
-	if err != nil {
+	switch {
+	case err == nil:
+		requires = cfg.Requires
+	case check:
 		return 0, err
 	}
 	v := version.Version()
-	requires := cfg.Requires
 	ok := requires == nil || version.Satisfies(v, *requires)
 	if o.JSON {
 		fields := []out.Field{{Key: "version", Value: v}}
@@ -260,7 +266,7 @@ func versionCommand(args []string, o Out) (int, error) {
 	} else {
 		fmt.Fprintf(o.Stdout, "itos %s\n", v)
 	}
-	if !slices.Contains(args, "--check") || ok {
+	if !check || ok {
 		return 0, nil
 	}
 	fmt.Fprintf(o.Stderr, "itos %s does not satisfy %s (the config's requires)\n", v, *requires)

@@ -1,6 +1,6 @@
 # The command line itself: the global flags wherever they stand, the
 # usage errors (exit 2, naming the help), a config that cannot be read (2), and
-# `version` held to the config's `requires`.
+# `version` held to the config's `requires` (only --check needs a config).
 files:
   itos.yaml: |
     version: 1
@@ -172,18 +172,42 @@ cases:
       schema: 1
       version: "{{version}}"
   - name: a missing config is a config error
-    argv: [version]
+    argv: [version, --check]
     files:
       itos.yaml: null
     exit: 2
     stderr_has: "FAIL itos.yaml: cannot be read: "
   - name: a config that is not version 1
-    argv: [version]
+    argv: [version, --check]
     files:
       itos.yaml: "version: 2\n"
     exit: 2
     stderr: |
       FAIL itos.yaml: version 2 is not 1
+  # Issue #2: a global itos is run outside any project first of all, so only
+  # --check needs the config.
+  - name: version needs no config
+    argv: [version]
+    files:
+      itos.yaml: null
+    exit: 0
+    stdout: |
+      itos {{version}}
+  - name: version --json without a config leaves requires out
+    argv: [version, --json]
+    files:
+      itos.yaml: null
+    exit: 0
+    json:
+      schema: 1
+      version: "{{version}}"
+  - name: version without --check prints its version over a config it cannot read
+    argv: [version]
+    files:
+      itos.yaml: "version: 2\n"
+    exit: 0
+    stdout: |
+      itos {{version}}
   - name: --config names another config, wherever it stands
     argv: [version, --check, --config, other.yaml]
     files:

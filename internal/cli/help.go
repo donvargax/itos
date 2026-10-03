@@ -288,8 +288,8 @@ out (work.registry's in this config's ledger folder), and checks nothing.
 
 	"version": `Usage: itos version [--check]
 
-Prints itos's version. --check exits 1 when it does not satisfy the config's
-requires.
+Prints itos's version, and needs no config. --check exits 1 when it does not
+satisfy the config's requires, and 2 when the config cannot be read.
 
 --json: {"schema":1,"version","requires"?,"satisfied"?}`,
 }

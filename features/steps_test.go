@@ -34,6 +34,11 @@ type world struct {
 
 	exit           int
 	stdout, stderr string
+
+	releases  *releaseServer // the release server, when the scenario starts one
+	vars      []string       // variables the scenario sets in itos's environment, NAME=value
+	ranMark   int            // the fake itos runs recorded before the last run of itos began
+	askedMark int            // the requests the release server had before the last run of itos began
 }
 
 // What a scenario sets in the scratch repository's itos.yaml.
@@ -67,6 +72,7 @@ type scratchConfig struct {
 	ledgerFiles       string      // ledger.files; tasks/phase-{group}.yaml when empty
 	prosePaths        string      // ci.prose.paths, one glob
 	proseSteps        string      // ci.prose.steps, one command
+	pin               *[2]string  // pin.version and pin.checksums
 	settings          []setting
 }
 
@@ -106,6 +112,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return ctx, w.setUp()
 	})
 	sc.After(func(ctx context.Context, _ *godog.Scenario, err error) (context.Context, error) {
+		w.stopReleaseServer()
 		os.RemoveAll(w.dir)
 		os.RemoveAll(w.support)
 		if w.origin != "" {
@@ -231,6 +238,8 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^"([^"]*)" is a script that records it ran$`, w.recordingScript)
 	sc.Step(`^the config sets "([^"]*)" to "([^"]*)"$`, w.configSets)
 
+	initializeReleaseSteps(sc, w)
+
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
 	sc.Step(`^itos checks the config as JSON$`, func() error { return w.itos("config", "check", "--json") })
@@ -347,7 +356,8 @@ func moduleRoot() (string, error) {
 
 // The environment every command runs in: the caller's, less what would make
 // git or itos read anything but the scratch repository (a hook's GIT_DIR, CI's
-// settings), with no global or system git config and a fixed identity.
+// settings), with no global or system git config and a fixed identity, and
+// what keeps the launcher off the network and any real cache (launcherEnv).
 func (w *world) env() []string {
 	var env []string
 	for _, kv := range os.Environ() {
@@ -358,7 +368,7 @@ func (w *world) env() []string {
 		}
 		env = append(env, kv)
 	}
-	return append(env,
+	env = append(env,
 		"GIT_CONFIG_GLOBAL="+os.DevNull,
 		"GIT_CONFIG_NOSYSTEM=1",
 		"GIT_AUTHOR_NAME=itos features",
@@ -366,6 +376,7 @@ func (w *world) env() []string {
 		"GIT_COMMITTER_NAME=itos features",
 		"GIT_COMMITTER_EMAIL=features@localhost",
 	)
+	return append(env, w.launcherEnv()...)
 }
 
 func (w *world) git(args ...string) error {
@@ -422,6 +433,9 @@ func quote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + 
 func (w *world) writeConfig() error {
 	var b strings.Builder
 	b.WriteString("version: 1\n")
+	if p := w.config.pin; p != nil {
+		fmt.Fprintf(&b, "pin: { version: %q, checksums: %q }\n", p[0], p[1])
+	}
 	if w.config.recordingShell {
 		fmt.Fprintf(&b, "shell: [%q]\n", w.recordingShellPath())
 	}
@@ -1339,6 +1353,7 @@ func (w *world) stagedLedgerKey(task, key string) error {
 
 // itos with these arguments, in the scratch repository.
 func (w *world) itos(args ...string) error {
+	w.markRun()
 	cmd := exec.Command(w.bin, args...)
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
