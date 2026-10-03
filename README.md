@@ -202,10 +202,24 @@ itos config check
 ```
 
 A global install runs the newest release for such a config unless it pins one
-(`pin`, above). Where the project sets no `core.hooksPath`,
-`itos hooks install --manager git` writes the hooks into `.git/hooks`, out of
-the tree. Hooks that run beside a project's own are the stealth mode's next
-slice (`features/stealth.feature`).
+(`pin`, above). `itos hooks install` then declares itos's hooks in the
+repository's own `.git/config`, which git never commits:
+
+```ini
+[hook "itos-commit-msg"]
+	event = commit-msg
+	command = itos hook commit-msg
+```
+
+and `hook.itos-pre-push` too when the config sets `hooks.pre_push`. Git
+(2.5x) runs a hook declared in its config as well as the project's own in
+`core.hooksPath` or `.git/hooks`, so the project's hooks and settings stay as
+they are, both run on every commit, and a hook manager that resets
+`core.hooksPath` cannot remove itos's. Running it again changes nothing. An
+older git, which does not run them, makes `hooks install` say so and exit 3;
+`--manager git` still writes shims into `.git/hooks` where the project sets no
+`core.hooksPath`. If an earlier `hooks install` wrote those shims, delete
+them, or the hooks run twice.
 
 A footer in a commit message is what everyone reads, so here the footers live
 in git notes instead: commit with `itos commit --task <id>` (and

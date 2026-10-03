@@ -340,7 +340,7 @@ built-in command and before the name for an extension.
 | `ci plan <from> <to>`, `ci run [<from> <to>]`, `--nightly`              | Prints the plan; runs it, stopping at the first failure unless `ci.stop_at_first_failure` is false.                                                                                         |
 | `ci scope <from> <to>`, `ci range --head <sha> [--base <sha>]`          | Whether a range is prose only; where a push's range starts.                                                                                                                                 |
 | `hook commit-msg <file>`, `hook pre-push <remote> <url>`                | The hooks' entry points.                                                                                                                                                                    |
-| `hooks install [--manager <m>] [--print] [--force]`                     | Writes the one-line shims for the hook manager it detects, or prints its snippet.                                                                                                           |
+| `hooks install [--manager <m>] [--print] [--force]`                     | Writes the one-line shims for the hook manager it detects, or prints its snippet; under a stealth config, declares the hooks in the git config.                                             |
 | `config check [--print-defaults]`                                       | Validates the config, the ledger, the registry and the smoke sets.                                                                                                                          |
 | `version [--check]`                                                     | Needs no config; `--check` exits 1 if the binary does not satisfy `requires`.                                                                                                               |
 | `help <command>`                                                        | The command's help, or `itos-<command> --help` for an extension; `itos --help` lists the extensions on the `PATH`.                                                                          |
@@ -375,6 +375,22 @@ subcommand, anything else a commit. It is the habit an agent is pointed to
 (the plugin answers a bare `git commit` with it, §10), the other half of
 pushing through itos (`p1-itos-push`), and the one the stealth mode keeps,
 where the same lines become a note on the new commit instead (slice 32, §5).
+
+**Hooks in the git config** (slice 33, the user's calls of 2026-10-03): git
+2.5x runs a hook declared in its config, `hook.<name>.event` and
+`hook.<name>.command`, as well as the one in `core.hooksPath` or the hooks
+folder. `hooks install --manager git-config` declares itos's there, in the
+repository's own `.git/config`, never committed: `hook.itos-commit-msg`, and
+`hook.itos-pre-push` when `hooks.pre_push` gives it commands (git refuses a
+hook named after its event), each running `<hooks.bin> hook <event>`. So
+itos's hooks run beside a project's own without touching its hook files or
+settings, and a hook manager resetting `core.hooksPath` cannot remove them.
+It is what `hooks install` picks under a stealth config (§5) when neither
+`--manager` nor `hooks.manager` names a manager; running it twice changes
+nothing, and a git that does not run config hooks (asked by `git hook list`
+of a hook declared with `-c`, the feature rather than a version) exits 3.
+With `itos commit`'s note (slice 32) and a `hooks.bin` of `itos` (slice 35),
+the stealth mode then touches nothing tracked and nothing shared.
 
 **Exit codes:** 0 success; 1 a policy failure (a check failed, a commit
 rejected, an unknown task); 2 a usage or config error, a file or folder the

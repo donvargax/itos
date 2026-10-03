@@ -2034,7 +2034,7 @@ items:
     title: Hooks declared in the git config, beside the project's own
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-32]
     kind: slice
     why: >
@@ -2383,3 +2383,32 @@ items:
       prepare-commit-msg hook recording that for the commit-msg hook would be exact, and serve
       p3-hook-amend-paths too.
     refs: [internal/cli/hook.go]
+
+  - id: p3-pre-push-without-commands
+    title: The pre-push hook passes when hooks.pre_push gives it nothing to run
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-33]
+    kind: idea
+    why: >
+      Found in slice 33: hook pre-push with no hooks.pre_push fails every push with the
+      TypeScript's "Cannot read properties of undefined (reading 'whole')", and every file manager
+      writes the pre-push shim whether or not the config sets it, so a config without pre-push
+      commands refuses every push. The git-config manager declares no pre-push entry then; the
+      hook could pass with nothing to run, or hooks install write no pre-push shim, with a scenario.
+    refs: [internal/cli/hook.go, internal/cli/install.go]
+
+  - id: p3-git-config-stale-shims
+    title: hooks install --manager git-config reports itos shims left in the hooks folder
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-33]
+    kind: idea
+    why: >
+      Found in slice 33: a stealth user who ran hooks install --manager git before (README.md's
+      advice until then) keeps its shims in .git/hooks, and once the git config declares the hooks
+      both run on every commit and push. hooks install --manager git-config could say so, or remove
+      a file there that isShim takes for itos's, as itos init's doctor run would report it.
+    refs: [internal/cli/gitconfig.go, README.md]

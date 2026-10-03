@@ -103,7 +103,15 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   and the README stays in the root. A linked worktree is added after the
   scratch repository moves into a folder of its own under the scenario's
   support folder, so a path beside it, `../wt`, is the scenario's alone and
-  goes with it; `itosIn` runs itos there.
+  goes with it; `itosIn` runs itos there. A hook declared in the git config
+  is read back as git reads it (`git config --get-regexp` for the entry
+  whose event it is, then `git hook list` naming it, so git runs it). The
+  project's hooks are a committed folder `core.hooksPath` names, whose
+  commit-msg hook records in the support folder that it ran; the step that
+  installs itos's hooks sets `hooks.bin` to `itos` and puts a script of that
+  name on the scenario's `PATH` that runs the itos under test (a link would
+  not do: `tools/bin/itos` finds its checkout from its own path), and runs
+  it once, so a hook that cannot start does not pass for one that refuses.
 - **itos commit's scenarios** (`commit_test.go`, `commit-command.feature`):
   the commit-msg hook is a shim in git's own hooks folder
   (`git rev-parse --git-path hooks`) that runs the itos under test, so a
@@ -783,7 +791,21 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   and writes or prints the one-line shims (`#!/bin/sh` and executable for
   plain git, written as a new file is), or prints a config-file manager's
   snippet; a hook that is not a shim (`isShim`: one line calling `itos hook`,
-  besides comments and a shebang) is replaced only with `--force`. The hooks
+  besides comments and a shebang) is replaced only with `--force`. Under a
+  stealth config, unless `--manager` or `hooks.manager` names one, the
+  manager is the git config (`internal/cli/gitconfig.go`, slice 33):
+  `declareHooks` writes `hook.itos-commit-msg` and, when `hooks.pre_push` is
+  set, `hook.itos-pre-push` into the repository's own config
+  (`git config --local --replace-all`, its `.command` `<hooks.bin> hook
+<event>`, git appending the hook's arguments, and its one `.event`), and
+  removes an itos pre-push entry when it is not. Git runs those beside the
+  hook in `core.hooksPath` or the hooks folder, so nothing of the project's
+  changes. An entry already as written is `unchanged`; one under itos's name
+  whose command does not call itos (`callsItos`) is replaced only with
+  `--force`. Before writing, `configHooksRun` asks
+  `git -c hook.itos-probe.event=commit-msg -c hook.itos-probe.command=true
+hook list commit-msg` for the probe's name, testing the feature rather
+  than a version, and a git that does not list it exits 3. The hooks
   this repository's git calls run the Go binary since T-060.
 - **Every command is ported**, each taking its arguments as the TypeScript
   did, so a usage error read the same in both. While the groups landed, a
