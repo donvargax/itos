@@ -27,6 +27,7 @@ var commands = map[string]command{
 	"hooks":   hooks,
 	"config":  configCommand,
 	"version": versionCommand,
+	"push":    push,
 }
 
 // flagValue is the value after a flag, and whether there is one.

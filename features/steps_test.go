@@ -253,6 +253,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeExtensionSteps(sc, w)
 	initializeStealthSteps(sc, w)
 	initializeCommitSteps(sc, w)
+	initializePushSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -395,9 +396,12 @@ func (w *world) env() []string {
 	return append(env, w.extensionEnv()...)
 }
 
-func (w *world) git(args ...string) error {
+func (w *world) git(args ...string) error { return w.gitIn(w.dir, args...) }
+
+// git run in the folder dir.
+func (w *world) gitIn(dir string, args ...string) error {
 	cmd := exec.Command("git", args...)
-	cmd.Dir = w.dir
+	cmd.Dir = dir
 	cmd.Env = w.env()
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -910,12 +914,22 @@ func (w *world) shallowClone() error {
 		os.RemoveAll(clone)
 		return err
 	}
+	if err := w.layUncommitted(clone); err != nil {
+		os.RemoveAll(clone)
+		return err
+	}
+	w.origin, w.dir = w.dir, clone
+	return nil
+}
+
+// The files the scratch repository has not committed, laid into a clone of
+// it.
+func (w *world) layUncommitted(clone string) error {
 	cmd := exec.Command("git", "ls-files", "-z", "--modified", "--others", "--exclude-standard")
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.Output()
 	if err != nil {
-		os.RemoveAll(clone)
 		return fmt.Errorf("git ls-files: %w", err)
 	}
 	for _, path := range strings.Split(strings.TrimRight(string(out), "\x00"), "\x00") {
@@ -923,11 +937,9 @@ func (w *world) shallowClone() error {
 			continue
 		}
 		if err := layFile(filepath.Join(w.dir, path), filepath.Join(clone, path)); err != nil {
-			os.RemoveAll(clone)
 			return err
 		}
 	}
-	w.origin, w.dir = w.dir, clone
 	return nil
 }
 

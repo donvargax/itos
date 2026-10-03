@@ -18,7 +18,7 @@ Feature: itos push, the pull-rebase-push routine as one command
 
   # pull.rebase false would make a plain git pull merge; itos push's own
   # flags are what keep the history a line.
-  @ID-PUSH-01 @slice-39 @wip
+  @ID-PUSH-01 @slice-39
   Scenario: The local commits are rebased onto the remote's and pushed, the history a line
     Given the clone's git config says "pull.rebase" is "false"
     And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
@@ -27,7 +27,7 @@ Feature: itos push, the pull-rebase-push routine as one command
     Then itos exits with code 0
     And the remote's branch ends with "chore: tidy the docs" then "chore: tidy the readme", with no merge commit
 
-  @ID-PUSH-02 @slice-39 @wip
+  @ID-PUSH-02 @slice-39
   Scenario: A rebase that stops on a conflict pushes nothing and says how to go on
     Given the remote has gained the commit "chore: reword the readme" touching "README.md"
     And the clone has the commit "chore: tidy the readme" touching "README.md"
@@ -38,7 +38,7 @@ Feature: itos push, the pull-rebase-push routine as one command
 
   # rebase.autostash true would stash the change and could leave it stashed;
   # itos push refuses before pulling instead.
-  @ID-PUSH-03 @slice-39 @wip
+  @ID-PUSH-03 @slice-39
   Scenario: Uncommitted changes to tracked files are refused before anything is pulled
     Given the clone's git config says "rebase.autostash" is "true"
     And the remote has gained the commit "chore: tidy the docs" touching "docs.md"
@@ -50,7 +50,7 @@ Feature: itos push, the pull-rebase-push routine as one command
     And the remote's branch does not have "chore: tidy the readme"
     And the clone's "README.md" still has its uncommitted change
 
-  @ID-PUSH-04 @slice-39 @wip
+  @ID-PUSH-04 @slice-39
   Scenario: itos push never forces
     When itos runs "push --force"
     Then itos exits with code 2

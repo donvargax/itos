@@ -53,6 +53,7 @@ Commands:
                                    the commit type's path rules, for planning a split
   commit footers <name> <from> <to>
                                    a range's free-text footers, for the release notes
+  push                             pull with a rebase, then push HEAD; never forced
   verify <from> <to>               re-check every commit of a range
   tests list <kind> [--at <tree>]  the kind's named tests
   tests smoke check|ids|run <kind> the smoke rule, the smoke IDs, the smoke run
@@ -207,6 +208,33 @@ an empty one. The footers are each commit's message's, under a stealth config
 too. Exit 2 when <name> is not a footer of free text.
 
 --json: {"schema":1,"footer","range","footers":[{"sha","subject","text"}]}`,
+
+	"push": `Usage: itos push
+
+The routine that ends a piece of work, after its commits: fetches the branch's
+upstream (branch.<name>.remote and branch.<name>.merge, else origin and the
+branch's own name), rebases the branch onto it with --no-autostash, so git's
+pull.rebase and rebase.autostash settings change nothing, checks that no
+rebase is in progress and no conflict is left, then pushes HEAD to the
+upstream's branch in a separate step, the pre-push hook running as for any
+push. It refuses to start when tracked files have uncommitted changes (commit
+or stash them first; untracked files are no reason), when a rebase is in
+progress or a conflict is left, and on a detached HEAD. A rebase that stops is
+left in progress for the person and nothing is pushed: resolve the conflicts,
+git rebase --continue, then itos push again, or git rebase --abort. Only HEAD
+goes, to that branch, whatever the config's push refspecs say, so the stealth
+mode's refs/notes/itos stays local; under a stealth config notes.rewriteRef is
+set first, as itos commit sets it, so the rebase carries the notes. It never
+forces: --force, -f, --force-with-lease or a + refspec is a usage error, as is
+any other argument, and a push the remote or the hook refuses is reported, not
+retried. Nothing to push is success. -q is git's --quiet and leaves out the
+success line. Exit: 0 pushed, or nothing to push; 1 refused before the pull,
+or the rebase stopped; 2 an argument; 3 no git repository, or no upstream and
+no remote origin; git's own code when the fetch or the push fails.
+
+--json: git's output on stderr; {"schema":1,"ok","outcome","remote"?,"branch"?,"commit"?},
+        outcome one of pushed, nothing-to-push, uncommitted, rebase-in-progress,
+        detached, no-remote, fetch-failed, rebase-stopped, rebase-failed, push-failed`,
 
 	"verify": `Usage: itos verify <from> <to>
        itos verify

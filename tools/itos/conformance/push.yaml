@@ -1,0 +1,187 @@
+# itos push: the routine of pulling with a rebase and pushing, as one
+# command. Every argument is refused, a forcing one saying why; tracked files
+# with uncommitted changes refuse it before anything is fetched, untracked
+# ones never; it rebases onto the upstream (origin and the branch's own name
+# when there is none) whatever pull.rebase says, leaves a rebase that stops
+# for the person and pushes nothing; it pushes HEAD to the upstream's branch
+# alone, so a push refspec in the config sends nothing else, and a push the
+# pre-push hook refuses is reported with git's exit code.
+#
+# Each repository's remote is a bare one in its own git folder,
+# .git/origin.git, so git's output names it the same in every case.
+cases:
+  - name: push --force is a usage error naming why
+    argv: [push, --force]
+    exit: 2
+    stderr: |
+      itos: push never forces: --force would overwrite the remote's commits; itos push rebases onto them instead (itos --help)
+  - name: push -f is a usage error naming why
+    argv: [push, -f]
+    exit: 2
+    stderr: |
+      itos: push never forces: -f would overwrite the remote's commits; itos push rebases onto them instead (itos --help)
+  - name: push --force-with-lease is a usage error naming why
+    argv: [push, --force-with-lease=main]
+    exit: 2
+    stderr: |
+      itos: push never forces: --force-with-lease=main would overwrite the remote's commits; itos push rebases onto them instead (itos --help)
+  - name: a + refspec is a usage error naming why
+    argv: [push, +main]
+    exit: 2
+    stderr: |
+      itos: push never forces: +main is a forcing refspec; itos push rebases onto the remote's commits instead (itos --help)
+  - name: push takes no arguments
+    argv: [push, origin, main]
+    exit: 2
+    stderr: |
+      itos: push takes no arguments: it pushes HEAD to the branch's upstream (origin) (itos --help)
+  - name: push outside a git repository is a missing environment
+    argv: [push]
+    exit: 3
+    stderr: |
+      itos: push runs in a git repository, and this is none
+  - name: uncommitted changes to tracked files refuse the push
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+      - write: { README.md: "changed\n" }
+    exit: 1
+    stderr: |
+      itos push: tracked files have uncommitted changes; commit or stash them first, then run itos push again:
+         M README.md
+  - name: a detached HEAD is refused
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+      - run: git checkout -q --detach
+    exit: 1
+    stderr: |
+      itos push: HEAD is not on a branch; check out the branch to push first
+  - name: no upstream and no origin is a missing environment
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+    exit: 3
+    stderr: |
+      itos push: main has no upstream and there is no remote origin to push to
+  - name: with no upstream it pushes to origin's branch of the same name, untracked files no reason to refuse
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: head
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git
+    files:
+      untracked.txt: "not committed\n"
+    exit: 0
+    stdout: |
+      Pushed {{short.head}} to origin/main.
+    stderr_has: "HEAD -> main"
+    files_after:
+      .git/origin.git/refs/heads/main: "{{sha.head}}\n"
+  - name: nothing to push is success
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q origin main
+    exit: 0
+    stdout: |
+      Nothing to push: main is at origin/main.
+  - name: nothing to push, as JSON
+    argv: [push, --json]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q origin main
+    exit: 0
+    json: { schema: 1, ok: true, outcome: nothing-to-push, remote: origin, branch: main }
+  - name: the remote's commits are fetched and the branch rebased onto them before the push, whatever pull.rebase says
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+      - run: >-
+          git init -q --bare .git/origin.git && git remote add origin .git/origin.git &&
+          git push -q -u origin main && git config pull.rebase false &&
+          git checkout -q -b theirs && echo theirs > docs.md && git add docs.md &&
+          git commit -q -m 'chore: theirs' && git push -q origin theirs:main &&
+          git checkout -q main && git branch -q -D theirs
+      - commit: "chore: ours"
+        files: { notes.md: "ours\n" }
+    exit: 0
+    stdout_has: "to origin/main."
+    stderr_has: "HEAD -> main"
+  - name: a rebase that stops pushes nothing and says how to go on
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+      - run: >-
+          git init -q --bare .git/origin.git && git remote add origin .git/origin.git &&
+          git push -q -u origin main &&
+          git checkout -q -b theirs && echo theirs > README.md &&
+          git commit -q -am 'chore: theirs' && git push -q origin theirs:main &&
+          git checkout -q main && git branch -q -D theirs
+      - commit: "chore: ours"
+        files: { README.md: "ours\n" }
+        label: ours
+    exit: 1
+    stderr_has:
+      - "itos push: the rebase onto origin/main stopped; nothing was pushed.\n"
+      - "Resolve the conflicts, git add the files and run git rebase --continue, then itos push again;\n"
+      - "or run git rebase --abort to go back to where the branch was.\n"
+  - name: a rebase in progress refuses the push
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+      - run: >-
+          git init -q --bare .git/origin.git && git remote add origin .git/origin.git &&
+          git push -q -u origin main &&
+          git checkout -q -b theirs && echo theirs > README.md &&
+          git commit -q -am 'chore: theirs' && git push -q origin theirs:main &&
+          git checkout -q main && git branch -q -D theirs
+      - commit: "chore: ours"
+        files: { README.md: "ours\n" }
+      - run: git fetch -q origin && ! git rebase -q origin/main >/dev/null 2>&1
+    exit: 1
+    stderr: |
+      itos push: a rebase is in progress or a conflict is left; nothing was pulled or pushed.
+      Resolve it and run git rebase --continue, or run git rebase --abort, then itos push again.
+  - name: a push the pre-push hook refuses is reported with git's exit code
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git
+    files:
+      .git/hooks/pre-push: { text: "#!/bin/sh\necho the hook says no >&2\nexit 1\n", executable: true }
+    exit: 1
+    stdout: ""
+    stderr_has:
+      - "the hook says no\n"
+      - "itos push: the push to origin/main failed (git's message above); nothing was forced.\n"
+    files_after:
+      .git/origin.git/refs/heads/main: null
+  - name: only HEAD is pushed, the itos notes left behind whatever the config's push refspec says
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: head
+      - run: >-
+          git init -q --bare .git/origin.git && git remote add origin .git/origin.git &&
+          git config remote.origin.push 'refs/notes/*:refs/notes/*' &&
+          git notes --ref=refs/notes/itos add -m 'Task: T-001' HEAD
+    files:
+      .git/itos/itos.yaml: "version: 1\n"
+    exit: 0
+    stdout: |
+      Pushed {{short.head}} to origin/main.
+    files_after:
+      .git/origin.git/refs/heads/main: "{{sha.head}}\n"
+      .git/origin.git/refs/notes/itos: null
