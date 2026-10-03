@@ -3377,7 +3377,7 @@ items:
     title: This repository opts in to ci.watch, and its agents stop watching CI by hand
     phase: 3
     owner: donvargax
-    status: todo
+    status: done
     depends_on: [slice-51]
     kind: task
     why: >

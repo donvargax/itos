@@ -187,8 +187,9 @@ What that means in practice:
 - The hooks are slow on purpose. Let them run; don't work around the wait.
 - **Never sit blocked on a push or a CI run, and never poll one.** CI takes
   minutes, more when the range names many scenarios, and a push runs the
-  unit tests it reaches first. Start them in the background and watch them
-  with the **`Monitor` tool** — that mechanism, not `sleep` loops, not
+  unit tests it reaches first, then, with `ci.watch` on (it is here), waits
+  for the CI run of the commit it pushed. Start it in the background and
+  watch it with the **`Monitor` tool** — that mechanism, not `sleep` loops, not
   re-running the command to see whether the last one finished, not waiting on
   it in any other way. One monitor per thing you are waiting for, with a
   filter that matches failure as well as success, so silence never reads as
@@ -258,10 +259,14 @@ push to `main` too, so expect the remote to have moved while you worked.
    whatever a rejection says. Read a rejection before diagnosing it (its
    exit code and outcome are in `tools/bin/itos push --help`): the pre-push
    hook failing is as likely as the remote having moved.
-2. Watch CI on your last commit with a `Monitor` over
-   `gh run watch <run id> --exit-status` (`gh run list --commit <sha>` gives
-   the id, and needs the full 40-character SHA), and carry on with something
-   else while it runs. If it's red, read `gh run view <id> --log-failed`, fix
+2. `tools/bin/itos push` waits for the CI run of the commit it pushed
+   (`ci.watch`, T-078): it prints the run's address, each job's result as it
+   finishes, and exits 0 when the run passed, 1 when it failed, naming the
+   failed jobs. Run it in the background and watch its output with a
+   `Monitor`, since CI outlasts a foreground call, and carry on with
+   something else meanwhile. `tools/bin/itos ci watch [<sha>]` waits for any
+   commit's run the same way. If it's red, read the log with
+   `gh run view <id> --log-failed` (the id is in the printed address), fix
    the cause with a commit of the right type, and push again until it's
    green.
 3. Report the green run's URL with your results. **Done is that run green**,

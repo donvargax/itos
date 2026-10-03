@@ -188,8 +188,8 @@ the rest.
 > any other attribution lines. Each commit's body says why, and is the
 > changelog; the reasons that outlast it go where `AGENTS.md` says. Push at
 > checkpoints if the slice is long. Finish as `AGENTS.md` says: push to
-> `main`, get CI green, and wait for the CI result before you report.
-> `gh run list --commit` needs the full 40-character SHA.
+> `main`, get CI green, and wait for the CI result before you report:
+> `tools/bin/itos push` waits for it, run in the background and monitored.
 >
 > Report: the commits, the CI run URL, the scenarios turned green, <the
 > slice's own questions>, what the next slice will find missing (the
@@ -263,20 +263,20 @@ teaches you a new one, stated as the rule and its reason.
   confirmed", and not by the agent's choice: the harness asks a subagent for
   its hand-back while its CI watch still runs (T-077's agent said so), so a
   brief cannot prevent it, and the brief does not blame the agent for it.
-  Watch the run yourself with a `Monitor` on its id (from
-  `gh run list --commit <full sha>`), and treat the slice as done only when
-  it is green, until `itos push` waits for CI itself (slice 51, `ci.watch`).
+  Watch the run yourself, `tools/bin/itos ci watch <sha>` in the background
+  under a `Monitor`, and treat the slice as done only when it is green. A
+  slice that goes red in CI usually does so on a live scenario its own
+  footer did not name: the brief's "run what this slice can reach" line is
+  the answer to that.
 - **The coordinator never sets `doing`.** The agent takes the item in its
   first commit. A push that names a task runs that task's checks unless its
   item is `todo`, so a spec pushed with its item already `doing` is red until
-  the work lands (T-077's was). A slice that goes red in CI usually does so on a live scenario
-  its own footer did not name: the brief's "run what this slice can reach"
-  line is the answer to that.
+  the work lands (T-077's was).
 - **An agent's run link is a claim, not evidence.** An agent can report a
   green run that does not exist, or one for another commit. Before relaying a
-  result, look the run up from the pushed head
-  (`gh run list --commit $(git rev-parse origin/main)`) and read its
-  conclusion; watch it yourself if it is still going.
+  result, watch the pushed head's run yourself
+  (`tools/bin/itos ci watch $(git rev-parse origin/main)`, which waits if it
+  is still going and exits with its result).
 - **Resume the agent that made a red run** with `SendMessage`, the log's
   failure and the rule "fix the cause in the product, not the step". It has
   the context; a fresh agent would re-read everything.
@@ -364,8 +364,8 @@ audit, the conformance corpus, the checks of every task the pushed commits
 name, and one run of the features over the smoke set and what the commits
 name); every feature runs nightly. Don't re-run what these cover. Check only:
 
-- CI is green for the last pushed commit:
-  `gh run list --commit <full sha> --json conclusion --jq '.[0].conclusion'`.
+- CI is green for the last pushed commit: `tools/bin/itos ci watch <sha>`
+  exits 0.
 - That run is the slice's done. The nightly is the slow feedback, read at
   the start of each session (the loop's first step): a red one is the first
   item, a fix for whichever slice reached what failed. Push CI may run more
