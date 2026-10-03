@@ -120,6 +120,7 @@ jobs:
       # where the features find it on every platform: ITOS_BIN, itos.exe on windows, since Go runs
       # no shell script there and tools/bin/itos is one.
       - name: Build itos
+        id: build
         run: |
           exe=""
           [ "$RUNNER_OS" != Windows ] || exe=.exe
@@ -131,7 +132,9 @@ jobs:
           echo "ITOS_BIN=$bin" >> "$GITHUB_ENV"
       - name: Unit tests
         run: go test ./cmd/... ./internal/...
+      # After the unit tests whatever they said, so one run shows a platform's every failure.
       - name: Features
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: go test ./features -count=1
 
   # A push to main whose ci job is green cuts a release when its commits since the last tag carry a
