@@ -106,3 +106,32 @@
   done_when:
     - run: node tools/selftest/header-agreement.ts
       timeout: 900
+
+- id: T-061
+  type: build
+  title: v2.0.0, Go only
+  why: >
+    PLAN.md, phase 3, step 5. Three parts, in order. First, this repository
+    requires the Upgrading footer of every feat and fix (slice 26's
+    source: text, its since the commit before the one that adds it, so no
+    commit written before the rule is judged by it). Second, the
+    release-notes check reads the notes Go only (no tarball pin line; the
+    binary's install, version and checksums lines instead) and requires
+    that every Upgrading footer of the range since the last release, but
+    those that say none, appears in the notes' Upgrading section, listed
+    by itos commit footers Upgrading <previous tag> <tag> --json; v2.0.0's own range began before the footer, so
+    its notes are written from the commits since v1.1.0 as before, and a
+    reviewer agent reads them against those commits before the tag (PLAN.md,
+    "Releases"). Third, the release: version 2.0.0, the notes finished
+    (Upgrading asks for everything at once: the pin moves from the tarball
+    to the binary, Node and commitlint can go for use: builtin, the RE2
+    patterns as v1.1.0 said, anything else since v1.1.0), README's install
+    Go only, then the tag, automated: the coordinator tags when CI and the
+    release checks are green.
+  done_when:
+    - run: node tools/selftest/go-release.ts
+      timeout: 900
+    - run: node tools/selftest/release-notes.ts 2.0.0
+      timeout: 300
+    - run: sh -c 'd=$(mktemp -d) && gh release download v2.0.0 --dir "$d" --pattern "itos-2.0.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
+      after: push

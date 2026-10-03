@@ -12,15 +12,15 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after T-063 (this repository lints with the built-in lint) landed.
+Last updated 2026-10-02, after slice 26 (the Upgrading footer) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `f2dbde9` (CI run 37083341262), after T-063: the built-in
-header lint judges this repository's commits, commitlint is gone; since T-062 itos is Go
+`main` is green at `09cca08` (CI run 37084633696), after slice 26; since T-063
+the built-in header lint judges this repository's commits; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
 repository's dev tooling (vp, the corpus runner, the self-tests), never a
 consumer's runtime; this
@@ -32,8 +32,8 @@ or CI is red. The
 nightly builds and proves the Go release archives
 (`tools/selftest/go-release.ts`, new with T-040, not yet run by a nightly),
 then ends with `{ tasks: done, cost: static }`, every done task's static
-checks. The last nightly, 37061038901, dispatched by hand on `10a14ed` before v1.0.0,
-is green: the first to run the Go release, schema and whole-suite steps.
+checks. The last nightly, 37083475482 (dispatched by hand on `719e0e8`, after T-063),
+is green.
 Read the consumer inbox beside it (`node tools/bin/inbox.ts`,
 docs/ORCHESTRATING.md's loop).
 Read the newest nightly before starting the next implementation. A red
@@ -46,18 +46,19 @@ implementations; release run 37071299183), after
 binary. Every asset was downloaded and verified after each release. Releases
 are automated (PLAN.md, "Releases"): no tag waits for the user. The user moves
 the consumers' pins from their own repositories: don't change any other
-repository. Unreleased: T-059 to T-063 and slice 25, whose notes are started in
+repository. Unreleased: T-059 to T-063 and slices 25 and 26, whose notes are started in
 `docs/releases/v2.0.0.md`. Write the next release's notes as each
 slice lands, from its report, in `docs/releases/v<next>.md`.
 
 ## Next
 
 1. **Phase 3, to v2.0.0** (PLAN.md, phase 3), one agent at a time:
-   - `slice-26`, the free-text `Upgrading:` footer, specified in
-     `features/upgrading.feature` (`@ID-UPGRADE-01` to `05`, `@wip`);
-   - `T-061`, v2.0.0, to specify once those land: its why lists what the
-     release still needs (the notes check's tarball pin line, README's
-     install, the notes published without `{sha256}`).
+   - `T-061: v2.0.0, Go only`, specified in `tasks/phase-3.yaml`: this
+     repository requires the `Upgrading:` footer, the notes check reads the
+     footers (`itos commit footers`) and the notes Go only, then the
+     release, tagged when CI and the release checks are green after a
+     reviewer agent reads the notes against the commits since v1.1.0 (their
+     footers start only now).
 
    Follow-ups: the release cut by CI (`p1-itos-release`),
    `p1-verify-with-last-release`, the HTTP providers (after
