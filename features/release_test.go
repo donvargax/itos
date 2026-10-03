@@ -457,6 +457,9 @@ func (w *world) markRun() {
 		w.askedMark = len(w.releases.requests())
 	}
 	w.configBefore, _ = os.ReadFile(w.configPath())
+	if w.snapshotRuns {
+		w.filesBefore, _ = w.snapshot()
+	}
 }
 
 // The config itos finds in the scratch repository: itos.yaml in the root, or

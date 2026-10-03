@@ -28,6 +28,7 @@ cases:
         git-shim install|uninstall [--dir <folder>]
                                          link itos as git, for itos's commit and push
         pin [<version>]                  move the config's pin to a release, the newest by default
+        init [--stealth]                 ready a repository for itos; run again, what is missing
         verify <from> <to>               re-check every commit of a range
         tests list <kind> [--at <tree>]  the kind's named tests
         tests smoke check|ids|run <kind> the smoke rule, the smoke IDs, the smoke run
@@ -327,6 +328,35 @@ cases:
 
       --json: {"schema":1,"config","action","version","checksums","previous"?,"notes"?},
               action one of pinned, already, refused
+  - name: itos init --help
+    argv: [init, --help]
+    exit: 0
+    stdout: |
+      Usage: itos init [--stealth]
+
+      Readies the repository it runs in for itos, at its top, after git init where
+      the folder is no repository yet. Where there is no config it writes a starter:
+      itos.yaml with the Conventional Commits types under the built-in header lint,
+      a Task footer from the ledger that every type but feat and fix needs,
+      commits.since at HEAD (none in a repository with no commit) and hooks.bin
+      itos; the ledger, tasks/phase-1.yaml, and the work registry,
+      tasks/work-items.yaml; and when features/ holds feature files, the scenario
+      kind, a Scenarios footer that feat and fix need, and a smoke set,
+      features/smoke.yaml, naming each file's first live scenario. A file already
+      there is kept. It pins the newest release, as itos pin does, or where the
+      release server cannot be reached pins nothing and says so; then installs the
+      hooks, as itos hooks install does, its exit code init's. --stealth writes it
+      all in the git folder, beside the stealth config, and declares the hooks in
+      the git config, so nothing the project tracks changes.
+
+      Where a config is there (itos.yaml, or the stealth one), it writes nothing and
+      reports what is missing: what itos config check finds, and each hook that does
+      not call itos, naming the command that puts it right; exit 1 when anything is
+      missing, 0 when nothing is. It runs the binary called, whatever a pin says.
+
+      --json: {"schema":1,"config","action":"initialized","git_init","since","files":[{"path","action"}],
+              "pin","pin_problem"?,"hooks"} (hooks as itos hooks install --json prints it),
+              or {"schema":1,"config","action":"checked","missing":[{"rule","message","fix"?,"area"}]}
   - name: itos verify --help
     argv: [verify, --help]
     exit: 0

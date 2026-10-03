@@ -26,7 +26,7 @@ Feature: itos init, a repository made ready for itos
 
   # The repository has a commit and no itos file at all; the scenarios
   # without a release server cannot reach one, so init pins nothing there.
-  @ID-INIT-01 @slice-48 @wip
+  @ID-INIT-01 @slice-48
   Scenario: In an existing repository init writes a config the checks accept, starting at HEAD, and installs the hooks
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "init"
@@ -37,7 +37,7 @@ Feature: itos init, a repository made ready for itos
     When itos checks the config
     Then itos exits with code 0
 
-  @ID-INIT-02 @slice-48 @wip
+  @ID-INIT-02 @slice-48
   Scenario: The starter config asks a Task footer of a chore, and no footer of a feat without feature files
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"
@@ -48,7 +48,7 @@ Feature: itos init, a repository made ready for itos
     When the commit-msg hook checks the message "feat: add a page"
     Then itos exits with code 0
 
-  @ID-INIT-03 @slice-48 @wip
+  @ID-INIT-03 @slice-48
   Scenario: With feature files the starter config adds the scenarios, their footer and a smoke set the smoke rule accepts
     Given a repository that does not use itos, its one commit "docs: start"
     And the feature file "features/pages.feature" with the scenario "@ID-PAGE-01"
@@ -61,7 +61,7 @@ Feature: itos init, a repository made ready for itos
     Then itos exits with code 1
     And its output says "Scenarios"
 
-  @ID-INIT-04 @slice-48 @wip
+  @ID-INIT-04 @slice-48
   Scenario: In a folder that is not a repository init runs git init first, and starts nowhere
     Given a folder that is not a git repository
     When itos runs "init"
@@ -71,7 +71,7 @@ Feature: itos init, a repository made ready for itos
     When itos checks the config
     Then itos exits with code 0
 
-  @ID-INIT-05 @slice-48 @wip
+  @ID-INIT-05 @slice-48
   Scenario: With a release server init pins its newest release
     Given a release server offering the versions "9.1.0" and "9.2.0"
     And a repository that does not use itos, its one commit "docs: start"
@@ -80,7 +80,7 @@ Feature: itos init, a repository made ready for itos
     And the config's pin is the version "9.2.0" of the release server, with its checksums
     And no version of the release server ran
 
-  @ID-INIT-06 @slice-48 @wip
+  @ID-INIT-06 @slice-48
   Scenario: Where the release server cannot be reached init pins nothing and says how to
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "init"
@@ -88,7 +88,7 @@ Feature: itos init, a repository made ready for itos
     And the config has no pin
     And its output says "itos pin"
 
-  @ID-INIT-07 @slice-48 @wip
+  @ID-INIT-07 @slice-48
   Scenario: Run again, init changes nothing and finds nothing missing
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"
@@ -96,7 +96,7 @@ Feature: itos init, a repository made ready for itos
     Then itos exits with code 0
     And no file changed since the last run
 
-  @ID-INIT-08 @slice-48 @wip
+  @ID-INIT-08 @slice-48
   Scenario: Run again where a hook is missing, init reports it and installs nothing
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"
@@ -107,7 +107,7 @@ Feature: itos init, a repository made ready for itos
     And its output says "itos hooks install"
     And the file ".git/hooks/pre-push" does not exist
 
-  @ID-INIT-09 @slice-48 @wip
+  @ID-INIT-09 @slice-48
   Scenario: With --stealth init writes everything under the git folder and declares the hooks in the git config
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "init --stealth"

@@ -45,6 +45,10 @@ type world struct {
 	// The config's text before the last run of itos began, nil when there was
 	// none.
 	configBefore []byte
+	// Whether each run of itos records the folder first (init.feature's "no
+	// file changed since the last run"), and what it recorded last.
+	snapshotRuns bool
+	filesBefore  map[string]string
 }
 
 // What a scenario sets in the scratch repository's itos.yaml.
@@ -265,6 +269,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializePushSteps(sc, w)
 	initializeShimSteps(sc, w)
 	initializeGuardSteps(sc, w)
+	initializeInitSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })

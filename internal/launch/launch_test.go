@@ -268,6 +268,8 @@ func TestBinaryCommand(t *testing.T) {
 		"pin":                    true,
 		"pin 9.1.0":              true,
 		"--json pin":             true,
+		"init":                   true,
+		"init --stealth":         true,
 		"git-shim install":       true,
 		"git-shim uninstall":     true,
 		"git-shim run commit":    false,

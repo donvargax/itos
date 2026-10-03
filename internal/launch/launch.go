@@ -25,7 +25,8 @@
 //
 // git-shim install and uninstall always run the binary that was called, the
 // one they link as git, and so does pin, which moves the pin and may be newer
-// than the version pinned (slice 47); the git shim's own runs (git-shim run) are launched
+// than the version pinned (slice 47), and init, which writes the config and
+// its pin where there is none (slice 48); the git shim's own runs (git-shim run) are launched
 // as any other, so in a pinned repository git commit is the pinned itos's,
 // when it has the shim (Handed tells internal/shim the version, bug 7).
 //
@@ -110,11 +111,13 @@ func Main(args []string, stderr io.Writer) (int, bool) {
 // commands, which the binary that was called runs whatever the pin says:
 // git-shim install and uninstall link that binary as git (slice 41), so no
 // version a pin picks runs them, or the link would point into the cache; pin
-// moves the pin (slice 47), which the version it names may predate.
+// moves the pin (slice 47), which the version it names may predate; init
+// readies a repository (slice 48), where there is no config to pin a version,
+// and the newest release must not run in its place.
 func binaryCommand(args []string) bool {
 	rest := cli.Parse(args).Rest
 	switch {
-	case len(rest) >= 1 && rest[0] == "pin":
+	case len(rest) >= 1 && (rest[0] == "pin" || rest[0] == "init"):
 		return true
 	case len(rest) >= 2 && rest[0] == "git-shim":
 		return rest[1] == "install" || rest[1] == "uninstall"

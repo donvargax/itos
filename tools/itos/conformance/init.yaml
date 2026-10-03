@@ -1,0 +1,111 @@
+# itos init (slice 48, features/init.feature): the starter it writes where
+# there is no config, and what it reports where one is there. No release
+# server answers here, so it pins nothing and says how to.
+cases:
+  - name: init takes only --stealth
+    argv: [init, --force]
+    exit: 2
+    stderr: |
+      itos: init takes only --stealth (--force) (itos --help)
+  - name: init writes the starter config, its ledger and registry, pins nothing it cannot reach, and installs the hooks
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+        label: start
+    argv: [init]
+    exit: 0
+    stdout_has:
+      - "wrote itos.yaml\nwrote tasks/phase-1.yaml\nwrote tasks/work-items.yaml\n"
+      - "commits.since is HEAD, {{short.start}}: no commit before it is judged.\n"
+      - "Pinned no itos: cannot ask for the newest itos: "
+      - "Run itos pin when the release server can be reached.\n"
+      - "Found plain git (no hook manager's marker)\nwrote .git/hooks/commit-msg\nwrote .git/hooks/pre-push\n"
+      - "Commit what init wrote with the task that adopts itos: git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml, then itos commit --task T-1 -m 'chore: adopt itos'\n"
+    files_after:
+      itos.yaml: |
+        # itos.yaml, written by itos init: this repository's rules for its commits,
+        # kept small to grow. itos config check validates it; itos config check
+        # --print-defaults prints every key it leaves to its default.
+        version: 1
+
+        # No pin: the itos called runs. itos pin pins the newest release.
+
+        # The tasks: every commit but a feat or a fix names one in its Task footer
+        # (itos commit --task T-1), and itos task T-1 runs its checks.
+        ledger:
+          files: "tasks/phase-{group}.yaml" # one file per phase: tasks/phase-1.yaml, …
+          id: "T-\\d+"
+
+        commits:
+          # The Conventional Commits types, held to commitlint's config-conventional
+          # rules by itos's own lint.
+          types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
+          header_lint: { use: builtin }
+          footers:
+            Task:
+              source: ledger
+              required_for: [refactor, perf, test, build, ci, chore, docs, style, revert]
+              validate_for: all # a task named must be in the ledger
+              read_at: commit # judged against the ledger the commit carries
+          # Where verification starts: this commit and the ones before it, written
+          # before itos, are never judged.
+          since: "{{sha.start}}"
+          # No path scopes yet: commits.scopes holds which paths each type may touch.
+
+        hooks:
+          bin: itos # the hooks call the global itos, which runs the release pinned
+      tasks/phase-1.yaml: |
+        # The ledger's phase 1: the tasks that drive every commit but a feat or a fix,
+        # each named in its commit's Task footer (itos commit --task T-2). A task:
+        #
+        #   - id: T-2
+        #     type: chore # one of commits.types
+        #     title: What it is
+        #     why: Why it is worth doing. # optional
+        #     done_when: # the checks that prove it, which itos task T-2 runs
+        #       - run: a command that exits 0 once it is done
+        - id: T-1
+          type: chore
+          title: Adopt itos
+          why: >
+            The commit that adds itos.yaml, this ledger and the work registry names it:
+            itos commit --task T-1.
+          done_when:
+            - run: itos config check
+      tasks/work-items.yaml: |
+        # The work registry: who owns each phase and each piece of work, and what
+        # waits on what. itos work shows what can start; itos work check validates it.
+        # An item:
+        #
+        #   - id: T-2 # a task's ID, or a name of its own
+        #     title: What it is
+        #     phase: 1
+        #     owner: null # a handle, or null
+        #     status: todo # todo, doing, done or blocked
+        #     depends_on: []
+        phases: {}
+        items: []
+      .git/hooks/commit-msg:
+        text: |
+          #!/bin/sh
+          exec itos hook commit-msg "$1"
+        executable: true
+  - name: init with a config there writes nothing and lists what is missing, config check's problems and the hooks'
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml" }
+      tasks/: ""
+      .git/hooks/commit-msg: { text: "#!/bin/sh\nexec itos hook commit-msg \"$1\"\n", executable: true }
+    argv: [init]
+    exit: 1
+    stdout: |
+      itos.yaml is there already, so init wrote nothing.
+      Missing:
+        no work registry at tasks/work-items.yaml; move the registry to tasks/work-items.yaml, or set work.registry to where it is
+        the pre-push hook: .git/hooks/pre-push is not there; run itos hooks install
+    files_after:
+      .git/hooks/pre-push: null

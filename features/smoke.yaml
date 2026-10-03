@@ -64,6 +64,10 @@
   scenarios:
     - id: "@ID-HEADER-01"
       why: the hook rejects a header by the built-in lint under commitlint's rule id, no Node in the scratch repository
+- file: init.feature
+  scenarios:
+    - id: "@ID-INIT-01"
+      why: init in a repository with a commit writes a config the checks accept and installs the hooks, the file's point
 - file: ledger.feature
   scenarios:
     - id: "@ID-LEDGER-01"
