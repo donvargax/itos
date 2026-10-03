@@ -85,9 +85,12 @@ nothing by itself.
      staged work and registry edits;
    - tell each one to symlink `node_modules` to the main checkout's instead of
      running `vp install`, because a second install can load two copies of a
-     tool and fail every suite (`ln -s <main checkout>/node_modules
-node_modules`; the worktrees live under `.claude/worktrees/`, which the
-     unit tests, the linter and the formatter leave out);
+     tool and fail every suite (`ln -s <main checkout>/node_modules node_modules`;
+     the worktrees live under `.claude/worktrees/`, which the unit tests, the
+     linter and the formatter leave out);
+   - tell each one to run `vp config --hooks --no-agent` in it before its
+     first commit: a new worktree has no `.vite-hooks/_`, the folder
+     `core.hooksPath` names, so its hooks silently do not run;
    - pull with `--no-autostash` before every push;
    - and commit from a worktree of your own while they run.
 3. When it reports, check the result (below). Relay the report to the user
@@ -308,16 +311,27 @@ interruption. A subagent without a worktree of its own works in the main
 checkout, with its index, so:
 
 - **Commit docs from a worktree of your own**, never from the main checkout
-  while an agent runs (the user's call, 2026-10-03). Its branch tracks
-  `origin/main` (`git worktree add -b coord-docs .claude/worktrees/coord-docs
-  origin/main`, then `git branch --set-upstream-to=origin/main coord-docs`
-  and a `node_modules` link to the main checkout's), and `tools/bin/itos
-  push` there rebases and pushes as anywhere. It is safe because the paths
+  while an agent runs (the user's call, 2026-10-03). Make it once:
+
+  ```sh
+  git worktree add -b coord-docs .claude/worktrees/coord-docs origin/main
+  cd .claude/worktrees/coord-docs
+  git branch --set-upstream-to=origin/main coord-docs
+  ln -s <main checkout>/node_modules node_modules
+  vp config --hooks --no-agent
+  ```
+
+  The last line matters: `core.hooksPath` names `.vite-hooks/_`, a folder
+  `vp config` generates and git ignores, so a new worktree has none, and
+  every commit and push there skips the hooks without a word (the first
+  docs commit made this way went to CI unformatted). `tools/bin/itos push`
+  there rebases and pushes as anywhere. It is safe because the paths
   are disjoint by construction: a coordinator's commits are `docs` commits
   (`docs/**`, `**/*.md`, `tasks/**`, feature files), an implementing agent's
   are the code. The one overlap is `tasks/work-items.yaml`, which the agent's
   closing commit edits: leave the registry, and a feature file the agent is
   turning live, to after it hands back.
+
 - **Don't stage or commit in the main checkout while an agent is running.**
   A commit takes everything in the index, the agent's staged files too; and
   two pre-commit hooks at once break `vp staged`'s backup and restore of the
