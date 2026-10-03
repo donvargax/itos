@@ -1,0 +1,17 @@
+{
+	"modules": ["./register.ts"],
+	"hooks": {
+		"PreToolUse": [
+			{
+				"matcher": "Bash",
+				"hooks": [
+					{
+						"type": "command",
+						"command": "command -v itos >/dev/null 2>&1 || exit 0; itos hook pre-tool-use; s=$?; [ \"$s\" -ne 2 ] || s=1; exit \"$s\"",
+						"timeout": 30
+					}
+				]
+			}
+		]
+	}
+}
