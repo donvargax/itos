@@ -334,7 +334,16 @@
     version the tag never had. The self-test also proves a fix or a ! before the tag does not
     count, a fix naming only the scenario leaves the case refused, a shallow clone and a tag that
     cannot be checked out stop it (exit 2), and no release tag passes. Its first run, v2.3.0's
-    187 scenarios and 554 cases against this tree's binary, passed in about 12 seconds.
+    187 scenarios and 554 cases against this tree's binary, passed in about 12 seconds. The old
+    corpus's help cases are left out, never judged, the user's call (2026-10-03) after bug 8's fix
+    rightly changed itos tests smoke --help and v2.3.0's help.yaml held CI red on it: help text
+    is documentation, not compatibility (PLAN.md: --json and exit codes are the stable interface),
+    this tree's own corpus still pins its help exactly, and judged, every feat that adds a flag or
+    a command, which changes itos --help, could pass only as a breaking change. A help case is
+    one whose argv holds --help or -h before any --, starts with help, or is empty (a bare itos
+    prints the help): 37 of v2.3.0's help.yaml's 38 cases and none outside it, its itos version
+    case still judged. The check says how many it left out and why; the self-test proves an old
+    help case that differs passes while an old non-help case still fails.
   done_when:
     - run: node tools/selftest/previous-release.ts
       timeout: 900

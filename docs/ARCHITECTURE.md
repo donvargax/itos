@@ -1334,10 +1334,20 @@ all`; a module replaced by a version is checked as that version, one
     for the corpus runner's YAML parser, sets the worktree's `package.json`
     version, when it has one, to what `<bin> version` says (the corpus's
     `{{version}}` is the version the binary must say, which a release's runner
-    read from there until T-069; a later one asks the binary), then runs, at
-    once, the release's `go test ./features -count=1
+    read from there until T-069; a later one asks the binary), takes the help
+    cases out of the release's fixtures, then runs, at once, the release's `go test ./features -count=1
 -json` with `ITOS_BIN` naming the binary and the release's
-    `node tools/itos/conformance/run.ts --bin <bin>`. A failing subtest
+    `node tools/itos/conformance/run.ts --bin <bin>`. A help case is one whose
+    argv holds `--help` or `-h` before any `--`, starts with `help`, or is
+    empty (a bare itos prints the help); they are never judged (the user's
+    call, 2026-10-03), as help text is documentation, not compatibility:
+    `--json` and exit codes are the stable interface, this tree's own corpus
+    still pins its help exactly, and judged, every feat that adds a flag or a
+    command would pass only as a breaking change. A Node script in the
+    command, with the linked `yaml`, deletes them from each fixture's `cases`
+    in place, keeping the rest of the file as written, and the check prints
+    how many it left out of which file and why (v2.3.0: 37 of `help.yaml`'s
+    38, its `itos version` case still judged). A failing subtest
     (`TestFeatures/<name>`, spaces as underscores) is named by the `@ID-` tag
     above its `Scenario:` line in the release's feature files, a failing case
     by the runner's `FAIL <file>: <name>` line as `<file base name>: <name>`.
@@ -1355,8 +1365,9 @@ all`; a module replaced by a version is checked as that version, one
     that cannot run or whose failure it cannot name; no release tag passes,
     saying so. `tools/selftest/previous-release.ts` proves it in a scratch
     repository whose tag holds two scenarios (a stdlib Go test standing for
-    godog's), this repository's corpus runner and three cases, against a
-    script that breaks one scenario and one case.
+    godog's), this repository's corpus runner, three cases and two help
+    cases, against a script that breaks one scenario and one case, and one
+    whose help alone differs, which passes.
   - **commit-msg** first checks itos's own data when the commit stages any
     of it (`commit-data.ts`): the config, a ledger file, the registry or a
     smoke set, as the staged config names them, runs `config check`'s
