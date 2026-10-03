@@ -29,7 +29,9 @@
 //   - checksums.txt names every archive and the schema once and passes
 //     `sha256sum -c`;
 //   - this machine's archive, unpacked with tar, says `itos <package.json's
-//     version>` for `itos version`.
+//     version>` for `itos version`;
+//   - the Claude Code plugin, released with itos (T-066), names package.json's
+//     version in its manifest, which is where Claude Code reads it.
 //
 // Exits 1 on any failure, or when the folder is empty or missing. The nightly
 // runs it without --dir (itos.yaml's `ci.nightly.steps`), so the release build
@@ -55,6 +57,8 @@ const archiveOf = (platform: string) =>
 const binaryOf = (platform: string) => (platform.startsWith("windows") ? "itos.exe" : "itos");
 // The config's JSON Schema, beside the archives.
 const SCHEMA = "itos.schema.json";
+// The Claude Code plugin's manifest, which holds its version (T-066).
+const PLUGIN = "integrations/claude-code/.claude-plugin/plugin.json";
 
 const args = process.argv.slice(2);
 const at = args.indexOf("--dir");
@@ -149,7 +153,22 @@ function proveNative() {
 		);
 }
 
+// The plugin a person installs from this repository's marketplace is
+// released with itos, so its manifest says package.json's version: Claude
+// Code reads the version there and never in package.json, so a bump that
+// changed package.json alone would release the plugin under the old one.
+function provePlugin() {
+	try {
+		const said: unknown = JSON.parse(readFileSync(join(ROOT, PLUGIN), "utf8")).version;
+		if (said !== version)
+			failures.push(`${PLUGIN} says version ${JSON.stringify(said)}, not ${version}`);
+	} catch (error) {
+		failures.push(`${PLUGIN} cannot be read: ${(error as Error).message}`);
+	}
+}
+
 try {
+	provePlugin();
 	if (given) console.log(`== the release built into ${out}`);
 	else {
 		console.log(`== the release: node tools/bin/build-go.ts --release ${out}`);
@@ -187,5 +206,6 @@ if (failures.length) {
 }
 console.log(
 	`\ngo release: ${PLATFORMS.length} archives of itos ${version}, each holding its binary, ` +
-		`LICENSE and README.md, and ${SCHEMA} pass sha256sum -c, and this machine's says its version`,
+		`LICENSE and README.md, and ${SCHEMA} pass sha256sum -c, this machine's says its version, ` +
+		`and so does the Claude Code plugin's manifest`,
 );
