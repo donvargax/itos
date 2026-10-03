@@ -59,7 +59,10 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
    nightly 37131118750 green on it); the release workflow's run was not
    watched, the coordinator's watch denied by the permission check: confirm it
    published, then close T-068 (the download check, README's install lines).
-   Then **T-069**, the user's call (2026-10-03): a push to `main` carrying a
+   Then **T-070** (the config schema held to the last release's) and
+   **T-071** (the last release's scenarios run against the new binary; a
+   fix may change one it names in `Changes:`, a feat never), then
+   **T-069**, the user's call (2026-10-03): a push to `main` carrying a
    `feat` or a `fix` with CI green cuts the release itself (version from the
    commits, GoReleaser, attestations, generated notes, no commit by the
    releaser), before v2.4.0's slices, so v2.4.0 is the first cut by CI.

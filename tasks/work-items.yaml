@@ -1188,12 +1188,36 @@ items:
       itos status could print what HANDOFF's "Where things stand" holds by hand: main's last green
       run, the last nightly, the unreleased commits since the last tag.
 
+  - id: T-070
+    title: A config that the last release accepts is accepted unless the range carries a breaking change
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      The user's call (2026-10-03), before T-069 reads the version from the commits alone. The task
+      is T-070 in tasks/phase-3.yaml.
+    refs: [tasks/phase-3.yaml, tools/bin/config-schema/main.go]
+
+  - id: T-071
+    title: The last release's scenarios hold against the new binary unless a commit says why not
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      The user's call (2026-10-03), before T-069: a breaking change may break an old scenario, a
+      fix may when it names it in Changes:, a feat never. The task is T-071 in tasks/phase-3.yaml.
+    refs: [tasks/phase-3.yaml, features/README.md]
+
   - id: T-069
     title: A push to main whose CI is green cuts a release when it carries a feat or a fix
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: []
+    depends_on: [T-070, T-071]
     kind: task
     why: >
       Was p1-itos-release, the user's call (2026-10-03): the version computed from the commits,

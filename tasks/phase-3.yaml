@@ -273,6 +273,56 @@
     - run: sh -c 'd=$(mktemp -d) && gh release download v2.3.0 --dir "$d" --pattern "itos-2.3.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
       after: push
 
+- id: T-070
+  type: ci
+  title: A config that the last release accepts is accepted unless the range carries a breaking change
+  why: >
+    The user's call (2026-10-03), for T-069's releases, whose version is read from the commits
+    alone: an incompatible config change that no commit marks as breaking would ship as a minor.
+    tools/selftest/go-schema.ts already holds the generated schema to config check (T-054); this
+    holds it to the last release's. A Go check, standard library only (T-067's reason), compares
+    the itos.schema.json published with the last release (its tag from git) with the schema
+    tools/bin/config-schema generates from this tree, over the subset that generator writes:
+    a key removed, a type narrowed, an enum value removed, a key newly required, an object
+    closed, or a default changed is a breaking change, and fails unless a commit since that tag
+    carries BREAKING-CHANGE (or a ! in its header); a key added, a type widened or an enum value
+    added passes, and is printed for the notes. oasdiff was weighed and left: it reads OpenAPI,
+    so the schema would be wrapped as a request body, and its rules are an API client's (a
+    changed default is information there, a change of behaviour in a config). It runs in CI on a
+    push whose range has a feat or a fix, before T-069's release job, and needs the network for
+    the last release's schema. Its self-test proves each breaking change refused, each one
+    passed with a breaking-change commit, and each compatible change passed, on schemas it
+    writes itself, with no network.
+  done_when:
+    - run: node tools/selftest/schema-contract.ts
+      timeout: 300
+
+- id: T-071
+  type: ci
+  title: The last release's scenarios hold against the new binary unless a commit says why not
+  why: >
+    The user's call (2026-10-03): a scenario edited while doing something new no longer checks
+    the behaviour it promised, and the suite that judges the change is the edited one, so a
+    behaviour change can pass every check and ship as a minor under T-069. The steps are a black
+    box that runs whatever ITOS_BIN names (features/README.md), so CI builds this tree's itos,
+    checks out the last release's tag in a scratch worktree (its own features, steps and go.mod)
+    and runs its go test ./features there with ITOS_BIN naming the new binary, about 15
+    seconds; the last release's conformance corpus runs the same way, since a corpus case also
+    changes with the behaviour it records. An old scenario or case that fails is accepted only
+    when a commit since the tag carries BREAKING-CHANGE (or a ! in its header), or when a fix
+    since the tag names that scenario in a Changes: footer (Changes: @ID-…), the user's call: a
+    fix whose old scenario held the bug stays a patch, said in its commit; a feat may never break
+    an old scenario without a breaking change. If a bug fix ever breaks a consumer that relied on
+    the old behaviour, this becomes stricter (fixes too need a breaking change). Changes: is a
+    footer of commits.footers, its IDs checked as Scenarios: are, and the release notes T-069
+    generates list each. It runs in CI on a push whose range has a feat or a fix, before T-069's
+    release job. Its self-test proves, against a scratch repository with a tag and a binary that
+    breaks one old scenario, that the run fails, passes with a fix naming it in Changes:, fails
+    with a feat naming it, and passes with a breaking change.
+  done_when:
+    - run: node tools/selftest/previous-release.ts
+      timeout: 900
+
 - id: T-069
   type: ci
   title: A push to main whose CI is green cuts a release when it carries a feat or a fix
@@ -284,8 +334,7 @@
     (option B): feat a minor, fix a patch, BREAKING-CHANGE or a ! a major, nothing releasable no
     release. When CI is green on a push to main, a release job of its own (the only one given
     contents: write, id-token: write and attestations: write, one at a time so pushes in a row
-    cut their releases in order) first runs what a push's CI leaves to the nightly and a release
-    can afford, every feature and the release build's proof, then computes the next version from
+    cut their releases in order) computes the next version from
     the commits since the last tag (svu or git-cliff --bumped-version, a pinned binary or action,
     not an npm package), tags it, publishes with GoReleaser, and attests the archives with
     actions/attest-build-provenance (Sigstore, no keys; gh attestation verify checks them), all
@@ -303,7 +352,11 @@
     link to the latest release, so nothing needs a commit after a release. The Claude Code
     plugin is decoupled from itos's version (it may move to a repository of its own with its own
     rules): its version stops following itos and the release self-test stops comparing them.
-    The tools the workflow runs are pinned, each version at least 7 days old (T-067's rule). No
+    The tools the workflow runs are pinned, each version at least 7 days old (T-067's rule). The
+    release job adds no gate of its own: a push's CI, with T-070's schema contract and T-071's
+    run of the last release's scenarios, is what a release rests on, and a break that slips
+    through means a missing check, fixed forward with the check and a fix release (the user's
+    call, 2026-10-03). No
     task per release any more, no after-push download check red by design: a release's proof is
     the workflow itself, and the first release it cuts proves this task. p3-release-signatures
     keeps the launcher checking the attestations itself, later. docs/ORCHESTRATING.md's release
