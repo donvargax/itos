@@ -249,7 +249,7 @@ func Texts(tree, dir string, keep func(string) bool) map[string]string {
 	if len(paths) == 0 {
 		return texts
 	}
-	cmd := exec.Command("git", "cat-file", "--batch")
+	cmd := exec.Command(git.Bin(), "cat-file", "--batch")
 	cmd.Stdin = &specs
 	out, err := cmd.Output()
 	if err != nil {

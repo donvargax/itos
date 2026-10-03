@@ -18,17 +18,18 @@ type command func(args []string, o Out) (int, error)
 
 // commands is the command table, main.ts's COMMANDS.
 var commands = map[string]command{
-	"task":    task,
-	"work":    workCommand,
-	"commit":  commit,
-	"verify":  verify,
-	"tests":   testsCommand,
-	"ci":      ciCommand,
-	"hook":    hook,
-	"hooks":   hooks,
-	"config":  configCommand,
-	"version": versionCommand,
-	"push":    push,
+	"task":     task,
+	"work":     workCommand,
+	"commit":   commit,
+	"verify":   verify,
+	"tests":    testsCommand,
+	"ci":       ciCommand,
+	"hook":     hook,
+	"hooks":    hooks,
+	"config":   configCommand,
+	"version":  versionCommand,
+	"push":     push,
+	"git-shim": gitShim,
 }
 
 // flagValue is the value after a flag, and whether there is one.

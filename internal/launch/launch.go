@@ -22,6 +22,10 @@
 // left in the cache, ITOS_CACHE (itos/ in the user's cache folder by
 // default), which holds <version>/itos and the <version>/checksums.txt it was
 // checked against.
+//
+// git-shim install and uninstall always run the binary that was called, the
+// one they link as git; the git shim's own runs (git-shim run) are launched
+// as any other, so in a pinned repository git commit is the pinned itos's.
 package launch
 
 import (
@@ -78,6 +82,9 @@ type target struct{ version, checksums string }
 // a repository's pin has fallen behind the newest release, it says so on
 // stderr first (update.go).
 func Main(args []string, stderr io.Writer) (int, bool) {
+	if binaryCommand(args) {
+		return 0, false
+	}
 	t, ok := choose(args, stderr)
 	if !ok {
 		return 0, false
@@ -92,6 +99,15 @@ func Main(args []string, stderr io.Writer) (int, bool) {
 	}
 	fmt.Fprintf(stderr, "itos: %s\n", err)
 	return cli.ExitMissing, true
+}
+
+// binaryCommand is whether the arguments run a command about the binary that
+// was called rather than a repository: git-shim install and uninstall link
+// that binary as git (slice 41), so no version a pin picks runs them, or the
+// link would point into the cache.
+func binaryCommand(args []string) bool {
+	rest := cli.Parse(args).Rest
+	return len(rest) >= 2 && rest[0] == "git-shim" && (rest[1] == "install" || rest[1] == "uninstall")
 }
 
 // choose is the version to run and whether it is another than this binary:

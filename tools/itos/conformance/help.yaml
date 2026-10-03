@@ -24,6 +24,8 @@ cases:
         commit footers <name> <from> <to>
                                          a range's free-text footers, for the release notes
         push                             pull with a rebase, then push HEAD; never forced
+        git-shim install|uninstall [--dir <folder>]
+                                         link itos as git, for itos's commit and push
         verify <from> <to>               re-check every commit of a range
         tests list <kind> [--at <tree>]  the kind's named tests
         tests smoke check|ids|run <kind> the smoke rule, the smoke IDs, the smoke run
@@ -64,11 +66,15 @@ cases:
       before the name apply first and reach it as ITOS_CONFIG, ITOS_ROOT, ITOS_JSON,
       ITOS_BIN and ITOS_VERSION. `itos help <command>` runs `itos-<command> --help`.
 
+      As git: linked as git before the real git on the PATH (itos git-shim install),
+      itos runs git commit and git push as itos commit and itos push in a repository
+      with an itos config, from any folder of it, and the real git for anything else.
+
       Exit codes: 0 success; 1 policy failure (a check failed, a commit rejected,
       a registry or smoke problem, an unknown task); 2 usage or config error;
       3 missing environment (--as not among the people, a release that cannot be
-      fetched or checked, an extension that cannot start). In `ci run` a failing
-      step exits with its own code.
+      fetched or checked, an extension that cannot start, a git shim with no git to
+      run). In `ci run` a failing step exits with its own code.
   - name: itos task --help
     argv: [task, --help]
     exit: 0
@@ -246,6 +252,35 @@ cases:
       --json: git's output on stderr; {"schema":1,"ok","outcome","remote"?,"branch"?,"commit"?},
               outcome one of pushed, nothing-to-push, uncommitted, rebase-in-progress,
               detached, no-remote, fetch-failed, rebase-stopped, rebase-failed, push-failed
+  - name: itos git-shim --help
+    argv: [git-shim, --help]
+    exit: 0
+    stdout: |
+      Usage: itos git-shim install [--dir <folder>]
+             itos git-shim uninstall [--dir <folder>]
+             itos git-shim run <commit|push> [<git args>…]
+
+      The git shim is itos started under the name git, through a link named git
+      (git.exe on windows) to it in a folder before the real git on the PATH. In a
+      repository itos manages (an itos.yaml in the folder git runs in or at the
+      repository's top, or a stealth config), git commit runs as itos commit and git
+      push as itos push, with git's arguments, none of them read as itos's global
+      flags; git's -C <path> and -c <name>=<value> before the command are honoured.
+      Every other command, every command elsewhere, and every git an itos run starts
+      run the real git, the first git on the PATH that is not itos, with the same
+      arguments, streams and exit code; with no such git the shim exits 3. In a
+      pinned repository git commit and git push are the pinned itos's.
+
+      install links the itos running as git in <folder> (default: the folder holding
+      it) and says whether that folder comes before the real git on the PATH. It
+      never replaces a git that is not a link to itos (exit 1), and replaces a link
+      to another itos. uninstall removes the link, and leaves any other git alone
+      (exit 1). Both run the binary called, whatever a pin says. run is what the
+      link runs in a repository itos manages: git commit or git push, as itos's.
+
+      --json: {"schema":1,"link","action","target"?,"on_path"?,"before_git"?,"git"?},
+              action one of linked, kept, replaced, refused (install) or removed,
+              absent, refused (uninstall)
   - name: itos verify --help
     argv: [verify, --help]
     exit: 0

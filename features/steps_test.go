@@ -254,6 +254,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeStealthSteps(sc, w)
 	initializeCommitSteps(sc, w)
 	initializePushSteps(sc, w)
+	initializeShimSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -376,7 +377,7 @@ func moduleRoot() (string, error) {
 // git or itos read anything but the scratch repository (a hook's GIT_DIR, CI's
 // settings), with no global or system git config and a fixed identity, and
 // what keeps the launcher off the network and any real cache (launcherEnv),
-// and the scenario's extensions first on the PATH (extensionEnv).
+// and the scenario's git link and extensions first on the PATH (pathFirst).
 func (w *world) env() []string {
 	var env []string
 	for _, kv := range os.Environ() {
@@ -396,7 +397,10 @@ func (w *world) env() []string {
 		"GIT_COMMITTER_EMAIL=features@localhost",
 	)
 	env = append(env, w.launcherEnv()...)
-	return append(env, w.extensionEnv()...)
+	if first := w.pathFirst(); len(first) > 0 {
+		env = append(env, "PATH="+strings.Join(append(first, os.Getenv("PATH")), string(os.PathListSeparator)))
+	}
+	return env
 }
 
 func (w *world) git(args ...string) error { return w.gitIn(w.dir, args...) }

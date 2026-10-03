@@ -1,5 +1,6 @@
 // Package git is how itos asks the repository: it shells out to git, as the
-// TypeScript does, never reading .git itself.
+// TypeScript does, never reading .git itself, and always to the real git
+// (Bin), never a git shim that is itos.
 package git
 
 import (
@@ -11,13 +12,13 @@ import (
 // Output is a git command's stdout, its stderr dropped; the error when git
 // fails or is missing.
 func Output(args ...string) (string, error) {
-	out, err := exec.Command("git", args...).Output()
+	out, err := exec.Command(Bin(), args...).Output()
 	return string(out), err
 }
 
 // Succeeds is whether a git command exits 0, its output dropped.
 func Succeeds(args ...string) bool {
-	return exec.Command("git", args...).Run() == nil
+	return exec.Command(Bin(), args...).Run() == nil
 }
 
 // HasCommit is whether the repository has the commit.

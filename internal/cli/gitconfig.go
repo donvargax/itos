@@ -64,7 +64,7 @@ func localValues(root, key string) []string {
 
 // gitConfig runs git config on the repository's own config.
 func gitConfig(root string, args ...string) error {
-	cmd := exec.Command("git", append([]string{"-C", root, "config", "--local"}, args...)...)
+	cmd := exec.Command(git.Bin(), append([]string{"-C", root, "config", "--local"}, args...)...)
 	if text, err := cmd.CombinedOutput(); err != nil {
 		return fmt.Errorf("git config %s: %s", strings.Join(args, " "), value.Trim(string(text)))
 	}

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v2/internal/git"
 )
 
 // A scratch repository with a config, as the current folder, away from the
@@ -70,6 +72,8 @@ func TestDeclareHooksOldGit(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	// A run under itos (a hook's) names the real git, which would win.
+	t.Setenv(git.EnvGit, "")
 	code, _, stderr := run("hooks", "install", "--manager", "git-config")
 	if code != ExitMissing || !strings.Contains(stderr, "needs a git that runs the hooks its config declares") ||
 		!strings.Contains(stderr, "which 2.30.0 does not") {

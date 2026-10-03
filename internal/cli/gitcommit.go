@@ -428,7 +428,7 @@ func gitCommit(args []string, o Out) (int, error) {
 // files they gave git mean what they mean there, though itos moved to the
 // repository's top to read its config (slice 40).
 func runGit(argv, env []string, stdout io.Writer, o Out) (int, error) {
-	cmd := exec.Command("git", argv...)
+	cmd := exec.Command(git.Bin(), argv...)
 	cmd.Dir = origin
 	cmd.Env = env
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, stdout, o.Stderr
@@ -470,7 +470,7 @@ func rewriteNotes() error {
 			return nil
 		}
 	}
-	return exec.Command("git", "config", "--local", "--add", "notes.rewriteRef", message.NotesRef).Run()
+	return exec.Command(git.Bin(), "config", "--local", "--add", "notes.rewriteRef", message.NotesRef).Run()
 }
 
 // writeNote writes the footers as the itos note of the commit git just made,
@@ -485,7 +485,7 @@ func writeNote(before string, lines []string) error {
 		return nil
 	}
 	note := strings.Join(lines, "\n")
-	if out, err := exec.Command("git", "notes", "--ref="+message.NotesRef, "add", "-f", "-m", note, "HEAD").CombinedOutput(); err != nil {
+	if out, err := exec.Command(git.Bin(), "notes", "--ref="+message.NotesRef, "add", "-f", "-m", note, "HEAD").CombinedOutput(); err != nil {
 		return fmt.Errorf("git notes add: %s", strings.TrimSpace(string(out)))
 	}
 	return nil

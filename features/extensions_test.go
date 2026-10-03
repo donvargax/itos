@@ -48,14 +48,6 @@ func (w *world) extensionRecord(name string) string {
 	return filepath.Join(w.support, "extension-runs", name)
 }
 
-// PATH with the extensions' folder first, when the scenario has extensions.
-func (w *world) extensionEnv() []string {
-	if _, err := os.Stat(w.extensionsDir()); err != nil {
-		return nil
-	}
-	return []string{"PATH=" + w.extensionsDir() + string(os.PathListSeparator) + os.Getenv("PATH")}
-}
-
 // An extension's script: what it records, then body.
 func (w *world) extension(name, body string) error {
 	if err := os.MkdirAll(w.extensionsDir(), 0o755); err != nil {
