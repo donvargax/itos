@@ -1450,14 +1450,15 @@ func (w *world) binOnPath() (string, error) {
 
 // Every identity lookup fails: the scratch config names no work.identity, so
 // its provider is github, and the gh first on the PATH is signed out,
-// answering nothing and exiting 4 to anything asked, as gh does.
+// answering nothing and exiting 4 to anything asked, as gh does (gh.exe on
+// windows, which would otherwise find the runner's own gh).
 func (w *world) noIdentity() error {
 	bin, err := w.binOnPath()
 	if err != nil {
 		return err
 	}
 	script := "#!/bin/sh\necho 'not logged in' >&2\nexit 4\n"
-	return os.WriteFile(filepath.Join(bin, "gh"), []byte(script), 0o755)
+	return w.writeProgram(filepath.Join(bin, "gh"), script)
 }
 
 // work's text proposal lists the item under "Can start now:", the section of
