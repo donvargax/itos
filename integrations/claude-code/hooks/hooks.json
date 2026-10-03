@@ -7,7 +7,7 @@
 				"hooks": [
 					{
 						"type": "command",
-						"command": "command -v itos >/dev/null 2>&1 || exit 0; itos hook pre-tool-use; s=$?; [ \"$s\" -ne 2 ] || s=1; exit \"$s\"",
+						"command": "sh \"${CLAUDE_PLUGIN_ROOT}/hooks/guard.sh\"",
 						"timeout": 30
 					}
 				]
