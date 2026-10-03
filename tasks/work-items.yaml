@@ -1230,13 +1230,29 @@ items:
     title: A change to the Claude Code plugin raises the plugin's version, checked in CI
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-073]
     kind: task
     why: >
       Was p3-plugin-version, the user's call (2026-10-03): a checked bump rule, the plugin's own
       semver, 2.4.0 first to ship T-073. The task is T-074 in tasks/phase-3.yaml.
     refs: [tasks/phase-3.yaml, integrations/claude-code/.claude-plugin/plugin.json]
+
+  - id: p3-plugin-release-tags
+    title: Each plugin version is tagged, so a range start need not be CI's
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-074]
+    kind: idea
+    why: >
+      T-074 left it: tools/bin/plugin-version reads its range from CI's FROM and refuses to pass
+      without one, so a repository with no green run on main yet (the plugin's own, if it moves)
+      would hold every run red until one is green. claude plugin tag writes a {name}--v{version}
+      tag for a plugin release, checking plugin.json against the marketplace entry; tagged as each
+      bump lands, the plugin's newest tag could be the check's start when FROM is empty, and a
+      person could see which plugin version holds which change.
+    refs: [tools/bin/plugin-version/main.go, integrations/claude-code/.claude-plugin/plugin.json]
 
   - id: p3-release-notes-bodies
     title: A release's generated notes say what each feat and fix does, not only its header
