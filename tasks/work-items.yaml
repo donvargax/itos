@@ -2425,21 +2425,6 @@ items:
       p3-hook-amend-paths as @bug-6 (@ID-COMMITCMD-12), fixed first.
     refs: [features/commit-command.feature, features/stealth.feature, internal/cli/gitcommit.go]
 
-  - id: p3-hook-amend-paths
-    title: The commit-msg hook judges an amend's paths against HEAD's parent
-    phase: 3
-    owner: null
-    status: todo
-    depends_on: [slice-32]
-    kind: idea
-    why: >
-      Found in slice 32: the hook judges the staged paths against HEAD (git diff --cached), so an
-      amend that only rewords, staging nothing, is refused for a type that must change a path set
-      ("feat commits must change …"), and an amend's paths are only its new ones. An amend's paths
-      are the index against HEAD's parent; the hook can now tell an amend by its author
-      (amending in internal/cli/hook.go), as it does to read HEAD's note in stealth mode.
-    refs: [internal/cli/hook.go]
-
   - id: slice-37
     title: itos commit tells the hook an amend, the author's second kept only as a fallback
     phase: 3

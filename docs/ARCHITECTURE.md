@@ -245,7 +245,8 @@ each, and holds it since the TypeScript left (T-062).
   (`builtin: moves`, `moves.ts`), which reads a Gherkin kind's feature files
   through `parseFeature` with the kind's root, ID pattern, tag prefix and wip
   tag. The hook judges HEAD against the index (`stagedMoveIssues`, in
-  `commit-scope.ts`'s rejection beside the path rules), `verify` each commit
+  `commit-scope.ts`'s rejection beside the path rules), or for an amend
+  HEAD's parent against it (bug 6, below), `verify` each commit
   of its range against its parent, the empty tree for a root commit
   (`commitMoveIssues`, in that commit's rejection, so it counts against the
   commit), and `itos tests moves <kind>` HEAD against the index by hand. Both
@@ -702,9 +703,13 @@ run` is it over the smoke IDs, run through the config's shell with
   problems are printed in that order. `NewMoves(cfg)` reads each kind's
   feature files once per tree and gives the three callers: `Commit(sha,
 type)` for verify (the commit against `git.Parent`, the empty tree for a
-  root commit, nothing read when no check judges the type), `Staged(type)`
-  for the commit-msg hook (HEAD against the index) and `Index(kind)` for
-  `tests moves`. `verify` is `internal/cli/verify.go`: the range's commits
+  root commit, nothing read when no check judges the type), `Between` for
+  the commit-msg hook (HEAD, or for an amend HEAD's parent, against the
+  index) and `Index(kind)` for `tests moves`. The hook's `judgedBase` is
+  that parent (`git.Parent("HEAD")`) when `amending` takes the commit for an
+  amend, else HEAD, and the staged-data rule and the path rules read
+  `stagedFiles(base)` against it too: an amend is judged as the commit it
+  makes, so one that only rewords a feat still has the feat's paths (bug 6). `verify` is `internal/cli/verify.go`: the range's commits
   from `git rev-list --no-merges --reverse` over `cfg.RangeArgs(from, to)`
   (commits.since and its ancestors left out), each one's message through
   `message.Check` at that commit, the delegate's report on stdout (stderr

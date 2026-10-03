@@ -125,7 +125,8 @@ ones left empty, provided
 The scenario kind's range check (`tests.scenario.range_checks` in `itos.yaml`)
 is itos's built-in moves rule, `{ builtin: moves, except_types: [feat, fix] }`.
 It compares the two sets of scenarios, HEAD against the index in the
-commit-msg hook and each commit of the pushed range against its parent in
+commit-msg hook (HEAD's parent against it for an amend, judged as the commit
+it makes) and each commit of the pushed range against its parent in
 `itos verify`; `tools/bin/itos tests moves scenario` compares HEAD and the index
 by hand. A live scenario's name may change outside `feat` and `fix` only when
 the check's `allowed_renames` lists its ID and new name. Comment lines (`#`) are
