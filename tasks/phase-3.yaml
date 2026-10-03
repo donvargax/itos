@@ -389,7 +389,11 @@
     contract gains -json and -release <tag> for the notes (closes p3-schema-contract-json). itos
     commit footers reads a wrapped footer's first line only, so the notes take the rest from the
     message. The snapshot's assets match v2.3.0's published ones but for the version: the same
-    seven names, the same entries, modes and owners, the same schema byte for byte.
+    seven names, the same entries, modes and owners, the same schema byte for byte. The
+    attestation check runs in the nightly, last, not in pushes (ci.nightly_only): it passes only
+    once the release job has cut a release, which needs a green push, and a push's range starts at
+    the last green run, so in pushes it would hold every later one red and no release could ever
+    be cut. It stays red there until the first feat or fix after T-069 lands.
   done_when:
     - run: node tools/selftest/release-cut.ts
       timeout: 900

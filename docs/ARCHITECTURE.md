@@ -1429,7 +1429,12 @@ check`'s written-order rule reads too); then the late steps (the dependency chec
   by hand) runs `itos ci run --nightly`: `ci.nightly.steps` in written order,
   here every feature, then the gates self-tests (`gates.ts`, `go-hooks.ts`),
   the Go release build (`go-release.ts`) and the config's schema
-  (`go-schema.ts`), then the static checks of every done task. That last is the step `{ tasks: done, cost: static }`
+  (`go-schema.ts`), then the static checks of every done task, then T-069's
+  check that the newest release's linux-amd64 archive passes
+  `gh attestation verify`, which `ci.nightly_only` keeps out of pushes: it
+  passes only once the release job has cut a release, which needs a green
+  push, and a push's range starts at the last green run, so in pushes it
+  would hold every one red. The done tasks' checks are the step `{ tasks: done, cost: static }`
   (`nightlyPlan` in `ci-plan.ts`): the checks of each task whose work item is
   `done` in the registry (`itemStatuses`, the status the commit-msg hook calls
   a red check a regression by), in cost order where the step is written, only
