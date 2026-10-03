@@ -126,6 +126,12 @@ ci:
     - { run: go vet ./..., cost: static }
     - { run: tools/bin/itos tests smoke check scenario, cost: static }
     - { run: tools/bin/itos config check, cost: static } # the config, the ledger, the registry, the smoke set
+    # The dependency check (T-067), when the range changes go.mod or go.sum: no module younger
+    # than 7 days unless deps-check.json excepts it, then govulncheck. It asks the network, so
+    # late; first of the late steps, before the unit tests run a new module's code. FROM is the
+    # range's start, which the workflow's Range step puts in the job's environment, as a step
+    # cannot be given the range; empty (no green run to start from) checks.
+    - { run: 'go run ./tools/bin/deps-check -changed-since "${FROM-}"', cost: late }
     - { run: "go test ./cmd/... ./internal/...", cost: late } # itos's unit tests, the Go packages'
     - { run: vp run audit, cost: late }
     # The conformance corpus: what itos did when it was written, as cases run

@@ -6,6 +6,14 @@ vp staged || exit $?
 if [ -z "$(git diff --cached --name-only --diff-filter=ACMRD -- . ':(exclude)*.md' ':(exclude)docs/**' ':(exclude)tasks/**' ':(exclude)features/**/*.feature')" ]; then
 	exit 0
 fi
+# The dependency check (T-067) when go.mod or go.sum is staged, where a module
+# can come in: no module younger than 7 days unless deps-check.json excepts it,
+# then govulncheck. It asks the module proxy and the vulnerability database, so
+# it needs the network, as the go get that changed them did. Before the unit
+# tests, which would run a new module's code.
+if [ -n "$(git diff --cached --name-only -- go.mod go.sum)" ]; then
+	go run ./tools/bin/deps-check || exit $?
+fi
 # The unit tests the staged change reaches, itos's Go packages': the packages
 # it touches and those that import them (tools/bin/go-unit-tests, which
 # pre-push runs too, through itos.yaml's hooks.pre_push). Nothing when no file
