@@ -449,7 +449,9 @@ Each release's notes are a committed file, `docs/releases/v<version>.md`, which 
 workflow publishes and without which it refuses the tag. They end with an "Upgrading" section a
 consumer's session updates from alone, so it is complete: each config key added, removed, renamed
 or with a changed default; each workaround a consumer can now drop; each behaviour that can reject
-a commit that passed before; and the pin line to change.
+a commit that passed before; what every `Upgrading:` footer since the last release asks (from
+T-061); and the pin to change, from v2.0.0 the binary's install lines (its version, and each
+platform's hash from the release's `checksums.txt`).
 
 ## 11. Working rules
 

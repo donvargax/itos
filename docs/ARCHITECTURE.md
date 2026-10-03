@@ -802,11 +802,16 @@ TestFeatures/…` lines); a green run closes it.
   header with no commitlint to run. `header-agreement.ts` holds the built-in header
   lint to a fixture of commitlint's verdicts (above, `internal/message`).
   `release-notes.ts` proves what a command
-  can of a release's notes: the file is there, its last `##` section is
-  "Upgrading" with the pin line naming this version's tarball, and every
-  config key whose default differs between the last release (its tarball
-  downloaded from GitHub, verified and installed offline) and this tree, by
-  `config check --print-defaults --json`, is named in that section.
+  can of a release's notes: the file is there; its last `##` section is
+  "Upgrading" with the pin to change, from v2.0.0 the binary's install lines
+  (`version=<version>`, the download from the release, `checksums.txt`) and no
+  tarball, before it the pin line naming that version's tarball; every
+  `Upgrading:` footer `itos commit footers` lists for the commits since the
+  last release appears in that section, whitespace and case aside; and every
+  config key whose default differs between the last release (its Go archive
+  for this machine, or before v1.0.0 its tarball, downloaded from GitHub,
+  verified and run) and this tree, by `config check --print-defaults --json`,
+  is named in that section.
 - **The changelog** (`tools/changelog.ts`, `cliff.toml`): git-cliff groups
   the Conventional Commits by type, each with its footers and body, into
   `docs/changelog/`, which git, the formatter, the linter and the audit
