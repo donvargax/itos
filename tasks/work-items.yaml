@@ -1959,13 +1959,13 @@ items:
       newest release for a stealth config that pins nothing; slices 31 to 34 keep their own items.
     refs: [features/stealth.feature, PLAN.md]
 
-  - id: p3-stealth-defaults
+  - id: slice-35
     title: A stealth config uses the global itos and reads no people file
     phase: 3
     owner: donvargax
     status: todo
     depends_on: [slice-30, slice-33]
-    kind: idea
+    kind: slice
     why: >
       Slice 30 reads a stealth config's data beside it, and the defaults are still a project's:
       hooks.bin is tools/bin/itos, which a repository that does not use itos has not got, and
@@ -1979,7 +1979,9 @@ items:
       (and its re-run) and silent elsewhere: work runs with no identity, already no error (config
       check at most a warning that never fails). A project's hooks.bin default stays
       tools/bin/itos through v2; v3 drops the key (v3-drop-hooks-bin).
-    refs: [internal/config/defaults.go, internal/config/stealth.go, README.md]
+      Was p3-stealth-defaults. Specified as @ID-STEALTH-17 and -18, @ID-WORK-05 and
+      @ID-CONFIG-19.
+    refs: [features/stealth.feature, features/work.feature, features/config.feature]
 
   - id: v3-drop-hooks-bin
     title: "v3: hooks.bin goes, every hook and pattern calling itos"

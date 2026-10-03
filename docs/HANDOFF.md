@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 32 (stealth footers in notes) landed.
+Last updated 2026-10-03, after the `@bug-5` fix landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `0d527ca` (CI run 37094464409), slice 32's close; this
+`main` is green at `9ead58b` (CI run 37094778089), the `@bug-5` fix; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -62,13 +62,12 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
    registry (`p3-pin-bump`, `p3-launcher-subfolder`,
    `p3-launcher-cache-prune`, `p3-global-install-ci`).
 2. **Extensions** is done: slice 29.
-3. **Stealth mode**: slices 30 to 34 (`features/stealth.feature`), with
-   slice 31, `itos commit --task`, in `features/commit-command.feature`.
-   Specified, the user's answers in slice-30's why. Slices 30 to 32 are
-   done. Next the `@bug-5` fix (`itos commit <word>` that is no subcommand
-   is a usage error again, the user's call), then slice 33; with slice 33 comes `p3-stealth-defaults` (a stealth config still
-   defaults to a project's `hooks.bin` and `CONTRIBUTORS.md`, so it needs
-   both written until then). `hooks.bin` itself stays through v2
+3. **Stealth mode**: slices 30 to 35 (`features/stealth.feature`), with
+   slice 31, `itos commit --task`, in `features/commit-command.feature`; the
+   user's answers in slice-30's why. Slices 30 to 32 and the `@bug-5` fix
+   are done. Next slice 33 (config-based hooks), 34 (the unpushed range),
+   35 (a stealth config's defaults: until then it needs `hooks.bin` and a
+   people file written). `hooks.bin` itself stays through v2
    (`v3-drop-hooks-bin`).
 4. **`p1-itos-push`**, itos commit's other half (built in or an extension,
    the first call).

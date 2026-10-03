@@ -169,3 +169,12 @@ Feature: Every key the config accepts is one itos reads
     When itos runs the tasks of the group "1" by the flag "--milestone"
     Then itos exits with code 0
     And its output lists "T-001" as "done"
+
+  # Slice 35: config check validates files, so it says a people file is
+  # missing, as a warning that never fails it.
+  @ID-CONFIG-19 @slice-35 @wip
+  Scenario: config check warns of a missing people file, and passes
+    Given the people file is missing
+    When itos checks the config
+    Then itos exits with code 0
+    And its output says "people"

@@ -166,3 +166,20 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     When itos plans CI with no range
     Then itos exits with code 0
     And its output says "T-001"
+
+  # Slice 35: a stealth config's defaults fit one person. hooks.bin is itos,
+  # the global launcher, whatever the config says of it (a project's default
+  # stays tools/bin/itos through v2), and no people file is read: the person
+  # is the only one.
+  @ID-STEALTH-17 @slice-35 @wip
+  Scenario: A stealth config reads no people file
+    Given the config in the git folder names no people file
+    When itos runs "work"
+    Then itos exits with code 0
+    And its output does not say "CONTRIBUTORS"
+
+  @ID-STEALTH-18 @slice-35 @wip
+  Scenario: A stealth config's hooks call the global itos
+    When itos installs the hooks
+    Then itos exits with code 0
+    And the git config declares a "commit-msg" hook whose command starts with "itos "

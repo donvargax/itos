@@ -42,3 +42,13 @@ Feature: The work registry
     When itos checks the work registry
     Then itos exits with code 0
     And its output says "work/work-items.yaml: sound"
+
+  # Slice 35: a project's people file is itos init's to report (p3-itos-init);
+  # every other command goes on without it, the session having no identity,
+  # which is no error.
+  @ID-WORK-05 @slice-35 @wip
+  Scenario: work goes on without the people file, saying nothing of it
+    Given the people file is missing
+    When itos runs "work"
+    Then itos exits with code 0
+    And its output does not say "people"
