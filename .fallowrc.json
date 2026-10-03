@@ -1,6 +1,6 @@
 {
 	"$schema": "./node_modules/fallow/schema.json",
-	"entry": ["commitlint.config.ts", "tools/**/*.ts"],
+	"entry": ["tools/**/*.ts"],
 	"ignorePatterns": ["docs/changelog/**"],
 	"ignoreDependencies": ["yaml", "git-cliff", "ajv"],
 	"health": {

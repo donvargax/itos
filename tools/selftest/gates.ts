@@ -10,8 +10,9 @@
 //     footers from the pushed range and runs them;
 //   - the commit-msg hook, a one-line shim calling `itos hook commit-msg`,
 //     rejects a commit whose type may not touch a staged path, a scenario
-//     renamed outside feat and fix, and a header commitlint rejects, and lets a
-//     sound commit through;
+//     renamed outside feat and fix, and a header without a type, by the
+//     built-in header lint with no node_modules in the scratch copy, so no
+//     commitlint (T-063), and lets a sound commit through there too;
 //   - what the hooks leave out fails CI's own steps: a refactor that changes
 //     what itos prints, in a Go package whose unit tests do not read that
 //     line, passes both hooks and fails the push's features step, whose smoke
@@ -23,7 +24,7 @@
 // change that breaks one, is tools/selftest/go-hooks.ts's (T-059), which the
 // nightly runs beside this: since the TypeScript left (T-062) the unit tests
 // are the Go packages', and tools/bin/go-unit-tests picks them for both hooks.
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ciPlan, featuresStep, hookGates, scratchRepo } from "./scratch.ts";
@@ -78,8 +79,8 @@ try {
 	);
 
 	// The commit-msg hook, through its shim. A docs commit may not touch itos;
-	// a test commit may not rename a live scenario; commitlint rejects a header
-	// without a type; a docs commit with its footer passes.
+	// a test commit may not rename a live scenario; the header lint rejects a
+	// header without a type; a docs commit with its footer passes.
 	git(`reset -q --hard ${base}`);
 	const goSource = "internal/version/version.go";
 	edit(goSource, "\npackage version\n", "\n// gates self-test: a docs commit\npackage version\n");
@@ -99,15 +100,21 @@ try {
 		run.status === 1 && run.output.includes("  - a test commit "),
 		`commit-msg did not reject a test commit renaming a live scenario:\n${run.output}`,
 	);
+	// The header lint is the built-in one: with node_modules gone from the
+	// scratch copy, nothing of commitlint's can run, and the header is still
+	// judged, by commitlint's rule and words.
 	git(`reset -q --hard ${base}`);
 	edit("README.md", "# ", "A message check.\n\n# ");
-	run = commitMsg("a header without a type", "update things\n");
+	const modules = join(dir, "node_modules");
+	rmSync(modules);
+	run = commitMsg("a header without a type, no node_modules", "update things\n");
 	expect(
-		run.status !== 0 && run.output.includes("[type-empty]"),
-		`commit-msg did not pass the header to commitlint:\n${run.output}`,
+		run.status === 1 && run.output.includes("✖   type may not be empty [type-empty]"),
+		`commit-msg did not reject a header without a type with no node_modules:\n${run.output}`,
 	);
-	run = commitMsg("a sound docs commit", "docs: edit the readme\n\nTask: T-007\n");
+	run = commitMsg("a sound docs commit, no node_modules", "docs: edit the readme\n\nTask: T-007\n");
 	expect(run.status === 0, `commit-msg rejected a sound docs commit:\n${run.output}`);
+	symlinkSync(join(repo.root, "node_modules"), modules);
 
 	// What the hooks leave out, CI's steps catch. A refactor that changes
 	// what verify prints, in a Go package whose unit tests do not read that
