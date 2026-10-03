@@ -197,6 +197,10 @@ Feature: Every key the config accepts is one itos reads
   # parsing itos.yaml itself gets those wrong. itos config get <key> prints a
   # key's value, a dotted path, as itos would use it; --json gives it as
   # {"schema": 1, "key", "value"}. A key itos does not know is a usage error.
+  # Weak as written (the coordinator's spec): the default, tools/bin/itos,
+  # contains "bin/itos" too, so printing the default would pass. The corpus
+  # case "config get prints the hooks.bin the config sets, not its default"
+  # pins the exact output; p3-config-21-own-value tightens this one.
   @ID-CONFIG-21 @slice-45
   Scenario: config get prints a key's value as the config sets it
     Given hooks.bin is "bin/itos"

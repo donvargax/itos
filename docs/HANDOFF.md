@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after T-072 landed and v2.3.2 was cut by CI.
+Last updated 2026-10-03, after slice 45 landed and v2.4.0 was cut by CI.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `4d4cfb1` (CI run 37142010282, every job: `ci`, the
+`main` is green at `05b8bf6` (CI run 37145139905, every job: `ci`, the
 three `platform` jobs, `release`). Since T-062 itos is Go only,
 `tools/bin/itos` the Go binary every gate calls (`hooks.bin`, internal and
 unsupported for consumers); Node stays as this repository's dev tooling. Every
@@ -38,7 +38,8 @@ the platform jobs green, T-072). The last nightly, 37131118750 (on
 platform checks. Read it, and the consumer inbox (`node tools/bin/inbox.ts`),
 before new work; a red nightly comes first.
 
-Released: [v2.3.2](https://github.com/donvargax/itos/releases/tag/v2.3.2),
+Released: [v2.4.0](https://github.com/donvargax/itos/releases/tag/v2.4.0),
+cut by CI from slice 45's feat (`itos config get`); [v2.3.2](https://github.com/donvargax/itos/releases/tag/v2.3.2),
 cut by CI from bug 9's fix (Windows: the registry and ledger paths as git's
 slash paths); [v2.3.1](https://github.com/donvargax/itos/releases/tag/v2.3.1),
 the first cut by CI, from bug 8's (issue #3, closed); v2.3.0 by hand (the
@@ -51,15 +52,18 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 
 1. **v2.1.0 and v2.2.0 are out.** Open: `p3-shim-push-args` (`git push`
    takes no arguments through the shim), small, when it bites.
-2. **Next**: **slice 45** (`itos config get`, @ID-CONFIG-21 to 23), then
-   **T-073** (the plugin runs what `hooks.bin` names, asked with
-   `itos config get`), then v2.4.0's slices. Ideas the release work left:
+2. **Next**: slice 45 (`itos config get`) landed and cut v2.4.0 by
+   itself; **T-073** (the plugin runs what `hooks.bin` names, asked with
+   `itos config get`), then the adoption slices below. Ideas left:
    `p3-guard-windows-paths` (the guard reads a Git Bash `/c/…` folder as
    relative), `p3-plugin-version`, `p3-release-notes-bodies`,
-   `p3-version-prerelease`, `p3-changes-at-commit`.
-3. **v2.4.0** (cut by CI as its first feat lands): **`p3-pre-push-verify`**, **`p3-pin-bump`** and
+   `p3-version-prerelease`, `p3-changes-at-commit`, `p3-config-21-own-value`
+   (fold into the next feat or fix touching config.feature). Deferred until
+   itos-cc is published: `p3-role-protocol`, `p3-debt-role`,
+   `p3-debt-claims`.
+3. **Then**: **`p3-pre-push-verify`**, **`p3-pin-bump`** and
    **`p3-itos-init`**.
-4. **After v2.4.0**: **`p3-human-waiver`** (`itos waive`, a plain config
+4. **After those**: **`p3-human-waiver`** (`itos waive`, a plain config
    list; the guard keeps agents off it), the user's call (2026-10-03).
 5. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
    open for the user).
@@ -71,15 +75,12 @@ govulncheck, at a commit staging go.mod or go.sum and in CI); it left
 itos-security extension once the user's repository template is ready
 (`p3-extension-pins`).
 
-Releases, the user's plan (2026-10-03): v2.1.0 and v2.2.0 released; v2.3.0
-the plugin and the guard; v2.4.0 pre-push verify, the pin bump and
-`itos init`; the waiver after it; v3.0.0 the breaking cleanup
-(`v3-hooks-bin-default`: `hooks.bin` defaults to `itos`, the key kept as
-internal and unsupported).
-Open for the user: whether the other repositories move at v2.3.0, by hand
-from the Upgrading sections, or at v2.4.0 with `p3-pin-bump` (`itos init`
-as specified only reports what an existing repository lacks; it migrates
-nothing).
+Releases are cut by CI: a feat makes a minor, a fix a patch, a breaking
+change a major (v3.0.0 will carry `v3-hooks-bin-default`: `hooks.bin`
+defaults to `itos`, the key kept as internal and unsupported). Open for the
+user: when the other repositories move, by hand from a release's notes now,
+or once `p3-pin-bump` lands (`itos init` as specified only reports what an
+existing repository lacks; it migrates nothing).
 
 Each is specified as scenarios when its turn comes. Left for later:
 `p3-release-signatures`, the launcher checking T-069's attestations itself. Waiting, none
