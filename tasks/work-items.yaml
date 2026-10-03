@@ -1183,22 +1183,6 @@ items:
       itos status could print what HANDOFF's "Where things stand" holds by hand: main's last green
       run, the last nightly, the unreleased commits since the last tag.
 
-  - id: p1-upgrading-footer
-    title: A footer that records what a consumer changes, gathered into the release notes
-    phase: 1
-    owner: donvargax
-    status: todo
-    depends_on: []
-    kind: idea
-    why: >
-      v0.3.0's and v0.4.0's Upgrading sections were assembled by hand from each slice's report of
-      "what a consumer sees change", which the notes check cannot see beyond changed defaults. A
-      feat or fix footer (Upgrading:, say) would record it where the change is made; release
-      preparation would gather the range's, and the notes check would require each to appear.
-      The user's call (2026-10-02): it lands before v2.0.0, so v2's notes, the largest yet, are
-      gathered from the commits rather than read out of them; built once, in Go, after T-062.
-      It would cover what p1-release-notes-schema-keys misses too: keys dropped, values narrowed.
-
   - id: p1-itos-release
     title: itos release prepare, tag and close
     phase: 1
@@ -1779,7 +1763,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [T-063, p1-upgrading-footer]
+    depends_on: [T-063, slice-26]
     kind: idea
     why: >
       The release Go only: T-062 took the TypeScript out of the repository and the release
@@ -2010,7 +1994,8 @@ items:
       registry moved by work.registry and ledger tasks without registry entries are found, and falls
       back to reading tasks/work-items.yaml. Its changes are task-driven, proven by
       claude plugin test in the task's checks: one commits.scopes entry for integrations/**. A home
-      later for other itos-aware pieces (an inbox pane, main's CI in the status line).
+      later for other itos-aware pieces: a new itos version as a toast (p3-self-update), an inbox
+      pane, main's CI in the status line.
     refs: [PLAN.md]
 
   - id: p3-self-update
@@ -2027,6 +2012,45 @@ items:
       repository it downloads the exact version the repository pins into a cache, checks it against
       the pinned checksum and runs it; with no pin (the stealth mode, a repository without itos) the
       newest it has. ITOS_NO_UPDATE=1 stops self-update, ITOS_VERSION forces a version, CI never
-      self-updates, and releases are signed so an update checks a signature. Open for the user:
-      automatic update or a notice, and an exact version key beside requires.
+      self-updates, and releases are signed so an update checks a signature. The user's answers
+      (2026-10-02), kept simple on purpose: the manager updates itself automatically; a repository
+      pins one exact version (a key beside requires, which stays the oldest itos that reads the
+      config); when a newer version is out, one line at most once a day per repository, worded for
+      an agent too ("itos 2.1.0 is out (this repository pins 2.0.0). Tell the user; the release
+      notes say what to change: <url>"), never in CI; with --json the same as a notice key (and
+      latest in version --json) rather than silence, since agents read JSON and filters drop
+      stderr lines; ITOS_NO_UPDATE_NOTICE=1 silences it, ITOS_NO_UPDATE=1 stops self-update. The
+      itos Claude Code plugin shows it as a toast (p3-claude-code-plugin), and the template's agent
+      rules and each Upgrading section say to tell the user. No range-aware notices and no config
+      key to silence a team, until someone asks.
+    refs: [PLAN.md]
+
+  - id: slice-26
+    title: A free-text footer that says what a consumer changes, gathered for the release notes
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-25]
+    kind: slice
+    why: >
+      Was p1-upgrading-footer, the user's call to land before v2.0.0 (2026-10-02): a footer source of
+      free text (commits.footers.<name>.source: text), required for the types the config names,
+      carrying what a consumer must do or none; its own since, so a history written before the rule
+      still verifies (T-062 met that trap); and a command listing a range's footers with their
+      commits, skipping none, so a release's notes are gathered from the commits and a check can
+      prove each appears. The release-notes check and this repository's own footer come after it.
+    refs: [features/upgrading.feature]
+
+  - id: p3-header-lint-unread-keys
+    title: config check refuses header_lint's hook and stdin when use is builtin
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-25]
+    kind: idea
+    why: >
+      Found in slice 25: under use: builtin, a hook or stdin left in commits.header_lint is read by
+      nothing, against PLAN.md §5's rule that every key accepted is one a tool reads. config check
+      could refuse them, with a scenario; a consumer switching to builtin would then be told to drop
+      them.
     refs: [PLAN.md]

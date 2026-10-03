@@ -94,8 +94,15 @@
     risks), and so do the places that name commitlint as this repository's
     lint: AGENTS.md's commit-msg gate, tasks/README.md, features/README.md,
     docs/ARCHITECTURE.md's gates, .fallowrc.json's entry and the hook's
-    help ("commitlint here"). header-agreement.ts needs commitlint to run,
-    so its check cannot outlive commitlint as it is written.
+    help ("commitlint here"). So that the check outlives commitlint, the
+    agreement is recorded while commitlint is still here: a fixture of every
+    compared message with commitlint's verdict and report lines, in both
+    readings, written once by a script that runs commitlint, then
+    header-agreement.ts holds the built-in lint to that fixture alone and
+    needs no Node package beyond the corpus runner's. The switch is proven
+    by running it, never by a grep of package.json: the gates self-test's
+    commit-msg case judges a header in a scratch copy with no commitlint
+    installed.
   done_when:
     - run: node tools/selftest/header-agreement.ts
       timeout: 900

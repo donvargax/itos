@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after T-062 (itos is Go only) landed.
+Last updated 2026-10-02, after slice 25 (the built-in header lint) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `b0f3885` (CI run 37078354078), after T-062: itos is Go
+`main` is green at `f224e55` (CI run 37081070730), after slice 25; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
 repository's dev tooling (vp, the corpus runner, the self-tests, commitlint
 until T-063), never a consumer's runtime; this
@@ -45,20 +45,18 @@ implementations; release run 37071299183), after
 binary. Every asset was downloaded and verified after each release. Releases
 are automated (PLAN.md, "Releases"): no tag waits for the user. The user moves
 the consumers' pins from their own repositories: don't change any other
-repository. Nothing is unreleased. Write the next release's notes as each
+repository. Unreleased: T-059 to T-062 and slice 25, whose notes are started in
+`docs/releases/v2.0.0.md`. Write the next release's notes as each
 slice lands, from its report, in `docs/releases/v<next>.md`.
 
 ## Next
 
 1. **Phase 3, to v2.0.0** (PLAN.md, phase 3), one agent at a time:
-   - `slice-25`, the built-in header lint, specified in
-     `features/header.feature` (it makes `@ID-CONFIG-14` untrue, which its
-     feat corrects);
-   - `p1-upgrading-footer` (the user's call: before v2), to specify as
-     scenarios: an `Upgrading:` footer on commits that change what a
-     consumer sees, gathered into the release notes;
    - `T-063`, the built-in lint held to commitlint's verdicts over this
-     history, then this repository switches to it;
+     history (recorded as a fixture while commitlint is here, so the check
+     outlives it), then this repository switches to `use: builtin`;
+   - `slice-26`, the free-text `Upgrading:` footer, specified in
+     `features/upgrading.feature` (`@ID-UPGRADE-01` to `05`, `@wip`);
    - `T-061`, v2.0.0, to specify once those land: its why lists what the
      release still needs (the notes check's tarball pin line, README's
      install, the notes published without `{sha256}`).
