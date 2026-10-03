@@ -8,6 +8,7 @@ package ledger
 
 import (
 	"fmt"
+	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -21,7 +22,8 @@ import (
 
 // Layout is the ledger's folder and how its files are named:
 // tasks/phase-{group}.yaml gives tasks and a pattern whose group is the
-// phase.
+// phase. The folder and the files' paths have slashes on every platform, as
+// git names the paths they are compared with (bug 9).
 type Layout struct {
 	Dir     string
 	File    *regexp.Regexp
@@ -34,13 +36,14 @@ func LayoutOf(cfg *config.Loaded) (Layout, error) {
 	if err := cfg.Section("ledger"); err != nil {
 		return Layout{}, err
 	}
-	parts := strings.Split(filepath.Base(cfg.Ledger.Files), "{group}")
+	files := filepath.ToSlash(cfg.Ledger.Files)
+	parts := strings.Split(path.Base(files), "{group}")
 	before, after := parts[0], ""
 	if len(parts) > 1 {
 		after = parts[1]
 	}
 	return Layout{
-		Dir:     filepath.Dir(cfg.Ledger.Files),
+		Dir:     path.Dir(files),
 		File:    regexp.MustCompile("^" + regexp.QuoteMeta(before) + "(" + cfg.Ledger.Group.Pattern + ")" + regexp.QuoteMeta(after) + "$"),
 		Numeric: cfg.Ledger.Group.Numeric,
 	}, nil
@@ -80,7 +83,7 @@ func Files(cfg *config.Loaded) ([]File, error) {
 	var files []File
 	for _, name := range names {
 		if m := layout.File.FindStringSubmatch(name); m != nil {
-			files = append(files, File{Path: filepath.Join(layout.Dir, name), Group: m[1]})
+			files = append(files, File{Path: path.Join(layout.Dir, name), Group: m[1]})
 		}
 	}
 	return files, nil

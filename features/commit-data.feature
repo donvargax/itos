@@ -53,3 +53,16 @@ Feature: The commit-msg hook validates itos's own data
     And a change to "README.md" is staged
     When the commit-msg hook checks the message "docs: write the readme"
     Then itos exits with code 0
+
+  # Bug 9: on windows the registry beside a ledger was named with a backslash
+  # (work\work-items.yaml), which no staged path matched, git naming them with
+  # slashes, so a staged registry was never checked. T-072's windows run found
+  # it.
+  @ID-CDATA-06 @bug-9
+  Scenario: A staged registry beside a ledger kept in another folder is rejected, with the problem
+    Given the ledger's files are "work/phase-{group}.yaml"
+    And the commit "chore: keep the ledger in work" on top of it
+    And the work registry at "work/work-items.yaml" with the item "T-001" with the status "lost" is staged
+    When the commit-msg hook checks the message "docs: plan the work"
+    Then itos exits with code 1
+    And its output says "unknown status"

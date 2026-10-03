@@ -1,6 +1,7 @@
 package config
 
 import (
+	"path"
 	"path/filepath"
 
 	"github.com/donvargax/itos/v2/internal/value"
@@ -84,11 +85,12 @@ const GlobalBin = "itos"
 // in the folder of its ledger.files, so a ledger in work/ has its registry
 // at work/work-items.yaml; with no file, or no ledger, the table's own
 // value. A stealth config's hooks.bin is itos and it has no work.people
-// (stealthOnly).
+// (stealthOnly). The registry is joined with a slash on every platform, as
+// git names the paths it is compared with (bug 9).
 func DefaultsFor(file *value.Map, stealth bool) *value.Map {
 	table := defaults()
 	if files, ok := value.Prop(file.At("ledger"), "files").(string); ok && files != "" {
-		table.At("work").(*value.Map).Set("registry", filepath.Join(filepath.Dir(files), "work-items.yaml"))
+		table.At("work").(*value.Map).Set("registry", path.Join(path.Dir(filepath.ToSlash(files)), "work-items.yaml"))
 	}
 	if stealth {
 		stealthOnly(table)
