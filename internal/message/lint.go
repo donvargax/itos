@@ -2,6 +2,7 @@ package message
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"regexp"
@@ -117,10 +118,17 @@ type Streams struct {
 }
 
 // Check is `commit check-message` on one message (commit.ts's checkMessage):
-// the header lint's delegate (commits.header_lint.stdin) with the message on
-// its stdin, then the footer rules, at the commit r.At names. 1 when the
-// message fails either, else 0.
+// the header lint, built in or the delegate (commits.header_lint.stdin) with
+// the message on its stdin, then the footer rules, at the commit r.At names.
+// 1 when the message fails either, else 0.
 func Check(cfg *config.Loaded, message string, r Reading, s Streams) (int, error) {
+	if cfg.Commits.HeaderLint.Builtin() {
+		header, err := HeaderProblems(cfg, message, "")
+		if err != nil {
+			return 0, err
+		}
+		return builtin(cfg, message, header, r, s)
+	}
 	delegate := cfg.Commits.HeaderLint.Stdin
 	if delegate == nil || *delegate == "" {
 		return footersOnly(cfg, message, r, s)
@@ -145,6 +153,46 @@ func footersOnly(cfg *config.Loaded, message string, r Reading, s Streams) (int,
 		return 1, nil
 	}
 	return 0, nil
+}
+
+// builtin is the built-in header lint's problems, then the footer rules':
+// printed on Stderr as commitlint prints a problem, the header's first, or
+// under JSON one list, each with its level. Its warnings alone do not fail
+// the message.
+func builtin(cfg *config.Loaded, message string, header []Leveled, r Reading, s Streams) (int, error) {
+	found, err := FooterProblems(cfg, message, r)
+	if err != nil {
+		return 0, err
+	}
+	ok := !hasError(header) && len(found) == 0
+	if s.JSON {
+		problems := append([]Leveled{}, header...)
+		for _, p := range found {
+			problems = append(problems, Leveled{Rule: p.Rule, Message: p.Message, Fix: p.Fix, Level: "error"})
+		}
+		if err := out.Emit(s.Stdout, out.Field{Key: "ok", Value: ok}, out.Field{Key: "problems", Value: problems}); err != nil {
+			return 0, err
+		}
+	} else {
+		PrintLeveled(s.Stderr, header)
+		PrintFooters(s.Stderr, found)
+	}
+	if ok {
+		return 0, nil
+	}
+	return 1, nil
+}
+
+// PrintLeveled prints the header lint's problems as commitlint prints them:
+// ✖ for an error, ⚠ for a warning.
+func PrintLeveled(w io.Writer, found []Leveled) {
+	for _, p := range found {
+		sign := "⚠"
+		if p.Level == "error" {
+			sign = "✖"
+		}
+		fmt.Fprintf(w, "%s   %s [%s]\n", sign, p.Message, p.Rule)
+	}
 }
 
 // delegated is the delegate, its report printed as it comes or read into
@@ -194,12 +242,21 @@ type HookStreams struct {
 }
 
 // LintFile is the commit-msg hook's header lint (commit.ts's
-// lintMessageFile): the message file through commits.header_lint.hook, {file}
-// filled in as one shell word, its report printed as it comes, then the
-// footer rules, always, read where r says. A failing delegate's exit code is
-// the hook's (1 when it did not exit by itself); footer problems alone exit
-// 1. Without a delegate, the footer rules alone.
+// lintMessageFile): the built-in lint on the message file as commitlint
+// --edit reads it (a line break added, git's comment lines left out), or the
+// message file through commits.header_lint.hook, {file} filled in as one
+// shell word, its report printed as it comes, then the footer rules, always,
+// read where r says. A failing delegate's exit code is the hook's (1 when it
+// did not exit by itself); header or footer problems alone exit 1. Without
+// either, the footer rules alone.
 func LintFile(cfg *config.Loaded, file, message string, r Reading, s HookStreams) (int, error) {
+	if cfg.Commits.HeaderLint.Builtin() {
+		header, err := HeaderProblems(cfg, message+"\n", CommentChar())
+		if err != nil {
+			return 0, err
+		}
+		return builtin(cfg, message, header, r, Streams{Stdout: s.Stdout, Stderr: s.Stderr})
+	}
 	delegate := cfg.Commits.HeaderLint.Hook
 	if delegate == nil || *delegate == "" {
 		return footersOnly(cfg, message, r, Streams{Stdout: s.Stdout, Stderr: s.Stderr})

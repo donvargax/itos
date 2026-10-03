@@ -41,13 +41,8 @@ type Ledger struct {
 
 // Commits are the commit rules.
 type Commits struct {
-	Types []string `json:"types"`
-	// The header lint's delegate: the message file through Hook, a message on
-	// stdin through Stdin.
-	HeaderLint struct {
-		Hook  *string `json:"hook"`
-		Stdin *string `json:"stdin"`
-	} `json:"header_lint"`
+	Types         []string          `json:"types"`
+	HeaderLint    HeaderLint        `json:"header_lint"`
 	Footers       Ordered[Footer]   `json:"footers"`
 	PathSets      Ordered[[]string] `json:"path_sets"`
 	Scopes        Ordered[Scope]    `json:"scopes"`
@@ -56,6 +51,19 @@ type Commits struct {
 	// leave it and its ancestors out.
 	Since *string `json:"since"`
 }
+
+// HeaderLint is commits.header_lint: itos's own lint (Use builtin), or the
+// delegate, the message file through Hook and a message on stdin through
+// Stdin (Use command, or no Use).
+type HeaderLint struct {
+	Use   *string `json:"use"`
+	Hook  *string `json:"hook"`
+	Stdin *string `json:"stdin"`
+}
+
+// Builtin is whether itos lints the header itself rather than through a
+// delegate.
+func (h HeaderLint) Builtin() bool { return h.Use != nil && *h.Use == "builtin" }
 
 // Footer is one footer of commits.footers.
 type Footer struct {

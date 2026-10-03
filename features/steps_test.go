@@ -40,6 +40,7 @@ type world struct {
 type scratchConfig struct {
 	headerLint        bool     // the header lint delegated to commitlint's conventional config
 	headerLintCommand string   // the header lint delegated to this command
+	headerLintBuiltin bool     // the header lint itos's own (use: builtin)
 	since             string   // commits.since
 	rangeCheck        bool     // a range check that records where its range starts
 	moves             *moves   // the kind's range check is the built-in moves rule
@@ -143,6 +144,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.ciStepsAre(step, "printf 'ran\\n' > "+recordingStepFile)
 	})
 	sc.Step(`^the header lint is the command "([^"]*)"$`, w.headerLintIs)
+	sc.Step(`^the header lint is itos's built-in one$`, w.builtinHeaderLint)
 	sc.Step(`^ci\.stop_at_first_failure is (true|false)$`, w.stopAtFirstFailureIs)
 	sc.Step(`^work\.registry is "([^"]*)"$`, w.registryIs)
 	sc.Step(`^the work registry at "([^"]*)" has the item "([^"]*)" with the status "([^"]*)"$`, w.registryAt)
@@ -433,6 +435,8 @@ func (w *world) writeConfig() error {
 	} else if w.config.headerLintCommand != "" {
 		lint := w.config.headerLintCommand
 		fmt.Fprintf(&b, "  header_lint:\n    hook: %q\n    stdin: %q\n", lint, lint)
+	} else if w.config.headerLintBuiltin {
+		b.WriteString("  header_lint:\n    use: builtin\n")
 	}
 	b.WriteString(w.settingsUnder("commits"))
 	if w.config.rangeCheck || w.config.smoke || w.config.ciTests != "" || w.config.moves != nil {
@@ -1180,6 +1184,11 @@ func (w *world) ciStepsAre(steps ...string) error {
 
 func (w *world) headerLintIs(command string) error {
 	w.config.headerLintCommand = command
+	return w.writeConfig()
+}
+
+func (w *world) builtinHeaderLint() error {
+	w.config.headerLintBuiltin = true
 	return w.writeConfig()
 }
 

@@ -528,7 +528,9 @@ const Space = "[" + SpaceChars + "]"
 
 var spaces = regexp.MustCompile(Space + `+`)
 
-func isSpace(r rune) bool {
+// IsSpace is whether a character is JavaScript's \s, which String.trim
+// takes off.
+func IsSpace(r rune) bool {
 	switch r {
 	case '\t', '\n', '\v', '\f', '\r', ' ', 0xa0, 0x1680, 0x2028, 0x2029, 0x202f, 0x205f, 0x3000, 0xfeff:
 		return true
@@ -537,7 +539,7 @@ func isSpace(r rune) bool {
 }
 
 // Trim is a string without the space at either end (String.trim).
-func Trim(s string) string { return strings.TrimFunc(s, isSpace) }
+func Trim(s string) string { return strings.TrimFunc(s, IsSpace) }
 
 // Fields is a string split at each run of space (split(/\s+/)): a space at
 // either end gives an empty field there.

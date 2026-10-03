@@ -2,7 +2,8 @@
 # hooks.manager names, else finding it by its markers, and writing one-line shims (never over a hook of the project's own without
 # --force), or printing the snippet a config-file manager takes; `hook
 # commit-msg` (the staged paths, each kind's staged range check, then the
-# header lint, if any, and the footer rules, always); `hook pre-push` (git's ref lines on stdin,
+# header lint, if any, built in or a delegate, and the footer rules, always);
+# `hook pre-push` (git's ref lines on stdin,
 # or pre-commit's environment: once per remote base, else the whole run, and
 # nothing for a deleted branch).
 git:
@@ -661,6 +662,57 @@ cases:
     exit: 0
     stdout: |
       docs: a page
+  - name: the built-in header lint reads the message file as commitlint --edit does, git's comment lines left out
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { docs/a.md: "# A\n" }
+    files:
+      msg: "docs: a page\n\n# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
+      builtin.yaml: &builtin "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\ncommits:\n  types: [feat, build, docs]\n  header_lint: { use: builtin }\n  footers:\n    Task: { source: ledger, required_for: [build], validate_for: all }\n"
+    env: { ITOS_CONFIG: builtin.yaml }
+    exit: 0
+    stderr: ""
+  - name: the built-in header lint's problems and the footer rules' are both printed, and reject the commit
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { tools/a.sh: "true\n" }
+    files:
+      msg: "build: A script\n"
+      builtin.yaml: *builtin
+    env: { ITOS_CONFIG: builtin.yaml }
+    exit: 1
+    stderr: |
+      ✖   subject must not be sentence-case [subject-case]
+      ✖   build commits need a "Task: T-…" footer [task-footer]
+  - name: a warning of the built-in header lint is printed and does not reject the commit
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { docs/a.md: "# A\n" }
+    files:
+      msg: "docs: a page\nmore words\n"
+      builtin.yaml: *builtin
+    env: { ITOS_CONFIG: builtin.yaml }
+    exit: 0
+    stderr: |
+      ⚠   body must have leading blank line [body-leading-blank]
+  - name: use builtin runs no hook delegate, though the config names one
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { docs/a.md: "# A\n" }
+    files:
+      msg: "docs: a page\n"
+      both.yaml: "version: 1\ncommits:\n  header_lint: { use: builtin, hook: \"echo delegated >&2; exit 7\" }\n"
+    env: { ITOS_CONFIG: both.yaml }
+    exit: 0
+    stderr: ""
   - name: pre-push runs the per-base command once per remote base
     argv: [hook, pre-push, upstream, git@example.invalid:x.git]
     stdin: "refs/heads/main {{sha.more}} refs/heads/main {{sha.base}}\nrefs/heads/b {{sha.more}} refs/heads/b {{sha.base}}\n"

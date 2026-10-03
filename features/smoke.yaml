@@ -48,6 +48,10 @@
   scenarios:
     - id: "@ID-FOOT-01"
       why: the hook rejects a footer by itos's own rule with a delegate that carries none, the file's point
+- file: header.feature
+  scenarios:
+    - id: "@ID-HEADER-01"
+      why: the hook rejects a header by the built-in lint under commitlint's rule id, no Node in the scratch repository
 - file: ledger.feature
   scenarios:
     - id: "@ID-LEDGER-01"

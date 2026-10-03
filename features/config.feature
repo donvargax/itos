@@ -105,9 +105,11 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 0
     And the file ".git/hooks/commit-msg" calls itos
 
-  # Keys for features not built yet: they come back with the feature (the
-  # built-in header lint, a second way to tell a commit is pushed). use has one
-  # value, command, and only the built-in lint would give it a second.
+  # Keys for features not built yet: they come back with the feature (a second
+  # way to tell a commit is pushed). alongside would run the built-in header
+  # lint beside a delegate, warning only; it stays refused, since holding the
+  # built-in lint to commitlint's verdicts is a comparison over a history
+  # (T-063), not a mode a project's commits run in.
   @ID-CONFIG-12 @slice-4
   Scenario: config check rejects commits.header_lint.alongside, which nothing reads yet
     Given the config sets "commits.header_lint.alongside" to "builtin"
@@ -122,9 +124,12 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 2
     And its output says "ledger.check.pushed"
 
+  # use chooses the header lint, builtin or command (slice 25); it was refused
+  # until the built-in lint gave it a second value. One it does not have is
+  # refused, naming the key.
   @ID-CONFIG-14 @slice-4
-  Scenario: config check rejects commits.header_lint.use, which nothing reads yet
-    Given the config sets "commits.header_lint.use" to "command"
+  Scenario: config check rejects a commits.header_lint.use other than builtin or command
+    Given the config sets "commits.header_lint.use" to "alongside"
     When itos checks the config
     Then itos exits with code 2
     And its output says "commits.header_lint.use"

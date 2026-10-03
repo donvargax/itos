@@ -186,6 +186,31 @@ cases:
       0/1 commits pass the commit rules
     stderr: |2
         ^ {{short.wip}} wip
+  - name: the built-in header lint rejects a commit made without the hooks
+    argv: [verify, "{{sha.start}}", "{{sha.wip}}", --config, builtin.yaml]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n", tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
+        label: start
+      - commit: "wip"
+        files: { tools/a.sh: "true\n" }
+        label: wip
+    files:
+      builtin.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          types: [build, docs]
+          header_lint: { use: builtin }
+          footers:
+            Task: { source: ledger, required_for: [build], validate_for: all, read_at: commit }
+    exit: 1
+    stdout: |
+      0/1 commits pass the commit rules
+    stderr: |
+      ✖   subject may not be empty [subject-empty]
+      ✖   type may not be empty [type-empty]
+        ^ {{short.wip}} wip
   - name: an empty range passes
     argv: [verify, "{{sha.tidy}}", "{{sha.tidy}}"]
     exit: 0

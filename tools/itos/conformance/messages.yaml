@@ -4,9 +4,14 @@
 # commit that predates the source, or always with read_at: worktree), a
 # ledger folder that is missing (read only for a message naming a task), another
 # config's footers, a Gherkin kind's default wip tag named for a test not
-# live, a command adapter's tests named in a footer, and a
+# live, a command adapter's tests named in a footer, a
 # delegated header lint's report read into problems, the footer rules run
-# beside it.
+# beside it, and the built-in header lint (commits.header_lint.use: builtin):
+# each of config-conventional's errors under commitlint's rule id and words,
+# commits.types as the type list (config-conventional's own without it), its
+# warnings printed without rejecting, the messages commitlint leaves alone,
+# comment lines read as part of a message on stdin, no delegate run beside
+# it, and use: command running the delegate as no use does.
 #
 # The repository: a commit before the ledger (bare); a feat naming a live
 # scenario and T-002 (live); then the scenario set back to @wip and T-002
@@ -471,3 +476,175 @@ cases:
           message: 'feat commits need a "Scenarios: @ID-…" footer'
           fix: "add a line `Scenarios: <id>` after a blank line at the end, naming what the commit belongs to"
           level: error
+  - name: the built-in lint names a header without a type or a subject by commitlint's rules and words
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "update things\n"
+    files: &builtin
+      builtin.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits:
+          types: [feat, fix, chore, docs]
+          header_lint: { use: builtin }
+          footers:
+            Task: { source: ledger, required_for: [chore], validate_for: all, read_at: commit }
+    exit: 1
+    stderr: |
+      ✖   subject may not be empty [subject-empty]
+      ✖   type may not be empty [type-empty]
+  - name: the built-in lint takes its type list from commits.types, in lower case, and refuses a sentence-case subject and a full stop
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "Build: Add a script.\n"
+    files: *builtin
+    exit: 1
+    stderr: |
+      ✖   subject must not be sentence-case [subject-case]
+      ✖   subject may not end with full stop [subject-full-stop]
+      ✖   type must be lower-case [type-case]
+      ✖   type must be one of [feat, fix, chore, docs] [type-enum]
+  - name: the built-in lint names every case a subject is in
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "docs: ADD THE PAGE\n"
+    files: *builtin
+    exit: 1
+    stderr: |
+      ✖   subject must not be sentence-case, start-case, upper-case [subject-case]
+  - name: the built-in lint refuses a header with spaces around it
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: " docs: a page \n"
+    files: *builtin
+    exit: 1
+    stderr: |
+      ✖   header must not be surrounded by whitespace [header-trim]
+      ✖   subject may not be empty [subject-empty]
+      ✖   type may not be empty [type-empty]
+  - name: the built-in lint refuses a header over 100 characters, saying how long it is
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "docs: tidy the readme so that every paragraph says one thing and nothing in it repeats another one again\n"
+    files: *builtin
+    exit: 1
+    stderr: |
+      ✖   header must not be longer than 100 characters, current length is 104 [header-max-length]
+  - name: the built-in lint refuses body and footer lines over 100 characters, but not a line with a URL
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "docs: a page\n\naaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\nsee https://example.com/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n\nRefs: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n"
+    files: *builtin
+    exit: 1
+    stderr: |
+      ✖   body's lines must not be longer than 100 characters [body-max-line-length]
+      ✖   footer's lines must not be longer than 100 characters [footer-max-line-length]
+  - name: the built-in lint's warnings are printed and do not reject the message
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "docs: a page\nmore words\nRefs: 1\n"
+    files: *builtin
+    exit: 0
+    stderr: |
+      ⚠   body must have leading blank line [body-leading-blank]
+      ⚠   footer must have leading blank line [footer-leading-blank]
+  - name: --json gives the built-in lint's problems with their levels and fixes, then the footer rules'
+    argv: [commit, check-message, "-", --json, --config, builtin.yaml]
+    stdin: "chore: Tidy\nthe readme\n"
+    files: *builtin
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: subject-case
+          message: subject must not be sentence-case, start-case, pascal-case
+          fix: start the subject with a lower-case letter
+          level: error
+        - rule: body-leading-blank
+          message: body must have leading blank line
+          fix: leave a blank line between the header and the body
+          level: warning
+        - rule: task-footer
+          message: 'chore commits need a "Task: T-…" footer'
+          fix: "add a line `Task: <id>` after a blank line at the end, naming what the commit belongs to"
+          level: error
+  - name: --json of a message the built-in lint only warns about is ok
+    argv: [commit, check-message, "-", --json, --config, builtin.yaml]
+    stdin: "docs: a page\nmore words\n"
+    files: *builtin
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      problems:
+        - rule: body-leading-blank
+          message: body must have leading blank line
+          fix: leave a blank line between the header and the body
+          level: warning
+  - name: the footer rules run beside the built-in lint when it passes the header
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "chore: tidy\n\nTask: T-9\n"
+    files: *builtin
+    exit: 1
+    stderr: |
+      ✖   unknown tasks: T-9 [task-footer]
+  - name: the built-in lint passes a sound message
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "chore: tidy the readme\n\nTask: T-001\n"
+    files: *builtin
+    exit: 0
+    stderr: ""
+  - name: the built-in lint leaves a merge's message alone, as commitlint does
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "Merge branch 'topic' into main\n"
+    files: *builtin
+    exit: 0
+    stderr: ""
+  - name: the built-in lint leaves a revert's message alone
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "Revert \"docs: a page\"\n\nThis reverts commit abc.\n"
+    files: *builtin
+    exit: 0
+  - name: the built-in lint leaves a fixup's message alone
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "fixup! docs: a page\n"
+    files: *builtin
+    exit: 0
+  - name: the built-in lint leaves a version alone
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "v1.2.3\n"
+    files: *builtin
+    exit: 0
+  - name: a blank message has neither type nor subject for the built-in lint
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "\n"
+    files: *builtin
+    exit: 1
+    stderr: |
+      ✖   subject may not be empty [subject-empty]
+      ✖   type may not be empty [type-empty]
+  - name: a comment line is part of a message on stdin, as commitlint reads stdin
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "docs: a page\n\n# xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n"
+    files: *builtin
+    exit: 1
+    stderr: |
+      ✖   body's lines must not be longer than 100 characters [body-max-line-length]
+  - name: without commits.types the built-in lint's type list is config-conventional's
+    argv: [commit, check-message, "-", --config, no-types.yaml]
+    stdin: "feature: a page\n"
+    files:
+      no-types.yaml: "version: 1\ncommits:\n  header_lint: { use: builtin }\n"
+    exit: 1
+    stderr: |
+      ✖   type must be one of [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test] [type-enum]
+  - name: use builtin runs no delegate, though the config names one
+    argv: [commit, check-message, "-", --config, both.yaml]
+    stdin: "docs: a page\n"
+    files:
+      both.yaml: "version: 1\ncommits:\n  header_lint: { use: builtin, stdin: \"echo delegated; exit 1\" }\n"
+    exit: 0
+    stdout: ""
+    stderr: ""
+  - name: use command runs the delegate, as a config with no use does
+    argv: [commit, check-message, "-", --config, command.yaml]
+    stdin: "docs: things\n"
+    files:
+      command.yaml: "version: 1\ncommits:\n  header_lint: { use: command, stdin: \"cat >/dev/null; echo '✖   delegated [local-rule]'; exit 1\" }\n"
+    exit: 1
+    stdout: |
+      ✖   delegated [local-rule]

@@ -111,10 +111,11 @@ ledger.group.label (phase by default).
 
 	"commit check-message": `Usage: itos commit check-message <file|-> [--at <sha>]
 
-Runs the header lint (commits.header_lint), if any, and itos's footer rules
-(commits.footers), always, on one message, read from <file> or stdin (-), and
-reports both. --at reads the footers' IDs at that commit. Exit 1 when either
-rejects the message.
+Runs the header lint (commits.header_lint: itos's own with use: builtin, else
+the stdin delegate), if any, and itos's footer rules (commits.footers),
+always, on one message, read from <file> or stdin (-), and reports both. --at
+reads the footers' IDs at that commit. Exit 1 when either rejects the
+message; the built-in lint's warnings alone do not.
 
 --json: {"schema":1,"ok","problems":[{"rule","message","fix"?,"level"}]}`,
 
@@ -221,8 +222,9 @@ The commit-msg hook. When the commit stages itos.yaml, a ledger file, the work
 registry or a smoke set, itos config check's problems, read from the staged
 tree; then the staged files against the message's type (the path rules, then
 each kind's staged range checks: the built-in moves rule here, for a type its
-except_types does not name), then the header lint (commits.header_lint.hook,
-commitlint here, if any) and itos's footer rules (commits.footers), always,
+except_types does not name), then the header lint (commits.header_lint: the
+built-in one, or the hook delegate, commitlint here, if any) and itos's footer
+rules (commits.footers), always,
 both reported, then the checks of each task a ledger footer names (Task:
 here), as staged, in written order up to its first late one (CI's cost rule;
 an after: push check waits), each capped at hooks.commit_msg.check_timeout

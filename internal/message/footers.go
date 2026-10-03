@@ -1,9 +1,10 @@
 // Package message is one commit message through itos's commit rules
 // (tools/itos/footers.ts and commit.ts): the footer rules, the one footer
-// reader, and the header lint's delegate beside them. The footer rules are
-// itos's and run always, after the delegate, whatever it is: a delegate
-// judges the header and body, and one without them never skips them. Both
-// report before the exit, so a header problem does not hide a footer one.
+// reader, and the header lint beside them, built in (header.go) or a
+// delegate. The footer rules are itos's and run always, after the header
+// lint, whatever it is: the header lint judges the header and body, and one
+// without the footer rules never skips them. Both report before the exit, so
+// a header problem does not hide a footer one.
 //
 // A footer is `<Key>: <id> <id>, …` at the start of a line, and may repeat
 // over several lines to stay within the line length limit. Per key of

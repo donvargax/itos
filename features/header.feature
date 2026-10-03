@@ -15,7 +15,7 @@ Feature: The built-in header lint
     And a change to "README.md" is staged
     And the header lint is itos's built-in one
 
-  @ID-HEADER-01 @slice-25 @wip
+  @ID-HEADER-01 @slice-25
   Scenario: The built-in lint rejects a header without a type, naming the rule
     When the commit-msg hook checks the message "update things"
     Then itos exits with code 1
@@ -23,7 +23,7 @@ Feature: The built-in header lint
 
   # The type list is commits.types, not config-conventional's own, so a
   # project's types are the ones the lint allows.
-  @ID-HEADER-02 @slice-25 @wip
+  @ID-HEADER-02 @slice-25
   Scenario: The built-in lint rejects a type commits.types does not list
     When the commit-msg hook checks the message:
       """
@@ -34,7 +34,7 @@ Feature: The built-in header lint
     Then itos exits with code 1
     And its output names the rule "type-enum"
 
-  @ID-HEADER-03 @slice-25 @wip
+  @ID-HEADER-03 @slice-25
   Scenario: The built-in lint rejects a header longer than 100 characters
     When the commit-msg hook checks the message:
       """
@@ -47,7 +47,7 @@ Feature: The built-in header lint
 
   # No delegate is configured and none is installed: the scratch repository
   # has no node_modules, so a pass here is the built-in lint's alone.
-  @ID-HEADER-04 @slice-25 @wip
+  @ID-HEADER-04 @slice-25
   Scenario: The built-in lint accepts a sound message with no delegate
     When the commit-msg hook checks the message:
       """
@@ -59,7 +59,7 @@ Feature: The built-in header lint
 
   # config-conventional holds a missing blank line before the body as a
   # warning: printed, never a rejection.
-  @ID-HEADER-05 @slice-25 @wip
+  @ID-HEADER-05 @slice-25
   Scenario: A body with no blank line before it is a warning, not a rejection
     When the commit-msg hook checks the message:
       """
