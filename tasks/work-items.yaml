@@ -2148,14 +2148,15 @@ items:
       or Cupcake could firm the guard up later if ever needed.
     refs: [itos.yaml, internal/cli/verify.go]
 
-  - id: p3-git-shim
+  - id: slice-41
     title: A git shim that makes git commit and git push itos's in an itos repository
     phase: 3
     owner: donvargax
     status: todo
     depends_on: [slice-39, slice-40]
-    kind: idea
+    kind: slice
     why: >
+      Was p3-git-shim. Specified in features/shim.feature.
       The user's idea (2026-10-03): a git placed before the real one on the PATH (an alias reaches
       no script, agent or IDE), which itos init offers to install. In a repository itos manages,
       found from git's top level so a subfolder counts, git commit is itos commit and git push
@@ -2171,7 +2172,7 @@ items:
       .git (no extra git process), runs commit (later push) as itos's there, and execs the real
       git for everything else. itos init, or a small itos git-shim install, offers the symlink.
       Planned for v2.2.0, with itos push and the subfolder lookup.
-    refs: [PLAN.md]
+    refs: [features/shim.feature]
 
   - id: p3-itos-init
     title: itos init, a new or existing repository made ready for itos
