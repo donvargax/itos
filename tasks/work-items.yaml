@@ -1204,7 +1204,7 @@ items:
     title: The last release's scenarios hold against the new binary unless a commit says why not
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     why: >
@@ -2825,6 +2825,23 @@ items:
       (the release, and each finding's path, change and whether it breaks) would hand them over
       without parsing words.
     refs: [tools/bin/schema-contract/main.go, PLAN.md]
+
+  - id: p3-changes-at-commit
+    title: A Changes footer naming nothing of the last release is refused at the commit
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-071]
+    kind: idea
+    why: >
+      T-071 left it: Changes: is a footer of free text, so itos commit --changes writes it and an
+      ID the fix removed from this tree is not refused, but nothing checks an entry until CI, where
+      tools/bin/previous-release can only warn about one naming no scenario or case of the last
+      release, since a pushed commit cannot be rewritten. The commit-msg hook could read the
+      entries against the last release's tag instead (its feature files' IDs, its corpus's case
+      names), refusing a typo before it lands; that is a footer source itos does not have (a
+      tag's tree, not the commit's), so a feat with its scenario.
+    refs: [tools/bin/previous-release/main.go, internal/message/footers.go, itos.yaml]
 
   - id: T-068
     title: v2.3.0, the itos plugin for Claude Code
