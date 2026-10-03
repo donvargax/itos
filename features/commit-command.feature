@@ -97,9 +97,11 @@ Feature: itos commit, a commit whose footers itos writes
     Then itos exits with code 0
     And the message of HEAD has the footer "BREAKING-CHANGE: the readme moved"
 
+  # Another trailer follows the task line: git already skips a trailer that
+  # would land beside an identical one, so only this shape can double it.
   @ID-COMMITCMD-11 @slice-36 @wip
   Scenario: An amend through itos commit keeps one footer, not two
-    Given itos has committed with the arguments "--task T-001 -m 'chore: tidy the readme'"
+    Given itos has committed with the arguments "--task T-001 --trailer 'Reviewed-by: someone' -m 'chore: tidy the readme'"
     When itos commits with the arguments "--amend --no-edit --task T-001"
     Then itos exits with code 0
     And the message of HEAD has the footer "Task: T-001" once
@@ -108,10 +110,12 @@ Feature: itos commit, a commit whose footers itos writes
   # being replaced, rather than against its parent, so an amend changing only
   # the message of a feat was refused for touching nothing (slice 32 and 34
   # met it). An amend is judged as the commit it makes: its parent's tree
-  # against the new one.
+  # against the new one. The scratch config gives feat no path rule of its
+  # own, so the scenario sets one, or the amend would pass either way.
   @ID-COMMITCMD-12 @bug-6 @wip
   Scenario: An amend that changes only the message of a feat is judged by the paths of the commit it makes
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
+    And the config's feat commits must touch "features/**"
     And itos has committed with the arguments "--scenarios @ID-A-01 -m 'feat: greet'"
     When itos commits with the arguments "--amend --scenarios @ID-A-01 -m 'feat: greet everyone'"
     Then itos exits with code 0

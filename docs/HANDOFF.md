@@ -66,9 +66,11 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 3. **Stealth mode** is done: slices 30 to 35, with `itos commit` (slice 31)
    and the `@bug-5` fix. The coordinator proposed cutting v2.1.0 now; the
    user has not answered. `hooks.bin` stays through v2 (`v3-drop-hooks-bin`).
-4. **Slice 36** (`@bug-6` first): `itos commit` writes every footer a commit
-   needs (`--upgrading`, `--breaking`), required ones refused up front; the
-   user's design call on footers with two roles, in its why.
+4. **Toward v2.1.0**, in order: slice 37 (the hook knows an amend from git's
+   prepare-commit-msg, not the author's second), the `@bug-6` fix (an amend
+   judged by its parent's paths), slice 36 (`itos commit` writes every
+   footer a commit needs: `--upgrading`, `--breaking`), slice 38 (a stealth
+   session owns every item); then cut v2.1.0, the user's call (2026-10-03).
 5. **`p1-itos-push`**, itos commit's other half (built in or an extension,
    the first call).
 6. **`p3-claude-code-plugin`**: the marketplace, the titles, the skill, the

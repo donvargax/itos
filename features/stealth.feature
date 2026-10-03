@@ -200,3 +200,28 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     And the message of HEAD has the footer "Upgrading: none"
     And the message of HEAD does not say "T-001"
     And the itos note on HEAD says "Task: T-001"
+
+  # Slice 37: the hook knows an amend from git. prepare-commit-msg is told
+  # "commit <sha>" for an amend and records it for commit-msg, which judges
+  # the amend by HEAD's note. Slice 32 guessed from the author's name, email
+  # and date matching HEAD's; an amend that sets another date (--date, or
+  # --reset-author a second later) defeats it: only git's own word can let
+  # this amend through. A fixed date keeps the scenario from passing on the
+  # guess when both commits fall in one second.
+  @ID-STEALTH-20 @slice-37 @wip
+  Scenario: An amend that sets another author date is still known for an amend, and keeps its note
+    Given the commit-msg hook is installed
+    And a change to "README.md" is staged
+    And itos has committed with the arguments "--task T-001 -m 'chore: tidy the readme'"
+    When git amends HEAD with the arguments "--date=2001-01-01T00:00:00 -m 'chore: tidy the readme again'"
+    Then the itos note on HEAD says "Task: T-001"
+
+  # Slice 38: the person is the only one, so a stealth session owns every
+  # item, whoever an item names and whoever gh says the session is.
+  @ID-STEALTH-21 @slice-38 @wip
+  Scenario: A stealth session is proposed an item another owner holds, with no identity to look up
+    Given the work registry beside the config has the item "slice-1" owned by "someone-else" with the status "todo"
+    And no identity can be looked up
+    When itos runs "work"
+    Then itos exits with code 0
+    And itos proposes "slice-1" to start
