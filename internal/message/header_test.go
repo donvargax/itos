@@ -45,6 +45,8 @@ func TestHeaderProblems(t *testing.T) {
 		{"feat: x\n\n# " + long + "\n", "", []string{"body-max-line-length"}},
 		{"feat: x\n\nbody\n# ------------------------ >8 ------------------------\n" + long + "\n", "#", nil},
 		{"# only a comment\n", "#", nil},
+		{"\n", "#", nil},
+		{"  \n\n", "#", nil},
 		{"# a\n\n\n# b\n", "#", []string{"header-max-length", "subject-empty", "type-empty"}},
 	} {
 		found, err := HeaderProblems(cfg, c.message, c.comment)

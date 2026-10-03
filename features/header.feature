@@ -70,3 +70,12 @@ Feature: The built-in header lint
       """
     Then itos exits with code 0
     And its output names the rule "body-leading-blank"
+
+  # commitlint --edit lints nothing in a blank message file, and git then
+  # aborts the commit for its empty message; the built-in lint rejected it
+  # with type-empty and subject-empty instead, the one verdict T-063's
+  # comparison with commitlint found them giving differently.
+  @ID-HEADER-06 @bug-2
+  Scenario: The commit-msg hook passes a blank message file, as commitlint does
+    When the commit-msg hook checks the message ""
+    Then itos exits with code 0

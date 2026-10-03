@@ -356,12 +356,16 @@ func named(names ...string) []rule {
 // comment character whose lines are left out ("" for none: a message from
 // stdin or a commit). A message commitlint ignores (a merge's, a revert's,
 // a fixup's, a version's) has none, and so does one with nothing left once
-// its comments are out; a blank message has neither type nor subject, where
+// its comments are out. A blank message has none in the hook's reading,
+// where commitlint --edit lints nothing and git then aborts the commit for
+// its empty message; on stdin it has neither type nor subject, where
 // commitlint refuses it as no input at all.
 func HeaderProblems(cfg *config.Loaded, raw, commentChar string) ([]Leveled, error) {
 	rules := headerRules
 	var p parsed
-	if value.Trim(raw) == "" {
+	if value.Trim(raw) == "" && commentChar != "" {
+		return []Leveled{}, nil
+	} else if value.Trim(raw) == "" {
 		rules = blankRules
 	} else if ignored(strings.TrimRightFunc(raw, value.IsSpace)) {
 		return []Leveled{}, nil

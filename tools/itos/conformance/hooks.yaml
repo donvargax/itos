@@ -701,6 +701,18 @@ cases:
     exit: 0
     stderr: |
       ⚠   body must have leading blank line [body-leading-blank]
+  - name: the built-in header lint passes a blank message file, as commitlint --edit does
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { docs/a.md: "# A\n" }
+    files:
+      msg: "\n\n"
+      builtin.yaml: *builtin
+    env: { ITOS_CONFIG: builtin.yaml }
+    exit: 0
+    stderr: ""
   - name: use builtin runs no hook delegate, though the config names one
     argv: [hook, commit-msg, msg]
     git:
