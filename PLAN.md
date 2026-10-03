@@ -294,7 +294,8 @@ the JSON above, with `select: "go test ./... -run {pattern}"` and
 
 ## 7. The command line
 
-Global flags: `--config`, `--root`, `--json`, `-q`.
+Global flags: `--config`, `--root`, `--json`, `-q`, written anywhere for a
+built-in command and before the name for an extension.
 
 | Command                                                                 | What it does                                                                                                                                                                                |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -311,12 +312,30 @@ Global flags: `--config`, `--root`, `--json`, `-q`.
 | `hooks install [--manager <m>] [--print] [--force]`                     | Writes the one-line shims for the hook manager it detects, or prints its snippet.                                                                                                           |
 | `config check [--print-defaults]`                                       | Validates the config, the ledger, the registry and the smoke sets.                                                                                                                          |
 | `version [--check]`                                                     | Needs no config; `--check` exits 1 if the binary does not satisfy `requires`.                                                                                                               |
+| `help <command>`                                                        | The command's help, or `itos-<command> --help` for an extension; `itos --help` lists the extensions on the `PATH`.                                                                          |
+| any other `<command> [args]`                                            | An extension: runs `itos-<command>` found on the `PATH` with the arguments after its name, unread, and hands back its exit code (below).                                                    |
+
+**Extensions** (slice 29, the user's idea): a command itos does not have runs
+the program `itos-<command>` found on the `PATH`, and only there, as git runs
+`git-<command>`; a built-in always wins, and a command that is neither is the
+usage error `unknown command: <command>`. Everything after the command's name
+is the extension's, given to it unread, so it can take flags of any name,
+`--json` and `--config` among them; only the global flags written before the
+name are itos's. They apply first (`--root` is the folder the extension runs
+in) and reach it in its environment: `ITOS_CONFIG` and `ITOS_ROOT`, absolute;
+`ITOS_JSON=1` with `--json`, else unset; `ITOS_BIN`, the itos binary running,
+to call back; `ITOS_VERSION`, its version, which the launcher reads (§10), so
+a call back runs the same version. The trivial first one, `itos-hello`, is an
+example for authors in `docs/extensions.md`, not a release asset; the hand work
+(a push that waits for CI, the inbox) can follow as extensions.
 
 **Exit codes:** 0 success; 1 a policy failure (a check failed, a commit
 rejected, an unknown task); 2 a usage or config error, a file or folder the
 config names that is missing or unreadable among them (the ledger's folder a
 footer reads, a smoke set); 3 a missing environment, a pinned release the
-launcher cannot fetch or check among them (§10). In `ci run` a failing step exits with its own code. A missing
+launcher cannot fetch or check among them (§10), and an extension that cannot
+start. In `ci run` a failing step exits with its own code, and an extension's
+exit code is the run's. A missing
 identity and a failing range provider are not errors.
 
 **JSON.** Every command takes `--json`: one object on stdout with
@@ -418,7 +437,7 @@ report problems as issues that are then prioritised.
    once.
 
 Each step is reverted, never forced, if it goes wrong. After v2, features are
-built once, in Go: extensions (`itos-<cmd>` on `PATH`), the stealth mode and
+built once, in Go: extensions (`itos-<cmd>` on `PATH`; done, slice 29, §7), the stealth mode and
 the GitHub modes.
 
 ## 10. Distribution

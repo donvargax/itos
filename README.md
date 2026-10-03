@@ -53,7 +53,8 @@ it, and the instructions then point to the check instead of restating it.
   start next, from `tasks/work-items.yaml` and `CONTRIBUTORS.md`.
 
 `tools/bin/itos --help` lists the commands, and `itos <command> --help` each
-one.
+one. A command itos does not have runs `itos-<command>` from the `PATH`, so
+itos takes extensions as git does: `docs/extensions.md` says how to write one.
 
 ## Status
 

@@ -88,6 +88,15 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   network or a real cache. The conformance runner does the same for every
   case (`cleanEnv` in `run.ts`); a corpus config pins nothing, or the
   binary's own version.
+- **The extensions** (`extensions_test.go`, `extensions.feature`): each is a
+  shell script `itos-<name>` in a folder of the scenario's that `env` puts
+  first on the `PATH` of every command, so it reaches the itos a scenario
+  runs and nothing else. It records its arguments one a line, its folder
+  (`pwd -P`) and the `ITOS_*` variables it saw in a folder of its own,
+  replaced on each run, then exits with the code the scenario chose or runs
+  the command it was given (a call back through `$ITOS_BIN`) and records its
+  output. Since the steps strip the caller's `ITOS_*`, every one an
+  extension sees is itos's or the launcher's that the steps set.
 - **The header lint**, where a scenario needs one, is itos's built-in one,
   `use: builtin` in the scratch config, which needs nothing installed and
   holds no footer rule, so a scenario's footer rules are itos's own. The
@@ -337,6 +346,35 @@ mechanisms above, written against those modules, read across.
   than saying it every run. Nothing here is ever an error: every failure
   falls through to what the cache has. A binary built without a version
   (`version.Unstamped`) runs itself where there is no config.
+- **Extensions** (`internal/cli/extension.go`, slice 29): a command itos
+  does not have runs `itos-<command>` from the `PATH`, as git runs
+  `git-<command>`. `cli.Parse` reads the arguments for both `cli.Main` and
+  the launcher's `readConfig`: it finds the command's name (`commandAt`, the
+  first argument that is neither a global flag nor a valued one's value),
+  and when `extensionPath` finds a program for it, only the global flags
+  before the name are read and `Globals.Extension` holds the program; else
+  it is `ParseGlobals` as before, global flags anywhere, so a command that
+  is neither built in nor found is still `unknown command` and
+  `itos bogus --help` still the main help. `extensionPath` refuses a
+  built-in (`builtin`: the command table and `help`, which always win), a
+  name that is empty, starts with `-` or holds a path separator, so nothing
+  but the `PATH` is searched, and takes `exec.LookPath`'s answer, which
+  skips relative `PATH` folders (`exec.ErrDot`). After `applyGlobals` (the
+  `chdir` of `--root`), `runExtension` gives the program the rest of the
+  arguments unread, or `--help` alone when a `--help` came before the name,
+  in `extensionEnv`: itos's environment with `ITOS_CONFIG` (`config.Path()`
+  made absolute), `ITOS_ROOT` (the working folder), `ITOS_BIN`
+  (`os.Executable`), `ITOS_VERSION` (`version.Version()`, which the
+  launcher reads, so `$ITOS_BIN` called back runs itself and never launches
+  another version) and, with `--json`, `ITOS_JSON=1`, set in place of any of
+  them the environment had. `runProgram` is `syscall.Exec` on unix, as the
+  launcher's `run`, and a child whose exit code is passed back elsewhere; a
+  program that cannot start exits 3. `help` runs `<program> --help` for
+  `itos help <extension>`, and the main help lists `extensions()`: every
+  `itos-<name>` in the `PATH`'s folders that `extensionPath` would run for
+  `<name>` (so the first folder's, and no built-in), sorted, between the
+  commands and the global flags, and nothing when there is none, so the
+  corpus's main help case is the help with an empty `PATH` of extensions.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
   `ITOS_CONFIG`, after `--root`'s `chdir`), holds it to the schema

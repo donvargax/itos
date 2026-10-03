@@ -1773,7 +1773,7 @@ items:
     title: Extensions, itos <cmd> running itos-<cmd> from the PATH
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-27]
     kind: slice
     why: >
@@ -1789,6 +1789,22 @@ items:
       hand work (itos push, itos ci watch, the inbox) can follow as extensions. Specified in
       features/extensions.feature.
     refs: [features/extensions.feature, PLAN.md]
+
+  - id: p3-push-extension
+    title: itos push as an extension, the finishing steps AGENTS.md has done by hand
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-29]
+    kind: idea
+    why: >
+      Left by slice 29, which made extensions possible and built none (itos-hello is an example in
+      docs/extensions.md): every session still finishes by hand, AGENTS.md's commit, pull --rebase
+      --no-autostash, a push in a separate command and a watch of the CI run for the full SHA. An
+      itos-push extension, calling back $ITOS_BIN, could do that sequence and refuse its unsafe
+      variants (a chained push, a force), and p1-ci-watch's watch could be its last step. Whether it
+      ships with itos or lives in this repository's tools is the first call to make.
+    refs: [docs/extensions.md, AGENTS.md]
 
   - id: p2-config-json-schema
     title: The config's JSON Schema, published with each Go release
