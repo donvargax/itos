@@ -12,14 +12,13 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, at the end of the session that built the plugin and
-the release cut by CI.
+Last updated 2026-10-03, after slice 46 landed (v2.5.0) and slice 47 was
+specified.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `8ba2342`'s parent `4182a5e`
-(CI run 37150524094, every job: `ci`, the three `platform` jobs, `release`);
-`8ba2342` closes T-074. itos is Go only; `tools/bin/itos` builds and runs this
+All work is @donvargax's. `main` is green at `5ad4d5a` (CI run 37151988591,
+every job: `ci`, the three `platform` jobs, `release`, which cut v2.5.0). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
 
@@ -38,7 +37,8 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.4.0 (`itos config get`), v2.3.2 (Windows paths, bug 9), v2.3.1
+Released: v2.5.0 (the pre-push hook verifies the commits it pushes, slice 46;
+silent when they pass), v2.4.0 (`itos config get`), v2.3.2 (Windows paths, bug 9), v2.3.1
 (issue #3, bug 8), all cut by CI; v2.3.0 by hand (the guard, `itos work
 list`, the itos plugin for Claude Code, now at plugin version 2.4.0). Don't
 change any other repository.
@@ -47,10 +47,10 @@ change any other repository.
 
 One slice at a time, the user's order:
 
-1. **`slice-46`** (was `p3-pre-push-verify`; `features/pre-push.feature`,
-   handed to an agent), **`p3-pin-bump`**, then **`p3-itos-init`**: the
-   adoption slices, the last two specified as scenarios first (ideas now),
-   each a feat, so each cuts a minor release.
+1. **`slice-47`** (was `p3-pin-bump`; `itos pin [<version>]`, the launcher's
+   own command; @ID-PIN-11 to 16, @ID-STEALTH-22, all `@wip`), then
+   **`p3-itos-init`** (an idea, to specify first): the adoption slices, each a
+   feat, so each cuts a minor release.
 2. **`p3-human-waiver`** (`itos waive`, a plain config list; the guard keeps
    agents off it), after those.
 3. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
@@ -61,15 +61,17 @@ Small ideas, any time: `p3-guard-windows-paths` (the guard reads a Git Bash
 `p3-plugin-registry-at-top`, `p3-plugin-release-tags`,
 `p3-release-notes-bodies`, `p3-version-prerelease`, `p3-changes-at-commit`,
 `p3-nightly-govulncheck`, `p3-ci-step-paths`, `p3-shim-push-args`, and
-`p3-config-21-own-value` (fold into the next feat or fix touching
+`p3-help-tests-own-path` (the help tests read the caller's PATH, so an
+installed extension fails them locally), `p3-config-21-own-value` (fold into the next feat or fix touching
 config.feature). Issue #4 is open as `p1-ledger-pattern-static-after-late`.
 Deferred until itos-cc is published: `p3-role-protocol`, `p3-debt-role`,
 `p3-debt-claims`. Deferred, the user's to lift: `p1-backport-code-design`
 (the user's code-design rules, from the project template). v3.0.0 will carry
-`v3-hooks-bin-default`.
+`v3-hooks-bin-default` and `v3-stealth-pre-push` (a stealth config's hooks
+gain the pre-push entry, changing a released corpus case).
 
 Open for the user: when the other repositories move (by hand from a
-release's notes now, or once `p3-pin-bump` lands; `itos init` as specified
+release's notes now, or with `itos pin` once slice 47 lands; `itos init` as specified
 only reports what an existing repository lacks).
 
 Agents commit with `tools/bin/itos commit` and push with `tools/bin/itos

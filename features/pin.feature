@@ -115,3 +115,60 @@ Feature: A global itos runs the version a repository pins
     And a "sub" folder
     When itos runs "version" from "sub"
     Then the version "9.1.0" ran with the arguments "version"
+
+  # p3-pin-bump: moving a pin meant downloading the release's checksums.txt
+  # and hashing it by hand. itos pin is the launcher's own command, as
+  # git-shim install is: it never runs the pinned version, which may predate
+  # it, and the pin is what it changes. It writes the two keys in the config
+  # it finds (itos.yaml, or the stealth config in the git folder), leaving
+  # every other line as it was, and commits nothing: the bump is the
+  # project's own build commit, with whatever footer the project asks.
+  @ID-PIN-11 @slice-47 @wip
+  Scenario: itos pin moves the pin to the newest release, its checksums with it, and names the notes to read
+    Given the config pins the version "9.1.0" of the release server
+    When itos runs "pin"
+    Then itos exits with code 0
+    And the config's pin is the version "9.2.0" of the release server, with its checksums
+    And its output says "9.1.0"
+    And its output says "/tag/v9.2.0"
+    And no version of the release server ran
+
+  @ID-PIN-12 @slice-47 @wip
+  Scenario: itos pin with a version pins that version, in a config that pinned nothing
+    When itos runs "pin 9.1.0"
+    Then itos exits with code 0
+    And the config's pin is the version "9.1.0" of the release server, with its checksums
+
+  @ID-PIN-13 @slice-47 @wip
+  Scenario: itos pin leaves every other line of the config as it was
+    Given the config pins the version "9.1.0" of the release server
+    And the config has the comment "# the project's own note"
+    When itos runs "pin"
+    Then itos exits with code 0
+    And the config still has the comment "# the project's own note"
+    And itos checks the config
+    And itos exits with code 0
+
+  @ID-PIN-14 @slice-47 @wip
+  Scenario: A version the release server does not have exits 3, naming it, and the config is untouched
+    Given the config pins the version "9.1.0" of the release server
+    When itos runs "pin 9.3.0"
+    Then itos exits with code 3
+    And its output says "9.3.0"
+    And the config's pin is the version "9.1.0" of the release server, with its checksums
+
+  @ID-PIN-15 @slice-47 @wip
+  Scenario: A release server that cannot be reached exits 3, and the config is untouched
+    Given the config pins the version "9.1.0" of the release server
+    And the release server cannot be reached
+    When itos runs "pin"
+    Then itos exits with code 3
+    And the config's pin is the version "9.1.0" of the release server, with its checksums
+
+  @ID-PIN-16 @slice-47 @wip
+  Scenario: A pin already on the version asked for is left as it is
+    Given the config pins the version "9.2.0" of the release server
+    When itos runs "pin"
+    Then itos exits with code 0
+    And its output says "already"
+    And the config is unchanged

@@ -2083,7 +2083,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [p3-global-install-ci, p3-pin-bump]
+    depends_on: [p3-global-install-ci, slice-47]
     kind: idea
     deferred: the next major release, the user's call (2026-10-03)
     why: >
@@ -2271,7 +2271,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [slice-33, T-066, p3-pin-bump]
+    depends_on: [slice-33, T-066, slice-47]
     kind: idea
     why: >
       The user's idea (2026-10-03): one command readies a repository, new (git init first) or
@@ -2408,19 +2408,23 @@ items:
       has not run for some months, or the cache could keep a few.
     refs: [internal/launch/launch.go]
 
-  - id: p3-pin-bump
+  - id: slice-47
     title: One command moves a repository's pin to a release
     phase: 3
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-28]
-    kind: idea
+    kind: slice
     why: >
+      Was p3-pin-bump. Specified as @ID-PIN-11 to 16 in features/pin.feature and @ID-STEALTH-22:
+      itos pin [<version>], the launcher's own command (as git-shim install is, since the pinned
+      version may predate it), writes pin.version and pin.checksums for that version or the newest
+      in the config it finds, every other line left as it was, and commits nothing.
       Slice 28's notice says a pin has fallen behind, but moving it still means downloading that
       release's checksums.txt and hashing it by hand for pin.checksums. A command writing both
       keys for a version, or for the newest, would make the bump the one build commit it is meant
       to be.
-    refs: [features/update.feature, README.md]
+    refs: [features/pin.feature, features/stealth.feature, internal/launch/launch.go]
 
   - id: slice-40
     title: The launcher finds a repository's config from a subfolder of it
