@@ -12,40 +12,38 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after T-069 landed.
+Last updated 2026-10-03, after T-072 landed and v2.3.2 was cut by CI.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `ff19610` (CI run 37136683207), T-069's work; this
-repository requires an `Upgrading:` footer of every feat and fix (since
-`2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
-only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
-repository's dev tooling (vp, the corpus runner, the self-tests), never a
-consumer's runtime; this
-repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
-uses. CI now builds the Go binary and runs the ported set against it
-(`tools/selftest/go-port.ts`): since T-053 the whole corpus and every
-feature, about 15 seconds, so a behaviour change lands in both implementations
-or CI is red. The
-nightly builds and proves the Go release archives
-(`tools/selftest/go-release.ts`, new with T-040, not yet run by a nightly),
-then ends with `{ tasks: done, cost: static }`, every done task's static
-checks. The last nightly, 37125737029 (scheduled, on `d4b0865`), is green.
-Read the consumer inbox beside it (`node tools/bin/inbox.ts`,
-docs/ORCHESTRATING.md's loop).
-Read the newest nightly before starting the next implementation. A red
-nightly takes priority over new work.
+`main` is green at `4d4cfb1` (CI run 37142010282, every job: `ci`, the
+three `platform` jobs, `release`). Since T-062 itos is Go only,
+`tools/bin/itos` the Go binary every gate calls (`hooks.bin`, internal and
+unsupported for consumers); Node stays as this repository's dev tooling. Every
+push runs, beside the plan `itos.yaml`'s `ci` states: the unit tests and every
+feature on Linux, macOS and Windows (T-072), and for a range with a feat or a
+fix the config schema held to the last release's (T-070) and the last
+release's scenarios and corpus, help cases left out, against the new binary
+(T-071; a fix may change an old one it names in `Changes:`). **Releases are
+cut by CI** (T-069): a green push to `main` carrying a feat, a fix or a
+breaking change releases itself, the version from the commits, GoReleaser,
+attested, notes generated; no commit, task or tag by hand. The nightly runs
+every feature, the gates' self-tests, every done task's static checks, and
+the checks that read CI's own result (the newest release attested, T-069;
+the platform jobs green, T-072). The last nightly, 37131118750 (on
+`1435336`), is green; the next is the first with the attestation and
+platform checks. Read it, and the consumer inbox (`node tools/bin/inbox.ts`),
+before new work; a red nightly comes first.
 
-Released: [v2.3.0](https://github.com/donvargax/itos/releases/tag/v2.3.0)
-(T-068, release run 37131270855): `itos hook pre-tool-use`, the guard;
-`itos work list`; the guard under an old pin; the itos plugin for Claude Code,
-this repository a plugin marketplace. Additive. The nightly on its commit,
-37131118750, is green. Before it, v2.2.0 (`itos push`, the git shim), v2.1.0,
-v2.0.0, v1.1.0, v1.0.0. Don't change any other repository. Unreleased: T-067,
-the dependency check (this repository's own).
+Released: [v2.3.2](https://github.com/donvargax/itos/releases/tag/v2.3.2),
+cut by CI from bug 9's fix (Windows: the registry and ledger paths as git's
+slash paths); [v2.3.1](https://github.com/donvargax/itos/releases/tag/v2.3.1),
+the first cut by CI, from bug 8's (issue #3, closed); v2.3.0 by hand (the
+guard, `itos work list`, the itos plugin for Claude Code). Before them v2.2.0,
+v2.1.0, v2.0.0. Don't change any other repository.
 
 ## Next
 
@@ -53,23 +51,12 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 
 1. **v2.1.0 and v2.2.0 are out.** Open: `p3-shim-push-args` (`git push`
    takes no arguments through the shim), small, when it bites.
-2. **v2.3.0 is out** (release run 37131270855; its assets downloaded and
-   checksummed, the linux binary says `itos 2.3.0`).
-   T-070 (the config schema held to the last release's) and T-071 (the
-   last release's scenarios and corpus run against the new binary; a fix may
-   change one it names in `Changes:`, a feat never) landed. Next
-   **T-069**, the user's call (2026-10-03): a push to `main` carrying a
-   `feat` or a `fix` with CI green cuts the release itself (version from the
-   commits, GoReleaser, attestations, generated notes, no commit by the
-   releaser), before v2.4.0's slices, so v2.4.0 is the first cut by CI.
-   T-069 landed: a feat or fix landing green now releases itself. Next
-   **bug 8** (issue #3, `tests smoke run` passing runner arguments), the
-   first release cut by CI (v2.3.1); then **T-072** (the unit tests and
-   every feature on Linux, macOS and Windows, not blocking until all pass);
-   then `p3-plugin-project-itos` (the
-   plugin runs what `hooks.bin` names). The nightly is red at T-069's
-   attestation check until that first release.
-3. **v2.4.0**: **`p3-pre-push-verify`**, **`p3-pin-bump`** and
+2. **Next**: `p3-plugin-project-itos` (the plugin runs what `hooks.bin`
+   names), then v2.4.0's slices. Ideas the release work left:
+   `p3-guard-windows-paths` (the guard reads a Git Bash `/c/…` folder as
+   relative), `p3-plugin-version`, `p3-release-notes-bodies`,
+   `p3-version-prerelease`, `p3-changes-at-commit`.
+3. **v2.4.0** (cut by CI as its first feat lands): **`p3-pre-push-verify`**, **`p3-pin-bump`** and
    **`p3-itos-init`**.
 4. **After v2.4.0**: **`p3-human-waiver`** (`itos waive`, a plain config
    list; the guard keeps agents off it), the user's call (2026-10-03).

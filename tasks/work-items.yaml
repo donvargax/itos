@@ -2470,7 +2470,7 @@ items:
     title: tests smoke run passes the runner arguments not behind --
     phase: 1
     owner: donvargax
-    status: todo
+    status: done
     depends_on: [T-069]
     kind: slice
     why: >

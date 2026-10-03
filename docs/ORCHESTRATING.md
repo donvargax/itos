@@ -163,6 +163,9 @@ the rest.
 > the project's own checks that no gate runs>. If the slice moves a rule from one command to
 > another, run `tools/bin/itos task` on the done tasks whose checks call either one: CI runs
 > only the tasks a push names, and a done task left relying on the old home goes red later.
+> For a feat or a fix, run `go run ./tools/bin/previous-release` too, and name in a `Changes:`
+> footer (`--changes`) any old scenario or non-help corpus case the change alters on purpose: it
+> judges only in CI, and a red there stops the release.
 >
 > Other people push to `main` while you work. Commit with
 > `tools/bin/itos commit`, then push with `tools/bin/itos push`, which
@@ -274,6 +277,14 @@ teaches you a new one, stated as the rule and its reason.
   in the nightly, and since T-069 a release no longer waits for one, so a nightly can go red on
   a commit already released: v2.1.0's and v2.2.0's ranges were each red once, at a self-test a
   slice had left stale. Brief the fix first thing; it releases itself when it lands.
+- **A check that reads CI's own result belongs to the nightly.** A task check that reads the
+  newest CI run on `main`, or whether the newest release is attested, runs inside the very push
+  run it judges, or blocks the release that would satisfy it: every push naming the task goes
+  red. List it in `ci.nightly_only` and read the newest _completed_ run (T-069 and T-072 both
+  hit it; the coordinator wrote T-072's that way).
+- **Name the checks a new gate adds in the next briefs.** Bug 8's agent changed a help text,
+  and T-071's previous-release check, landed hours before and missing from the brief, turned
+  `main` red in CI; the brief line on `previous-release` above is the answer.
 - **Never pipe a command whose exit code matters** (`… | tail`,
   `…; echo EXIT=$?` after a pipe): the pipeline, and a background task
   running it, reports the last command's status. Write the output to a file
