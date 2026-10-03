@@ -1267,6 +1267,39 @@ all`; a module replaced by a version is checked as that version, one
     the dependency check is. `-old` and `-new` take the two schemas from files,
     which `tools/selftest/schema-contract.ts` does, in a scratch repository
     with a tag and a local server standing for GitHub.
+  - **The last release's suite** (`tools/bin/previous-release`, T-071; by
+    hand, `go run ./tools/bin/previous-release [-bin <itos>]`) holds this
+    tree's itos to what the last release's scenarios and corpus promised, as
+    a scenario edited alongside a change no longer checks what it said. The
+    release is the newest `vX.Y.Z` tag reachable from HEAD, as for the schema
+    contract, and the check runs in CI as a late step after this tree's corpus,
+    with `-range-from "$FROM"`. It checks the tag out with `git worktree add
+--detach` into a scratch folder, links the checkout's `node_modules` in
+    for the corpus runner's YAML parser, sets the worktree's `package.json`
+    version to what `<bin> version` says (the corpus's `{{version}}` is the
+    version the binary must say, and T-069's builds say one the tag never
+    had), then runs, at once, the release's `go test ./features -count=1
+-json` with `ITOS_BIN` naming the binary and the release's
+    `node tools/itos/conformance/run.ts --bin <bin>`. A failing subtest
+    (`TestFeatures/<name>`, spaces as underscores) is named by the `@ID-` tag
+    above its `Scenario:` line in the release's feature files, a failing case
+    by the runner's `FAIL <file>: <name>` line as `<file base name>: <name>`.
+    A failure is accepted when a commit in `<tag>..HEAD` is breaking (read
+    as the schema contract reads it) or is a `fix` whose `Changes:` footer
+    names it: an entry a line, scenario IDs (`Changes: @ID-CMSG-03`) or one
+    case (`Changes: hooks.yaml: <case name>`), read from the message's last
+    paragraph. A `feat` naming it does not count, and the refusal says so.
+    `Changes:` is a footer of free text in `commits.footers`, so
+    `itos commit --changes` writes it and an ID the fix removed is not refused
+    at the commit; the check warns about an entry that names nothing of the
+    release instead of failing, since a pushed commit cannot be rewritten.
+    Exit 1 lists each refused failure, what its suite printed and the remedy;
+    exit 2 for a shallow clone, a tag that cannot be checked out, or a suite
+    that cannot run or whose failure it cannot name; no release tag passes,
+    saying so. `tools/selftest/previous-release.ts` proves it in a scratch
+    repository whose tag holds two scenarios (a stdlib Go test standing for
+    godog's), this repository's corpus runner and three cases, against a
+    script that breaks one scenario and one case.
   - **commit-msg** first checks itos's own data when the commit stages any
     of it (`commit-data.ts`): the config, a ledger file, the registry or a
     smoke set, as the staged config names them, runs `config check`'s

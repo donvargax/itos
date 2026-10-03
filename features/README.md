@@ -81,6 +81,12 @@ not a slice.
   green. Footer: `Scenarios: @ID-SINCE-01, @ID-SINCE-02`.
 - `fix:` must add a `@bug-<n>` scenario that failed before the fix, or
   reference an existing scenario that was failing. Same footer.
+- A `fix:` that changes what a scenario of the last release promised, because
+  it held the bug, names it in a `Changes: @ID-…` footer (`itos commit
+--changes`); a `feat:` that does is a breaking change. CI runs the last
+  release's feature files against the new binary (`tools/bin/previous-release`,
+  T-071) and refuses an old scenario that fails unless a commit says one of
+  the two.
 - The commit-msg hook checks that the referenced IDs exist and are live at the
   commit. CI runs the referenced scenarios with the smoke set; every scenario
   runs nightly.
