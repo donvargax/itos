@@ -5,11 +5,12 @@
 // features/pin.feature). The binary that was called is never rewritten.
 //
 // The version to run is ITOS_VERSION when it is set, else the config's
-// pin.version. A binary whose own version is the one to run runs itself, so
-// the version the launcher runs, which it tells by ITOS_VERSION, never
-// launches again. A config with no pin, no config, or one the launcher cannot
-// read runs the binary that was called (which then reports what is wrong
-// with the config, if anything).
+// pin.version, else, where there is no config at all, the newest release the
+// launcher knows of (update.go, features/update.feature). A binary whose own
+// version is the one to run runs itself, so the version the launcher runs,
+// which it tells by ITOS_VERSION, never launches again. A config with no pin,
+// or one the launcher cannot read, runs the binary that was called (which
+// then reports what is wrong with the config, if anything).
 //
 // A release is fetched from ITOS_RELEASES (the GitHub releases of itos by
 // default), <base>/download/v<version>/<asset>: its checksums.txt, held to
@@ -32,6 +33,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -71,9 +73,11 @@ type target struct{ version, checksums string }
 
 // Main runs the version of itos the arguments and the environment pick, when
 // it is not this binary: it gives that version's exit code and true. When this
-// binary is the one to run, it gives false, and the caller carries on.
+// binary is the one to run, it gives false, and the caller carries on. Where
+// a repository's pin has fallen behind the newest release, it says so on
+// stderr first (update.go).
 func Main(args []string, stderr io.Writer) (int, bool) {
-	t, ok := choose(args)
+	t, ok := choose(args, stderr)
 	if !ok {
 		return 0, false
 	}
@@ -89,31 +93,61 @@ func Main(args []string, stderr io.Writer) (int, bool) {
 	return cli.ExitMissing, true
 }
 
-// choose is the version to run and whether it is another than this binary.
-func choose(args []string) (target, bool) {
+// choose is the version to run and whether it is another than this binary:
+// ITOS_VERSION's, else the pin's, else, with no config at all, the newest
+// release the launcher knows of. A config with no pin runs this binary.
+func choose(args []string, stderr io.Writer) (target, bool) {
 	own := version.Version()
-	pin, pinned := readPin(args)
+	c := readConfig(args)
 	if v := os.Getenv(EnvVersion); v != "" {
 		if v == own {
 			return target{}, false
 		}
 		t := target{version: v}
-		if pinned && pin.Version == v {
-			t.checksums = pin.Checksums
+		if c.state == pinned && c.pin.Version == v {
+			t.checksums = c.pin.Checksums
 		}
 		return t, true
 	}
-	if !pinned || pin.Version == own {
-		return target{}, false
+	switch c.state {
+	case pinned:
+		notice(c.file, c.pin.Version, stderr)
+		if c.pin.Version == own {
+			return target{}, false
+		}
+		return target{c.pin.Version, c.pin.Checksums}, true
+	case absent:
+		return newest(own)
 	}
-	return target{pin.Version, pin.Checksums}, true
+	return target{}, false
 }
 
-// readPin is the config's pin, read where itos reads its config (--config or
-// ITOS_CONFIG, under --root), and whether there is one the launcher can use.
-// Only the pin is read, not the rest of the config, so a config written for a
-// newer itos than the launcher still reaches the version it pins.
-func readPin(args []string) (config.Pin, bool) {
+// What the launcher finds where itos reads its config.
+type configState int
+
+const (
+	// unpinned: a config with no pin, or one the launcher cannot read or
+	// whose pin it cannot use.
+	unpinned configState = iota
+	// absent: no config at all.
+	absent
+	// pinned: a config pinning a version the launcher can fetch.
+	pinned
+)
+
+// foundConfig is the config's path, as itos would open it, what the launcher
+// finds there and the pin, when there is one.
+type foundConfig struct {
+	file  string
+	state configState
+	pin   config.Pin
+}
+
+// readConfig reads the config where itos reads it (--config or ITOS_CONFIG,
+// under --root). Only the pin is read, not the rest of the config, so a
+// config written for a newer itos than the launcher still reaches the
+// version it pins.
+func readConfig(args []string) foundConfig {
 	g := cli.ParseGlobals(args)
 	file := g.Config
 	if file == "" {
@@ -122,21 +156,27 @@ func readPin(args []string) (config.Pin, bool) {
 	if !filepath.IsAbs(file) && g.Root != "" {
 		file = filepath.Join(g.Root, file)
 	}
+	c := foundConfig{file: file}
 	text, err := os.ReadFile(file)
+	if errors.Is(err, fs.ErrNotExist) {
+		c.state = absent
+		return c
+	}
 	if err != nil {
-		return config.Pin{}, false
+		return c
 	}
 	tree, err := value.Parse(string(text))
 	if err != nil {
-		return config.Pin{}, false
+		return c
 	}
 	pin := value.Prop(tree, "pin")
 	v, _ := value.Prop(pin, "version").(string)
 	sums, _ := value.Prop(pin, "checksums").(string)
 	if !config.PinVersion.MatchString(v) || !config.PinChecksums.MatchString(sums) {
-		return config.Pin{}, false
+		return c
 	}
-	return config.Pin{Version: v, Checksums: sums}, true
+	c.state, c.pin = pinned, config.Pin{Version: v, Checksums: sums}
+	return c
 }
 
 // cacheDir is ITOS_CACHE, else itos/ in the user's cache folder.
@@ -201,16 +241,9 @@ func cached(dir string, t target) bool {
 }
 
 // fetch downloads the target's release, checks it and puts its binary and
-// checksums.txt in dir, through a folder of its own beside it that is
-// removed whatever happens, so the cache never holds a half or unchecked
-// release.
+// checksums.txt in dir.
 func fetch(cache, dir string, t target) error {
-	base := strings.TrimRight(os.Getenv(EnvReleases), "/")
-	if base == "" {
-		base = DefaultReleases
-	}
-	at := func(asset string) string { return base + "/download/v" + t.version + "/" + asset }
-	sums, err := get(at("checksums.txt"))
+	sums, err := get(releaseURL(t.version, "checksums.txt"), fetchTimeout)
 	if err != nil {
 		return fmt.Errorf("cannot fetch itos %s: %w", t.version, err)
 	}
@@ -218,29 +251,51 @@ func fetch(cache, dir string, t target) error {
 		return fmt.Errorf("the checksums.txt of itos %s is not the one pinned (pin.checksums): its SHA-256 is %s, the pin %s",
 			t.version, got, t.checksums)
 	}
-	asset := archiveName(t.version)
+	return install(cache, dir, t.version, sums)
+}
+
+// install fetches the version's archive for this platform, holds it to its
+// line in sums, the release's checksums.txt, and puts its binary and sums in
+// dir, through a folder of its own beside it that is removed whatever
+// happens, so the cache never holds a half or unchecked release.
+func install(cache, dir, v string, sums []byte) error {
+	asset := archiveName(v)
 	want, ok := listed(sums, asset)
 	if !ok {
-		return fmt.Errorf("the checksums.txt of itos %s lists no %s: no release of it for this platform", t.version, asset)
+		return fmt.Errorf("the checksums.txt of itos %s lists no %s: no release of it for this platform", v, asset)
 	}
-	archive, err := get(at(asset))
+	archive, err := get(releaseURL(v, asset), fetchTimeout)
 	if err != nil {
-		return fmt.Errorf("cannot fetch itos %s: %w", t.version, err)
+		return fmt.Errorf("cannot fetch itos %s: %w", v, err)
 	}
 	if got := sha256Hex(archive); got != want {
 		return fmt.Errorf("%s is not the archive the checksums.txt of itos %s lists: its SHA-256 is %s, the list's %s",
-			asset, t.version, got, want)
+			asset, v, got, want)
 	}
 	binary, err := extract(archive, asset)
 	if err != nil {
-		return fmt.Errorf("itos %s: %w", t.version, err)
+		return fmt.Errorf("itos %s: %w", v, err)
 	}
 	return store(cache, dir, binary, sums)
 }
 
-// get is the body at the address, or why it cannot be had.
-func get(url string) ([]byte, error) {
-	client := &http.Client{Timeout: fetchTimeout}
+// releases is the base the releases are fetched from: ITOS_RELEASES, else
+// the GitHub releases of itos.
+func releases() string {
+	if base := strings.TrimRight(os.Getenv(EnvReleases), "/"); base != "" {
+		return base
+	}
+	return DefaultReleases
+}
+
+// releaseURL is where the version's asset is fetched from.
+func releaseURL(v, asset string) string {
+	return releases() + "/download/v" + v + "/" + asset
+}
+
+// get is the body at the address, or why it cannot be had within timeout.
+func get(url string, timeout time.Duration) ([]byte, error) {
+	client := &http.Client{Timeout: timeout}
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err

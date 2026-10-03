@@ -21,14 +21,14 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
   Background:
     Given a release server offering the versions "9.1.0" and "9.2.0"
 
-  @ID-UPDATE-01 @slice-28 @wip
+  @ID-UPDATE-01 @slice-28
   Scenario: Outside a project the newest release is fetched and run
     Given the repository has no itos.yaml
     When itos runs "version"
     Then itos exits with code 0
     And the version "9.2.0" ran with the arguments "version"
 
-  @ID-UPDATE-02 @slice-28 @wip
+  @ID-UPDATE-02 @slice-28
   Scenario: The release server is asked for its newest version at most once a day
     Given the repository has no itos.yaml
     And itos has already run "version"
@@ -36,7 +36,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     Then the version "9.2.0" ran with the arguments "version"
     And the release server was asked for nothing since the last run
 
-  @ID-UPDATE-03 @slice-28 @wip
+  @ID-UPDATE-03 @slice-28
   Scenario: CI never asks for the newest version
     Given the repository has no itos.yaml
     And CI is "true"
@@ -45,7 +45,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     And the release server was asked for nothing
     And no version of the release server ran
 
-  @ID-UPDATE-04 @slice-28 @wip
+  @ID-UPDATE-04 @slice-28
   Scenario: ITOS_NO_UPDATE stops the asking
     Given the repository has no itos.yaml
     And ITOS_NO_UPDATE is "1"
@@ -56,7 +56,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
 
   # The newest release is in the cache from the run outside the project, so
   # only the rule can be what keeps the called binary.
-  @ID-UPDATE-05 @slice-28 @wip
+  @ID-UPDATE-05 @slice-28
   Scenario: A config with no pin runs the binary that was called, though a newer release is in the cache
     Given the repository has no itos.yaml
     And itos has already run "version"
@@ -65,7 +65,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     Then itos exits with code 0
     And no version of the release server ran since the last run
 
-  @ID-UPDATE-06 @slice-28 @wip
+  @ID-UPDATE-06 @slice-28
   Scenario: A repository pinning an older version runs its pin, and says the newer one is out
     Given a repository whose ledger has the task "T-001"
     And the config pins the version "9.1.0" of the release server
@@ -75,7 +75,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     And its output says "itos 9.2.0 is out (this repository pins 9.1.0): "
     And its output says "/tag/v9.2.0"
 
-  @ID-UPDATE-07 @slice-28 @wip
+  @ID-UPDATE-07 @slice-28
   Scenario: The notice is said at most once a day in a repository
     Given a repository whose ledger has the task "T-001"
     And the config pins the version "9.1.0" of the release server
@@ -84,7 +84,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     Then the version "9.1.0" ran with the arguments "version"
     And its output does not say "is out"
 
-  @ID-UPDATE-08 @slice-28 @wip
+  @ID-UPDATE-08 @slice-28
   Scenario: CI never says the newer version is out
     Given a repository whose ledger has the task "T-001"
     And the config pins the version "9.1.0" of the release server
@@ -93,7 +93,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     Then the version "9.1.0" ran with the arguments "version"
     And its output does not say "is out"
 
-  @ID-UPDATE-09 @slice-28 @wip
+  @ID-UPDATE-09 @slice-28
   Scenario: ITOS_NO_UPDATE_NOTICE silences the notice
     Given a repository whose ledger has the task "T-001"
     And the config pins the version "9.1.0" of the release server
@@ -102,7 +102,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     Then the version "9.1.0" ran with the arguments "version"
     And its output does not say "is out"
 
-  @ID-UPDATE-10 @slice-28 @wip
+  @ID-UPDATE-10 @slice-28
   Scenario: A release server that cannot be reached is not an error
     Given the repository has no itos.yaml
     And the release server cannot be reached

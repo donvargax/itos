@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -29,6 +30,20 @@ func TestListed(t *testing.T) {
 			t.Errorf("listed(%q) = %q, %t; want %q, %t", c.asset, got, ok, c.want, c.ok)
 		}
 	}
+}
+
+// offline keeps a test off the network and off any real cache: an empty
+// cache of its own, nothing to ask, and no CI or silencing set. It gives the
+// cache.
+func offline(t *testing.T) string {
+	t.Helper()
+	cache := t.TempDir()
+	t.Setenv(EnvCache, cache)
+	t.Setenv(EnvReleases, "http://127.0.0.1:1/no-release-server")
+	t.Setenv(EnvNoUpdate, "1")
+	t.Setenv(EnvNoUpdateNotice, "")
+	t.Setenv("CI", "")
+	return cache
 }
 
 // writeConfig writes an itos.yaml in a scratch folder and makes it the
@@ -61,9 +76,10 @@ func TestChoose(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			offline(t)
 			writeConfig(t, c.config)
 			t.Setenv(EnvVersion, c.env)
-			got, launch := choose(nil)
+			got, launch := choose(nil, io.Discard)
 			if got != c.want || launch != c.launch {
 				t.Errorf("choose = %v, %t; want %v, %t", got, launch, c.want, c.launch)
 			}
@@ -72,6 +88,7 @@ func TestChoose(t *testing.T) {
 }
 
 func TestChooseReadsTheConfigWhereItosDoes(t *testing.T) {
+	offline(t)
 	writeConfig(t, "version: 1\n")
 	if err := os.MkdirAll("sub", 0o755); err != nil {
 		t.Fatal(err)
@@ -85,7 +102,7 @@ func TestChooseReadsTheConfigWhereItosDoes(t *testing.T) {
 		{"--root", "sub", "--config", "other.yaml", "version"},
 		{"version", "--config", "sub/other.yaml"},
 	} {
-		if got, launch := choose(args); !launch || got.version != "9.1.0" {
+		if got, launch := choose(args, io.Discard); !launch || got.version != "9.1.0" {
 			t.Errorf("choose(%q) = %v, %t; want 9.1.0", args, got, launch)
 		}
 	}

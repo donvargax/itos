@@ -3,7 +3,8 @@
 // version without the network. Each release is what a real one holds for the
 // running platform, itos-<version>-<os>-<arch>.tar.gz (.zip on windows) and a
 // checksums.txt listing it, served at <base>/download/v<version>/<asset>, the
-// base being what ITOS_RELEASES names. The archive's itos is a shell script
+// base being what ITOS_RELEASES names, and the newest of them at
+// <base>/latest/download/<asset> as well, as GitHub serves its latest release. The archive's itos is a shell script
 // that records the version it is, the ITOS_VERSION it ran with and its
 // arguments, and exits with the code the scenario chose for it.
 //
@@ -42,13 +43,21 @@ type releaseServer struct {
 	server *httptest.Server
 	mu     sync.Mutex
 	files  map[string][]byte // what each path serves
+	latest string            // the newest version, which <base>/latest/ serves
 	asked  []string          // each path asked for, in order
+	// Whether the scenario made it unreachable: itos is then given an address
+	// nothing answers on in its place.
+	unreachable bool
 }
 
 func (r *releaseServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	r.mu.Lock()
 	r.asked = append(r.asked, req.URL.Path)
-	body, ok := r.files[req.URL.Path]
+	path := req.URL.Path
+	if asset, ok := strings.CutPrefix(path, "/latest/download/"); ok && r.latest != "" {
+		path = releasePath(r.latest, asset)
+	}
+	body, ok := r.files[path]
 	r.mu.Unlock()
 	if !ok {
 		http.NotFound(rw, req)
@@ -105,6 +114,7 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the config pins the version "([^"]*)" with the checksums of "([^"]*)"$`, w.pinVersion)
 	sc.Step(`^the release server's checksums\.txt of "([^"]*)" is replaced$`, w.replaceChecksums)
 	sc.Step(`^the release server's archive of "([^"]*)" for this platform is replaced$`, w.replaceArchive)
+	sc.Step(`^the release server cannot be reached$`, w.releaseServerUnreachable)
 	sc.Step(`^the repository has no itos\.yaml$`, w.noConfig)
 	sc.Step(`^([A-Z][A-Z0-9_]*) is "([^"]*)"$`, w.setVariable)
 	sc.Step(`^itos has already run "([^"]*)"$`, w.alreadyRan)
@@ -119,7 +129,8 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the release server was asked for nothing since the last run$`, func() error { return w.askedForNothing(true) })
 }
 
-// The release server, each version's release on it.
+// The release server, each version's release on it, the last one named the
+// newest.
 func (w *world) startReleaseServer(versions ...string) error {
 	r := &releaseServer{files: map[string][]byte{}}
 	r.server = httptest.NewServer(r)
@@ -129,6 +140,15 @@ func (w *world) startReleaseServer(versions ...string) error {
 			return err
 		}
 	}
+	r.latest = versions[len(versions)-1]
+	return nil
+}
+
+func (w *world) releaseServerUnreachable() error {
+	if err := w.needReleases(); err != nil {
+		return err
+	}
+	w.releases.unreachable = true
 	return nil
 }
 
@@ -397,9 +417,12 @@ func (w *world) askedForNothing(sinceLast bool) error {
 // cache, then the variables the scenario set.
 func (w *world) launcherEnv() []string {
 	env := []string{"ITOS_CACHE=" + filepath.Join(w.support, "cache")}
-	if w.releases != nil {
+	switch {
+	case w.releases != nil && w.releases.unreachable:
+		env = append(env, "ITOS_RELEASES="+noReleaseServer)
+	case w.releases != nil:
 		env = append(env, "ITOS_RELEASES="+w.releases.server.URL)
-	} else {
+	default:
 		// No scenario without a release server of its own asks for the newest
 		// release (slice 28), so none waits on an address that never answers.
 		env = append(env, "ITOS_RELEASES="+noReleaseServer, "ITOS_NO_UPDATE=1")

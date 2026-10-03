@@ -20,7 +20,9 @@ const globalFlags = `Global flags:
 
 const versions = `Versions: a config's pin (pin.version, pin.checksums) runs that itos release,
 fetched from ITOS_RELEASES into ITOS_CACHE and checked first; ITOS_VERSION
-runs another. A config with no pin runs this binary.`
+runs another. A config with no pin runs this binary; no config runs the newest
+release, asked for once a day, never in CI or with ITOS_NO_UPDATE=1;
+ITOS_NO_UPDATE_NOTICE=1 hides the notice that a pin has fallen behind it.`
 
 const exitCodes = `Exit codes: 0 success; 1 policy failure (a check failed, a commit rejected,
 a registry or smoke problem, an unknown task); 2 usage or config error;

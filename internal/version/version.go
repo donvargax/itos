@@ -77,9 +77,9 @@ func parts(v string) [3]int {
 	return p
 }
 
-// compare is negative, zero or positive, as a is older than, the same as or
+// Compare is negative, zero or positive, as a is older than, the same as or
 // newer than b, on their first three parts, a missing part being 0.
-func compare(a, b string) int {
+func Compare(a, b string) int {
 	x, y := parts(a), parts(b)
 	for i := range 3 {
 		if x[i] != y[i] {
@@ -105,7 +105,7 @@ var comparator = regexp.MustCompile(`^(>=|>|<=|<|=)?v?(\d+(?:\.\d+){0,2})$`)
 func Satisfies(version, rng string) bool {
 	for _, c := range strings.Fields(rng) {
 		m := comparator.FindStringSubmatch(c)
-		if m == nil || !holds[m[1]](compare(version, m[2])) {
+		if m == nil || !holds[m[1]](Compare(version, m[2])) {
 			return false
 		}
 	}

@@ -80,6 +80,10 @@
   scenarios:
     - id: "@ID-TASK-01"
       why: task --pending runs a check two tasks list once and both read its result, the file's point
+- file: update.feature
+  scenarios:
+    - id: "@ID-UPDATE-06"
+      why: a pin fallen behind runs and is told the newer release, the question and the notice together
 - file: upgrading.feature
   scenarios:
     - id: "@ID-UPGRADE-01"
