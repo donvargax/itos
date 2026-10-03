@@ -30,6 +30,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/donvargax/itos/v2/internal/config"
@@ -320,7 +321,8 @@ func initReport(file string, o Out) (int, error) {
 
 // hookProblems are the hooks hooks install would put in place that do not
 // call itos, for the manager it would pick: a shim file missing, not
-// executable for plain git or not calling itos; a lefthook or pre-commit
+// executable for plain git (outside Windows, which has no executable bit and
+// runs a hook whatever its mode) or not calling itos; a lefthook or pre-commit
 // config without itos's snippet; an entry of the git config missing. The
 // pre-push one under the git config only when hooks.pre_push gives it
 // commands, as hooks install declares it.
@@ -382,7 +384,7 @@ func hookProblems(cfg *config.Loaded, file string) []out.Problem {
 				missing(event, p+" is not there", install)
 			case !callsItos.MatchString(text):
 				missing(event, p+" does not call itos", install+" --force to replace it, or call "+bin+" hook "+event+" from it")
-			case found.manager == "git" && info.Mode().Perm()&0o111 == 0:
+			case found.manager == "git" && runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0:
 				missing(event, p+" is not executable", install+" --force, or chmod +x "+p)
 			}
 		}
