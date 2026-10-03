@@ -31,7 +31,9 @@ without `gh`, or with it signed out, it says so and proposes `--as`. It lists:
   never count as startable;
 - what is deferred (`deferred: <reason>` on a `todo` item), with its reason.
 
-`vp run work --json` gives the same to an agent, and `tools/bin/itos work check`
+`vp run work --json` gives the same to an agent, `tools/bin/itos work list` (or
+`--json`) every item with its kind, status and title, done ones too, and
+`tools/bin/itos work check`
 validates the file (known IDs, owners `CONTRIBUTORS.md` lists, no cycle,
 nothing `done` that waits on something open). A session takes an item by
 setting its `owner` and `status: doing` in a `docs` commit before starting,

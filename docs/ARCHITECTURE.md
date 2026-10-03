@@ -976,7 +976,7 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   the API takes; the port gives up after `Timeout` (a minute), which reads as
   no green run and runs everything.
 - **The work routing** is `work` and `work check` (`internal/cli/work.go`,
-  `work.ts`'s two commands) over the registry reading the config group
+  `work.ts`'s two commands), and `work list` (slice 43, Go only), over the registry reading the config group
   ported (`work.Load`, `Issues`), never a second one. `work check` is
   `ProblemsAt`, the config's `work.registry` or a file named after `check`
   (the argument whatever it is, as `main.ts` takes it), whose missing-file
@@ -1009,6 +1009,11 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   the GitLab and Forgejo APIs wait for `p1-conformance-http`, as the range
   ones do: neither implementation's schema accepts them yet, so a config
   naming one is a config error, not a command that runs half-built.
+  `work list` is `work.Load` and nothing after it: every item in the
+  registry's order, judged by nothing, as `task list` is not, so a reader of
+  the titles (T-066's plugin) keeps them through a registry problem; its
+  `--json` items are the same `value.Map`s the proposal writes, so the two
+  commands describe an item alike, and its text is `work.PrintList`.
 - **The hooks** are `hook commit-msg`, `hook pre-push`
   (`internal/cli/hook.go`) and `hooks install` (`internal/cli/install.go`),
   `hooks.ts` with `commit-data.ts`, `commit-scope.ts`, `commit-tasks.ts` and

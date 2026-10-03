@@ -200,7 +200,8 @@
     moved here with its tests, asking the project's own itos for the titles (itos work list
     --json, slice 43, and itos task list --json), so a registry moved by work.registry and ledger
     tasks without registry entries are found, and reading tasks/work-items.yaml when no itos
-    answers. A short skill on working with itos: find work with itos work, commit with itos
+    answers. An itos older than v2.3.0 has no work list and reads it as work, printing the
+    proposal, which has no items key: the titles read that as no itos answering. A short skill on working with itos: find work with itos work, commit with itos
     commit --task or --scenarios, push with itos push, read what a gate says and fix that cause,
     never run the gates by hand. And a PreToolUse hook on Bash that runs itos hook pre-tool-use
     (slice 42), the guard against an agent's git commit and git push. integrations/** is not the

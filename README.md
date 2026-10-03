@@ -68,7 +68,8 @@ it, and the instructions then point to the check instead of restating it.
   shortcut for prose-only pushes; `itos ci plan` prints it without running
   anything.
 - **Work routing**: `itos work` says what the person a session works for can
-  start next, from `tasks/work-items.yaml` and `CONTRIBUTORS.md`.
+  start next, from `tasks/work-items.yaml` and `CONTRIBUTORS.md`; `itos work
+list` lists every item with its title, done ones too.
 
 `tools/bin/itos --help` lists the commands, and `itos <command> --help` each
 one. A command itos does not have runs `itos-<command>` from the `PATH`, so

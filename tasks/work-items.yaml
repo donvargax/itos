@@ -2244,7 +2244,7 @@ items:
     title: itos work list, every item of the registry with its title
     phase: 3
     owner: donvargax
-    status: todo
+    status: done
     depends_on: []
     kind: slice
     why: >
