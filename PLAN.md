@@ -347,6 +347,7 @@ built-in command and before the name for an extension.
 | `commit [--task <id>] [--scenarios <ids>] [--<footer> <text>] [--breaking <text>] [<git commit args>…]` | `git commit` with the footers itos writes from its flags, as git's `--trailer`, a commit missing a required one refused before git runs; the hooks judge them as typed ones, and git's exit code is itos's. |
 | `commit check-message <file\|->`, `commit check-paths --type <t> <p>…`                                  | The header lint and the footer rules on one message; the scope rules alone, to plan a split.                                                                                                                |
 | `commit footers <name> <from> <to>`                                                                     | A range's free-text footers with their commits, leaving out `none`, for a release's notes.                                                                                                                  |
+| `push`                                                                                                  | Pulls the upstream with a rebase whatever git's settings say, then pushes HEAD to it in a separate step; refuses uncommitted changes, stops with a stopped rebase, never forces.                            |
 | `verify <from> <to>`, `verify` (stealth)                                                                | Re-checks every non-merge commit of the range after `commits.since` (message with footers at that commit, paths, the built-in moves rule against its parent), then each range command once.                 |
 | `tests list <kind> [--at <tree>]`, `tests smoke check\|ids\|run <kind>`                                 | The adapter's listing; the smoke rule, the smoke IDs, the smoke run.                                                                                                                                        |
 | `tests moves <kind>`                                                                                    | The staged feature files against HEAD's by the built-in moves rule, by hand.                                                                                                                                |
@@ -411,8 +412,36 @@ hook, verify and `commit footers` read it. A first argument
 naming a subcommand (`check-message`, `check-paths`, `footers`) is that
 subcommand, anything else a commit. It is the habit an agent is pointed to
 (the plugin answers a bare `git commit` with it, §10), the other half of
-pushing through itos (`p1-itos-push`), and the one the stealth mode keeps,
+pushing through itos (`itos push`, below), and the one the stealth mode keeps,
 where the same lines become a note on the new commit instead (slice 32, §5).
+
+**itos push** (slice 39, the user's call of 2026-10-03: built in, since
+extensions are for what is not core) is the routine every session ended
+with by hand (AGENTS.md's "Finishing"): commit, pull with a rebase, check
+that no rebase stopped and no conflict is left, then push in a separate
+step. It takes no arguments. It fetches the branch's upstream (its
+`branch.<name>.remote` and `.merge`, else `origin` and the branch's own
+name) and rebases onto the commit fetched with its own flags,
+`git rebase --no-autostash` after a `git fetch` rather than `git pull`, so
+`pull.rebase` cannot make it a merge and `rebase.autostash` cannot pocket a
+change. It refuses to start (exit 1) when tracked files have uncommitted
+changes, saying to commit or stash them first (untracked files are no
+reason), when a rebase is in progress or a conflict is left, and on a
+detached HEAD. A rebase that stops is left in progress for the person,
+nothing is pushed, and it exits 1 saying how to go on (`git rebase
+--continue`, then `itos push` again; or `git rebase --abort`). Then, a
+rebase in progress and a conflict checked for again, it pushes HEAD to the
+upstream's branch as an explicit refspec: the pre-push hook runs as for any
+push, and nothing else goes, so the stealth mode's `refs/notes/itos` stays
+local whatever push refspec the config has (under a stealth config
+`notes.rewriteRef` is set first, as `itos commit` sets it, so the rebase
+carries the notes). It never forces: `--force`, `-f`, `--force-with-lease`
+or a `+` refspec is a usage error (exit 2) naming why, and a push the remote
+or the hook refuses is reported with git's exit code, never retried.
+Nothing to push is success (exit 0, saying so); a remote without the branch
+is a new branch, pushed with no rebase. Outside a repository, or with no
+upstream and no `origin`, it exits 3. Printing the CI run the push started
+is `p1-ci-watch`'s.
 
 **Hooks in the git config** (slice 33, the user's calls of 2026-10-03): git
 2.5x runs a hook declared in its config, `hook.<name>.event` and
@@ -449,7 +478,8 @@ config names that is missing or unreadable among them (the ledger's folder a
 footer reads, a smoke set); 3 a missing environment, a pinned release the
 launcher cannot fetch or check among them (§10), and an extension that cannot
 start. In `ci run` a failing step exits with its own code, an extension's
-exit code is the run's, and `itos commit`'s is git's. A missing
+exit code is the run's, `itos commit`'s is git's, and so is `itos push`'s
+when the fetch or the push fails. A missing
 identity and a failing range provider are not errors, nor is a project's
 people file missing or unreadable: every command goes on without the people,
 checking no owner, and `config check` alone warns of it, never failing (slice
@@ -564,7 +594,8 @@ unpushed commits (slice 34, §7), and its defaults, one person's: the global
 the hook an amend, which it guessed before (slice 37, §7), and writes every
 footer a commit needs, refusing one that lacks a required footer before git
 runs (slice 36, §7). A stealth session owns every item, `itos work` looking
-no identity up (slice 38, §5).
+no identity up (slice 38, §5). `itos push` pulls with a rebase and pushes,
+never forcing (slice 39, §7).
 
 ## 10. Distribution
 

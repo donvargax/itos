@@ -1159,7 +1159,7 @@ items:
     title: itos push, the pull-rebase-push routine as one command
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-36]
     kind: slice
     why: >
@@ -1173,6 +1173,21 @@ items:
       folded here). Printing the CI run the push started is left to p1-ci-watch. Was
       p1-itos-push; specified in features/push.feature.
     refs: [features/push.feature]
+
+  - id: p3-finish-with-itos-push
+    title: This repository's finishing routine through itos push
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-39]
+    kind: idea
+    why: >
+      Slice 39 built itos push, the routine AGENTS.md's "Finishing" and ORCHESTRATING's lessons
+      spell out by hand (pull with --rebase --no-autostash, the guard one-liner, never chaining the
+      push onto the rebase, rtk proxy for the pull), and left both files as they were: whether
+      this repository's sessions finish with tools/bin/itos push instead is the coordinator's
+      call. If they do, the section shrinks to commit, tools/bin/itos push, read what it says, and
+      the briefs stop naming rtk proxy, since itos runs git itself.
 
   - id: p1-ci-watch
     title: itos ci watch and itos status, the run for a commit and the state of main

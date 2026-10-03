@@ -140,6 +140,20 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   committed next adds it, as a feat adds the scenario it names. A footer
   counted once is read from HEAD as it is, not from a new HEAD: an amend
   that writes nothing new in its commit's second is that commit again.
+- **itos push's scenarios** (`push_test.go`, `push.feature`): the remote is
+  a bare clone of the scratch repository in the support folder
+  (`origin.git`), and "a clone of it, where itos runs" clones that, so its
+  main tracks the remote's, lays in the files the scratch repository has not
+  committed (`layUncommitted`, which the one-commit-deep clone shares), and
+  moves the world's `dir` there. The remote gains a commit from another
+  clone in the support folder, pushed with `--no-verify`; a commit of the
+  clone or the remote writes its file as one line naming the commit, so two
+  touching the same file conflict. git config settings go in the clone's own
+  config, the steps' environment reading no global one. The remote's branch
+  is read in the bare repository itself (`git log --format=%s main`,
+  `git rev-list --merges main`), so what was pushed is what the remote has,
+  not what the clone thinks it pushed; an uncommitted change is a known line
+  appended to the file, read back with `git diff HEAD` still seeing it.
 - **The header lint**, where a scenario needs one, is itos's built-in one,
   `use: builtin` in the scratch config, which needs nothing installed and
   holds no footer rule, so a scenario's footer rules are itos's own. The
@@ -343,7 +357,8 @@ mechanisms above, written against those modules, read across.
   below), `internal/work` (the registry and its problems, the items'
   statuses, and the proposal; below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
-  (below) and `internal/git`, beside two
+  (below) and `internal/git` (the repository's state and ranges, read
+  through git; below), beside two
   the TypeScript has no module for:
   `internal/value` and `internal/source` (below). The port shells out to git
   where it needs it, as the TypeScript did.
@@ -477,6 +492,40 @@ mechanisms above, written against those modules, read across.
   itos's, and one git cannot start exits 3. A global `-q` is passed on as
   git's `--quiet`; under `--json` git's stdout goes to stderr and stdout
   has `{"schema":1,"ok","commit"?}`, or the refusal's problems.
+- **itos push** (`internal/cli/push.go`, slice 39): `push` in the command
+  table first refuses every argument (`readPushArgs`): a force flag
+  (`-f`, anything starting `--force`, a short cluster holding `f`) or a
+  `+` refspec as `push never forces: …`, anything else as
+  `push takes no arguments`, both usage errors. Then, outside a repository,
+  exit 3. `ready` refuses (exit 1) a rebase in progress or a conflict left
+  (`git.Rebasing`: a `rebase-merge` or `rebase-apply` folder at
+  `git rev-parse --git-path`; `git.Conflicted`:
+  `git diff --name-only --diff-filter=U`, docs/ORCHESTRATING.md's guard
+  one-liner) and tracked changes (`git.Changed`: `git status --porcelain
+--untracked-files=no`, listed); a detached HEAD (`git.Branch`) is refused
+  next. `git.Upstream` gives `branch.<name>.remote` and `.merge`, else
+  `origin` and `refs/heads/<name>`, and with no upstream a missing `origin`
+  exits 3. `fetch` runs `git fetch --quiet --no-tags <remote> <ref>` with
+  its stderr held back and takes `FETCH_HEAD^{commit}`; when it fails,
+  `git ls-remote --exit-code` exiting 2 says the remote has no such branch
+  yet (a new branch: no rebase, the push creates it), and anything else
+  prints git's words and exits with git's code. Unless the fetched commit is
+  already an ancestor of HEAD, `rebase` runs `git rebase --no-autostash
+<sha>` (never `git pull`, so neither `pull.rebase`, `pull.ff` nor a fork
+  point enters it), after `rewriteNotes` under a stealth config so the
+  rebase carries the itos notes; afterwards `git.Rebasing` or
+  `git.Conflicted` is the stop (exit 1, how to go on), and a non-zero exit
+  without either a rebase that did not start (exit 1). HEAD at or behind
+  the fetched commit (`rev-list --count <sha>..HEAD` of 0) is nothing to
+  push, exit 0. `push` then runs `git push <remote> HEAD:<ref>`, an explicit
+  refspec, so a configured push refspec (the notes') sends nothing and the
+  pre-push hook runs as for any push; a refusal is reported with git's exit
+  code. Each git runs through `runGit` with the terminal's stdin (a
+  credential prompt), its stdout the terminal's, or stderr under `--json`,
+  where stdout is `{"schema":1,"ok","outcome","remote"?,"branch"?,
+"commit"?}`; a global `-q` passes `--quiet` to the rebase and the push and
+  leaves out the success line. itos push reads no config, so it runs where
+  itos is not set up, as itos commit does.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
   `ITOS_CONFIG`, else `itos.yaml`, else the stealth config, after `--root`'s

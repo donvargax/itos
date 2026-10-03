@@ -48,6 +48,14 @@ it, and the instructions then point to the check instead of restating it.
   `-m`, `-F` or the editor; a commit missing a footer its type requires is
   refused before git runs, naming the flag, and the hook judges the rest as
   typed footers.
+- **Pushing**: `itos push` ends a piece of work after its commits. It pulls
+  the branch's upstream with a rebase, whatever `pull.rebase` and
+  `rebase.autostash` say, then pushes HEAD to it in a separate step, the
+  pre-push hook running as for any push. It refuses to start while tracked
+  files have uncommitted changes, leaves a rebase that stops for you to finish
+  (`git rebase --continue`, then `itos push` again, or `git rebase --abort`)
+  with nothing pushed, and never forces: a push the remote refuses is
+  reported, not retried.
 - **Named tests behind an adapter**: Gherkin is built in; any runner that can
   list its tests as JSON can be another kind. CI merges every selection of a
   kind into one run.
@@ -248,6 +256,8 @@ plan` with no range judge only yours: the commits of HEAD that no remote
 branch has (`git rev-list HEAD --not --remotes`), every commit when there is
 no remote. Run `itos verify` before you push, and it checks exactly what the
 push will send. In a project's own repository both still need `<from> <to>`.
+`itos push` pushes HEAD alone to its branch, so the notes stay local here
+too, and a rebase it runs carries them.
 
 ## Working on it
 
