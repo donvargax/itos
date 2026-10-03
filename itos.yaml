@@ -238,6 +238,9 @@ ci:
         repository_env: GITHUB_REPOSITORY,
         token_env: [GITHUB_TOKEN, GH_TOKEN],
       }
+  # itos push waits for the run of the commit it pushed and exits with its result (slice 51,
+  # T-078): an agent starts it in the background and monitors it, a person may pass --no-wait.
+  watch: { provider: github }
 
 work: # internal/work; the registry is at its default, tasks/work-items.yaml
   groups_key: phases
