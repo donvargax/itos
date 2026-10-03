@@ -368,7 +368,8 @@ mechanisms above, written against those modules, read across.
   config's `pin.version`, and a binary whose own version that is runs itself,
   so the version the launcher runs (to which it passes `ITOS_VERSION`) never
   launches again. It reads the config where `cli` does (`--config`, else
-  `config.Locate` under `--root`: `ITOS_CONFIG`, `itos.yaml` or the stealth
+  `config.Locate` under `--root`, or with neither under the top `config.Top`
+  finds from a subfolder: `ITOS_CONFIG`, `itos.yaml` or the stealth
   config), from the working tree, and only its `pin`,
   so a config written for a newer itos still reaches the version it pins;
   `readConfig` tells three states apart: `pinned`, `absent` (no file there at
@@ -426,7 +427,7 @@ mechanisms above, written against those modules, read across.
   name that is empty, starts with `-` or holds a path separator, so nothing
   but the `PATH` is searched, and takes `exec.LookPath`'s answer, which
   skips relative `PATH` folders (`exec.ErrDot`). After `applyGlobals` (the
-  `chdir` of `--root`), `runExtension` gives the program the rest of the
+  `chdir` of `--root`, or to the top from a subfolder), `runExtension` gives the program the rest of the
   arguments unread, or `--help` alone when a `--help` came before the name,
   in `extensionEnv`: itos's environment with `ITOS_CONFIG` (`config.Path()`
   made absolute), `ITOS_ROOT` (the working folder), `ITOS_BIN`
@@ -529,7 +530,8 @@ mechanisms above, written against those modules, read across.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
   `ITOS_CONFIG`, else `itos.yaml`, else the stealth config, after `--root`'s
-  `chdir`: `Path`, which is `Locate("")`), holds it to the schema
+  `chdir` or the move to the repository's top, below: `Path`, which is
+  `Locate("")`), holds it to the schema
   (`schema.go`, `SCHEMA`'s specs as data, with its problems' wording), then to
   the cross-checks (`cross.go`), and lays it over **the one table of
   defaults**, `defaults()` in `defaults.go`: one ordered tree, as `DEFAULTS`
@@ -544,6 +546,22 @@ mechanisms above, written against those modules, read across.
   an empty `Ordered` (a mapping whose order matters, as written); the file as
   written stays beside the loaded config for `HasSection` and `Section`.
   `Readings` and `MatchesStatic` are `readings` and `matchesStatic`.
+- **From a subfolder** (`internal/config/top.go`, slice 40): with no
+  `--config`, no `ITOS_CONFIG` and no `--root`, and no `itos.yaml` in the
+  folder, `Top` asks `git rev-parse --show-toplevel --git-common-dir` once
+  per folder and run (so the launcher and `cli` ask once between them) and
+  gives the top level when it is not the folder itself and holds an
+  `itos.yaml` or the stealth config; inside the git folder, where git has no
+  top level, and outside a repository it gives nothing. `cli.applyGlobals`
+  then `chdir`s there before any command, as `--root <top>` would, and keeps
+  where the person stood, relative to the top, in `origin`: `typed` reads a
+  path they typed from there (check-paths' paths, check-message's,
+  work check's and hook commit-msg's file, `config check --ledger`,
+  `tests smoke check --features`), as git reads a path typed in a subfolder,
+  and `runGit` runs `git commit` (and `itos push`'s git) in it, so the
+  pathspecs and the `-F` file given to git mean what they meant. Under
+  `--root` nothing is translated: a typed path is the root's, as before.
+  The launcher's `readConfig` takes `Top("")` as its `--root`.
 - **The stealth mode** (`internal/config/stealth.go`, slice 30) is one
   person's itos in a repository whose team does not use it. Where there is
   no `--config`, no `ITOS_CONFIG` and no `itos.yaml` in the root (in the

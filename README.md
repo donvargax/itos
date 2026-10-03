@@ -162,6 +162,16 @@ names where releases come from (`<base>/download/v<version>/<asset>`,
 `https://github.com/donvargax/itos/releases` by default) and `ITOS_CACHE` the
 cache (`itos/` in your user cache folder by default).
 
+**Where itos reads its config.** itos reads `itos.yaml` in the folder it runs
+in, or the file `--config` or `ITOS_CONFIG` names; `--root <dir>` runs it as if
+started in `<dir>`. With none of those and no `itos.yaml` in the folder, a run
+inside a git repository reads the `itos.yaml` at the repository's top (or the
+config in the git folder, below) and runs as if started there, so every path
+the config names means what it means at the top, and the launcher runs the
+version pinned there. A path you type (`itos commit check-paths`'s, a message
+file, `itos commit`'s pathspecs) is still read from the folder you are in, as
+git reads one.
+
 **The schema, for editors.** An editor with a YAML language server checks an
 `itos.yaml` as it is written, completes its keys and shows each one's
 description and default, once the file's first line names the schema of the
@@ -181,7 +191,8 @@ it, with nothing of it in the tree: keep the config in the git folder, as
 `itos/itos.yaml` in the folder `git rev-parse --git-common-dir` names
 (`.git/itos/itos.yaml` in a plain clone). Where there is no `--config`, no
 `ITOS_CONFIG` and no `itos.yaml` in the root, itos reads that one, with nothing
-to set, and every linked worktree of the repository shares it. The files it
+to set, from any folder of the repository, running as if started at its top,
+and every linked worktree of the repository shares it. The files it
 names for itos's own data, the ledger, the work registry and the smoke sets,
 are read beside it, in that folder, which git never commits; a `Task:` footer
 is checked against that ledger at every commit, even with `read_at: commit`,

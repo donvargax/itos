@@ -2297,7 +2297,7 @@ items:
     title: The launcher finds a repository's config from a subfolder of it
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-28]
     kind: slice
     why: >
@@ -2309,6 +2309,23 @@ items:
       since slice 28, runs the newest release instead of the pin, which then fails to find the
       config as itos always has. Looking up to the repository's top for both would close it.
     refs: [features/config.feature, features/pin.feature]
+
+  - id: p3-extension-prefix
+    title: An extension run from a subfolder knows the folder the person stood in
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-40]
+    kind: idea
+    why: >
+      Since slice 40 a run from a subfolder moves to the repository's top before an extension
+      runs, as --root does, so the extension starts at the top with ITOS_ROOT naming it, and a
+      relative path the person typed after its name, which itos never reads, no longer means what
+      it meant. itos's own commands read such a path from where the person stood; an extension
+      cannot, since nothing tells it that folder. A variable such as git's GIT_PREFIX (the folder
+      relative to the top, unset or empty at the top) would let it, or the extension could run
+      where it was started with ITOS_ROOT still the top.
+    refs: [PLAN.md, features/extensions.feature]
 
   - id: p3-global-install-ci
     title: A repository relying on a global itos runs it from its hooks and its CI

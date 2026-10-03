@@ -174,6 +174,20 @@ check, which could never take effect.
 `itos.yaml` at the root, or `--config` / `ITOS_CONFIG`. An unknown key is an
 error that names the key it misspells.
 
+**From a subfolder** (slice 40): with no `--config`, no `ITOS_CONFIG` and no
+`--root`, and no `itos.yaml` in the folder it is run in, a run inside a git
+repository looks for `itos.yaml` at the repository's top level
+(`git rev-parse --show-toplevel`) and, finding it there or the stealth config
+(below), runs as if started at the top, as `--root <top>` would, so every
+path the config names means what it means there; the launcher finds the pin
+the same way. A folder's own `itos.yaml` still wins, and outside a repository
+nothing changes. A path the person types (`commit check-paths`' paths, a
+message or registry file, `config check --ledger`, `tests smoke check
+--features`, `itos commit`'s pathspecs and `-F` file, which git is run in
+that folder for) is read from the folder they stood in, as git reads one,
+and named from the top; under `--root` it is the root's, as before. An
+extension runs at the top, `ITOS_ROOT` naming it, as under `--root`.
+
 **The stealth mode** (slice 30, the user's call): one person's itos in a
 repository whose team does not use it, with nothing of it in the tree. With no
 `--config`, no `ITOS_CONFIG` and no `itos.yaml` in the root, itos reads
@@ -338,7 +352,9 @@ the JSON above, with `select: "go test ./... -run {pattern}"` and
 ## 7. The command line
 
 Global flags: `--config`, `--root`, `--json`, `-q`, written anywhere for a
-built-in command and before the name for an extension.
+built-in command and before the name for an extension. With neither
+`--config` nor `--root`, a run from a subfolder of a repository finds its
+config at the top and runs from there (§5).
 
 | Command                                                                                                 | What it does                                                                                                                                                                                                |
 | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -367,7 +383,8 @@ usage error `unknown command: <command>`. Everything after the command's name
 is the extension's, given to it unread, so it can take flags of any name,
 `--json` and `--config` among them; only the global flags written before the
 name are itos's. They apply first (`--root` is the folder the extension runs
-in) and reach it in its environment: `ITOS_CONFIG` and `ITOS_ROOT`, absolute;
+in, as is the repository's top when a run from a subfolder moves there, §5)
+and reach it in its environment: `ITOS_CONFIG` and `ITOS_ROOT`, absolute;
 `ITOS_JSON=1` with `--json`, else unset; `ITOS_BIN`, the itos binary running,
 to call back; `ITOS_VERSION`, its version, which the launcher reads (§10), so
 a call back runs the same version. The trivial first one, `itos-hello`, is an
@@ -595,7 +612,8 @@ the hook an amend, which it guessed before (slice 37, §7), and writes every
 footer a commit needs, refusing one that lacks a required footer before git
 runs (slice 36, §7). A stealth session owns every item, `itos work` looking
 no identity up (slice 38, §5). `itos push` pulls with a rebase and pushes,
-never forcing (slice 39, §7).
+never forcing (slice 39, §7). From a subfolder, itos and the launcher find the
+config at the repository's top and run from there (slice 40, §5).
 
 ## 10. Distribution
 
