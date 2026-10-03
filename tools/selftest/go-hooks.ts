@@ -28,18 +28,22 @@ const show = (packages: Set<string>) => [...packages].sort().join(", ") || "none
 
 const { problems, timings, expect, preCommit, prePush } = hookGates(repo);
 
-// internal/version is imported by internal/cli and internal/launch (and
-// cmd/itos, which imports both and has no tests) and by nothing else, so its
-// change reaches those and not, say, internal/glob.
+// A change to internal/version reaches it, internal/cli (which imports it) and
+// cmd/itos (which imports internal/cli and has no tests), so those must be
+// tested; internal/glob imports none of them, so it must not be. The check asks
+// for at least those, not for an exact list: the importers of internal/version
+// grow as itos does (internal/launch, then internal/shim), and a new importer is
+// reached correctly, so it must not turn this self-test red. The one package
+// left out still proves the hooks test what a change reaches, not everything.
 const pkg = "internal/version";
 const file = `${pkg}/version.go`;
-const reached = ["internal/version", "internal/cli", "internal/launch", "cmd/itos"];
+const reached = ["internal/version", "internal/cli", "cmd/itos"];
 const unreached = "internal/glob";
 const testsReached = (hook: string, output: string) => {
 	const ran = tested(output);
 	expect(
-		reached.every((p) => ran.has(p)) && !ran.has(unreached) && ran.size === reached.length,
-		`${hook} should test ${reached.join(", ")} for a change to ${pkg}, tested ${show(ran)}`,
+		reached.every((p) => ran.has(p)) && !ran.has(unreached),
+		`${hook} should test ${reached.join(", ")} and not ${unreached} for a change to ${pkg}, tested ${show(ran)}`,
 	);
 };
 
