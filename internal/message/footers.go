@@ -22,6 +22,11 @@
 // word none. Its rule is only that it is there (required_for) and not empty
 // (validate_for); Texts reads it, and a range's are gathered by
 // `itos commit footers`.
+//
+// Under a stealth config a commit's footers are not in its message but in
+// its note (notes.go): Reading.Note carries them, the rules read them there,
+// and a footer of the config typed into the message is refused, since it
+// would show to everyone.
 package message
 
 import (
@@ -46,9 +51,13 @@ import (
 // a commit already made, as verify reads it: a footer's since then leaves
 // that commit and its ancestors out of its required_for. The commit-msg hook
 // and check-message judge the commit being made, which every rule holds.
+// Note is the commit's footers under a stealth config, read there instead
+// of the message's: the lines itos commit hands the hook, or a made commit's
+// itos note.
 type Reading struct {
 	At   string
 	Made bool
+	Note string
 	Warn io.Writer
 }
 
@@ -253,8 +262,9 @@ func knownFor(cfg *config.Loaded, key string, f config.Footer, r Reading) (known
 	return knownAt(cfg, f, "")
 }
 
-// CheckFooter is one footer's rule over one message: "" when it holds, else
-// why not. An error when its source cannot be read.
+// CheckFooter is one footer's rule over the footers of a commit of the type
+// typ, in its message or, under a stealth config, its note: "" when it
+// holds, else why not. An error when its source cannot be read.
 func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (string, error) {
 	f, _ := cfg.Commits.Footers.Get(key)
 	required := applies(f.RequiredFor, typ) && !(r.Made && config.Before(f, r.At))
@@ -263,7 +273,7 @@ func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (strin
 	}
 	ids := IDs(message, key, strip(f))
 	if required && len(ids) == 0 {
-		return fmt.Sprintf("%s commits need a %s footer", typ, example(cfg, key, f)), nil
+		return fmt.Sprintf("%s commits need a %s footer%s", typ, example(cfg, key, f), stealthNeed(cfg, key, f)), nil
 	}
 	// No ID, nothing to check: the footer's source is not read.
 	if !applies(f.ValidateFor, typ) || len(ids) == 0 {
@@ -310,13 +320,25 @@ func checkText(cfg *config.Loaded, key string, f config.Footer, typ, message str
 
 // FooterProblems are the footer rules' problems with a message, footer by
 // footer in the config's order, each with its rule (`task-footer`) and fix.
+// Under a stealth config the footers are read from r.Note, and one typed
+// into the message is its footer's problem.
 func FooterProblems(cfg *config.Loaded, message string, r Reading) ([]out.Problem, error) {
 	typ := Type(message)
+	footers := message
+	if cfg.Stealth {
+		footers = r.Note
+	}
 	found := []out.Problem{}
 	for _, key := range cfg.Commits.Footers.Keys {
-		why, err := CheckFooter(cfg, key, typ, message, r)
-		if err != nil {
-			return nil, err
+		why := ""
+		if cfg.Stealth {
+			why = typedFooter(cfg, key, message)
+		}
+		if why == "" {
+			var err error
+			if why, err = CheckFooter(cfg, key, typ, footers, r); err != nil {
+				return nil, err
+			}
 		}
 		if why == "" {
 			continue
@@ -340,7 +362,8 @@ func PrintFooters(w io.Writer, found []out.Problem) {
 
 // IDsIn are the IDs a pushed range's commits give in one footer (footers.ts's
 // footerIdsIn, the range log CI's plan reads): `git log --format=%B
-// from..to`, newest commit first, each ID once in the order first given, the
+// from..to`, or each commit's itos note under a stealth config, newest
+// commit first, each ID once in the order first given, the
 // footer's strip_prefix taken off, and only those whose whole matches the
 // footer's ID pattern (the ledger's id, or its kind's; any ID without one). A
 // range that cannot be read, or has no start or end, gives none. The range is
@@ -350,7 +373,7 @@ func IDsIn(cfg *config.Loaded, from, to, key string) []string {
 	if from == "" || to == "" {
 		return nil
 	}
-	log, err := git.Output("log", "--format=%B", from+".."+to)
+	log, err := git.Output(append(append([]string{"log"}, footersFormat(cfg)...), from+".."+to)...)
 	if err != nil {
 		return nil
 	}
@@ -407,24 +430,32 @@ type Said struct {
 // a release's notes are gathered from. from..to as git reads it, every commit
 // up to to when from is empty or all zeros; commits.since does not narrow it,
 // since a footer written before the rules still says what it says. A footer
-// that is empty, or says none, asks nothing and is left out.
-func Gathered(from, to, key string) ([]Said, error) {
+// that is empty, or says none, asks nothing and is left out. Under a stealth
+// config the footers are each commit's itos note's.
+func Gathered(cfg *config.Loaded, from, to, key string) ([]Said, error) {
 	span := []string{from + ".." + to}
 	if strings.Trim(from, "0") == "" {
 		span = []string{to}
 	}
-	log, err := git.Read(append([]string{"log", "--no-merges", "--reverse", "--format=%H%x00%B%x1e"}, span...)...)
+	format := []string{"--format=%H%x00%B%x1e"}
+	if cfg.Stealth {
+		format = append(append([]string{}, showNotes...), "--format=%H%x00%B%x00%N%x1e")
+	}
+	args := append(append([]string{"log", "--no-merges", "--reverse"}, format...), span...)
+	log, err := git.Read(args...)
 	if err != nil {
 		return nil, err
 	}
 	said := []Said{}
 	for _, entry := range strings.Split(log, "\x1e") {
-		sha, message, ok := strings.Cut(strings.TrimLeft(entry, "\n"), "\x00")
-		if !ok {
+		// The commit, its message, and its note under a stealth config.
+		fields := strings.SplitN(strings.TrimLeft(entry, "\n"), "\x00", 3)
+		if len(fields) < 2 {
 			continue
 		}
-		subject, _, _ := strings.Cut(message, "\n")
-		for _, text := range Texts(message, key) {
+		sha, footers := fields[0], fields[len(fields)-1]
+		subject, _, _ := strings.Cut(fields[1], "\n")
+		for _, text := range Texts(footers, key) {
 			if text != "" && !None(text) {
 				said = append(said, Said{SHA: sha, Subject: subject, Text: text})
 			}

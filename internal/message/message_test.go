@@ -124,3 +124,51 @@ commits:
 		t.Errorf("FooterLines of no IDs %q", got)
 	}
 }
+
+// Under a stealth config the footer rules read the footers from the note,
+// never the message: one typed into the message is its footer's problem,
+// naming the itos commit flag that writes it when one does, and a missing
+// one says the same; a project's config reads the message and no note.
+func TestStealthFooters(t *testing.T) {
+	cfg := load(t, `version: 1
+ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+commits:
+  footers:
+    Task: { source: ledger, required_for: [chore], validate_for: [] }
+    Why: { source: text }
+`)
+	problems := func(message, note string) []string {
+		t.Helper()
+		found, err := FooterProblems(cfg, message, Reading{Note: note})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var said []string
+		for _, p := range found {
+			said = append(said, p.Rule+": "+p.Message+" | "+p.Fix)
+		}
+		return said
+	}
+	if got := problems("chore: x\n", "Task: T-1"); len(got) != 1 || !strings.Contains(got[0], "need a") {
+		t.Errorf("a project's config read the note: %q", got)
+	}
+	cfg.Stealth = true
+	if got := problems("chore: x\n", "Task: T-1\n"); got != nil {
+		t.Errorf("the note's footer %q", got)
+	}
+	got := problems("chore: x\n\nTask: T-1\n", "Task: T-1")
+	if len(got) != 1 || !strings.HasPrefix(got[0], "task-footer: the Task: footer is in the message") ||
+		!strings.Contains(got[0], "itos commit --task writes it") || !strings.Contains(got[0], "| take the footer out") {
+		t.Errorf("a typed footer %q", got)
+	}
+	got = problems("chore: x\n", "")
+	if len(got) != 1 || !strings.Contains(got[0], `need a "Task: T-…" footer, which in stealth mode itos commit --task`) ||
+		!strings.Contains(got[0], "| commit with itos commit --task <id>") {
+		t.Errorf("a missing footer %q", got)
+	}
+	got = problems("chore: x\n\nWhy: because\n", "Task: T-1")
+	if len(got) != 1 || !strings.HasPrefix(got[0], "why-footer: the Why: footer is in the message") ||
+		!strings.Contains(got[0], "a commit's footers live in its note") {
+		t.Errorf("a typed footer no flag writes %q", got)
+	}
+}

@@ -16,7 +16,8 @@ import (
 // checkMessage): one message through the header lint's delegate and the
 // footer rules, as the commit-msg hook reads it. 0 when it passes, 1 when
 // not. --at reads the footers' IDs at that commit, as ITOS_AT does without
-// it.
+// it. Under a stealth config the footers are the ones ITOS_FOOTERS hands
+// over, as itos commit hands them to the hook, never the message's.
 func checkMessage(file, at string, o Out) (int, error) {
 	var text string
 	if file == "-" {
@@ -38,7 +39,7 @@ func checkMessage(file, at string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return message.Check(cfg, text, message.Reading{At: at, Warn: o.Stderr},
+	return message.Check(cfg, text, message.Reading{At: at, Note: os.Getenv(message.FootersEnv), Warn: o.Stderr},
 		message.Streams{JSON: o.JSON, Stdout: o.Stdout, Stderr: o.Stderr})
 }
 
@@ -91,7 +92,7 @@ func listFooters(name, from, to string, o Out) (int, error) {
 	if f, ok := cfg.Commits.Footers.Get(name); !ok || !f.Text() {
 		return 0, usage("commit footers needs a footer of free text: commits.footers.%s is not one (source: text)", name)
 	}
-	said, err := message.Gathered(from, to, name)
+	said, err := message.Gathered(cfg, from, to, name)
 	if err != nil {
 		return 0, err
 	}

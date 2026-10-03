@@ -22,15 +22,13 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     Then itos exits with code 0
     And its output says "T-001"
 
+  # The footer comes from itos commit, since the hook refuses one typed into
+  # the message (@ID-STEALTH-10).
   @ID-STEALTH-02 @slice-30
   Scenario: The commit-msg hook checks a footer against the ledger beside the config, which no commit carries
-    Given a change to "README.md" is staged
-    When the commit-msg hook checks the message:
-      """
-      chore: tidy the readme
-
-      Task: T-999
-      """
+    Given the commit-msg hook is installed
+    And a change to "README.md" is staged
+    When itos commits with the arguments "--task T-999 -m 'chore: tidy the readme'"
     Then itos exits with code 1
     And its output says "T-999"
 
@@ -60,7 +58,8 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
   @ID-STEALTH-06 @slice-30
   Scenario: Nothing of the stealth mode is in the tree git sees
     When itos runs the task "T-001"
-    Then git status shows nothing to commit
+    Then itos exits with code 0
+    And git status shows nothing to commit
 
   @ID-STEALTH-07 @slice-30
   Scenario: A global itos runs the newest release for a stealth config that pins nothing
@@ -76,7 +75,7 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
   # itos commit, and refuses a footer typed into the message. itos sets
   # notes.rewriteRef so an amend or a rebase carries the note to the new
   # commit, and verify reads each commit's footers from its note.
-  @ID-STEALTH-08 @slice-32 @wip
+  @ID-STEALTH-08 @slice-32
   Scenario: itos commit writes the task as a note on the new commit, never in its message
     Given the commit-msg hook is installed
     And a change to "README.md" is staged
@@ -85,7 +84,7 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     And the message of HEAD does not say "T-001"
     And the itos note on HEAD says "Task: T-001"
 
-  @ID-STEALTH-09 @slice-32 @wip
+  @ID-STEALTH-09 @slice-32
   Scenario: A commit that needs a task, made without itos commit, is refused, saying how to make it
     Given the commit-msg hook is installed
     And a change to "README.md" is staged
@@ -93,7 +92,7 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     Then the commit is refused
     And its output says "itos commit --task"
 
-  @ID-STEALTH-10 @slice-32 @wip
+  @ID-STEALTH-10 @slice-32
   Scenario: A footer typed into the message is refused, since it would show in the history
     Given a change to "README.md" is staged
     When the commit-msg hook checks the message:
@@ -105,7 +104,7 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     Then itos exits with code 1
     And its output says "itos commit --task"
 
-  @ID-STEALTH-11 @slice-32 @wip
+  @ID-STEALTH-11 @slice-32
   Scenario: An amended commit keeps its note
     Given the commit-msg hook is installed
     And a change to "README.md" is staged
@@ -113,7 +112,7 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     When git amends HEAD with the message "chore: tidy the readme again"
     Then the itos note on HEAD says "Task: T-001"
 
-  @ID-STEALTH-12 @slice-32 @wip
+  @ID-STEALTH-12 @slice-32
   Scenario: verify reads each commit's footers from its note
     Given the commit-msg hook is installed
     And a change to "README.md" is staged

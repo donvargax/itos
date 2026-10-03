@@ -139,9 +139,12 @@ cases:
       commits.footers each. A flag may repeat, its value one ID or several
       separated by commas or spaces, written on lines of 100 characters at most,
       the key on each. The hooks judge the commit as any other, so a commit they
-      refuse is not made. -q is git's --quiet. A first argument that names a
-      subcommand runs it. Exit: git's own code; 2 when a flag has no value or the
-      config no footer for it.
+      refuse is not made. Under a stealth config (<git common dir>/itos/itos.yaml)
+      the footers are never written into the message: they are handed to the hook
+      in ITOS_FOOTERS and written as the new commit's note in refs/notes/itos, and
+      notes.rewriteRef is set to that ref, so an amend or a rebase carries the note.
+      -q is git's --quiet. A first argument that names a subcommand runs it. Exit:
+      git's own code; 2 when a flag has no value or the config no footer for it.
 
       --json: git's output on stderr; {"schema":1,"ok","commit"?}
   - name: itos commit check-message --help
@@ -153,8 +156,9 @@ cases:
       Runs the header lint (commits.header_lint: itos's own with use: builtin, else
       the stdin delegate), if any, and itos's footer rules (commits.footers),
       always, on one message, read from <file> or stdin (-), and reports both. --at
-      reads the footers' IDs at that commit. Exit 1 when either rejects the
-      message; the built-in lint's warnings alone do not.
+      reads the footers' IDs at that commit. Under a stealth config the footers
+      are the ones ITOS_FOOTERS gives, never the message's. Exit 1 when either
+      rejects the message; the built-in lint's warnings alone do not.
 
       --json: {"schema":1,"ok","problems":[{"rule","message","fix"?,"level"}]}
   - name: itos commit check-paths --help
@@ -179,7 +183,8 @@ cases:
       release's notes. One line per footer, oldest commit first, its commit's short
       SHA and its text; a commit with several gives a line for each. A footer that
       says none (the word alone, in lower case) asks nothing and is left out, as is
-      an empty one. Exit 2 when <name> is not a footer of free text.
+      an empty one. Under a stealth config the footers are each commit's note's.
+      Exit 2 when <name> is not a footer of free text.
 
       --json: {"schema":1,"footer","range","footers":[{"sha","subject","text"}]}
   - name: itos verify --help
@@ -194,9 +199,10 @@ cases:
       parent's, unless the rule's except_types names its type; then each kind's
       range command. The commit commits.since names and its ancestors are left out,
       and the range commands start there; a footer's own since leaves that commit
-      and its ancestors out of the footer's required_for. Prints "<n>/<m> commits
-      pass the commit rules". Exit 1 on any failure, 2 when commits.since or a
-      footer's since is not a commit of the repository.
+      and its ancestors out of the footer's required_for. Under a stealth config a
+      commit's footers are read from its note in refs/notes/itos. Prints "<n>/<m>
+      commits pass the commit rules". Exit 1 on any failure, 2 when commits.since or
+      a footer's since is not a commit of the repository.
 
       --json: {"schema":1,"range","since"?,"commits":[{"sha","header","ok"}],"passed","total","range_checks"}
   - name: itos tests --help

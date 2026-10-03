@@ -26,9 +26,65 @@ func initializeCommitSteps(sc *godog.ScenarioContext, w *world) {
 		return w.itos(append([]string{"commit"}, args...)...)
 	})
 
+	sc.Step(`^itos has committed with the arguments "([^"]*)"$`, w.itosHasCommitted)
+	sc.Step(`^git commits with the message "([^"]*)"$`, func(message string) error {
+		return w.run(w.dir, "git", "commit", "-m", message)
+	})
+	sc.Step(`^git amends HEAD with the message "([^"]*)"$`, w.amendHead)
+
 	sc.Step(`^the message of HEAD has the footer "([^"]*)"$`, w.headHasFooter)
 	sc.Step(`^the message of HEAD says "([^"]*)"$`, w.headMessageSays)
+	sc.Step(`^the message of HEAD does not say "([^"]*)"$`, w.headMessageDoesNotSay)
+	sc.Step(`^the itos note on HEAD says "([^"]*)"$`, w.headNoteSays)
 	sc.Step(`^no commit was made$`, w.noCommitMade)
+	sc.Step(`^the commit is refused$`, w.commitRefused)
+}
+
+// A commit made through itos, which has to succeed: the scenario's commit
+// from then on.
+func (w *world) itosHasCommitted(line string) error {
+	args, err := shellWords(line)
+	if err != nil {
+		return err
+	}
+	if err := w.itos(append([]string{"commit"}, args...)...); err != nil {
+		return err
+	}
+	if w.exit != 0 {
+		return fmt.Errorf("itos commit failed\n%s", w.report())
+	}
+	if _, err := w.newHeadMessage(); err != nil {
+		return err
+	}
+	head, err := w.head()
+	if err != nil {
+		return err
+	}
+	w.commits = append(w.commits, head)
+	return nil
+}
+
+// git commit --amend, with the hooks, which has to make a new HEAD: the
+// scenario's last commit from then on.
+func (w *world) amendHead(message string) error {
+	if len(w.commits) == 0 {
+		return errors.New("the repository has no commit of the scenario's to amend")
+	}
+	if err := w.run(w.dir, "git", "commit", "--amend", "-m", message); err != nil {
+		return err
+	}
+	if w.exit != 0 {
+		return fmt.Errorf("git commit --amend failed\n%s", w.report())
+	}
+	head, err := w.head()
+	if err != nil {
+		return err
+	}
+	if head == w.commits[len(w.commits)-1] {
+		return fmt.Errorf("git commit --amend left HEAD at %s\n%s", head, w.report())
+	}
+	w.commits[len(w.commits)-1] = head
+	return nil
 }
 
 // The commit-msg hook in the repository's hooks folder (git's own, no hook
@@ -125,6 +181,38 @@ func (w *world) headMessageSays(text string) error {
 		return fmt.Errorf("the message of HEAD does not say %q:\n%s", text, message)
 	}
 	return nil
+}
+
+func (w *world) headMessageDoesNotSay(text string) error {
+	message, err := w.newHeadMessage()
+	if err != nil {
+		return err
+	}
+	if strings.Contains(message, text) {
+		return fmt.Errorf("the message of HEAD says %q:\n%s", text, message)
+	}
+	return nil
+}
+
+// HEAD's note in refs/notes/itos, where the stealth mode keeps the footers,
+// has the line.
+func (w *world) headNoteSays(line string) error {
+	note, err := w.gitOutput("notes", "--ref=refs/notes/itos", "show", "HEAD")
+	if err != nil {
+		return fmt.Errorf("HEAD has no itos note: %w\n%s", err, w.report())
+	}
+	if !slices.Contains(strings.Split(note, "\n"), line) {
+		return fmt.Errorf("the itos note on HEAD does not say %q:\n%s", line, note)
+	}
+	return nil
+}
+
+// git failed, and HEAD is still the scenario's last commit.
+func (w *world) commitRefused() error {
+	if w.exit == 0 {
+		return fmt.Errorf("the commit went through\n%s", w.report())
+	}
+	return w.noCommitMade()
 }
 
 // HEAD is still the scenario's last commit.

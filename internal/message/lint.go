@@ -42,6 +42,11 @@ func footerFix(cfg *config.Loaded, rule, message string) (string, error) {
 			continue
 		}
 		f := cfg.Commits.Footers.Values[key]
+		if cfg.Stealth {
+			if fix := stealthFix(cfg, key, f, message); fix != "" {
+				return fix, nil
+			}
+		}
 		if f.Text() {
 			if needs.MatchString(message) {
 				return "add a line `" + key + ": <what a consumer must do>` after a blank line at the end, or `" +

@@ -1385,7 +1385,13 @@ func (w *world) itos(args ...string) error { return w.itosIn(w.dir, args...) }
 // itos run in the folder dir.
 func (w *world) itosIn(dir string, args ...string) error {
 	w.markRun()
-	cmd := exec.Command(w.bin, args...)
+	return w.run(dir, w.bin, args...)
+}
+
+// A program run in the folder dir, its exit code and output what the Then
+// steps read.
+func (w *world) run(dir, program string, args ...string) error {
+	cmd := exec.Command(program, args...)
 	cmd.Dir = dir
 	cmd.Env = w.env()
 	var stdout, stderr strings.Builder
@@ -1400,7 +1406,7 @@ func (w *world) itosIn(dir string, args ...string) error {
 	case errors.As(err, &exit):
 		w.exit = exit.ExitCode()
 	default:
-		return fmt.Errorf("running %s: %w", w.bin, err)
+		return fmt.Errorf("running %s: %w", program, err)
 	}
 	return nil
 }

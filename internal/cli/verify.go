@@ -9,7 +9,8 @@ package cli
 // written before the rules (a template's squashed first commit, a project
 // adopting itos) is not judged by them. A footer's own since does the same
 // for that footer's required_for, so a footer added to the rules later does
-// not fail the commits written before it.
+// not fail the commits written before it. Under a stealth config a commit's
+// footers are its itos note's (message/notes.go).
 
 import (
 	"fmt"
@@ -69,8 +70,13 @@ func (v *verifier) commit(sha string) (verified, error) {
 	if err != nil {
 		return verified{}, err
 	}
-	code, err := message.Check(v.cfg, text, message.Reading{At: sha, Made: true, Warn: v.o.Stderr},
-		message.Streams{Stdout: v.log, Stderr: v.o.Stderr})
+	reading := message.Reading{At: sha, Made: true, Warn: v.o.Stderr}
+	if v.cfg.Stealth {
+		if reading.Note, err = message.Note(sha); err != nil {
+			return verified{}, err
+		}
+	}
+	code, err := message.Check(v.cfg, text, reading, message.Streams{Stdout: v.log, Stderr: v.o.Stderr})
 	if err != nil {
 		return verified{}, err
 	}

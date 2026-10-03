@@ -10,9 +10,11 @@ package cli
 // git's exit code.
 //
 // How the footers are written is the one step a mode changes: in a project
-// they are trailers in the message; in the stealth mode (slice 32,
-// stealth.feature) the same lines become a git note on the new commit
-// instead, handed to the hook rather than written into the message.
+// they are trailers in the message; under a stealth config (slice 32,
+// stealth.feature) the same lines are handed to the hook in ITOS_FOOTERS and
+// written as a git note on the new commit, in refs/notes/itos, never into the
+// message, and itos makes sure notes.rewriteRef names that ref, so an amend
+// or a rebase carries the note to the commit it makes.
 
 import (
 	"errors"
@@ -21,6 +23,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"strings"
 
 	"github.com/donvargax/itos/v2/internal/config"
@@ -123,9 +126,10 @@ func trailers(lines []string) []string {
 }
 
 // gitCommit is `itos commit [--task <ids>] [--scenarios <ids>] [<git commit
-// args>…]`: git commit with the footers as trailers, git's streams the
-// terminal's (its stdout on stderr under --json, which prints the outcome),
-// -q passed on as git's --quiet, and git's exit code handed back.
+// args>…]`: git commit with the footers as trailers, or under a stealth
+// config as the new commit's note, git's streams the terminal's (its stdout
+// on stderr under --json, which prints the outcome), -q passed on as git's
+// --quiet, and git's exit code handed back.
 func gitCommit(args []string, o Out) (int, error) {
 	flags, err := readCommitFlags(args)
 	if err != nil {
@@ -135,7 +139,22 @@ func gitCommit(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	argv := append([]string{"commit"}, trailers(lines)...)
+	stealth := config.IsStealth(config.Path())
+	argv := []string{"commit"}
+	env := withoutFooters(os.Environ())
+	before := ""
+	if stealth {
+		if err := rewriteNotes(); err != nil {
+			fmt.Fprintf(o.Stderr, "itos: cannot set notes.rewriteRef: %s\n", err)
+			return ExitMissing, nil
+		}
+		if len(lines) > 0 {
+			env = append(env, message.FootersEnv+"="+strings.Join(lines, "\n"))
+		}
+		before, _ = git.Output("rev-parse", "--verify", "--quiet", "HEAD")
+	} else {
+		argv = append(argv, trailers(lines)...)
+	}
 	if o.Quiet {
 		argv = append(argv, "--quiet")
 	}
@@ -144,10 +163,16 @@ func gitCommit(args []string, o Out) (int, error) {
 	if o.JSON {
 		stdout = o.Stderr
 	}
-	code, err := runGit(argv, stdout, o)
+	code, err := runGit(argv, env, stdout, o)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: cannot run git: %s\n", err)
 		return ExitMissing, nil
+	}
+	if code == 0 && stealth && len(lines) > 0 {
+		if err := writeNote(before, lines); err != nil {
+			fmt.Fprintf(o.Stderr, "itos: the commit is made, but its note is not: %s\n", err)
+			return ExitPolicy, nil
+		}
 	}
 	if o.JSON {
 		fields := []out.Field{{Key: "ok", Value: code == 0}}
@@ -167,8 +192,9 @@ func gitCommit(args []string, o Out) (int, error) {
 // its exit code; the error is why it could not start. An interrupt is git's
 // and the editor's to act on while it runs, not a reason for itos to leave
 // first.
-func runGit(argv []string, stdout io.Writer, o Out) (int, error) {
+func runGit(argv, env []string, stdout io.Writer, o Out) (int, error) {
 	cmd := exec.Command("git", argv...)
+	cmd.Env = env
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, stdout, o.Stderr
 	interrupts := make(chan os.Signal, 1)
 	signal.Notify(interrupts, os.Interrupt)
@@ -182,4 +208,48 @@ func runGit(argv []string, stdout io.Writer, o Out) (int, error) {
 		return ExitPolicy, nil
 	}
 	return 0, err
+}
+
+// withoutFooters is an environment less ITOS_FOOTERS, so only the footers
+// this itos commit writes reach the hook.
+func withoutFooters(env []string) []string {
+	var kept []string
+	for _, kv := range env {
+		if !strings.HasPrefix(kv, message.FootersEnv+"=") {
+			kept = append(kept, kv)
+		}
+	}
+	return kept
+}
+
+// rewriteNotes adds refs/notes/itos to notes.rewriteRef in the repository's
+// own config unless a value already names it, so that git commit --amend and
+// git rebase, which copy the notes of the refs it names to the commits they
+// make, carry a commit's footers along.
+func rewriteNotes() error {
+	set, _ := git.Output("config", "--get-all", "notes.rewriteRef")
+	for _, ref := range strings.Split(set, "\n") {
+		if ok, _ := path.Match(strings.TrimSpace(ref), message.NotesRef); ok {
+			return nil
+		}
+	}
+	return exec.Command("git", "config", "--local", "--add", "notes.rewriteRef", message.NotesRef).Run()
+}
+
+// writeNote writes the footers as the itos note of the commit git just made,
+// replacing the one an amend carried over; nothing when HEAD is still the
+// commit it was before (a dry run made none).
+func writeNote(before string, lines []string) error {
+	head, err := git.Output("rev-parse", "HEAD")
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(head) == strings.TrimSpace(before) {
+		return nil
+	}
+	note := strings.Join(lines, "\n")
+	if out, err := exec.Command("git", "notes", "--ref="+message.NotesRef, "add", "-f", "-m", note, "HEAD").CombinedOutput(); err != nil {
+		return fmt.Errorf("git notes add: %s", strings.TrimSpace(string(out)))
+	}
+	return nil
 }

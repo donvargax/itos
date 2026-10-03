@@ -12,7 +12,9 @@ package cli
 // message names, the slowest last, run only for a commit every other rule
 // lets through. Each rule is the judgement its own command already makes
 // (config check over the index, scope's path rules, the moves rule, the
-// footer rules, the cost rule), never a second copy of it.
+// footer rules, the cost rule), never a second copy of it. Under a stealth
+// config the footers the rules judge are the ones the commit's note will
+// hold (handedFooters), never the message's.
 
 import (
 	"fmt"
@@ -59,12 +61,54 @@ func hookCommitMsg(file string, o Out) (int, error) {
 		return code, err
 	}
 	reading := message.Reading{At: os.Getenv("ITOS_AT"), Warn: o.Stderr}
+	footers := text
+	if cfg.Stealth {
+		if reading.Note, err = handedFooters(); err != nil {
+			return 0, err
+		}
+		footers = reading.Note
+	}
 	code, err := message.LintFile(cfg, file, text, reading,
 		message.HookStreams{Stdin: os.Stdin, Stdout: o.Stdout, Stderr: o.Stderr})
 	if code != 0 || err != nil {
 		return code, err
 	}
-	return tasksRule(cfg, text, o)
+	return tasksRule(cfg, footers, o)
+}
+
+// handedFooters are the footers a commit being made under a stealth config
+// carries, which its note will hold: the lines itos commit hands over in
+// ITOS_FOOTERS; else, for an amend, HEAD's note, which notes.rewriteRef
+// carries to the new commit; else none.
+func handedFooters() (string, error) {
+	if lines, ok := os.LookupEnv(message.FootersEnv); ok {
+		return lines, nil
+	}
+	if !amending() {
+		return "", nil
+	}
+	return message.Note("HEAD")
+}
+
+// amending is whether the commit being made looks like an amend of HEAD:
+// git tells a hook nothing of an amend, but hands it the author in
+// GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL and GIT_AUTHOR_DATE, and an amend keeps
+// HEAD's, to the second, where a new commit's date is the time it is made. A
+// new commit by HEAD's author in the same second as HEAD reads as one too,
+// and is judged by HEAD's footers; verify, reading the notes, still finds it
+// without one.
+func amending() bool {
+	name, okName := os.LookupEnv("GIT_AUTHOR_NAME")
+	email, okEmail := os.LookupEnv("GIT_AUTHOR_EMAIL")
+	date, okDate := os.LookupEnv("GIT_AUTHOR_DATE")
+	if !okName || !okEmail || !okDate {
+		return false
+	}
+	head, err := git.Output("log", "-1", "--date=raw", "--format=%an%x00%ae%x00%ad", "HEAD")
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(head) == name+"\x00"+email+"\x00"+strings.TrimPrefix(date, "@")
 }
 
 // stagesData is whether a staged path is the config, a ledger file, the
@@ -304,11 +348,12 @@ func stagedTasks(ids []string) ([]namedTask, error) {
 // checkEnv is the environment a task's check runs in under the hook: the
 // hook's, less the index git made the commit from, so that a check's own git
 // commands (in a scratch repository too) never read or write the commit's
-// index, as under `itos task`.
+// index, as under `itos task`, and less the footers itos commit handed the
+// hook, which are this commit's and no commit a check makes.
 func checkEnv() []string {
 	var env []string
 	for _, kv := range os.Environ() {
-		if !strings.HasPrefix(kv, "GIT_INDEX_FILE=") {
+		if !strings.HasPrefix(kv, "GIT_INDEX_FILE=") && !strings.HasPrefix(kv, message.FootersEnv+"=") {
 			env = append(env, kv)
 		}
 	}
