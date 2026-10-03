@@ -1141,14 +1141,16 @@ items:
 
   # What the coordinator and the agents did by hand, the same way each time, in the session that
   # released v0.3.0 and v0.4.0: each could be a command. Asked for by the user.
-  - id: p1-work-take-done-promote
+  - id: slice-52
     title: itos work take, done and promote write the registry
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-work-take-done-promote. Specified as @ID-WORK-08 to 14 in features/work.feature:
+      work take and work promote, each committing the registry alone; work done is slice 53.
       Nearly every piece of work opened with a "take" docs commit and closed with a "close" one,
       each an edit of status: in this file by hand; ideas became slices or tasks through scripts
       that renamed the id, changed kind and added refs; the next slice number, T- ID and scenario
@@ -1456,14 +1458,17 @@ items:
       list and itos work lists ideas unordered. An optional order or priority on items (or an ordered
       queue: list) would let itos work propose in the coordinator's order and HANDOFF point at it.
 
-  - id: p1-slice-done-check
+  - id: slice-53
     title: "A slice is done when its scenarios are live and green, checked"
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: []
-    kind: idea
+    depends_on: [slice-51, slice-52]
+    kind: slice
     why: >
+      Was p1-slice-done-check. Specified as @ID-WORK-15 to 18 in features/work.feature: work done
+      refuses a slice with a @wip scenario, unpushed commits, or a red CI run under ci.watch, and
+      otherwise marks the item done and commits it.
       Slices are marked done by hand. itos could check it, as itos task does for a task: every
       scenario tagged @slice-<n> live (none @wip without a reason), green in the last CI run that named
       them and in the nightly after; work check or work done <id> refusing a slice that is not.
@@ -3340,7 +3345,7 @@ items:
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: [p1-work-take-done-promote]
+    depends_on: [slice-52]
     kind: idea
     why: >
       The user's calls (2026-10-03). Nearly every registry and ledger change the coordinator made
@@ -3427,3 +3432,42 @@ items:
       push. ci.steps could be required only by the commands that run the plan (ci plan, ci run),
       as a section a tool cannot work without (config.Section), leaving ci.watch alone valid.
     refs: [internal/config/schema.go, internal/cli/ci.go]
+
+  - id: p3-stealth-scope
+    title: A stealth config's scope, so commits outside the subproject it owns pass unjudged
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's case (2026-10-03): a work monorepo, stealth mode required, one subproject worked
+      on, a branch and a pull request per change, rules not theirs to change. Stealth mode already
+      judges only the person's own commits (the hooks run on their machine, verify with no range
+      judges what no remote has), and others' commits are not theirs to judge; what is missing is
+      their own commit outside their subproject, a drive-by fix or a shared config, which today
+      must carry a Task footer and pass the path rules. A config's scope (paths, e.g.
+      services/billing/**) makes the hooks and verify judge only commits touching it; a commit
+      touching nothing in scope passes unjudged. Ledgers per subproject need nothing new: one
+      stealth config, ledger.files "tasks/{group}.yaml" with the group the subproject. Chosen over
+      ITOS_CONFIG and an ITOS_STEALTH variable selecting a config per shell, since a hook sees only
+      the environment of whoever ran git, so the same commit would be judged by different configs
+      from a terminal, an IDE or an agent. Phase 2, only if one config is not enough: several
+      stealth configs under <git common dir>/itos/, each with a scope, the hooks choosing by the
+      staged paths and refusing a commit spanning two.
+    refs: [internal/config/stealth.go, features/stealth.feature]
+
+  - id: p3-stealth-branch-push
+    title: A scenario for itos push of a feature branch under a stealth config
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's work case (2026-10-03) pushes a branch and opens a pull request, under a stealth
+      config. The code pushes HEAD to the branch's upstream, else to origin/<branch> as a new
+      branch, never main, and keeps refs/notes/itos local; but every push scenario uses main, so
+      nothing proves it for a feature branch, stealth or not. Scenarios: a new branch pushed to
+      origin/<branch> with main untouched, and its notes not pushed.
+    refs: [features/push.feature, features/stealth.feature]

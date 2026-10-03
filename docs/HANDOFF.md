@@ -12,12 +12,12 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after T-077 landed.
+Last updated 2026-10-03, after slice 51 landed (v2.11.0).
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `b7f8519` (CI run 37160256393,
-every job; v2.10.0 is the newest release). The coordinator commits docs from
+All work is @donvargax's. `main` is green at `8869aa5` (CI run 37162005473,
+every job, `release` cutting v2.11.0). The coordinator commits docs from
 its own worktree, `.claude/worktrees/coord-docs` (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
@@ -37,7 +37,8 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.10.0 (init's rerun notes a pin behind the newest and a missing
+Released: v2.11.0 (`itos push` waits for CI with `ci.watch`, opt-in, and
+`itos ci watch`, slice 51), v2.10.0 (init's rerun notes a pin behind the newest and a missing
 people file, slice 50's rest), v2.9.0 (`itos init --git-shim`, untagged features need no Scenarios
 footer, slice 50's first half), v2.8.1 (`ci plan` and `ci run` without a `work:` section, bug 10),
 v2.8.0 (`itos init --plugin`, slice 49), v2.7.0 (`itos init`, slice 48), v2.6.0 (`itos pin [<version>]`, slice 47), v2.5.0 (the pre-push hook verifies the commits it pushes, slice 46;
@@ -51,11 +52,12 @@ change any other repository.
 One slice at a time, the user's order:
 
 1. The orchestration commands, the user's order (2026-10-03), ahead of the
-   rest of init, each to specify first:
-   - **`slice-51`** (was `p1-ci-watch`; @ID-WATCH-01 to 09 in
-     `features/watch.feature`, `@wip`): `itos push` waits for CI, opt-in;
-   - **`p1-work-take-done-promote`** with `p1-slice-done-check`: `itos work
-done` verifies before it writes;
+   rest of init:
+   - **`p1-repo-ci-watch`** (slice 51's idea): this repository turns
+     `ci.watch` on, so agents' pushes wait for CI, and AGENTS.md and
+     ORCHESTRATING.md stop watching by hand; small, next;
+   - **`slice-52`** (`itos work take` and `promote`, @ID-WORK-08 to 14) and
+     **`slice-53`** (`itos work done`, @ID-WORK-15 to 18), `@wip`;
    - **`p1-work-edit`**: `itos work add`, `edit` and `itos task add` write
      the registry and ledger, confirm a new spec's `@wip` scenarios fail
      (`p1-wip-red-first`), and commit, as every one of these commands does;
@@ -72,6 +74,8 @@ done` verifies before it writes;
    agents off it), after those.
 4. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
    open for the user).
+5. For the user's stealth work in a monorepo: `p3-stealth-scope` (phase 1)
+   and `p3-stealth-branch-push`.
 
 Small ideas, any time: `p3-guard-windows-paths` (the guard reads a Git Bash
 `/c/…` folder as relative), `p3-plugin-guard-tested`,

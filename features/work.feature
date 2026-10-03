@@ -74,3 +74,115 @@ Feature: The work registry
     When itos runs "work list --json"
     Then itos exits with code 0
     And its JSON lists the item "T-001" with its title
+
+  # Slices 52 and 53 (the user's calls, 2026-10-03): the registry is written
+  # by commands, never by hand, and each command commits its own change, so
+  # the coordinator neither edits YAML nor words a registry commit. Each
+  # commit holds the registry alone, whatever else is staged, and goes
+  # through the hooks as any commit does. Under a stealth config the registry
+  # is not tracked, so the command writes it and commits nothing.
+
+  @ID-WORK-08 @slice-52 @wip
+  Scenario: work take sets an item in progress for the person, and commits it
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs "work take slice-9 --as someone"
+    Then itos exits with code 0
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
+    And the last commit's header is "docs: take slice-9"
+    And the last commit touches only "tasks/work-items.yaml"
+
+  @ID-WORK-09 @slice-52 @wip
+  Scenario: work take refuses an item someone else owns
+    Given the work registry has the item "slice-9" owned by "another" with the status "todo"
+    When itos runs "work take slice-9 --as someone"
+    Then itos exits with code 1
+    And its output says "another"
+    And the registry's item "slice-9" has the status "todo" and the owner "another"
+
+  @ID-WORK-10 @slice-52 @wip
+  Scenario: work take refuses an item whose dependencies are not done
+    Given the work registry has the item "slice-8" owned by nobody with the status "doing"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo", depending on "slice-8"
+    When itos runs "work take slice-9 --as someone"
+    Then itos exits with code 1
+    And its output says "slice-8"
+
+  # An idea is not yet specified; work promote makes it a slice or a task.
+  @ID-WORK-11 @slice-52 @wip
+  Scenario: work take refuses an idea, naming work promote
+    Given the work registry has the idea "p1-thing" owned by nobody
+    When itos runs "work take p1-thing --as someone"
+    Then itos exits with code 1
+    And its output says "work promote"
+
+  @ID-WORK-12 @slice-52 @wip
+  Scenario: work promote renames an idea, makes it a slice, rewrites what depends on it, and commits
+    Given the work registry has the idea "p1-thing" owned by nobody
+    And the work registry has the item "slice-3" owned by nobody with the status "todo", depending on "p1-thing"
+    When itos runs "work promote p1-thing --as slice-7 --kind slice"
+    Then itos exits with code 0
+    And the registry has no item "p1-thing"
+    And the registry's item "slice-7" is a slice whose why starts with "Was p1-thing."
+    And the registry's item "slice-3" depends on "slice-7"
+    And the last commit touches only "tasks/work-items.yaml"
+
+  # A file the person staged for their own commit stays staged, and out of
+  # the registry's commit.
+  @ID-WORK-13 @slice-52 @wip
+  Scenario: A registry command commits the registry alone, leaving what else is staged
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And a change to "README.md" is staged
+    When itos runs "work take slice-9 --as someone"
+    Then itos exits with code 0
+    And the last commit touches only "tasks/work-items.yaml"
+    And "README.md" is still staged
+
+  @ID-WORK-14 @slice-52 @wip
+  Scenario: Under a stealth config a registry command writes the registry and commits nothing
+    Given itos's config is kept in the git folder
+    And the work registry beside the config has the item "slice-9" owned by "someone" with the status "todo"
+    When itos runs "work take slice-9 --as someone"
+    Then itos exits with code 0
+    And the work registry beside the config has the item "slice-9" with the status "doing"
+    And git status shows nothing to commit
+
+  # Slice 53: done is the landing's check, run by the agent after its push.
+  # A slice's scenarios are those tagged @slice-<n> for the item slice-<n>.
+  @ID-WORK-15 @slice-53 @wip
+  Scenario: work done refuses a slice one of whose scenarios is still @wip, naming it
+    Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And a feature file with the scenario "@ID-A-01" tagged "@slice-9 @wip"
+    When itos runs "work done slice-9"
+    Then itos exits with code 1
+    And its output says "@ID-A-01"
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
+
+  @ID-WORK-16 @slice-53 @wip
+  Scenario: work done refuses while the branch has commits no remote has, naming itos push
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the clone has the commit "chore: tidy the readme" touching "README.md"
+    When itos runs "work done slice-9"
+    Then itos exits with code 1
+    And its output says "itos push"
+
+  @ID-WORK-17 @slice-53 @wip
+  Scenario: work done refuses while HEAD's CI run failed, with ci.watch
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And ci.watch runs a command that reports the run "https://ci.example/runs/1"
+    And the watched run's job "ci" fails and its job "platform" succeeds
+    When itos runs "work done slice-9"
+    Then itos exits with code 1
+    And its output says "https://ci.example/runs/1"
+
+  @ID-WORK-18 @slice-53 @wip
+  Scenario: work done, everything landed, marks the item done and commits it
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And ci.watch runs a command that reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And the registry's item "slice-9" has the status "done" and the owner "someone"
+    And the last commit's header is "docs: close slice-9"
