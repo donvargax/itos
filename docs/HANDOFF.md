@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 27 (the launcher) landed.
+Last updated 2026-10-03, after slice 28 (the newest release, the notice) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `71ce915` (CI run 37090358393), slice 27's close; this
+`main` is green at `410cdf5` (CI run 37091065154), slice 28's close; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -47,8 +47,9 @@ assets (five archives, `itos.schema.json`, `checksums.txt`) were downloaded
 and verified, and `go install github.com/donvargax/itos/v2/cmd/itos@v2.0.0`
 works (the module path is `/v2` since T-061). Releases are automated
 (PLAN.md, "Releases"). The user moves the consumers' pins from their own
-repositories: don't change any other repository. Unreleased: slice 27 (the
-launcher, `pin`) and the `itos version` fix (issue #2).
+repositories: don't change any other repository. Unreleased: slices 27 and 28
+(the launcher, `pin`, the newest release and the notice) and the
+`itos version` fix (issue #2).
 From v2.1.0 on, `tools/selftest/release-notes.ts` holds every `Upgrading:`
 footer of the range to the notes.
 
@@ -56,10 +57,10 @@ footer of the range to the notes.
 
 The user's order (2026-10-02), one slice at a time:
 
-1. **Self-update**: slice 27, the launcher running a repository's pin, is
-   done (issue #2 fixed with it, unreleased). Next slice 28
-   (`features/update.feature`, the newest release and the notice).
-2. **Extensions**: slice 29 (`features/extensions.feature`). Specified.
+1. **Self-update** is done: slices 27 and 28. Their ideas wait in the
+   registry (`p3-pin-bump`, `p3-launcher-subfolder`,
+   `p3-launcher-cache-prune`, `p3-global-install-ci`).
+2. **Extensions**: slice 29 (`features/extensions.feature`), in progress.
 3. **`p2-stealth-mode`**.
 4. **`p3-claude-code-plugin`**, the itos-titles mod published from here.
 5. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
