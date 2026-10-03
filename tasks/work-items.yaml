@@ -1747,13 +1747,15 @@ items:
       it), so only a script matching the words sees it. Closing it needs Unicode's canonical
       decompositions: golang.org/x/text/unicode/norm would be the binary's second dependency
       (PLAN.md, section 8), so a table generated from UnicodeData.txt into the package is the other
-      way. Needs a corpus case with such a subject, which the corpus can hold to commitlint.
+      way. commitlint has left this repository (T-063), but tools/selftest/header-agreement.json
+      holds its words for one such subject ("feat: Ἀθήνα Πόλη"); once cases.go decomposes it,
+      header-agreement.ts can drop its exception for the gap and compare those words too.
 
   - id: T-063
     title: The built-in header lint agrees with commitlint, and this repository switches to it
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-25]
     kind: task
     refs: [tasks/phase-3.yaml]

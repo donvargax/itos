@@ -68,12 +68,11 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   run inside a git hook or on a runner sees what it sees locally. A step
   never reads itos's code, so the same steps judged the TypeScript and the
   Go port alike.
-- **The header lint**, where a scenario needs one, is this checkout's
-  commitlint with only `@commitlint/config-conventional` (its config written
-  to the scenario's temporary folder, `--cwd` the checkout so the extends
-  resolve), so a scenario's footer rules are itos's own rather than a
-  commitlint plugin's; or itos's built-in one, `use: builtin` in the scratch
-  config, which needs nothing installed (`header.feature`).
+- **The header lint**, where a scenario needs one, is itos's built-in one,
+  `use: builtin` in the scratch config, which needs nothing installed and
+  holds no footer rule, so a scenario's footer rules are itos's own. The
+  step that names commitlint's conventional config writes it too: it ran
+  this checkout's commitlint until commitlint left (T-063).
 - **Selection.** `-scenarios=<regexp>` runs the live scenarios with a tag the
   expression matches: the harness reads every tag in the feature files and
   hands godog the matching ones as its own filter (exact tags joined by
@@ -333,14 +332,24 @@ show` per file), none when the tree cannot be read. `ledger.IDs` and the
   passes the message file with a line break added and git's comment
   character (`CommentChar`, `core.commentChar` or `#`), whose lines and
   scissors it leaves out, as commitlint `--edit` does; check-message and
-  verify pass the message as given, as commitlint reads stdin. `builtin`
+  verify pass the message as given, as commitlint reads stdin. A blank
+  message has no problems in the hook's reading, where commitlint `--edit`
+  lints nothing and git aborts the empty commit itself, and on stdin names
+  type-empty and subject-empty, where commitlint refuses it as no input.
+  `builtin`
   prints the problems as commitlint prints one (`PrintLeveled`), errors
   before warnings, then the footer problems, or one leveled list under
   `--json`; a warning alone passes. Its one known difference is wording:
   es-toolkit's deburr decomposes every precomposed letter (NFD), and
   `cases.go` only those of Latin-1 and Latin Extended-A, so subject-case
   may name start-case or pascal-case for a subject with another one, where
-  the verdict is the same. A
+  the verdict is the same. `tools/selftest/header-agreement.ts` holds it to
+  commitlint without commitlint: `header-agreement-record.ts`, run while
+  commitlint was installed, wrote commitlint's verdict and report lines for
+  every message of this history, of the corpus and of a set aimed at each
+  rule, in both readings, to `header-agreement.json`, and the check runs the
+  binary's hook and check-message over them in a scratch repository whose
+  config is the header lint alone. A
   command adapter (`internal/tests`) is `<command> list --at <tree>` through
   the config's shell, its output read by `value.ParseJSON` (`JSON.parse`'s
   reading, keys in JavaScript's order) and held to the protocol, its failures
@@ -675,8 +684,8 @@ itos`, before any other step calls it. `tools/selftest/go-dogfood.ts`
     first because the other rules read the config. Then it applies the
     type's path rules (`commit-scope.ts`), then outside `feat` and `fix` the
     scenario moving rule (the built-in, `moves.ts`), then the header lint:
-    commitlint (`commitlint.config.ts`, `config-conventional` alone), and
-    after it, always, itos's footer rules (`commit.ts`, one `<key>-footer`
+    the built-in one (`use: builtin`, `config-conventional`'s rules; this
+    repository delegated to commitlint until T-063), and after it, always, itos's footer rules (`commit.ts`, one `<key>-footer`
     rule per footer of `commits.footers`), both reported before the exit,
     a failing delegate's code the hook's, then the static
     checks of the tasks the `Task:` footer names (`commit-tasks.ts`),
@@ -769,7 +778,11 @@ TestFeatures/…` lines); a green run closes it.
   CI's plan runs `itos config check` for a range touching
   the registry or the ledger and for a prose-only range touching
   `CONTRIBUTORS.md`. It and `gates.ts` build their worktree with
-  `scratch.ts`. `release-notes.ts` proves what a command
+  `scratch.ts`; `gates.ts` takes the worktree's `node_modules` away for the
+  commit-msg hook's header case, so the built-in lint is shown judging a
+  header with no commitlint to run. `header-agreement.ts` holds the built-in header
+  lint to a fixture of commitlint's verdicts (above, `internal/message`).
+  `release-notes.ts` proves what a command
   can of a release's notes: the file is there, its last `##` section is
   "Upgrading" with the pin line naming this version's tarball, and every
   config key whose default differs between the last release (its tarball
