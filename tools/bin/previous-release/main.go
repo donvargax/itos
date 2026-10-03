@@ -210,9 +210,9 @@ func run() int {
 	fmt.Printf("%s: %s's conformance corpus: %s not judged, since help text is documentation, not compatibility:\n"+
 		"  --json and exit codes are the stable interface (PLAN.md), and this tree's own corpus pins its help exactly\n",
 		self, tag, skipped)
-	fmt.Printf("%s: %s's conformance corpus: %s judged by their exit code, 2, alone, since a usage message is\n"+
-		"  documentation too: a refused argument's exit code is the interface (PLAN.md §7), and this tree's own corpus\n"+
-		"  pins its usage messages exactly; a config error's words stay judged\n",
+	fmt.Printf("%s: %s's conformance corpus: %s judged by their exit code alone:\n"+
+		"  a usage message is documentation, as help is, and a refused argument's exit code, 2, the stable interface\n"+
+		"  (PLAN.md §7); this tree's own corpus pins its usage messages exactly, and a config error's words stay judged\n",
 		self, tag, relaxed)
 
 	var features, corpus suite

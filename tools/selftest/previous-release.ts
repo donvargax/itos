@@ -260,8 +260,7 @@ try {
 	on("main");
 	let r = run(repo, ["-bin", good]);
 	const leftOut = "2 help cases (help.yaml 2) not judged, since help text is documentation";
-	const relaxed =
-		"2 usage errors (refuse.yaml 2) judged by their exit code, 2, alone, since a usage message is";
+	const relaxed = "2 usage errors (refuse.yaml 2) judged by their exit code alone:";
 	expect(
 		r.status === 0 &&
 			r.output.includes("v1.0.0's scenarios: all 2 pass") &&
