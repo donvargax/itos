@@ -1736,7 +1736,7 @@ items:
     title: The built-in header lint replaces commitlint
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-062]
     kind: slice
     why: >
@@ -1746,6 +1746,24 @@ items:
       lines) replaces the delegate, held first to commitlint's verdict on every commit of this
       repository's history and on the corpus's messages. Specified in features/header.feature.
     refs: [features/header.feature, PLAN.md, tools/itos/conformance/messages.yaml]
+
+  - id: p3-header-case-decomposition
+    title: subject-case names the cases of a subject with any precomposed letter as commitlint does
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-25]
+    kind: idea
+    why: >
+      The built-in header lint's one known difference from commitlint (slice 25, v2.0.0's Known
+      issues): es-toolkit's deburr decomposes every precomposed letter (NFD) before it finds
+      start-case and pascal-case, and internal/message/cases.go decomposes only Latin-1's and Latin
+      Extended-A's, by table, so for a subject such as "Ǎb Cd" subject-case's message lists
+      start-case where commitlint's does not. The verdict is the same (sentence-case alone decides
+      it), so only a script matching the words sees it. Closing it needs Unicode's canonical
+      decompositions: golang.org/x/text/unicode/norm would be the binary's second dependency
+      (PLAN.md, section 8), so a table generated from UnicodeData.txt into the package is the other
+      way. Needs a corpus case with such a subject, which the corpus can hold to commitlint.
 
   - id: T-063
     title: The built-in header lint agrees with commitlint, and this repository switches to it
