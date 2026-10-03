@@ -132,6 +132,11 @@ ci:
     # range's start, which the workflow's Range step puts in the job's environment, as a step
     # cannot be given the range; empty (no green run to start from) checks.
     - { run: 'go run ./tools/bin/deps-check -changed-since "${FROM-}"', cost: late }
+    # The schema contract (T-070), when the range has a feat or a fix, the commits T-069 releases:
+    # this tree's config schema held to the one the last release published, a breaking change failing
+    # unless a commit since that release's tag marks it. It downloads that schema, so late; a failed
+    # download stops it (exit 2), and no release tag passes it, saying so. FROM as above.
+    - { run: 'go run ./tools/bin/schema-contract -range-from "${FROM-}"', cost: late }
     - { run: "go test ./cmd/... ./internal/...", cost: late } # itos's unit tests, the Go packages'
     - { run: vp run audit, cost: late }
     # The conformance corpus: what itos did when it was written, as cases run
