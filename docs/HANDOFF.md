@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 42 landed.
+Last updated 2026-10-03, after slice 43 landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `ed5d840` (CI run 37126872091), slice 42's close; this
+`main` is green at `dc09102` (CI run 37127406771), slice 43's close; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -47,7 +47,7 @@ install github.com/donvargax/itos/v2/cmd/itos@v2.2.0` works; the nightly on
 its commit, 37106291515, is green. Before it, v2.1.0 (the global install,
 extensions, the stealth mode, `itos commit`), v2.0.0, v1.1.0, v1.0.0. The
 user moves the other repositories at v2.3.0, from their own repositories:
-don't change any other repository. Unreleased: slice 42.
+don't change any other repository. Unreleased: slices 42 and 43.
 
 ## Next
 
@@ -57,9 +57,9 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
    `p3-finish-with-itos-push`, whether this repository's finishing routine
    switches to `itos push`; and `p3-shim-push-args` (`git push` takes no
    arguments through the shim), small, when it bites.
-2. **Toward v2.3.0, adoption**: the plugin (PLAN.md §10, "Adoption"). Slice 42,
-   `itos hook pre-tool-use`, the guard, landed. Next **slice 43**
-   (`itos work list`, @ID-WORK-06 and 07), **slice 44** (the guard answers
+2. **Toward v2.3.0, adoption**: the plugin (PLAN.md §10, "Adoption"). Slices 42
+   (`itos hook pre-tool-use`, the guard) and 43 (`itos work list`) landed.
+   Next **slice 44** (the guard answers
    nothing, not exit 2, where the launcher would hand it to an itos older
    than it: @ID-GUARD-11 and 12; without it the plugin would block every
    Bash command under an old pin), then **T-066** (the marketplace and the
