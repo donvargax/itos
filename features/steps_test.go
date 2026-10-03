@@ -254,6 +254,9 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		}
 		return w.itos("ci", "plan", w.commits[0], "HEAD")
 	})
+	sc.Step(`^itos prints the help of "([^"]*)"$`, func(command string) error {
+		return w.itos(append(strings.Fields(command), "--help")...)
+	})
 	sc.Step(`^the commit-msg hook checks the message "([^"]*)"$`, w.commitMsgHook)
 	sc.Step(`^the commit-msg hook checks the message:$`, func(message *godog.DocString) error {
 		return w.commitMsgHook(message.Content + "\n")

@@ -268,7 +268,7 @@ cases:
       tree; then the staged files against the message's type (the path rules, then
       each kind's staged range checks: the built-in moves rule here, for a type its
       except_types does not name), then the header lint (commits.header_lint: the
-      built-in one, or the hook delegate, commitlint here, if any) and itos's footer
+      built-in one, or the hook delegate if any) and itos's footer
       rules (commits.footers), always,
       both reported, then the checks of each task a ledger footer names (Task:
       here), as staged, in written order up to its first late one (CI's cost rule;

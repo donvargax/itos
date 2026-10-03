@@ -44,3 +44,14 @@ Feature: The commit-msg hook
     When the commit-msg hook checks the message "docs: describe the build"
     Then itos exits with code 1
     And its output says "docs commits may not touch tools/build.sh"
+
+  # The hook's help called the header lint's delegate "commitlint here", this
+  # repository's until it switched to the built-in lint (T-063). The help is
+  # the binary's, read in every project, and which lint a project runs is its
+  # config's to say.
+  @ID-CMSG-05 @bug-3
+  Scenario: The commit-msg hook's help names no project's header lint
+    When itos prints the help of "hook commit-msg"
+    Then itos exits with code 0
+    And its output says "commits.header_lint"
+    And its output does not say "commitlint"
