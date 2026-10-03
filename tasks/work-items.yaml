@@ -2270,7 +2270,7 @@ items:
     title: itos init writes a starter config and installs the hooks, and run again reports what is missing
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-33, T-066, slice-47]
     kind: slice
     why: >
@@ -3101,8 +3101,39 @@ items:
       Found by slice 47's agent: the launcher leaves pin and git-shim install to the binary called
       (binaryCommand), and itos pin --help with them, but itos help pin is handed to the pinned
       version, which may predate the command and prints its own main help instead. binaryCommand
-      could take help <command> for its own commands too.
+      could take help <command> for its own commands too. itos help init is the same (slice 48).
     refs: [internal/launch/launch.go]
+
+  - id: p3-init-starter-ci
+    title: itos ci plan and ci run work on the starter config itos init writes
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-48]
+    kind: idea
+    why: >
+      Found by slice 48's agent: the starter has no ci and no work section (the user's call kept it
+      to the commit rules), and itos ci plan --whole on it exits 2 with "itos.yaml: work is
+      missing", though every work key has a default and ci.steps is the only key ci needs. Either
+      ci plan reads the defaults where the sections are absent, or init writes a ci section (its
+      steps itos config check and the smoke check, a workflow beside it) so a new project's CI
+      runs the same gates from its first push.
+    refs: [internal/cli/starter.go, features/init.feature]
+
+  - id: p3-init-untagged-features
+    title: itos init in a project whose scenarios carry no ID tags does not leave feat and fix blocked
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-48]
+    kind: idea
+    why: >
+      Found by slice 48's agent: with feature files under features/, the starter requires a
+      Scenarios footer of every feat and fix, as the user decided, but a project whose scenarios
+      have no @ID-AREA-01 tags (most Cucumber projects) has nothing to name, so every feat is
+      refused until the tags are added, and the smoke set is an empty list. init could say so and
+      how to tag them, or leave the footer required of nothing until a tagged scenario exists.
+    refs: [internal/cli/init.go, features/init.feature]
 
   - id: p3-notice-names-pin
     title: The update notice names itos pin as the way to move the pin

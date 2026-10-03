@@ -219,6 +219,15 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   repository pushes its branch to with `origin` set, so `--remotes` sees it
   and the itos notes stay behind; a task's check in a stealth ledger is
   written in the git folder and not staged.
+- **itos init's scenarios** (`init_test.go`, `init.feature`): the scratch
+  repository starts with nothing of itos (a README and one commit), or as a
+  folder with its `.git` removed; the config init wrote is read back as YAML
+  wherever it is, `itos.yaml` in the root or the stealth one in `.git/itos`.
+  A scenario with the step "no file changed since the last run" records
+  every file of the scratch folder, the git folder's included, as its mode
+  and text before each run of itos (`markRun`), and the step compares the
+  folder after it, so a rerun that wrote anything, the index included,
+  fails.
 - **itos commit's scenarios** (`commit_test.go`, `commit-command.feature`):
   the commit-msg hook is a shim in git's own hooks folder
   (`git rev-parse --git-path hooks`) that runs the itos under test, so a
@@ -563,6 +572,35 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   that version with those checksums (exit 0), or when it is that version
   with other valid checksums (exit 1: the release changed after it was
   pinned, and re-pinning it quietly would defeat the pin).
+- **itos init** (`internal/cli/init.go`, `starter.go`, slice 48) is the
+  launcher's own command too (`binaryCommand`): where there is no config
+  there is no pin to hand it to, and the newest release must not run in its
+  place. It moves to the repository's top (`git rev-parse --show-toplevel`;
+  `applyGlobals` moves there only when a config is at the top), after a
+  `git init` where `git rev-parse --git-dir` finds no repository, before
+  anything asks `config.Path`, whose stealth lookup caches the git common
+  dir per folder. With a config there (`config.Path` names a file that
+  exists, the project's or the stealth one) it writes nothing: `initReport`
+  lists `configFindings`' problems (the warnings, the people file's, left
+  out) and `hookProblems`', for the manager `chosenManager` gives (a shim
+  file missing, not calling itos or, for plain git, not executable; a
+  lefthook or pre-commit config without itos's lines; a git config entry
+  missing, the pre-push one only with `hooks.pre_push`, as `declareHooks`
+  writes it), exit 1 when there is any. Else `initWrite` asks
+  `pinned("")`, pin's own question for the newest release, renders the
+  starter (`starter.config`, a template of commented YAML, not
+  `value.YAML`, so it reads as a person's file), writes it, the ledger and
+  the registry, never over a file that is there, and, when `features/`
+  holds a `.feature` file, loads the config just written and lists the
+  scenario kind's tests through the adapter to name each file's first live
+  one in the smoke set, so the smoke rule and init cannot disagree. Then
+  `hooksInstall`, as `hooks install` runs, its exit code init's; under
+  `--json` its object is captured and nested as `hooks`, its keys in the
+  order it wrote them. `--stealth` puts the config at
+  `<git common dir>/itos/itos.yaml` and its files beside it, and
+  `hooksInstall` picks the git config for a stealth config by itself.
+  ITOS_CONFIG naming a file that does not exist is a usage error: init
+  writes only the two configs itos finds by itself.
 - **Extensions** (`internal/cli/extension.go`, slice 29): a command itos
   does not have runs `itos-<command>` from the `PATH`, as git runs
   `git-<command>`. `cli.Parse` reads the arguments for both `cli.Main` and

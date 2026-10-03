@@ -173,6 +173,26 @@ names where releases come from (`<base>/download/v<version>/<asset>`,
 `https://github.com/donvargax/itos/releases` by default) and `ITOS_CACHE` the
 cache (`itos/` in your user cache folder by default).
 
+**Ready a repository** (from v2.7.0): `itos init` in a
+repository, or in a folder that is not one yet (it runs `git init` first),
+writes a starter `itos.yaml` at its top, small and commented: the Conventional
+Commits types under itos's own header lint, a `Task:` footer that every type
+but `feat` and `fix` needs, `commits.since` at HEAD so no commit written before
+it is judged, and the hooks calling the global `itos`; a ledger,
+`tasks/phase-1.yaml`, holding `T-1`, the task the commit that adds all this
+names, and an empty work registry, `tasks/work-items.yaml`; and when
+`features/` holds feature files, a `Scenarios:` footer that `feat` and `fix`
+need and a smoke set, `features/smoke.yaml`, naming one live scenario of each
+file. A file already there is kept. It pins the newest release, as `itos pin`
+does (where it cannot reach the release server it pins nothing and says so),
+then installs the hooks, as `itos hooks install` does. Commit what it wrote
+with `itos commit --task T-1 -m 'chore: adopt itos'`, and grow the config from
+there: path scopes, a CI plan, the people. Run again where a config is, it
+writes nothing and lists what is missing (what `itos config check` finds, a
+hook that does not call itos, with the command that puts it right), exiting 1
+when anything is, so it doubles as a check. `itos init --stealth` does the
+same for one person in a repository whose team does not use itos (below).
+
 **Where itos reads its config.** itos reads `itos.yaml` in the folder it runs
 in, or the file `--config` or `ITOS_CONFIG` names; `--root <dir>` runs it as if
 started in `<dir>`. With none of those and no `itos.yaml` in the folder, a run
@@ -305,6 +325,10 @@ file is read, since you are the only one, so no owner is checked, and
 and proposes every item as yours, whatever owner it names; `itos work --as
 <handle>` still shows what that handle owns. Should the project adopt itos, its own `itos.yaml` in
 the root wins.
+
+`itos init --stealth` sets it up: a starter config there, its ledger and
+registry beside it, the newest release pinned, and the hooks declared in the
+git config (below), leaving `git status` as it was. By hand, the least of it:
 
 ```sh
 dir="$(git rev-parse --git-common-dir)/itos"
