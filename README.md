@@ -42,9 +42,12 @@ it, and the instructions then point to the check instead of restating it.
   own files as the commit stages them, and runs the static checks of the
   tasks it names, rejecting it when a finished task's check fails; `itos verify` re-checks
   a pushed range in CI, from `commits.since` on. `itos commit --task <id>` (or
-  `--scenarios <ids>`) is `git commit` with the footer written for you, as a
-  git trailer, whether the message comes from `-m`, `-F` or the editor; the
-  hook judges it as a typed one.
+  `--scenarios <ids>`, a flag for each footer of free text such as
+  `--upgrading <text>`, and `--breaking <text>`) is `git commit` with the
+  footers written for you, as git trailers, whether the message comes from
+  `-m`, `-F` or the editor; a commit missing a footer its type requires is
+  refused before git runs, naming the flag, and the hook judges the rest as
+  typed footers.
 - **Named tests behind an adapter**: Gherkin is built in; any runner that can
   list its tests as JSON can be another kind. CI merges every selection of a
   kind into one run.
@@ -220,20 +223,22 @@ older git, which does not run them, makes `hooks install` say so and exit 3;
 them, or the hooks run twice; if your config named another `hooks.bin`, run
 `itos hooks install` again so its hooks call `itos`.
 
-A footer in a commit message is what everyone reads, so here the footers live
-in git notes instead: commit with `itos commit --task <id>` (and
-`--scenarios <ids>`), which writes them as a note on the new commit, in
-`refs/notes/itos`, never in its message. `git push` does not send that ref
+A footer in a commit message is what everyone reads, so here the links, the
+footers naming tasks and scenarios, live in git notes instead: commit with
+`itos commit --task <id>` (and `--scenarios <ids>`), which writes them as a
+note on the new commit, in `refs/notes/itos`, never in its message. A footer
+of free text (`--upgrading <text>`) and `--breaking <text>` are content, and
+stay in the message. `git push` does not send that ref
 unless you ask (`git push origin refs/notes/itos`), and `git log
 --notes=itos` shows it. The commit-msg hook judges the footers `itos commit`
 hands it, and refuses a commit that needs one made with a bare `git commit`,
-and a footer typed into the message. `itos commit` adds `refs/notes/itos` to
+and a link typed into the message. `itos commit` adds `refs/notes/itos` to
 `notes.rewriteRef` in the repository's config, so `git commit --amend` and
 `git rebase` carry a commit's note to the commit they make, and an amend
 passes the hook on the note it will carry: `itos commit --amend` tells the
 hook it amends, while for a plain `git commit --amend` the hook guesses it
-from the author's date, which `--date` or `--reset-author` defeats. `itos verify`, `ci plan`
-and `itos commit footers` read each commit's footers from its note.
+from the author's date, which `--date` or `--reset-author` defeats. `itos verify`
+and `ci plan` read each commit's links from its note.
 
 Others' commits here follow none of your rules, so `itos verify` and `itos ci
 plan` with no range judge only yours: the commits of HEAD that no remote

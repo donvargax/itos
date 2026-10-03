@@ -200,13 +200,14 @@ it, in `refs/notes/itos`, which `git push` does not send unless asked (slice
 32, the user's calls of 2026-10-03): `itos commit` writes the note from its
 flags and hands the same lines to the commit-msg hook in `ITOS_FOOTERS`; the
 hook judges them as typed ones, refuses a commit that needs a footer made
-without `itos commit` and a footer typed into the message, each naming the
+without `itos commit` and a link typed into the message, each naming the
 `itos commit` flag, and takes an amend on HEAD's note, knowing it from
 `itos commit`, which says in `ITOS_AMEND` whether `--amend` is among the
 arguments it hands git (slice 37), and guessing it only for a commit made
 without it, from an author HEAD's to the second; itos adds `refs/notes/itos` to `notes.rewriteRef` in the local
-config, so an amend or a rebase carries the note; verify, ci plan's named
-tasks and `commit footers` read each commit's note. A project's config keeps
+config, so an amend or a rebase carries the note; verify and ci plan's named
+tasks read each commit's note. Only the links live there: a footer of free
+text is content, and stays in the message (slice 36, §7). A project's config keeps
 its footers in the message. Slice 33 declares the hooks in the git config,
 and slice 34 has verify and ci plan given no range judge the person's
 unpushed commits (§7, `features/stealth.feature`). This repository's own `itos.yaml` is
@@ -334,24 +335,24 @@ the JSON above, with `select: "go test ./... -run {pattern}"` and
 Global flags: `--config`, `--root`, `--json`, `-q`, written anywhere for a
 built-in command and before the name for an extension.
 
-| Command                                                                 | What it does                                                                                                                                                                                |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `task <id>…`, `--phase <g>`, `--pending`, `task list`                   | Runs the tasks' checks in written order, each distinct check once, or lists the tasks with their work items' status, running nothing; a status table.                                       |
-| `work [--as <h>]`, `work check [<file>]`                                | Who the session works for and what they can start; validates the registry.                                                                                                                  |
-| `commit [--task <id>] [--scenarios <ids>] [<git commit args>…]`         | `git commit` with the footers itos writes from its flags, as git's `--trailer`; the hooks judge them as typed ones, and git's exit code is itos's.                                          |
-| `commit check-message <file\|->`, `commit check-paths --type <t> <p>…`  | The header lint and the footer rules on one message; the scope rules alone, to plan a split.                                                                                                |
-| `commit footers <name> <from> <to>`                                     | A range's free-text footers with their commits, leaving out `none`, for a release's notes.                                                                                                  |
-| `verify <from> <to>`, `verify` (stealth)                                | Re-checks every non-merge commit of the range after `commits.since` (message with footers at that commit, paths, the built-in moves rule against its parent), then each range command once. |
-| `tests list <kind> [--at <tree>]`, `tests smoke check\|ids\|run <kind>` | The adapter's listing; the smoke rule, the smoke IDs, the smoke run.                                                                                                                        |
-| `tests moves <kind>`                                                    | The staged feature files against HEAD's by the built-in moves rule, by hand.                                                                                                                |
-| `ci plan [<from> <to>]`, `ci run [<from> <to>]`, `--nightly`            | Prints the plan (with no range, only in stealth mode); runs it, stopping at the first failure unless `ci.stop_at_first_failure` is false.                                                   |
-| `ci scope <from> <to>`, `ci range --head <sha> [--base <sha>]`          | Whether a range is prose only; where a push's range starts.                                                                                                                                 |
-| `hook commit-msg <file>`, `hook pre-push <remote> <url>`                | The hooks' entry points.                                                                                                                                                                    |
-| `hooks install [--manager <m>] [--print] [--force]`                     | Writes the one-line shims for the hook manager it detects, or prints its snippet; under a stealth config, declares the hooks in the git config.                                             |
-| `config check [--print-defaults]`                                       | Validates the config, the ledger, the registry and the smoke sets.                                                                                                                          |
-| `version [--check]`                                                     | Needs no config; `--check` exits 1 if the binary does not satisfy `requires`.                                                                                                               |
-| `help <command>`                                                        | The command's help, or `itos-<command> --help` for an extension; `itos --help` lists the extensions on the `PATH`.                                                                          |
-| any other `<command> [args]`                                            | An extension: runs `itos-<command>` found on the `PATH` with the arguments after its name, unread, and hands back its exit code (below).                                                    |
+| Command                                                                                                 | What it does                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `task <id>…`, `--phase <g>`, `--pending`, `task list`                                                   | Runs the tasks' checks in written order, each distinct check once, or lists the tasks with their work items' status, running nothing; a status table.                                                       |
+| `work [--as <h>]`, `work check [<file>]`                                                                | Who the session works for and what they can start; validates the registry.                                                                                                                                  |
+| `commit [--task <id>] [--scenarios <ids>] [--<footer> <text>] [--breaking <text>] [<git commit args>…]` | `git commit` with the footers itos writes from its flags, as git's `--trailer`, a commit missing a required one refused before git runs; the hooks judge them as typed ones, and git's exit code is itos's. |
+| `commit check-message <file\|->`, `commit check-paths --type <t> <p>…`                                  | The header lint and the footer rules on one message; the scope rules alone, to plan a split.                                                                                                                |
+| `commit footers <name> <from> <to>`                                                                     | A range's free-text footers with their commits, leaving out `none`, for a release's notes.                                                                                                                  |
+| `verify <from> <to>`, `verify` (stealth)                                                                | Re-checks every non-merge commit of the range after `commits.since` (message with footers at that commit, paths, the built-in moves rule against its parent), then each range command once.                 |
+| `tests list <kind> [--at <tree>]`, `tests smoke check\|ids\|run <kind>`                                 | The adapter's listing; the smoke rule, the smoke IDs, the smoke run.                                                                                                                                        |
+| `tests moves <kind>`                                                                                    | The staged feature files against HEAD's by the built-in moves rule, by hand.                                                                                                                                |
+| `ci plan [<from> <to>]`, `ci run [<from> <to>]`, `--nightly`                                            | Prints the plan (with no range, only in stealth mode); runs it, stopping at the first failure unless `ci.stop_at_first_failure` is false.                                                                   |
+| `ci scope <from> <to>`, `ci range --head <sha> [--base <sha>]`                                          | Whether a range is prose only; where a push's range starts.                                                                                                                                                 |
+| `hook commit-msg <file>`, `hook pre-push <remote> <url>`                                                | The hooks' entry points.                                                                                                                                                                                    |
+| `hooks install [--manager <m>] [--print] [--force]`                                                     | Writes the one-line shims for the hook manager it detects, or prints its snippet; under a stealth config, declares the hooks in the git config.                                                             |
+| `config check [--print-defaults]`                                                                       | Validates the config, the ledger, the registry and the smoke sets.                                                                                                                                          |
+| `version [--check]`                                                                                     | Needs no config; `--check` exits 1 if the binary does not satisfy `requires`.                                                                                                                               |
+| `help <command>`                                                                                        | The command's help, or `itos-<command> --help` for an extension; `itos --help` lists the extensions on the `PATH`.                                                                                          |
+| any other `<command> [args]`                                                                            | An extension: runs `itos-<command>` found on the `PATH` with the arguments after its name, unread, and hands back its exit code (below).                                                                    |
 
 **Extensions** (slice 29, the user's idea): a command itos does not have runs
 the program `itos-<command>` found on the `PATH`, and only there, as git runs
@@ -379,7 +380,29 @@ any commit and judge a footer itos writes as they judge a typed one; a commit
 they refuse is not made, and itos hands back git's exit code. git tells a
 hook nothing of an amend, so itos commit does (slice 37): `ITOS_AMEND` is 1
 when `--amend` is among the options it hands git, 0 otherwise, set every
-time, and the hook guesses from the author's date only when it is absent. A first argument
+time, and the hook guesses from the author's date only when it is absent.
+
+**Every footer a commit needs** (slice 36, the user's calls of 2026-10-03):
+links (the footers of the ledger and of named tests, IDs itos resolves) and
+content (a footer of free text, `BREAKING-CHANGE`, text for people and
+tools) share git's trailer block, and the config's source tells them apart,
+so the config does not change. Each footer of free text it declares has an
+`itos commit` flag of its name in lower case (`--upgrading` for
+`Upgrading`), unless a built-in flag has that name, and `--breaking <text>`
+writes `BREAKING-CHANGE: <text>`, the form git reads as a trailer
+(`BREAKING CHANGE:` with its space makes `git interpret-trailers` see no
+trailers in the block at all); their value is the next argument, as git
+takes an option's, an empty one a usage error. The lines go links first,
+then free text in the config's order, then `BREAKING-CHANGE`. Before git
+runs, a commit whose type requires a footer that neither its flags nor its
+message give is refused (exit 1, nothing committed), naming the flag; the
+type is read from `-m`, `-F <file>`, or HEAD's message for
+`--amend --no-edit`, and a message from the editor or `-F -` is left to the
+hook, which still judges every commit made any other way. git runs with
+`trailer.ifExists=addIfDifferent`, so `itos commit --amend --task T-001` on
+a commit carrying `Task: T-001` leaves one footer. Under a stealth config
+only the links go to the note; content stays in the message, where the
+hook, verify and `commit footers` read it. A first argument
 naming a subcommand (`check-message`, `check-paths`, `footers`) is that
 subcommand, anything else a commit. It is the habit an agent is pointed to
 (the plugin answers a bare `git commit` with it, §10), the other half of
@@ -533,7 +556,9 @@ flags (slice 31, §7), the stealth mode's footers in git notes (slice 32,
 §5), its hooks in the git config (slice 33, §7) and its range, the person's
 unpushed commits (slice 34, §7), and its defaults, one person's: the global
 `itos` in its hooks and no people file (slice 35, §5). `itos commit` tells
-the hook an amend, which it guessed before (slice 37, §7).
+the hook an amend, which it guessed before (slice 37, §7), and writes every
+footer a commit needs, refusing one that lacks a required footer before git
+runs (slice 36, §7).
 
 ## 10. Distribution
 

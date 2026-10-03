@@ -2398,7 +2398,7 @@ items:
     title: itos commit writes every footer a commit needs, its required ones refused up front
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-37]
     kind: slice
     why: >
@@ -2541,3 +2541,34 @@ items:
       account makes the person's items someone else's. The person being the only one, a stealth
       config skips the identity lookup and treats every item as the session's.
     refs: [features/stealth.feature, internal/work/]
+
+  - id: p3-commit-long-text-footer
+    title: itos commit fits a long footer of free text within the line limit
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-36]
+    kind: idea
+    why: >
+      Found in slice 36: --upgrading and --breaking write their text as one trailer line,
+      while IDs are packed onto lines of 100 characters at most. A text past 100 characters
+      breaks the header lint's footer line limit, and Texts reads only a footer's first line,
+      so a folded trailer would lose the rest. itos commit could refuse it up front naming the
+      limit, or fold it as git folds a trailer, with Texts and commit footers reading the
+      continuation lines.
+    refs: [internal/cli/gitcommit.go, internal/message/footers.go]
+
+  - id: p3-stealth-amend-keeps-links
+    title: A stealth amend through itos commit keeps the links its flags do not replace
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-36]
+    kind: idea
+    why: >
+      Found in slice 36: in a project, itos commit --amend --scenarios <ids> keeps the Task:
+      footer the message already has; under a stealth config the flags' links replace the note
+      the amend carried, so the task must be given again (the up-front check names --task when
+      it is required). Merging the carried note with the flags' links, each footer once, would
+      make an amend mean the same in both modes.
+    refs: [internal/cli/gitcommit.go, features/stealth.feature]

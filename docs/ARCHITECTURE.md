@@ -131,7 +131,10 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   refused one fails its step rather than leaving the old commit's note to
   pass. The scratch config has a `Scenarios:` footer whenever it has a kind
   of named tests, required for no type, so the scenarios that name none are
-  judged as before.
+  judged as before. A feature file a scenario writes is staged, so the feat
+  committed next adds it, as a feat adds the scenario it names. A footer
+  counted once is read from HEAD as it is, not from a new HEAD: an amend
+  that writes nothing new in its commit's second is that commit again.
 - **The header lint**, where a scenario needs one, is itos's built-in one,
   `use: builtin` in the scratch config, which needs nothing installed and
   holds no footer rule, so a scenario's footer rules are itos's own. The
@@ -417,40 +420,57 @@ mechanisms above, written against those modules, read across.
   `<name>` (so the first folder's, and no built-in), sorted, between the
   commands and the global flags, and nothing when there is none, so the
   corpus's main help case is the help with an empty `PATH` of extensions.
-- **itos commit** (`internal/cli/gitcommit.go`, slice 31): `commit` in the
-  command table hands its arguments to a subcommand when the first names one
-  (`commitSubcommands`) and to `gitCommit` otherwise. `readCommitFlags` takes
-  `--task` and `--scenarios` (`--flag <ids>` or `--flag=<ids>`, repeatable,
-  split by `message.SplitIDs` as the footer reader splits them) out of the
-  arguments before any `--`, leaving the rest to git in order;
-  `footerLines` loads the config only when a flag is given and finds each
-  flag's footer by its source (`message.LedgerFooter`, `message.TestsFooter`:
-  the first of `commits.footers`), and `message.FooterLines` packs the IDs
-  onto lines within the header lint's 100 characters, the key on each.
-  `trailers` makes each line a `--trailer`, which git applies before the
-  editor and the commit-msg hook; that is the one step the stealth mode
-  replaces (slice 32): under a stealth config (`config.IsStealth`, no load
-  needed) the lines go to the hook in `ITOS_FOOTERS` (`message.FootersEnv`,
-  any inherited one dropped first), and once git exits 0 with a new HEAD,
-  `writeNote` writes them as its note in `refs/notes/itos`
-  (`git notes add -f`, replacing what an amend carried over), while
-  `rewriteNotes` first adds that ref to `notes.rewriteRef` in the local
-  config unless a value (a glob too) already names it. git tells a hook
-  nothing of an amend, so `gitCommit` sets `ITOS_AMEND` (`AmendEnv`) to 1
-  or 0 every time (slice 37), by `amends`: `--amend` among git's options
-  before any `--`, the last of it and `--no-amend` winning, a valued
-  option's value skipped as git skips it (`gitValued`, `gitShortValued`,
-  so `-m --amend` is a message). The hook's `amending` takes that word, and
-  only when the variable is absent, a commit made without itos commit,
-  guesses from the author git exports (`GIT_AUTHOR_NAME`, `_EMAIL`,
-  `_DATE`), which an amend keeps from HEAD to the second; `withoutFooters`
-  drops an inherited one and `checkEnv` keeps it from the task checks.
-  `runGit` runs
-  `git commit` as a child, not by `exec`, so itos can act after it, with the
-  terminal's stdin for the editor and an interrupt left to git; its exit
-  code is itos's, and one git cannot start exits 3. A global `-q` is passed
-  on as git's `--quiet`; under `--json` git's stdout goes to stderr and
-  stdout has `{"schema":1,"ok","commit"?}`.
+- **itos commit** (`internal/cli/gitcommit.go`, slices 31, 36 and 37):
+  `commit` in the command table hands its arguments to a subcommand when the
+  first names one (`commitSubcommands`) and to `gitCommit` otherwise, which
+  first loads the config (`commitConfig`: none, with no error, where there
+  is no config file, so itos commit still runs git where itos is not set
+  up). `readCommitFlags` takes itos's flags out of the arguments before any
+  `--`, leaving the rest to git in order: `--task` and `--scenarios`
+  (`--flag <ids>` or `--flag=<ids>`, repeatable, split by
+  `message.SplitIDs` as the footer reader splits them), and the flags of
+  the content (slice 36), each footer of free text's (`message.TextFlags`:
+  `--` and its key in lower case, unless one of `message.BuiltinFlags` has
+  that name) and `--breaking`, whose value is the next argument whatever
+  it is, as git takes an option's. `footerLines` gives the links, each
+  flag's footer found by its source (`message.LedgerFooter`,
+  `message.TestsFooter`: the first of `commits.footers`) and its IDs packed
+  by `message.FooterLines` onto lines within the header lint's 100
+  characters, the key on each; and the content, `<Key>: <text>` in the
+  config's order, then `BREAKING-CHANGE: <text>`, the form git reads as a
+  trailer. `readGitArgs` reads git's own arguments as git reads them (a
+  valued option's value skipped, `gitValued` and `gitShortValued`, so
+  `-m --amend` is a message): the `-m` messages, the `-F` file, `--amend`
+  and `--no-edit`. `lacking` refuses up front what the hook would: from the
+  message itos can read (`-m`, `-F <file>`, or HEAD's for
+  `--amend --no-edit`; nothing for the editor's or `-F -`), its type's
+  required footers that neither it nor the flags give
+  (`message.Missing`), each named by its flag (`message.Flag`); under a
+  stealth config the links are only the flags', or for an amend that gives
+  none HEAD's note, as the hook will read them. `refuseCommit` reports them
+  as a rejection, exit 1, before git runs. `trailers` makes each line a
+  `--trailer`, which git applies before the editor and the commit-msg
+  hook, under `-c trailer.ifExists=addIfDifferent`, so a footer the message
+  already has, an amend's, is not written again. That is the one step the
+  stealth mode changes (slice 32): under a stealth config
+  (`config.IsStealth`) the links go to the hook in `ITOS_FOOTERS`
+  (`message.FootersEnv`, any inherited one dropped first) and the content
+  stays trailers, and once git exits 0 with a new HEAD, `writeNote` writes
+  the links as its note in `refs/notes/itos` (`git notes add -f`, replacing
+  what an amend carried over), while `rewriteNotes` first adds that ref to
+  `notes.rewriteRef` in the local config unless a value (a glob too)
+  already names it. git tells a hook nothing of an amend, so `gitCommit`
+  sets `ITOS_AMEND` (`AmendEnv`) to 1 or 0 every time (slice 37), from
+  `readGitArgs`. The hook's `amending` takes that word, and only when the
+  variable is absent, a commit made without itos commit, guesses from the
+  author git exports (`GIT_AUTHOR_NAME`, `_EMAIL`, `_DATE`), which an amend
+  keeps from HEAD to the second; `withoutFooters` drops an inherited one
+  and `checkEnv` keeps it from the task checks. `runGit` runs `git commit`
+  as a child, not by `exec`, so itos can act after it, with the terminal's
+  stdin for the editor and an interrupt left to git; its exit code is
+  itos's, and one git cannot start exits 3. A global `-q` is passed on as
+  git's `--quiet`; under `--json` git's stdout goes to stderr and stdout
+  has `{"schema":1,"ok","commit"?}`, or the refusal's problems.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
   `ITOS_CONFIG`, else `itos.yaml`, else the stealth config, after `--root`'s
@@ -493,20 +513,23 @@ mechanisms above, written against those modules, read across.
   rules' `knownFor` reads a ledger footer's IDs in the working tree for a
   stealth config whatever its `read_at`, since no commit carries that ledger,
   and without the warning a commit predating its ledger gives.
-- **The stealth mode's footers** (`internal/message/notes.go`, slice 32)
-  live in a git note on each commit, in `refs/notes/itos`, never in its
-  message. `message.Reading.Note` carries a commit's footers, and
-  `FooterProblems` reads them there for a stealth config, its type still
-  the message's; a footer of the config written in the message is that
-  footer's problem (`typedFooter`), and a missing one's sentence ends with
+- **The stealth mode's footers** (`internal/message/notes.go`, slice 32):
+  its links, the footers of IDs, live in a git note on each commit, in
+  `refs/notes/itos`, never in its message; a footer of free text is
+  content and stays in the message (slice 36). `message.Reading.Note`
+  carries a commit's links, and `FooterProblems` reads them there for a
+  stealth config, its type and its footers of free text still the
+  message's; a link written in the message is that footer's problem
+  (`typedFooter`), and a missing one's sentence ends with
   the `itos commit` flag that writes it (`stealthNeed`, `stealthFix` for the
   fix). Who fills `Note`: the commit-msg hook's `handedFooters`, from
   `ITOS_FOOTERS` or, for what `amending` takes for an amend, HEAD's note, which the rewrite carries to the new commit; it
   hands the same lines to the task checks rule, and `checkEnv` keeps them
   from the checks; `check-message`, from `ITOS_FOOTERS`; verify, from
-  `message.Note` of each commit. The range readers, `IDsIn` (ci plan's
-  named tasks) and `Gathered` (`commit footers`), log `%N` with
-  `--no-notes --notes=refs/notes/itos` in place of `%B`.
+  `message.Note` of each commit. The range reader of links, `IDsIn` (ci
+  plan's named tasks), logs `%N` with `--no-notes --notes=refs/notes/itos`
+  in place of `%B`; `Gathered` (`commit footers`) reads free text, so the
+  message, in either mode.
 - **The stealth mode's range** (`internal/git/unpushed.go`, slice 34) is
   the person's unpushed commits, `HEAD --not --remotes` (every commit of
   HEAD with no remote), which `verify` and `ci plan` take when given no
