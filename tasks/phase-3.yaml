@@ -408,3 +408,28 @@
       timeout: 900
     - run: sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'
       after: push
+
+- id: T-072
+  type: ci
+  title: Every push runs the unit tests and every feature on Linux, macOS and Windows
+  why: >
+    The user's calls (2026-10-03): itos ships Windows and macOS archives (cross-compiled, no cgo)
+    that nothing has ever run: CI, the nightly and the release run on Ubuntu alone, and PLAN.md's
+    risks already name Windows (checks run through sh; Git for Windows' sh preferred). GitHub's
+    standard runners are free for a public repository, macOS and Windows included. A job of its
+    own in ci.yml, a matrix of ubuntu-latest, macos-latest and windows-latest, builds itos
+    natively on each and runs the Go unit tests and every feature (go test ./features -count=1)
+    against that build, so git, the hooks, the shell and paths are exercised as a person on that
+    platform meets them; Linux joins the matrix so all three run the same way on every push. Two
+    steps, in this order. First the job lands not blocking (continue-on-error), so a platform
+    that fails cannot stop T-069's releases; each failure it shows is fixed (a fix with a
+    @bug-<n> scenario where it is itos's behaviour, a test or ci commit where it is the steps or
+    the runner's setup), or recorded as an idea when it is large. Then, once all three pass,
+    the job blocks and the release job needs it, so a platform break stops a release, as every
+    other check of a push does. Building the releases stays on Linux: a Mac runner would change
+    nothing in the darwin archives, and signing and notarising them waits for an Apple
+    developer account, if ever (curl, the launcher and go install mark nothing for Gatekeeper).
+    Every action the job uses is pinned by commit, each version at least 7 days old (T-067).
+  done_when:
+    - run: sh -c 'id=$(gh run list --workflow ci.yml --branch main --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'
+      after: push

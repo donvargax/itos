@@ -2866,3 +2866,16 @@ items:
     depends_on: [slice-42, slice-43, slice-44, T-066]
     kind: task
     refs: [tasks/phase-3.yaml]
+
+  - id: T-072
+    title: Every push runs the unit tests and every feature on Linux, macOS and Windows
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [T-069]
+    kind: task
+    why: >
+      The user's calls (2026-10-03): the Windows and macOS archives have never been run; free
+      standard runners for a public repository; not blocking first, then required by the release
+      job once all three pass. The task is T-072 in tasks/phase-3.yaml.
+    refs: [tasks/phase-3.yaml, .github/workflows/ci.yml]

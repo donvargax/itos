@@ -64,7 +64,9 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
    releaser), before v2.4.0's slices, so v2.4.0 is the first cut by CI.
    T-069 landed: a feat or fix landing green now releases itself. Next
    **bug 8** (issue #3, `tests smoke run` passing runner arguments), the
-   first release cut by CI (v2.3.1); then `p3-plugin-project-itos` (the
+   first release cut by CI (v2.3.1); then **T-072** (the unit tests and
+   every feature on Linux, macOS and Windows, not blocking until all pass);
+   then `p3-plugin-project-itos` (the
    plugin runs what `hooks.bin` names). The nightly is red at T-069's
    attestation check until that first release.
 3. **v2.4.0**: **`p3-pre-push-verify`**, **`p3-pin-bump`** and
