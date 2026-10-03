@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -125,17 +126,18 @@ commits:
 	}
 }
 
-// Under a stealth config the footer rules read the footers from the note,
+// Under a stealth config the footer rules read the links from the note,
 // never the message: one typed into the message is its footer's problem,
-// naming the itos commit flag that writes it when one does, and a missing
-// one says the same; a project's config reads the message and no note.
+// naming the itos commit flag that writes it, and a missing one says the
+// same; a footer of free text is the message's in either mode (slice 36); a
+// project's config reads the message and no note.
 func TestStealthFooters(t *testing.T) {
 	cfg := load(t, `version: 1
 ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
 commits:
   footers:
     Task: { source: ledger, required_for: [chore], validate_for: [] }
-    Why: { source: text }
+    Why: { source: text, required_for: [docs] }
 `)
 	problems := func(message, note string) []string {
 		t.Helper()
@@ -166,9 +168,41 @@ commits:
 		!strings.Contains(got[0], "| commit with itos commit --task <id>") {
 		t.Errorf("a missing footer %q", got)
 	}
-	got = problems("chore: x\n\nWhy: because\n", "Task: T-1")
-	if len(got) != 1 || !strings.HasPrefix(got[0], "why-footer: the Why: footer is in the message") ||
-		!strings.Contains(got[0], "a commit's footers live in its note") {
-		t.Errorf("a typed footer no flag writes %q", got)
+	if got = problems("chore: x\n\nWhy: because\n", "Task: T-1"); got != nil {
+		t.Errorf("a footer of free text in the message %q", got)
+	}
+	if got = problems("docs: x\n", "Why: because"); len(got) != 1 || !strings.HasPrefix(got[0], "why-footer: docs commits need") {
+		t.Errorf("a footer of free text read from the note %q", got)
+	}
+}
+
+// Each footer of free text has a flag of its name in lower case, unless a
+// built-in flag has that name; Missing names the required footers a commit
+// lacks, links read from one text and content from another.
+func TestTextFlagsAndMissing(t *testing.T) {
+	cfg := load(t, `version: 1
+ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+commits:
+  footers:
+    Task: { source: ledger, required_for: [chore] }
+    Upgrading: { source: text, required_for: [chore] }
+    Breaking: { source: text }
+`)
+	if got := TextFlags(cfg); len(got) != 1 || got["--upgrading"] != "Upgrading" {
+		t.Errorf("text flags %q", got)
+	}
+	for key, want := range map[string]string{"Task": "--task <id>", "Upgrading": "--upgrading <text|none>", "Breaking": " "} {
+		if flag, what := Flag(cfg, key); flag+" "+what != want {
+			t.Errorf("Flag(%s) = %q %q", key, flag, what)
+		}
+	}
+	if got := Missing(cfg, "chore", "Upgrading: none", "Task: T-1"); !slices.Equal(got, []string{"Task", "Upgrading"}) {
+		t.Errorf("missing from the wrong texts %q", got)
+	}
+	if got := Missing(cfg, "chore", "Task: T-1", "Upgrading: none"); got != nil {
+		t.Errorf("missing %q", got)
+	}
+	if got := Missing(cfg, "feat", "", ""); got != nil {
+		t.Errorf("missing for a type none requires %q", got)
 	}
 }

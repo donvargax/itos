@@ -70,8 +70,8 @@ func TestAmends(t *testing.T) {
 		{[]string{"--amend", "--no-amend"}, false},
 		{[]string{"-m", "x"}, false},
 	} {
-		if got := amends(c.args); got != c.want {
-			t.Errorf("amends(%q) = %v", c.args, got)
+		if got := readGitArgs(c.args).amend; got != c.want {
+			t.Errorf("readGitArgs(%q).amend = %v", c.args, got)
 		}
 	}
 }

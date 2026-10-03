@@ -190,7 +190,7 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
 
   # Slice 36: in stealth mode only the links move to the note; a footer of
   # free text is content, written into the message by its flag.
-  @ID-STEALTH-19 @slice-36 @wip
+  @ID-STEALTH-19 @slice-36
   Scenario: In stealth mode a footer of free text stays in the message, the task in the note
     Given the config requires an "Upgrading" footer of free text for "chore"
     And the commit-msg hook is installed

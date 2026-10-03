@@ -33,6 +33,7 @@ func initializeCommitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^git amends HEAD with the message "([^"]*)"$`, w.amendHead)
 
 	sc.Step(`^the message of HEAD has the footer "([^"]*)"$`, w.headHasFooter)
+	sc.Step(`^the message of HEAD has the footer "([^"]*)" once$`, w.headHasFooterOnce)
 	sc.Step(`^the message of HEAD says "([^"]*)"$`, w.headMessageSays)
 	sc.Step(`^the message of HEAD does not say "([^"]*)"$`, w.headMessageDoesNotSay)
 	sc.Step(`^the itos note on HEAD says "([^"]*)"$`, w.headNoteSays)
@@ -168,6 +169,28 @@ func (w *world) headHasFooter(footer string) error {
 	if !slices.Contains(strings.Split(out, "\n"), footer) {
 		message, _ := w.gitOutput("log", "-1", "--format=%B")
 		return fmt.Errorf("HEAD has no footer %q; its message:\n%s", footer, message)
+	}
+	return nil
+}
+
+// HEAD's trailers, as git reads them, hold the footer on exactly one line.
+// HEAD is read as it is: an amend that writes nothing new, made in the same
+// second as the commit it amends, is that very commit again, its SHA too, so
+// the scenario's exit code, not a new HEAD, says the amend ran.
+func (w *world) headHasFooterOnce(footer string) error {
+	out, err := w.gitOutput("log", "-1", "--format=%(trailers:only,unfold)")
+	if err != nil {
+		return err
+	}
+	n := 0
+	for _, line := range strings.Split(out, "\n") {
+		if line == footer {
+			n++
+		}
+	}
+	if n != 1 {
+		message, _ := w.gitOutput("log", "-1", "--format=%B")
+		return fmt.Errorf("HEAD has the footer %q %d times, not once; its message:\n%s", footer, n, message)
 	}
 	return nil
 }

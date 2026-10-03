@@ -26,6 +26,11 @@ cases:
     exit: 2
     stderr: |
       itos: commit --task needs <id> (itos --help)
+  - name: commit --breaking needs a text
+    argv: [commit, -m, "chore!: x", --breaking]
+    exit: 2
+    stderr: |
+      itos: commit --breaking needs <text> (itos --help)
   - name: commit --scenarios needs a footer whose source is a kind of named tests
     argv: [commit, --scenarios, "@ID-A-01", -m, "feat: x"]
     exit: 2

@@ -92,7 +92,7 @@ func listFooters(name, from, to string, o Out) (int, error) {
 	if f, ok := cfg.Commits.Footers.Get(name); !ok || !f.Text() {
 		return 0, usage("commit footers needs a footer of free text: commits.footers.%s is not one (source: text)", name)
 	}
-	said, err := message.Gathered(cfg, from, to, name)
+	said, err := message.Gathered(from, to, name)
 	if err != nil {
 		return 0, err
 	}

@@ -16,7 +16,7 @@ cases:
         task list [--group <g>]          the tasks and their work items' status; runs nothing
         work [--as <handle>]             what the person can start, and what waits
         work check [<file>]              validate the work registry
-        commit [--task <id>] [--scenarios <ids>] [<git commit args>…]
+        commit [--task <id>] [--scenarios <ids>] [--<footer> <text>] [<git commit args>…]
                                          git commit, with the footers itos writes
         commit check-message <file|->    header lint and footer rules on one message
         commit check-paths --type <t> <path>…
@@ -129,31 +129,45 @@ cases:
     argv: [commit, --help]
     exit: 0
     stdout: |
-      Usage: itos commit [--task <id>] [--scenarios <ids>] [<git commit args>…]
+      Usage: itos commit [--task <id>] [--scenarios <ids>] [--<footer> <text|none>]
+                         [--breaking <text>] [<git commit args>…]
              itos commit check-message <file|-> [--at <sha>]
              itos commit check-paths --type <type> <path>…
              itos commit footers <name> <from> <to>
 
       Runs git commit with every argument but its own flags, and writes the footers
       from them as git's --trailer, so they land whether the message comes from -m,
-      -F or the editor: --task the footer whose source is the ledger (Task: here),
-      --scenarios the one whose source is a kind of named tests, the first of
-      commits.footers each. A flag may repeat, its value one ID or several
-      separated by commas or spaces, written on lines of 100 characters at most,
-      the key on each. The hooks judge the commit as any other, so a commit they
-      refuse is not made, and ITOS_AMEND tells them whether --amend is among git's
-      arguments, so they know an amend rather than guess one. Under a stealth
-      config (<git common dir>/itos/itos.yaml) the footers are never written into
-      the message: they are handed to the hook in ITOS_FOOTERS and written as the
-      new commit's note in refs/notes/itos, and notes.rewriteRef is set to that
-      ref, so an amend or a rebase carries the note.
+      -F or the editor. --task writes the footer whose source is the ledger (Task:
+      here) and --scenarios the one whose source is a kind of named tests, the
+      first of commits.footers each, their IDs separated by commas or spaces and
+      written on lines of 100 characters at most, the key on each. Each footer of
+      free text (source: text) has a flag of its name in lower case (--upgrading
+      for Upgrading:), unless --task, --scenarios or --breaking has that name, and
+      --breaking writes BREAKING-CHANGE:, the form git reads as a trailer; their
+      value is the next argument, whatever it is. Every flag may repeat, and a
+      footer the message already has is not written again (trailer.ifExists
+      addIfDifferent), so an amend keeps one.
+
+      Before git runs, a commit whose type requires a footer that neither the flags
+      nor the message give is refused, naming the flag, and nothing is committed;
+      the type is read from -m, from -F <file>, or for --amend --no-edit from HEAD's
+      message. A message from the editor, or -F -, is left to the hooks, which judge
+      the commit as any other, so a commit they refuse is not made; ITOS_AMEND tells
+      them whether --amend is among git's arguments, so they know an amend rather
+      than guess one. Under a stealth config (<git common dir>/itos/itos.yaml) the
+      links, the footers --task and --scenarios write, are never written into the
+      message: they are handed to the hook in ITOS_FOOTERS and written as the new
+      commit's note in refs/notes/itos, and notes.rewriteRef is set to that ref, so
+      an amend or a rebase carries the note; footers of free text and
+      BREAKING-CHANGE stay in the message.
       -q is git's --quiet. A first argument that is not a flag is a subcommand or a
       usage error, never a path: paths for git go after a flag or after --, as in
-      itos commit --task T-1 -m '…' -- README.md. Exit: git's own code; 2 when the
-      first word is no subcommand, a flag has no value or the config no footer for
-      it.
+      itos commit --task T-1 -m '…' -- README.md. Exit: git's own code; 1 when a
+      required footer is missing; 2 when the first word is no subcommand, a flag
+      has no value or the config no footer for it.
 
-      --json: git's output on stderr; {"schema":1,"ok","commit"?}
+      --json: git's output on stderr; {"schema":1,"ok","commit"?}, or when a footer
+              is missing {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
   - name: itos commit check-message --help
     argv: [commit, check-message, --help]
     exit: 0
@@ -163,9 +177,10 @@ cases:
       Runs the header lint (commits.header_lint: itos's own with use: builtin, else
       the stdin delegate), if any, and itos's footer rules (commits.footers),
       always, on one message, read from <file> or stdin (-), and reports both. --at
-      reads the footers' IDs at that commit. Under a stealth config the footers
-      are the ones ITOS_FOOTERS gives, never the message's. Exit 1 when either
-      rejects the message; the built-in lint's warnings alone do not.
+      reads the footers' IDs at that commit. Under a stealth config the footers of
+      IDs are the ones ITOS_FOOTERS gives, never the message's, and a footer of
+      free text is the message's. Exit 1 when either rejects the message; the
+      built-in lint's warnings alone do not.
 
       --json: {"schema":1,"ok","problems":[{"rule","message","fix"?,"level"}]}
   - name: itos commit check-paths --help
@@ -190,8 +205,8 @@ cases:
       release's notes. One line per footer, oldest commit first, its commit's short
       SHA and its text; a commit with several gives a line for each. A footer that
       says none (the word alone, in lower case) asks nothing and is left out, as is
-      an empty one. Under a stealth config the footers are each commit's note's.
-      Exit 2 when <name> is not a footer of free text.
+      an empty one. The footers are each commit's message's, under a stealth config
+      too. Exit 2 when <name> is not a footer of free text.
 
       --json: {"schema":1,"footer","range","footers":[{"sha","subject","text"}]}
   - name: itos verify --help
@@ -208,11 +223,11 @@ cases:
       range command. The commit commits.since names and its ancestors are left out,
       and the range commands start there; a footer's own since leaves that commit
       and its ancestors out of the footer's required_for. Under a stealth config a
-      commit's footers are read from its note in refs/notes/itos, and with no range
-      the commits are HEAD's on no remote branch (every one with no remote), the
-      range's from "--remotes": the person's own, not yet pushed. Prints "<n>/<m>
-      commits pass the commit rules". Exit 1 on any failure, 2 when commits.since or
-      a footer's since is not a commit of the repository.
+      commit's footers of IDs are read from its note in refs/notes/itos, and with
+      no range the commits are HEAD's on no remote branch (every one with no
+      remote), the range's from "--remotes": the person's own, not yet pushed.
+      Prints "<n>/<m> commits pass the commit rules". Exit 1 on any failure, 2 when
+      commits.since or a footer's since is not a commit of the repository.
 
       --json: {"schema":1,"range","since"?,"commits":[{"sha","header","ok"}],"passed","total","range_checks"}
   - name: itos tests --help

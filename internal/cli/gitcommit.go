@@ -40,16 +40,25 @@ import (
 // commitFlags are what itos commit reads of its arguments: the IDs --task
 // and --scenarios give, each flag as often as wanted, written --task <ids> or
 // --task=<ids>, its value one ID or several separated by commas or spaces;
-// and the rest, git commit's, in order. A "--" ends what itos reads, as it
-// ends git's options.
+// the texts the flags of the footers of free text give (--upgrading <text>,
+// one for each such footer the config declares) and --breaking <text>, each
+// as often as wanted, its value the next argument whatever it is, as git
+// takes an option's value; and the rest, git commit's, in order. A "--" ends
+// what itos reads, as it ends git's options.
 type commitFlags struct {
 	tasks, scenarios []string
+	texts            []said
+	breaking         []string
 	git              []string
 }
 
-// readCommitFlags reads itos commit's arguments; a flag without its value is
-// a usage error.
-func readCommitFlags(args []string) (commitFlags, error) {
+// said is one footer of free text a flag gives: its key and its text.
+type said struct{ key, text string }
+
+// readCommitFlags reads itos commit's arguments, texts the flags of the
+// config's footers of free text (message.TextFlags); a flag without its
+// value, or with an empty text, is a usage error.
+func readCommitFlags(args []string, texts map[string]string) (commitFlags, error) {
 	var f commitFlags
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
@@ -57,13 +66,33 @@ func readCommitFlags(args []string) (commitFlags, error) {
 			f.git = append(f.git, args[i:]...)
 			break
 		}
-		var into *[]string
 		name, value, given := strings.Cut(arg, "=")
-		switch name {
-		case "--task":
+		key, isText := texts[name]
+		var into *[]string
+		switch {
+		case name == "--task":
 			into = &f.tasks
-		case "--scenarios":
+		case name == "--scenarios":
 			into = &f.scenarios
+		case name == "--breaking" || isText:
+			if !given && i+1 < len(args) {
+				i++
+				value, given = args[i], true
+			}
+			text := strings.TrimSpace(value)
+			if text == "" {
+				what := "<text|none>"
+				if name == "--breaking" {
+					what = "<text>"
+				}
+				return f, usage("commit %s needs %s", name, what)
+			}
+			if isText {
+				f.texts = append(f.texts, said{key, text})
+			} else {
+				f.breaking = append(f.breaking, text)
+			}
+			continue
 		default:
 			f.git = append(f.git, arg)
 			continue
@@ -85,36 +114,64 @@ func readCommitFlags(args []string) (commitFlags, error) {
 	return f, nil
 }
 
-// footerLines are the footers the flags write, each "<key>: <ids>", the
-// ledger's first: the config's footer for each source, read only when a flag
-// is given. A flag whose footer the config does not have is a usage error.
-func (f commitFlags) footerLines() ([]string, error) {
-	if len(f.tasks) == 0 && len(f.scenarios) == 0 {
-		return nil, nil
-	}
-	cfg, err := config.Load(config.Path())
-	if err != nil {
-		return nil, err
-	}
-	var lines []string
-	for _, flag := range []struct {
-		name, source string
-		ids          []string
-		key          func(*config.Loaded) (string, bool)
-	}{
-		{"--task", "the ledger", f.tasks, message.LedgerFooter},
-		{"--scenarios", "a kind of named tests", f.scenarios, message.TestsFooter},
-	} {
-		if len(flag.ids) == 0 {
-			continue
+// footerLines are the footers the flags write: the links, each "<key>:
+// <ids>", the ledger's first, the config's footer for each source; and the
+// content, each "<key>: <text>", the footers of free text in the config's
+// order, then BREAKING-CHANGE, the form git reads as a trailer. A link flag
+// whose footer the config does not have is a usage error, and one given with
+// no config is the error loading it gave (missing).
+func (f commitFlags) footerLines(cfg *config.Loaded, missing error) (links, content []string, err error) {
+	if len(f.tasks) > 0 || len(f.scenarios) > 0 {
+		if cfg == nil {
+			return nil, nil, missing
 		}
-		key, ok := flag.key(cfg)
-		if !ok {
-			return nil, usage("commit %s needs a footer whose source is %s in commits.footers", flag.name, flag.source)
+		for _, flag := range []struct {
+			name, source string
+			ids          []string
+			key          func(*config.Loaded) (string, bool)
+		}{
+			{"--task", "the ledger", f.tasks, message.LedgerFooter},
+			{"--scenarios", "a kind of named tests", f.scenarios, message.TestsFooter},
+		} {
+			if len(flag.ids) == 0 {
+				continue
+			}
+			key, ok := flag.key(cfg)
+			if !ok {
+				return nil, nil, usage("commit %s needs a footer whose source is %s in commits.footers", flag.name, flag.source)
+			}
+			links = append(links, message.FooterLines(key, flag.ids)...)
 		}
-		lines = append(lines, message.FooterLines(key, flag.ids)...)
 	}
-	return lines, nil
+	if cfg != nil {
+		for _, key := range cfg.Commits.Footers.Keys {
+			for _, t := range f.texts {
+				if t.key == key {
+					content = append(content, key+": "+t.text)
+				}
+			}
+		}
+	}
+	for _, text := range f.breaking {
+		content = append(content, "BREAKING-CHANGE: "+text)
+	}
+	return links, content, nil
+}
+
+// commitConfig is the config itos commit reads its flags by: none, with the
+// error loading it gave, when there is no config file, so that itos commit
+// still runs git where itos is not set up; an error when there is one that
+// does not load.
+func commitConfig() (cfg *config.Loaded, missing, err error) {
+	file := config.Path()
+	cfg, err = config.Load(file)
+	if err == nil {
+		return cfg, nil, nil
+	}
+	if _, statErr := os.Stat(file); statErr == nil {
+		return nil, nil, err
+	}
+	return nil, err, nil
 }
 
 // AmendEnv is the variable itos commit tells the commit-msg hook in whether
@@ -131,32 +188,145 @@ var (
 	gitShortValued = "mFCct"
 )
 
-// amends is whether git commit's arguments amend HEAD: --amend among its
-// options, before any "--", the last of --amend and --no-amend winning.
-func amends(args []string) bool {
-	amend := false
+// gitArgs are what itos reads of git commit's arguments, before any "--":
+// the messages -m gives, the file -F gives, whether the commit amends HEAD
+// (the last of --amend and --no-amend winning) and whether --no-edit keeps
+// the message it starts with.
+type gitArgs struct {
+	messages      []string
+	file          string
+	amend, noEdit bool
+}
+
+// readGitArgs reads git commit's arguments as git reads them, a valued
+// option's value never taken for an option.
+func readGitArgs(args []string) gitArgs {
+	var g gitArgs
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
+		next := func() string {
+			if i+1 < len(args) {
+				i++
+				return args[i]
+			}
+			return ""
+		}
+		name, value, given := strings.Cut(arg, "=")
 		switch {
 		case arg == "--":
-			return amend
-		case arg == "--amend":
-			amend = true
-		case arg == "--no-amend":
-			amend = false
-		case strings.HasPrefix(arg, "--"):
-			if slices.Contains(gitValued, arg) {
-				i++
+			return g
+		case arg == "--amend", arg == "--no-amend":
+			g.amend = arg == "--amend"
+		case arg == "--no-edit", arg == "--edit":
+			g.noEdit = arg == "--no-edit"
+		case strings.HasPrefix(arg, "--") && slices.Contains(gitValued, name):
+			if !given {
+				value = next()
 			}
-		case strings.HasPrefix(arg, "-") && len(arg) > 1:
-			if j := strings.IndexAny(arg[1:], gitShortValued+"uS"); j >= 0 {
-				if c := arg[1+j]; strings.IndexByte(gitShortValued, c) >= 0 && j+2 == len(arg) {
-					i++
-				}
+			switch name {
+			case "--message":
+				g.messages = append(g.messages, value)
+			case "--file":
+				g.file = value
 			}
+		case strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--"):
+			g.readCluster(arg[1:], next)
 		}
 	}
-	return amend
+	return g
+}
+
+// readCluster reads one cluster of short options (-am), the first valued
+// one taking the rest of it as its value, or the next argument.
+func (g *gitArgs) readCluster(cluster string, next func() string) {
+	for j := 0; j < len(cluster); j++ {
+		c := cluster[j]
+		switch {
+		case c == 'e':
+			g.noEdit = false
+		case c == 'u' || c == 'S':
+			return
+		case strings.IndexByte(gitShortValued, c) >= 0:
+			value := cluster[j+1:]
+			if value == "" {
+				value = next()
+			}
+			switch c {
+			case 'm':
+				g.messages = append(g.messages, value)
+			case 'F':
+				g.file = value
+			}
+			return
+		}
+	}
+}
+
+// message is the commit's message as far as itos can read it before git
+// runs: the -m ones joined as git joins them, the -F file (not stdin), or,
+// for an amend with --no-edit, HEAD's; false when it comes from the editor.
+func (g gitArgs) message() (string, bool) {
+	switch {
+	case len(g.messages) > 0:
+		return strings.Join(g.messages, "\n\n"), true
+	case g.file != "" && g.file != "-":
+		text, err := os.ReadFile(g.file)
+		return string(text), err == nil
+	case g.amend && g.noEdit:
+		text, err := git.Output("log", "-1", "--format=%B", "HEAD")
+		return text, err == nil
+	}
+	return "", false
+}
+
+// lacking are the footers the commit's type requires that neither the flags
+// nor the message give, each naming the flag that writes it, as the hook
+// would refuse them, so a commit missing one is refused before git runs: in
+// a project the footers are the message's and the flags'; under a stealth
+// config the links are the flags' or, for an amend that gives none, HEAD's
+// note, which the amend carries, and the content the message's and the
+// flags'. Nothing when itos cannot read the message (the editor's, or -F -),
+// which the hook judges; a footer no flag writes is the hook's too.
+func lacking(cfg *config.Loaded, g gitArgs, links, content []string, stealth bool) []out.Problem {
+	text, ok := g.message()
+	typ := message.Type(text)
+	if !ok || typ == "" {
+		return nil
+	}
+	written := strings.Join(content, "\n")
+	linked := text + "\n" + strings.Join(links, "\n") + "\n" + written
+	if stealth {
+		linked = strings.Join(links, "\n")
+		if len(links) == 0 && g.amend {
+			linked, _ = message.Note("HEAD")
+		}
+	}
+	var found []out.Problem
+	for _, key := range message.Missing(cfg, typ, linked, text+"\n"+written) {
+		flag, what := message.Flag(cfg, key)
+		if flag == "" {
+			continue
+		}
+		found = append(found, out.Problem{
+			Rule:    strings.ToLower(key) + "-footer",
+			Message: fmt.Sprintf("%s commits need %s %s", typ, flag, what),
+			Fix:     fmt.Sprintf("commit with itos commit %s %s", flag, what),
+		})
+	}
+	return found
+}
+
+// refuseCommit reports the footers a commit lacks, as the hook reports a
+// rejection, and exits 1: no commit is made.
+func refuseCommit(cfg *config.Loaded, found []out.Problem, o Out) (int, error) {
+	if o.JSON {
+		return ExitPolicy, out.Emit(o.Stdout, out.Field{Key: "ok", Value: false}, out.Field{Key: "problems", Value: found})
+	}
+	fmt.Fprintln(o.Stderr, cfg.Commits.RejectMessage)
+	for _, p := range found {
+		fmt.Fprintf(o.Stderr, "  - %s\n", p.Message)
+	}
+	return ExitPolicy, nil
 }
 
 // trailers are the footers as git commit's own --trailer arguments.
@@ -168,25 +338,39 @@ func trailers(lines []string) []string {
 	return args
 }
 
-// gitCommit is `itos commit [--task <ids>] [--scenarios <ids>] [<git commit
-// args>…]`: git commit with the footers as trailers, or under a stealth
-// config as the new commit's note, git's streams the terminal's (its stdout
-// on stderr under --json, which prints the outcome), -q passed on as git's
-// --quiet, and git's exit code handed back.
+// gitCommit is `itos commit [--task <ids>] [--scenarios <ids>] [--<footer>
+// <text>] [--breaking <text>] [<git commit args>…]`: a commit missing a
+// footer its type requires refused before git runs, else git commit with the
+// footers as trailers, or under a stealth config the links as the new
+// commit's note and the content as trailers, git's streams the terminal's
+// (its stdout on stderr under --json, which prints the outcome), -q passed on
+// as git's --quiet, and git's exit code handed back. trailer.ifExists is
+// addIfDifferent for the commit, so a footer the message already has, as an
+// amend's does, is not written twice.
 func gitCommit(args []string, o Out) (int, error) {
-	flags, err := readCommitFlags(args)
+	cfg, missing, err := commitConfig()
 	if err != nil {
 		return 0, err
 	}
-	lines, err := flags.footerLines()
+	flags, err := readCommitFlags(args, message.TextFlags(cfg))
+	if err != nil {
+		return 0, err
+	}
+	links, content, err := flags.footerLines(cfg, missing)
 	if err != nil {
 		return 0, err
 	}
 	stealth := config.IsStealth(config.Path())
-	argv := []string{"commit"}
+	g := readGitArgs(flags.git)
+	if cfg != nil {
+		if found := lacking(cfg, g, links, content, stealth); len(found) > 0 {
+			return refuseCommit(cfg, found, o)
+		}
+	}
+	argv := []string{"-c", "trailer.ifExists=addIfDifferent", "commit"}
 	env := withoutFooters(os.Environ())
 	amend := "0"
-	if amends(flags.git) {
+	if g.amend {
 		amend = "1"
 	}
 	env = append(env, AmendEnv+"="+amend)
@@ -196,12 +380,13 @@ func gitCommit(args []string, o Out) (int, error) {
 			fmt.Fprintf(o.Stderr, "itos: cannot set notes.rewriteRef: %s\n", err)
 			return ExitMissing, nil
 		}
-		if len(lines) > 0 {
-			env = append(env, message.FootersEnv+"="+strings.Join(lines, "\n"))
+		if len(links) > 0 {
+			env = append(env, message.FootersEnv+"="+strings.Join(links, "\n"))
 		}
 		before, _ = git.Output("rev-parse", "--verify", "--quiet", "HEAD")
+		argv = append(argv, trailers(content)...)
 	} else {
-		argv = append(argv, trailers(lines)...)
+		argv = append(argv, trailers(slices.Concat(links, content))...)
 	}
 	if o.Quiet {
 		argv = append(argv, "--quiet")
@@ -216,8 +401,8 @@ func gitCommit(args []string, o Out) (int, error) {
 		fmt.Fprintf(o.Stderr, "itos: cannot run git: %s\n", err)
 		return ExitMissing, nil
 	}
-	if code == 0 && stealth && len(lines) > 0 {
-		if err := writeNote(before, lines); err != nil {
+	if code == 0 && stealth && len(links) > 0 {
+		if err := writeNote(before, links); err != nil {
 			fmt.Fprintf(o.Stderr, "itos: the commit is made, but its note is not: %s\n", err)
 			return ExitPolicy, nil
 		}

@@ -69,14 +69,14 @@ Feature: itos commit, a commit whose footers itos writes
   # trailers in the block at all), and a commit missing a footer its type
   # requires is refused before git runs, naming the flag. The hook still
   # judges commits made any other way.
-  @ID-COMMITCMD-07 @slice-36 @wip
+  @ID-COMMITCMD-07 @slice-36
   Scenario: A footer of free text the config declares has a flag of its name
     Given the config requires an "Upgrading" footer of free text for "chore"
     When itos commits with the arguments "--task T-001 --upgrading none -m 'chore: tidy the readme'"
     Then itos exits with code 0
     And the message of HEAD has the footer "Upgrading: none"
 
-  @ID-COMMITCMD-08 @slice-36 @wip
+  @ID-COMMITCMD-08 @slice-36
   Scenario: A commit missing a footer its type requires is refused before git runs, naming the flag
     Given the config requires an "Upgrading" footer of free text for "chore"
     When itos commits with the arguments "--task T-001 -m 'chore: tidy the readme'"
@@ -84,14 +84,14 @@ Feature: itos commit, a commit whose footers itos writes
     And its output says "--upgrading"
     And no commit was made
 
-  @ID-COMMITCMD-09 @slice-36 @wip
+  @ID-COMMITCMD-09 @slice-36
   Scenario: A commit missing its task is refused before git runs, naming --task
     When itos commits with the arguments "-m 'chore: tidy the readme'"
     Then itos exits with code 1
     And its output says "--task"
     And no commit was made
 
-  @ID-COMMITCMD-10 @slice-36 @wip
+  @ID-COMMITCMD-10 @slice-36
   Scenario: --breaking writes a BREAKING-CHANGE footer git reads as a trailer
     When itos commits with the arguments "--task T-001 --breaking 'the readme moved' -m 'chore!: move the readme'"
     Then itos exits with code 0
@@ -99,7 +99,7 @@ Feature: itos commit, a commit whose footers itos writes
 
   # Another trailer follows the task line: git already skips a trailer that
   # would land beside an identical one, so only this shape can double it.
-  @ID-COMMITCMD-11 @slice-36 @wip
+  @ID-COMMITCMD-11 @slice-36
   Scenario: An amend through itos commit keeps one footer, not two
     Given itos has committed with the arguments "--task T-001 --trailer 'Reviewed-by: someone' -m 'chore: tidy the readme'"
     When itos commits with the arguments "--amend --no-edit --task T-001"
