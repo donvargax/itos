@@ -15,27 +15,27 @@ Feature: itos commit, a commit whose footers itos writes
     And the commit-msg hook is installed
     And a change to "README.md" is staged
 
-  @ID-COMMITCMD-01 @slice-31 @wip
+  @ID-COMMITCMD-01 @slice-31
   Scenario: --task writes the ledger footer into the commit's message
     When itos commits with the arguments "--task T-001 -m 'chore: tidy the readme'"
     Then itos exits with code 0
     And the message of HEAD has the footer "Task: T-001"
 
-  @ID-COMMITCMD-02 @slice-31 @wip
+  @ID-COMMITCMD-02 @slice-31
   Scenario: A footer itos writes is judged by the hook like a typed one, and a refused commit leaves none
     When itos commits with the arguments "--task T-999 -m 'chore: tidy the readme'"
     Then itos exits with code 1
     And its output says "T-999"
     And no commit was made
 
-  @ID-COMMITCMD-03 @slice-31 @wip
+  @ID-COMMITCMD-03 @slice-31
   Scenario: --scenarios writes the scenario footer
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     When itos commits with the arguments "--scenarios @ID-A-01 -m 'feat: greet'"
     Then itos exits with code 0
     And the message of HEAD has the footer "Scenarios: @ID-A-01"
 
-  @ID-COMMITCMD-04 @slice-31 @wip
+  @ID-COMMITCMD-04 @slice-31
   Scenario: The arguments itos does not read are git commit's
     When itos commits with the arguments "--task T-001 -m 'chore: tidy the readme' -m 'Why it changed.'"
     Then itos exits with code 0

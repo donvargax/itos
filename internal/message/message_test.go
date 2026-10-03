@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v2/internal/config"
@@ -73,5 +74,53 @@ func TestParseReport(t *testing.T) {
 	got, _ = ParseReport(cfg, "\n  no config  \n", true)
 	if len(got) != 1 || got[0].Rule != "header-lint" || got[0].Message != "no config" {
 		t.Errorf("ParseReport of a bare failure %+v", got)
+	}
+}
+
+// The footer a flag of itos commit writes is the first of its source, found
+// by the source and never the key; its IDs are packed into lines within the
+// limit, the key on each, an ID too long for any line alone on its own.
+func TestFooterLines(t *testing.T) {
+	cfg := load(t, `version: 1
+ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+tests: { scenario: { root: features, id: "ID-[A-Z]+-\\d+" } }
+commits:
+  footers:
+    Why: { source: text }
+    Covers: { source: { tests: scenario } }
+    Work: { source: ledger }
+    Also: { source: ledger }
+`)
+	if key, ok := LedgerFooter(cfg); key != "Work" || !ok {
+		t.Errorf("LedgerFooter %q %v", key, ok)
+	}
+	if key, ok := TestsFooter(cfg); key != "Covers" || !ok {
+		t.Errorf("TestsFooter %q %v", key, ok)
+	}
+	if key, ok := TestsFooter(load(t, "version: 1\n")); key != "" || ok {
+		t.Errorf("TestsFooter of no footers %q %v", key, ok)
+	}
+	if got, want := SplitIDs(" @ID-A-01,@ID-A-02  @ID-A-03, "), []string{"@ID-A-01", "@ID-A-02", "@ID-A-03"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("SplitIDs %q", got)
+	}
+	var ids []string
+	for range 10 {
+		ids = append(ids, "@ID-COMMITCMD-01")
+	}
+	long := "@ID-" + strings.Repeat("X", 120)
+	lines := FooterLines("Scenarios", append(ids, long, "@ID-A-01"))
+	for i, l := range lines {
+		if !strings.HasPrefix(l, "Scenarios: @") || (len(l) > maxLength && l != "Scenarios: "+long) {
+			t.Errorf("line %d %q", i, l)
+		}
+	}
+	if len(lines) != 4 || lines[2] != "Scenarios: "+long || lines[3] != "Scenarios: @ID-A-01" {
+		t.Errorf("FooterLines %q", lines)
+	}
+	if got := IDs(strings.Join(lines, "\n"), "Scenarios", ""); len(got) != 12 {
+		t.Errorf("the lines read back as %d IDs", len(got))
+	}
+	if got := FooterLines("Task", nil); got != nil {
+		t.Errorf("FooterLines of no IDs %q", got)
 	}
 }

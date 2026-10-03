@@ -243,6 +243,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeReleaseSteps(sc, w)
 	initializeExtensionSteps(sc, w)
 	initializeStealthSteps(sc, w)
+	initializeCommitSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -434,8 +435,8 @@ func quote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + 
 // The scratch repository's itos.yaml: a ledger of tasks/phase-<n>.yaml (or
 // where the scenario moved it), the Conventional Commit types, a ledger footer
 // the non-feature types need (Task:, unless the scenario calls it otherwise),
-// docs commits held to prose, a CI, and a people list, plus what the scenario
-// set.
+// a scenario footer when there is a kind of named tests, docs commits held to
+// prose, a CI, and a people list, plus what the scenario set.
 func (w *world) writeConfig() error {
 	var b strings.Builder
 	b.WriteString("version: 1\n")
@@ -461,6 +462,14 @@ func (w *world) writeConfig() error {
       validate_for: all
       read_at: commit
 `)
+	if kind := w.testsKind(); kind != "" {
+		fmt.Fprintf(&b, `    Scenarios:
+      source: { tests: %s }
+      strip_prefix: "@"
+      validate_for: [feat, fix]
+      must_be_live: true
+`, kind)
+	}
 	if t := w.config.textFooter; t != nil {
 		fmt.Fprintf(&b, "    %s:\n      source: text\n      required_for: [%s]\n", t.key, strings.Join(t.types, ", "))
 		if t.since != "" {
@@ -480,11 +489,7 @@ func (w *world) writeConfig() error {
 		b.WriteString("  header_lint:\n    use: builtin\n")
 	}
 	b.WriteString(w.settingsUnder("commits"))
-	if w.config.rangeCheck || w.config.smoke || w.config.ciTests != "" || w.config.moves != nil {
-		kind := "scenario"
-		if w.config.ciTests != "" {
-			kind = w.config.ciTests
-		}
+	if kind := w.testsKind(); kind != "" {
 		fmt.Fprintf(&b, `tests:
   %s:
     root: features
@@ -568,6 +573,19 @@ func (w *world) writeConfig() error {
 		}
 	}
 	return w.write(w.data("itos.yaml"), b.String())
+}
+
+// The scratch config's one kind of named tests, when the scenario needs one:
+// scenario, or the kind its CI steps run. Its footer, Scenarios:, is required
+// for no type, so a scenario that names none is judged as before it.
+func (w *world) testsKind() string {
+	switch {
+	case w.config.ciTests != "":
+		return w.config.ciTests
+	case w.config.rangeCheck || w.config.smoke || w.config.moves != nil:
+		return "scenario"
+	}
+	return ""
 }
 
 // A path of itos's config and data as the scratch repository holds it: in

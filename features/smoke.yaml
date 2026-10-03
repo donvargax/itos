@@ -24,6 +24,10 @@
   scenarios:
     - id: "@ID-CI-01"
       why: ci run logs a merged check under the kind it ran in, the file's point
+- file: commit-command.feature
+  scenarios:
+    - id: "@ID-COMMITCMD-01"
+      why: itos commit --task writes the ledger footer into a commit the hook lets through, the file's point
 - file: commit-msg.feature
   scenarios:
     - id: "@ID-CMSG-03"

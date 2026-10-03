@@ -46,6 +46,8 @@ Commands:
   task list [--group <g>]          the tasks and their work items' status; runs nothing
   work [--as <handle>]             what the person can start, and what waits
   work check [<file>]              validate the work registry
+  commit [--task <id>] [--scenarios <ids>] [<git commit args>…]
+                                   git commit, with the footers itos writes
   commit check-message <file|->    header lint and footer rules on one message
   commit check-paths --type <t> <path>…
                                    the commit type's path rules, for planning a split
@@ -130,9 +132,23 @@ ledger.group.label (phase by default).
 
 --json: {"schema":1,"file","sound","problems":[{"rule","message","fix"?}]}`,
 
-	"commit": `Usage: itos commit check-message <file|-> [--at <sha>]
+	"commit": `Usage: itos commit [--task <id>] [--scenarios <ids>] [<git commit args>…]
+       itos commit check-message <file|-> [--at <sha>]
        itos commit check-paths --type <type> <path>…
-       itos commit footers <name> <from> <to>`,
+       itos commit footers <name> <from> <to>
+
+Runs git commit with every argument but its own flags, and writes the footers
+from them as git's --trailer, so they land whether the message comes from -m,
+-F or the editor: --task the footer whose source is the ledger (Task: here),
+--scenarios the one whose source is a kind of named tests, the first of
+commits.footers each. A flag may repeat, its value one ID or several
+separated by commas or spaces, written on lines of 100 characters at most,
+the key on each. The hooks judge the commit as any other, so a commit they
+refuse is not made. -q is git's --quiet. A first argument that names a
+subcommand runs it. Exit: git's own code; 2 when a flag has no value or the
+config no footer for it.
+
+--json: git's output on stderr; {"schema":1,"ok","commit"?}`,
 
 	"commit check-message": `Usage: itos commit check-message <file|-> [--at <sha>]
 

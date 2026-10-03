@@ -77,8 +77,14 @@ func workCommand(args []string, o Out) (int, error) {
 	return workProposal(as, o)
 }
 
+// commit is one of commit's subcommands when the first argument names one,
+// else a commit itself (gitCommit), every argument git commit's but itos's
+// own flags.
 func commit(args []string, o Out) (int, error) {
 	sub, rest := split(args)
+	if !slices.Contains(commitSubcommands, sub) {
+		return gitCommit(args, o)
+	}
 	switch sub {
 	case "check-message":
 		file, ok := first(positional(rest, "--at"))
@@ -96,14 +102,12 @@ func commit(args []string, o Out) (int, error) {
 			return 0, usage("commit check-paths needs --type <type>")
 		}
 		return checkPaths(typ, positional(rest, "--type"), o)
-	case "footers":
-		args := positional(rest)
-		if len(args) < 3 {
-			return 0, usage("commit footers needs <name> <from> <to>")
-		}
-		return listFooters(args[0], args[1], args[2], o)
 	}
-	return 0, usage("unknown command: commit %s", sub)
+	footers := positional(rest)
+	if len(footers) < 3 {
+		return 0, usage("commit footers needs <name> <from> <to>")
+	}
+	return listFooters(footers[0], footers[1], footers[2], o)
 }
 
 func verify(args []string, o Out) (int, error) {

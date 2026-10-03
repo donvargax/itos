@@ -13,10 +13,24 @@ cases:
     stderr: |
       itos: unknown command: bogus (itos --help)
   - name: an unknown subcommand is a usage error
-    argv: [commit, bogus]
+    argv: [tests, bogus]
     exit: 2
     stderr: |
-      itos: unknown command: commit bogus (itos --help)
+      itos: unknown command: tests bogus (itos --help)
+  - name: commit with no subcommand is git commit, and gives git's exit code
+    argv: [commit, bogus]
+    exit: 128
+    stderr_has: "not a git repository"
+  - name: commit --task needs an ID
+    argv: [commit, -m, "chore: x", --task]
+    exit: 2
+    stderr: |
+      itos: commit --task needs <id> (itos --help)
+  - name: commit --scenarios needs a footer whose source is a kind of named tests
+    argv: [commit, --scenarios, "@ID-A-01", -m, "feat: x"]
+    exit: 2
+    stderr: |
+      itos: commit --scenarios needs a footer whose source is a kind of named tests in commits.footers (itos --help)
   - name: verify needs two commits
     argv: [verify, HEAD]
     exit: 2
