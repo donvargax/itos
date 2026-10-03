@@ -272,6 +272,18 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   `git rev-list --merges main`), so what was pushed is what the remote has,
   not what the clone thinks it pushed; an uncommitted change is a known line
   appended to the file, read back with `git diff HEAD` still seeing it.
+- **The CI watch's scenarios** (`watch_test.go`, `watch.feature`): the
+  clone of push's scenarios, its config's `ci.watch` a command provider with
+  no interval, `sh <support>/watch.sh {sha}`, committed and pushed to the
+  remote's main with the hooks left out whenever a step changes it, so the
+  clone holds no uncommitted change for itos push to refuse. The script
+  appends the commit it is given to a file in the support folder, counts its
+  lines to know which look it is, and prints that look's run as JSON (the
+  last run for every look after), so "one poll later" is the second look;
+  "never run" is that file absent. "No gh on the PATH" is `pathHiding`, the
+  caller's PATH with gh hidden as claude always is, and the environment
+  drops every `GH_*` variable beside `GITHUB_*`, so no token reaches a
+  scenario.
 - **The git shim's scenarios** (`shim_test.go`, `shim.feature`): the link
   is to the binary the itos under test runs, never `tools/bin/itos`, a
   script that finds its checkout from its own path; a throwaway extension in
@@ -492,7 +504,7 @@ mechanisms above, written against those modules, read across.
   adapter and the command adapter at a tree, the smoke set and its rule,
   the run templates, the moves rule; below),
   `internal/message` (below), `internal/plan` (CI's plan; below),
-  `internal/providers` (the range and identity providers and the people;
+  `internal/providers` (the range, watch and identity providers and the people;
   below), `internal/work` (the registry and its problems, the items'
   statuses, and the proposal; below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
@@ -761,8 +773,14 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   credential prompt), its stdout the terminal's, or stderr under `--json`,
   where stdout is `{"schema":1,"ok","outcome","remote"?,"branch"?,
 "commit"?}`; a global `-q` passes `--quiet` to the rebase and the push and
-  leaves out the success line. itos push reads no config, so it runs where
-  itos is not set up, as itos commit does.
+  leaves out the success line. itos push reads no config until it has
+  pushed, so it runs where itos is not set up, as itos commit does. After a
+  push that sent something, unless `--no-wait` (`readPushArgs` takes it and
+  refuses the rest), `wait` loads the config when there is one: with none, a
+  config that cannot be read (said on stderr, the push's exit unchanged) or
+  `ci.watch.provider: none` it reports as before; else it prints the push's
+  line and hands the pushed SHA to `watchRun` (below), whose code is push's,
+  and under `--json` adds its `ci` and `run` keys to push's object.
 - **The git shim** (`internal/shim`, `internal/git/bin.go`,
   `internal/config/managed.go`, `internal/cli/gitshim.go`, slice 41):
   `cmd/itos` asks `shim.Named(os.Args[0])` first (base name `git`, or on
@@ -1201,6 +1219,33 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   conformance case can reach the network. Node's `fetch` waits however long
   the API takes; the port gives up after `Timeout` (a minute), which reads as
   no green run and runs everything.
+- **Waiting for a CI run** (slice 51) is `ci watch` and the end of `itos
+push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
+  the range provider. `WatchProvider(cfg, WatchSetup)` makes a `Watch` from
+  `ci.watch`, one look at a commit's run: `none` makes none (push then
+  reports as before); `command` runs `ci.watch.command` through the config's
+  shell, `{sha}` one shell word (`tests.ShellWord`), and `ReadRun` holds its
+  stdout to one JSON object, a `Run` (url, status, conclusion, jobs); `github`
+  is the `GitHub` value again, whose `RunOf` lists the workflow's runs for
+  `head_sha`, takes the newest by `created_at`, and reads its jobs, with a
+  token from `ci.range.github.token_env` else `GhToken` (`gh auth token`),
+  and the repository from `ci.range.github.repository_env` else
+  `GitHubRepository`, the remote's URL read as GitHub's (https, ssh or
+  scp-like). With no token it fails before any request, naming both ways to
+  give one. `RunOf` answers `found` false while GitHub has no run, and a
+  `Transient` error for no network, a 5xx or a 429; any other refusal is an
+  error. `watchRun` looks, then sleeps `min(interval, time left)`
+  (`sleep`, a variable a unit test makes instant), until the run is `Done`
+  (completed with a conclusion: GitHub can say completed a moment before it
+  records one) or the deadline passes: the run's address is printed when
+  first seen and each job's result once, keyed by its name, as it becomes
+  `Done`, to stdout (stderr under `--json`, nowhere under `-q`); the end goes
+  to stdout for a success, else to stderr with the jobs that did not succeed,
+  skipped and neutral ones aside. A `Transient` error is remembered and
+  looked past, and named if the timeout comes first; any other error, or the
+  timeout, exits 3 naming `itos ci watch <sha>`. The outcome is a `watched`
+  (code, `success`/`failure`/`timeout`/`error`, the run as last seen), whose
+  `fields` are the `ci` and `run` keys both commands' `--json` add.
 - **The work routing** is `work` and `work check` (`internal/cli/work.go`,
   `work.ts`'s two commands), and `work list` (slice 43, Go only), over the registry reading the config group
   ported (`work.Load`, `Issues`), never a second one. `work check` is

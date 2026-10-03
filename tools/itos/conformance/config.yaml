@@ -885,6 +885,12 @@ cases:
               token_env:
                 - GITHUB_TOKEN
                 - GH_TOKEN
+          watch:
+            provider: none
+            github:
+              workflow: ci.yml
+            interval: 10
+            timeout: 1800
         work:
           registry: tasks/work-items.yaml
           groups_key: phases

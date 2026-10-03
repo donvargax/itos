@@ -24,7 +24,7 @@ cases:
                                          the commit type's path rules, for planning a split
         commit footers <name> <from> <to>
                                          a range's free-text footers, for the release notes
-        push                             pull with a rebase, then push HEAD; never forced
+        push [--no-wait]                 pull with a rebase, push HEAD; with ci.watch, wait for CI
         git-shim install|uninstall [--dir <folder>]
                                          link itos as git, for itos's commit and push
         pin [<version>]                  move the config's pin to a release, the newest by default
@@ -40,6 +40,7 @@ cases:
         ci scope <from> <to>             docs_only=true|false, for GITHUB_OUTPUT
         ci range --head <sha> [--base <sha>]
                                          FROM=<sha>: where a push's range starts
+        ci watch [<sha>]                 wait for a commit's CI run, HEAD's by default
         hook commit-msg <file>           the commit-msg hook: data, paths, header lint, task checks
         hook pre-push <remote> <url>     the pre-push hook: verify, then the tests the push reaches
         hook pre-tool-use                Claude Code's PreToolUse hook: denies git commit and git push
@@ -249,7 +250,7 @@ cases:
     argv: [push, --help]
     exit: 0
     stdout: |
-      Usage: itos push
+      Usage: itos push [--no-wait]
 
       The routine that ends a piece of work, after its commits: fetches the branch's
       upstream (branch.<name>.remote and branch.<name>.merge, else origin and the
@@ -266,15 +267,26 @@ cases:
       mode's refs/notes/itos stays local; under a stealth config notes.rewriteRef is
       set first, as itos commit sets it, so the rebase carries the notes. It never
       forces: --force, -f, --force-with-lease or a + refspec is a usage error, as is
-      any other argument, and a push the remote or the hook refuses is reported, not
-      retried. Nothing to push is success. -q is git's --quiet and leaves out the
-      success line. Exit: 0 pushed, or nothing to push; 1 refused before the pull,
-      or the rebase stopped; 2 an argument; 3 no git repository, or no upstream and
-      no remote origin; git's own code when the fetch or the push fails.
+      any other argument but --no-wait, and a push the remote or the hook refuses is
+      reported, not retried. Nothing to push is success. -q is git's --quiet and
+      leaves out the success lines.
 
-      --json: git's output on stderr; {"schema":1,"ok","outcome","remote"?,"branch"?,"commit"?},
+      With ci.watch's provider (none by default), it then waits for the CI run of
+      the commit it pushed as itos ci watch does, printing each job's result as it
+      finishes and the run's address, and exits with the run's result: 0 when it
+      succeeded, 1 when it did not, naming the failed jobs; 3 when the run is still
+      going after ci.watch.timeout seconds or cannot be looked at, naming itos ci
+      watch <sha>. The commits are pushed either way. --no-wait pushes and returns.
+
+      Exit: 0 pushed, or nothing to push; 1 refused before the pull, the rebase
+      stopped, or the CI run waited for failed; 2 an argument; 3 no git repository,
+      no upstream and no remote origin, or a CI run not finished or not to be
+      looked at; git's own code when the fetch or the push fails.
+
+      --json: git's output on stderr; {"schema":1,"ok","outcome","remote"?,"branch"?,"commit"?,"ci"?,"run"?},
               outcome one of pushed, nothing-to-push, uncommitted, rebase-in-progress,
-              detached, no-remote, fetch-failed, rebase-stopped, rebase-failed, push-failed
+              detached, no-remote, fetch-failed, rebase-stopped, rebase-failed, push-failed;
+              ci and run as itos ci watch's, when it waited
   - name: itos git-shim --help
     argv: [git-shim, --help]
     exit: 0
@@ -474,6 +486,7 @@ cases:
              itos ci run [<from> <to>] | --nightly
              itos ci scope <from> <to>
              itos ci range --head <sha> [--base <sha>]
+             itos ci watch [<sha>]
   - name: itos ci plan --help
     argv: [ci, plan, --help]
     exit: 0
@@ -522,6 +535,30 @@ cases:
       (run everything). A provider that fails is not an error.
 
       --json: {"schema":1,"from"}
+  - name: itos ci watch --help
+    argv: [ci, watch, --help]
+    exit: 0
+    stdout: |
+      Usage: itos ci watch [<sha>]
+
+      Waits for the CI run of the commit, HEAD's by default, as itos push waits for
+      the run of the commit it pushed: looks at it every ci.watch.interval seconds,
+      printing the run's address and each job's result once, as it finishes, until
+      the run completes or ci.watch.timeout seconds pass. ci.watch.provider says how
+      it looks: github asks GitHub's API for the run of ci.watch.github.workflow,
+      with a token from ci.range.github.token_env, else gh auth token, for the
+      repository ci.range.github.repository_env names, else the remote's URL;
+      command runs ci.watch.command, {sha} standing for the full SHA, and reads one
+      JSON object from its stdout: {"url","status","conclusion","jobs":[{"name",
+      "status","conclusion"}]}, status queued, in_progress or completed, conclusion
+      when completed. A run not there yet is waited for. Exit 0 when the run
+      succeeded; 1 when it did not, naming the failed jobs; 2 ci.watch.provider none,
+      or not a commit; 3 the run still going, or not there, after the timeout, a
+      command that fails or prints no such object, or github with no token, naming
+      both ways to give one.
+
+      --json: the progress on stderr; {"schema":1,"ok","commit","ci","run"?},
+              ci one of success, failure, timeout, error; run {"url","status","conclusion"?,"jobs"}
   - name: itos hook --help
     argv: [hook, --help]
     exit: 0

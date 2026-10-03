@@ -262,7 +262,7 @@ the check timeout), `commits` (types, the header lint, footers, path sets,
 scopes, `since`), `tests` (one entry per kind: adapter, root, ID pattern,
 run and recognize templates, smoke set and whether every file needs a smoke
 test, range checks), `ci` (steps, prose, cost patterns, covers, nightly, the
-range provider), `work` (registry, its statuses, the key its owners per
+range provider, the watch), `work` (registry, its statuses, the key its owners per
 group are under, people, identity) and `hooks` (the manager, over the one
 detected, the binary the shims call, the
 commit-msg hook's task checks and their timeout, the
@@ -359,28 +359,29 @@ built-in command and before the name for an extension. With neither
 `--config` nor `--root`, a run from a subfolder of a repository finds its
 config at the top and runs from there (§5).
 
-| Command                                                                                                 | What it does                                                                                                                                                                                                       |
-| ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `task <id>…`, `--phase <g>`, `--pending`, `task list`                                                   | Runs the tasks' checks in written order, each distinct check once, or lists the tasks with their work items' status, running nothing; a status table.                                                              |
-| `work [--as <h>]`, `work list`, `work check [<file>]`                                                   | Who the session works for and what they can start; every item of the registry with its title, done ones too, judging nothing; validates the registry.                                                              |
-| `commit [--task <id>] [--scenarios <ids>] [--<footer> <text>] [--breaking <text>] [<git commit args>…]` | `git commit` with the footers itos writes from its flags, as git's `--trailer`, a commit missing a required one refused before git runs; the hooks judge them as typed ones, and git's exit code is itos's.        |
-| `commit check-message <file\|->`, `commit check-paths --type <t> <p>…`                                  | The header lint and the footer rules on one message; the scope rules alone, to plan a split.                                                                                                                       |
-| `commit footers <name> <from> <to>`                                                                     | A range's free-text footers with their commits, leaving out `none`, for a release's notes.                                                                                                                         |
-| `push`                                                                                                  | Pulls the upstream with a rebase whatever git's settings say, then pushes HEAD to it in a separate step; refuses uncommitted changes, stops with a stopped rebase, never forces.                                   |
-| `git-shim install\|uninstall [--dir <folder>]`, `git-shim run <commit\|push> [<git args>…]`             | Links itos as `git` (or removes the link) and says where the folder stands on the `PATH`; what the link runs in a repository itos manages (below).                                                                 |
-| `pin [<version>]`                                                                                       | Moves the config's pin (`pin.version`, `pin.checksums`) to the release named, or the newest, editing those values alone; the launcher's own command, run whatever the pin says; commits nothing.                   |
-| `init [--stealth]`                                                                                      | Readies a repository (`git init` first where needed): a starter config, its ledger, registry and smoke set, the newest release pinned, the hooks; with a config there, writes nothing and reports what is missing. |
-| `verify <from> <to>`, `verify` (stealth)                                                                | Re-checks every non-merge commit of the range after `commits.since` (message with footers at that commit, paths, the built-in moves rule against its parent), then each range command once.                        |
-| `tests list <kind> [--at <tree>]`, `tests smoke check\|ids\|run <kind>`                                 | The adapter's listing; the smoke rule, the smoke IDs, the smoke run.                                                                                                                                               |
-| `tests moves <kind>`                                                                                    | The staged feature files against HEAD's by the built-in moves rule, by hand.                                                                                                                                       |
-| `ci plan [<from> <to>]`, `ci run [<from> <to>]`, `--nightly`                                            | Prints the plan (with no range, only in stealth mode); runs it, stopping at the first failure unless `ci.stop_at_first_failure` is false.                                                                          |
-| `ci scope <from> <to>`, `ci range --head <sha> [--base <sha>]`                                          | Whether a range is prose only; where a push's range starts.                                                                                                                                                        |
-| `hook commit-msg <file>`, `hook pre-push <remote> <url>`, `hook pre-tool-use`                           | The hooks' entry points: git's two (the pre-push one verifies the pushed commits first), and Claude Code's PreToolUse guard against an agent's `git commit` and `git push` (below).                                |
-| `hooks install [--manager <m>] [--print] [--force]`                                                     | Writes the one-line shims for the hook manager it detects, or prints its snippet; under a stealth config, declares the hooks in the git config.                                                                    |
-| `config check [--print-defaults]`, `config get <key>`                                                   | Validates the config, the ledger, the registry and the smoke sets; prints a key's value as the tools read it, defaults applied (slice 45).                                                                         |
-| `version [--check]`                                                                                     | Needs no config; `--check` exits 1 if the binary does not satisfy `requires`.                                                                                                                                      |
-| `help <command>`                                                                                        | The command's help, or `itos-<command> --help` for an extension; `itos --help` lists the extensions on the `PATH`.                                                                                                 |
-| any other `<command> [args]`                                                                            | An extension: runs `itos-<command>` found on the `PATH` with the arguments after its name, unread, and hands back its exit code (below).                                                                           |
+| Command                                                                                                 | What it does                                                                                                                                                                                                         |
+| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `task <id>…`, `--phase <g>`, `--pending`, `task list`                                                   | Runs the tasks' checks in written order, each distinct check once, or lists the tasks with their work items' status, running nothing; a status table.                                                                |
+| `work [--as <h>]`, `work list`, `work check [<file>]`                                                   | Who the session works for and what they can start; every item of the registry with its title, done ones too, judging nothing; validates the registry.                                                                |
+| `commit [--task <id>] [--scenarios <ids>] [--<footer> <text>] [--breaking <text>] [<git commit args>…]` | `git commit` with the footers itos writes from its flags, as git's `--trailer`, a commit missing a required one refused before git runs; the hooks judge them as typed ones, and git's exit code is itos's.          |
+| `commit check-message <file\|->`, `commit check-paths --type <t> <p>…`                                  | The header lint and the footer rules on one message; the scope rules alone, to plan a split.                                                                                                                         |
+| `commit footers <name> <from> <to>`                                                                     | A range's free-text footers with their commits, leaving out `none`, for a release's notes.                                                                                                                           |
+| `push [--no-wait]`                                                                                      | Pulls the upstream with a rebase whatever git's settings say, then pushes HEAD to it in a separate step; refuses uncommitted changes, stops with a stopped rebase, never forces; with `ci.watch`, waits for its run. |
+| `git-shim install\|uninstall [--dir <folder>]`, `git-shim run <commit\|push> [<git args>…]`             | Links itos as `git` (or removes the link) and says where the folder stands on the `PATH`; what the link runs in a repository itos manages (below).                                                                   |
+| `pin [<version>]`                                                                                       | Moves the config's pin (`pin.version`, `pin.checksums`) to the release named, or the newest, editing those values alone; the launcher's own command, run whatever the pin says; commits nothing.                     |
+| `init [--stealth]`                                                                                      | Readies a repository (`git init` first where needed): a starter config, its ledger, registry and smoke set, the newest release pinned, the hooks; with a config there, writes nothing and reports what is missing.   |
+| `verify <from> <to>`, `verify` (stealth)                                                                | Re-checks every non-merge commit of the range after `commits.since` (message with footers at that commit, paths, the built-in moves rule against its parent), then each range command once.                          |
+| `tests list <kind> [--at <tree>]`, `tests smoke check\|ids\|run <kind>`                                 | The adapter's listing; the smoke rule, the smoke IDs, the smoke run.                                                                                                                                                 |
+| `tests moves <kind>`                                                                                    | The staged feature files against HEAD's by the built-in moves rule, by hand.                                                                                                                                         |
+| `ci plan [<from> <to>]`, `ci run [<from> <to>]`, `--nightly`                                            | Prints the plan (with no range, only in stealth mode); runs it, stopping at the first failure unless `ci.stop_at_first_failure` is false.                                                                            |
+| `ci scope <from> <to>`, `ci range --head <sha> [--base <sha>]`                                          | Whether a range is prose only; where a push's range starts.                                                                                                                                                          |
+| `ci watch [<sha>]`                                                                                      | Waits for a commit's CI run, HEAD's by default, through `ci.watch`'s provider, and exits with its result.                                                                                                            |
+| `hook commit-msg <file>`, `hook pre-push <remote> <url>`, `hook pre-tool-use`                           | The hooks' entry points: git's two (the pre-push one verifies the pushed commits first), and Claude Code's PreToolUse guard against an agent's `git commit` and `git push` (below).                                  |
+| `hooks install [--manager <m>] [--print] [--force]`                                                     | Writes the one-line shims for the hook manager it detects, or prints its snippet; under a stealth config, declares the hooks in the git config.                                                                      |
+| `config check [--print-defaults]`, `config get <key>`                                                   | Validates the config, the ledger, the registry and the smoke sets; prints a key's value as the tools read it, defaults applied (slice 45).                                                                           |
+| `version [--check]`                                                                                     | Needs no config; `--check` exits 1 if the binary does not satisfy `requires`.                                                                                                                                        |
+| `help <command>`                                                                                        | The command's help, or `itos-<command> --help` for an extension; `itos --help` lists the extensions on the `PATH`.                                                                                                   |
+| any other `<command> [args]`                                                                            | An extension: runs `itos-<command>` found on the `PATH` with the arguments after its name, unread, and hands back its exit code (below).                                                                             |
 
 **Extensions** (slice 29, the user's idea): a command itos does not have runs
 the program `itos-<command>` found on the `PATH`, and only there, as git runs
@@ -395,7 +396,8 @@ and reach it in its environment: `ITOS_CONFIG` and `ITOS_ROOT`, absolute;
 to call back; `ITOS_VERSION`, its version, which the launcher reads (§10), so
 a call back runs the same version. The trivial first one, `itos-hello`, is an
 example for authors in `docs/extensions.md`, not a release asset; the hand work
-(a push that waits for CI, the inbox) can follow as extensions.
+(the inbox) can follow as extensions, as a push that waits for CI was to,
+before slice 51 built it into `itos push`.
 
 **itos commit** (slice 31, the user's calls of 2026-10-03): `itos commit`
 runs `git commit` with every argument but its own flags, `--task <ids>` and
@@ -463,8 +465,38 @@ or a `+` refspec is a usage error (exit 2) naming why, and a push the remote
 or the hook refuses is reported with git's exit code, never retried.
 Nothing to push is success (exit 0, saying so); a remote without the branch
 is a new branch, pushed with no rebase. Outside a repository, or with no
-upstream and no `origin`, it exits 3. Printing the CI run the push started
-is slice 51's: with `ci.watch` (opt-in) it waits for that run and exits with its result.
+upstream and no `origin`, it exits 3. With `ci.watch` it then waits for the
+CI run it started (slice 51, below).
+
+**Waiting for CI** (slice 51, the user's calls of 2026-10-03,
+`features/watch.feature`): an agent's push was done when git said so, and the
+run it started was watched by hand, the run found by the commit's full SHA
+and an agent's report of a green run checked again. `ci.watch` is opt-in: its
+`provider` is `none` by default, so a config without it pushes as before.
+With `github` or `command`, `itos push` waits, after a push that sent
+something, for the run of the commit it pushed: it looks every
+`ci.watch.interval` seconds (10 by default), prints the run's address and each
+job's result once, as it finishes, and exits with the run's result, 0 when it
+succeeded and 1 when it did not, naming the jobs that failed; the commits are
+pushed either way. A run still going, or not there, after `ci.watch.timeout`
+seconds (1800 by default), and a provider that cannot look, exit 3 naming
+`itos ci watch <sha>`, which waits for any commit's run the same way, HEAD's
+by default, and re-attaches after an interruption or to check a run an agent
+claims. `--no-wait` pushes and returns. The `github` provider reads
+`ci.watch.github.workflow`'s newest run for the commit (`head_sha`) and its
+jobs from GitHub's API, beside the range provider, with a token from
+`ci.range.github.token_env`, else `gh auth token`, and with neither exits 3
+naming both before any request; the repository is
+`ci.range.github.repository_env`'s, else the one the remote's URL names. A
+run GitHub does not have yet is waited for, a conclusion it has not recorded
+yet is no result, and a server error, a rate limit or no network is looked
+past until the timeout. The `command` provider runs `ci.watch.command`, `{sha}`
+the full SHA, once a look, and reads one JSON object from its stdout,
+`{"url", "status", "conclusion", "jobs": [{"name", "status",
+"conclusion"}]}`; a command that fails or prints anything else exits 3. Under
+`--json`, push adds `ci` (success, failure, timeout or error) and `run` (the
+run as last seen) when it waited, and `ci watch` prints
+`{"ok","commit","ci","run"?}`, the progress going to stderr.
 
 **The pre-push hook verifies** (slice 46, the user's question of
 2026-10-03): a commit that skipped the commit-msg hook (`--no-verify`, a

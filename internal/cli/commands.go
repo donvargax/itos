@@ -222,6 +222,8 @@ func ciCommand(args []string, o Out) (int, error) {
 			return 0, usage("ci scope needs <from> <to>")
 		}
 		return ciScope(from, to, o)
+	case "watch":
+		return ciWatch(positional(rest), o)
 	case "range":
 		head, ok := flagValue(rest, "--head")
 		if !ok {

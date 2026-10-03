@@ -1,0 +1,285 @@
+# Waiting for a commit's CI run (slice 51): itos ci watch [<sha>], HEAD's by
+# default, and itos push after it pushed, with ci.watch's provider. The
+# command provider runs ci.watch.command, {sha} the commit's full SHA, once a
+# look, and reads one JSON object from its stdout; each job's result is
+# printed once, as it finishes, and the run's address; the exit is the run's
+# result, 3 for a run still going after ci.watch.timeout, a command that
+# fails or prints no run, and github with no token. ci.watch's provider is
+# none by default, and push then returns as before (push.yaml).
+#
+# The command here is report.sh: it counts its looks in the file polls and
+# prints run-<n>.json for the nth look when there is one, else run.json, with
+# SHA replaced by the commit it was given.
+files:
+  itos.yaml: |
+    version: 1
+    ci:
+      steps: []
+      watch: { provider: command, command: "sh report.sh {sha}", interval: 0 }
+  report.sh: |
+    n=$(( $(cat polls 2>/dev/null || echo 0) + 1 ))
+    echo "$n" > polls
+    if [ -f "run-$n.json" ]; then f="run-$n.json"; else f=run.json; fi
+    sed "s/SHA/$1/g" "$f"
+  run.json: |
+    {"url":"https://ci.example/runs/SHA","status":"completed","conclusion":"success","jobs":[{"name":"ci","status":"completed","conclusion":"success"},{"name":"platform","status":"completed","conclusion":"success"}]}
+git:
+  - commit: "chore: first"
+    files: { README.md: "first\n" }
+    label: first
+  - commit: "chore: second"
+    files: { README.md: "second\n" }
+    label: head
+cases:
+  - name: ci watch waits for HEAD's run and exits 0 when it succeeded
+    argv: [ci, watch]
+    exit: 0
+    stdout: |
+      CI run: https://ci.example/runs/{{sha.head}}
+        ci: success
+        platform: success
+      CI passed: https://ci.example/runs/{{sha.head}}
+    files_after:
+      polls: "1\n"
+  - name: ci watch <sha> watches that commit, given in full to the command
+    argv: [ci, watch, "{{short.first}}"]
+    exit: 0
+    stdout_has: "CI passed: https://ci.example/runs/{{sha.first}}\n"
+  - name: a run that failed exits 1, naming the failed jobs
+    argv: [ci, watch]
+    files:
+      run.json: |
+        {"url":"https://ci.example/runs/1","status":"completed","conclusion":"failure","jobs":[{"name":"ci","status":"completed","conclusion":"failure"},{"name":"platform","status":"completed","conclusion":"success"}]}
+    exit: 1
+    stdout: |
+      CI run: https://ci.example/runs/1
+        ci: failure
+        platform: success
+    stderr: |
+      CI failure: https://ci.example/runs/1; failed jobs: ci
+  - name: a queued run is waited for, and each job's result printed once, as it finishes
+    argv: [ci, watch]
+    files:
+      run-1.json: |
+        {"url":"","status":"queued","jobs":[]}
+      run-2.json: |
+        {"url":"https://ci.example/runs/1","status":"in_progress","jobs":[{"name":"ci","status":"completed","conclusion":"success"},{"name":"platform","status":"in_progress"}]}
+      run-3.json: |
+        {"url":"https://ci.example/runs/1","status":"in_progress","jobs":[{"name":"ci","status":"completed","conclusion":"success"},{"name":"platform","status":"in_progress"}]}
+      run.json: |
+        {"url":"https://ci.example/runs/1","status":"completed","conclusion":"success","jobs":[{"name":"ci","status":"completed","conclusion":"success"},{"name":"platform","status":"completed","conclusion":"success"}]}
+    exit: 0
+    stdout: |
+      CI run: https://ci.example/runs/1
+        ci: success
+        platform: success
+      CI passed: https://ci.example/runs/1
+    files_after:
+      polls: "4\n"
+  - name: ci watch --json
+    argv: [ci, watch, --json]
+    exit: 0
+    stderr: |
+      CI run: https://ci.example/runs/{{sha.head}}
+        ci: success
+        platform: success
+      CI passed: https://ci.example/runs/{{sha.head}}
+    json:
+      schema: 1
+      ok: true
+      commit: "{{sha.head}}"
+      ci: success
+      run:
+        url: "https://ci.example/runs/{{sha.head}}"
+        status: completed
+        conclusion: success
+        jobs:
+          - { name: ci, status: completed, conclusion: success }
+          - { name: platform, status: completed, conclusion: success }
+  - name: a run still going after ci.watch.timeout exits 3, naming itos ci watch
+    argv: [ci, watch]
+    files:
+      itos.yaml: |
+        version: 1
+        ci:
+          steps: []
+          watch: { provider: command, command: "sh report.sh {sha}", interval: 0.05, timeout: 0.2 }
+      run.json: |
+        {"url":"https://ci.example/runs/1","status":"in_progress","jobs":[{"name":"ci","status":"in_progress"}]}
+    exit: 3
+    stdout: |
+      CI run: https://ci.example/runs/1
+    stderr: |
+      itos: the CI run of {{sha.head}} has not finished after 0.2 seconds (ci.watch.timeout); itos ci watch {{sha.head}} waits for it again
+  - name: a command that prints no run object exits 3
+    argv: [ci, watch]
+    files:
+      run.json: "not json\n"
+    exit: 3
+    stdout: ""
+    stderr_has:
+      - "itos: ci.watch.command printed no run: not one JSON object of {url, status, conclusion, jobs}"
+      - "; itos ci watch {{sha.head}} waits for it again\n"
+  - name: a run object with a status of none of the three exits 3
+    argv: [ci, watch]
+    files:
+      run.json: |
+        {"url":"https://ci.example/runs/1","status":"running","jobs":[]}
+    exit: 3
+    stderr: |
+      itos: ci.watch.command printed no run: the run's status "running" is none of queued, in_progress or completed; itos ci watch {{sha.head}} waits for it again
+  - name: a command that fails exits 3
+    argv: [ci, watch]
+    files:
+      itos.yaml: |
+        version: 1
+        ci:
+          steps: []
+          watch: { provider: command, command: "exit 4" }
+    exit: 3
+    stderr: |
+      itos: ci.watch.command failed (exit 4): exit 4; itos ci watch {{sha.head}} waits for it again
+  - name: what is not a commit is a usage error
+    argv: [ci, watch, nope]
+    exit: 2
+    stderr: |
+      itos: ci watch: nope is not a commit of this repository (itos --help)
+  - name: with ci.watch's provider none there is no run to watch
+    argv: [ci, watch]
+    files:
+      itos.yaml: "version: 1\nci: { steps: [] }\n"
+    exit: 2
+    stderr_has: "ci.watch.provider is none, so there is no CI run to watch: set ci.watch.provider to github or command"
+    files_after:
+      polls: null
+  - name: github with no token and no gh exits 3 before any request, naming both ways to sign in
+    argv: [ci, watch]
+    files:
+      itos.yaml: "version: 1\nci: { steps: [], watch: { provider: github } }\n"
+    env: { GH_TOKEN: "" }
+    hide: [gh]
+    exit: 3
+    stderr: |
+      itos: ci.watch's github provider needs a token, and there is none: set GITHUB_TOKEN or GH_TOKEN (ci.range.github.token_env), or install gh and run gh auth login
+  - name: github with a token and no GitHub remote exits 3, naming the repository variable
+    argv: [ci, watch]
+    files:
+      itos.yaml: "version: 1\nci: { steps: [], watch: { provider: github } }\n"
+    env: { GH_TOKEN: "a-token" }
+    hide: [gh]
+    exit: 3
+    stderr: |
+      itos: ci.watch's github provider cannot tell the GitHub repository from the remote's URL "": set GITHUB_REPOSITORY to owner/name
+  - name: a command provider needs its command, and the interval and timeout their bounds
+    argv: [config, check]
+    files:
+      itos.yaml: |
+        version: 1
+        ci:
+          steps: []
+          watch: { provider: command, interval: -1, timeout: 0 }
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: ci.watch.provider is command, and ci.watch.command is missing
+      FAIL itos.yaml: ci.watch.interval is a number of seconds, 0 or more, not -1
+      FAIL itos.yaml: ci.watch.timeout is a number of seconds above 0, not 0
+  # itos push waits for the run of the commit it pushed; the commits are on
+  # the remote whatever the run says.
+  - name: push waits for the run of the commit it pushed
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: head
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git
+    exit: 0
+    stdout: |
+      Pushed {{short.head}} to origin/main.
+      CI run: https://ci.example/runs/{{sha.head}}
+        ci: success
+        platform: success
+      CI passed: https://ci.example/runs/{{sha.head}}
+    files_after:
+      .git/origin.git/refs/heads/main: "{{sha.head}}\n"
+  - name: a push whose run fails exits 1, its commit pushed
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: head
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git
+    files:
+      run.json: |
+        {"url":"https://ci.example/runs/1","status":"completed","conclusion":"failure","jobs":[{"name":"ci","status":"completed","conclusion":"failure"}]}
+    exit: 1
+    stdout: |
+      Pushed {{short.head}} to origin/main.
+      CI run: https://ci.example/runs/1
+        ci: failure
+    stderr_has: "CI failure: https://ci.example/runs/1; failed jobs: ci\n"
+    files_after:
+      .git/origin.git/refs/heads/main: "{{sha.head}}\n"
+  - name: push --no-wait pushes and returns, the command never run
+    argv: [push, --no-wait]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: head
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git
+    exit: 0
+    stdout: |
+      Pushed {{short.head}} to origin/main.
+    files_after:
+      .git/origin.git/refs/heads/main: "{{sha.head}}\n"
+      polls: null
+  - name: push --json with the run it waited for
+    argv: [push, --json]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: head
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      outcome: pushed
+      remote: origin
+      branch: main
+      commit: "{{sha.head}}"
+      ci: success
+      run:
+        url: "https://ci.example/runs/{{sha.head}}"
+        status: completed
+        conclusion: success
+        jobs:
+          - { name: ci, status: completed, conclusion: success }
+          - { name: platform, status: completed, conclusion: success }
+  - name: nothing to push waits for no run
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q origin main
+    exit: 0
+    stdout: |
+      Nothing to push: main is at origin/main.
+    files_after:
+      polls: null
+  - name: a push whose watch cannot look exits 3, its commit pushed and itos ci watch named
+    argv: [push]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: head
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git
+    files:
+      itos.yaml: "version: 1\nci: { steps: [], watch: { provider: github } }\n"
+    env: { GH_TOKEN: "" }
+    hide: [gh]
+    exit: 3
+    stdout: |
+      Pushed {{short.head}} to origin/main.
+    stderr_has: "itos: ci.watch's github provider needs a token, and there is none: set GITHUB_TOKEN or GH_TOKEN (ci.range.github.token_env), or install gh and run gh auth login; the commits are pushed, and itos ci watch {{sha.head}} waits for their run\n"
+    files_after:
+      .git/origin.git/refs/heads/main: "{{sha.head}}\n"

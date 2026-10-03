@@ -1,11 +1,12 @@
 # itos push: the routine of pulling with a rebase and pushing, as one
-# command. Every argument is refused, a forcing one saying why; tracked files
-# with uncommitted changes refuse it before anything is fetched, untracked
-# ones never; it rebases onto the upstream (origin and the branch's own name
-# when there is none) whatever pull.rebase says, leaves a rebase that stops
-# for the person and pushes nothing; it pushes HEAD to the upstream's branch
-# alone, so a push refspec in the config sends nothing else, and a push the
-# pre-push hook refuses is reported with git's exit code.
+# command. Every argument but --no-wait is refused, a forcing one saying why;
+# tracked files with uncommitted changes refuse it before anything is
+# fetched, untracked ones never; it rebases onto the upstream (origin and the
+# branch's own name when there is none) whatever pull.rebase says, leaves a
+# rebase that stops for the person and pushes nothing; it pushes HEAD to the
+# upstream's branch alone, so a push refspec in the config sends nothing
+# else, and a push the pre-push hook refuses is reported with git's exit
+# code. Waiting for the CI run it started (ci.watch) is watch.yaml's.
 #
 # Each repository's remote is a bare one in its own git folder,
 # .git/origin.git, so git's output names it the same in every case.
@@ -30,11 +31,11 @@ cases:
     exit: 2
     stderr: |
       itos: push never forces: +main is a forcing refspec; itos push rebases onto the remote's commits instead (itos --help)
-  - name: push takes no arguments
-    argv: [push, origin, main]
+  - name: push takes no arguments but --no-wait
+    argv: [push, --no-wait, origin, main]
     exit: 2
     stderr: |
-      itos: push takes no arguments: it pushes HEAD to the branch's upstream (origin) (itos --help)
+      itos: push takes no arguments but --no-wait: it pushes HEAD to the branch's upstream (origin) (itos --help)
   - name: push outside a git repository is a missing environment
     argv: [push]
     exit: 3

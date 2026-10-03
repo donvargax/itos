@@ -52,6 +52,15 @@ func defaults() *value.Map {
 					"token_env", l("GITHUB_TOKEN", "GH_TOKEN"),
 				),
 			),
+			// Opt in (slice 51): none, so a config without ci.watch pushes as
+			// before. A poll every ten seconds is two API requests a run, far
+			// inside GitHub's hourly limit; half an hour outlasts a slow run.
+			"watch", m(
+				"provider", "none",
+				"github", m("workflow", "ci.yml"),
+				"interval", 10.0,
+				"timeout", 1800.0,
+			),
 		),
 		"work", m(
 			// Beside the ledger, since it is itos's data as the ledger is, and

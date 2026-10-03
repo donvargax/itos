@@ -29,10 +29,23 @@ import (
 	"github.com/donvargax/itos/v2/internal/out"
 )
 
-// readPushArgs refuses every argument: itos push pushes HEAD to the
-// branch's upstream and takes nothing else, and an argument that would
-// force the push says why it is refused.
-func readPushArgs(args []string) error {
+// readPushArgs refuses every argument but --no-wait, which it gives: itos
+// push pushes HEAD to the branch's upstream and takes nothing else, and an
+// argument that would force the push says why it is refused.
+func readPushArgs(args []string) (noWait bool, err error) {
+	var rest []string
+	for _, arg := range args {
+		if arg == "--no-wait" {
+			noWait = true
+			continue
+		}
+		rest = append(rest, arg)
+	}
+	return noWait, refusePushArgs(rest)
+}
+
+// refusePushArgs refuses each argument, a forcing one saying why.
+func refusePushArgs(args []string) error {
 	for _, arg := range args {
 		switch {
 		case arg == "-f" || strings.HasPrefix(arg, "--force") ||
@@ -43,7 +56,7 @@ func readPushArgs(args []string) error {
 		}
 	}
 	if len(args) > 0 {
-		return usage("push takes no arguments: it pushes HEAD to the branch's upstream (%s)", args[0])
+		return usage("push takes no arguments but --no-wait: it pushes HEAD to the branch's upstream (%s)", args[0])
 	}
 	return nil
 }
@@ -54,6 +67,8 @@ type pushRun struct {
 	o              Out
 	git            io.Writer // where git's stdout goes: stderr under --json
 	remote, branch string
+	noWait         bool     // --no-wait: push and return, whatever ci.watch says
+	watched        *watched // the CI run waited for after the push, if one was
 }
 
 // report ends the run: under --json the outcome on stdout, else the lines
@@ -68,6 +83,9 @@ func (r pushRun) report(code int, outcome string, lines ...string) (int, error) 
 			if sha, err := git.Output("rev-parse", "HEAD"); err == nil {
 				fields = append(fields, out.Field{Key: "commit", Value: strings.TrimSpace(sha)})
 			}
+		}
+		if r.watched != nil {
+			fields = append(fields, r.watched.fields()...)
 		}
 		return code, out.Emit(r.o.Stdout, fields...)
 	}
@@ -89,10 +107,11 @@ func (r pushRun) upstream() string { return r.remote + "/" + r.branch }
 
 // push is `itos push`.
 func push(args []string, o Out) (int, error) {
-	if err := readPushArgs(args); err != nil {
+	noWait, err := readPushArgs(args)
+	if err != nil {
 		return 0, err
 	}
-	r := pushRun{o: o, git: o.Stdout}
+	r := pushRun{o: o, git: o.Stdout, noWait: noWait}
 	if o.JSON {
 		r.git = o.Stderr
 	}
@@ -230,7 +249,48 @@ func (r pushRun) push(remote, ref string) (int, error) {
 			"If the remote moved, run itos push again to rebase onto it; if a hook refused it, fix what it reported first.")
 	}
 	short, _ := git.Output("rev-parse", "--short", "HEAD")
-	return r.report(0, "pushed", fmt.Sprintf("Pushed %s to %s.", strings.TrimSpace(short), r.upstream()))
+	pushed := fmt.Sprintf("Pushed %s to %s.", strings.TrimSpace(short), r.upstream())
+	if r.noWait {
+		return r.report(0, "pushed", pushed)
+	}
+	return r.wait(remote, pushed)
+}
+
+// wait waits for the CI run of the commit pushed when ci.watch has a
+// provider, and exits with the run's result; with no config, or none, it
+// reports the push as before. The commits are pushed whatever the run says.
+// A config that cannot be read leaves the push as it was, saying why
+// nothing was watched.
+func (r *pushRun) wait(remote, pushed string) (int, error) {
+	file := config.Path()
+	if _, err := os.Stat(file); err != nil {
+		return r.report(0, "pushed", pushed)
+	}
+	cfg, err := config.Load(file)
+	if err != nil {
+		fmt.Fprintf(r.o.Stderr, "itos: no CI run watched, the config cannot be read: %s\n", err)
+		return r.report(0, "pushed", pushed)
+	}
+	sha, _ := git.Output("rev-parse", "HEAD")
+	sha = strings.TrimSpace(sha)
+	look, ok, err := watcher(cfg, remote, r.o)
+	if !ok && err == nil {
+		return r.report(0, "pushed", pushed)
+	}
+	if !r.o.JSON && !r.o.Quiet {
+		fmt.Fprintln(r.o.Stdout, pushed)
+	}
+	if err != nil {
+		fmt.Fprintf(r.o.Stderr, "itos: %s; the commits are pushed, and itos ci watch %s waits for their run\n", err, sha)
+		r.watched = &watched{code: ExitMissing, outcome: "error"}
+	} else {
+		w := watchRun(cfg, look, sha, r.o)
+		r.watched = &w
+	}
+	if r.o.JSON {
+		return r.report(r.watched.code, "pushed")
+	}
+	return r.watched.code, nil
 }
 
 // run runs git, its stdout the run's, its stderr to stderr, and gives its

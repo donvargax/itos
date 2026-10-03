@@ -124,6 +124,10 @@
   scenarios:
     - id: "@ID-UPGRADE-01"
       why: a commit without the free-text footer its type needs is rejected, the footer's rule, one hook run
+- file: watch.feature
+  scenarios:
+    - id: "@ID-WATCH-01"
+      why: a push that waits for its run, printing each job and exiting with the run's result, the file's point
 - file: work.feature
   scenarios:
     - id: "@ID-WORK-01"

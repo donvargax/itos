@@ -16,7 +16,7 @@ func crossProblems(tree *value.Map, c *Config) []out.Problem {
 	var found []out.Problem
 	for _, check := range []func(*value.Map, *Config) []out.Problem{
 		sinceProblems, pinProblems, scopeProblems, footerProblems, stepProblems,
-		patternProblems, providerProblems, hookProblems, rangeCheckProblems,
+		patternProblems, providerProblems, hookProblems, rangeCheckProblems, watchProblems,
 	} {
 		found = append(found, check(tree, c)...)
 	}
@@ -333,6 +333,7 @@ func providerProblems(_ *value.Map, c *Config) []out.Problem {
 		}
 	}
 	needsCommand("ci.range", c.CI.Range.Provider, c.CI.Range.Command)
+	needsCommand("ci.watch", c.CI.Watch.Provider, c.CI.Watch.Command)
 	needsCommand("work.identity", c.Work.Identity.Provider, c.Work.Identity.Command)
 	people := c.Work.People
 	if people.LoginFrom == nil {
@@ -367,6 +368,28 @@ func hookProblems(_ *value.Map, c *Config) []out.Problem {
 		Message: "hooks.commit_msg.check_timeout is a number of seconds above 0, not " + value.Number(*seconds),
 		Fix:     "set hooks.commit_msg.check_timeout to the seconds a check may hold a commit, or set hooks.commit_msg.task_checks to false",
 	}}
+}
+
+// watchProblems: a watch looks at its run again after interval seconds, none
+// being at once, and gives up after timeout seconds, which must leave it
+// time to look.
+func watchProblems(_ *value.Map, c *Config) []out.Problem {
+	var found []out.Problem
+	if w := c.CI.Watch; w.Interval != nil && *w.Interval < 0 {
+		found = append(found, out.Problem{
+			Rule:    "config-watch-interval",
+			Message: "ci.watch.interval is a number of seconds, 0 or more, not " + value.Number(*w.Interval),
+			Fix:     "set ci.watch.interval to the seconds between two looks at the run",
+		})
+	}
+	if w := c.CI.Watch; w.Timeout != nil && *w.Timeout <= 0 {
+		found = append(found, out.Problem{
+			Rule:    "config-watch-timeout",
+			Message: "ci.watch.timeout is a number of seconds above 0, not " + value.Number(*w.Timeout),
+			Fix:     "set ci.watch.timeout to the seconds a watch waits for the run to finish",
+		})
+	}
+	return found
 }
 
 // rangeCheckProblems: a built-in range check runs no command, and the moves

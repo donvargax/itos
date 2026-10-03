@@ -228,6 +228,7 @@ type CI struct {
 	WaitOnStatus       []string `json:"wait_on_status"`
 	StopAtFirstFailure bool     `json:"stop_at_first_failure"`
 	Range              Range    `json:"range"`
+	Watch              Watch    `json:"watch"`
 }
 
 // Step is one CI step: a command written as text, or a mapping that runs a
@@ -274,6 +275,19 @@ type Range struct {
 		RepositoryEnv string   `json:"repository_env"`
 		TokenEnv      []string `json:"token_env"`
 	} `json:"github"`
+}
+
+// Watch is how itos push and itos ci watch wait for a commit's CI run
+// (slice 51): the provider, none by default, and how often and how long.
+type Watch struct {
+	Provider string  `json:"provider"`
+	Command  *string `json:"command"`
+	GitHub   struct {
+		Workflow string `json:"workflow"`
+	} `json:"github"`
+	// Seconds; never nil once loaded, the table giving both.
+	Interval *float64 `json:"interval"`
+	Timeout  *float64 `json:"timeout"`
 }
 
 // Work is the work registry, its statuses, the people and the identity.

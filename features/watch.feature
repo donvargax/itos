@@ -28,7 +28,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     And a clone of it, where itos runs
     And ci.watch runs a command that reports the run "https://ci.example/runs/1"
 
-  @ID-WATCH-01 @slice-51 @wip
+  @ID-WATCH-01 @slice-51
   Scenario: A push waits for its run, printing each job's result, and exits 0 when it succeeds
     Given the watched run's jobs "ci" and "platform" succeed
     And the clone has the commit "chore: tidy the readme" touching "README.md"
@@ -41,7 +41,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
 
   # The commits are on the remote whatever the run says: the push is done,
   # and the exit code says what CI made of it.
-  @ID-WATCH-02 @slice-51 @wip
+  @ID-WATCH-02 @slice-51
   Scenario: A run that fails makes the push exit 1, naming the failed job, its commits pushed
     Given the watched run's job "ci" fails and its job "platform" succeeds
     And the clone has the commit "chore: tidy the readme" touching "README.md"
@@ -52,7 +52,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
 
   # Each poll reports one more job done; a job's line is printed once, when
   # it finishes, so a watcher of the output sees the run as it goes.
-  @ID-WATCH-03 @slice-51 @wip
+  @ID-WATCH-03 @slice-51
   Scenario: Each job's result is printed once, as it finishes
     Given the watched run finishes its job "ci" first and its job "platform" one poll later, both succeeding
     And the clone has the commit "chore: tidy the readme" touching "README.md"
@@ -60,7 +60,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     Then itos exits with code 0
     And its output says "ci: success" once, before "platform: success"
 
-  @ID-WATCH-04 @slice-51 @wip
+  @ID-WATCH-04 @slice-51
   Scenario: push --no-wait pushes and returns without watching
     Given the watched run's jobs "ci" and "platform" succeed
     And the clone has the commit "chore: tidy the readme" touching "README.md"
@@ -69,7 +69,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     And the watch command was never run
     And the remote's branch has "chore: tidy the readme"
 
-  @ID-WATCH-05 @slice-51 @wip
+  @ID-WATCH-05 @slice-51
   Scenario: Without ci.watch a push does not wait, as before
     Given ci.watch's provider is "none"
     And the clone has the commit "chore: tidy the readme" touching "README.md"
@@ -77,7 +77,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     Then itos exits with code 0
     And the watch command was never run
 
-  @ID-WATCH-06 @slice-51 @wip
+  @ID-WATCH-06 @slice-51
   Scenario: A run still going after ci.watch.timeout exits 3, naming itos ci watch
     Given the watched run never finishes
     And ci.watch.timeout is 1
@@ -87,7 +87,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     And its output says "itos ci watch"
     And the remote's branch has "chore: tidy the readme"
 
-  @ID-WATCH-07 @slice-51 @wip
+  @ID-WATCH-07 @slice-51
   Scenario: itos ci watch waits for HEAD's run with no argument
     Given the watched run's jobs "ci" and "platform" succeed
     When itos runs "ci watch"
@@ -95,7 +95,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     And its output says "https://ci.example/runs/1"
     And the watch command was given the full SHA of the clone's HEAD
 
-  @ID-WATCH-08 @slice-51 @wip
+  @ID-WATCH-08 @slice-51
   Scenario: A watch command that prints no run object exits 3
     Given the watch command prints "not json"
     When itos runs "ci watch"
@@ -104,7 +104,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
   # GITHUB_TOKEN and GH_TOKEN are never in a scenario's environment, and the
   # PATH has no gh, so neither way to sign in is there: it stops before any
   # request.
-  @ID-WATCH-09 @slice-51 @wip
+  @ID-WATCH-09 @slice-51
   Scenario: The github provider with no token and no gh exits 3, naming both ways to sign in
     Given ci.watch's provider is "github"
     And no gh on the PATH

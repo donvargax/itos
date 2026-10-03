@@ -37,6 +37,8 @@ type world struct {
 	ledger        []ledgerTask      // the tasks of the ledger's one file (ledgerPath), in order
 	dataDir       string            // where itos's config and data are written: the root, or the git folder (stealth)
 	linked        string            // the linked worktree of the scratch repository, when the scenario adds one
+	watchURL      string            // the run the watch command reports
+	noGh          bool              // the PATH has no gh
 
 	exit           int
 	stdout, stderr string
@@ -56,42 +58,43 @@ type world struct {
 
 // What a scenario sets in the scratch repository's itos.yaml.
 type scratchConfig struct {
-	headerLintCommand string      // the header lint delegated to this command
-	headerLintBuiltin bool        // the header lint itos's own (use: builtin)
-	since             string      // commits.since
-	rangeCheck        bool        // a range check that records where its range starts
-	moves             *moves      // the kind's range check is the built-in moves rule
-	recordingShell    bool        // shell is the recording shell
-	ciSteps           []string    // ci.steps
-	ciTests           string      // a kind of named tests, with run and recognize templates, run by the last of ci.steps
-	runSelect         string      // the scenario kind's run.select, when ciTests gives it none
-	smokeRuns         []string    // commands the kind of ciTests recognizes as its smoke run
-	stopAtFirst       *bool       // ci.stop_at_first_failure
-	nightlyTasks      string      // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
-	costStatic        []string    // ci.cost.static
-	covers            []cover     // ci.covers
-	nightlyOnly       []string    // ci.nightly_only
-	registry          string      // work.registry
-	taskChecks        *bool       // hooks.commit_msg.task_checks
-	checkTimeout      int         // hooks.commit_msg.check_timeout, when above 0
-	statuses          []string    // work.statuses
-	groupsKey         string      // work.groups_key
-	noPeople          bool        // the config names no people file (no work.people)
-	noWork            bool        // the config has no work section, only work's defaults
-	smoke             bool        // tests.scenario has a smoke set, features/smoke.yaml
-	smokeEveryFile    *bool       // tests.scenario.smoke.every_file
-	noTagPrefix       bool        // the kind written without tag_prefix
-	hooksManager      string      // hooks.manager
-	hooksBin          string      // hooks.bin
-	prePushRecord     bool        // hooks.pre_push's commands record that they ran
-	ledgerFooter      string      // the key of the footer whose source is the ledger; Task when empty
-	textFooter        *textFooter // a footer of free text
-	featMustTouch     string      // commits.scopes.feat.must_touch, one glob, when set
-	ledgerFiles       string      // ledger.files; tasks/phase-{group}.yaml when empty
-	prosePaths        string      // ci.prose.paths, one glob
-	proseSteps        string      // ci.prose.steps, one command
-	pin               *[2]string  // pin.version and pin.checksums
-	comments          []string    // comment lines written after the pin's line
+	headerLintCommand string       // the header lint delegated to this command
+	headerLintBuiltin bool         // the header lint itos's own (use: builtin)
+	since             string       // commits.since
+	rangeCheck        bool         // a range check that records where its range starts
+	moves             *moves       // the kind's range check is the built-in moves rule
+	recordingShell    bool         // shell is the recording shell
+	ciSteps           []string     // ci.steps
+	ciTests           string       // a kind of named tests, with run and recognize templates, run by the last of ci.steps
+	runSelect         string       // the scenario kind's run.select, when ciTests gives it none
+	smokeRuns         []string     // commands the kind of ciTests recognizes as its smoke run
+	stopAtFirst       *bool        // ci.stop_at_first_failure
+	nightlyTasks      string       // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
+	costStatic        []string     // ci.cost.static
+	covers            []cover      // ci.covers
+	nightlyOnly       []string     // ci.nightly_only
+	registry          string       // work.registry
+	taskChecks        *bool        // hooks.commit_msg.task_checks
+	checkTimeout      int          // hooks.commit_msg.check_timeout, when above 0
+	statuses          []string     // work.statuses
+	groupsKey         string       // work.groups_key
+	noPeople          bool         // the config names no people file (no work.people)
+	noWork            bool         // the config has no work section, only work's defaults
+	smoke             bool         // tests.scenario has a smoke set, features/smoke.yaml
+	smokeEveryFile    *bool        // tests.scenario.smoke.every_file
+	noTagPrefix       bool         // the kind written without tag_prefix
+	hooksManager      string       // hooks.manager
+	hooksBin          string       // hooks.bin
+	prePushRecord     bool         // hooks.pre_push's commands record that they ran
+	watch             *watchConfig // ci.watch
+	ledgerFooter      string       // the key of the footer whose source is the ledger; Task when empty
+	textFooter        *textFooter  // a footer of free text
+	featMustTouch     string       // commits.scopes.feat.must_touch, one glob, when set
+	ledgerFiles       string       // ledger.files; tasks/phase-{group}.yaml when empty
+	prosePaths        string       // ci.prose.paths, one glob
+	proseSteps        string       // ci.prose.steps, one command
+	pin               *[2]string   // pin.version and pin.checksums
+	comments          []string     // comment lines written after the pin's line
 	settings          []setting
 }
 
@@ -275,6 +278,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeStealthSteps(sc, w)
 	initializeCommitSteps(sc, w)
 	initializePushSteps(sc, w)
+	initializeWatchSteps(sc, w)
 	initializeShimSteps(sc, w)
 	initializeGuardSteps(sc, w)
 	initializeInitSteps(sc, w)
@@ -414,7 +418,7 @@ func (w *world) env() []string {
 	for _, kv := range os.Environ() {
 		name, _, _ := strings.Cut(kv, "=")
 		if strings.HasPrefix(name, "GIT_") || strings.HasPrefix(name, "ITOS_") ||
-			strings.HasPrefix(name, "GITHUB_") || name == "CI" {
+			strings.HasPrefix(name, "GITHUB_") || strings.HasPrefix(name, "GH_") || name == "CI" {
 			continue
 		}
 		env = append(env, kv)
@@ -426,19 +430,28 @@ func (w *world) env() []string {
 		"GIT_AUTHOR_EMAIL=features@localhost",
 		"GIT_COMMITTER_NAME=itos features",
 		"GIT_COMMITTER_EMAIL=features@localhost",
-		"PATH="+callerPath(),
+		"PATH="+w.basePath(),
 	)
 	env = append(env, w.launcherEnv()...)
 	if first := w.pathFirst(); len(first) > 0 {
-		env = append(env, "PATH="+strings.Join(append(first, callerPath()), string(os.PathListSeparator)))
+		env = append(env, "PATH="+strings.Join(append(first, w.basePath()), string(os.PathListSeparator)))
 	}
 	return env
 }
 
+// basePath is the PATH every command starts from: the caller's without its
+// claude (callerPath), and without its gh too when the scenario has none.
+func (w *world) basePath() string {
+	if w.noGh {
+		return pathHiding("claude", "gh")
+	}
+	return callerPath()
+}
+
 var (
-	callerPathOnce sync.Once
-	callerPathText string
-	callerPathDir  string
+	hiddenPathsMu sync.Mutex
+	hiddenPaths   = map[string]string{}
+	callerPathDir string
 )
 
 // callerPath is the caller's PATH with no claude on it, so no scenario
@@ -446,55 +459,66 @@ var (
 // is replaced by a folder of links to everything else in it, as the corpus's
 // hide does, or left out where links cannot be made. A scenario's own claude
 // goes first on the PATH (init_test.go).
-func callerPath() string {
-	callerPathOnce.Do(func() {
-		var folders []string
-		for i, folder := range filepath.SplitList(os.Getenv("PATH")) {
-			entries, err := os.ReadDir(folder)
-			if err != nil || !slices.ContainsFunc(entries, isClaude) {
-				folders = append(folders, folder)
+func callerPath() string { return pathHiding("claude") }
+
+// pathHiding is the caller's PATH with none of the programs named on it,
+// made once a run for each set of names, as callerPath hides claude.
+func pathHiding(names ...string) string {
+	hiddenPathsMu.Lock()
+	defer hiddenPathsMu.Unlock()
+	key := strings.Join(names, " ")
+	if text, ok := hiddenPaths[key]; ok {
+		return text
+	}
+	hidden := func(e os.DirEntry) bool { return isOneOf(e, names) }
+	var folders []string
+	for i, folder := range filepath.SplitList(os.Getenv("PATH")) {
+		entries, err := os.ReadDir(folder)
+		if err != nil || !slices.ContainsFunc(entries, hidden) {
+			folders = append(folders, folder)
+			continue
+		}
+		if callerPathDir == "" {
+			if callerPathDir, err = os.MkdirTemp("", "itos-features-path-"); err != nil {
 				continue
 			}
-			if callerPathDir == "" {
-				if callerPathDir, err = os.MkdirTemp("", "itos-features-path-"); err != nil {
-					continue
-				}
-			}
-			links := filepath.Join(callerPathDir, strconv.Itoa(i))
-			if linkAllBut(folder, links, entries) == nil {
-				folders = append(folders, links)
-			}
 		}
-		callerPathText = strings.Join(folders, string(os.PathListSeparator))
-	})
-	return callerPathText
+		links := filepath.Join(callerPathDir, strconv.Itoa(len(hiddenPaths)), strconv.Itoa(i))
+		if linkAllBut(folder, links, entries, hidden) == nil {
+			folders = append(folders, links)
+		}
+	}
+	text := strings.Join(folders, string(os.PathListSeparator))
+	hiddenPaths[key] = text
+	return text
 }
 
-// removeCallerPath removes the folders callerPath made.
+// removeCallerPath removes the folders callerPath and pathHiding made.
 func removeCallerPath() {
 	if callerPathDir != "" {
 		_ = os.RemoveAll(callerPathDir)
 	}
 }
 
-// isClaude is whether a folder's entry is a claude the PATH would find:
-// claude, or on windows claude with any extension.
-func isClaude(e os.DirEntry) bool {
+// isOneOf is whether a folder's entry is a program of the names the PATH
+// would find: the name, or on windows the name with any extension.
+func isOneOf(e os.DirEntry, names []string) bool {
+	name := e.Name()
 	if runtime.GOOS == "windows" {
-		name := e.Name()
-		return strings.EqualFold(strings.TrimSuffix(name, filepath.Ext(name)), "claude")
+		name = strings.TrimSuffix(name, filepath.Ext(name))
+		return slices.ContainsFunc(names, func(n string) bool { return strings.EqualFold(name, n) })
 	}
-	return e.Name() == "claude"
+	return slices.Contains(names, name)
 }
 
-// linkAllBut makes links a folder of links to every entry of folder but a
-// claude.
-func linkAllBut(folder, links string, entries []os.DirEntry) error {
+// linkAllBut makes links a folder of links to every entry of folder but the
+// hidden ones.
+func linkAllBut(folder, links string, entries []os.DirEntry, hidden func(os.DirEntry) bool) error {
 	if err := os.MkdirAll(links, 0o755); err != nil {
 		return err
 	}
 	for _, e := range entries {
-		if isClaude(e) {
+		if hidden(e) {
 			continue
 		}
 		if err := os.Symlink(filepath.Join(folder, e.Name()), filepath.Join(links, e.Name())); err != nil {
@@ -784,6 +808,7 @@ func (w *world) ciSection() string {
 	case "static":
 		b.WriteString("  nightly:\n    steps: [{ tasks: done, cost: static }]\n")
 	}
+	b.WriteString(w.watchSection())
 	return b.String()
 }
 
@@ -1546,7 +1571,7 @@ func (w *world) binOnPath() (string, error) {
 	if err := os.MkdirAll(bin, 0o755); err != nil {
 		return "", err
 	}
-	path := "PATH=" + bin + string(os.PathListSeparator) + callerPath()
+	path := "PATH=" + bin + string(os.PathListSeparator) + w.basePath()
 	if !slices.Contains(w.vars, path) {
 		w.vars = append(w.vars, path)
 	}
