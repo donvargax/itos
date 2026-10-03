@@ -12,12 +12,12 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 50 landed (v2.10.0).
+Last updated 2026-10-03, after T-077 landed.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `ad9a258`'s parent `64942de` (CI
-run 37159814702, every job, `release` cutting v2.10.0). The coordinator commits docs from
+All work is @donvargax's. `main` is green at `b7f8519` (CI run 37160256393,
+every job; v2.10.0 is the newest release). The coordinator commits docs from
 its own worktree, `.claude/worktrees/coord-docs` (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
@@ -50,24 +50,26 @@ change any other repository.
 
 One slice at a time, the user's order:
 
-1. **`T-077`** (was `p3-help-tests-own-path`; handed to an agent), so no
-   brief has to mention the PATH again.
-2. The orchestration commands, the user's order (2026-10-03), ahead of the
+1. The orchestration commands, the user's order (2026-10-03), ahead of the
    rest of init, each to specify first:
    - **`p1-ci-watch`**: `itos push` waits for CI;
    - **`p1-work-take-done-promote`** with `p1-slice-done-check`: `itos work
 done` verifies before it writes;
+   - **`p1-work-edit`**: `itos work add`, `edit` and `itos task add` write
+     the registry and ledger, confirm a new spec's `@wip` scenarios fail
+     (`p1-wip-red-first`), and commit, as every one of these commands does;
    - **`p1-handoff-status`**, after `p1-work-queue-order` and
      `p1-follow-ups`: `itos status` replaces this file;
    - **`p1-tests-next-id-and-steps`**;
    - **`p1-work-brief`**, now `itos work show`;
    - **`p1-push-needs-hooks`**: `itos commit` and `itos push` check the
-     gates they rely on.
-3. Then `p3-init-agent-rules` and `p3-init-orchestration` (agent files;
+     gates they rely on;
+   - `p1-commit-wrap`, small: `itos commit` rewraps the body.
+2. Then `p3-init-agent-rules` and `p3-init-orchestration` (agent files;
    PLAN.md §10, "Adoption"), `p3-pr-rebase-merge` and `p3-init-starter-ci`.
-4. **`p3-human-waiver`** (`itos waive`, a plain config list; the guard keeps
+3. **`p3-human-waiver`** (`itos waive`, a plain config list; the guard keeps
    agents off it), after those.
-5. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
+4. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
    open for the user).
 
 Small ideas, any time: `p3-guard-windows-paths` (the guard reads a Git Bash
@@ -75,9 +77,7 @@ Small ideas, any time: `p3-guard-windows-paths` (the guard reads a Git Bash
 `p3-plugin-registry-at-top`, `p3-plugin-release-tags`,
 `p3-release-notes-bodies`, `p3-version-prerelease`, `p3-changes-at-commit`,
 `p3-nightly-govulncheck`, `p3-ci-step-paths`, `p3-shim-push-args`, and
-`p3-help-tests-own-path` (the help tests read the caller's PATH, so an
-installed extension fails them locally; slice 47's agent committed with that
-folder off the PATH), `p3-help-of-launcher-commands`, `p3-notice-names-pin`, `p3-config-21-own-value` (fold into the next feat or fix touching
+`p3-help-of-launcher-commands`, `p3-notice-names-pin`, `p3-config-21-own-value` (fold into the next feat or fix touching
 config.feature). Issue #4 is open as `p1-ledger-pattern-static-after-late`.
 Deferred until itos-cc is published: `p3-role-protocol`, `p3-debt-role`,
 `p3-debt-claims`. Deferred, the user's to lift: `p1-backport-code-design`

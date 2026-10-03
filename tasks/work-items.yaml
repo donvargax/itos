@@ -1158,6 +1158,10 @@ items:
       writes (p1-slice-done-check) and commits the change itself; promote renames an idea and
       rewrites every depends_on naming it (two were broken by hand that day); take sets doing and
       the owner. Second of the orchestration commands.
+      Each of them commits its own change (the user's call, 2026-10-03), with the type and footer
+      the change needs, so the coordinator neither stages nor words a registry commit. The
+      coordinator never sets doing: the agent's take does, in its first commit, so a push naming a
+      task never runs its checks before its work exists (T-077's spec push went red that way).
 
   - id: slice-39
     title: itos push, the pull-rebase-push routine as one command
@@ -1394,6 +1398,11 @@ items:
       coordinator before an agent starts whether a spec fails where it should. It would not have
       caught this session's two bad specs (@ID-CONFIG-10, @ID-CI-01), which failed for a wrong
       reason, but the failing step it prints would have shown the reason.
+      The user's call (2026-10-03): the check runs inside the structured edit commands
+      (p1-work-edit): adding or editing a slice or a task runs its @wip scenarios, or its checks,
+      and refuses one that already passes, printing each failing step, so no spec reaches an agent
+      unproven. The coordinator had done it by hand for one task that day and by reasoning alone
+      for every scenario.
 
   - id: p1-commit-message-file
     title: Commit messages through a file, so a heredoc cannot be piped into git
@@ -3322,3 +3331,36 @@ items:
       and says why. itos push checks before pushing, since proof after the push is too late.
     refs:
       [internal/cli/push.go, internal/cli/commit.go, internal/cli/init.go, docs/ORCHESTRATING.md]
+
+  - id: p1-work-edit
+    title: itos work add and edit, and itos task add, write the registry and the ledger and commit
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [p1-work-take-done-promote]
+    kind: idea
+    why: >
+      The user's calls (2026-10-03). Nearly every registry and ledger change the coordinator made
+      that day was an ad-hoc script replacing text in tasks/*.yaml, and it broke when the formatter
+      had rewrapped what it matched: one commit claimed a handoff update that never happened.
+      itos work add (an idea or a slice: title, why, depends_on, refs), itos work edit <id> (its
+      title, why, depends_on, refs, or a note appended to its why) and itos task add write the YAML
+      themselves, check it as work check and config check do, and commit it with the type and
+      footer the change needs, as take, done and promote do. Adding or editing a slice or a task
+      also runs its @wip scenarios or its checks and refuses one that already passes
+      (p1-wip-red-first). Next after itos work done.
+    refs: [tasks/work-items.yaml, tasks/README.md, internal/work/]
+
+  - id: p1-commit-wrap
+    title: itos commit wraps the message body to the header lint's line length
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The coordinator's commit was refused once that day for a body line over 100 characters, and
+      every message after it was checked by hand with awk. itos commit could rewrap each paragraph
+      of the body to body-max-line-length before git sees it, leaving footers, lists and indented
+      lines as written.
+    refs: [internal/cli/commit.go, internal/message/]

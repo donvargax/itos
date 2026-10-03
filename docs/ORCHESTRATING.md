@@ -260,9 +260,16 @@ teaches you a new one, stated as the rule and its reason.
   in the code and the interface, and ask whether the scenario can fail
   before the work.
 - **Agents hand back before CI finishes.** A report often says "CI not
-  confirmed". Watch the run yourself with a `Monitor` on its id (from
+  confirmed", and not by the agent's choice: the harness asks a subagent for
+  its hand-back while its CI watch still runs (T-077's agent said so), so a
+  brief cannot prevent it, and the brief does not blame the agent for it.
+  Watch the run yourself with a `Monitor` on its id (from
   `gh run list --commit <full sha>`), and treat the slice as done only when
-  it is green. A slice that goes red in CI usually does so on a live scenario
+  it is green, until `itos push` waits for CI itself (`p1-ci-watch`).
+- **The coordinator never sets `doing`.** The agent takes the item in its
+  first commit. A push that names a task runs that task's checks unless its
+  item is `todo`, so a spec pushed with its item already `doing` is red until
+  the work lands (T-077's was). A slice that goes red in CI usually does so on a live scenario
   its own footer did not name: the brief's "run what this slice can reach"
   line is the answer to that.
 - **An agent's run link is a claim, not evidence.** An agent can report a
