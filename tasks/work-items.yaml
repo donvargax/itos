@@ -2747,7 +2747,7 @@ items:
     title: itos config get prints a config key's value as itos reads it
     phase: 3
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
