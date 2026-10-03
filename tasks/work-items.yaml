@@ -1769,24 +1769,26 @@ items:
     kind: task
     refs: [tasks/phase-3.yaml]
 
-  - id: p3-extensions
+  - id: slice-29
     title: Extensions, itos <cmd> running itos-<cmd> from the PATH
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [T-061]
-    kind: idea
+    depends_on: [slice-27]
+    kind: slice
     why: >
-      The user's idea (2026-10-02), for after v2.0.0 so it is built once, in Go: a command itos
-      does not have runs itos-<cmd> found on the PATH (the PATH only, the user's call), with the
-      rest of the arguments and its exit code; built-ins always win; the global flags apply first
-      and reach it as ITOS_CONFIG, ITOS_ROOT, ITOS_BIN, ITOS_VERSION and ITOS_JSON; itos help <cmd>
-      runs itos-<cmd> --help and itos --help lists the extensions found. ITOS_VERSION means what
-      the launcher reads (slice 27): an extension calling itos back runs the same version. The
-      first is a trivial one, itos-hello printing what it received, to prove the mechanism; the
-      hand work
-      (itos push, itos ci watch, the inbox) can follow as extensions.
-    refs: [PLAN.md]
+      Was p3-extensions, the user's idea (2026-10-02), built once, in Go: a command itos does not
+      have runs itos-<cmd> found on the PATH (the PATH only, the user's call), with the rest of the
+      arguments and its exit code; built-ins always win; global flags before the command apply
+      first and reach it as ITOS_CONFIG, ITOS_ROOT, ITOS_BIN, ITOS_VERSION and ITOS_JSON; itos help
+      <cmd> runs itos-<cmd> --help and itos --help lists the extensions found. The coordinator's
+      calls: everything after the command's name is the extension's, unread, as git does, so an
+      extension takes flags of its own; ITOS_BIN is the running binary, and ITOS_VERSION means what
+      the launcher reads (slice 27), so a call back keeps to the same version; itos-hello, the
+      trivial first one, is an example in the docs for extension authors, not a release asset. The
+      hand work (itos push, itos ci watch, the inbox) can follow as extensions. Specified in
+      features/extensions.feature.
+    refs: [features/extensions.feature, PLAN.md]
 
   - id: p2-config-json-schema
     title: The config's JSON Schema, published with each Go release
@@ -2124,6 +2126,8 @@ items:
     depends_on: [slice-26]
     kind: idea
     why: >
+      Slice 27 met the same with a Scenarios: footer: wrapped onto a second line, only its first
+      line was read, and a scenario dropped out of CI's selection without a word.
       Found in slice 26: a free-text footer is one line, `<Key>: <text>`, and a footer line may not
       pass 100 characters (footer-max-line-length), so an Upgrading step longer than that is split
       over several Upgrading: lines, which itos commit footers gathers as separate entries. git's
