@@ -15,6 +15,7 @@ on:
 permissions:
   contents: read
   issues: write # the Nightly red issue
+  attestations: read # the newest release's, which T-069's check verifies
 
 # A group of its own: the nightly never cancels a push's run, nor is cancelled
 # by one. A second nightly waits for the first.
@@ -54,19 +55,11 @@ jobs:
           mkdir -p "$RUNNER_TEMP/bin"
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP/bin"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-      # The output is kept for the issue below: go test's `--- FAIL:
-      # TestFeatures/…` lines are the failing scenarios. pipefail, so tee does
-      # not hide the run's exit code.
-      - name: Nightly
-        run: |
-          set -o pipefail
-          tools/bin/itos ci run --nightly 2>&1 | tee "$RUNNER_TEMP/nightly.log"
-      # The GitHub CLI, for the issue steps below. Pinned, from its release
-      # tarball, checked against the release's SHA-256, so the runner image's
-      # own copy, whatever its version, does not decide what runs. It runs
-      # whatever the nightly's result.
+      # The GitHub CLI, for the checks that ask GitHub (T-069's, that the
+      # newest release is attested) and the issue steps below. Pinned, from its
+      # release tarball, checked against the release's SHA-256, so the runner
+      # image's own copy, whatever its version, does not decide what runs.
       - name: GitHub CLI
-        if: always()
         env:
           GH_VERSION: 2.101.0
           GH_SHA256: 9bca2d1c16825f109907a23307628a2f0698fbf99662b73a5cf0b020293072b8
@@ -80,6 +73,15 @@ jobs:
           rm -rf "$tgz" "$RUNNER_TEMP/gh_${GH_VERSION}_linux_amd64"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bin/gh" --version
+      # The output is kept for the issue below: go test's `--- FAIL:
+      # TestFeatures/…` lines are the failing scenarios. pipefail, so tee does
+      # not hide the run's exit code.
+      - name: Nightly
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          tools/bin/itos ci run --nightly 2>&1 | tee "$RUNNER_TEMP/nightly.log"
       # Red: one open issue labelled nightly-red, opened by the first red run
       # and commented on by every later one, with the failing scenarios and the
       # run's URL. With no failing scenario saved, the run failed outside the

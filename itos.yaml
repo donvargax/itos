@@ -186,8 +186,13 @@ ci:
       matches: "^node tools/itos/conformance/run\\.ts --bin tools/bin/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*$"
     - by: node tools/itos/conformance/run.ts --bin tools/bin/itos
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*'$"
-  # Slow, and it proves the gates rather than the code: left to the nightly.
-  nightly_only: ["node tools/selftest/gates.ts"]
+  # Slow, and it proves the gates rather than the code: left to the nightly. T-069's check that the
+  # newest release is attested passes only once the release job has cut one, and the release job
+  # runs only when a push's CI is green, whose range starts at the last green run: run by pushes, it
+  # would hold every later push red and no release could ever be cut. The nightly runs it, last.
+  nightly_only:
+    - node tools/selftest/gates.ts
+    - sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'
   # Every feature, the gates self-test, the hooks' choice of Go unit tests
   # (T-059: since the TypeScript left, the one proof that the hooks run only
   # the unit tests a change reaches), the Go release build (T-040) and the
@@ -205,6 +210,9 @@ ci:
       - node tools/selftest/go-release.ts
       - node tools/selftest/go-schema.ts
       - { tasks: done, cost: static }
+      # The newest release's linux-amd64 archive passes gh attestation verify (T-069): every release
+      # is attested by the workflow that built it. Last, as it asks GitHub.
+      - sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'
   wait_on_status: [todo] # a named task nobody has started waits
   stop_at_first_failure: true
   range:
