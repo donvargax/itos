@@ -77,6 +77,7 @@ type scratchConfig struct {
 	statuses          []string    // work.statuses
 	groupsKey         string      // work.groups_key
 	noPeople          bool        // the config names no people file (no work.people)
+	noWork            bool        // the config has no work section, only work's defaults
 	smoke             bool        // tests.scenario has a smoke set, features/smoke.yaml
 	smokeEveryFile    *bool       // tests.scenario.smoke.every_file
 	noTagPrefix       bool        // the kind written without tag_prefix
@@ -157,6 +158,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the config's shell is the recording shell$`, w.recordingShell)
 	sc.Step(`^the task "([^"]*)" has the check "([^"]*)"$`, w.taskHasCheck)
 	sc.Step(`^the CI steps are "([^"]*)"$`, func(step string) error { return w.ciStepsAre(step) })
+	sc.Step(`^the config has no work section$`, func() error {
+		w.config.noWork = true
+		return w.writeConfig()
+	})
 	sc.Step(`^the CI steps run the named tests of the kind "([^"]*)"$`, w.ciStepsRunTests)
 	sc.Step(`^the smoke set is empty$`, w.emptySmokeSet)
 	sc.Step(`^the kind "([^"]*)" recognizes "([^"]*)" as its smoke run$`, w.recognizesSmokeRun)
@@ -663,20 +668,9 @@ func (w *world) writeConfig() error {
 		}
 	}
 	b.WriteString(w.ciSection())
-	b.WriteString("work: { ")
-	if w.config.registry != "" {
-		fmt.Fprintf(&b, "registry: %q, ", w.config.registry)
+	if !w.config.noWork {
+		w.writeWork(&b)
 	}
-	if w.config.groupsKey != "" {
-		fmt.Fprintf(&b, "groups_key: %q, ", w.config.groupsKey)
-	}
-	if w.config.statuses != nil {
-		fmt.Fprintf(&b, "statuses: [%s], ", strings.Join(w.config.statuses, ", "))
-	}
-	if !w.config.noPeople {
-		b.WriteString("people: { source: yaml, file: people.yaml } ")
-	}
-	b.WriteString("}\n")
 	if w.config.hooksManager != "" || w.config.hooksBin != "" || w.config.taskChecks != nil || w.config.checkTimeout > 0 ||
 		w.config.prePushRecord {
 		b.WriteString("hooks:\n")
@@ -706,6 +700,25 @@ func (w *world) writeConfig() error {
 		}
 	}
 	return w.write(w.data("itos.yaml"), b.String())
+}
+
+// writeWork writes the config's work section: the registry, groups key and
+// statuses the scenario set, and the people file unless it names none.
+func (w *world) writeWork(b *strings.Builder) {
+	b.WriteString("work: { ")
+	if w.config.registry != "" {
+		fmt.Fprintf(b, "registry: %q, ", w.config.registry)
+	}
+	if w.config.groupsKey != "" {
+		fmt.Fprintf(b, "groups_key: %q, ", w.config.groupsKey)
+	}
+	if w.config.statuses != nil {
+		fmt.Fprintf(b, "statuses: [%s], ", strings.Join(w.config.statuses, ", "))
+	}
+	if !w.config.noPeople {
+		b.WriteString("people: { source: yaml, file: people.yaml } ")
+	}
+	b.WriteString("}\n")
 }
 
 // The scratch config's one kind of named tests, when the scenario needs one:

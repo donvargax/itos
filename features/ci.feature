@@ -96,7 +96,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # and ci run required a work: section though every work key has a default,
   # so a config without one, the starter's among them, could not plan CI
   # ("itos.yaml: work is missing"), while itos work read the defaults.
-  @ID-CI-08 @bug-10 @wip
+  @ID-CI-08 @bug-10
   Scenario: A config without a work section plans and runs CI, reading work's defaults
     Given the config has no work section
     And the CI steps are "exit 0"

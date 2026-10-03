@@ -19,12 +19,11 @@ type Data struct {
 // DataAt is a plan's data from the working tree, or with at from that
 // commit's tree (`ci plan --data-at`): the ledger (ledger.files), the
 // registry (work.registry) and the smoke set. The config is always the
-// working tree's. A config error without a work section, and the ledger's
-// folder missing is one problem naming it.
+// working tree's. Every work key has a default, so a config without a work
+// section reads the registry at its default path, as itos work does (bug
+// 10); a registry that is not there has no items. The ledger's folder
+// missing is one problem naming it.
 func DataAt(cfg *config.Loaded, at string) (Data, error) {
-	if err := cfg.Section("work"); err != nil {
-		return Data{}, err
-	}
 	var d Data
 	read := func() error {
 		tasks, err := ledger.Tasks(cfg)
