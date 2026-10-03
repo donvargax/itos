@@ -2376,13 +2376,13 @@ items:
       footers (git commit -t, or prepare-commit-msg), so the editor's commit reads as -m's does.
     refs: [internal/cli/gitcommit.go, features/commit-command.feature]
 
-  - id: p3-commit-content-flags
+  - id: slice-36
     title: itos commit writes every footer a commit needs, its required ones refused up front
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [slice-32, p3-hook-amend-paths]
-    kind: idea
+    depends_on: [slice-32]
+    kind: slice
     why: >
       The user's calls (2026-10-03), after asking whether footers with two roles are the right
       design: links (Task:, Scenarios:, IDs itos resolves) and content (Upgrading:, BREAKING
@@ -2403,7 +2403,9 @@ items:
       git commit being the guard's; scenarios prove its footers are not doubled and a stealth
       note is rewritten, and it takes in p3-hook-amend-paths, which refuses a reword-only amend of
       a feat and made slice 34 soft-reset an unpushed commit to fix its message.
-    refs: [internal/cli/gitcommit.go, cliff.toml, itos.yaml]
+      Was p3-commit-content-flags. Specified as @ID-COMMITCMD-07 to -11 and @ID-STEALTH-19, with
+      p3-hook-amend-paths as @bug-6 (@ID-COMMITCMD-12), fixed first.
+    refs: [features/commit-command.feature, features/stealth.feature, internal/cli/gitcommit.go]
 
   - id: p3-hook-amend-paths
     title: The commit-msg hook judges an amend's paths against HEAD's parent

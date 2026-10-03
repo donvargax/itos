@@ -66,7 +66,7 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 3. **Stealth mode** is done: slices 30 to 35, with `itos commit` (slice 31)
    and the `@bug-5` fix. The coordinator proposed cutting v2.1.0 now; the
    user has not answered. `hooks.bin` stays through v2 (`v3-drop-hooks-bin`).
-4. **`p3-commit-content-flags`**: `itos commit` writes every footer a commit
+4. **Slice 36** (`@bug-6` first): `itos commit` writes every footer a commit
    needs (`--upgrading`, `--breaking`), required ones refused up front; the
    user's design call on footers with two roles, in its why.
 5. **`p1-itos-push`**, itos commit's other half (built in or an extension,

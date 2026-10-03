@@ -59,3 +59,59 @@ Feature: itos commit, a commit whose footers itos writes
     When itos commits with the arguments "--task T-001 -m 'chore: tidy the readme' -- README.md"
     Then itos exits with code 0
     And the message of HEAD has the footer "Task: T-001"
+
+  # Slice 36: every footer a commit needs (p3-commit-content-flags). Links
+  # (the ledger and scenario footers) and content (a footer of free text,
+  # BREAKING-CHANGE) share git's trailer block, and the config's source tells
+  # them apart: each footer of free text the config declares gets a flag of
+  # its name in lower case, --breaking writes BREAKING-CHANGE:, the form git
+  # reads as a trailer ("BREAKING CHANGE:", with its space, makes git see no
+  # trailers in the block at all), and a commit missing a footer its type
+  # requires is refused before git runs, naming the flag. The hook still
+  # judges commits made any other way.
+  @ID-COMMITCMD-07 @slice-36 @wip
+  Scenario: A footer of free text the config declares has a flag of its name
+    Given the config requires an "Upgrading" footer of free text for "chore"
+    When itos commits with the arguments "--task T-001 --upgrading none -m 'chore: tidy the readme'"
+    Then itos exits with code 0
+    And the message of HEAD has the footer "Upgrading: none"
+
+  @ID-COMMITCMD-08 @slice-36 @wip
+  Scenario: A commit missing a footer its type requires is refused before git runs, naming the flag
+    Given the config requires an "Upgrading" footer of free text for "chore"
+    When itos commits with the arguments "--task T-001 -m 'chore: tidy the readme'"
+    Then itos exits with code 1
+    And its output says "--upgrading"
+    And no commit was made
+
+  @ID-COMMITCMD-09 @slice-36 @wip
+  Scenario: A commit missing its task is refused before git runs, naming --task
+    When itos commits with the arguments "-m 'chore: tidy the readme'"
+    Then itos exits with code 1
+    And its output says "--task"
+    And no commit was made
+
+  @ID-COMMITCMD-10 @slice-36 @wip
+  Scenario: --breaking writes a BREAKING-CHANGE footer git reads as a trailer
+    When itos commits with the arguments "--task T-001 --breaking 'the readme moved' -m 'chore!: move the readme'"
+    Then itos exits with code 0
+    And the message of HEAD has the footer "BREAKING-CHANGE: the readme moved"
+
+  @ID-COMMITCMD-11 @slice-36 @wip
+  Scenario: An amend through itos commit keeps one footer, not two
+    Given itos has committed with the arguments "--task T-001 -m 'chore: tidy the readme'"
+    When itos commits with the arguments "--amend --no-edit --task T-001"
+    Then itos exits with code 0
+    And the message of HEAD has the footer "Task: T-001" once
+
+  # Bug 6: the hook judged an amend's staged paths against HEAD, the commit
+  # being replaced, rather than against its parent, so an amend changing only
+  # the message of a feat was refused for touching nothing (slice 32 and 34
+  # met it). An amend is judged as the commit it makes: its parent's tree
+  # against the new one.
+  @ID-COMMITCMD-12 @bug-6 @wip
+  Scenario: An amend that changes only the message of a feat is judged by the paths of the commit it makes
+    Given a feature file "a.feature" with the live scenario "@ID-A-01"
+    And itos has committed with the arguments "--scenarios @ID-A-01 -m 'feat: greet'"
+    When itos commits with the arguments "--amend --scenarios @ID-A-01 -m 'feat: greet everyone'"
+    Then itos exits with code 0

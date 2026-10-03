@@ -187,3 +187,16 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     When itos installs the hooks
     Then itos exits with code 0
     And the git config declares a "commit-msg" hook whose command starts with "itos "
+
+  # Slice 36: in stealth mode only the links move to the note; a footer of
+  # free text is content, written into the message by its flag.
+  @ID-STEALTH-19 @slice-36 @wip
+  Scenario: In stealth mode a footer of free text stays in the message, the task in the note
+    Given the config requires an "Upgrading" footer of free text for "chore"
+    And the commit-msg hook is installed
+    And a change to "README.md" is staged
+    When itos commits with the arguments "--task T-001 --upgrading none -m 'chore: tidy the readme'"
+    Then itos exits with code 0
+    And the message of HEAD has the footer "Upgrading: none"
+    And the message of HEAD does not say "T-001"
+    And the itos note on HEAD says "Task: T-001"
