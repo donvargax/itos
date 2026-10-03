@@ -12,12 +12,13 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 51 landed (v2.11.0).
+Last updated 2026-10-03, after T-078 landed: this repository's pushes wait
+for CI (`ci.watch`).
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `8869aa5` (CI run 37162005473,
-every job, `release` cutting v2.11.0). The coordinator commits docs from
+All work is @donvargax's. `main` is green at `37dd463` (CI run 37162413547,
+every job; v2.11.0 is the newest release). The coordinator commits docs from
 its own worktree, `.claude/worktrees/coord-docs` (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
@@ -53,9 +54,6 @@ One slice at a time, the user's order:
 
 1. The orchestration commands, the user's order (2026-10-03), ahead of the
    rest of init:
-   - **`T-078`** (was `p1-repo-ci-watch`, the coordinator's): this repository turns
-     `ci.watch` on, so agents' pushes wait for CI, and AGENTS.md and
-     ORCHESTRATING.md stop watching by hand; small, next;
    - **`slice-52`** (`itos work take` and `promote`, @ID-WORK-08 to 14) and
      **`slice-53`** (`itos work done`, @ID-WORK-15 to 18), `@wip`;
    - **`p1-work-edit`**: `itos work add`, `edit` and `itos task add` write
