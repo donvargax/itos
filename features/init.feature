@@ -225,7 +225,7 @@ Feature: itos init, a repository made ready for itos
     Then itos exits with code 0
     And its output says "--git-shim"
 
-  @ID-INIT-20 @slice-50 @wip
+  @ID-INIT-20 @slice-50
   Scenario: Run again where the pin is behind the newest release, init says so and names itos pin
     Given a release server offering the versions "9.1.0" and "9.2.0"
     And a repository that does not use itos, its one commit "docs: start"
@@ -238,7 +238,7 @@ Feature: itos init, a repository made ready for itos
 
   # The starter names no work section, so the people file is the default,
   # CONTRIBUTORS.md, which init does not write; config check only warns.
-  @ID-INIT-21 @slice-50 @wip
+  @ID-INIT-21 @slice-50
   Scenario: Run again where the people file the config names is missing, init says which file and goes on
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"

@@ -40,6 +40,7 @@ import (
 	"github.com/donvargax/itos/v2/internal/release"
 	"github.com/donvargax/itos/v2/internal/tests"
 	"github.com/donvargax/itos/v2/internal/value"
+	"github.com/donvargax/itos/v2/internal/version"
 )
 
 // initCommand is `init [--stealth] [--plugin [<scope>]] [--git-shim
@@ -345,18 +346,22 @@ func starterSmokeSet(list tests.List) (string, int) {
 }
 
 // initReport is init where a config is there: it writes nothing and lists
-// what is missing, exit 1 when anything is, then makes the plugin's offer,
-// which never asks, and installs it only for --plugin; a plugin not installed
-// is reported, never counted as missing. The git shim is linked, and said,
-// only for --git-shim: the last release's corpus pins this report's words and
-// keys (T-071), so a shim not linked is not reported here yet.
+// what is missing, exit 1 when anything is; then what it notes, never
+// counted as missing (slice 50): a people file the config names that the
+// repository lacks or cannot be read (config check's warning), and a pin
+// behind the newest release, where the release server answers; then makes
+// the plugin's offer and the git shim's, which never ask, and install only
+// for --plugin and --git-shim. Neither not installed is counted as missing.
 func initReport(file string, offer pluginOffer, shimOffer shimOffer, o Out) (int, error) {
-	_, found, _, _, err := configFindings("")
+	_, found, notes, _, err := configFindings("")
 	if err != nil {
 		return 0, err
 	}
 	if cfg, err := config.Load(file); err == nil {
 		found = append(found, tagged("hooks", hookProblems(cfg, file))...)
+		if behind := pinBehind(cfg); behind != nil {
+			notes = append(notes, Found{*behind, "pin"})
+		}
 	}
 	code := 0
 	if len(found) > 0 {
@@ -366,23 +371,18 @@ func initReport(file string, offer pluginOffer, shimOffer shimOffer, o Out) (int
 		if found == nil {
 			found = []Found{}
 		}
+		if notes == nil {
+			notes = []Found{}
+		}
 		offer.log, shimOffer.log = io.Discard, io.Discard
 		plugin, pluginCode := offer.run()
-		fields := []out.Field{{Key: "config", Value: file}, {Key: "action", Value: "checked"},
-			{Key: "missing", Value: found}, {Key: "plugin", Value: plugin}}
-		shimCode := 0
-		if shimOffer.flag.given {
-			var shim shimOutcome
-			shim, shimCode = shimOffer.run()
-			fields = append(fields, out.Field{Key: "git_shim", Value: shim})
-		}
-		return max(code, pluginCode, shimCode), out.Emit(o.Stdout, fields...)
+		shim, shimCode := shimOffer.run()
+		return max(code, pluginCode, shimCode), out.Emit(o.Stdout, out.Field{Key: "config", Value: file},
+			out.Field{Key: "action", Value: "checked"}, out.Field{Key: "missing", Value: found},
+			out.Field{Key: "plugin", Value: plugin}, out.Field{Key: "notes", Value: notes},
+			out.Field{Key: "git_shim", Value: shim})
 	}
-	fmt.Fprintf(o.Stdout, "%s is there already, so init wrote nothing.\n", file)
-	if len(found) == 0 {
-		fmt.Fprintln(o.Stdout, "Nothing is missing: the config, its ledger, registry and smoke sets are sound, and the hooks call itos.")
-	} else {
-		fmt.Fprintln(o.Stdout, "Missing:")
+	list := func(found []Found) {
 		for _, f := range found {
 			line := f.Message
 			if f.Fix != "" {
@@ -391,13 +391,39 @@ func initReport(file string, offer pluginOffer, shimOffer shimOffer, o Out) (int
 			fmt.Fprintf(o.Stdout, "  %s\n", line)
 		}
 	}
+	fmt.Fprintf(o.Stdout, "%s is there already, so init wrote nothing.\n", file)
+	if len(found) == 0 {
+		fmt.Fprintln(o.Stdout, "Nothing is missing: the config, its ledger, registry and smoke sets are sound, and the hooks call itos.")
+	} else {
+		fmt.Fprintln(o.Stdout, "Missing:")
+		list(found)
+	}
+	if len(notes) > 0 {
+		fmt.Fprintln(o.Stdout, "Noted, not counted as missing:")
+		list(notes)
+	}
 	offer.log, shimOffer.log = o.Stdout, o.Stdout
 	_, pluginCode := offer.run()
-	shimCode := 0
-	if shimOffer.flag.given {
-		_, shimCode = shimOffer.run()
-	}
+	_, shimCode := shimOffer.run()
 	return max(code, pluginCode, shimCode), nil
+}
+
+// pinBehind is the note of a pin behind the newest release, nil when the
+// config pins none, pins the newest or one newer, or the release server
+// cannot say which is the newest.
+func pinBehind(cfg *config.Loaded) *out.Problem {
+	if cfg.Pin == nil || cfg.Pin.Version == "" {
+		return nil
+	}
+	newest, _, err := pinned("")
+	if err != nil || version.Compare(cfg.Pin.Version, newest) >= 0 {
+		return nil
+	}
+	return &out.Problem{
+		Rule:    "pin-behind",
+		Message: fmt.Sprintf("the pin, itos %s, is behind the newest release, itos %s", cfg.Pin.Version, newest),
+		Fix:     "itos pin moves it there; read the notes of the releases between them before you commit it",
+	}
 }
 
 // hookProblems are the hooks hooks install would put in place that do not

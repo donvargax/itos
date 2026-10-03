@@ -552,6 +552,10 @@ Where a config is there (itos.yaml, or the stealth one), it writes nothing and
 reports what is missing: what itos config check finds, and each hook that does
 not call itos, naming the command that puts it right; exit 1 when anything is
 missing, 0 when nothing is. It runs the binary called, whatever a pin says.
+Then it notes, never counting them as missing: a people file the config names
+that the repository lacks or cannot read, as itos config check warns, and a
+pin behind the newest release, naming itos pin, where the release server
+answers.
 
 It offers the itos plugin for Claude Code, through the claude on the PATH:
 claude plugin list --json says whether itos@itos is installed, and claude
@@ -575,12 +579,13 @@ asks, yes its default answer; anywhere else it links nothing and says how to.
 A link to this itos already there, or with no --git-shim-dir the first git on
 the PATH being itos, is kept; a git there that is no link to itos is never
 replaced, exit 1, the rest of init's work done. Run again where a config is,
-it never asks, and links the shim only for --git-shim.
+it never asks: a shim not linked is reported, never counted as missing, and
+--git-shim links it.
 
 --json: {"schema":1,"config","action":"initialized","git_init","since","files":[{"path","action"}],
         "pin","pin_problem"?,"hooks","plugin","git_shim"} (hooks as itos hooks install --json prints it),
         or {"schema":1,"config","action":"checked","missing":[{"rule","message","fix"?,"area"}],"plugin",
-        "git_shim"? (with --git-shim or --no-git-shim)};
+        "notes":[{"rule","message","fix"?,"area"}],"git_shim"};
         plugin {"action","scope","excluded","problem"?}, action one of installed, already,
         offered, declined, no_claude, unknown (claude plugin list failed) or failed;
         git_shim {"action","link","on_path","before_git","problem"?}, action one of linked,

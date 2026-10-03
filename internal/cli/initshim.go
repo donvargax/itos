@@ -11,7 +11,8 @@ package cli
 // its default yes; anywhere else (an agent, CI) it links nothing and says
 // how to. Run again where a config is, it never asks, and a --git-shim given
 // there links it all the same, the flag being the ask; without one the report
-// says nothing of the shim yet (initReport).
+// says how to, as it does of the plugin, never counting it as missing
+// (initReport).
 //
 // A shim already in effect is kept: the link where it would go already
 // linking this itos, or, with no --git-shim-dir, the first git on the PATH

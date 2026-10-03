@@ -119,7 +119,7 @@ cases:
           #!/bin/sh
           exec itos hook commit-msg "$1"
         executable: true
-  - name: init with a config there writes nothing and lists what is missing, config check's problems and the hooks'
+  - name: init with a config there writes nothing and lists what is missing, config check's problems and the hooks', then what it notes
     hide: [claude]
     git:
       - commit: "docs: start"
@@ -130,13 +130,15 @@ cases:
         ledger: { files: "tasks/phase-{group}.yaml" }
       tasks/: ""
       .git/hooks/commit-msg: { text: "#!/bin/sh\nexec itos hook commit-msg \"$1\"\n", executable: true }
-    argv: [init]
+    argv: [init, --no-git-shim]
     exit: 1
     stdout: |
       itos.yaml is there already, so init wrote nothing.
       Missing:
         no work registry at tasks/work-items.yaml; move the registry to tasks/work-items.yaml, or set work.registry to where it is
         the pre-push hook: .git/hooks/pre-push is not there; run itos hooks install
+      Noted, not counted as missing:
+        no people file at CONTRIBUTORS.md (work.people), so the registry's owners go unchecked; list the people who may own work in CONTRIBUTORS.md, or set work.people.file to where they are
     files_after:
       .git/hooks/pre-push: null
   - name: with --plugin and no claude on the PATH init says Claude Code was not found, and does the rest
@@ -187,8 +189,8 @@ cases:
     files_after:
       .git/claude-args: |
         plugin list --json
-  - name: run again where nothing is missing, init reports a plugin not installed and still exits 0
-    argv: [init]
+  - name: run again where nothing is missing, init notes a people file missing and reports a plugin not installed, and still exits 0
+    argv: [init, --no-git-shim]
     env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
     git:
       - commit: "docs: start"
@@ -205,9 +207,11 @@ cases:
     stdout: |
       itos.yaml is there already, so init wrote nothing.
       Nothing is missing: the config, its ledger, registry and smoke sets are sound, and the hooks call itos.
+      Noted, not counted as missing:
+        no people file at CONTRIBUTORS.md (work.people), so the registry's owners go unchecked; list the people who may own work in CONTRIBUTORS.md, or set work.people.file to where they are
       The itos plugin for Claude Code is not installed: itos init --plugin installs it for this repository (.claude/settings.json, to commit), --plugin user for every repository of yours, --plugin local for you alone in this one.
-  - name: run again with the plugin installed, init's JSON says so
-    argv: [--json, init]
+  - name: run again with the plugin installed, init's JSON says so, and what it notes
+    argv: [--json, init, --no-git-shim]
     env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
     git:
       - commit: "docs: start"
@@ -231,6 +235,12 @@ cases:
       action: checked
       missing: []
       plugin: { action: already, scope: user, excluded: false }
+      notes:
+        - rule: work-people-missing
+          message: "no people file at CONTRIBUTORS.md (work.people), so the registry's owners go unchecked"
+          fix: list the people who may own work in CONTRIBUTORS.md, or set work.people.file to where they are
+          area: people
+      git_shim: { action: declined, link: null, on_path: false, before_git: false }
   - name: a claude that fails at the install is reported, exit 1, the rest of init done
     argv: [init, --plugin, user]
     env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
@@ -289,7 +299,30 @@ cases:
       action: checked
       missing: []
       plugin: { action: no_claude, scope: null, excluded: false }
+      notes:
+        - rule: work-people-missing
+          message: "no people file at CONTRIBUTORS.md (work.people), so the registry's owners go unchecked"
+          fix: list the people who may own work in CONTRIBUTORS.md, or set work.people.file to where they are
+          area: people
       git_shim: { action: linked, link: "{{dir}}/shims/git", on_path: false, before_git: false }
+  - name: run again with no --git-shim, init says how to link it and does not count it as missing
+    argv: [init]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml" }
+      tasks/work-items.yaml: "phases: {}\nitems: []\n"
+      .git/hooks/commit-msg: { text: "#!/bin/sh\nexec itos hook commit-msg \"$1\"\n", executable: true }
+      .git/hooks/pre-push: { text: "#!/bin/sh\nexec itos hook pre-push \"$@\"\n", executable: true }
+    exit: 0
+    stdout_has:
+      - "Nothing is missing: the config, its ledger, registry and smoke sets are sound, and the hooks call itos.\n"
+      - "The git shim is not linked: itos init --git-shim links itos as git in "
+      - ", the folder holding itos (--git-shim-dir <folder> for another), so that in a repository itos manages git commit and git push are itos's.\n"
   - name: where no scenario carries an ID tag, the starter requires the Scenarios footer of no type, and init says how to tag one
     argv: [init]
     hide: [claude]

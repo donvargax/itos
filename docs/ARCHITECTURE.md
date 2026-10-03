@@ -593,12 +593,16 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   anything asks `config.Path`, whose stealth lookup caches the git common
   dir per folder. With a config there (`config.Path` names a file that
   exists, the project's or the stealth one) it writes nothing: `initReport`
-  lists `configFindings`' problems (the warnings, the people file's, left
-  out) and `hookProblems`', for the manager `chosenManager` gives (a shim
-  file missing, not calling itos or, for plain git, not executable; a
-  lefthook or pre-commit config without itos's lines; a git config entry
-  missing, the pre-push one only with `hooks.pre_push`, as `declareHooks`
-  writes it), exit 1 when there is any. Else `initWrite` asks
+  lists `configFindings`' problems and `hookProblems`', for the manager
+  `chosenManager` gives (a shim file missing, not calling itos or, for
+  plain git, not executable; a lefthook or pre-commit config without
+  itos's lines; a git config entry missing, the pre-push one only with
+  `hooks.pre_push`, as `declareHooks` writes it), exit 1 when there is
+  any; then its notes, never counted as missing (slice 50), under their
+  own heading and in the `checked` object's `notes`: `configFindings`'
+  warnings (the people file's) and `pinBehind`, a pin older than the
+  newest release by `version.Compare`, asked of the release server as
+  `pinned("")` asks it, and left out when it does not answer. Else `initWrite` asks
   `pinned("")`, pin's own question for the newest release, renders the
   starter (`starter.config`, a template of commented YAML, not
   `value.YAML`, so it reads as a person's file), writes it, the ledger and
@@ -641,11 +645,10 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   flag, the terminal's yes or no (`question`, sharing one buffered reader of
   stdin with the plugin's, so neither takes the other's answer), or none,
   when it says how; then `makeLink`, and `standingLine`. Run again where a
-  config is, the shim's offer runs only for `--git-shim` or
-  `--no-git-shim`, and its `git_shim` key is in the `checked` object only
-  then: the last release's corpus pins that report's words and its JSON
-  exactly (T-071), so a shim not linked, a pin behind the newest and a
-  people file missing are not reported there yet.
+  config is, neither offer asks: each says how, or installs for its flag,
+  and the `checked` object always holds `notes` and `git_shim`. These
+  additions to the report passed the last release's corpus because T-076
+  judges an old case's output additively, a line or a key added passing.
 - **Extensions** (`internal/cli/extension.go`, slice 29): a command itos
   does not have runs `itos-<command>` from the `PATH`, as git runs
   `git-<command>`. `cli.Parse` reads the arguments for both `cli.Main` and
