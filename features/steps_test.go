@@ -38,7 +38,6 @@ type world struct {
 
 // What a scenario sets in the scratch repository's itos.yaml.
 type scratchConfig struct {
-	headerLint        bool     // the header lint delegated to commitlint's conventional config
 	headerLintCommand string   // the header lint delegated to this command
 	headerLintBuiltin bool     // the header lint itos's own (use: builtin)
 	since             string   // commits.since
@@ -421,18 +420,7 @@ func (w *world) writeConfig() error {
 	if w.config.since != "" {
 		fmt.Fprintf(&b, "  since: %q\n", w.config.since)
 	}
-	if w.config.headerLint {
-		// commitlint from the itos checkout, which installs it, with only
-		// @commitlint/config-conventional: no footer rules of its own.
-		config := filepath.Join(w.support, "commitlint.config.mjs")
-		text := `export default { extends: ["@commitlint/config-conventional"] };` + "\n"
-		if err := os.WriteFile(config, []byte(text), 0o644); err != nil {
-			return err
-		}
-		lint := fmt.Sprintf("%s --cwd %s --config %s",
-			quote(filepath.Join(w.root, "node_modules", ".bin", "commitlint")), quote(w.root), quote(config))
-		fmt.Fprintf(&b, "  header_lint:\n    hook: %q\n    stdin: %q\n", lint+" --edit {file}", lint)
-	} else if w.config.headerLintCommand != "" {
+	if w.config.headerLintCommand != "" {
 		lint := w.config.headerLintCommand
 		fmt.Fprintf(&b, "  header_lint:\n    hook: %q\n    stdin: %q\n", lint, lint)
 	} else if w.config.headerLintBuiltin {
@@ -661,8 +649,10 @@ func (w *world) ledgerText() string {
 
 // Given steps.
 
+// A template's squashed first commit, judged by a header lint it fails: the
+// built-in one, config-conventional's rules.
 func (w *world) templateRepository(message string) error {
-	w.config.headerLint = true
+	w.config.headerLintBuiltin = true
 	if err := w.startingFiles("T-001"); err != nil {
 		return err
 	}
@@ -770,9 +760,12 @@ func (w *world) ledgerFolderMissing() error {
 	return nil
 }
 
+// commitlint's conventional config is the rules the built-in lint holds,
+// under commitlint's rule ids and words, so the scenarios that name it run
+// the built-in one: commitlint left this repository when it switched to it
+// (T-063), and the scenarios' text stays as it was (PLAN.md's risks).
 func (w *world) conventionalHeaderLint() error {
-	w.config.headerLint = true
-	return w.writeConfig()
+	return w.builtinHeaderLint()
 }
 
 func (w *world) sinceFirstCommit() error {
