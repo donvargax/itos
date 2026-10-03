@@ -7,31 +7,33 @@ import (
 	"github.com/donvargax/itos/internal/out"
 )
 
-// SinceIssue is a problem when the repository lacks the commit commits.since
-// names (a typo, a commit of another repository, a shallow clone), nil when
-// it has it or the config names none. A shallow clone (actions/checkout's
-// default, one commit deep) lacks the commit though the repository has it, so
-// there the problem says so and how to fetch the history.
-func (l *Loaded) SinceIssue() *out.Problem {
-	if l.Commits.Since == nil || *l.Commits.Since == "" {
-		return nil
-	}
-	sha := *l.Commits.Since
-	if git.HasCommit(sha) {
-		return nil
-	}
-	if git.Shallow() {
-		return &out.Problem{
-			Rule:    "config-since-commit",
-			Message: "commits.since names " + sha + ", which this clone does not have: the clone is shallow, and the commit may lie beyond its history. Fetch the whole history with git fetch --unshallow, or with fetch-depth: 0 for actions/checkout",
-			Fix:     "run git fetch --unshallow, or give actions/checkout fetch-depth: 0",
+// SinceIssues are the problems with the commits commits.since and each
+// footer's since name, in that order: none when the repository has every one
+// (a typo, a commit of another repository, a shallow clone). A shallow clone
+// (actions/checkout's default, one commit deep) lacks the commit though the
+// repository has it, so there the problem says so and how to fetch the
+// history.
+func (l *Loaded) SinceIssues() []out.Problem {
+	var found []out.Problem
+	for _, s := range l.sinces() {
+		if s.sha == "" || git.HasCommit(s.sha) {
+			continue
 		}
+		if git.Shallow() {
+			found = append(found, out.Problem{
+				Rule:    "config-since-commit",
+				Message: s.key + " names " + s.sha + ", which this clone does not have: the clone is shallow, and the commit may lie beyond its history. Fetch the whole history with git fetch --unshallow, or with fetch-depth: 0 for actions/checkout",
+				Fix:     "run git fetch --unshallow, or give actions/checkout fetch-depth: 0",
+			})
+			continue
+		}
+		found = append(found, out.Problem{
+			Rule:    "config-since-commit",
+			Message: s.key + " names " + s.sha + ", which is not a commit of this repository",
+			Fix:     "set " + s.key + " to the full SHA of a commit this repository has, or fetch its history",
+		})
 	}
-	return &out.Problem{
-		Rule:    "config-since-commit",
-		Message: "commits.since names " + sha + ", which is not a commit of this repository",
-		Fix:     "set commits.since to the full SHA of a commit this repository has, or fetch its history",
-	}
+	return found
 }
 
 // Since is the commit commits.since names, "" when none: where verification
@@ -41,6 +43,16 @@ func (l *Loaded) Since() string {
 		return ""
 	}
 	return *l.Commits.Since
+}
+
+// Before is whether a commit is one a footer's since leaves out of its
+// required_for: that commit or one of its ancestors. Never for a footer
+// without a since.
+func Before(f Footer, sha string) bool {
+	if f.Since == nil || *f.Since == "" || sha == "" {
+		return false
+	}
+	return sha == *f.Since || git.Succeeds("merge-base", "--is-ancestor", sha, *f.Since)
 }
 
 // newBranch is whether a range's start is empty or all zeros: a new branch,

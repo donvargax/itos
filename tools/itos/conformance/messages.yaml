@@ -6,7 +6,9 @@
 # config's footers, a Gherkin kind's default wip tag named for a test not
 # live, a command adapter's tests named in a footer, a
 # delegated header lint's report read into problems, the footer rules run
-# beside it, and the built-in header lint (commits.header_lint.use: builtin):
+# beside it, a footer of free text (there and not empty; none passes; its
+# since not applied to a message), a range's free-text footers gathered
+# (commit footers), and the built-in header lint (commits.header_lint.use: builtin):
 # each of config-conventional's errors under commitlint's rule id and words,
 # commits.types as the type list (config-conventional's own without it), its
 # warnings printed without rejecting, the messages commitlint leaves alone,
@@ -203,6 +205,127 @@ cases:
     exit: 1
     stderr: |
       ✖   fix commits need a "Scenarios: @ID-…" footer [scenarios-footer]
+  # A footer of free text (source: text) says what a consumer must do, or the
+  # word none; its rule is only that it is there and not empty.
+  - name: a type that needs a free-text footer, without one
+    argv: [commit, check-message, "-", --config, text.yaml]
+    stdin: "chore: x\n"
+    files: &text
+      text.yaml: |
+        version: 1
+        commits:
+          types: [chore, docs]
+          footers:
+            Upgrading: { source: text, required_for: [chore], validate_for: all, since: "{{sha.head}}" }
+    exit: 1
+    stderr: |
+      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
+  - name: the missing free-text footer as --json, with its fix
+    argv: [commit, check-message, "-", --config, text.yaml, --json]
+    stdin: "chore: x\n"
+    files: *text
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: upgrading-footer
+          message: "chore commits need a \"Upgrading: <what a consumer must do, or none>\" footer"
+          fix: "add a line `Upgrading: <what a consumer must do>` after a blank line at the end, or `Upgrading: none` when a consumer changes nothing"
+  - name: none says a consumer changes nothing
+    argv: [commit, check-message, "-", --config, text.yaml]
+    stdin: "chore: x\n\nUpgrading: none\n"
+    files: *text
+    exit: 0
+  - name: a free-text footer passes with whatever it says
+    argv: [commit, check-message, "-", --config, text.yaml]
+    stdin: "chore: x\n\nUpgrading: rename commits.lint to commits.header_lint\n"
+    files: *text
+    exit: 0
+  - name: an empty free-text footer is no footer to a type that needs one
+    argv: [commit, check-message, "-", --config, text.yaml]
+    stdin: "chore: x\n\nUpgrading:\n"
+    files: *text
+    exit: 1
+    stderr: |
+      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
+  - name: an empty free-text footer is rejected where the type validates it, beside one that says something
+    argv: [commit, check-message, "-", --config, text.yaml, --json]
+    stdin: "docs: x\n\nUpgrading: drop Node\nUpgrading:  \n"
+    files: *text
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: upgrading-footer
+          message: "the Upgrading: footer is empty"
+          fix: "write after Upgrading: what a consumer must do, or none"
+  - name: check-message requires a footer of a commit before its since, as the commit-msg hook does
+    argv: [commit, check-message, "-", --config, text.yaml, --at, "{{sha.live}}"]
+    stdin: "chore: x\n"
+    files: *text
+    exit: 1
+    stderr: |
+      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
+  # commit footers gathers a range's free-text footers for a release's notes.
+  - name: commit footers lists a range's free-text footers with their commits, oldest first, leaving out none
+    argv: [commit, footers, Upgrading, "{{sha.first}}", HEAD, --config, said.yaml]
+    git: &said
+      - commit: "chore: start\n\nUpgrading: before the range\n"
+        files: { README.md: "scratch\n" }
+        label: first
+      - commit: "chore: rename the key\n\nUpgrading: rename commits.lint to commits.header_lint\nUpgrading: none\n"
+        files: { README.md: "scratch, renamed\n" }
+        label: renamed
+      - commit: "chore: tidy\n\nUpgrading: none\n"
+        files: { README.md: "scratch, tidied\n" }
+      - commit: "chore: drop node\n\nUpgrading: install the binary\nUpgrading: drop Node\n"
+        files: { README.md: "scratch, dropped\n" }
+        label: dropped
+    files: &saidcfg
+      said.yaml: |
+        version: 1
+        commits:
+          types: [chore, docs]
+          footers:
+            Upgrading: { source: text, required_for: [chore] }
+    exit: 0
+    stdout: |
+      {{short.renamed}} rename commits.lint to commits.header_lint
+      {{short.dropped}} install the binary
+      {{short.dropped}} drop Node
+    stderr: ""
+  - name: commit footers as --json, each with its commit's full SHA and subject
+    argv: [commit, footers, Upgrading, "{{sha.renamed}}", HEAD, --config, said.yaml, --json]
+    git: *said
+    files: *saidcfg
+    exit: 0
+    json:
+      schema: 1
+      footer: Upgrading
+      range: { from: "{{sha.renamed}}", to: HEAD }
+      footers:
+        - { sha: "{{sha.dropped}}", subject: "chore: drop node", text: install the binary }
+        - { sha: "{{sha.dropped}}", subject: "chore: drop node", text: drop Node }
+  - name: commit footers from an empty start reads every commit up to the end
+    argv: [commit, footers, Upgrading, "", "{{sha.renamed}}", --config, said.yaml]
+    git: *said
+    files: *saidcfg
+    exit: 0
+    stdout: |
+      {{short.first}} before the range
+      {{short.renamed}} rename commits.lint to commits.header_lint
+  - name: commit footers lists only a footer of free text
+    argv: [commit, footers, Task, "", HEAD]
+    exit: 2
+    stderr: |
+      itos: commit footers needs a footer of free text: commits.footers.Task is not one (source: text) (itos --help)
+  - name: commit footers needs a name and a range
+    argv: [commit, footers, Upgrading, HEAD]
+    exit: 2
+    stderr: |
+      itos: commit footers needs <name> <from> <to> (itos --help)
   - name: docs needs no footer
     argv: [commit, check-message, "-"]
     stdin: "docs: x\n"

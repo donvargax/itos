@@ -4,7 +4,8 @@
 # allowed, a missing key, a pattern that does not compile as RE2 (a lookaround,
 # a backreference, a repeat count above 1000, a letter escape, an empty class,
 # a kind's ID pattern among them), a name that refers
-# to nothing, a commits.since that is no full SHA or no commit here), exit 2;
+# to nothing, a commits.since or a footer's since that is no full SHA or no
+# commit here, a footer of free text with a key that reads IDs), exit 2;
 # a missing ledger folder, one problem naming it, exit 2; each ledger problem (written order among them, a check that calls hooks.bin read as itos), exit 1;
 # the registry's and the smoke set's problems beside them; the nightly's
 # tasks step (tasks: done, refused in ci.steps, with no late cost); --print-defaults,
@@ -269,7 +270,7 @@ cases:
     exit: 2
     stderr: |
       FAIL itos.yaml: commits.scopes.docs is not one of commits.types
-      FAIL itos.yaml: commits.footers.Task.source is ledger or { tests: <kind> }
+      FAIL itos.yaml: commits.footers.Task.source is ledger, text or { tests: <kind> }
       FAIL itos.yaml: commits.footers.Task.required_for names chore, which is not one of commits.types
       FAIL itos.yaml: commits.footers.Task.validate_for is a list of types or all
       FAIL itos.yaml: commits.footers.Tests.source names tests.e2e, which the config does not have
@@ -616,6 +617,80 @@ cases:
           message: "since.yaml: commits.since names {{sha.first}}, which this clone does not have: the clone is shallow, and the commit may lie beyond its history. Fetch the whole history with git fetch --unshallow, or with fetch-depth: 0 for actions/checkout"
           fix: "run git fetch --unshallow, or give actions/checkout fetch-depth: 0"
           area: config
+  # A footer of free text (source: text) says what a consumer must do, or
+  # none: it has no IDs, so the keys that say how IDs are written and read
+  # would be read by nothing. Its since is checked as commits.since is.
+  - name: a footer of free text with a since naming a commit of the repository
+    argv: [config, check, --config, text.yaml]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+        label: start
+    files:
+      text.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits:
+          types: [build, docs]
+          footers:
+            Upgrading: { source: text, required_for: [build], validate_for: all, since: "{{sha.start}}" }
+        tests:
+          scenario: { root: features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: smoke.yaml } }
+        ci:
+          steps: [{ run: vp check, cost: static }]
+          cost: { static: ["^vp check$"], keep_written_order: true }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+    exit: 0
+    stdout: |
+      text.yaml is valid, and so are the 2 ledger files it reads
+      work-items.yaml: sound
+      smoke.yaml: every file has a smoke test (1 in all)
+  - name: a footer of free text takes no key that reads IDs, and its since is a full SHA
+    argv: [config, check, --json, --config, text.yaml]
+    files:
+      text.yaml: |
+        version: 1
+        commits:
+          types: [build, docs]
+          footers:
+            Upgrading: { source: text, strip_prefix: "@", required_for: [build], must_be_live: false, read_at: commit, since: abc1234 }
+    exit: 2
+    json:
+      schema: 1
+      config: text.yaml
+      valid: false
+      problems:
+        - rule: config-since
+          message: "text.yaml: commits.footers.Upgrading.since is not the full SHA of a commit: abc1234"
+          fix: set commits.footers.Upgrading.since to the commit's full SHA, as `git rev-parse <commit>` prints it
+          area: config
+        - rule: config-footer-text
+          message: "text.yaml: commits.footers.Upgrading.strip_prefix is for a footer of IDs, and commits.footers.Upgrading is free text (source: text)"
+          fix: remove commits.footers.Upgrading.strip_prefix
+          area: config
+        - rule: config-footer-text
+          message: "text.yaml: commits.footers.Upgrading.must_be_live is for a footer of IDs, and commits.footers.Upgrading is free text (source: text)"
+          fix: remove commits.footers.Upgrading.must_be_live
+          area: config
+        - rule: config-footer-text
+          message: "text.yaml: commits.footers.Upgrading.read_at is for a footer of IDs, and commits.footers.Upgrading is free text (source: text)"
+          fix: remove commits.footers.Upgrading.read_at
+          area: config
+  - name: a footer's since naming no commit of the repository
+    argv: [config, check, --config, text.yaml]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+    files:
+      text.yaml: |
+        version: 1
+        commits:
+          types: [build, docs]
+          footers:
+            Upgrading: { source: text, required_for: [build], since: "0123456789abcdef0123456789abcdef01234567" }
+    exit: 2
+    stderr: |
+      FAIL text.yaml: commits.footers.Upgrading.since names 0123456789abcdef0123456789abcdef01234567, which is not a commit of this repository
   - name: a hooks.commit_msg.check_timeout of no seconds is refused, since it would be no timeout
     argv: [config, check, --config, hook.yaml]
     files: { hook.yaml: "version: 1\nhooks: { commit_msg: { check_timeout: 0 } }\n" }

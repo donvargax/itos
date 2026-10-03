@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"fmt"
 	"io"
 	"os"
 
@@ -73,6 +74,35 @@ func checkPaths(typ string, files []string, o Out) (int, error) {
 	}
 	if len(found) > 0 {
 		return ExitPolicy, nil
+	}
+	return 0, nil
+}
+
+// listFooters is `commit footers <name> <from> <to>`: the range's footers of
+// commits.footers.<name>, a footer of free text, each with the commit it came
+// from, leaving out those that say none, for a release's notes. One line
+// each, the commit's short SHA and the text; under --json each with the full
+// SHA and the subject. 2 when <name> is not a footer of free text.
+func listFooters(name, from, to string, o Out) (int, error) {
+	cfg, err := config.Load(config.Path())
+	if err != nil {
+		return 0, err
+	}
+	if f, ok := cfg.Commits.Footers.Get(name); !ok || !f.Text() {
+		return 0, usage("commit footers needs a footer of free text: commits.footers.%s is not one (source: text)", name)
+	}
+	said, err := message.Gathered(from, to, name)
+	if err != nil {
+		return 0, err
+	}
+	if o.JSON {
+		return 0, out.Emit(o.Stdout,
+			out.Field{Key: "footer", Value: name},
+			out.Field{Key: "range", Value: span{from, to}},
+			out.Field{Key: "footers", Value: said})
+	}
+	for _, s := range said {
+		fmt.Fprintf(o.Stdout, "%s %s\n", short(s.SHA), s.Text)
 	}
 	return 0, nil
 }

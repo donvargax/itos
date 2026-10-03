@@ -26,6 +26,21 @@ func TestIDs(t *testing.T) {
 	}
 }
 
+// A free-text footer's texts, a line each, trimmed, the empty ones kept; a
+// line that only mentions the key is not the footer. None is the word alone,
+// in lower case.
+func TestTexts(t *testing.T) {
+	text := "chore: x\n\nUpgrading:  rename a key \nUpgrading:\nSee Upgrading: below\nUpgrading: none\n"
+	if got, want := Texts(text, "Upgrading"), []string{"rename a key", "", "none"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Texts %q", got)
+	}
+	for text, want := range map[string]bool{"none": true, "None": false, "none.": false, "": false} {
+		if None(text) != want {
+			t.Errorf("None(%q) is %v", text, !want)
+		}
+	}
+}
+
 func load(t *testing.T, text string) *config.Loaded {
 	t.Helper()
 	file := filepath.Join(t.TempDir(), "itos.yaml")

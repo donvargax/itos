@@ -72,10 +72,10 @@ func configFindings(ledgerFile string) (int, []Found, []string, error) {
 	if err != nil {
 		return 0, nil, nil, err
 	}
-	// A commits.since this repository does not have makes the config
+	// A commits.since, or a footer's since, this repository does not have makes the config
 	// unusable for verify, as an invalid key does.
-	if missing := cfg.SinceIssue(); missing != nil {
-		return 2, prefixed(&config.Error{File: path, Problems: []out.Problem{*missing}}, "config"), nil, nil
+	if missing := cfg.SinceIssues(); len(missing) > 0 {
+		return 2, prefixed(&config.Error{File: path, Problems: missing}, "config"), nil, nil
 	}
 	var files []string
 	if ledgerFile != "" {

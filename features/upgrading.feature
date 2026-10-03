@@ -14,7 +14,7 @@ Feature: A footer that says what a consumer changes
     And a change to "README.md" is staged
     And the config requires an "Upgrading" footer of free text for "chore"
 
-  @ID-UPGRADE-01 @slice-26 @wip
+  @ID-UPGRADE-01 @slice-26
   Scenario: A commit without the free-text footer its type needs is rejected, naming the footer
     When the commit-msg hook checks the message:
       """
@@ -25,7 +25,7 @@ Feature: A footer that says what a consumer changes
     Then itos exits with code 1
     And its output says "Upgrading"
 
-  @ID-UPGRADE-02 @slice-26 @wip
+  @ID-UPGRADE-02 @slice-26
   Scenario: The word none is a free-text footer that says a consumer changes nothing
     When the commit-msg hook checks the message:
       """
@@ -36,7 +36,7 @@ Feature: A footer that says what a consumer changes
       """
     Then itos exits with code 0
 
-  @ID-UPGRADE-03 @slice-26 @wip
+  @ID-UPGRADE-03 @slice-26
   Scenario: A free-text footer is accepted with whatever it says
     When the commit-msg hook checks the message:
       """
@@ -49,7 +49,7 @@ Feature: A footer that says what a consumer changes
 
   # Without a since of its own, adding a required footer would turn verify
   # red on every commit written before the rule existed.
-  @ID-UPGRADE-04 @slice-26 @wip
+  @ID-UPGRADE-04 @slice-26
   Scenario: verify does not require the footer of a commit before the footer's since
     Given the commit "chore: tidy the readme" naming the task "T-001"
     And the "Upgrading" footer is required only after HEAD
@@ -58,7 +58,7 @@ Feature: A footer that says what a consumer changes
 
   # The release gathers what each commit asked of a consumer: the footers of
   # the range, one per line with the commit it came from; a none asks nothing.
-  @ID-UPGRADE-05 @slice-26 @wip
+  @ID-UPGRADE-05 @slice-26
   Scenario: itos lists a range's free-text footers with their commits, skipping those that say none
     Given the commit "chore: rename the key" naming the task "T-001" with the footer "Upgrading: rename commits.lint to commits.header_lint"
     And the commit "chore: tidy the readme" naming the task "T-001" with the footer "Upgrading: none"

@@ -19,6 +19,8 @@ cases:
         commit check-message <file|->    header lint and footer rules on one message
         commit check-paths --type <t> <path>…
                                          the commit type's path rules, for planning a split
+        commit footers <name> <from> <to>
+                                         a range's free-text footers, for the release notes
         verify <from> <to>               re-check every commit of a range
         tests list <kind> [--at <tree>]  the kind's named tests
         tests smoke check|ids|run <kind> the smoke rule, the smoke IDs, the smoke run
@@ -111,6 +113,7 @@ cases:
     stdout: |
       Usage: itos commit check-message <file|-> [--at <sha>]
              itos commit check-paths --type <type> <path>…
+             itos commit footers <name> <from> <to>
   - name: itos commit check-message --help
     argv: [commit, check-message, --help]
     exit: 0
@@ -134,6 +137,21 @@ cases:
       they reject, without committing. Exit 1 when a path is rejected.
 
       --json: {"schema":1,"type","files","ok","problems":[{"rule","message","fix"}]}
+  - name: itos commit footers --help
+    argv: [commit, footers, --help]
+    exit: 0
+    stdout: |
+      Usage: itos commit footers <name> <from> <to>
+
+      Lists the footers <name> that the range's non-merge commits carry (from may be
+      empty or all zeros: every commit up to <to>), where commits.footers.<name> is
+      free text (source: text): what each commit asks of a consumer, gathered for a
+      release's notes. One line per footer, oldest commit first, its commit's short
+      SHA and its text; a commit with several gives a line for each. A footer that
+      says none (the word alone, in lower case) asks nothing and is left out, as is
+      an empty one. Exit 2 when <name> is not a footer of free text.
+
+      --json: {"schema":1,"footer","range","footers":[{"sha","subject","text"}]}
   - name: itos verify --help
     argv: [verify, --help]
     exit: 0
@@ -145,9 +163,10 @@ cases:
       its paths, and, by a kind's built-in moves rule, its feature files against its
       parent's, unless the rule's except_types names its type; then each kind's
       range command. The commit commits.since names and its ancestors are left out,
-      and the range commands start there. Prints "<n>/<m> commits pass the commit
-      rules". Exit 1 on any failure, 2 when commits.since is not a commit of the
-      repository.
+      and the range commands start there; a footer's own since leaves that commit
+      and its ancestors out of the footer's required_for. Prints "<n>/<m> commits
+      pass the commit rules". Exit 1 on any failure, 2 when commits.since or a
+      footer's since is not a commit of the repository.
 
       --json: {"schema":1,"range","since"?,"commits":[{"sha","header","ok"}],"passed","total","range_checks"}
   - name: itos tests --help

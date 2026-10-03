@@ -2,7 +2,8 @@
 # non-merge commit's message against the footers as they were at that commit,
 # then its paths, then each kind's range check once; the summary line agents
 # quote, and --json; commits.since, which leaves a commit and its ancestors
-# out and starts the range checks there.
+# out and starts the range checks there; a footer's own since, which leaves
+# them out of that footer's required_for.
 #
 # The repository: a commit before the ledger (bare); a feat naming a live
 # scenario and T-002 (live); the scenario set back to @wip and T-002 taken out
@@ -293,6 +294,77 @@ cases:
       Commit rejected:
         - docs commits may not touch src/a.ts
         ^ {{short.source}} docs: touch the source
+  # A footer's own since: added to the rules later, a required footer would
+  # otherwise fail every commit written before it.
+  - name: without a since of its own, a required footer fails every commit written before the rule
+    argv: [verify, "", HEAD, --config, upgrading.yaml]
+    git: &upgrading
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: start
+      - commit: "chore: before the rule"
+        files: { README.md: "scratch, before\n" }
+        label: before
+      - commit: "chore: after the rule\n\nUpgrading: none\n"
+        files: { README.md: "scratch, after\n" }
+    files:
+      upgrading.yaml: |
+        version: 1
+        commits:
+          types: [chore, docs]
+          footers:
+            Upgrading: { source: text, required_for: [chore] }
+    exit: 1
+    stdout: |
+      1/3 commits pass the commit rules
+    stderr: |
+      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
+        ^ {{short.start}} chore: start
+      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
+        ^ {{short.before}} chore: before the rule
+  - name: a footer's since leaves that commit and its ancestors out of its required_for
+    argv: [verify, "", HEAD, --config, upgrading.yaml]
+    git: *upgrading
+    files:
+      upgrading.yaml: |
+        version: 1
+        commits:
+          types: [chore, docs]
+          footers:
+            Upgrading: { source: text, required_for: [chore], since: "{{sha.before}}" }
+    exit: 0
+    stdout: |
+      3/3 commits pass the commit rules
+    stderr: ""
+  - name: a commit after the footer's since still needs it
+    argv: [verify, "", HEAD, --config, upgrading.yaml]
+    git: *upgrading
+    files:
+      upgrading.yaml: |
+        version: 1
+        commits:
+          types: [chore, docs]
+          footers:
+            Upgrading: { source: text, required_for: [chore], since: "{{sha.start}}" }
+    exit: 1
+    stdout: |
+      2/3 commits pass the commit rules
+    stderr: |
+      ✖   chore commits need a "Upgrading: <what a consumer must do, or none>" footer [upgrading-footer]
+        ^ {{short.before}} chore: before the rule
+  - name: a footer's since naming no commit of the repository
+    argv: [verify, "", HEAD, --config, upgrading.yaml]
+    git: *upgrading
+    files:
+      upgrading.yaml: |
+        version: 1
+        commits:
+          types: [chore, docs]
+          footers:
+            Upgrading: { source: text, required_for: [chore], since: "0123456789abcdef0123456789abcdef01234567" }
+    exit: 2
+    stderr: |
+      FAIL commits.footers.Upgrading.since names 0123456789abcdef0123456789abcdef01234567, which is not a commit of this repository
   - name: commits.since naming no commit of the repository
     argv: [verify, "", "{{sha.tidy}}", --config, since.yaml]
     files:

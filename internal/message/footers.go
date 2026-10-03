@@ -13,13 +13,21 @@
 // must_be_live, and read_at: `commit` reads the IDs that exist at the commit
 // being checked (the staged tree by default, the commit Reading.At names),
 // so a later commit that sets a test back to wip or drops a task does not
-// fail an older one; `worktree`, or none, the working tree.
+// fail an older one; `worktree`, or none, the working tree; since, a commit
+// that verify leaves out of required_for with its ancestors (Reading.Made).
+//
+// A footer whose source is text carries no IDs: `<Key>: <text>`, each line
+// one footer, the text whatever a consumer of the project must do, or the
+// word none. Its rule is only that it is there (required_for) and not empty
+// (validate_for); Texts reads it, and a range's are gathered by
+// `itos commit footers`.
 package message
 
 import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/internal/config"
@@ -33,9 +41,13 @@ import (
 
 // Reading is where the footer rules read a read_at: commit footer's IDs: At
 // is the commit, "" for the staged tree; Warn is where a footer read against
-// the working tree instead says so.
+// the working tree instead says so. Made is whether the message is At's own,
+// a commit already made, as verify reads it: a footer's since then leaves
+// that commit and its ancestors out of its required_for. The commit-msg hook
+// and check-message judge the commit being made, which every rule holds.
 type Reading struct {
 	At   string
+	Made bool
 	Warn io.Writer
 }
 
@@ -78,6 +90,22 @@ func IDs(text, key, strip string) []string {
 	return ids
 }
 
+// Texts are the texts one free-text footer gives in a message, a line each,
+// in order, trimmed, the empty ones kept as "".
+func Texts(message, key string) []string {
+	var texts []string
+	for _, line := range strings.Split(message, "\n") {
+		if strings.HasPrefix(line, key+":") {
+			texts = append(texts, value.Trim(line[len(key)+1:]))
+		}
+	}
+	return texts
+}
+
+// None is whether a free-text footer says a consumer changes nothing: the
+// word none alone, in lower case as written, around it only whitespace.
+func None(text string) bool { return text == "none" }
+
 // Type is a message's commit type, as the footer rules read it: the word it
 // starts with, "" when none.
 func Type(message string) string {
@@ -106,8 +134,12 @@ func strip(f config.Footer) string {
 	return *f.StripPrefix
 }
 
-// example is how a message names a footer: `"Task: T-…"`.
+// example is how a message names a footer: `"Task: T-…"`, or for free text
+// `"Upgrading: <what a consumer must do, or none>"`.
 func example(cfg *config.Loaded, key string, f config.Footer) string {
+	if f.Text() {
+		return fmt.Sprintf(`"%s: <what a consumer must do, or none>"`, key)
+	}
 	var pattern *string
 	if isLedger(f) {
 		pattern = cfg.Ledger.ID
@@ -219,8 +251,12 @@ func knownFor(cfg *config.Loaded, key string, f config.Footer, r Reading) (known
 // why not. An error when its source cannot be read.
 func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (string, error) {
 	f, _ := cfg.Commits.Footers.Get(key)
+	required := applies(f.RequiredFor, typ) && !(r.Made && config.Before(f, r.At))
+	if f.Text() {
+		return checkText(cfg, key, f, typ, message, required), nil
+	}
 	ids := IDs(message, key, strip(f))
-	if applies(f.RequiredFor, typ) && len(ids) == 0 {
+	if required && len(ids) == 0 {
 		return fmt.Sprintf("%s commits need a %s footer", typ, example(cfg, key, f)), nil
 	}
 	// No ID, nothing to check: the footer's source is not read.
@@ -235,7 +271,7 @@ func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (strin
 	for _, id := range ids {
 		if !k.all[id] {
 			unknown = append(unknown, id)
-		} else if f.MustBeLive && k.notLive[id] {
+		} else if f.Live() && k.notLive[id] {
 			pending = append(pending, id)
 		}
 	}
@@ -250,6 +286,20 @@ func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (strin
 		return why + ": " + strings.Join(pending, ", "), nil
 	}
 	return "", nil
+}
+
+// checkText is a free-text footer's rule: a type it is required for carries
+// one that says something, and a type it validates carries none empty.
+func checkText(cfg *config.Loaded, key string, f config.Footer, typ, message string, required bool) string {
+	texts := Texts(message, key)
+	said := slices.ContainsFunc(texts, func(t string) bool { return t != "" })
+	if required && !said {
+		return fmt.Sprintf("%s commits need a %s footer", typ, example(cfg, key, f))
+	}
+	if applies(f.ValidateFor, typ) && slices.Contains(texts, "") {
+		return fmt.Sprintf("the %s: footer is empty", key)
+	}
+	return ""
 }
 
 // FooterProblems are the footer rules' problems with a message, footer by
@@ -336,4 +386,43 @@ func unique(list []string) []string {
 		}
 	}
 	return kept
+}
+
+// Said is one free-text footer a commit of a range carries: the commit, its
+// subject and the footer's text.
+type Said struct {
+	SHA     string `json:"sha"`
+	Subject string `json:"subject"`
+	Text    string `json:"text"`
+}
+
+// Gathered are the free-text footers of one key that a range's non-merge
+// commits carry, oldest commit first and each commit's in written order: what
+// a release's notes are gathered from. from..to as git reads it, every commit
+// up to to when from is empty or all zeros; commits.since does not narrow it,
+// since a footer written before the rules still says what it says. A footer
+// that is empty, or says none, asks nothing and is left out.
+func Gathered(from, to, key string) ([]Said, error) {
+	span := []string{from + ".." + to}
+	if strings.Trim(from, "0") == "" {
+		span = []string{to}
+	}
+	log, err := git.Read(append([]string{"log", "--no-merges", "--reverse", "--format=%H%x00%B%x1e"}, span...)...)
+	if err != nil {
+		return nil, err
+	}
+	said := []Said{}
+	for _, entry := range strings.Split(log, "\x1e") {
+		sha, message, ok := strings.Cut(strings.TrimLeft(entry, "\n"), "\x00")
+		if !ok {
+			continue
+		}
+		subject, _, _ := strings.Cut(message, "\n")
+		for _, text := range Texts(message, key) {
+			if text != "" && !None(text) {
+				said = append(said, Said{SHA: sha, Subject: subject, Text: text})
+			}
+		}
+	}
+	return said, nil
 }

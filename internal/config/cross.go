@@ -26,20 +26,42 @@ func crossProblems(tree *value.Map, c *Config) []out.Problem {
 // FullSHA is a full commit SHA, SHA-1 or SHA-256, as git prints it.
 var FullSHA = regexp.MustCompile(`^(?:[0-9a-f]{40}|[0-9a-f]{64})$`)
 
-// sinceProblems: commits.since is a full SHA, since an abbreviation can grow
-// ambiguous and a branch or tag can move. Whether the repository has that
-// commit is config check's question (SinceIssue), since a shallow clone may
-// not.
+// sinceProblems: commits.since, and each footer's since, is a full SHA,
+// since an abbreviation can grow ambiguous and a branch or tag can move.
+// Whether the repository has that commit is config check's question
+// (SinceIssues), since a shallow clone may not.
 func sinceProblems(_ *value.Map, c *Config) []out.Problem {
-	since := c.Commits.Since
-	if since == nil || FullSHA.MatchString(*since) {
-		return nil
+	var found []out.Problem
+	for _, s := range c.sinces() {
+		if FullSHA.MatchString(s.sha) {
+			continue
+		}
+		found = append(found, out.Problem{
+			Rule:    "config-since",
+			Message: s.key + " is not the full SHA of a commit: " + s.sha,
+			Fix:     "set " + s.key + " to the commit's full SHA, as `git rev-parse <commit>` prints it",
+		})
 	}
-	return []out.Problem{{
-		Rule:    "config-since",
-		Message: "commits.since is not the full SHA of a commit: " + *since,
-		Fix:     "set commits.since to the commit's full SHA, as `git rev-parse <commit>` prints it",
-	}}
+	return found
+}
+
+// since is one key that names a commit where a rule starts, and the SHA it
+// names.
+type since struct{ key, sha string }
+
+// sinces are commits.since and each footer's since that the config sets, in
+// that order.
+func (c *Config) sinces() []since {
+	var found []since
+	if c.Commits.Since != nil {
+		found = append(found, since{"commits.since", *c.Commits.Since})
+	}
+	for _, key := range c.Commits.Footers.Keys {
+		if f := c.Commits.Footers.Values[key]; f.Since != nil {
+			found = append(found, since{"commits.footers." + key + ".since", *f.Since})
+		}
+	}
+	return found
 }
 
 func scopeProblems(_ *value.Map, c *Config) []out.Problem {
@@ -68,6 +90,7 @@ func footerProblems(_ *value.Map, c *Config) []out.Problem {
 		f := c.Commits.Footers.Values[key]
 		where := "commits.footers." + key
 		found = append(found, sourceProblems(c, where, f.Source)...)
+		found = append(found, textProblems(where, f)...)
 		found = append(found, namedTypeProblems(c, where+".required_for", f.RequiredFor)...)
 		found = append(found, namedTypeProblems(c, where+".validate_for", f.ValidateFor)...)
 	}
@@ -76,13 +99,13 @@ func footerProblems(_ *value.Map, c *Config) []out.Problem {
 
 func sourceProblems(c *Config, where string, s FooterSource) []out.Problem {
 	if s.IsName {
-		if s.Name == "ledger" {
+		if s.Name == "ledger" || s.Name == "text" {
 			return nil
 		}
 		return []out.Problem{{
 			Rule:    "config-footer-source",
-			Message: where + ".source is ledger or { tests: <kind> }",
-			Fix:     "set " + where + ".source to ledger or { tests: <kind> }",
+			Message: where + ".source is ledger, text or { tests: <kind> }",
+			Fix:     "set " + where + ".source to ledger, text or { tests: <kind> }",
 		}}
 	}
 	if _, ok := c.Tests.Get(s.Tests); ok {
@@ -93,6 +116,29 @@ func sourceProblems(c *Config, where string, s FooterSource) []out.Problem {
 		Message: where + ".source names tests." + s.Tests + ", which the config does not have",
 		Fix:     "add tests." + s.Tests + ", or name a kind tests: has",
 	}}
+}
+
+// textProblems: a footer of free text names no IDs, so the keys that say how
+// IDs are written and read would be read by nothing.
+func textProblems(where string, f Footer) []out.Problem {
+	if !f.Text() {
+		return nil
+	}
+	var found []out.Problem
+	for _, k := range []struct {
+		key string
+		set bool
+	}{{"strip_prefix", f.StripPrefix != nil}, {"must_be_live", f.MustBeLive != nil}, {"read_at", f.ReadAt != nil}} {
+		if !k.set {
+			continue
+		}
+		found = append(found, out.Problem{
+			Rule:    "config-footer-text",
+			Message: where + "." + k.key + " is for a footer of IDs, and " + where + " is free text (source: text)",
+			Fix:     "remove " + where + "." + k.key,
+		})
+	}
+	return found
 }
 
 func namedTypeProblems(c *Config, where string, named *Types) []out.Problem {

@@ -7,7 +7,9 @@ package cli
 // commands once over the range. The commit commits.since names, and its
 // ancestors, are left out, and the range checks start there: a history
 // written before the rules (a template's squashed first commit, a project
-// adopting itos) is not judged by them.
+// adopting itos) is not judged by them. A footer's own since does the same
+// for that footer's required_for, so a footer added to the rules later does
+// not fail the commits written before it.
 
 import (
 	"fmt"
@@ -67,7 +69,7 @@ func (v *verifier) commit(sha string) (verified, error) {
 	if err != nil {
 		return verified{}, err
 	}
-	code, err := message.Check(v.cfg, text, message.Reading{At: sha, Warn: v.o.Stderr},
+	code, err := message.Check(v.cfg, text, message.Reading{At: sha, Made: true, Warn: v.o.Stderr},
 		message.Streams{Stdout: v.log, Stderr: v.o.Stderr})
 	if err != nil {
 		return verified{}, err
@@ -120,13 +122,15 @@ func verifyRange(from, to string, o Out) (int, error) {
 	if o.JSON {
 		v.log = o.Stderr
 	}
-	if missing := cfg.SinceIssue(); missing != nil {
+	if missing := cfg.SinceIssues(); len(missing) > 0 {
 		if o.JSON {
 			return ExitUsage, out.Emit(o.Stdout,
 				out.Field{Key: "range", Value: span{from, to}},
-				out.Field{Key: "problems", Value: []out.Problem{*missing}})
+				out.Field{Key: "problems", Value: missing})
 		}
-		fmt.Fprintf(o.Stderr, "FAIL %s\n", missing.Message)
+		for _, p := range missing {
+			fmt.Fprintf(o.Stderr, "FAIL %s\n", p.Message)
+		}
 		return ExitUsage, nil
 	}
 	start := cfg.Since()

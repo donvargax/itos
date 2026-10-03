@@ -71,13 +71,24 @@ type Footer struct {
 	StripPrefix *string      `json:"strip_prefix"`
 	RequiredFor *Types       `json:"required_for"`
 	ValidateFor *Types       `json:"validate_for"`
-	MustBeLive  bool         `json:"must_be_live"`
+	MustBeLive  *bool        `json:"must_be_live"`
 	ReadAt      *string      `json:"read_at"`
+	// The commit after which the footer is required: verify leaves it and its
+	// ancestors out of required_for, so a footer added to a project's rules
+	// does not fail the history written before it.
+	Since *string `json:"since"`
 }
 
-// FooterSource is a footer's source: the ledger, or a kind of tests. Name is
-// the source as written when it is text (IsName: ledger, or any other word
-// the cross-checks refuse); Tests is the kind when it is { tests: <kind> }.
+// Text is whether the footer is free text (source: text) rather than IDs.
+func (f Footer) Text() bool { return f.Source.IsName && f.Source.Name == "text" }
+
+// Live is whether every ID the footer names must be live (must_be_live).
+func (f Footer) Live() bool { return f.MustBeLive != nil && *f.MustBeLive }
+
+// FooterSource is a footer's source: the ledger, a kind of tests, or free
+// text. Name is the source as written when it is a word (IsName: ledger,
+// text, or any other word the cross-checks refuse); Tests is the kind when
+// it is { tests: <kind> }.
 type FooterSource struct {
 	Name   string
 	IsName bool

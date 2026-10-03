@@ -76,6 +76,10 @@
   scenarios:
     - id: "@ID-TASK-01"
       why: task --pending runs a check two tasks list once and both read its result, the file's point
+- file: upgrading.feature
+  scenarios:
+    - id: "@ID-UPGRADE-01"
+      why: a commit without the free-text footer its type needs is rejected, the footer's rule, one hook run
 - file: work.feature
   scenarios:
     - id: "@ID-WORK-01"

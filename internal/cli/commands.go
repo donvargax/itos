@@ -96,6 +96,12 @@ func commit(args []string, o Out) (int, error) {
 			return 0, usage("commit check-paths needs --type <type>")
 		}
 		return checkPaths(typ, positional(rest, "--type"), o)
+	case "footers":
+		args := positional(rest)
+		if len(args) < 3 {
+			return 0, usage("commit footers needs <name> <from> <to>")
+		}
+		return listFooters(args[0], args[1], args[2], o)
 	}
 	return 0, usage("unknown command: commit %s", sub)
 }

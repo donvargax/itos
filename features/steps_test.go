@@ -38,34 +38,35 @@ type world struct {
 
 // What a scenario sets in the scratch repository's itos.yaml.
 type scratchConfig struct {
-	headerLintCommand string   // the header lint delegated to this command
-	headerLintBuiltin bool     // the header lint itos's own (use: builtin)
-	since             string   // commits.since
-	rangeCheck        bool     // a range check that records where its range starts
-	moves             *moves   // the kind's range check is the built-in moves rule
-	recordingShell    bool     // shell is the recording shell
-	ciSteps           []string // ci.steps
-	ciTests           string   // a kind of named tests, with run and recognize templates, run by the last of ci.steps
-	smokeRuns         []string // commands the kind of ciTests recognizes as its smoke run
-	stopAtFirst       *bool    // ci.stop_at_first_failure
-	nightlyTasks      string   // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
-	costStatic        []string // ci.cost.static
-	covers            []cover  // ci.covers
-	nightlyOnly       []string // ci.nightly_only
-	registry          string   // work.registry
-	taskChecks        *bool    // hooks.commit_msg.task_checks
-	checkTimeout      int      // hooks.commit_msg.check_timeout, when above 0
-	statuses          []string // work.statuses
-	groupsKey         string   // work.groups_key
-	smoke             bool     // tests.scenario has a smoke set, features/smoke.yaml
-	smokeEveryFile    *bool    // tests.scenario.smoke.every_file
-	noTagPrefix       bool     // the kind written without tag_prefix
-	hooksManager      string   // hooks.manager
-	hooksBin          string   // hooks.bin
-	ledgerFooter      string   // the key of the footer whose source is the ledger; Task when empty
-	ledgerFiles       string   // ledger.files; tasks/phase-{group}.yaml when empty
-	prosePaths        string   // ci.prose.paths, one glob
-	proseSteps        string   // ci.prose.steps, one command
+	headerLintCommand string      // the header lint delegated to this command
+	headerLintBuiltin bool        // the header lint itos's own (use: builtin)
+	since             string      // commits.since
+	rangeCheck        bool        // a range check that records where its range starts
+	moves             *moves      // the kind's range check is the built-in moves rule
+	recordingShell    bool        // shell is the recording shell
+	ciSteps           []string    // ci.steps
+	ciTests           string      // a kind of named tests, with run and recognize templates, run by the last of ci.steps
+	smokeRuns         []string    // commands the kind of ciTests recognizes as its smoke run
+	stopAtFirst       *bool       // ci.stop_at_first_failure
+	nightlyTasks      string      // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
+	costStatic        []string    // ci.cost.static
+	covers            []cover     // ci.covers
+	nightlyOnly       []string    // ci.nightly_only
+	registry          string      // work.registry
+	taskChecks        *bool       // hooks.commit_msg.task_checks
+	checkTimeout      int         // hooks.commit_msg.check_timeout, when above 0
+	statuses          []string    // work.statuses
+	groupsKey         string      // work.groups_key
+	smoke             bool        // tests.scenario has a smoke set, features/smoke.yaml
+	smokeEveryFile    *bool       // tests.scenario.smoke.every_file
+	noTagPrefix       bool        // the kind written without tag_prefix
+	hooksManager      string      // hooks.manager
+	hooksBin          string      // hooks.bin
+	ledgerFooter      string      // the key of the footer whose source is the ledger; Task when empty
+	textFooter        *textFooter // a footer of free text
+	ledgerFiles       string      // ledger.files; tasks/phase-{group}.yaml when empty
+	prosePaths        string      // ci.prose.paths, one glob
+	proseSteps        string      // ci.prose.steps, one command
 	settings          []setting
 }
 
@@ -74,6 +75,14 @@ type scratchConfig struct {
 type moves struct {
 	exceptTypes []string
 	renames     [][2]string
+}
+
+// A footer of free text (source: text): its key, the types it is required
+// for, and the commit after which it is required (its since), when one.
+type textFooter struct {
+	key   string
+	types []string
+	since string
 }
 
 // One ci.covers rule: the step that has done what a check matching the
@@ -136,6 +145,14 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.commitOnTop(message + "\n\n" + key + ": " + task + "\n")
 	})
 	sc.Step(`^the commit "([^"]*)" touching only "([^"]*)" on top of it$`, w.commitTouchingOnly)
+	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)"$`, func(message, task string) error {
+		return w.commitOnTop(message + "\n\nTask: " + task + "\n")
+	})
+	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" with the footer "([^"]*)"$`, func(message, task, footer string) error {
+		return w.commitOnTop(message + "\n\nTask: " + task + "\n" + footer + "\n")
+	})
+	sc.Step(`^the config requires an? "([^"]*)" footer of free text for "([^"]*)"$`, w.requiresTextFooter)
+	sc.Step(`^the "([^"]*)" footer is required only after HEAD$`, w.textFooterSinceHead)
 	sc.Step(`^the ledger footer is called "([^"]*)"$`, w.ledgerFooterIs)
 	sc.Step(`^the ledger's files are "([^"]*)"$`, w.ledgerFilesAre)
 	sc.Step(`^the prose paths are "([^"]*)" and the prose steps are "([^"]*)"$`, w.proseIs)
@@ -224,6 +241,12 @@ func initializeScenario(sc *godog.ScenarioContext) {
 			return errors.New("the repository has no commit yet")
 		}
 		return w.itos("verify", w.commits[0], "HEAD")
+	})
+	sc.Step(`^itos lists the "([^"]*)" footers of the commits after the first$`, func(key string) error {
+		if len(w.commits) == 0 {
+			return errors.New("the repository has no commit yet")
+		}
+		return w.itos("commit", "footers", key, w.commits[0], "HEAD")
 	})
 	sc.Step(`^itos checks the staged moves of the kind "([^"]*)"$`, func(kind string) error {
 		return w.itos("tests", "moves", kind)
@@ -417,7 +440,14 @@ func (w *world) writeConfig() error {
 	b.WriteString(`      required_for: [refactor, perf, test, build, ci, chore, revert]
       validate_for: all
       read_at: commit
-  scopes:
+`)
+	if t := w.config.textFooter; t != nil {
+		fmt.Fprintf(&b, "    %s:\n      source: text\n      required_for: [%s]\n", t.key, strings.Join(t.types, ", "))
+		if t.since != "" {
+			fmt.Fprintf(&b, "      since: %q\n", t.since)
+		}
+	}
+	b.WriteString(`  scopes:
     docs: { only: ["**/*.md", "docs/**", "tasks/**"] }
 `)
 	if w.config.since != "" {
@@ -706,6 +736,32 @@ func (w *world) ledgerFilesAre(pattern string) error {
 	if err := w.write(w.ledgerPath(), w.ledgerText()); err != nil {
 		return err
 	}
+	return w.writeConfig()
+}
+
+// A footer of free text under the key, required for the types the
+// comma-separated list names.
+func (w *world) requiresTextFooter(key, types string) error {
+	t := &textFooter{key: key}
+	for _, typ := range strings.Split(types, ",") {
+		t.types = append(t.types, strings.TrimSpace(typ))
+	}
+	w.config.textFooter = t
+	return w.writeConfig()
+}
+
+// The footer of free text required only of the commits after HEAD: its since
+// is HEAD's full SHA.
+func (w *world) textFooterSinceHead(key string) error {
+	t := w.config.textFooter
+	if t == nil || t.key != key {
+		return fmt.Errorf("the config has no %q footer of free text", key)
+	}
+	head, err := w.head()
+	if err != nil {
+		return err
+	}
+	t.since = head
 	return w.writeConfig()
 }
 

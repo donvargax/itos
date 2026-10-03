@@ -42,6 +42,13 @@ func footerFix(cfg *config.Loaded, rule, message string) (string, error) {
 			continue
 		}
 		f := cfg.Commits.Footers.Values[key]
+		if f.Text() {
+			if needs.MatchString(message) {
+				return "add a line `" + key + ": <what a consumer must do>` after a blank line at the end, or `" +
+					key + ": none` when a consumer changes nothing", nil
+			}
+			return "write after " + key + ": what a consumer must do, or none", nil
+		}
 		src := "the " + f.Source.Tests + " files"
 		if isLedger(f) {
 			layout, err := ledger.LayoutOf(cfg)
