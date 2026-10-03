@@ -1168,6 +1168,9 @@ items:
       a lesson and a guard one-liner, and every session repeats it. itos push could do it, refuse a
       non-fast-forward push (one of p1-agent-rules-as-checks' candidates) and print the CI run the
       push started, for p1-ci-watch.
+      Its other half is itos commit (slice 31), committing through itos. Built in or an
+      extension calling back $ITOS_BIN is the first call (slice 29 left p3-push-extension, folded
+      here).
 
   - id: p1-ci-watch
     title: itos ci watch and itos status, the run for a commit and the state of main
@@ -1790,22 +1793,6 @@ items:
       features/extensions.feature.
     refs: [features/extensions.feature, PLAN.md]
 
-  - id: p3-push-extension
-    title: itos push as an extension, the finishing steps AGENTS.md has done by hand
-    phase: 3
-    owner: null
-    status: todo
-    depends_on: [slice-29]
-    kind: idea
-    why: >
-      Left by slice 29, which made extensions possible and built none (itos-hello is an example in
-      docs/extensions.md): every session still finishes by hand, AGENTS.md's commit, pull --rebase
-      --no-autostash, a push in a separate command and a watch of the CI run for the full SHA. An
-      itos-push extension, calling back $ITOS_BIN, could do that sequence and refuse its unsafe
-      variants (a chained push, a force), and p1-ci-watch's watch could be its last step. Whether it
-      ships with itos or lives in this repository's tools is the first call to make.
-    refs: [docs/extensions.md, AGENTS.md]
-
   - id: p2-config-json-schema
     title: The config's JSON Schema, published with each Go release
     phase: 2
@@ -1932,13 +1919,13 @@ items:
       cases to be judged by.
     refs: [PLAN.md, tasks/phase-2.yaml]
 
-  - id: p2-stealth-mode
-    title: A local mode, itos as one person's discipline in a repository that does not use it
-    phase: 2
+  - id: slice-30
+    title: A stealth mode, itos kept in the git folder of a repository that does not use it
+    phase: 3
     owner: donvargax
     status: todo
-    depends_on: [p2-go-port]
-    kind: idea
+    depends_on: [slice-28]
+    kind: slice
     why: >
       The user's call (2026-10-02): itos as their own discipline in many repositories, private and
       open source, whose teams may not adopt it, so nothing of it may show to other contributors:
@@ -1958,7 +1945,69 @@ items:
       others' commits follow no rules of theirs. After the port: one Go binary in ~/.local/bin
       needs no Node or node_modules in someone else's repository, which is what makes the mode
       practical, and new behaviour lands in one implementation, not two.
-    refs: [PLAN.md]
+      Specified in features/stealth.feature as slices 30 (the config in the git folder), 32 (the
+      footers in notes), 33 (config-based hooks) and 34 (the unpushed range), with slice 31,
+      itos commit, between them. The user's answers (2026-10-03): itos commit --task writes the
+      link, a note in stealth mode, rather than a hook rewriting the message; the hooks are
+      declared in .git/config (hook.<name>.command), which git runs beside the project's own.
+    refs: [features/stealth.feature, PLAN.md]
+
+  - id: slice-31
+    title: itos commit, a commit whose footers itos writes
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-30]
+    kind: slice
+    why: >
+      The user's call (2026-10-03): commit through itos, itos commit --task <id> and --scenarios
+      <ids>, the footers written as git's --trailer in a project and as a note in stealth mode, so
+      one habit serves both. The other half of p1-itos-push, pushing through itos. Specified in
+      features/commit-command.feature.
+    refs: [features/commit-command.feature]
+
+  - id: slice-32
+    title: In stealth mode the footers live in git notes, never in the message
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-31]
+    kind: slice
+    why: >
+      A Task: footer in the message is the leak that defeats the stealth mode: itos commit writes
+      the footers as a note in refs/notes/itos, the hook refuses a commit that needs one made
+      without it and a footer typed into the message, notes.rewriteRef carries the note through
+      an amend or a rebase, and verify reads footers from notes. Specified in
+      features/stealth.feature.
+    refs: [features/stealth.feature]
+
+  - id: slice-33
+    title: Hooks declared in the git config, beside the project's own
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-32]
+    kind: slice
+    why: >
+      The user's call (2026-10-03): hooks install --manager git-config declares itos's hooks in
+      .git/config (hook.<name>.event and .command, git 2.5x), which git runs beside the hook in
+      core.hooksPath or .git/hooks, so husky, lefthook or vp keep theirs and resetting
+      core.hooksPath cannot remove itos's; the stealth mode's default. Specified in
+      features/stealth.feature.
+    refs: [features/stealth.feature]
+
+  - id: slice-34
+    title: In stealth mode verify and ci plan judge the person's unpushed commits by default
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-32]
+    kind: slice
+    why: >
+      Others' commits in a repository that does not use itos follow no rules of the person's, so
+      verify and ci plan given no range judge HEAD --not --remotes. Specified in
+      features/stealth.feature.
+    refs: [features/stealth.feature]
 
   - id: p2-github-hybrid
     title: GitHub issues as a second source of work items
@@ -2007,6 +2056,8 @@ items:
       back to reading tasks/work-items.yaml. Its changes are task-driven, proven by
       claude plugin test in the task's checks: one commits.scopes entry for integrations/**. A home
       later for other itos-aware pieces: an inbox pane, main's CI in the status line.
+      The dev mod lives in the dev-mods folder of the session that made it, so other sessions
+      run without it (2026-10-03, an ID left untitled): the plugin is what makes it everywhere.
     refs: [PLAN.md]
 
   - id: slice-27
