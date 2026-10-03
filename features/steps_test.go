@@ -218,6 +218,8 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the nightly steps run the static checks of the done tasks$`, func() error { return w.nightlyTasksAre("static") })
 	sc.Step(`^work\.groups_key is "([^"]*)"$`, w.groupsKeyIs)
 	sc.Step(`^the people file is missing$`, w.peopleFileMissing)
+	sc.Step(`^no identity can be looked up$`, w.noIdentity)
+	sc.Step(`^itos proposes "([^"]*)" to start$`, w.proposesToStart)
 	sc.Step(`^the work registry gives the group "([^"]*)" to the owner "([^"]*)" under "([^"]*)"$`, w.registryGroupOwner)
 	sc.Step(`^the work registry has the item "([^"]*)" in the group "([^"]*)", which it does not list$`, w.registryUnlistedGroup)
 	sc.Step(`^ledger\.group\.label is "([^"]*)"$`, func(label string) error {
@@ -1345,9 +1347,60 @@ func (w *world) registryAt(path, item, status string) error {
 // The registry at path holds one unowned item of phase 1, in the working tree
 // alone: nothing is staged.
 func (w *world) workingRegistry(path, item, status string) error {
+	return w.workingRegistryOwned(path, item, "null", status)
+}
+
+// The registry at path holds one item of phase 1, a group nobody owns, its
+// owner written as YAML, in the working tree alone.
+func (w *world) workingRegistryOwned(path, item, owner, status string) error {
 	return w.write(path, fmt.Sprintf(
-		"phases: { 1: null }\nitems:\n  - { id: %s, title: %s, phase: 1, owner: null, status: %s, depends_on: [] }\n",
-		item, item, status))
+		"phases: { 1: null }\nitems:\n  - { id: %s, title: %s, phase: 1, owner: %s, status: %s, depends_on: [] }\n",
+		item, item, owner, status))
+}
+
+// A folder of the scenario's support folder first on the PATH itos and its
+// hooks run with, made and put there once, for the programs a scenario
+// stands in.
+func (w *world) binOnPath() (string, error) {
+	bin := filepath.Join(w.support, "bin")
+	if err := os.MkdirAll(bin, 0o755); err != nil {
+		return "", err
+	}
+	path := "PATH=" + bin + string(os.PathListSeparator) + os.Getenv("PATH")
+	if !slices.Contains(w.vars, path) {
+		w.vars = append(w.vars, path)
+	}
+	return bin, nil
+}
+
+// Every identity lookup fails: the scratch config names no work.identity, so
+// its provider is github, and the gh first on the PATH is signed out,
+// answering nothing and exiting 4 to anything asked, as gh does.
+func (w *world) noIdentity() error {
+	bin, err := w.binOnPath()
+	if err != nil {
+		return err
+	}
+	script := "#!/bin/sh\necho 'not logged in' >&2\nexit 4\n"
+	return os.WriteFile(filepath.Join(bin, "gh"), []byte(script), 0o755)
+}
+
+// work's text proposal lists the item under "Can start now:", the section of
+// the session's own items that can start, by its ID, the first word of its
+// line.
+func (w *world) proposesToStart(item string) error {
+	in := false
+	for _, line := range strings.Split(w.stdout, "\n") {
+		switch {
+		case line == "Can start now:":
+			in = true
+		case strings.TrimSpace(line) == "":
+			in = false
+		case in && strings.Fields(line)[0] == item:
+			return nil
+		}
+	}
+	return fmt.Errorf("itos does not propose %q to start\n%s", item, w.report())
 }
 
 // The registry at path holds these unowned items of phase 1, each with its

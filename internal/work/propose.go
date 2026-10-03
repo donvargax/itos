@@ -58,9 +58,11 @@ type Waiting struct {
 // Proposal is what a person can take (work.ts's propose): their items in
 // progress, theirs that can start, the unowned that can, theirs that wait
 // and on what, the ideas they may look at and the deferred ones. Person is
-// "" for nobody.
+// "" for nobody. Every is a session that owns every item, whatever owner
+// it names (a stealth config with no --as), and then Person is "".
 type Proposal struct {
 	Person               string
+	Every                bool
 	Doing, Next, Unowned []*value.Map
 	Waiting, Ideas       []Waiting
 	Deferred             []*value.Map
@@ -74,7 +76,16 @@ func absent(v any) bool { return v == nil || v == value.Undefined }
 // its group's), then the unowned ones in groups nobody owns. Ideas (kind
 // idea) and deferred items (deferred: <reason>) are apart, among the ones
 // the person may look at: theirs, or nobody's.
-func Propose(r Registry, handle string) Proposal {
+func Propose(r Registry, handle string) Proposal { return propose(r, handle, false) }
+
+// ProposeEvery is the proposal for a session that owns every item, whoever
+// an item or its group names: a stealth config's, the person being the only
+// one. Nothing is unowned to it, so every item that can start is its own.
+func ProposeEvery(r Registry) Proposal { return propose(r, "", true) }
+
+// propose is Propose for handle, or, with every, for a session that owns
+// every item.
+func propose(r Registry, handle string, every bool) Proposal {
 	done := map[string]bool{}
 	for _, item := range r.Items {
 		if item.At("status") == "done" {
@@ -101,13 +112,16 @@ func Propose(r Registry, handle string) Proposal {
 		return nil
 	}
 	mine := func(item *value.Map) bool {
+		if every {
+			return true
+		}
 		owner, ok := ownerOf(item).(string)
 		return handle != "" && ok && owner == handle
 	}
-	unowned := func(item *value.Map) bool { return ownerOf(item) == nil }
+	unowned := func(item *value.Map) bool { return !every && ownerOf(item) == nil }
 	idea := func(item *value.Map) bool { return item.At("kind") == "idea" }
 	deferred := func(item *value.Map) bool { return item.At("deferred") != value.Undefined }
-	p := Proposal{Person: handle, Doing: []*value.Map{}, Next: []*value.Map{}, Unowned: []*value.Map{},
+	p := Proposal{Person: handle, Every: every, Doing: []*value.Map{}, Next: []*value.Map{}, Unowned: []*value.Map{},
 		Waiting: []Waiting{}, Ideas: []Waiting{}, Deferred: []*value.Map{}}
 	for _, item := range r.Items {
 		if item.At("status") == "doing" && mine(item) {
@@ -151,7 +165,9 @@ func Propose(r Registry, handle string) Proposal {
 	return p
 }
 
-// Fields are the proposal as --json prints it, its keys in work.ts's order.
+// Fields are the proposal as --json prints it, its keys in work.ts's order,
+// with every_item: true after person when the session owns every item (a
+// key only that proposal has, so a project's is unchanged).
 func (p Proposal) Fields() []out.Field {
 	var person any
 	if p.Person != "" {
@@ -171,15 +187,18 @@ func (p Proposal) Fields() []out.Field {
 		}
 		return all
 	}
-	return []out.Field{
-		{Key: "person", Value: person},
+	fields := []out.Field{{Key: "person", Value: person}}
+	if p.Every {
+		fields = append(fields, out.Field{Key: "every_item", Value: true})
+	}
+	return append(fields, []out.Field{
 		{Key: "doing", Value: items(p.Doing)},
 		{Key: "next", Value: items(p.Next)},
 		{Key: "unowned", Value: items(p.Unowned)},
 		{Key: "waiting", Value: waiting(p.Waiting)},
 		{Key: "ideas", Value: waiting(p.Ideas)},
 		{Key: "deferred", Value: items(p.Deferred)},
-	}
+	}...)
 }
 
 // line is an item as the proposal prints it: its id, its title and, when it
@@ -207,9 +226,12 @@ func join(list []any, sep string) string {
 // Print writes the proposal as text: who it is for, then each section that
 // has an item.
 func (p Proposal) Print(w io.Writer) {
-	if p.Person != "" {
+	switch {
+	case p.Every:
+		fmt.Fprintln(w, "Working for you: under a stealth config every item is yours.")
+	case p.Person != "":
 		fmt.Fprintf(w, "Working for %s.\n", p.Person)
-	} else {
+	default:
 		fmt.Fprintln(w, "Working for nobody.")
 	}
 	section := func(title string, items []*value.Map) {

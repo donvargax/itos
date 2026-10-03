@@ -25,6 +25,9 @@ func initializeStealthSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the work registry beside the config has the item "([^"]*)" with the status "([^"]*)"$`, func(item, status string) error {
 		return w.workingRegistry(w.data(startingRegistry), item, status)
 	})
+	sc.Step(`^the work registry beside the config has the item "([^"]*)" owned by "([^"]*)" with the status "([^"]*)"$`, func(item, owner, status string) error {
+		return w.workingRegistryOwned(w.data(startingRegistry), item, owner, status)
+	})
 	sc.Step(`^the config in the git folder names no people file$`, func() error {
 		w.config.noPeople = true
 		return w.writeConfig()
@@ -82,15 +85,14 @@ func (w *world) projectHooks(dir string) error {
 // it has to run there, so a hook that fails to start cannot pass for one
 // that refuses.
 func (w *world) itosHasInstalledHooks() error {
-	bin := filepath.Join(w.support, "bin")
-	if err := os.MkdirAll(bin, 0o755); err != nil {
+	bin, err := w.binOnPath()
+	if err != nil {
 		return err
 	}
 	script := "#!/bin/sh\nexec " + quote(w.bin) + " \"$@\"\n"
 	if err := os.WriteFile(filepath.Join(bin, "itos"), []byte(script), 0o755); err != nil {
 		return err
 	}
-	w.vars = append(w.vars, "PATH="+bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	if err := w.run(w.dir, "sh", "-c", "itos version"); err != nil {
 		return err
 	}

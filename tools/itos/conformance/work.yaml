@@ -5,7 +5,8 @@
 # work.groups_key and the statuses work.statuses lists; the people a registry's
 # owners come from (the All Contributors table,
 # an .all-contributorsrc, a YAML list); and who a session works for (--as, or
-# the identity provider: a command, none, or gh, faked on the PATH); the
+# the identity provider: a command, none, or gh, faked on the PATH, and none
+# asked under a stealth config, whose session owns every item); the
 # registry's default beside the ledger, in the folder ledger.files names.
 files:
   itos.yaml: |
@@ -15,7 +16,7 @@ files:
       people: { source: yaml, file: people.yaml }
       identity: { provider: command, command: "echo a" }
   people.yaml: "- a\n- b\n- a\n"
-  work-items.yaml: |
+  work-items.yaml: &registry |
     phases: { 1: a, 2: null }
     items:
       - { id: done, title: Done, phase: 1, owner: a, status: done, depends_on: [] }
@@ -716,6 +717,85 @@ cases:
         free-idea  A free idea
     stderr: |
       gh is not installed, so this session is nobody; pass --as <handle>
+  - name: a stealth session owns every item, gh never asked
+    argv: [work]
+    env: { PATH: "{{dir}}/bin:{{PATH}}" }
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: &stealth "version: 1\nwork: { registry: work-items.yaml }\n"
+      .git/itos/work-items.yaml: *registry
+      bin/gh: &asked { text: "#!/bin/sh\ntouch gh-asked\nexit 4\n", executable: true }
+    files_after:
+      gh-asked: null
+    exit: 0
+    stdout: |
+      Working for you: under a stealth config every item is yours.
+
+      In progress:
+        busy  Busy
+
+      Can start now:
+        ready  Ready  (#12)
+        free  Free
+        phased  Owned by the phase
+        slice  A slice
+
+      Waiting:
+        later  Later  ← ready
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        idea  An idea
+        idea-later  A later idea  ← ready
+        free-idea  A free idea
+        theirs  Theirs
+
+      Deferred:
+        parked  Parked  — put off for now
+        parked-idea  A parked idea  — waits on a second runner
+  - name: a stealth session's proposal says every item is its own
+    argv: [work, --json]
+    env: { PATH: "{{dir}}/bin:{{PATH}}" }
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases: { 1: q }\nitems:\n  - { id: x, title: X, phase: 1, owner: q, status: todo }\n"
+      bin/gh: *asked
+    files_after:
+      gh-asked: null
+    exit: 0
+    json:
+      schema: 1
+      person: null
+      every_item: true
+      doing: []
+      next:
+        - { id: x, title: X, phase: 1, owner: q, status: todo, depends_on: [] }
+      unowned: []
+      waiting: []
+      ideas: []
+      deferred: []
+  - name: --as under a stealth config proposes that handle's items, as in a project
+    argv: [work, --as, b]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *registry
+    exit: 0
+    stdout: |
+      Working for b.
+
+      Can start now:
+        slice  A slice
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        free-idea  A free idea
+        theirs  Theirs
   - name: the owners per group under work.groups_key, the statuses work.statuses lists
     argv: [work, check, --json, --config, milestones.yaml]
     files:

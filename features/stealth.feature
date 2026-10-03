@@ -9,7 +9,8 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
   config names are read beside it, in that folder, which git never commits,
   so a footer naming a task is checked against the ledger file there, at
   every commit, since no commit carries it; no people file is read, the
-  person being the only one. A project's own itos.yaml in the root always
+  person being the only one, and itos work asks nobody who the session is,
+  every item being theirs. A project's own itos.yaml in the root always
   wins: that is the project's mode. Where nothing is pinned, a
   global itos runs the newest release for a stealth config, as where there
   is no config at all (update.feature).
@@ -220,7 +221,7 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
 
   # Slice 38: the person is the only one, so a stealth session owns every
   # item, whoever an item names and whoever gh says the session is.
-  @ID-STEALTH-21 @slice-38 @wip
+  @ID-STEALTH-21 @slice-38
   Scenario: A stealth session is proposed an item another owner holds, with no identity to look up
     Given the work registry beside the config has the item "slice-1" owned by "someone-else" with the status "todo"
     And no identity can be looked up

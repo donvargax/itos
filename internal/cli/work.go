@@ -63,7 +63,10 @@ func workCheck(path string, named bool, o Out) (int, error) {
 // someone the people do not list, is not an error: the session is nobody, or
 // owns nothing yet, and stderr says so. With no people to read (a stealth
 // config, or a project's people file missing or unreadable) it says nothing
-// of them: the session is whoever --as or the provider says.
+// of them: the session is whoever --as or the provider says. Under a stealth
+// config with no --as nobody is asked (slice 38): the person is the only
+// one, so the session owns every item, whatever owner it names; --as still
+// proposes that handle's, as in a project.
 func workProposal(as string, o Out) (int, error) {
 	if code, err := workCheck("", false, Out{Quiet: true, Stdout: o.Stdout, Stderr: o.Stderr}); code != 0 || err != nil {
 		return code, err
@@ -76,18 +79,23 @@ func workProposal(as string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	listedIn := cfg.Work.People.File
-	who := work.Whoami(registry, listedIn, as, providers.IdentityProvider(cfg, o.Stderr))
-	switch {
-	case who.Problem != "":
-		fmt.Fprintln(o.Stderr, who.Problem)
-		if as != "" {
-			return ExitMissing, nil
+	var proposal work.Proposal
+	if cfg.Stealth && as == "" {
+		proposal = work.ProposeEvery(registry)
+	} else {
+		listedIn := cfg.Work.People.File
+		who := work.Whoami(registry, listedIn, as, providers.IdentityProvider(cfg, o.Stderr))
+		switch {
+		case who.Problem != "":
+			fmt.Fprintln(o.Stderr, who.Problem)
+			if as != "" {
+				return ExitMissing, nil
+			}
+		case !who.Listed:
+			fmt.Fprintf(o.Stderr, "%s is not in %s: nothing is theirs yet\n", who.Handle, listedIn)
 		}
-	case !who.Listed:
-		fmt.Fprintf(o.Stderr, "%s is not in %s: nothing is theirs yet\n", who.Handle, listedIn)
+		proposal = work.Propose(registry, who.Handle)
 	}
-	proposal := work.Propose(registry, who.Handle)
 	if o.JSON {
 		return 0, out.Emit(o.Stdout, proposal.Fields()...)
 	}

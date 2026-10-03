@@ -119,9 +119,11 @@ Who the session works for (--as, else the config's work.identity provider) and
 their items: in progress, can start now, unowned, waiting, ideas, deferred.
 Exit 1 when the registry is not sound, 3 when --as is not among the people.
 With no people to read (a stealth config, or a people file missing or
-unreadable) any handle is taken, and nothing is said of them.
+unreadable) any handle is taken, and nothing is said of them. Under a stealth
+config with no --as, no identity is looked up: every item is the session's,
+whatever owner it names (every_item: true in --json).
 
---json: the proposal {"schema":1,"person","doing","next","unowned","waiting","ideas","deferred"}`,
+--json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"}`,
 
 	"work check": `Usage: itos work check [<file>]
 
