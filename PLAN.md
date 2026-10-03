@@ -180,10 +180,14 @@ repository whose team does not use it, with nothing of it in the tree. With no
 `<git common dir>/itos/itos.yaml` (`git rev-parse --git-common-dir`), with no
 variable to set, so every linked worktree shares it; a project's own
 `itos.yaml` in the root always wins, as the project's mode. The files that
-config names for itos's own data, the ledger, the work registry, the people
-and the smoke sets, resolve beside it, in that folder, which git never
-commits; the project's paths (a kind's tests, the globs, the commands) stay
-the root's. A config is the stealth one by where it is, so an extension's
+config names for itos's own data, the ledger, the work registry and the smoke
+sets, resolve beside it, in that folder, which git never commits; the
+project's paths (a kind's tests, the globs, the commands) stay the root's. Its
+defaults fit one person, whatever it says (slice 35, the user's calls of
+2026-10-03): `hooks.bin` is `itos`, the global launcher, so its hooks call
+that, and no people file is read, the person being the only one, so no owner
+is checked and any session is listed. A project's `hooks.bin` default stays
+`tools/bin/itos` through v2 (`v3-drop-hooks-bin`). A config is the stealth one by where it is, so an extension's
 call back reads the same files; one anywhere else that `--config` or
 `ITOS_CONFIG` names resolves its paths from the root, as it always has. Since
 no commit carries that ledger, a footer naming a task is checked against its
@@ -413,7 +417,10 @@ footer reads, a smoke set); 3 a missing environment, a pinned release the
 launcher cannot fetch or check among them (§10), and an extension that cannot
 start. In `ci run` a failing step exits with its own code, an extension's
 exit code is the run's, and `itos commit`'s is git's. A missing
-identity and a failing range provider are not errors.
+identity and a failing range provider are not errors, nor is a project's
+people file missing or unreadable: every command goes on without the people,
+checking no owner, and `config check` alone warns of it, never failing (slice
+35; `itos init` is where it is reported properly).
 
 **JSON.** Every command takes `--json`: one object on stdout with
 `"schema": 1`, the logs on stderr, keys only ever added. Each problem carries
@@ -519,7 +526,8 @@ the GitHub modes. The stealth mode's config in the git folder is done (slice
 30, §5), and so is `itos commit`, which writes a commit's footers from its
 flags (slice 31, §7), the stealth mode's footers in git notes (slice 32,
 §5), its hooks in the git config (slice 33, §7) and its range, the person's
-unpushed commits (slice 34, §7); its defaults follow (slice 35).
+unpushed commits (slice 34, §7), and its defaults, one person's: the global
+`itos` in its hooks and no people file (slice 35, §5).
 
 ## 10. Distribution
 

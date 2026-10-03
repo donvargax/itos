@@ -170,17 +170,19 @@ it, with nothing of it in the tree: keep the config in the git folder, as
 (`.git/itos/itos.yaml` in a plain clone). Where there is no `--config`, no
 `ITOS_CONFIG` and no `itos.yaml` in the root, itos reads that one, with nothing
 to set, and every linked worktree of the repository shares it. The files it
-names for itos's own data, the ledger, the work registry, the people and the
-smoke sets, are read beside it, in that folder, which git never commits; a
-`Task:` footer is checked against that ledger at every commit, even with
-`read_at: commit`, since no commit carries it. Should the project adopt itos,
-its own `itos.yaml` in the root wins.
+names for itos's own data, the ledger, the work registry and the smoke sets,
+are read beside it, in that folder, which git never commits; a `Task:` footer
+is checked against that ledger at every commit, even with `read_at: commit`,
+since no commit carries it. Its defaults fit one person, whatever it says of
+them: its hooks call `itos`, the global install (`hooks.bin`), and no people
+file is read, since you are the only one, so `itos work` takes whoever you
+are and checks no owner. Should the project adopt itos, its own `itos.yaml` in
+the root wins.
 
 ```sh
 dir="$(git rev-parse --git-common-dir)/itos"
 mkdir -p "$dir/tasks"
 printf 'phases: {}\nitems: []\n' > "$dir/tasks/work-items.yaml"
-printf -- '- <your login>\n' > "$dir/people.yaml"
 cat > "$dir/itos.yaml" <<'YAML'
 version: 1
 ledger:
@@ -193,10 +195,6 @@ commits:
       required_for: [refactor, perf, test, build, ci, chore, revert]
       validate_for: all
       read_at: commit
-work:
-  people: { source: yaml, file: people.yaml }
-hooks:
-  bin: itos # the global install
 YAML
 itos config check
 ```
@@ -219,7 +217,8 @@ they are, both run on every commit, and a hook manager that resets
 older git, which does not run them, makes `hooks install` say so and exit 3;
 `--manager git` still writes shims into `.git/hooks` where the project sets no
 `core.hooksPath`. If an earlier `hooks install` wrote those shims, delete
-them, or the hooks run twice.
+them, or the hooks run twice; if your config named another `hooks.bin`, run
+`itos hooks install` again so its hooks call `itos`.
 
 A footer in a commit message is what everyone reads, so here the footers live
 in git notes instead: commit with `itos commit --task <id>` (and

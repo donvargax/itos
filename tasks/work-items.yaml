@@ -1963,7 +1963,7 @@ items:
     title: A stealth config uses the global itos and reads no people file
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-30, slice-33]
     kind: slice
     why: >
@@ -2139,6 +2139,9 @@ items:
       terminal, a flag answering for an agent. Run again it changes nothing and reports what is
       missing, so it doubles as a doctor. Last of the adoption work, since it ties the stealth
       mode, itos commit, itos push, the plugin and the pin together. PLAN.md §10, "Adoption".
+      Slice 35 left a project's missing or malformed people file to it: every other command goes
+      on without the people, and config check only warns (work-people-missing,
+      work-people-unreadable).
     refs: [PLAN.md]
 
   - id: p3-claude-code-plugin
@@ -2475,3 +2478,18 @@ items:
       ci plan prints, and ci scope with no range is a usage error. Both could take git.Unpushed as
       verify and ci plan do, with a scenario each.
     refs: [internal/cli/commands.go, features/stealth.feature]
+
+  - id: p3-stealth-ignored-keys
+    title: config check warns of the keys a stealth config sets and never reads
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-35]
+    kind: idea
+    why: >
+      Found in slice 35: a stealth config's hooks.bin is itos and it reads no people whatever it
+      says, so a hooks.bin or a work.people written in it (README.md's example set both until then)
+      is accepted and silently ignored, which config.feature's rule, every key accepted is one a
+      tool reads, forbids for a project. config check could warn of each, as it warns of a
+      missing people file, with a scenario.
+    refs: [internal/config/defaults.go, internal/cli/configcheck.go, features/stealth.feature]

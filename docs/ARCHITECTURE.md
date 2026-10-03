@@ -108,7 +108,8 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   whose event it is, then `git hook list` naming it, so git runs it). The
   project's hooks are a committed folder `core.hooksPath` names, whose
   commit-msg hook records in the support folder that it ran; the step that
-  installs itos's hooks sets `hooks.bin` to `itos` and puts a script of that
+  installs itos's hooks sets `hooks.bin` to `itos` (as a stealth config
+  has it whatever it says, slice 35) and puts a script of that
   name on the scenario's `PATH` that runs the itos under test (a link would
   not do: `tools/bin/itos` finds its checkout from its own path), and runs
   it once, so a hook that cannot start does not pass for one that refuses.
@@ -172,8 +173,9 @@ each, and holds it since the TypeScript left (T-062).
   `DEFAULTS` in `config.ts`: the loader lays the file over it
   (`withDefaults`, `tests.<kind>` under each kind the file has), and
   `config check --print-defaults` prints it, so no tool writes a fallback of
-  its own and a default is applied exactly when it is printed. One default
-  depends on the config: `work.registry` is beside the config's ledger, so
+  its own and a default is applied exactly when it is printed. Some defaults
+  depend on the config: `work.registry` is beside the config's ledger, and a
+  stealth config's `hooks.bin` is `itos` with no `work.people` (slice 35), so
   `defaultsFor` gives the table as it applies to a file, and both the loader
   and `--print-defaults` read it through that. `section()`
   still asks whether the file has a section (`hasSection`), since a section
@@ -184,7 +186,9 @@ each, and holds it since the TypeScript left (T-062).
   `work-items.yaml` beside the ledger in `ledger.files`' folder, but not a
   ledger file, since it does not match `ledger.files`), the people
   `CONTRIBUTORS.md` (`work.people`), the smoke set `features/smoke.yaml`
-  (`tests.scenario.smoke`). `itos config check` validates all of them.
+  (`tests.scenario.smoke`). `itos config check` validates all of them, the
+  people as a warning that never fails it: a project whose people file is
+  missing or unreadable goes on without one everywhere else (slice 35).
   A ledger group is called by `ledger.group.label` (`phase` by default) in
   what the tools print (`work check`'s messages, `itos task`'s usage), and
   `itos task` takes `--<label>` beside `--group` and `--phase`; the rule IDs,
@@ -445,7 +449,10 @@ mechanisms above, written against those modules, read across.
   defaults**, `defaults()` in `defaults.go`: one ordered tree, as `DEFAULTS`
   is one object, merged under the file by `layered` (`tests.<kind>` under each
   kind) and decoded into the typed `Config` the tools read. `DefaultsFor` is
-  `defaultsFor`, the registry beside the config's ledger, and `config check
+  `defaultsFor`, the registry beside the config's ledger, and takes whether
+  the config is the stealth one, whose `hooks.bin` is `GlobalBin` (`itos`)
+  and which has no `work.people` (`stealthOnly`, laid over the file too, so
+  the file cannot say otherwise); `config check
 --print-defaults` prints exactly that tree, so a default cannot be applied
   without being printed. A key with no default is a nil pointer, a nil list or
   an empty `Ordered` (a mapping whose order matters, as written); the file as
@@ -463,9 +470,12 @@ mechanisms above, written against those modules, read across.
   (`os.SameFile` with that path, after a check of the file's and its
   folder's names that spares a project's `itos.yaml` any git), not by how it
   was found, so the absolute `ITOS_CONFIG` an extension is given reads the
-  same files when it calls back. `Load` marks it `Stealth` and `beside`
-  rewrites the paths of itos's own data, `ledger.files`, `work.registry`,
-  `work.people.file` and each kind's `smoke.file`, into its folder; a kind's
+  same files when it calls back. `Load` marks it `Stealth`, lays its own
+  defaults over the file (`stealthOnly`, slice 35: `hooks.bin` is `itos`, the
+  global launcher, so the hooks `hooks install` declares call it, and there
+  is no `work.people`, the person being the only one), and `beside`
+  rewrites the paths of itos's own data, `ledger.files`, `work.registry` and
+  each kind's `smoke.file`, into its folder; a kind's
   `root`, the globs and the commands stay the root's, being the project's.
   Nothing else knows the mode but two readers: `internal/source` reads a path
   in the git folder from the file whatever the tree (below), and the footer
@@ -765,9 +775,16 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   (the argument whatever it is, as `main.ts` takes it), whose missing-file
   fix differs (`Missing`); a named file that is not there is found before
   the config is read, as the TypeScript read the config only to load the
-  registry. `work` runs that check quietly, its problems on stderr even
-  under `--json`, then `Whoami`: `--as`, which must be among the people
-  (exit 3), else the `work.identity` provider, an `Identity` function made
+  registry. `work.Load` reads the people beside the registry, and none under
+  a stealth config; a people file that is missing or cannot be read leaves
+  `Registry.People` false, silently, and then no owner is checked and any
+  handle is listed (slice 35): only `config check` says why, as a warning
+  (`PeopleProblem`, `WARN` on stderr and a `warnings` list in `--json` only
+  when there is one), which never sets its exit code and is no finding of
+  the commit-msg hook's check of staged data. `work` runs that check
+  quietly, its problems on stderr even
+  under `--json`, then `Whoami`: `--as`, which must be among the people when
+  there are any (exit 3), else the `work.identity` provider, an `Identity` function made
   by `IdentityProvider` (`internal/providers/identity.go`) that answers a
   handle or why it has none, never an error: `command` through `FirstLine`,
   `none` with its hint, and `github` running `gh api user --jq .login` as the
@@ -821,7 +838,7 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   `declareHooks` writes `hook.itos-commit-msg` and, when `hooks.pre_push` is
   set, `hook.itos-pre-push` into the repository's own config
   (`git config --local --replace-all`, its `.command` `<hooks.bin> hook
-<event>`, git appending the hook's arguments, and its one `.event`), and
+<event>`, `itos hook <event>` under a stealth config, git appending the hook's arguments, and its one `.event`), and
   removes an itos pre-push entry when it is not. Git runs those beside the
   hook in `core.hooksPath` or the hooks folder, so nothing of the project's
   changes. An entry already as written is `unchanged`; one under itos's name
