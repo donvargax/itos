@@ -97,6 +97,13 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   the command it was given (a call back through `$ITOS_BIN`) and records its
   output. Since the steps strip the caller's `ITOS_*`, every one an
   extension sees is itos's or the launcher's that the steps set.
+- **The stealth mode's scenarios** (`stealth_test.go`, `stealth.feature`):
+  the world's `dataDir` is where `writeConfig` and `startingFiles` put the
+  config, the ledger, the registry and the people, the root or `.git/itos`,
+  and the README stays in the root. A linked worktree is added after the
+  scratch repository moves into a folder of its own under the scenario's
+  support folder, so a path beside it, `../wt`, is the scenario's alone and
+  goes with it; `itosIn` runs itos there.
 - **The header lint**, where a scenario needs one, is itos's built-in one,
   `use: builtin` in the scratch config, which needs nothing installed and
   holds no footer rule, so a scenario's footer rules are itos's own. The
@@ -304,11 +311,14 @@ mechanisms above, written against those modules, read across.
   `cli.Main`. It picks the version to run, `ITOS_VERSION` when set, else the
   config's `pin.version`, and a binary whose own version that is runs itself,
   so the version the launcher runs (to which it passes `ITOS_VERSION`) never
-  launches again. It reads the config where `cli` does (`--config` or
-  `ITOS_CONFIG`, under `--root`), from the working tree, and only its `pin`,
+  launches again. It reads the config where `cli` does (`--config`, else
+  `config.Locate` under `--root`: `ITOS_CONFIG`, `itos.yaml` or the stealth
+  config), from the working tree, and only its `pin`,
   so a config written for a newer itos still reaches the version it pins;
   `readConfig` tells three states apart: `pinned`, `absent` (no file there at
-  all) and `unpinned` (a config with no pin, one it cannot read, or one whose
+  all, or the stealth config with no `pin` key, one person's itos in a
+  repository that does not use it, which keeps to the newest release as
+  where there is none) and `unpinned` (a project's config with no pin, one it cannot read, or one whose
   pin fails `config.PinVersion` and `config.PinChecksums`, the patterns config
   check holds the keys to), which runs the binary that was called. Otherwise `ensure`
   finds `<cache>/<version>/itos` (`ITOS_CACHE`, else `itos/` under
@@ -377,7 +387,8 @@ mechanisms above, written against those modules, read across.
   corpus's main help case is the help with an empty `PATH` of extensions.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
-  `ITOS_CONFIG`, after `--root`'s `chdir`), holds it to the schema
+  `ITOS_CONFIG`, else `itos.yaml`, else the stealth config, after `--root`'s
+  `chdir`: `Path`, which is `Locate("")`), holds it to the schema
   (`schema.go`, `SCHEMA`'s specs as data, with its problems' wording), then to
   the cross-checks (`cross.go`), and lays it over **the one table of
   defaults**, `defaults()` in `defaults.go`: one ordered tree, as `DEFAULTS`
@@ -389,6 +400,27 @@ mechanisms above, written against those modules, read across.
   an empty `Ordered` (a mapping whose order matters, as written); the file as
   written stays beside the loaded config for `HasSection` and `Section`.
   `Readings` and `MatchesStatic` are `readings` and `matchesStatic`.
+- **The stealth mode** (`internal/config/stealth.go`, slice 30) is one
+  person's itos in a repository whose team does not use it. Where there is
+  no `--config`, no `ITOS_CONFIG` and no `itos.yaml` in the root (in the
+  current source or the working tree), `Locate` gives
+  `<git common dir>/itos/itos.yaml` when it exists: `stealthFile` asks
+  `git rev-parse --git-common-dir` once per folder and run and keeps git's
+  answer, relative to the folder (`.git`) or absolute (in a linked
+  worktree), so messages name `.git/itos/…` and every linked worktree finds
+  the main one's. `IsStealth` tells the stealth config by where it is
+  (`os.SameFile` with that path, after a check of the file's and its
+  folder's names that spares a project's `itos.yaml` any git), not by how it
+  was found, so the absolute `ITOS_CONFIG` an extension is given reads the
+  same files when it calls back. `Load` marks it `Stealth` and `beside`
+  rewrites the paths of itos's own data, `ledger.files`, `work.registry`,
+  `work.people.file` and each kind's `smoke.file`, into its folder; a kind's
+  `root`, the globs and the commands stay the root's, being the project's.
+  Nothing else knows the mode but two readers: `internal/source` reads a path
+  in the git folder from the file whatever the tree (below), and the footer
+  rules' `knownFor` reads a ledger footer's IDs in the working tree for a
+  stealth config whatever its `read_at`, since no commit carries that ledger,
+  and without the warning a commit predating its ledger gives.
 - **YAML as JavaScript reads it** (`internal/value`). go.yaml.in/yaml/v3
   parses, but every value is JavaScript's: each plain scalar is resolved by
   the YAML 1.2 core schema the `yaml` package uses (yaml/v3 would read `017`
@@ -413,7 +445,13 @@ cat-file -e`, `git show`, `ls-files` or `ls-tree`), so the commit-msg hook's
   check of the staged data is `config check` again under `ReadingFrom`. The
   config is read from the source when it holds it and where it is otherwise
   (an `ITOS_CONFIG` outside the repository), and a ledger folder a git tree
-  lacks is the folder-missing error, as `source.ts` has them. Beside the
+  lacks is the folder-missing error, as `source.ts` has them. A path in the
+  git common dir, which no tree git holds can have (the stealth mode's
+  config and data), is read from the file by `Worktree` whatever the source:
+  `At` asks git for the top and the common dir, absolute, in one
+  `rev-parse`, and `gitTree.aside` compares the path, made absolute against
+  the resolved working folder, with that. So the commit-msg hook's task
+  checks, which read the staged ledger, find the stealth one. Beside the
   source, `Texts(tree, dir, keep)` is `treeTexts`: a git tree's files under a
   folder, read in one `git cat-file --batch` run (the TypeScript ran `git
 show` per file), none when the tree cannot be read. `ledger.IDs` and the

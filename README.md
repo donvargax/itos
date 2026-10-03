@@ -159,6 +159,52 @@ release the project pins:
 `itos config check` stays the judge: the schema says less than it, never
 something different.
 
+## Use itos in a repository that doesn't
+
+You can hold your own commits to itos in a repository whose team does not use
+it, with nothing of it in the tree: keep the config in the git folder, as
+`itos/itos.yaml` in the folder `git rev-parse --git-common-dir` names
+(`.git/itos/itos.yaml` in a plain clone). Where there is no `--config`, no
+`ITOS_CONFIG` and no `itos.yaml` in the root, itos reads that one, with nothing
+to set, and every linked worktree of the repository shares it. The files it
+names for itos's own data, the ledger, the work registry, the people and the
+smoke sets, are read beside it, in that folder, which git never commits; a
+`Task:` footer is checked against that ledger at every commit, even with
+`read_at: commit`, since no commit carries it. Should the project adopt itos,
+its own `itos.yaml` in the root wins.
+
+```sh
+dir="$(git rev-parse --git-common-dir)/itos"
+mkdir -p "$dir/tasks"
+printf 'phases: {}\nitems: []\n' > "$dir/tasks/work-items.yaml"
+printf -- '- <your login>\n' > "$dir/people.yaml"
+cat > "$dir/itos.yaml" <<'YAML'
+version: 1
+ledger:
+  files: "tasks/phase-{group}.yaml" # beside this file, in the git folder
+commits:
+  types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
+  footers:
+    Task:
+      source: ledger
+      required_for: [refactor, perf, test, build, ci, chore, revert]
+      validate_for: all
+      read_at: commit
+work:
+  people: { source: yaml, file: people.yaml }
+hooks:
+  bin: itos # the global install
+YAML
+itos config check
+```
+
+A global install runs the newest release for such a config unless it pins one
+(`pin`, above). Where the project sets no `core.hooksPath`,
+`itos hooks install --manager git` writes the hooks into `.git/hooks`, out of
+the tree. For now a footer you write is in the commit message, where everyone
+sees it; keeping it in a git note instead, and hooks that run beside a
+project's own, are the stealth mode's next slices (`features/stealth.feature`).
+
 ## Working on it
 
 ```sh

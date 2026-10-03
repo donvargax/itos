@@ -1923,7 +1923,7 @@ items:
     title: A stealth mode, itos kept in the git folder of a repository that does not use it
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-28]
     kind: slice
     why: >
@@ -1950,7 +1950,26 @@ items:
       itos commit, between them. The user's answers (2026-10-03): itos commit --task writes the
       link, a note in stealth mode, rather than a hook rewriting the message; the hooks are
       declared in .git/config (hook.<name>.command), which git runs beside the project's own.
+      Slice 30 landed: the config in the git folder, its data beside it (the people too), a git
+      tree read reading the git folder's files where they are, and the launcher running the
+      newest release for a stealth config that pins nothing; slices 31 to 34 keep their own items.
     refs: [features/stealth.feature, PLAN.md]
+
+  - id: p3-stealth-defaults
+    title: A stealth config's defaults fit a repository of one person
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-30, slice-33]
+    kind: idea
+    why: >
+      Slice 30 reads a stealth config's data beside it, and the defaults are still a project's:
+      hooks.bin is tools/bin/itos, which a repository that does not use itos has not got, and
+      work.people is CONTRIBUTORS.md, now looked for in the git folder, so work and config check
+      fail until the person writes a people file there (README.md's example sets both). A stealth
+      config could default hooks.bin to itos, the global install, and its people to the one
+      identity, through defaultsFor as work.registry's default already depends on the config.
+    refs: [internal/config/defaults.go, internal/config/stealth.go, README.md]
 
   - id: slice-31
     title: itos commit, a commit whose footers itos writes

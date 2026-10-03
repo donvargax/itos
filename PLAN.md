@@ -172,7 +172,27 @@ check, which could never take effect.
 ## 5. Config and ledger schema
 
 `itos.yaml` at the root, or `--config` / `ITOS_CONFIG`. An unknown key is an
-error that names the key it misspells. This repository's own `itos.yaml` is
+error that names the key it misspells.
+
+**The stealth mode** (slice 30, the user's call): one person's itos in a
+repository whose team does not use it, with nothing of it in the tree. With no
+`--config`, no `ITOS_CONFIG` and no `itos.yaml` in the root, itos reads
+`<git common dir>/itos/itos.yaml` (`git rev-parse --git-common-dir`), with no
+variable to set, so every linked worktree shares it; a project's own
+`itos.yaml` in the root always wins, as the project's mode. The files that
+config names for itos's own data, the ledger, the work registry, the people
+and the smoke sets, resolve beside it, in that folder, which git never
+commits; the project's paths (a kind's tests, the globs, the commands) stay
+the root's. A config is the stealth one by where it is, so an extension's
+call back reads the same files; one anywhere else that `--config` or
+`ITOS_CONFIG` names resolves its paths from the root, as it always has. Since
+no commit carries that ledger, a footer naming a task is checked against its
+file at every commit, `read_at: commit` falling back to the working file, and
+a git tree read (the index, a commit) reads any path in the git folder from
+the file. Where it pins nothing, a global itos runs the newest release for it,
+as where there is no config. Slices 32 to 34 keep the footers in git notes,
+declare the hooks in the git config and judge the person's unpushed commits
+(`features/stealth.feature`). This repository's own `itos.yaml` is
 the worked example, every table commented; `tasks/README.md` explains the
 policy it sets.
 
@@ -438,7 +458,8 @@ report problems as issues that are then prioritised.
 
 Each step is reverted, never forced, if it goes wrong. After v2, features are
 built once, in Go: extensions (`itos-<cmd>` on `PATH`; done, slice 29, §7), the stealth mode and
-the GitHub modes.
+the GitHub modes. The stealth mode's config in the git folder is done (slice
+30, §5); its footers in notes, its hooks and its range follow (slices 32 to 34).
 
 ## 10. Distribution
 
@@ -464,8 +485,8 @@ ends in its major version from v2, as Go requires). A version bump is
 one `build` commit. A global install (slices 27 and 28): the installed binary is a launcher,
 never rewritten, that runs the version a repository pins (`pin.version`, and `pin.checksums`, the
 SHA-256 of that release's `checksums.txt`, one hash for every platform), fetched into a cache and
-checked; a config with no pin runs the binary that was called, and with no `itos.yaml` it runs the
-newest release, asked for at most once a day. Later channels: the aqua or mise registry, a Homebrew tap,
+checked; a config with no pin runs the binary that was called, and with no `itos.yaml`, or a stealth
+config (§5) that pins nothing, it runs the newest release, asked for at most once a day. Later channels: the aqua or mise registry, a Homebrew tap,
 npm (as `palitos`) and PyPI wrappers, signatures.
 
 v0 releases are the TypeScript packed to JavaScript, since Node strips types
