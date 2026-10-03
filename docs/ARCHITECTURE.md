@@ -200,7 +200,14 @@ each, and holds it since the TypeScript left (T-062).
   tests those of every footer whose source is that kind, so `Task:` and
   `Scenarios:` are only this repository's names for them. What itos prints
   names the ledger's folder by `ledger.files` (`ledgerLayout`) and the prose
-  steps by `ci.prose.steps`, never `tasks/` or `vp check`.
+  steps by `ci.prose.steps`, never `tasks/` or `vp check`. A footer whose
+  source is `text` (slice 26) has no IDs and so no source to read: each line
+  `<Key>: <text>` is one footer, whatever a consumer must do or `none`, and
+  its rule is only that one says something (`required_for`) and none is empty
+  (`validate_for`); CI's plan reads no text footer, and `itos commit footers`
+  gathers a range's for a release's notes, leaving out `none`. Any footer may
+  name its own `since`, which verify applies to its `required_for` as it
+  applies `commits.since` to the whole range (below).
 - **One shell** (`shell.ts`): every command itos takes from the config or the
   ledger (a task check, a CI step, a header-lint delegate, a range check, a
   provider's or a command adapter's command, the pre-push commands, the smoke
@@ -219,7 +226,13 @@ each, and holds it since the TypeScript left (T-062).
 --is-shallow-repository`, actions/checkout's default one commit deep) the
   same problem says the commit may lie beyond the clone's history, with
   `git fetch --unshallow` or `fetch-depth: 0` as its fix. The commit-msg hook
-  never reads it.
+  never reads it. A footer's own `since` (`commits.footers.<name>.since`) is
+  the same idea for one rule: verify leaves that commit and its ancestors out
+  of the footer's `required_for` (`config.Before`), so a footer a project
+  requires later does not fail the history written before it, while the
+  commit-msg hook and `commit check-message`, which judge the commit being
+  made, always require it. config check and verify hold it to the same checks
+  as `commits.since` (`SinceIssues`, one problem per key).
 - **Conformance** (`tools/itos/conformance/`): what itos does, as cases run
   through its command line in scratch repositories, one file per area, every
   `--help` text among them, since agents read them. `run.ts --bin <command>`
@@ -312,8 +325,14 @@ show` per file), none when the tree cannot be read. `ledger.IDs` and the
   `internal/shell` with the message on stdin and `ITOS_AT` in its
   environment, its report printed as it comes or read by `ParseReport` into
   leveled problems under `--json`, then the footer rules always. Verify reads
-  each commit's footers through `FooterProblems` with `At` set to it, and the
-  commit-msg hook through the same call with the hook delegate beside it.
+  each commit's footers through `FooterProblems` with `At` set to it and
+  `Made` set, so a footer's `since` lifts its `required_for` there and only
+  there, and the commit-msg hook through the same call with the hook delegate
+  beside it. A free-text footer is read by `Texts` (a line each, trimmed) and
+  judged by `checkText`; `None` is the one reading of `none` (the word alone,
+  as written), and `Gathered` is a range's texts with their commits
+  (`git log --no-merges --reverse` over `from..to`), which `commit footers`
+  (`internal/cli/commit.go`) prints.
   Under `commits.header_lint.use: builtin` all three run, in the delegate's
   place, the built-in header lint (`HeaderProblems`, slice 25), which has
   no TypeScript original: it is commitlint 21 with config-conventional as

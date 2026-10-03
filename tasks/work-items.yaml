@@ -1776,7 +1776,14 @@ items:
       section asks consumers for everything at once: switch the pin to the binary (v1.0.0's
       install script), drop Node and commitlint for the built-in lint, and anything else the
       commits since v1.1.0 change. Released automatically (PLAN.md, "Releases"). To specify as a
-      task once slice 25 lands.
+      task once slice 25 lands. Slice 26 built the footer it gathers the notes from: this
+      repository's itos.yaml gains commits.footers.Upgrading { source: text, required_for: the
+      types a consumer can feel, since: the full SHA of the commit before the one adding it }, and
+      that build commit carries an Upgrading: footer itself, since the commit-msg hook always
+      requires it; release-notes.ts then holds each text `itos commit footers Upgrading <previous
+      tag> <tag> --json` lists to the Upgrading section. The commits from v1.1.0 to that since
+      carry none, so v2.0.0's own Upgrading section stays written by hand from them, and the
+      check proves only the footers after it.
     refs: [PLAN.md]
 
   - id: p3-extensions
@@ -2027,7 +2034,7 @@ items:
     title: A free-text footer that says what a consumer changes, gathered for the release notes
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-25]
     kind: slice
     why: >
@@ -2037,6 +2044,21 @@ items:
       still verifies (T-062 met that trap); and a command listing a range's footers with their
       commits, skipping none, so a release's notes are gathered from the commits and a check can
       prove each appears. The release-notes check and this repository's own footer come after it.
+    refs: [features/upgrading.feature]
+
+  - id: p3-text-footer-lines
+    title: A free-text footer longer than one line stays one footer
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-26]
+    kind: idea
+    why: >
+      Found in slice 26: a free-text footer is one line, `<Key>: <text>`, and a footer line may not
+      pass 100 characters (footer-max-line-length), so an Upgrading step longer than that is split
+      over several Upgrading: lines, which itos commit footers gathers as separate entries. git's
+      trailers continue a value on indented lines; reading those as part of the footer above would
+      keep a long step whole in the notes. Only if real steps turn out that long.
     refs: [features/upgrading.feature]
 
   - id: p3-header-lint-unread-keys
