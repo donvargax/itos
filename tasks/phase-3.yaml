@@ -371,6 +371,32 @@
     - run: node tools/selftest/previous-release.ts
       timeout: 900
 
+- id: T-076
+  type: ci
+  title: The last release's corpus accepts what an output only adds
+  why: >
+    Was p3-old-corpus-additive-report, found by slice 50; the user's call (2026-10-03): the purpose
+    is not breaking backwards compatibility, and additive properties are basically always fine.
+    tools/bin/previous-release (T-071) compared an old case's output exactly, so a key added to a
+    --json object, which PLAN.md already calls compatible (keys only ever added), and a line added
+    to a report read as breaks a feat cannot excuse: v2.8.1's init.yaml cases "init with a config
+    there writes nothing and lists what is missing, config check's problems and the hooks'", "run
+    again where nothing is missing, init reports a plugin not installed and still exits 0" and "run
+    again with the plugin installed, init's JSON says so" held back slice 50's rerun notes. An old
+    case is now judged additively: its JSON as a subset of the new (every key it expects still
+    there with the value it expects, objects compared key by key at every depth, arrays element by
+    element at the same length; a key added anywhere passes, one removed or changed fails), and
+    its stdout and stderr as lines that must all still appear in the new output in the same order,
+    lines added between or around them passing, a line changed, removed or reordered failing. Its
+    exit code and its files are judged as before. The help and usage-error relaxations stay. This
+    tree's own corpus still pins every output exactly. The check says it judged the old corpus
+    additively. The self-test proves an old case passes with a key added to its JSON and with a
+    line added to its stdout, and fails with a key removed, a value changed, a line changed and
+    two lines swapped.
+  done_when:
+    - run: node tools/selftest/previous-release.ts
+      timeout: 900
+
 - id: T-069
   type: ci
   title: A push to main whose CI is green cuts a release when it carries a feat or a fix

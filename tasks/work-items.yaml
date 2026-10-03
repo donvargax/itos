@@ -2317,7 +2317,7 @@ items:
     phase: 3
     owner: donvargax
     status: doing
-    depends_on: [slice-49, T-075]
+    depends_on: [slice-49, T-075, T-076]
     kind: slice
     why: >
       Specified as @ID-INIT-18 to 21 in features/init.feature, the last of init's three slices
@@ -2331,23 +2331,18 @@ items:
       @ID-INIT-20 and 21 and a rerun's line on a shim not linked, which change the words and
       keys of v2.8.1's init corpus cases; they wait on p3-old-corpus-additive-report.
     refs: [features/init.feature]
-  - id: p3-old-corpus-additive-report
-    title: The last release's corpus reads a key or a report line added as a breaking change
+  - id: T-076
+    title: The last release's corpus accepts what an output only adds
     phase: 3
-    owner: null
-    status: todo
-    depends_on: [T-071]
-    kind: idea
+    owner: donvargax
+    status: doing
+    depends_on: [T-075]
+    kind: task
     why: >
-      Found by slice 50. tools/bin/previous-release compares an old case's JSON and stdout exactly,
-      so a key added to a command's --json object, which PLAN.md calls compatible (keys only ever
-      added), and a line added to a report fail v2.8.1's init.yaml cases ("init with a config
-      there writes nothing…", "run again where nothing is missing…", "run again with the plugin
-      installed, init's JSON says so"), and a feat's Changes: cannot excuse them. @ID-INIT-20 and
-      21 (the rerun's notes: a pin behind the newest, a people file missing) and the rerun's line
-      on a git shim not linked wait on the user's call: judge an old case's JSON as a subset of
-      the new, and its human report as documentation, as T-075 did for usage errors, or ship
-      them as a breaking change.
+      Was p3-old-corpus-additive-report, the user's call (2026-10-03): additive properties are
+      basically always fine. The task is T-076 in tasks/phase-3.yaml. Slice 50's @ID-INIT-20 and 21
+      wait on it.
+    refs: [tasks/phase-3.yaml, tools/bin/previous-release/main.go]
   - id: slice-42
     title: itos hook pre-tool-use, Claude Code's guard against an agent's git commit and git push
     phase: 3
@@ -3258,3 +3253,22 @@ items:
       documentation, its exit code the interface. The task is T-075 in tasks/phase-3.yaml. Before
       slice 50, so init's usage message can name --plugin and --git-shim.
     refs: [tasks/phase-3.yaml, tools/bin/previous-release/main.go]
+
+  - id: p1-follow-ups
+    title: Follow-ups with people, and questions to the user, tracked with little ceremony
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's need (2026-10-03): following up with people has been a pain. A follow-up is a
+      thread rather than a work item: with a teammate on X, they covered Y and missed Z, Z is
+      covered next time but new questions come up; or it works when tested and breaks two days
+      later. It needs a status, a brief progress note per step and the important notes, appended
+      as dated entries rather than fields edited, and may grow into a doc or a draft of one. A
+      question to the user is the same thing with the user as the person, which is what the
+      handoff's "User review" list holds by hand: with these, and p1-work-queue-order, itos status
+      can replace docs/HANDOFF.md. Little ceremony is the requirement: a note in one command, no
+      footers, no scenarios.
+    refs: [docs/HANDOFF.md, tasks/work-items.yaml]

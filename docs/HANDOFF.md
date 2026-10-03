@@ -12,13 +12,12 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after T-075 landed (slice 50 handed out).
+Last updated 2026-10-03, after slice 50's first half landed (v2.9.0).
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `9b6cd31` (CI run 37157179937,
-every job: `ci`, the three `platform` jobs, `release`; v2.8.1 is the newest
-release, T-075's `ci` commits cutting none). itos is Go only; `tools/bin/itos` builds and runs this
+All work is @donvargax's. `main` is green at `9b9c960` (CI run 37158238691,
+every job: `ci`, the three `platform` jobs, `release`, which cut v2.9.0). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
 
@@ -37,7 +36,8 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.8.1 (`ci plan` and `ci run` without a `work:` section, bug 10),
+Released: v2.9.0 (`itos init --git-shim`, untagged features need no Scenarios
+footer, slice 50's first half), v2.8.1 (`ci plan` and `ci run` without a `work:` section, bug 10),
 v2.8.0 (`itos init --plugin`, slice 49), v2.7.0 (`itos init`, slice 48), v2.6.0 (`itos pin [<version>]`, slice 47), v2.5.0 (the pre-push hook verifies the commits it pushes, slice 46;
 silent when they pass), v2.4.0 (`itos config get`), v2.3.2 (Windows paths, bug 9), v2.3.1
 (issue #3, bug 8), all cut by CI; v2.3.0 by hand (the guard, `itos work
@@ -48,9 +48,11 @@ change any other repository.
 
 One slice at a time, the user's order:
 
-1. **`slice-50`** (handed to an agent; T-075 landed, so the last release's
-   usage errors are judged by their exit code alone and init's usage message
-   may name `--plugin` and `--git-shim`) (@ID-INIT-18 to 22: the git
+1. **`T-076`** (the last release's corpus accepts what an output only adds;
+   handed to an agent), then the rest of **`slice-50`**: @ID-INIT-20 and 21,
+   the rerun's people-file and pin-behind notes, built and held as
+   `slice50-held.patch` in the coordinator's scratchpad (also described in
+   the item's `why`) (@ID-INIT-18 to 22: the git
    shim offer; the report names a pin behind the newest and a missing people
    file; no Scenarios footer required where no scenario has an ID tag), then
    `p3-init-agent-rules` and `p3-init-orchestration` (agent files; PLAN.md
