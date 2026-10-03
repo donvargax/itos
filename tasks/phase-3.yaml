@@ -548,3 +548,19 @@
   done_when:
     - run: node tools/selftest/plugin-version.ts
       timeout: 300
+
+- id: T-077
+  type: test
+  title: internal/cli's help tests pass whatever extensions the caller's PATH holds
+  why: >
+    Was p3-help-tests-own-path. TestHelp and TestHelpListsExtensions read the caller's PATH, and
+    itos --help lists every itos-<command> on it, so an extension installed on the developer's PATH
+    (itos-cc, on the maintainer's machine) fails both, and with them the pre-commit hook of any
+    commit reaching internal/cli. CI has no extension, so only such a machine sees it; every agent
+    of the 2026-10-03 session committed with that folder left off the PATH, and every brief had to
+    say so. Each help test sets a PATH holding only the folders it makes (t.Setenv), as the
+    corpus's clean environment does, and still finds what it runs (git, sh) where a test needs
+    them. The check runs internal/cli's tests with an extension of its own on the PATH.
+  done_when:
+    - run: 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" go test ./internal/cli -count=1'
+      timeout: 600

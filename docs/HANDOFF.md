@@ -50,7 +50,8 @@ change any other repository.
 
 One slice at a time, the user's order:
 
-1. **`p3-help-tests-own-path`**, so no brief has to mention it again.
+1. **`T-077`** (was `p3-help-tests-own-path`; handed to an agent), so no
+   brief has to mention the PATH again.
 2. The orchestration commands, the user's order (2026-10-03), ahead of the
    rest of init, each to specify first:
    - **`p1-ci-watch`**: `itos push` waits for CI;

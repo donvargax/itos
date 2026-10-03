@@ -3152,24 +3152,17 @@ items:
       features/config.feature rather than cut a release for a scenario alone.
     refs: [features/config.feature]
 
-  - id: p3-help-tests-own-path
-    title: internal/cli's help tests run on a PATH of their own
+  - id: T-077
+    title: internal/cli's help tests pass whatever extensions the caller's PATH holds
     phase: 3
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
-    kind: idea
+    kind: task
     why: >
-      Found by slice 46's agent: TestHelp and TestHelpListsExtensions read the caller's PATH, and
-      itos --help lists every itos-<command> on it, so an extension installed on the developer's
-      PATH (itos-cc, on the maintainer's machine) fails both, and with them the pre-commit hook of
-      any commit that reaches internal/cli. CI has no extension, so only a machine with one sees
-      it; the slice committed with that folder left off the PATH. The tests should set a PATH
-      holding only the folders they make (t.Setenv), as the corpus's clean environment does.
-      Every agent of the 2026-10-03 session committed with that folder off the PATH, and every
-      brief had to say so: fix it before the next slice rather than brief it again.
-    refs: [internal/cli/cli_test.go]
-
+      Was p3-help-tests-own-path. The task is T-077 in tasks/phase-3.yaml: the help tests set a PATH
+      of their own, so an extension on the caller's PATH no longer fails them.
+    refs: [tasks/phase-3.yaml, internal/cli/cli_test.go]
   - id: p3-help-of-launcher-commands
     title: itos help pin and itos help git-shim run the binary called, as the commands do
     phase: 3
