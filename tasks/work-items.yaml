@@ -1996,8 +1996,7 @@ items:
       registry moved by work.registry and ledger tasks without registry entries are found, and falls
       back to reading tasks/work-items.yaml. Its changes are task-driven, proven by
       claude plugin test in the task's checks: one commits.scopes entry for integrations/**. A home
-      later for other itos-aware pieces: a new itos version as a toast (p3-self-update), an inbox
-      pane, main's CI in the status line.
+      later for other itos-aware pieces: an inbox pane, main's CI in the status line.
     refs: [PLAN.md]
 
   - id: p3-self-update
@@ -2017,14 +2016,11 @@ items:
       self-updates, and releases are signed so an update checks a signature. The user's answers
       (2026-10-02), kept simple on purpose: the manager updates itself automatically; a repository
       pins one exact version (a key beside requires, which stays the oldest itos that reads the
-      config); when a newer version is out, one line at most once a day per repository, worded for
-      an agent too ("itos 2.1.0 is out (this repository pins 2.0.0). Tell the user; the release
-      notes say what to change: <url>"), never in CI; with --json the same as a notice key (and
-      latest in version --json) rather than silence, since agents read JSON and filters drop
-      stderr lines; ITOS_NO_UPDATE_NOTICE=1 silences it, ITOS_NO_UPDATE=1 stops self-update. The
-      itos Claude Code plugin shows it as a toast (p3-claude-code-plugin), and the template's agent
-      rules and each Upgrading section say to tell the user. No range-aware notices and no config
-      key to silence a team, until someone asks.
+      config); when a newer version is out, a plain note at most once a day per repository,
+      "itos 2.1.0 is out (this repository pins 2.0.0): <release notes URL>", never in CI;
+      ITOS_NO_UPDATE_NOTICE=1 silences it, ITOS_NO_UPDATE=1 stops self-update. Nothing more: no
+      wording aimed at agents, no notice in --json, no range-aware notices, no config key to silence
+      a team.
     refs: [PLAN.md]
 
   - id: slice-26

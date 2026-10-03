@@ -12,17 +12,18 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-02, after slice 25 (the built-in header lint) landed.
+Last updated 2026-10-02, after T-063 (this repository lints with the built-in lint) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `f224e55` (CI run 37081070730), after slice 25; since T-062 itos is Go
+`main` is green at `f2dbde9` (CI run 37083341262), after T-063: the built-in
+header lint judges this repository's commits, commitlint is gone; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
-repository's dev tooling (vp, the corpus runner, the self-tests, commitlint
-until T-063), never a consumer's runtime; this
+repository's dev tooling (vp, the corpus runner, the self-tests), never a
+consumer's runtime; this
 repository's `itos.yaml` requires itos 0.6.0, whose built-in moves rule it
 uses. CI now builds the Go binary and runs the ported set against it
 (`tools/selftest/go-port.ts`): since T-053 the whole corpus and every
@@ -45,16 +46,13 @@ implementations; release run 37071299183), after
 binary. Every asset was downloaded and verified after each release. Releases
 are automated (PLAN.md, "Releases"): no tag waits for the user. The user moves
 the consumers' pins from their own repositories: don't change any other
-repository. Unreleased: T-059 to T-062 and slice 25, whose notes are started in
+repository. Unreleased: T-059 to T-063 and slice 25, whose notes are started in
 `docs/releases/v2.0.0.md`. Write the next release's notes as each
 slice lands, from its report, in `docs/releases/v<next>.md`.
 
 ## Next
 
 1. **Phase 3, to v2.0.0** (PLAN.md, phase 3), one agent at a time:
-   - `T-063`, the built-in lint held to commitlint's verdicts over this
-     history (recorded as a fixture while commitlint is here, so the check
-     outlives it), then this repository switches to `use: builtin`;
    - `slice-26`, the free-text `Upgrading:` footer, specified in
      `features/upgrading.feature` (`@ID-UPGRADE-01` to `05`, `@wip`);
    - `T-061`, v2.0.0, to specify once those land: its why lists what the
@@ -69,8 +67,8 @@ slice lands, from its report, in `docs/releases/v<next>.md`.
 
 2. **After v2, built once in Go:** `p3-claude-code-plugin` (the local
    itos-titles mod, published from this repository), `p3-self-update` (a
-   global itos as a version manager; open for the user: automatic update or
-   a notice, an exact version pin), `p3-extensions` (`itos-<cmd>` on the
+   global itos as a version manager: automatic self-update, an exact pin, a
+   plain note when a newer version is out), `p3-extensions` (`itos-<cmd>` on the
    PATH, a trivial `itos-hello` first); `p2-stealth-mode` (config, ledger and
    registry under `.git/itos/`, found with no environment variable; the task
    link in git notes, never a footer; hooks that chain to the project's own);
