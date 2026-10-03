@@ -2871,7 +2871,7 @@ items:
     title: Every push runs the unit tests and every feature on Linux, macOS and Windows
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-069]
     kind: task
     why: >
@@ -2879,3 +2879,19 @@ items:
       standard runners for a public repository; not blocking first, then required by the release
       job once all three pass. The task is T-072 in tasks/phase-3.yaml.
     refs: [tasks/phase-3.yaml, .github/workflows/ci.yml]
+
+  - id: p3-guard-windows-paths
+    title: The guard reads git -C's folder on windows as Git for Windows' sh hands it to git
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-072]
+    kind: idea
+    why: >
+      T-072 left it, seen in the guard's unit tests and in no scenario: the Claude Code guard reads
+      git -C's folder from the command as written, and on windows a folder Git for Windows' sh
+      writes as /c/Users/… (which its sh turns into C:\Users\… for git.exe), or a rooted /x or
+      \x, is not absolute to filepath and is joined to the session's folder, so a git commit or
+      git push into an itos repository named that way is not denied. Reading such a folder as the
+      sh would hand it to git (a drive from /<letter>/, a rooted path on the current drive) is a
+      fix with its scenario, which only the windows platform job can run.

@@ -433,6 +433,17 @@
     Its check runs in the nightly, not in pushes (ci.nightly_only), and reads the newest completed
     ci.yml run on main: a push's own run is still going when its task checks run, so read in a
     push it would find that run's platform jobs unfinished and hold every push naming T-072 red.
+    What it found: macOS passed on its first run, and Windows failed. Its unit tests wrote paths
+    into sh commands unquoted and a POSIX /abs, and leaned on signals and on a fake git that is a
+    shell script; its features failed 35 scenarios. Four were itos's own: the default registry
+    and the ledger's folder were joined with backslashes, so the commit-msg hook never checked a
+    staged registry there (bug 9, a fix and the patch release 2.3.2). The rest were the steps':
+    their fake programs (extensions, a release's itos, the config's shell, gh) are shell scripts,
+    which windows does not run, so on windows a step writes <name>.exe, script-exe
+    (features/testdata/script-exe) with the script after it, run by Git for Windows' sh; an
+    extension's folder read through pwd -W and its links; an ITOS_* path's ending read with
+    slashes. The platform jobs take about 30 s on ubuntu, a minute on macos and three on windows,
+    which the release now waits for.
   done_when:
     - run: sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'
       after: push
