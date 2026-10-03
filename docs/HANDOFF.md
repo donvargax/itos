@@ -53,7 +53,7 @@ One slice at a time, the user's order:
 
 1. The orchestration commands, the user's order (2026-10-03), ahead of the
    rest of init:
-   - **`p1-repo-ci-watch`** (slice 51's idea): this repository turns
+   - **`T-078`** (was `p1-repo-ci-watch`, the coordinator's): this repository turns
      `ci.watch` on, so agents' pushes wait for CI, and AGENTS.md and
      ORCHESTRATING.md stop watching by hand; small, next;
    - **`slice-52`** (`itos work take` and `promote`, @ID-WORK-08 to 14) and

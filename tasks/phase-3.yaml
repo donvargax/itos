@@ -564,3 +564,18 @@
   done_when:
     - run: 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" go test ./internal/cli -count=1'
       timeout: 600
+
+- id: T-078
+  type: ci
+  title: This repository opts in to ci.watch, and its agents stop watching CI by hand
+  why: >
+    Was p1-repo-ci-watch. Slice 51 left ci.watch opt-in, and this repository's pushes still
+    returned at once, so every run was found by its full SHA and watched by hand, by the agents
+    and again by the coordinator. With ci.watch: { provider: github } (the workflow is ci.yml by
+    default) itos push waits for the run of the commit it pushed and exits with its result; an
+    agent starts it in the background and monitors it, since a foreground tool call times out
+    before CI ends, and the coordinator re-attaches to a run an agent claims with itos ci watch
+    <sha>. AGENTS.md's "Finishing" and docs/ORCHESTRATING.md say so in place of gh run watch.
+  done_when:
+    - run: 'test "$(tools/bin/itos config get ci.watch.provider)" = github'
+      timeout: 60
