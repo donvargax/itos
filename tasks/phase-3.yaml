@@ -249,3 +249,26 @@
   done_when:
     - run: node tools/selftest/deps-check.ts
       timeout: 300
+
+- id: T-068
+  type: build
+  title: v2.3.0, the itos plugin for Claude Code
+  why: >
+    The user's plan (2026-10-03): the third release after v2.0.0, additive, asking nothing of a
+    consumer. It carries slices 42 to 44 and T-066: itos hook pre-tool-use, the guard against an
+    agent's git commit and git push, answering nothing under a pin older than it; itos work list;
+    and the itos plugin for Claude Code, this repository a plugin marketplace, the plugin's
+    version itos's, bumped by the same build commit (T-066). The notes' Upgrading section holds
+    every Upgrading footer since v2.2.0 that says more than none, how to install the plugin
+    (/plugin marketplace add donvargax/itos, /plugin install itos@itos), that it needs an itos
+    2.3.0 or later on the PATH, and the install lines of the new version. T-067's dependency
+    check is this repository's own and asks nothing of a consumer. Automated: the coordinator
+    tags when CI, a nightly on the release commit and the release checks are green, after
+    reading the notes against the range.
+  done_when:
+    - run: node tools/selftest/go-release.ts
+      timeout: 900
+    - run: node tools/selftest/release-notes.ts 2.3.0
+      timeout: 300
+    - run: sh -c 'd=$(mktemp -d) && gh release download v2.3.0 --dir "$d" --pattern "itos-2.3.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
+      after: push

@@ -19,7 +19,7 @@ Last updated 2026-10-03, after T-067 landed.
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `3042fca` (CI run 37130336621), T-067's close; this
+`main` is green at `c99276b` (CI run 37130620622); this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -59,7 +59,7 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
    to 44 (the guard, `itos work list`, the guard under an old pin) and T-066
    (the marketplace and the plugin). This repository's
    rules now commit and push through `itos commit` and `itos push` (the
-   user's call, 2026-10-03). Next the release task.
+   user's call, 2026-10-03). Next **T-068**, the release.
    T-066 also left `p3-plugin-project-itos` and `p3-plugin-type-check`.
 3. **v2.4.0**: **`p3-pre-push-verify`**, **`p3-pin-bump`** and
    **`p3-itos-init`**.
