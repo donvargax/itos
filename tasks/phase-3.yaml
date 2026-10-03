@@ -292,7 +292,11 @@
     push whose range has a feat or a fix, before T-069's release job, and needs the network for
     the last release's schema. Its self-test proves each breaking change refused, each one
     passed with a breaking-change commit, and each compatible change passed, on schemas it
-    writes itself, with no network.
+    writes itself, with no network. Built as tools/bin/schema-contract, a late step of
+    itos.yaml's ci; the self-test also proves a failed download, a 404, a shallow clone and a
+    keyword it does not compare each stop it (exit 2), and no release tag passes, saying so.
+    Its first run, v2.3.0's published schema against this tree, found no change; against
+    v2.0.0's it finds two compatible ones, pin added and hooks.manager's git-config.
   done_when:
     - run: node tools/selftest/schema-contract.ts
       timeout: 300

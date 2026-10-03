@@ -1239,6 +1239,34 @@ all`; a module replaced by a version is checked as that version, one
     module it is about to refuse runs inside it, which is why its file is JSON.
     `tools/selftest/deps-check.ts` proves it against a proxy of local files
     with a stub govulncheck.
+  - **The schema contract** (`tools/bin/schema-contract`, T-070; by hand,
+    `go run ./tools/bin/schema-contract`) holds the config to the last
+    release's, as T-069's releases take their version from the commits alone:
+    a config the last release accepts must still be accepted, and mean the
+    same, unless a commit says otherwise. It runs in CI as a late step with
+    `-range-from "$FROM"`, checking nothing unless the range has a `feat` or a
+    `fix`, the commits a release is cut for. The last release is the newest
+    `vX.Y.Z` tag reachable from HEAD (`git tag --merged HEAD`, by version), its
+    schema the `itos.schema.json` of its GitHub release, downloaded
+    (`GITHUB_REPOSITORY`, else the remote origin, names the repository), and
+    this tree's is `go run ./tools/bin/config-schema`'s. The comparison walks
+    the two over the keywords that generator writes, an `anyOf`'s entries
+    matched by type: a key removed, a type narrowed, an enum value removed, a
+    key newly required, an object closed or a default changed (added, removed
+    or another value: a config's default is behaviour) is breaking, a key
+    added, a type widened, an enum value added, a key no longer required or an
+    object opened compatible, each printed with its config path
+    (`ci.steps[]`, a map's entries as `tests.<key>`). A breaking change fails
+    (exit 1), naming the key, the change and the remedy, unless a commit in
+    `<tag>..HEAD` carries a `BREAKING-CHANGE:` (or `BREAKING CHANGE:`) footer
+    in its last paragraph or a `!` before its header's colon. It never passes
+    on what it could not read: a failed download or a release without the
+    asset, a shallow clone (which may lack the tag) and a keyword the
+    comparison does not read each stop it with exit 2; no release tag at all is
+    the one pass without a comparison, and says so. Standard library only, as
+    the dependency check is. `-old` and `-new` take the two schemas from files,
+    which `tools/selftest/schema-contract.ts` does, in a scratch repository
+    with a tag and a local server standing for GitHub.
   - **commit-msg** first checks itos's own data when the commit stages any
     of it (`commit-data.ts`): the config, a ledger file, the registry or a
     smoke set, as the staged config names them, runs `config check`'s
