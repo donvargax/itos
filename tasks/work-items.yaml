@@ -3156,7 +3156,7 @@ items:
     title: internal/cli's help tests pass whatever extensions the caller's PATH holds
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     why: >
