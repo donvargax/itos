@@ -2335,7 +2335,7 @@ items:
     title: The last release's corpus accepts what an output only adds
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-075]
     kind: task
     why: >

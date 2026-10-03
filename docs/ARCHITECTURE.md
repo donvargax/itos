@@ -1513,13 +1513,26 @@ diff --name-only --no-renames`, so a change undone within the range is
     corpus's cases that put the binary's own version into `requires` cannot
     read. It checks the tag out with `git worktree add
 --detach` into a scratch folder, links the checkout's `node_modules` in
-    for the corpus runner's YAML parser, sets the worktree's `package.json`
-    version, when it has one, to what `<bin> version` says (the corpus's
-    `{{version}}` is the version the binary must say, which a release's runner
-    read from there until T-069; a later one asks the binary), takes the help
+    for the YAML parser its fixture rewrite reads with, takes the help
     cases out of the release's fixtures, then runs, at once, the release's `go test ./features -count=1
--json` with `ITOS_BIN` naming the binary and the release's
-    `node tools/itos/conformance/run.ts --bin <bin>`. A help case is one whose
+-json` with `ITOS_BIN` naming the binary and this tree's corpus runner over
+    the release's fixtures,
+    `node <top>/tools/itos/conformance/run.ts --bin <bin> --additive --only <its *.yaml>`
+    (T-076): the runner asks the binary its version for the corpus's
+    `{{version}}`, so a build stamped with a version the tag never had is not
+    failed for saying it. `--additive` judges each old case by what its
+    output must still hold (the user's call, 2026-10-03: additive properties
+    are compatible, removals and changes breaks): its `json` as a subset of
+    the new, every key it expects there with the value it expects at every
+    depth, an array element by element at the same length, a key added
+    anywhere passing, a failure naming the path (`.plugin.scope: expected
+"user", got "project"`); its `stdout` and `stderr` as lines that must all
+    appear in the new output in the same order, a line added before, between
+    or after them passing, a failure printing the line diff with the lines
+    it lacks marked `-`. The exit code, `stdout_has`, `stderr_has` and
+    `files_after` are judged as ever, and this tree's corpus, run without the
+    flag, pins every output exactly. No release's runner has the mode, so the
+    release's fixtures are read by this tree's runner, not its own. A help case is one whose
     argv holds `--help` or `-h` before any `--`, starts with `help`, or is
     empty (a bare itos prints the help); they are never judged (the user's
     call, 2026-10-03), as help text is documentation, not compatibility:
@@ -1561,7 +1574,10 @@ diff --name-only --no-renames`, so a change undone within the range is
     repository whose tag holds two scenarios (a stdlib Go test standing for
     godog's), this repository's corpus runner, three cases and two help
     cases, against a script that breaks one scenario and one case, and one
-    whose help alone differs, which passes.
+    whose help alone differs, which passes; and a report's lines and a JSON
+    object, against a script that adds keys and lines, which passes, and four
+    that each take a key away, change a value, change a line or swap two,
+    each refused.
   - **commit-msg** first checks itos's own data when the commit stages any
     of it (`commit-data.ts`): the config, a ledger file, the registry or a
     smoke set, as the staged config names them, runs `config check`'s
