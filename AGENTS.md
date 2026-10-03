@@ -77,7 +77,8 @@ the same thing waste both. Take one by setting its `owner` and
   1. Remove `@wip` from the scenarios you are implementing, or add a
      `@bug-<n>` scenario for a fix.
   2. Implement until they pass. Add unit tests beneath them as needed.
-  3. Commit with a `Scenarios: @ID-…` footer.
+  3. Commit with a `Scenarios: @ID-…` footer, and an `Upgrading:` footer
+     saying what a consumer of itos must change for it, or `Upgrading: none`.
 
   **If the behavior you need isn't described, stop and propose the
   scenario; never bend a scenario to fit an implementation.** A scenario is
