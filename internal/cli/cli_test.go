@@ -2,6 +2,7 @@ package cli
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -56,6 +57,7 @@ func TestUsageErrors(t *testing.T) {
 // The help is the longest command path it knows, whatever else the
 // arguments hold; a bare itos prints itos's own and exits 2.
 func TestHelp(t *testing.T) {
+	ownPath(t, "git")
 	for _, c := range []struct {
 		args []string
 		code int
@@ -75,6 +77,27 @@ func TestHelp(t *testing.T) {
 			t.Errorf("itos %s: exit %d, stdout %q, stderr %q", strings.Join(c.args, " "), code, stdout, stderr)
 		}
 	}
+}
+
+// ownPath gives the test a PATH of its own, so that no extension the
+// caller has installed reaches the help it reads: one folder holding a link
+// to each program named that the caller's PATH has, and nothing beside it.
+// git is what finds the repository's top, where itos runs.
+func ownPath(t *testing.T, programs ...string) {
+	t.Helper()
+	dir := t.TempDir()
+	path := dir
+	for _, name := range programs {
+		program, err := exec.LookPath(name)
+		if err != nil {
+			continue
+		}
+		if err := os.Symlink(program, filepath.Join(dir, filepath.Base(program))); err != nil {
+			// Where links cannot be made, the program's own folder.
+			path += string(os.PathListSeparator) + filepath.Dir(program)
+		}
+	}
+	t.Setenv("PATH", path)
 }
 
 // pathWith puts a folder holding an executable itos-<name> for each name
@@ -123,6 +146,7 @@ func TestHelpListsExtensions(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("the extensions here are shell scripts")
 	}
+	ownPath(t, "git")
 	pathWith(t, "hello") // after the folder below on the PATH, so not listed
 	first := pathWith(t, "zap", "hello", "work", "a-name-longer-than-the-command-column")
 	if err := os.WriteFile(filepath.Join(first, "itos-plain"), nil, 0o644); err != nil {
