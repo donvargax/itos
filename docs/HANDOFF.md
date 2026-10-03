@@ -12,12 +12,13 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 50's first half landed (v2.9.0).
+Last updated 2026-10-03, after T-076 landed.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `9b9c960` (CI run 37158238691,
-every job: `ci`, the three `platform` jobs, `release`, which cut v2.9.0). itos is Go only; `tools/bin/itos` builds and runs this
+All work is @donvargax's. `main` is green at `04412f9` (CI run 37159171253,
+every job; v2.9.0 is the newest release). The coordinator commits docs from
+its own worktree, `.claude/worktrees/coord-docs` (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
 
@@ -48,19 +49,24 @@ change any other repository.
 
 One slice at a time, the user's order:
 
-1. **`T-076`** (the last release's corpus accepts what an output only adds;
-   handed to an agent), then the rest of **`slice-50`**: @ID-INIT-20 and 21,
-   the rerun's people-file and pin-behind notes, built and held as
-   `slice50-held.patch` in the coordinator's scratchpad (also described in
-   the item's `why`) (@ID-INIT-18 to 22: the git
-   shim offer; the report names a pin behind the newest and a missing people
-   file; no Scenarios footer required where no scenario has an ID tag), then
-   `p3-init-agent-rules` and `p3-init-orchestration` (agent files; PLAN.md
-   §10, "Adoption"), `p3-pr-rebase-merge` and `p3-init-starter-ci`. Each a
-   feat, a minor release.
-2. **`p3-human-waiver`** (`itos waive`, a plain config list; the guard keeps
+1. The rest of **`slice-50`**: @ID-INIT-20 and 21, the rerun's people-file
+   and pin-behind notes. Built and held as `slice50-held.patch` in the
+   coordinator's scratchpad; T-076 landed, so v2.9.0's corpus judged
+   additively passes against it. Needs help, corpus and ARCHITECTURE
+   updates. A feat.
+2. **`p3-help-tests-own-path`**, so no brief has to mention it again.
+3. The orchestration commands, the user's order (2026-10-03), ahead of the
+   rest of init: **`p1-ci-watch`** (`itos push` waits for CI),
+   **`p1-work-take-done-promote`** with `p1-slice-done-check` (`itos work
+done` verifies before it writes), **`p1-handoff-status`** after
+   `p1-work-queue-order` and `p1-follow-ups` (`itos status` replaces this
+   file), **`p1-tests-next-id-and-steps`**, **`p1-work-brief`** (now `itos
+work show`), and `p1-push-needs-hooks`. Each to specify first.
+4. Then `p3-init-agent-rules` and `p3-init-orchestration` (agent files;
+   PLAN.md §10, "Adoption"), `p3-pr-rebase-merge` and `p3-init-starter-ci`.
+5. **`p3-human-waiver`** (`itos waive`, a plain config list; the guard keeps
    agents off it), after those.
-3. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
+6. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
    open for the user).
 
 Small ideas, any time: `p3-guard-windows-paths` (the guard reads a Git Bash

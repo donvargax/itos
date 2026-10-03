@@ -1154,6 +1154,10 @@ items:
       that renamed the id, changed kind and added refs; the next slice number, T- ID and scenario
       ID were found by grepping. itos work take <id>, work done <id> and work promote <idea> --as
       slice|task (giving the next free number) could write them, leaving the commit to the person.
+      The user's calls (2026-10-03), from the session that built slices 46 to 50: done verifies before it
+      writes (p1-slice-done-check) and commits the change itself; promote renames an idea and
+      rewrites every depends_on naming it (two were broken by hand that day); take sets doing and
+      the owner. Second of the orchestration commands.
 
   - id: slice-39
     title: itos push, the pull-rebase-push routine as one command
@@ -1175,7 +1179,7 @@ items:
     refs: [features/push.feature]
 
   - id: p1-ci-watch
-    title: itos ci watch and itos status, the run for a commit and the state of main
+    title: "itos push waits for CI, and itos ci watch for any commit"
     phase: 1
     owner: donvargax
     status: todo
@@ -1187,6 +1191,14 @@ items:
       link is a claim. itos ci watch [<sha>] could find the run, wait and print the failed step.
       itos status could print what HANDOFF's "Where things stand" holds by hand: main's last green
       run, the last nightly, the unreleased commits since the last tag.
+      The user's calls (2026-10-03), from the session that built slices 46 to 50: itos push waits for
+      the run it started by default, printing a line per job as each finishes and the release it
+      cut, and exits with the run's result (--no-wait for a person who does not want to block; no
+      CI provider, as under a stealth config, returns as today). An agent runs it in the background
+      and monitors it, since a foreground tool call times out before CI ends. itos ci watch [<sha>]
+      re-attaches, for a run an agent claims or after an interruption. Three of five agents that
+      day handed back before CI finished, and the coordinator watched every run by hand, once
+      reading a blank conclusion GitHub had not yet recorded. First of the orchestration commands.
 
   - id: T-070
     title: A config that the last release accepts is accepted unless the range carries a breaking change
@@ -1398,7 +1410,7 @@ items:
 
   # More of the same, from the same session, refined with the user.
   - id: p1-work-brief
-    title: "itos brief <item> fills the project's brief template from the registry and the ledger"
+    title: "itos work show <item>, the reads an agent needs, instead of a filled brief"
     phase: 1
     owner: donvargax
     status: todo
@@ -1414,6 +1426,11 @@ items:
       on the item, written when it is specified. An idea is refused: specify it first. Output is text
       or --json; nothing reads it back. Which done tasks a slice will reach cannot be known before the
       work: slice-16 catches that after.
+      The user's calls (2026-10-03), from the session that built slices 46 to 50: no brief command. A brief
+      is kept nowhere, so the decisions go into the spec before an agent starts and the brief
+      points at it (ORCHESTRATING.md); what is left to derive is the reads: itos work show <item>
+      prints the item, its scenarios live or @wip, the earlier commits on its feature file or
+      task, and the items depending on it, run by the agent itself. Fifth.
 
   - id: p1-work-queue-order
     title: "The registry holds the order of the queue, not HANDOFF's prose"
@@ -1438,6 +1455,9 @@ items:
       Slices are marked done by hand. itos could check it, as itos task does for a task: every
       scenario tagged @slice-<n> live (none @wip without a reason), green in the last CI run that named
       them and in the nightly after; work check or work done <id> refusing a slice that is not.
+      The user's calls (2026-10-03), from the session that built slices 46 to 50: folded into itos work done
+      (p1-work-take-done-promote): CI green on the item's last commit, nothing unpushed, its
+      scenarios live and named by a commit on main, checked before the status is written.
 
   - id: p1-checkout-lease
     title: "A lease on the checkout, so a second session cannot commit over an agent's work"
@@ -1485,13 +1505,16 @@ items:
       which itos tests steps <kind> [--grep] runs; and itos tests undefined <kind> <ids>, a dry run of
       @wip scenarios listing the steps nobody has written. Help only: nothing judges a scenario's
       wording, which the user judged too restrictive.
+      The user's calls (2026-10-03), from the session that built slices 46 to 50: every spec that day
+      needed the next slice, @ID-, @bug- and T- number and the step texts grepped by hand, and one
+      new Then collided with an existing Given of the same words. Fourth.
 
   - id: p1-handoff-status
-    title: "itos status, and the HANDOFF's state block written from it"
+    title: "itos status replaces docs/HANDOFF.md"
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: []
+    depends_on: [p1-work-queue-order, p1-follow-ups]
     kind: idea
     why: >
       HANDOFF's "Where things stand" is rewritten by hand from run IDs and the log. itos status could
@@ -1499,6 +1522,13 @@ items:
       it (feat and fix apart from the rest), the items doing and the ideas added since a date; itos
       handoff update would rewrite only a marked block of the file (path and markers in the config),
       leaving Next and User review the coordinator's prose. Overlaps p1-ci-watch's itos status.
+      The user's calls (2026-10-03), from the session that built slices 46 to 50: with the queue's order in
+      the registry (p1-work-queue-order) and the open questions as follow-ups (p1-follow-ups),
+      itos status prints everything HANDOFF holds: main's green commit and run, the newest
+      releases, the last nightly and whether it is red, the inbox, the items in progress, the queue
+      in order and what waits on the user. HANDOFF is then deleted, and AGENTS.md and
+      ORCHESTRATING.md point to itos status. About eight handoff commits that day were state alone.
+      Third of the orchestration commands.
 
   - id: p1-work-spend
     title: "The tokens each item cost, recorded by the coordinator and summed"
@@ -3136,6 +3166,8 @@ items:
       any commit that reaches internal/cli. CI has no extension, so only a machine with one sees
       it; the slice committed with that folder left off the PATH. The tests should set a PATH
       holding only the folders they make (t.Setenv), as the corpus's clean environment does.
+      Every agent of the 2026-10-03 session committed with that folder off the PATH, and every
+      brief had to say so: fix it before the next slice rather than brief it again.
     refs: [internal/cli/cli_test.go]
 
   - id: p3-help-of-launcher-commands
@@ -3272,3 +3304,20 @@ items:
       can replace docs/HANDOFF.md. Little ceremony is the requirement: a note in one command, no
       footers, no scenarios.
     refs: [docs/HANDOFF.md, tasks/work-items.yaml]
+
+  - id: p1-push-needs-hooks
+    title: itos push refuses a checkout whose hooks are not installed
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found 2026-10-03: the coordinator's first docs commit from a new worktree reached CI
+      unformatted, since a worktree lacks .vite-hooks/_ (generated by vp config, ignored by git)
+      and its commit and push ran no hook at all, without a word. CI caught it, red at vp check,
+      but any new place commits are made needs proof that the gates run there. itos push, and
+      itos commit, could check that the hook manager's commit-msg and pre-push hooks call itos in
+      the checkout they run in, as itos init's report does, and refuse naming itos hooks install
+      (or the manager's own install step).
+    refs: [internal/cli/push.go, internal/cli/init.go, docs/ORCHESTRATING.md]
