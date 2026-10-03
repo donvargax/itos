@@ -74,16 +74,35 @@ func defaults() *value.Map {
 	)
 }
 
-// DefaultsFor is the table as it applies to a config file (nil for none):
-// work.registry in the folder of its ledger.files, so a ledger in work/ has
-// its registry at work/work-items.yaml. With no file, or no ledger, the
-// table's own value.
-func DefaultsFor(file *value.Map) *value.Map {
+// GlobalBin is how a stealth config's hooks call itos: the global launcher,
+// on the PATH, since a repository that does not use itos has no wrapper of
+// its own to call.
+const GlobalBin = "itos"
+
+// DefaultsFor is the table as it applies to a config file (nil for none),
+// and whether that file is the stealth config (stealth.go): work.registry
+// in the folder of its ledger.files, so a ledger in work/ has its registry
+// at work/work-items.yaml; with no file, or no ledger, the table's own
+// value. A stealth config's hooks.bin is itos and it has no work.people
+// (stealthOnly).
+func DefaultsFor(file *value.Map, stealth bool) *value.Map {
 	table := defaults()
 	if files, ok := value.Prop(file.At("ledger"), "files").(string); ok && files != "" {
 		table.At("work").(*value.Map).Set("registry", filepath.Join(filepath.Dir(files), "work-items.yaml"))
 	}
+	if stealth {
+		stealthOnly(table)
+	}
 	return table
+}
+
+// stealthOnly sets in a table what a stealth config has whatever its file
+// says, the one person's itos in a repository that does not use it:
+// hooks.bin is itos, the global launcher, and there is no work.people, so
+// no people file is read, the person being the only one.
+func stealthOnly(table *value.Map) {
+	table.At("hooks").(*value.Map).Set("bin", GlobalBin)
+	table.At("work").(*value.Map).Delete("people")
 }
 
 // layered is over laid on under: a mapping in both is merged key by key,
@@ -111,12 +130,15 @@ func layered(under, over any) any {
 }
 
 // withDefaults is the file laid over the defaults, each kind over the
-// per-kind ones.
-func withDefaults(file *value.Map) *value.Map {
-	table := DefaultsFor(file)
+// per-kind ones, and a stealth config's own values over both.
+func withDefaults(file *value.Map, stealth bool) *value.Map {
+	table := DefaultsFor(file, stealth)
 	perKind := table.At("tests").(*value.Map).At(KindKey)
 	table.Delete("tests")
 	loaded := layered(table, file).(*value.Map)
+	if stealth {
+		stealthOnly(loaded)
+	}
 	if kinds, ok := file.At("tests").(*value.Map); ok {
 		each := value.NewMap()
 		for _, name := range kinds.Keys() {

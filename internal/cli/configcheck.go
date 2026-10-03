@@ -13,7 +13,8 @@ import (
 )
 
 // Found is a problem config check reports, with the area it is in: the
-// config, the ledger, the registry or a smoke set.
+// config, the ledger, the registry, a smoke set or, as a warning, the
+// people.
 type Found struct {
 	out.Problem
 	Area string `json:"area"`
@@ -58,24 +59,26 @@ func smokeFindings(cfg *config.Loaded) ([]Found, []string, error) {
 	return found, lines, nil
 }
 
-// configFindings is what config check finds and the lines it prints when it
-// finds nothing (config-check.ts's configFindings). Its code is 2 when the
-// config is invalid or the ledger's folder is missing, since nothing else can
-// be read, else 1 for any problem.
-func configFindings(ledgerFile string) (int, []Found, []string, error) {
+// configFindings is what config check finds, what it warns of, and the
+// lines it prints when it finds nothing (config-check.ts's configFindings).
+// Its code is 2 when the config is invalid or the ledger's folder is
+// missing, since nothing else can be read, else 1 for any problem; a warning
+// (a project's people file missing or unreadable, work.PeopleProblem) never
+// sets it.
+func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) {
 	path := config.Path()
 	cfg, err := config.Load(path)
 	var invalid *config.Error
 	if errors.As(err, &invalid) {
-		return 2, prefixed(invalid, "config"), nil, nil
+		return 2, prefixed(invalid, "config"), nil, nil, nil
 	}
 	if err != nil {
-		return 0, nil, nil, err
+		return 0, nil, nil, nil, err
 	}
 	// A commits.since, or a footer's since, this repository does not have makes the config
 	// unusable for verify, as an invalid key does.
 	if missing := cfg.SinceIssues(); len(missing) > 0 {
-		return 2, prefixed(&config.Error{File: path, Problems: missing}, "config"), nil, nil
+		return 2, prefixed(&config.Error{File: path, Problems: missing}, "config"), nil, nil, nil
 	}
 	var files []string
 	if ledgerFile != "" {
@@ -85,10 +88,10 @@ func configFindings(ledgerFile string) (int, []Found, []string, error) {
 		// The ledger's folder missing is a config error too: nothing of the
 		// ledger can be read, so it is the one problem.
 		if errors.As(err, &invalid) {
-			return 2, prefixed(invalid, "ledger"), nil, nil
+			return 2, prefixed(invalid, "ledger"), nil, nil, nil
 		}
 		if err != nil {
-			return 0, nil, nil, err
+			return 0, nil, nil, nil, err
 		}
 		for _, f := range listed {
 			files = append(files, f.Path)
@@ -96,12 +99,16 @@ func configFindings(ledgerFile string) (int, []Found, []string, error) {
 	}
 	smoke, smokeLines, err := smokeFindings(cfg)
 	if err != nil {
-		return 0, nil, nil, err
+		return 0, nil, nil, nil, err
 	}
 	found := tagged("ledger", ledger.Issues(cfg, files))
 	registry, err := work.Problems(cfg)
 	if err != nil {
-		return 0, nil, nil, err
+		return 0, nil, nil, nil, err
+	}
+	var warnings []Found
+	if p := work.PeopleProblem(cfg); p != nil {
+		warnings = append(warnings, Found{*p, "people"})
 	}
 	found = append(found, tagged("registry", registry)...)
 	found = append(found, smoke...)
@@ -113,7 +120,7 @@ func configFindings(ledgerFile string) (int, []Found, []string, error) {
 	if len(found) > 0 {
 		code = 1
 	}
-	return code, found, lines, nil
+	return code, found, warnings, lines, nil
 }
 
 // prefixed are a config error's problems, each message after the file's
@@ -128,9 +135,10 @@ func prefixed(e *config.Error, area string) []Found {
 
 // configCheck is `config check [--ledger <file>]`: the config, then the
 // ledger, the work registry and each kind's smoke set, every problem with its
-// rule id and, where one exists, a fix.
+// rule id and, where one exists, a fix; then its warnings, printed as WARN
+// and never failing it.
 func configCheck(ledgerFile string, o Out) (int, error) {
-	code, found, lines, err := configFindings(ledgerFile)
+	code, found, warnings, lines, err := configFindings(ledgerFile)
 	if err != nil {
 		return 0, err
 	}
@@ -138,13 +146,22 @@ func configCheck(ledgerFile string, o Out) (int, error) {
 		if found == nil {
 			found = []Found{}
 		}
-		err = out.Emit(o.Stdout,
-			out.Field{Key: "config", Value: config.Path()},
-			out.Field{Key: "valid", Value: len(found) == 0},
-			out.Field{Key: "problems", Value: found})
+		fields := []out.Field{
+			{Key: "config", Value: config.Path()},
+			{Key: "valid", Value: len(found) == 0},
+			{Key: "problems", Value: found},
+		}
+		// Only when there is one, so a report without a warning is as it was.
+		if len(warnings) > 0 {
+			fields = append(fields, out.Field{Key: "warnings", Value: warnings})
+		}
+		err = out.Emit(o.Stdout, fields...)
 	} else {
 		for _, p := range found {
 			fmt.Fprintf(o.Stderr, "FAIL %s\n", p.Message)
+		}
+		for _, p := range warnings {
+			fmt.Fprintf(o.Stderr, "WARN %s\n", p.Message)
 		}
 	}
 	if len(found) == 0 && !o.JSON && !o.Quiet {
@@ -157,14 +174,15 @@ func configCheck(ledgerFile string, o Out) (int, error) {
 
 // printDefaults is `config check --print-defaults`: the one table of
 // defaults the loader applies, as YAML or JSON, as it applies to this
-// config's ledger. It checks nothing, so a config that does not load gets the
+// config's ledger and to a stealth config. It checks nothing, so a config that does not load gets the
 // table's own values.
 func printDefaults(o Out) (int, error) {
+	path := config.Path()
 	var file *value.Map
-	if cfg, err := config.Load(config.Path()); err == nil {
+	if cfg, err := config.Load(path); err == nil {
 		file = cfg.File()
 	}
-	table := config.DefaultsFor(file)
+	table := config.DefaultsFor(file, config.IsStealth(path))
 	if o.JSON {
 		return 0, out.Emit(o.Stdout, out.Field{Key: "defaults", Value: table})
 	}

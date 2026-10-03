@@ -126,12 +126,11 @@ func Load(file string) (*Loaded, error) {
 	if len(found) > 0 {
 		return nil, &Error{File: file, Problems: found}
 	}
-	loaded := &Loaded{Path: file, file: tree}
-	if err := decode(withDefaults(tree), &loaded.Config); err != nil {
+	loaded := &Loaded{Path: file, file: tree, Stealth: IsStealth(file)}
+	if err := decode(withDefaults(tree, loaded.Stealth), &loaded.Config); err != nil {
 		return nil, err
 	}
-	if IsStealth(file) {
-		loaded.Stealth = true
+	if loaded.Stealth {
 		loaded.beside()
 	}
 	return loaded, nil

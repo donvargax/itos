@@ -107,6 +107,8 @@ cases:
       Who the session works for (--as, else the config's work.identity provider) and
       their items: in progress, can start now, unowned, waiting, ideas, deferred.
       Exit 1 when the registry is not sound, 3 when --as is not among the people.
+      With no people to read (a stealth config, or a people file missing or
+      unreadable) any handle is taken, and nothing is said of them.
 
       --json: the proposal {"schema":1,"person","doing","next","unowned","waiting","ideas","deferred"}
   - name: itos work check --help
@@ -363,7 +365,8 @@ cases:
       Usage: itos hooks install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]
 
       Writes the commit-msg and pre-push hooks as one-line shims calling
-      `<hooks.bin> hook …` (tools/bin/itos by default), for the hook manager
+      `<hooks.bin> hook …` (tools/bin/itos by default; itos, the global
+      launcher, under a stealth config, whatever it says), for the hook manager
       --manager names, else the one hooks.manager names. Without either, a stealth
       config declares them in the git config; any other detects the hook manager
       from its markers and says which it found: Vite+ (a .vite-hooks/ folder, or
@@ -397,10 +400,13 @@ cases:
 
       Validates the config, then the ledger (or one ledger file), the work registry
       and each kind's smoke set. Exit 2 when the config is invalid, 1 for any other
-      problem. --print-defaults prints the values the tools take when a key is left
-      out (work.registry's in this config's ledger folder), and checks nothing.
+      problem. A project's people file missing or unreadable is a warning (WARN),
+      which never fails it; a stealth config reads none. --print-defaults prints the
+      values the tools take when a key is left out (work.registry's in this config's
+      ledger folder; a stealth config's hooks.bin, itos, and no work.people), and
+      checks nothing.
 
-      --json: {"schema":1,"config","valid","problems":[{"rule","message","fix"?,"area"}]}
+      --json: {"schema":1,"config","valid","problems":[{"rule","message","fix"?,"area"}],"warnings"?}
   - name: itos version --help
     argv: [version, --help]
     exit: 0

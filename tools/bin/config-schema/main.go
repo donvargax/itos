@@ -56,7 +56,7 @@ func main() {
 // writes them.
 func generate() ([]byte, error) {
 	root := config.Schema()
-	defaults := config.DefaultsFor(nil)
+	defaults := config.DefaultsFor(nil, false)
 	described, err := convert(root, defaults, "")
 	if err != nil {
 		return nil, err

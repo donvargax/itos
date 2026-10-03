@@ -5,11 +5,12 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
   CI, not in the history. With no --config, no ITOS_CONFIG and no itos.yaml
   in the root, itos reads <git common dir>/itos/itos.yaml (git rev-parse
   --git-common-dir), with no environment variable to set, so every linked
-  worktree shares it. The ledger, the work registry, the people and the
-  smoke sets that config names are read beside it, in that folder, which git
-  never commits, so a footer naming a task is checked against the ledger
-  file there, at every commit, since no commit carries it. A project's own itos.yaml in the
-  root always wins: that is the project's mode. Where nothing is pinned, a
+  worktree shares it. The ledger, the work registry and the smoke sets that
+  config names are read beside it, in that folder, which git never commits,
+  so a footer naming a task is checked against the ledger file there, at
+  every commit, since no commit carries it; no people file is read, the
+  person being the only one. A project's own itos.yaml in the root always
+  wins: that is the project's mode. Where nothing is pinned, a
   global itos runs the newest release for a stealth config, as where there
   is no config at all (update.feature).
 
@@ -174,14 +175,14 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
   # the global launcher, whatever the config says of it (a project's default
   # stays tools/bin/itos through v2), and no people file is read: the person
   # is the only one.
-  @ID-STEALTH-17 @slice-35 @wip
+  @ID-STEALTH-17 @slice-35
   Scenario: A stealth config reads no people file
     Given the config in the git folder names no people file
     When itos runs "work"
     Then itos exits with code 0
     And its output does not say "CONTRIBUTORS"
 
-  @ID-STEALTH-18 @slice-35 @wip
+  @ID-STEALTH-18 @slice-35
   Scenario: A stealth config's hooks call the global itos
     When itos installs the hooks
     Then itos exits with code 0

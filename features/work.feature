@@ -46,7 +46,7 @@ Feature: The work registry
   # Slice 35: a project's people file is itos init's to report (p3-itos-init);
   # every other command goes on without it, the session having no identity,
   # which is no error.
-  @ID-WORK-05 @slice-35 @wip
+  @ID-WORK-05 @slice-35
   Scenario: work goes on without the people file, saying nothing of it
     Given the people file is missing
     When itos runs "work"

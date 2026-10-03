@@ -64,6 +64,7 @@ type scratchConfig struct {
 	checkTimeout      int         // hooks.commit_msg.check_timeout, when above 0
 	statuses          []string    // work.statuses
 	groupsKey         string      // work.groups_key
+	noPeople          bool        // the config names no people file (no work.people)
 	smoke             bool        // tests.scenario has a smoke set, features/smoke.yaml
 	smokeEveryFile    *bool       // tests.scenario.smoke.every_file
 	noTagPrefix       bool        // the kind written without tag_prefix
@@ -211,6 +212,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the nightly steps run the checks of the done tasks$`, func() error { return w.nightlyTasksAre("every") })
 	sc.Step(`^the nightly steps run the static checks of the done tasks$`, func() error { return w.nightlyTasksAre("static") })
 	sc.Step(`^work\.groups_key is "([^"]*)"$`, w.groupsKeyIs)
+	sc.Step(`^the people file is missing$`, w.peopleFileMissing)
 	sc.Step(`^the work registry gives the group "([^"]*)" to the owner "([^"]*)" under "([^"]*)"$`, w.registryGroupOwner)
 	sc.Step(`^the work registry has the item "([^"]*)" in the group "([^"]*)", which it does not list$`, w.registryUnlistedGroup)
 	sc.Step(`^ledger\.group\.label is "([^"]*)"$`, func(label string) error {
@@ -548,7 +550,10 @@ func (w *world) writeConfig() error {
 	if w.config.statuses != nil {
 		fmt.Fprintf(&b, "statuses: [%s], ", strings.Join(w.config.statuses, ", "))
 	}
-	b.WriteString("people: { source: yaml, file: people.yaml } }\n")
+	if !w.config.noPeople {
+		b.WriteString("people: { source: yaml, file: people.yaml } ")
+	}
+	b.WriteString("}\n")
 	if w.config.hooksManager != "" || w.config.hooksBin != "" || w.config.taskChecks != nil || w.config.checkTimeout > 0 {
 		b.WriteString("hooks:\n")
 	}
@@ -1030,6 +1035,12 @@ func (w *world) checkTimeoutIs(seconds int) error {
 func (w *world) statusesAre(list string) error {
 	w.config.statuses = strings.Split(list, ", ")
 	return w.writeConfig()
+}
+
+// The people file the config names, people.yaml beside the config, is not
+// there.
+func (w *world) peopleFileMissing() error {
+	return os.Remove(filepath.Join(w.dir, w.data("people.yaml")))
 }
 
 func (w *world) groupsKeyIs(key string) error {

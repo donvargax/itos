@@ -61,7 +61,9 @@ func workCheck(path string, named bool, o Out) (int, error) {
 // whatever --json says; 3 (a missing environment) when --as is not among the
 // people. An identity provider that cannot say who the session is, or names
 // someone the people do not list, is not an error: the session is nobody, or
-// owns nothing yet, and stderr says so.
+// owns nothing yet, and stderr says so. With no people to read (a stealth
+// config, or a project's people file missing or unreadable) it says nothing
+// of them: the session is whoever --as or the provider says.
 func workProposal(as string, o Out) (int, error) {
 	if code, err := workCheck("", false, Out{Quiet: true, Stdout: o.Stdout, Stderr: o.Stderr}); code != 0 || err != nil {
 		return code, err
@@ -75,7 +77,7 @@ func workProposal(as string, o Out) (int, error) {
 		return 0, err
 	}
 	listedIn := cfg.Work.People.File
-	who := work.Whoami(registry.Logins, listedIn, as, providers.IdentityProvider(cfg, o.Stderr))
+	who := work.Whoami(registry, listedIn, as, providers.IdentityProvider(cfg, o.Stderr))
 	switch {
 	case who.Problem != "":
 		fmt.Fprintln(o.Stderr, who.Problem)

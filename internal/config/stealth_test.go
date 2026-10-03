@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // gitIn runs git in dir, away from the repository a hook runs the tests in.
@@ -33,12 +35,14 @@ func writeFile(t *testing.T, path, text string) {
 }
 
 const stealthText = "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\" }\n" +
-	"work: { registry: tasks/work-items.yaml, people: { source: yaml, file: people.yaml } }\n"
+	"work: { registry: tasks/work-items.yaml, people: { source: yaml, file: people.yaml } }\n" +
+	"hooks: { bin: tools/bin/itos }\n"
 
 // With no itos.yaml in the root, the config is the one in the git folder,
-// and the files it names are read beside it; a config anywhere else that
-// ITOS_CONFIG names reads them from the root, and an itos.yaml in the root
-// wins.
+// and the files it names are read beside it, but for the people, which it
+// has none of, and its hooks.bin is itos, whatever it says; a config
+// anywhere else that ITOS_CONFIG names reads them from the root, as it says,
+// and an itos.yaml in the root wins.
 func TestStealthConfig(t *testing.T) {
 	dir := t.TempDir()
 	gitIn(t, dir, "init", "-q")
@@ -58,8 +62,11 @@ func TestStealthConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !c.Stealth || c.Ledger.Files != filepath.Join(beside, "tasks/phase-{group}.yaml") ||
-		c.Work.Registry != filepath.Join(beside, "tasks/work-items.yaml") || c.Work.People.File != filepath.Join(beside, "people.yaml") {
-		t.Errorf("the stealth config reads %+v, %q, %q, %q", c.Stealth, c.Ledger.Files, c.Work.Registry, c.Work.People.File)
+		c.Work.Registry != filepath.Join(beside, "tasks/work-items.yaml") || c.Work.People.File != "" || c.Hooks.Bin != GlobalBin {
+		t.Errorf("the stealth config reads %+v, %q, %q, %q, %q", c.Stealth, c.Ledger.Files, c.Work.Registry, c.Work.People.File, c.Hooks.Bin)
+	}
+	if table := DefaultsFor(nil, true); table.At("hooks").(*value.Map).At("bin") != GlobalBin || table.At("work").(*value.Map).Has("people") {
+		t.Errorf("a stealth config's defaults are %s", value.JSON(table))
 	}
 	abs, _ := filepath.Abs(stealth)
 	t.Setenv("ITOS_CONFIG", abs)
@@ -68,7 +75,8 @@ func TestStealthConfig(t *testing.T) {
 	}
 	writeFile(t, "other.yaml", stealthText)
 	t.Setenv("ITOS_CONFIG", "other.yaml")
-	if c, err := Load(Path()); err != nil || c.Stealth || c.Ledger.Files != "tasks/phase-{group}.yaml" {
+	if c, err := Load(Path()); err != nil || c.Stealth || c.Ledger.Files != "tasks/phase-{group}.yaml" ||
+		c.Work.People.File != "people.yaml" || c.Hooks.Bin != "tools/bin/itos" {
 		t.Errorf("ITOS_CONFIG naming another config: %+v, %v", c, err)
 	}
 	t.Setenv("ITOS_CONFIG", "")

@@ -451,17 +451,28 @@ cases:
     stderr: |
       Commit rejected:
         - itos.yaml: unknown key colour
-  - name: staged data that cannot be read is rejected, saying what is missing
+  # The people file is config check's alone to report, as a warning: a
+  # commit whose index lacks it is not refused for it.
+  - name: staged data whose index holds no people file is not refused for it
     argv: [hook, commit-msg, msg]
     git:
       - commit: "docs: start"
         files: { README.md: "scratch\n", tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
       - stage: { tasks/work-items.yaml: "phases: {}\nitems: []\n" }
     files: { msg: "docs: plan the work\n", people.yaml: "- someone\n" }
+    exit: 0
+    stderr: ""
+  - name: staged data that cannot be read is rejected, saying why
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n", tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n" }
+      - stage: { tasks/work-items.yaml: "phases: [\n" }
+    files: { msg: "docs: plan the work\n", tasks/work-items.yaml: "phases: {}\nitems: []\n" }
     exit: 1
     stderr: |
       Commit rejected:
-        - the index holds no people.yaml
+        - yaml: line 1: did not find expected node content
   - name: a commit that stages none of itos's data leaves it unchecked
     argv: [hook, commit-msg, msg]
     git:

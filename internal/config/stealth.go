@@ -9,9 +9,11 @@ package config
 // mode.
 //
 // The files that config names for itos's own data (the ledger, the work
-// registry, the people and the smoke sets) are read beside it, in that
-// folder; the project's own paths (a kind's tests, the scopes' globs, the
-// commands) stay the root's. A config is the stealth one by where it is, not
+// registry and the smoke sets) are read beside it, in that folder; the
+// project's own paths (a kind's tests, the scopes' globs, the commands) stay
+// the root's. Its defaults fit one person whatever the file says
+// (stealthOnly, defaults.go): hooks.bin is itos, the global launcher, and
+// there is no work.people, so no people file is read. A config is the stealth one by where it is, not
 // by how it was found, so the ITOS_CONFIG an extension is given, which a call
 // back reads, reads the same files; a config anywhere else that --config or
 // ITOS_CONFIG names resolves its paths from the root, as it always has.
@@ -134,7 +136,6 @@ func (l *Loaded) beside() {
 	}
 	l.Ledger.Files = at(l.Ledger.Files)
 	l.Work.Registry = at(l.Work.Registry)
-	l.Work.People.File = at(l.Work.People.File)
 	for _, name := range l.Tests.Keys {
 		k := l.Tests.Values[name]
 		if k.Smoke.File != nil {

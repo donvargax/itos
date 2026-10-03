@@ -171,7 +171,7 @@ func stagedDataIssues() ([]out.Problem, string, error) {
 		if !stagesData(staged) {
 			return nil
 		}
-		_, findings, _, err := configFindings("")
+		_, findings, _, _, err := configFindings("")
 		if err != nil {
 			found = []out.Problem{{Rule: "data-unreadable", Message: err.Error()}}
 		}

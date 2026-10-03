@@ -20,13 +20,19 @@ import (
 // kinds are the kinds an item may have.
 var kinds = []string{"slice", "task", "idea"}
 
-// Registry is the registry as read: the people's logins, each group's owner
-// (by the key work.groups_key names) and the items, each with its
-// depends_on, a list (none when it gives none). An item is the mapping as
-// written, read with JavaScript's leniency, since the registry's problems are
-// what is wrong with it.
+// Registry is the registry as read: the people's logins, whether there are
+// people to hold owners to, each group's owner (by the key work.groups_key
+// names) and the items, each with its depends_on, a list (none when it gives
+// none). An item is the mapping as written, read with JavaScript's leniency,
+// since the registry's problems are what is wrong with it.
 type Registry struct {
 	Logins []string
+	// People is whether Logins are who may own work: false under a stealth
+	// config, which reads no people file, the person being the only one, and
+	// in a project whose people file is missing or cannot be read, which is
+	// config check's to report (PeopleProblem) and no other command's. With
+	// no people, any owner is one and any session is listed.
+	People bool
 	Phases *value.Map
 	Items  []*value.Map
 }
@@ -69,11 +75,40 @@ func Load(cfg *config.Loaded, path string) (Registry, error) {
 			items = append(items, copied)
 		}
 	}
-	logins, err := providers.People(cfg.Work.People)
-	if err != nil {
-		return Registry{}, err
+	r := Registry{Phases: phases, Items: items}
+	if !cfg.Stealth {
+		if logins, err := providers.People(cfg.Work.People); err == nil {
+			r.Logins, r.People = logins, true
+		}
 	}
-	return Registry{Logins: logins, Phases: phases, Items: items}, nil
+	return r, nil
+}
+
+// PeopleProblem is what config check warns of when a project's people file
+// is missing or cannot be read, nil when it reads or the config is the
+// stealth one, which reads none. It is a warning, never a failure: without
+// the people, owners go unchecked and work proposes for whoever the session
+// is.
+func PeopleProblem(cfg *config.Loaded) *out.Problem {
+	if cfg.Stealth {
+		return nil
+	}
+	file := cfg.Work.People.File
+	if !source.Has(file) {
+		return &out.Problem{
+			Rule:    "work-people-missing",
+			Message: "no people file at " + file + " (work.people), so the registry's owners go unchecked",
+			Fix:     "list the people who may own work in " + file + ", or set work.people.file to where they are",
+		}
+	}
+	if _, err := providers.People(cfg.Work.People); err != nil {
+		return &out.Problem{
+			Rule:    "work-people-unreadable",
+			Message: err.Error() + ", so the registry's owners go unchecked",
+			Fix:     "correct " + file,
+		}
+	}
+	return nil
 }
 
 // groups are the registry's groups and their owners, a mapping; a list reads
@@ -115,9 +150,15 @@ type checker struct {
 	byID     map[string]*value.Map
 	order    []string // byID's keys, first seen first
 	listedIn string
+	// anyone is whether any owner is one: there are no people to hold
+	// owners to (Registry.People).
+	anyone bool
 }
 
 func (c checker) owned(owner any) bool {
+	if c.anyone {
+		return true
+	}
 	s, ok := owner.(string)
 	return ok && c.handles[s]
 }
@@ -224,7 +265,7 @@ func (c checker) cycles(file string) []out.Problem {
 // Issues are every problem with the registry, each with its rule; none means
 // it is sound.
 func Issues(cfg *config.Loaded, r Registry, file string) ([]out.Problem, error) {
-	c := checker{cfg: cfg, handles: map[string]bool{}, byID: map[string]*value.Map{}, listedIn: cfg.Work.People.File}
+	c := checker{cfg: cfg, handles: map[string]bool{}, byID: map[string]*value.Map{}, listedIn: cfg.Work.People.File, anyone: !r.People}
 	for _, login := range r.Logins {
 		c.handles[login] = true
 	}

@@ -19,12 +19,17 @@ type Identity struct {
 }
 
 // Whoami is who a session works for (work.ts's whoami): --as (as, "" when
-// not given), which must be among the people, else what the identity
-// provider answers, listed or not. listedIn is the people's file, as the
-// messages name it.
-func Whoami(logins []string, listedIn, as string, identify providers.Identity) Identity {
+// not given), which must be among the registry's people, else what the
+// identity provider answers, listed or not. With no people (Registry.People:
+// a stealth config, or a project's people file missing) there is no one to
+// hold a handle to, so --as is taken as given and any handle is listed.
+// listedIn is the people's file, as the messages name it.
+func Whoami(r Registry, listedIn, as string, identify providers.Identity) Identity {
 	listed := func(handle string) bool {
-		for _, l := range logins {
+		if !r.People {
+			return true
+		}
+		for _, l := range r.Logins {
 			if l == handle {
 				return true
 			}

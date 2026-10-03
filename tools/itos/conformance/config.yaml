@@ -7,7 +7,8 @@
 # to nothing, a commits.since or a footer's since that is no full SHA or no
 # commit here, a footer of free text with a key that reads IDs), exit 2;
 # a missing ledger folder, one problem naming it, exit 2; each ledger problem (written order among them, a check that calls hooks.bin read as itos), exit 1;
-# the registry's and the smoke set's problems beside them; the nightly's
+# the registry's and the smoke set's problems beside them; a project's people
+# file missing or unreadable, a warning that passes; the nightly's
 # tasks step (tasks: done, refused in ci.steps, with no late cost); --print-defaults,
 # work.registry's beside the config's ledger; a pin, its keys and their shapes.
 files:
@@ -46,6 +47,71 @@ cases:
   - name: quietly
     argv: [config, check, -q]
     exit: 0
+  # A project's people file missing or unreadable is a warning, which never
+  # fails the run: without the people, the registry's owners go unchecked.
+  - name: a missing people file is a warning, and the check passes
+    argv: [config, check]
+    files: { people.yaml: null }
+    exit: 0
+    stdout: |
+      itos.yaml is valid, and so are the 2 ledger files it reads
+      work-items.yaml: sound
+      smoke.yaml: every file has a smoke test (1 in all)
+    stderr: |
+      WARN no people file at people.yaml (work.people), so the registry's owners go unchecked
+  - name: the same as --json, the warning with its rule and fix
+    argv: [config, check, --json]
+    files: { people.yaml: null }
+    exit: 0
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: true
+      problems: []
+      warnings:
+        - rule: work-people-missing
+          message: no people file at people.yaml (work.people), so the registry's owners go unchecked
+          fix: list the people who may own work in people.yaml, or set work.people.file to where they are
+          area: people
+  - name: a YAML people file that is not a list is a warning, its owners unchecked
+    argv: [config, check]
+    files:
+      people.yaml: "people: [a]\n"
+      work-items.yaml: "phases: { 1: z }\nitems:\n  - { id: T-001, title: One, phase: 1, owner: q, status: done }\n"
+    exit: 0
+    stderr: |
+      WARN people.yaml (work.people, yaml) is not a list of logins, so the registry's owners go unchecked
+  - name: a YAML people entry that is not a login is a warning
+    argv: [config, check, -q]
+    files: { people.yaml: "- a\n- 3\n" }
+    exit: 0
+    stdout: ""
+    stderr: |
+      WARN people.yaml (work.people, yaml) entry 1 is not a login, so the registry's owners go unchecked
+  - name: an .all-contributorsrc without a contributors list is a warning
+    argv: [config, check, -q]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits: { types: [build, docs] }
+        work: { registry: work-items.yaml, people: { source: all-contributorsrc, file: .all-contributorsrc } }
+      .all-contributorsrc: '{"projectName":"x"}'
+    exit: 0
+    stderr: |
+      WARN .all-contributorsrc (work.people, all-contributorsrc) has no contributors list, so the registry's owners go unchecked
+  - name: an .all-contributorsrc contributor without a login is a warning
+    argv: [config, check, -q]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits: { types: [build, docs] }
+        work: { registry: work-items.yaml, people: { source: all-contributorsrc, file: .all-contributorsrc } }
+      .all-contributorsrc: '{"contributors":[{"name":"No Login"}]}'
+    exit: 0
+    stderr: |
+      WARN .all-contributorsrc (work.people, all-contributorsrc) contributors[0] has no login, so the registry's owners go unchecked
   - name: a misspelt key names the key it misspells (typo.yaml)
     argv: [config, check, --json, --config, typo.yaml]
     files:

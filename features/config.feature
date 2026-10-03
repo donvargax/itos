@@ -172,7 +172,7 @@ Feature: Every key the config accepts is one itos reads
 
   # Slice 35: config check validates files, so it says a people file is
   # missing, as a warning that never fails it.
-  @ID-CONFIG-19 @slice-35 @wip
+  @ID-CONFIG-19 @slice-35
   Scenario: config check warns of a missing people file, and passes
     Given the people file is missing
     When itos checks the config

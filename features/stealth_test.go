@@ -25,6 +25,10 @@ func initializeStealthSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the work registry beside the config has the item "([^"]*)" with the status "([^"]*)"$`, func(item, status string) error {
 		return w.workingRegistry(w.data(startingRegistry), item, status)
 	})
+	sc.Step(`^the config in the git folder names no people file$`, func() error {
+		w.config.noPeople = true
+		return w.writeConfig()
+	})
 	sc.Step(`^a linked worktree of the repository at "([^"]*)"$`, w.linkedWorktree)
 	sc.Step(`^an itos\.yaml in the root whose ledger has no task "([^"]*)"$`, w.rootConfigWithout)
 
@@ -44,6 +48,7 @@ func initializeStealthSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the project's hooks are in "([^"]*)" by core\.hooksPath, with a commit-msg hook that records it ran$`, w.projectHooks)
 	sc.Step(`^itos has installed the hooks$`, w.itosHasInstalledHooks)
 	sc.Step(`^the git config declares a "([^"]*)" hook that runs itos$`, w.declaresHookRunningItos)
+	sc.Step(`^the git config declares a "([^"]*)" hook whose command starts with "([^"]*)"$`, w.declaresHookStartingWith)
 	sc.Step(`^the project's commit-msg hook ran$`, w.projectHookRan)
 	sc.Step(`^core\.hooksPath is still "([^"]*)"$`, w.hooksPathIs)
 }
@@ -144,6 +149,18 @@ func (w *world) declaresHookRunningItos(event string) error {
 	}
 	if !regexp.MustCompile(`(^|[ /])itos hook ` + regexp.QuoteMeta(event) + `$`).MatchString(command) {
 		return fmt.Errorf("the hook %s runs %q, not itos hook %s", name, command, event)
+	}
+	return nil
+}
+
+// The declared hook's command starts with the text given.
+func (w *world) declaresHookStartingWith(event, start string) error {
+	name, command, err := w.declaredHook(event)
+	if err != nil {
+		return err
+	}
+	if !strings.HasPrefix(command, start) {
+		return fmt.Errorf("the hook %s runs %q, which does not start with %q", name, command, start)
 	}
 	return nil
 }
