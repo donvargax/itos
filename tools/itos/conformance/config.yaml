@@ -9,7 +9,7 @@
 # a missing ledger folder, one problem naming it, exit 2; each ledger problem (written order among them, a check that calls hooks.bin read as itos), exit 1;
 # the registry's and the smoke set's problems beside them; the nightly's
 # tasks step (tasks: done, refused in ci.steps, with no late cost); --print-defaults,
-# work.registry's beside the config's ledger.
+# work.registry's beside the config's ledger; a pin, its keys and their shapes.
 files:
   itos.yaml: |
     version: 1
@@ -835,3 +835,58 @@ cases:
           commit_msg:
             task_checks: true
             check_timeout: 60
+  # pin: the one release a repository runs (pin.feature). Pinned to the
+  # binary's own version, so the launcher runs the binary itself and fetches
+  # nothing; the malformed pins are read by no launcher either.
+  - name: a pin of a release with the SHA-256 of its checksums.txt is sound
+    argv: [config, check, --json]
+    files:
+      itos.yaml: |
+        version: 1
+        pin: { version: "{{version}}", checksums: "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef" }
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits: { types: [build, docs] }
+        tests:
+          scenario: { root: features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: smoke.yaml } }
+        ci:
+          steps: [{ run: vp check, cost: static }]
+          cost: { static: ["^vp check$"], keep_written_order: true }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+    exit: 0
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: true
+      problems: []
+  - name: a pin needs both its version and its checksums
+    argv: [config, check, --json, --config, pin.yaml]
+    files:
+      pin.yaml: "version: 1\npin: { version: \"{{version}}\" }\n"
+    exit: 2
+    json:
+      schema: 1
+      config: pin.yaml
+      valid: false
+      problems:
+        - rule: config-missing-key
+          message: "pin.yaml: pin.checksums is missing"
+          fix: add pin.checksums
+          area: config
+  - name: pin.version is a release's version and pin.checksums a SHA-256 in hex
+    argv: [config, check, --json, --config, pin.yaml]
+    files:
+      pin.yaml: "version: 1\npin: { version: v2, checksums: ABC }\n"
+    exit: 2
+    json:
+      schema: 1
+      config: pin.yaml
+      valid: false
+      problems:
+        - rule: config-pin
+          message: "pin.yaml: pin.version is not a release's version, x.y.z: v2"
+          fix: set pin.version to the version of an itos release, without its v (2.0.0)
+          area: config
+        - rule: config-pin
+          message: "pin.yaml: pin.checksums is not a SHA-256 in hex: ABC"
+          fix: set pin.checksums to the SHA-256 of the release's checksums.txt, as `sha256sum checksums.txt` prints it
+          area: config

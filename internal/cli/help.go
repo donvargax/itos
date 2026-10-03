@@ -18,10 +18,14 @@ const globalFlags = `Global flags:
   -q, --quiet       leave out a check's success line
   -h, --help        this text, or a command's`
 
+const versions = `Versions: a config's pin (pin.version, pin.checksums) runs that itos release,
+fetched from ITOS_RELEASES into ITOS_CACHE and checked first; ITOS_VERSION
+runs another. A config with no pin runs this binary.`
+
 const exitCodes = `Exit codes: 0 success; 1 policy failure (a check failed, a commit rejected,
 a registry or smoke problem, an unknown task); 2 usage or config error;
-3 missing environment (--as not among the people). In ` + "`ci run`" + ` a failing step
-exits with its own code.`
+3 missing environment (--as not among the people, a release that cannot be
+fetched or checked). In ` + "`ci run`" + ` a failing step exits with its own code.`
 
 const mainHelp = `itos: tasks, their checks, commit rules and CI plans
 
@@ -55,6 +59,8 @@ Commands:
   version [--check]                the version; --check against the config's requires
 
 ` + globalFlags + `
+
+` + versions + `
 
 ` + exitCodes
 

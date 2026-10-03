@@ -15,7 +15,7 @@ import (
 func crossProblems(tree *value.Map, c *Config) []out.Problem {
 	var found []out.Problem
 	for _, check := range []func(*value.Map, *Config) []out.Problem{
-		sinceProblems, scopeProblems, footerProblems, stepProblems,
+		sinceProblems, pinProblems, scopeProblems, footerProblems, stepProblems,
 		patternProblems, providerProblems, hookProblems, rangeCheckProblems,
 	} {
 		found = append(found, check(tree, c)...)
@@ -40,6 +40,39 @@ func sinceProblems(_ *value.Map, c *Config) []out.Problem {
 			Rule:    "config-since",
 			Message: s.key + " is not the full SHA of a commit: " + s.sha,
 			Fix:     "set " + s.key + " to the commit's full SHA, as `git rev-parse <commit>` prints it",
+		})
+	}
+	return found
+}
+
+// PinVersion is a release's version as pin.version names it: x.y.z, a
+// pre-release after a hyphen allowed, no v. PinChecksums is a SHA-256 as
+// sha256sum prints it. The launcher fetches a pin only when both hold.
+var (
+	PinVersion   = regexp.MustCompile(`^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$`)
+	PinChecksums = regexp.MustCompile(`^[0-9a-f]{64}$`)
+)
+
+// pinProblems: pin.version is a version a release can have, and
+// pin.checksums a SHA-256, since the launcher builds the release's address
+// from the one and trusts nothing that does not match the other.
+func pinProblems(_ *value.Map, c *Config) []out.Problem {
+	if c.Pin == nil {
+		return nil
+	}
+	var found []out.Problem
+	if !PinVersion.MatchString(c.Pin.Version) {
+		found = append(found, out.Problem{
+			Rule:    "config-pin",
+			Message: "pin.version is not a release's version, x.y.z: " + c.Pin.Version,
+			Fix:     "set pin.version to the version of an itos release, without its v (2.0.0)",
+		})
+	}
+	if !PinChecksums.MatchString(c.Pin.Checksums) {
+		found = append(found, out.Problem{
+			Rule:    "config-pin",
+			Message: "pin.checksums is not a SHA-256 in hex: " + c.Pin.Checksums,
+			Fix:     "set pin.checksums to the SHA-256 of the release's checksums.txt, as `sha256sum checksums.txt` prints it",
 		})
 	}
 	return found

@@ -26,7 +26,7 @@ Feature: A global itos runs the version a repository pins
     Given a release server offering the versions "9.1.0" and "9.2.0"
     And a repository whose ledger has the task "T-001"
 
-  @ID-PIN-01 @slice-27 @wip
+  @ID-PIN-01 @slice-27
   Scenario: The pinned version is fetched and run with the arguments, and its exit code handed back
     Given the version "9.1.0" exits with code 4
     And the config pins the version "9.1.0" of the release server
@@ -34,7 +34,7 @@ Feature: A global itos runs the version a repository pins
     Then itos exits with code 4
     And the version "9.1.0" ran with the arguments "work --as someone"
 
-  @ID-PIN-02 @slice-27 @wip
+  @ID-PIN-02 @slice-27
   Scenario: A pinned version already in the cache is run without fetching it again
     Given the config pins the version "9.1.0" of the release server
     And itos has already run "version"
@@ -44,7 +44,7 @@ Feature: A global itos runs the version a repository pins
     And the release server was asked for nothing since the last run
 
   # The archive is untouched, so only checksums.txt can be what refuses it.
-  @ID-PIN-03 @slice-27 @wip
+  @ID-PIN-03 @slice-27
   Scenario: A release whose checksums.txt is not the one pinned is refused, and nothing runs
     Given the config pins the version "9.1.0" of the release server
     And the release server's checksums.txt of "9.1.0" is replaced
@@ -55,7 +55,7 @@ Feature: A global itos runs the version a repository pins
 
   # checksums.txt still matches the pin, so only its archive's line can be
   # what refuses it.
-  @ID-PIN-04 @slice-27 @wip
+  @ID-PIN-04 @slice-27
   Scenario: An archive that is not the one its checksums.txt lists is refused, and nothing runs
     Given the config pins the version "9.1.0" of the release server
     And the release server's archive of "9.1.0" for this platform is replaced
@@ -63,7 +63,7 @@ Feature: A global itos runs the version a repository pins
     Then itos exits with code 3
     And no version of the release server ran
 
-  @ID-PIN-05 @slice-27 @wip
+  @ID-PIN-05 @slice-27
   Scenario: A pinned version the release server does not have exits 3, naming it
     Given the config pins the version "9.3.0" with the checksums of "9.1.0"
     When itos runs "version"
@@ -71,7 +71,7 @@ Feature: A global itos runs the version a repository pins
     And its output says "9.3.0"
     And no version of the release server ran
 
-  @ID-PIN-06 @slice-27 @wip
+  @ID-PIN-06 @slice-27
   Scenario: ITOS_VERSION runs the version it names instead of the pin
     Given the config pins the version "9.1.0" of the release server
     And ITOS_VERSION is "9.2.0"
@@ -79,7 +79,7 @@ Feature: A global itos runs the version a repository pins
     Then itos exits with code 0
     And the version "9.2.0" ran with the arguments "version"
 
-  @ID-PIN-07 @slice-27 @wip
+  @ID-PIN-07 @slice-27
   Scenario: The version the launcher runs is told it is the one to run, so it does not launch again
     Given the config pins the version "9.1.0" of the release server
     When itos runs "version"
@@ -87,7 +87,7 @@ Feature: A global itos runs the version a repository pins
 
   # A repository that installs itos another way, by an install script or a
   # build from source as this one does, keeps the binary it chose.
-  @ID-PIN-08 @slice-27 @wip
+  @ID-PIN-08 @slice-27
   Scenario: A config with no pin runs the binary that was called
     When itos runs "version"
     Then itos exits with code 0

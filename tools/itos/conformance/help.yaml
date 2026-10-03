@@ -46,10 +46,14 @@ cases:
         -q, --quiet       leave out a check's success line
         -h, --help        this text, or a command's
 
+      Versions: a config's pin (pin.version, pin.checksums) runs that itos release,
+      fetched from ITOS_RELEASES into ITOS_CACHE and checked first; ITOS_VERSION
+      runs another. A config with no pin runs this binary.
+
       Exit codes: 0 success; 1 policy failure (a check failed, a commit rejected,
       a registry or smoke problem, an unknown task); 2 usage or config error;
-      3 missing environment (--as not among the people). In `ci run` a failing step
-      exits with its own code.
+      3 missing environment (--as not among the people, a release that cannot be
+      fetched or checked). In `ci run` a failing step exits with its own code.
   - name: itos task --help
     argv: [task, --help]
     exit: 0

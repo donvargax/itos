@@ -102,6 +102,12 @@ var HookManagers = []string{"vp", "git", "husky", "lefthook", "pre-commit", "pre
 var schema = about("itos's policy: the ledger, the commit rules, the named tests, CI's plan, the work routing and the hooks.", obj([]string{"version"},
 	"version", about("The config's format: 1.", num),
 	"requires", about("The oldest itos that reads this file, as a version range (>=0.6.0); itos version --check holds the running itos to it.", str),
+	"pin", about("The one itos release this repository runs: a global itos fetches it into its cache, checks it and runs it "+
+		"in its own place (ITOS_VERSION overrides it).", obj([]string{"version", "checksums"},
+		"version", about("The release's version, x.y.z, without its v.", str),
+		"checksums", about("The SHA-256 of that release's checksums.txt, 64 hex digits, which the launcher checks it against "+
+			"before trusting the archive it lists.", str),
+	)),
 	"shell", about("The argv prefix every command runs under.", strs),
 	"ledger", about("The ledger: the task files, the group in their names, the ID pattern and the checks' timeout.", obj([]string{"files"},
 		"files", about("The ledger's files, {group} standing where a file's group is (tasks/phase-{group}.yaml).", str),

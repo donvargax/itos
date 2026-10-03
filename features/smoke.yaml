@@ -68,6 +68,10 @@
   scenarios:
     - id: "@ID-PATTERN-01"
       why: config check refuses a lookahead as RE2 does, the file's point, one config check in a scratch repository
+- file: pin.feature
+  scenarios:
+    - id: "@ID-PIN-01"
+      why: a pinned release fetched, checked and run with the arguments and its exit code, the launcher's whole path
 - file: since.feature
   scenarios:
     - id: "@ID-SINCE-01"

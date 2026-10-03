@@ -13,6 +13,7 @@ import (
 type Config struct {
 	Version  float64  `json:"version"`
 	Requires *string  `json:"requires"`
+	Pin      *Pin     `json:"pin"`
 	Shell    []string `json:"shell"`
 	Ledger   Ledger   `json:"ledger"`
 	Commits  Commits  `json:"commits"`
@@ -22,6 +23,13 @@ type Config struct {
 	CI    CI            `json:"ci"`
 	Work  Work          `json:"work"`
 	Hooks Hooks         `json:"hooks"`
+}
+
+// Pin is the one release a repository runs: its version and the SHA-256 of
+// its checksums.txt (internal/launch).
+type Pin struct {
+	Version   string `json:"version"`
+	Checksums string `json:"checksums"`
 }
 
 // Ledger is the ledger's layout: its files, the group in their names, the ID

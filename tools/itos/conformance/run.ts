@@ -34,7 +34,7 @@
 // characters), `{{version}}` package.json's version, the one itos must say it
 // is, so a release changes the version in package.json alone. The command runs in a clean environment: no GIT_*, ITOS_*,
 // GITHUB_* or CI variable of the caller's, HOME an empty folder, no global or
-// system git config. Nothing is shared between cases, so they run in parallel.
+// system git config, and nowhere a release could be fetched from (cleanEnv). Nothing is shared between cases, so they run in parallel.
 import { spawn, spawnSync } from "node:child_process";
 import {
 	chmodSync,
@@ -149,8 +149,11 @@ export function readFixture(file: string): Fixture {
 }
 
 // The caller's environment without what would reach into the caller's repository or
-// change what the tool does, and a git that reads no config but the scratch
-// repository's.
+// change what the tool does, a git that reads no config but the scratch
+// repository's, and a launcher (internal/launch) that cannot fetch a release: a cache
+// in the case's HOME, a release server nothing answers on, and no asking for the newest
+// release. A case's config pins nothing, or the binary's own version, so it runs the
+// binary itself.
 function cleanEnv(home: string): NodeJS.ProcessEnv {
 	const env: NodeJS.ProcessEnv = {};
 	for (const [key, value] of Object.entries(process.env))
@@ -168,6 +171,9 @@ function cleanEnv(home: string): NodeJS.ProcessEnv {
 		// A fixed date, so every scratch commit's SHA is the same on every run.
 		GIT_AUTHOR_DATE: "2000-01-01T00:00:00Z",
 		GIT_COMMITTER_DATE: "2000-01-01T00:00:00Z",
+		ITOS_CACHE: join(home, "itos-cache"),
+		ITOS_RELEASES: "http://127.0.0.1:1/no-release-server",
+		ITOS_NO_UPDATE: "1",
 	};
 }
 
