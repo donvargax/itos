@@ -2337,21 +2337,30 @@ items:
       footers (git commit -t, or prepare-commit-msg), so the editor's commit reads as -m's does.
     refs: [internal/cli/gitcommit.go, features/commit-command.feature]
 
-  - id: p3-stealth-text-footers
-    title: itos commit writes a free-text footer, so a stealth config can require one
+  - id: p3-commit-content-flags
+    title: itos commit writes every footer a commit needs, its required ones refused up front
     phase: 3
-    owner: null
+    owner: donvargax
     status: todo
     depends_on: [slice-32]
     kind: idea
     why: >
-      Found in slice 32: under a stealth config a commit's footers come only from the note itos
-      commit writes, and a footer typed into the message is refused, but itos commit has flags
-      only for the ledger's footer and the named tests' (--task, --scenarios). A free-text footer
-      (Upgrading:) or a second footer of the ledger has no flag, so a stealth config that requires
-      one refuses every commit of those types. A --footer 'Key: text' flag, or config check
-      warning of such a footer in a stealth config, would close it.
-    refs: [internal/cli/gitcommit.go, internal/message/notes.go]
+      The user's calls (2026-10-03), after asking whether footers with two roles are the right
+      design: links (Task:, Scenarios:, IDs itos resolves) and content (Upgrading:, BREAKING
+      CHANGE:, Co-authored-by:, text for people and tools) share git's trailer block, as git's own
+      trailers already do, and the config's source already tells them apart, so no config change.
+      itos commit gains a flag for each free-text footer the config declares (--upgrading here)
+      and --breaking, writing BREAKING-CHANGE:, the form git parses (a "BREAKING CHANGE:" line,
+      with its space, makes git interpret-trailers see no trailers at all in the block, so
+      Co-authored-by and anything --trailer appends are lost to tools reading trailers through
+      git). Before running git it refuses a commit missing a footer its type requires, naming the
+      flag ("feat commits need --upgrading <text|none>"); the hook and verify still judge commits
+      made any other way. In stealth mode the links go to the note and content stays in the
+      message, so no stealth-only flag is needed (was p3-stealth-text-footers). Later, with the
+      release cut by CI: git-cliff renders Upgrading and BREAKING-CHANGE (cliff.toml lists them),
+      and itos commit footers and the release-notes footer check, which gather what generated
+      notes hold by construction, are deprecated, then removed in v3.
+    refs: [internal/cli/gitcommit.go, cliff.toml, itos.yaml]
 
   - id: p3-hook-amend-paths
     title: The commit-msg hook judges an amend's paths against HEAD's parent
