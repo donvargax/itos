@@ -1,6 +1,7 @@
 // Package cli is itos's one command line, tools/itos/main.ts ported: the
 // global flags wherever they stand, the command table with every command's
-// argument errors, and how a failure is reported and which exit code it
+// argument errors, the extensions a command it does not have runs from the
+// PATH (extension.go), and how a failure is reported and which exit code it
 // takes (PLAN.md §7): 0 success, 1 a policy failure, 2 a usage or config
 // error, 3 a missing environment.
 //
@@ -30,6 +31,9 @@ type Globals struct {
 	Config, Root string
 	// Rest is the command and its arguments.
 	Rest []string
+	// Extension is the program the command runs when it names an extension
+	// (Parse), "" otherwise.
+	Extension string
 }
 
 var switches = map[string]func(*Globals){
@@ -156,7 +160,7 @@ func applyGlobals(g Globals) error {
 
 // Main runs itos with the arguments after its name and gives the exit code.
 func Main(args []string, stdout, stderr io.Writer) int {
-	g := ParseGlobals(args)
+	g := Parse(args)
 	o := Out{JSON: g.JSON, Quiet: g.Quiet, Stdout: stdout, Stderr: stderr}
 	tests.Warnings = stderr
 	if err := applyGlobals(g); err != nil {
@@ -165,6 +169,14 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	name, rest := "", []string(nil)
 	if len(g.Rest) > 0 {
 		name, rest = g.Rest[0], g.Rest[1:]
+	}
+	// An extension takes its arguments as they are; a --help before its
+	// name asks for its help.
+	if g.Extension != "" {
+		if g.Help {
+			rest = []string{"--help"}
+		}
+		return runExtension(g, g.Extension, rest, o)
 	}
 	// `itos`, `itos help …` and any --help print the help, before any config.
 	if g.Help || name == "" || name == "help" {

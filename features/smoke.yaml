@@ -44,6 +44,10 @@
   scenarios:
     - id: "@ID-COST-01"
       why: a pattern written for itos matching a command that calls hooks.bin, the file's point
+- file: extensions.feature
+  scenarios:
+    - id: "@ID-EXT-04"
+      why: an extension found on the PATH runs in the root with what the global flags before it set, the whole dispatch
 - file: footers.feature
   scenarios:
     - id: "@ID-FOOT-01"

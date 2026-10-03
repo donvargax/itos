@@ -52,10 +52,16 @@ cases:
       release, asked for once a day, never in CI or with ITOS_NO_UPDATE=1;
       ITOS_NO_UPDATE_NOTICE=1 hides the notice that a pin has fallen behind it.
 
+      Other commands: one itos does not have runs itos-<command> from the PATH, its
+      exit code the run's, with the arguments after its name unread; global flags
+      before the name apply first and reach it as ITOS_CONFIG, ITOS_ROOT, ITOS_JSON,
+      ITOS_BIN and ITOS_VERSION. `itos help <command>` runs `itos-<command> --help`.
+
       Exit codes: 0 success; 1 policy failure (a check failed, a commit rejected,
       a registry or smoke problem, an unknown task); 2 usage or config error;
       3 missing environment (--as not among the people, a release that cannot be
-      fetched or checked). In `ci run` a failing step exits with its own code.
+      fetched or checked, an extension that cannot start). In `ci run` a failing
+      step exits with its own code.
   - name: itos task --help
     argv: [task, --help]
     exit: 0

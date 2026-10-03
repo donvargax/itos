@@ -24,12 +24,18 @@ runs another. A config with no pin runs this binary; no config runs the newest
 release, asked for once a day, never in CI or with ITOS_NO_UPDATE=1;
 ITOS_NO_UPDATE_NOTICE=1 hides the notice that a pin has fallen behind it.`
 
+const otherCommands = `Other commands: one itos does not have runs itos-<command> from the PATH, its
+exit code the run's, with the arguments after its name unread; global flags
+before the name apply first and reach it as ITOS_CONFIG, ITOS_ROOT, ITOS_JSON,
+ITOS_BIN and ITOS_VERSION. ` + "`itos help <command>`" + ` runs ` + "`itos-<command> --help`" + `.`
+
 const exitCodes = `Exit codes: 0 success; 1 policy failure (a check failed, a commit rejected,
 a registry or smoke problem, an unknown task); 2 usage or config error;
 3 missing environment (--as not among the people, a release that cannot be
-fetched or checked). In ` + "`ci run`" + ` a failing step exits with its own code.`
+fetched or checked, an extension that cannot start). In ` + "`ci run`" + ` a failing
+step exits with its own code.`
 
-const mainHelp = `itos: tasks, their checks, commit rules and CI plans
+const mainCommands = `itos: tasks, their checks, commit rules and CI plans
 
 Usage: itos <command> [args] [global flags]
 
@@ -58,13 +64,19 @@ Commands:
   hooks install [--manager <m>] [--print] [--force]
                                    write the hooks' one-line shims for the hook manager
   config check [--print-defaults]  validate the config, ledger, registry and smoke sets
-  version [--check]                the version; --check against the config's requires
+  version [--check]                the version; --check against the config's requires`
 
-` + globalFlags + `
+const mainHelpTail = globalFlags + `
 
 ` + versions + `
 
+` + otherCommands + `
+
 ` + exitCodes
+
+// mainHelp is itos's own help where the PATH has no extension; with one, the
+// extensions are listed after the commands (extensionsHelp).
+const mainHelp = mainCommands + "\n\n" + mainHelpTail
 
 // helpTexts is each command path's help, keyed as help.ts's HELP is: the
 // command and its subcommands joined by a space, "" for itos's own.
@@ -339,8 +351,18 @@ func help(g Globals, o Out) int {
 	path := helpPath(g.Rest)
 	if name == "help" {
 		path = rest
+		// An extension prints its own help.
+		if len(path) > 0 {
+			if ext := extensionPath(path[0]); ext != "" {
+				return runExtension(g, ext, []string{"--help"}, o)
+			}
+		}
 	}
-	fmt.Fprintln(o.Stdout, helpFor(path))
+	text := helpFor(path)
+	if text == mainHelp {
+		text = mainCommands + extensionsHelp() + "\n\n" + mainHelpTail
+	}
+	fmt.Fprintln(o.Stdout, text)
 	if name == "" && !g.Help {
 		return ExitUsage
 	}

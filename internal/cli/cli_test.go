@@ -1,6 +1,9 @@
 package cli
 
 import (
+	"os"
+	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -71,5 +74,71 @@ func TestHelp(t *testing.T) {
 		if code != c.code || stdout != c.want+"\n" || stderr != "" {
 			t.Errorf("itos %s: exit %d, stdout %q, stderr %q", strings.Join(c.args, " "), code, stdout, stderr)
 		}
+	}
+}
+
+// pathWith puts a folder holding an executable itos-<name> for each name
+// first on the PATH, and gives the folder.
+func pathWith(t *testing.T, names ...string) string {
+	t.Helper()
+	dir := t.TempDir()
+	for _, name := range names {
+		if err := os.WriteFile(filepath.Join(dir, "itos-"+name), []byte("#!/bin/sh\n"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+	return dir
+}
+
+// An extension's arguments are its own: only the global flags before its
+// name are read, while a built-in's are read wherever they stand.
+func TestParseExtension(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the extensions here are shell scripts")
+	}
+	dir := pathWith(t, "hello", "work")
+	g := Parse([]string{"--root", "sub", "--json", "hello", "--json", "--config", "c.yaml", "a"})
+	if g.Extension != filepath.Join(dir, "itos-hello") || !g.JSON || g.Root != "sub" || g.Config != "" ||
+		!slices.Equal(g.Rest, []string{"hello", "--json", "--config", "c.yaml", "a"}) {
+		t.Errorf("extension: %+v", g)
+	}
+	g = Parse([]string{"work", "check", "--json"})
+	if g.Extension != "" || !g.JSON || !slices.Equal(g.Rest, []string{"work", "check"}) {
+		t.Errorf("a built-in wins: %+v", g)
+	}
+	for _, args := range [][]string{{"frob", "--json"}, {"--", "hello"}, {"--frob", "hello"}} {
+		if g := Parse(args); g.Extension != "" {
+			t.Errorf("itos %s: extension %s", strings.Join(args, " "), g.Extension)
+		}
+	}
+	if path := extensionPath("../hello"); path != "" {
+		t.Errorf("a path names no extension: %s", path)
+	}
+}
+
+// The main help lists the extensions on the PATH, the first folder's of a
+// name several have and none a built-in shadows; a command's help does not.
+func TestHelpListsExtensions(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the extensions here are shell scripts")
+	}
+	pathWith(t, "hello") // after the folder below on the PATH, so not listed
+	first := pathWith(t, "zap", "hello", "work", "a-name-longer-than-the-command-column")
+	if err := os.WriteFile(filepath.Join(first, "itos-plain"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, _ := run("--help")
+	want := mainCommands + "\n\nExtensions (itos-<command> on the PATH):" +
+		"\n  a-name-longer-than-the-command-column\n" + strings.Repeat(" ", 35) +
+		filepath.Join(first, "itos-a-name-longer-than-the-command-column") +
+		"\n  hello                            " + filepath.Join(first, "itos-hello") +
+		"\n  zap                              " + filepath.Join(first, "itos-zap") +
+		"\n\n" + mainHelpTail + "\n"
+	if code != 0 || stdout != want {
+		t.Errorf("exit %d, stdout:\n%s\nnot:\n%s", code, stdout, want)
+	}
+	if _, stdout, _ := run("verify", "--help"); stdout != helpTexts["verify"]+"\n" {
+		t.Errorf("verify --help: %q", stdout)
 	}
 }

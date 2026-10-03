@@ -144,11 +144,12 @@ type foundConfig struct {
 }
 
 // readConfig reads the config where itos reads it (--config or ITOS_CONFIG,
-// under --root). Only the pin is read, not the rest of the config, so a
+// under --root, the global flags read as the command line reads them: for an
+// extension, only those before its name). Only the pin is read, not the rest of the config, so a
 // config written for a newer itos than the launcher still reaches the
 // version it pins.
 func readConfig(args []string) foundConfig {
-	g := cli.ParseGlobals(args)
+	g := cli.Parse(args)
 	file := g.Config
 	if file == "" {
 		file = config.Path()
