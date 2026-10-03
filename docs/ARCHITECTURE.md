@@ -476,9 +476,10 @@ mechanisms above, written against those modules, read across.
   statuses, and the proposal; below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git` (the repository's state and ranges, read
-  through the real git; below), beside three
+  through the real git; below), beside four
   the TypeScript has no module for:
-  `internal/value`, `internal/source` and `internal/shim` (below). The port
+  `internal/value`, `internal/source`, `internal/shim` and
+  `internal/release` (below). The port
   shells out to git where it needs it, as the TypeScript did, but always to
   `git.Bin`, never to a `git` looked up on the `PATH`, which may be itos.
 - **The launcher** (`internal/launch`, slice 27) runs before the command
@@ -501,7 +502,8 @@ mechanisms above, written against those modules, read across.
   `os.UserCacheDir`), cached when present and, under a pin, when the
   `checksums.txt` beside it hashes to `pin.checksums`; else `fetch` gets
   `<base>/download/v<version>/checksums.txt` (`ITOS_RELEASES`, else
-  GitHub's releases of itos), holds it to the pin (an `ITOS_VERSION` the
+  GitHub's releases of itos; the addresses, the fetch and the hashing are
+  `internal/release`'s, which the command line uses too), holds it to the pin (an `ITOS_VERSION` the
   config does not pin trusts it as fetched), takes the platform archive's
   line (`itos-<version>-<os>-<arch>.tar.gz`, `.zip` on windows), fetches and
   checks the archive, extracts the binary at its top and moves it with that
@@ -538,6 +540,29 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   than saying it every run. Nothing here is ever an error: every failure
   falls through to what the cache has. A binary built without a version
   (`version.Unstamped`) runs itself where there is no config.
+- **itos pin** (`internal/cli/pin.go`, `internal/value/edit.go`, slice 47)
+  is the launcher's own command: `binaryCommand` leaves `pin` to the binary
+  called, as it leaves `git-shim install`, since the version pinned may
+  predate it, and so no notice is said either. It reads the config
+  `config.Path` finds after `applyGlobals` (the stealth one included), asks
+  `internal/release` for the version's `checksums.txt`, or for the newest's
+  at `<base>/latest/download/checksums.txt` with the version read from its
+  archive names (asked whatever `CI`, `ITOS_NO_UPDATE` or the daily state
+  say, and not written to that state), within 30 seconds, and writes
+  `pin.version` and that file's SHA-256 with `value.SetScalars`, which edits
+  the text rather than re-encoding it: yaml/v3's nodes give each value's line
+  and column, the token there is replaced in the style it is written in
+  (plain kept plain unless the core schema would read the new string as
+  something else), a missing key goes after the section's last one (a line
+  in a block mapping, `, key: value` in a flow one), a missing section after
+  the top-level `version` line, and an empty one (`pin:`, `~`, `null`, `{}`)
+  below its key; a value over several lines, a tag, an anchor or an alias is
+  refused, and so is any edit that does not parse back to the old document
+  with only those values changed, so the file is never written wrong.
+  Nothing is written when the fetch fails (exit 3), when the pin is already
+  that version with those checksums (exit 0), or when it is that version
+  with other valid checksums (exit 1: the release changed after it was
+  pinned, and re-pinning it quietly would defeat the pin).
 - **Extensions** (`internal/cli/extension.go`, slice 29): a command itos
   does not have runs `itos-<command>` from the `PATH`, as git runs
   `git-<command>`. `cli.Parse` reads the arguments for both `cli.Main` and
@@ -701,7 +726,7 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   to another binary named `itos` replaced, anything else refused (exit 1);
   `pathStanding` places the folder and `git.Real`'s folder among the `PATH`'s
   by `os.SameFile`. The launcher's `binaryCommand` leaves both to the binary
-  called, so a pin never links a cached version.
+  called, so a pin never links a cached version (and `pin`, slice 47, above).
 - **The guard** (`internal/guard`, `internal/cli/pretooluse.go`, slice 42):
   `hook pre-tool-use` is dispatched with git's two hooks, and
   `hookPreToolUse` never returns an error, since `failure` would make it a
@@ -838,7 +863,8 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   messages render a value as a template literal (`String`), `typeof`
   (`TypeOf`) and `JSON.stringify` (`JSON`) would, so a problem quoting an odd
   value reads the same in both. `YAML` writes the `yaml` package's block
-  style, for `--print-defaults`. The patterns are compiled as RE2, the
+  style, for `--print-defaults`; `SetScalars` edits a person's YAML in place,
+  for `itos pin` (above). The patterns are compiled as RE2, the
   config's dialect, which the TypeScript held them to by refusing what RE2
   cannot compile (the config loader, above); where itos builds a pattern
   around `\s` or trims, it uses `value.Space` and `value.Trim`, JavaScript's

@@ -368,6 +368,7 @@ config at the top and runs from there (§5).
 | `commit footers <name> <from> <to>`                                                                     | A range's free-text footers with their commits, leaving out `none`, for a release's notes.                                                                                                                  |
 | `push`                                                                                                  | Pulls the upstream with a rebase whatever git's settings say, then pushes HEAD to it in a separate step; refuses uncommitted changes, stops with a stopped rebase, never forces.                            |
 | `git-shim install\|uninstall [--dir <folder>]`, `git-shim run <commit\|push> [<git args>…]`             | Links itos as `git` (or removes the link) and says where the folder stands on the `PATH`; what the link runs in a repository itos manages (below).                                                          |
+| `pin [<version>]`                                                                                       | Moves the config's pin (`pin.version`, `pin.checksums`) to the release named, or the newest, editing those values alone; the launcher's own command, run whatever the pin says; commits nothing.            |
 | `verify <from> <to>`, `verify` (stealth)                                                                | Re-checks every non-merge commit of the range after `commits.since` (message with footers at that commit, paths, the built-in moves rule against its parent), then each range command once.                 |
 | `tests list <kind> [--at <tree>]`, `tests smoke check\|ids\|run <kind>`                                 | The adapter's listing; the smoke rule, the smoke IDs, the smoke run.                                                                                                                                        |
 | `tests moves <kind>`                                                                                    | The staged feature files against HEAD's by the built-in moves rule, by hand.                                                                                                                                |
@@ -747,7 +748,9 @@ the tag is the version (T-069). A global install (slices 27 and 28): the install
 never rewritten, that runs the version a repository pins (`pin.version`, and `pin.checksums`, the
 SHA-256 of that release's `checksums.txt`, one hash for every platform), fetched into a cache and
 checked; a config with no pin runs the binary that was called, and with no `itos.yaml`, or a stealth
-config (§5) that pins nothing, it runs the newest release, asked for at most once a day. Later channels: the aqua or mise registry, a Homebrew tap,
+config (§5) that pins nothing, it runs the newest release, asked for at most once a day.
+`itos pin [<version>]` (slice 47) moves a pin to a release, the newest by default, writing both
+keys in place and committing nothing, so a bump is the project's own build commit. Later channels: the aqua or mise registry, a Homebrew tap,
 npm (as `palitos`) and PyPI wrappers, signatures.
 
 **Adoption** (the user's calls, 2026-10-03). This repository is also a Claude Code plugin

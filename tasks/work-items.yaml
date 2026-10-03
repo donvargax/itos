@@ -2412,7 +2412,7 @@ items:
     title: One command moves a repository's pin to a release
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-28]
     kind: slice
     why: >
@@ -3082,3 +3082,31 @@ items:
       it; the slice committed with that folder left off the PATH. The tests should set a PATH
       holding only the folders they make (t.Setenv), as the corpus's clean environment does.
     refs: [internal/cli/cli_test.go]
+
+  - id: p3-help-of-launcher-commands
+    title: itos help pin and itos help git-shim run the binary called, as the commands do
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-47]
+    kind: idea
+    why: >
+      Found by slice 47's agent: the launcher leaves pin and git-shim install to the binary called
+      (binaryCommand), and itos pin --help with them, but itos help pin is handed to the pinned
+      version, which may predate the command and prints its own main help instead. binaryCommand
+      could take help <command> for its own commands too.
+    refs: [internal/launch/launch.go]
+
+  - id: p3-notice-names-pin
+    title: The update notice names itos pin as the way to move the pin
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-47]
+    kind: idea
+    why: >
+      Found by slice 47's agent: the notice that a pin has fallen behind (slice 28) names the newer
+      release and its notes, but not that itos pin moves the pin to it, which a person reading it
+      now needs next. A change to what the notice says is a feat with a scenario in
+      update.feature.
+    refs: [internal/launch/update.go, features/update.feature]

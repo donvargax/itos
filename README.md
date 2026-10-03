@@ -136,7 +136,10 @@ pin:
   checksums: <the SHA-256 of that release's checksums.txt> # sha256sum checksums.txt
 ```
 
-(the release's notes give both lines filled in).
+(the release's notes give both lines filled in), or let `itos pin` write
+them: `itos pin` moves the pin to the newest release, `itos pin <x.y.z>` to that
+one, changing those two values and nothing else in the file, and prints the
+release's notes to read before you commit the change.
 
 The installed binary is then a launcher, never rewritten: in a repository that
 pins another version it fetches that release into its cache, checks
