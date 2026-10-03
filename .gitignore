@@ -18,3 +18,6 @@ docs/changelog/
 
 # The Go binary tools/bin/itos builds and runs.
 .tools/
+
+# The declarations Claude Code writes beside a plugin it loads from a folder, for the editor.
+integrations/claude-code/.claude-plugin/types/

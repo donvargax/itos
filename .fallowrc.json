@@ -1,8 +1,13 @@
 {
 	"$schema": "./node_modules/fallow/schema.json",
 	"entry": ["tools/**/*.ts"],
+	// The Claude Code plugin's hooks module (T-066): Claude Code loads it because the plugin's
+	// hooks/hooks.json names it under "modules", which no import shows.
+	"dynamicallyLoaded": ["integrations/claude-code/hooks/register.ts"],
 	"ignorePatterns": ["docs/changelog/**"],
-	"ignoreDependencies": ["yaml", "git-cliff", "ajv"],
+	// claude-code (and claude-code/testing) is the module Claude Code provides to a plugin's hooks
+	// and tests at run time; no package of that name is installed or declared.
+	"ignoreDependencies": ["yaml", "git-cliff", "ajv", "claude-code"],
 	"health": {
 		"thresholdOverrides": [
 			{

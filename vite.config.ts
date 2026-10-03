@@ -5,13 +5,27 @@ const staged = {
 	"tools/**/*.{ts,js,json}": "vp check --fix",
 	"*.{md,json,yaml,ts,toml}": "vp check --fix",
 	"{docs,tasks,features,.github}/**/*.{md,yml,yaml}": "vp check --fix",
+	// The Claude Code plugin and the marketplace that names it (T-066).
+	".claude-plugin/*.json": "vp check --fix",
+	"integrations/**/*.{ts,json,md}": "vp check --fix",
 	// Go: formatted in place, then vetted as a whole, since go vet reads
 	// packages, not files (the files `vp staged` appends are ignored).
 	"**/*.go": ["gofmt -w", "sh -c 'go vet ./...' go-vet"],
 };
 
 const lint: NonNullable<UserConfig["lint"]> = {
-	ignorePatterns: ["dist/**", "docs/changelog/**", ".claude/**"],
+	ignorePatterns: [
+		"dist/**",
+		"docs/changelog/**",
+		".claude/**",
+		// The Claude Code plugin's hooks module and tests (T-066) are typed by the declarations
+		// Claude Code lays beside a plugin it loads (.claude-plugin/types/, git-ignored), which
+		// no install of this repository has, so the type-aware lint cannot judge them. Claude
+		// Code judges them instead: T-066's checks run claude plugin validate --strict, which
+		// reads the module as the engine will, and claude plugin test. The formatter and the
+		// audit still read them.
+		"integrations/claude-code/**",
+	],
 	jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],
 	rules: { "vite-plus/prefer-vite-plus-imports": "error" },
 	options: { typeAware: true, typeCheck: true },
