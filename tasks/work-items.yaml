@@ -2122,6 +2122,24 @@ items:
       or Cupcake could firm the guard up later if ever needed.
     refs: [itos.yaml, internal/cli/verify.go]
 
+  - id: p3-git-shim
+    title: A git shim that makes git commit and git push itos's in an itos repository
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [p1-itos-push, p3-launcher-subfolder]
+    kind: idea
+    why: >
+      The user's idea (2026-10-03): a git placed before the real one on the PATH (an alias reaches
+      no script, agent or IDE), which itos init offers to install. In a repository itos manages,
+      found from git's top level so a subfolder counts, git commit is itos commit and git push
+      itos push, every other command and every other repository passing straight to the real
+      git (found by skipping itself on the PATH) with arguments, exit code, stdin and terminal
+      intact. Commits made by hand then go through itos too, so the hook guesses an amend only
+      for a git the shim does not wrap, and the plugin's guard becomes a backstop. Per machine and
+      opt-in: the hooks and CI's verify stay the gates.
+    refs: [PLAN.md]
+
   - id: p3-itos-init
     title: itos init, a new or existing repository made ready for itos
     phase: 3
@@ -2423,7 +2441,7 @@ items:
     refs: [internal/cli/hook.go]
 
   - id: slice-37
-    title: The hook knows an amend from git, not from the author's name and second
+    title: itos commit tells the hook an amend, the author's second kept only as a fallback
     phase: 3
     owner: donvargax
     status: todo
@@ -2442,6 +2460,11 @@ items:
       by every manager, a git config entry too) writes the SHA it is amending to a marker in the
       git folder; commit-msg reads and removes it, trusting it only while HEAD is that SHA, and
       falls back to the heuristic where the hook is not installed yet.
+      Corrected (2026-10-03): git passes prepare-commit-msg "commit HEAD" only for an amend
+      edited or --no-edit, and just "message" for -m or -F (tested on git 2.55), so the marker is
+      dropped. itos commit tells the hook whether --amend is among git's arguments, always, and
+      the author guess stays only for a commit made without it. A raw git commit --amend that
+      sets another date stays unknown until p3-git-shim routes git commit through itos.
     refs: [features/stealth.feature, internal/cli/hook.go]
 
   - id: p3-pre-push-without-commands

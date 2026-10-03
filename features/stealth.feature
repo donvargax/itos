@@ -201,20 +201,22 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     And the message of HEAD does not say "T-001"
     And the itos note on HEAD says "Task: T-001"
 
-  # Slice 37: the hook knows an amend from git. prepare-commit-msg is told
-  # "commit <sha>" for an amend and records it for commit-msg, which judges
-  # the amend by HEAD's note. Slice 32 guessed from the author's name, email
-  # and date matching HEAD's; an amend that sets another date (--date, or
-  # --reset-author a second later) defeats it: only git's own word can let
-  # this amend through. A fixed date keeps the scenario from passing on the
-  # guess when both commits fall in one second.
+  # Slice 37: the hook is told an amend, not left to guess. itos commit sees
+  # --amend among the arguments it hands git, and tells the hook, which then
+  # judges the amend by HEAD's note. Slice 32's guess from the author's name,
+  # email and date matching HEAD's stays only for a commit made without itos
+  # commit; an amend that sets another date defeats the guess, so only the
+  # hook being told can let this one through. (prepare-commit-msg was weighed
+  # and dropped: git tells it nothing of an amend whose message comes from -m
+  # or -F.)
   @ID-STEALTH-20 @slice-37 @wip
-  Scenario: An amend that sets another author date is still known for an amend, and keeps its note
+  Scenario: An amend through itos commit that sets another author date is known for an amend, and keeps its note
     Given the commit-msg hook is installed
     And a change to "README.md" is staged
     And itos has committed with the arguments "--task T-001 -m 'chore: tidy the readme'"
-    When git amends HEAD with the arguments "--date=2001-01-01T00:00:00 -m 'chore: tidy the readme again'"
-    Then the itos note on HEAD says "Task: T-001"
+    When itos commits with the arguments "--amend --date=2001-01-01T00:00:00 -m 'chore: tidy the readme again'"
+    Then itos exits with code 0
+    And the itos note on HEAD says "Task: T-001"
 
   # Slice 38: the person is the only one, so a stealth session owns every
   # item, whoever an item names and whoever gh says the session is.
