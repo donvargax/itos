@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after the `@bug-7` fix landed; v2.2.0 next.
+Last updated 2026-10-03, after v2.2.0 was released.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `4629840` (CI run 37105697017), the `@bug-7` fix; this
+`main` is green at `7d0d6d5` (CI run 37106202185, red by design only at T-065's after-push download check before the tag), v2.2.0's commit; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -40,36 +40,33 @@ docs/ORCHESTRATING.md's loop).
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
 
-Released: [v2.1.0](https://github.com/donvargax/itos/releases/tag/v2.1.0)
-(T-064, release run 37102100826): the global install and pin, the newest
-release and its notice, extensions, `itos commit` with its footer flags, the
-stealth mode, `itos version` outside a project; additive, asking nothing of a
-consumer. Its seven assets were downloaded and checksummed, the linux binary
-says `itos 2.1.0`, and `go install github.com/donvargax/itos/v2/cmd/itos@v2.1.0`
-works. The nightly dispatched on its commit, 37101959993, is green. Before it,
-v2.0.0, v1.1.0 and v1.0.0. The user moves the other repositories at v2.3.0
-and does it from their own repositories: don't change any other repository.
-Unreleased: slices 39 to 41 and the `@bug-7` fix, `itos push`, the config found from a subfolder and the git shim.
+Released: [v2.2.0](https://github.com/donvargax/itos/releases/tag/v2.2.0)
+(T-065, release run 37106400735): `itos push`, the config found from a
+subfolder, the git shim (`itos git-shim install`), additive. Its assets were
+downloaded and checksummed, the linux binary says `itos 2.2.0`, and `go
+install github.com/donvargax/itos/v2/cmd/itos@v2.2.0` works; the nightly on
+its commit, 37106291515, is green. Before it, v2.1.0 (the global install,
+extensions, the stealth mode, `itos commit`), v2.0.0, v1.1.0, v1.0.0. The
+user moves the other repositories at v2.3.0, from their own repositories:
+don't change any other repository. Nothing is unreleased.
 
 ## Next
 
 The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 
-1. **v2.1.0 is out**: self-update, extensions, the stealth mode, `itos
-commit` (slices 27 to 38, bugs 4 to 6).
-2. **Toward v2.2.0, git through itos**: slices 39 (`itos push`) and 40
-   (the config found from a subfolder) are done; slice 41, the git
-   shim, is done. The `@bug-7` fix is done; next v2.2.0 (T-065). Open for the user: `p3-finish-with-itos-push`, whether
-   this repository's finishing routine switches to `itos push`.
-3. **Toward v2.3.0, adoption**: **`p3-claude-code-plugin`**: the marketplace, the titles, the skill, the
+1. **v2.1.0 and v2.2.0 are out.** Open for the user:
+   `p3-finish-with-itos-push`, whether this repository's finishing routine
+   switches to `itos push`; and `p3-shim-push-args` (`git push` takes no
+   arguments through the shim), small, when it bites.
+2. **Toward v2.3.0, adoption**: **`p3-claude-code-plugin`**: the marketplace, the titles, the skill, the
    git commit/push guard (PLAN.md §10, "Adoption").
-4. **`p3-pre-push-verify`** and **`p3-human-waiver`** (`itos waive`, a
+3. **`p3-pre-push-verify`** and **`p3-human-waiver`** (`itos waive`, a
    plain config list; the guard keeps agents off it).
-5. **`p3-itos-init`**, after `p3-pin-bump`: ties the above together.
-6. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
+4. **`p3-itos-init`**, after `p3-pin-bump`: ties the above together.
+5. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
    open for the user).
 
-Releases, the user's plan (2026-10-03): v2.1.0, released (global
+Releases, the user's plan (2026-10-03): v2.1.0 and v2.2.0 released (global
 install, extensions, the stealth mode, `itos commit`); v2.2.0, git through
 itos (slices 39 to 41); v2.3.0,
 adoption (the plugin, `p3-pre-push-verify`, `p3-human-waiver`,

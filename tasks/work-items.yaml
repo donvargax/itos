@@ -1806,7 +1806,7 @@ items:
     title: v2.2.0, git through itos
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-41]
     kind: task
     refs: [tasks/phase-3.yaml]

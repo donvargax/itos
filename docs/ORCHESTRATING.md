@@ -265,6 +265,11 @@ main` runs git as written. Say so in a brief when an agent will pull.
   the allow-list, read from the issue's author or its timeline, cannot. A
   rule you want for issues goes into `tools/bin/inbox.ts` and its
   self-test, not into a label convention.
+- **Run a nightly on the release commit before tagging.** Every feature and the gates'
+  self-tests run only there, so a release range the last nightly predates can carry a red
+  nobody has seen: v2.1.0's and v2.2.0's were each red once, at a self-test a slice had left
+  stale. Dispatch one by hand (`gh workflow run nightly.yml --ref main`) and tag only when it
+  is green.
 - **Never pipe a command whose exit code matters** (`… | tail`,
   `…; echo EXIT=$?` after a pipe): the pipeline, and a background task
   running it, reports the last command's status. Write the output to a file
