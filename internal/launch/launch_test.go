@@ -88,6 +88,34 @@ func TestChoose(t *testing.T) {
 	}
 }
 
+// Handed names the version choose would run by name, never the newest
+// release, and nothing where choose runs this binary.
+func TestHanded(t *testing.T) {
+	own := version.Version()
+	pinned := "version: 1\npin: { version: \"9.1.0\", checksums: \"" + sums + "\" }\n"
+	cases := []struct {
+		name, config, env, want string
+		byEnv                   bool
+	}{
+		{"a pin of another version", pinned, "", "9.1.0", false},
+		{"ITOS_VERSION over the pin", pinned, "1.9.0", "1.9.0", true},
+		{"ITOS_VERSION that is no version", pinned, "latest", "", false},
+		{"a pin of this binary's version", "version: 1\npin: { version: \"" + own + "\", checksums: \"" + sums + "\" }\n", "", "", false},
+		{"a pin the launcher cannot use", "version: 1\npin: { version: v1 }\n", "", "", false},
+		{"no pin", "version: 1\n", "", "", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			offline(t)
+			writeConfig(t, c.config)
+			t.Setenv(EnvVersion, c.env)
+			if got, byEnv := Handed(nil); got != c.want || byEnv != c.byEnv {
+				t.Errorf("Handed = %q, %t; want %q, %t", got, byEnv, c.want, c.byEnv)
+			}
+		})
+	}
+}
+
 func TestChooseReadsTheConfigWhereItosDoes(t *testing.T) {
 	offline(t)
 	writeConfig(t, "version: 1\n")

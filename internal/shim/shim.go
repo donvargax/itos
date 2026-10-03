@@ -10,6 +10,12 @@
 // PATH's lookup and a few file checks: no git runs before the real one, and
 // neither the launcher nor the command line is reached.
 //
+// In a repository pinned to an itos older than the shim (cli.GitShimSince),
+// or with ITOS_VERSION naming one, that itos has no git-shim command to hand
+// git commit or git push to, so they run the real git, after one line on
+// stderr saying why (bug 7). The pin is read as the launcher reads it, the pin
+// alone, from the folder the launcher then reads it in.
+//
 // Of git's options before the command, -C <path> and -c <name>=<value> are
 // honoured, since tools write git -C <dir> commit and git -c <key>=<value>
 // commit (an editor's, say) for an ordinary commit: the shim moves to the
@@ -31,8 +37,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/donvargax/itos/v2/internal/cli"
 	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/git"
+	"github.com/donvargax/itos/v2/internal/launch"
+	"github.com/donvargax/itos/v2/internal/version"
 )
 
 // Named is whether itos was started under the name git: argv[0]'s base name
@@ -53,7 +62,8 @@ var Commands = []string{"commit", "push"}
 // itos's here, it moves to the folder -C names, sets -c for every git itos
 // runs and ITOS_GIT to the real git, and gives the itos arguments to run
 // (`git-shim run -- <command> <args>…`), for the launcher and the command
-// line. Otherwise it runs the real git with the arguments and gives its exit
+// line, unless the itos they would be handed to is older than the shim
+// (tooOld). Otherwise it runs the real git with the arguments and gives its exit
 // code, done; on unix it does not return, git replacing this process. No git
 // on the PATH but itos is a missing environment, exit 3.
 func Main(args []string, stderr io.Writer) (itos []string, code int, done bool) {
@@ -70,11 +80,16 @@ func Main(args []string, stderr io.Writer) (itos []string, code int, done bool) 
 	}
 	if !under {
 		if line, ok := parse(args); ok && itosCommand(line.name) && !namedRepository() && config.Managed(line.dir) {
-			if err := line.apply(real); err != nil {
+			back, err := line.enter()
+			if err != nil {
 				fmt.Fprintf(stderr, "itos: git -C %s: %s\n", line.dir, err)
 				return nil, 128, true
 			}
-			return append([]string{"git-shim", "run", "--", line.name}, line.rest...), 0, false
+			itos := append([]string{"git-shim", "run", "--", line.name}, line.rest...)
+			if !tooOld(line, itos, back, stderr) {
+				line.configure(real)
+				return itos, 0, false
+			}
 		}
 	}
 	code, err := run(real, args)
@@ -143,14 +158,43 @@ func namedRepository() bool {
 	return os.Getenv("GIT_DIR") != "" || os.Getenv("GIT_WORK_TREE") != ""
 }
 
-// apply makes the line's folder the one itos runs in, its -c every git's
-// that itos runs, and the real git ITOS_GIT, for itos and all it starts.
-func (l gitLine) apply(real string) error {
-	if l.dir != "." {
-		if err := os.Chdir(l.dir); err != nil {
-			return err
-		}
+// enter moves to the line's folder, giving the one to come back to: "" when
+// it stays where it is, or when the current folder cannot be told (git -C
+// with an absolute path from a folder since removed).
+func (l gitLine) enter() (back string, err error) {
+	if l.dir == "." {
+		return "", nil
 	}
+	back, _ = os.Getwd()
+	return back, os.Chdir(l.dir)
+}
+
+// tooOld is whether the itos the command would be handed to, named by
+// ITOS_VERSION or the repository's pin, is older than the git shim, so has no
+// git-shim command to run it (bug 7): then it says so in one line and comes
+// back to the folder git was started in, for the real git to run the command
+// as it is. A folder it cannot come back to, or a version neither names that
+// it can read, hands the command on.
+func tooOld(line gitLine, itos []string, back string, stderr io.Writer) bool {
+	v, env := launch.Handed(itos)
+	if v == "" || version.Compare(v, cli.GitShimSince) >= 0 {
+		return false
+	}
+	if line.dir != "." && (back == "" || os.Chdir(back) != nil) {
+		return false
+	}
+	who := "this repository pins"
+	if env {
+		who = launch.EnvVersion + " names"
+	}
+	fmt.Fprintf(stderr, "itos: git %s runs the real git: %s itos %s, and the git shim needs itos %s or later\n",
+		line.name, who, v, cli.GitShimSince)
+	return true
+}
+
+// configure makes the line's -c every git's that itos runs, and the real git
+// ITOS_GIT, for itos and all it starts.
+func (l gitLine) configure(real string) {
 	if len(l.configs) > 0 {
 		n, _ := strconv.Atoi(os.Getenv("GIT_CONFIG_COUNT"))
 		for _, c := range l.configs {
@@ -165,5 +209,5 @@ func (l gitLine) apply(real string) error {
 		}
 		_ = os.Setenv("GIT_CONFIG_COUNT", strconv.Itoa(n))
 	}
-	return os.Setenv(git.EnvGit, real)
+	_ = os.Setenv(git.EnvGit, real)
 }

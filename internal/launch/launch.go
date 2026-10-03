@@ -25,7 +25,8 @@
 //
 // git-shim install and uninstall always run the binary that was called, the
 // one they link as git; the git shim's own runs (git-shim run) are launched
-// as any other, so in a pinned repository git commit is the pinned itos's.
+// as any other, so in a pinned repository git commit is the pinned itos's,
+// when it has the shim (Handed tells internal/shim the version, bug 7).
 package launch
 
 import (
@@ -138,6 +139,27 @@ func choose(args []string, stderr io.Writer) (target, bool) {
 		return newest(own)
 	}
 	return target{}, false
+}
+
+// Handed is the version of another itos than this binary that the launcher
+// hands the arguments to by name: ITOS_VERSION's, else the pin's, and
+// whether ITOS_VERSION named it; "" when it runs this binary, when neither
+// names a version it can use (a pin it cannot read, an ITOS_VERSION that is
+// no version) or when only the newest release would (no config). It reads
+// the pin as choose does, and asks the release server nothing.
+func Handed(args []string) (v string, env bool) {
+	if v = os.Getenv(EnvVersion); v != "" {
+		env = true
+		if !config.PinVersion.MatchString(v) {
+			return "", false
+		}
+	} else if c := readConfig(args); c.state == pinned {
+		v = c.pin.Version
+	}
+	if v == version.Version() {
+		return "", false
+	}
+	return v, env
 }
 
 // What the launcher finds where itos reads its config.

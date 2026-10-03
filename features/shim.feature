@@ -67,7 +67,7 @@ Feature: The git shim, git commit and git push as itos's in an itos repository
   # has no git-shim command, so every git commit there failed with unknown
   # command. Where the pin is older than the shim, git commit and git push
   # are the real git's, and the shim says why in one line.
-  @ID-SHIM-08 @bug-7 @wip
+  @ID-SHIM-08 @bug-7
   Scenario: In a repository pinned to an itos older than the shim, git commit is the real git's
     Given a release server offering the versions "1.9.0" and "2.0.0"
     And the config pins the version "2.0.0" of the release server

@@ -200,7 +200,9 @@ first `git` on the `PATH` that is not itos) with its arguments, input,
 terminal and exit code untouched, at the cost of starting itos and a few file
 checks. itos's own git, and any git a hook or check started by itos runs, is
 always the real one. In a repository that pins a version, `git commit` is that
-version's `itos commit` (v2.2.0 or later). The hooks and CI's `itos verify`
+version's `itos commit` (v2.2.0 or later); under a pin older than v2.2.0,
+which has no shim to hand it to, `git commit` and `git push` run the real git,
+after a line on stderr saying so. The hooks and CI's `itos verify`
 stay the gates: the shim is per machine and opt-in. To turn it off, remove the
 link:
 

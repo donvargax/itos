@@ -269,7 +269,9 @@ cases:
       Every other command, every command elsewhere, and every git an itos run starts
       run the real git, the first git on the PATH that is not itos, with the same
       arguments, streams and exit code; with no such git the shim exits 3. In a
-      pinned repository git commit and git push are the pinned itos's.
+      pinned repository git commit and git push are the pinned itos's; a pin, or
+      ITOS_VERSION, older than 2.2.0, which has no git shim, runs the real git
+      instead, after a line on stderr saying so.
 
       install links the itos running as git in <folder> (default: the folder holding
       it) and says whether that folder comes before the real git on the PATH. It

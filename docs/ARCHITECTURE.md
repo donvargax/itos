@@ -560,8 +560,17 @@ mechanisms above, written against those modules, read across.
   gitdir's `commondir` giving the common dir, and none inside a git folder,
   told by `HEAD`, `objects` and `refs`) holding `itos.yaml` or its common dir
   the stealth config; `managed_test.go` holds it to `Top` and `Locate` on
-  each layout. Then `apply` `chdir`s to the `-C` folder, appends each `-c` to
-  `GIT_CONFIG_COUNT`/`_KEY_<n>`/`_VALUE_<n>` and sets `ITOS_GIT`, and the
+  each layout. Then `enter` `chdir`s to the `-C` folder, keeping the one to
+  come back to, and `tooOld` asks `launch.Handed` the version the launcher
+  would hand `git-shim run` to by name (`ITOS_VERSION` when it is a version,
+  else the pin, read by `readConfig` as `choose` reads it, `config.Top`'s
+  answer cached for the launcher's own read; never the newest release, and
+  nothing when it is this binary's version): older than `cli.GitShimSince`
+  (`gitshim.go`, the first itos with `git-shim`), the shim says so in one
+  line, `chdir`s back and runs the real git with the arguments as they came
+  (bug 7); a folder it cannot come back to hands the command on. Otherwise
+  `configure` appends each `-c` to `GIT_CONFIG_COUNT`/`_KEY_<n>`/`_VALUE_<n>`
+  and sets `ITOS_GIT`, and the
   arguments become `git-shim run -- <command> <args>…`, which go through
   `launch.Main` and `cli.Main` as any run's: the `--` keeps every git
   argument from `ParseGlobals`, and `git-shim run` calls `gitCommit` or

@@ -22,6 +22,11 @@ import (
 	"github.com/donvargax/itos/v2/internal/out"
 )
 
+// GitShimSince is the first itos with the git-shim command: the shim hands
+// git commit and git push to an older pinned itos as nothing, running the
+// real git instead (bug 7, internal/shim).
+const GitShimSince = "2.2.0"
+
 // gitShim is `git-shim install [--dir <folder>]`, `git-shim uninstall [--dir
 // <folder>]` and `git-shim run <commit|push> [<git args>…]`.
 func gitShim(args []string, o Out) (int, error) {

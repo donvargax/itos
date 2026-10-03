@@ -487,8 +487,11 @@ starts is the real one, and it sets `ITOS_GIT` to it for everything it starts,
 so a git that a hook, a check or an older pinned itos runs under an itos run
 passes straight through the shim, and `itos commit` cannot recurse into itself.
 The launcher and the pin apply to `git-shim run` as to any run, so in a pinned
-repository `git commit` is the pinned itos's (one that predates the shim says
-`unknown command: git-shim`); `git-shim install` and `uninstall` always run the
+repository `git commit` is the pinned itos's. One that predates the shim
+(older than 2.2.0, by the pin or `ITOS_VERSION`) has no `git-shim` to run, so
+there `git commit` and `git push` run the real git, after one line on stderr
+naming the version and the shim's least (bug 7); `git-shim install` and
+`uninstall` always run the
 binary called, the one they link. `install` links it as git in `--dir`
 (default: the folder holding it), replaces only a link to an itos, refuses any
 other git (exit 1), and says whether the folder comes before the real git on
