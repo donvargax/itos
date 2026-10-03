@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 38 (a stealth session owns every item) landed; v2.1.0 next.
+Last updated 2026-10-03, after v2.1.0 was released.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `c17acf8` (CI run 37101277075), slice 38's close; this
+`main` is green at `2ccbb16` (CI run 37101815532, red by design only at T-064's after-push download check before the tag), v2.1.0's commit; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -40,48 +40,34 @@ docs/ORCHESTRATING.md's loop).
 Read the newest nightly before starting the next implementation. A red
 nightly takes priority over new work.
 
-Released: [v2.0.0](https://github.com/donvargax/itos/releases/tag/v2.0.0),
-Go only (phase 3: the TypeScript gone, the built-in header lint, the
-`Upgrading:` footer; release run 37086752429), after v1.1.0 and v1.0.0. Its
-assets (five archives, `itos.schema.json`, `checksums.txt`) were downloaded
-and verified, and `go install github.com/donvargax/itos/v2/cmd/itos@v2.0.0`
-works (the module path is `/v2` since T-061). Releases are automated
-(PLAN.md, "Releases"). The user moves the consumers' pins from their own
-repositories: don't change any other repository. Unreleased: slices 27 to 31
-(the launcher, `pin`, the newest release and the notice, extensions, the
-stealth config, `itos commit`, stealth footers in notes, hooks in the git
-config, the unpushed range, a stealth config's defaults, the amend signal,
-`itos commit`'s content flags, a stealth session owning every item) and the
-`@bug-6` fix and
-the `itos version` fix (issue #2).
-From v2.1.0 on, `tools/selftest/release-notes.ts` holds every `Upgrading:`
-footer of the range to the notes.
+Released: [v2.1.0](https://github.com/donvargax/itos/releases/tag/v2.1.0)
+(T-064, release run 37102100826): the global install and pin, the newest
+release and its notice, extensions, `itos commit` with its footer flags, the
+stealth mode, `itos version` outside a project; additive, asking nothing of a
+consumer. Its seven assets were downloaded and checksummed, the linux binary
+says `itos 2.1.0`, and `go install github.com/donvargax/itos/v2/cmd/itos@v2.1.0`
+works. The nightly dispatched on its commit, 37101959993, is green. Before it,
+v2.0.0, v1.1.0 and v1.0.0. The user moves the other repositories at v2.3.0
+and does it from their own repositories: don't change any other repository.
+Nothing is unreleased.
 
 ## Next
 
 The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 
-1. **Self-update** is done: slices 27 and 28. Their ideas wait in the
-   registry (`p3-pin-bump`, `p3-launcher-subfolder`,
-   `p3-launcher-cache-prune`, `p3-global-install-ci`).
-2. **Extensions** is done: slice 29.
-3. **Stealth mode** is done: slices 30 to 35, with `itos commit` (slice 31)
-   and the `@bug-5` fix. The coordinator proposed cutting v2.1.0 now; the
-   user has not answered. `hooks.bin` stays through v2 (`v3-drop-hooks-bin`).
-4. **v2.1.0** (T-064): everything for it has landed; a nightly was dispatched
-   by hand on `c17acf8`, since the last ran before slice 27. Then the notes,
-   the version, the tag.
-5. **`p1-itos-push`**, itos commit's other half (built in or an extension,
-   the first call).
-6. **`p3-claude-code-plugin`**: the marketplace, the titles, the skill, the
+1. **v2.1.0 is out**: self-update, extensions, the stealth mode, `itos
+commit` (slices 27 to 38, bugs 4 to 6).
+2. **Toward v2.2.0, git through itos**: **`p1-itos-push`**, itos commit's other half (built in or an extension,
+   the first call), then `p3-launcher-subfolder` and `p3-git-shim`.
+3. **Toward v2.3.0, adoption**: **`p3-claude-code-plugin`**: the marketplace, the titles, the skill, the
    git commit/push guard (PLAN.md §10, "Adoption").
-7. **`p3-pre-push-verify`** and **`p3-human-waiver`** (`itos waive`, a
+4. **`p3-pre-push-verify`** and **`p3-human-waiver`** (`itos waive`, a
    plain config list; the guard keeps agents off it).
-8. **`p3-itos-init`**, after `p3-pin-bump`: ties the above together.
-9. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
+5. **`p3-itos-init`**, after `p3-pin-bump`: ties the above together.
+6. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
    open for the user).
 
-Releases, the user's plan (2026-10-03): v2.1.0 when item 4 is done (global
+Releases, the user's plan (2026-10-03): v2.1.0, released (global
 install, extensions, the stealth mode, `itos commit`); v2.2.0, git through
 itos (`p1-itos-push`, `p3-launcher-subfolder`, `p3-git-shim`); v2.3.0,
 adoption (the plugin, `p3-pre-push-verify`, `p3-human-waiver`,

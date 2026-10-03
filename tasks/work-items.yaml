@@ -1780,7 +1780,7 @@ items:
     title: v2.1.0, the global install, extensions and the stealth mode
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-38]
     kind: task
     refs: [tasks/phase-3.yaml]
