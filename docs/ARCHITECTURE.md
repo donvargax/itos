@@ -104,6 +104,16 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   scratch repository moves into a folder of its own under the scenario's
   support folder, so a path beside it, `../wt`, is the scenario's alone and
   goes with it; `itosIn` runs itos there.
+- **itos commit's scenarios** (`commit_test.go`, `commit-command.feature`):
+  the commit-msg hook is a shim in git's own hooks folder
+  (`git rev-parse --git-path hooks`) that runs the itos under test, so a
+  commit made through itos meets the hook any commit meets. The arguments
+  are split as `sh` would split them (whitespace, single quotes), and a
+  footer of HEAD is read back as git reads its trailers
+  (`%(trailers:only,unfold)`), so a footer that landed in the body does not
+  pass. The scratch config has a `Scenarios:` footer whenever it has a kind
+  of named tests, required for no type, so the scenarios that name none are
+  judged as before.
 - **The header lint**, where a scenario needs one, is itos's built-in one,
   `use: builtin` in the scratch config, which needs nothing installed and
   holds no footer rule, so a scenario's footer rules are itos's own. The
@@ -385,6 +395,24 @@ mechanisms above, written against those modules, read across.
   `<name>` (so the first folder's, and no built-in), sorted, between the
   commands and the global flags, and nothing when there is none, so the
   corpus's main help case is the help with an empty `PATH` of extensions.
+- **itos commit** (`internal/cli/gitcommit.go`, slice 31): `commit` in the
+  command table hands its arguments to a subcommand when the first names one
+  (`commitSubcommands`) and to `gitCommit` otherwise. `readCommitFlags` takes
+  `--task` and `--scenarios` (`--flag <ids>` or `--flag=<ids>`, repeatable,
+  split by `message.SplitIDs` as the footer reader splits them) out of the
+  arguments before any `--`, leaving the rest to git in order;
+  `footerLines` loads the config only when a flag is given and finds each
+  flag's footer by its source (`message.LedgerFooter`, `message.TestsFooter`:
+  the first of `commits.footers`), and `message.FooterLines` packs the IDs
+  onto lines within the header lint's 100 characters, the key on each.
+  `trailers` makes each line a `--trailer`, which git applies before the
+  editor and the commit-msg hook; that is the one step the stealth mode
+  (slice 32) replaces, by a note written after the commit. `runGit` runs
+  `git commit` as a child, not by `exec`, so itos can act after it, with the
+  terminal's stdin for the editor and an interrupt left to git; its exit
+  code is itos's, and one git cannot start exits 3. A global `-q` is passed
+  on as git's `--quiet`; under `--json` git's stdout goes to stderr and
+  stdout has `{"schema":1,"ok","commit"?}`.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
   `ITOS_CONFIG`, else `itos.yaml`, else the stealth config, after `--root`'s

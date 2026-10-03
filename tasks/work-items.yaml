@@ -1975,7 +1975,7 @@ items:
     title: itos commit, a commit whose footers itos writes
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-30]
     kind: slice
     why: >
@@ -2290,3 +2290,19 @@ items:
       and a refusal in a v2.x would break a config v2.0 accepted (docs/ORCHESTRATING.md's lesson on
       compatibility), the coordinator's call (2026-10-03).
     refs: [PLAN.md]
+
+  - id: p3-commit-editor-template
+    title: itos commit through the editor puts the footers right below the subject
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-31]
+    kind: idea
+    why: >
+      Found in slice 31: with no -m or -F, git writes the --trailer lines into the editor's template
+      after a single empty line, where -s writes two, so a subject typed on that first line sits
+      right against the footers. The hook still reads them (itos's footer reader takes any line),
+      but the built-in lint warns footer-leading-blank and git no longer reads them as trailers.
+      itos commit could hand git a template with the subject's line and a blank one before the
+      footers (git commit -t, or prepare-commit-msg), so the editor's commit reads as -m's does.
+    refs: [internal/cli/gitcommit.go, features/commit-command.feature]

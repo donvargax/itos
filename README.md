@@ -41,7 +41,10 @@ it, and the instructions then point to the check instead of restating it.
   `itos hook commit-msg` applies them before a commit, validates itos's
   own files as the commit stages them, and runs the static checks of the
   tasks it names, rejecting it when a finished task's check fails; `itos verify` re-checks
-  a pushed range in CI, from `commits.since` on.
+  a pushed range in CI, from `commits.since` on. `itos commit --task <id>` (or
+  `--scenarios <ids>`) is `git commit` with the footer written for you, as a
+  git trailer, whether the message comes from `-m`, `-F` or the editor; the
+  hook judges it as a typed one.
 - **Named tests behind an adapter**: Gherkin is built in; any runner that can
   list its tests as JSON can be another kind. CI merges every selection of a
   kind into one run.
@@ -201,8 +204,8 @@ itos config check
 A global install runs the newest release for such a config unless it pins one
 (`pin`, above). Where the project sets no `core.hooksPath`,
 `itos hooks install --manager git` writes the hooks into `.git/hooks`, out of
-the tree. For now a footer you write is in the commit message, where everyone
-sees it; keeping it in a git note instead, and hooks that run beside a
+the tree. For now a footer you write, or `itos commit --task` writes, is in
+the commit message, where everyone sees it; keeping it in a git note instead, and hooks that run beside a
 project's own, are the stealth mode's next slices (`features/stealth.feature`).
 
 ## Working on it

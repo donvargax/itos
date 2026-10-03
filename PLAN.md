@@ -321,6 +321,7 @@ built-in command and before the name for an extension.
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `task <id>…`, `--phase <g>`, `--pending`, `task list`                   | Runs the tasks' checks in written order, each distinct check once, or lists the tasks with their work items' status, running nothing; a status table.                                       |
 | `work [--as <h>]`, `work check [<file>]`                                | Who the session works for and what they can start; validates the registry.                                                                                                                  |
+| `commit [--task <id>] [--scenarios <ids>] [<git commit args>…]`         | `git commit` with the footers itos writes from its flags, as git's `--trailer`; the hooks judge them as typed ones, and git's exit code is itos's.                                          |
 | `commit check-message <file\|->`, `commit check-paths --type <t> <p>…`  | The header lint and the footer rules on one message; the scope rules alone, to plan a split.                                                                                                |
 | `commit footers <name> <from> <to>`                                     | A range's free-text footers with their commits, leaving out `none`, for a release's notes.                                                                                                  |
 | `verify <from> <to>`                                                    | Re-checks every non-merge commit of the range after `commits.since` (message with footers at that commit, paths, the built-in moves rule against its parent), then each range command once. |
@@ -349,13 +350,29 @@ a call back runs the same version. The trivial first one, `itos-hello`, is an
 example for authors in `docs/extensions.md`, not a release asset; the hand work
 (a push that waits for CI, the inbox) can follow as extensions.
 
+**itos commit** (slice 31, the user's calls of 2026-10-03): `itos commit`
+runs `git commit` with every argument but its own flags, `--task <ids>` and
+`--scenarios <ids>`, and writes from them the footer whose source is the
+ledger and the one whose source is a kind of named tests (the first of
+`commits.footers` each, found by the source, never the key), each passed as
+git's own `--trailer`, so they land whether the message comes from `-m`, `-F`
+or the editor. IDs go on lines of at most 100 characters, the key repeated,
+since a wrapped footer is read only from its first line. The hooks run as for
+any commit and judge a footer itos writes as they judge a typed one; a commit
+they refuse is not made, and itos hands back git's exit code. A first argument
+naming a subcommand (`check-message`, `check-paths`, `footers`) is that
+subcommand, anything else a commit. It is the habit an agent is pointed to
+(the plugin answers a bare `git commit` with it, §10), the other half of
+pushing through itos (`p1-itos-push`), and the one the stealth mode keeps,
+where the same lines become a note on the new commit instead (slice 32).
+
 **Exit codes:** 0 success; 1 a policy failure (a check failed, a commit
 rejected, an unknown task); 2 a usage or config error, a file or folder the
 config names that is missing or unreadable among them (the ledger's folder a
 footer reads, a smoke set); 3 a missing environment, a pinned release the
 launcher cannot fetch or check among them (§10), and an extension that cannot
-start. In `ci run` a failing step exits with its own code, and an extension's
-exit code is the run's. A missing
+start. In `ci run` a failing step exits with its own code, an extension's
+exit code is the run's, and `itos commit`'s is git's. A missing
 identity and a failing range provider are not errors.
 
 **JSON.** Every command takes `--json`: one object on stdout with
@@ -459,7 +476,9 @@ report problems as issues that are then prioritised.
 Each step is reverted, never forced, if it goes wrong. After v2, features are
 built once, in Go: extensions (`itos-<cmd>` on `PATH`; done, slice 29, §7), the stealth mode and
 the GitHub modes. The stealth mode's config in the git folder is done (slice
-30, §5); its footers in notes, its hooks and its range follow (slices 32 to 34).
+30, §5), and so is `itos commit`, which writes a commit's footers from its
+flags (slice 31, §7); the stealth mode's footers in notes, its hooks and its
+range follow (slices 32 to 34).
 
 ## 10. Distribution
 
