@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 34 (the unpushed range) landed.
+Last updated 2026-10-03, after slice 35 (a stealth config's defaults) landed: the stealth mode is done.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `ad3e576` (CI run 37097456867), slice 34's close; this
+`main` is green at `6a347ff` (CI run 37098540999), slice 35's close; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -50,7 +50,7 @@ works (the module path is `/v2` since T-061). Releases are automated
 repositories: don't change any other repository. Unreleased: slices 27 to 31
 (the launcher, `pin`, the newest release and the notice, extensions, the
 stealth config, `itos commit`, stealth footers in notes, hooks in the git
-config, the unpushed range) and
+config, the unpushed range, a stealth config's defaults) and
 the `itos version` fix (issue #2).
 From v2.1.0 on, `tools/selftest/release-notes.ts` holds every `Upgrading:`
 footer of the range to the notes.
@@ -63,13 +63,9 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
    registry (`p3-pin-bump`, `p3-launcher-subfolder`,
    `p3-launcher-cache-prune`, `p3-global-install-ci`).
 2. **Extensions** is done: slice 29.
-3. **Stealth mode**: slices 30 to 35 (`features/stealth.feature`), with
-   slice 31, `itos commit --task`, in `features/commit-command.feature`; the
-   user's answers in slice-30's why. Slices 30 to 34 and the `@bug-5` fix
-   are done. Next slice 35 (a stealth config's defaults: until then
-   it needs `hooks.bin` and a people file written). The coordinator
-   proposed cutting v2.1.0 after it; the user has not answered. `hooks.bin` itself stays through v2
-   (`v3-drop-hooks-bin`).
+3. **Stealth mode** is done: slices 30 to 35, with `itos commit` (slice 31)
+   and the `@bug-5` fix. The coordinator proposed cutting v2.1.0 now; the
+   user has not answered. `hooks.bin` stays through v2 (`v3-drop-hooks-bin`).
 4. **`p3-commit-content-flags`**: `itos commit` writes every footer a commit
    needs (`--upgrading`, `--breaking`), required ones refused up front; the
    user's design call on footers with two roles, in its why.
