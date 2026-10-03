@@ -2088,6 +2088,40 @@ items:
       stays in the repository either way, since a task's checks are commands run at a commit.
     refs: [PLAN.md]
 
+  - id: p3-pre-push-verify
+    title: The pre-push hook verifies the commits it pushes
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A commit that skipped the commit-msg hook (--no-verify, a clone without hooks) is first seen
+      by CI, once it is on main and can no longer be amended. itos verify over the pushed range
+      checks only messages and paths, well under a second, so the pre-push hook can catch it while
+      it is still the person's to fix (the user's question, 2026-10-03). CI keeps verifying the
+      range since its last green run: it is the one gate nobody can skip on their own machine.
+    refs: [itos.yaml, internal/cli/hook.go]
+
+  - id: p3-human-waiver
+    title: itos waive, a human's fix for a bad commit already on main
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [p3-claude-code-plugin]
+    kind: idea
+    why: >
+      The user's calls (2026-10-03): a bad commit on main is a human's doing, so its fix is easy
+      for a human, and moving commits.since is not. itos waive --reason "..." runs verify over the
+      commits since the last green CI run, lists the failing ones and writes them, with the
+      reason, to a waiver list in the config, committing that change itself (a SHA argument picks
+      one); verify passes a waived commit and prints its reason; CI's red verify prints the
+      command. A guardrail, not a fortress: the plugin's guard denies git commit, git push and
+      itos waive to agents, itos commit refuses a staged change to the list, and with those in
+      place a waiver is taken as a human's, with no signature, tag or note. Claude Code's sandbox
+      or Cupcake could firm the guard up later if ever needed.
+    refs: [itos.yaml, internal/cli/verify.go]
+
   - id: p3-itos-init
     title: itos init, a new or existing repository made ready for itos
     phase: 3
@@ -2133,6 +2167,8 @@ items:
       with the itos command to use (a hook, since a permission rule matches a prefix and
       git -C . commit slips past it). Its hooks call itos, so a pin picks the version. PLAN.md
       §10, "Adoption".
+      The guard is a guardrail, the user's call (2026-10-03): it stops agents that follow it,
+      not one working around it (sh -c, a script); it denies itos waive too (p3-human-waiver).
     refs: [PLAN.md]
 
   - id: slice-27
@@ -2342,7 +2378,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [slice-32]
+    depends_on: [slice-32, p3-hook-amend-paths]
     kind: idea
     why: >
       The user's calls (2026-10-03), after asking whether footers with two roles are the right
@@ -2360,6 +2396,10 @@ items:
       release cut by CI: git-cliff renders Upgrading and BREAKING-CHANGE (cliff.toml lists them),
       and itos commit footers and the release-notes footer check, which gather what generated
       notes hold by construction, are deprecated, then removed in v3.
+      Amending too (the user's question, 2026-10-03): agents amend through itos commit --amend,
+      git commit being the guard's; scenarios prove its footers are not doubled and a stealth
+      note is rewritten, and it takes in p3-hook-amend-paths, which refuses a reword-only amend of
+      a feat and made slice 34 soft-reset an unpushed commit to fix its message.
     refs: [internal/cli/gitcommit.go, cliff.toml, itos.yaml]
 
   - id: p3-hook-amend-paths
