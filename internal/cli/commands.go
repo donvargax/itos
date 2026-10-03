@@ -230,6 +230,8 @@ func hook(args []string, o Out) (int, error) {
 		return hookCommitMsg(typed(rest[0]), o)
 	case "pre-push":
 		return hookPrePush(o)
+	case "pre-tool-use":
+		return hookPreToolUse(o)
 	}
 	return 0, usage("unknown command: hook %s", sub)
 }

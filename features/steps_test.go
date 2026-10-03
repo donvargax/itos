@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -255,6 +256,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeCommitSteps(sc, w)
 	initializePushSteps(sc, w)
 	initializeShimSteps(sc, w)
+	initializeGuardSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -1492,9 +1494,16 @@ func (w *world) itosIn(dir string, args ...string) error {
 // A program run in the folder dir, its exit code and output what the Then
 // steps read.
 func (w *world) run(dir, program string, args ...string) error {
+	return w.runWith(dir, nil, program, args...)
+}
+
+// A program run in the folder dir with stdin on its standard input (none
+// when nil), as run.
+func (w *world) runWith(dir string, stdin io.Reader, program string, args ...string) error {
 	cmd := exec.Command(program, args...)
 	cmd.Dir = dir
 	cmd.Env = w.env()
+	cmd.Stdin = stdin
 	var stdout, stderr strings.Builder
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

@@ -2,7 +2,8 @@ package cli
 
 // The hooks (hooks.ts, commit-data.ts, commit-scope.ts, commit.ts,
 // commit-tasks.ts and pre-push.ts): `hook commit-msg <file>` and `hook
-// pre-push <remote> <url>`, the two entry points the shims call.
+// pre-push <remote> <url>`, the two entry points the shims call. The third,
+// `hook pre-tool-use`, is Claude Code's, not git's (pretooluse.go).
 //
 // hook commit-msg runs four rules in the TypeScript's order, and the first to
 // fail decides: itos's own data as staged, when the commit stages any, since

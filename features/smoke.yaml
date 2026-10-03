@@ -56,6 +56,10 @@
   scenarios:
     - id: "@ID-FOOT-01"
       why: the hook rejects a footer by itos's own rule with a delegate that carries none, the file's point
+- file: guard.feature
+  scenarios:
+    - id: "@ID-GUARD-03"
+      why: a git commit behind git's global options denied, naming itos commit, why the guard is a hook and not a rule
 - file: header.feature
   scenarios:
     - id: "@ID-HEADER-01"

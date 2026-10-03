@@ -74,6 +74,7 @@ Commands:
                                    FROM=<sha>: where a push's range starts
   hook commit-msg <file>           the commit-msg hook: data, paths, header lint, task checks
   hook pre-push <remote> <url>     the pre-push hook: the tests the pushed commits reach
+  hook pre-tool-use                Claude Code's PreToolUse hook: denies git commit and git push
   hooks install [--manager <m>] [--print] [--force]
                                    write the hooks' one-line shims for the hook manager
   config check [--print-defaults]  validate the config, ledger, registry and smoke sets
@@ -343,7 +344,8 @@ what the ci.range provider says if it is an ancestor of the head, else empty
 --json: {"schema":1,"from"}`,
 
 	"hook": `Usage: itos hook commit-msg <file>
-       itos hook pre-push <remote> <url>`,
+       itos hook pre-push <remote> <url>
+       itos hook pre-tool-use`,
 
 	"hook commit-msg": `Usage: itos hook commit-msg <file>
 
@@ -371,6 +373,23 @@ PRE_COMMIT_TO_REF under pre-commit or prek) and runs hooks.pre_push.per_base
 once per remote commit the push builds on, else hooks.pre_push.whole (a new
 branch, or a base this clone lacks). A deleted branch runs nothing. Exit 1
 when a command fails.`,
+
+	"hook pre-tool-use": `Usage: itos hook pre-tool-use
+
+Claude Code's PreToolUse hook, which the itos plugin runs before each Bash
+command. Reads Claude Code's JSON on stdin (tool_name, tool_input.command,
+cwd). In a repository itos manages, found from cwd (else the folder itos runs
+in) as everywhere else, a Bash command that runs git commit or git push is
+denied: exit 0 and Claude Code's deny on stdout, its reason naming itos commit
+--task <id> or --scenarios <ids>, or itos push. The command is read as bash
+reads it: each command of a list, pipeline, subshell or substitution, its
+variable assignments skipped, past command, exec, nohup and env, then git (or
+a path ending in /git), its global options (-C moves the folder judged), and
+the subcommand; text an argument carries is not a command. sh -c, eval,
+scripts, git aliases and words built from variables are not looked into.
+Everything else gets no answer (exit 0, nothing on stdout), never an allow,
+so Claude Code's permission rules decide. An input it cannot read: exit 1,
+the reason on stderr; Claude Code blocks a tool on exit 2 alone.`,
 
 	"hooks": `Usage: itos hooks install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]`,
 

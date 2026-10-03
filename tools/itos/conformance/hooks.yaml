@@ -814,3 +814,43 @@ cases:
     stdout: |
       $ echo every test
       every test
+  - name: pre-tool-use denies a git commit in an itos repository, naming itos commit
+    argv: [hook, pre-tool-use]
+    stdin: '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git commit -m x"},"cwd":"{{dir}}"}'
+    exit: 0
+    stdout: |
+      {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"git commit is itos commit in this repository: run itos commit --task <id>, or itos commit --scenarios <ids>, with the same arguments, so the commit carries the footers it needs (itos commit --help)."}}
+  - name: pre-tool-use denies a git push later in a chain, naming itos push
+    argv: [hook, pre-tool-use]
+    stdin: '{"tool_name":"Bash","tool_input":{"command":"go vet ./... && GIT_TRACE=1 git --no-pager push origin main"},"cwd":"{{dir}}"}'
+    exit: 0
+    stdout: |
+      {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"git push is itos push in this repository: run itos push, with no arguments; it pulls the upstream with a rebase, then pushes HEAD to it, never forced (itos push --help)."}}
+  - name: pre-tool-use names both commands for a commit and a push, from the folder itos runs in when the input names none
+    argv: [hook, pre-tool-use]
+    stdin: '{"tool_name":"Bash","tool_input":{"command":"git push; (cd . && command git -C . commit)"}}'
+    exit: 0
+    stdout: |
+      {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"git commit is itos commit in this repository: run itos commit --task <id>, or itos commit --scenarios <ids>, with the same arguments, so the commit carries the footers it needs (itos commit --help). git push is itos push in this repository: run itos push, with no arguments; it pulls the upstream with a rebase, then pushes HEAD to it, never forced (itos push --help)."}}
+  - name: pre-tool-use gives no answer to another git command
+    argv: [hook, pre-tool-use]
+    stdin: '{"tool_name":"Bash","tool_input":{"command":"git log --grep ''git commit''"},"cwd":"{{dir}}"}'
+    exit: 0
+    stdout: ""
+  - name: pre-tool-use gives no answer to a git commit -C names outside the repository
+    argv: [hook, pre-tool-use]
+    stdin: '{"tool_name":"Bash","tool_input":{"command":"git -C / commit -m x"},"cwd":"{{dir}}"}'
+    exit: 0
+    stdout: ""
+  - name: pre-tool-use gives no answer to another tool
+    argv: [hook, pre-tool-use]
+    stdin: '{"tool_name":"Write","tool_input":{"file_path":"{{dir}}/git","content":"git commit"},"cwd":"{{dir}}"}'
+    exit: 0
+    stdout: ""
+  - name: pre-tool-use cannot read a Bash input with no command, and exits 1
+    argv: [hook, pre-tool-use]
+    stdin: '{"tool_name":"Bash","tool_input":{}}'
+    exit: 1
+    stdout: ""
+    stderr: |
+      itos: hook pre-tool-use cannot read Claude Code's PreToolUse input on stdin: the Bash tool's input has no command

@@ -21,13 +21,13 @@ Feature: itos hook pre-tool-use, Claude Code's guard against git commit and git 
   Background:
     Given a repository whose ledger has the task "T-001"
 
-  @ID-GUARD-01 @slice-42 @wip
+  @ID-GUARD-01 @slice-42
   Scenario: In an itos repository an agent's git commit is denied, the reason naming itos commit
     When Claude Code asks itos about the Bash command "git commit -m 'chore: tidy the readme'"
     Then itos exits with code 0
     And itos denies the command, its reason saying "itos commit --task"
 
-  @ID-GUARD-02 @slice-42 @wip
+  @ID-GUARD-02 @slice-42
   Scenario: In an itos repository an agent's git push is denied, the reason naming itos push
     When Claude Code asks itos about the Bash command "git push origin main"
     Then itos exits with code 0
@@ -35,19 +35,19 @@ Feature: itos hook pre-tool-use, Claude Code's guard against git commit and git 
 
   # A permission rule matches a command's prefix, which is why this is a
   # hook: git -C . commit and git -c key=value push slip past a rule.
-  @ID-GUARD-03 @slice-42 @wip
+  @ID-GUARD-03 @slice-42
   Scenario: git's options before the subcommand do not hide it
     When Claude Code asks itos about the Bash command "git -C . -c core.editor=true commit -m 'chore: tidy the readme'"
     Then itos exits with code 0
     And itos denies the command, its reason saying "itos commit"
 
-  @ID-GUARD-04 @slice-42 @wip
+  @ID-GUARD-04 @slice-42
   Scenario: A git push later in a chain of commands is denied
     When Claude Code asks itos about the Bash command "go vet ./... && git pull --rebase && git push"
     Then itos exits with code 0
     And itos denies the command, its reason saying "itos push"
 
-  @ID-GUARD-05 @slice-42 @wip
+  @ID-GUARD-05 @slice-42
   Scenario: From a subfolder of an itos repository the command is still denied
     Given a "sub" folder
     When Claude Code asks itos about the Bash command "git commit -m 'chore: tidy the readme'" run in "sub"
@@ -56,26 +56,26 @@ Feature: itos hook pre-tool-use, Claude Code's guard against git commit and git 
 
   # No answer, not an allow: an allow would skip the person's own permission
   # rules for every command the guard lets through.
-  @ID-GUARD-06 @slice-42 @wip
+  @ID-GUARD-06 @slice-42
   Scenario: Every other git command gets no answer
     When Claude Code asks itos about the Bash command "git status --short && git log --oneline -3"
     Then itos exits with code 0
     And itos writes nothing to stdout
 
-  @ID-GUARD-07 @slice-42 @wip
+  @ID-GUARD-07 @slice-42
   Scenario: A command that only names git commit in its arguments gets no answer
     When Claude Code asks itos about the Bash command "grep -n 'git commit' AGENTS.md"
     Then itos exits with code 0
     And itos writes nothing to stdout
 
-  @ID-GUARD-08 @slice-42 @wip
+  @ID-GUARD-08 @slice-42
   Scenario: In a repository itos does not manage git commit gets no answer
     Given a repository with no itos config, its change to "notes.md" staged
     When Claude Code asks itos about the Bash command "git commit -m 'whatever I like'" in that repository
     Then itos exits with code 0
     And itos writes nothing to stdout
 
-  @ID-GUARD-09 @slice-42 @wip
+  @ID-GUARD-09 @slice-42
   Scenario: A tool other than Bash gets no answer
     When Claude Code asks itos about the tool "Edit" on the file "README.md"
     Then itos exits with code 0
@@ -83,7 +83,7 @@ Feature: itos hook pre-tool-use, Claude Code's guard against git commit and git 
 
   # Claude Code blocks the tool on exit code 2 and goes on after any other
   # failure, so a guard that cannot read its input must not exit 2.
-  @ID-GUARD-10 @slice-42 @wip
+  @ID-GUARD-10 @slice-42
   Scenario: An input itos cannot read blocks nothing
     When Claude Code sends itos "not json" as a PreToolUse input
     Then itos exits with code 1
