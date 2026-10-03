@@ -158,7 +158,7 @@ command line.
 | **Plan**                 | What a CI run executes and in what order, computed without side effects from the range, the config, the ledger and the registry. `ci plan --json` prints it.                                                                                                                                                                                                         |
 | **Work registry**        | `work-items.yaml` beside the ledger, `tasks/work-items.yaml` by default (`work.registry`'s default): group owners and **work items** (owner, status, dependencies, kind). A named task whose item is `todo` waits in CI.                                                                                                                                             |
 | **People source**        | Who may own work: the All Contributors table in `CONTRIBUTORS.md`, `.all-contributorsrc`, or a YAML list.                                                                                                                                                                                                                                                            |
-| **Identity provider**    | Who a session works for: `--as`, else the provider (`gh api user`, a command, none).                                                                                                                                                                                                                                                                                 |
+| **Identity provider**    | Who a session works for: `--as`, else the provider (`gh api user`, a command, none); under a stealth config, with no `--as`, nobody is asked and the session owns every item.                                                                                                                                                                                        |
 
 **Why written order, not `needs:`.** A cost class read from a command alone
 once ran a check before the check above it that wrote the file it read.
@@ -186,7 +186,12 @@ project's paths (a kind's tests, the globs, the commands) stay the root's. Its
 defaults fit one person, whatever it says (slice 35, the user's calls of
 2026-10-03): `hooks.bin` is `itos`, the global launcher, so its hooks call
 that, and no people file is read, the person being the only one, so no owner
-is checked and any session is listed. A project's `hooks.bin` default stays
+is checked and any session is listed. For the same reason `itos work` with no
+`--as` looks nobody up, neither gh nor a `work.identity` command, and treats
+every item as the session's, whatever owner it names (slice 38, the user's call
+of 2026-10-03): owners stay in the registry as written and stop deciding what
+is proposed, and `--as` still proposes a handle's items by owner, as in a
+project. A project's `hooks.bin` default stays
 `tools/bin/itos` through v2 (`v3-drop-hooks-bin`). A config is the stealth one by where it is, so an extension's
 call back reads the same files; one anywhere else that `--config` or
 `ITOS_CONFIG` names resolves its paths from the root, as it always has. Since
@@ -558,7 +563,8 @@ unpushed commits (slice 34, §7), and its defaults, one person's: the global
 `itos` in its hooks and no people file (slice 35, §5). `itos commit` tells
 the hook an amend, which it guessed before (slice 37, §7), and writes every
 footer a commit needs, refusing one that lacks a required footer before git
-runs (slice 36, §7).
+runs (slice 36, §7). A stealth session owns every item, `itos work` looking
+no identity up (slice 38, §5).
 
 ## 10. Distribution
 

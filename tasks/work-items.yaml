@@ -2513,8 +2513,10 @@ items:
       Found in slice 35: a stealth config's hooks.bin is itos and it reads no people whatever it
       says, so a hooks.bin or a work.people written in it (README.md's example set both until then)
       is accepted and silently ignored, which config.feature's rule, every key accepted is one a
-      tool reads, forbids for a project. config check could warn of each, as it warns of a
-      missing people file, with a scenario.
+      tool reads, forbids for a project. Slice 38 adds work.identity: itos work under a stealth
+      config asks no provider, --as or not, so nothing reads it there, yet --print-defaults still
+      prints the github one. config check could warn of each, as it warns of a missing people
+      file, with a scenario.
     refs: [internal/config/defaults.go, internal/cli/configcheck.go, features/stealth.feature]
 
   - id: p3-pr-rebase-merge
@@ -2538,7 +2540,7 @@ items:
     title: A stealth session owns every item, with no identity to look up
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-35]
     kind: slice
     why: >

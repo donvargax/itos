@@ -113,6 +113,11 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   name on the scenario's `PATH` that runs the itos under test (a link would
   not do: `tools/bin/itos` finds its checkout from its own path), and runs
   it once, so a hook that cannot start does not pass for one that refuses.
+  That `PATH` folder is `binOnPath`'s, the support folder's `bin` put first
+  once for every stand-in a scenario writes there; "no identity can be
+  looked up" writes a signed-out `gh` in it, the scratch config naming no
+  `work.identity`, so a `work` that asked anyone would find nobody
+  (slice 38).
   A remote is a bare repository in the support folder that the scratch
   repository pushes its branch to with `origin` set, so `--remotes` sees it
   and the itos notes stay behind; a task's check in a stealth ledger is
@@ -287,7 +292,8 @@ each, and holds it since the TypeScript left (T-062).
 - **The world outside the repository** is three providers
   (`providers.ts`): where a push's range starts (`ci.range`: the last green
   run on GitHub, a command, or none), who a session works for
-  (`work.identity`: `gh api user`, a command, or only `--as`), and who works
+  (`work.identity`: `gh api user`, a command, or only `--as`; never asked
+  under a stealth config, whose session owns every item), and who works
   on the project (`work.people`).
 - **Where verification starts** (`commits.since`, `repo.ts`): `verify`, and
   with it the built-in moves rule, lists a range's commits less that commit
@@ -504,7 +510,9 @@ mechanisms above, written against those modules, read across.
   same files when it calls back. `Load` marks it `Stealth`, lays its own
   defaults over the file (`stealthOnly`, slice 35: `hooks.bin` is `itos`, the
   global launcher, so the hooks `hooks install` declares call it, and there
-  is no `work.people`, the person being the only one), and `beside`
+  is no `work.people`, the person being the only one; `work` with no `--as`
+  asks no identity provider and gives the session every item, slice 38,
+  below), and `beside`
   rewrites the paths of itos's own data, `ledger.files`, `work.registry` and
   each kind's `smoke.file`, into its folder; a kind's
   `root`, the globs and the commands stay the root's, being the project's.
@@ -819,7 +827,12 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   when there is one), which never sets its exit code and is no finding of
   the commit-msg hook's check of staged data. `work` runs that check
   quietly, its problems on stderr even
-  under `--json`, then `Whoami`: `--as`, which must be among the people when
+  under `--json`, then, under a stealth config with no `--as`, no lookup at
+  all: `ProposeEvery` is the proposal of a session that owns every item,
+  whatever owner it or its group names, nothing unowned, the text saying so
+  and `--json` adding `every_item: true` after a null `person`, a key no
+  other proposal has (slice 38, the person being the only one). Otherwise
+  `Whoami`: `--as`, which must be among the people when
   there are any (exit 3), else the `work.identity` provider, an `Identity` function made
   by `IdentityProvider` (`internal/providers/identity.go`) that answers a
   handle or why it has none, never an error: `command` through `FirstLine`,

@@ -178,8 +178,10 @@ are read beside it, in that folder, which git never commits; a `Task:` footer
 is checked against that ledger at every commit, even with `read_at: commit`,
 since no commit carries it. Its defaults fit one person, whatever it says of
 them: its hooks call `itos`, the global install (`hooks.bin`), and no people
-file is read, since you are the only one, so `itos work` takes whoever you
-are and checks no owner. Should the project adopt itos, its own `itos.yaml` in
+file is read, since you are the only one, so no owner is checked, and
+`itos work` asks nobody who you are (neither gh nor a `work.identity` command)
+and proposes every item as yours, whatever owner it names; `itos work --as
+<handle>` still shows what that handle owns. Should the project adopt itos, its own `itos.yaml` in
 the root wins.
 
 ```sh
