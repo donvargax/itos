@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after T-066 landed.
+Last updated 2026-10-03, after T-067 landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `8944cb9` (CI run 37129524882), T-066's close; this
+`main` is green at `3042fca` (CI run 37130336621), T-067's close; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -57,30 +57,35 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
    `p3-finish-with-itos-push`, whether this repository's finishing routine
    switches to `itos push`; and `p3-shim-push-args` (`git push` takes no
    arguments through the shim), small, when it bites.
-2. **Toward v2.3.0, adoption**: the plugin (PLAN.md §10, "Adoption") is on
-   `main`: slices 42 to 44 (the guard, `itos work list`, the guard under an
-   old pin) and T-066 (the marketplace and the plugin). Open for the user:
-   release v2.3.0 now with the plugin, moving pre-push verify, the waiver and
-   `itos init` to v2.4.0 (the coordinator's recommendation: the plugin needs
-   an itos with the guard and `work list` on the PATH), or keep v2.3.0 as
-   planned. T-066 left `p3-plugin-project-itos`, `p3-agents-through-itos`
-   (this repository's own docs still say git commit and git push, which the
-   guard denies once an itos 2.3.0 is on the PATH) and `p3-plugin-type-check`.
-   **T-067**, the dependency check (Go modules younger than 7 days refused,
-   govulncheck), is specified and next for an agent.
-3. **`p3-pre-push-verify`** and **`p3-human-waiver`** (`itos waive`, a
-   plain config list; the guard keeps agents off it).
-4. **`p3-itos-init`**, after `p3-pin-bump`: ties the above together.
+2. **v2.3.0, the plugin** (PLAN.md §10, "Adoption"), on `main`: slices 42
+   to 44 (the guard, `itos work list`, the guard under an old pin) and T-066
+   (the marketplace and the plugin). Before the release,
+   **`p3-agents-through-itos`**: this repository's AGENTS.md and
+   docs/ORCHESTRATING.md still say git commit and git push, which the guard
+   denies once an itos 2.3.0 is on the PATH. Then the release task.
+   T-066 also left `p3-plugin-project-itos` and `p3-plugin-type-check`.
+3. **v2.4.0**: **`p3-pre-push-verify`**, **`p3-pin-bump`** and
+   **`p3-itos-init`**.
+4. **After v2.4.0**: **`p3-human-waiver`** (`itos waive`, a plain config
+   list; the guard keeps agents off it), the user's call (2026-10-03).
 5. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
    open for the user).
 
-Releases, the user's plan (2026-10-03): v2.1.0 and v2.2.0 released (global
-install, extensions, the stealth mode, `itos commit`); v2.2.0, git through
-itos (slices 39 to 41); v2.3.0,
-adoption (the plugin, `p3-pre-push-verify`, `p3-human-waiver`,
-`p3-itos-init`); v3.0.0 the breaking cleanup (`v3-drop-hooks-bin`, the
-notes gathering once git-cliff writes them). The user moves the other
-repositories at v2.3.0, so v2.1.0 and v2.2.0 ask nothing of them.
+T-067, the dependency check, landed (`tools/bin/deps-check`: Go modules
+younger than 7 days refused unless excepted in `deps-check.json`, then
+govulncheck, at a commit staging go.mod or go.sum and in CI); it left
+`p3-nightly-govulncheck` and `p3-ci-step-paths`. It may move to an
+itos-security extension once the user's repository template is ready
+(`p3-extension-pins`).
+
+Releases, the user's plan (2026-10-03): v2.1.0 and v2.2.0 released; v2.3.0
+the plugin and the guard; v2.4.0 pre-push verify, the pin bump and
+`itos init`; the waiver after it; v3.0.0 the breaking cleanup
+(`v3-drop-hooks-bin`, the notes gathering once git-cliff writes them).
+Open for the user: whether the other repositories move at v2.3.0, by hand
+from the Upgrading sections, or at v2.4.0 with `p3-pin-bump` (`itos init`
+as specified only reports what an existing repository lacks; it migrates
+nothing).
 
 Each is specified as scenarios when its turn comes. Left for later, the
 user's: the release cut by CI (`p1-itos-release`), which the user solves
