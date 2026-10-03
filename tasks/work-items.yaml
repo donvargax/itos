@@ -2266,14 +2266,21 @@ items:
       Planned for v2.2.0, with itos push and the subfolder lookup.
     refs: [features/shim.feature]
 
-  - id: p3-itos-init
-    title: itos init, a new or existing repository made ready for itos
+  - id: slice-48
+    title: itos init writes a starter config and installs the hooks, and run again reports what is missing
     phase: 3
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-33, T-066, slice-47]
-    kind: idea
+    kind: slice
     why: >
+      Was p3-itos-init. Specified as @ID-INIT-01 to 09 in features/init.feature. The user's calls
+      (2026-10-03): three slices, this one the config, the hooks, --stealth and the report; 49
+      offers the Claude Code plugin; 50 offers the git shim and reports a pin behind the newest
+      release and a missing people file. The config written is a starter: the Conventional
+      Commits types, a Task footer for every type but feat and fix, a ledger and registry under
+      tasks/, a scenario kind with its footer and a smoke set when feature files exist, no path
+      scopes. init is the launcher's own command, as itos pin is, and pins the newest release.
       The user's idea (2026-10-03): one command readies a repository, new (git init first) or
       existing: an itos.yaml from what it detects (commits.since at HEAD, the hook manager, a
       ledger and a registry, a smoke set when feature files exist, a pin on the running version),
@@ -2722,7 +2729,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [p3-itos-init]
+    depends_on: [slice-48]
     kind: idea
     why: >
       The user's call (2026-10-03), low priority, for when the first pull request comes: an itos
@@ -3110,3 +3117,50 @@ items:
       now needs next. A change to what the notice says is a feat with a scenario in
       update.feature.
     refs: [internal/launch/update.go, features/update.feature]
+
+  - id: p3-init-agent-rules
+    title: itos init writes the config's rules for agents as a generated block in AGENTS.md
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-48]
+    kind: idea
+    why: >
+      The user's call (2026-10-03): init readies agents too, for a repository adopting itos that
+      cannot start from the project template. How to work with itos stays in the plugin's skill,
+      versioned with itos, and AGENTS.md points to it; what the config decides (the commit types,
+      the footer each needs, the path scopes, what each gate runs) is generated from itos.yaml
+      into a marked block in AGENTS.md (<!-- itos:begin --> … <!-- itos:end -->), with a one-line
+      @AGENTS.md import in CLAUDE.md for Claude Code. init writes it, a rerun regenerates only
+      inside the markers, and the doctor run reports a block the config no longer matches. A
+      project file without the markers gets the block only after asking on a terminal, or with
+      a flag for an agent. Under --stealth (the user's calls, 2026-10-03), nothing tracked is
+      touched and every file written is listed in .git/info/exclude: the rules go to
+      <git common dir>/itos/AGENTS.md, shared by every worktree; Claude Code gets a CLAUDE.local.md
+      whose block imports @AGENTS.md (when the project has one, since a CLAUDE.local.md otherwise
+      stops Claude Code reading it) and that file; Codex, which has no imports and reads one file
+      per folder with AGENTS.override.md winning, gets an AGENTS.override.md that itos creates
+      holding a marked copy of the project's AGENTS.md (<!-- itos:agents-md:begin --> … end) and
+      the rules block. An AGENTS.override.md or CLAUDE.local.md that already exists is the
+      person's: it gains only the rules block, after asking, never the copy. A rerun refreshes
+      the blocks it finds, and the doctor reports a copy that no longer matches AGENTS.md or
+      rules that no longer match the config. Codex's file is always AGENTS.override.md, never an
+      AGENTS.md (the user's call): with no AGENTS.md to copy it holds the rules block alone, and
+      an untracked AGENTS.md would make git refuse the pull the day the project adds its own.
+    refs: [PLAN.md, integrations/claude-code/skills/itos/SKILL.md]
+
+  - id: p3-init-orchestration
+    title: itos init --agents writes the orchestration files, the project's own from then on
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [p3-init-agent-rules]
+    kind: idea
+    why: >
+      The user's call (2026-10-03): the coordinator and implementer split, docs/ORCHESTRATING.md,
+      docs/HANDOFF.md and the brief template go into itos init behind a flag (or a question on a
+      terminal), written once as the project's own files, never over an existing one and never
+      managed after, only reported missing. It is a way of running agents rather than a rule
+      itos enforces, so it is flagged to move into an extension of its own later. Pairs with
+      p1-work-brief, which fills the brief template from the registry.
+    refs: [docs/ORCHESTRATING.md, docs/HANDOFF.md]

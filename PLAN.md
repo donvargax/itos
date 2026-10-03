@@ -779,7 +779,13 @@ the user (only the user, or `settings.local.json`, in stealth mode, since the pr
 are committed), asking only on a terminal, a flag answering for an agent, and
 offers the git shim (§7) the same way, which `itos git-shim install` makes. Run again, it changes
 nothing and reports what is missing (hooks, the git config-based hooks need, the plugin, a pin
-behind the newest), so it doubles as a doctor.
+behind the newest), so it doubles as a doctor. Agents too (the user's calls, 2026-10-03): the
+config's rules are generated into a marked block of `AGENTS.md`, itos touching only what is inside
+its markers, how to work with itos staying in the plugin's skill; `--agents` writes the
+orchestration files (the coordinator's guide, the handoff, the brief template) once, as the
+project's own, a candidate to move into an extension later; under `--stealth`, Claude Code gets a
+`CLAUDE.local.md` importing the rules and Codex an `AGENTS.override.md` holding a copy of the
+project's `AGENTS.md` beside them, both listed in `.git/info/exclude`.
 
 v0 releases are the TypeScript packed to JavaScript, since Node strips types
 only outside `node_modules`, published as a tarball a consumer pins.
