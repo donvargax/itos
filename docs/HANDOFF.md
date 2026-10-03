@@ -55,12 +55,14 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 
 1. **v2.1.0 and v2.2.0 are out.** Open: `p3-shim-push-args` (`git push`
    takes no arguments through the shim), small, when it bites.
-2. **v2.3.0, the plugin** (PLAN.md §10, "Adoption"), on `main`: slices 42
-   to 44 (the guard, `itos work list`, the guard under an old pin) and T-066
-   (the marketplace and the plugin). This repository's
-   rules now commit and push through `itos commit` and `itos push` (the
-   user's call, 2026-10-03). Next **T-068**, the release.
-   T-066 also left `p3-plugin-project-itos` and `p3-plugin-type-check`.
+2. **v2.3.0 is tagged** (`1435336`, CI red only at T-068's download check,
+   nightly 37131118750 green on it); the release workflow's run was not
+   watched, the coordinator's watch denied by the permission check: confirm it
+   published, then close T-068 (the download check, README's install lines).
+   Then **T-069**, the user's call (2026-10-03): a push to `main` carrying a
+   `feat` or a `fix` with CI green cuts the release itself (version from the
+   commits, GoReleaser, attestations, generated notes, no commit by the
+   releaser), before v2.4.0's slices, so v2.4.0 is the first cut by CI.
 3. **v2.4.0**: **`p3-pre-push-verify`**, **`p3-pin-bump`** and
    **`p3-itos-init`**.
 4. **After v2.4.0**: **`p3-human-waiver`** (`itos waive`, a plain config
@@ -84,9 +86,8 @@ from the Upgrading sections, or at v2.4.0 with `p3-pin-bump` (`itos init`
 as specified only reports what an existing repository lacks; it migrates
 nothing).
 
-Each is specified as scenarios when its turn comes. Left for later, the
-user's: the release cut by CI (`p1-itos-release`), which the user solves
-elsewhere and ports back, and with it `p3-release-signatures`. Waiting, none
+Each is specified as scenarios when its turn comes. Left for later:
+`p3-release-signatures`, the launcher checking T-069's attestations itself. Waiting, none
 blocking: issues #3 and #4 (`p1-smoke-run-arguments`,
 `p1-ledger-pattern-static-after-late`), `p1-verify-with-last-release`, the
 HTTP providers (after `p1-conformance-http`), `p2-no-workflow-labels-check`,

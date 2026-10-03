@@ -272,3 +272,44 @@
       timeout: 300
     - run: sh -c 'd=$(mktemp -d) && gh release download v2.3.0 --dir "$d" --pattern "itos-2.3.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
       after: push
+
+- id: T-069
+  type: ci
+  title: A push to main whose CI is green cuts a release when it carries a feat or a fix
+  why: >
+    Was p1-itos-release. The user's calls (2026-10-03): releases happen about daily and each was
+    two agents and an hour of hand steps (notes, a version bump, a CI run red by design, a nightly
+    dispatched by hand, the tag, a checksum download, a README commit, a closing commit), so the
+    release is cut by CI as soon as a feat or a fix lands, the version computed from the commits
+    (option B): feat a minor, fix a patch, BREAKING-CHANGE or a ! a major, nothing releasable no
+    release. When CI is green on a push to main, a release job of its own (the only one given
+    contents: write, id-token: write and attestations: write, one at a time so pushes in a row
+    cut their releases in order) first runs what a push's CI leaves to the nightly and a release
+    can afford, every feature and the release build's proof, then computes the next version from
+    the commits since the last tag (svu or git-cliff --bumped-version, a pinned binary or action,
+    not an npm package), tags it, publishes with GoReleaser, and attests the archives with
+    actions/attest-build-provenance (Sigstore, no keys; gh attestation verify checks them), all
+    in that one workflow, since a tag pushed with the workflow's token starts no other. The releaser never commits. The tag
+    is the version: GoReleaser stamps the binary from it; tools/bin/itos stamps a local build
+    from git describe so it sorts above the last tag and below the next release (2.3.1-dev.5+g…
+    after v2.3.0), so the pin and requires checks keep working; package.json's version stops
+    being itos's, and release.yml's tag-equals-version check and its tag trigger go. The
+    archives, their names and checksums.txt stay as the launcher, the pin, go install and the
+    install script read them today. The notes are generated, not committed: git-cliff over the
+    range, grouped by type, every Upgrading footer quoted in the Upgrading section, plus a
+    template for the install lines and the schema line, published as the release's
+    description; the release-notes check proves the generated notes against the range, and
+    docs/releases/ keeps the past releases' files. README's install lines and hashes go, for a
+    link to the latest release, so nothing needs a commit after a release. The Claude Code
+    plugin is decoupled from itos's version (it may move to a repository of its own with its own
+    rules): its version stops following itos and the release self-test stops comparing them.
+    The tools the workflow runs are pinned, each version at least 7 days old (T-067's rule). No
+    task per release any more, no after-push download check red by design: a release's proof is
+    the workflow itself, and the first release it cuts proves this task. p3-release-signatures
+    keeps the launcher checking the attestations itself, later. docs/ORCHESTRATING.md's release
+    lessons and PLAN.md's releases section say the new way.
+  done_when:
+    - run: node tools/selftest/release-cut.ts
+      timeout: 900
+    - run: sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'
+      after: push

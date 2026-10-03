@@ -1188,25 +1188,19 @@ items:
       itos status could print what HANDOFF's "Where things stand" holds by hand: main's last green
       run, the last nightly, the unreleased commits since the last tag.
 
-  - id: p1-itos-release
-    title: itos release prepare, tag and close
-    phase: 1
+  - id: T-069
+    title: A push to main whose CI is green cuts a release when it carries a feat or a fix
+    phase: 3
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
-      T-027 and T-033 ran the same sequence: take the task, write the notes, bump the version, a
-      push red by design at the after-push download check, the user's review, tag, watch
-      release.yml, download and checksum the tarball, and a closing commit moving README's install
-      line and marking the task done. itos release prepare|tag|close could do the mechanical parts;
-      the user asked (2026-10-02) for the whole release to run from CI/CD, a follow-up to phase 3:
-      a version bump landing green on main cuts the tag and publishes, with no hand step;
-      with p1-ci-after-push-checks the red-by-design run would read as pending instead.
-      The notes stay prose for a consumer's session; git-cliff, which vp run changelog already
-      runs, could draft them from the commits and their Upgrading footers, and
-      tools/selftest/release-notes.ts prove the draft misses none (the user's question,
-      2026-10-03).
+      Was p1-itos-release, the user's call (2026-10-03): the version computed from the commits,
+      cut as soon as a feat or a fix lands green on main, with GoReleaser and attested, no commit
+      by the releaser. The task is
+      T-069 in tasks/phase-3.yaml.
+    refs: [tasks/phase-3.yaml, .github/workflows/nightly.yml, .github/workflows/release.yml]
 
   - id: slice-16
     title: The nightly runs every done task's checks
@@ -2393,7 +2387,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [slice-27, p1-itos-release]
+    depends_on: [slice-27, T-069]
     kind: idea
     why: >
       The user's call (2026-10-02): the launcher trusts checksums over HTTPS for now, and a pin's
