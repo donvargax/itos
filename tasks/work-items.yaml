@@ -1226,20 +1226,17 @@ items:
       T-069 in tasks/phase-3.yaml.
     refs: [tasks/phase-3.yaml, .github/workflows/nightly.yml, .github/workflows/release.yml]
 
-  - id: p3-plugin-version
-    title: The Claude Code plugin's version moves when the plugin changes
+  - id: T-074
+    title: A change to the Claude Code plugin raises the plugin's version, checked in CI
     phase: 3
-    owner: null
+    owner: donvargax
     status: todo
-    depends_on: [T-069]
-    kind: idea
+    depends_on: [T-073]
+    kind: task
     why: >
-      T-069 left it: the plugin's version is its own now (2.3.0 in its plugin.json), no longer
-      bumped with itos's, and Claude Code offers an update only when that version changes, so a
-      change to integrations/claude-code/ reaches no one until a chore commit bumps it. Either a
-      rule (a commit touching the plugin bumps its version, a check a command can decide) or the
-      plugin's own repository with its own releases, the user's open call.
-    refs: [integrations/claude-code/.claude-plugin/plugin.json, PLAN.md]
+      Was p3-plugin-version, the user's call (2026-10-03): a checked bump rule, the plugin's own
+      semver, 2.4.0 first to ship T-073. The task is T-074 in tasks/phase-3.yaml.
+    refs: [tasks/phase-3.yaml, integrations/claude-code/.claude-plugin/plugin.json]
 
   - id: p3-release-notes-bodies
     title: A release's generated notes say what each feat and fix does, not only its header

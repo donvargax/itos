@@ -19,7 +19,7 @@ Last updated 2026-10-03, after slice 45 landed and v2.4.0 was cut by CI.
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `05b8bf6` (CI run 37145139905, every job: `ci`, the
+`main` is green at `ec14add` (CI run 37146297010, every job: `ci`, the
 three `platform` jobs, `release`). Since T-062 itos is Go only,
 `tools/bin/itos` the Go binary every gate calls (`hooks.bin`, internal and
 unsupported for consumers); Node stays as this repository's dev tooling. Every
@@ -52,11 +52,12 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 
 1. **v2.1.0 and v2.2.0 are out.** Open: `p3-shim-push-args` (`git push`
    takes no arguments through the shim), small, when it bites.
-2. **Next**: slice 45 (`itos config get`) landed and cut v2.4.0 by
-   itself; **T-073** (the plugin runs what `hooks.bin` names, asked with
-   `itos config get`), then the adoption slices below. Ideas left:
+2. **Next**: slice 45 (`itos config get`, v2.4.0) and T-073 (the plugin
+   runs what `hooks.bin` names) landed; **T-074** (a plugin change must
+   raise the plugin's own version, checked in CI; 2.4.0 first, shipping
+   T-073), then the adoption slices below. Ideas left:
    `p3-guard-windows-paths` (the guard reads a Git Bash `/c/…` folder as
-   relative), `p3-plugin-version`, `p3-release-notes-bodies`,
+   relative), `p3-release-notes-bodies`,
    `p3-version-prerelease`, `p3-changes-at-commit`, `p3-config-21-own-value`
    (fold into the next feat or fix touching config.feature). Deferred until
    itos-cc is published: `p3-role-protocol`, `p3-debt-role`,

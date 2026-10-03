@@ -473,3 +473,23 @@
     - run: claude plugin validate --strict integrations/claude-code
     - run: claude plugin test integrations/claude-code
       timeout: 300
+
+- id: T-074
+  type: ci
+  title: A change to the Claude Code plugin raises the plugin's version, checked in CI
+  why: >
+    Was p3-plugin-version, the user's call (2026-10-03): since T-069 the plugin's version is its
+    own (plugin.json, 2.3.0) and Claude Code offers an update only when it changes, so T-073's
+    change, and every plugin change after it, reached no installed plugin. A commit range that
+    changes anything under integrations/claude-code/ must raise plugin.json's version above
+    what it was at the range's start, as semver for the plugin itself (a new behaviour a minor,
+    a fix a patch); the check names the files changed and the version to raise, and passes a
+    range that leaves the plugin alone. A Go check, standard library only, under tools/bin/ (as
+    T-070's and T-071's are), a step of itos.yaml's ci reading the range. The first bump, to
+    2.4.0, ships T-073 (the plugin running what hooks.bin names). Manual, but impossible to
+    forget, and it keeps working if the plugin moves to a repository of its own. Its self-test
+    proves a range that changes the plugin without a bump refused, one with a bump passed, a
+    lower or equal version refused, and a range that leaves the plugin alone passed.
+  done_when:
+    - run: node tools/selftest/plugin-version.ts
+      timeout: 300
