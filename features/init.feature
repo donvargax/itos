@@ -21,8 +21,8 @@ Feature: itos init, a repository made ready for itos
   (the config's problems, a hook not installed) and exits 1 when anything
   is, 0 when nothing is, so run again it doubles as a check. init is the
   launcher's own command, as itos pin is: where there is no config there is
-  no pin to hand the run to. Slice 49 offers the Claude Code plugin (below);
-  offering the git shim and saying a pin has fallen behind are slice 50.
+  no pin to hand the run to. Slice 49 offers the Claude Code plugin, and
+  slice 50 the git shim and what a rerun notes beside what is missing (below).
 
   # The repository has a commit and no itos file at all; the scenarios
   # without a release server cannot reach one, so init pins nothing there.
@@ -210,15 +210,15 @@ Feature: itos init, a repository made ready for itos
   # nothing is installed and the report says how. The report also says, never
   # counting them as missing, a pin behind the newest release (naming itos
   # pin) and a people file the config names but the repository lacks.
-  @ID-INIT-18 @slice-50 @wip
+  @ID-INIT-18 @slice-50
   Scenario: With --git-shim init links itos as git in the folder given
     Given a repository that does not use itos, its one commit "docs: start"
     And a "shims" folder
     When itos runs "init --git-shim --git-shim-dir shims"
     Then itos exits with code 0
-    And "shims/git" is a link to itos
+    And "shims/git" runs itos
 
-  @ID-INIT-19 @slice-50 @wip
+  @ID-INIT-19 @slice-50
   Scenario: Away from a terminal and with no --git-shim, init links nothing and says how to
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "init"
@@ -252,7 +252,7 @@ Feature: itos init, a repository made ready for itos
   # with nothing to name. Where no scenario carries an ID tag, init writes the
   # scenario kind without requiring the footer, and says how to tag a
   # scenario so that it can be required.
-  @ID-INIT-22 @slice-50 @wip
+  @ID-INIT-22 @slice-50
   Scenario: With feature files whose scenarios carry no ID tag, a feat needs no Scenarios footer, and init says how to tag them
     Given a repository that does not use itos, its one commit "docs: start"
     And the feature file "features/pages.feature" with a scenario that has no tag

@@ -34,6 +34,7 @@ func initializeInitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a repository that does not use itos, its one commit "([^"]*)"$`, w.repositoryWithoutItos)
 	sc.Step(`^a folder that is not a git repository$`, w.folderWithoutGit)
 	sc.Step(`^the feature file "([^"]*)" with the scenario "([^"]*)"$`, w.untrackedFeatureFile)
+	sc.Step(`^the feature file "([^"]*)" with a scenario that has no tag$`, w.untaggedFeatureFile)
 	sc.Step(`^the file "([^"]*)" is removed$`, w.removeFile)
 	sc.Step(`^a claude on the PATH that records its arguments$`, func() error { return w.fakeClaude("", false) })
 	sc.Step(`^a claude on the PATH that records its arguments, writing \.claude/settings\.local\.json as claude does$`,
@@ -69,6 +70,12 @@ func (w *world) folderWithoutGit() error {
 // scenario, neither staged nor committed: a project's own, before itos.
 func (w *world) untrackedFeatureFile(path, id string) error {
 	return w.write(path, featureText(filepath.Base(path), id))
+}
+
+// A feature file at the path with one scenario and no tag at all, neither
+// staged nor committed: a Cucumber project's own, which names no test.
+func (w *world) untaggedFeatureFile(path string) error {
+	return w.write(path, "Feature: "+filepath.Base(path)+"\n\n  Scenario: a page opens\n    When it opens\n")
 }
 
 func (w *world) removeFile(path string) error {

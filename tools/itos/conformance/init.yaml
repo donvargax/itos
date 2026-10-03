@@ -1,15 +1,30 @@
-# itos init (slices 48 and 49, features/init.feature): the starter it writes
+# itos init (slices 48 to 50, features/init.feature): the starter it writes
 # where there is no config, what it reports where one is there, and the
-# offer of the itos plugin for Claude Code. No release server answers here,
+# offers of the itos plugin for Claude Code and of the git shim. No release server answers here,
 # so it pins nothing and says how to. The runner's own claude is hidden; a
 # case that has one writes it in the git folder, which records what it was
 # given in .git/claude-args.
 cases:
-  - name: init takes only --stealth
+  - name: init refuses an argument it does not take, naming what it takes
     argv: [init, --force]
     exit: 2
     stderr: |
-      itos: init takes only --stealth (--force) (itos --help)
+      itos: init takes only --stealth, --plugin [<scope>], --git-shim, --git-shim-dir <folder> and --no-git-shim (--force) (itos --help)
+  - name: init's --git-shim-dir needs a folder
+    argv: [init, --git-shim, --git-shim-dir]
+    exit: 2
+    stderr: |
+      itos: --git-shim-dir needs <folder> (itos --help)
+  - name: init takes --git-shim or --no-git-shim, not both
+    argv: [init, --git-shim, --no-git-shim]
+    exit: 2
+    stderr: |
+      itos: init takes --git-shim or --no-git-shim, not both (itos --help)
+  - name: init's --git-shim-dir goes with --git-shim, not --no-git-shim
+    argv: [init, --no-git-shim, --git-shim-dir, shims]
+    exit: 2
+    stderr: |
+      itos: --git-shim-dir names where --git-shim links itos as git, not --no-git-shim (itos --help)
   - name: init's --plugin takes a scope
     argv: [init, --plugin, everywhere]
     exit: 2
@@ -235,3 +250,116 @@ cases:
     stdout_has:
       - "wrote .git/hooks/pre-push\nclaude plugin install itos@itos --scope user failed (exit 1):\nPlugin \"itos\" not found in any marketplace\n"
       - "then itos commit --task T-1 -m 'chore: adopt itos'\n"
+  - name: with --git-shim init links itos as git in the folder --git-shim-dir names, and says where it stands on the PATH
+    argv: [init, --git-shim, --git-shim-dir, shims]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    exit: 0
+    stdout_has:
+      - "wrote .git/hooks/pre-push\nLinked the git shim: {{dir}}/shims/git to "
+      - "{{dir}}/shims is not on the PATH: put it before "
+      - "then itos commit --task T-1 -m 'chore: adopt itos'\n"
+  - name: with no --git-shim and nobody to ask init links nothing and says how to
+    argv: [init]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    exit: 0
+    stdout_has: ", the folder holding itos (--git-shim-dir <folder> for another), so that in a repository itos manages git commit and git push are itos's.\n"
+  - name: run again with --git-shim, init links it and reports it in its JSON
+    argv: [--json, init, --git-shim, --git-shim-dir, shims]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml" }
+      tasks/work-items.yaml: "phases: {}\nitems: []\n"
+      .git/hooks/commit-msg: { text: "#!/bin/sh\nexec itos hook commit-msg \"$1\"\n", executable: true }
+      .git/hooks/pre-push: { text: "#!/bin/sh\nexec itos hook pre-push \"$@\"\n", executable: true }
+    exit: 0
+    json:
+      schema: 1
+      config: itos.yaml
+      action: checked
+      missing: []
+      plugin: { action: no_claude, scope: null, excluded: false }
+      git_shim: { action: linked, link: "{{dir}}/shims/git", on_path: false, before_git: false }
+  - name: where no scenario carries an ID tag, the starter requires the Scenarios footer of no type, and init says how to tag one
+    argv: [init]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+        label: start
+    files:
+      features/pages.feature: |
+        Feature: pages
+
+          Scenario: a page opens
+            When it opens
+    exit: 0
+    stdout_has: "No scenario under features carries an ID tag, so the smoke set names none and no feat or fix needs a Scenarios footer yet: tag a scenario with its ID, such as @ID-PAGE-01 on the line above it, then set commits.footers.Scenarios.required_for to [feat, fix] in itos.yaml.\n"
+    files_after:
+      itos.yaml: |
+        # itos.yaml, written by itos init: this repository's rules for its commits,
+        # kept small to grow. itos config check validates it; itos config check
+        # --print-defaults prints every key it leaves to its default.
+        version: 1
+
+        # No pin: the itos called runs. itos pin pins the newest release.
+
+        # The tasks: every commit but a feat or a fix names one in its Task footer
+        # (itos commit --task T-1), and itos task T-1 runs its checks.
+        ledger:
+          files: "tasks/phase-{group}.yaml" # one file per phase: tasks/phase-1.yaml, …
+          id: "T-\\d+"
+
+        commits:
+          # The Conventional Commits types, held to commitlint's config-conventional
+          # rules by itos's own lint.
+          types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
+          header_lint: { use: builtin }
+          footers:
+            Task:
+              source: ledger
+              required_for: [refactor, perf, test, build, ci, chore, docs, style, revert]
+              validate_for: all # a task named must be in the ledger
+              read_at: commit # judged against the ledger the commit carries
+            # The scenarios a feat or a fix turns green, by their ID tags
+            # (itos commit --scenarios '@ID-PAGE-01'); a @wip one is not live. No
+            # scenario carries an ID tag yet, so no commit needs the footer: tag one
+            # (@ID-PAGE-01 on the line above its Scenario:), then set required_for
+            # to [feat, fix].
+            Scenarios:
+              source: { tests: scenario }
+              strip_prefix: "@"
+              required_for: []
+              validate_for: [feat, fix]
+              must_be_live: true
+              read_at: commit
+          # Where verification starts: this commit and the ones before it, written
+          # before itos, are never judged.
+          since: "{{sha.start}}"
+          # No path scopes yet: commits.scopes holds which paths each type may touch.
+
+        # The named tests: the scenarios of the feature files under features/, each
+        # with an ID tag such as @ID-PAGE-01, and a smoke set naming one of each file.
+        tests:
+          scenario:
+            root: features
+            id: "ID-[A-Z]+-\\d+"
+            smoke: { file: features/smoke.yaml }
+
+        hooks:
+          bin: itos # the hooks call the global itos, which runs the release pinned
+      features/smoke.yaml: |
+        # The smoke set: one live scenario of each feature file, which a push's CI can
+        # run in place of every one; itos tests smoke check scenario holds it to that.
+        # itos init picked each file's first: pick a fast one, central to its file.
+        []

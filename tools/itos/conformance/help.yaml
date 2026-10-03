@@ -28,7 +28,7 @@ cases:
         git-shim install|uninstall [--dir <folder>]
                                          link itos as git, for itos's commit and push
         pin [<version>]                  move the config's pin to a release, the newest by default
-        init [--stealth] [--plugin [<scope>]]
+        init [--stealth] [--plugin [<scope>]] [--git-shim [--git-shim-dir <folder>] | --no-git-shim]
                                          ready a repository for itos; run again, what is missing
         verify <from> <to>               re-check every commit of a range
         tests list <kind> [--at <tree>]  the kind's named tests
@@ -334,6 +334,7 @@ cases:
     exit: 0
     stdout: |
       Usage: itos init [--stealth] [--plugin [project|user|local|no]]
+                       [--git-shim [--git-shim-dir <folder>] | --no-git-shim]
 
       Readies the repository it runs in for itos, at its top, after git init where
       the folder is no repository yet. Where there is no config it writes a starter:
@@ -343,12 +344,14 @@ cases:
       itos; the ledger, tasks/phase-1.yaml, and the work registry,
       tasks/work-items.yaml; and when features/ holds feature files, the scenario
       kind, a Scenarios footer that feat and fix need, and a smoke set,
-      features/smoke.yaml, naming each file's first live scenario. A file already
-      there is kept. It pins the newest release, as itos pin does, or where the
-      release server cannot be reached pins nothing and says so; then installs the
-      hooks, as itos hooks install does, its exit code init's. --stealth writes it
-      all in the git folder, beside the stealth config, and declares the hooks in
-      the git config, so nothing the project tracks changes.
+      features/smoke.yaml, naming each file's first live scenario; where no scenario
+      carries an ID tag yet, the footer is required of no type, and init says how
+      to tag one so that it can be. A file already there is kept. It pins the
+      newest release, as itos pin does, or where the release server cannot be
+      reached pins nothing and says so; then installs the hooks, as itos hooks
+      install does, its exit code init's. --stealth writes it all in the git
+      folder, beside the stealth config, and declares the hooks in the git config,
+      so nothing the project tracks changes.
 
       Where a config is there (itos.yaml, or the stealth one), it writes nothing and
       reports what is missing: what itos config check finds, and each hook that does
@@ -370,11 +373,24 @@ cases:
       for --plugin. A claude that fails at the install is reported, exit 1, the rest
       of init's work done.
 
+      It offers the git shim the same way, as itos git-shim install makes it: itos
+      linked as git, in the folder holding itos or the one --git-shim-dir names.
+      --git-shim links it, --no-git-shim declines; on a terminal with neither it
+      asks, yes its default answer; anywhere else it links nothing and says how to.
+      A link to this itos already there, or with no --git-shim-dir the first git on
+      the PATH being itos, is kept; a git there that is no link to itos is never
+      replaced, exit 1, the rest of init's work done. Run again where a config is,
+      it never asks, and links the shim only for --git-shim.
+
       --json: {"schema":1,"config","action":"initialized","git_init","since","files":[{"path","action"}],
-              "pin","pin_problem"?,"hooks","plugin"} (hooks as itos hooks install --json prints it),
-              or {"schema":1,"config","action":"checked","missing":[{"rule","message","fix"?,"area"}],"plugin"};
+              "pin","pin_problem"?,"hooks","plugin","git_shim"} (hooks as itos hooks install --json prints it),
+              or {"schema":1,"config","action":"checked","missing":[{"rule","message","fix"?,"area"}],"plugin",
+              "git_shim"? (with --git-shim or --no-git-shim)};
               plugin {"action","scope","excluded","problem"?}, action one of installed, already,
-              offered, declined, no_claude, unknown (claude plugin list failed) or failed
+              offered, declined, no_claude, unknown (claude plugin list failed) or failed;
+              git_shim {"action","link","on_path","before_git","problem"?}, action one of linked,
+              replaced (a link to another itos), kept, offered, declined, refused (a git that is no
+              link to itos is there) or failed
   - name: itos verify --help
     argv: [verify, --help]
     exit: 0

@@ -14,13 +14,15 @@ import (
 
 // Every shape of the starter loads as a config, with what the slice settled:
 // hooks.bin itos, a Task footer, and the Scenarios footer, the kind and the
-// smoke set only with feature files; a since and a pin only when given.
+// smoke set only with feature files, the footer required of feat and fix
+// unless no scenario is tagged; a since and a pin only when given.
 func TestStarterLoads(t *testing.T) {
 	sha := strings.Repeat("a", 40)
 	for _, s := range []starter{
 		{},
 		{since: sha, scenarios: true, pin: &[2]string{"9.2.0", strings.Repeat("b", 64)}},
 		{stealth: true, since: sha},
+		{since: sha, scenarios: true, untagged: true},
 	} {
 		file := filepath.Join(t.TempDir(), "itos.yaml")
 		if err := os.WriteFile(file, []byte(s.config()), 0o644); err != nil {
@@ -38,6 +40,13 @@ func TestStarterLoads(t *testing.T) {
 		}
 		if got := slices.Contains(cfg.Commits.Footers.Keys, "Scenarios"); got != s.scenarios {
 			t.Errorf("%+v: a Scenarios footer: %t", s, got)
+		}
+		if s.scenarios {
+			required := cfg.Get("commits.footers.Scenarios.required_for")
+			list, _ := required.([]any)
+			if want := map[bool]int{false: 2, true: 0}[s.untagged]; len(list) != want {
+				t.Errorf("%+v: Scenarios is required of %v", s, required)
+			}
 		}
 		if got := cfg.Get("commits.since") != value.Undefined; got != (s.since != "") {
 			t.Errorf("%+v: commits.since: %t", s, got)

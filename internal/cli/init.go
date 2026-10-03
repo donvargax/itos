@@ -20,6 +20,7 @@ package cli
 // must not run in its place.
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -41,12 +42,17 @@ import (
 	"github.com/donvargax/itos/v2/internal/value"
 )
 
-// initCommand is `init [--stealth] [--plugin [<scope>]]`.
+// initCommand is `init [--stealth] [--plugin [<scope>]] [--git-shim
+// [--git-shim-dir <folder>] | --no-git-shim]`.
 func initCommand(args []string, o Out) (int, error) {
 	stealth := false
 	var plugin pluginFlag
+	var shim shimFlag
 	for i := 0; i < len(args); i++ {
 		n, err := parsePluginFlag(args, i, &plugin)
+		if err == nil && n == 0 {
+			n, err = parseShimFlag(args, i, &shim)
+		}
 		switch {
 		case err != nil:
 			return 0, err
@@ -55,10 +61,12 @@ func initCommand(args []string, o Out) (int, error) {
 		case args[i] == "--stealth":
 			stealth = true
 		default:
-			// The words of slice 48, which the last release's corpus holds
-			// (T-071): naming --plugin here would fail it as a breaking change.
-			return 0, usage("init takes only --stealth (%s)", args[i])
+			return 0, usage("init takes only --stealth, --plugin [<scope>], --git-shim, --git-shim-dir <folder> "+
+				"and --no-git-shim (%s)", args[i])
 		}
+	}
+	if shim.given && !shim.install && shim.dir != "" {
+		return 0, usage("--git-shim-dir names where --git-shim links itos as git, not --no-git-shim")
 	}
 	if stealth && plugin.scope == "project" {
 		return 0, pluginRefused()
@@ -76,14 +84,17 @@ func initCommand(args []string, o Out) (int, error) {
 		if stealth && plugin.scope == "project" {
 			return 0, pluginRefused()
 		}
-		return initReport(file, pluginOffer{flag: plugin, stealth: stealth}, o)
+		return initReport(file, pluginOffer{flag: plugin, stealth: stealth}, shimOffer{flag: shim}, o)
 	}
 	if named := os.Getenv("ITOS_CONFIG"); named != "" {
 		return 0, usage("init writes itos.yaml at the repository's top, or with --stealth in the git folder, "+
 			"not the missing %s that --config or ITOS_CONFIG names", named)
 	}
-	offer := pluginOffer{flag: plugin, stealth: stealth, ask: !o.JSON && onTerminal(), answers: os.Stdin}
-	return initWrite(stealth, initialized, offer, log, o)
+	// One reader for both questions, so the first cannot take the second's
+	// answer into its buffer.
+	ask, answers := !o.JSON && onTerminal(), bufio.NewReader(os.Stdin)
+	return initWrite(stealth, initialized, pluginOffer{flag: plugin, stealth: stealth, ask: ask, answers: answers},
+		shimOffer{flag: shim, ask: ask, answers: answers}, log, o)
 }
 
 // atTop moves to the top of the repository the folder is in, after git init
@@ -112,9 +123,10 @@ type writtenFile struct {
 }
 
 // initWrite writes the starter, pins the newest release, installs the hooks
-// and makes the plugin's offer; its exit code is hooks install's, else 1 when
-// claude failed at installing the plugin asked for.
-func initWrite(stealth, initialized bool, offer pluginOffer, log io.Writer, o Out) (int, error) {
+// and makes the plugin's offer and the git shim's; its exit code is hooks
+// install's, else 1 when claude failed at installing the plugin asked for or
+// the git shim asked for could not be linked.
+func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer, log io.Writer, o Out) (int, error) {
 	file := "itos.yaml"
 	if stealth {
 		common, err := git.Read("rev-parse", "--git-common-dir")
@@ -173,6 +185,14 @@ func initWrite(stealth, initialized bool, offer pluginOffer, log io.Writer, o Ou
 		if err != nil {
 			return 0, err
 		}
+		// No scenario with an ID tag: the footer is required of no type, so
+		// the config is written again saying so.
+		if len(list.Tests) == 0 && files[0].Action == "wrote" {
+			s.untagged = true
+			if err := os.WriteFile(file, []byte(s.config()), 0o666); err != nil {
+				return 0, err
+			}
+		}
 		text, n := starterSmokeSet(list)
 		smokeIDs = n
 		if err := write(beside(starterSmoke), text); err != nil {
@@ -191,7 +211,12 @@ func initWrite(stealth, initialized bool, offer pluginOffer, log io.Writer, o Ou
 		default:
 			say("The repository has no commit, so the config has no commits.since: every commit is judged.")
 		}
-		if s.scenarios {
+		switch {
+		case s.untagged:
+			say("No scenario under %s carries an ID tag, so the smoke set names none and no feat or fix needs a "+
+				"Scenarios footer yet: tag a scenario with its ID, such as @ID-PAGE-01 on the line above it, then "+
+				"set commits.footers.Scenarios.required_for to [feat, fix] in %s.", starterFeatures, filepath.ToSlash(file))
+		case s.scenarios:
 			say("The smoke set names %s, one of each feature file with a live one; "+
 				"a feat or a fix names the ones it turns green (itos commit --scenarios).", count(smokeIDs, "scenario"))
 		}
@@ -206,14 +231,15 @@ func initWrite(stealth, initialized bool, offer pluginOffer, log io.Writer, o Ou
 	if err != nil {
 		return 0, err
 	}
-	offer.log = log
+	offer.log, shimOffer.log = log, log
 	if o.JSON {
-		offer.log = io.Discard
+		offer.log, shimOffer.log = io.Discard, io.Discard
 	}
 	plugin, pluginCode := offer.run()
+	shim, shimCode := shimOffer.run()
 	code := hooksCode
 	if code == 0 {
-		code = pluginCode
+		code = max(pluginCode, shimCode)
 	}
 	if o.JSON {
 		var at, pin any
@@ -229,7 +255,8 @@ func initWrite(stealth, initialized bool, offer pluginOffer, log io.Writer, o Ou
 		if pinErr != nil {
 			fields = append(fields, out.Field{Key: "pin_problem", Value: pinErr.Error()})
 		}
-		fields = append(fields, out.Field{Key: "hooks", Value: hooks}, out.Field{Key: "plugin", Value: plugin})
+		fields = append(fields, out.Field{Key: "hooks", Value: hooks}, out.Field{Key: "plugin", Value: plugin},
+			out.Field{Key: "git_shim", Value: shim})
 		return code, out.Emit(o.Stdout, fields...)
 	}
 	if hooksCode != 0 {
@@ -320,8 +347,10 @@ func starterSmokeSet(list tests.List) (string, int) {
 // initReport is init where a config is there: it writes nothing and lists
 // what is missing, exit 1 when anything is, then makes the plugin's offer,
 // which never asks, and installs it only for --plugin; a plugin not installed
-// is reported, never counted as missing.
-func initReport(file string, offer pluginOffer, o Out) (int, error) {
+// is reported, never counted as missing. The git shim is linked, and said,
+// only for --git-shim: the last release's corpus pins this report's words and
+// keys (T-071), so a shim not linked is not reported here yet.
+func initReport(file string, offer pluginOffer, shimOffer shimOffer, o Out) (int, error) {
 	_, found, _, _, err := configFindings("")
 	if err != nil {
 		return 0, err
@@ -337,10 +366,17 @@ func initReport(file string, offer pluginOffer, o Out) (int, error) {
 		if found == nil {
 			found = []Found{}
 		}
-		offer.log = io.Discard
+		offer.log, shimOffer.log = io.Discard, io.Discard
 		plugin, pluginCode := offer.run()
-		return max(code, pluginCode), out.Emit(o.Stdout, out.Field{Key: "config", Value: file}, out.Field{Key: "action", Value: "checked"},
-			out.Field{Key: "missing", Value: found}, out.Field{Key: "plugin", Value: plugin})
+		fields := []out.Field{{Key: "config", Value: file}, {Key: "action", Value: "checked"},
+			{Key: "missing", Value: found}, {Key: "plugin", Value: plugin}}
+		shimCode := 0
+		if shimOffer.flag.given {
+			var shim shimOutcome
+			shim, shimCode = shimOffer.run()
+			fields = append(fields, out.Field{Key: "git_shim", Value: shim})
+		}
+		return max(code, pluginCode, shimCode), out.Emit(o.Stdout, fields...)
 	}
 	fmt.Fprintf(o.Stdout, "%s is there already, so init wrote nothing.\n", file)
 	if len(found) == 0 {
@@ -355,9 +391,13 @@ func initReport(file string, offer pluginOffer, o Out) (int, error) {
 			fmt.Fprintf(o.Stdout, "  %s\n", line)
 		}
 	}
-	offer.log = o.Stdout
+	offer.log, shimOffer.log = o.Stdout, o.Stdout
 	_, pluginCode := offer.run()
-	return max(code, pluginCode), nil
+	shimCode := 0
+	if shimOffer.flag.given {
+		_, shimCode = shimOffer.run()
+	}
+	return max(code, pluginCode, shimCode), nil
 }
 
 // hookProblems are the hooks hooks install would put in place that do not

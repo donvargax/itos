@@ -237,7 +237,9 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   folder, a tab after each, answers `plugin list --json` with no plugin or
   the one the scenario names, and for "writing .claude/settings.local.json
   as claude does" writes that file on a local install; "claude was given"
-  matches a run whose arguments begin with the words given.
+  matches a run whose arguments begin with the words given. The git shim's
+  link is checked by shim.feature's `"…" runs itos`, the file at the path
+  (`.exe` on windows) the same file as the itos binary under test.
 - **itos commit's scenarios** (`commit_test.go`, `commit-command.feature`):
   the commit-msg hook is a shim in git's own hooks folder
   (`git rev-parse --git-path hooks`) that runs the itos under test, so a
@@ -603,7 +605,10 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   the registry, never over a file that is there, and, when `features/`
   holds a `.feature` file, loads the config just written and lists the
   scenario kind's tests through the adapter to name each file's first live
-  one in the smoke set, so the smoke rule and init cannot disagree. Then
+  one in the smoke set, so the smoke rule and init cannot disagree; where
+  the list has no test at all (no scenario carries an ID tag, slice 50), it
+  writes the config again with `starter.untagged`, whose `Scenarios` footer
+  is required of no type, and says how to tag one. Then
   `hooksInstall`, as `hooks install` runs, its exit code init's; under
   `--json` its object is captured and nested as `hooks`, its keys in the
   order it wrote them. `--stealth` puts the config at
@@ -625,8 +630,22 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   `git rev-parse --git-path info/exclude` when `git status` shows it
   untracked. `--stealth --plugin project` is a usage error before
   anything runs, and so is `--plugin project` where the config found is
-  the stealth one. The unknown-argument message keeps slice 48's words,
-  which the last release's corpus holds.
+  the stealth one. After the plugin's, the git shim's offer
+  (`initshim.go`, slice 50), `shimOffer.run`: `--no-git-shim` ends it;
+  `shimPlace` gives the link `git-shim install` would make (its `--dir`
+  `--git-shim-dir`, made absolute where it was typed), unless, with no
+  folder named, the first git on the `PATH` already links this itos, which
+  is then the link; a link to this itos is kept, a git that is no link to
+  itos refused for `--git-shim` (exit 1, as `git-shim install` refuses it)
+  and otherwise only said, a link to another itos replaced; then, with no
+  flag, the terminal's yes or no (`question`, sharing one buffered reader of
+  stdin with the plugin's, so neither takes the other's answer), or none,
+  when it says how; then `makeLink`, and `standingLine`. Run again where a
+  config is, the shim's offer runs only for `--git-shim` or
+  `--no-git-shim`, and its `git_shim` key is in the `checked` object only
+  then: the last release's corpus pins that report's words and its JSON
+  exactly (T-071), so a shim not linked, a pin behind the newest and a
+  people file missing are not reported there yet.
 - **Extensions** (`internal/cli/extension.go`, slice 29): a command itos
   does not have runs `itos-<command>` from the `PATH`, as git runs
   `git-<command>`. `cli.Parse` reads the arguments for both `cli.Main` and

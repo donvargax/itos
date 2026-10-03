@@ -4,7 +4,10 @@ package cli
 // commented, for a person to read and grow. The Conventional Commits types
 // under itos's own header lint; a Task footer from the ledger that every type
 // but feat and fix needs; when features/ holds feature files, a scenario kind
-// whose Scenarios footer feat and fix need, with a smoke set; commits.since
+// whose Scenarios footer feat and fix need, with a smoke set, the footer
+// required of no type while no scenario carries an ID tag (slice 50: most
+// Cucumber projects tag none, and every feat would be refused with nothing
+// to name); commits.since
 // at HEAD, so no commit written before itos is judged; hooks.bin itos, the
 // global launcher, as a consumer has no wrapper of its own; the pin, when the
 // release server answered. No path scopes: they are each project's own. The
@@ -34,6 +37,9 @@ type starter struct {
 	pin *[2]string
 	// scenarios is whether features/ holds feature files.
 	scenarios bool
+	// untagged is whether none of their scenarios carries an ID tag, so the
+	// Scenarios footer is required of no type.
+	untagged bool
 }
 
 // config is the starter config's text.
@@ -84,7 +90,22 @@ commits:
       validate_for: all # a task named must be in the ledger
       read_at: commit # judged against the ledger the commit carries
 `)
-	if s.scenarios {
+	switch {
+	case s.scenarios && s.untagged:
+		b.WriteString(`    # The scenarios a feat or a fix turns green, by their ID tags
+    # (itos commit --scenarios '@ID-PAGE-01'); a @wip one is not live. No
+    # scenario carries an ID tag yet, so no commit needs the footer: tag one
+    # (@ID-PAGE-01 on the line above its Scenario:), then set required_for
+    # to [feat, fix].
+    Scenarios:
+      source: { tests: scenario }
+      strip_prefix: "@"
+      required_for: []
+      validate_for: [feat, fix]
+      must_be_live: true
+      read_at: commit
+`)
+	case s.scenarios:
 		b.WriteString(`    # The scenarios a feat or a fix turns green, by their ID tags
     # (itos commit --scenarios '@ID-PAGE-01'); a @wip one is not live.
     Scenarios:
