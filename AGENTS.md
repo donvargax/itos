@@ -45,7 +45,8 @@ history: `vp run changelog` writes it from the commits into
 
 The rules come in two halves. **itos** (`tools/bin/itos`, its policy in
 `itos.yaml`; the Go binary built from `cmd/itos`, rebuilt by that script when
-a Go source, `go.mod`, `go.sum` or `package.json` is newer than it) holds every rule a command can decide: commit shape and footers,
+a Go source, `go.mod` or `go.sum` is newer than it, and restamped when HEAD's version from
+`git describe` changes) holds every rule a command can decide: commit shape and footers,
 the paths each commit type may touch, which checks prove a task, what CI runs
 and in what order, who may take which work. The hooks and CI enforce those on
 every commit, whoever made it. This file holds what no command can check.
@@ -120,8 +121,7 @@ the same thing waste both. Take one by setting its `owner` and
   - `build` and `ci` may touch only config: root `*.json`, `*.yaml`, `*.yml`,
     `*.ts` and `*.toml` files, `go.mod`, `go.sum`, `.gitignore`,
     `.editorconfig`, `.vite-hooks/**`, `.github/**`, `tools/bin/**`,
-    `tools/selftest/**`, `tools/changelog.ts`, `.claude/settings.json` and the
-    Claude Code plugin's manifest (`integrations/claude-code/.claude-plugin/plugin.json`, its version) —
+    `tools/selftest/**`, `tools/changelog.ts` and `.claude/settings.json` —
     **not** `tasks/**`. A ledger edit that accompanies a config change is its
     own `docs` commit.
   - `docs` may touch `**/*.md`, `docs/**`, `tasks/**` and feature files —
@@ -262,8 +262,12 @@ push to `main` too, so expect the remote to have moved while you worked.
    and a nightly red on a scenario your change reaches is yours the next
    morning, before new work.
 
-There is no changelog to write: it is generated from the commits, so each
-commit's body is its entry: what changed and why. A gap the work leaves
+There is no changelog to write and no release to cut: the changelog is
+generated from the commits, so each commit's body is its entry, what changed
+and why; and a push whose CI is green and carries a `feat` or a `fix`
+publishes the next version itself (T-069), its notes generated from the
+commits, each `Upgrading:` and `BREAKING-CHANGE:` footer quoted to the
+consumers as written. A gap the work leaves
 (what the next slice will find missing) goes into `tasks/work-items.yaml` as a
 `kind: idea` item (`status: todo`, a title, a short `why`, its owner or null,
 its `depends_on`) in the slice's last `docs` commit, never in a commit body

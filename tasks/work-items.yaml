@@ -1226,6 +1226,50 @@ items:
       T-069 in tasks/phase-3.yaml.
     refs: [tasks/phase-3.yaml, .github/workflows/nightly.yml, .github/workflows/release.yml]
 
+  - id: p3-plugin-version
+    title: The Claude Code plugin's version moves when the plugin changes
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-069]
+    kind: idea
+    why: >
+      T-069 left it: the plugin's version is its own now (2.3.0 in its plugin.json), no longer
+      bumped with itos's, and Claude Code offers an update only when that version changes, so a
+      change to integrations/claude-code/ reaches no one until a chore commit bumps it. Either a
+      rule (a commit touching the plugin bumps its version, a check a command can decide) or the
+      plugin's own repository with its own releases, the user's open call.
+    refs: [integrations/claude-code/.claude-plugin/plugin.json, PLAN.md]
+
+  - id: p3-release-notes-bodies
+    title: A release's generated notes say what each feat and fix does, not only its header
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-069]
+    kind: idea
+    why: >
+      T-069 left it: tools/bin/release-notes lists every commit's header by type and quotes the
+      Upgrading: footers, where the hand-written notes up to v2.3.0 explained each new command and
+      behaviour. A feat's or fix's body says what changed and why (AGENTS.md), so the notes could
+      give it under its header, or the scenarios it names; the template is the place.
+    refs: [tools/bin/release-notes/main.go]
+
+  - id: p3-version-prerelease
+    title: itos compares a pre-release below its release, and requires can name one
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-069]
+    kind: idea
+    why: >
+      T-069 left it: a build between releases says 2.3.1-dev.5.g1234abc, and internal/version
+      compares X.Y.Z alone, so it equals 2.3.1 (a launcher holding a cached 2.3.1 would keep
+      running the dev build) and a config's requires cannot name it (its comparators read X.Y.Z,
+      so the corpus's cases use {{release}}). Semver's rule, a pre-release below its release and
+      dev.N by N, would make both exact; a feat with its scenario, since requires is behaviour.
+    refs: [internal/version/version.go, tools/itos/conformance/cli.yaml]
+
   - id: slice-16
     title: The nightly runs every done task's checks
     phase: 1
@@ -2480,7 +2524,10 @@ items:
       pass 100 characters (footer-max-line-length), so an Upgrading step longer than that is split
       over several Upgrading: lines, which itos commit footers gathers as separate entries. git's
       trailers continue a value on indented lines; reading those as part of the footer above would
-      keep a long step whole in the notes. Only if real steps turn out that long.
+      keep a long step whole in the notes. Only if real steps turn out that long. They do: this
+      repository's commits wrap an Upgrading: footer onto unindented lines below it, which itos
+      commit footers drops, so T-069's tools/bin/release-notes reads those lines from the message
+      itself (up to the next capitalised footer); itos, and the notes check, still see the first.
     refs: [features/upgrading.feature]
 
   - id: p3-header-lint-unread-keys
@@ -2792,39 +2839,6 @@ items:
       ci.prose.paths is, would leave such a step out of the plan, show it in itos ci plan, and
       drop the step's dependence on the workflow's environment. An itos feature, so a slice.
     refs: [itos.yaml, PLAN.md]
-
-  - id: p3-schema-contract-unpublished
-    title: The schema contract reads the last release's schema from its tag while the release uploads
-    phase: 3
-    owner: null
-    status: todo
-    depends_on: [T-069]
-    kind: idea
-    why: >
-      T-070 left it: the schema contract downloads itos.schema.json from the GitHub release of
-      the newest tag reachable from HEAD, and a 404 stops it (exit 2), never a pass. Once T-069
-      tags and uploads in its release job, a push that lands while the upload runs sees the tag
-      and no asset, and its CI is red until re-run. The release build generates that file with
-      go run ./tools/bin/config-schema at the tag, so the check could generate it the same way
-      from a scratch worktree of the tag on a 404 (or always, needing no network), saying which
-      it compared.
-    refs: [tools/bin/schema-contract/main.go, tasks/phase-3.yaml]
-
-  - id: p3-schema-contract-json
-    title: The schema contract gives its findings as JSON, for the release notes T-069 generates
-    phase: 3
-    owner: null
-    status: todo
-    depends_on: [T-070]
-    kind: idea
-    why: >
-      T-070 left it: the check prints each compatible change, and each breaking one a commit
-      marks, as a line for a person (schema-contract: compatible since v2.3.0: pin: key added).
-      The notes' Upgrading section must list each config key added, removed or with a changed
-      default (PLAN.md's distribution), so T-069's notes would read those lines; a -json output
-      (the release, and each finding's path, change and whether it breaks) would hand them over
-      without parsing words.
-    refs: [tools/bin/schema-contract/main.go, PLAN.md]
 
   - id: p3-changes-at-commit
     title: A Changes footer naming nothing of the last release is refused at the commit

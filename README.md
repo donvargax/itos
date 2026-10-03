@@ -91,39 +91,37 @@ has the order of the work.
 
 ## Install
 
-Each release on a `v*` tag holds:
+**The newest release:** https://github.com/donvargax/itos/releases/latest.
+Its notes give everything below filled in for it: the install script with
+each platform's hash, the pin's two lines and the schema line. CI cuts a
+release whenever a `feat` or a `fix` lands on `main` with its checks green,
+its version computed from the commits since the last one. Each release holds:
 
 - `itos-<version>-<os>-<arch>.tar.gz`, the Go binary, for linux and darwin on
   amd64 and arm64, and `itos-<version>-windows-amd64.zip`; each holds the
   binary (`itos`, or `itos.exe`), `LICENSE` and `README.md` at its top level;
 - `itos.schema.json`, the config's JSON Schema;
-- `checksums.txt`, the SHA-256 of every file above, which the release's
-  description prints. `sha256sum --ignore-missing -c checksums.txt` checks the
-  ones downloaded beside it.
+- `checksums.txt`, the SHA-256 of every file above.
+  `sha256sum --ignore-missing -c checksums.txt` checks the ones downloaded
+  beside it, and `gh attestation verify <archive> -R donvargax/itos` checks an
+  archive was built by this repository's release workflow.
 
 Pin a release, never a branch, and pin each asset by its line in
 `checksums.txt`, so a replaced release fails every later install.
 
 **The binary**: download your platform's archive, check it against its line,
 and unpack the binary into an ignored `.tools/bin/`. A project commits this as
-a script that pins the version and each platform's hash
-(`docs/releases/v2.0.0.md`, Upgrading, step 1, has one for every platform, and
-the shim that runs it from your hooks and CI; `docs/releases/v2.3.0.md`,
-Upgrading, step 1, has the script at 2.3.0):
-
-```sh
-version=2.3.0 platform=linux-amd64   # or linux-arm64, darwin-amd64, darwin-arm64
-archive="itos-$version-$platform.tar.gz"
-curl -fsSLO "https://github.com/donvargax/itos/releases/download/v$version/$archive"
-echo "<the hash in the release's checksums.txt>  $archive" | sha256sum -c -
-mkdir -p .tools/bin && tar -xzf "$archive" -C .tools/bin itos
-```
+a script that pins the version and each platform's hash: the newest
+release's notes (Upgrading) give the whole script with both filled in, and
+`docs/releases/v2.0.0.md`, Upgrading, step 1, the shim that runs it from your
+hooks and CI.
 
 Go developers can instead
 `go install github.com/donvargax/itos/v2/cmd/itos@v<version>` (the module
 path ends in `/v2` from v2.0.0, as Go requires).
 
-A version bump is the same again with the new version and hashes.
+A version bump is the script's version and hashes, from the newer release's
+notes.
 
 **A global install** (from v2.1.0): install itos once
 per machine, by either way above into a folder on your `PATH`, and pin the
@@ -131,9 +129,11 @@ release each repository runs in its `itos.yaml`:
 
 ```yaml
 pin:
-  version: 2.3.0 # the release, without its v
+  version: <x.y.z> # the release, without its v
   checksums: <the SHA-256 of that release's checksums.txt> # sha256sum checksums.txt
 ```
+
+(the release's notes give both lines filled in).
 
 The installed binary is then a launcher, never rewritten: in a repository that
 pins another version it fetches that release into its cache, checks
@@ -214,8 +214,8 @@ itos git-shim uninstall               # or: itos git-shim uninstall --dir <the f
 Neither command touches a `git` that is not a link to itos.
 
 **The Claude Code plugin**: this repository is also a Claude Code plugin
-marketplace, and its one plugin, `itos`, is released with itos at the same
-version. Install it from Claude Code:
+marketplace, and its one plugin, `itos`, is published from it, with a version
+of its own. Install it from Claude Code:
 
 ```
 /plugin marketplace add donvargax/itos
@@ -268,8 +268,10 @@ description and default, once the file's first line names the schema of the
 release the project pins:
 
 ```yaml
-# yaml-language-server: $schema=https://github.com/donvargax/itos/releases/download/v2.3.0/itos.schema.json
+# yaml-language-server: $schema=https://github.com/donvargax/itos/releases/download/v<x.y.z>/itos.schema.json
 ```
+
+(the release's notes give the line for it).
 
 `itos config check` stays the judge: the schema says less than it, never
 something different.

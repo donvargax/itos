@@ -205,14 +205,22 @@ teaches you a new one, stated as the rule and its reason.
   the major release's Upgrading section asks for the change once, instead of
   a minor release breaking what 1.0 promised. Before preparing a major
   release, list the open items that change what is accepted and ask.
-- **Releases are automated; no tag waits for the user** (the user's call,
-  2026-10-02). Brief the release agent to stop before tagging and hand back
-  the notes and the commit to tag; read the Upgrading section against the
-  commits since the last release (or have a reviewer agent do it with that
-  checklist when the range is large), check the run is red only at the
-  after-push download check, then push the tag, watch the release workflow,
-  download and checksum the assets, and close the task. A tag is never moved:
-  a mistake is fixed forward in the next release.
+- **Releases cut themselves** (T-069, the user's call, 2026-10-03). A push to
+  `main` whose CI is green and whose commits since the last tag carry a
+  `feat`, a `fix` or a breaking change publishes the next version: `ci.yml`'s
+  `release` job computes it, tags, builds with GoReleaser, attests and
+  publishes generated notes. There is no release task, no notes file, no
+  version bump, no tag to push and no hand check: the hand ritual (an agent
+  writing notes, a CI run red by design, a nightly dispatched, a checksum
+  download, a README commit) is gone. What you own is what goes into the
+  notes: a `feat` or `fix` brief asks for an `Upgrading:` footer that says
+  what a consumer must change, and a breaking change for a
+  `BREAKING-CHANGE:` footer, since those are quoted to the consumers as
+  written. Watch the `release` job of a run that lands a `feat` or `fix` as
+  you watch CI; a red one leaves at most a draft, which the next run
+  replaces. A tag is never moved or pushed by hand: a mistake is fixed
+  forward, and a break that slipped through is a missing check, briefed with
+  the check and released as a fix.
 - **Land with `tools/bin/itos push`, never a pull chained to a push.** A
   `git pull --rebase && git push` chain can push a rebase that stopped on a
   conflict, so `main` takes part of the branch and the rest follows in a
@@ -262,11 +270,10 @@ teaches you a new one, stated as the rule and its reason.
   the allow-list, read from the issue's author or its timeline, cannot. A
   rule you want for issues goes into `tools/bin/inbox.ts` and its
   self-test, not into a label convention.
-- **Run a nightly on the release commit before tagging.** Every feature and the gates'
-  self-tests run only there, so a release range the last nightly predates can carry a red
-  nobody has seen: v2.1.0's and v2.2.0's were each red once, at a self-test a slice had left
-  stale. Dispatch one by hand (`gh workflow run nightly.yml --ref main`) and tag only when it
-  is green.
+- **A red nightly is the next fix release.** Every feature and the gates' self-tests run only
+  in the nightly, and since T-069 a release no longer waits for one, so a nightly can go red on
+  a commit already released: v2.1.0's and v2.2.0's ranges were each red once, at a self-test a
+  slice had left stale. Brief the fix first thing; it releases itself when it lands.
 - **Never pipe a command whose exit code matters** (`… | tail`,
   `…; echo EXIT=$?` after a pipe): the pipeline, and a background task
   running it, reports the last command's status. Write the output to a file

@@ -20,18 +20,50 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   of the release, `tools/changelog.ts` the changelog's filter. These, the
   builds (`tools/bin/build-go.ts`) and the consumer inbox are this
   repository's tooling, run by Node; no consumer of itos needs Node.
-- **A release** (`.github/workflows/release.yml`, on a `v*` tag) builds the Go
-  release (`build-go.ts --release`, "The code" below) into `dist/release`; it
-  refuses a tag that is not `v<package.json's version>`, a linux/amd64 binary
-  that says another, and a tag with no `docs/releases/v<version>.md`. It
-  proves the very folder it uploads with `go-release.ts --dir` and publishes
-  it: the five archives, `itos.schema.json` and `checksums.txt`
-  (`sha256sum --ignore-missing -c checksums.txt` checks the ones downloaded).
-  The release's body says what each asset is, lists `checksums.txt`, then
-  that notes file. The v1 releases also carried the TypeScript packed to one
-  JavaScript file, `itos-<version>.tgz`, which left with it (T-062). The
-  notes end with an "Upgrading" section a consumer updates from alone
-  (`PLAN.md`, §10).
+- **A release** is cut by CI (T-069): `ci.yml`'s `release` job, after its
+  `ci` job passes on a push to `main`, calls `.github/workflows/release.yml`,
+  a reusable workflow and the only job given `contents: write`,
+  `id-token: write` and `attestations: write`, one at a time in the
+  `release` concurrency group, never cancelled. It adds no gate: the push's CI
+  is what a release rests on. `go run ./tools/bin/release-version` computes
+  the version from the commits since the newest `vX.Y.Z` tag HEAD reaches
+  (any breaking change a major, read as the schema contract reads one; else a
+  `feat` a minor; else a `fix` a patch; else nothing, and the job ends green)
+  and prints `last=`, `next=`, `bump=` and `range=` lines for
+  `$GITHUB_OUTPUT`. With a version the job tags the commit locally, runs
+  GoReleaser (`tools/bin/pinned goreleaser release --clean`,
+  `.goreleaser.yaml`), which builds the five archives, `itos.schema.json` and
+  `checksums.txt` into `dist/goreleaser` and uploads them to a draft release
+  whose `target_commitish` is the commit, attests every file `checksums.txt`
+  lists (`actions/attest-build-provenance`, Sigstore), writes the notes
+  (`tools/bin/release-notes`, below) and publishes the draft with them
+  (`gh release edit --draft=false --latest`, the GitHub CLI pinned as the
+  nightly pins it). GitHub creates the tag when the draft is published, so a
+  tag never exists without its assets, and a run that fails leaves at most a
+  draft, which `replace_existing_draft` replaces on the next. The releaser
+  commits nothing. Until v2.3.0 a release was a hand-made `build` commit to
+  `package.json`, a committed `docs/releases/v<version>.md` and a pushed tag,
+  which `release.yml` then built and published; `docs/releases/` keeps those
+  notes. The v1 releases also carried the TypeScript packed to one
+  JavaScript file, `itos-<version>.tgz`, which left with it (T-062).
+- **A release's notes** (`tools/bin/release-notes`, T-069; standard library
+  only) are generated, never committed: a title and the range's counts;
+  "What changed", every commit of the range by type, from git-cliff
+  (`tools/bin/release-notes/cliff.toml`, run by `tools/bin/pinned`); and
+  "Upgrading", last (`PLAN.md`, §10): each breaking change's
+  `BREAKING-CHANGE:` footer (or its `!` header), every `Upgrading:` footer
+  quoted (`itos commit footers Upgrading` lists them, and reads a wrapped one's
+  first line only, so the generator takes the lines below it from the
+  message up to the next capitalised footer), every `Changes:` entry
+  (`itos commit footers Changes`), the config's changes since the last
+  release (`go run ./tools/bin/schema-contract -json -release <tag>`), then the
+  install script, the pin (`pin.checksums` is `checksums.txt`'s own SHA-256),
+  `go install` and the schema line, filled from `checksums.txt`.
+- **The release tools** run at pinned versions through `tools/bin/pinned`, a
+  POSIX sh script: GoReleaser and git-cliff, each fetched once into
+  `.tools/<tool>-<version>/` from its GitHub release and checked against the
+  SHA-256 written in the script before it is unpacked, each version at least
+  7 days old (T-067's rule), for linux and darwin on amd64 and arm64.
 - **Consumer reports** come in as issues: `.github/ISSUE_TEMPLATE/consumer-report.yml`
   is an issue form (the command, its output, `itos version`, the config, what
   was expected) that applies `consumer-report` and nothing else.
@@ -52,10 +84,8 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   the default branch's tree, so a commit there is what the next update gets.
   The version lives in `integrations/claude-code/.claude-plugin/plugin.json`
   alone (the marketplace entry gives none, so the two cannot disagree) and is
-  package.json's: a release's `build` bump changes both, which
-  `commits.path_sets.config` allows, and `tools/selftest/go-release.ts` fails
-  when they differ, in the nightly and in the release workflow before it
-  publishes. `hooks/hooks.json` holds both kinds of hook Claude Code reads
+  the plugin's own: it followed itos's until T-069, which made the tag itos's
+  version, and nothing compares the two now. `hooks/hooks.json` holds both kinds of hook Claude Code reads
   there: `modules`, the function-hooks module `hooks/register.ts`, and
   `hooks`, the command hooks. The module draws the titles: a `ui.render` hook
   on `AssistantMessage` rewrites the props it hands on (the stream, the
@@ -1120,27 +1150,43 @@ hook list commit-msg` for the probe's name, testing the feature rather
   `itos help …` and any `--help` print the longest command path the table
   knows, before any config is read. A change to a text lands with its case in
   `help.yaml`, which CI's corpus step runs on every push.
-- **The version** is `package.json`'s: `tools/bin/build-go.ts <out dir>`
-  builds `./cmd/itos` into `<out dir>/itos` with `CGO_ENABLED=0` and
-  `-trimpath`, stamping the version into `internal/version` (`-ldflags -X`).
-  A binary built without the stamp says the module version Go records
-  (`go install …@v<x>`), or `(devel)` when there is none. Every self-test
-  builds the binary through it.
-- **The release build** is `tools/bin/build-go.ts --release <out dir>`: the
-  same build once per platform `PLAN.md` §10 lists, each binary packed with
-  `LICENSE` and `README.md` at the top level of
-  `itos-<version>-<os>-<arch>.tar.gz` (`.zip` for windows), and
-  `itos.schema.json` (below) and `checksums.txt` in `sha256sum`'s format
-  beside them, naming the archives and the schema: what the release workflow
-  uploads, from v1.0.0 (with the TypeScript tarball's line added until it
-  left, T-062). The archives are written with Node's
-  `zlib`, not the machine's tar or zip, with HEAD's commit time on every
-  entry, so a commit rebuilt by the same Go toolchain gives the same bytes.
-  `tools/selftest/go-release.ts` builds them into a scratch folder and reads
-  them back with the system's `tar`, `unzip` and `sha256sum`; the nightly
-  runs it (`ci.nightly.steps`), not every push. With `--dir <dir>` it builds
-  nothing and proves a folder already built: the release workflow's, before
-  it uploads it.
+- **The version** is the release's tag, held nowhere in the tree (T-069). A
+  release's binary is stamped by GoReleaser with its tag's version; a build of
+  a checkout with what `tools/bin/dev-version` reads from `git describe`: the
+  release's version at its tag, `X.Y.(Z+1)-dev.N.g<sha>` N commits after the
+  newest `vX.Y.Z` tag (`0.0.1-dev.N.g<sha>` with none, `0.0.0-dev` outside
+  git), a pre-release of the next patch, so it sorts above the last release
+  and below the next, and all pre-release with no `+` build metadata, since
+  `pin.version` and the launcher's own version read a pre-release and refuse
+  a `+`. A config's `requires` reads `X.Y.Z` alone, so such a build cannot be
+  named by one; the corpus's `{{release}}` is that version's `X.Y.Z` for the
+  cases that try. `tools/bin/build-go.ts <out dir>` builds `./cmd/itos` into
+  `<out dir>/itos` with `CGO_ENABLED=0` and `-trimpath`, stamping that
+  version into `internal/version` (`-ldflags -X`). A binary built without the
+  stamp says the module version Go records (`go install …@v<x>`), or
+  `(devel)` when there is none. Every self-test builds the binary through it.
+- **The release build** is GoReleaser's (`.goreleaser.yaml`): the same build
+  once per platform `PLAN.md` §10 lists, each binary packed with `LICENSE`
+  and `README.md` at the top level of `itos-<version>-<os>-<arch>.tar.gz`
+  (`.zip` for windows), every entry root's by number and dated at the commit,
+  and `itos.schema.json` (below, written by a `before` hook into
+  `.tools/release/`) and `checksums.txt` in `sha256sum`'s format beside them,
+  naming the archives and the schema: what a release uploads, named and laid
+  out as every release since v1.0.0 (with the TypeScript tarball's line added
+  until it left, T-062). `tools/bin/build-go.ts --release <out dir>` runs it
+  as a snapshot (`goreleaser release --snapshot`, into `dist/goreleaser`)
+  stamped with the checkout's version, or `ITOS_SNAPSHOT_VERSION`, and copies
+  those seven files into `<out dir>`. `tools/selftest/go-release.ts` builds
+  them into a scratch folder and reads them back with the system's `tar`,
+  `unzip` and `sha256sum`, the version read from the archives' names; the
+  nightly runs it (`ci.nightly.steps`), not every push. With `--dir <dir>`
+  (and `--version`) it builds nothing and proves a folder already built.
+  `tools/selftest/release-cut.ts`, T-069's check, proves the version over
+  scratch histories, builds a snapshot as the version this tree would
+  release, proves it with `go-release.ts --dir`, reads each archive's name as
+  the launcher's `archiveLine` does, holds the names, the linux and windows
+  archives' entries (modes and owners) and `checksums.txt`'s line format to
+  what the last release published, and writes and proves its notes.
 - **The config's JSON Schema** (`itos.schema.json`, draft 2020-12, for an
   editor: `# yaml-language-server: $schema=<its release URL>` atop an
   `itos.yaml`) is generated, never kept by hand: `tools/bin/config-schema`
@@ -1157,12 +1203,14 @@ hook list commit-msg` for the probe's name, testing the feature rather
 - **This repository runs it** (T-060): `tools/bin/itos`, which the hooks,
   CI's steps, the ledger's checks and the nightly call (`hooks.bin`), is a
   POSIX sh script that builds `./cmd/itos` into `.tools/bin/itos` (ignored)
-  as `build-go.ts` does, stamped with `package.json`'s version (read with
-  sed, so it needs Go and git but never Node), and `exec`s it. It builds when
-  the binary is missing or when anything under `cmd/` or `internal/`,
-  `go.mod`, `go.sum` or `package.json` is newer than it (`find -newer`; a
-  folder counts, so a removed source does too); a fresh binary costs that
-  one `find`. The build goes to a name of its own and is moved over the
+  as `build-go.ts` does, stamped with `tools/bin/dev-version`'s version (sh
+  and git, so it needs Go and git but never Node), which it records in
+  `.tools/bin/itos.version`, and `exec`s it. It builds when the binary is
+  missing, when anything under `cmd/` or `internal/`, `go.mod` or `go.sum`
+  is newer than it (`find -newer`; a folder counts, so a removed source does
+  too), and when HEAD's version is not the recorded one (a commit, a tag): a
+  restamp is a link, from Go's build cache. A fresh binary costs one
+  `git describe` and that one `find`, about 10 ms. The build goes to a name of its own and is moved over the
   binary, dated from before it started, so concurrent calls never see half a
   binary and a file changed during it still reads as newer. A build that
   fails prints `itos: the Go binary does not build (go build ./cmd/itos):`
@@ -1264,8 +1312,10 @@ all`; a module replaced by a version is checked as that version, one
     asset, a shallow clone (which may lack the tag) and a keyword the
     comparison does not read each stop it with exit 2; no release tag at all is
     the one pass without a comparison, and says so. Standard library only, as
-    the dependency check is. `-old` and `-new` take the two schemas from files,
-    which `tools/selftest/schema-contract.ts` does, in a scratch repository
+    the dependency check is. `-release <tag>` names the release to compare
+    with, and `-json` prints `{"release","findings":[{"path","change","breaking"}]}`
+    instead of lines, both for the release notes. `-old` and `-new` take the
+    two schemas from files, which `tools/selftest/schema-contract.ts` does, in a scratch repository
     with a tag and a local server standing for GitHub.
   - **The last release's suite** (`tools/bin/previous-release`, T-071; by
     hand, `go run ./tools/bin/previous-release [-bin <itos>]`) holds this
@@ -1273,12 +1323,19 @@ all`; a module replaced by a version is checked as that version, one
     a scenario edited alongside a change no longer checks what it said. The
     release is the newest `vX.Y.Z` tag reachable from HEAD, as for the schema
     contract, and the check runs in CI as a late step after this tree's corpus,
-    with `-range-from "$FROM"`. It checks the tag out with `git worktree add
+    with `-range-from "$FROM"`. The binary judged is this tree's `./cmd/itos`,
+    built into the scratch folder stamped with the version
+    `tools/bin/release-version` computes (the next patch when nothing is
+    releasable), as a release's is, unless `-bin` names another:
+    `tools/bin/itos` says a pre-release between releases, which the old
+    corpus's cases that put the binary's own version into `requires` cannot
+    read. It checks the tag out with `git worktree add
 --detach` into a scratch folder, links the checkout's `node_modules` in
     for the corpus runner's YAML parser, sets the worktree's `package.json`
-    version to what `<bin> version` says (the corpus's `{{version}}` is the
-    version the binary must say, and T-069's builds say one the tag never
-    had), then runs, at once, the release's `go test ./features -count=1
+    version, when it has one, to what `<bin> version` says (the corpus's
+    `{{version}}` is the version the binary must say, which a release's runner
+    read from there until T-069; a later one asks the binary), then runs, at
+    once, the release's `go test ./features -count=1
 -json` with `ITOS_BIN` naming the binary and the release's
     `node tools/itos/conformance/run.ts --bin <bin>`. A failing subtest
     (`TestFeatures/<name>`, spaces as underscores) is named by the `@ID-` tag
@@ -1412,12 +1469,15 @@ TestFeatures/…` lines); a green run closes it.
   header with no commitlint to run. `header-agreement.ts` holds the built-in header
   lint to a fixture of commitlint's verdicts (above, `internal/message`).
   `release-notes.ts` proves what a command
-  can of a release's notes: the file is there; its last `##` section is
+  can of a release's notes (generated ones by `--notes <file>`, which
+  `release-cut.ts` passes; a tagged release's from its committed file, or its
+  GitHub description when it has none): the notes are there; their last `##` section is
   "Upgrading" with the pin to change, from v2.0.0 the binary's install lines
   (`version=<version>`, the download from the release, `checksums.txt`) and no
   tarball, before it the pin line naming that version's tarball; every
   `Upgrading:` footer `itos commit footers` lists for the commits since the
-  last release appears in that section, whitespace and case aside; and every
+  last release appears in that section, whitespace and case aside, and so
+  does every `Changes:` entry; and every
   config key whose default differs between the last release (its Go archive
   for this machine, or before v1.0.0 its tarball, downloaded from GitHub,
   verified and run) and this tree, by `config check --print-defaults --json`,
