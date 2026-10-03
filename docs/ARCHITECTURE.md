@@ -72,7 +72,8 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   commitlint with only `@commitlint/config-conventional` (its config written
   to the scenario's temporary folder, `--cwd` the checkout so the extends
   resolve), so a scenario's footer rules are itos's own rather than a
-  commitlint plugin's.
+  commitlint plugin's; or itos's built-in one, `use: builtin` in the scratch
+  config, which needs nothing installed (`header.feature`).
 - **Selection.** `-scenarios=<regexp>` runs the live scenarios with a tag the
   expression matches: the harness reads every tag in the feature files and
   hands godog the matching ones as its own filter (exact tags joined by
@@ -102,9 +103,10 @@ each, and holds it since the TypeScript left (T-062).
   loads it and rejects a key it does not know, naming the one it misspells;
   `ITOS_CONFIG` or `--config` names another file. A project changes its
   policy here, not in the code, and every key accepted is one a tool reads:
-  a key waiting on a feature not built yet (the built-in header lint's
-  `use` and `alongside`, a second way to tell a commit is pushed) is
-  rejected until that feature reads it. **The defaults are one table**,
+  a key waiting on a feature not built yet (`commits.header_lint.alongside`,
+  a second way to tell a commit is pushed) is rejected until that feature
+  reads it; `commits.header_lint.use` was, until the built-in lint gave it a
+  second value. **The defaults are one table**,
   `DEFAULTS` in `config.ts`: the loader lays the file over it
   (`withDefaults`, `tests.<kind>` under each kind the file has), and
   `config check --print-defaults` prints it, so no tool writes a fallback of
@@ -192,7 +194,7 @@ each, and holds it since the TypeScript left (T-062).
   `read_at: commit`, which reads the IDs that exist (the ledger's tasks, the
   live scenarios) at the commit being checked. The footer rules are itos's
   whatever the header lint: `commit.ts` runs them after the delegate, if
-  any, in the commit-msg hook, `commit check-message` and `verify`, and
+  any (the Go binary, after the built-in lint too), in the commit-msg hook, `commit check-message` and `verify`, and
   reports both, one list of problems under `--json`. Nothing reads a footer
   by its key: CI's tasks (`tasksIn` in `ci-scope.ts`) and the commit-msg
   hook's are those of every footer whose `source` is `ledger`, a kind's named
@@ -312,7 +314,33 @@ show` per file), none when the tree cannot be read. `ledger.IDs` and the
   environment, its report printed as it comes or read by `ParseReport` into
   leveled problems under `--json`, then the footer rules always. Verify reads
   each commit's footers through `FooterProblems` with `At` set to it, and the
-  commit-msg hook through the same call with the hook delegate beside it. A
+  commit-msg hook through the same call with the hook delegate beside it.
+  Under `commits.header_lint.use: builtin` all three run, in the delegate's
+  place, the built-in header lint (`HeaderProblems`, slice 25), which has
+  no TypeScript original: it is commitlint 21 with config-conventional as
+  this checkout's `node_modules` hold it, read from those packages.
+  `header.go` is conventional-commits-parser with the conventionalcommits
+  preset's patterns (the breaking-change header tried first, the body ending
+  at the first footer-token line, a breaking-change note running to the next
+  one) and config-conventional's rules in its order, each a judgement that
+  gives commitlint's words or none; `ignore.go` is is-ignored's wildcards
+  (merges, reverts, reapplies, fixups, versions by semver's strict pattern);
+  `cases.go` is subject-case and type-case as `@commitlint/ensure` and
+  es-toolkit find a case, its word pattern written out with the backtracking
+  each alternative needs, JavaScript's case mappings where Go's differ, and
+  lengths in UTF-16 code units. Patterns use JavaScript's dot and `\s`
+  (`value.Space`) and spell `/i` out on ASCII, since RE2's differ. The hook
+  passes the message file with a line break added and git's comment
+  character (`CommentChar`, `core.commentChar` or `#`), whose lines and
+  scissors it leaves out, as commitlint `--edit` does; check-message and
+  verify pass the message as given, as commitlint reads stdin. `builtin`
+  prints the problems as commitlint prints one (`PrintLeveled`), errors
+  before warnings, then the footer problems, or one leveled list under
+  `--json`; a warning alone passes. Its one known difference is wording:
+  es-toolkit's deburr decomposes every precomposed letter (NFD), and
+  `cases.go` only those of Latin-1 and Latin Extended-A, so subject-case
+  may name start-case or pascal-case for a subject with another one, where
+  the verdict is the same. A
   command adapter (`internal/tests`) is `<command> list --at <tree>` through
   the config's shell, its output read by `value.ParseJSON` (`JSON.parse`'s
   reading, keys in JavaScript's order) and held to the protocol, its failures
@@ -507,7 +535,8 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   staged `commits.reject_message`; the staged rule is `scope.Of(cfg).Issues`
   on the staged paths and each kind's `staged` range command (both only for
   a type `Ruled`), then `tests.NewMoves(cfg).Staged(type)`; the header lint
-  is `message.LintFile`, the `commits.header_lint.hook` delegate with
+  is `message.LintFile`, the built-in lint under `use: builtin`, else the
+  `commits.header_lint.hook` delegate with
   `{file}` as one `tests.ShellWord`, inheriting the hook's streams, its exit
   code the hook's, beside `FooterProblems` at the staged tree (or
   `ITOS_AT`); last, the named tasks' checks up to each task's first late one

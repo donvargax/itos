@@ -32,7 +32,9 @@ Commands run in a clean environment: no `GIT_*`, `ITOS_*`, `GITHUB_*` or
 `CI` variable of the caller's, no global or system git config, a fixed author.
 The header lint, where a scenario needs one, is commitlint from this
 checkout's `node_modules` with only `@commitlint/config-conventional`, so that
-footer rules in such a scenario are itos's, not a commitlint plugin's.
+footer rules in such a scenario are itos's, not a commitlint plugin's, or
+itos's built-in one (`use: builtin` in the scratch config), which needs
+nothing installed.
 
 ## Running them
 

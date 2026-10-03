@@ -91,7 +91,8 @@ hook (`tools/bin/itos hook commit-msg`) first runs `tools/bin/itos config
 check`'s problems over the staged tree when the commit stages `itos.yaml`, a
 ledger file, the work registry or the smoke set, then applies the path rules,
 then the moving rule to HEAD and the index, then the header lint
-(`commits.header_lint`: commitlint, `config-conventional`) and itos's footer
+(`commits.header_lint`: commitlint, `config-conventional`, here; itos's
+built-in one under `use: builtin`) and itos's footer
 rules (`commits.footers`), both reported, then the checks of each task the `Task:` footer names, as staged, in
 written order up to its first late one (CI's cost rule below; an `after: push`
 check waits). A failure rejects the commit when the task's item in

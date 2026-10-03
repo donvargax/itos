@@ -80,6 +80,22 @@
     messages, and fails on any commit where one rejects and the other does
     not, naming it. Then itos.yaml's commits.header_lint is use: builtin,
     and commitlint, its config and its packages leave the repository.
+    Slice 25 leaves it this. The hook's reading of a message file is
+    commitlint --edit's (git's comment lines and scissors out, a line break
+    added) and check-message's and verify's is stdin's, so the comparison
+    runs both readings. Held so while it was written, over this history and
+    messages aimed at each rule, the two agreed on every verdict and every
+    word but one: subject-case's list of cases for a subject with a
+    precomposed letter outside Latin-1 and Latin Extended-A
+    (p3-header-case-decomposition), so the words compare apart from that.
+    When commitlint leaves, the features' step "the header lint is
+    commitlint's conventional config" (ID-CMSG-01 and footers.feature's
+    four) writes use: builtin, the scenarios' text unchanged (PLAN.md's
+    risks), and so do the places that name commitlint as this repository's
+    lint: AGENTS.md's commit-msg gate, tasks/README.md, features/README.md,
+    docs/ARCHITECTURE.md's gates, .fallowrc.json's entry and the hook's
+    help ("commitlint here"). header-agreement.ts needs commitlint to run,
+    so its check cannot outlive commitlint as it is written.
   done_when:
     - run: node tools/selftest/header-agreement.ts
       timeout: 900
