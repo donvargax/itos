@@ -1776,6 +1776,15 @@ items:
     kind: task
     refs: [tasks/phase-3.yaml]
 
+  - id: T-064
+    title: v2.1.0, the global install, extensions and the stealth mode
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-38]
+    kind: task
+    refs: [tasks/phase-3.yaml]
+
   - id: slice-29
     title: Extensions, itos <cmd> running itos-<cmd> from the PATH
     phase: 3

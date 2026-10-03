@@ -135,3 +135,27 @@
       timeout: 300
     - run: sh -c 'd=$(mktemp -d) && gh release download v2.0.0 --dir "$d" --pattern "itos-2.0.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
       after: push
+
+- id: T-064
+  type: build
+  title: v2.1.0, the global install, extensions and the stealth mode
+  why: >
+    The user's plan (2026-10-03): the first release after v2.0.0, additive,
+    asking nothing of a consumer. It carries slices 27 to 38 and the bug 4,
+    5 and 6 fixes: the launcher and pin, the newest release and its notice,
+    extensions, itos commit with its footer flags, the stealth mode, and
+    itos version outside a project. The notes' Upgrading section holds every
+    Upgrading footer since v2.0.0 that says more than none (the release-notes
+    check proves it), how to install itos once per machine and pin a
+    repository, and the install lines of the new version for a consumer still
+    on the install script. The user moves the other repositories at v2.3.0, so
+    nothing here may require a change of them. Automated: the coordinator tags
+    when CI and the release checks are green, after reading the notes against
+    the range.
+  done_when:
+    - run: node tools/selftest/go-release.ts
+      timeout: 900
+    - run: node tools/selftest/release-notes.ts 2.1.0
+      timeout: 300
+    - run: sh -c 'd=$(mktemp -d) && gh release download v2.1.0 --dir "$d" --pattern "itos-2.1.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
+      after: push

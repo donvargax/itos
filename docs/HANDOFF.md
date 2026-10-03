@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 36 (itos commit's content flags) landed.
+Last updated 2026-10-03, after slice 38 (a stealth session owns every item) landed; v2.1.0 next.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `aaaabb5` (CI run 37100537137), slice 36's close; this
+`main` is green at `c17acf8` (CI run 37101277075), slice 38's close; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -51,7 +51,8 @@ repositories: don't change any other repository. Unreleased: slices 27 to 31
 (the launcher, `pin`, the newest release and the notice, extensions, the
 stealth config, `itos commit`, stealth footers in notes, hooks in the git
 config, the unpushed range, a stealth config's defaults, the amend signal,
-`itos commit`'s content flags) and the `@bug-6` fix and
+`itos commit`'s content flags, a stealth session owning every item) and the
+`@bug-6` fix and
 the `itos version` fix (issue #2).
 From v2.1.0 on, `tools/selftest/release-notes.ts` holds every `Upgrading:`
 footer of the range to the notes.
@@ -67,8 +68,9 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 3. **Stealth mode** is done: slices 30 to 35, with `itos commit` (slice 31)
    and the `@bug-5` fix. The coordinator proposed cutting v2.1.0 now; the
    user has not answered. `hooks.bin` stays through v2 (`v3-drop-hooks-bin`).
-4. **Toward v2.1.0**: slice 37, the `@bug-6` fix and slice 36 are done;
-   next slice 38 (a stealth session owns every item), then cut v2.1.0.
+4. **v2.1.0** (T-064): everything for it has landed; a nightly was dispatched
+   by hand on `c17acf8`, since the last ran before slice 27. Then the notes,
+   the version, the tag.
 5. **`p1-itos-push`**, itos commit's other half (built in or an extension,
    the first call).
 6. **`p3-claude-code-plugin`**: the marketplace, the titles, the skill, the
