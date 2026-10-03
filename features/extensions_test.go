@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -53,10 +54,16 @@ func (w *world) extension(name, body string) error {
 	if err := os.MkdirAll(w.extensionsDir(), 0o755); err != nil {
 		return err
 	}
+	// Git for Windows' sh says its folder as /c/…; -W says it as windows names
+	// it, C:/….
+	pwd := "pwd -P"
+	if runtime.GOOS == "windows" {
+		pwd = "pwd -W"
+	}
 	script := "#!/bin/sh\n" +
 		"rec=" + quote(w.extensionRecord(name)) + "\n" +
 		`rm -rf "$rec" && mkdir -p "$rec" || exit 99` + "\n" +
-		`pwd -P > "$rec/dir"` + "\n" +
+		pwd + ` > "$rec/dir"` + "\n" +
 		`for a in "$@"; do printf '%s\n' "$a"; done > "$rec/args"` + "\n" +
 		`env | grep '^ITOS_' > "$rec/env"` + "\n" +
 		body + "\n"
@@ -104,7 +111,7 @@ func (w *world) extensionRanIn(name, folder string) error {
 	if err != nil {
 		return err
 	}
-	if got := strings.TrimSpace(text); got != want {
+	if got := filepath.Clean(strings.TrimSpace(text)); got != want {
 		return fmt.Errorf("the extension %s ran in %s, not %s\n%s", name, got, want, w.report())
 	}
 	return nil
@@ -129,7 +136,8 @@ func (w *world) extensionVariable(name, variable, want string, suffix bool) erro
 	if err != nil {
 		return err
 	}
-	if suffix && !strings.HasSuffix(got, want) || !suffix && got != want {
+	// A path's ending is read with slashes, whatever the platform's separator.
+	if suffix && !strings.HasSuffix(filepath.ToSlash(got), want) || !suffix && got != want {
 		how := "is not"
 		if suffix {
 			how = "does not end in"
