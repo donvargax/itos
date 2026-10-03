@@ -2365,3 +2365,19 @@ items:
       are the index against HEAD's parent; the hook can now tell an amend by its author
       (amending in internal/cli/hook.go), as it does to read HEAD's note in stealth mode.
     refs: [internal/cli/hook.go]
+
+  - id: p3-hook-amend-signal
+    title: The hook knows an amend from git, not from the author's name and second
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-32]
+    kind: idea
+    why: >
+      Slice 32 tells an amend in the commit-msg hook by GIT_AUTHOR_NAME, _EMAIL and _DATE matching
+      HEAD's author to the second, so a new commit by the same author in the same second passes on
+      HEAD's note (verify still catches it). git tells prepare-commit-msg what it needs: its second
+      and third arguments are "commit" and the commit's SHA for --amend, -c and -C. A
+      prepare-commit-msg hook recording that for the commit-msg hook would be exact, and serve
+      p3-hook-amend-paths too.
+    refs: [internal/cli/hook.go]

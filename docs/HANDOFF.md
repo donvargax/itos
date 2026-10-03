@@ -12,14 +12,14 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 31 (itos commit) landed.
+Last updated 2026-10-03, after slice 32 (stealth footers in notes) landed.
 
 ## Where things stand
 
 Phase 1, itos v0 in TypeScript, is in progress; phase 2 is the Go port. All
 are @donvargax's.
 
-`main` is green at `c8c72b9` (CI run 37093594235), slice 31's close; this
+`main` is green at `0d527ca` (CI run 37094464409), slice 32's close; this
 repository requires an `Upgrading:` footer of every feat and fix (since
 `2e522f2`), and its headers are judged by the built-in lint; since T-062 itos is Go
 only, `tools/bin/itos` the Go binary every gate calls; Node stays as this
@@ -49,7 +49,7 @@ works (the module path is `/v2` since T-061). Releases are automated
 (PLAN.md, "Releases"). The user moves the consumers' pins from their own
 repositories: don't change any other repository. Unreleased: slices 27 to 31
 (the launcher, `pin`, the newest release and the notice, extensions, the
-stealth config, `itos commit`) and
+stealth config, `itos commit`, stealth footers in notes) and
 the `itos version` fix (issue #2).
 From v2.1.0 on, `tools/selftest/release-notes.ts` holds every `Upgrading:`
 footer of the range to the notes.
@@ -64,8 +64,9 @@ The user's order (2026-10-02, adoption added 2026-10-03), one slice at a time:
 2. **Extensions** is done: slice 29.
 3. **Stealth mode**: slices 30 to 34 (`features/stealth.feature`), with
    slice 31, `itos commit --task`, in `features/commit-command.feature`.
-   Specified, the user's answers in slice-30's why. Slices 30 and 31 are
-   done; with slice 33 comes `p3-stealth-defaults` (a stealth config still
+   Specified, the user's answers in slice-30's why. Slices 30 to 32 are
+   done. Next the `@bug-5` fix (`itos commit <word>` that is no subcommand
+   is a usage error again, the user's call), then slice 33; with slice 33 comes `p3-stealth-defaults` (a stealth config still
    defaults to a project's `hooks.bin` and `CONTRIBUTORS.md`, so it needs
    both written until then). `hooks.bin` itself stays through v2
    (`v3-drop-hooks-bin`).
