@@ -132,6 +132,12 @@ ci:
     - { run: go vet ./..., cost: static }
     - { run: tools/bin/itos tests smoke check scenario, cost: static }
     - { run: tools/bin/itos config check, cost: static } # the config, the ledger, the registry, the smoke set
+    # The plugin's version rule (T-074): a range whose tree changes integrations/claude-code/ must
+    # leave its plugin.json's version higher, by semver, than at the range's start, as Claude Code
+    # offers an installed plugin an update only when that version changes. It reads git alone, so
+    # static; no range start (FROM empty), a start the clone lacks or a shallow clone stops it
+    # (exit 2). In the prose steps too, as the plugin's skill is Markdown. FROM as below.
+    - { run: 'go run ./tools/bin/plugin-version -range-from "${FROM-}"', cost: static }
     # The dependency check (T-067), when the range changes go.mod or go.sum: no module younger
     # than 7 days unless deps-check.json excepts it, then govulncheck. It asks the network, so
     # late; first of the late steps, before the unit tests run a new module's code. FROM is the
@@ -163,7 +169,10 @@ ci:
     - { tests: scenario }
   prose: # a range that touches only these runs only the prose steps
     paths: ["**/*.md", "docs/**"]
-    steps: [vp check, tools/bin/itos config check] # CONTRIBUTORS.md, the people, is Markdown
+    steps: # CONTRIBUTORS.md, the people, is Markdown
+      - vp check
+      - tools/bin/itos config check
+      - 'go run ./tools/bin/plugin-version -range-from "${FROM-}"' # the plugin's skill is Markdown
   cost:
     # Checks with no `cost:` of their own: static if a pattern matches, else
     # late. Only commands static by what they are: `sh -c` wraps anything, so a
