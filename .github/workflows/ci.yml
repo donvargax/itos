@@ -41,8 +41,8 @@ jobs:
           go-version-file: go.mod
           cache-dependency-path: go.sum
       # tools/bin/itos runs the Go binary, built here once into .tools/bin/ and
-      # stamped with package.json's version: every later call in the job finds
-      # it newer than the sources and runs it without building.
+      # stamped with the version git describe gives the commit (tools/bin/dev-version):
+      # every later call in the job finds it current and runs it without building.
       - name: Build itos
         run: tools/bin/itos version
       - run: vp install
@@ -89,3 +89,15 @@ jobs:
       - run: tools/bin/itos ci run "$FROM" "$TO"
         env:
           GH_TOKEN: ${{ github.token }}
+
+  # A push to main whose ci job is green cuts a release when its commits since the last tag carry a
+  # feat, a fix or a breaking change (T-069; release.yml says how). The only job with write access,
+  # granted here and to nothing else; a pull request never releases.
+  release:
+    needs: ci
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    uses: ./.github/workflows/release.yml

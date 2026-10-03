@@ -33,12 +33,21 @@
 //
 //	go run ./tools/bin/schema-contract [-range-from <rev>] [-old <file>] [-new <file>]
 //	                                   [-release-url <url>] [-repository <owner/name>]
+//	                                   [-release <tag>] [-json]
 //
 // -range-from <rev> checks nothing unless a commit in <rev>..HEAD is a feat or a
 // fix, which is how CI runs it over a push's range; an empty <rev> checks.
 // -old and -new read the two schemas from files instead (the self-test's way,
-// tools/selftest/schema-contract.ts). Exit status: 0 passed, 1 a breaking
-// change no commit marks, 2 the check could not run.
+// tools/selftest/schema-contract.ts). -release <tag> holds the tree to that
+// release instead of the newest tag reachable from HEAD (the release job's,
+// whose own tag is already made locally when it writes the notes). -json prints the findings as one JSON
+// object on stdout instead of lines, for the release notes T-069 generates
+// (tools/bin/release-notes):
+//
+//	{"release": "<tag, empty with none>", "findings": [{"path", "change", "breaking"}]}
+//
+// the exit status unchanged. Exit status: 0 passed, 1 a breaking change no
+// commit marks, 2 the check could not run.
 package main
 
 import (
@@ -64,9 +73,13 @@ const asset = "itos.schema.json"
 // finding is one difference between the release's schema and this tree's, at
 // a config path (ledger.files, ci.steps[], tests.<key>.root).
 type finding struct {
-	Path, Change string
-	Breaking     bool
+	Path     string `json:"path"`
+	Change   string `json:"change"`
+	Breaking bool   `json:"breaking"`
 }
+
+// asJSON is -json: the findings as one object on stdout.
+var asJSON bool
 
 // commit is one commit since the release's tag.
 type commit struct {
@@ -84,6 +97,8 @@ func run() int {
 	newFile := flag.String("new", "", "this tree's schema from this file, instead of go run ./tools/bin/config-schema")
 	releaseURL := flag.String("release-url", "https://github.com/{repository}/releases/download", "where a release's assets are, under <tag>/")
 	repository := flag.String("repository", "", "owner/name on GitHub; default $GITHUB_REPOSITORY, else the remote origin's")
+	flag.BoolVar(&asJSON, "json", false, "print the findings as one JSON object on stdout")
+	release := flag.String("release", "", "the release's tag to hold the tree to, instead of the newest vX.Y.Z tag reachable from HEAD")
 	flag.Parse()
 	if flag.NArg() > 0 {
 		fmt.Fprintf(os.Stderr, "schema-contract: unexpected argument %q\n", flag.Arg(0))
@@ -100,8 +115,8 @@ func run() int {
 			return fail("cannot read the commits since %s: %v", *rangeFrom, err)
 		}
 		if !anyReleasable(headers) {
-			fmt.Printf("schema-contract: no feat or fix since %s: nothing to check\n", *rangeFrom)
-			return 0
+			say("schema-contract: no feat or fix since %s: nothing to check\n", *rangeFrom)
+			return emit("", nil, 0)
 		}
 	}
 
@@ -111,12 +126,15 @@ func run() int {
 		return fail("this is a shallow clone, which may not have the last release's tag: fetch the whole history (actions/checkout's fetch-depth: 0)")
 	}
 	tag, err := lastRelease()
+	if *release != "" {
+		tag = *release
+	}
 	if err != nil {
 		return fail("%v", err)
 	}
 	if tag == "" {
-		fmt.Println("schema-contract: no vX.Y.Z tag is reachable from HEAD, so there is no release whose config to hold this tree to: nothing to check")
-		return 0
+		say("schema-contract: no vX.Y.Z tag is reachable from HEAD, so there is no release whose config to hold this tree to: nothing to check\n")
+		return emit("", nil, 0)
 	}
 	commits, err := commitsSince(tag)
 	if err != nil {
@@ -152,7 +170,37 @@ func run() int {
 
 	var findings []finding
 	compare(oldSchema, newSchema, "", &findings)
-	return report(tag, findings, commits)
+	return emit(tag, findings, report(tag, findings, commits))
+}
+
+// say prints a line for a person: on stdout, or on stderr under -json, whose
+// stdout is the object alone.
+func say(format string, a ...any) {
+	if asJSON {
+		fmt.Fprintf(os.Stderr, format, a...)
+	} else {
+		fmt.Printf(format, a...)
+	}
+}
+
+// emit prints the object under -json, and gives the exit status back.
+func emit(tag string, findings []finding, status int) int {
+	if !asJSON {
+		return status
+	}
+	if findings == nil {
+		findings = []finding{}
+	}
+	text, err := json.Marshal(struct {
+		Release  string    `json:"release"`
+		Findings []finding `json:"findings"`
+	}{tag, findings})
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "schema-contract: %v\n", err)
+		return 2
+	}
+	fmt.Println(string(text))
+	return status
 }
 
 // report prints the findings and gives the exit status: compatible ones on
@@ -160,7 +208,7 @@ func run() int {
 // on stderr with the remedy when none does.
 func report(tag string, findings []finding, commits []commit) int {
 	if len(findings) == 0 {
-		fmt.Printf("schema-contract: this tree's config schema is %s's: no change to a key, a type, a value or a default\n", tag)
+		say("schema-contract: this tree's config schema is %s's: no change to a key, a type, a value or a default\n", tag)
 		return 0
 	}
 	var marker *commit
@@ -174,9 +222,9 @@ func report(tag string, findings []finding, commits []commit) int {
 	for _, f := range findings {
 		switch {
 		case !f.Breaking:
-			fmt.Printf("schema-contract: compatible since %s: %s: %s\n", tag, display(f.Path), f.Change)
+			say("schema-contract: compatible since %s: %s: %s\n", tag, display(f.Path), f.Change)
 		case marker != nil:
-			fmt.Printf("schema-contract: breaking since %s, marked by %.7s %q: %s: %s\n",
+			say("schema-contract: breaking since %s, marked by %.7s %q: %s: %s\n",
 				tag, marker.SHA, marker.Header, display(f.Path), f.Change)
 		default:
 			unmarked = append(unmarked, f)
@@ -300,7 +348,7 @@ func download(base, repository, tag string) ([]byte, error) {
 		base = strings.ReplaceAll(base, "{repository}", repository)
 	}
 	url := strings.TrimSuffix(base, "/") + "/" + tag + "/" + asset
-	fmt.Printf("schema-contract: %s's schema from %s\n", tag, url)
+	say("schema-contract: %s's schema from %s\n", tag, url)
 	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("cannot download it (it needs the network): %v", err)

@@ -1,8 +1,10 @@
 // A release's notes say what a consumer must change. It proves the parts a
-// command can decide of docs/releases/v<version>.md, the file the release
-// workflow publishes (PLAN.md, §10):
+// command can decide of a release's notes (PLAN.md, §10): from T-069 the notes
+// tools/bin/release-notes generates and the release workflow publishes as the
+// release's description, before it docs/releases/v<version>.md, a committed
+// file:
 //
-//   - the file is there;
+//   - the notes are there;
 //   - its last `##` section is "Upgrading", from which a consumer's session
 //     updates alone;
 //   - that section gives the pin to change. From v2.0.0, Go only, it is the
@@ -17,13 +19,18 @@
 //     lists them (those saying none left out), appears in that section, its
 //     text whitespace and case aside; a range whose commits carry none (any before
 //     this repository required the footer, T-061) passes, and says so;
+//   - so does every Changes: entry of those commits, the old scenarios and
+//     corpus cases a fix changes on purpose (T-071), as
+//     `itos commit footers Changes` lists them;
 //   - every config key whose default differs, appears or disappears between
 //     the last release and this version is named in that section (as its
 //     dotted path, `work.registry`), the defaults being each one's
 //     `itos config check --print-defaults --json`.
 //
 // A version whose tag v<version> exists is judged as released: its notes are
-// the tag's docs/releases/v<version>.md, the file the release published, its
+// the tag's docs/releases/v<version>.md, the file the release published, or
+// when the tag has none (a release T-069's workflow cut) the release's
+// description on GitHub, its
 // footers the range up to its tag, and its defaults are its released
 // binary's. So a release task's check stays green while later work moves the
 // defaults or edits the tree's copy of the notes. Only a version not yet
@@ -38,9 +45,14 @@
 // unpacked; before it, the TypeScript tarball, installed offline into a
 // scratch project with npm, the bundle those releases' consumers ran.
 //
-//   node tools/selftest/release-notes.ts                  package.json's version
+//   node tools/selftest/release-notes.ts                  the next release's
+//                                                         version, as
+//                                                         tools/bin/release-version
+//                                                         computes it
 //   node tools/selftest/release-notes.ts <version>        another version's notes
 //   node tools/selftest/release-notes.ts --notes <file>   judge <file> as the notes
+//                                                         (tools/selftest/release-cut.ts
+//                                                         judges generated ones so)
 //
 // Exits 1 on any failure.
 import { spawnSync } from "node:child_process";
@@ -53,10 +65,24 @@ const root = resolve(".");
 const args = process.argv.slice(2);
 const at = args.indexOf("--notes");
 const notesArg = at >= 0 ? args.splice(at, 2)[1] : undefined;
-const version =
-	args[0]?.replace(/^v/, "") ??
-	(JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as { version: string }).version;
 const env = outsideEnv();
+
+// The version the commits since the last tag would release, which
+// tools/bin/release-version computes; exits 2 when they release nothing.
+function nextVersion(): string {
+	const said = spawnSync("go", ["run", "./tools/bin/release-version"], {
+		cwd: root,
+		env,
+		encoding: "utf8",
+	});
+	const next = /^next=(.*)$/m.exec(said.stdout ?? "")?.[1];
+	if (said.status !== 0 || !next) {
+		console.error(`release notes self-test: no next version to judge: ${said.stderr}`);
+		process.exit(2);
+	}
+	return next;
+}
+const version = args[0]?.replace(/^v/, "") ?? nextVersion();
 const scratch = mkdtempSync(join(tmpdir(), "release-notes-selftest-"));
 const failures: string[] = [];
 
@@ -91,8 +117,12 @@ function notes(): string | undefined {
 		env,
 		encoding: "utf8",
 	});
-	if (shown.status !== 0) return void failures.push(`no release notes at ${notesName}`);
-	return shown.stdout;
+	if (shown.status === 0) return shown.stdout;
+	// Cut by T-069's workflow: the notes are the release's description.
+	const body = sh(["gh", "release", "view", released, "--json", "body", "--jq", ".body"]);
+	if (!body?.trim())
+		return void failures.push(`no release notes at ${notesName} or in ${released}'s description`);
+	return body;
 }
 
 // The Upgrading section's text, or undefined after saying why there is none.
@@ -267,6 +297,29 @@ if (tag) {
 	}
 }
 
+// The range's Changes entries, each held to the section too.
+let changes: { sha: string; text: string }[] = [];
+if (tag) {
+	const listed = sh([
+		join(root, "tools", "bin", "itos"),
+		"commit",
+		"footers",
+		"Changes",
+		tag,
+		end,
+		"--json",
+	]);
+	if (listed !== undefined) {
+		changes = (JSON.parse(listed) as { footers: { sha: string; text: string }[] }).footers;
+		if (section !== undefined)
+			for (const c of changes)
+				if (!flat(section).includes(flat(c.text)))
+					failures.push(
+						`the Upgrading section does not list ${c.sha.slice(0, 7)}'s Changes entry: ${c.text}`,
+					);
+	}
+}
+
 const bin = tag && releasedBin(tag);
 const before = bin && defaultsOf(bin);
 // A tagged version's defaults are its release's; only an untagged one is this tree's.
@@ -295,7 +348,10 @@ const pin = goOnly
 const held = footers.length
 	? `holds the ${footers.length} Upgrading footer${footers.length === 1 ? "" : "s"} of ${tag}..${end} to it`
 	: `has no Upgrading footer of ${tag}..${end} to hold to it (itos commit footers lists none for the range)`;
+const listedChanges = changes.length
+	? `lists its ${changes.length} Changes entr${changes.length === 1 ? "y" : "ies"}`
+	: "has no Changes entry to list";
 console.log(
-	`release notes self-test: ${notesName} ends with Upgrading, ${pin}, ${held}, and names ` +
+	`release notes self-test: ${notesName} ends with Upgrading, ${pin}, ${held}, ${listedChanges}, and names ` +
 		`every default changed between ${tag} and ${released ?? "this tree"} (${changed.join(", ") || "none"})`,
 );

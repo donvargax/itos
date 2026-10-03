@@ -1,108 +1,112 @@
 name: Release
 
-# A tag v<version> publishes that version (PLAN.md, §10):
-#   - the Go binary, one archive per platform, itos-<version>-<os>-<arch>.tar.gz
-#     (.zip for windows), and itos.schema.json, the config's JSON Schema, which
-#     tools/bin/build-go.ts --release builds into $OUT;
-#   - checksums.txt, one file holding every asset's SHA-256 in `sha256sum`
-#     format, so `sha256sum --ignore-missing -c checksums.txt` checks whichever
-#     of them a consumer downloaded, and a consumer pins an asset's URL with
-#     its line.
-# Every one is proven before anything is published, in the very folder
-# uploaded. The TypeScript's tarball, itos-<version>.tgz, left with the
-# TypeScript (T-062). The release's body says what each asset is and lists
-# checksums.txt, then the committed notes, docs/releases/v<version>.md. A tag
-# is never moved or re-pushed: a failed release is fixed forward on main and
-# released as the next version.
+# The release, cut by CI (T-069): ci.yml calls this after its ci job passes on a push to main, and
+# it releases when the commits since the last vX.Y.Z tag carry a feat, a fix or a breaking change.
+# The tag is the version, computed from those commits (tools/bin/release-version): a breaking
+# change a major, a feat a minor, a fix a patch; with none, nothing is released and the job ends
+# green. It adds no gate of its own: the push's CI, with the schema contract (T-070) and the last
+# release's scenarios and corpus (T-071), is what a release rests on, and a break that slips
+# through is a missing check, fixed forward with the check and a fix release.
+#
+# What it publishes is what the launcher, a pin, go install and a consumer's install script read
+# (PLAN.md, §10; .goreleaser.yaml): the five archives, itos.schema.json and checksums.txt. In
+# order, all in this one job, since a tag pushed with the workflow's token starts no other
+# workflow:
+#   1. the version; nothing more when there is none;
+#   2. the tag, made locally only;
+#   3. GoReleaser (tools/bin/pinned, at the version pinned there) builds, packs and uploads a draft
+#      release whose target is this commit;
+#   4. the archives and the schema are attested (Sigstore, no keys; `gh attestation verify
+#      <file> -R donvargax/itos` checks one);
+#   5. the notes are generated (tools/bin/release-notes: git-cliff over the range, every
+#      Upgrading: and Changes: footer, the config's changes, the install lines and the pin filled
+#      from checksums.txt);
+#   6. the draft is published with those notes, which is when GitHub creates the tag, so the tag
+#      and a release holding every asset appear together. A run that fails before leaves no tag,
+#      only a draft the next run replaces; a tag is never moved.
+# The releaser never commits: the notes are the release's description, not a file.
 on:
-  push:
-    tags: ["v*"]
-
-permissions:
-  contents: write # the release and its assets
-
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
+  workflow_call:
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      TAG: ${{ github.ref_name }}
-      # The folder the Go release is built into, proven and published from.
-      OUT: dist/release
+    # The only job given write access: the release and its assets, the OIDC token Sigstore signs
+    # with, and the attestations.
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    # One at a time, never cancelled, so pushes in a row cut their releases in order. ci.yml's
+    # runs on main already wait for each other; this holds even if that changes.
+    concurrency:
+      group: release
+      cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v4
-      - uses: voidzero-dev/setup-vp@v1.21.0
+      # Every action pinned to a commit, each release at least 7 days old when pinned (T-067's
+      # rule): actions/checkout v4.4.0, actions/setup-go v7.0.0,
+      # actions/attest-build-provenance v4.2.2.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          node-version: "24"
-          cache: true
-      # Go for the release build.
-      - uses: actions/setup-go@v7
+          fetch-depth: 0 # the tags and the commits since the last one
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
-      - run: vp install
-      # The one way to build the Go release, tools/selftest/go-release.ts's too:
-      # the archives, itos.schema.json and their checksums.txt.
-      - name: Build the Go release
-        run: node tools/bin/build-go.ts --release "$OUT"
-      # The tag, package.json and the Go binary must name one version, or the
-      # release would publish an archive under another's name. The runner is
-      # linux/amd64, so that archive's binary is the one run.
-      - name: The tag is the version
+      - name: Version
+        id: version
         run: |
-          version=$(node -p 'require("./package.json").version')
-          if [ "$TAG" != "v$version" ]; then
-            echo "::error::tag $TAG, but package.json says $version"
-            exit 1
-          fi
-          bin=$(mktemp -d)
-          tar -xzf "$OUT/itos-$version-linux-amd64.tar.gz" -C "$bin" itos
-          said=$("$bin/itos" version)
-          if [ "$said" != "itos $version" ]; then
-            echo "::error::package.json says $version, but the Go binary says: $said"
-            exit 1
-          fi
-          echo "VERSION=$version" >> "$GITHUB_ENV"
-      # Every release's notes are a committed file, ending with the Upgrading
-      # section a consumer updates from (PLAN.md, §10); a tag without them is
-      # refused before anything is proven or published.
-      - name: The notes are committed
+          go run ./tools/bin/release-version > "$RUNNER_TEMP/version.txt"
+          cat "$RUNNER_TEMP/version.txt" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/version.txt"
+      # The GitHub CLI, to publish the draft: pinned from its release tarball and checked against
+      # its SHA-256, as nightly.yml installs it, so the runner's own copy does not decide what runs.
+      - name: GitHub CLI
+        if: steps.version.outputs.next != ''
+        env:
+          GH_VERSION: 2.101.0
+          GH_SHA256: 9bca2d1c16825f109907a23307628a2f0698fbf99662b73a5cf0b020293072b8
         run: |
-          if [ ! -f "docs/releases/v$VERSION.md" ]; then
-            echo "::error::no release notes at docs/releases/v$VERSION.md"
-            exit 1
-          fi
-      # The Go release as a consumer downloads it, read with the system's tar,
-      # unzip and sha256sum: exactly its seven files, each archive's binary,
-      # LICENSE and README.md, each binary's format and architecture, the
-      # checksums, and this machine's binary's version. The same folder this
-      # job publishes.
-      - run: node tools/selftest/go-release.ts --dir "$OUT"
+          mkdir -p "$RUNNER_TEMP/bin"
+          tgz="$RUNNER_TEMP/gh.tar.gz"
+          curl -sSfL -o "$tgz" "https://github.com/cli/cli/releases/download/v${GH_VERSION}/gh_${GH_VERSION}_linux_amd64.tar.gz"
+          echo "$GH_SHA256  $tgz" | sha256sum -c -
+          tar -xzf "$tgz" -C "$RUNNER_TEMP" "gh_${GH_VERSION}_linux_amd64/bin/gh"
+          mv "$RUNNER_TEMP/gh_${GH_VERSION}_linux_amd64/bin/gh" "$RUNNER_TEMP/bin/gh"
+          rm -rf "$tgz" "$RUNNER_TEMP/gh_${GH_VERSION}_linux_amd64"
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/bin/gh" --version
+      # Local only: GoReleaser reads the version from it, and GitHub creates the remote tag when the
+      # draft is published.
+      - name: Tag
+        if: steps.version.outputs.next != ''
+        env:
+          TAG: v${{ steps.version.outputs.next }}
+        run: git tag "$TAG" "$GITHUB_SHA"
+      - name: GoReleaser
+        if: steps.version.outputs.next != ''
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: tools/bin/pinned goreleaser release --clean
+      # checksums.txt lists every archive and the schema by name and SHA-256: each is a subject.
+      - name: Attest
+        if: steps.version.outputs.next != ''
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-checksums: dist/goreleaser/checksums.txt
+      - name: Notes
+        if: steps.version.outputs.next != ''
+        env:
+          LAST: ${{ steps.version.outputs.last }}
+          NEXT: ${{ steps.version.outputs.next }}
+        run: |
+          go run ./tools/bin/release-notes -version "$NEXT" -from "$LAST" \
+            -checksums dist/goreleaser/checksums.txt > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Publish
+        if: steps.version.outputs.next != ''
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          {
-            echo "itos $VERSION. The release holds:"
-            echo
-            echo "- \`itos-$VERSION-<os>-<arch>.tar.gz\`, the Go binary, for linux and darwin on amd64 and arm64,"
-            echo "  and \`itos-$VERSION-windows-amd64.zip\` for windows; each holds the binary (\`itos\`, or"
-            echo "  \`itos.exe\`), \`LICENSE\` and \`README.md\` at its top level."
-            echo "- \`itos.schema.json\`, the config's JSON Schema, which an editor checks an \`itos.yaml\` against"
-            echo "  (\`# yaml-language-server: \$schema=<its URL>\` atop the file)."
-            echo "- \`checksums.txt\`, the SHA-256 of every file above, in \`sha256sum\`'s format:"
-            echo "  \`sha256sum --ignore-missing -c checksums.txt\` checks the ones downloaded beside it."
-            echo
-            echo "Pin an asset's URL and its SHA-256 (README.md, \"Install\"), as checksums.txt lists them:"
-            echo
-            echo '```'
-            cat "$OUT/checksums.txt"
-            echo '```'
-            echo
-            cat "docs/releases/v$VERSION.md"
-          } > notes.md
-          gh release create "$TAG" "$OUT"/* \
-            --verify-tag --title "itos $VERSION" --notes-file notes.md
+          GH_REPO: ${{ github.repository }}
+          TAG: v${{ steps.version.outputs.next }}
+        run: gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest
