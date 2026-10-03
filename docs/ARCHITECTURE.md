@@ -155,6 +155,17 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   network or a real cache. The conformance runner does the same for every
   case (`cleanEnv` in `run.ts`); a corpus config pins nothing, or the
   binary's own version.
+- **Programs that are shell scripts** (`program_test.go`): a scenario's fake
+  programs (an extension, a release's `itos`, the config's recording shell,
+  the probe that asks the itos under test for its binary) are shell scripts,
+  which Linux and macOS run by their `#!` line. Windows finds a program by its
+  extension and runs no script, so there `writeProgram` writes `<name>.exe`
+  instead: `script-exe` (`features/testdata/script-exe`, built once a run, out
+  of every `./...`) with the script after a marker line, which reads its own
+  file, writes the script to a temporary file and runs it with Git for
+  Windows' `sh`, handing on its arguments, streams, environment and exit
+  code. The shim's link is `git.exe` there, as `itos git-shim install` names
+  it (T-072).
 - **The extensions** (`extensions_test.go`, `extensions.feature`): each is a
   shell script `itos-<name>` in a folder of the scenario's that `env` puts
   first on the `PATH` of every command, so it reaches the itos a scenario
