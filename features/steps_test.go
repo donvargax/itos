@@ -990,13 +990,16 @@ func (w *world) recordingRangeCheck() error {
 }
 
 // The recording shell: a script in the support folder that appends each
-// command it is given to shell-log beside it, then runs it with sh -c.
-func (w *world) recordingShellPath() string { return filepath.Join(w.support, "recording-shell") }
+// command it is given to shell-log beside it, then runs it with sh -c (on
+// windows script-exe running it, program_test.go).
+func (w *world) recordingShellPath() string {
+	return programPath(filepath.Join(w.support, "recording-shell"))
+}
 
 func (w *world) recordingShell() error {
 	script := fmt.Sprintf("#!/bin/sh\nprintf '%%s\\n' \"$1\" >> %s\nexec sh -c \"$1\"\n",
 		quote(filepath.Join(w.support, "shell-log")))
-	if err := os.WriteFile(w.recordingShellPath(), []byte(script), 0o755); err != nil {
+	if err := w.writeProgram(filepath.Join(w.support, "recording-shell"), script); err != nil {
 		return err
 	}
 	w.config.recordingShell = true

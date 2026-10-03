@@ -60,7 +60,7 @@ func (w *world) extension(name, body string) error {
 		`for a in "$@"; do printf '%s\n' "$a"; done > "$rec/args"` + "\n" +
 		`env | grep '^ITOS_' > "$rec/env"` + "\n" +
 		body + "\n"
-	return os.WriteFile(filepath.Join(w.extensionsDir(), name), []byte(script), 0o755)
+	return w.writeProgram(filepath.Join(w.extensionsDir(), name), script)
 }
 
 // What the extension's last run recorded in the file, or why it cannot be

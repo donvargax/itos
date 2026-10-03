@@ -5,7 +5,7 @@
 // checksums.txt listing it, served at <base>/download/v<version>/<asset>, the
 // base being what ITOS_RELEASES names, and the newest of them at
 // <base>/latest/download/<asset> as well, as GitHub serves its latest release. The archive's itos is a shell script
-// that records the version it is, the ITOS_VERSION it ran with and its
+// (on windows script-exe running one, program_test.go) that records the version it is, the ITOS_VERSION it ran with and its
 // arguments, and exits with the code the scenario chose for it.
 //
 // No scenario reaches the network or a real cache: ITOS_CACHE is always a
@@ -159,7 +159,11 @@ func (w *world) releaseServerUnreachable() error {
 // extra beside what every one says when extra is not empty, and its
 // checksums.txt.
 func (w *world) offerRelease(version, extra string) error {
-	archive, err := releaseArchive(w.fakeItos(version, extra))
+	itos, err := w.program(w.fakeItos(version, extra))
+	if err != nil {
+		return err
+	}
+	archive, err := releaseArchive(string(itos))
 	if err != nil {
 		return err
 	}
@@ -289,7 +293,11 @@ func (w *world) replaceArchive(version string) error {
 	if w.releases.get(path) == nil {
 		return fmt.Errorf("the release server has no version %s", version)
 	}
-	archive, err := releaseArchive(w.fakeItos(version, "replaced"))
+	itos, err := w.program(w.fakeItos(version, "replaced"))
+	if err != nil {
+		return err
+	}
+	archive, err := releaseArchive(string(itos))
 	if err != nil {
 		return err
 	}

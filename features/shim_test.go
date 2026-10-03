@@ -1,5 +1,5 @@
 // The git shim's steps (shim.feature): the itos binary under test linked as
-// git in a folder of the scenario's support folder, put first on the PATH of
+// git (git.exe on windows) in a folder of the scenario's support folder, put first on the PATH of
 // every command the scenario runs, and git run through that link. The binary
 // is the one the itos under test runs, not tools/bin/itos, a script that finds
 // its checkout from its own path: an itos run tells an extension its binary in
@@ -70,7 +70,7 @@ func (w *world) itosBinary() (string, error) {
 		}
 		defer os.RemoveAll(probe)
 		script := "#!/bin/sh\nprintf '%s\\n' \"$ITOS_BIN\"\n"
-		if err := os.WriteFile(filepath.Join(probe, "itos-binary"), []byte(script), 0o755); err != nil {
+		if err := w.writeProgram(filepath.Join(probe, "itos-binary"), script); err != nil {
 			itosBinaryErr = err
 			return
 		}
@@ -94,7 +94,7 @@ func (w *world) linkShim() error {
 	if err := os.MkdirAll(w.shimFolder(), 0o755); err != nil {
 		return err
 	}
-	return os.Symlink(bin, filepath.Join(w.shimFolder(), "git"))
+	return os.Symlink(bin, programPath(filepath.Join(w.shimFolder(), "git")))
 }
 
 // A repository of its own in the support folder, with no itos config, and a
@@ -119,7 +119,7 @@ func (w *world) gitThroughShim(dir, line string) error {
 	if err != nil {
 		return err
 	}
-	link := filepath.Join(w.shimFolder(), "git")
+	link := programPath(filepath.Join(w.shimFolder(), "git"))
 	if _, err := os.Lstat(link); err != nil {
 		return fmt.Errorf("itos is not linked as git: %w", err)
 	}
@@ -147,8 +147,8 @@ func (w *world) plainHeadSays(text string) error {
 	return nil
 }
 
-// The file at path in the scratch repository is the itos binary under test,
-// its links followed.
+// The program at path in the scratch repository (path.exe on windows) is the
+// itos binary under test, its links followed.
 func (w *world) runsItos(path string) error {
 	bin, err := w.itosBinary()
 	if err != nil {
@@ -158,7 +158,7 @@ func (w *world) runsItos(path string) error {
 	if err != nil {
 		return err
 	}
-	got, err := os.Stat(filepath.Join(w.dir, path))
+	got, err := os.Stat(programPath(filepath.Join(w.dir, path)))
 	if err != nil {
 		return fmt.Errorf("%s: %w\n%s", path, err, w.report())
 	}
