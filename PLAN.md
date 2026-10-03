@@ -190,9 +190,19 @@ no commit carries that ledger, a footer naming a task is checked against its
 file at every commit, `read_at: commit` falling back to the working file, and
 a git tree read (the index, a commit) reads any path in the git folder from
 the file. Where it pins nothing, a global itos runs the newest release for it,
-as where there is no config. Slices 32 to 34 keep the footers in git notes,
-declare the hooks in the git config and judge the person's unpushed commits
-(`features/stealth.feature`). This repository's own `itos.yaml` is
+as where there is no config. A footer in the message is what would show to
+everyone, so under a stealth config a commit's footers live in a git note on
+it, in `refs/notes/itos`, which `git push` does not send unless asked (slice
+32, the user's calls of 2026-10-03): `itos commit` writes the note from its
+flags and hands the same lines to the commit-msg hook in `ITOS_FOOTERS`; the
+hook judges them as typed ones, refuses a commit that needs a footer made
+without `itos commit` and a footer typed into the message, each naming the
+`itos commit` flag, and takes an amend (an author HEAD's to the second) on
+HEAD's note; itos adds `refs/notes/itos` to `notes.rewriteRef` in the local
+config, so an amend or a rebase carries the note; verify, ci plan's named
+tasks and `commit footers` read each commit's note. A project's config keeps
+its footers in the message. Slices 33 and 34 declare the hooks in the git
+config and judge the person's unpushed commits (`features/stealth.feature`). This repository's own `itos.yaml` is
 the worked example, every table commented; `tasks/README.md` explains the
 policy it sets.
 
@@ -364,7 +374,7 @@ naming a subcommand (`check-message`, `check-paths`, `footers`) is that
 subcommand, anything else a commit. It is the habit an agent is pointed to
 (the plugin answers a bare `git commit` with it, §10), the other half of
 pushing through itos (`p1-itos-push`), and the one the stealth mode keeps,
-where the same lines become a note on the new commit instead (slice 32).
+where the same lines become a note on the new commit instead (slice 32, §5).
 
 **Exit codes:** 0 success; 1 a policy failure (a check failed, a commit
 rejected, an unknown task); 2 a usage or config error, a file or folder the
@@ -477,8 +487,8 @@ Each step is reverted, never forced, if it goes wrong. After v2, features are
 built once, in Go: extensions (`itos-<cmd>` on `PATH`; done, slice 29, §7), the stealth mode and
 the GitHub modes. The stealth mode's config in the git folder is done (slice
 30, §5), and so is `itos commit`, which writes a commit's footers from its
-flags (slice 31, §7); the stealth mode's footers in notes, its hooks and its
-range follow (slices 32 to 34).
+flags (slice 31, §7), and the stealth mode's footers in git notes (slice 32,
+§5); its hooks and its range follow (slices 33 and 34).
 
 ## 10. Distribution
 

@@ -2017,7 +2017,7 @@ items:
     title: In stealth mode the footers live in git notes, never in the message
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-31]
     kind: slice
     why: >
@@ -2334,3 +2334,34 @@ items:
       itos commit could hand git a template with the subject's line and a blank one before the
       footers (git commit -t, or prepare-commit-msg), so the editor's commit reads as -m's does.
     refs: [internal/cli/gitcommit.go, features/commit-command.feature]
+
+  - id: p3-stealth-text-footers
+    title: itos commit writes a free-text footer, so a stealth config can require one
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-32]
+    kind: idea
+    why: >
+      Found in slice 32: under a stealth config a commit's footers come only from the note itos
+      commit writes, and a footer typed into the message is refused, but itos commit has flags
+      only for the ledger's footer and the named tests' (--task, --scenarios). A free-text footer
+      (Upgrading:) or a second footer of the ledger has no flag, so a stealth config that requires
+      one refuses every commit of those types. A --footer 'Key: text' flag, or config check
+      warning of such a footer in a stealth config, would close it.
+    refs: [internal/cli/gitcommit.go, internal/message/notes.go]
+
+  - id: p3-hook-amend-paths
+    title: The commit-msg hook judges an amend's paths against HEAD's parent
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-32]
+    kind: idea
+    why: >
+      Found in slice 32: the hook judges the staged paths against HEAD (git diff --cached), so an
+      amend that only rewords, staging nothing, is refused for a type that must change a path set
+      ("feat commits must change …"), and an amend's paths are only its new ones. An amend's paths
+      are the index against HEAD's parent; the hook can now tell an amend by its author
+      (amending in internal/cli/hook.go), as it does to read HEAD's note in stealth mode.
+    refs: [internal/cli/hook.go]

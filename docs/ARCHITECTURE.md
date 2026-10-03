@@ -111,6 +111,11 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   are split as `sh` would split them (whitespace, single quotes), and a
   footer of HEAD is read back as git reads its trailers
   (`%(trailers:only,unfold)`), so a footer that landed in the body does not
+  pass. Under a stealth config the footers are read from HEAD's note
+  (`git notes --ref=refs/notes/itos show`), and `git commits` and
+  `git amends HEAD` run git itself, with the hook, through the world's
+  `run`, as `itos` runs the binary; an amend has to make a new HEAD, so a
+  refused one fails its step rather than leaving the old commit's note to
   pass. The scratch config has a `Scenarios:` footer whenever it has a kind
   of named tests, required for no type, so the scenarios that name none are
   judged as before.
@@ -407,7 +412,13 @@ mechanisms above, written against those modules, read across.
   onto lines within the header lint's 100 characters, the key on each.
   `trailers` makes each line a `--trailer`, which git applies before the
   editor and the commit-msg hook; that is the one step the stealth mode
-  (slice 32) replaces, by a note written after the commit. `runGit` runs
+  replaces (slice 32): under a stealth config (`config.IsStealth`, no load
+  needed) the lines go to the hook in `ITOS_FOOTERS` (`message.FootersEnv`,
+  any inherited one dropped first), and once git exits 0 with a new HEAD,
+  `writeNote` writes them as its note in `refs/notes/itos`
+  (`git notes add -f`, replacing what an amend carried over), while
+  `rewriteNotes` first adds that ref to `notes.rewriteRef` in the local
+  config unless a value (a glob too) already names it. `runGit` runs
   `git commit` as a child, not by `exec`, so itos can act after it, with the
   terminal's stdin for the editor and an interrupt left to git; its exit
   code is itos's, and one git cannot start exits 3. A global `-q` is passed
@@ -449,6 +460,22 @@ mechanisms above, written against those modules, read across.
   rules' `knownFor` reads a ledger footer's IDs in the working tree for a
   stealth config whatever its `read_at`, since no commit carries that ledger,
   and without the warning a commit predating its ledger gives.
+- **The stealth mode's footers** (`internal/message/notes.go`, slice 32)
+  live in a git note on each commit, in `refs/notes/itos`, never in its
+  message. `message.Reading.Note` carries a commit's footers, and
+  `FooterProblems` reads them there for a stealth config, its type still
+  the message's; a footer of the config written in the message is that
+  footer's problem (`typedFooter`), and a missing one's sentence ends with
+  the `itos commit` flag that writes it (`stealthNeed`, `stealthFix` for the
+  fix). Who fills `Note`: the commit-msg hook's `handedFooters`, from
+  `ITOS_FOOTERS` or, for what `amending` takes for an amend (git tells a
+  hook nothing of one, but exports the author, and an amend keeps HEAD's to
+  the second), HEAD's note, which the rewrite carries to the new commit; it
+  hands the same lines to the task checks rule, and `checkEnv` keeps them
+  from the checks; `check-message`, from `ITOS_FOOTERS`; verify, from
+  `message.Note` of each commit. The range readers, `IDsIn` (ci plan's
+  named tasks) and `Gathered` (`commit footers`), log `%N` with
+  `--no-notes --notes=refs/notes/itos` in place of `%B`.
 - **YAML as JavaScript reads it** (`internal/value`). go.yaml.in/yaml/v3
   parses, but every value is JavaScript's: each plain scalar is resolved by
   the YAML 1.2 core schema the `yaml` package uses (yaml/v3 would read `017`

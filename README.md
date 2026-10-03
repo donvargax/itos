@@ -204,9 +204,21 @@ itos config check
 A global install runs the newest release for such a config unless it pins one
 (`pin`, above). Where the project sets no `core.hooksPath`,
 `itos hooks install --manager git` writes the hooks into `.git/hooks`, out of
-the tree. For now a footer you write, or `itos commit --task` writes, is in
-the commit message, where everyone sees it; keeping it in a git note instead, and hooks that run beside a
-project's own, are the stealth mode's next slices (`features/stealth.feature`).
+the tree. Hooks that run beside a project's own are the stealth mode's next
+slice (`features/stealth.feature`).
+
+A footer in a commit message is what everyone reads, so here the footers live
+in git notes instead: commit with `itos commit --task <id>` (and
+`--scenarios <ids>`), which writes them as a note on the new commit, in
+`refs/notes/itos`, never in its message. `git push` does not send that ref
+unless you ask (`git push origin refs/notes/itos`), and `git log
+--notes=itos` shows it. The commit-msg hook judges the footers `itos commit`
+hands it, and refuses a commit that needs one made with a bare `git commit`,
+and a footer typed into the message. `itos commit` adds `refs/notes/itos` to
+`notes.rewriteRef` in the repository's config, so `git commit --amend` and
+`git rebase` carry a commit's note to the commit they make; an amend through
+plain git passes the hook on the note it will carry. `itos verify`, `ci plan`
+and `itos commit footers` read each commit's footers from its note.
 
 ## Working on it
 
