@@ -1,64 +1,57 @@
-// The Go build of itos, the one way every self-test and, later, the release
-// workflow builds it:
+// The Go build of itos, the one way every self-test builds it:
 //
 //   node tools/bin/build-go.ts <out dir>
 //
 // builds ./cmd/itos into <out dir>/itos for this machine and prints its path.
-// The binary is stamped with package.json's version (-ldflags -X), the one the
-// conformance corpus's {{version}} expects, as tools/bin/itos stamps it, so a
-// release still changes package.json alone; a binary built any other way says
-// the module version Go records instead (internal/version). CGO_ENABLED=0, so
-// the binary needs no C library, and -trimpath, so it holds no path of the
-// machine that built it.
+// The binary is stamped (-ldflags -X) with the version tools/bin/dev-version
+// gives this checkout from git describe, as tools/bin/itos stamps it: the
+// release's at its tag, 2.3.1-dev.5.g1234abc five commits after v2.3.0 (T-069;
+// the tag is the version, and nothing in the tree holds one). A binary built
+// any other way says the module version Go records instead (internal/version).
+// CGO_ENABLED=0, so the binary needs no C library, and -trimpath, so it holds
+// no path of the machine that built it.
 //
-// The release build, the one the release workflow will upload at v1.0.0:
+// The release build:
 //
 //   node tools/bin/build-go.ts --release <out dir>
 //
-// runs that same build once per platform a release publishes (PLAN.md §10)
-// and writes into <out dir> one archive per platform, the config's JSON Schema
-// and checksums.txt, then prints their paths. An archive is
-// itos-<version>-<os>-<arch>.tar.gz, or .zip for windows, holding at its top
+// is GoReleaser's (.goreleaser.yaml, run by tools/bin/pinned), as a snapshot
+// that publishes nothing, stamped with that same version: it copies into <out
+// dir> what a release publishes, one archive per platform (PLAN.md §10), the
+// config's JSON Schema and checksums.txt, then prints their paths. An archive
+// is itos-<version>-<os>-<arch>.tar.gz, or .zip for windows, holding at its top
 // level the binary (itos, or itos.exe), LICENSE and README.md. The schema is
 // itos.schema.json, written by tools/bin/config-schema from the Go config's
 // table, so an editor can check an itos.yaml against the release's
 // (`# yaml-language-server: $schema=<its URL>`). checksums.txt is the SHA-256
 // of each archive and of the schema in sha256sum's format, so
-// `sha256sum -c checksums.txt` checks them all; it and the files it names are
-// what the release publishes. The archives are written
-// here, with Node's zlib, not by a tar or zip on the machine: the same bytes on
-// every machine, the binary executable once unpacked, and no tool a runner
-// might lack. Every entry's timestamp is HEAD's commit time, so a commit
-// rebuilt by the same Go toolchain gives the same archives.
+// `sha256sum -c checksums.txt` checks them all. The release workflow runs the
+// same configuration at its tag (.github/workflows/release.yml), so what this
+// builds is what a release publishes.
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { crc32, deflateRawSync, gzipSync } from "node:zlib";
 
 export const ROOT = resolve(import.meta.dirname, "../..");
 const MODULE = "github.com/donvargax/itos/v2";
 
-const VERSION: string = (
-	JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { version: string }
-).version;
-
-// A platform Go builds for; undefined for this machine's.
-interface Target {
-	goos: string;
-	goarch: string;
+// The version this checkout's builds say they are (tools/bin/dev-version).
+function devVersion(): string {
+	const said = spawnSync(join(ROOT, "tools/bin/dev-version"), [ROOT], { encoding: "utf8" });
+	const version = said.stdout?.trim();
+	if (said.status !== 0 || !version)
+		throw new Error(`tools/bin/dev-version says no version: ${said.stderr ?? said.error?.message}`);
+	return version;
 }
 
-// Builds ./cmd/itos into `out` for the target, stamped with package.json's
+// Builds ./cmd/itos into `out` for this machine, stamped with the checkout's
 // version, and returns the binary's path. Throws when go build fails, its
 // output printed.
-function build(out: string, target?: Target): string {
+function build(out: string): string {
 	const binary = resolve(out);
 	mkdirSync(resolve(binary, ".."), { recursive: true });
 	const env: NodeJS.ProcessEnv = { ...process.env, CGO_ENABLED: "0" };
-	if (target) Object.assign(env, { GOOS: target.goos, GOARCH: target.goarch });
-	const ldflags = `-s -w -X ${MODULE}/internal/version.stamp=${VERSION}`;
+	const ldflags = `-s -w -X ${MODULE}/internal/version.stamp=${devVersion()}`;
 	const args = ["build", "-trimpath", "-ldflags", ldflags, "-o", binary, "./cmd/itos"];
 	const result = spawnSync("go", args, { cwd: ROOT, env, stdio: "inherit" });
 	if (result.status !== 0)
@@ -69,121 +62,6 @@ function build(out: string, target?: Target): string {
 // The binary for this machine, `<dir>/itos`.
 export const buildNative = (dir: string) =>
 	build(join(dir, process.platform === "win32" ? "itos.exe" : "itos"));
-
-// The platforms a release publishes (PLAN.md §10).
-const PLATFORMS: Target[] = [
-	{ goos: "linux", goarch: "amd64" },
-	{ goos: "linux", goarch: "arm64" },
-	{ goos: "darwin", goarch: "amd64" },
-	{ goos: "darwin", goarch: "arm64" },
-	{ goos: "windows", goarch: "amd64" },
-];
-
-// A file an archive holds: its name at the archive's top level, its bytes and
-// its Unix mode.
-interface Entry {
-	name: string;
-	data: Buffer;
-	mode: number;
-}
-
-// HEAD's commit time, in seconds: every entry's timestamp.
-function commitTime(): number {
-	const shown = spawnSync("git", ["log", "-1", "--format=%ct"], { cwd: ROOT, encoding: "utf8" });
-	const seconds = Number(shown.stdout?.trim());
-	if (shown.status !== 0 || !Number.isInteger(seconds) || seconds <= 0)
-		throw new Error(`git log -1 --format=%ct gave no commit time: ${shown.stderr ?? ""}`);
-	return seconds;
-}
-
-// A ustar header field: `value` in octal, zero-padded to fill `width` less its
-// terminating NUL.
-const octal = (value: number, width: number) => `${value.toString(8).padStart(width - 1, "0")}\0`;
-
-// One ustar header block; owner and group are root's, by number.
-function tarHeader(entry: Entry, mtime: number): Buffer {
-	const header = Buffer.alloc(512);
-	header.write(entry.name, 0);
-	header.write(octal(entry.mode, 8), 100);
-	header.write(octal(0, 8), 108);
-	header.write(octal(0, 8), 116);
-	header.write(octal(entry.data.length, 12), 124);
-	header.write(octal(mtime, 12), 136);
-	header.write("        ", 148); // the checksum's field counts as spaces
-	header.write("0", 156); // a regular file
-	header.write("ustar\u000000", 257);
-	const sum = header.reduce((total, byte) => total + byte, 0);
-	header.write(`${sum.toString(8).padStart(6, "0")}\0 `, 148);
-	return header;
-}
-
-// A gzipped ustar archive of the entries.
-function tarGz(entries: Entry[], mtime: number): Buffer {
-	const blocks = entries.flatMap((entry) => [
-		tarHeader(entry, mtime),
-		entry.data,
-		Buffer.alloc((512 - (entry.data.length % 512)) % 512),
-	]);
-	const gz = gzipSync(Buffer.concat([...blocks, Buffer.alloc(1024)]), { level: 9 });
-	gz[9] = 3; // the header's OS byte, which zlib sets by the machine: Unix, on every one
-	return gz;
-}
-
-// A Unix time as MS-DOS's date and time, the only timestamp a zip entry needs.
-function dosTime(seconds: number) {
-	const t = new Date(seconds * 1000);
-	return {
-		date: ((t.getUTCFullYear() - 1980) << 9) | ((t.getUTCMonth() + 1) << 5) | t.getUTCDate(),
-		time: (t.getUTCHours() << 11) | (t.getUTCMinutes() << 5) | (t.getUTCSeconds() >> 1),
-	};
-}
-
-// A zip archive of the entries, each deflated, made by Unix (so unzip keeps
-// their modes) with no extra fields.
-function zip(entries: Entry[], mtime: number): Buffer {
-	const { date, time } = dosTime(mtime);
-	const locals: Buffer[] = [];
-	const centrals: Buffer[] = [];
-	let offset = 0;
-	for (const entry of entries) {
-		const name = Buffer.from(entry.name);
-		const packed = deflateRawSync(entry.data, { level: 9 });
-		// The fields a local header and its central record share, from "version needed".
-		const shared = Buffer.alloc(26);
-		shared.writeUInt16LE(20, 0); // version needed: deflate
-		shared.writeUInt16LE(8, 4); // method: deflate
-		shared.writeUInt16LE(time, 6);
-		shared.writeUInt16LE(date, 8);
-		shared.writeUInt32LE(crc32(entry.data), 10);
-		shared.writeUInt32LE(packed.length, 14);
-		shared.writeUInt32LE(entry.data.length, 18);
-		shared.writeUInt16LE(name.length, 22);
-		const local = Buffer.concat([u32(0x04034b50), shared, name, packed]);
-		const central = Buffer.alloc(46);
-		central.writeUInt32LE(0x02014b50, 0);
-		central.writeUInt16LE((3 << 8) | 20, 4); // made by Unix, zip 2.0
-		shared.copy(central, 6);
-		central.writeUInt32LE(((0o100000 | entry.mode) << 16) >>> 0, 38);
-		central.writeUInt32LE(offset, 42);
-		locals.push(local);
-		centrals.push(central, name);
-		offset += local.length;
-	}
-	const directory = Buffer.concat(centrals);
-	const end = Buffer.alloc(22);
-	end.writeUInt32LE(0x06054b50, 0);
-	end.writeUInt16LE(entries.length, 8);
-	end.writeUInt16LE(entries.length, 10);
-	end.writeUInt32LE(directory.length, 12);
-	end.writeUInt32LE(offset, 16);
-	return Buffer.concat([...locals, directory, end]);
-}
-
-const u32 = (value: number) => {
-	const bytes = Buffer.alloc(4);
-	bytes.writeUInt32LE(value);
-	return bytes;
-};
 
 // The config's JSON Schema, as the release publishes it.
 export const SCHEMA = "itos.schema.json";
@@ -201,45 +79,40 @@ export function buildSchema(path: string): string {
 	return out;
 }
 
-const sha256 = (data: Buffer) => createHash("sha256").update(data).digest("hex");
+// What a release publishes, by name: the archives and the schema, as
+// checksums.txt lists them, and checksums.txt.
+function published(dist: string): string[] {
+	const listed = readFileSync(join(dist, "checksums.txt"), "utf8")
+		.split("\n")
+		.filter(Boolean)
+		.map((line) => line.split(/\s+\*?/)[1]!);
+	return [...listed, "checksums.txt"];
+}
 
-// The archive's name, as the release publishes it.
-const archiveName = ({ goos, goarch }: Target) =>
-	`itos-${VERSION}-${goos}-${goarch}.${goos === "windows" ? "zip" : "tar.gz"}`;
-
-// Builds every platform's archive, the schema and checksums.txt into `dir`,
-// and returns their paths, checksums.txt last.
-export function buildRelease(dir: string): string[] {
+// Builds the release as a GoReleaser snapshot stamped with the checkout's
+// version, or ITOS_SNAPSHOT_VERSION when it is set (a self-test building the
+// release a version would publish), copies what a release publishes into
+// `dir`, and returns their paths, checksums.txt last.
+function buildRelease(dir: string): string[] {
+	const version = process.env.ITOS_SNAPSHOT_VERSION || devVersion();
 	const out = resolve(dir);
 	mkdirSync(out, { recursive: true });
-	const mtime = commitTime();
-	const docs = ["LICENSE", "README.md"].map((name) => ({
-		name,
-		data: readFileSync(join(ROOT, name)),
-		mode: 0o644,
-	}));
-	const stage = mkdtempSync(join(tmpdir(), "itos-release-"));
-	const sums: string[] = [];
-	const paths: string[] = [];
-	try {
-		for (const target of PLATFORMS) {
-			const exe = target.goos === "windows" ? "itos.exe" : "itos";
-			const binary = build(join(stage, `${target.goos}-${target.goarch}`, exe), target);
-			const entries = [{ name: exe, data: readFileSync(binary), mode: 0o755 }, ...docs];
-			const archive = target.goos === "windows" ? zip(entries, mtime) : tarGz(entries, mtime);
-			const name = archiveName(target);
-			writeFileSync(join(out, name), archive);
-			sums.push(`${sha256(archive)}  ${name}\n`);
-			paths.push(join(out, name));
-		}
-	} finally {
-		rmSync(stage, { recursive: true, force: true });
-	}
-	const schema = buildSchema(join(out, SCHEMA));
-	sums.push(`${sha256(readFileSync(schema))}  ${SCHEMA}\n`);
-	paths.push(schema);
-	writeFileSync(join(out, "checksums.txt"), sums.join(""));
-	return [...paths, join(out, "checksums.txt")];
+	const args = ["goreleaser", "release", "--snapshot", "--clean"];
+	const result = spawnSync(join(ROOT, "tools/bin/pinned"), args, {
+		cwd: ROOT,
+		env: { ...process.env, ITOS_SNAPSHOT_VERSION: version },
+		stdio: ["ignore", 2, 2], // GoReleaser's log, off this command's stdout
+	});
+	if (result.status !== 0)
+		throw new Error(
+			`tools/bin/pinned ${args.join(" ")} failed (exit ${result.status ?? result.signal})`,
+		);
+	const dist = join(ROOT, "dist/goreleaser");
+	return published(dist).map((name) => {
+		const from = name === SCHEMA ? join(ROOT, ".tools/release", SCHEMA) : join(dist, name);
+		copyFileSync(from, join(out, name));
+		return join(out, name);
+	});
 }
 
 if (import.meta.main) {

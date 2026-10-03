@@ -1,0 +1,83 @@
+# GoReleaser (https://goreleaser.com), run by tools/bin/pinned at the version pinned there: the
+# one way a release is built (T-069). The release workflow (.github/workflows/release.yml) runs
+# `goreleaser release` at the tag it computed, which publishes a draft; tools/bin/build-go.ts
+# --release runs `goreleaser release --snapshot` for the self-tests and the nightly, which build
+# and publish nothing.
+#
+# What it publishes is what the launcher (internal/launch), a pin, `go install` and a consumer's
+# install script read, unchanged from v2.3.0 (PLAN.md, §10): for linux and darwin on amd64 and
+# arm64 and windows on amd64, itos-<version>-<os>-<arch>.tar.gz (.zip for windows) holding the
+# binary (itos, or itos.exe), LICENSE and README.md at its top level; itos.schema.json, the
+# config's JSON Schema; and checksums.txt, every one's SHA-256 in sha256sum's format.
+# tools/selftest/go-release.ts proves those, and tools/selftest/release-cut.ts holds them to what
+# the last release published.
+version: 2
+project_name: itos
+# Not dist/, which tools/bin/build-go.ts and the ledger's checks build into: --clean empties
+# this folder alone.
+dist: dist/goreleaser
+
+before:
+  hooks:
+    # The config's JSON Schema, from this tree's config table; outside dist, which GoReleaser
+    # empties, and ignored by git, so the tree stays clean.
+    - sh -c 'mkdir -p .tools/release && go run ./tools/bin/config-schema .tools/release/itos.schema.json'
+
+builds:
+  - id: itos
+    main: ./cmd/itos
+    binary: itos
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    # The tag is the version: internal/version says it (a snapshot's, below, for a build that
+    # publishes nothing).
+    ldflags:
+      - -s -w -X github.com/donvargax/itos/v2/internal/version.stamp={{ .Version }}
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64]
+    ignore:
+      - { goos: windows, goarch: arm64 }
+    # The commit's time, so a commit rebuilt by the same toolchain gives the same binaries.
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: itos
+    ids: [itos]
+    name_template: "itos-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - { goos: windows, formats: [zip] }
+    # Every entry owned by root, by number as v2.3.0's were, and dated at the commit.
+    builds_info: { owner: root, group: root, mode: 0755, mtime: "{{ .CommitDate }}" }
+    files:
+      - src: LICENSE
+        info: { owner: root, group: root, mode: 0644, mtime: "{{ .CommitDate }}" }
+      - src: README.md
+        info: { owner: root, group: root, mode: 0644, mtime: "{{ .CommitDate }}" }
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+  extra_files:
+    - glob: .tools/release/itos.schema.json
+
+# The notes are tools/bin/release-notes', set by the workflow once the checksums exist.
+changelog:
+  disable: true
+
+release:
+  github: { owner: donvargax, name: itos }
+  name_template: "itos {{ .Version }}"
+  # A draft, published by the workflow once the archives are attested and the notes written. The
+  # tag is created locally only and never pushed: GitHub creates it at target_commitish when the
+  # draft is published, so the tag and a release with every asset appear together, and a run that
+  # fails half way leaves no tag, only a draft the next run replaces.
+  draft: true
+  replace_existing_draft: true
+  target_commitish: "{{ .FullCommit }}"
+  extra_files:
+    - glob: .tools/release/itos.schema.json
+
+snapshot:
+  # tools/bin/build-go.ts and the self-tests name the version a snapshot says.
+  version_template: '{{ if index .Env "ITOS_SNAPSHOT_VERSION" }}{{ index .Env "ITOS_SNAPSHOT_VERSION" }}{{ else }}{{ incpatch .Version }}-snapshot{{ end }}'

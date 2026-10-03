@@ -14,10 +14,19 @@
 //	ITOS_BIN=<bin> go test ./features -count=1 -json
 //	node tools/itos/conformance/run.ts --bin <bin>
 //
-// The corpus's {{version}} is the version the binary must say it is, which the
-// runner reads from package.json beside it: the worktree's package.json is
-// given the binary's own version first (`<bin> version`), so a binary stamped
-// with a version the tag never had is not failed for saying it.
+// The corpus's {{version}} is the version the binary must say it is, which a
+// release's runner read from package.json beside it until T-069: the
+// worktree's package.json, when it says a version, is given the binary's own
+// first (`<bin> version`), so a binary stamped with a version the tag never
+// had is not failed for saying it; a later release's runner asks the binary.
+//
+// The binary judged is, by default, this tree's itos as its release would be
+// built: ./cmd/itos stamped with the version go run ./tools/bin/release-version
+// computes for the commits since the tag (the next patch when they release
+// nothing), as GoReleaser stamps a release. tools/bin/itos says a pre-release
+// between releases (2.3.1-dev.5.g1234abc), which a config's requires cannot
+// name, so the old corpus's cases that require the binary's own version would
+// fail for the stamp alone; the release a consumer gets says X.Y.Z.
 //
 // An old scenario or case that fails is accepted when a commit since the tag
 // is marked as breaking (a ! before its header's colon, or a BREAKING-CHANGE:
@@ -50,7 +59,7 @@
 //
 // -range-from <rev> checks nothing unless a commit in <rev>..HEAD is a feat or
 // a fix, which is how CI runs it over a push's range; an empty <rev> checks.
-// -bin is the itos to judge, tools/bin/itos by default. Exit status: 0 passed,
+// -bin is the itos to judge instead of this tree's, built as above. Exit status: 0 passed,
 // 1 an old scenario or case fails and no commit says why, 2 the check could
 // not run.
 package main
@@ -92,7 +101,7 @@ func main() {
 
 func run() int {
 	rangeFrom := flag.String("range-from", "", "check nothing unless a commit in this revision..HEAD is a feat or a fix")
-	bin := flag.String("bin", "tools/bin/itos", "the itos to run the last release's scenarios and corpus against")
+	bin := flag.String("bin", "", "the itos to run the last release's scenarios and corpus against; by default this tree's, stamped with the version its release would carry")
 	flag.Parse()
 	if flag.NArg() > 0 {
 		fmt.Fprintf(os.Stderr, "%s: unexpected argument %q\n", self, flag.Arg(0))
@@ -133,15 +142,6 @@ func run() int {
 		return fail("cannot read the commits since %s: %v", tag, err)
 	}
 
-	binary, err := filepath.Abs(*bin)
-	if err != nil {
-		return fail("%v", err)
-	}
-	version, err := binaryVersion(binary)
-	if err != nil {
-		return fail("%v", err)
-	}
-
 	scratch, err := os.MkdirTemp("", self+"-")
 	if err != nil {
 		return fail("%v", err)
@@ -152,14 +152,32 @@ func run() int {
 		_ = os.RemoveAll(scratch)
 		_, _ = git("worktree", "prune")
 	}()
+	judged := *bin
+	if judged == "" {
+		if judged, err = buildAsReleased(scratch, tag); err != nil {
+			return fail("this tree's itos: %v", err)
+		}
+	}
+	binary, err := filepath.Abs(judged)
+	if err != nil {
+		return fail("%v", err)
+	}
+	version, err := binaryVersion(binary)
+	if err != nil {
+		return fail("%v", err)
+	}
 	if _, err := git("worktree", "add", "--detach", tree, tag); err != nil {
 		return fail("cannot check out %s into a scratch worktree: %v", tag, err)
 	}
 	if err := prepare(tree, version); err != nil {
 		return fail("%s's worktree: %v", tag, err)
 	}
+	what := judged
+	if *bin == "" {
+		what = "this tree's itos, built as its release would be"
+	}
 	fmt.Printf("%s: %s's scenarios and conformance corpus against %s (itos %s), in a scratch worktree of %s\n",
-		self, tag, *bin, version, tag)
+		self, tag, what, version, tag)
 
 	var features, corpus suite
 	var wg sync.WaitGroup
@@ -206,10 +224,7 @@ func prepare(tree, version string) error {
 		return err
 	}
 	field := regexp.MustCompile(`"version"\s*:\s*"[^"]*"`)
-	if !field.Match(text) {
-		return fmt.Errorf("package.json says no version, which the corpus's {{version}} reads")
-	}
-	done := false
+	done := !field.Match(text) // a release whose runner asks the binary (T-069)
 	text = field.ReplaceAllFunc(text, func(m []byte) []byte {
 		if done {
 			return m
@@ -229,6 +244,39 @@ func prepare(tree, version string) error {
 		return fmt.Errorf("no node_modules in this checkout, which the corpus runner needs (vp install)")
 	}
 	return os.Symlink(modules, filepath.Join(tree, "node_modules"))
+}
+
+// buildAsReleased builds this tree's ./cmd/itos into dir, stamped as
+// GoReleaser stamps a release: with the version tools/bin/release-version
+// computes, or the patch after tag when the commits release nothing.
+func buildAsReleased(dir, tag string) (string, error) {
+	cmd := exec.Command("go", "run", "./tools/bin/release-version")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("go run ./tools/bin/release-version: %v\n%s", err, stderr.String())
+	}
+	next := ""
+	for _, line := range strings.Split(string(out), "\n") {
+		if v, ok := strings.CutPrefix(line, "next="); ok {
+			next = v
+		}
+	}
+	if next == "" {
+		var parts [3]int
+		_, _ = fmt.Sscanf(tag, "v%d.%d.%d", &parts[0], &parts[1], &parts[2])
+		next = fmt.Sprintf("%d.%d.%d", parts[0], parts[1], parts[2]+1)
+	}
+	bin := filepath.Join(dir, "itos")
+	build := exec.Command("go", "build", "-trimpath",
+		"-ldflags", "-s -w -X github.com/donvargax/itos/v2/internal/version.stamp="+next,
+		"-o", bin, "./cmd/itos")
+	build.Env = env("CGO_ENABLED=0")
+	if out, err := build.CombinedOutput(); err != nil {
+		return "", fmt.Errorf("go build ./cmd/itos: %v\n%s", err, out)
+	}
+	return bin, nil
 }
 
 // binaryVersion is what the binary says it is: the last word of `<bin>

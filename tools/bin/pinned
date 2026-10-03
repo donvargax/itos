@@ -1,0 +1,98 @@
+#!/bin/sh
+# pinned: runs a release tool at the version pinned here, fetched once into
+# .tools/<tool>-<version>/ (ignored by git) from its GitHub release and checked
+# against the SHA-256 written below before it is unpacked, so the machine's
+# own copy, whatever its version, never decides what runs, and a replaced
+# release asset is refused. The release workflow and its self-tests run them
+# through this script alone (T-069).
+#
+#   tools/bin/pinned goreleaser <args>…   GoReleaser, which builds, packs and
+#                                         publishes a release (.goreleaser.yaml)
+#   tools/bin/pinned git-cliff <args>…    git-cliff, which lists a release's
+#                                         commits by type (tools/bin/release-notes)
+#   tools/bin/pinned --path <tool>        prints the binary's path, fetching it
+#
+# Each version is at least 7 days old when pinned, as tools/bin/deps-check
+# holds a Go module (T-067): a supply-chain attack is usually found within
+# days. To move one, change its version and its four hashes together, each
+# from the release's own checksums (GoReleaser's checksums.txt, git-cliff's
+# .sha512 files, the archive's SHA-256 computed after checking that), in a
+# build commit. Linux and macOS on amd64 and arm64; exit 2 elsewhere, or when
+# a fetch or a check fails.
+set -eu
+root=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
+
+die() {
+	echo "pinned: $*" >&2
+	exit 2
+}
+
+[ $# -ge 1 ] || die "usage: tools/bin/pinned <tool> <args>… | tools/bin/pinned --path <tool>"
+print=""
+if [ "$1" = "--path" ]; then
+	[ $# -eq 2 ] || die "usage: tools/bin/pinned --path <tool>"
+	print=1
+	shift
+fi
+tool=$1
+shift
+
+case "$(uname -s)-$(uname -m)" in
+Linux-x86_64) platform=linux-amd64 ;;
+Linux-aarch64 | Linux-arm64) platform=linux-arm64 ;;
+Darwin-x86_64) platform=darwin-amd64 ;;
+Darwin-arm64) platform=darwin-arm64 ;;
+*) die "no pinned $tool for $(uname -s)-$(uname -m)" ;;
+esac
+
+case "$tool" in
+goreleaser)
+	# v2.18.2, 2026-09-17.
+	version=2.18.2
+	case "$platform" in
+	linux-amd64) asset=goreleaser_Linux_x86_64.tar.gz sum=0a96edc9d9bc594e4a41cc4d59467c182062910ab24d9d1f6dd7b667d32606d3 ;;
+	linux-arm64) asset=goreleaser_Linux_arm64.tar.gz sum=a71681b29194f08f057a68cfcaa5c6b15d907a83a2622c51900c4faff828f322 ;;
+	darwin-amd64) asset=goreleaser_Darwin_x86_64.tar.gz sum=5e97d6517f73a0b6f71675a2911b15d3136c03c8907650c2b18e114b1c0f5205 ;;
+	darwin-arm64) asset=goreleaser_Darwin_arm64.tar.gz sum=a811ff154fe136a0cfb55d00126c151fc39ec370a663d805a9ca5547445aa70c ;;
+	esac
+	url=https://github.com/goreleaser/goreleaser/releases/download/v$version/$asset
+	member=goreleaser
+	;;
+git-cliff)
+	# v2.14.2, 2026-09-18.
+	version=2.14.2
+	case "$platform" in
+	linux-amd64) target=x86_64-unknown-linux-gnu sum=24f397c733add5390fdceee3a2088588ab0d5f944ce00d34cb7029b888cf2db4 ;;
+	linux-arm64) target=aarch64-unknown-linux-gnu sum=69e208f6e4baef3a0f9b759d5f44223aa9336b86c691072a3d0c98d35a816e69 ;;
+	darwin-amd64) target=x86_64-apple-darwin sum=4e647d2deb152aca1e987f225cf42b080b991dd98f3bce4027ef95446d982ac3 ;;
+	darwin-arm64) target=aarch64-apple-darwin sum=a0be97e237d440d34c5e508ec21d070b2c85cbb8be48a46a56f9a4e8bd247f05 ;;
+	esac
+	asset=git-cliff-$version-$target.tar.gz
+	url=https://github.com/orhun/git-cliff/releases/download/v$version/$asset
+	member=git-cliff-$version/git-cliff
+	;;
+*) die "no pinned tool named $tool (goreleaser, git-cliff)" ;;
+esac
+
+dir=$root/.tools/$tool-$version
+bin=$dir/$tool
+if [ ! -x "$bin" ]; then
+	command -v curl >/dev/null 2>&1 || die "curl is not on the PATH, to fetch $tool $version"
+	if command -v sha256sum >/dev/null 2>&1; then check="sha256sum -c -"; else check="shasum -a 256 -c -"; fi
+	tmp=$(mktemp -d)
+	trap 'rm -rf "$tmp"' EXIT
+	curl -fsSL -o "$tmp/$asset" "$url" || die "cannot fetch $url"
+	(cd "$tmp" && echo "$sum  $asset" | $check >/dev/null) ||
+		die "$asset is not the one pinned: its SHA-256 is not $sum"
+	tar -xzf "$tmp/$asset" -C "$tmp" "$member" || die "$asset holds no $member"
+	mkdir -p "$dir"
+	# Moved into place last, so a fetch cut short leaves no binary to run.
+	mv -f "$tmp/$member" "$bin.$$" && chmod +x "$bin.$$" && mv -f "$bin.$$" "$bin"
+	rm -rf "$tmp"
+	trap - EXIT
+fi
+if [ -n "$print" ]; then
+	echo "$bin"
+	exit 0
+fi
+exec "$bin" "$@"

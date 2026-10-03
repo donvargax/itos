@@ -1,0 +1,44 @@
+#!/bin/sh
+# dev-version: the version a build of this checkout says it is, from git
+# describe, since the tag is the version and nothing in the tree holds one
+# (T-069). It prints:
+#
+#   X.Y.Z                         at the tag vX.Y.Z itself: the release;
+#   X.Y.(Z+1)-dev.N.g<sha>        N commits after the newest vX.Y.Z tag HEAD
+#                                 descends from, <sha> HEAD's, 7 characters;
+#   0.0.1-dev.N.g<sha>            with no such tag (a scratch repository, a
+#                                 shallow clone), N being every commit;
+#   0.0.0-dev                     outside a git repository.
+#
+# A build between releases is a pre-release of the next patch, so it sorts
+# above the last release and below the next one, whatever that turns out to
+# be, and two builds sort by N. It is all pre-release, no + build metadata,
+# so a pin.version and the launcher's own version read it as they read a
+# release's. tools/bin/itos and tools/bin/build-go.ts stamp it into the
+# binary; a release's binary is stamped by GoReleaser from its tag instead
+# (.goreleaser.yaml).
+#
+#   tools/bin/dev-version [<dir>]   the version of <dir>'s checkout, by
+#                                   default the one this script is in
+root=${1:-$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)}
+# A hook exports GIT_DIR and friends, which would describe another repository.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_COMMON_DIR GIT_OBJECT_DIRECTORY GIT_PREFIX
+described=$(git -C "$root" describe --tags --long --abbrev=7 \
+	--match 'v[0-9]*.[0-9]*.[0-9]*' --exclude 'v*-*' 2>/dev/null)
+parts=$(printf '%s\n' "$described" |
+	sed -n 's/^v\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\)-\([0-9][0-9]*\)-g\([0-9a-f][0-9a-f]*\)$/\1 \2 \3 \4 \5/p')
+if [ -n "$parts" ]; then
+	# shellcheck disable=SC2086 # five words, split on purpose
+	set -- $parts
+	if [ "$4" -eq 0 ]; then
+		echo "$1.$2.$3"
+	else
+		echo "$1.$2.$(($3 + 1))-dev.$4.g$5"
+	fi
+	exit 0
+fi
+sha=$(git -C "$root" rev-parse --short=7 HEAD 2>/dev/null) || {
+	echo "0.0.0-dev"
+	exit 0
+}
+echo "0.0.1-dev.$(git -C "$root" rev-list --count HEAD).g$sha"

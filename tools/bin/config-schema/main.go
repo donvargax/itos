@@ -16,8 +16,9 @@
 // with exactly one of run, tests and tasks) and required_for's word, all. So
 // a config the schema refuses config check refuses too, and not the reverse.
 //
-// tools/bin/build-go.ts --release writes it beside the archives as
-// itos.schema.json, and tools/selftest/go-schema.ts proves it.
+// A release's GoReleaser (.goreleaser.yaml's before hook) writes it as
+// itos.schema.json, published beside the archives and listed in checksums.txt,
+// and tools/selftest/go-schema.ts proves it.
 package main
 
 import (

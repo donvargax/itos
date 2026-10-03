@@ -4,11 +4,13 @@
 // included, scratch.ts), with a PATH that holds go, git and sh but no node:
 //
 //   - `version`, `config check` and `task list` run on this repository, the
-//     first call building the binary into .tools/bin/itos, stamped with
-//     package.json's version;
+//     first call building the binary into .tools/bin/itos, stamped with the
+//     version tools/bin/dev-version gives the checkout from git describe
+//     (T-069);
 //   - a call with nothing changed builds nothing;
-//   - a Go source added, a Go source removed and package.json's version changed
-//     each rebuild it, and the next call runs the new build;
+//   - a Go source added, a Go source removed and a new commit (a new version)
+//     each rebuild it, and the next call runs the new build, a new commit's
+//     stamped with its version;
 //   - a Go source that does not compile fails the call with exit 3 and one
 //     line naming the build, never by running the old binary.
 //
@@ -19,7 +21,6 @@ import {
 	mkdirSync,
 	mkdtempSync,
 	readdirSync,
-	readFileSync,
 	rmSync,
 	statSync,
 	symlinkSync,
@@ -79,8 +80,12 @@ const age = () => {
 	if (existsSync(binary())) utimesSync(binary(), then, then);
 };
 
+// What the scratch checkout's builds must say (tools/bin/dev-version).
 const version = () =>
-	(JSON.parse(readFileSync(join(dir, "package.json"), "utf8")) as { version: string }).version;
+	spawnSync(join(dir, "tools/bin/dev-version"), [dir], {
+		env: runEnv,
+		encoding: "utf8",
+	}).stdout.trim();
 
 try {
 	repo.open();
@@ -137,17 +142,19 @@ try {
 		`a Go source removed did not rebuild the binary: exit ${run.status}\n${run.stderr}`,
 	);
 
-	// 5. package.json's version changed: rebuilt, stamped with it.
-	age();
-	const packageJson = join(dir, "package.json");
-	const original = readFileSync(packageJson, "utf8");
-	writeFileSync(packageJson, original.replace(`"version": "${version()}"`, '"version": "9.9.9"'));
+	// 5. A new commit, so a new version: restamped with it, though no source
+	// is newer than the binary.
+	const was = version();
+	repo.commit("go-dogfood: a new commit");
+	before = built();
 	run = itos("version");
 	expect(
-		run.status === 0 && run.stdout === "itos 9.9.9\n",
-		`a new version in package.json was not stamped: exit ${run.status}, ${JSON.stringify(run.stdout)}\n${run.stderr}`,
+		version() !== was &&
+			run.status === 0 &&
+			run.stdout === `itos ${version()}\n` &&
+			built() !== before,
+		`a new commit was not stamped: ${was} then ${version()}, exit ${run.status}, ${JSON.stringify(run.stdout)}\n${run.stderr}`,
 	);
-	writeFileSync(packageJson, original);
 
 	// 6. A Go source that does not compile: exit 3 and one line naming the
 	// build, the old binary not run.

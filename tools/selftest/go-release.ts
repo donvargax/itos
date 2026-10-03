@@ -1,22 +1,24 @@
 // The Go release, built as the release workflow builds it, works: the
-// archives, the config's JSON Schema and checksums.txt
-// `node tools/bin/build-go.ts --release` writes are what the release publishes
-// and a consumer's pinned install script downloads (PLAN.md §10), so they are
-// proven before a release publishes them.
+// archives, the config's JSON Schema and checksums.txt GoReleaser writes
+// (.goreleaser.yaml) are what the release publishes and the launcher, a pin
+// and a consumer's pinned install script download (PLAN.md §10), so they are
+// proven before anyone relies on them.
 //
 //   node tools/selftest/go-release.ts              build the release from the
 //                                                  checkout into a scratch
 //                                                  folder, through the command
-//                                                  line the workflow calls, and
+//                                                  line the self-tests call
+//                                                  (build-go.ts --release, a
+//                                                  GoReleaser snapshot), and
 //                                                  prove that
 //   node tools/selftest/go-release.ts --dir <dir>  prove a release already
-//                                                  built into <dir> (the
-//                                                  release workflow's, the
-//                                                  folder it publishes),
-//                                                  building nothing
+//        [--version <version>]                     built into <dir>, building
+//                                                  nothing; with --version,
+//                                                  that it is that version's
 //
-// Either way it reads the folder only with the system's own tools, not the
-// code that wrote it:
+// The version is the one the archives are named with, which every archive
+// must share (and --version must be). Either way it reads the folder only with
+// the system's own tools, not the code that wrote it:
 //
 //   - the folder holds one archive per platform of PLATFORMS below, named as
 //     the release names them, itos.schema.json and checksums.txt, and nothing
@@ -28,15 +30,16 @@
 //     says);
 //   - checksums.txt names every archive and the schema once and passes
 //     `sha256sum -c`;
-//   - this machine's archive, unpacked with tar, says `itos <package.json's
-//     version>` for `itos version`;
-//   - the Claude Code plugin, released with itos (T-066), names package.json's
-//     version in its manifest, which is where Claude Code reads it.
+//   - this machine's archive, unpacked with tar, says `itos <version>` for
+//     `itos version`.
+//
+// The Claude Code plugin's version is its own since T-069, so its manifest is
+// no longer compared with itos's.
 //
 // Exits 1 on any failure, or when the folder is empty or missing. The nightly
 // runs it without --dir (itos.yaml's `ci.nightly.steps`), so the release build
-// cannot rot between releases; the release workflow runs it with --dir on the
-// folder it is about to upload.
+// cannot rot between releases; tools/selftest/release-cut.ts runs it with
+// --dir and --version on the release a version would publish.
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -49,25 +52,28 @@ import { outsideEnv } from "./scratch.ts";
 // fails here.
 const PLATFORMS = ["linux-amd64", "linux-arm64", "darwin-amd64", "darwin-arm64", "windows-amd64"];
 
-const { version } = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as {
-	version: string;
-};
+// The version proven, set once the folder is read: the one its archives are
+// named with.
+let version = "";
 const archiveOf = (platform: string) =>
 	`itos-${version}-${platform}.${platform.startsWith("windows") ? "zip" : "tar.gz"}`;
 const binaryOf = (platform: string) => (platform.startsWith("windows") ? "itos.exe" : "itos");
 // The config's JSON Schema, beside the archives.
 const SCHEMA = "itos.schema.json";
-// The Claude Code plugin's manifest, which holds its version (T-066).
-const PLUGIN = "integrations/claude-code/.claude-plugin/plugin.json";
 
 const args = process.argv.slice(2);
-const at = args.indexOf("--dir");
-if ((at >= 0 && !args[at + 1]) || args.length !== (at >= 0 ? 2 : 0)) {
-	console.error("usage: node tools/selftest/go-release.ts [--dir <dir>]");
+const option = (name: string) => {
+	const at = args.indexOf(name);
+	return at >= 0 ? (args.splice(at, 2)[1] ?? "") : undefined;
+};
+const dirArg = option("--dir");
+const wanted = option("--version");
+if (args.length || dirArg === "" || wanted === "" || (wanted && dirArg === undefined)) {
+	console.error("usage: node tools/selftest/go-release.ts [--dir <dir> [--version <version>]]");
 	process.exit(2);
 }
 // The folder proven: the one given, or the one built here.
-const given = at >= 0 ? resolve(args[at + 1]!) : undefined;
+const given = dirArg === undefined ? undefined : resolve(dirArg);
 const scratch = mkdtempSync(join(tmpdir(), "go-release-"));
 const out = given ?? join(scratch, "release");
 // Inside a hook git exports GIT_DIR and friends; nothing here is that repository.
@@ -132,7 +138,7 @@ function proveChecksums(named: string[]) {
 	run(["sha256sum", "-c", "checksums.txt"], out);
 }
 
-// This machine's archive, unpacked, says package.json's version.
+// This machine's archive, unpacked, says the version its name gives.
 function proveNative() {
 	const goarch: Record<string, string> = { x64: "amd64", arm64: "arm64" };
 	const platform = `${process.platform}-${goarch[process.arch] ?? process.arch}`;
@@ -153,22 +159,19 @@ function proveNative() {
 		);
 }
 
-// The plugin a person installs from this repository's marketplace is
-// released with itos, so its manifest says package.json's version: Claude
-// Code reads the version there and never in package.json, so a bump that
-// changed package.json alone would release the plugin under the old one.
-function provePlugin() {
-	try {
-		const said: unknown = JSON.parse(readFileSync(join(ROOT, PLUGIN), "utf8")).version;
-		if (said !== version)
-			failures.push(`${PLUGIN} says version ${JSON.stringify(said)}, not ${version}`);
-	} catch (error) {
-		failures.push(`${PLUGIN} cannot be read: ${(error as Error).message}`);
-	}
+// The version the folder's archives are named with: this machine's
+// platform's name read back, which every other archive must then match.
+function versionOf(held: string[]): string {
+	const named = held
+		.map((name) => /^itos-(.+)-linux-amd64\.tar\.gz$/.exec(name)?.[1])
+		.find((v) => v !== undefined);
+	if (named === undefined) failures.push("no archive is named itos-<version>-linux-amd64.tar.gz");
+	else if (wanted && named !== wanted)
+		failures.push(`the archives are of itos ${named}, not ${wanted}`);
+	return named ?? wanted ?? "<none>";
 }
 
 try {
-	provePlugin();
 	if (given) console.log(`== the release built into ${out}`);
 	else {
 		console.log(`== the release: node tools/bin/build-go.ts --release ${out}`);
@@ -179,8 +182,9 @@ try {
 		if (build.status !== 0)
 			failures.push(`the release build (exit ${build.status ?? build.signal})`);
 	}
-	const archives = PLATFORMS.map(archiveOf);
 	const held = existsSync(out) ? readdirSync(out).sort() : [];
+	version = versionOf(held);
+	const archives = PLATFORMS.map(archiveOf);
 	const expected = [...archives, SCHEMA, "checksums.txt"].sort();
 	if (held.length === 0)
 		failures.push(given ? `${out} holds nothing` : "the release build wrote nothing");
@@ -206,6 +210,5 @@ if (failures.length) {
 }
 console.log(
 	`\ngo release: ${PLATFORMS.length} archives of itos ${version}, each holding its binary, ` +
-		`LICENSE and README.md, and ${SCHEMA} pass sha256sum -c, this machine's says its version, ` +
-		`and so does the Claude Code plugin's manifest`,
+		`LICENSE and README.md, and ${SCHEMA} pass sha256sum -c, and this machine's says its version`,
 );
