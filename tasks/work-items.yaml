@@ -1995,7 +1995,7 @@ items:
     title: A global itos runs the version a repository pins
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-061]
     kind: slice
     why: >
@@ -2029,6 +2029,35 @@ items:
       no wording aimed at agents, no notice in --json, no range-aware notices, no config key to
       silence a team. Specified in features/update.feature.
     refs: [features/update.feature, PLAN.md]
+
+  - id: p3-launcher-cache-prune
+    title: The launcher's cache drops the releases nothing has run for a while
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-27]
+    kind: idea
+    why: >
+      Slice 27's cache (ITOS_CACHE, <version>/itos beside its checksums.txt) keeps every release it
+      has fetched, about ten megabytes each, for ever: every version bump of every repository on
+      the machine adds one. Nothing removes them but the user; a run could drop the versions it
+      has not run for some months, or the cache could keep a few.
+    refs: [internal/launch/launch.go]
+
+  - id: p3-global-install-ci
+    title: A repository relying on a global itos runs it from its hooks and its CI
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-27]
+    kind: idea
+    why: >
+      With a pin, a repository can drop its install script (README, A global install), but
+      hooks.bin still defaults to tools/bin/itos, the shims hooks install writes call it, and a CI
+      runner has no global itos: such a repository needs hooks.bin set to itos and an install step
+      in CI, which no command writes and no document gives yet. One line for CI (go install of the
+      pinned version, or a small action) and hooks install offering hooks.bin itos would close it.
+    refs: [README.md, internal/cli/install.go]
 
   - id: p3-release-signatures
     title: Signed releases, checked by the launcher before it trusts checksums.txt

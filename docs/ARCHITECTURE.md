@@ -69,6 +69,20 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   run inside a git hook or on a runner sees what it sees locally. A step
   never reads itos's code, so the same steps judged the TypeScript and the
   Go port alike.
+- **The release server** (`release_test.go`), for the launcher's scenarios
+  (`pin.feature`): an `httptest` server inside the test, logging every path
+  asked of it, offering fake releases as real ones are laid out
+  (`/download/v<version>/<asset>`): the archive for the running platform,
+  whose `itos` is a shell script that appends its version, the
+  `ITOS_VERSION` it ran with and its arguments to a file of the scenario's
+  and exits with the code the scenario chose, and a real `checksums.txt`.
+  Steps replace a release's `checksums.txt` or archive after the config pins
+  it. Every command's environment sets `ITOS_CACHE` to a folder of the
+  scenario's and `ITOS_RELEASES` to that server, or, with none, to an address
+  nothing answers on beside `ITOS_NO_UPDATE=1`, so no scenario reaches the
+  network or a real cache. The conformance runner does the same for every
+  case (`cleanEnv` in `run.ts`); a corpus config pins nothing, or the
+  binary's own version.
 - **The header lint**, where a scenario needs one, is itos's built-in one,
   `use: builtin` in the scratch config, which needs nothing installed and
   holds no footer rule, so a scenario's footer rules are itos's own. The
@@ -271,6 +285,31 @@ mechanisms above, written against those modules, read across.
   the TypeScript has no module for:
   `internal/value` and `internal/source` (below). The port shells out to git
   where it needs it, as the TypeScript did.
+- **The launcher** (`internal/launch`, slice 27) runs before the command
+  line: `cmd/itos` calls `launch.Main`, and only when it hands the run back
+  `cli.Main`. It picks the version to run, `ITOS_VERSION` when set, else the
+  config's `pin.version`, and a binary whose own version that is runs itself,
+  so the version the launcher runs (to which it passes `ITOS_VERSION`) never
+  launches again. It reads the config where `cli` does (`--config` or
+  `ITOS_CONFIG`, under `--root`), from the working tree, and only its `pin`,
+  so a config written for a newer itos still reaches the version it pins; a
+  config with no pin, none, or one it cannot read (or whose pin fails
+  `config.PinVersion` and `config.PinChecksums`, the patterns config check
+  holds the keys to) runs the binary that was called. Otherwise `ensure`
+  finds `<cache>/<version>/itos` (`ITOS_CACHE`, else `itos/` under
+  `os.UserCacheDir`), cached when present and, under a pin, when the
+  `checksums.txt` beside it hashes to `pin.checksums`; else `fetch` gets
+  `<base>/download/v<version>/checksums.txt` (`ITOS_RELEASES`, else
+  GitHub's releases of itos), holds it to the pin (an `ITOS_VERSION` the
+  config does not pin trusts it as fetched), takes the platform archive's
+  line (`itos-<version>-<os>-<arch>.tar.gz`, `.zip` on windows), fetches and
+  checks the archive, extracts the binary at its top and moves it with that
+  `checksums.txt` into the cache as one folder, written beside it first. Any
+  failure is one line on stderr and exit 3 (`cli.ExitMissing`), and nothing
+  runs. `run` is `syscall.Exec` on unix, so the version run owns the
+  process, its signals and its exit code, and a child whose exit code is
+  passed back elsewhere. Slice 28 adds the newest release where there is no
+  `itos.yaml`, at the branch of `choose` that now runs the called binary.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
   `ITOS_CONFIG`, after `--root`'s `chdir`), holds it to the schema

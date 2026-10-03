@@ -310,12 +310,13 @@ Global flags: `--config`, `--root`, `--json`, `-q`.
 | `hook commit-msg <file>`, `hook pre-push <remote> <url>`                | The hooks' entry points.                                                                                                                                                                    |
 | `hooks install [--manager <m>] [--print] [--force]`                     | Writes the one-line shims for the hook manager it detects, or prints its snippet.                                                                                                           |
 | `config check [--print-defaults]`                                       | Validates the config, the ledger, the registry and the smoke sets.                                                                                                                          |
-| `version [--check]`                                                     | `--check` exits 1 if the binary does not satisfy `requires`.                                                                                                                                |
+| `version [--check]`                                                     | Needs no config; `--check` exits 1 if the binary does not satisfy `requires`.                                                                                                               |
 
 **Exit codes:** 0 success; 1 a policy failure (a check failed, a commit
 rejected, an unknown task); 2 a usage or config error, a file or folder the
 config names that is missing or unreadable among them (the ledger's folder a
-footer reads, a smoke set); 3 a missing environment. In `ci run` a failing step exits with its own code. A missing
+footer reads, a smoke set); 3 a missing environment, a pinned release the
+launcher cannot fetch or check among them (§10). In `ci run` a failing step exits with its own code. A missing
 identity and a failing range provider are not errors.
 
 **JSON.** Every command takes `--json`: one object on stdout with

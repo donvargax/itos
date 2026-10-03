@@ -104,6 +104,31 @@ path ends in `/v2` from v2.0.0, as Go requires).
 
 A version bump is the same again with the new version and hashes.
 
+**A global install** (from the first release after v2.0.0): install itos once
+per machine, by either way above into a folder on your `PATH`, and pin the
+release each repository runs in its `itos.yaml`:
+
+```yaml
+pin:
+  version: 2.1.0 # the release, without its v
+  checksums: <the SHA-256 of that release's checksums.txt> # sha256sum checksums.txt
+```
+
+The installed binary is then a launcher, never rewritten: in a repository that
+pins another version it fetches that release into its cache, checks
+`checksums.txt` against `pin.checksums` and the archive against its line, and
+runs it with the same arguments and exit code. A release that cannot be fetched
+or does not match exits 3 and nothing runs in its place. One hash covers every
+platform, so the pin replaces the install script, and a version bump is the
+two lines. A config without `pin` runs the binary that was called, so a
+repository that installs itos its own way keeps it.
+
+`ITOS_VERSION=<x.y.z>` runs another release for one call (trusting its
+`checksums.txt` as fetched, unless it is the one pinned); `ITOS_RELEASES`
+names where releases come from (`<base>/download/v<version>/<asset>`,
+`https://github.com/donvargax/itos/releases` by default) and `ITOS_CACHE` the
+cache (`itos/` in your user cache folder by default).
+
 **The schema, for editors.** An editor with a YAML language server checks an
 `itos.yaml` as it is written, completes its keys and shows each one's
 description and default, once the file's first line names the schema of the
