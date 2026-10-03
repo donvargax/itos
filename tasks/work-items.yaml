@@ -1186,7 +1186,7 @@ items:
     title: "itos push waits for CI, and itos ci watch for any commit"
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
