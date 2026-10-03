@@ -31,8 +31,11 @@
 //
 // In every string, `{{dir}}` is the case's folder, `{{PATH}}` the runner's
 // PATH, `{{sha.<label>}}` and `{{short.<label>}}` a labelled commit (40 and 7
-// characters), `{{version}}` package.json's version, the one itos must say it
-// is, so a release changes the version in package.json alone. The command runs in a clean environment: no GIT_*, ITOS_*,
+// characters), `{{version}}` the version the binary says it is (`<command>
+// version`'s last word, asked once before any case), so a build stamped with
+// any version passes, and `{{release}}` that version's X.Y.Z, the version a
+// config's requires can name (a build between releases says a pre-release,
+// 2.3.1-dev.5.g1234abc, which no comparator reads). The command runs in a clean environment: no GIT_*, ITOS_*,
 // GITHUB_* or CI variable of the caller's, HOME an empty folder, no global or
 // system git config, and nowhere a release could be fetched from (cleanEnv). Nothing is shared between cases, so they run in parallel.
 import { spawn, spawnSync } from "node:child_process";
@@ -179,18 +182,42 @@ function cleanEnv(home: string): NodeJS.ProcessEnv {
 
 type Subst = (s: string) => string;
 
-const VERSION = (
-	JSON.parse(readFileSync(join(import.meta.dirname, "../../../package.json"), "utf8")) as {
-		version: string;
+// The version the binary says it is, and its X.Y.Z: {{version}} and {{release}}.
+let VERSION = "";
+let RELEASE = "";
+
+// Sets {{version}} and {{release}} from what the binary says.
+function learnVersion(bin: string) {
+	VERSION = askVersion(bin);
+	RELEASE = /^\d+\.\d+\.\d+/.exec(VERSION)?.[0] ?? VERSION;
+}
+
+// Asks the binary its version, as a case would run it: in an empty folder, in
+// the clean environment, with no config to read.
+function askVersion(bin: string): string {
+	const scratch = mkdtempSync(join(tmpdir(), "itos-conformance-version-"));
+	try {
+		const home = join(scratch, "home");
+		mkdirSync(home);
+		const run = spawnSync(bin, ["version"], { cwd: scratch, env: cleanEnv(home), encoding: "utf8" });
+		const said = run.status === 0 ? run.stdout.trim().split(/\s+/).at(-1) : undefined;
+		if (!said)
+			throw new FixtureError(
+				`${bin} version (exit ${run.status ?? run.signal}) says no version: ${run.stderr ?? run.error?.message ?? ""}`,
+			);
+		return said;
+	} finally {
+		rmSync(scratch, { recursive: true, force: true });
 	}
-).version;
+}
 
 function substituter(dir: string, labels: Map<string, string>): Subst {
 	return (s) =>
-		s.replace(/\{\{(dir|PATH|version|sha\.[\w-]+|short\.[\w-]+)\}\}/g, (whole, name: string) => {
+		s.replace(/\{\{(dir|PATH|version|release|sha\.[\w-]+|short\.[\w-]+)\}\}/g, (whole, name: string) => {
 			if (name === "dir") return dir;
 			if (name === "PATH") return process.env.PATH ?? "";
 			if (name === "version") return VERSION;
+			if (name === "release") return RELEASE;
 			const [form, label] = name.split(".") as [string, string];
 			const sha = labels.get(label);
 			if (sha === undefined) throw new FixtureError(`no commit is labelled ${label} (${whole})`);
@@ -474,6 +501,7 @@ async function main(args: string[]): Promise<number> {
 	let fixtures: Fixture[];
 	try {
 		fixtures = (only.length ? only : fixtureFiles()).map(readFixture);
+		learnVersion(binary(bin));
 	} catch (error) {
 		console.error(`FAIL ${(error as Error).message}`);
 		return 2;

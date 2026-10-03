@@ -135,16 +135,16 @@ cases:
   - name: an upper bound that fails
     argv: [version, --check]
     files:
-      itos.yaml: "version: 1\nrequires: \">=0.0.1 <{{version}}\"\n"
+      itos.yaml: "version: 1\nrequires: \">=0.0.1 <{{release}}\"\n"
     exit: 1
     stdout: |
       itos {{version}}
     stderr: |
-      itos {{version}} does not satisfy >=0.0.1 <{{version}} (the config's requires)
+      itos {{version}} does not satisfy >=0.0.1 <{{release}} (the config's requires)
   - name: a bare version is an exact one
     argv: [version, --check]
     files:
-      itos.yaml: "version: 1\nrequires: \"{{version}}\"\n"
+      itos.yaml: "version: 1\nrequires: \"{{release}}\"\n"
     exit: 0
     stdout: |
       itos {{version}}
@@ -160,7 +160,7 @@ cases:
   - name: a v prefix and = are allowed
     argv: [version, --check]
     files:
-      itos.yaml: "version: 1\nrequires: \"=v{{version}}\"\n"
+      itos.yaml: "version: 1\nrequires: \"=v{{release}}\"\n"
     exit: 0
     stdout: |
       itos {{version}}
@@ -176,12 +176,12 @@ cases:
   - name: greater than is strict
     argv: [version, --check]
     files:
-      itos.yaml: "version: 1\nrequires: \">{{version}}\"\n"
+      itos.yaml: "version: 1\nrequires: \">{{release}}\"\n"
     exit: 1
     stdout: |
       itos {{version}}
     stderr: |
-      itos {{version}} does not satisfy >{{version}} (the config's requires)
+      itos {{version}} does not satisfy >{{release}} (the config's requires)
   - name: without requires every version is satisfied
     argv: [version, --check, --json]
     files:
