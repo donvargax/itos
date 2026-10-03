@@ -91,26 +91,19 @@ Feature: itos hook pre-tool-use, Claude Code's guard against git commit and git 
     And its output says "PreToolUse"
 
   # Slice 42 left it as p3-guard-old-pin: the launcher hands the hook to the
-  # itos a repository pins, or outside a project to the newest release, and
-  # an itos older than the guard has no such hook: its usage error exits 2,
-  # which Claude Code takes as a block, so every Bash command there would be
-  # blocked once the plugin wires the hook. Where the version the hook would
+  # itos a repository pins, and an itos older than the guard has no such
+  # hook: its usage error exits 2, which Claude Code takes as a block, so
+  # every Bash command there would be blocked once the plugin wires the hook. Where the version the hook would
   # go to predates the guard, the command gets no answer, as bug 7 did for
-  # the git shim.
+  # the git shim. Outside a project the launcher runs the newest release,
+  # never one older than itself, so that case cannot arise for an itos that
+  # has the guard (the scenario written for it, ID-GUARD-12, passed before
+  # any work and was dropped).
   @ID-GUARD-11 @slice-44
   Scenario: In a repository pinned to an itos older than the guard, the command gets no answer
     Given a release server offering the versions "1.9.0" and "2.0.0"
     And the config pins the version "2.0.0" of the release server
     When Claude Code asks itos about the Bash command "git commit -m 'chore: tidy the readme'"
-    Then itos exits with code 0
-    And itos writes nothing to stdout
-    And no version of the release server ran
-
-  @ID-GUARD-12 @slice-44 @wip
-  Scenario: Outside a project, with a newest release older than the guard, the command gets no answer
-    Given a release server offering the versions "1.9.0" and "2.0.0"
-    And the repository has no itos.yaml
-    When Claude Code asks itos about the Bash command "git status"
     Then itos exits with code 0
     And itos writes nothing to stdout
     And no version of the release server ran

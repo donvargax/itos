@@ -2226,11 +2226,12 @@ items:
     title: itos hook pre-tool-use under a pin older than the guard answers nothing, not exit 2
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-42]
     kind: slice
     why: >
-      Was p3-guard-old-pin, specified as @ID-GUARD-11 and 12 in features/guard.feature, before
+      Was p3-guard-old-pin, specified as @ID-GUARD-11 in features/guard.feature (@ID-GUARD-12, outside a project with an
+      older newest release, was dropped: the launcher never runs a release older than itself), before
       T-066 wires the hook. Left by slice 42. The launcher hands hook pre-tool-use to the version a repository pins, and
       one older than the guard (v2.3.0) has no such hook: its usage error exits 2, which Claude Code
       takes as a block, so in such a repository every Bash command is blocked once T-066's plugin
