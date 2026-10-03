@@ -1202,7 +1202,8 @@ itos`, before any other step calls it. `tools/selftest/go-dogfood.ts`
     `staged`: `vp check --fix`, or for Go `gofmt -w` and then `go vet` over the
     module, since it reads packages rather than files), then, unless every
     staged file is Markdown, under `docs/**`, under `tasks/**` (the ledger and
-    the registry) or a feature file, the unit tests the change reaches
+    the registry) or a feature file, the dependency check when `go.mod` or
+    `go.sum` is staged (below), then the unit tests the change reaches
     (`tools/bin/go-unit-tests --cached`), then `fallow audit` on what is new
     against HEAD, which reads this repository's own TypeScript tooling (the
     self-tests, the corpus runner, the builds) and scores it by complexity,
@@ -1217,6 +1218,27 @@ itos`, before any other step calls it. `tools/selftest/go-dogfood.ts`
     the named tests, CI's and the nightly's. It does not check itos's own data: the commit-msg
     hook does, from the staged tree (T-023 dropped T-022's check here, which
     read the working tree).
+  - **The dependency check** (`tools/bin/deps-check`, T-067; by hand,
+    `go run ./tools/bin/deps-check`) runs where a Go module can come in: at
+    pre-commit when `go.mod` or `go.sum` is staged, and in CI as the first late
+    step with `-changed-since "$FROM"`, the range's start the workflow puts in
+    the job's environment, so a range that leaves both alone checks nothing. It
+    lists every module of the build, the tools' included (`go list -m -json
+all`; a module replaced by a version is checked as that version, one
+    replaced by a folder not at all), asks GOPROXY for each one's
+    `@v/<version>.info` (never a module GONOPROXY names, which the go command
+    never asks about either), and refuses one published less than 7 days ago,
+    or that no proxy knows, unless `deps-check.json` at the root excepts that
+    module and version with a reason; an exception that excuses nothing (its
+    version is not in the build, or is old enough) fails too. Only then does it
+    run `go tool govulncheck -test ./...`, a tool dependency in `go.mod` and so
+    held to the same age, as running it runs its code; a finding (exit 3)
+    fails the check. It needs the network, as the `go get` that changed
+    `go.mod` did, and costs a few seconds with a warm build cache (the first
+    run builds govulncheck). It imports only the standard library, so no
+    module it is about to refuse runs inside it, which is why its file is JSON.
+    `tools/selftest/deps-check.ts` proves it against a proxy of local files
+    with a stub govulncheck.
   - **commit-msg** first checks itos's own data when the commit stages any
     of it (`commit-data.ts`): the config, a ledger file, the registry or a
     smoke set, as the staged config names them, runs `config check`'s
@@ -1266,8 +1288,8 @@ sha>` (the base against the working tree) for each pushed ref, or the
   (`vp check`, `gofmt`, `go vet`, the smoke rule, `itos config check`) and every named task check
   that is static (its own `cost: static`, else a pattern of
   `ci.cost.static`: `matchesStatic` in `config.ts`, which `config
-check`'s written-order rule reads too); then the late steps (the whole unit suite, the Go
-  packages', the audit, the conformance corpus against `tools/bin/itos`, T-007); then **one run of the features** over the smoke
+check`'s written-order rule reads too); then the late steps (the dependency check, for a range that changes
+  `go.mod` or `go.sum`; the whole unit suite, the Go packages'; the audit, the conformance corpus against `tools/bin/itos`, T-007); then **one run of the features** over the smoke
   set (of the kind the `tests:` step names; a CI without one reads none), the scenarios the `Scenarios:` footers name and the subsets of the
   tasks the ledger footers (`Task:`) name; then the named tasks' late checks. A task's checks
   keep their written order. A check a step has just done is skipped

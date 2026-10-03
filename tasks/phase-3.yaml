@@ -241,7 +241,11 @@
     network there, as go get did), and CI on a push whose range changes them. Written in Go, so
     it moves into an extension as it is. A self-test proves both refusals against a local
     module proxy, with no network: a version a day old is refused and passes once excepted, and
-    an old one passes.
+    an old one passes. govulncheck needs the network (its database, and its source on a cold
+    module cache), so the self-test runs a stub in its place, proving what the check does with a
+    finding (exit 3); the real one runs at every commit that stages go.mod or go.sum, the first
+    being the one that added it. Its first run (2026-10-03): 39 modules, the newest
+    golang.org/x/vuln v1.8.0 itself (2026-09-08), no exception needed, no vulnerability found.
   done_when:
     - run: node tools/selftest/deps-check.ts
       timeout: 300
