@@ -2259,7 +2259,7 @@ items:
     title: The itos plugin for Claude Code, published from this repository
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-42, slice-43, slice-44]
     kind: task
     why: >
@@ -2688,3 +2688,50 @@ items:
       it is required). Merging the carried note with the flags' links, each footer once, would
       make an amend mean the same in both modes.
     refs: [internal/cli/gitcommit.go, features/stealth.feature]
+
+  - id: p3-plugin-project-itos
+    title: The Claude Code plugin runs the repository's own itos when none is on the PATH
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-066]
+    kind: idea
+    why: >
+      Left by T-066: the plugin's guard and titles run the itos on the PATH. A repository that
+      installs itos for itself (hooks.bin naming a committed script, as this repository's
+      tools/bin/itos does) on a machine with no global itos gets no guard, and titles only from
+      tasks/work-items.yaml, so a registry moved by work.registry and ledger tasks with no item go
+      untitled; this repository is such a case today. The plugin could find the config and run its
+      hooks.bin when no itos is on the PATH.
+    refs: [integrations/claude-code/hooks/register.ts, integrations/claude-code/hooks/hooks.json]
+
+  - id: p3-agents-through-itos
+    title: This repository's working rules commit and push through itos commit and itos push
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-066]
+    kind: idea
+    why: >
+      Left by T-066: AGENTS.md and docs/ORCHESTRATING.md tell a session to commit with git commit
+      -F and to push with git pull --rebase, then git push in a separate command. With the plugin
+      installed and an itos on the PATH, its guard denies both in this repository, naming itos
+      commit and itos push, which do the same with the footers written and the rebase checked. The
+      rules should say those, keeping why (never pipe a commit, never force).
+    refs: [AGENTS.md, docs/ORCHESTRATING.md]
+
+  - id: p3-plugin-type-check
+    title: Type-check the Claude Code plugin's hooks module in CI
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-066]
+    kind: idea
+    why: >
+      Left by T-066: the plugin's TypeScript is typed by the declarations Claude Code writes beside
+      a plugin it loads, which no install of this repository has, so the type-aware lint leaves it
+      out, and claude plugin validate reads what the module hooks and calls but not its types.
+      Checked locally against the plugin-authoring skill's declarations when it landed. A claude
+      -p --plugin-dir run writes them, but needs a login; if Claude Code gains a way to write them
+      without a session, T-066's checks could run tsc over the plugin with them.
+    refs: [integrations/claude-code/tsconfig.json, vite.config.ts]
