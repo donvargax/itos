@@ -28,6 +28,17 @@
 // name, so the old corpus's cases that require the binary's own version would
 // fail for the stamp alone; the release a consumer gets says X.Y.Z.
 //
+// The old corpus's help cases are left out, never judged: a case that asks for
+// help (an argv holding --help or -h before any --, one starting with help, or
+// none at all, a bare itos printing the help) pins help text, which is
+// documentation, not compatibility: --json and exit codes are the stable
+// interface (PLAN.md), and this tree's own corpus still pins its help exactly.
+// Judged, every feat that adds a flag or a command, which changes itos --help,
+// could pass only as a breaking change. They are taken out of the worktree's
+// fixtures before its runner reads them (skipHelpScript, with the checkout's
+// yaml), and the check says how many it left out and why. help.yaml's other
+// cases, such as itos version's, stay judged.
+//
 // An old scenario or case that fails is accepted when a commit since the tag
 // is marked as breaking (a ! before its header's colon, or a BREAKING-CHANGE:
 // or BREAKING CHANGE: footer in its last paragraph, read as
@@ -74,6 +85,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -178,6 +190,13 @@ func run() int {
 	}
 	fmt.Printf("%s: %s's scenarios and conformance corpus against %s (itos %s), in a scratch worktree of %s\n",
 		self, tag, what, version, tag)
+	skipped, err := skipHelp(tree)
+	if err != nil {
+		return fail("%s's corpus: cannot leave out its help cases: %v", tag, err)
+	}
+	fmt.Printf("%s: %s's conformance corpus: %s not judged, since help text is documentation, not compatibility:\n"+
+		"  --json and exit codes are the stable interface (PLAN.md), and this tree's own corpus pins its help exactly\n",
+		self, tag, skipped)
 
 	var features, corpus suite
 	var wg sync.WaitGroup
@@ -244,6 +263,77 @@ func prepare(tree, version string) error {
 		return fmt.Errorf("no node_modules in this checkout, which the corpus runner needs (vp install)")
 	}
 	return os.Symlink(modules, filepath.Join(tree, "node_modules"))
+}
+
+// skipHelpScript takes the help cases out of the fixtures of the corpus in its
+// working directory, keeping the rest of each file as written, and prints how
+// many it took from each file as JSON ({"<file>": n}). It runs with the yaml
+// package prepare links in, the one the corpus runner parses fixtures with; a
+// file that does not parse is left for the runner to report.
+const skipHelpScript = `
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { isSeq, parse, parseDocument } from "yaml";
+
+const dir = "tools/itos/conformance";
+const asksHelp = (argv) => {
+	if (!Array.isArray(argv)) return false;
+	if (argv.length === 0 || argv[0] === "help") return true;
+	const end = argv.indexOf("--");
+	const flags = end < 0 ? argv : argv.slice(0, end);
+	return flags.includes("--help") || flags.includes("-h");
+};
+const skipped = {};
+for (const file of readdirSync(dir).filter((f) => f.endsWith(".yaml")).sort()) {
+	const path = join(dir, file);
+	const doc = parseDocument(readFileSync(path, "utf8"));
+	const cases = doc.get("cases");
+	if (doc.errors.length || !isSeq(cases)) continue;
+	const plain = doc.toJS().cases;
+	const help = new Set(plain.flatMap((c, i) => (asksHelp(c && c.argv) ? [i] : [])));
+	if (!help.size) continue;
+	cases.items = cases.items.filter((_, i) => !help.has(i));
+	const text = String(doc);
+	if (parse(text).cases.length !== plain.length - help.size)
+		throw new Error(file + ": the cases left after taking out its help cases do not read back");
+	writeFileSync(path, text);
+	skipped[file] = help.size;
+}
+console.log(JSON.stringify(skipped));
+`
+
+// skipHelp takes the help cases out of the release's corpus in tree, and says
+// how many it took: "37 help cases (help.yaml 37)".
+func skipHelp(tree string) (string, error) {
+	cmd := exec.Command("node", "--input-type=module", "-")
+	cmd.Dir = tree
+	cmd.Env = env()
+	cmd.Stdin = strings.NewReader(skipHelpScript)
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("node: %v\n%s", err, stderr.String())
+	}
+	var counts map[string]int
+	if err := json.Unmarshal(out, &counts); err != nil {
+		return "", fmt.Errorf("node said %q: %v", out, err)
+	}
+	files := make([]string, 0, len(counts))
+	total := 0
+	for file, n := range counts {
+		files = append(files, fmt.Sprintf("%s %d", file, n))
+		total += n
+	}
+	sort.Strings(files)
+	noun := "help cases"
+	if total == 1 {
+		noun = "help case"
+	}
+	if total == 0 {
+		return "no " + noun, nil
+	}
+	return fmt.Sprintf("%d %s (%s)", total, noun, strings.Join(files, ", ")), nil
 }
 
 // buildAsReleased builds this tree's ./cmd/itos into dir, stamped as

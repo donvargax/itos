@@ -2,15 +2,19 @@
 // tools/bin/previous-release), in a scratch repository whose v1.0.0 tag holds
 // a release of its own: two scenarios (go test ./features, a black box running
 // whatever ITOS_BIN names, as this repository's are), and a corpus of three
-// cases run by this repository's own conformance runner. The binary under
-// test is a script; the broken one breaks one scenario and one case, and says
+// cases and two help cases run by this repository's own conformance runner.
+// The binary under test is a script; the broken one breaks one scenario, one
+// case and both help cases, the wordy one only the help cases, and each says
 // a version the tag never had, as T-069's builds will.
 //
 //   - the binary the release was written for passes, its version the
-//     corpus's {{version}} whatever the tag's package.json says;
+//     corpus's {{version}} whatever the tag's package.json says, and the help
+//     cases are left out, said with their count;
+//   - the wordy one passes: help text is documentation, not compatibility, so
+//     an old help case that differs is never judged;
 //   - the broken one fails with no commit since the tag that says why, naming
-//     the scenario, the case and the remedy; a fix and a ! before the tag do
-//     not count;
+//     the scenario, the case and the remedy, and no help case; a fix and a !
+//     before the tag do not count;
 //   - it passes with a fix since the tag naming both in Changes: footers (the
 //     scenario by its ID, the case by its file and name), and fails naming
 //     the case alone when the fix names only the scenario;
@@ -106,11 +110,25 @@ func TestFeatures(t *testing.T) {
     exit: 0
     stdout: "itos {{version}}\\n"
 `,
+	// Help cases, whose text the new binary may change freely: one asking with
+	// --help, one with help <command>.
+	"tools/itos/conformance/help.yaml": `cases:
+  - name: itos --help
+    argv: [--help]
+    exit: 0
+    stdout: "usage: itos greet|name|version\\n"
+  - name: help greet is greet's --help
+    argv: [help, greet]
+    exit: 0
+    stdout: "usage: itos greet|name|version\\n"
+`,
 };
 
-// The binary the release was written for, and one that greets otherwise.
-const binary = (greeting: string) => `#!/bin/sh
+// The binary the release was written for, one whose help says more, and one
+// that also greets otherwise.
+const binary = (greeting: string, help = "usage: itos greet|name|version") => `#!/bin/sh
 case "$1" in
+--help | help) echo "${help}" ;;
 greet) echo ${greeting} ;;
 name) echo itos ;;
 version) echo "itos 1.0.1-dev.3+gabcdef0" ;;
@@ -118,11 +136,13 @@ version) echo "itos 1.0.1-dev.3+gabcdef0" ;;
 esac
 `;
 const good = join(tmp, "good");
+const wordy = join(tmp, "wordy");
 const broken = join(tmp, "broken");
+const moreHelp = "usage: itos greet|name|version|wave";
 writeFileSync(good, binary("hello"));
-writeFileSync(broken, binary("bye"));
-chmodSync(good, 0o755);
-chmodSync(broken, 0o755);
+writeFileSync(wordy, binary("hello", moreHelp));
+writeFileSync(broken, binary("bye", moreHelp));
+for (const bin of [good, wordy, broken]) chmodSync(bin, 0o755);
 
 const run = (cwd: string, args: string[]) => {
 	const r = spawnSync(check, args, { cwd, env, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
@@ -186,14 +206,28 @@ try {
 	const on = (name: string) => git(repo, "checkout", "-q", name);
 
 	// 1. The binary the release was written for passes, its own version the
-	// corpus's {{version}}.
+	// corpus's {{version}}; the help cases are left out, said with their count.
 	on("main");
 	let r = run(repo, ["-bin", good]);
+	const leftOut = "2 help cases (help.yaml 2) not judged, since help text is documentation";
 	expect(
 		r.status === 0 &&
 			r.output.includes("v1.0.0's scenarios: all 2 pass") &&
-			r.output.includes("3/3 conformance cases pass"),
-		`the release's own binary should pass every scenario and case, exited ${r.status}:\n${r.output}`,
+			r.output.includes("3/3 conformance cases pass") &&
+			r.output.includes(leftOut),
+		`the release's own binary should pass every scenario and case, the help cases left out and counted, exited ${r.status}:\n${r.output}`,
+	);
+
+	// 1a. One whose help differs, and nothing else, passes with no commit that
+	// says why: an old help case is never judged.
+	r = run(repo, ["-bin", wordy]);
+	expect(
+		r.status === 0 &&
+			r.output.includes(leftOut) &&
+			r.output.includes("3/3 conformance cases pass") &&
+			!r.output.includes("help.yaml: itos --help") &&
+			!r.output.includes("fails"),
+		`a binary whose help alone differs should pass, its old help cases not judged, exited ${r.status}:\n${r.output}`,
 	);
 
 	// 2. The broken binary, with no commit since the tag that says why: refused,
@@ -210,8 +244,12 @@ try {
 		`a broken old scenario and case with no commit saying why should be refused (exit 1), naming both and the remedy, exited ${r.status}:\n${r.output}`,
 	);
 	expect(
-		r.output.includes("1 of 2 fail") && !r.output.includes("says its name"),
-		`only the scenario the binary breaks should be named, exited ${r.status}:\n${r.output}`,
+		r.output.includes("1 of 2 fail") &&
+			!r.output.includes("says its name") &&
+			r.output.includes("2/3 conformance cases pass") &&
+			!r.output.includes("help.yaml: itos --help") &&
+			!r.output.includes("help greet"),
+		`only the scenario and the case the binary breaks should be named, no help case, exited ${r.status}:\n${r.output}`,
 	);
 
 	// 3. A fix since the tag naming both in Changes: passes, saying so.
@@ -326,5 +364,5 @@ try {
 finish(
 	problems,
 	"previous-release",
-	"An old scenario or case the new binary breaks is refused, unless a breaking change or a fix's Changes: footer says why; a feat's never does, and a run that cannot check out the release never passes",
+	"An old scenario or case the new binary breaks is refused, unless a breaking change or a fix's Changes: footer says why; a feat's never does; an old help case is never judged; and a run that cannot check out the release never passes",
 );
