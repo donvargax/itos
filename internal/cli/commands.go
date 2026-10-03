@@ -178,9 +178,13 @@ func testsCommand(args []string, o Out) (int, error) {
 	case "ids":
 		return smokeIDs(name, o)
 	case "run":
-		var runner []string
-		if dash := slices.Index(more, "--"); dash >= 0 {
-			runner = more[dash+1:]
+		// Everything after the kind is the runner's, as given; a -- right
+		// after it is taken, so what looks like an itos flag can follow it,
+		// and is not passed on (bug 8: they were read only after a --, and
+		// --workers=1 without one was dropped without a word).
+		runner := more[slices.Index(more, name)+1:]
+		if len(runner) > 0 && runner[0] == "--" {
+			runner = runner[1:]
 		}
 		return smokeRun(name, runner, o)
 	}

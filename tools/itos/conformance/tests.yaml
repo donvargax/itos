@@ -262,7 +262,14 @@ cases:
     exit: 2
     stderr: |
       FAIL itos.yaml: tests.nothing is missing
-  - name: the smoke run is the kind's select template over the smoke IDs, the arguments after -- passed on
+  - name: the smoke run is the kind's select template over the smoke IDs, the arguments after the kind passed on
+    argv: [tests, smoke, run, fixture, --workers=1, -x]
+    exit: 0
+    stdout: |
+      F-001
+      F-003
+      and: --workers=1 -x
+  - name: a -- right after the kind is taken, so itos's own flags after it reach the runner, and is not passed on
     argv: [tests, smoke, run, fixture, --, --json, -q]
     exit: 0
     stdout: |

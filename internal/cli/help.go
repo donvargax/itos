@@ -295,12 +295,14 @@ live, at the working tree (default), the index or a commit.
 
 	"tests smoke": `Usage: itos tests smoke check <kind> [--features <dir>]
        itos tests smoke ids <kind>
-       itos tests smoke run <kind> [-- <runner args>…]
+       itos tests smoke run <kind> [--] [<runner args>…]
 
 check: every file with a live test has a smoke test (unless the kind's
 smoke.every_file is false), and every smoke ID is live (exit 1 when not). ids:
-the smoke set's IDs, one a line. run: the kind's run of exactly the smoke set;
-its exit code is the runner's.
+the smoke set's IDs, one a line. run: the kind's run of exactly the smoke set,
+everything after <kind> added to it as given (a -- right after <kind> is taken,
+to pass what looks like an itos flag, and not passed on); its exit code is the
+runner's.
 
 --json (check): {"schema":1,"kind","ok","ids","problems":[{"rule","message","fix"}]}
 --json (ids):   {"schema":1,"kind","ids"}`,

@@ -96,6 +96,10 @@
   scenarios:
     - id: "@ID-SINCE-01"
       why: verify leaves out the commit commits.since names, the key's point
+- file: smoke.feature
+  scenarios:
+    - id: "@ID-SMOKE-01"
+      why: runner arguments after the kind reach the runner without a --, the file's point
 - file: stealth.feature
   scenarios:
     - id: "@ID-STEALTH-01"

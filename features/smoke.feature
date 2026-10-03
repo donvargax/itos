@@ -17,13 +17,13 @@ Feature: itos tests smoke run, the smoke set run through the kind's runner
   # Bug 8, issue #3 (character-editor): the arguments after the kind were read
   # only from after a --, so --workers=1 was dropped without a word and the run
   # looked as if it had taken the flag. The reporter's first choice: pass them.
-  @ID-SMOKE-01 @bug-8 @wip
+  @ID-SMOKE-01 @bug-8
   Scenario: Runner arguments after the kind reach the runner without a --
     When itos runs "tests smoke run scenario --workers=1"
     Then itos exits with code 0
     And "record-run" was given "--workers=1"
 
-  @ID-SMOKE-02 @bug-8 @wip
+  @ID-SMOKE-02 @bug-8
   Scenario: A -- before the runner arguments is still taken, and not passed on
     When itos runs "tests smoke run scenario -- --workers=1"
     Then itos exits with code 0

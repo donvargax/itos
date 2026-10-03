@@ -167,9 +167,10 @@ func smokeIDs(name string, o Out) (int, error) {
 	return 0, nil
 }
 
-// smokeRun is `tests smoke run <kind> [-- <runner args>…]`: the kind's run
+// smokeRun is `tests smoke run <kind> [--] [<runner args>…]`: the kind's run
 // of exactly the smoke set (its select template over the smoke IDs), the
-// arguments each one shell word after it, through the config's shell with
+// arguments (everything after the kind but a -- right after it) each one
+// shell word after it, through the config's shell with
 // itos's streams. Its exit code is the runner's, 1 when the runner did not
 // exit by itself, as spawnSync's `status ?? 1`. An empty smoke set runs
 // nothing, and says so.

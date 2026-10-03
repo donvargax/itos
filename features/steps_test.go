@@ -54,6 +54,7 @@ type scratchConfig struct {
 	recordingShell    bool        // shell is the recording shell
 	ciSteps           []string    // ci.steps
 	ciTests           string      // a kind of named tests, with run and recognize templates, run by the last of ci.steps
+	runSelect         string      // the scenario kind's run.select, when ciTests gives it none
 	smokeRuns         []string    // commands the kind of ciTests recognizes as its smoke run
 	stopAtFirst       *bool       // ci.stop_at_first_failure
 	nightlyTasks      string      // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
@@ -248,6 +249,8 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^ci\.covers says the step "([^"]*)" covers "([^"]*)"$`, w.coversIs)
 	sc.Step(`^ci\.nightly_only is "([^"]*)"$`, w.nightlyOnlyIs)
 	sc.Step(`^"([^"]*)" is a script that records it ran$`, w.recordingScript)
+	sc.Step(`^"([^"]*)" is a script that records its arguments$`, w.argumentsScript)
+	sc.Step(`^the kind "([^"]*)" runs a selection as "([^"]*)"$`, w.kindRunsSelection)
 	sc.Step(`^the config sets "([^"]*)" to "([^"]*)"$`, w.configSets)
 
 	initializeReleaseSteps(sc, w)
@@ -332,6 +335,12 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the recording check ran$`, func() error { return w.recordingCheckRan(true) })
 	sc.Step(`^the recording check did not run$`, func() error { return w.recordingCheckRan(false) })
 	sc.Step(`^the file "([^"]*)" calls itos$`, w.fileCallsItos)
+	sc.Step(`^"([^"]*)" was given "([^"]*)"$`, func(script, arg string) error {
+		return w.scriptWasGiven(script, arg, true)
+	})
+	sc.Step(`^"([^"]*)" was not given "([^"]*)"$`, func(script, arg string) error {
+		return w.scriptWasGiven(script, arg, false)
+	})
 }
 
 func (w *world) setUp() error {
@@ -524,6 +533,9 @@ func (w *world) writeConfig() error {
 		if !w.config.noTagPrefix {
 			b.WriteString("    tag_prefix: \"@\"\n")
 		}
+	}
+	if w.config.runSelect != "" && w.config.ciTests == "" {
+		fmt.Fprintf(&b, "    run:\n      select: %q\n      ids_pattern: \"@(?:{ids})\\\\b\"\n", w.config.runSelect)
 	}
 	if w.config.ciTests != "" {
 		// A runner that only says what it would run, as the conformance case's
@@ -1007,6 +1019,44 @@ func (w *world) recordingScript(path string) error {
 		return err
 	}
 	return os.Chmod(filepath.Join(w.dir, path), 0o755)
+}
+
+// A script at the path in the scratch repository that writes the arguments
+// it is given, one a line, to a file in the support folder named after it
+// (scriptWasGiven reads them back).
+func (w *world) argumentsScript(path string) error {
+	script := "#!/bin/sh\nprintf '%s\\n' \"$@\" > " + quote(w.argumentsFile(path)) + "\n"
+	if err := w.write(path, script); err != nil {
+		return err
+	}
+	return os.Chmod(filepath.Join(w.dir, path), 0o755)
+}
+
+func (w *world) argumentsFile(script string) string {
+	return filepath.Join(w.support, filepath.Base(script)+".args")
+}
+
+// The kind's run.select is the command, {pattern} standing for the selection.
+func (w *world) kindRunsSelection(kind, command string) error {
+	if got := w.testsKind(); got != kind {
+		return fmt.Errorf("the scratch config's kind of named tests is %q, not %q", got, kind)
+	}
+	w.config.runSelect = command
+	return w.writeConfig()
+}
+
+// Whether the arguments script was given the argument, as one of its own,
+// the last time it ran.
+func (w *world) scriptWasGiven(script, arg string, want bool) error {
+	text, err := os.ReadFile(w.argumentsFile(script))
+	if err != nil {
+		return fmt.Errorf("%s did not run: %w\n%s", script, err, w.report())
+	}
+	args := strings.Split(strings.TrimSuffix(string(text), "\n"), "\n")
+	if slices.Contains(args, arg) != want {
+		return fmt.Errorf("%s was given %q: %t, not %t\n%s", script, args, !want, want, w.report())
+	}
+	return nil
 }
 
 // The file, in the scratch repository, that the recording step writes.
