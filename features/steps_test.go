@@ -15,8 +15,11 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"slices"
+	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/cucumber/godog"
 )
@@ -399,7 +402,8 @@ func moduleRoot() (string, error) {
 // git or itos read anything but the scratch repository (a hook's GIT_DIR, CI's
 // settings), with no global or system git config and a fixed identity, and
 // what keeps the launcher off the network and any real cache (launcherEnv),
-// and the scenario's git link and extensions first on the PATH (pathFirst).
+// and the scenario's git link and extensions first on the PATH (pathFirst),
+// the caller's PATH without its claude (callerPath) after them.
 func (w *world) env() []string {
 	var env []string
 	for _, kv := range os.Environ() {
@@ -417,12 +421,82 @@ func (w *world) env() []string {
 		"GIT_AUTHOR_EMAIL=features@localhost",
 		"GIT_COMMITTER_NAME=itos features",
 		"GIT_COMMITTER_EMAIL=features@localhost",
+		"PATH="+callerPath(),
 	)
 	env = append(env, w.launcherEnv()...)
 	if first := w.pathFirst(); len(first) > 0 {
-		env = append(env, "PATH="+strings.Join(append(first, os.Getenv("PATH")), string(os.PathListSeparator)))
+		env = append(env, "PATH="+strings.Join(append(first, callerPath()), string(os.PathListSeparator)))
 	}
 	return env
+}
+
+var (
+	callerPathOnce sync.Once
+	callerPathText string
+	callerPathDir  string
+)
+
+// callerPath is the caller's PATH with no claude on it, so no scenario
+// reaches the Claude Code of the machine it runs on: each folder holding one
+// is replaced by a folder of links to everything else in it, as the corpus's
+// hide does, or left out where links cannot be made. A scenario's own claude
+// goes first on the PATH (init_test.go).
+func callerPath() string {
+	callerPathOnce.Do(func() {
+		var folders []string
+		for i, folder := range filepath.SplitList(os.Getenv("PATH")) {
+			entries, err := os.ReadDir(folder)
+			if err != nil || !slices.ContainsFunc(entries, isClaude) {
+				folders = append(folders, folder)
+				continue
+			}
+			if callerPathDir == "" {
+				if callerPathDir, err = os.MkdirTemp("", "itos-features-path-"); err != nil {
+					continue
+				}
+			}
+			links := filepath.Join(callerPathDir, strconv.Itoa(i))
+			if linkAllBut(folder, links, entries) == nil {
+				folders = append(folders, links)
+			}
+		}
+		callerPathText = strings.Join(folders, string(os.PathListSeparator))
+	})
+	return callerPathText
+}
+
+// removeCallerPath removes the folders callerPath made.
+func removeCallerPath() {
+	if callerPathDir != "" {
+		_ = os.RemoveAll(callerPathDir)
+	}
+}
+
+// isClaude is whether a folder's entry is a claude the PATH would find:
+// claude, or on windows claude with any extension.
+func isClaude(e os.DirEntry) bool {
+	if runtime.GOOS == "windows" {
+		name := e.Name()
+		return strings.EqualFold(strings.TrimSuffix(name, filepath.Ext(name)), "claude")
+	}
+	return e.Name() == "claude"
+}
+
+// linkAllBut makes links a folder of links to every entry of folder but a
+// claude.
+func linkAllBut(folder, links string, entries []os.DirEntry) error {
+	if err := os.MkdirAll(links, 0o755); err != nil {
+		return err
+	}
+	for _, e := range entries {
+		if isClaude(e) {
+			continue
+		}
+		if err := os.Symlink(filepath.Join(folder, e.Name()), filepath.Join(links, e.Name())); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (w *world) git(args ...string) error { return w.gitIn(w.dir, args...) }
@@ -1459,7 +1533,7 @@ func (w *world) binOnPath() (string, error) {
 	if err := os.MkdirAll(bin, 0o755); err != nil {
 		return "", err
 	}
-	path := "PATH=" + bin + string(os.PathListSeparator) + os.Getenv("PATH")
+	path := "PATH=" + bin + string(os.PathListSeparator) + callerPath()
 	if !slices.Contains(w.vars, path) {
 		w.vars = append(w.vars, path)
 	}

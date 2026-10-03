@@ -1,13 +1,27 @@
-# itos init (slice 48, features/init.feature): the starter it writes where
-# there is no config, and what it reports where one is there. No release
-# server answers here, so it pins nothing and says how to.
+# itos init (slices 48 and 49, features/init.feature): the starter it writes
+# where there is no config, what it reports where one is there, and the
+# offer of the itos plugin for Claude Code. No release server answers here,
+# so it pins nothing and says how to. The runner's own claude is hidden; a
+# case that has one writes it in the git folder, which records what it was
+# given in .git/claude-args.
 cases:
   - name: init takes only --stealth
     argv: [init, --force]
     exit: 2
     stderr: |
       itos: init takes only --stealth (--force) (itos --help)
+  - name: init's --plugin takes a scope
+    argv: [init, --plugin, everywhere]
+    exit: 2
+    stderr: |
+      itos: --plugin takes project, user, local or no (everywhere) (itos --help)
+  - name: under --stealth init refuses to install the plugin for the project
+    argv: [init, --stealth, --plugin, project]
+    exit: 2
+    stderr: |
+      itos: under --stealth, --plugin project would write .claude/settings.json, which the project commits; --plugin local installs it for you alone in this repository, --plugin user for every one of yours (itos --help)
   - name: init writes the starter config, its ledger and registry, pins nothing it cannot reach, and installs the hooks
+    hide: [claude]
     git:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n" }
@@ -91,6 +105,7 @@ cases:
           exec itos hook commit-msg "$1"
         executable: true
   - name: init with a config there writes nothing and lists what is missing, config check's problems and the hooks'
+    hide: [claude]
     git:
       - commit: "docs: start"
         files: { README.md: "# Scratch\n" }
@@ -109,3 +124,114 @@ cases:
         the pre-push hook: .git/hooks/pre-push is not there; run itos hooks install
     files_after:
       .git/hooks/pre-push: null
+  - name: with --plugin and no claude on the PATH init says Claude Code was not found, and does the rest
+    argv: [init, --plugin, user]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    exit: 0
+    stdout_has:
+      - "wrote .git/hooks/commit-msg\nwrote .git/hooks/pre-push\n"
+      - "Claude Code was not found (no claude on the PATH), so the itos plugin for it is not installed; with Claude Code installed, itos init --plugin user installs it.\n"
+  - name: with --plugin project init adds the marketplace and installs the plugin, and names its settings in the commit
+    argv: [init, --plugin, project]
+    env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      .git/bin/claude: &claude
+        text: |
+          #!/bin/sh
+          echo "$*" >> .git/claude-args
+          case "$1 $2" in
+          "plugin list") echo '[]' ;;
+          "plugin install") mkdir -p .claude && echo '{"enabledPlugins":{"itos@itos":true}}' > .claude/settings.json ;;
+          esac
+        executable: true
+    exit: 0
+    stdout_has:
+      - "wrote .git/hooks/pre-push\nInstalled the itos plugin for Claude Code, itos@itos, at its project scope.\n"
+      - "git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml .claude/settings.json, then itos commit --task T-1"
+    files_after:
+      .git/claude-args: |
+        plugin list --json
+        plugin marketplace add donvargax/itos --scope project
+        plugin install itos@itos --scope project
+  - name: with no --plugin and nobody to ask init installs nothing and says how to
+    argv: [init]
+    env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      .git/bin/claude: *claude
+    exit: 0
+    stdout_has: "The itos plugin for Claude Code is not installed: itos init --plugin installs it for this repository (.claude/settings.json, to commit), --plugin user for every repository of yours, --plugin local for you alone in this one.\n"
+    files_after:
+      .git/claude-args: |
+        plugin list --json
+  - name: run again where nothing is missing, init reports a plugin not installed and still exits 0
+    argv: [init]
+    env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml" }
+      tasks/work-items.yaml: "phases: {}\nitems: []\n"
+      .git/hooks/commit-msg: { text: "#!/bin/sh\nexec itos hook commit-msg \"$1\"\n", executable: true }
+      .git/hooks/pre-push: { text: "#!/bin/sh\nexec itos hook pre-push \"$@\"\n", executable: true }
+      .git/bin/claude: *claude
+    exit: 0
+    stdout: |
+      itos.yaml is there already, so init wrote nothing.
+      Nothing is missing: the config, its ledger, registry and smoke sets are sound, and the hooks call itos.
+      The itos plugin for Claude Code is not installed: itos init --plugin installs it for this repository (.claude/settings.json, to commit), --plugin user for every repository of yours, --plugin local for you alone in this one.
+  - name: run again with the plugin installed, init's JSON says so
+    argv: [--json, init]
+    env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml" }
+      tasks/work-items.yaml: "phases: {}\nitems: []\n"
+      .git/hooks/commit-msg: { text: "#!/bin/sh\nexec itos hook commit-msg \"$1\"\n", executable: true }
+      .git/hooks/pre-push: { text: "#!/bin/sh\nexec itos hook pre-push \"$@\"\n", executable: true }
+      .git/bin/claude:
+        text: |
+          #!/bin/sh
+          echo '[{"id":"itos@itos","version":"2.3.0","scope":"user","enabled":true}]'
+        executable: true
+    exit: 0
+    json:
+      schema: 1
+      config: itos.yaml
+      action: checked
+      missing: []
+      plugin: { action: already, scope: user, excluded: false }
+  - name: a claude that fails at the install is reported, exit 1, the rest of init done
+    argv: [init, --plugin, user]
+    env: { PATH: "{{dir}}/.git/bin:{{PATH}}" }
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      .git/bin/claude:
+        text: |
+          #!/bin/sh
+          case "$1 $2" in
+          "plugin list") echo '[]' ;;
+          "plugin install") echo 'Plugin "itos" not found in any marketplace' >&2; exit 1 ;;
+          esac
+        executable: true
+    exit: 1
+    stdout_has:
+      - "wrote .git/hooks/pre-push\nclaude plugin install itos@itos --scope user failed (exit 1):\nPlugin \"itos\" not found in any marketplace\n"
+      - "then itos commit --task T-1 -m 'chore: adopt itos'\n"

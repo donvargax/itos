@@ -21,8 +21,8 @@ Feature: itos init, a repository made ready for itos
   (the config's problems, a hook not installed) and exits 1 when anything
   is, 0 when nothing is, so run again it doubles as a check. init is the
   launcher's own command, as itos pin is: where there is no config there is
-  no pin to hand the run to. Offering the Claude Code plugin and the git shim,
-  and saying a pin has fallen behind, are slices 49 and 50.
+  no pin to hand the run to. Slice 49 offers the Claude Code plugin (below);
+  offering the git shim and saying a pin has fallen behind are slice 50.
 
   # The repository has a commit and no itos file at all; the scenarios
   # without a release server cannot reach one, so init pins nothing there.
@@ -132,7 +132,7 @@ Feature: itos init, a repository made ready for itos
   # otherwise show it. A plugin not installed is reported, never counted as
   # missing: it is an offer. Given --plugin, init installs it even where a
   # config already is, the flag being the ask.
-  @ID-INIT-10 @slice-49 @wip
+  @ID-INIT-10 @slice-49
   Scenario: With --plugin init installs the itos plugin for Claude Code at that scope
     Given a repository that does not use itos, its one commit "docs: start"
     And a claude on the PATH that records its arguments
@@ -141,7 +141,7 @@ Feature: itos init, a repository made ready for itos
     And claude was given "plugin marketplace add donvargax/itos --scope project"
     And claude was given "plugin install itos@itos --scope project"
 
-  @ID-INIT-11 @slice-49 @wip
+  @ID-INIT-11 @slice-49
   Scenario: Away from a terminal and with no --plugin, init installs nothing and says how to
     Given a repository that does not use itos, its one commit "docs: start"
     And a claude on the PATH that records its arguments
@@ -150,7 +150,7 @@ Feature: itos init, a repository made ready for itos
     And claude was not given "plugin install"
     And its output says "--plugin"
 
-  @ID-INIT-12 @slice-49 @wip
+  @ID-INIT-12 @slice-49
   Scenario: A plugin already installed is not installed again
     Given a repository that does not use itos, its one commit "docs: start"
     And a claude on the PATH that lists the plugin "itos@itos" as installed
@@ -159,7 +159,7 @@ Feature: itos init, a repository made ready for itos
     And claude was not given "plugin install"
     And its output says "itos@itos"
 
-  @ID-INIT-13 @slice-49 @wip
+  @ID-INIT-13 @slice-49
   Scenario: Under --stealth the plugin is not installed for the project, whose settings are committed
     Given a repository that does not use itos, its one commit "docs: start"
     And a claude on the PATH that records its arguments
@@ -168,7 +168,7 @@ Feature: itos init, a repository made ready for itos
     And its output says "--plugin local"
     And claude was not given "plugin install"
 
-  @ID-INIT-14 @slice-49 @wip
+  @ID-INIT-14 @slice-49
   Scenario: Without Claude Code on the PATH init says so and goes on
     Given a repository that does not use itos, its one commit "docs: start"
     And no claude on the PATH
@@ -177,7 +177,7 @@ Feature: itos init, a repository made ready for itos
     And its output says "Claude Code"
     And the file ".git/hooks/commit-msg" calls itos
 
-  @ID-INIT-15 @slice-49 @wip
+  @ID-INIT-15 @slice-49
   Scenario: Run again where the plugin is not installed, init reports it and still finds nothing missing
     Given a repository that does not use itos, its one commit "docs: start"
     And a claude on the PATH that records its arguments
@@ -186,7 +186,7 @@ Feature: itos init, a repository made ready for itos
     Then itos exits with code 0
     And its output says "itos init --plugin"
 
-  @ID-INIT-16 @slice-49 @wip
+  @ID-INIT-16 @slice-49
   Scenario: Under --stealth a bare --plugin installs it for this project alone, leaving git status clean
     Given a repository that does not use itos, its one commit "docs: start"
     And a claude on the PATH that records its arguments, writing .claude/settings.local.json as claude does
@@ -195,7 +195,7 @@ Feature: itos init, a repository made ready for itos
     And claude was given "plugin install itos@itos --scope local"
     And git status shows nothing to commit
 
-  @ID-INIT-17 @slice-49 @wip
+  @ID-INIT-17 @slice-49
   Scenario: Under --stealth, away from a terminal and with no --plugin, init installs nothing and says how to
     Given a repository that does not use itos, its one commit "docs: start"
     And a claude on the PATH that records its arguments

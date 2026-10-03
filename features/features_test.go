@@ -31,6 +31,7 @@ func TestFeatures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(removeCallerPath)
 	suite := godog.TestSuite{
 		Name:                "itos",
 		ScenarioInitializer: initializeScenario,

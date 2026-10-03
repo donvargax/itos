@@ -2,7 +2,9 @@
 // a folder that is no repository yet, the config init writes read back as
 // YAML wherever it is (itos.yaml in the root, or the stealth one in the git
 // folder), and every file of the folder compared with what it was before the
-// last run of itos.
+// last run of itos. Claude Code is a fake claude first on the PATH, which
+// records each run's arguments and answers claude plugin list --json; the
+// real one is never on a scenario's PATH (callerPath).
 package features
 
 import (
@@ -33,6 +35,11 @@ func initializeInitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a folder that is not a git repository$`, w.folderWithoutGit)
 	sc.Step(`^the feature file "([^"]*)" with the scenario "([^"]*)"$`, w.untrackedFeatureFile)
 	sc.Step(`^the file "([^"]*)" is removed$`, w.removeFile)
+	sc.Step(`^a claude on the PATH that records its arguments$`, func() error { return w.fakeClaude("", false) })
+	sc.Step(`^a claude on the PATH that records its arguments, writing \.claude/settings\.local\.json as claude does$`,
+		func() error { return w.fakeClaude("", true) })
+	sc.Step(`^a claude on the PATH that lists the plugin "([^"]*)" as installed$`, func(id string) error { return w.fakeClaude(id, false) })
+	sc.Step(`^no claude on the PATH$`, w.noClaude)
 
 	sc.Step(`^the folder is a git repository$`, w.folderIsRepository)
 	sc.Step(`^the config's commits\.since is HEAD's full SHA$`, w.sinceIsHead)
@@ -40,6 +47,8 @@ func initializeInitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the config has no pin$`, func() error { return w.configLacks("pin") })
 	sc.Step(`^`+noFileChanged+`$`, w.noFileChanged)
 	sc.Step(`^the file "([^"]*)" does not exist$`, w.fileDoesNotExist)
+	sc.Step(`^claude was given "([^"]*)"$`, func(args string) error { return w.claudeGiven(args, true) })
+	sc.Step(`^claude was not given "([^"]*)"$`, func(args string) error { return w.claudeGiven(args, false) })
 }
 
 // A repository with one commit, a README, and nothing of itos: no config in
@@ -200,6 +209,77 @@ func (w *world) noFileChanged() error {
 func (w *world) fileDoesNotExist(path string) error {
 	if _, err := os.Stat(filepath.Join(w.dir, path)); !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("%s exists\n%s", path, w.report())
+	}
+	return nil
+}
+
+// The file the fake claude records its runs in, one a line, each argument
+// followed by a tab.
+func (w *world) claudeRuns() string { return filepath.Join(w.support, "claude-runs") }
+
+// A claude first on the PATH that records each run's arguments and exits 0.
+// claude plugin list --json lists the plugin installed, at the user scope
+// and enabled, or none when installed is "". With settings, claude plugin
+// install --scope local writes .claude/settings.local.json in the folder it
+// runs in, the repository's top, as Claude Code does.
+func (w *world) fakeClaude(installed string, settings bool) error {
+	bin, err := w.binOnPath()
+	if err != nil {
+		return err
+	}
+	list := "[]"
+	if installed != "" {
+		list = `[{"id":"` + installed + `","version":"2.3.0","scope":"user","enabled":true,"projectEnabled":false}]`
+	}
+	script := "#!/bin/sh\n" +
+		"rec=" + quote(w.claudeRuns()) + "\n" +
+		`for a in "$@"; do printf '%s\t' "$a"; done >> "$rec" && printf '\n' >> "$rec" || exit 99` + "\n" +
+		`case "$1 $2" in` + "\n" +
+		`"plugin list") printf '%s\n' ` + quote(list) + " ;;\n"
+	if settings {
+		script += `"plugin install") case " $* " in *" --scope local "*)` + "\n" +
+			`  mkdir -p .claude && printf '{"enabledPlugins":{"itos@itos":true}}\n' > .claude/settings.local.json ;; esac ;;` + "\n"
+	}
+	script += "esac\nexit 0\n"
+	return w.writeProgram(filepath.Join(bin, "claude"), script)
+}
+
+// No claude on the PATH: none of the scenario's, and the caller's never is
+// (callerPath).
+func (w *world) noClaude() error {
+	err := os.Remove(programPath(filepath.Join(w.support, "bin", "claude")))
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return nil
+}
+
+// Whether a run of the fake claude began with these arguments, as given
+// says it must or must not have.
+func (w *world) claudeGiven(args string, given bool) error {
+	text, err := os.ReadFile(w.claudeRuns())
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	want := strings.Fields(args)
+	var runs []string
+	found := false
+	for _, line := range strings.Split(strings.TrimSuffix(string(text), "\n"), "\n") {
+		if line == "" {
+			continue
+		}
+		got := strings.Split(strings.TrimSuffix(line, "\t"), "\t")
+		runs = append(runs, strings.Join(got, " "))
+		if len(got) >= len(want) && slices.Equal(got[:len(want)], want) {
+			found = true
+		}
+	}
+	if found != given {
+		how := "was not"
+		if found {
+			how = "was"
+		}
+		return fmt.Errorf("claude %s given %q; its runs: %q\n%s", how, args, runs, w.report())
 	}
 	return nil
 }

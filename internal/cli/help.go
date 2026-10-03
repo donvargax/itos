@@ -64,7 +64,8 @@ Commands:
   git-shim install|uninstall [--dir <folder>]
                                    link itos as git, for itos's commit and push
   pin [<version>]                  move the config's pin to a release, the newest by default
-  init [--stealth]                 ready a repository for itos; run again, what is missing
+  init [--stealth] [--plugin [<scope>]]
+                                   ready a repository for itos; run again, what is missing
   verify <from> <to>               re-check every commit of a range
   tests list <kind> [--at <tree>]  the kind's named tests
   tests smoke check|ids|run <kind> the smoke rule, the smoke IDs, the smoke run
@@ -527,7 +528,7 @@ whatever the pin says.
 --json: {"schema":1,"config","action","version","checksums","previous"?,"notes"?},
         action one of pinned, already, refused`,
 
-	"init": `Usage: itos init [--stealth]
+	"init": `Usage: itos init [--stealth] [--plugin [project|user|local|no]]
 
 Readies the repository it runs in for itos, at its top, after git init where
 the folder is no repository yet. Where there is no config it writes a starter:
@@ -549,9 +550,26 @@ reports what is missing: what itos config check finds, and each hook that does
 not call itos, naming the command that puts it right; exit 1 when anything is
 missing, 0 when nothing is. It runs the binary called, whatever a pin says.
 
+It offers the itos plugin for Claude Code, through the claude on the PATH:
+claude plugin list --json says whether itos@itos is installed, and claude
+plugin marketplace add donvargax/itos then claude plugin install itos@itos
+install it. --plugin <scope> answers the offer: project (.claude/settings.json,
+committed), user (every repository of yours), local
+(.claude/settings.local.json, you alone in this one) or no; a bare --plugin
+takes project, or local with --stealth, which refuses project and, after a
+local install, lists .claude/settings.local.json in .git/info/exclude when git
+would show it. On a terminal with no --plugin it asks, that scope its default
+answer; anywhere else it installs nothing and says how to. Run again where a
+config is, it never asks: a plugin not installed is reported, never counted as
+missing, and --plugin installs it. With no claude on the PATH it says so only
+for --plugin. A claude that fails at the install is reported, exit 1, the rest
+of init's work done.
+
 --json: {"schema":1,"config","action":"initialized","git_init","since","files":[{"path","action"}],
-        "pin","pin_problem"?,"hooks"} (hooks as itos hooks install --json prints it),
-        or {"schema":1,"config","action":"checked","missing":[{"rule","message","fix"?,"area"}]}`,
+        "pin","pin_problem"?,"hooks","plugin"} (hooks as itos hooks install --json prints it),
+        or {"schema":1,"config","action":"checked","missing":[{"rule","message","fix"?,"area"}],"plugin"};
+        plugin {"action","scope","excluded","problem"?}, action one of installed, already,
+        offered, declined, no_claude, unknown (claude plugin list failed) or failed`,
 
 	"version": `Usage: itos version [--check]
 

@@ -76,7 +76,7 @@ func (w *world) itosBinary() (string, error) {
 		}
 		cmd := exec.Command(w.bin, "binary")
 		cmd.Dir = w.dir
-		cmd.Env = append(w.env(), "PATH="+probe+string(os.PathListSeparator)+os.Getenv("PATH"))
+		cmd.Env = append(w.env(), "PATH="+probe+string(os.PathListSeparator)+callerPath())
 		out, err := cmd.Output()
 		itosBinary = strings.TrimSpace(string(out))
 		if err != nil || !filepath.IsAbs(itosBinary) {

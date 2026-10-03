@@ -41,14 +41,27 @@ import (
 	"github.com/donvargax/itos/v2/internal/value"
 )
 
-// initCommand is `init [--stealth]`.
+// initCommand is `init [--stealth] [--plugin [<scope>]]`.
 func initCommand(args []string, o Out) (int, error) {
 	stealth := false
-	for _, a := range args {
-		if a != "--stealth" {
-			return 0, usage("init takes only --stealth (%s)", a)
+	var plugin pluginFlag
+	for i := 0; i < len(args); i++ {
+		n, err := parsePluginFlag(args, i, &plugin)
+		switch {
+		case err != nil:
+			return 0, err
+		case n > 0:
+			i += n - 1
+		case args[i] == "--stealth":
+			stealth = true
+		default:
+			// The words of slice 48, which the last release's corpus holds
+			// (T-071): naming --plugin here would fail it as a breaking change.
+			return 0, usage("init takes only --stealth (%s)", args[i])
 		}
-		stealth = true
+	}
+	if stealth && plugin.scope == "project" {
+		return 0, pluginRefused()
 	}
 	log := o.Stdout
 	if o.JSON {
@@ -59,13 +72,18 @@ func initCommand(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	if file := config.Path(); exists(file) {
-		return initReport(file, o)
+		stealth = stealth || config.IsStealth(file)
+		if stealth && plugin.scope == "project" {
+			return 0, pluginRefused()
+		}
+		return initReport(file, pluginOffer{flag: plugin, stealth: stealth}, o)
 	}
 	if named := os.Getenv("ITOS_CONFIG"); named != "" {
 		return 0, usage("init writes itos.yaml at the repository's top, or with --stealth in the git folder, "+
 			"not the missing %s that --config or ITOS_CONFIG names", named)
 	}
-	return initWrite(stealth, initialized, log, o)
+	offer := pluginOffer{flag: plugin, stealth: stealth, ask: !o.JSON && onTerminal(), answers: os.Stdin}
+	return initWrite(stealth, initialized, offer, log, o)
 }
 
 // atTop moves to the top of the repository the folder is in, after git init
@@ -93,9 +111,10 @@ type writtenFile struct {
 	Action string `json:"action"`
 }
 
-// initWrite writes the starter, pins the newest release and installs the
-// hooks; its exit code is hooks install's.
-func initWrite(stealth, initialized bool, log io.Writer, o Out) (int, error) {
+// initWrite writes the starter, pins the newest release, installs the hooks
+// and makes the plugin's offer; its exit code is hooks install's, else 1 when
+// claude failed at installing the plugin asked for.
+func initWrite(stealth, initialized bool, offer pluginOffer, log io.Writer, o Out) (int, error) {
 	file := "itos.yaml"
 	if stealth {
 		common, err := git.Read("rev-parse", "--git-common-dir")
@@ -183,9 +202,18 @@ func initWrite(stealth, initialized bool, log io.Writer, o Out) (int, error) {
 		}
 	}
 
-	code, hooks, err := initHooks(o)
+	hooksCode, hooks, err := initHooks(o)
 	if err != nil {
 		return 0, err
+	}
+	offer.log = log
+	if o.JSON {
+		offer.log = io.Discard
+	}
+	plugin, pluginCode := offer.run()
+	code := hooksCode
+	if code == 0 {
+		code = pluginCode
 	}
 	if o.JSON {
 		var at, pin any
@@ -201,11 +229,11 @@ func initWrite(stealth, initialized bool, log io.Writer, o Out) (int, error) {
 		if pinErr != nil {
 			fields = append(fields, out.Field{Key: "pin_problem", Value: pinErr.Error()})
 		}
-		fields = append(fields, out.Field{Key: "hooks", Value: hooks})
+		fields = append(fields, out.Field{Key: "hooks", Value: hooks}, out.Field{Key: "plugin", Value: plugin})
 		return code, out.Emit(o.Stdout, fields...)
 	}
-	if code != 0 {
-		return code, nil
+	if hooksCode != 0 {
+		return hooksCode, nil
 	}
 	if stealth {
 		fmt.Fprintln(log, "Nothing the project tracks changed: commit as ever, with itos commit, and push with itos push.")
@@ -220,10 +248,17 @@ func initWrite(stealth, initialized bool, log io.Writer, o Out) (int, error) {
 				}
 			}
 		}
+		// The plugin installed for the project is declared in its settings,
+		// which the commit carries.
+		if plugin.Action == "installed" && plugin.Scope == "project" {
+			if status, _ := git.Output("status", "--porcelain", "--", projectSettings); status != "" {
+				paths = append(paths, projectSettings)
+			}
+		}
 		fmt.Fprintf(log, "Commit what init wrote with the task that adopts itos: git add %s, then itos commit --task %s -m 'chore: adopt itos'\n",
 			strings.Join(paths, " "), task)
 	}
-	return 0, nil
+	return code, nil
 }
 
 // initHooks runs hooks install on the config just written; under --json its
@@ -283,8 +318,10 @@ func starterSmokeSet(list tests.List) (string, int) {
 }
 
 // initReport is init where a config is there: it writes nothing and lists
-// what is missing, exit 1 when anything is.
-func initReport(file string, o Out) (int, error) {
+// what is missing, exit 1 when anything is, then makes the plugin's offer,
+// which never asks, and installs it only for --plugin; a plugin not installed
+// is reported, never counted as missing.
+func initReport(file string, offer pluginOffer, o Out) (int, error) {
 	_, found, _, _, err := configFindings("")
 	if err != nil {
 		return 0, err
@@ -292,31 +329,35 @@ func initReport(file string, o Out) (int, error) {
 	if cfg, err := config.Load(file); err == nil {
 		found = append(found, tagged("hooks", hookProblems(cfg, file))...)
 	}
+	code := 0
+	if len(found) > 0 {
+		code = ExitPolicy
+	}
 	if o.JSON {
 		if found == nil {
 			found = []Found{}
 		}
-		code := 0
-		if len(found) > 0 {
-			code = ExitPolicy
-		}
-		return code, out.Emit(o.Stdout, out.Field{Key: "config", Value: file}, out.Field{Key: "action", Value: "checked"},
-			out.Field{Key: "missing", Value: found})
+		offer.log = io.Discard
+		plugin, pluginCode := offer.run()
+		return max(code, pluginCode), out.Emit(o.Stdout, out.Field{Key: "config", Value: file}, out.Field{Key: "action", Value: "checked"},
+			out.Field{Key: "missing", Value: found}, out.Field{Key: "plugin", Value: plugin})
 	}
 	fmt.Fprintf(o.Stdout, "%s is there already, so init wrote nothing.\n", file)
 	if len(found) == 0 {
 		fmt.Fprintln(o.Stdout, "Nothing is missing: the config, its ledger, registry and smoke sets are sound, and the hooks call itos.")
-		return 0, nil
-	}
-	fmt.Fprintln(o.Stdout, "Missing:")
-	for _, f := range found {
-		line := f.Message
-		if f.Fix != "" {
-			line += "; " + f.Fix
+	} else {
+		fmt.Fprintln(o.Stdout, "Missing:")
+		for _, f := range found {
+			line := f.Message
+			if f.Fix != "" {
+				line += "; " + f.Fix
+			}
+			fmt.Fprintf(o.Stdout, "  %s\n", line)
 		}
-		fmt.Fprintf(o.Stdout, "  %s\n", line)
 	}
-	return ExitPolicy, nil
+	offer.log = o.Stdout
+	_, pluginCode := offer.run()
+	return max(code, pluginCode), nil
 }
 
 // hookProblems are the hooks hooks install would put in place that do not
