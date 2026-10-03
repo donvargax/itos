@@ -152,7 +152,12 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   asserts the exit code, the output and the files it leaves. A command runs
   in a clean environment: the caller's, less `GIT_*`, `ITOS_*`, `GITHUB_*`
   and `CI`, with no global or system git config and a fixed identity, so a
-  run inside a git hook or on a runner sees what it sees locally. A step
+  run inside a git hook or on a runner sees what it sees locally. Its
+  `PATH` is the caller's with no `claude` on it (`callerPath`, slice 49):
+  each folder holding one is replaced, once a run, by a folder of links to
+  the rest of it, as the corpus's `hide` does, so no scenario reaches the
+  Claude Code of the machine it runs on; a scenario's own `claude` goes
+  first. A step
   never reads itos's code, so the same steps judged the TypeScript and the
   Go port alike.
 - **The release server** (`release_test.go`), for the launcher's scenarios
@@ -227,7 +232,12 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   every file of the scratch folder, the git folder's included, as its mode
   and text before each run of itos (`markRun`), and the step compares the
   folder after it, so a rerun that wrote anything, the index included,
-  fails.
+  fails. Claude Code is a fake `claude` in `binOnPath`'s folder (slice 49),
+  a script that appends each run's arguments to a file of the support
+  folder, a tab after each, answers `plugin list --json` with no plugin or
+  the one the scenario names, and for "writing .claude/settings.local.json
+  as claude does" writes that file on a local install; "claude was given"
+  matches a run whose arguments begin with the words given.
 - **itos commit's scenarios** (`commit_test.go`, `commit-command.feature`):
   the commit-msg hook is a shim in git's own hooks folder
   (`git rev-parse --git-path hooks`) that runs the itos under test, so a
@@ -600,7 +610,23 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   `<git common dir>/itos/itos.yaml` and its files beside it, and
   `hooksInstall` picks the git config for a stealth config by itself.
   ITOS_CONFIG naming a file that does not exist is a usage error: init
-  writes only the two configs itos finds by itself.
+  writes only the two configs itos finds by itself. Last, both ways, it
+  makes the plugin's offer (`initplugin.go`, slice 49), `pluginOffer.run`:
+  `--plugin no` ends it, a `claude` the `PATH` lacks is said only for
+  `--plugin`, `claude plugin list --json` read as a list whose `itos@itos`
+  entry, enabled where init runs, means installed; then the scope is the
+  flag's (a bare one `pluginDefault`'s), or the terminal's answer
+  (`question`, only on the first run, without `--json`, where stdin and
+  stdout are both a character device other than the null device), or none,
+  when it says how. It runs `marketplace add`, whose failure alone is not
+  one (the marketplace may be known), then `install`, whose failure is
+  printed with claude's output and exits 1; a local install under
+  `--stealth` lists `.claude/settings.local.json` in
+  `git rev-parse --git-path info/exclude` when `git status` shows it
+  untracked. `--stealth --plugin project` is a usage error before
+  anything runs, and so is `--plugin project` where the config found is
+  the stealth one. The unknown-argument message keeps slice 48's words,
+  which the last release's corpus holds.
 - **Extensions** (`internal/cli/extension.go`, slice 29): a command itos
   does not have runs `itos-<command>` from the `PATH`, as git runs
   `git-<command>`. `cli.Parse` reads the arguments for both `cli.Main` and

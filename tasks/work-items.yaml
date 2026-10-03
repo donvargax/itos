@@ -2299,7 +2299,7 @@ items:
     title: itos init offers the Claude Code plugin, opt-in, at the mode's default scope
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-48]
     kind: slice
     why: >
@@ -3227,3 +3227,21 @@ items:
       itos enforces, so it is flagged to move into an extension of its own later. Pairs with
       p1-work-brief, which fills the brief template from the registry.
     refs: [docs/ORCHESTRATING.md, docs/HANDOFF.md]
+
+  - id: p3-usage-words-judged
+    title: Decide whether the last release's corpus judges a usage error's words
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice 49: init's unknown-argument message still says "init takes only --stealth",
+      though init takes --plugin now, because v2.7.0's corpus holds those words
+      (tools/bin/previous-release, T-071) and naming --plugin would fail it as a breaking change;
+      slice 50's --git-shim meets the same. A usage error that lists a command's flags is
+      documentation in the way help is, which the old corpus leaves out (the user's call,
+      2026-10-03), while PLAN.md keeps wording verbatim for agents. The user's call: leave a
+      usage error's words out of the old corpus's judgment, its exit code 2 still judged, or
+      keep them, and word such messages so they need not change.
+    refs: [tools/bin/previous-release/main.go, internal/cli/init.go]

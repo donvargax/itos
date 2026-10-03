@@ -192,6 +192,13 @@ writes nothing and lists what is missing (what `itos config check` finds, a
 hook that does not call itos, with the command that puts it right), exiting 1
 when anything is, so it doubles as a check. `itos init --stealth` does the
 same for one person in a repository whose team does not use itos (below).
+It also offers the Claude Code plugin (below), through the `claude` on your
+`PATH`, and never unasked: `--plugin` installs it for the project (in the
+committed `.claude/settings.json`), `--plugin user` for every repository of
+yours, `--plugin local` for you alone in this one, the default under
+`--stealth`, which keeps `.claude/settings.local.json` out of `git status`;
+on a terminal it asks, anywhere else it says how. Run again, it reports a
+plugin not installed without counting it as missing.
 
 **Where itos reads its config.** itos reads `itos.yaml` in the folder it runs
 in, or the file `--config` or `ITOS_CONFIG` names; `--root <dir>` runs it as if
@@ -241,7 +248,7 @@ Neither command touches a `git` that is not a link to itos.
 
 **The Claude Code plugin**: this repository is also a Claude Code plugin
 marketplace, and its one plugin, `itos`, is published from it, with a version
-of its own. Install it from Claude Code:
+of its own. `itos init --plugin` installs it, or from Claude Code:
 
 ```
 /plugin marketplace add donvargax/itos

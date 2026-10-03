@@ -783,13 +783,19 @@ a smoke set naming each file's first live scenario when feature files exist, a p
 release (none, said so, where the release server cannot be reached), then the hooks, as `hooks
 install` detects their manager; with `--stealth`, all of it under the git folder and the hooks in
 `.git/config`, nothing tracked touched. It is the launcher's own command, as `pin` is: where there
-is no config there is no pin to hand the run to. It finds whether the plugin is installed and offers to install it for the project or
-the user (only the user, or `settings.local.json`, in stealth mode, since the project's settings
-are committed), asking only on a terminal, a flag answering for an agent, and
+is no config there is no pin to hand the run to. It offers the plugin (slice 49), opt-in
+everywhere (the user's call, 2026-10-03), through Claude Code's own CLI (`claude plugin list
+--json`, then `claude plugin marketplace add donvargax/itos` and `claude plugin install itos@itos`
+with `--scope`): `--plugin <scope>` answers, `project`, `user`, `local` or `no`, a bare `--plugin`
+taking `project`, or `local` under `--stealth`, which refuses `project` since the project's
+settings are committed and lists `.claude/settings.local.json` in `.git/info/exclude` when git
+would show it; a terminal is asked, that scope its default, and anywhere else nothing is installed
+and the report says how; a `claude` that fails at the install exits 1, the rest of init done. It
 offers the git shim (§7) the same way, which `itos git-shim install` makes. Run again where a config is,
 it changes nothing and reports what is missing (config check's problems and a hook that does not
-call itos, slice 48; the plugin, the git shim, a pin behind the newest and the people file,
-slices 49 and 50), exit 1 when anything is, so it doubles as a doctor. Agents too (the user's calls, 2026-10-03): the
+call itos, slice 48), exit 1 when anything is, so it doubles as a doctor; it also reports, never
+counting them as missing, the plugin not installed (slice 49; `--plugin` installs it there too),
+and the git shim, a pin behind the newest and the people file (slice 50). Agents too (the user's calls, 2026-10-03): the
 config's rules are generated into a marked block of `AGENTS.md`, itos touching only what is inside
 its markers, how to work with itos staying in the plugin's skill; `--agents` writes the
 orchestration files (the coordinator's guide, the handoff, the brief template) once, as the
