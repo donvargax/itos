@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/out"
-	"github.com/donvargax/itos/internal/shell"
-	"github.com/donvargax/itos/internal/tests"
-	"github.com/donvargax/itos/internal/value"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/out"
+	"github.com/donvargax/itos/v2/internal/shell"
+	"github.com/donvargax/itos/v2/internal/tests"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // testsList is `tests list <kind> [--at <tree>]` (tests-command.ts): the

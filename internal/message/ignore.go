@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/donvargax/itos/internal/value"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 var (

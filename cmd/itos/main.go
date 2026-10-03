@@ -8,7 +8,7 @@ package main
 import (
 	"os"
 
-	"github.com/donvargax/itos/internal/cli"
+	"github.com/donvargax/itos/v2/internal/cli"
 )
 
 func main() {

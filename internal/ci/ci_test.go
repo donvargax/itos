@@ -6,10 +6,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/internal/check"
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/ledger"
-	"github.com/donvargax/itos/internal/plan"
+	"github.com/donvargax/itos/v2/internal/check"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/ledger"
+	"github.com/donvargax/itos/v2/internal/plan"
 )
 
 func load(t *testing.T) *config.Loaded {

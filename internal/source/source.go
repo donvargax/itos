@@ -28,7 +28,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/donvargax/itos/internal/git"
+	"github.com/donvargax/itos/v2/internal/git"
 )
 
 // Source is a tree itos reads its data from. Paths are the working tree's,

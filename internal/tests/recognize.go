@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/value"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // word is a `{pattern}` in a recognize template: one shell word, double-quoted

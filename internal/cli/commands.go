@@ -5,9 +5,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/out"
-	"github.com/donvargax/itos/internal/version"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/out"
+	"github.com/donvargax/itos/v2/internal/version"
 )
 
 // A command takes the arguments after its name and gives its exit code, or

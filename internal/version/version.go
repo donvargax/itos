@@ -4,9 +4,10 @@
 //
 // The version is package.json's, written nowhere else, so a release is still
 // one build commit to it and a tag: tools/bin/build-go.ts stamps it into the
-// binary with -ldflags "-X github.com/donvargax/itos/internal/version.stamp=<v>".
+// binary with -ldflags "-X github.com/donvargax/itos/v2/internal/version.stamp=<v>".
 // A binary built without the stamp says the module version Go records, which
-// `go install github.com/donvargax/itos/cmd/itos@v<x>` sets.
+// `go install github.com/donvargax/itos/v2/cmd/itos@v<x>` sets (from v2 the
+// module path ends in its major version, as Go requires of a v2 tag).
 package version
 
 import (

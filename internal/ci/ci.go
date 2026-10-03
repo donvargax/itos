@@ -27,12 +27,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/donvargax/itos/internal/check"
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/ledger"
-	"github.com/donvargax/itos/internal/out"
-	"github.com/donvargax/itos/internal/plan"
-	"github.com/donvargax/itos/internal/shell"
+	"github.com/donvargax/itos/v2/internal/check"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/ledger"
+	"github.com/donvargax/itos/v2/internal/out"
+	"github.com/donvargax/itos/v2/internal/plan"
+	"github.com/donvargax/itos/v2/internal/shell"
 )
 
 // Failure is where a run stopped, as --json's failed_at gives it: a step

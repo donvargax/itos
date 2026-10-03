@@ -16,13 +16,13 @@ import (
 	"io"
 	"strings"
 
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/git"
-	"github.com/donvargax/itos/internal/message"
-	"github.com/donvargax/itos/internal/out"
-	"github.com/donvargax/itos/internal/scope"
-	"github.com/donvargax/itos/internal/shell"
-	"github.com/donvargax/itos/internal/tests"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/git"
+	"github.com/donvargax/itos/v2/internal/message"
+	"github.com/donvargax/itos/v2/internal/out"
+	"github.com/donvargax/itos/v2/internal/scope"
+	"github.com/donvargax/itos/v2/internal/shell"
+	"github.com/donvargax/itos/v2/internal/tests"
 )
 
 // verified is one commit's result, as --json lists it.

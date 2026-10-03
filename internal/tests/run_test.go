@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/donvargax/itos/internal/config"
+	"github.com/donvargax/itos/v2/internal/config"
 )
 
 func load(t *testing.T, text string) *config.Loaded {

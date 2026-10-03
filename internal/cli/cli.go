@@ -18,9 +18,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/out"
-	"github.com/donvargax/itos/internal/tests"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/out"
+	"github.com/donvargax/itos/v2/internal/tests"
 )
 
 // Globals are the global flags, read out of the arguments up to a "--".

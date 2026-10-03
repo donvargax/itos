@@ -20,10 +20,10 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/git"
-	"github.com/donvargax/itos/internal/out"
-	"github.com/donvargax/itos/internal/value"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/git"
+	"github.com/donvargax/itos/v2/internal/out"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // managerNames are how the output names each manager.

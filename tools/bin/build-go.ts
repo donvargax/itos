@@ -38,7 +38,7 @@ import { join, resolve } from "node:path";
 import { crc32, deflateRawSync, gzipSync } from "node:zlib";
 
 export const ROOT = resolve(import.meta.dirname, "../..");
-const MODULE = "github.com/donvargax/itos";
+const MODULE = "github.com/donvargax/itos/v2";
 
 const VERSION: string = (
 	JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8")) as { version: string }

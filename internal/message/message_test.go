@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/donvargax/itos/internal/config"
+	"github.com/donvargax/itos/v2/internal/config"
 )
 
 // A footer's IDs over several lines, split at whitespace and commas, the

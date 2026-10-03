@@ -10,11 +10,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/out"
-	"github.com/donvargax/itos/internal/providers"
-	"github.com/donvargax/itos/internal/source"
-	"github.com/donvargax/itos/internal/value"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/out"
+	"github.com/donvargax/itos/v2/internal/providers"
+	"github.com/donvargax/itos/v2/internal/source"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // kinds are the kinds an item may have.

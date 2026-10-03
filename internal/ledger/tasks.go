@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/source"
-	"github.com/donvargax/itos/internal/value"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/source"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // Check is one check of a task's done_when, as the tools read it (repo.ts's

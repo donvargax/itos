@@ -3,7 +3,7 @@ package config
 import (
 	"path/filepath"
 
-	"github.com/donvargax/itos/internal/value"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // m is a mapping of the pairs key, value, key, value…, and l a list.

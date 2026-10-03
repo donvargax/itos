@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/ledger"
-	"github.com/donvargax/itos/internal/out"
-	"github.com/donvargax/itos/internal/tests"
-	"github.com/donvargax/itos/internal/value"
-	"github.com/donvargax/itos/internal/work"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/ledger"
+	"github.com/donvargax/itos/v2/internal/out"
+	"github.com/donvargax/itos/v2/internal/tests"
+	"github.com/donvargax/itos/v2/internal/value"
+	"github.com/donvargax/itos/v2/internal/work"
 )
 
 // Found is a problem config check reports, with the area it is in: the

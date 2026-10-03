@@ -1,8 +1,8 @@
 package work
 
 import (
-	"github.com/donvargax/itos/internal/source"
-	"github.com/donvargax/itos/internal/value"
+	"github.com/donvargax/itos/v2/internal/source"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // Statuses are each item's status by its id (work.ts's itemStatuses), read

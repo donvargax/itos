@@ -16,7 +16,7 @@ import { hookGates, scratchRepo } from "./scratch.ts";
 const repo = scratchRepo("go-hooks-selftest");
 const { env, sh, git, edit, commit } = repo;
 
-const MODULE = "github.com/donvargax/itos/";
+const MODULE = "github.com/donvargax/itos/v2/";
 // The packages a `go test` run reported, by the line it prints for each:
 // `ok`, `FAIL` or `?` (no test files), a tab, the import path.
 const tested = (output: string, verdict = "ok|FAIL|\\?") =>

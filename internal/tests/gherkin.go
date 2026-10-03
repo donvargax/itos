@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/donvargax/itos/internal/source"
-	"github.com/donvargax/itos/internal/value"
+	"github.com/donvargax/itos/v2/internal/source"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // Options are a Gherkin kind's: the folder of its feature files (a test's

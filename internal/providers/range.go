@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/git"
-	"github.com/donvargax/itos/internal/shell"
-	"github.com/donvargax/itos/internal/value"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/git"
+	"github.com/donvargax/itos/v2/internal/shell"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // Range is a ci.range provider: the start commit it proposes for a push's

@@ -30,13 +30,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/internal/config"
-	"github.com/donvargax/itos/internal/git"
-	"github.com/donvargax/itos/internal/ledger"
-	"github.com/donvargax/itos/internal/out"
-	"github.com/donvargax/itos/internal/source"
-	"github.com/donvargax/itos/internal/tests"
-	"github.com/donvargax/itos/internal/value"
+	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/git"
+	"github.com/donvargax/itos/v2/internal/ledger"
+	"github.com/donvargax/itos/v2/internal/out"
+	"github.com/donvargax/itos/v2/internal/source"
+	"github.com/donvargax/itos/v2/internal/tests"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // Reading is where the footer rules read a read_at: commit footer's IDs: At
