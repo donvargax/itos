@@ -167,6 +167,14 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   no step leaves a shim on the `PATH` of anything else; `env` strips the
   caller's `ITOS_*`, `ITOS_GIT` among them, so a run under itos (a hook's
   `go test`) does not have the shim pass every git straight through.
+- **The guard's scenarios** (`guard_test.go`, `guard.feature`): the steps
+  write Claude Code's PreToolUse input themselves, as its documentation
+  shows it (`session_id`, `cwd`, `hook_event_name`, `tool_name`,
+  `tool_input`, `tool_use_id`), and run `itos hook pre-tool-use` in the
+  folder the input names, with the input on stdin (`runWith`, which `run`
+  calls with none). A deny is read as Claude Code reads it, stdout's JSON;
+  "writes nothing" is an empty stdout. The repository with no itos config is
+  the shim's `plain/`.
 - **The header lint**, where a scenario needs one, is itos's built-in one,
   `use: builtin` in the scratch config, which needs nothing installed and
   holds no footer rule, so a scenario's footer rules are itos's own. The
@@ -591,6 +599,30 @@ mechanisms above, written against those modules, read across.
   `pathStanding` places the folder and `git.Real`'s folder among the `PATH`'s
   by `os.SameFile`. The launcher's `binaryCommand` leaves both to the binary
   called, so a pin never links a cached version.
+- **The guard** (`internal/guard`, `internal/cli/pretooluse.go`, slice 42):
+  `hook pre-tool-use` is dispatched with git's two hooks, and
+  `hookPreToolUse` never returns an error, since `failure` would make it a
+  usage error's exit 2, which Claude Code takes as a block: an input
+  `guard.Read` refuses (not one JSON object, no string `tool_name`, a Bash
+  input with no string `command`) is one stderr line and exit 1. The folder
+  judged is the input's `cwd`, read from `typed(".")` when relative, else
+  `typed(".")` itself, where itos was started before `applyGlobals` moved to
+  the top. `guard.GitCalls` parses the command with `mvdan.cc/sh/v3/syntax`
+  (bash) and walks every `CallExpr`, so a call inside a subshell, a compound
+  command, a function's body or a command substitution is met in its turn;
+  `literal` gives a word's text when it is fixed (unquoted with bash's
+  backslashes taken out, single-quoted, double-quoted with no expansion),
+  and the first word that is not fixed ends what the call can say.
+  `gitCall` skips `command`, `exec`, `nohup` and `env` with env's
+  `NAME=VALUE` words (the call's own assignments are the parser's, apart
+  from its words), takes `git` or a path ending in `/git`, then git's global
+  options (`-C` joined as git joins them, the options of `valued` passing
+  over their next word, any other `-` word passed over) and the subcommand.
+  `guard.Reason` asks `config.Managed`, the shim's file checks, of each
+  call's folder and names each guarded subcommand once, in `Guarded`'s
+  order; `guard.Deny` encodes Claude Code's `hookSpecificOutput`, with no
+  HTML escaping so the reason reads as written. A command bash cannot parse
+  gets no answer. The corpus (`hooks.yaml`) pins the deny's bytes.
 - **The config** (`internal/config`) is `config.ts`'s loader, and every Go
   reader of the config goes through it. It finds the file (`--config`,
   `ITOS_CONFIG`, else `itos.yaml`, else the stealth config, after `--root`'s

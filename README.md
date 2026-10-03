@@ -212,6 +212,28 @@ itos git-shim uninstall               # or: itos git-shim uninstall --dir <the f
 
 Neither command touches a `git` that is not a link to itos.
 
+**A guard for Claude Code** (from v2.3.0): `itos hook pre-tool-use` is a
+Claude Code `PreToolUse` hook that, in a repository itos manages, denies an
+agent's Bash command running `git commit` or `git push`, its reason naming
+`itos commit --task <id>` (or `--scenarios <ids>`) or `itos push`, so the
+agent commits with the footers and pushes without forcing. Everything else
+gets no answer, so your own permission rules still decide. It reads the
+command as bash does, so `git -C . commit` and `make && git push` are caught;
+`sh -c '…'`, `eval` and scripts are not looked into, and the hooks stay the
+gates. Until the itos plugin wires it, add it to `.claude/settings.json`
+where the pin is v2.3.0 or later (an older itos has no such hook, and its
+usage error's exit code 2 makes Claude Code block every Bash command):
+
+```json
+{
+	"hooks": {
+		"PreToolUse": [
+			{ "matcher": "Bash", "hooks": [{ "type": "command", "command": "itos hook pre-tool-use" }] }
+		]
+	}
+}
+```
+
 **The schema, for editors.** An editor with a YAML language server checks an
 `itos.yaml` as it is written, completes its keys and shows each one's
 description and default, once the file's first line names the schema of the

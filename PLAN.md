@@ -370,7 +370,7 @@ config at the top and runs from there (§5).
 | `tests moves <kind>`                                                                                    | The staged feature files against HEAD's by the built-in moves rule, by hand.                                                                                                                                |
 | `ci plan [<from> <to>]`, `ci run [<from> <to>]`, `--nightly`                                            | Prints the plan (with no range, only in stealth mode); runs it, stopping at the first failure unless `ci.stop_at_first_failure` is false.                                                                   |
 | `ci scope <from> <to>`, `ci range --head <sha> [--base <sha>]`                                          | Whether a range is prose only; where a push's range starts.                                                                                                                                                 |
-| `hook commit-msg <file>`, `hook pre-push <remote> <url>`                                                | The hooks' entry points.                                                                                                                                                                                    |
+| `hook commit-msg <file>`, `hook pre-push <remote> <url>`, `hook pre-tool-use`                           | The hooks' entry points: git's two, and Claude Code's PreToolUse guard against an agent's `git commit` and `git push` (below).                                                                              |
 | `hooks install [--manager <m>] [--print] [--force]`                                                     | Writes the one-line shims for the hook manager it detects, or prints its snippet; under a stealth config, declares the hooks in the git config.                                                             |
 | `config check [--print-defaults]`                                                                       | Validates the config, the ledger, the registry and the smoke sets.                                                                                                                                          |
 | `version [--check]`                                                                                     | Needs no config; `--check` exits 1 if the binary does not satisfy `requires`.                                                                                                                               |
@@ -500,6 +500,32 @@ and opt-in: the hooks and CI's `verify` stay the gates, and with the shim on a
 hand-typed `git commit` goes through `itos commit`, so the hook guesses an
 amend only for a git the shim does not wrap, and the plugin's guard (§10) is a
 backstop.
+
+**The guard** (slice 42, the user's calls of 2026-10-03): `itos hook
+pre-tool-use` is the `PreToolUse` hook the Claude Code plugin (§10, T-066)
+wires on Bash, so a repository's pin picks the version that answers. It reads
+Claude Code's JSON on stdin (`tool_name`, `tool_input.command`, `cwd`; every
+other key ignored) and judges the repository from `cwd`, else the folder itos
+was started in, as the shim does (an `itos.yaml` in the folder or at the top,
+or a stealth config, by file checks). There a Bash command that runs
+`git commit` or `git push` is denied: exit 0 and Claude Code's
+`hookSpecificOutput` with `permissionDecision: deny` on stdout, its reason
+naming `itos commit --task <id>` or `--scenarios <ids>`, or `itos push`, which
+Claude Code shows the agent. Everything else gets no answer, exit 0 and
+nothing on stdout, never an `allow`, which would skip the person's own
+permission rules. An input it cannot read exits 1, the reason on stderr and
+naming PreToolUse, since Claude Code blocks a tool on exit 2 alone. The command
+is parsed as bash parses it (`mvdan.cc/sh/v3/syntax`): every simple command of
+a list, pipeline, subshell, compound command or substitution, its variable
+assignments skipped, read past `command`, `exec`, `nohup` and `env` (and env's
+`NAME=VALUE` words), then `git` or a path ending in `/git`, its global options
+(`-C` moving the folder judged, as the shim honours it; the others, with their
+values, passed over), then the subcommand; text an argument carries
+(`grep 'git commit'`) is a word, not a command. A guardrail for agents that
+follow it, not a fortress: `sh -c`, `eval`, scripts, git aliases, words built
+from variables, a `cd` before the command and a command bash cannot parse are
+not looked into, and the commit-msg hook and CI's `verify` stay the gates.
+`itos waive` joins what it denies with p3-human-waiver.
 
 **Hooks in the git config** (slice 33, the user's calls of 2026-10-03): git
 2.5x runs a hook declared in its config, `hook.<name>.event` and
@@ -658,6 +684,8 @@ never forcing (slice 39, §7). From a subfolder, itos and the launcher find the
 config at the repository's top and run from there (slice 40, §5). Linked as
 git before the real one, itos runs git commit and git push as its own in a
 repository it manages, and the real git for everything else (slice 41, §7).
+`itos hook pre-tool-use` denies an agent's git commit and git push in Claude
+Code, naming the itos command to use (slice 42, §7).
 
 ## 10. Distribution
 
@@ -692,7 +720,8 @@ marketplace: `.claude-plugin/marketplace.json` at the root names the itos plugin
 `integrations/claude-code/`, versioned and released with itos. The plugin carries the titles (an
 itos ID drawn with its title in Claude's replies, from the project's own itos), a short skill on
 working with itos (find work with `itos work`, commit with `itos commit --task`, push with
-`itos push`, read what a gate says, never run the gates by hand), and a `PreToolUse` hook that,
+`itos push`, read what a gate says, never run the gates by hand), and a `PreToolUse` hook
+(`itos hook pre-tool-use`, slice 42, §7) that,
 in a repository with an itos config, answers a `git commit` or `git push` with the itos command to
 use instead: a guardrail for agents, a hook rather than permission rules, since a rule matches a
 command's prefix and `git -C . commit` slips past it; the commit-msg hook stays the gate. Its

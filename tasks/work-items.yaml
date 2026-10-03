@@ -2209,7 +2209,7 @@ items:
     title: itos hook pre-tool-use, Claude Code's guard against an agent's git commit and git push
     phase: 3
     owner: donvargax
-    status: todo
+    status: done
     depends_on: [slice-40]
     kind: slice
     why: >
@@ -2221,6 +2221,23 @@ items:
       answer, never an allow, so the person's permission rules still decide. A guardrail: sh -c
       and scripts are not looked into. p3-human-waiver adds itos waive to what it denies.
     refs: [features/guard.feature, PLAN.md]
+
+  - id: p3-guard-old-pin
+    title: itos hook pre-tool-use under a pin older than the guard answers nothing, not exit 2
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: [slice-42]
+    kind: idea
+    why: >
+      Left by slice 42. The launcher hands hook pre-tool-use to the version a repository pins, and
+      one older than the guard (v2.3.0) has no such hook: its usage error exits 2, which Claude Code
+      takes as a block, so in such a repository every Bash command is blocked once T-066's plugin
+      wires the hook. As bug 7 did for the git shim, the launcher (launch.Handed and a
+      cli.GuardSince) should answer nothing, exit 0, where the version it would hand the hook to
+      predates it, so the plugin can call itos hook pre-tool-use plainly; until then README.md says
+      to wire it only under a pin of v2.3.0 or later.
+    refs: [internal/launch/launch.go, internal/cli/pretooluse.go]
 
   - id: slice-43
     title: itos work list, every item of the registry with its title
