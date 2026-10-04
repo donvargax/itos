@@ -96,12 +96,34 @@ func TestLoadLaysTheFileOverTheDefaults(t *testing.T) {
 	if c.Work.Registry != "work/work-items.yaml" || c.Hooks.Bin != "tools/bin/itos" || !c.CI.StopAtFirstFailure {
 		t.Errorf("registry %q, bin %q, stop %v", c.Work.Registry, c.Hooks.Bin, c.CI.StopAtFirstFailure)
 	}
+	if c.Work.Asks != "work/asks.yaml" {
+		t.Errorf("asks %q, not beside the registry", c.Work.Asks)
+	}
 	k, ok := c.Tests.Get("k")
 	if !ok || *k.Root != "f" || *k.Run.Whole != "w" || k.Run.Join.Sep != "|" || k.TagPrefix != "@" || k.Adapter.Name != "gherkin" || !k.Smoke.EveryFile {
 		t.Errorf("kind: %+v", k)
 	}
 	if !c.HasSection("ledger") || c.HasSection("ci") || c.Section("ci") == nil {
 		t.Error("sections")
+	}
+}
+
+// work.asks is beside the registry the file names, wherever that is, unless
+// the file names it too (slice 62).
+func TestAsksBesideTheRegistry(t *testing.T) {
+	for text, want := range map[string]string{
+		"version: 1\n": "tasks/asks.yaml",
+		"version: 1\nwork: { registry: work-items.yaml }\n":                     "asks.yaml",
+		"version: 1\nwork: { registry: data/reg.yaml }\n":                       "data/asks.yaml",
+		"version: 1\nwork: { registry: data/reg.yaml, asks: questions.yaml }\n": "questions.yaml",
+	} {
+		c, err := load(t, text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if c.Work.Asks != want {
+			t.Errorf("%q: asks %q, want %q", text, c.Work.Asks, want)
+		}
 	}
 }
 

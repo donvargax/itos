@@ -10,8 +10,8 @@
 # the registry's and the smoke set's problems beside them; a project's people
 # file missing or unreadable, a warning that passes; the nightly's
 # tasks step (tasks: done, refused in ci.steps, with no late cost); --print-defaults,
-# work.registry's beside the config's ledger; config get, a key's value as
-# the tools read it (the config's, a default, a stealth config's own, from a
+# work.registry's beside the config's ledger, and work.asks beside the registry;
+# config get, a key's value as the tools read it (the config's, a default, a stealth config's own, from a
 # subfolder; a scalar bare, a mapping or a list as JSON, nothing for no value;
 # an unknown key a usage error); a pin, its keys and their shapes.
 files:
@@ -836,13 +836,13 @@ cases:
     files:
       itos.yaml: "version: 1\nledger: { files: \"work/phase-{group}.yaml\" }\n"
     exit: 0
-    stdout_has: ["registry: work/work-items.yaml"]
+    stdout_has: ["registry: work/work-items.yaml", "asks: work/asks.yaml"]
   - name: with no config to read, the defaults put the registry in tasks/
     argv: [config, check, --print-defaults]
     files:
       itos.yaml: null
     exit: 0
-    stdout_has: ["registry: tasks/work-items.yaml"]
+    stdout_has: ["registry: tasks/work-items.yaml", "asks: tasks/asks.yaml"]
   - name: the defaults as --json
     argv: [config, check, --print-defaults, --json]
     exit: 0
@@ -893,6 +893,7 @@ cases:
             timeout: 1800
         work:
           registry: tasks/work-items.yaml
+          asks: asks.yaml
           groups_key: phases
           statuses:
             - todo

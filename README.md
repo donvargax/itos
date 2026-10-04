@@ -82,6 +82,12 @@ list` lists every item with its title, done ones too, and `itos work show
   it has landed (its scenarios live, its commits pushed, its CI run green),
   and `itos work add <id>` and `itos work edit <id>` make an item and change
   one, each editing the registry in place and committing it alone.
+- **Questions to the user**: `itos ask add <text> [--item <id>]` asks the
+  person the work is for a question, `q-1`, `q-2` and so on, `itos ask answer
+<id> <text>` keeps the answer beside it, `itos ask` lists the open ones and
+  `itos ask show <id>` prints one. They are public: `asks.yaml` beside the
+  work registry, each change committed alone, and `itos work show <id>` lists
+  the questions naming the item.
 - **Follow-ups with people**: `itos follow add <id> --with <who> --title …
 --note …` opens a thread, `itos follow note <id> <text>` appends a dated
   note, `itos follow close <id>` closes it, `itos follow` lists the open

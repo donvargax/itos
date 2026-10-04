@@ -28,6 +28,10 @@ cases:
         work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--note <text>]
                                          change an item, or add a note to its why, and commit it
         work check [<file>]              validate the work registry
+        ask [--all]                      the open questions to the person the work is for
+        ask add <text> [--item <id>]     ask a question, and commit it
+        ask answer <id> <text>           answer a question, and commit it
+        ask show <id>                    a question and its answer
         follow [--all]                   your open threads with people; private, never committed
         follow add <id> --with <who> --title <title> --note <text>
                                          open a thread with someone
@@ -308,17 +312,20 @@ cases:
       Prints the item (its title, kind, status, owner, phase, depends_on, the items
       depending on it, refs and why), its scenarios at HEAD (those tagged @<id>,
       @slice-<n> for the item slice-<n>, live or @wip) and its commits, oldest first,
-      each with its short SHA and header. A commit is the item's when its footers of
-      IDs name the item (Task:) or one of its scenarios (Scenarios:), a later fix
-      naming one included, or when it is one of itos's registry commits naming it in
-      its header (docs: take <id>, docs: promote <idea> to <id>, docs: close <id>,
-      docs: add <id>, docs: edit <id>); under a stealth config the footers are read
-      from each commit's note in refs/notes/itos. --patch adds each commit as git
-      show prints it, message and diff: the whole of a review's input. It reads,
-      never writes, and judges nothing, as work list. Exit 1 when there is no
-      registry where itos looks, or no item with the id.
+      each with its short SHA and header, and between them the questions of itos ask
+      naming the item (itos help ask), each with its id, open or answered, and its
+      text. A commit is the item's when its footers of IDs name the item (Task:) or
+      one of its scenarios (Scenarios:), a later fix naming one included, or when it
+      is one of itos's registry commits naming it in its header (docs: take <id>,
+      docs: promote <idea> to <id>, docs: close <id>, docs: add <id>, docs: edit
+      <id>); under a stealth config the footers are read from each commit's note in
+      refs/notes/itos. --patch adds each commit as git show prints it, message and
+      diff: the whole of a review's input. It reads, never writes, and judges
+      nothing, as work list. Exit 1 when there is no registry where itos looks, or no
+      item with the id; 2 when itos ask's file is there and cannot be read.
 
       --json: {"schema":1,"ok":true,"item":{…},"depended_on_by":[…],"scenarios":[{"id","file","live"}],
+      "questions":[{"id","item","question","status","answer"?}],
       "commits":[{"sha","short","header","message"?,"patch"?}]}, message and patch with --patch;
       or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
   - name: itos work check --help
@@ -335,6 +342,79 @@ cases:
       ledger.group.label (phase by default).
 
       --json: {"schema":1,"file","sound","problems":[{"rule","message","fix"?}]}
+  - name: itos ask --help
+    argv: [ask, --help]
+    exit: 0
+    stdout: |
+      Usage: itos ask [--all]
+             itos ask add <text> [--item <id>]
+             itos ask answer <id> <text>
+             itos ask show <id>
+
+      The questions waiting on the person the work is for, kept as data beside the
+      work registry rather than by hand: in work.asks, by default asks.yaml in the
+      registry's folder (tasks/asks.yaml where the ledger is in tasks/). They are
+      public, unlike itos follow's threads: add and answer write the file and commit
+      it alone, as work take commits the registry (itos help work take). A question
+      has an id, q-1, q-2 and so on, one past the highest the file holds, answered
+      or not, so an id is never given twice; its text; the registry item it holds
+      up, when --item names one; and its answer, once given, kept beside it. Under a
+      stealth config the file is in the git folder beside the stealth registry,
+      written while the registry's lock is held, as every stealth writer holds it,
+      and nothing is committed.
+
+      itos ask lists the open questions, each with the item it names; --all adds
+      the answered ones after them, each with its answer. Exit 1 for a refusal (no
+      question with the id, an item the registry does not have), 2 for a usage
+      error or an asks.yaml itos cannot read or did not write whole (a key it does
+      not know, an id not q-<n> or given twice, a second YAML document, an empty
+      file), which it leaves as it is.
+
+      --json: {"schema":1,"questions":[{"id","item"?,"question","status","answer"?}]},
+      status open or answered; each subcommand's in its help (itos help ask <subcommand>)
+  - name: itos ask add --help
+    argv: [ask, add, --help]
+    exit: 0
+    stdout: |
+      Usage: itos ask add <text>… [--item <id>]
+
+      Asks a question, open, with the next free id: the words before or after
+      --item joined by spaces, so the text needs no quotes unless the shell would
+      read it; after "--" a word that starts with "-" is text too. --item names the
+      registry item the question holds up. Then commits the questions' file alone,
+      "docs: ask q-<n>", through the hooks, leaving whatever else is staged staged.
+      Refused, nothing written (exit 1): an item the registry does not have, no
+      registry where itos looks, a file with changes no commit holds, a commit a
+      hook refuses (the file put back). Under a stealth config the file is written
+      and nothing committed.
+
+      --json: {"schema":1,"ok":true,"question":{"id","item"?,"question","status","answer"?},"commit":"<sha>"|null},
+      or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
+  - name: itos ask answer --help
+    argv: [ask, answer, --help]
+    exit: 0
+    stdout: |
+      Usage: itos ask answer <id> <text>…
+
+      Answers the question: the words after the id joined by spaces are kept beside
+      it, and it is answered, left out of itos ask's list. Then commits the
+      questions' file alone, "docs: answer <id>", as itos ask add does. Refused,
+      nothing written (exit 1): no question with the id, a question already
+      answered, a file with changes no commit holds, a commit a hook refuses. Under
+      a stealth config the file is written and nothing committed.
+
+      --json: as itos ask add's, the question as it is after
+  - name: itos ask show --help
+    argv: [ask, show, --help]
+    exit: 0
+    stdout: |
+      Usage: itos ask show <id>
+
+      Prints the question: its id and text, whether it is open or answered and the
+      item it names, then its answer when it has one. It reads, never writes. Exit 1
+      when no question has the id.
+
+      --json: {"schema":1,"ok":true,"question":{"id","item"?,"question","status","answer"?}}
   - name: itos follow --help
     argv: [follow, --help]
     exit: 0

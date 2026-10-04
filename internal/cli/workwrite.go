@@ -151,7 +151,8 @@ func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text stri
 // which the command makes, when git knows nothing of it either: one deleted
 // and the deletion not committed, staged or not, is a change no commit holds
 // (bug 13), which a commit of the file written afresh would undo. The
-// problem names the file, the registry or a ledger file.
+// problem names the file, the registry, a ledger file or itos ask's
+// questions.
 func uncommitted(cfg *config.Loaded, file string) *out.Problem {
 	_, err := os.Lstat(file)
 	there := !errors.Is(err, fs.ErrNotExist)
@@ -160,9 +161,12 @@ func uncommitted(cfg *config.Loaded, file string) *out.Problem {
 	if err == nil && strings.TrimSpace(status) == "" && tracked == there {
 		return nil
 	}
-	rule := "work-registry-uncommitted"
-	if file != cfg.Work.Registry {
-		rule = "ledger-file-uncommitted"
+	rule := "ledger-file-uncommitted"
+	switch file {
+	case cfg.Work.Registry:
+		rule = "work-registry-uncommitted"
+	case cfg.Work.Asks:
+		rule = "asks-file-uncommitted"
 	}
 	return &out.Problem{
 		Rule:    rule,
@@ -194,7 +198,8 @@ type written struct {
 // a git that cannot start or a commit a hook refuses, puts every file back
 // as it was, file and index, a new one removed (restore); a refusal exits 1,
 // the rest are errors. work's commands write the registry alone
-// (writeRegistry), task add a ledger file and the registry (slice 55).
+// (writeRegistry), task add a ledger file and the registry (slice 55), ask
+// the questions alone (slice 62).
 func writeCommitted(cfg *config.Loaded, files []written, header, body string, o Out) (string, int, error) {
 	paths := make([]string, len(files))
 	for i, f := range files {

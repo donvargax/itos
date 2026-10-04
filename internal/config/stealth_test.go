@@ -62,7 +62,8 @@ func TestStealthConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !c.Stealth || c.Ledger.Files != filepath.Join(beside, "tasks/phase-{group}.yaml") ||
-		c.Work.Registry != filepath.Join(beside, "tasks/work-items.yaml") || c.Work.People.File != "" || c.Hooks.Bin != GlobalBin {
+		c.Work.Registry != filepath.Join(beside, "tasks/work-items.yaml") || c.Work.Asks != filepath.Join(beside, "tasks/asks.yaml") ||
+		c.Work.People.File != "" || c.Hooks.Bin != GlobalBin {
 		t.Errorf("the stealth config reads %+v, %q, %q, %q, %q", c.Stealth, c.Ledger.Files, c.Work.Registry, c.Work.People.File, c.Hooks.Bin)
 	}
 	if table := DefaultsFor(nil, true); table.At("hooks").(*value.Map).At("bin") != GlobalBin || table.At("work").(*value.Map).Has("people") {

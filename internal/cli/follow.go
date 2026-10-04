@@ -63,7 +63,12 @@ func followCommand(args []string, o Out) (int, error) {
 // valued flag with no value or an empty one, and a flag given twice are usage
 // errors; after "--" every argument is positional.
 func followArgs(sub string, args []string, valued, switches []string) ([]string, map[string]string, map[string]bool, error) {
-	name := strings.TrimSpace("follow " + sub)
+	return subArgs("follow", sub, args, valued, switches)
+}
+
+// subArgs is followArgs for a subcommand of command: itos ask's read so too.
+func subArgs(command, sub string, args []string, valued, switches []string) ([]string, map[string]string, map[string]bool, error) {
+	name := strings.TrimSpace(command + " " + sub)
 	var pos []string
 	values := map[string]string{}
 	set := map[string]bool{}

@@ -1339,7 +1339,53 @@ cases:
         { id: x, title: X, phase: 1, owner: a, status: doing, kind: slice, depends_on: [], refs: [features/x.feature], why: Because it is needed. }
       depended_on_by: [y]
       scenarios: [{ id: "@ID-X-01", file: x.feature, live: true }]
+      questions: []
       commits: [{ sha: "{{sha.feat}}", short: "{{short.feat}}", header: "feat: add x" }]
+  # Slice 62: the questions of itos ask naming the item, beside its scenarios.
+  - name: work show lists the questions naming the item, open and answered, and no other
+    argv: [work, show, x]
+    files:
+      itos.yaml: *showConfig
+      work-items.yaml: *shown
+      asks.yaml: &questions |
+        questions:
+          - { id: q-1, item: x, question: "Labels or Projects?", answer: Labels. }
+          - { id: q-2, item: y, question: "About y?" }
+          - { id: q-3, item: x, question: "Is the archive\nworth it?" }
+    exit: 0
+    stdout: |
+      x  X
+        kind: slice, status: doing, owner: a, phase: 1
+        depended on by: y
+        refs: features/x.feature
+
+        Because it is needed.
+
+      Scenarios: none tagged @x
+
+      Questions naming x:
+        q-1  answered  Labels or Projects?
+        q-3  open      Is the archive worth it?
+
+      Commits: none yet
+  - name: work show --json gives the questions naming the item
+    argv: [work, show, x, --json]
+    files:
+      itos.yaml: *showConfig
+      work-items.yaml: *shown
+      asks.yaml: *questions
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item:
+        { id: x, title: X, phase: 1, owner: a, status: doing, kind: slice, depends_on: [], refs: [features/x.feature], why: Because it is needed. }
+      depended_on_by: [y]
+      scenarios: []
+      questions:
+        - { id: q-1, item: x, question: "Labels or Projects?", status: answered, answer: Labels. }
+        - { id: q-3, item: x, question: "Is the archive\nworth it?", status: open }
+      commits: []
   - name: work show refuses an id no item has
     argv: [work, show, nothing]
     exit: 1

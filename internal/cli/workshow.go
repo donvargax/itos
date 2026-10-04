@@ -7,13 +7,16 @@ package cli
 // scenarios (Scenarios:), read from the note under a stealth config as every
 // reader of links reads them, and itos's own registry commits, which name it
 // in their headers (docs: take <id>, docs: close <id>, docs: add <id>,
-// docs: edit <id>, docs: promote <idea> to <id>). It reads, never writes.
+// docs: edit <id>, docs: promote <idea> to <id>). Beside them it lists the
+// questions of itos ask that name the item (slice 62). It reads, never
+// writes.
 
 import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
 
+	"github.com/donvargax/itos/v2/internal/ask"
 	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/git"
 	"github.com/donvargax/itos/v2/internal/message"
@@ -89,11 +92,17 @@ func workShow(args []string, o Out) (int, error) {
 		}
 		commits = belonging(cfg, id, scenarios, history)
 	}
+	asks, _, _, err := loadAsks(cfg)
+	if err != nil {
+		return 0, err
+	}
+	questions := asks.About(id)
 	if o.JSON {
-		return 0, emitShown(shown, scenarios, commits, patch, o)
+		return 0, emitShown(shown, scenarios, questions, commits, patch, o)
 	}
 	shown.Print(o.Stdout, showWidth)
 	printScenarios(scenarios, id, o)
+	printQuestions(questions, id, o)
 	if len(commits) == 0 {
 		fmt.Fprintln(o.Stdout, "\nCommits: none yet")
 		return 0, nil
@@ -165,6 +174,22 @@ func printScenarios(scenarios []tests.Test, id string, o Out) {
 	}
 }
 
+// printQuestions writes the questions naming the item, a line each: its id,
+// whether it is open or answered and its text; nothing when there are none.
+func printQuestions(questions []ask.Question, id string, o Out) {
+	if len(questions) == 0 {
+		return
+	}
+	fmt.Fprintf(o.Stdout, "\nQuestions naming %s:\n", id)
+	width := 0
+	for _, q := range questions {
+		width = max(width, len(q.ID))
+	}
+	for _, q := range questions {
+		fmt.Fprintf(o.Stdout, "  %-*s  %-8s  %s\n", width, q.ID, q.Status(), oneLine(q.Question))
+	}
+}
+
 // showArgs are git show's arguments for a commit's message and diff as work
 // show --patch prints them: no color, and the itos notes alone under a
 // stealth config, where a commit's links are.
@@ -177,11 +202,15 @@ func showArgs(cfg *config.Loaded) []string {
 }
 
 // emitShown prints work show --json: the item, the ids of the items
-// depending on it, its scenarios and its commits, with --patch each one's
-// message and diff.
-func emitShown(shown work.Shown, scenarios []tests.Test, commits []message.Logged, patch bool, o Out) error {
+// depending on it, its scenarios, the questions naming it and its commits,
+// with --patch each one's message and diff.
+func emitShown(shown work.Shown, scenarios []tests.Test, questions []ask.Question, commits []message.Logged, patch bool, o Out) error {
 	if scenarios == nil {
 		scenarios = []tests.Test{}
+	}
+	asked := []askEntry{}
+	for _, q := range questions {
+		asked = append(asked, entryOf(q))
 	}
 	listed := []shownCommit{}
 	for _, c := range commits {
@@ -201,5 +230,6 @@ func emitShown(shown work.Shown, scenarios []tests.Test, commits []message.Logge
 		out.Field{Key: "item", Value: shown.Item},
 		out.Field{Key: "depended_on_by", Value: shown.DependedOnBy},
 		out.Field{Key: "scenarios", Value: scenarios},
+		out.Field{Key: "questions", Value: asked},
 		out.Field{Key: "commits", Value: listed})
 }

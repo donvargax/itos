@@ -67,6 +67,9 @@ func defaults() *value.Map {
 			// docs/ is prose: the folder of the config's ledger.files
 			// (DefaultsFor); this, with no ledger.
 			"registry", "tasks/work-items.yaml",
+			// itos ask's questions, beside the registry wherever it is
+			// (slice 62, DefaultsFor).
+			"asks", "tasks/asks.yaml",
 			"groups_key", "phases",
 			"statuses", l("todo", "doing", "done", "blocked"),
 			"people", m("source", "all-contributors-md", "file", "CONTRIBUTORS.md"),
@@ -92,8 +95,9 @@ const GlobalBin = "itos"
 // DefaultsFor is the table as it applies to a config file (nil for none),
 // and whether that file is the stealth config (stealth.go): work.registry
 // in the folder of its ledger.files, so a ledger in work/ has its registry
-// at work/work-items.yaml; with no file, or no ledger, the table's own
-// value. A stealth config's hooks.bin is itos and it has no work.people
+// at work/work-items.yaml, with no file, or no ledger, the table's own
+// value; and work.asks beside the registry, the file's or that default, so
+// work/asks.yaml there. A stealth config's hooks.bin is itos and it has no work.people
 // (stealthOnly). The registry is joined with a slash on every platform, as
 // git names the paths it is compared with (bug 9).
 func DefaultsFor(file *value.Map, stealth bool) *value.Map {
@@ -101,6 +105,11 @@ func DefaultsFor(file *value.Map, stealth bool) *value.Map {
 	if files, ok := value.Prop(file.At("ledger"), "files").(string); ok && files != "" {
 		table.At("work").(*value.Map).Set("registry", path.Join(path.Dir(filepath.ToSlash(files)), "work-items.yaml"))
 	}
+	registry, ok := value.Prop(file.At("work"), "registry").(string)
+	if !ok || registry == "" {
+		registry = table.At("work").(*value.Map).At("registry").(string)
+	}
+	table.At("work").(*value.Map).Set("asks", path.Join(path.Dir(filepath.ToSlash(registry)), "asks.yaml"))
 	if stealth {
 		stealthOnly(table)
 	}

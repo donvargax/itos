@@ -16,6 +16,10 @@
 # features/, `more` saying why the file has more than one (required when it
 # does), and each scenario's `id` and `why`. Quote a value holding `: `, and
 # every ID (its `@` starts no plain scalar).
+- file: ask.feature
+  scenarios:
+    - id: "@ID-ASK-03"
+      why: a question asked, answered and shown, each write committed alone, the file's point in one run
 - file: bin.feature
   scenarios:
     - id: "@ID-BIN-01"

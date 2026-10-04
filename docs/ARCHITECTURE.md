@@ -508,7 +508,8 @@ mechanisms above, written against those modules, read across.
   below), `internal/work` (the registry and its problems, the items'
   statuses, the proposal, the edits that take, promote, close, add and
   change an item, and the item as work show prints it;
-  below), `internal/follow` (itos follow's threads; below), `internal/lock`
+  below), `internal/follow` (itos follow's threads; below), `internal/ask`
+  (itos ask's questions; below), `internal/lock`
   (the lock file a writer of shared data holds; below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git` (the repository's state and ranges, read
@@ -1457,6 +1458,26 @@ add`ed so `--only` can name it, git add's words and the commit's on
   ignored) it warns on stderr, and `-` prints the Markdown and writes
   nothing (`followDocOut`). A refusal is `refuseWork`'s problem, exit 1; no
   git repository is exit 3.
+- **ask** (slice 62, `internal/cli/ask.go` over `internal/ask`) is the
+  questions waiting on the person the work is for, public where follow's
+  threads are private: one file, `work.asks`, whose default `DefaultsFor`
+  puts beside the registry the config names, or the default one (so in the
+  folder of `ledger.files`), and which `beside` puts in the git folder under
+  a stealth config as it does the registry. The file is itos's own, so it is
+  read with typed structs (`ask.Parse`: unknown keys, an id not `q-<n>` or
+  given twice, a second document and an empty file refused, exit 2, as
+  follow's) and written whole (`ask.Text`), every text a double-quoted
+  scalar written by `encoding/json`, whose escapes YAML reads the same, so
+  what it holds reads back exactly and `vp check` leaves it as it is. An id
+  is one past the highest the file holds (`NextID`), so a question answered
+  or removed by hand never gives its id again. `add` and `answer` write
+  through `writeCommitted`, the file alone, `docs: ask q-<n>` and
+  `docs: answer q-<n>`, refused while the file has changes no commit holds
+  (`uncommitted`, rule `asks-file-uncommitted`); `add --item` reads the
+  registry, unjudged, for the id. Under a stealth config they hold the
+  registry's lock (`heldAsks`) from before the read to after the write, the
+  one every stealth writer holds, and commit nothing. `work show` lists the
+  questions naming its item (`File.About`), and `--json` gives them always.
 - **The lock** (`internal/lock`, bug 16) is the one way itos keeps two
   writers of a file from losing a change: `lock.Hold(path)` makes
   `path.lock` with `O_EXCL`, which works the same on Linux, macOS and
@@ -1465,7 +1486,8 @@ add`ed so `--only` can name it, git add's words and the commit's on
   and says to remove it when no itos runs; `Release` removes it. It is held
   from before the read to after the write, around itos follow's threads
   (`heldThreads`) and, under a stealth config, around the registry, which
-  every registry and ledger writer reads in `soundRegistry` and writes:
+  every registry and ledger writer reads in `soundRegistry` and writes, and
+  around itos ask's questions beside it (`heldAsks`):
   those files are in the git common dir, shared by every worktree, and the
   lock is `<registry>.lock` beside them. `work done` gives it back while it
   runs the task's checks and asks CI, and takes it again to make its change

@@ -1,0 +1,244 @@
+# itos ask (slice 62): the questions waiting on the person the work is for,
+# in work.asks, by default asks.yaml beside the work registry (here
+# work-items.yaml, so asks.yaml): the open ones listed, every one with --all,
+# one shown, each as --json; add and answer, each committing the file alone,
+# the first add making it, and their refusals (an item the registry does not
+# have, no question with the id, one already answered, a file with changes no
+# commit holds, a file itos did not write whole); a stealth config's
+# questions beside its registry in the git folder, nothing committed; and
+# work.asks moving the file.
+files:
+  itos.yaml: |
+    version: 1
+    work:
+      registry: work-items.yaml
+      people: { source: yaml, file: people.yaml }
+  people.yaml: "- a\n"
+  work-items.yaml: &registry "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo }\n"
+  asks.yaml: &asks |
+    # itos ask's questions to the person the work is for, written by itos ask (itos help ask).
+    questions:
+      - id: q-1
+        item: "x"
+        question: "Labels or Projects?"
+        answer: "Labels, with trust by who acted."
+      - id: q-2
+        item: "x"
+        question: "Is the archive\nworth it?"
+      - id: q-3
+        question: "Which way?"
+cases:
+  - name: ask lists the open questions, each with the item it names
+    argv: [ask]
+    exit: 0
+    stdout: |
+      Open questions:
+        q-2  Is the archive worth it?  (x)
+        q-3  Which way?
+  - name: ask --all lists the answered questions after the open ones, each with its answer
+    argv: [ask, --all]
+    exit: 0
+    stdout: |
+      Open questions:
+        q-2  Is the archive worth it?  (x)
+        q-3  Which way?
+
+      Answered questions:
+        q-1  Labels or Projects?  (x)
+             → Labels, with trust by who acted.
+  - name: ask --json lists the open questions
+    argv: [ask, --json]
+    exit: 0
+    json:
+      schema: 1
+      questions:
+        - { id: q-2, item: x, question: "Is the archive\nworth it?", status: open }
+        - { id: q-3, question: "Which way?", status: open }
+  - name: ask with no questions file says there are none
+    argv: [ask, --all]
+    files:
+      asks.yaml: null
+    exit: 0
+    stdout: |
+      No questions.
+  - name: ask show prints an answered question and its answer
+    argv: [ask, show, q-1]
+    exit: 0
+    stdout: |
+      q-1: Labels or Projects?
+      answered, about x
+
+      Labels, with trust by who acted.
+  - name: ask show prints an open question, its lines kept
+    argv: [ask, show, q-2]
+    exit: 0
+    stdout: |
+      q-2: Is the archive
+           worth it?
+      open, about x
+  - name: ask show --json gives the question
+    argv: [ask, show, q-1, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      question: { id: q-1, item: x, question: "Labels or Projects?", status: answered, answer: "Labels, with trust by who acted." }
+  - name: ask show refuses an id no question has
+    argv: [ask, show, q-9]
+    exit: 1
+    stderr: |
+      there is no question q-9
+        fix: itos ask --all lists the questions
+  - name: ask show takes only a question's id
+    argv: [ask, show, x]
+    exit: 2
+    stderr: |
+      itos: ask show: "x" is no question id (q-<n>) (itos --help)
+  - name: ask has no subcommand it does not know
+    argv: [ask, list]
+    exit: 2
+    stderr: |
+      itos: ask has no subcommand list: it takes add, answer or show, else --all (itos --help)
+  - name: ask add needs the question
+    argv: [ask, add, --item, x]
+    exit: 2
+    stderr: |
+      itos: ask add needs <text>, the question (itos --help)
+  - name: ask add asks with the next free id, and commits the file alone, what else is staged left staged
+    argv: [ask, add, Should, docs, "need a footer?", --item, x]
+    git:
+      - commit: "docs: start"
+        files: { asks.yaml: *asks }
+      - stage: { README.md: "staged\n" }
+    exit: 0
+    stdout_has: "q-4 asked about x: committed "
+    files_after:
+      asks.yaml: |
+        # itos ask's questions to the person the work is for, written by itos ask (itos help ask).
+        questions:
+          - id: q-1
+            item: "x"
+            question: "Labels or Projects?"
+            answer: "Labels, with trust by who acted."
+          - id: q-2
+            item: "x"
+            question: "Is the archive\nworth it?"
+          - id: q-3
+            question: "Which way?"
+          - id: q-4
+            item: "x"
+            question: "Should docs need a footer?"
+  - name: the first ask add makes the file, its id q-1
+    argv: [ask, add, "Which way?"]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "start\n" }
+    files:
+      asks.yaml: null
+    exit: 0
+    stdout_has: "q-1 asked: committed "
+    files_after:
+      asks.yaml: "# itos ask's questions to the person the work is for, written by itos ask (itos help ask).\nquestions:\n  - id: q-1\n    question: \"Which way?\"\n"
+  - name: ask add refuses an item the registry does not have, and writes nothing
+    argv: [ask, add, "Which way?", --item, nope]
+    files:
+      asks.yaml: null
+    exit: 1
+    stderr: |
+      no item nope in work-items.yaml, so no question can name it
+        fix: itos work list names every item; --item may be left out
+    files_after:
+      asks.yaml: null
+  - name: ask add refuses a questions file with changes no commit holds
+    argv: [ask, add, Which way?]
+    git: []
+    exit: 1
+    stderr: |
+      asks.yaml has changes no commit holds, which itos's commit of it would sweep in
+        fix: commit or drop the changes to asks.yaml first
+    files_after:
+      asks.yaml: *asks
+  - name: ask add refuses a questions file itos did not write whole, and leaves it as it is
+    argv: [ask, add, Which way?]
+    files:
+      asks.yaml: &unknown "questions:\n  - { id: q-1, question: a, status: open }\n"
+    exit: 2
+    stderr_has: "asks.yaml: yaml: unmarshal errors:"
+    files_after:
+      asks.yaml: *unknown
+  - name: ask answer keeps the answer beside the question, and commits the file alone
+    argv: [ask, answer, q-3, This, way.]
+    git:
+      - commit: "docs: start"
+        files: { asks.yaml: *asks }
+    exit: 0
+    stdout_has: "q-3 answered: committed "
+    files_after:
+      asks.yaml: |
+        # itos ask's questions to the person the work is for, written by itos ask (itos help ask).
+        questions:
+          - id: q-1
+            item: "x"
+            question: "Labels or Projects?"
+            answer: "Labels, with trust by who acted."
+          - id: q-2
+            item: "x"
+            question: "Is the archive\nworth it?"
+          - id: q-3
+            question: "Which way?"
+            answer: "This way."
+  - name: ask answer refuses a question already answered
+    argv: [ask, answer, q-1, Projects.]
+    exit: 1
+    stderr: |
+      q-1 is already answered: Labels, with trust by who acted.
+        fix: itos ask add asks a new question
+  - name: ask answer refuses an id no question has
+    argv: [ask, answer, q-7, Yes.]
+    exit: 1
+    stderr: |
+      there is no question q-7
+        fix: itos ask --all lists the questions
+  - name: ask answer needs the answer
+    argv: [ask, answer, q-3]
+    exit: 2
+    stderr: |
+      itos: ask answer needs <id> <text>, the answer (itos --help)
+  - name: under a stealth config ask add writes the questions beside its registry and commits nothing
+    argv: [ask, add, "Which way?", --item, x]
+    git: []
+    files:
+      itos.yaml: null
+      asks.yaml: null
+      .git/itos/itos.yaml: "version: 1\nwork: { registry: work-items.yaml }\n"
+      .git/itos/work-items.yaml: *registry
+    exit: 0
+    stdout: |
+      q-1 asked about x: the questions are the stealth config's, so nothing is committed
+    files_after:
+      .git/itos/asks.yaml: "# itos ask's questions to the person the work is for, written by itos ask (itos help ask).\nquestions:\n  - id: q-1\n    item: \"x\"\n    question: \"Which way?\"\n"
+      .git/itos/work-items.yaml.lock: null
+      asks.yaml: null
+  - name: under a stealth config ask answer --json gives the question and no commit
+    argv: [ask, answer, q-3, This way., --json]
+    git: []
+    files:
+      itos.yaml: null
+      asks.yaml: null
+      .git/itos/itos.yaml: "version: 1\nwork: { registry: work-items.yaml }\n"
+      .git/itos/asks.yaml: *asks
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      question: { id: q-3, question: "Which way?", status: answered, answer: This way. }
+      commit: null
+  - name: work.asks moves the questions file
+    argv: [ask, --all]
+    files:
+      itos.yaml: "version: 1\nwork: { registry: work-items.yaml, asks: docs/questions.yaml, people: { source: yaml, file: people.yaml } }\n"
+      docs/questions.yaml: "questions:\n  - { id: q-5, question: \"Moved?\" }\n"
+    exit: 0
+    stdout: |
+      Open questions:
+        q-5  Moved?

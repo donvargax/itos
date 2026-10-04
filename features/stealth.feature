@@ -256,7 +256,7 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
 
   # Slice 62: under a stealth config itos ask writes the questions beside the
   # stealth registry and commits nothing, as the registry's commands do.
-  @ID-STEALTH-24 @slice-62 @wip
+  @ID-STEALTH-24 @slice-62
   Scenario: Under a stealth config ask add writes the question in the git folder, and git sees nothing
     When itos runs the command line "ask add 'Labels or Projects?'"
     Then itos exits with code 0
