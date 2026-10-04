@@ -564,3 +564,14 @@
   done_when:
     - run: test "$(tools/bin/itos config get commits.footers.Item.source)" = registry
     - run: test "$(tools/bin/itos config get commits.footers.Item.in_place_of)" = '{"Task":["test","docs","chore"]}'
+
+- id: T-084
+  type: docs
+  title: docs/ORCHESTRATING.md keeps only this repository's own notes, and the handoff is gone
+  why: >
+    Was p1-orchestrating-own-notes. itos go prints the generic coordinator's guide (slice 64), then
+    docs/ORCHESTRATING.md, then itos status (slice 67), so the handoff rewritten by hand after
+    every landing is gone, and ORCHESTRATING.md holds only what is true of this repository alone.
+  done_when:
+    - run: test ! -e docs/HANDOFF.md
+    - run: grep -q "This repository's own notes" docs/ORCHESTRATING.md
