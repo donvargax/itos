@@ -20,6 +20,7 @@ import (
 type watchConfig struct {
 	provider string // ci.watch.provider
 	timeout  int    // ci.watch.timeout, when above 0
+	nightly  bool   // whether ci.watch.nightly_command runs the nightly's script
 }
 
 // One look at the watched run, as the watch command prints it.
@@ -38,6 +39,7 @@ type watchedJob struct {
 
 func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^ci\.watch runs a command that reports the run "([^"]*)"$`, w.watchCommandReports)
+	sc.Step(`^ci\.watch\.nightly_command reports the run "([^"]*)", its job "([^"]*)" failed$`, w.nightlyCommandReports)
 	sc.Step(`^the watched run's jobs "([^"]*)" and "([^"]*)" succeed$`, func(a, b string) error {
 		return w.watchedRunPolls(w.finished(job(a, "success"), job(b, "success")))
 	})
@@ -109,6 +111,29 @@ func (w *world) watchCommandReports(url string) error {
 	return w.pushConfig("chore: watch CI")
 }
 
+// The nightly's script, which ci.watch.nightly_command runs.
+func (w *world) nightlyScriptPath() string { return filepath.Join(w.support, "nightly.sh") }
+
+// ci.watch.nightly_command runs a script that reports the nightly's run at
+// the address, completed, its one job failed, added to the ci.watch the
+// Background set up and pushed with it.
+func (w *world) nightlyCommandReports(url, name string) error {
+	if w.config.watch == nil {
+		return errors.New("no ci.watch for the nightly command to join: set one up first")
+	}
+	text, err := json.Marshal(watchedRun{URL: url, Status: "completed", Conclusion: "failure",
+		Jobs: []watchedJob{job(name, "failure")}})
+	if err != nil {
+		return err
+	}
+	script := "#!/bin/sh\nprintf '%s\\n' " + quote(string(text)) + "\n"
+	if err := os.WriteFile(w.nightlyScriptPath(), []byte(script), 0o755); err != nil {
+		return err
+	}
+	w.config.watch.nightly = true
+	return w.pushConfig("chore: read the nightly")
+}
+
 // The script prints one run a poll, the nth poll the nth run, the last run
 // for every poll after it.
 func (w *world) watchedRunPolls(runs ...watchedRun) error {
@@ -166,6 +191,9 @@ func (w *world) watchSection() string {
 		c.provider, "sh "+quote(w.watchScriptPath())+" {sha}")
 	if c.timeout > 0 {
 		fmt.Fprintf(&b, "    timeout: %d\n", c.timeout)
+	}
+	if c.nightly {
+		fmt.Fprintf(&b, "    nightly_command: %q\n", "sh "+quote(w.nightlyScriptPath()))
 	}
 	return b.String()
 }
