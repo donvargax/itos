@@ -4076,7 +4076,7 @@ items:
     title: itos tests next-id and itos task next-id, the next free ID for a spec writer
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     why: >
