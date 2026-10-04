@@ -4207,3 +4207,16 @@ items:
       note word starting with - read as a flag, is a usage error that writes nothing and help follow
       note names the -- that takes it as text, so it is not one.
     refs: [internal/follow/follow.go]
+
+  - id: slice-62
+    title: itos ask, the questions waiting on the user, public beside the registry
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-61]
+    kind: slice
+    why: >
+      Specified as @ID-ASK-01 to 05 and @ID-STEALTH-24: the rest of p1-follow-ups, the user's calls
+      of 2026-10-04 (questions to the user stay public, as itos ask, committed beside the registry,
+      replacing the handoff's open questions and review list).
+    refs: [features/ask.feature, features/stealth.feature]
