@@ -3742,6 +3742,12 @@ items:
       habit. ORCHESTRATING.md here splits into the generic guide, embedded in itos, and this
       repository's own file.
 
+      Specified as @ID-GUIDE-01 to 05 (2026-10-04). Not in it, each its own step after: the plugin
+      skills becoming wrappers that run itos go and itos guide work, and this repository's
+      ORCHESTRATING.md keeping only what is its own.
+    refs:
+      [features/guide.feature, docs/ORCHESTRATING.md, integrations/claude-code/skills/itos/SKILL.md]
+
   - id: p3-specialist-agents
     title: Specialist agents (spec writer, reviewer), only once they can be done properly
     phase: 3
