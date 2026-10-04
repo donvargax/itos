@@ -4145,3 +4145,18 @@ items:
       change) or git's comment char (strip cleanup drops the words). Specified as @ID-COMMITCMD-16
       and 17. Minor findings of the same review are p1-commit-wrap-review.
     refs: [features/commit-command.feature, internal/message/wrap.go]
+
+  - id: p1-commit-wrap-review
+    title: "itos commit's wrap: the review's smaller findings"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-58]
+    kind: idea
+    why: >
+      From slice 58's post-landing review (2026-10-04): lines with a URL are wrapped though linesFit
+      exempts them; a CRLF line counts its \r and is wrapped at 100, leaving mixed endings;
+      strings.Fields squeezes tabs and runs of spaces inside a wrapped line; wrapLine repeats
+      value.Wrap's greedy loop (which counts runes where the lint counts UTF-16 units, as
+      workwrite.go's body wrap does); message.CommentChar returns 'auto' for core.commentChar=auto,
+      in the lint too. Tests for -F -, the unchanged-file path and CRLF.
