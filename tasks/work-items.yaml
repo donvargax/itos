@@ -4653,6 +4653,22 @@ items:
       guide of its own) and whether seeding needs a command for a decision with no question, or
       hand-written records in the format, are decided then.
 
+      Lessons from T-085, the first such move (2026-10-04): PLAN.md's decisions table and
+      distribution section became records 0002 to 0032, one per row and one per decision of the
+      section, the two section statements that repeated a row (the archives and pinned install, the
+      tag as the version) folded into it; what PLAN.md described rather than decided (the command
+      line, the stealth mode's mechanics) stayed out even where it quoted the user's calls, so the
+      guide must say how to tell a decision from a description, and whether a row holding several
+      calls (the releases row held five) is split to fit one screen. Writing records by hand in ask
+      record's exact form was easiest by running ask add, answer and record in a scratch repository
+      and deleting the Asked-as line, which argues for a way to record a decision with no question.
+      Citations: git grep PLAN.md was the list; a section that left was pointed at its record, or at
+      --help for the exit codes and --json, and one that stayed was cited by name (PLAN.md's risks);
+      code comments went in a refactor commit and the rest in docs commits; a feature's description
+      cannot change outside a feat or a fix, and a check grepping whole folders also hits recorded
+      fixtures (tools/selftest/header-agreement.json keeps old commit messages citing PLAN.md
+      sections), so a citation check should look at comments, or leave fixtures out.
+
   - id: p1-adr-tools-default-dir
     title: itos ask record honours adr-tools' default folder, doc/adr
     phase: 1
