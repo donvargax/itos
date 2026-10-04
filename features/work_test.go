@@ -10,7 +10,8 @@
 // idea whose refs are a flow list over several lines or a block list, and
 // the refs an item has after (bug 14); a command that has to succeed before
 // the run a scenario is about, a queue written into the registry, and the
-// registry's queue after (slice 66).
+// registry's queue after (slice 66); the folder work.decisions names for
+// itos ask record's decision records (slice 71).
 package features
 
 import (
@@ -46,6 +47,9 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a feature file with the scenario "([^"]*)" tagged "([^"]*)"$`, w.taggedScenario)
 	sc.Step(`^itos has run "([^"]*)"$`, func(line string) error { return w.hasRunLine(w.dir, line) })
 	sc.Step(`^the registry's queue names "([^"]*)"$`, w.registryQueueNames)
+	sc.Step(`^work\.decisions is "([^"]*)"$`, func(path string) error {
+		return w.configSets("work.decisions", path)
+	})
 
 	sc.Step(`^the registry's item "([^"]*)" has the status "([^"]*)" and the owner "([^"]*)"$`, w.registryItemIs)
 	sc.Step(`^the work registry beside the config gives the item "([^"]*)" the status "([^"]*)"$`, func(id, status string) error {

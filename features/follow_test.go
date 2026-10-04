@@ -4,7 +4,8 @@
 // text. Bug 16's: one command run many times at once, each run's exit
 // checked (stealth.feature's work add uses them too), the threads file
 // written directly, and a run under a time zone. Bug 17's: the line after or
-// before a text in a file is blank.
+// before a text in a file is blank. Slice 71's: a file has a line, alone or
+// after another (init.feature's AGENTS.md block uses them too).
 package features
 
 import (
@@ -34,6 +35,10 @@ func initializeFollowSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the file "([^"]*)" says "([^"]*)"$`, w.fileSays)
 	sc.Step(`^the file "([^"]*)" does not say "([^"]*)"$`, w.fileDoesNotSay)
 	sc.Step(`^in the file "([^"]*)" the line (after|before) "([^"]*)" is blank$`, w.lineBesideIsBlank)
+	sc.Step(`^the file "([^"]*)" has the line "([^"]*)"$`, func(path, line string) error {
+		return w.fileHasLine(path, line, "")
+	})
+	sc.Step(`^the file "([^"]*)" has the line "([^"]*)" after the line "([^"]*)"$`, w.fileHasLine)
 
 	sc.Step(`^itos runs "([^"]*)" with the notes "([^"]*)" to "([^"]*)" all at once$`, func(line, from, to string) error {
 		notes, err := numbered(from, to)
@@ -251,6 +256,36 @@ func (w *world) fileDoesNotSay(path, text string) error {
 	}
 	if strings.Contains(string(data), text) {
 		return fmt.Errorf("the file %s says %q:\n%s", path, text, data)
+	}
+	return nil
+}
+
+// The file, from the repository's top, has a line that is the text, its
+// line ending and trailing spaces aside; with after given, such a line comes
+// somewhere below the first line that is after, which the file must have.
+// A line is matched whole, so a text inside a longer line does not count.
+func (w *world) fileHasLine(path, line, after string) error {
+	data, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return fmt.Errorf("the file %s cannot be read: %w\n%s", path, err, w.report())
+	}
+	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+	is := func(text string) func(string) bool {
+		return func(l string) bool { return strings.TrimRight(l, " \t") == text }
+	}
+	from := 0
+	if after != "" {
+		at := slices.IndexFunc(lines, is(after))
+		if at < 0 {
+			return fmt.Errorf("the file %s has no line %q:\n%s", path, after, data)
+		}
+		from = at + 1
+	}
+	if !slices.ContainsFunc(lines[from:], is(line)) {
+		if after != "" {
+			return fmt.Errorf("the file %s has no line %q after the line %q:\n%s", path, line, after, data)
+		}
+		return fmt.Errorf("the file %s has no line %q:\n%s", path, line, data)
 	}
 	return nil
 }

@@ -744,19 +744,28 @@ func (w *world) writeConfig() error {
 		}
 	}
 	for _, s := range w.config.settings {
-		if path := strings.Split(s.key, "."); path[0] != "ledger" && path[0] != "commits" {
-			b.WriteString(nested(path, s.value, 0))
+		path := strings.Split(s.key, ".")
+		if path[0] == "ledger" || path[0] == "commits" || path[0] == "work" && len(path) == 2 && !w.config.noWork {
+			continue
 		}
+		b.WriteString(nested(path, s.value, 0))
 	}
 	return w.write(w.data("itos.yaml"), b.String())
 }
 
 // writeWork writes the config's work section: the registry, groups key and
-// statuses the scenario set, and the people file unless it names none.
+// statuses the scenario set, a key of work the scenario sets (work.decisions),
+// and the people file unless it names none. The section is one flow mapping,
+// so a setting under work goes in it rather than in a second work key.
 func (w *world) writeWork(b *strings.Builder) {
 	b.WriteString("work: { ")
 	if w.config.registry != "" {
 		fmt.Fprintf(b, "registry: %q, ", w.config.registry)
+	}
+	for _, s := range w.config.settings {
+		if path := strings.Split(s.key, "."); path[0] == "work" && len(path) == 2 {
+			fmt.Fprintf(b, "%s: %q, ", path[1], s.value)
+		}
 	}
 	if w.config.groupsKey != "" {
 		fmt.Fprintf(b, "groups_key: %q, ", w.config.groupsKey)
