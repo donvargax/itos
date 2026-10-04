@@ -4498,7 +4498,7 @@ items:
     title: itos's own commit bodies put no line where the lint reads a footer
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     why: >
