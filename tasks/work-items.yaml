@@ -53,6 +53,7 @@ queue:
   - p1-registry-archive
   - p1-work-show-gaps
   - p1-release-notes-footers
+  - p1-features-hide-global-itos
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
