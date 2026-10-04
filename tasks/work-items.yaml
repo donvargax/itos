@@ -4214,7 +4214,7 @@ items:
     title: itos ask, the questions waiting on the user, public beside the registry
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-61]
     kind: slice
     why: >
