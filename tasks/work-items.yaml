@@ -3677,8 +3677,8 @@ items:
   - id: bug-12
     title: work add and task add write into an empty registry or ledger file
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
