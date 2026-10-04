@@ -4647,7 +4647,7 @@ items:
     title: The coordinator's guide says how decisions are recorded, and how a repository moves its docs' decisions into records
     phase: 1
     owner: donvargax
-    status: todo
+    status: done
     depends_on: [slice-69, T-085]
     kind: task
     why: >
