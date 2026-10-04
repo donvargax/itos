@@ -260,6 +260,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.configSets("ledger.group.label", label)
 	})
 	sc.Step(`^a feature file "([^"]*)" with the live scenario "([^"]*)"$`, w.featureFile)
+	sc.Step(`^a feature file "([^"]*)" with the @wip scenario "([^"]*)"$`, w.wipFeatureFile)
 	sc.Step(`^the committed feature file "([^"]*)" with the live scenario "([^"]*)"$`, w.committedFeatureFile)
 	sc.Step(`^the kind's range check is the built-in moves rule, except for "([^"]*)"$`, w.movesRule)
 	sc.Step(`^the moves rule allows renaming "([^"]*)" to "([^"]*)"$`, w.movesAllowRename)
@@ -1322,6 +1323,21 @@ func (w *world) featureFile(file, id string) error {
 	w.scenarioFiles[id] = file
 	path := filepath.Join("features", file)
 	if err := w.write(path, featureText(file, id)); err != nil {
+		return err
+	}
+	if err := w.git("add", "--", path); err != nil {
+		return err
+	}
+	w.config.smoke = true
+	return w.writeConfig()
+}
+
+// A feature file under features/ with one @wip scenario, staged, as a spec
+// written before its behaviour is.
+func (w *world) wipFeatureFile(file, id string) error {
+	path := filepath.Join("features", file)
+	text := fmt.Sprintf("Feature: %s\n\n  %s @wip\n  Scenario: %s runs\n    When it runs\n", file, id, id)
+	if err := w.write(path, text); err != nil {
 		return err
 	}
 	if err := w.git("add", "--", path); err != nil {
