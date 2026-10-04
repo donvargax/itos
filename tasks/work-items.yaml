@@ -49,6 +49,7 @@ queue:
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
   - slice-60
+  - slice-59
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
