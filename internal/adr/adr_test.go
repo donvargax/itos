@@ -184,3 +184,39 @@ func write(t *testing.T, path, text string) {
 		t.Fatal(err)
 	}
 }
+
+// Config check's rules (slice 74): a number two records share names both
+// files, the second renumbered past the highest; a record superseded by a
+// number no record has names it, its status read in any case; a record
+// superseded by one the folder has, or with no status, holds.
+func TestProblems(t *testing.T) {
+	records := []Record{
+		{Number: 1, File: "0001-a.md", Text: "---\nstatus: Superseded by adr-0003\n---\n\n# A\n"},
+		{Number: 2, File: "0002-b.md", Text: "---\nstatus: superseded by ADR-0009\n---\n\n# B\n"},
+		{Number: 3, File: "0003-c.md", Text: "# C\n"},
+		{Number: 3, File: "0003-d.md", Text: "---\nstatus: deprecated\n---\n\n# D\n"},
+	}
+	found := Problems("docs/decisions", records)
+	if len(found) != 2 {
+		t.Fatalf("problems: %+v", found)
+	}
+	if found[0].Rule != "decisions-number-twice" ||
+		found[0].Message != "docs/decisions/0003-c.md and docs/decisions/0003-d.md share the number 0003" ||
+		!strings.Contains(found[0].Fix, "renumber docs/decisions/0003-d.md to 0004") {
+		t.Errorf("a number twice: %+v", found[0])
+	}
+	if found[1].Rule != "decisions-superseded-by-missing" ||
+		found[1].Message != "docs/decisions/0002-b.md is superseded by ADR-0009, which no record in docs/decisions has" ||
+		!strings.Contains(found[1].Fix, "ADR-0009") {
+		t.Errorf("a supersede link to no record: %+v", found[1])
+	}
+	if sound := Problems("docs/decisions", records[:1:1]); len(sound) != 1 {
+		t.Errorf("a record superseded by one not listed: %+v", sound)
+	}
+	if none := Problems("docs/decisions", nil); len(none) != 0 {
+		t.Errorf("no records: %+v", none)
+	}
+	if n, ok := (Record{Text: "---\nstatus: superseded\n---\n"}).SupersededByNumber(); ok {
+		t.Errorf("a status naming no record: %d", n)
+	}
+}

@@ -22,9 +22,11 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/donvargax/itos/v2/internal/adr"
 	"github.com/donvargax/itos/v2/internal/check"
 	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/git"
@@ -134,7 +136,8 @@ func amending() bool {
 }
 
 // stagesData is whether a staged path is the config, a ledger file, the
-// registry or a smoke set, as the staged config names them
+// registry, a smoke set, or a decision record or their index in the folder
+// work.decisions names (slice 74), as the staged config names them
 // (commit-data.ts's stagesData), read in the current source. A config that
 // does not load and is not staged leaves the commit to the hook's other
 // rules, which read it too.
@@ -157,6 +160,12 @@ func stagesData(staged []string) bool {
 					return true
 				}
 			}
+		}
+	}
+	decisions := path.Clean(filepath.ToSlash(cfg.Work.Decisions))
+	for f := range files {
+		if path.Dir(f) == decisions && (path.Base(f) == adr.IndexName || adr.IsRecord(path.Base(f))) {
+			return true
 		}
 	}
 	named := []string{cfg.Work.Registry}

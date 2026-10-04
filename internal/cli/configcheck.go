@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/donvargax/itos/v2/internal/adr"
 	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/ledger"
 	"github.com/donvargax/itos/v2/internal/out"
@@ -14,8 +15,8 @@ import (
 )
 
 // Found is a problem config check reports, with the area it is in: the
-// config, the ledger, the registry, a smoke set or, as a warning, the
-// people.
+// config, the ledger, the registry, a smoke set, the decision records or, as
+// a warning, the people.
 type Found struct {
 	out.Problem
 	Area string `json:"area"`
@@ -113,6 +114,13 @@ func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) 
 	}
 	found = append(found, tagged("registry", registry)...)
 	found = append(found, smoke...)
+	// The decision records in the folder work.decisions names (slice 74);
+	// a folder that is not there holds none to check.
+	records, err := adr.List(cfg.Work.Decisions)
+	if err != nil {
+		return 0, nil, nil, nil, err
+	}
+	found = append(found, tagged("decisions", adr.Problems(cfg.Work.Decisions, records))...)
 	lines := append([]string{
 		fmt.Sprintf("%s is valid, and so are the %d ledger files it reads", path, len(files)),
 		cfg.Work.Registry + ": sound",
@@ -135,7 +143,7 @@ func prefixed(e *config.Error, area string) []Found {
 }
 
 // configCheck is `config check [--ledger <file>]`: the config, then the
-// ledger, the work registry and each kind's smoke set, every problem with its
+// ledger, the work registry, each kind's smoke set and the decision records, every problem with its
 // rule id and, where one exists, a fix; then its warnings, printed as WARN
 // and never failing it.
 func configCheck(ledgerFile string, o Out) (int, error) {

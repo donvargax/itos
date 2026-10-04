@@ -7,7 +7,8 @@
 # to nothing, a commits.since or a footer's since that is no full SHA or no
 # commit here, a footer of free text with a key that reads IDs), exit 2;
 # a missing ledger folder, one problem naming it, exit 2; each ledger problem (written order among them, a check that calls hooks.bin read as itos), exit 1;
-# the registry's and the smoke set's problems beside them; a project's people
+# the registry's and the smoke set's problems beside them; the decision
+# records' (a number twice, a supersede link to no record); a project's people
 # file missing or unreadable, a warning that passes; the nightly's
 # tasks step (tasks: done, refused in ci.steps, with no late cost); --print-defaults,
 # work.registry's beside the config's ledger, and work.asks beside the registry;
@@ -539,6 +540,40 @@ cases:
           message: no work registry at work-items.yaml
           fix: move the registry to work-items.yaml, or set work.registry to where it is
           area: registry
+  # The decision records in the folder work.decisions names (slice 74): no
+  # two share a number, and a record superseded names one the folder has.
+  # The status is read from the frontmatter as YAML, its words in any case.
+  - name: decision records that hold to both rules pass
+    argv: [config, check]
+    files:
+      docs/decisions/0001-use-go.md: "---\nstatus: SUPERSEDED BY adr-0002\n---\n\n# Use Go\n"
+      docs/decisions/0002-use-rust.md: "# Use Rust\n"
+      docs/decisions/README.md: "# Decisions\n"
+    exit: 0
+    stdout: |
+      itos.yaml is valid, and so are the 2 ledger files it reads
+      work-items.yaml: sound
+      smoke.yaml: every file has a smoke test (1 in all)
+  - name: decision records sharing a number, and one superseded by a record not there
+    argv: [config, check, --json]
+    files:
+      docs/decisions/0001-use-go.md: "---\nstatus: superseded by ADR-0009\n---\n\n# Use Go\n"
+      docs/decisions/0002-use-rust.md: "# Use Rust\n"
+      docs/decisions/0002-use-zig.md: "# Use Zig\n"
+    exit: 1
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: decisions-number-twice
+          message: docs/decisions/0002-use-rust.md and docs/decisions/0002-use-zig.md share the number 0002
+          fix: renumber docs/decisions/0002-use-zig.md to 0003, a number no record has, and correct what names it
+          area: decisions
+        - rule: decisions-superseded-by-missing
+          message: docs/decisions/0001-use-go.md is superseded by ADR-0009, which no record in docs/decisions has
+          fix: set its status to the record that superseded it, or write ADR-0009
+          area: decisions
   - name: a smoke set that cannot be read is one problem
     argv: [config, check]
     files:

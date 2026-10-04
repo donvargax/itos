@@ -18,8 +18,14 @@
 // so a record a person or a formatter rewrote reads the same. Everything
 // written here is in the form a Markdown formatter leaves alone (bug 17).
 //
+// Config check holds the folder to two rules (slice 74), Problems: no two
+// records share a number, and a record superseded names, in its status, a
+// number a record in the folder has. The index is not held to the folder,
+// since itos ask record writes it whole at every record.
+//
 // The functions here are text in, text out, but for List and Next, which
-// read the folder; internal/cli/ask.go writes and commits.
+// read the folder, List through internal/source so that the commit-msg hook
+// reads the records as staged; internal/cli/ask.go writes and commits.
 package adr
 
 import (
@@ -27,6 +33,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -36,6 +43,9 @@ import (
 	"unicode"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/donvargax/itos/v2/internal/out"
+	"github.com/donvargax/itos/v2/internal/source"
 )
 
 // IndexName is the index's file in the records' folder.
@@ -166,27 +176,37 @@ func numberOf(name string) (int, bool) {
 	return n, err == nil
 }
 
+// IsRecord is whether a file's name is a record's: a Markdown file whose
+// name starts with a number.
+func IsRecord(name string) bool {
+	_, ok := numberOf(name)
+	return ok && strings.HasSuffix(name, ".md")
+}
+
 // List is the records in the folder, by number: its Markdown files whose
-// names start with a number. A folder that is not there holds none.
+// names start with a number, read from the source itos reads its data from
+// (the working tree, or the index in the commit-msg hook). A folder that is
+// not there holds none; a working tree's folder that is there and cannot be
+// listed is an error.
 func List(dir string) ([]Record, error) {
-	entries, err := os.ReadDir(dir)
-	if errors.Is(err, fs.ErrNotExist) {
+	names, err := source.List(dir)
+	if err != nil {
+		if source.Current().Tree() == "worktree" && source.Has(dir) {
+			return nil, err
+		}
 		return nil, nil
 	}
-	if err != nil {
-		return nil, err
-	}
 	var records []Record
-	for _, e := range entries {
-		n, ok := numberOf(e.Name())
-		if !ok || e.IsDir() || !strings.HasSuffix(e.Name(), ".md") {
+	for _, name := range names {
+		if !IsRecord(name) {
 			continue
 		}
-		raw, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		n, _ := numberOf(name)
+		text, err := source.Read(filepath.Join(dir, name))
 		if err != nil {
 			return nil, err
 		}
-		records = append(records, Record{Number: n, File: e.Name(), Text: string(raw)})
+		records = append(records, Record{Number: n, File: name, Text: text})
 	}
 	sort.SliceStable(records, func(i, j int) bool { return records[i].Number < records[j].Number })
 	return records, nil
@@ -306,4 +326,60 @@ func Index(before string, records []Record) string {
 		before += "\n"
 	}
 	return before + "\n" + list.String() + "\n"
+}
+
+// supersededBy is a status naming the record that superseded this one, in
+// any case: "superseded by ADR-0009", the number its group.
+var supersededBy = regexp.MustCompile(`(?i)^superseded\s+by\s+\[?ADR-([0-9]+)`)
+
+// SupersededByNumber is the number of the record the status names as the
+// one that superseded this, and whether it names one.
+func (r Record) SupersededByNumber() (int, bool) {
+	m := supersededBy.FindStringSubmatch(r.Status())
+	if m == nil {
+		return 0, false
+	}
+	n, err := strconv.Atoi(m[1])
+	return n, err == nil
+}
+
+// Problems are the records' problems, the records List gives for the
+// folder dir (slice 74): each record whose number one before it has
+// (decisions-number-twice, naming both files), and each superseded by a
+// number no record has (decisions-superseded-by-missing, naming the record
+// and the number).
+func Problems(dir string, records []Record) []out.Problem {
+	at := func(file string) string { return path.Join(filepath.ToSlash(dir), file) }
+	first := map[int]string{}
+	highest := 0
+	for _, r := range records {
+		highest = max(highest, r.Number)
+	}
+	var found []out.Problem
+	for _, r := range records {
+		if before, ok := first[r.Number]; ok {
+			found = append(found, out.Problem{
+				Rule:    "decisions-number-twice",
+				Message: fmt.Sprintf("%s and %s share the number %04d", at(before), at(r.File), r.Number),
+				Fix:     fmt.Sprintf("renumber %s to %04d, a number no record has, and correct what names it", at(r.File), highest+1),
+			})
+			highest++
+			continue
+		}
+		first[r.Number] = r.File
+	}
+	for _, r := range records {
+		n, ok := r.SupersededByNumber()
+		if !ok {
+			continue
+		}
+		if _, there := first[n]; !there {
+			found = append(found, out.Problem{
+				Rule:    "decisions-superseded-by-missing",
+				Message: fmt.Sprintf("%s is superseded by %s, which no record in %s has", at(r.File), Ref(n), filepath.ToSlash(dir)),
+				Fix:     fmt.Sprintf("set its status to the record that superseded it, or write %s", Ref(n)),
+			})
+		}
+	}
+	return found
 }

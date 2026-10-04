@@ -1061,8 +1061,9 @@ cases:
       Usage: itos hook commit-msg <file>
 
       The commit-msg hook. When the commit stages itos.yaml, a ledger file, the work
-      registry or a smoke set, itos config check's problems, read from the staged
-      tree; then the staged files against the message's type (the path rules, then
+      registry, a smoke set, or a decision record or the index in work.decisions,
+      itos config check's problems, read from the staged tree; then the staged files
+      against the message's type (the path rules, then
       each kind's staged range checks: the built-in moves rule here, for a type its
       except_types does not name), then the header lint (commits.header_lint: the
       built-in one, or the hook delegate if any) and itos's footer
@@ -1163,9 +1164,11 @@ cases:
     stdout: |
       Usage: itos config check [--ledger <file>] [--print-defaults]
 
-      Validates the config, then the ledger (or one ledger file), the work registry
-      and each kind's smoke set. Exit 2 when the config is invalid, 1 for any other
-      problem. A project's people file missing or unreadable is a warning (WARN),
+      Validates the config, then the ledger (or one ledger file), the work registry,
+      each kind's smoke set and the decision records in the folder work.decisions
+      names: no two share a number, and a record whose status is "superseded by
+      ADR-NNNN" names a number a record there has. Exit 2 when the config is invalid,
+      1 for any other problem. A project's people file missing or unreadable is a warning (WARN),
       which never fails it; a stealth config reads none. --print-defaults prints the
       values the tools take when a key is left out (work.registry's in this config's
       ledger folder; a stealth config's hooks.bin, itos, and no work.people), and

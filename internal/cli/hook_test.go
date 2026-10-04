@@ -83,3 +83,22 @@ func TestAmends(t *testing.T) {
 		}
 	}
 }
+
+// A decision record or the index, in the folder work.decisions names, is
+// itos's data the hook checks when staged (slice 74); a file beside them
+// that is neither, or one in a folder below, is not.
+func TestStagesDecisions(t *testing.T) {
+	notesRepo(t)
+	writeFile(t, "itos.yaml", "version: 1\ncommits: { types: [docs] }\nwork: { registry: work-items.yaml }\n")
+	for staged, want := range map[string]bool{
+		"docs/decisions/0001-use-go.md":     true,
+		"docs/decisions/README.md":          true,
+		"docs/decisions/notes.txt":          false,
+		"docs/decisions/old/0001-use-go.md": false,
+		"docs/0001-use-go.md":               false,
+	} {
+		if got := stagesData([]string{staged}); got != want {
+			t.Errorf("stagesData(%q) = %v", staged, got)
+		}
+	}
+}

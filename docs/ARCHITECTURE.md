@@ -366,7 +366,8 @@ each, and holds it since the TypeScript left (T-062).
   `work-items.yaml` beside the ledger in `ledger.files`' folder, but not a
   ledger file, since it does not match `ledger.files`), the people
   `CONTRIBUTORS.md` (`work.people`), the smoke set `features/smoke.yaml`
-  (`tests.scenario.smoke`). `itos config check` validates all of them, the
+  (`tests.scenario.smoke`), the decision records in `work.decisions` (below,
+  under ask). `itos config check` validates all of them, the
   people as a warning that never fails it: a project whose people file is
   missing or unreadable goes on without one everywhere else (slice 35).
   A ledger group is called by `ledger.group.label` (`phase` by default) in
@@ -1562,8 +1563,17 @@ add`ed so `--only` can name it, git add's words and the commit's on
   the folders made for the record are removed again when the write fails
   (`madeDirs`, `unmake`). A question answered with no decision is
   `Unrecorded`, and `ask` ends with one line naming each as
-  `itos ask record <id>`. The records' checks (numbers unique, supersedes
-  valid, the index matching the files) are not here: p1-adr-checks.
+  `itos ask record <id>`.
+  `config check` holds the folder to two rules (slice 74, `adr.Problems`,
+  area `decisions`): no two records share a number
+  (`decisions-number-twice`, naming both files), and a status
+  `superseded by ADR-NNNN`, read by `Record.SupersededByNumber` in any case,
+  names a number a record there has (`decisions-superseded-by-missing`).
+  `adr.List` reads the folder through `internal/source`, so the commit-msg
+  hook, whose `stagesData` counts a staged record or index in the folder as
+  itos's data, judges the records as staged; a folder that is not there
+  holds none. The index is not held to the folder: `ask record` writes it
+  whole at every record, and nothing regenerates it on demand.
 - **go and guide** (slice 64, `internal/cli/guide.go` over `internal/guide`)
   print the guides a session starts from, Markdown files beside the package
   (`coordinate.md`, `work.md`) embedded with `go:embed` and printed as
