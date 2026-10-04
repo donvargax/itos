@@ -59,4 +59,4 @@ itos 2.1.0
 An extension that follows itos's conventions exits 0 on success, 1 on a policy
 failure, 2 on a usage error and 3 when its environment is missing, and with
 `ITOS_JSON=1` prints one JSON object with `"schema": 1` on stdout and its logs
-on stderr (`PLAN.md` §7).
+on stderr, as `itos --help` says of itos's own commands.

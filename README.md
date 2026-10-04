@@ -119,7 +119,7 @@ itos's named tests are the Gherkin feature files in `features/`, whose steps
 box: they run whatever binary `ITOS_BIN` names in scratch repositories and
 read its exit codes and output. The conformance corpus
 (`tools/itos/conformance/`) is the regression record it must pass. `PLAN.md`
-has the order of the work.
+says what itos is, and `docs/decisions/` holds the decisions behind it.
 
 ## Install
 
@@ -145,7 +145,7 @@ Pin a release, never a branch, and pin each asset by its line in
 and unpack the binary into an ignored `.tools/bin/`. A project commits this as
 a script that pins the version and each platform's hash: the newest
 release's notes (Upgrading) give the whole script with both filled in, and
-`docs/releases/v2.0.0.md`, Upgrading, step 1, the shim that runs it from your
+[v2.0.0's release notes](https://github.com/donvargax/itos/releases/tag/v2.0.0), Upgrading, step 1, the shim that runs it from your
 hooks and CI.
 
 Go developers can instead
@@ -448,17 +448,18 @@ commit, and it says how work is split into commits.
 
 ## Where things are
 
-| File                    | What it holds                                                                |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| `PLAN.md`               | What itos is for, its model, schema and command line, and the order of work. |
-| `docs/ARCHITECTURE.md`  | How the code is put together as built, the gates included.                   |
-| `AGENTS.md`             | The working rules for a session that implements.                             |
-| `docs/ORCHESTRATING.md` | This repository's own notes for the coordinator, after `itos go`'s guide.    |
-| `docs/PHASES.md`        | Who owns which phase, and how work is routed.                                |
-| `tasks/work-items.yaml` | The one list of open work: owners, statuses, dependencies, ideas.            |
-| `tasks/`                | The ledger: every non-feature task and the checks that prove it.             |
-| `features/`             | The scenarios: what itos does, through its command line.                     |
-| `itos.yaml`             | This repository's policy, which every gate reads.                            |
+| File                    | What it holds                                                             |
+| ----------------------- | ------------------------------------------------------------------------- |
+| `PLAN.md`               | What itos is for, its model, its schema and its risks.                    |
+| `docs/decisions/`       | The decisions, one record each; its `README.md` lists those that stand.   |
+| `docs/ARCHITECTURE.md`  | How the code is put together as built, the gates included.                |
+| `AGENTS.md`             | The working rules for a session that implements.                          |
+| `docs/ORCHESTRATING.md` | This repository's own notes for the coordinator, after `itos go`'s guide. |
+| `docs/PHASES.md`        | Who owns which phase, and how work is routed.                             |
+| `tasks/work-items.yaml` | The one list of open work: owners, statuses, dependencies, ideas.         |
+| `tasks/`                | The ledger: every non-feature task and the checks that prove it.          |
+| `features/`             | The scenarios: what itos does, through its command line.                  |
+| `itos.yaml`             | This repository's policy, which every gate reads.                         |
 
 The repository was made from the project template
 [donvargax/project-template](https://github.com/donvargax/project-template),

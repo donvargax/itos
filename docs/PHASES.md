@@ -1,7 +1,7 @@
 # Who owns which phase
 
-`PLAN.md` says what each phase is and in what order they come; this file says
-only **who** works each one, so two people or sessions never build the same
+A phase's work is its tasks in `tasks/phase-<n>.yaml` and its items in
+`tasks/work-items.yaml`; this file says only **who** works each one, so two people or sessions never build the same
 phase in parallel. A phase changes owner here, by agreement, before any work
 on it starts. Its tasks stay in `tasks/phase-<n>.yaml` and its scenarios in
 `features/`, tagged `@phase-<n>`.

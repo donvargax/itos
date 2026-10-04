@@ -2,7 +2,8 @@
 
 How the project is put together, as it actually is. Written once and amended
 when a slice changes the shape of something; what landed, and when, is the
-history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
+history (`vp run changelog`), and the decisions behind it are records in
+`docs/decisions/`.
 
 ## The layout
 
@@ -43,14 +44,15 @@ history (`vp run changelog`), and the decisions behind it are in `PLAN.md`.
   draft, which `replace_existing_draft` replaces on the next. The releaser
   commits nothing. Until v2.3.0 a release was a hand-made `build` commit to
   `package.json`, a committed `docs/releases/v<version>.md` and a pushed tag,
-  which `release.yml` then built and published; `docs/releases/` keeps those
-  notes. The v1 releases also carried the TypeScript packed to one
+  which `release.yml` then built and published; each of those tags keeps its
+  notes, `docs/releases/v<version>.md`. The v1 releases also carried the TypeScript packed to one
   JavaScript file, `itos-<version>.tgz`, which left with it (T-062).
 - **A release's notes** (`tools/bin/release-notes`, T-069; standard library
   only) are generated, never committed: a title and the range's counts;
   "What changed", every commit of the range by type, from git-cliff
   (`tools/bin/release-notes/cliff.toml`, run by `tools/bin/pinned`); and
-  "Upgrading", last (`PLAN.md`, §10): each breaking change's
+  "Upgrading", last
+  (`docs/decisions/0026-a-release-s-notes-are-generated-from-its-commits-and-end-with-a-complete-upgrading-section.md`): each breaking change's
   `BREAKING-CHANGE:` footer (or its `!` header), every `Upgrading:` footer
   quoted (`itos commit footers Upgrading` lists them, and reads a wrapped one's
   first line only, so the generator takes the lines below it from the
@@ -498,7 +500,8 @@ each, and holds it since the TypeScript left (T-062).
 ## The code
 
 The Go build of itos landed beside the TypeScript one command group at a time
-(`PLAN.md`, phase 2), until it passed everything and the TypeScript went
+(`docs/decisions/0017-the-go-port-s-proof-is-its-tasks-checks-landed-as-refactor-commits.md`),
+until it passed everything and the TypeScript went
 (T-062). Each package below says which TypeScript module it ports, so the
 mechanisms above, written against those modules, read across.
 
@@ -508,8 +511,8 @@ mechanisms above, written against those modules, read across.
   reported and which exit code it takes; `configcheck.go` in it is
   `config-check.ts`. `internal/version` is `version.ts`, and `internal/out`
   prints a `--json` object with `"schema": 1` first and its keys in the order
-  written (Go's maps would sort them). The rest are the packages `PLAN.md` §8
-  lists, each holding what the groups ported so far need: `internal/ledger`
+  written (Go's maps would sort them). The rest are the packages under `internal/`,
+  each holding what the groups ported so far need: `internal/ledger`
   (the layout, the files, every task and check problem, and the tasks and
   checks typed, and the task IDs at a tree), `internal/tests` (the Gherkin
   adapter and the command adapter at a tree, the smoke set and its rule,
@@ -1718,7 +1721,9 @@ hook list commit-msg` for the probe's name, testing the feature rather
   stamp says the module version Go records (`go install …@v<x>`), or
   `(devel)` when there is none. Every self-test builds the binary through it.
 - **The release build** is GoReleaser's (`.goreleaser.yaml`): the same build
-  once per platform `PLAN.md` §10 lists, each binary packed with `LICENSE`
+  once per platform
+  `docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md`
+  lists, each binary packed with `LICENSE`
   and `README.md` at the top level of `itos-<version>-<os>-<arch>.tar.gz`
   (`.zip` for windows), every entry root's by number and dated at the commit,
   and `itos.schema.json` (below, written by a `before` hook into

@@ -117,7 +117,8 @@ Feature: itos init, a repository made ready for itos
     When itos checks the config
     Then itos exits with code 0
 
-  # Slice 49: the Claude Code plugin (PLAN.md §10, "Adoption") is offered,
+  # Slice 49: the Claude Code plugin
+  # (docs/decisions/0031-itos-init-offers-the-plugin-and-the-git-shim-opt-in-everywhere.md) is offered,
   # through Claude Code's own CLI: claude plugin list --json to see whether
   # itos@itos is installed, claude plugin marketplace add donvargax/itos and
   # claude plugin install itos@itos, both with --scope, to install it.
@@ -204,7 +205,7 @@ Feature: itos init, a repository made ready for itos
     And claude was not given "plugin install"
     And its output says "--plugin"
 
-  # Slice 50: the git shim (PLAN.md §7) is offered as the plugin is:
+  # Slice 50: the git shim (itos help git-shim) is offered as the plugin is:
   # --git-shim installs it as git-shim install does (--git-shim-dir is its
   # --dir), --no-git-shim declines, a terminal is asked, anywhere else
   # nothing is installed and the report says how. The report also says, never
@@ -312,7 +313,9 @@ Feature: itos init, a repository made ready for itos
     And the registry's item "T-1" is a task titled "Tidy the readme" with the status "todo"
 
   # Slice 59, the first half of p3-init-agent-rules (the user's calls,
-  # 2026-10-03; PLAN.md §10, "Adoption"): init readies agents too. What the
+  # 2026-10-03;
+  # docs/decisions/0032-itos-init-generates-the-config-s-rules-into-a-marked-block-of-agents-md.md):
+  # init readies agents too. What the
   # config decides (the commit types, the footer each needs, the paths each
   # may touch, what each gate runs) is generated from the config into a
   # marked block of AGENTS.md, between <!-- itos:begin --> and

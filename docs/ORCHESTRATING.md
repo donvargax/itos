@@ -79,7 +79,7 @@ so those footers are for the consumer who upgrades.
 Add these lines to the guide's brief template:
 
 - **Reads:** `AGENTS.md` (this repository's rules, which add to `itos guide
-work`), the `PLAN.md` sections the item rests on, and the earlier items'
+work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the item rests on, and the earlier items'
   commits (`itos work show <id>`, `vp run changelog -- --scenario <id>`).
 - **For a feat or a fix:** run `go run ./tools/bin/previous-release`, and name
   in a `Changes:` footer any old scenario or non-help corpus case the change
