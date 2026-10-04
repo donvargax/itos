@@ -45,9 +45,9 @@ phases:
 
 queue:
   - slice-69
+  - slice-70
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
-  - slice-70
   - p1-done-body-url-footer
   - p1-registry-archive
   - p1-work-show-gaps
