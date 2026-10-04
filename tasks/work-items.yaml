@@ -3311,7 +3311,11 @@ items:
       (one line per paragraph, no hard wraps, no code span across lines), so a project's formatter
       leaves them alone and the drift check stays exact, rather than asking every project to exclude
       them from its formatter.
-    refs: [PLAN.md, integrations/claude-code/skills/itos/SKILL.md]
+
+      Specified as @ID-INIT-26 to 30 in features/init.feature, the non-stealth half, opt-in as the
+      plugin is (the coordinator's call, 2026-10-04: writing AGENTS.md uninvited would change what a
+      released init does). The stealth half is p3-init-agent-rules-stealth.
+    refs: [features/init.feature, PLAN.md, integrations/claude-code/skills/itos/SKILL.md]
 
   - id: p3-init-orchestration
     title: itos init --agents writes the orchestration files, the project's own from then on
