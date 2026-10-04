@@ -48,6 +48,7 @@ queue:
   - p1-orchestrating-own-notes
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
+  - slice-60
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
