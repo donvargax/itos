@@ -4792,14 +4792,15 @@ items:
       docs/decisions/0001-… as MADR in a docs commit.
     refs: [internal/adr, features/ask.feature]
 
-  - id: p1-decisions-no-frontmatter
+  - id: bug-19
     title: A decision record with no frontmatter counts as live in the index
     phase: 1
     owner: donvargax
     status: todo
     depends_on: [slice-71]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-decisions-no-frontmatter.
       Found by slice 71's agent (2026-10-04): the index lists records whose status is accepted, but
       MADR makes the frontmatter optional, so a repository whose records carry none gets an empty
       index. The coordinator's call, by decision 1: a record is live unless its status says
