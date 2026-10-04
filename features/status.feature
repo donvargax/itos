@@ -75,8 +75,8 @@ Feature: itos status, where the work stands
   Scenario: status names the newest release, and the feat and fix commits since it
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote's head is tagged "v1.2.0"
-    And the remote has gained the commit "feat: add the archive" touching "a.txt"
     And the remote has gained the commit "docs: describe the archive" touching "b.md"
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
     And the clone has fetched the remote
     When itos runs "status --as someone"
     Then itos exits with code 0
