@@ -4160,3 +4160,30 @@ items:
       value.Wrap's greedy loop (which counts runes where the lint counts UTF-16 units, as
       workwrite.go's body wrap does); message.CommentChar returns 'auto' for core.commentChar=auto,
       in the lint too. Tests for -F -, the unchanged-file path and CRLF.
+
+  - id: bug-16
+    title: itos follow and a stealth config keep every write of two writers at once, and follow doc keeps a thread private
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-61]
+    kind: slice
+    why: >
+      Found by slice 61's post-landing review (2026-10-04), in v2.19.0. Sure: with no lock across
+      load, change and save, twenty follow note runs at once kept 15 notes, all exiting 0, and a
+      stealth config's registry and ledger, shared by worktrees, are written the same way (one fix
+      for both, the user's call); a file with a second YAML document is cut to its first; stamps
+      print in their own zone without the offset; follow doc writes 0644 inside the work tree,
+      untracked, with no warning; follow doc <id> - writes a file named -. Specified as
+      @ID-FOLLOW-08 to 12 and @ID-STEALTH-23. Doubtful, for the fix to weigh: Save does not fsync
+      before the rename and Load reads an empty file as no threads, so a crash could wipe them
+      (sync, and refuse an empty existing file); a symlinked follow-ups.yaml is replaced by a plain
+      file; a note word starting with - is read as a flag.
+    refs:
+      [
+        features/follow.feature,
+        features/stealth.feature,
+        internal/follow/follow.go,
+        internal/cli/follow.go,
+        internal/cli/workwrite.go,
+      ]
