@@ -3603,8 +3603,8 @@ items:
   - id: slice-56
     title: itos push returns at once for a range that touches only the work registry
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
