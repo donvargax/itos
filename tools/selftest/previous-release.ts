@@ -1,8 +1,10 @@
 // The last release's scenarios and corpus against the new binary (T-071,
 // tools/bin/previous-release), in a scratch repository whose v1.0.0 tag holds
 // a release of its own: two scenarios (go test ./features, a black box running
-// whatever ITOS_BIN names, as this repository's are), and a corpus of three
-// cases and two help cases run by this repository's own conformance runner.
+// whatever ITOS_BIN names, as this repository's are), and a corpus of four
+// cases and two help cases run by this repository's own conformance runner;
+// two of the four start with the same word, and one's name is longer than a
+// footer line may be.
 // The binary under test is a script; the broken one breaks one scenario, one
 // case and both help cases, the wordy one only the help cases, and each says
 // a version the tag never had, as T-069's builds will. Three more cases
@@ -30,6 +32,9 @@
 //   - it passes with a fix since the tag naming both in Changes: footers (the
 //     scenario by its ID, the case by its file and name), and fails naming
 //     the case alone when the fix names only the scenario;
+//   - it passes with a fix naming the long case by a prefix of its name, short
+//     enough for a footer line (T-081), and fails with one naming it by a
+//     prefix another case starts with too, warning that it is ambiguous;
 //   - it fails with a feat naming both, saying a feat's Changes: never
 //     excuses one;
 //   - it passes with a breaking change: a BREAKING-CHANGE: footer, a ! in a
@@ -67,6 +72,11 @@ const write = (dir: string, files: Record<string, string>) => {
 		writeFileSync(join(dir, path), text);
 	}
 };
+
+// A case whose name is longer than a footer line may be: "Changes:
+// greet.yaml: <it>" is 126 characters, and the header lint caps a line at 100.
+const longCase =
+	"greets the world with hello on a line of its own, as it has since its first release and as scripts expect";
 
 // The release: its scenarios, the steps that run them, its corpus and the
 // runner, as this repository lays them out.
@@ -109,10 +119,14 @@ func TestFeatures(t *testing.T) {
 		"utf8",
 	),
 	"tools/itos/conformance/greet.yaml": `cases:
-  - name: greets the world
+  - name: ${longCase}
     argv: [greet]
     exit: 0
     stdout: "hello\\n"
+  - name: greets no one when asked its name
+    argv: [name]
+    exit: 0
+    stdout: "itos\\n"
   - name: says its name
     argv: [name]
     exit: 0
@@ -255,7 +269,7 @@ const run = (cwd: string, args: string[]) => {
 };
 
 const scenario = "scenario @ID-GREET-01 (It greets the world)";
-const corpusCase = "conformance case greet.yaml: greets the world";
+const corpusCase = `conformance case greet.yaml: ${longCase}`;
 
 try {
 	const built = spawnSync("go", ["build", "-o", check, "./tools/bin/previous-release"], {
@@ -290,7 +304,17 @@ try {
 	};
 	branch(
 		"fixed",
-		"fix: greet otherwise\n\nThe old greeting was the bug.\n\nChanges: @ID-GREET-01\nChanges: greet.yaml: greets the world",
+		`fix: greet otherwise\n\nThe old greeting was the bug.\n\nChanges: @ID-GREET-01\nChanges: greet.yaml: ${longCase}`,
+	);
+	// The long case by a prefix of its name that no other case starts with,
+	// and by one the case asked its name starts with too.
+	branch(
+		"prefixed",
+		"fix: greet otherwise\n\nThe old greeting was the bug.\n\nChanges: @ID-GREET-01\nChanges: greet.yaml: greets the world with hello",
+	);
+	branch(
+		"ambiguous",
+		"fix: greet otherwise\n\nThe old greeting was the bug.\n\nChanges: @ID-GREET-01\nChanges: greet.yaml: greets",
 	);
 	branch(
 		"fixed-scenario",
@@ -320,7 +344,7 @@ try {
 	expect(
 		r.status === 0 &&
 			r.output.includes("v1.0.0's scenarios: all 2 pass") &&
-			r.output.includes("8/8 conformance cases pass") &&
+			r.output.includes("9/9 conformance cases pass") &&
 			r.output.includes(leftOut) &&
 			r.output.includes(relaxed) &&
 			r.output.includes(additively),
@@ -335,7 +359,7 @@ try {
 		r.status === 0 &&
 			r.output.includes(leftOut) &&
 			r.output.includes(relaxed) &&
-			r.output.includes("8/8 conformance cases pass") &&
+			r.output.includes("9/9 conformance cases pass") &&
 			!r.output.includes("help.yaml: itos --help") &&
 			!r.output.includes("fails"),
 		`a binary whose help and usage errors' words alone differ should pass, its old help cases not judged and its usage errors judged by their exit code, exited ${r.status}:\n${r.output}`,
@@ -354,7 +378,7 @@ try {
 			) &&
 			r.output.includes("- FAIL itos.yaml: version 2 is not 1") &&
 			!r.output.includes("an unknown command is a usage error") &&
-			r.output.includes("6/8 conformance cases pass"),
+			r.output.includes("7/9 conformance cases pass"),
 		`a usage error whose exit code differs and a config error whose words differ should be refused, and a usage error whose words alone differ not named, exited ${r.status}:\n${r.output}`,
 	);
 
@@ -364,7 +388,7 @@ try {
 	r = run(repo, ["-bin", adding]);
 	expect(
 		r.status === 0 &&
-			r.output.includes("8/8 conformance cases pass") &&
+			r.output.includes("9/9 conformance cases pass") &&
 			!r.output.includes("fails"),
 		`a binary that only adds keys to an old case's JSON and lines to its stdout should pass, exited ${r.status}:\n${r.output}`,
 	);
@@ -377,7 +401,7 @@ try {
 			r.status === 1 &&
 				r.output.includes(`v1.0.0's conformance case report.yaml: ${t.case}`) &&
 				!r.output.includes(`report.yaml: ${other}`) &&
-				r.output.includes("7/8 conformance cases pass"),
+				r.output.includes("8/9 conformance cases pass"),
 			`a binary with ${t.what} in an old case's output should be refused, naming that case alone, exited ${r.status}:\n${r.output}`,
 		);
 	}
@@ -398,7 +422,7 @@ try {
 	expect(
 		r.output.includes("1 of 2 fail") &&
 			!r.output.includes("says its name") &&
-			r.output.includes("7/8 conformance cases pass") &&
+			r.output.includes("8/9 conformance cases pass") &&
 			!r.output.includes("help.yaml: itos --help") &&
 			!r.output.includes("help greet"),
 		`only the scenario and the case the binary breaks should be named, no help case, exited ${r.status}:\n${r.output}`,
@@ -412,6 +436,30 @@ try {
 			r.output.includes(`${scenario} fails, accepted: the fix`) &&
 			r.output.includes(`${corpusCase} fails, accepted: the fix`),
 		`a fix naming the scenario and the case in Changes: should pass, exited ${r.status}:\n${r.output}`,
+	);
+	// One naming the case by a prefix of its name no other case starts with
+	// passes; one naming it by a prefix two cases start with names neither,
+	// leaving the case refused and warning that the entry is ambiguous.
+	on("prefixed");
+	r = run(repo, ["-bin", broken]);
+	expect(
+		r.status === 0 &&
+			r.output.includes(`${corpusCase} fails, accepted: the fix`) &&
+			!r.output.includes("warning"),
+		`a fix naming the long case by a prefix of its name no other case starts with should pass, exited ${r.status}:\n${r.output}`,
+	);
+	on("ambiguous");
+	r = run(repo, ["-bin", broken]);
+	expect(
+		r.status === 1 &&
+			r.output.includes(`${scenario} fails, accepted: the fix`) &&
+			r.output.includes(`${corpusCase} fails against this tree's itos`) &&
+			r.output.includes(
+				`warning: ${git(repo, "rev-parse", "HEAD").slice(0, 7)} "fix: greet otherwise" says "Changes: greet.yaml: greets"`,
+			) &&
+			r.output.includes('greet.yaml has 2 cases whose names start "greets"') &&
+			r.output.includes("it is ambiguous, so it names none of them"),
+		`a fix naming the case by a prefix two cases start with should leave it refused, warning that the entry is ambiguous, exited ${r.status}:\n${r.output}`,
 	);
 	// One naming the scenario alone leaves the case refused.
 	on("fixed-scenario");
@@ -516,5 +564,5 @@ try {
 finish(
 	problems,
 	"previous-release",
-	"An old scenario or case the new binary breaks is refused, unless a breaking change or a fix's Changes: footer says why; a feat's never does; an old case's output is judged additively, a key or a line added passing and one removed, changed or reordered refused; an old help case is never judged, an old usage error only by its exit code, an old config error word for word; and a run that cannot check out the release never passes",
+	"An old scenario or case the new binary breaks is refused, unless a breaking change or a fix's Changes: footer says why, naming a case by its name or a prefix no other case starts with; a feat's never does; an old case's output is judged additively, a key or a line added passing and one removed, changed or reordered refused; an old help case is never judged, an old usage error only by its exit code, an old config error word for word; and a run that cannot check out the release never passes",
 );

@@ -47,7 +47,9 @@ commits:
     # An old scenario or corpus case a fix changes on purpose, which the last release's suite then
     # fails (T-071, tools/bin/previous-release): one entry a line, scenarios by their IDs
     # (Changes: @ID-CMSG-03) or a case by its file and name (Changes: hooks.yaml: <case name>).
-    # Only a fix's excuses a failure; a feat that breaks an old scenario is a breaking change. Free
+    # A case's name may be cut short to fit the 100-character line (T-081): the entry names the
+    # case whose name is the entry's, or else the one case of the file whose name starts with it;
+    # a prefix two cases start with names neither, and is warned of. Only a fix's excuses a failure; a feat that breaks an old scenario is a breaking change. Free
     # text, so itos commit --changes writes it, a scenario the fix removed is not refused as
     # unknown, and a case can be named; the check reads each against the last release instead.
     Changes:

@@ -70,11 +70,20 @@
 //
 //	Changes: @ID-CMSG-03 @ID-CMSG-04    scenarios, by their IDs
 //	Changes: hooks.yaml: <case name>    a corpus case, by its file and its name,
-//	                                    as the runner's FAIL line names it
+//	                                    as the runner's FAIL line names it, or
+//	                                    by a prefix of its name
 //
-// An entry that names no scenario or case of the release is printed as a
-// warning, never a failure: a pushed commit cannot be rewritten, and a failure
-// would hold CI red until a release that a red CI never cuts.
+// A case entry names the case of that file whose name is the entry's, or else
+// the one case whose name starts with it (T-081): the header lint caps a
+// footer line at 100 characters, and a case's name alone may be longer
+// (v2.8's init.yaml has one of 103), so a long name is given by as much of it
+// as tells it from the file's other cases. A prefix more than one case starts
+// with names none of them.
+//
+// An entry that names no scenario or case of the release, or a prefix that
+// several cases share, is printed as a warning, never a failure: a pushed
+// commit cannot be rewritten, and a failure would hold CI red until a release
+// that a red CI never cuts.
 //
 // The last release is the newest vX.Y.Z tag reachable from HEAD. With no such
 // tag there is nothing to hold the tree to, which the check says and passes; a
@@ -214,7 +223,7 @@ func run() int {
 	}
 	fmt.Printf("%s: %s's scenarios and conformance corpus against %s (itos %s), in a scratch worktree of %s\n",
 		self, tag, what, version, tag)
-	skipped, relaxed, err := readyOldCorpus(tree)
+	skipped, relaxed, cases, err := readyOldCorpus(tree)
 	if err != nil {
 		return fail("%s's corpus: cannot leave out its help cases and relax its usage errors: %v", tag, err)
 	}
@@ -250,8 +259,8 @@ func run() int {
 	if err != nil {
 		return fail("%s's features: %v", tag, err)
 	}
-	warnChanges(tag, tree, commits, ids)
-	status := report(tag, failures, commits, features, corpus)
+	warnChanges(tag, commits, ids, cases)
+	status := report(tag, failures, commits, cases, features, corpus)
 	fmt.Printf("%s: done in %.1f s\n", self, time.Since(started).Seconds())
 	return status
 }
@@ -280,7 +289,9 @@ func prepare(tree, top string) error {
 // for the run, keeping the rest of each file as written: it takes the help
 // cases out, and takes the stdout and stderr out of each usage error's case,
 // so the runner judges it by its exit code alone. It prints how many of each
-// it touched in each file as JSON ({"help": {"<file>": n}, "usage": {…}}).
+// it touched in each file, and the names of every file's cases as written,
+// help cases included, as JSON ({"help": {"<file>": n}, "usage": {…},
+// "names": {"<file>": ["<name>", …]}}).
 //
 // A usage error's case is one whose argv the command refuses as a usage
 // error: exit 2, nothing on stdout (or stdout not compared), and on stderr
@@ -315,13 +326,15 @@ const usageError = (c) =>
 	/^itos: [^\n]* \(itos --help\)\n$/.test(c.stderr) &&
 	(c.stdout === undefined || c.stdout === "") &&
 	["stdout_has", "stderr_has", "json"].every((key) => c[key] === undefined);
-const touched = { help: {}, usage: {} };
+const touched = { help: {}, usage: {}, names: {} };
 for (const file of readdirSync(dir).filter((f) => f.endsWith(".yaml")).sort()) {
 	const path = join(dir, file);
 	const doc = parseDocument(readFileSync(path, "utf8"));
 	const cases = doc.get("cases");
+	touched.names[file] = [];
 	if (doc.errors.length || !isSeq(cases)) continue;
 	const plain = doc.toJS().cases;
+	touched.names[file] = plain.flatMap((c) => (c && typeof c.name === "string" ? [c.name] : []));
 	const help = new Set(plain.flatMap((c, i) => (asksHelp(c && c.argv) ? [i] : [])));
 	const usage = plain.flatMap((c, i) => (!help.has(i) && usageError(c) ? [c.name] : []));
 	if (!help.size && !usage.length) continue;
@@ -346,8 +359,9 @@ console.log(JSON.stringify(touched));
 
 // readyOldCorpus readies the release's corpus in tree as oldCorpusScript
 // does, and says what it touched: "37 help cases (help.yaml 37)" and "34 usage
-// errors (cli.yaml 19, …)".
-func readyOldCorpus(tree string) (help, usage string, err error) {
+// errors (cli.yaml 19, …)"; cases holds each corpus file's case names, by its
+// base name, which Changes: entries are read against.
+func readyOldCorpus(tree string) (help, usage string, cases map[string][]string, err error) {
 	cmd := exec.Command("node", "--input-type=module", "-")
 	cmd.Dir = tree
 	cmd.Env = env()
@@ -356,13 +370,16 @@ func readyOldCorpus(tree string) (help, usage string, err error) {
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
 	if err != nil {
-		return "", "", fmt.Errorf("node: %v\n%s", err, stderr.String())
+		return "", "", nil, fmt.Errorf("node: %v\n%s", err, stderr.String())
 	}
-	var touched struct{ Help, Usage map[string]int }
+	var touched struct {
+		Help, Usage map[string]int
+		Names       map[string][]string
+	}
 	if err := json.Unmarshal(out, &touched); err != nil {
-		return "", "", fmt.Errorf("node said %q: %v", out, err)
+		return "", "", nil, fmt.Errorf("node said %q: %v", out, err)
 	}
-	return counted(touched.Help, "help case", "help cases"), counted(touched.Usage, "usage error", "usage errors"), nil
+	return counted(touched.Help, "help case", "help cases"), counted(touched.Usage, "usage error", "usage errors"), touched.Names, nil
 }
 
 // counted says how many cases counts holds, and how many in each file:
@@ -655,8 +672,9 @@ func eachScenario(dir string, fn func(name, id string)) error {
 }
 
 // excuse is why a failure is accepted, or "" when nothing excuses it; named
-// is a feat that names it in Changes:, which never excuses one.
-func excuse(f failure, commits []commit) (why string, named *commit) {
+// is a feat that names it in Changes:, which never excuses one. cases are the
+// release's corpus's case names, by file.
+func excuse(f failure, commits []commit, cases map[string][]string) (why string, named *commit) {
 	for i := range commits {
 		c := &commits[i]
 		if c.Breaking {
@@ -665,7 +683,7 @@ func excuse(f failure, commits []commit) (why string, named *commit) {
 	}
 	for i := range commits {
 		c := &commits[i]
-		if !names(c.Changes, f.Key) {
+		if !names(c.Changes, f.Key, cases) {
 			continue
 		}
 		if c.Type == "fix" {
@@ -679,8 +697,9 @@ func excuse(f failure, commits []commit) (why string, named *commit) {
 }
 
 // names is whether a commit's Changes: entries name key: a scenario by its ID
-// among the entry's words, a case by its file and its name.
-func names(entries []string, key string) bool {
+// among the entry's words, a case by its file and its name or a prefix of it
+// (caseNamed).
+func names(entries []string, key string, cases map[string][]string) bool {
 	for _, e := range entries {
 		if ids, ok := entryIDs(e); ok {
 			for _, id := range ids {
@@ -688,8 +707,10 @@ func names(entries []string, key string) bool {
 					return true
 				}
 			}
-		} else if file, name, ok := entryCase(e); ok && caseKey(file, name) == key {
-			return true
+		} else if file, name, ok := entryCase(e); ok {
+			if named, _ := caseNamed(file, name, cases); named != "" && caseKey(file, named) == key {
+				return true
+			}
 		}
 	}
 	return false
@@ -726,9 +747,44 @@ func entryCase(entry string) (file, name string, ok bool) {
 	return m[1], m[2], true
 }
 
+// caseNamed is the name of the release's corpus case a Changes: entry
+// <file>.yaml: <name> names, cases holding each corpus file's case names: the
+// case whose name is name, or else the one case whose name starts with it. It
+// is "" when the entry names none, and why says how, in words that follow "the
+// release's <file>": no such file, no case its name starts, or several.
+func caseNamed(file, name string, cases map[string][]string) (named, why string) {
+	all, ok := cases[filepath.Base(file)]
+	if !ok {
+		return "", "no such file"
+	}
+	var started []string
+	for _, c := range all {
+		c = strings.TrimSpace(c)
+		if c == name {
+			return c, ""
+		}
+		if strings.HasPrefix(c, name) {
+			started = append(started, c)
+		}
+	}
+	switch len(started) {
+	case 1:
+		return started[0], ""
+	case 0:
+		return "", fmt.Sprintf("has no case %q", name)
+	}
+	quoted := make([]string, len(started))
+	for i, c := range started {
+		quoted[i] = fmt.Sprintf("%q", c)
+	}
+	return "", fmt.Sprintf("has %d cases whose names start %q (%s): it is ambiguous, so it names none of them",
+		len(started), name, strings.Join(quoted, ", "))
+}
+
 // warnChanges prints each Changes: entry since the tag that names no scenario
-// or case of the release, or is neither form.
-func warnChanges(tag, tree string, commits []commit, ids map[string]bool) {
+// or case of the release, names a case by a prefix several of them share, or
+// is neither form.
+func warnChanges(tag string, commits []commit, ids map[string]bool, cases map[string][]string) {
 	for _, c := range commits {
 		for _, e := range c.Changes {
 			var why string
@@ -743,12 +799,10 @@ func warnChanges(tag, tree string, commits []commit, ids map[string]bool) {
 					why = fmt.Sprintf("%s is no scenario of %s", strings.Join(unknown, ", "), tag)
 				}
 			} else if file, name, ok := entryCase(e); ok {
-				text, err := os.ReadFile(filepath.Join(tree, "tools/itos/conformance", filepath.Base(file)))
-				switch {
-				case err != nil:
+				if _, known := cases[filepath.Base(file)]; !known {
 					why = fmt.Sprintf("%s has no corpus file %s", tag, filepath.Base(file))
-				case !bytes.Contains(text, []byte(name)):
-					why = fmt.Sprintf("%s's %s has no case %q", tag, filepath.Base(file), name)
+				} else if named, how := caseNamed(file, name, cases); named == "" {
+					why = fmt.Sprintf("%s's %s %s", tag, filepath.Base(file), how)
 				}
 			} else {
 				why = "it is neither scenario IDs (@ID-…) nor a corpus case (<file>.yaml: <case name>)"
@@ -761,14 +815,14 @@ func warnChanges(tag, tree string, commits []commit, ids map[string]bool) {
 }
 
 // report prints each failure, accepted or not, and gives the exit status.
-func report(tag string, failures []failure, commits []commit, features, corpus suite) int {
+func report(tag string, failures []failure, commits []commit, cases map[string][]string, features, corpus suite) int {
 	if len(failures) == 0 {
 		fmt.Printf("%s: this tree's itos keeps every promise of %s's scenarios and corpus\n", self, tag)
 		return 0
 	}
 	var refused []string
 	for _, f := range failures {
-		why, named := excuse(f, commits)
+		why, named := excuse(f, commits, cases)
 		if why != "" {
 			fmt.Printf("%s: %s's %s fails, accepted: %s\n", self, tag, f.What, why)
 			continue
@@ -794,10 +848,11 @@ func report(tag string, failures []failure, commits []commit, features, corpus s
 	fmt.Fprintf(os.Stderr, "\n%s: %d of %s's scenarios and cases fail against this tree's itos, and no commit since %s says why:\n"+
 		"  the behaviour each promised has changed, and the release would ship it as a minor or a patch.\n"+
 		"  If a fix changed it and the old scenario or case held the bug, name each in a fix's Changes: footer\n"+
-		"  (itos commit --changes '@ID-…', or --changes '<file>.yaml: <case name>' for a case), so the release\n"+
-		"  stays a patch; a feat's Changes: never excuses one. Otherwise mark the change as breaking with a\n"+
-		"  BREAKING-CHANGE: footer saying what a consumer must change (itos commit --breaking '<what to change>')\n"+
-		"  or a ! in its header (feat!: …), so the release is a major; or keep the old behaviour.\n",
+		"  (itos commit --changes '@ID-…', or --changes '<file>.yaml: <case name>' for a case, its name or a\n"+
+		"  prefix of it no other case of the file starts with), so the release stays a patch; a feat's\n"+
+		"  Changes: never excuses one. Otherwise mark the change as breaking with a BREAKING-CHANGE: footer\n"+
+		"  saying what a consumer must change (itos commit --breaking '<what to change>') or a ! in its\n"+
+		"  header (feat!: …), so the release is a major; or keep the old behaviour.\n",
 		self, len(refused), tag, tag)
 	return 1
 }
