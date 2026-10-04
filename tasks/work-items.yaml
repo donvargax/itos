@@ -4515,3 +4515,28 @@ items:
       (internal/guide/coordinate.md) gains one line naming the file, the nudge to keep such notes
       there, since an empty file prints nothing. No itos notes command: it is a plain file.
     refs: [features/guide.feature]
+
+  - id: p1-ask-record-decisions
+    title: itos ask record writes an answered question as an ADR, and itos ask nudges toward it
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's calls (2026-10-04). Decisions a human can find: the user's calls sat in item whys
+      (85 in the registry, 28 in PLAN.md), unreadable to a person and lost once p1-registry-archive
+      drops done items. ADRs on demand, never written by agents unasked, to avoid sprawl: an
+      answered itos ask question is already a decision (question as Context, answer as Decision, its
+      date and item). itos ask prints one line naming the answered questions recorded nowhere else;
+      itos ask record <id> writes the next ADR from it and notes the ADR on the question, committing
+      both; --supersedes <n> marks the old ADR in both files; --none marks an answer that concerned
+      only its item, so it stops nudging. Format is adr-tools' (npryce/adr-tools, read 2026-10-04:
+      NNNN-slug.md, Nygard's Date, Status, Context, Decision, Consequences, links in the Status
+      section) so a repository already using adr-tools or log4brains works unchanged; the folder is
+      docs/adr/ by default, and a .adr-dir file is honoured as adr-tools does. An index lists the
+      live decisions only, so an agent never wades through superseded ones. Checks a command can
+      decide: numbers unique, supersede links valid both ways, the index matching the files.
+      adr-tools itself is not used: bash only (itos runs on Windows), unmaintained since 2020, and
+      it checks nothing.
+    refs: [internal/ask, features]
