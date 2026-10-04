@@ -9,3 +9,5 @@ questions:
   - id: q-3
     item: "p1-follow-reopen"
     question: "A closed itos follow thread: reopen it with an explicit itos follow reopen <id> (the coordinator's recommendation, so a late note does not bring it back by accident), or let any note reopen it?"
+  - id: q-4
+    question: "When do the other repositories move to the current itos (by hand from a release's notes, or with itos pin)?"
