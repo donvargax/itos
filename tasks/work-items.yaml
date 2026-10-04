@@ -3580,14 +3580,15 @@ items:
       lacks, are refused. The last registry item added by hand, since slice 54 builds work add.
     refs: [features/task.feature, internal/ledger/, internal/work/write.go]
 
-  - id: p1-skill-work-add
+  - id: T-082
     title: The plugin skill names itos work add and edit, so agents record gaps through them
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-54]
-    kind: idea
+    kind: task
     why: >
+      Was p1-skill-work-add.
       Found by slice 54's agent: integrations/claude-code/skills/itos/SKILL.md names itos work take,
       done and list, but not work add and work edit, so an agent in another repository still adds
       the ideas it finds by editing the registry's YAML by hand, which slice 54 made unnecessary. A
