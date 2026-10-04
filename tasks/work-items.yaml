@@ -44,6 +44,7 @@ phases:
   3: donvargax
 
 queue:
+  - bug-17
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
   - p1-done-body-url-footer
