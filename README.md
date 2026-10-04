@@ -199,7 +199,8 @@ cache (`itos/` in your user cache folder by default).
 repository, or in a folder that is not one yet (it runs `git init` first),
 writes a starter `itos.yaml` at its top, small and commented: the Conventional
 Commits types under itos's own header lint, a `Task:` footer that every type
-but `feat` and `fix` needs, `commits.since` at HEAD so no commit written before
+but `feat`, `fix` and `docs` needs, `docs` held to Markdown, `docs/` and
+`tasks/` so that it cannot skip the footer for code, `commits.since` at HEAD so no commit written before
 it is judged, and the hooks calling the global `itos`; a ledger,
 `tasks/phase-1.yaml`, holding `T-1`, the task the commit that adds all this
 names, and an empty work registry, `tasks/work-items.yaml`; and when
@@ -209,7 +210,7 @@ file. A file already there is kept. It pins the newest release, as `itos pin`
 does (where it cannot reach the release server it pins nothing and says so),
 then installs the hooks, as `itos hooks install` does. Commit what it wrote
 with `itos commit --task T-1 -m 'chore: adopt itos'`, and grow the config from
-there: path scopes, a CI plan, the people. Run again where a config is, it
+there: more path scopes, a CI plan, the people. Run again where a config is, it
 writes nothing and lists what is missing (what `itos config check` finds, a
 hook that does not call itos, with the command that puts it right), exiting 1
 when anything is, so it doubles as a check. `itos init --stealth` does the

@@ -840,8 +840,9 @@ build or install script answers, and through the launcher its pin picks the vers
 no answer from the launcher rather than a block (slice 44, §7). `itos init` (slice 48) makes a repository ready,
 new (`git init` first) or existing: where there is no config, a starter `itos.yaml`, small and
 commented (the Conventional Commits types under the built-in header lint, a `Task` footer every
-type but feat and fix needs, `commits.since` at HEAD so history written before itos is never
-judged, `hooks.bin: itos`, no path scopes, which are each project's own), a ledger holding `T-1`,
+type but feat, fix and docs needs, `commits.since` at HEAD so history written before itos is never
+judged, `hooks.bin: itos`, one path scope, docs's to Markdown, `docs/` and the ledger's folder so
+docs cannot skip the footer for code (bug 12), the rest each project's own), a ledger holding `T-1`,
 the task the adoption commit names (kept, the user's call, 2026-10-03; under `--stealth` the
 ledger starts empty, since nothing is committed), and an empty registry under `tasks/`, a `Scenarios` footer and
 a smoke set naming each file's first live scenario when feature files exist (the footer required

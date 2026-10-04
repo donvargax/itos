@@ -59,8 +59,8 @@ cases:
 
         # No pin: the itos called runs. itos pin pins the newest release.
 
-        # The tasks: every commit but a feat or a fix names one in its Task footer
-        # (itos commit --task T-1), and itos task T-1 runs its checks.
+        # The tasks: every commit but a feat, a fix or a docs names one in its Task
+        # footer (itos commit --task T-1), and itos task T-1 runs its checks.
         ledger:
           files: "tasks/phase-{group}.yaml" # one file per phase: tasks/phase-1.yaml, …
           id: "T-\\d+"
@@ -73,19 +73,23 @@ cases:
           footers:
             Task:
               source: ledger
-              required_for: [refactor, perf, test, build, ci, chore, docs, style, revert]
+              required_for: [refactor, perf, test, build, ci, chore, style, revert]
               validate_for: all # a task named must be in the ledger
               read_at: commit # judged against the ledger the commit carries
           # Where verification starts: this commit and the ones before it, written
           # before itos, are never judged.
           since: "{{sha.start}}"
-          # No path scopes yet: commits.scopes holds which paths each type may touch.
+          # Which paths each type may touch. docs needs no Task footer, so it may
+          # touch only Markdown, docs/ and itos's data in tasks/; the rest, anything.
+          scopes:
+            docs: { only: ["**/*.md", "docs/**", "tasks/**"] }
 
         hooks:
           bin: itos # the hooks call the global itos, which runs the release pinned
       tasks/phase-1.yaml: |
-        # The ledger's phase 1: the tasks that drive every commit but a feat or a fix,
-        # each named in its commit's Task footer (itos commit --task T-2). A task:
+        # The ledger's phase 1: the tasks that drive every commit but a feat, a fix or
+        # a docs, each named in its commit's Task footer (itos commit --task T-2).
+        # A task:
         #
         #   - id: T-2
         #     type: chore # one of commits.types
@@ -348,8 +352,8 @@ cases:
 
         # No pin: the itos called runs. itos pin pins the newest release.
 
-        # The tasks: every commit but a feat or a fix names one in its Task footer
-        # (itos commit --task T-1), and itos task T-1 runs its checks.
+        # The tasks: every commit but a feat, a fix or a docs names one in its Task
+        # footer (itos commit --task T-1), and itos task T-1 runs its checks.
         ledger:
           files: "tasks/phase-{group}.yaml" # one file per phase: tasks/phase-1.yaml, …
           id: "T-\\d+"
@@ -362,7 +366,7 @@ cases:
           footers:
             Task:
               source: ledger
-              required_for: [refactor, perf, test, build, ci, chore, docs, style, revert]
+              required_for: [refactor, perf, test, build, ci, chore, style, revert]
               validate_for: all # a task named must be in the ledger
               read_at: commit # judged against the ledger the commit carries
             # The scenarios a feat or a fix turns green, by their ID tags
@@ -380,7 +384,10 @@ cases:
           # Where verification starts: this commit and the ones before it, written
           # before itos, are never judged.
           since: "{{sha.start}}"
-          # No path scopes yet: commits.scopes holds which paths each type may touch.
+          # Which paths each type may touch. docs needs no Task footer, so it may
+          # touch only Markdown, docs/ and itos's data in tasks/; the rest, anything.
+          scopes:
+            docs: { only: ["**/*.md", "docs/**", "tasks/**"] }
 
         # The named tests: the scenarios of the feature files under features/, each
         # with an ID tag such as @ID-PAGE-01, and a smoke set naming one of each file.

@@ -3,18 +3,21 @@ package cli
 // The starter itos init writes where there is no config (slice 48): small and
 // commented, for a person to read and grow. The Conventional Commits types
 // under itos's own header lint; a Task footer from the ledger that every type
-// but feat and fix needs; when features/ holds feature files, a scenario kind
-// whose Scenarios footer feat and fix need, with a smoke set, the footer
-// required of no type while no scenario carries an ID tag (slice 50: most
-// Cucumber projects tag none, and every feat would be refused with nothing
-// to name); commits.since
-// at HEAD, so no commit written before itos is judged; hooks.bin itos, the
-// global launcher, as a consumer has no wrapper of its own; the pin, when the
-// release server answered. No path scopes: they are each project's own. The
-// people file is left to its default, which config check only warns of.
+// but feat, fix and docs needs, since itos's own registry and ledger commands
+// commit docs with none (bug 12); when features/ holds feature files, a
+// scenario kind whose Scenarios footer feat and fix need, with a smoke set,
+// the footer required of no type while no scenario carries an ID tag (slice
+// 50: most Cucumber projects tag none, and every feat would be refused with
+// nothing to name); commits.since at HEAD, so no commit written before itos
+// is judged; hooks.bin itos, the global launcher, as a consumer has no
+// wrapper of its own; the pin, when the release server answered. One path
+// scope, docs's, so a change labelled docs to skip the Task footer is
+// refused; the rest are each project's own. The people file is left to its
+// default, which config check only warns of.
 
 import (
 	"fmt"
+	"path"
 	"strings"
 )
 
@@ -72,8 +75,8 @@ pin:
 	default:
 		b.WriteString("# No pin: the itos called runs. itos pin pins the newest release.\n\n")
 	}
-	b.WriteString(`# The tasks: every commit but a feat or a fix names one in its Task footer
-# (itos commit --task T-1), and itos task T-1 runs its checks.
+	b.WriteString(`# The tasks: every commit but a feat, a fix or a docs names one in its Task
+# footer (itos commit --task T-1), and itos task T-1 runs its checks.
 ledger:
   files: "tasks/phase-{group}.yaml" # one file per phase: tasks/phase-1.yaml, …
   id: "T-\\d+"
@@ -86,7 +89,7 @@ commits:
   footers:
     Task:
       source: ledger
-      required_for: [refactor, perf, test, build, ci, chore, docs, style, revert]
+      required_for: [refactor, perf, test, build, ci, chore, style, revert]
       validate_for: all # a task named must be in the ledger
       read_at: commit # judged against the ledger the commit carries
 `)
@@ -125,8 +128,19 @@ commits:
 	} else {
 		b.WriteString("  # No since: the repository had no commit, so every commit is judged.\n")
 	}
-	b.WriteString(`  # No path scopes yet: commits.scopes holds which paths each type may touch.
-`)
+	// docs may touch Markdown, docs/ and, in a project, itos's data beside the
+	// ledger; the stealth data is in the git folder, which no commit touches.
+	data := path.Dir(starterLedger)
+	touch, only := "Markdown and docs/", `"**/*.md", "docs/**"`
+	if !s.stealth {
+		touch = "Markdown, docs/ and itos's data in " + data + "/"
+		only += fmt.Sprintf(", %q", data+"/**")
+	}
+	fmt.Fprintf(&b, `  # Which paths each type may touch. docs needs no Task footer, so it may
+  # touch only %s; the rest, anything.
+  scopes:
+    docs: { only: [%s] }
+`, touch, only)
 	if s.scenarios {
 		b.WriteString(`
 # The named tests: the scenarios of the feature files under features/, each
@@ -148,8 +162,9 @@ hooks:
 // ledger is the ledger's first file: a commented task, and in a project the
 // task its adoption commit names.
 func (s starter) ledger() string {
-	text := `# The ledger's phase 1: the tasks that drive every commit but a feat or a fix,
-# each named in its commit's Task footer (itos commit --task T-2). A task:
+	text := `# The ledger's phase 1: the tasks that drive every commit but a feat, a fix or
+# a docs, each named in its commit's Task footer (itos commit --task T-2).
+# A task:
 #
 #   - id: T-2
 #     type: chore # one of commits.types

@@ -279,7 +279,7 @@ Feature: itos init, a repository made ready for itos
   # the one path scope the starter has, Markdown, docs/ and itos's own data
   # beside the ledger, so a change labelled docs to skip the footer is still
   # refused (@ID-INIT-31); every other type stays unscoped.
-  @ID-INIT-23 @bug-12 @wip
+  @ID-INIT-23 @bug-12
   Scenario: In a repository init set up, work add writes the first item into the empty registry, in phase 1
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"
@@ -291,7 +291,7 @@ Feature: itos init, a repository made ready for itos
     When itos checks the work registry
     Then itos exits with code 0
 
-  @ID-INIT-24 @bug-12 @wip
+  @ID-INIT-24 @bug-12
   Scenario: In a repository init set up, task add writes the first item into the empty registry
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"
@@ -377,7 +377,7 @@ Feature: itos init, a repository made ready for itos
     Then the file "AGENTS.md" says "deps" between the markers
     And the file "AGENTS.md" has the line "Be kind to the build."
 
-  @ID-INIT-31 @bug-12 @wip
+  @ID-INIT-31 @bug-12
   Scenario: In a repository init set up, a docs commit touching code is refused, so docs cannot skip the Task footer
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"
