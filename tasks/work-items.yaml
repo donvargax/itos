@@ -3687,7 +3687,11 @@ items:
       repository fails (the registry cannot be edited in place); a ledger file holding [] fails the
       same way. No command adds a phase either, so a new phase is still a hand edit before task add
       can use it. Found building slice 55.
-    refs: [internal/value/docedit.go, internal/cli/starter.go]
+
+      Specified as @ID-INIT-23 to 25 in features/init.feature: init lists phase 1, owned by nobody,
+      and work add and task add write the first entry into an empty list. A command that adds a
+      phase is p1-work-add-phase.
+    refs: [features/init.feature, internal/value/docedit.go, internal/cli/starter.go]
 
   - id: p1-commit-rollback-tested
     title: The registry and ledger commands' rollback is tested, and has no holes
