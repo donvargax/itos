@@ -45,6 +45,7 @@ phases:
 
 queue:
   - slice-67
+  - p1-orchestrating-own-notes
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
