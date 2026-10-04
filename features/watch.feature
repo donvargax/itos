@@ -120,8 +120,8 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
   # and returns, naming itos ci watch for anyone who wants that run; any
   # other path in the range, prose included, waits as before, since a prose
   # range can fail (vp check did, the day this was written).
-  @ID-WATCH-10 @slice-56 @wip
-  Scenario: A push whose commits touch only the work registry does not wait for CI, and says how to
+  @ID-WATCH-10 @slice-56
+  Scenario: A push whose commits touch only the work registry does not wait for CI, and says how to wait for it
     Given the watched run's jobs "ci" and "platform" succeed
     And the clone has the commit "docs: take slice-9" touching "tasks/work-items.yaml"
     When itos runs "push"
@@ -130,7 +130,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     And its output says "itos ci watch"
     And the remote's branch has "docs: take slice-9"
 
-  @ID-WATCH-11 @slice-56 @wip
+  @ID-WATCH-11 @slice-56
   Scenario: A push whose commits touch the registry and anything else waits as before
     Given the watched run's jobs "ci" and "platform" succeed
     And the clone has the commit "docs: take slice-9" touching "tasks/work-items.yaml"

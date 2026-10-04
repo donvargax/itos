@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/donvargax/itos/v2/internal/config"
@@ -149,7 +151,7 @@ func push(args []string, o Out) (int, error) {
 			return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s.", branch, r.upstream()))
 		}
 	}
-	return r.push(remote, ref)
+	return r.push(remote, ref, onto)
 }
 
 // ready is whether the working tree can be pulled into: no rebase in
@@ -232,8 +234,9 @@ func (r pushRun) rebase(onto string) (int, bool, error) {
 }
 
 // push pushes HEAD to the upstream's branch: the pre-push hook runs, and a
-// refusal is reported with git's exit code.
-func (r pushRun) push(remote, ref string) (int, error) {
+// refusal is reported with git's exit code. onto is the upstream's commit
+// the branch was rebased onto, empty when the push makes the branch.
+func (r pushRun) push(remote, ref, onto string) (int, error) {
 	argv := []string{"push"}
 	if r.o.Quiet {
 		argv = append(argv, "--quiet")
@@ -253,15 +256,18 @@ func (r pushRun) push(remote, ref string) (int, error) {
 	if r.noWait {
 		return r.report(0, "pushed", pushed)
 	}
-	return r.wait(remote, pushed)
+	return r.wait(remote, onto, pushed)
 }
 
 // wait waits for the CI run of the commit pushed when ci.watch has a
 // provider, and exits with the run's result; with no config, or none, it
 // reports the push as before. The commits are pushed whatever the run says.
 // A config that cannot be read leaves the push as it was, saying why
-// nothing was watched.
-func (r *pushRun) wait(remote, pushed string) (int, error) {
+// nothing was watched. A push whose commits touch only the work registry
+// is not waited for either (slice 56): itos wrote and checked those
+// commits, an item's take and its close, and a run for each made one item
+// cost three waits; it says how to wait for that run all the same.
+func (r *pushRun) wait(remote, onto, pushed string) (int, error) {
 	file := config.Path()
 	if _, err := os.Stat(file); err != nil {
 		return r.report(0, "pushed", pushed)
@@ -273,6 +279,10 @@ func (r *pushRun) wait(remote, pushed string) (int, error) {
 	}
 	sha, _ := git.Output("rev-parse", "HEAD")
 	sha = strings.TrimSpace(sha)
+	if cfg.CI.Watch.Provider != "none" && registryOnly(onto, cfg.Work.Registry) {
+		return r.report(0, "pushed", pushed,
+			fmt.Sprintf("Its commits touch only %s, so its CI run is not waited for; itos ci watch %s waits for it.", cfg.Work.Registry, sha))
+	}
 	look, ok, err := watcher(cfg, remote, r.o)
 	if !ok && err == nil {
 		return r.report(0, "pushed", pushed)
@@ -291,6 +301,35 @@ func (r *pushRun) wait(remote, pushed string) (int, error) {
 		return r.report(r.watched.code, "pushed")
 	}
 	return r.watched.code, nil
+}
+
+// registryOnly is whether the commits the push added to the upstream's
+// branch, onto..HEAD, touch the work registry and no other path. A push
+// that makes the branch has no onto, and is never registry-only: what it
+// adds is not known without the remote's other branches. A merge counts
+// what it brought in against its first parent, and a commit that touches
+// no path adds nothing to the answer.
+func registryOnly(onto, registry string) bool {
+	if onto == "" {
+		return false
+	}
+	text, err := git.Output("log", "--format=", "--name-only", "--no-renames", "--diff-merges=first-parent", onto+"..HEAD")
+	if err != nil {
+		return false
+	}
+	registry = path.Clean(filepath.ToSlash(registry))
+	touched := false
+	for _, f := range strings.Split(text, "\n") {
+		f = strings.TrimSpace(f)
+		if f == "" {
+			continue
+		}
+		if path.Clean(f) != registry {
+			return false
+		}
+		touched = true
+	}
+	return touched
 }
 
 // run runs git, its stdout the run's, its stderr to stderr, and gives its
