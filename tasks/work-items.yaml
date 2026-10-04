@@ -3621,3 +3621,19 @@ items:
       paths. Findings come to the coordinator, who files them with itos work add or drops them.
       Tried first on slice 54; if it finds things worth fixing it becomes a standing step and later
       a reviewer agent shipped in the plugin.
+
+  - id: p3-coordinator-skill
+    title: ORCHESTRATING.md becomes the itos plugin's /itos:coordinate skill and itos:implementer agent
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [p1-handoff-status, slice-57]
+    kind: idea
+    why: >
+      The user's calls (2026-10-03): the coordinator's guide is itos's, not a project's. What a
+      command can decide becomes a gate; the judgment left becomes a skill shipped in the plugin
+      with disable-model-invocation: true, so only the user starts it (/itos:coordinate) and no
+      implementer can load it; implementers are spawned as itos:implementer, a plugin agent whose
+      definition carries the implementer rules and preloads the itos skill. A thin layer, not
+      specialist agents. ORCHESTRATING.md is deleted, and docs/HANDOFF.md once itos status covers
+      it. The last item before the user puts itos in their other repositories.
