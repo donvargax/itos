@@ -692,7 +692,7 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   `<name>` (so the first folder's, and no built-in), sorted, between the
   commands and the global flags, and nothing when there is none, so the
   corpus's main help case is the help with an empty `PATH` of extensions.
-- **itos commit** (`internal/cli/gitcommit.go`, slices 31, 36 and 37):
+- **itos commit** (`internal/cli/gitcommit.go`, slices 31, 36, 37 and 58):
   `commit` in the command table hands its arguments to a subcommand when the
   first names one (`commitSubcommands`) and to `gitCommit` otherwise, which
   first loads the config (`commitConfig`: none, with no error, where there
@@ -712,17 +712,26 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   config's order, then `BREAKING-CHANGE: <text>`, the form git reads as a
   trailer. `readGitArgs` reads git's own arguments as git reads them (a
   valued option's value skipped, `gitValued` and `gitShortValued`, so
-  `-m --amend` is a message): the `-m` messages, the `-F` file, `--amend`
-  and `--no-edit`. `lacking` refuses up front what the hook would: from the
+  `-m --amend` is a message): the `-m` messages, the `-F` file, each with
+  where its value sits (`valueAt`), `--amend` and `--no-edit`. `lacking` refuses up front what the hook would: from the
   message itos can read (`-m`, `-F <file>`, or HEAD's for
   `--amend --no-edit`; nothing for the editor's or `-F -`), its type's
   required footers that neither it nor the flags give
   (`message.Missing`), each named by its flag (`message.Flag`); under a
   stealth config the links are only the flags', or for an amend that gives
   none HEAD's note, as the hook will read them. `refuseCommit` reports them
-  as a rejection, exit 1, before git runs. `trailers` makes each line a
-  `--trailer`, which git applies before the editor and the commit-msg
-  hook, under `-c trailer.ifExists=addIfDifferent`, so a footer the message
+  as a rejection, exit 1, before git runs. `wrapBody` (slice 58) then
+  wraps the message to `message.BodyLimit`, the built-in lint's 100 and 0
+  for no lint or a delegate: `message.Wrap` reads the `-m` paragraphs as
+  one message, git's blank line between them, keeps the header, every line
+  from the first the lint reads as a footer, comment and indented lines and
+  lines within the limit, and breaks the rest greedily at spaces, a list
+  item's continuation indented by its marker's width; each `-m` value is
+  rewritten in its argument, and an `-F` text (stdin's for `-F -`) goes to
+  a temporary file named in its place, removed once git exits. `trailers`
+  makes each line a `--trailer`, which git applies before the editor and
+  the commit-msg hook, under `-c trailer.ifExists=addIfDifferent`, so a
+  footer the message
   already has, an amend's, is not written again. That is the one step the
   stealth mode changes (slice 32): under a stealth config
   (`config.IsStealth`) the links go to the hook in `ITOS_FOOTERS`

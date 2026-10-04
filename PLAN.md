@@ -429,7 +429,15 @@ runs, a commit whose type requires a footer that neither its flags nor its
 message give is refused (exit 1, nothing committed), naming the flag; the
 type is read from `-m`, `-F <file>`, or HEAD's message for
 `--amend --no-edit`, and a message from the editor or `-F -` is left to the
-hook, which still judges every commit made any other way. git runs with
+hook, which still judges every commit made any other way. A body line
+longer than the built-in header lint's limit (100), in a message from `-m`,
+`-F <file>` or `-F -`, is broken at word boundaries before git sees it
+(slice 58, the coordinator's calls of 2026-10-04): a list item's
+continuation lines indented to its text; the header, the footers, comment
+and indented lines and lines within the limit left as written; lines never
+joined, and a word longer than the limit left whole for the lint. No header
+lint, or a delegate whose limit itos cannot read, wraps nothing, and the
+editor's message is the hook's. git runs with
 `trailer.ifExists=addIfDifferent`, so `itos commit --amend --task T-001` on
 a commit carrying `Task: T-001` leaves one footer. Under a stealth config
 only the links go to the note; content stays in the message, where the

@@ -4021,3 +4021,29 @@ items:
       misses the spec as written. Which commits belong is the user's call; the coordinator
       recommends counting a commit that adds or changes a scenario tagged @<id>, which needs no new
       footer.
+
+  - id: p1-commit-wrap-hook
+    title: The commit-msg hook wraps a long body line, as itos commit does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-58]
+    kind: idea
+    why: >
+      Left by slice 58: itos commit wraps the body of a message from -m or -F, but the editor's
+      message, and every commit made by plain git commit, still reach the hook unwrapped and are
+      refused for a line over 100. git lets a commit-msg hook rewrite the message file, so the hook
+      could apply the same message.Wrap before the built-in lint judges it.
+
+  - id: p1-commit-wrap-delegate-limit
+    title: A delegated header lint can say its body line limit, so itos commit wraps under it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-58]
+    kind: idea
+    why: >
+      Left by slice 58: only the built-in lint's limit wraps, since itos cannot read commitlint's or
+      cog's; a project that delegates its lint gets no wrapping. A key beside the delegate (say
+      commits.header_lint.body_max_line_length) would give the limit; worth it only if a consumer
+      with a delegate asks.
