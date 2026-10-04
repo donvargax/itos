@@ -4466,3 +4466,18 @@ items:
       the queue, so a reader of one item, or the plugin's titles, cannot see its place without
       reading the YAML.
     refs: [internal/work/show.go]
+
+  - id: p1-status-releases-nightly
+    title: itos status adds the newest releases, what is unreleased, the last nightly and the last green run
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-67]
+    kind: idea
+    why: >
+      The user's call of 2026-10-04 named, for the first slice of itos status, the newest releases
+      and what is unreleased (the feat and fix commits since the last tag), the last nightly and
+      whether it is red, and main's last green run beside any run going; the spec slice 67 built
+      (@ID-STATUS-01 to 05) left them out, so status reads only the head's own run. Until they join
+      it, docs/HANDOFF.md still carries the release and the nightly by hand.
+    refs: [features/status.feature]
