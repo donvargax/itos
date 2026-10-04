@@ -3791,3 +3791,16 @@ items:
       repository, judging it by the session's folder, which itos manages; the agent's next command,
       without its cd, then ran in the coordinator's worktree. The guard should follow a leading cd
       (and git -C, already handled) to the folder the git command runs in.
+
+  - id: p1-push-superseded-run
+    title: itos push and itos ci watch follow a run that a newer push superseded
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found 2026-10-03: the coordinator's push of d065f5b exited 1 with CI cancelled, since the next
+      push's run (68c3bcf, which contained it) cancelled it by the workflow's concurrency; nothing
+      had failed. A cancelled run whose commit a newer run on a descendant covers should be
+      followed, or reported as superseded with that run, not as a failure.
