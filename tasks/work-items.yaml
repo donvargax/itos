@@ -4330,3 +4330,25 @@ items:
       developer's global itos rather than the one under test, and failed only in CI. Hiding itos
       there, and putting the itos under test on the PATH only where a step asks (itosOnPath), would
       catch it before the push.
+
+  - id: p1-orchestrating-own-notes
+    title: docs/ORCHESTRATING.md keeps only what is this repository's own
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-64]
+    kind: idea
+    why: >
+      itos go now prints the generic coordinator's guide (internal/guide/coordinate.md, slice 64)
+      and then appends docs/ORCHESTRATING.md, so the file repeats the guide. Cut it to what holds
+      here alone: the consumer-report inbox (tools/bin/inbox.ts, its allow-list, itos-accepted, no
+      workflow labelling issues); the nightly read first (gh run list --workflow nightly.yml, the
+      Nightly red issue); docs/HANDOFF.md and its update after every landing; vp run work and
+      tasks/work-items.yaml by path; parallel worktrees' node_modules symlink and vp config --hooks;
+      the dropped docs worktree and the git fsck recovery of a lost tree; the brief's lines on
+      PLAN.md, tasks/README.md, previous-release and Changes footers, and the slice's neighbours'
+      tags; and the Lessons tied to this repository (checkpoint pushes red by a task's checks,
+      after: push checks, ci.nightly_only, releases cut by T-069 and the Upgrading and
+      BREAKING-CHANGE footers, compatibility before a major release, the rtk rewrite of git pull,
+      the three-platform CI).
+    refs: [docs/ORCHESTRATING.md, internal/guide/coordinate.md]
