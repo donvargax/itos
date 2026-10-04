@@ -3577,3 +3577,16 @@ items:
       with itos work edit <id> --note …, with the plugin's minor version raised in a chore commit
       (T-074's rule).
     refs: [integrations/claude-code/skills/itos/SKILL.md]
+
+  - id: slice-56
+    title: itos push returns at once for a range that touches only the work registry
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified as @ID-WATCH-10 and 11 in features/watch.feature (the user's call, 2026-10-03): an
+      item's take and close are registry-only commits itos wrote and checked, and waiting a CI run
+      for each made one item cost three waits. Prose ranges still wait, since they can fail.
+    refs: [features/watch.feature, internal/cli/watch.go]
