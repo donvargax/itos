@@ -12,12 +12,12 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 52 landed (v2.12.0).
+Last updated 2026-10-03, after slice 53 landed (v2.13.0).
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `7d73515` (CI run 37163659790,
-every job, `release` cutting v2.12.0). The coordinator commits docs from
+All work is @donvargax's. `main` is green at `091d58d` (CI run 37164741824,
+every job; v2.13.0 is the newest release). The coordinator commits docs from
 its own worktree, `.claude/worktrees/coord-docs` (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
@@ -37,7 +37,7 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.12.0 (`itos work take` and `itos work promote`, each committing
+Released: v2.13.0 (`itos work done`, slice 53, which closed itself), v2.12.0 (`itos work take` and `itos work promote`, each committing
 the registry alone, slice 52), v2.11.0 (`itos push` waits for CI with `ci.watch`, opt-in, and
 `itos ci watch`, slice 51), v2.10.0 (init's rerun notes a pin behind the newest and a missing
 people file, slice 50's rest), v2.9.0 (`itos init --git-shim`, untagged features need no Scenarios
@@ -54,9 +54,10 @@ One slice at a time, the user's order:
 
 1. The orchestration commands, the user's order (2026-10-03), ahead of the
    rest of init:
-   - **`slice-53`** (`itos work done`, @ID-WORK-15 to 18, `@wip`), then
-     `p1-docs-name-work-take` (the docs and the plugin's skill still say to
-     edit the registry by hand);
+   - **`p1-docs-name-work-take`**: AGENTS.md, ORCHESTRATING.md and the
+     plugin's skill still say to edit the registry by hand (the skill needs a
+     plugin version bump); then `p1-corpus-own-path`, which every agent still
+     works around;
    - **`p1-work-edit`**: `itos work add`, `edit` and `itos task add` write
      the registry and ledger, confirm a new spec's `@wip` scenarios fail
      (`p1-wip-red-first`), and commit, as every one of these commands does;

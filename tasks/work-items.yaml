@@ -3492,3 +3492,33 @@ items:
       nothing proves it for a feature branch, stealth or not. Scenarios: a new branch pushed to
       origin/<branch> with main untouched, and its notes not pushed.
     refs: [features/push.feature, features/stealth.feature]
+
+  - id: p1-done-without-scenarios
+    title: itos work done says when a slice has no @slice scenarios at all
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-53]
+    kind: idea
+    why: >
+      Found by slice 53's agent: a slice with no scenario tagged @slice-<n> passes done's scenario
+      check, since none is @wip (@ID-WORK-18 relies on it). A slice is defined by its scenarios, so
+      none at all is more likely a mistyped tag or a spec never written than a slice that needs
+      none. done could say so (a note, or a refusal unless --no-scenarios), without breaking
+      @ID-WORK-18's promise as released.
+    refs: [internal/cli/workdone.go, features/work.feature]
+
+  - id: p1-corpus-own-path
+    title: The conformance runner runs on a PATH of its own, as the help tests now do
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-077 gave internal/cli's help tests a PATH of their own, but the conformance runner
+      (tools/itos/conformance/run.ts) still reads the caller's, so an itos extension installed
+      there (itos-cc, on the maintainer's machine) adds an Extensions block to itos --help and
+      fails the help cases. Every agent since has run the corpus with that folder off the PATH
+      and said so in its report. The runner should build the binary's PATH from what a case needs.
+    refs: [tools/itos/conformance/run.ts]
