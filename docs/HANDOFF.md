@@ -19,8 +19,8 @@ and the inbox.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `45f4609`, bug 16's close (its fix's CI run 37180129005, every job,
-`release` cutting v2.19.2); the coordinator's registry batch after it is pushed
+All work is @donvargax's. `main` is green at `5c9e514`, slice 62's close (the slice's CI run 37182902311, every job,
+`release` cutting v2.20.0); the coordinator's registry batch after it is pushed
 with this file. The coordinator commits only between
 agents, from the main checkout; its docs worktree was dropped (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
@@ -41,7 +41,7 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.19.2 (one lock keeps every write of two writers at once to follow's threads and a stealth
+Released: v2.20.0 (`itos ask`, the user's questions beside the registry, slice 62), v2.19.2 (one lock keeps every write of two writers at once to follow's threads and a stealth
 config's registry and ledger, bug 16), v2.19.1 (the wrap never starts a line with a footer token, a note or a comment, bug 15), v2.19.0 (`itos follow`, private threads with people, slice 61), v2.18.0 (`itos commit` wraps a long body line under the built-in lint, slice 58), v2.17.0 (`itos work show`, slice 57; plugin 2.7.0), v2.16.0 (`itos push` returns at once for a registry-only range, slice 56), v2.15.3 (work edit writes a list whole, whatever its old shape, bug 14), v2.15.2 (a ledger file deleted but not committed is refused, and the writers'
 rollback is one tested restore, bug 13), v2.15.1 (the first registry item and ledger task written into init's empty lists, bug 12's
 @ID-INIT-25; T-081 let its Changes: footer name the init case by a prefix), v2.15.0 (`itos task add`, slice 55), v2.14.0 (`itos work add` and `edit`, slice 54; `itos work` refusing
@@ -65,14 +65,13 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
 
 1. In order:
    - **`bug-12`** stays open: its fix landed (v2.15.1) with @ID-INIT-25;
-     @ID-INIT-23 and 24 wait on the user's call below, then land as a `fix`
+     @ID-INIT-23 and 24 wait on the user's answer to q-1, then land as a `fix`
      naming them;
    - each landed item gets a read-only review (`p3-post-landing-review`,
      input `itos work show <id> --patch`); slice 57's found
      `p1-work-show-gaps`;
    - the user's calls of 2026-10-04, each to specify as a slice, in this
-     order: **`slice-62`**, `itos ask` (@ID-ASK-01 to 05, @ID-STEALTH-24; the
-     user's questions, public, replacing "Open for the user" below); the **`Item:`
+     order: the **`Item:`
      footer** (`p1-work-show-spec-commits`, which also lets a red-first
      `test:` commit of a slice be made); **`itos go`** (`p3-coordinator-skill`
      as the user settled it: the binary serves the generic guides, a
@@ -80,7 +79,7 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
      **`p1-work-queue-order`** (a top-level `queue:` list);
      **`p1-handoff-status`**'s first slice (`itos status`, the state alone);
      `p1-wip-red-first` is the brief's;
-   - **`p1-push-needs-hooks`** waits on the user (below);
+   - **`p1-push-needs-hooks`** waits on the user (q-2);
      **`slice-60`** below, then `slice-59` (`itos init --agent-rules`,
      deprioritised by the user to see how sessions do with `itos go` alone),
      **`slice-60`** (`itos tests next-id`, `itos task next-id`, @ID-NEXTID-01
@@ -119,28 +118,10 @@ Deferred until itos-cc is published: `p3-role-protocol`, `p3-debt-role`,
 `v3-hooks-bin-default` and `v3-stealth-pre-push` (a stealth config's hooks
 gain the pre-push entry, changing a released corpus case).
 
-Open for the user, blocking bug 12's @ID-INIT-23 and 24: the starter config
-`itos init` writes requires a `Task:` footer of `docs` commits (your call), but
-`work add`, `edit`, `take`, `done` and `task add` commit `docs` with no footer
-on purpose, so every registry command fails under init's own hooks. The
-coordinator recommends dropping `docs` from the starter's `required_for`, as
-this repository's `itos.yaml` does; the alternatives are a hook exemption for
-a `docs` commit touching only the registry and ledger, or a footer on registry
-commits (impossible for an idea, which names no task).
-
-Open for the user, holding `p1-push-needs-hooks`: refusing `itos commit` and
-`itos push` when the hook they rely on cannot run changes what every
-consumer without hooks installed can do, a breaking change by PLAN's rules.
-The coordinator recommends it behind a config key, off by default until
-v3.0.0 (beside `v3-hooks-bin-default`), with the one clear bug (a
-`core.hooksPath` naming a folder that does not exist, where git runs no hook
-without a word) refused at once as a fix.
-
-Also open for the user: when the other repositories move (by hand from a
-release's notes now, or with `itos pin`; `itos init` only reports what an
-existing repository lacks). Whether this repository's hand-written rules in
-`AGENTS.md` become the generated block, once `p3-init-agent-rules` lands (the
-coordinator recommends yes, a small `docs` task).
+**Questions for the user are `itos ask`** (slice 62): `tools/bin/itos ask`
+lists the open ones, each naming the item it holds up; `itos ask answer
+<id> '…'` records an answer. Read them at the start of a session, beside the
+nightly and the inbox.
 
 Agents commit with `tools/bin/itos commit` and push with `tools/bin/itos
 push`, and hand back while their CI watch runs: watch the run yourself, and
@@ -148,21 +129,3 @@ push`, and hand back while their CI watch runs: watch the run yourself, and
 `go run ./tools/bin/previous-release` (ORCHESTRATING's brief). Check a spec
 can fail before the work: three specs this session could not (ID-GUARD-12,
 ID-CONFIG-21, T-072's self-reading check).
-
-## User review
-
-- The unit coverage thresholds left with the template's demo app; coverage
-  is still collected over `tools/itos/*.ts`, with no threshold. Whether to
-  set one is the user's call; it does not block implementation.
-- Slice 46's calls: silent when the pushed commits pass (anything printed
-  would change released corpus cases, a major release); no opt-out.
-- Coordinator calls to confirm or overturn:
-  - slice 4 drops the keys of features not built yet rather than reading
-    them;
-  - in slice 7, a task with no work item counts as in progress;
-  - slice 8 tries each cost pattern on the command as written and as
-    hooks.bin → itos;
-  - in slice 9, a check's reused run is read even when an earlier check of
-    its own task changed the tree;
-  - in slice 10, a failing delegate keeps its own exit code in the hook;
-  - slice 13 makes a missing ledger folder exit 2, a config error (PLAN §7).
