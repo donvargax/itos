@@ -508,7 +508,7 @@ mechanisms above, written against those modules, read across.
   below), `internal/work` (the registry and its problems, the items'
   statuses, the proposal, the edits that take, promote, close, add and
   change an item, and the item as work show prints it;
-  below),
+  below), `internal/follow` (itos follow's threads; below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git` (the repository's state and ranges, read
   through the real git; below), beside four
@@ -1422,6 +1422,27 @@ add`ed so `--only` can name it, git add's words and the commit's on
   loads it. `--patch` hands the commits to `git show`, in order, its notes
   the itos ones under a stealth config; `--json` gives each commit's message
   and diff (`git show --format=`) instead.
+- **follow** (slice 61, `internal/cli/follow.go` over `internal/follow`) is
+  the person's threads with people, apart from everything else itos keeps:
+  it reads no config, so it runs in any git repository, and its one file,
+  `follow-ups.yaml`, is in `config.StealthFolder` of the absolute git common
+  dir (`git rev-parse --path-format=absolute --git-common-dir`), where the
+  stealth mode keeps its data, never committed and the same from every
+  linked worktree. The file is itos's own, so it is read and written whole
+  with `yaml/v3` and typed structs rather than edited in place through
+  `value.Doc`: `Load` refuses a key it does not know, a thread with no id or
+  a repeated one and a status neither open nor closed; `Save` writes a file
+  beside it, mode 0600, and moves it over, so a reader in another worktree
+  never sees half of it, and makes the folder (0700) where there is none.
+  A note's time is written RFC 3339 to the second in local time and printed
+  to the minute in the offset written (`follow.Show`), so the corpus's
+  stored threads print the same anywhere; the command line reads the clock
+  in `followNow` alone and hands each change its time, and no case reads it
+  (a case of add, note or close pins what it prints, never the file).
+  `follow doc` writes `follow.Markdown` where the person typed (`typed`),
+  refuses a file already there without `--force`, and records the absolute
+  path in the thread's `docs`. A refusal is `refuseWork`'s problem, exit 1;
+  no git repository is exit 3.
 - **The hooks** are `hook commit-msg`, `hook pre-push`
   (`internal/cli/hook.go`) and `hooks install` (`internal/cli/install.go`),
   `hooks.ts` with `commit-data.ts`, `commit-scope.ts`, `commit-tasks.ts` and

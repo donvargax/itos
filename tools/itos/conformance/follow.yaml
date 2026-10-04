@@ -1,0 +1,248 @@
+# itos follow (slice 61): the person's threads with people, in follow-ups.yaml
+# of itos's folder in the git common dir, never committed, no config read.
+# Every case that prints or writes a date reads a stored file, so no case
+# reads the clock: the list, show and doc of the threads below, and the
+# subcommands that write only by what they print and refuse. That follow needs
+# a git repository is cli.yaml's, whose cases have none.
+git: []
+files:
+  .git/itos/follow-ups.yaml: &threads |
+    # itos follow's threads: this clone's own, never committed (itos help follow).
+    threads:
+      - id: sync-ana
+        with: ana
+        title: The sync design
+        status: open
+        notes:
+          - at: "2026-10-04T09:30:15-07:00"
+            text: She covered the retries, not the backoff.
+          - at: "2026-10-04T11:05:00-07:00"
+            text: |-
+              Backoff agreed: exponential,
+              capped at a minute.
+      - id: flaky-bo
+        with: bo
+        title: The flaky login test
+        status: closed
+        closed: "2026-10-05T16:00:00-07:00"
+        notes:
+          - at: "2026-10-04T10:00:00-07:00"
+            text: Started.
+          - at: "2026-10-05T16:00:00-07:00"
+            text: Fixed by the retry.
+cases:
+  - name: follow lists the open threads, with their titles, people and last notes
+    argv: [follow]
+    exit: 0
+    stdout: |
+      Open threads:
+        sync-ana  The sync design  (ana, 2026-10-04 11:05)
+  - name: follow --all lists the closed threads after the open ones
+    argv: [follow, --all]
+    exit: 0
+    stdout: |
+      Open threads:
+        sync-ana  The sync design  (ana, 2026-10-04 11:05)
+
+      Closed threads:
+        flaky-bo  The flaky login test  (bo, 2026-10-05 16:00)
+  - name: follow --json lists the open threads
+    argv: [follow, --json]
+    exit: 0
+    json:
+      schema: 1
+      threads:
+        - id: sync-ana
+          with: ana
+          title: The sync design
+          status: open
+          opened: "2026-10-04T09:30:15-07:00"
+          last: "2026-10-04T11:05:00-07:00"
+          notes: 2
+  - name: follow with no threads says so
+    files:
+      .git/itos/follow-ups.yaml: null
+    argv: [follow]
+    exit: 0
+    stdout: |
+      No open threads.
+  - name: follow has no subcommand it does not know
+    argv: [follow, list]
+    exit: 2
+    stderr: |
+      itos: follow has no subcommand list: it takes add, note, close, show or doc, else --all (itos --help)
+  - name: follow refuses a follow-ups.yaml it does not write
+    files:
+      .git/itos/follow-ups.yaml: "threads:\n  - { id: a, with: x, title: t, status: done }\n"
+    argv: [follow]
+    exit: 2
+    stderr: |
+      itos: {{dir}}/.git/itos/follow-ups.yaml: a's status is "done", not open or closed
+  - name: follow show prints the whole thread, every note in order
+    argv: [follow, show, sync-ana]
+    exit: 0
+    stdout: |
+      sync-ana: The sync design
+      with ana, open
+
+      2026-10-04 09:30  She covered the retries, not the backoff.
+      2026-10-04 11:05  Backoff agreed: exponential,
+                        capped at a minute.
+  - name: follow show prints a closed thread's date of closing
+    argv: [follow, show, flaky-bo]
+    exit: 0
+    stdout: |
+      flaky-bo: The flaky login test
+      with bo, closed 2026-10-05 16:00
+
+      2026-10-04 10:00  Started.
+      2026-10-05 16:00  Fixed by the retry.
+  - name: follow show --json is the thread as the file holds it
+    argv: [follow, show, flaky-bo, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      thread:
+        id: flaky-bo
+        with: bo
+        title: The flaky login test
+        status: closed
+        closed: "2026-10-05T16:00:00-07:00"
+        notes:
+          - { at: "2026-10-04T10:00:00-07:00", text: Started. }
+          - { at: "2026-10-05T16:00:00-07:00", text: Fixed by the retry. }
+  - name: follow show refuses an id no thread has
+    argv: [follow, show, nobody]
+    exit: 1
+    stderr: |
+      there is no thread nobody
+        fix: itos follow --all lists the threads; itos follow add nobody opens one
+  - name: follow doc writes the thread as Markdown, its folders made, and the thread records it
+    argv: [follow, doc, sync-ana, notes/design/sync.md]
+    exit: 0
+    stdout: |
+      sync-ana written to notes/design/sync.md
+    files_after:
+      notes/design/sync.md: |
+        # The sync design
+
+        A thread with ana, open (itos follow show sync-ana).
+
+        ## 2026-10-04 09:30
+
+        She covered the retries, not the backoff.
+
+        ## 2026-10-04 11:05
+
+        Backoff agreed: exponential,
+        capped at a minute.
+      .git/itos/follow-ups.yaml: |
+        # itos follow's threads: this clone's own, never committed (itos help follow).
+        threads:
+          - id: sync-ana
+            with: ana
+            title: The sync design
+            status: open
+            notes:
+              - at: "2026-10-04T09:30:15-07:00"
+                text: She covered the retries, not the backoff.
+              - at: "2026-10-04T11:05:00-07:00"
+                text: |-
+                  Backoff agreed: exponential,
+                  capped at a minute.
+            docs:
+              - {{dir}}/notes/design/sync.md
+          - id: flaky-bo
+            with: bo
+            title: The flaky login test
+            status: closed
+            closed: "2026-10-05T16:00:00-07:00"
+            notes:
+              - at: "2026-10-04T10:00:00-07:00"
+                text: Started.
+              - at: "2026-10-05T16:00:00-07:00"
+                text: Fixed by the retry.
+  - name: follow doc writes nothing over a file already there
+    files:
+      notes/sync.md: "mine\n"
+    argv: [follow, doc, sync-ana, notes/sync.md]
+    exit: 1
+    stderr: |
+      notes/sync.md is already there; nothing written
+        fix: --force writes over it
+    files_after:
+      notes/sync.md: "mine\n"
+      .git/itos/follow-ups.yaml: *threads
+  - name: follow doc --force writes over a file already there
+    files:
+      sync.md: "mine\n"
+    argv: [follow, doc, flaky-bo, sync.md, --force]
+    exit: 0
+    stdout: |
+      flaky-bo written to sync.md
+    files_after:
+      sync.md: |
+        # The flaky login test
+
+        A thread with bo, closed 2026-10-05 16:00 (itos follow show flaky-bo).
+
+        ## 2026-10-04 10:00
+
+        Started.
+
+        ## 2026-10-05 16:00
+
+        Fixed by the retry.
+  - name: follow add opens a thread
+    argv: [follow, add, ci-cy, --with, cy, --title, The CI runner, --note, Asked for a second runner.]
+    exit: 0
+    stdout: |
+      ci-cy opened, with cy: The CI runner
+  - name: follow add refuses an id a thread has, closed or not, and writes nothing
+    argv: [follow, add, flaky-bo, --with, cy, --title, Another, --note, Again.]
+    exit: 1
+    stderr: |
+      flaky-bo is already a thread, with bo: The flaky login test
+        fix: itos follow note flaky-bo adds to it; another id opens a new one
+    files_after:
+      .git/itos/follow-ups.yaml: *threads
+  - name: follow add needs a person, a title and a note
+    argv: [follow, add, ci-cy, --with, cy]
+    exit: 2
+    stderr: |
+      itos: follow add needs --with <who>, --title <title> and --note <text> (itos --help)
+  - name: follow add takes an id a command line can type
+    argv: [follow, add, ci cy, --with, cy, --title, t, --note, n]
+    exit: 2
+    stderr: |
+      itos: follow add: "ci cy" is no thread id (letters, digits, '.', '_' and '-', a letter or digit first) (itos --help)
+  - name: follow note adds a note, its words joined
+    argv: [follow, note, sync-ana, Tested, on, staging.]
+    exit: 0
+    stdout: |
+      sync-ana: note 3 added
+  - name: follow note refuses an id no thread has
+    argv: [follow, note, nobody, Hello.]
+    exit: 1
+    stderr: |
+      there is no thread nobody
+        fix: itos follow --all lists the threads; itos follow add nobody opens one
+  - name: follow note needs a text
+    argv: [follow, note, sync-ana]
+    exit: 2
+    stderr: |
+      itos: follow note needs <id> <text> (itos --help)
+  - name: follow close closes a thread
+    argv: [follow, close, sync-ana, --note, Shipped.]
+    exit: 0
+    stdout: |
+      sync-ana closed: The sync design
+  - name: follow close refuses a thread already closed, and writes nothing
+    argv: [follow, close, flaky-bo]
+    exit: 1
+    stderr: |
+      flaky-bo is already closed, since 2026-10-05 16:00
+        fix: itos follow note flaky-bo adds to it
+    files_after:
+      .git/itos/follow-ups.yaml: *threads

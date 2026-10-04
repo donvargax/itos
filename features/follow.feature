@@ -17,14 +17,14 @@ Feature: itos follow, private threads with people
   Background:
     Given a repository whose ledger has the task "T-001"
 
-  @ID-FOLLOW-01 @slice-61 @wip
+  @ID-FOLLOW-01 @slice-61
   Scenario: follow add opens a thread kept under the git common dir, and git sees nothing
     When itos runs the command line "follow add sync-ana --with ana --title 'The sync design' --note 'She covered the retries, not the backoff.'"
     Then itos exits with code 0
     And the file ".git/itos/follow-ups.yaml" exists
     And git status shows nothing to commit
 
-  @ID-FOLLOW-02 @slice-61 @wip
+  @ID-FOLLOW-02 @slice-61
   Scenario: follow note appends a dated entry, and follow show prints the notes in order
     Given itos has run the command line "follow add sync-ana --with ana --title 'The sync design' --note 'She covered the retries, not the backoff.'"
     When itos runs the command line "follow note sync-ana 'Backoff agreed: exponential, capped at a minute.'"
@@ -33,7 +33,7 @@ Feature: itos follow, private threads with people
     Then itos exits with code 0
     And its output says "She covered the retries, not the backoff." before "Backoff agreed: exponential, capped at a minute."
 
-  @ID-FOLLOW-03 @slice-61 @wip
+  @ID-FOLLOW-03 @slice-61
   Scenario: follow lists the open threads, and a closed one is not among them
     Given itos has run the command line "follow add sync-ana --with ana --title 'The sync design' --note 'Started.'"
     And itos has run the command line "follow add flaky-bo --with bo --title 'The flaky login test' --note 'Started.'"
@@ -43,7 +43,7 @@ Feature: itos follow, private threads with people
     And its output says "sync-ana"
     And its output does not say "flaky-bo"
 
-  @ID-FOLLOW-04 @slice-61 @wip
+  @ID-FOLLOW-04 @slice-61
   Scenario: follow doc writes the whole thread as Markdown at the path given
     Given itos has run the command line "follow add sync-ana --with ana --title 'The sync design' --note 'She covered the retries, not the backoff.'"
     And itos has run the command line "follow note sync-ana 'Backoff agreed: exponential, capped at a minute.'"
@@ -52,14 +52,14 @@ Feature: itos follow, private threads with people
     And the file "notes/sync.md" says "The sync design"
     And the file "notes/sync.md" says "Backoff agreed: exponential, capped at a minute."
 
-  @ID-FOLLOW-05 @slice-61 @wip
+  @ID-FOLLOW-05 @slice-61
   Scenario: follow add refuses an id a thread already has
     Given itos has run the command line "follow add sync-ana --with ana --title 'The sync design' --note 'Started.'"
     When itos runs the command line "follow add sync-ana --with bo --title 'Another' --note 'Again.'"
     Then itos exits with code 1
     And its output says "sync-ana"
 
-  @ID-FOLLOW-06 @slice-61 @wip
+  @ID-FOLLOW-06 @slice-61
   Scenario: follow note refuses a thread that does not exist
     When itos runs the command line "follow note nobody 'Hello.'"
     Then itos exits with code 1
@@ -67,7 +67,7 @@ Feature: itos follow, private threads with people
 
   # Threads live in the git common dir, so a linked worktree (an agent's)
   # reads and writes the same ones as the main checkout.
-  @ID-FOLLOW-07 @slice-61 @wip
+  @ID-FOLLOW-07 @slice-61
   Scenario: A thread opened in a linked worktree is listed from the main checkout
     Given a linked worktree of the repository at "../wt"
     And itos has run the command line "follow add sync-ana --with ana --title 'The sync design' --note 'Started.'" in the linked worktree

@@ -52,6 +52,10 @@
   scenarios:
     - id: "@ID-EXT-04"
       why: an extension found on the PATH runs in the root with what the global flags before it set, the whole dispatch
+- file: follow.feature
+  scenarios:
+    - id: "@ID-FOLLOW-02"
+      why: a thread opened, a note appended and the thread shown in order, the file's point in one run
 - file: footers.feature
   scenarios:
     - id: "@ID-FOOT-01"

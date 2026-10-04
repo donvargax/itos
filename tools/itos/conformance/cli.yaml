@@ -291,3 +291,8 @@ cases:
       version: "{{version}}"
       requires: ">=0.1.0"
       satisfied: true
+  - name: follow needs a git repository, and no config
+    argv: [follow]
+    exit: 3
+    stderr: |
+      itos: follow keeps its threads in the git folder, and this is no git repository

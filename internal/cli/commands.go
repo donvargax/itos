@@ -32,6 +32,7 @@ var commands = map[string]command{
 	"git-shim": gitShim,
 	"pin":      pinCommand,
 	"init":     initCommand,
+	"follow":   followCommand,
 }
 
 // flagValue is the value after a flag, and whether there is one.

@@ -82,6 +82,13 @@ list` lists every item with its title, done ones too, and `itos work show
   it has landed (its scenarios live, its commits pushed, its CI run green),
   and `itos work add <id>` and `itos work edit <id>` make an item and change
   one, each editing the registry in place and committing it alone.
+- **Follow-ups with people**: `itos follow add <id> --with <who> --title …
+--note …` opens a thread, `itos follow note <id> <text>` appends a dated
+  note, `itos follow close <id>` closes it, `itos follow` lists the open
+  ones, `itos follow show <id>` prints one whole and `itos follow doc <id>
+<path>` writes it out as Markdown. The threads are yours alone, in the git
+  folder (`follow-ups.yaml` under `git rev-parse --git-common-dir`/itos),
+  never committed and shared by every worktree; no config is needed.
 
 `tools/bin/itos --help` lists the commands, and `itos <command> --help` each
 one. A command itos does not have runs `itos-<command>` from the `PATH`, so
