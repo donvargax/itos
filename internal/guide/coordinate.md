@@ -19,6 +19,9 @@ is not yours: run `itos guide work` and follow that one.
   next.
 - The repository's own notes, printed after this guide when it keeps them,
   say what else to read first.
+- Notes true only of this machine or clone (a stale binary on the PATH, a
+  local path) go in `.git/itos/notes.md`, which `itos go` prints and git
+  never commits; the repository's notes are for what holds for everyone.
 
 ## The loop
 

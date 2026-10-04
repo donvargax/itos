@@ -60,7 +60,7 @@ Feature: itos go and itos guide, the guides a session starts from
   # 2026-10-04). itos go prints them after the repository's notes and before
   # the status, and nothing at all when there are none: the coordinator's
   # guide names the file, and that line is the nudge to keep them there.
-  @ID-GUIDE-06 @slice-68 @wip
+  @ID-GUIDE-06 @slice-68
   Scenario: itos go prints this clone's own notes after the repository's, before the status
     Given a repository whose ledger has the task "T-001"
     And the committed file "docs/ORCHESTRATING.md" holding "Our own lesson: the inbox is read first."
@@ -72,14 +72,14 @@ Feature: itos go and itos guide, the guides a session starts from
 
   # 07 and 08 hold before the work too: they keep the section from being
   # printed always, empty.
-  @ID-GUIDE-07 @slice-68 @wip
+  @ID-GUIDE-07 @slice-68
   Scenario: itos go prints no section for this clone when it keeps no notes
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "go"
     Then itos exits with code 0
     And its output does not say "# This clone's own notes"
 
-  @ID-GUIDE-08 @slice-68 @wip
+  @ID-GUIDE-08 @slice-68
   Scenario: itos go prints no section for this clone when its notes hold only blanks
     Given a repository that does not use itos, its one commit "docs: start"
     And this clone's own notes holding "   "

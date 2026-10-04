@@ -21,11 +21,21 @@ import (
 // separating line, the repository's own notes: the file guide.orchestrating
 // names (docs/ORCHESTRATING.md by default; under the git folder for a stealth
 // config, as its other data), read where the config's paths are read, or from
-// the repository's top when there is no config. They need no config and
-// write nothing; outside a repository the guide prints alone.
+// the repository's top when there is no config. itos go alone then prints
+// this clone's own notes (slice 68): notes.md in itos's folder of the git
+// common dir, which git never commits and every linked worktree shares, for
+// what holds on this machine only. They need no config and write nothing;
+// outside a repository the guide prints alone.
 
 // separator stands between the guide and the repository's own notes.
 const separator = "\n---\n\n"
+
+// localNotesName is this clone's own notes' file in itos's folder of the git
+// common dir.
+const localNotesName = "notes.md"
+
+// localNotesHeading heads this clone's own notes where itos go prints them.
+const localNotesHeading = "# This clone's own notes"
 
 // goCommand is itos go: the coordinator's guide, then where things stand
 // (status.go, slice 67), so a session starts from one command.
@@ -33,7 +43,7 @@ func goCommand(args []string, o Out) (int, error) {
 	if len(args) > 0 {
 		return 0, usage("go takes no arguments: %s", strings.Join(args, " "))
 	}
-	return printGuideThen(guide.Coordinate, goStatus(o), o)
+	return printGuideThen(guide.Coordinate, true, goStatus(o), o)
 }
 
 // goStatus is where things stand for itos go, nil when it cannot be
@@ -80,17 +90,26 @@ func guideCommand(args []string, o Out) (int, error) {
 
 // printGuide prints the guide by its name, the coordinator's followed by
 // the repository's own notes when it keeps them.
-func printGuide(name string, o Out) (int, error) { return printGuideThen(name, nil, o) }
+func printGuide(name string, o Out) (int, error) { return printGuideThen(name, false, nil, o) }
 
-// printGuideThen is printGuide followed, after a line of ---, by where
+// printGuideThen is printGuide followed, when local is set, by this clone's
+// own notes when it keeps them, and then, after a line of ---, by where
 // things stand when st is not nil, under --json its object as "status".
-func printGuideThen(name string, st *standing, o Out) (int, error) {
+func printGuideThen(name string, local bool, st *standing, o Out) (int, error) {
 	text, _ := guide.Text(name)
-	notesFile := ""
+	notesFile, localFile := "", ""
 	if name == guide.Coordinate {
 		if notes, file := orchestratingNotes(o); file != "" {
 			text = strings.TrimRight(text, "\n") + "\n" + separator + notes
 			notesFile = file
+		}
+	}
+	if local {
+		if notes, file := localNotes(notesFile, o); file != "" {
+			text = strings.TrimRight(text, "\n") + "\n" + separator + localNotesHeading + "\n\n" +
+				"These are uncommitted and hold what is true on this machine only (" +
+				filepath.ToSlash(file) + ").\n\n" + notes
+			localFile = file
 		}
 	}
 	if !strings.HasSuffix(text, "\n") {
@@ -100,6 +119,9 @@ func printGuideThen(name string, st *standing, o Out) (int, error) {
 		fields := []out.Field{{Key: "guide", Value: name}, {Key: "text", Value: text}}
 		if notesFile != "" {
 			fields = append(fields, out.Field{Key: "notes", Value: filepath.ToSlash(notesFile)})
+		}
+		if localFile != "" {
+			fields = append(fields, out.Field{Key: "local_notes", Value: filepath.ToSlash(localFile)})
 		}
 		if st != nil {
 			fields = append(fields, out.Field{Key: "status", Value: st})
@@ -117,8 +139,32 @@ func printGuideThen(name string, st *standing, o Out) (int, error) {
 // orchestratingNotes is the repository's own notes and the path they were
 // read from, both "" when it keeps none. A file that is there but cannot be
 // read is a warning, and the guide prints without it.
-func orchestratingNotes(o Out) (text, path string) {
-	path = notesPath(o)
+func orchestratingNotes(o Out) (text, path string) { return readNotes(notesPath(o), o) }
+
+// localNotes is this clone's own notes and the path they were read from,
+// both "" when it keeps none, outside a repository, or when they are the
+// file the repository's notes were read from (a stealth config's
+// guide.orchestrating naming it), which is printed once, as those.
+func localNotes(printed string, o Out) (text, path string) {
+	common, err := git.Output("rev-parse", "--git-common-dir")
+	if common = strings.TrimSpace(common); err != nil || common == "" {
+		return "", ""
+	}
+	path = filepath.Join(common, config.StealthFolder, localNotesName)
+	if printed != "" {
+		a, errA := os.Stat(printed)
+		b, errB := os.Stat(path)
+		if errA == nil && errB == nil && os.SameFile(a, b) {
+			return "", ""
+		}
+	}
+	return readNotes(path, o)
+}
+
+// readNotes is the notes the file at path holds and the path, both "" when
+// path is "", the file is not there or holds only blanks. A file that is
+// there but cannot be read is a warning, and the guide prints without it.
+func readNotes(path string, o Out) (string, string) {
 	if path == "" {
 		return "", ""
 	}
@@ -132,7 +178,7 @@ func orchestratingNotes(o Out) (text, path string) {
 	if strings.TrimSpace(string(data)) == "" {
 		return "", ""
 	}
-	text = string(data)
+	text := string(data)
 	if !strings.HasSuffix(text, "\n") {
 		text += "\n"
 	}

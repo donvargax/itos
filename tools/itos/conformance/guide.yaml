@@ -2,7 +2,8 @@
 # printed as written with no config and outside a repository; itos go's
 # appended notes, docs/ORCHESTRATING.md from the repository's top (from a
 # subfolder too) or the file guide.orchestrating names, beside a stealth
-# config in the git folder; the usage errors.
+# config in the git folder; this clone's own notes, .git/itos/notes.md
+# (slice 68), which go alone prints; the usage errors.
 cases:
   - name: guide work prints the implementer's guide outside a repository
     argv: [guide, work]
@@ -94,3 +95,29 @@ cases:
     cwd: sub
     exit: 0
     stdout_has: '"notes": "../docs/ORCHESTRATING.md"'
+  - name: go prints this clone's own notes under their heading, after the repository's
+    argv: [go]
+    git: []
+    files:
+      docs/ORCHESTRATING.md: "Ours.\n"
+      .git/itos/notes.md: "Mine.\n"
+    exit: 0
+    stdout_has:
+      - "\n---\n\nOurs.\n\n---\n\n# This clone's own notes\n\n"
+      - "These are uncommitted and hold what is true on this machine only (.git/itos/notes.md).\n\nMine.\n"
+  - name: go as --json names this clone's own notes
+    argv: [go, --json]
+    git: []
+    files:
+      .git/itos/notes.md: "Mine.\n"
+    exit: 0
+    stdout_has: '"local_notes": ".git/itos/notes.md"'
+  - name: go from a subfolder names this clone's own notes from there
+    argv: [go, --json]
+    git: []
+    files:
+      .git/itos/notes.md: "Mine.\n"
+      sub/: ""
+    cwd: sub
+    exit: 0
+    stdout_has: '"local_notes": "../.git/itos/notes.md"'

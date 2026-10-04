@@ -1545,6 +1545,18 @@ add`ed so `--only` can name it, git add's words and the commit's on
   repository the guide prints alone. A config that cannot be read, or notes
   that are there but cannot be read, is a warning on stderr, never a
   failure: the guide is what a session starts from. They write nothing.
+  `itos go` alone then prints this clone's own notes (slice 68,
+  `localNotes`): `notes.md` in itos's folder of the git common dir
+  (`git rev-parse --git-common-dir`, as itos follow's threads are found),
+  which git never commits and every linked worktree shares, for what holds
+  on this machine only. They follow the repository's notes after another
+  `---`, under `# This clone's own notes` and a line saying they are
+  uncommitted, and are named by `local_notes` under `--json`; a file that is
+  missing or holds only blanks prints nothing at all, and one that is the
+  file `guide.orchestrating` resolved to (a stealth config naming it) prints
+  once, as the repository's notes (`os.SameFile`). `itos guide coordinate`
+  leaves them out. The coordinator's guide names the file, the one nudge to
+  keep such notes there.
 - **status** (slice 67, `internal/cli/status.go`) is where the work stands,
   built from what already records it and never written: the remote branch's
   head is asked of the remote (`git ls-remote` with `GIT_TERMINAL_PROMPT=0`
