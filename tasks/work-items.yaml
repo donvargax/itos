@@ -3655,3 +3655,18 @@ items:
       tokens for little gain, so none are built until there is a clear design and evidence they pay
       off. itos:implementer is not one: it only carries the existing implementer rules. The
       post-landing review trial (p3-post-landing-review) is the first evidence to gather.
+
+  - id: p1-add-to-empty-list
+    title: work add and task add write into an empty registry or ledger file
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      itos init writes the registry as phases: {} and items: [], and value.Doc's Append adds only to
+      a block list with an item, so the first itos work add or task add in a freshly initialised
+      repository fails (the registry cannot be edited in place); a ledger file holding [] fails the
+      same way. No command adds a phase either, so a new phase is still a hand edit before task add
+      can use it. Found building slice 55.
+    refs: [internal/value/docedit.go, internal/cli/starter.go]
