@@ -3627,6 +3627,11 @@ items:
       Tried first on slice 54; if it finds things worth fixing it becomes a standing step and later
       a reviewer agent shipped in the plugin.
 
+      First trials, 2026-10-03: the review of slice 54 found a live bug the scenarios missed (itos
+      work edit on a multi-line refs list, p1-work-edit-lists) and two correctness gaps; the review
+      of slice 55 found the only undo code in itos untested, with holes (p1-commit-rollback-tested).
+      Worth making a standing step.
+
   - id: p3-coordinator-skill
     title: ORCHESTRATING.md becomes the itos plugin's /itos:coordinate skill and itos:implementer agent
     phase: 3
