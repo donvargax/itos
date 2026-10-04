@@ -52,6 +52,7 @@ queue:
   - slice-59
   - p1-registry-archive
   - p1-work-show-gaps
+  - p1-release-notes-footers
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
