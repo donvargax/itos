@@ -22,9 +22,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v2/internal/git"
-	"github.com/donvargax/itos/v2/internal/out"
-	"github.com/donvargax/itos/v2/internal/value"
+	"github.com/donvargax/itos/v3/internal/git"
+	"github.com/donvargax/itos/v3/internal/out"
+	"github.com/donvargax/itos/v3/internal/value"
 )
 
 // configHook is one hook entry of the git config and what becomes of it.

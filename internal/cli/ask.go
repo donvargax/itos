@@ -30,14 +30,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v2/internal/adr"
-	"github.com/donvargax/itos/v2/internal/ask"
-	"github.com/donvargax/itos/v2/internal/config"
-	"github.com/donvargax/itos/v2/internal/lock"
-	"github.com/donvargax/itos/v2/internal/out"
-	"github.com/donvargax/itos/v2/internal/source"
-	"github.com/donvargax/itos/v2/internal/value"
-	"github.com/donvargax/itos/v2/internal/work"
+	"github.com/donvargax/itos/v3/internal/adr"
+	"github.com/donvargax/itos/v3/internal/ask"
+	"github.com/donvargax/itos/v3/internal/config"
+	"github.com/donvargax/itos/v3/internal/lock"
+	"github.com/donvargax/itos/v3/internal/out"
+	"github.com/donvargax/itos/v3/internal/source"
+	"github.com/donvargax/itos/v3/internal/value"
+	"github.com/donvargax/itos/v3/internal/work"
 )
 
 // askTakes is what ask takes, as a usage error names it.

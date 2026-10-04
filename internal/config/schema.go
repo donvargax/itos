@@ -5,8 +5,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/donvargax/itos/v2/internal/out"
-	"github.com/donvargax/itos/v2/internal/value"
+	"github.com/donvargax/itos/v3/internal/out"
+	"github.com/donvargax/itos/v3/internal/value"
 )
 
 // spec is the schema of one value, strict: an object's keys are the ones it

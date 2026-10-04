@@ -20,7 +20,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/donvargax/itos/v2/internal/value"
+	"github.com/donvargax/itos/v3/internal/value"
 )
 
 // refusedCases are the cases config-conventional's subject-case refuses, in

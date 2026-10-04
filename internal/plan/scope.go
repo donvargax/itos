@@ -3,10 +3,10 @@ package plan
 import (
 	"strings"
 
-	"github.com/donvargax/itos/v2/internal/config"
-	"github.com/donvargax/itos/v2/internal/git"
-	"github.com/donvargax/itos/v2/internal/glob"
-	"github.com/donvargax/itos/v2/internal/message"
+	"github.com/donvargax/itos/v3/internal/config"
+	"github.com/donvargax/itos/v3/internal/git"
+	"github.com/donvargax/itos/v3/internal/glob"
+	"github.com/donvargax/itos/v3/internal/message"
 )
 
 // What a pushed range is (ci-scope.ts): the files it touched, whether it can

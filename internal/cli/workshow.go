@@ -17,14 +17,14 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/donvargax/itos/v2/internal/ask"
-	"github.com/donvargax/itos/v2/internal/config"
-	"github.com/donvargax/itos/v2/internal/git"
-	"github.com/donvargax/itos/v2/internal/message"
-	"github.com/donvargax/itos/v2/internal/out"
-	"github.com/donvargax/itos/v2/internal/source"
-	"github.com/donvargax/itos/v2/internal/tests"
-	"github.com/donvargax/itos/v2/internal/work"
+	"github.com/donvargax/itos/v3/internal/ask"
+	"github.com/donvargax/itos/v3/internal/config"
+	"github.com/donvargax/itos/v3/internal/git"
+	"github.com/donvargax/itos/v3/internal/message"
+	"github.com/donvargax/itos/v3/internal/out"
+	"github.com/donvargax/itos/v3/internal/source"
+	"github.com/donvargax/itos/v3/internal/tests"
+	"github.com/donvargax/itos/v3/internal/work"
 )
 
 // showWidth is the width an item's why is wrapped at.

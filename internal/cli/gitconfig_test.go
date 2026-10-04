@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v2/internal/git"
+	"github.com/donvargax/itos/v3/internal/git"
 )
 
 // A scratch repository with a config, as the current folder, away from the

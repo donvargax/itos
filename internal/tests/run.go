@@ -3,7 +3,7 @@ package tests
 import (
 	"strings"
 
-	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v3/internal/config"
 )
 
 // SelectionKind is what one run of a kind selects.

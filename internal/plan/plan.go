@@ -34,12 +34,12 @@ package plan
 import (
 	"regexp"
 
-	"github.com/donvargax/itos/v2/internal/check"
-	"github.com/donvargax/itos/v2/internal/config"
-	"github.com/donvargax/itos/v2/internal/ledger"
-	"github.com/donvargax/itos/v2/internal/tests"
-	"github.com/donvargax/itos/v2/internal/value"
-	"github.com/donvargax/itos/v2/internal/work"
+	"github.com/donvargax/itos/v3/internal/check"
+	"github.com/donvargax/itos/v3/internal/config"
+	"github.com/donvargax/itos/v3/internal/ledger"
+	"github.com/donvargax/itos/v3/internal/tests"
+	"github.com/donvargax/itos/v3/internal/value"
+	"github.com/donvargax/itos/v3/internal/work"
 )
 
 // Action is what a run does with a task check.

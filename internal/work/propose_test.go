@@ -3,7 +3,7 @@ package work
 import (
 	"testing"
 
-	"github.com/donvargax/itos/v2/internal/value"
+	"github.com/donvargax/itos/v3/internal/value"
 )
 
 // A session that owns every item (a stealth config's) is proposed each item

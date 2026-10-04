@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/donvargax/itos/v2/internal/out"
-	"github.com/donvargax/itos/v2/internal/value"
+	"github.com/donvargax/itos/v3/internal/out"
+	"github.com/donvargax/itos/v3/internal/value"
 )
 
 // The queue (slice 66): a top-level queue: list of item ids in the registry,

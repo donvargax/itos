@@ -6,9 +6,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v2/internal/out"
-	"github.com/donvargax/itos/v2/internal/providers"
-	"github.com/donvargax/itos/v2/internal/value"
+	"github.com/donvargax/itos/v3/internal/out"
+	"github.com/donvargax/itos/v3/internal/providers"
+	"github.com/donvargax/itos/v3/internal/value"
 )
 
 // Identity is who a session works for: a handle and whether the people list

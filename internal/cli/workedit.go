@@ -13,9 +13,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v2/internal/ledger"
-	"github.com/donvargax/itos/v2/internal/out"
-	"github.com/donvargax/itos/v2/internal/work"
+	"github.com/donvargax/itos/v3/internal/ledger"
+	"github.com/donvargax/itos/v3/internal/out"
+	"github.com/donvargax/itos/v3/internal/work"
 )
 
 // addKinds are the kinds work add makes.

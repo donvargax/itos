@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/donvargax/itos/v2/internal/git"
+	"github.com/donvargax/itos/v3/internal/git"
 )
 
 // A hook file is a shim when its one line, besides comments and a shebang,

@@ -1,6 +1,6 @@
 package work
 
-import "github.com/donvargax/itos/v2/internal/value"
+import "github.com/donvargax/itos/v3/internal/value"
 
 // Clash is an item two commits changed from the same registry (slice 66):
 // its id, and as the other side has it, its owner ("" for none) and whether
