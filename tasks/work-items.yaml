@@ -1562,6 +1562,13 @@ items:
       values narrowed, requires), apply what is mechanical and list the rest, and verify with itos
       version and config check, as each section's last step asks.
 
+      The user's calls (2026-10-04): no self-rewriting binary, the pin stays the update; itos
+      upgrade moves the pin and walks the Upgrading sections since the old version, applying what is
+      mechanical. Upgrading constantly makes no sense at the current release pace, so only a new
+      major is something to act on: itos status shows the pin and the newest, and the guide's rule
+      (upgrade first) fires on a major, asking the person through itos ask by default. That
+      integration is low priority, after itos upgrade itself.
+
   - id: p1-tests-next-id-and-steps
     title: "Spec help: the next free test ID, the steps that exist, the ones still undefined"
     phase: 1
