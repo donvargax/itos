@@ -3375,6 +3375,8 @@ items:
     depends_on: [slice-52]
     kind: slice
     why: >
+      Specified as @ID-WORK-19 to 24 in features/work.feature: itos work add and itos work edit.
+      itos task add is slice 55, and the red-first check of a new spec (p1-wip-red-first) after it.
       Was p1-work-edit.
       The user's calls (2026-10-03). Nearly every registry and ledger change the coordinator made
       that day was an ad-hoc script replacing text in tasks/*.yaml, and it broke when the formatter
@@ -3544,3 +3546,18 @@ items:
       relaxations stop being needed. A larger job than T-080: rewriting existing cases, and agreeing
       which text is spec.
     refs: [tools/itos/conformance/, PLAN.md]
+
+  - id: slice-55
+    title: itos task add writes a task into the ledger and its item into the registry, and commits
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-54]
+    kind: slice
+    why: >
+      Specified as @ID-TASK-05 to 08 in features/task.feature, the second half of what was
+      p1-work-edit (the user's calls, 2026-10-03): a task is added by a command, into its group's
+      ledger file with its type, title, why and checks, and as a registry item of kind task, both
+      committed alone; ids ledger.id does not match or the ledger has, and types commits.types
+      lacks, are refused. The last registry item added by hand, since slice 54 builds work add.
+    refs: [features/task.feature, internal/ledger/, internal/work/write.go]

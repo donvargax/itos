@@ -54,9 +54,10 @@ One slice at a time, the user's order:
 
 1. The orchestration commands, the user's order (2026-10-03), ahead of the
    rest of init:
-   - **`p1-work-edit`**: `itos work add`, `edit` and `itos task add` write
-     the registry and ledger, confirm a new spec's `@wip` scenarios fail
-     (`p1-wip-red-first`), and commit, as every one of these commands does;
+   - **`slice-54`** (`itos work add` and `edit`, @ID-WORK-19 to 24) and
+     **`slice-55`** (`itos task add`, @ID-TASK-05 to 08), `@wip`; then
+     `p1-wip-red-first`, which needs a way to run `@wip` scenarios. After
+     these, the user puts itos in their other repositories;
    - **`p1-handoff-status`**, after `p1-work-queue-order` and
      `p1-follow-ups`: `itos status` replaces this file;
    - **`p1-tests-next-id-and-steps`**;
