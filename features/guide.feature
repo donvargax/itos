@@ -62,7 +62,7 @@ Feature: itos go and itos guide, the guides a session starts from
   # guide names the file, and that line is the nudge to keep them there.
   @ID-GUIDE-06 @slice-68 @wip
   Scenario: itos go prints this clone's own notes after the repository's, before the status
-    Given a repository that does not use itos, its one commit "docs: start"
+    Given a repository whose ledger has the task "T-001"
     And the committed file "docs/ORCHESTRATING.md" holding "Our own lesson: the inbox is read first."
     And this clone's own notes holding "The itos on this machine's PATH is stale."
     When itos runs "go"
