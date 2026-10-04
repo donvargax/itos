@@ -537,3 +537,17 @@
       timeout: 300
     - run: sh -c 'd=$(mktemp -d) && gh release download v0.6.0 --dir "$d" --pattern "itos-0.6.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
       after: push
+
+- id: T-082
+  type: chore
+  title: The plugin skill names itos work add and edit
+  why: >
+    Was p1-skill-work-add, found by slice 54's agent: the itos skill in the Claude Code plugin named
+    itos work take, done and list, but not work add and work edit, so an agent in another
+    repository still recorded the gaps it found by editing the registry's YAML by hand, which
+    slice 54 made unnecessary. The skill now says to record a gap with itos work add and to note
+    on an item with itos work edit; the plugin's minor version is raised in the chore commit
+    T-074's rule asks for.
+  done_when:
+    - run: grep -q 'itos work add' integrations/claude-code/skills/itos/SKILL.md
+    - run: grep -q 'itos work edit' integrations/claude-code/skills/itos/SKILL.md
