@@ -63,3 +63,30 @@ Feature: itos status, where the work stands
     When itos runs "go"
     Then itos exits with code 0
     And its output says "# Coordinating with itos" before "# Where things stand"
+
+  # What is released and what is not was still read by hand (gh release list,
+  # git log since the tag). status names the newest release, the highest tag
+  # of the form v<semver> on the remote (asked of it as the head is, else as
+  # last fetched), and the feat and fix commits on the remote branch since
+  # it, the ones the next release would carry (the user's calls, 2026-10-04,
+  # p1-status-releases-nightly). The last nightly and the last green run need
+  # a provider each and wait on an item of their own.
+  @ID-STATUS-06 @slice-70 @wip
+  Scenario: status names the newest release, and the feat and fix commits since it
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the remote's head is tagged "v1.2.0"
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    And the remote has gained the commit "docs: describe the archive" touching "b.md"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "v1.2.0" before "feat: add the archive"
+    And its output does not say "docs: describe the archive"
+
+  @ID-STATUS-07 @slice-70 @wip
+  Scenario: With no release yet, status says so and prints the rest
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "no release yet"
+    And its output says "slice-9"
