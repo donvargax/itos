@@ -1479,6 +1479,11 @@ items:
       prints the item, its scenarios live or @wip, the earlier commits on its feature file or
       task, and the items depending on it, run by the agent itself. Fifth.
 
+      Slice 57 (itos work show, v2.17.0) built the reading list this asked for: the item, its
+      scenarios and its commits. What is left, if anything, is the reads a brief adds beyond them
+      (PLAN sections, ARCHITECTURE); the coordinator's view: close it once the brief template points
+      at itos work show.
+
   - id: p1-work-queue-order
     title: "The registry holds the order of the queue, not HANDOFF's prose"
     phase: 1
