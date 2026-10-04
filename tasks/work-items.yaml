@@ -4728,4 +4728,20 @@ items:
       from the options it names, Decision Outcome from the answer, Consequences from --consequences;
       a superseded record's status 'superseded by ADR-NNNN'; the index of live records reads the
       frontmatter. The folder and the release it ships in wait on q-9 and q-10.
+
+      Specified as @ID-ASK-14 to 16 in features/ask.feature. Settled (the user's calls q-9 and q-10,
+      2026-10-04, and the coordinator's by decision 1): the folder is docs/decisions, or the one the
+      new config key work.decisions names, beside work.asks; .adr-dir is no longer read, since it
+      was adr-tools'; under stealth, <git common dir>/itos/decisions. A record: frontmatter 'status:
+      accepted' and 'date: YYYY-MM-DD' (the day recorded); '# Title' with no number; '## Context and
+      Problem Statement' (the question, then 'Asked as q-N', with its item); '## Considered Options'
+      (one bullet per --option given, else 'The options are those the question names.'); '##
+      Decision Outcome' (the answer); '### Consequences' (--consequences, else 'None recorded.').
+      --supersedes N sets the old record's status to 'superseded by ADR-000N' and gives the new one
+      a '## More Information' line 'Supersedes ADR-000N.' The index (README.md in the folder, the
+      bug-17 form) lists the records whose status is accepted, by number and title. Records are read
+      by structure (frontmatter, headings), never bytes. The feat is breaking (--breaking), cutting
+      v3.0.0: it removes @ID-ASK-06, 07 and 11, which promised Nygard records and .adr-dir, and
+      points 09, 10, 12 and 13 at docs/decisions. This repository's decision 1 moves to
+      docs/decisions/0001-… as MADR in a docs commit.
     refs: [internal/adr, features/ask.feature]
