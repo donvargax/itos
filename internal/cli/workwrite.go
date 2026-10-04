@@ -10,7 +10,9 @@ package cli
 // commit, whatever else the person has staged (git commit --only), with the
 // header and body the change gives. Under a stealth config the registry is
 // in the git folder, tracked by nothing, so it is written and nothing is
-// committed.
+// committed; and since every linked worktree writes the same files there,
+// soundRegistry takes the registry's lock (internal/lock) before it reads,
+// held until the command's write is done (bug 16).
 
 import (
 	"errors"
@@ -25,6 +27,7 @@ import (
 	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/git"
 	"github.com/donvargax/itos/v2/internal/ledger"
+	"github.com/donvargax/itos/v2/internal/lock"
 	"github.com/donvargax/itos/v2/internal/out"
 	"github.com/donvargax/itos/v2/internal/providers"
 	"github.com/donvargax/itos/v2/internal/value"
@@ -97,29 +100,48 @@ func refuseWork(found []out.Problem, code int, o Out) (int, error) {
 // soundRegistry is the config, the registry and its text, when the registry
 // is there and sound: a command writes only a registry work check passes.
 // Otherwise its problems are reported, exit 1, and the config is nil.
-func soundRegistry(o Out) (*config.Loaded, work.Registry, string, int, error) {
-	cfg, err := config.Load(config.Path())
-	if err != nil {
-		return nil, work.Registry{}, "", 0, err
+//
+// Under a stealth config it first takes the registry's lock, which release,
+// never nil and deferred by the caller, gives back: every command that
+// writes the registry or a ledger file reads them here, and writes the
+// registry, so the lock held from here to the write keeps another itos, in
+// another worktree, from reading the files before this one's change and
+// writing them over it (bug 16). A project's registry needs none: its
+// writes are commits, which git's own index lock takes in turn.
+func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text string, release func(), code int, err error) {
+	release = func() {}
+	if cfg, err = config.Load(config.Path()); err != nil {
+		return nil, work.Registry{}, "", release, 0, err
+	}
+	if cfg.Stealth {
+		held, err := lock.Hold(cfg.Work.Registry)
+		if err != nil {
+			return nil, work.Registry{}, "", release, 0, err
+		}
+		release = func() {
+			if err := held.Release(); err != nil {
+				fmt.Fprintf(o.Stderr, "itos: the lock cannot be given back: %s\n", err)
+			}
+		}
 	}
 	found, err := work.Problems(cfg)
 	if err != nil {
-		return nil, work.Registry{}, "", 0, err
+		return nil, work.Registry{}, "", release, 0, err
 	}
 	if len(found) > 0 {
 		code, err := refuseWork(found, ExitPolicy, o)
-		return nil, work.Registry{}, "", code, err
+		return nil, work.Registry{}, "", release, code, err
 	}
 	file := cfg.Work.Registry
-	text, err := os.ReadFile(file)
+	raw, err := os.ReadFile(file)
 	if err != nil {
-		return nil, work.Registry{}, "", 0, err
+		return nil, work.Registry{}, "", release, 0, err
 	}
-	registry, err := work.Load(cfg, file)
+	registry, err = work.Load(cfg, file)
 	if err != nil {
-		return nil, work.Registry{}, "", 0, err
+		return nil, work.Registry{}, "", release, 0, err
 	}
-	return cfg, registry, string(text), 0, nil
+	return cfg, registry, string(raw), release, 0, nil
 }
 
 // uncommitted is the problem of a file a command writes and commits that
@@ -372,7 +394,8 @@ func workTake(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	cfg, registry, text, code, err := soundRegistry(o)
+	cfg, registry, text, release, code, err := soundRegistry(o)
+	defer release()
 	if cfg == nil {
 		return code, err
 	}
@@ -434,7 +457,8 @@ func workPromote(args []string, o Out) (int, error) {
 	if kind != "slice" && kind != "task" {
 		return 0, usage("work promote needs --kind %s", strings.Join(promoteKinds, "|"))
 	}
-	cfg, registry, text, code, err := soundRegistry(o)
+	cfg, registry, text, release, code, err := soundRegistry(o)
+	defer release()
 	if cfg == nil {
 		return code, err
 	}

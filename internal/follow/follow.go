@@ -10,7 +10,9 @@
 //
 // The package reads and writes the file and gives a thread as Markdown; the
 // command line (internal/cli/follow.go) reads the clock, once a run, and
-// hands each change its time.
+// hands each change its time, and holds the file's lock (internal/lock)
+// across a change's load and save, so two itos at once keep both changes
+// (bug 16).
 package follow
 
 import (
@@ -42,8 +44,9 @@ const (
 // second, with its offset.
 const Stamp = time.RFC3339
 
-// Shown is how a time is printed: to the minute, in the offset it was
-// written with.
+// Shown is how a time is printed: to the minute, in the reader's time zone
+// (bug 16: each in the offset it was written with, notes written from two
+// zones read out of order).
 const Shown = "2006-01-02 15:04"
 
 // Note is one dated entry of a thread.
@@ -79,8 +82,12 @@ var idPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 func ValidID(id string) bool { return idPattern.MatchString(id) }
 
 // Load reads the threads' file at path; one not there is no threads yet.
-// A file that is not as itos writes it (an unknown key, a thread with no id
-// or two with one id, a status neither open nor closed) is an error naming it.
+// A file that is not as itos writes it is an error naming it, since saving
+// what was read would drop the rest (bug 16): an unknown key, a thread with
+// no id or two with one id, a status neither open nor closed, a second YAML
+// document, or no document at all, which itos never writes (it writes
+// "threads: []" for none), so an empty file is a write cut short, not a
+// clone with no threads.
 func Load(path string) (File, error) {
 	text, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -92,8 +99,14 @@ func Load(path string) (File, error) {
 	var f File
 	dec := yaml.NewDecoder(bytes.NewReader(text))
 	dec.KnownFields(true)
-	if err := dec.Decode(&f); err != nil && !errors.Is(err, io.EOF) {
+	if err := dec.Decode(&f); errors.Is(err, io.EOF) {
+		return File{}, fmt.Errorf("%s holds no threads, not even an empty list, so itos did not write it whole; it is left as it is: remove it if no thread was in it", path)
+	} else if err != nil {
 		return File{}, fmt.Errorf("%s: %w", path, err)
+	}
+	var more yaml.Node
+	if err := dec.Decode(&more); !errors.Is(err, io.EOF) {
+		return File{}, fmt.Errorf("%s holds more than one YAML document, and itos writes one, so it is left as it is: move the threads into the first", path)
 	}
 	seen := map[string]bool{}
 	for i, t := range f.Threads {
@@ -111,8 +124,9 @@ func Load(path string) (File, error) {
 }
 
 // Save writes the threads' file at path, readable by its owner alone: the
-// text written to a file beside it, then moved over it, so a reader never
-// sees half of it. Its folder is made when it is not there.
+// text written to a file beside it and synced to the disk, then moved over
+// it, so a reader never sees half of it and a crash leaves the old file or
+// the new one, never an empty one. Its folder is made when it is not there.
 func Save(path string, f File) error {
 	var body bytes.Buffer
 	enc := yaml.NewEncoder(&body)
@@ -133,6 +147,10 @@ func Save(path string, f File) error {
 	}
 	defer os.Remove(tmp.Name())
 	if _, err := tmp.WriteString(head + body.String()); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Sync(); err != nil {
 		tmp.Close()
 		return err
 	}
@@ -201,14 +219,15 @@ func (t Thread) Last() string {
 	return t.Notes[len(t.Notes)-1].At
 }
 
-// Show is a time as itos prints it, to the minute in the offset it was
-// written with; one it cannot read as it is written.
+// Show is a time as itos prints it, to the minute in the reader's time
+// zone (time.Local, TZ where the system reads it); one it cannot read as it
+// is written.
 func Show(stamp string) string {
 	at, err := time.Parse(Stamp, stamp)
 	if err != nil {
 		return stamp
 	}
-	return at.Format(Shown)
+	return at.Local().Format(Shown)
 }
 
 // Markdown is the whole thread as a Markdown document: its title, who it is

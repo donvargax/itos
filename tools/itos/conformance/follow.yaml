@@ -3,8 +3,11 @@
 # Every case that prints or writes a date reads a stored file, so no case
 # reads the clock: the list, show and doc of the threads below, and the
 # subcommands that write only by what they print and refuse. That follow needs
-# a git repository is cli.yaml's, whose cases have none.
+# a git repository is cli.yaml's, whose cases have none. Times print in the
+# reader's zone (bug 16), so every case reads in the zone the stored stamps
+# were written in, -07:00.
 git: []
+env: { TZ: Etc/GMT+7 }
 files:
   .git/itos/follow-ups.yaml: &threads |
     # itos follow's threads: this clone's own, never committed (itos help follow).
@@ -78,6 +81,34 @@ cases:
     exit: 2
     stderr: |
       itos: {{dir}}/.git/itos/follow-ups.yaml: a's status is "done", not open or closed
+  - name: follow refuses a follow-ups.yaml holding a second document, and leaves it as it is
+    files:
+      .git/itos/follow-ups.yaml: &two "threads: []\n---\nthreads: []\n"
+    argv: [follow, note, sync-ana, Hello.]
+    exit: 2
+    stderr: |
+      itos: {{dir}}/.git/itos/follow-ups.yaml holds more than one YAML document, and itos writes one, so it is left as it is: move the threads into the first
+    files_after:
+      .git/itos/follow-ups.yaml: *two
+  - name: follow refuses an empty follow-ups.yaml, which itos never writes, and leaves it as it is
+    files:
+      .git/itos/follow-ups.yaml: ""
+    argv: [follow, add, ci-cy, --with, cy, --title, The CI runner, --note, Asked.]
+    exit: 2
+    stderr: |
+      itos: {{dir}}/.git/itos/follow-ups.yaml holds no threads, not even an empty list, so itos did not write it whole; it is left as it is: remove it if no thread was in it
+    files_after:
+      .git/itos/follow-ups.yaml: ""
+  - name: follow show prints the times in the reader's zone
+    env: { TZ: UTC }
+    argv: [follow, show, flaky-bo]
+    exit: 0
+    stdout: |
+      flaky-bo: The flaky login test
+      with bo, closed 2026-10-05 23:00
+
+      2026-10-04 17:00  Started.
+      2026-10-05 23:00  Fixed by the retry.
   - name: follow show prints the whole thread, every note in order
     argv: [follow, show, sync-ana]
     exit: 0
@@ -123,6 +154,8 @@ cases:
     exit: 0
     stdout: |
       sync-ana written to notes/design/sync.md
+    stderr: |
+      itos: warning: notes/design/sync.md is in the work tree and not ignored by git, so a git add can commit this private thread; list it in .git/info/exclude or .gitignore, or write it outside the work tree
     files_after:
       notes/design/sync.md: |
         # The sync design
@@ -163,6 +196,47 @@ cases:
                 text: Started.
               - at: "2026-10-05T16:00:00-07:00"
                 text: Fixed by the retry.
+  - name: follow doc to a path git ignores writes it with no warning
+    files:
+      .gitignore: "notes/\n"
+    argv: [follow, doc, sync-ana, notes/sync.md]
+    exit: 0
+    stdout: |
+      sync-ana written to notes/sync.md
+    stderr: ""
+  - name: follow doc to - prints the Markdown, writes no file and records nothing
+    argv: [follow, doc, flaky-bo, "-"]
+    exit: 0
+    stdout: |
+      # The flaky login test
+
+      A thread with bo, closed 2026-10-05 16:00 (itos follow show flaky-bo).
+
+      ## 2026-10-04 10:00
+
+      Started.
+
+      ## 2026-10-05 16:00
+
+      Fixed by the retry.
+    files_after:
+      "-": null
+      .git/itos/follow-ups.yaml: *threads
+  - name: follow doc to - --json gives the Markdown beside the thread
+    argv: [follow, doc, sync-ana, "-", --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      thread:
+        id: sync-ana
+        with: ana
+        title: The sync design
+        status: open
+        notes:
+          - { at: "2026-10-04T09:30:15-07:00", text: "She covered the retries, not the backoff." }
+          - { at: "2026-10-04T11:05:00-07:00", text: "Backoff agreed: exponential,\ncapped at a minute." }
+      markdown: "# The sync design\n\nA thread with ana, open (itos follow show sync-ana).\n\n## 2026-10-04 09:30\n\nShe covered the retries, not the backoff.\n\n## 2026-10-04 11:05\n\nBackoff agreed: exponential,\ncapped at a minute.\n"
   - name: follow doc writes nothing over a file already there
     files:
       notes/sync.md: "mine\n"

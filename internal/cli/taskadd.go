@@ -92,7 +92,8 @@ func taskAdd(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	cfg, registry, text, code, err := soundRegistry(o)
+	cfg, registry, text, release, code, err := soundRegistry(o)
+	defer release()
 	if cfg == nil {
 		return code, err
 	}

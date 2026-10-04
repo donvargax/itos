@@ -50,17 +50,37 @@ func TestSaveThenLoadKeepsEveryThread(t *testing.T) {
 	}
 }
 
-func TestLoadReadsNoFileAndAnEmptyOneAsNoThreads(t *testing.T) {
+func TestLoadReadsNoFileAndAnEmptyListAsNoThreads(t *testing.T) {
 	dir := t.TempDir()
-	for _, path := range []string{filepath.Join(dir, "missing.yaml"), filepath.Join(dir, "empty.yaml")} {
-		if strings.HasSuffix(path, "empty.yaml") {
-			if err := os.WriteFile(path, nil, 0o600); err != nil {
-				t.Fatal(err)
-			}
+	if f, err := Load(filepath.Join(dir, "missing.yaml")); err != nil || len(f.Threads) != 0 {
+		t.Errorf("no file: %v, %d threads", err, len(f.Threads))
+	}
+	path := filepath.Join(dir, FileName)
+	if err := Save(path, File{}); err != nil {
+		t.Fatal(err)
+	}
+	if f, err := Load(path); err != nil || len(f.Threads) != 0 {
+		t.Errorf("a file of no threads: %v, %d threads", err, len(f.Threads))
+	}
+}
+
+// Bug 16: saving what was read would drop what was not, so an empty file
+// (a write cut short) and a second document are refused, the file as it was.
+func TestLoadRefusesAnEmptyFileAndASecondDocument(t *testing.T) {
+	for text, want := range map[string]string{
+		"":                         "holds no threads",
+		"# only a comment\n":       "holds no threads",
+		"threads: []\n---\nx: 1\n": "more than one YAML document",
+	} {
+		path := filepath.Join(t.TempDir(), FileName)
+		if err := os.WriteFile(path, []byte(text), 0o600); err != nil {
+			t.Fatal(err)
 		}
-		f, err := Load(path)
-		if err != nil || len(f.Threads) != 0 {
-			t.Errorf("%s: %v, %d threads", path, err, len(f.Threads))
+		if _, err := Load(path); err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%q: %v, not an error saying %q", text, err, want)
+		}
+		if now, _ := os.ReadFile(path); string(now) != text {
+			t.Errorf("%q: the file changed to %q", text, now)
 		}
 	}
 }
@@ -82,7 +102,15 @@ func TestLoadRefusesAFileItosDoesNotWrite(t *testing.T) {
 	}
 }
 
+// inZone runs the test with time.Local the zone, as TZ would set it.
+func inZone(t *testing.T, zone *time.Location) {
+	was := time.Local
+	time.Local = zone
+	t.Cleanup(func() { time.Local = was })
+}
+
 func TestMarkdownIsTheWholeThreadInOrder(t *testing.T) {
+	inZone(t, at.Location())
 	var f File
 	th := f.Add("sync-ana", "ana", "The sync design", "She covered the retries.", at)
 	th.Note("Backoff agreed.", at.Add(2*time.Hour))
@@ -105,5 +133,14 @@ func TestValidID(t *testing.T) {
 		if ValidID(id) != want {
 			t.Errorf("ValidID(%q) is %v", id, !want)
 		}
+	}
+}
+
+// Bug 16: a time prints in the reader's zone, whatever offset it was
+// written with, so notes written from two zones read in order.
+func TestShowPrintsInTheReadersZone(t *testing.T) {
+	inZone(t, time.UTC)
+	if got := Show("2026-10-04T14:02:00+09:00"); got != "2026-10-04 05:02" {
+		t.Errorf("Show gave %q, not 2026-10-04 05:02", got)
 	}
 }

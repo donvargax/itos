@@ -508,7 +508,8 @@ mechanisms above, written against those modules, read across.
   below), `internal/work` (the registry and its problems, the items'
   statuses, the proposal, the edits that take, promote, close, add and
   change an item, and the item as work show prints it;
-  below), `internal/follow` (itos follow's threads; below),
+  below), `internal/follow` (itos follow's threads; below), `internal/lock`
+  (the lock file a writer of shared data holds; below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git` (the repository's state and ranges, read
   through the real git; below), beside four
@@ -1435,18 +1436,41 @@ add`ed so `--only` can name it, git add's words and the commit's on
   linked worktree. The file is itos's own, so it is read and written whole
   with `yaml/v3` and typed structs rather than edited in place through
   `value.Doc`: `Load` refuses a key it does not know, a thread with no id or
-  a repeated one and a status neither open nor closed; `Save` writes a file
-  beside it, mode 0600, and moves it over, so a reader in another worktree
-  never sees half of it, and makes the folder (0700) where there is none.
-  A note's time is written RFC 3339 to the second in local time and printed
-  to the minute in the offset written (`follow.Show`), so the corpus's
-  stored threads print the same anywhere; the command line reads the clock
+  a repeated one, a status neither open nor closed, and (bug 16) a second
+  YAML document or none at all, since saving what it read would drop the
+  rest and itos never writes an empty file; `Save` writes a file beside it,
+  mode 0600, syncs it and moves it over, so a reader in another worktree
+  never sees half of it and a crash leaves the old file or the new, and
+  makes the folder (0700) where there is none. Every subcommand that writes
+  loads through `heldThreads`, which holds the file's lock
+  (`internal/lock`, below) until the command returns, so two writers at
+  once take turns. A note's time is written RFC 3339 to the second in local
+  time and printed to the minute in the reader's zone (`follow.Show`,
+  `time.Local`), so notes written from two zones read in order; the corpus
+  pins `TZ` to the stored stamps' offset. The command line reads the clock
   in `followNow` alone and hands each change its time, and no case reads it
   (a case of add, note or close pins what it prints, never the file).
   `follow doc` writes `follow.Markdown` where the person typed (`typed`),
-  refuses a file already there without `--force`, and records the absolute
-  path in the thread's `docs`. A refusal is `refuseWork`'s problem, exit 1;
-  no git repository is exit 3.
+  0600 in folders made 0700, refuses a file already there without
+  `--force`, and records the absolute path in the thread's `docs`; when
+  `git check-ignore` exits 1 for the typed path (in the work tree, not
+  ignored) it warns on stderr, and `-` prints the Markdown and writes
+  nothing (`followDocOut`). A refusal is `refuseWork`'s problem, exit 1; no
+  git repository is exit 3.
+- **The lock** (`internal/lock`, bug 16) is the one way itos keeps two
+  writers of a file from losing a change: `lock.Hold(path)` makes
+  `path.lock` with `O_EXCL`, which works the same on Linux, macOS and
+  Windows (`flock` is not on Windows), retrying with a growing pause up to
+  `lock.Wait` (10 s) and then failing with an error that names the lock file
+  and says to remove it when no itos runs; `Release` removes it. It is held
+  from before the read to after the write, around itos follow's threads
+  (`heldThreads`) and, under a stealth config, around the registry, which
+  every registry and ledger writer reads in `soundRegistry` and writes:
+  those files are in the git common dir, shared by every worktree, and the
+  lock is `<registry>.lock` beside them. `work done` gives it back while it
+  runs the task's checks and asks CI, and takes it again to make its change
+  on the registry as it then is. A project's registry takes none: its writes
+  are commits.
 - **The hooks** are `hook commit-msg`, `hook pre-push`
   (`internal/cli/hook.go`) and `hooks install` (`internal/cli/install.go`),
   `hooks.ts` with `commit-data.ts`, `commit-scope.ts`, `commit-tasks.ts` and

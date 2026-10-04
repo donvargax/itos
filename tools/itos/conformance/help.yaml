@@ -355,10 +355,18 @@ cases:
       by you only, never committed, and the same from every linked worktree of the
       clone. No config is needed, only a git repository: exit 3 outside one.
 
+      A subcommand that changes the threads holds follow-ups.yaml.lock beside the
+      file from before it reads them to after it writes them, so two at once, in
+      two worktrees say, take turns and both changes are kept; one that finds the
+      lock held waits, and gives up after 10 seconds naming it. An itos stopped
+      while it held the lock leaves the file behind: remove it when no itos runs.
+      Times print to the minute in your time zone.
+
       itos follow lists the open threads, each with its title, who it is with and
       when it last had a note; --all adds the closed ones after them. Exit 1 for a
-      refusal (an id a thread has, no thread with the id), 2 for a usage error or a
-      follow-ups.yaml itos cannot read.
+      refusal (an id a thread has, no thread with the id), 2 for a usage error, a
+      lock still held, or a follow-ups.yaml itos cannot read or did not write
+      whole (a second YAML document, an empty file), which it leaves as it is.
 
       --json: {"schema":1,"threads":[{"id","with","title","status","opened","last","notes"}]},
       notes the count; each subcommand's in its help (itos help follow <subcommand>)
@@ -415,6 +423,7 @@ cases:
     exit: 0
     stdout: |
       Usage: itos follow doc <id> <path> [--force]
+             itos follow doc <id> -
 
       Writes the whole thread at <path> as Markdown, in the repository or not, the
       folders it needs made: its title, who it is with and its status, then each
@@ -423,7 +432,13 @@ cases:
       already at <path> is refused, nothing written (exit 1), unless --force writes
       over it; so is a folder, or no thread with the id.
 
-      --json: as itos follow add's, with "path", the file written, absolute
+      The thread is private, so the file is readable by you alone (0600, the
+      folders made 0700), and a <path> in the work tree that git does not ignore
+      is written with a warning on stderr: a git add would commit it. With - for
+      <path> the Markdown is printed instead, and no file written or recorded.
+
+      --json: as itos follow add's, with "path", the file written, absolute; with
+      -, as itos follow add's with "markdown", the text
   - name: itos commit --help
     argv: [commit, --help]
     exit: 0

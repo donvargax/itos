@@ -3,14 +3,16 @@ package cli
 // itos follow (slice 61, features/follow.feature): the person's private
 // threads with people, in follow-ups.yaml of itos's folder under the git
 // common dir (internal/follow). Every subcommand reads the file, and add,
-// note, close and doc write it back; none reads a config or commits, so any
-// git repository will do. The clock is read once a run, by followNow.
+// note, close and doc write it back, holding its lock from before the read
+// to after the write (heldThreads, bug 16); none reads a config or commits,
+// so any git repository will do. The clock is read once a run, by followNow.
 
 import (
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -19,6 +21,7 @@ import (
 	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/follow"
 	"github.com/donvargax/itos/v2/internal/git"
+	"github.com/donvargax/itos/v2/internal/lock"
 	"github.com/donvargax/itos/v2/internal/out"
 )
 
@@ -134,6 +137,31 @@ func loadThreads(o Out) (string, follow.File, int, error) {
 	return file, threads, 0, err
 }
 
+// heldThreads is loadThreads for a subcommand that changes the threads: the
+// file's lock (internal/lock) taken before they are read, given back by
+// release, which the caller defers, so another itos changing them at once
+// waits rather than one change being lost (bug 16). release is never nil;
+// a lock not had is an error, the file "".
+func heldThreads(o Out) (file string, threads follow.File, release func(), code int, err error) {
+	release = func() {}
+	file = threadsFile()
+	if file == "" {
+		file, threads, code, err = loadThreads(o)
+		return file, threads, release, code, err
+	}
+	held, err := lock.Hold(file)
+	if err != nil {
+		return "", follow.File{}, release, 0, err
+	}
+	release = func() {
+		if err := held.Release(); err != nil {
+			fmt.Fprintf(o.Stderr, "itos: the lock cannot be given back: %s\n", err)
+		}
+	}
+	threads, err = follow.Load(file)
+	return file, threads, release, 0, err
+}
+
 // noThread refuses an id no thread has, exit 1.
 func noThread(id string, o Out) (int, error) {
 	return refuseWork([]out.Problem{{
@@ -173,7 +201,8 @@ func followAdd(args []string, o Out) (int, error) {
 	if flags["--with"] == "" || flags["--title"] == "" || flags["--note"] == "" {
 		return 0, usage("follow add needs --with <who>, --title <title> and --note <text>")
 	}
-	file, threads, code, err := loadThreads(o)
+	file, threads, release, code, err := heldThreads(o)
+	defer release()
 	if file == "" || err != nil {
 		return code, err
 	}
@@ -206,7 +235,8 @@ func followNote(args []string, o Out) (int, error) {
 	if strings.TrimSpace(text) == "" {
 		return 0, usage("follow note needs <id> <text>")
 	}
-	file, threads, code, err := loadThreads(o)
+	file, threads, release, code, err := heldThreads(o)
+	defer release()
 	if file == "" || err != nil {
 		return code, err
 	}
@@ -235,7 +265,8 @@ func followClose(args []string, o Out) (int, error) {
 	if len(rest) > 0 {
 		return 0, usage("follow close takes one <id>, not %s (a last note goes in --note)", strings.Join(rest, " "))
 	}
-	file, threads, code, err := loadThreads(o)
+	file, threads, release, code, err := heldThreads(o)
+	defer release()
 	if file == "" || err != nil {
 		return code, err
 	}
@@ -299,8 +330,12 @@ func followShow(args []string, o Out) (int, error) {
 }
 
 // followDoc is `follow doc <id> <path> [--force]`: the whole thread as
-// Markdown at path, its folders made, the thread recording where. A file
-// already there is refused unless --force.
+// Markdown at path, readable by the person alone (0600, the folders it makes
+// 0700: the thread is private), the thread recording where. A file already
+// there is refused unless --force. A path in the work tree that git does not
+// ignore is written with a warning on stderr, since one git add -A commits
+// it (bug 16). <path> "-" is stdout: the Markdown printed, no file written
+// and nothing recorded.
 func followDoc(args []string, o Out) (int, error) {
 	pos, _, set, err := followArgs("doc", args, nil, []string{"--force"})
 	if err != nil {
@@ -314,7 +349,11 @@ func followDoc(args []string, o Out) (int, error) {
 		return 0, usage("follow doc needs <id> <path>")
 	}
 	path := rest[0]
-	file, threads, code, err := loadThreads(o)
+	if path == "-" {
+		return followDocOut(id, o)
+	}
+	file, threads, release, code, err := heldThreads(o)
+	defer release()
 	if file == "" || err != nil {
 		return code, err
 	}
@@ -343,17 +382,54 @@ func followDoc(args []string, o Out) (int, error) {
 	case err != nil && !errors.Is(err, fs.ErrNotExist):
 		return 0, err
 	}
-	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
 		return 0, err
 	}
-	if err := os.WriteFile(target, []byte(follow.Markdown(*t)), 0o644); err != nil {
+	if err := os.WriteFile(target, []byte(follow.Markdown(*t)), 0o600); err != nil {
 		return 0, err
+	}
+	// A file --force wrote over keeps its mode through WriteFile; the thread
+	// is no less private in it.
+	if err := os.Chmod(target, 0o600); err != nil {
+		return 0, err
+	}
+	if notIgnored(typed(path)) {
+		fmt.Fprintf(o.Stderr, "itos: warning: %s is in the work tree and not ignored by git, so a git add can commit this private thread; "+
+			"list it in .git/info/exclude or .gitignore, or write it outside the work tree\n", path)
 	}
 	t.Wrote(target)
 	if err := follow.Save(file, threads); err != nil {
 		return 0, err
 	}
 	return reportThread(fmt.Sprintf("%s written to %s", id, path), *t, o, out.Field{Key: "path", Value: target})
+}
+
+// followDocOut is `follow doc <id> -`: the thread's Markdown on stdout, or
+// under --json in "markdown" beside the thread; nothing written.
+func followDocOut(id string, o Out) (int, error) {
+	file, threads, code, err := loadThreads(o)
+	if file == "" || err != nil {
+		return code, err
+	}
+	t := threads.Find(id)
+	if t == nil {
+		return noThread(id, o)
+	}
+	text := follow.Markdown(*t)
+	if o.JSON {
+		return 0, out.Emit(o.Stdout, out.Field{Key: "ok", Value: true}, out.Field{Key: "thread", Value: *t}, out.Field{Key: "markdown", Value: text})
+	}
+	_, err = fmt.Fprint(o.Stdout, text)
+	return 0, err
+}
+
+// notIgnored is whether path, as the person typed it, is in the work tree
+// and git does not ignore it: git check-ignore exits 1. Outside the work
+// tree, or in the git folder, it exits 128, and an ignored path 0.
+func notIgnored(path string) bool {
+	err := exec.Command(git.Bin(), "check-ignore", "-q", "--", path).Run()
+	var exit *exec.ExitError
+	return errors.As(err, &exit) && exit.ExitCode() == 1
 }
 
 // followEntry is a thread as follow --json lists it.

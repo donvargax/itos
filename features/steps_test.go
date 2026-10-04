@@ -41,6 +41,9 @@ type world struct {
 	registryLines []string          // the registry's items, one line each, as the work steps wrote them
 	noGh          bool              // the PATH has no gh
 	messageFile   string            // the message file's text, as a step wrote it
+	atOnce        []atOnceRun       // the runs of one command started together, as allAtOnce ran them
+	atOnceWords   []string          // the notes or ideas those runs added, in order
+	threadsBefore string            // the threads file's text, as a step wrote it
 
 	exit           int
 	stdout, stderr string

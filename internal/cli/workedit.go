@@ -51,7 +51,8 @@ func workAdd(args []string, o Out) (int, error) {
 	if !slices.Contains(addKinds, kind) {
 		return 0, usage("work add takes --kind %s", strings.Join(addKinds, "|"))
 	}
-	cfg, registry, text, code, err := soundRegistry(o)
+	cfg, registry, text, release, code, err := soundRegistry(o)
+	defer release()
 	if cfg == nil {
 		return code, err
 	}
@@ -98,7 +99,8 @@ func workEdit(args []string, o Out) (int, error) {
 		e.Refs = &list
 	}
 	e.Note = flags["--note"]
-	cfg, registry, text, code, err := soundRegistry(o)
+	cfg, registry, text, release, code, err := soundRegistry(o)
+	defer release()
 	if cfg == nil {
 		return code, err
 	}

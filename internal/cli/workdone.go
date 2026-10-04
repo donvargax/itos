@@ -30,19 +30,21 @@ func workDone(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	cfg, registry, text, code, err := soundRegistry(o)
+	cfg, registry, text, release, code, err := soundRegistry(o)
+	defer func() { release() }()
 	if cfg == nil {
 		return code, err
 	}
-	change, problem, err := work.Done(registry, text, id)
-	if err != nil {
-		return 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+	change, code, err := doneChange(cfg, registry, text, id, o)
+	if change == nil {
+		return code, err
 	}
-	if problem != nil {
-		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
-	}
-	if change.Unchanged {
-		return reportWork(id+" is already done; nothing to change", change, "", nil, o)
+	if cfg.Stealth {
+		// The checks below run the task's checks and ask CI, which can take
+		// minutes: the stealth registry's lock is given back meanwhile, and
+		// taken again for the write below (bug 16).
+		release()
+		release = func() {}
 	}
 	found, err := wipScenarios(cfg, id)
 	if err != nil {
@@ -63,14 +65,43 @@ func workDone(args []string, o Out) (int, error) {
 	if err != nil || code != 0 {
 		return code, err
 	}
+	if cfg.Stealth {
+		// The registry as it is now, another worktree's changes in it, and
+		// the item's change made afresh on it.
+		if cfg, registry, text, release, code, err = soundRegistry(o); cfg == nil {
+			return code, err
+		}
+		if change, code, err = doneChange(cfg, registry, text, id, o); change == nil {
+			return code, err
+		}
+	}
 	if ci.run != nil && ci.run.URL != "" {
 		change.Body += " HEAD's CI run passed: " + ci.run.URL + "."
 	}
-	sha, code, err := writeRegistry(cfg, text, change, o)
+	sha, code, err := writeRegistry(cfg, text, *change, o)
 	if err != nil || code != 0 {
 		return code, err
 	}
-	return reportWork(fmt.Sprintf("%s is done: %s", id, committed(sha, change.Header)), change, sha, ci.fields(), o)
+	return reportWork(fmt.Sprintf("%s is done: %s", id, committed(sha, change.Header)), *change, sha, ci.fields(), o)
+}
+
+// doneChange is the registry's change that makes the item done (work.Done),
+// nil when there is none to make: a refusal, an item already done (reported
+// as such) or an error, with the exit code and error to end with.
+func doneChange(cfg *config.Loaded, registry work.Registry, text, id string, o Out) (*work.Change, int, error) {
+	change, problem, err := work.Done(registry, text, id)
+	if err != nil {
+		return nil, 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+	}
+	if problem != nil {
+		code, err := refuseWork([]out.Problem{*problem}, ExitPolicy, o)
+		return nil, code, err
+	}
+	if change.Unchanged {
+		code, err := reportWork(id+" is already done; nothing to change", change, "", nil, o)
+		return nil, code, err
+	}
+	return &change, 0, nil
 }
 
 // wipScenarios are the problems of the item's scenarios at HEAD, those

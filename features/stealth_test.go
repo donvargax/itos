@@ -29,6 +29,25 @@ func initializeStealthSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the work registry beside the config has the item "([^"]*)" owned by "([^"]*)" with the status "([^"]*)"$`, func(item, owner, status string) error {
 		return w.workingRegistryOwned(w.data(startingRegistry), item, owner, status)
 	})
+	sc.Step(`^the stealth registry has the item "([^"]*)" owned by nobody with the status "([^"]*)"$`, func(item, status string) error {
+		if w.dataDir != stealthDir {
+			return fmt.Errorf("the scenario keeps no config in the git folder")
+		}
+		return w.registryItem(item, "null", status, "", "")
+	})
+	sc.Step(`^itos runs "work add" for the ideas "([^"]*)" to "([^"]*)" all at once$`, func(from, to string) error {
+		ids, err := numbered(from, to)
+		if err != nil {
+			return err
+		}
+		w.atOnceWords = ids
+		runs := make([][]string, len(ids))
+		for i, id := range ids {
+			runs[i] = []string{"work", "add", id, "--title", "The idea " + id, "--why", "Added at the same moment as the others."}
+		}
+		return w.allAtOnce(runs)
+	})
+	sc.Step(`^the registry has every one of those ideas$`, w.registryHasEveryIdea)
 	sc.Step(`^the config in the git folder names no people file$`, func() error {
 		w.config.noPeople = true
 		return w.writeConfig()
@@ -280,4 +299,20 @@ func (w *world) remoteWithCommit(subject string) error {
 		return err
 	}
 	return w.git("push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main")
+}
+
+// The registry has an idea for every id allAtOnce added.
+func (w *world) registryHasEveryIdea() error {
+	var missing []string
+	for _, id := range w.atOnceWords {
+		item, err := w.registryItemOf(id)
+		if err != nil || item["kind"] != "idea" {
+			missing = append(missing, id)
+		}
+	}
+	if len(missing) > 0 {
+		text, _ := os.ReadFile(filepath.Join(w.dir, w.data(startingRegistry)))
+		return fmt.Errorf("%d of the %d ideas are missing: %s\n%s", len(missing), len(w.atOnceWords), strings.Join(missing, ", "), text)
+	}
+	return nil
 }

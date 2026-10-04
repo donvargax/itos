@@ -88,35 +88,35 @@ Feature: itos follow, private threads with people
   # follow doc writes 0600 and warns of a target inside the work tree that
   # git does not ignore; and follow doc <id> - prints the Markdown. The same
   # lock guards a stealth config's registry and ledger (@ID-STEALTH-23).
-  @ID-FOLLOW-08 @bug-16 @wip
+  @ID-FOLLOW-08 @bug-16
   Scenario: Notes written at the same moment are all kept
     Given itos has run the command line "follow add sync-ana --with ana --title 'The sync design' --note 'Started.'"
     When itos runs "follow note sync-ana" with the notes "one" to "twenty" all at once
     Then every run exited 0
     And itos follow show sync-ana lists every one of those notes
 
-  @ID-FOLLOW-09 @bug-16 @wip
+  @ID-FOLLOW-09 @bug-16
   Scenario: A threads file holding a second document is refused, and left as it was
     Given the threads file holds a second YAML document after the thread "sync-ana"
     When itos runs the command line "follow note sync-ana 'Hello.'"
     Then itos exits with code 2
     And the threads file is as it was
 
-  @ID-FOLLOW-10 @bug-16 @wip
+  @ID-FOLLOW-10 @bug-16
   Scenario: A note's time prints in the reader's time zone
     Given the threads file holds the thread "sync-ana" with a note stamped "2026-10-04T14:02:00+09:00"
     When itos runs "follow show sync-ana" with TZ "UTC"
     Then itos exits with code 0
     And its output says "05:02"
 
-  @ID-FOLLOW-11 @bug-16 @wip
+  @ID-FOLLOW-11 @bug-16
   Scenario: follow doc into the work tree, where git does not ignore it, says so
     Given itos has run the command line "follow add sync-ana --with ana --title 'The sync design' --note 'Started.'"
     When itos runs "follow doc sync-ana notes/sync.md"
     Then itos exits with code 0
     And its output says "not ignored"
 
-  @ID-FOLLOW-12 @bug-16 @wip
+  @ID-FOLLOW-12 @bug-16
   Scenario: follow doc to - prints the Markdown and writes no file
     Given itos has run the command line "follow add sync-ana --with ana --title 'The sync design' --note 'Started.'"
     When itos runs "follow doc sync-ana -"
