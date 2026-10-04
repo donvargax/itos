@@ -4379,3 +4379,16 @@ items:
       skill goes; the titles and the guard stay. A plugin change raises the plugin's version in a
       chore commit (T-074).
     refs: [integrations/claude-code/skills/itos/SKILL.md, internal/guide/work.md]
+
+  - id: slice-65
+    title: work promote --title gives the promoted item a new title
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      The user's call (2026-10-04): slice 64 kept its idea's title through promote, describing a
+      plan already replaced, which misled the user reading the queue. Specified as @ID-WORK-29:
+      --title sets the new title in the promote's commit; without it the title is kept.
+    refs: [features/work.feature]
