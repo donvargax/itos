@@ -4545,7 +4545,21 @@ items:
       decide: numbers unique, supersede links valid both ways, the index matching the files.
       adr-tools itself is not used: bash only (itos runs on Windows), unmaintained since 2020, and
       it checks nothing.
-    refs: [internal/ask, features]
+
+      Specified as @ID-ASK-06 to 11 in features/ask.feature. Settled: --title is required but for
+      --none; Date is the day recorded; Context is the question and 'Asked as q-N' (with its item
+      when it names one); Decision is the answer; Consequences from --consequences, else 'None
+      recorded.'; asks.yaml gains decision: N or none on the question; the commit is 'docs: record
+      q-N as decision N' (or 'docs: mark q-N as recorded nowhere' for --none) and holds the
+      questions file, the record and the index; the index is docs/adr/README.md (in the record
+      folder) between <!-- itos:decisions:begin --> and <!-- itos:decisions:end -->, created when
+      missing, the text outside kept, listing live decisions only; --supersedes N edits both files
+      as adr-tools does (the old one loses Accepted and gains 'Superseded by [N. Title](file)', the
+      new one 'Supersedes [...]'), refused when N has no file; slugs as adr-tools makes them
+      (lowercase, each run of other characters one dash); no config key, a .adr-dir file is the
+      knob; under a stealth config the records go under <git common dir>/itos/adr and nothing is
+      committed. The checks (numbers unique, links both ways, index matching) are p1-adr-checks.
+    refs: [features/ask.feature, internal/ask]
 
   - id: p1-plan-to-adrs
     title: PLAN.md's decisions become ADRs in docs/adr/, and PLAN.md keeps what itos is
