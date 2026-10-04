@@ -600,3 +600,20 @@
     - run: "! grep -qE '^## .*(The command line|Phases|Working rules)' PLAN.md"
     - run: test ! -e docs/releases
     - run: "! grep -rqE 'PLAN\\.md ?§' --exclude=header-agreement.json cmd internal tools"
+
+- id: T-086
+  type: docs
+  title: The coordinator's guide says how decisions are recorded, and how a repository moves its docs' decisions into records
+  why: >
+    Was p1-adr-adoption-guide (the user's call, 2026-10-04): once decision records shipped, a
+    repository adopting itos needs to know how to move the decisions its docs already hold into
+    records. Written from what T-085 learnt moving this repository's PLAN.md: only decisions
+    become records, one each; each seeded through itos ask add, answer and record, so it keeps its
+    question and itos's format, which needs no command for a decision with no question; citations
+    found with git grep and pointed at records, code comments in a refactor commit; a task's
+    checks aimed at what it changes. It lives in the coordinator's guide, since such a move is a
+    task a coordinator hands out, and not in a guide of its own: a new guide's name would change
+    the list @ID-GUIDE-05 promises, a breaking change for a paragraph.
+  done_when:
+    - run: grep -q '^## Decisions$' internal/guide/coordinate.md
+    - run: grep -q 'ask record' internal/guide/coordinate.md
