@@ -3622,7 +3622,7 @@ items:
     title: itos work show, an item's spec and commits, the unit an agent reads and a reviewer reviews
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-54]
     kind: slice
     why: >
