@@ -15,7 +15,8 @@
 //     commitlint (T-063), and lets a sound commit through there too;
 //   - what the hooks leave out fails CI's own steps: a refactor that changes
 //     what itos prints, in a Go package whose unit tests do not read that
-//     line, passes both hooks and fails the push's features step, whose smoke
+//     line, with the task footer pre-push's commit rules (`itos verify`)
+//     want, passes both hooks and fails the push's features step, whose smoke
 //     set reads that output from the scratch copy's tools/bin/itos, rebuilt
 //     from the changed source.
 //
@@ -118,12 +119,13 @@ try {
 
 	// What the hooks leave out, CI's steps catch. A refactor that changes
 	// what verify prints, in a Go package whose unit tests do not read that
-	// line, passes both hooks...
+	// line, passes both hooks, pre-push's commit rules too, since it carries
+	// its task footer...
 	git(`reset -q --hard ${base}`);
 	edit("internal/cli/verify.go", "commits pass the commit rules", "commits pass");
 	run = preCommit("a refactor that changes what itos prints");
 	expect(run.status === 0, `pre-commit should not see the changed output:\n${run.output}`);
-	sha = commit("refactor: shorten the summary");
+	sha = commit("refactor: shorten the summary\n\nTask: T-007");
 	run = prePush("that refactor", base, sha);
 	expect(run.status === 0, `pre-push should leave the features to CI:\n${run.output}`);
 	// ...and fails a push's features step, whose smoke set reads that line.

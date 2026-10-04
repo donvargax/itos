@@ -6,7 +6,9 @@
 //     and of the packages that import it, and no other package's;
 //   - a staged Go change whose unit test fails is refused at commit, and one
 //     whose tests pass is committed;
-//   - pre-push does the same against the remote commit the push builds on;
+//   - pre-push does the same against the remote commit the push builds on,
+//     after the commit rules (`itos verify`), so each commit carries its
+//     task footer;
 //   - a change to go.mod, which every package builds with, runs every package;
 //   - a Markdown-only commit, and a prose-only push, run no Go test.
 //
@@ -59,7 +61,7 @@ try {
 	let run = preCommit(`a harmless change to ${pkg}`);
 	expect(run.status === 0, `pre-commit refused a harmless change to ${pkg}:\n${run.output}`);
 	testsReached("pre-commit", run.output);
-	let sha = commit("refactor: touch the version package");
+	let sha = commit("refactor: touch the version package\n\nTask: T-059");
 	run = prePush("that change, committed", base, sha);
 	expect(run.status === 0, `pre-push refused a harmless change to ${pkg}:\n${run.output}`);
 	testsReached("pre-push", run.output);
@@ -74,7 +76,7 @@ try {
 		tested(run.output, "FAIL").has(pkg),
 		`pre-commit should fail in ${pkg}, failed in ${show(tested(run.output, "FAIL"))}`,
 	);
-	sha = commit("refactor: break the version package");
+	sha = commit("refactor: break the version package\n\nTask: T-059");
 	run = prePush("that change, committed", base, sha);
 	expect(run.status !== 0, `pre-push let through a change that breaks ${pkg}'s unit test`);
 	expect(tested(run.output, "FAIL").has(pkg), `pre-push did not fail in ${pkg}`);
