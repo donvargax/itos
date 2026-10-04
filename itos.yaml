@@ -36,6 +36,15 @@ commits:
       validate_for: [feat, fix]
       must_be_live: true # a feat or fix names scenarios it turns green, not @wip ones
       read_at: commit
+    # The work registry item a commit belongs to, for the commits no other footer ties to it: a
+    # spec in a docs commit, a slice's steps committed red first in a test commit, a chore it
+    # needs (slice 63, T-083). Taken in place of Task for those types, since a slice has no task;
+    # every other type still needs its Task. itos commit --item <id> writes it.
+    Item:
+      source: registry
+      validate_for: all
+      read_at: commit # a commit is judged against the registry it carried
+      in_place_of: { Task: [test, docs, chore] }
     # What a consumer of itos must change for the commit, or none: feat and fix are
     # what a consumer can feel. itos commit footers gathers them into a release's
     # Upgrading section, and release-notes.ts holds each to it. since: the commit
