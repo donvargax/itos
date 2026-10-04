@@ -4110,6 +4110,9 @@ items:
       when tested and breaks two days later) is a thread closed too soon, so it wants follow reopen
       <id> [--note <text>], a dated note saying so, or a note on a closed thread that reopens it;
       which is the user's call.
+
+      The coordinator's recommendation, open for the user: an explicit itos follow reopen <id>
+      [--note], so a note added to a closed thread after the fact does not bring it back.
     refs: [features/follow.feature]
 
   - id: p2-cross-repo-contract
