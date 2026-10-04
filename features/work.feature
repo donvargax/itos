@@ -282,3 +282,15 @@ Feature: The work registry
     Then itos exits with code 0
     And its output says "nothing to change"
     And the last commit's header is not "docs: edit p1-thing"
+
+  # Slice 65 (the user's call, 2026-10-04): promoting an idea usually means it
+  # has become something more specific, and promote kept the idea's title, so
+  # slice 64 carried a title describing a plan the user had already replaced,
+  # which misled them. --title gives the item its new title in the same
+  # commit; without it the title is kept, as before.
+  @ID-WORK-29 @slice-65 @wip
+  Scenario: work promote --title gives the promoted item a new title
+    Given the work registry has the idea "p1-thing" owned by nobody
+    When itos runs the command line "work promote p1-thing --as slice-7 --kind slice --title 'The thing, specified'"
+    Then itos exits with code 0
+    And the registry's item "slice-7" is titled "The thing, specified"
