@@ -1,10 +1,12 @@
 package work
 
 import (
+	"os"
 	"regexp"
 	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/value"
 )
 
@@ -104,8 +106,82 @@ func TestDone(t *testing.T) {
 	}
 }
 
-func TestWrap(t *testing.T) {
-	if got := Wrap("one two three four", 9); got != "one two\nthree\nfour" {
-		t.Errorf("%q", got)
+// A config of the registry at work-items.yaml, with no people, in a folder
+// of its own.
+func addConfig(t *testing.T) *config.Loaded {
+	t.Helper()
+	t.Chdir(t.TempDir())
+	t.Setenv("ITOS_CONFIG", "itos.yaml")
+	if err := os.WriteFile("itos.yaml", []byte("version: 1\nwork: { registry: work-items.yaml }\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load("itos.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cfg
+}
+
+func TestAdd(t *testing.T) {
+	cfg := addConfig(t)
+	text := "phases: { 0: null, 1: null }\nitems:\n" +
+		"  - id: a\n    title: A\n    phase: 0\n    owner: null\n    status: done\n    depends_on: []\n\n" +
+		"  - id: b\n    title: B\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: [a]\n"
+	r := registryOf(t, text)
+	n := New{ID: "p1-c", Title: "C: the third", Why: "Because.", Kind: "idea", DependsOn: []string{"b"}, Refs: []string{"x.md"}}
+	change, found, err := Add(cfg, r, text, n, nil)
+	if err != nil || found != nil {
+		t.Fatal(err, found)
+	}
+	want := text + "\n  - id: p1-c\n    title: \"C: the third\"\n    phase: 1\n    owner: null\n    status: todo\n" +
+		"    depends_on: [b]\n    kind: idea\n    why: >\n      Because.\n    refs: [x.md]\n"
+	if change.Text != want || change.Header != "docs: add p1-c" ||
+		change.Body != `Add the idea p1-c ("C: the third") to phase 1, with itos work add.` {
+		t.Errorf("add p1-c:\n got %q\nwant %q\n%s", change.Text, want, change.Body)
+	}
+	for name, c := range map[string]struct {
+		n    New
+		rule string
+	}{
+		"taken":        {New{ID: "b", Title: "B", Why: "w", Kind: "idea"}, "work-add-taken"},
+		"no phase":     {New{ID: "slice-3", Title: "S", Why: "w", Kind: "slice"}, "work-add-no-phase"},
+		"no such dep":  {New{ID: "p1-d", Title: "D", Why: "w", Kind: "idea", DependsOn: []string{"z"}}, "work-unknown-dependency"},
+		"no such kind": {New{ID: "p1-d", Title: "D", Why: "w", Kind: "epic"}, "work-unknown-kind"},
+		"not a task":   {New{ID: "task-1", Title: "T", Why: "w", Kind: "task", Phase: "1"}, "work-add-not-task-id"},
+	} {
+		_, found, err := Add(cfg, r, text, c.n, regexp.MustCompile(`^T-\d+$`))
+		if err != nil || len(found) == 0 || found[0].Rule != c.rule {
+			t.Errorf("%s: %+v, %v, not %s", name, found, err, c.rule)
+		}
+	}
+}
+
+func TestEdit(t *testing.T) {
+	cfg := addConfig(t)
+	text := "phases: { 1: null }\nitems:\n" +
+		"  - { id: a, title: A, phase: 1, owner: null, status: done }\n" +
+		"  - id: b\n    title: B\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    why: >\n      A reason.\n"
+	r := registryOf(t, text)
+	title, deps := "Bee", []string{"a"}
+	change, found, err := Edit(cfg, r, text, "b", Edits{Title: &title, DependsOn: &deps, Note: "And more."})
+	if err != nil || found != nil {
+		t.Fatal(err, found)
+	}
+	want := "phases: { 1: null }\nitems:\n" +
+		"  - { id: a, title: A, phase: 1, owner: null, status: done }\n" +
+		"  - id: b\n    title: Bee\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: [a]\n    why: >\n      A reason.\n\n      And more.\n"
+	if change.Text != want || change.Header != "docs: edit b" ||
+		change.Body != `Change b ("Bee"): its title, its depends_on and a note on its why, with itos work edit.` {
+		t.Errorf("edit b:\n got %q\nwant %q\n%s", change.Text, want, change.Body)
+	}
+	if change, _, _ := Edit(cfg, r, text, "b", Edits{Title: new("B")}); !change.Unchanged {
+		t.Errorf("b is already titled B: %+v", change)
+	}
+	// a is done, so it cannot wait on b, which is not.
+	if _, found, _ := Edit(cfg, r, text, "a", Edits{DependsOn: &[]string{"b"}}); len(found) == 0 || found[0].Rule != "work-done-before-dependency" {
+		t.Errorf("a done before b: %+v", found)
+	}
+	if _, found, _ := Edit(cfg, r, text, "z", Edits{Note: "x"}); len(found) == 0 || found[0].Rule != "work-unknown-item" {
+		t.Errorf("no z: %+v", found)
 	}
 }

@@ -5,13 +5,15 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/out"
 	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // The commands that write the registry (slice 52): work take sets an item
 // in progress for the person, work promote makes an idea a slice or a task,
-// and work done (slice 53) marks an item done.
+// work done (slice 53) marks an item done, and work add and work edit
+// (slice 54) make an item and change its title, dependencies, refs or why.
 // Each judges a sound registry and gives a Change, the registry's text with
 // the edit made in place (value.Doc: every comment, quote and line kept), the
 // item as it is after and the commit message that records it, or the
@@ -21,13 +23,14 @@ import (
 
 // Change is an edit of the registry: its text after, the item as it reads
 // after (its depends_on a list, as Load gives it), the items whose
-// depends_on now name it, and the header and body of the commit that
-// records it. Unchanged is an edit with nothing to write: the item was
-// already as asked.
+// depends_on now name it, the item's keys the edit changed (work edit's),
+// and the header and body of the commit that records it. Unchanged is an
+// edit with nothing to write: the item was already as asked.
 type Change struct {
 	Text      string
 	Item      *value.Map
 	Rewritten []string
+	Changed   []string
 	Header    string
 	Body      string
 	Unchanged bool
@@ -280,24 +283,197 @@ func Promote(r Registry, text, id, newID, kind string, taskID *regexp.Regexp) (C
 	return Change{Text: edited, Item: after, Rewritten: rewritten, Header: "docs: promote " + id + " to " + newID, Body: body}, nil, nil
 }
 
-// Wrap is text broken into lines of at most width characters, at spaces, as
-// a commit body is written; a word longer than width has a line to itself.
-func Wrap(text string, width int) string {
-	var lines []string
-	line := ""
-	for _, word := range strings.Fields(text) {
-		switch {
-		case line == "":
-			line = word
-		case len([]rune(line))+1+len([]rune(word)) <= width:
-			line += " " + word
-		default:
-			lines = append(lines, line)
-			line = word
+// New is the item work add makes (slice 54): its id, title and why, its
+// kind (an idea unless said), its group (Phase, "" for the default Add
+// picks), its owner ("" for nobody) and its dependencies and refs.
+type New struct {
+	ID, Title, Why, Kind, Phase, Owner string
+	DependsOn, Refs                    []string
+}
+
+// phaseOf is the group a new item goes in: the one given, else the one its
+// id names (p<n>-…) when the registry lists it, else the registry's only
+// one; "" when none of those is.
+func phaseOf(r Registry, n New) string {
+	if n.Phase != "" {
+		return n.Phase
+	}
+	if m := ideaPhase.FindStringSubmatch(n.ID); m != nil && r.Phases.Has(m[1]) {
+		return m[1]
+	}
+	if keys := r.Phases.Keys(); len(keys) == 1 {
+		return keys[0]
+	}
+	return ""
+}
+
+// ideaPhase is an id not yet numbered, p<phase>-<name>, and its phase.
+var ideaPhase = regexp.MustCompile(`^p(\d+)-`)
+
+// listOf is a list of text as the registry holds it.
+func listOf(list []string) []any {
+	out := make([]any, len(list))
+	for i, s := range list {
+		out[i] = s
+	}
+	return out
+}
+
+// sound is the problems work check finds in the registry with after in
+// place of its item i, or added when i is past its end: the registry was
+// sound, so every one is the edit's.
+func sound(cfg *config.Loaded, r Registry, i int, after *value.Map) ([]out.Problem, error) {
+	items := append([]*value.Map{}, r.Items...)
+	if i < len(items) {
+		items[i] = after
+	} else {
+		items = append(items, after)
+	}
+	r.Items = items
+	return Issues(cfg, r, cfg.Work.Registry)
+}
+
+// Add is the registry with a new item at the end of its items (slice 54):
+// todo, of its kind, in its group, owned by its owner or nobody, its why a
+// folded text. Refused, with nothing changed: an id an item has, a task's id
+// that ledger.id (taskID) does not match, no group given where the default
+// is not plain (phaseOf), and whatever work check would find in the
+// registry with it (a group not listed, an owner not among the people, a
+// dependency on no item).
+func Add(cfg *config.Loaded, r Registry, text string, n New, taskID *regexp.Regexp) (Change, []out.Problem, error) {
+	refuse := func(rule, message, fix string) (Change, []out.Problem, error) {
+		return Change{}, []out.Problem{{Rule: rule, Message: message, Fix: fix}}, nil
+	}
+	if j := find(r, n.ID); j >= 0 {
+		return refuse("work-add-taken", fmt.Sprintf("%s is already an item: %s", n.ID, value.String(r.Items[j].At("title"))),
+			"give the new item an id no item has, or change "+n.ID+" with itos work edit")
+	}
+	if n.Kind == "task" && taskID != nil && !taskID.MatchString(n.ID) {
+		return refuse("work-add-not-task-id", fmt.Sprintf("%s is not a task ID by ledger.id (%s)", n.ID, taskID.String()),
+			"give the task an ID ledger.id matches, so a Task footer can name it")
+	}
+	label := cfg.Ledger.Group.Label
+	phase := phaseOf(r, n)
+	if phase == "" {
+		return refuse("work-add-no-phase", fmt.Sprintf("which %s %s is in is not said: the registry lists %s",
+			label, n.ID, strings.Join(r.Phases.Keys(), ", ")), "pass --phase <"+label+">")
+	}
+	var owner any
+	if n.Owner != "" {
+		owner = n.Owner
+	}
+	group := value.Resolve(phase)
+	if _, isNumber := group.(float64); !isNumber {
+		group = phase
+	}
+	item := value.NewMap("id", n.ID, "title", n.Title, "phase", group, "owner", owner, "status", "todo",
+		"depends_on", listOf(n.DependsOn), "kind", n.Kind, "why", n.Why)
+	if len(n.Refs) > 0 {
+		item.Set("refs", listOf(n.Refs))
+	}
+	doc, err := value.OpenDoc(text)
+	if err != nil {
+		return Change{}, nil, err
+	}
+	if err := doc.Append([]any{"items"}, item, "why"); err != nil {
+		return Change{}, nil, err
+	}
+	edited, err := doc.Text()
+	if err != nil {
+		return Change{}, nil, err
+	}
+	list := value.Prop(doc.Want, "items").([]any)
+	after := value.Copy(list[len(list)-1]).(*value.Map)
+	found, err := sound(cfg, r, len(r.Items), after)
+	if err != nil || len(found) > 0 {
+		return Change{}, found, err
+	}
+	body := fmt.Sprintf("Add the %s %s (%s) to %s %s, with itos work add.", n.Kind, n.ID, value.JSON(n.Title), label, phase)
+	return Change{Text: edited, Item: after, Header: "docs: add " + n.ID, Body: body}, nil, nil
+}
+
+// Edits are what work edit changes of an item (slice 54): its title, its
+// depends_on, its refs (each nil when not given), and a paragraph to add to
+// its why ("" for none).
+type Edits struct {
+	Title           *string
+	DependsOn, Refs *[]string
+	Note            string
+}
+
+// Edit is the registry with the item's title, depends_on or refs replaced
+// and a paragraph added to its why (value.Doc's Note: a blank line, then the
+// paragraph, in a folded why). Change.Changed names the keys it changed.
+// Refused, with nothing changed: an id no item has, and whatever work check
+// would find in the registry with the item so (a dependency on no item, a
+// cycle, an item done waiting on one not done). An item already as asked,
+// with no note, is Unchanged.
+func Edit(cfg *config.Loaded, r Registry, text, id string, e Edits) (Change, []out.Problem, error) {
+	i := find(r, id)
+	if i < 0 {
+		return Change{}, []out.Problem{*unknown(id)}, nil
+	}
+	item := r.Items[i]
+	doc, err := value.OpenDoc(text)
+	if err != nil {
+		return Change{}, nil, err
+	}
+	// The note first: a key added after the why (refs, when the item has
+	// none) is then written after it, as an edit at the same place comes
+	// after the one made before it.
+	if e.Note != "" {
+		if err := doc.Note([]any{"items", i, "why"}, e.Note); err != nil {
+			return Change{}, nil, err
 		}
 	}
-	if line != "" {
-		lines = append(lines, line)
+	var changed []string
+	if e.Title != nil && item.At("title") != *e.Title {
+		if err := doc.Set([]any{"items", i, "title"}, *e.Title); err != nil {
+			return Change{}, nil, err
+		}
+		changed = append(changed, "title")
 	}
-	return strings.Join(lines, "\n")
+	for _, l := range []struct {
+		key  string
+		list *[]string
+	}{{"depends_on", e.DependsOn}, {"refs", e.Refs}} {
+		if l.list == nil || value.JSON(item.At(l.key)) == value.JSON(listOf(*l.list)) {
+			continue
+		}
+		if err := doc.SetList([]any{"items", i, l.key}, *l.list); err != nil {
+			return Change{}, nil, err
+		}
+		changed = append(changed, l.key)
+	}
+	if e.Note != "" {
+		changed = append(changed, "why")
+	}
+	if len(changed) == 0 {
+		return Change{Item: item, Changed: []string{}, Unchanged: true}, nil, nil
+	}
+	edited, err := doc.Text()
+	if err != nil {
+		return Change{}, nil, err
+	}
+	after := value.Copy(value.Prop(doc.Want, "items").([]any)[i]).(*value.Map)
+	if deps := after.At("depends_on"); deps == nil || deps == value.Undefined {
+		after.Set("depends_on", []any{})
+	}
+	found, err := sound(cfg, r, i, after)
+	if err != nil || len(found) > 0 {
+		return Change{}, found, err
+	}
+	what := make([]string, len(changed))
+	for j, key := range changed {
+		what[j] = "its " + key
+		if key == "why" {
+			what[j] = "a note on its why"
+		}
+	}
+	listed := strings.Join(what, ", ")
+	if len(what) > 1 {
+		listed = strings.Join(what[:len(what)-1], ", ") + " and " + what[len(what)-1]
+	}
+	body := fmt.Sprintf("Change %s (%s): %s, with itos work edit.", id, value.JSON(value.String(after.At("title"))), listed)
+	return Change{Text: edited, Item: after, Changed: changed, Header: "docs: edit " + id, Body: body}, nil, nil
 }

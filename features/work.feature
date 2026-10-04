@@ -194,7 +194,7 @@ Feature: The work registry
   # title, its depends_on or its refs, or appends a paragraph to its why
   # (--note). Each checks the result as work check does, refuses what would
   # not be sound, and commits the registry alone, as slice 52's commands do.
-  @ID-WORK-19 @slice-54 @wip
+  @ID-WORK-19 @slice-54
   Scenario: work add makes an idea, todo and owned by nobody, and commits it
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs the command line "work add p1-thing --title 'Do the thing' --why 'Because it is missing.'"
@@ -203,7 +203,7 @@ Feature: The work registry
     And the last commit's header is "docs: add p1-thing"
     And the last commit touches only "tasks/work-items.yaml"
 
-  @ID-WORK-20 @slice-54 @wip
+  @ID-WORK-20 @slice-54
   Scenario: work add refuses an id another item has
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs the command line "work add slice-9 --title 'Again' --why 'A second one.'"
@@ -211,7 +211,7 @@ Feature: The work registry
     And its output says "slice-9"
     And the registry's item "slice-9" has the status "todo" and the owner "nobody"
 
-  @ID-WORK-21 @slice-54 @wip
+  @ID-WORK-21 @slice-54
   Scenario: work add refuses a dependency on an item the registry does not have
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs the command line "work add p1-thing --title 'Do the thing' --why 'Because.' --depends-on p1-missing"
@@ -219,7 +219,7 @@ Feature: The work registry
     And its output says "p1-missing"
     And the registry has no item "p1-thing"
 
-  @ID-WORK-22 @slice-54 @wip
+  @ID-WORK-22 @slice-54
   Scenario: work edit --note appends a paragraph to an item's why, and commits it
     Given the work registry has the idea "p1-thing" owned by nobody
     When itos runs the command line "work edit p1-thing --note 'Seen again while building slice 54.'"
@@ -228,7 +228,7 @@ Feature: The work registry
     And the last commit's header is "docs: edit p1-thing"
     And the last commit touches only "tasks/work-items.yaml"
 
-  @ID-WORK-23 @slice-54 @wip
+  @ID-WORK-23 @slice-54
   Scenario: work edit replaces an item's title and dependencies
     Given the work registry has the item "slice-8" owned by nobody with the status "done"
     And the work registry has the item "slice-9" owned by nobody with the status "todo"
@@ -237,7 +237,7 @@ Feature: The work registry
     And the registry's item "slice-9" is titled "A better title"
     And the registry's item "slice-9" depends on "slice-8"
 
-  @ID-WORK-24 @slice-54 @wip
+  @ID-WORK-24 @slice-54
   Scenario: work edit refuses an item the registry does not have
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs the command line "work edit slice-7 --note 'Nothing to note.'"

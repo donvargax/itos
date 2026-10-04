@@ -18,6 +18,7 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v2/internal/config"
@@ -25,6 +26,7 @@ import (
 	"github.com/donvargax/itos/v2/internal/ledger"
 	"github.com/donvargax/itos/v2/internal/out"
 	"github.com/donvargax/itos/v2/internal/providers"
+	"github.com/donvargax/itos/v2/internal/value"
 	"github.com/donvargax/itos/v2/internal/work"
 )
 
@@ -36,6 +38,12 @@ const bodyWidth = 100
 // flags it takes, each given at most once, "--flag value" or "--flag=value".
 // Anything else is a usage error.
 func workArgs(sub string, args []string, flags ...string) (string, map[string]string, error) {
+	return workArgsEmpty(sub, args, nil, flags...)
+}
+
+// workArgsEmpty is workArgs whose flags in empty may be given an empty
+// value ("--depends-on ”", no dependencies).
+func workArgsEmpty(sub string, args []string, empty []string, flags ...string) (string, map[string]string, error) {
 	values := map[string]string{}
 	var ids []string
 	for i := 0; i < len(args); i++ {
@@ -59,7 +67,7 @@ func workArgs(sub string, args []string, flags ...string) (string, map[string]st
 			i++
 			value = args[i]
 		}
-		if _, twice := values[name]; twice || value == "" {
+		if _, twice := values[name]; twice || (value == "" && !slices.Contains(empty, name)) {
 			return "", nil, usage("work %s takes one %s with a value", sub, name)
 		}
 		values[name] = value
@@ -154,7 +162,7 @@ func writeRegistry(cfg *config.Loaded, old string, change work.Change, o Out) (s
 	if cfg.Stealth {
 		return "", 0, nil
 	}
-	argv := []string{"commit", "--only", "-m", change.Header, "-m", work.Wrap(change.Body, bodyWidth)}
+	argv := []string{"commit", "--only", "-m", change.Header, "-m", value.Wrap(change.Body, bodyWidth)}
 	if o.Quiet {
 		argv = append(argv, "--quiet")
 	}

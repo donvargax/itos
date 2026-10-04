@@ -506,8 +506,8 @@ mechanisms above, written against those modules, read across.
   `internal/message` (below), `internal/plan` (CI's plan; below),
   `internal/providers` (the range, watch and identity providers and the people;
   below), `internal/work` (the registry and its problems, the items'
-  statuses, the proposal, and the edits that take, promote and close an
-  item;
+  statuses, the proposal, and the edits that take, promote, close, add and
+  change an item;
   below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git` (the repository's state and ranges, read
@@ -975,7 +975,13 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   (above): `Set` replaces a one-line scalar in its style (quoted in a flow
   collection when a plain one would hold its indicators) or adds a key after
   the mapping's last one-line value, `Lead` puts a sentence before a why (a
-  new first line of a folded or literal block), each edit made in `Want` too,
+  new first line of a folded or literal block), and, for `work add` and `work
+edit` (slice 54, `docedit.go`), `Append` adds a block mapping after a block
+  list's last item (a blank line before it when one parts the last two, a
+  why folded and wrapped at 100), `SetList` replaces a flow list on its line
+  (or a block list item by item, or adds the key), and `Note` adds a paragraph
+  to a text after a blank line (a one-line why in a block mapping becoming a
+  folded block), each edit made in `Want` too,
   and `Text` refuses the edits unless the text reads back as `Want`, keys in
   any order. Of two edits at one offset the earlier writes first. The patterns are compiled as RE2, the
   config's dialect, which the TypeScript held them to by refusing what RE2
@@ -1337,6 +1343,20 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   end exits 3. Without `ci.watch` CI is not checked, said on stderr, and
   `--json`'s `ci` is `unwatched`. The close commit is `docs: close <id>`,
   its body naming the run that passed.
+- **work add and work edit** (slice 54, `internal/cli/workedit.go`) write
+  the rest of the registry, through `writeRegistry` as the three above.
+  `work.Add` puts a new item, todo, at the end of the items (`value.Doc`'s
+  `Append`, keys in the registry's own order, its why folded); its group is
+  `--phase`, else the one a `p<n>-` id names, else the registry's only one.
+  `work.Edit` replaces a title (`Set`), a `depends_on` or `refs` (`SetList`)
+  and adds a paragraph to the why (`Note`); `Change.Changed` names the keys.
+  Neither restates `work check`: each runs `work.Issues` on the registry with
+  the item as it would be (`sound`), and, the registry having been sound,
+  refuses with whatever that finds (an owner not among the people, a
+  dependency on no item, a cycle). Only the id taken, a task id `ledger.id`
+  does not match and a group not given where none is plain are judged before
+  it. `edit` changes no owner, kind or status: `take`, `promote` and `done`
+  own those, each with its own rules.
 - **The hooks** are `hook commit-msg`, `hook pre-push`
   (`internal/cli/hook.go`) and `hooks install` (`internal/cli/install.go`),
   `hooks.ts` with `commit-data.ts`, `commit-scope.ts`, `commit-tasks.ts` and

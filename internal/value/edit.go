@@ -221,7 +221,7 @@ func (e *editor) span(n *yaml.Node, flow bool) (int, int, error) {
 }
 
 // token is a string written in the style of the one it replaces: plain where
-// that was plain and the string reads back as itself, else double quoted, or
+// that was plain and the string reads back as itself on one line, else double quoted, or
 // single quoted where that was.
 func token(s string, old yaml.Style) string {
 	switch {
@@ -230,7 +230,7 @@ func token(s string, old yaml.Style) string {
 	case old&yaml.DoubleQuotedStyle != 0:
 		return Quote(s)
 	}
-	if _, isString := Resolve(s).(string); isString && !notPlain.MatchString(s) {
+	if _, isString := Resolve(s).(string); isString && !notPlain.MatchString(s) && !strings.Contains(s, "\n") {
 		return s
 	}
 	return Quote(s)

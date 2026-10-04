@@ -39,7 +39,10 @@ nothing `done` that waits on something open). A session takes an item with
 `tools/bin/itos work take <id>` before starting (its `owner` and `status:
 doing`, committed alone), closes it with `tools/bin/itos work done <id>` once
 it has landed (no `@wip` scenario of it left, its commits pushed, its CI run
-green), and adds the items a slice discovers with their dependencies.
+green), and adds the items a slice discovers with their dependencies with
+`tools/bin/itos work add <id> --title … --why …` (an idea unless `--kind`
+says otherwise), changing one's title, dependencies or refs, or adding a note
+to its why, with `tools/bin/itos work edit <id>`.
 
 The registry is the one list of open work: no TODO or ROADMAP file sits beside
 it. A gap a slice leaves is added as a `kind: idea` item — a title, a short

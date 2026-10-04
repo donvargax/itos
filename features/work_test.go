@@ -1,8 +1,9 @@
 // The steps of the commands that write the work registry (work.feature,
-// slices 52 and 53): a registry of items with owners, dependencies and
+// slices 52 to 54): a registry of items with owners, dependencies and
 // ideas, committed, so a command's own commit holds only its change; a
-// scenario tagged for an item; and what the registry reads after, and what
-// the last commit holds.
+// scenario tagged for an item; and what the registry reads after (an item's
+// status, owner, kind, title, dependencies and why), and what the last
+// commit holds.
 package features
 
 import (
@@ -38,6 +39,11 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the registry has no item "([^"]*)"$`, w.registryLacks)
 	sc.Step(`^the registry's item "([^"]*)" is a (slice|task) whose why starts with "([^"]*)"$`, w.registryItemKind)
 	sc.Step(`^the registry's item "([^"]*)" depends on "([^"]*)"$`, w.registryItemDependsOn)
+	sc.Step(`^the registry's item "([^"]*)" is an? (idea|slice|task) titled "([^"]*)" with the status "([^"]*)"$`, w.registryItemMade)
+	sc.Step(`^the registry's item "([^"]*)" is titled "([^"]*)"$`, func(id, title string) error {
+		return w.registryItemField(id, "title", title)
+	})
+	sc.Step(`^the registry's item "([^"]*)" has a why ending with "([^"]*)"$`, w.registryWhyEnds)
 	sc.Step(`^the last commit's header is "([^"]*)"$`, w.lastHeaderIs)
 	sc.Step(`^the last commit touches only "([^"]*)"$`, w.lastTouchesOnly)
 	sc.Step(`^"([^"]*)" is still staged$`, w.stillStaged)
@@ -110,7 +116,8 @@ func (w *world) registryItemOf(id string) (map[string]any, error) {
 	return nil, fmt.Errorf("the registry has no item %q\n%s", id, w.report())
 }
 
-// The item has the status and, when one is given, the owner.
+// The item has the status and, when one is given, the owner (nobody for
+// none).
 func (w *world) registryItemIs(id, status, owner string) error {
 	item, err := w.registryItemOf(id)
 	if err != nil {
@@ -119,7 +126,8 @@ func (w *world) registryItemIs(id, status, owner string) error {
 	if item["status"] != status {
 		return fmt.Errorf("%s's status is %v, not %s\n%s", id, item["status"], status, w.report())
 	}
-	if owner != "" && item["owner"] != owner {
+	// nobody is an owner of null, as the Given steps write it.
+	if owner == "nobody" && item["owner"] != nil || owner != "" && owner != "nobody" && item["owner"] != owner {
 		return fmt.Errorf("%s's owner is %v, not %s\n%s", id, item["owner"], owner, w.report())
 	}
 	return nil
@@ -213,4 +221,40 @@ func (w *world) taggedScenario(id, tags string) error {
 		return err
 	}
 	return w.commit("test: a tagged scenario")
+}
+
+// The item is of the kind, titled so, with the status.
+func (w *world) registryItemMade(id, kind, title, status string) error {
+	if err := w.registryItemField(id, "kind", kind); err != nil {
+		return err
+	}
+	if err := w.registryItemField(id, "title", title); err != nil {
+		return err
+	}
+	return w.registryItemField(id, "status", status)
+}
+
+// The item's key reads as the text.
+func (w *world) registryItemField(id, key, want string) error {
+	item, err := w.registryItemOf(id)
+	if err != nil {
+		return err
+	}
+	if got := fmt.Sprint(item[key]); got != want {
+		return fmt.Errorf("%s's %s is %q, not %q\n%s", id, key, got, want, w.report())
+	}
+	return nil
+}
+
+// The item's why ends with the text, its last line break aside.
+func (w *world) registryWhyEnds(id, end string) error {
+	item, err := w.registryItemOf(id)
+	if err != nil {
+		return err
+	}
+	why, _ := item["why"].(string)
+	if !strings.HasSuffix(strings.TrimRight(why, "\n"), end) {
+		return fmt.Errorf("%s's why is %q, which does not end with %q\n%s", id, why, end, w.report())
+	}
+	return nil
 }

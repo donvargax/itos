@@ -1106,3 +1106,146 @@ cases:
       ok: true
       item: { id: done, title: Done, phase: 1, owner: a, status: done, depends_on: [] }
       commit: null
+  - name: work add makes an idea at the end of the items, todo and nobody's, and commits the registry alone
+    argv: [work, add, p1-new, --title, "New: a thing", --why, "A gap, found while building."]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: *takeable
+      - stage: { README.md: "staged\n" }
+    files:
+      work-items.yaml: *takeable
+    exit: 0
+    stdout_has: "p1-new is a new idea: committed "
+    files_after:
+      work-items.yaml: "# who does what\nphases: { 1: null }\nitems:\n  - id: x # the first\n    title: \"X, quoted\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n  - id: p1-new\n    title: \"New: a thing\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    kind: idea\n    why: >\n      A gap, found while building.\n"
+  - name: under a stealth config work add writes a slice with its group, owner, dependencies and refs, and commits nothing
+    argv: [work, add, slice-9, --kind, slice, --phase, "1", --owner, a, --depends-on, "x, y", --refs, features/x.feature, --title, Nine, --why, Specified., --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases: { 1: null, 2: null }\nitems:\n  - { id: x, title: X, phase: 1, status: done }\n\n  - { id: y, title: Y, phase: 2, status: todo }\n"
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: slice-9, title: Nine, phase: 1, owner: a, status: todo, depends_on: [x, y], kind: slice, why: "Specified.\n", refs: [features/x.feature] }
+      commit: null
+    files_after:
+      .git/itos/work-items.yaml: "phases: { 1: null, 2: null }\nitems:\n  - { id: x, title: X, phase: 1, status: done }\n\n  - { id: y, title: Y, phase: 2, status: todo }\n\n  - id: slice-9\n    title: Nine\n    phase: 1\n    owner: a\n    status: todo\n    depends_on: [x, y]\n    kind: slice\n    why: >\n      Specified.\n    refs: [features/x.feature]\n"
+  - name: work add refuses an id an item has
+    argv: [work, add, ready, --title, Again, --why, A second one.]
+    exit: 1
+    stderr: |
+      ready is already an item: Ready
+        fix: give the new item an id no item has, or change ready with itos work edit
+  - name: work add refuses a dependency on no item, as work check would
+    argv: [work, add, p1-new, --title, New, --why, Because., --depends-on, nope, --json]
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: work-unknown-dependency
+          message: "p1-new: depends on unknown \"nope\""
+          fix: "remove \"nope\" from p1-new's depends_on, or add an item nope"
+  - name: work add refuses an owner the people do not list, as work check would
+    argv: [work, add, p1-new, --title, New, --why, Because., --owner, zed]
+    exit: 1
+    stderr: |
+      p1-new: owner "zed" is not in people.yaml
+        fix: add zed to people.yaml, or set p1-new's owner to one of its logins
+  - name: work add needs a phase where the registry lists more than one and the id names none
+    argv: [work, add, slice-9, --kind, slice, --title, Nine, --why, Because.]
+    exit: 1
+    stderr: |
+      which phase slice-9 is in is not said: the registry lists 1, 2
+        fix: pass --phase <phase>
+  - name: work add refuses a task id ledger.id does not match
+    argv: [work, add, task-1, --kind, task, --phase, "1", --title, T, --why, Because.]
+    files:
+      itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\nwork:\n  registry: work-items.yaml\n  people: { source: yaml, file: people.yaml }\n  identity: { provider: command, command: \"echo a\" }\n"
+    exit: 1
+    stderr: |
+      task-1 is not a task ID by ledger.id (^T-\d+$)
+        fix: give the task an ID ledger.id matches, so a Task footer can name it
+  - name: work add needs a title and a why
+    argv: [work, add, p1-new, --title, New]
+    exit: 2
+    stderr: |
+      itos: work add needs --title <title> and --why <why> (itos --help)
+  - name: work add makes an idea, a slice or a task
+    argv: [work, add, p1-new, --title, New, --why, Because., --kind, epic]
+    exit: 2
+    stderr: |
+      itos: work add takes --kind idea|slice|task (itos --help)
+  - name: work edit changes a title in its quoting and gives an item with no why the note, committing the registry alone
+    argv: [work, edit, x, --title, "X, renamed", --note, A note.]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: *takeable
+    files:
+      work-items.yaml: *takeable
+    exit: 0
+    stdout_has: "x's title, why changed: committed "
+    files_after:
+      work-items.yaml: "# who does what\nphases: { 1: null }\nitems:\n  - id: x # the first\n    title: \"X, renamed\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    why: >\n      A note.\n"
+  - name: under a stealth config work edit replaces dependencies and refs, and adds a paragraph to a folded why
+    argv: [work, edit, b, --depends-on, a, --refs, "docs/b.md, features/b.feature", --note, Seen again while building slice 54., --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, status: done }\n  - id: b\n    title: B # the second\n    phase: 1\n    status: todo\n    depends_on: []\n    why: >\n      A gap\n      left behind.\n"
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: b, title: B, phase: 1, status: todo, depends_on: [a], why: "A gap left behind.\nSeen again while building slice 54.\n", refs: [docs/b.md, features/b.feature] }
+      changed: [depends_on, refs, why]
+      commit: null
+    files_after:
+      .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, status: done }\n  - id: b\n    title: B # the second\n    phase: 1\n    status: todo\n    depends_on: [a]\n    why: >\n      A gap\n      left behind.\n\n      Seen again while building slice 54.\n    refs: [docs/b.md, features/b.feature]\n"
+  - name: work edit empties a list given nothing
+    argv: [work, edit, ready, --depends-on, "", --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *registry
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [], issue: 12 }
+      changed: [depends_on]
+      commit: null
+  - name: work edit refuses a cycle, as work check would
+    argv: [work, edit, ready, --depends-on, later]
+    exit: 1
+    stderr: |
+      cycle: ready → later → ready
+        fix: remove one of the depends_on links ready → later → ready in work-items.yaml
+  - name: work edit refuses an id no item has
+    argv: [work, edit, nope, --note, Nothing to note.]
+    exit: 1
+    stderr: |
+      no item nope in the registry
+        fix: itos work list names every item
+  - name: work edit of an item already as asked changes nothing
+    argv: [work, edit, ready, --title, Ready, --depends-on, done]
+    exit: 0
+    stdout: |
+      ready is already so; nothing to change
+  - name: work edit needs something to change
+    argv: [work, edit, ready]
+    exit: 2
+    stderr: |
+      itos: work edit needs --title, --depends-on, --refs or --note (itos --help)
+  - name: work edit changes no owner, work take does
+    argv: [work, edit, ready, --owner, b]
+    exit: 2
+    stderr: |
+      itos: work edit does not take --owner (itos --help)

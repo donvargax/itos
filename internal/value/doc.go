@@ -109,7 +109,11 @@ func (d *Doc) Set(path []any, s string) error {
 			return fmt.Errorf("%s is not a mapping", where(path[:len(path)-1]))
 		}
 		if _, v := lookup(parent, key); v == nil {
-			if err := d.add(parent, flow, key, s); err != nil {
+			put := token(s, 0)
+			if flow {
+				put = Quote(s)
+			}
+			if err := d.addToken(parent, flow, key, put); err != nil {
 				return fmt.Errorf("%s: %w", where(path), err)
 			}
 			m.Set(key, s)
@@ -153,9 +157,9 @@ func flowToken(s string, old yaml.Style, flow bool) string {
 	return token(s, old)
 }
 
-// add writes a key the mapping lacks, after the last of its keys whose value
-// is a one-line scalar on the key's line.
-func (d *Doc) add(m *yaml.Node, flow bool, key, s string) error {
+// addToken writes a key the mapping lacks, its value the token put, after
+// the last of its keys whose value is a one-line scalar on the key's line.
+func (d *Doc) addToken(m *yaml.Node, flow bool, key, put string) error {
 	for i := len(m.Content) - 2; i >= 0; i -= 2 {
 		k, v := m.Content[i], m.Content[i+1]
 		if v.Kind != yaml.ScalarNode || v.Line != k.Line {
@@ -166,12 +170,12 @@ func (d *Doc) add(m *yaml.Node, flow bool, key, s string) error {
 			continue
 		}
 		if flow {
-			d.e.edits = append(d.e.edits, edit{at: end, put: ", " + key + ": " + Quote(s)})
+			d.e.edits = append(d.e.edits, edit{at: end, put: ", " + key + ": " + put})
 			return nil
 		}
 		at, lead := d.e.afterLine(end)
 		indent := strings.Repeat(" ", k.Column-1)
-		d.e.edits = append(d.e.edits, edit{at: at, put: lead + indent + key + ": " + token(s, 0) + d.e.nl})
+		d.e.edits = append(d.e.edits, edit{at: at, put: lead + indent + key + ": " + put + d.e.nl})
 		return nil
 	}
 	return fmt.Errorf("no one-line value to write %s after", key)

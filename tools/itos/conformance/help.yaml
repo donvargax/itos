@@ -20,6 +20,10 @@ cases:
         work promote <idea> --as <id> --kind slice|task
                                          make an idea a slice or a task, and commit it
         work done <id>                   mark an item done once it has landed, and commit it
+        work add <id> --title <title> --why <why> […]
+                                         add an item to the work registry, and commit it
+        work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--note <text>]
+                                         change an item, or add a note to its why, and commit it
         work check [<file>]              validate the work registry
         commit [--task <id>] [--scenarios <ids>] [--<footer> <text>] [<git commit args>…]
                                          git commit, with the footers itos writes
@@ -126,6 +130,8 @@ cases:
              itos work take <id> [--as <handle>]
              itos work promote <idea> --as <id> --kind slice|task
              itos work done <id>
+             itos work add <id> --title <title> --why <why> […]
+             itos work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--note <text>]
              itos work check [<file>]
 
       Who the session works for (--as, else the config's work.identity provider) and
@@ -139,8 +145,8 @@ cases:
       --json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"}
 
       work list prints every item of the registry instead (itos help work list);
-      work take, work promote and work done write it, each committing it (itos help
-      work take).
+      work take, work promote, work done, work add and work edit write it, each
+      committing it (itos help work take).
   - name: itos work take --help
     argv: [work, take, --help]
     exit: 0
@@ -201,6 +207,46 @@ cases:
 
       --json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"commit":"<sha>"|null},
       or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}],"ci"?,"run"?}
+  - name: itos work add --help
+    argv: [work, add, --help]
+    exit: 0
+    stdout: |
+      Usage: itos work add <id> --title <title> --why <why> [--kind idea|slice|task]
+               [--phase <phase>] [--owner <handle>] [--depends-on <id>,…] [--refs <ref>,…]
+
+      Adds an item at the end of the work registry, todo: an idea unless --kind
+      says otherwise, in the phase --phase names (else the one a p<n>- id names,
+      else the registry's only one), owned by --owner or nobody, its why a folded
+      text, then commits the registry alone, "docs: add <id>", as work take does
+      (itos help work take). Refused, nothing written (exit 1): a registry that is
+      not sound or has changes no commit holds, an <id> an item already has, a
+      task's <id> that ledger.id does not match, no phase to put it in, what work
+      check would find with the item there (a phase not listed, an owner not among
+      the people, a dependency on no item), a commit a hook refuses. Under a stealth
+      config the registry is written and nothing committed.
+
+      --json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
+      {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
+  - name: itos work edit --help
+    argv: [work, edit, --help]
+    exit: 0
+    stdout: |
+      Usage: itos work edit <id> [--title <title>] [--depends-on <id>,…] [--refs <ref>,…]
+               [--note <paragraph>]
+
+      Changes an item: its title, its depends_on or its refs, each replaced (an
+      empty --depends-on or --refs empties the list), or adds --note's paragraph to
+      its why, after a blank line in a folded why; then commits the registry alone,
+      "docs: edit <id>", as work take does (itos help work take). An owner changes
+      by work take, a kind by work promote, a status by work take and work done.
+      Refused, nothing written (exit 1): a registry that is not sound or has changes
+      no commit holds, an id no item has, what work check would find with the item
+      so (a dependency on no item, a cycle, an item done waiting on one not done), a
+      commit a hook refuses. An item already as asked changes nothing. Under a
+      stealth config the registry is written and nothing committed.
+
+      --json: {"schema":1,"ok":true,"item":{…},"changed":["title"|"depends_on"|"refs"|"why",…],"commit":"<sha>"|null},
+      or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
   - name: itos work list --help
     argv: [work, list, --help]
     exit: 0
