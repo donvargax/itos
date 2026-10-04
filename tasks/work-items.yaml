@@ -4716,14 +4716,15 @@ items:
       escape hatch. Nothing to build.
     refs: [internal/adr, features/ask.feature]
 
-  - id: p1-release-rules-one-copy
-    title: One copy of what a releasable commit is, for status and the release cut
+  - id: T-088
+    title: One copy of what a releasable commit is, for itos status and the release cut
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-release-rules-one-copy.
       Slice 70 gave itos status the rules for a releasable commit (a feat, a fix, or a ! or
       BREAKING-CHANGE footer of any type) in internal/release, while tools/bin/release-version keeps
       its own copy because it imports the standard library alone. Nothing checks that the two agree,
