@@ -149,8 +149,10 @@ release's notes (Upgrading) give the whole script with both filled in, and
 hooks and CI.
 
 Go developers can instead
-`go install github.com/donvargax/itos/v2/cmd/itos@v<version>` (the module
-path ends in `/v2` from v2.0.0, as Go requires).
+`go install github.com/donvargax/itos/v3/cmd/itos@v<version>` (the module
+path ends in the major version from v2, as Go requires; from the first release
+after v3.3.0, since v3.0.0 to v3.3.0 were cut from a path still ending in `/v2`
+and Go refuses them).
 
 A version bump is the script's version and hashes, from the newer release's
 notes.

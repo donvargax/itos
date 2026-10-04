@@ -133,8 +133,10 @@ history (`vp run changelog`), and the decisions behind it are records in
   `claude plugin validate --strict` and `claude plugin test` judge it, in
   T-066's checks. The formatter and the audit read it, the audit told that
   `hooks.json` loads the module and that `claude-code` is the engine's.
-- `go.mod` is the module `github.com/donvargax/itos/v2` (from v2.0.0 a
-  module path ends in its major version, or Go refuses its tag), Go pinned by its
+- `go.mod` is the module `github.com/donvargax/itos/v3` (from v2.0.0 a
+  module path ends in its major version, or Go refuses its tag, so the release
+  cut, `tools/bin/release-version`, refuses a version whose major the path does
+  not match: the path moves first, T-089), Go pinned by its
   `toolchain` line; its dependencies are godog's and `go.yaml.in/yaml/v3`,
   itos's one. itos is `cmd/itos` and `internal/` ("The code" below).
 
