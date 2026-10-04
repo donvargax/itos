@@ -3397,6 +3397,13 @@ items:
       follow close <id>, itos follow (the open ones), and itos follow doc <id> <path>, which writes
       the thread as a Markdown file anywhere, in the repository or not, the thread recording the
       link.
+
+      The user's calls (2026-10-04), refining the above: questions to the user stay public, as itos
+      ask (itos ask add, itos ask answer <id>), committed beside the registry, replacing the
+      handoff's Open for the user and User review; threads with people are itos follow, private
+      under the git common dir. itos follow doc writes the whole thread (questions, answers and what
+      led to the conclusion) as the raw material another agent refines into the published document:
+      an architecture, a test plan.
     refs: [docs/HANDOFF.md, tasks/work-items.yaml]
 
   - id: p1-push-needs-hooks
