@@ -4352,3 +4352,18 @@ items:
       BREAKING-CHANGE footers, compatibility before a major release, the rtk rewrite of git pull,
       the three-platform CI).
     refs: [docs/ORCHESTRATING.md, internal/guide/coordinate.md]
+
+  - id: p3-plugin-guide-wrappers
+    title: The plugin's coordinate skill and implementer agent run itos go and itos guide work
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-64]
+    kind: idea
+    why: >
+      Left out of slice 64 by its spec: the Claude Code plugin's /itos:coordinate skill
+      (disable-model-invocation: true, so only the person starts it) and itos:implementer agent
+      become thin wrappers that run itos go and itos guide work, so one text, versioned with itos,
+      serves both, and the skill's own how-to (skills/itos/SKILL.md) stops restating what itos guide
+      work prints.
+    refs: [integrations/claude-code/skills/itos/SKILL.md, internal/guide/work.md]
