@@ -4578,7 +4578,7 @@ items:
     title: PLAN.md's decisions become records in docs/decisions/, and PLAN.md keeps what itos is
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-69, slice-71]
     kind: task
     why: >
