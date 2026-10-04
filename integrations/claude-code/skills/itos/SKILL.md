@@ -15,6 +15,9 @@ what the gates say. If the repository's own `AGENTS.md` or `CLAUDE.md` says more
 - `itos work` shows who you work for (`--as <handle>` to choose), what they have in progress, what
   they can start now and what is waiting on something else. Don't take an item someone else owns,
   or one whose dependencies are not done.
+- `itos work take <id>` makes you the owner of an item and sets it in progress, committing the
+  registry alone; push that commit before your work. `itos work done <id>` closes it once its work
+  is pushed and CI is green, and refuses until then. Never edit an item's owner or status by hand.
 - `itos work list` shows every item in the registry with its title, done ones included.
 - `itos task <id>` runs a task's checks and says what is still missing.
 - `itos help <command>` explains any command.
@@ -33,9 +36,12 @@ what the gates say. If the repository's own `AGENTS.md` or `CLAUDE.md` says more
 
 ## Push
 
-`itos push` takes no arguments. It rebases onto the upstream, then pushes in a separate step, and it
-never forces. If the rebase stops, resolve it, run `git rebase --continue`, then `itos push`
-again.
+`itos push` takes no arguments but `--no-wait`. It rebases onto the upstream, then pushes in a
+separate step, and it never forces. If the rebase stops, resolve it, run `git rebase --continue`,
+then `itos push` again. Where the config sets `ci.watch`, it then waits for the CI run of the
+commit it pushed, printing each job as it finishes, and exits 0 when the run passed, 1 when it
+failed: run it in the background and watch its output, since CI outlasts a foreground call.
+`itos ci watch [<sha>]` waits for any commit's run the same way.
 
 ## When a gate speaks
 

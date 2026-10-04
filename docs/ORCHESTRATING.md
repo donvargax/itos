@@ -70,8 +70,10 @@ nothing by itself.
    owns in `tasks/work-items.yaml` is theirs, and one whose dependencies are not
    done waits. If it is not specified in `@wip` scenarios or a task yet,
    specify it first. An idea (`kind: idea`, listed apart by `vp run work`) is
-   such an item: specify it, then change its kind to `slice` or `task` in the
-   same `docs` commit (and its id, once it is a numbered slice or a T- ID).
+   such an item: specify it, commit the spec, then
+   `tools/bin/itos work promote <idea> --as <id> --kind slice|task`, which
+   renames it, rewrites every `depends_on` naming it and commits the registry
+   alone. The item stays `todo`: the agent takes it with `itos work take`.
    An item with `deferred:` waits until its reason goes; the user lifts it,
    not the coordinator.
 2. Start **one** implementing subagent with the brief below. One at a time:

@@ -68,9 +68,14 @@ item, and what each waits on; `docs/PHASES.md` explains it. Run `vp run work`
 to see what the person you work for (the account `gh` is signed in as, or
 `--as <handle>`) is doing and can start next. **Don't take an item someone
 else owns, or one whose dependencies are not done**: two sessions building
-the same thing waste both. Take one by setting its `owner` and
-`status: doing` in a `docs` commit, and mark it `done` when it lands.
-`tools/bin/itos work check` validates the file.
+the same thing waste both. Take one with `tools/bin/itos work take <id>`,
+which makes you its owner, sets it `doing` and commits the registry alone,
+and push that commit before your work. Close it with
+`tools/bin/itos work done <id>` once its work is pushed and CI is green: it
+refuses while a `@slice-<n>` scenario is still `@wip`, a commit is
+unpushed or the run is red, and commits the change itself. Never edit an
+item's owner or status by hand. `tools/bin/itos work check` validates the
+file.
 
 ## What drives a change
 
