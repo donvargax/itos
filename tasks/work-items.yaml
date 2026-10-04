@@ -4817,7 +4817,7 @@ items:
     title: itos status names main's last green run beside a run going or red
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-72]
     kind: slice
     why: >
