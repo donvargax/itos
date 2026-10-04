@@ -2,7 +2,7 @@
 	"name": "itos",
 	"owner": { "name": "Jorge Vargas", "url": "https://github.com/donvargax" },
 	"metadata": {
-		"description": "itos's own plugins for Claude Code, released with itos."
+		"description": "itos's own plugins for Claude Code, each versioned on its own."
 	},
 	"plugins": [
 		{
