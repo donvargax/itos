@@ -8,11 +8,15 @@ is not yours: run `itos guide work` and follow that one.
 
 ## Start of a session
 
-- `itos work` shows what the person can start and what waits; `itos work list`
-  shows every item. `itos ask` lists the questions still open to the person.
-- Read the last CI run on the main branch, and the slower full run if the
-  repository has one. A red one is the first item: a fix, handed to an agent
-  before any new work, not left for whoever looks next.
+- `itos go` ends with where things stand, as `itos status` prints it: the
+  main branch's head and its CI run, the person's items in progress, the next
+  ones in the queue's order and the questions still open. `itos work` shows
+  all the person can start and what waits; `itos work list` shows every item;
+  `itos ask` lists the questions.
+- A red CI run on the main branch, or on the slower full run if the
+  repository has one (the status reads only the first), is the first item: a
+  fix, handed to an agent before any new work, not left for whoever looks
+  next.
 - The repository's own notes, printed after this guide when it keeps them,
   say what else to read first.
 

@@ -51,3 +51,34 @@ func TestProposeEvery(t *testing.T) {
 		t.Errorf("a handle's fields are %v", fields)
 	}
 }
+
+// What a person can start, theirs and the unowned together, comes in the
+// queue's one order, the unqueued after in the registry's; another's item and
+// one that waits are left out.
+func TestStartable(t *testing.T) {
+	item := func(id string, owner any, deps ...any) *value.Map {
+		return value.NewMap("id", id, "title", id, "phase", 1, "owner", owner, "status", "todo",
+			"depends_on", append([]any{}, deps...))
+	}
+	r := Registry{Phases: value.NewMap("1", nil), Queue: []any{"free-b", "mine-b", "other"}, Items: []*value.Map{
+		item("mine-a", "q"),
+		item("free-a", nil),
+		item("mine-b", "q"),
+		item("other", "z"),
+		item("free-b", nil),
+		item("waits", "q", "free-a"),
+	}}
+	var got []string
+	for _, i := range Startable(r, Propose(r, "q")) {
+		got = append(got, value.String(i.At("id")))
+	}
+	want := []string{"free-b", "mine-b", "mine-a", "free-a"}
+	if len(got) != len(want) {
+		t.Fatalf("startable: %v, not %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("startable: %v, not %v", got, want)
+		}
+	}
+}

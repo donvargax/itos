@@ -36,6 +36,7 @@ var commands = map[string]command{
 	"ask":      askCommand,
 	"go":       goCommand,
 	"guide":    guideCommand,
+	"status":   statusCommand,
 }
 
 // flagValue is the value after a flag, and whether there is one.

@@ -170,6 +170,25 @@ func propose(r Registry, handle string, every bool) Proposal {
 	return p
 }
 
+// Startable is what the proposal's person can start, their own and the
+// unowned together, in the queue's order and the unqueued after it in the
+// registry's, as itos status lists the next items (slice 67): the queue is
+// one order for the whole repository, so an unowned item it puts first comes
+// before one of the person's it puts later.
+func Startable(r Registry, p Proposal) []*value.Map {
+	can := map[*value.Map]bool{}
+	for _, item := range append(slices.Clone(p.Next), p.Unowned...) {
+		can[item] = true
+	}
+	all := []*value.Map{}
+	for _, item := range inQueueOrder(r) {
+		if can[item] {
+			all = append(all, item)
+		}
+	}
+	return all
+}
+
 // inQueueOrder are the registry's items, those the queue names first, in its
 // order, then the rest in the registry's.
 func inQueueOrder(r Registry) []*value.Map {

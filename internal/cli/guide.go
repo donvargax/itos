@@ -27,12 +27,39 @@ import (
 // separator stands between the guide and the repository's own notes.
 const separator = "\n---\n\n"
 
-// goCommand is itos go: the coordinator's guide.
+// goCommand is itos go: the coordinator's guide, then where things stand
+// (status.go, slice 67), so a session starts from one command.
 func goCommand(args []string, o Out) (int, error) {
 	if len(args) > 0 {
 		return 0, usage("go takes no arguments: %s", strings.Join(args, " "))
 	}
-	return printGuide(guide.Coordinate, o)
+	return printGuideThen(guide.Coordinate, goStatus(o), o)
+}
+
+// goStatus is where things stand for itos go, nil when it cannot be
+// computed at all (no config, a registry that is not there or not sound),
+// which is one line on stderr, never a failure of the guide.
+func goStatus(o Out) *standing {
+	skip := func(why string) *standing {
+		fmt.Fprintf(o.Stderr, "itos: where things stand is not printed: %s\n", why)
+		return nil
+	}
+	file := config.Path()
+	if _, err := os.Stat(file); err != nil {
+		return skip("there is no itos config here (itos init makes one)")
+	}
+	cfg, err := config.Load(file)
+	if err != nil {
+		return skip(strings.ReplaceAll(strings.TrimSpace(err.Error()), "\n", "; "))
+	}
+	st, found, _, err := statusOf(cfg, "", o)
+	switch {
+	case err != nil:
+		return skip(err.Error())
+	case len(found) > 0:
+		return skip(found[0].Message + " (itos work check)")
+	}
+	return st
 }
 
 // guideCommand is itos guide <name>.
@@ -53,7 +80,11 @@ func guideCommand(args []string, o Out) (int, error) {
 
 // printGuide prints the guide by its name, the coordinator's followed by
 // the repository's own notes when it keeps them.
-func printGuide(name string, o Out) (int, error) {
+func printGuide(name string, o Out) (int, error) { return printGuideThen(name, nil, o) }
+
+// printGuideThen is printGuide followed, after a line of ---, by where
+// things stand when st is not nil, under --json its object as "status".
+func printGuideThen(name string, st *standing, o Out) (int, error) {
 	text, _ := guide.Text(name)
 	notesFile := ""
 	if name == guide.Coordinate {
@@ -70,10 +101,17 @@ func printGuide(name string, o Out) (int, error) {
 		if notesFile != "" {
 			fields = append(fields, out.Field{Key: "notes", Value: filepath.ToSlash(notesFile)})
 		}
+		if st != nil {
+			fields = append(fields, out.Field{Key: "status", Value: st})
+		}
 		return 0, out.Emit(o.Stdout, fields...)
 	}
-	_, err := fmt.Fprint(o.Stdout, text)
-	return 0, err
+	if _, err := fmt.Fprint(o.Stdout, text); err != nil || st == nil {
+		return 0, err
+	}
+	fmt.Fprint(o.Stdout, separator)
+	st.print(o.Stdout)
+	return 0, nil
 }
 
 // orchestratingNotes is the repository's own notes and the path they were

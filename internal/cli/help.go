@@ -48,8 +48,9 @@ const mainCommands = `itos: tasks, their checks, commit rules and CI plans
 Usage: itos <command> [args] [global flags]
 
 Commands:
-  go                               the coordinator's guide, then the repository's own notes
+  go                               the coordinator's guide, the repository's own notes, the status
   guide coordinate|work            a guide shipped in itos: the coordinator's, the implementer's
+  status [--as <handle>]           where things stand: the remote's head and CI, work, questions
   task <id>…                       run the tasks' checks; the status table
   task list [--group <g>]          the tasks and their work items' status; runs nothing
   task add <id> --group <g> --type <type> --title <title> --why <why> --check <command> […]
@@ -977,12 +978,36 @@ where things stand to handing one item at a time to an implementing agent and
 landing it. A session that coordinates starts with it (! itos go). Then, after
 a line of ---, the repository's own notes, when it keeps them: the file
 guide.orchestrating names (docs/ORCHESTRATING.md by default), read from the
-repository's top, or in the git folder's itos/ for a stealth config. It needs
-no config and writes nothing; outside a repository the guide prints alone.
-Same as itos guide coordinate.
+repository's top, or in the git folder's itos/ for a stealth config. Last,
+after another line of ---, where things stand, as itos status prints it for
+the person the identity provider names; with no config, or no sound work
+registry, a line on stderr says it is left out, and the guide still prints.
+It writes nothing; outside a repository the guide prints alone. itos guide
+coordinate prints the guide and the notes alone.
 
---json: {"schema":1,"guide":"coordinate","text","notes"?}, notes the file
-appended`,
+--json: {"schema":1,"guide":"coordinate","text","notes"?,"status"?}, notes the
+file appended, status the object itos status --json prints, but its schema`,
+
+	"status": `Usage: itos status [--as <handle>]
+
+Prints where things stand, for the person the work is for (--as, else the
+identity provider's, as itos work): the remote branch's head, its short SHA
+and header, asked of the remote (the branch's upstream, else origin), or as
+last fetched when the remote cannot be reached; its CI run, looked at once
+through ci.watch's provider and never waited for, a run still going said to
+be going; the person's items in progress; the next items they can start,
+theirs and the unowned, in the queue's order and the unqueued after, five at
+most; and the open questions (itos ask). It reads, never writes. What cannot
+be reached (no remote, ci.watch.provider none, a provider that fails or prints
+no run) is one line naming it, and the rest still prints, exit 0. Exit 1 when
+the work registry is not there or not sound, 3 when --as is not among the
+people. itos go prints it last.
+
+--json: {"schema":1,"person","every_item"?,"head":{"remote","branch","commit",
+"header","last_fetched"}|null,"ci":{"result","run"?}|null,"doing","next",
+"more","questions":[{"id","item"?,"question","status"}],"unread"}, result
+success, failure (or another conclusion), going, or none for no run yet;
+unread the lines of what could not be reached`,
 
 	"guide": `Usage: itos guide coordinate|work
 

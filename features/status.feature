@@ -19,7 +19,7 @@ Feature: itos status, where the work stands
     And a clone of it, where itos runs
     And ci.watch runs a command that reports the run "https://ci.example/runs/1"
 
-  @ID-STATUS-01 @slice-67 @wip
+  @ID-STATUS-01 @slice-67
   Scenario: status prints the main branch's head and its CI run's result
     Given the watched run's jobs "ci" and "platform" succeed
     When itos runs "status --as someone"
@@ -28,7 +28,7 @@ Feature: itos status, where the work stands
     And its output says "https://ci.example/runs/1"
     And its output says "success"
 
-  @ID-STATUS-02 @slice-67 @wip
+  @ID-STATUS-02 @slice-67
   Scenario: status lists the person's items in progress and the next ones they can start, in the queue's order
     Given the watched run's jobs "ci" and "platform" succeed
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -40,7 +40,7 @@ Feature: itos status, where the work stands
     And its output says "slice-9" before "slice-8"
     And its output says "slice-8" before "slice-7"
 
-  @ID-STATUS-03 @slice-67 @wip
+  @ID-STATUS-03 @slice-67
   Scenario: status lists the questions still open
     Given the watched run's jobs "ci" and "platform" succeed
     And itos has run the command line "ask add 'Labels or Projects?'"
@@ -48,7 +48,7 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "q-1"
 
-  @ID-STATUS-04 @slice-67 @wip
+  @ID-STATUS-04 @slice-67
   Scenario: Where CI cannot be read, status says so and prints the rest
     Given the watch command prints "not json"
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -57,7 +57,7 @@ Feature: itos status, where the work stands
     And its output says "slice-9"
     And its output says "CI"
 
-  @ID-STATUS-05 @slice-67 @wip
+  @ID-STATUS-05 @slice-67
   Scenario: itos go ends with the status
     Given the watched run's jobs "ci" and "platform" succeed
     When itos runs "go"

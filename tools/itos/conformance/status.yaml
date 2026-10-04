@@ -1,0 +1,247 @@
+# itos status (slice 67): where the work stands, for the person a session
+# works for (--as, else the identity provider): the remote branch's head,
+# asked of the remote, else as last fetched, and its CI run, looked at once
+# through ci.watch's provider and never waited for, a run still going said to
+# be going; the person's items in progress; the next ones they can start,
+# theirs and the unowned, in the queue's order and the unqueued after, five
+# at most; the open questions. What cannot be reached (no remote, a remote
+# that does not answer, ci.watch.provider none, a provider that prints no run)
+# is a line, and the rest prints, exit 0. itos go prints it after the guide,
+# and skips one that cannot be computed with a line on stderr.
+#
+# The remote is a bare one in the git folder, .git/origin.git, holding the
+# repository's one commit; the watch command, report.sh, prints run.json with
+# SHA replaced by the commit it was given.
+files:
+  itos.yaml: |
+    version: 1
+    work:
+      registry: work-items.yaml
+      people: { source: yaml, file: people.yaml }
+      identity: { provider: command, command: "echo a" }
+    ci:
+      steps: []
+      watch: { provider: command, command: "sh report.sh {sha}", interval: 0 }
+  report.sh: |
+    sed "s/SHA/$1/g" run.json
+  run.json: |
+    {"url":"https://ci.example/runs/SHA","status":"completed","conclusion":"success","jobs":[{"name":"ci","status":"completed","conclusion":"success"}]}
+  people.yaml: "- a\n- b\n"
+  work-items.yaml: |
+    phases: { 1: a, 2: null }
+    queue: [free, phased]
+    items:
+      - { id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [] }
+      - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [] }
+      - { id: later, title: Later, phase: 1, owner: a, status: todo, depends_on: [ready] }
+      - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [] }
+      - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [] }
+      - { id: theirs, title: Theirs, phase: 1, owner: b, status: todo, depends_on: [] }
+      - { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea, depends_on: [] }
+  asks.yaml: |
+    # itos ask's questions to the person the work is for, written by itos ask (itos help ask).
+    questions:
+      - id: q-1
+        question: "Labels or Projects?"
+        answer: "Labels."
+      - id: q-2
+        item: "ready"
+        question: "Which way?"
+git:
+  - commit: "chore: first"
+    files: { README.md: "first\n" }
+  - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q origin main
+    label: head
+cases:
+  - name: status prints the remote's head and its CI run, the work and the open questions
+    argv: [status]
+    exit: 0
+    stdout: |
+      # Where things stand
+
+      origin/main: {{short.head}} chore: first
+      CI: success, https://ci.example/runs/{{sha.head}}
+
+      In progress for a:
+        busy  Busy
+      Next for a, in the queue's order:
+        free  Free  (unowned)
+        phased  Owned by the phase
+        ready  Ready
+      Open questions:
+        q-2  Which way?  (ready)
+    stderr: ""
+  - name: status --as lists another person's work
+    argv: [status, --as, b]
+    exit: 0
+    stdout_has: "Nothing in progress for b.\nNext for b, in the queue's order:\n  free  Free  (unowned)\n  theirs  Theirs\n"
+  - name: a run still going is said to be going, never waited for
+    argv: [status]
+    files:
+      run.json: |
+        {"url":"https://ci.example/runs/1","status":"in_progress","jobs":[{"name":"ci","status":"in_progress"}]}
+    exit: 0
+    stdout_has: "CI: going, https://ci.example/runs/1\n"
+  - name: a run that failed names the jobs that failed
+    argv: [status]
+    files:
+      run.json: |
+        {"url":"https://ci.example/runs/1","status":"completed","conclusion":"failure","jobs":[{"name":"ci","status":"completed","conclusion":"failure"},{"name":"platform","status":"completed","conclusion":"success"}]}
+    exit: 0
+    stdout_has: "CI: failure, https://ci.example/runs/1; failed jobs: ci\n"
+  - name: a watch command that prints no run is a line, and the rest prints
+    argv: [status]
+    files:
+      report.sh: "echo not json\n"
+    exit: 0
+    stdout_has:
+      - "origin/main: {{short.head}} chore: first\nCI cannot be read: ci.watch.command printed no run: "
+      - "In progress for a:\n  busy  Busy\n"
+  - name: with ci.watch.provider none the CI run is not read
+    argv: [status]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+          identity: { provider: command, command: "echo a" }
+    exit: 0
+    stdout_has: "origin/main: {{short.head}} chore: first\nCI is not read: ci.watch.provider is none.\n"
+  - name: with no remote neither the head nor its CI run is read, and the rest prints
+    argv: [status]
+    git:
+      - commit: "chore: first"
+        files: { README.md: "first\n" }
+    exit: 0
+    stdout: |
+      # Where things stand
+
+      No remote origin, so neither its head nor its CI run is read.
+
+      In progress for a:
+        busy  Busy
+      Next for a, in the queue's order:
+        free  Free  (unowned)
+        phased  Owned by the phase
+        ready  Ready
+      Open questions:
+        q-2  Which way?  (ready)
+  - name: a remote that cannot be reached is read as last fetched
+    argv: [status]
+    git:
+      - commit: "chore: first"
+        files: { README.md: "first\n" }
+        label: head
+      - run: git remote add origin .git/nowhere.git && git update-ref refs/remotes/origin/main HEAD
+    exit: 0
+    stdout_has: "origin cannot be reached, so its main is as last fetched.\norigin/main: {{short.head}} chore: first\nCI: success, https://ci.example/runs/{{sha.head}}\n"
+  - name: a remote without the branch has no head to read
+    argv: [status]
+    git:
+      - commit: "chore: first"
+        files: { README.md: "first\n" }
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git
+    exit: 0
+    stdout_has: "origin has no branch main yet, so there is no CI run to read.\n"
+  - name: status lists five of the next items, and says how many more
+    argv: [status]
+    files:
+      work-items.yaml: |
+        phases: { 1: a }
+        items:
+          - { id: n1, title: One, phase: 1, owner: a, status: todo }
+          - { id: n2, title: Two, phase: 1, owner: a, status: todo }
+          - { id: n3, title: Three, phase: 1, owner: a, status: todo }
+          - { id: n4, title: Four, phase: 1, owner: a, status: todo }
+          - { id: n5, title: Five, phase: 1, owner: a, status: todo }
+          - { id: n6, title: Six, phase: 1, owner: a, status: todo }
+          - { id: n7, title: Seven, phase: 1, owner: a, status: todo }
+      asks.yaml: null
+    exit: 0
+    stdout_has: "Nothing in progress for a.\nNext for a, in the queue's order:\n  n1  One\n  n2  Two\n  n3  Three\n  n4  Four\n  n5  Five\n  and 2 more: itos work\nNo open questions.\n"
+  - name: a long question is cut short
+    argv: [status]
+    files:
+      asks.yaml: |
+        # itos ask's questions to the person the work is for, written by itos ask (itos help ask).
+        questions:
+          - id: q-1
+            question: "Should the status print a question in full, however long it is, or cut it short so it reads at a glance?"
+    exit: 0
+    stdout_has: "  q-1  Should the status print a question in full, however long it is, or cut it short…\n"
+  - name: status --json
+    argv: [status, --json]
+    exit: 0
+    json:
+      schema: 1
+      person: a
+      head: { remote: origin, branch: main, commit: "{{sha.head}}", header: "chore: first", last_fetched: false }
+      ci:
+        result: success
+        run:
+          url: "https://ci.example/runs/{{sha.head}}"
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+      doing: [{ id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [] }]
+      next:
+        - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [] }
+        - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [] }
+        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [] }
+      more: 0
+      questions: [{ id: q-2, item: ready, question: "Which way?", status: open }]
+      unread: []
+  - name: status --json lists what could not be reached
+    argv: [status, --json]
+    git:
+      - commit: "chore: first"
+        files: { README.md: "first\n" }
+    files:
+      work-items.yaml: "phases: { 1: a }\nitems: []\n"
+      asks.yaml: null
+    exit: 0
+    json:
+      schema: 1
+      person: a
+      head: null
+      ci: null
+      doing: []
+      next: []
+      more: 0
+      questions: []
+      unread: ["No remote origin, so neither its head nor its CI run is read."]
+  - name: status takes no arguments
+    argv: [status, work]
+    exit: 2
+    stderr: |
+      itos: status takes no arguments: work (itos --help)
+  - name: status --as someone not among the people is a missing environment
+    argv: [status, --as, c]
+    exit: 3
+    stderr: |
+      "c" is not in people.yaml
+  - name: status with no work registry is refused
+    argv: [status]
+    files:
+      work-items.yaml: null
+    exit: 1
+    stderr: |
+      no work registry at work-items.yaml
+        fix: move the registry to work-items.yaml, or set work.registry to where it is
+  - name: go ends with where things stand, after a line of ---
+    argv: [go]
+    exit: 0
+    stdout_has: ["# Coordinating with itos\n", "\n---\n\n# Where things stand\n\norigin/main: {{short.head}} chore: first\n"]
+  - name: go with no work registry prints the guide and says the status is left out
+    argv: [go]
+    files:
+      work-items.yaml: null
+    exit: 0
+    stdout_has: "# Coordinating with itos\n"
+    stderr: |
+      itos: where things stand is not printed: no work registry at work-items.yaml (itos work check)
+  - name: go --json gives the status as its object
+    argv: [go, --json]
+    exit: 0
+    stdout_has: ['"guide": "coordinate"', '"status": {', '"person": "a"', '"result": "success"']

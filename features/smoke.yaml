@@ -128,6 +128,10 @@
   scenarios:
     - id: "@ID-STEALTH-01"
       why: with no itos.yaml in the root, itos finds the config in the git folder and the ledger beside it, the mode's root
+- file: status.feature
+  scenarios:
+    - id: "@ID-STATUS-02"
+      why: status prints the remote's head and its CI run, then the person's work in the queue's order, the file's point in one run
 - file: task.feature
   scenarios:
     - id: "@ID-TASK-01"
