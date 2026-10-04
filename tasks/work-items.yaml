@@ -4037,14 +4037,15 @@ items:
       prints each line as a paragraph. Cleanup: history.go and workshow.go rebuild the notes
       arguments showNotes has, BareID would do for TagPrefix+ID, Link.Key is unused.
 
-  - id: p1-work-show-spec-commits
+  - id: slice-63
     title: itos work show lists the commits that wrote an item's spec
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-57]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-work-show-spec-commits.
       Found by slice 57's agent and its review (2026-10-04): a hand-written spec commit (docs:
       specify slice 57) names no item, and a chore naming another task (the plugin bump, Task:
       T-074) is filed under that task, so work show --patch, meant as the whole of a review's input,
