@@ -19,6 +19,9 @@ what the gates say. If the repository's own `AGENTS.md` or `CLAUDE.md` says more
   registry alone; push that commit before your work. `itos work done <id>` closes it once its work
   is pushed and CI is green, and refuses until then. Never edit an item's owner or status by hand.
 - `itos work list` shows every item in the registry with its title, done ones included.
+- Record a gap you find, rather than fixing it on the side or editing the registry's YAML:
+  `itos work add <id> --title '…' --why '…'` adds it as an idea, committing the registry alone;
+  `itos work edit <id> --note '…'` adds a paragraph to an item's why.
 - `itos task <id>` runs a task's checks and says what is still missing.
 - `itos help <command>` explains any command.
 
