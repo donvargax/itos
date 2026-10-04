@@ -125,14 +125,17 @@ Feature: itos commit, a commit whose footers itos writes
   # and every message after one such refusal was checked by hand. itos
   # commit now breaks each body line longer than the limit at word
   # boundaries before git sees the message, from -m and -F alike (the editor's
-  # message is left to the hook): a list item's continuation lines are
-  # indented to its text, and a line within the limit, an indented line, the
-  # header and the footers are left as written. It never joins lines, so a
-  # message already wrapped is unchanged. A word longer than the limit stays
-  # whole, for the lint to judge.
+  # message is left to the hook). The limit is the built-in lint's; a config
+  # with no header lint, or one that delegates to a command whose limit itos
+  # cannot read, wraps nothing (the coordinator's call, 2026-10-04). A list
+  # item's continuation lines are indented to its text, and a line within the
+  # limit, an indented line, the header and the footers are left as written.
+  # It never joins lines, so a message already wrapped is unchanged. A word
+  # longer than the limit stays whole, for the lint to judge.
   @ID-COMMITCMD-13 @slice-58 @wip
   Scenario: A body line longer than the lint's limit is wrapped at word boundaries, and the commit is accepted
     Given the message file "msg.txt" with the header "chore: tidy the readme" and a body line of 150 characters
+    And the header lint is itos's built-in one
     When itos commits with the arguments "--task T-001 -F msg.txt"
     Then itos exits with code 0
     And no line of HEAD's message is longer than 100 characters
@@ -141,6 +144,7 @@ Feature: itos commit, a commit whose footers itos writes
   @ID-COMMITCMD-14 @slice-58 @wip
   Scenario: A list item longer than the limit wraps under its own text
     Given the message file "msg.txt" with the header "chore: tidy the readme" and a body list item of 150 characters
+    And the header lint is itos's built-in one
     When itos commits with the arguments "--task T-001 -F msg.txt"
     Then itos exits with code 0
     And no line of HEAD's message is longer than 100 characters
@@ -150,6 +154,7 @@ Feature: itos commit, a commit whose footers itos writes
   @ID-COMMITCMD-15 @slice-58 @wip
   Scenario: Body lines within the limit are left as written, never joined
     Given the message file "msg.txt" with the header "chore: tidy the readme" and the body lines "Line one." and "Line two."
+    And the header lint is itos's built-in one
     When itos commits with the arguments "--task T-001 -F msg.txt"
     Then itos exits with code 0
     And the message of HEAD has the line "Line one."
