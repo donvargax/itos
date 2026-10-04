@@ -1222,6 +1222,32 @@ cases:
       item: { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [], issue: 12 }
       changed: [depends_on]
       commit: null
+  - name: work edit writes a list of any shape whole, one flow list on its key's line
+    argv: [work, edit, b, --depends-on, a, --refs, docs/c.md, --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, status: done }\n  - id: b\n    title: B\n    phase: 1\n    status: todo\n    depends_on: # none yet\n      - a\n      - a\n    refs:\n      [\n        docs/a.md, # the first\n        docs/b.md,\n      ]\n    # kept\n    why: A gap.\n"
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: b, title: B, phase: 1, status: todo, depends_on: [a], refs: [docs/c.md], why: A gap. }
+      changed: [depends_on, refs]
+      commit: null
+    files_after:
+      .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, status: done }\n  - id: b\n    title: B\n    phase: 1\n    status: todo\n    depends_on: [a]\n    refs: [docs/c.md]\n    # kept\n    why: A gap.\n"
+  - name: work edit of an item with no refs given none changes nothing
+    argv: [work, edit, ready, --refs, ""]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *registry
+    exit: 0
+    stdout: |
+      ready is already so; nothing to change
   - name: work edit refuses a cycle, as work check would
     argv: [work, edit, ready, --depends-on, later]
     exit: 1

@@ -317,12 +317,14 @@ func flowStrings(list []any) (string, error) {
 	return "[" + strings.Join(parts, ", ") + "]", nil
 }
 
-// SetList gives the key the path names the list of strings: a flow list on
-// one line replaced, written over a value of nothing (null, ~ or none), or
-// added as a flow list when the mapping lacks the key (as Set adds one); a
-// block list has its items replaced in place, those past the new list's end
-// taken out with their lines and new ones added after its last, each a line
-// of its own. A block list is not emptied: that is an error.
+// SetList gives the key the path names the list of strings, written whole
+// as one flow list (bug 14): over a value of nothing (null, ~ or none), added
+// as a flow list when the mapping lacks the key (as Set adds one), and over a
+// list of any shape, every byte of it replaced. A flow list on its key's line
+// is replaced where it is; one that starts on a line below its key (the
+// formatter wraps a long one so, over several lines) and a block list are
+// taken out from just past the key's colon to their last line, and the flow
+// list written on the key's line. Comments inside the old list go with it.
 func (d *Doc) SetList(path []any, list []string) error {
 	parent, m, key, flow, err := d.mapAt(path)
 	if err != nil {
@@ -336,7 +338,7 @@ func (d *Doc) SetList(path []any, list []string) error {
 	if err != nil {
 		return err
 	}
-	_, v := lookup(parent, key)
+	k, v := lookup(parent, key)
 	switch {
 	case v == nil:
 		if err := d.addLast(parent, flow, key, " "+flowList+d.e.nl, flowList); err != nil {
@@ -352,16 +354,22 @@ func (d *Doc) SetList(path []any, list []string) error {
 			put = " " + put
 		}
 		d.e.edits = append(d.e.edits, edit{at: start, cut: end - start, put: put})
-	case v.Kind == yaml.SequenceNode && (flow || v.Style&yaml.FlowStyle != 0):
-		start, end, err := d.flowSpan(v)
-		if err != nil {
-			return fmt.Errorf("%s: %w", where(path), err)
-		}
-		d.e.edits = append(d.e.edits, edit{at: start, cut: end - start, put: flowList})
 	case v.Kind == yaml.SequenceNode:
-		if err := d.setBlockList(v, list); err != nil {
+		start, end, put := 0, 0, flowList
+		if flow || v.Style&yaml.FlowStyle != 0 {
+			if start, end, err = d.flowSpan(v); err != nil {
+				return fmt.Errorf("%s: %w", where(path), err)
+			}
+		} else if end, err = d.blockEnd(v); err != nil {
 			return fmt.Errorf("%s: %w", where(path), err)
 		}
+		if !flow && (v.Style&yaml.FlowStyle == 0 || v.Line != k.Line) {
+			if start, err = d.afterColon(k); err != nil {
+				return fmt.Errorf("%s: %w", where(path), err)
+			}
+			put = " " + flowList
+		}
+		d.e.edits = append(d.e.edits, edit{at: start, cut: end - start, put: put})
 	default:
 		return fmt.Errorf("%s is not a list", where(path))
 	}
@@ -369,47 +377,59 @@ func (d *Doc) SetList(path []any, list []string) error {
 	return nil
 }
 
-// setBlockList writes list over a block list's items, each a one-line
-// scalar on a line of its own.
-func (d *Doc) setBlockList(v *yaml.Node, list []string) error {
-	if len(list) == 0 {
-		return fmt.Errorf("a block list is not emptied in place; write it as [] first")
-	}
-	for i, el := range v.Content {
-		if el.Kind != yaml.ScalarNode {
-			return fmt.Errorf("the list's item on line %d is not a text", el.Line)
+// afterColon is the offset just past the colon that ends a key of a block
+// mapping, a scalar on one line.
+func (d *Doc) afterColon(k *yaml.Node) (int, error) {
+	var end int
+	if k.Style&(yaml.DoubleQuotedStyle|yaml.SingleQuotedStyle) != 0 {
+		_, quoted, err := d.e.span(k, false)
+		if err != nil {
+			return 0, err
 		}
-		if i < len(list) {
-			if err := d.replace(el, false, list[i]); err != nil {
-				return err
-			}
+		end = quoted
+	} else {
+		start, err := d.e.offset(k.Line, k.Column)
+		if err != nil {
+			return 0, err
+		}
+		end = start + len(k.Value)
+		if end > len(d.e.text) || d.e.text[start:end] != k.Value {
+			return 0, fmt.Errorf("the key on line %d is not on one line", k.Line)
+		}
+	}
+	for end < len(d.e.text) && (d.e.text[end] == ' ' || d.e.text[end] == '\t') {
+		end++
+	}
+	if end >= len(d.e.text) || d.e.text[end] != ':' {
+		return 0, fmt.Errorf("the key on line %d has no colon after it", k.Line)
+	}
+	return end + 1, nil
+}
+
+// blockEnd is where a block list's text ends: its last item's line and every
+// line after it indented past the items' dashes, up to the last such line
+// that is not blank, before its line break.
+func (d *Doc) blockEnd(v *yaml.Node) (int, error) {
+	if len(v.Content) == 0 {
+		return 0, fmt.Errorf("the list on line %d has no item", v.Line)
+	}
+	dash := v.Column - 1
+	at, err := d.e.offset(v.Content[len(v.Content)-1].Line, 1)
+	if err != nil {
+		return 0, err
+	}
+	end := d.e.lineEnd(at)
+	for next, _ := d.e.afterLine(at); next < len(d.e.text); next, _ = d.e.afterLine(next) {
+		line := d.e.text[next:d.e.lineEnd(next)]
+		if strings.TrimSpace(line) == "" {
 			continue
 		}
-		start, err := d.e.offset(el.Line, 1)
-		if err != nil {
-			return err
+		if len(line)-len(strings.TrimLeft(line, " ")) <= dash {
+			break
 		}
-		end, _ := d.e.afterLine(start)
-		d.e.edits = append(d.e.edits, edit{at: start, cut: end - start})
+		end = d.e.lineEnd(next)
 	}
-	if len(list) <= len(v.Content) {
-		return nil
-	}
-	last := v.Content[len(v.Content)-1]
-	start, err := d.e.offset(last.Line, 1)
-	if err != nil {
-		return err
-	}
-	head := d.e.text[start:d.e.lineEnd(start)]
-	dash := strings.Repeat(" ", len(head)-len(strings.TrimLeft(head, " ")))
-	at, lead := d.e.afterLine(start)
-	var b strings.Builder
-	b.WriteString(lead)
-	for _, s := range list[len(v.Content):] {
-		b.WriteString(dash + "- " + token(s, 0) + d.e.nl)
-	}
-	d.e.edits = append(d.e.edits, edit{at: at, put: b.String()})
-	return nil
+	return end, nil
 }
 
 // addLast writes a key the mapping lacks after its last key's value: in a
@@ -455,46 +475,52 @@ func (d *Doc) addLast(m *yaml.Node, flow bool, key, block, flowPut string) error
 	return nil
 }
 
-// flowSpan is where a flow collection written on one line is in the text:
-// its opening bracket and just past its closing one.
+// flowSpan is where a flow collection is in the text: its opening bracket
+// and just past its closing one, on its line or on a line below (bug 14: the
+// formatter wraps a long flow list over several lines). Quoted text and
+// comments are passed over.
 func (d *Doc) flowSpan(n *yaml.Node) (int, int, error) {
 	start, err := d.e.offset(n.Line, n.Column)
 	if err != nil {
 		return 0, 0, err
 	}
-	line := d.e.text[start:d.e.lineEnd(start)]
-	if line == "" || (line[0] != '[' && line[0] != '{') {
+	text := d.e.text
+	if start >= len(text) || (text[start] != '[' && text[start] != '{') {
 		return 0, 0, fmt.Errorf("line %d does not open a flow collection", n.Line)
 	}
 	depth := 0
-	for i := 0; i < len(line); i++ {
-		switch line[i] {
+	for i := start; i < len(text); i++ {
+		switch text[i] {
 		case '"':
-			for i++; i < len(line) && line[i] != '"'; i++ {
-				if line[i] == '\\' {
+			for i++; i < len(text) && text[i] != '"'; i++ {
+				if text[i] == '\\' {
 					i++
 				}
 			}
 		case '\'':
-			for i++; i < len(line); i++ {
-				if line[i] == '\'' {
-					if i+1 < len(line) && line[i+1] == '\'' {
+			for i++; i < len(text); i++ {
+				if text[i] == '\'' {
+					if i+1 < len(text) && text[i+1] == '\'' {
 						i++
 						continue
 					}
 					break
 				}
 			}
+		case '#':
+			if c := text[i-1]; c == ' ' || c == '\t' || c == '\n' {
+				i = d.e.lineEnd(i)
+			}
 		case '[', '{':
 			depth++
 		case ']', '}':
 			depth--
 			if depth == 0 {
-				return start, start + i + 1, nil
+				return start, i + 1, nil
 			}
 		}
 	}
-	return 0, 0, fmt.Errorf("the list on line %d goes on past its line", n.Line)
+	return 0, 0, fmt.Errorf("the flow collection on line %d is not closed", n.Line)
 }
 
 // Note adds a paragraph to the text the path names, a key of a mapping: a

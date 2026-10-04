@@ -403,11 +403,14 @@ type Edits struct {
 
 // Edit is the registry with the item's title, depends_on or refs replaced
 // and a paragraph added to its why (value.Doc's Note: a blank line, then the
-// paragraph, in a folded why). Change.Changed names the keys it changed.
+// paragraph, in a folded why). A list given is written whole, one flow list
+// on its key's line, whatever shape the old one had (value.Doc's SetList,
+// bug 14). Change.Changed names the keys it changed.
 // Refused, with nothing changed: an id no item has, and whatever work check
 // would find in the registry with the item so (a dependency on no item, a
 // cycle, an item done waiting on one not done). An item already as asked,
-// with no note, is Unchanged.
+// with no note, is Unchanged; a list the item lacks is as asked when the
+// list given is empty.
 func Edit(cfg *config.Loaded, r Registry, text, id string, e Edits) (Change, []out.Problem, error) {
 	i := find(r, id)
 	if i < 0 {
@@ -437,7 +440,16 @@ func Edit(cfg *config.Loaded, r Registry, text, id string, e Edits) (Change, []o
 		key  string
 		list *[]string
 	}{{"depends_on", e.DependsOn}, {"refs", e.Refs}} {
-		if l.list == nil || value.JSON(item.At(l.key)) == value.JSON(listOf(*l.list)) {
+		if l.list == nil {
+			continue
+		}
+		// A list the item lacks, or one of nothing, is an empty one (bug 14):
+		// --refs '' on an item with no refs is already so.
+		old := item.At(l.key)
+		if absent(old) {
+			old = []any{}
+		}
+		if value.JSON(old) == value.JSON(listOf(*l.list)) {
 			continue
 		}
 		if err := doc.SetList([]any{"items", i, l.key}, *l.list); err != nil {

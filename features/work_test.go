@@ -5,7 +5,9 @@
 // item; a ledger file deleted and a commit-msg hook that refuses, for a
 // commit that cannot be made (bug 13); and what the registry reads after
 // (an item's status, owner, kind, title, dependencies and why), a ledger
-// file's task, what the last commit holds, and what git status reports.
+// file's task, what the last commit holds, and what git status reports; an
+// idea whose refs are a flow list over several lines or a block list, and
+// the refs an item has after (bug 14).
 package features
 
 import (
@@ -32,6 +34,12 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the work registry has the idea "([^"]*)" owned by nobody$`, func(id string) error {
 		return w.registryItem(id, "null", "todo", "", "idea")
 	})
+	sc.Step(`^the work registry has the idea "([^"]*)" owned by nobody, its refs a flow list over several lines$`, func(id string) error {
+		return w.registryIdeaWithRefs(id, "\n      [\n        features/x.feature,\n        docs/y.md,\n      ]\n")
+	})
+	sc.Step(`^the work registry has the idea "([^"]*)" owned by nobody, its refs a block list of "([^"]*)" and "([^"]*)"$`, func(id, a, b string) error {
+		return w.registryIdeaWithRefs(id, fmt.Sprintf("\n      - %s\n      - %s\n", a, b))
+	})
 	sc.Step(`^a feature file with the scenario "([^"]*)" tagged "([^"]*)"$`, w.taggedScenario)
 
 	sc.Step(`^the registry's item "([^"]*)" has the status "([^"]*)" and the owner "([^"]*)"$`, w.registryItemIs)
@@ -46,7 +54,10 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 		return w.registryItemField(id, "title", title)
 	})
 	sc.Step(`^the registry's item "([^"]*)" has a why ending with "([^"]*)"$`, w.registryWhyEnds)
+	sc.Step(`^the registry's item "([^"]*)" has the refs "([^"]*)"$`, w.registryItemRefs)
+	sc.Step(`^the registry's item "([^"]*)" has no refs$`, func(id string) error { return w.registryItemRefs(id, "") })
 	sc.Step(`^the last commit's header is "([^"]*)"$`, w.lastHeaderIs)
+	sc.Step(`^the last commit's header is not "([^"]*)"$`, w.lastHeaderIsNot)
 	sc.Step(`^the last commit touches only "([^"]*)"$`, func(path string) error { return w.lastTouchesOnly(path) })
 	sc.Step(`^the last commit touches only "([^"]*)" and "([^"]*)"$`, func(a, b string) error { return w.lastTouchesOnly(a, b) })
 	sc.Step(`^the ledger file "([^"]*)" has the task "([^"]*)" with the check "([^"]*)"$`, w.ledgerFileHasTask)
@@ -74,7 +85,7 @@ func (w *world) registryItem(id, owner, status, dep, kind string) error {
 		line += ", kind: " + kind
 	}
 	w.registryLines = append(w.registryLines, line+", depends_on: "+deps+" }\n")
-	if err := w.write(w.data(startingRegistry), "phases: { 1: null }\nitems:\n"+strings.Join(w.registryLines, "")); err != nil {
+	if err := w.writeRegistryLines(); err != nil {
 		return err
 	}
 	if owner != "null" {
@@ -93,6 +104,54 @@ func (w *world) registryItem(id, owner, status, dep, kind string) error {
 		return nil
 	}
 	return w.commit("docs: a registry")
+}
+
+// The registry's lines written where the scenario keeps itos's data, its
+// one phase before them.
+func (w *world) writeRegistryLines() error {
+	return w.write(w.data(startingRegistry), "phases: { 1: null }\nitems:\n"+strings.Join(w.registryLines, ""))
+}
+
+// One more idea of phase 1, todo and owned by nobody, written as a block
+// mapping whose last key is refs, its value the text after the colon (bug
+// 14: a flow list the formatter wrapped over several lines, or a block
+// list), committed as registryItem commits.
+func (w *world) registryIdeaWithRefs(id, refs string) error {
+	w.registryLines = append(w.registryLines, fmt.Sprintf(
+		"  - id: %s\n    title: %s\n    phase: 1\n    owner: null\n    status: todo\n    kind: idea\n    depends_on: []\n    refs:%s",
+		id, id, refs))
+	if err := w.writeRegistryLines(); err != nil {
+		return err
+	}
+	if w.dataDir != "" {
+		return nil
+	}
+	return w.commit("docs: a registry")
+}
+
+// The item's refs are the comma-separated ones, in order; none ("") is no
+// refs key, null or an empty list.
+func (w *world) registryItemRefs(id, refs string) error {
+	item, err := w.registryItemOf(id)
+	if err != nil {
+		return err
+	}
+	got := []string{}
+	if list, ok := item["refs"].([]any); ok {
+		for _, r := range list {
+			got = append(got, fmt.Sprint(r))
+		}
+	} else if item["refs"] != nil {
+		return fmt.Errorf("%s's refs are %v, not a list\n%s", id, item["refs"], w.report())
+	}
+	want := []string{}
+	if refs != "" {
+		want = strings.Split(refs, ",")
+	}
+	if !slices.Equal(got, want) {
+		return fmt.Errorf("%s's refs are %q, not %q\n%s", id, got, want, w.report())
+	}
+	return nil
 }
 
 // The registry's items, read from where the scenario keeps itos's data.
@@ -191,6 +250,17 @@ func (w *world) lastHeaderIs(header string) error {
 	}
 	if got := strings.TrimSpace(out); got != header {
 		return fmt.Errorf("the last commit's header is %q, not %q\n%s", got, header, w.report())
+	}
+	return nil
+}
+
+func (w *world) lastHeaderIsNot(header string) error {
+	out, err := w.gitOutput("log", "-1", "--format=%s")
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(out) == header {
+		return fmt.Errorf("the last commit's header is %q\n%s", header, w.report())
 	}
 	return nil
 }

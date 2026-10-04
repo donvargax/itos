@@ -177,6 +177,10 @@ func TestEdit(t *testing.T) {
 	if change, _, _ := Edit(cfg, r, text, "b", Edits{Title: new("B")}); !change.Unchanged {
 		t.Errorf("b is already titled B: %+v", change)
 	}
+	// b has no refs: an empty list given is already so (bug 14).
+	if change, _, _ := Edit(cfg, r, text, "b", Edits{Refs: &[]string{}}); !change.Unchanged {
+		t.Errorf("b already has no refs: %+v", change)
+	}
 	// a is done, so it cannot wait on b, which is not.
 	if _, found, _ := Edit(cfg, r, text, "a", Edits{DependsOn: &[]string{"b"}}); len(found) == 0 || found[0].Rule != "work-done-before-dependency" {
 		t.Errorf("a done before b: %+v", found)

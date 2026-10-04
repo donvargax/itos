@@ -117,7 +117,7 @@ func TestDocSetList(t *testing.T) {
 		func(d *Doc) error { return d.SetList([]any{"items", 3, "depends_on"}, []string{}) },
 		func(d *Doc) error { return d.SetList([]any{"items", 0, "refs"}, []string{"r"}) },
 	)
-	want := "items:\n  - { id: a, depends_on: [p, \"q, r\"], refs: [r] }\n  - id: b\n    depends_on:\n      - p # first\n      - q\n" +
+	want := "items:\n  - { id: a, depends_on: [p, \"q, r\"], refs: [r] }\n  - id: b\n    depends_on: [p, q]\n" +
 		"  - id: c\n    title: C\n    refs: [docs/x.md]\n  - id: d\n    depends_on: []\n"
 	if got != want {
 		t.Errorf("lists:\n got %q\nwant %q", got, want)
@@ -127,8 +127,41 @@ func TestDocSetList(t *testing.T) {
 	}
 	got, _ = edited(t, "items:\n  - id: b\n    depends_on:\n      - x\n",
 		func(d *Doc) error { return d.SetList([]any{"items", 0, "depends_on"}, []string{"x", "y"}) })
-	if want := "items:\n  - id: b\n    depends_on:\n      - x\n      - y\n"; got != want {
+	if want := "items:\n  - id: b\n    depends_on: [x, y]\n"; got != want {
 		t.Errorf("a longer block list:\n got %q\nwant %q", got, want)
+	}
+}
+
+// Bug 14: a list of any shape is written whole as one flow list on its key's
+// line, the old one's text all taken out; what follows it is kept.
+func TestDocSetListAnyShape(t *testing.T) {
+	cases := []struct{ name, text, want string }{
+		{"a flow list over several lines",
+			"items:\n  - id: a\n    refs:\n      [\n        x.md, # one\n        \"y], z.md\",\n      ] # after\n    kind: idea\n",
+			"items:\n  - id: a\n    refs: [p.md] # after\n    kind: idea\n"},
+		{"a flow list opened on its key's line, closed below",
+			"items:\n  - id: a\n    refs: [x.md,\n      y.md]\n    kind: idea\n",
+			"items:\n  - id: a\n    refs: [p.md]\n    kind: idea\n"},
+		{"a block list, a comment in it and one after it",
+			"items:\n  - id: a\n    refs: # the refs\n      - x.md\n      # between\n      - >\n        y.md\n\n    # kept\n    kind: idea\n",
+			"items:\n  - id: a\n    refs: [p.md]\n\n    # kept\n    kind: idea\n"},
+		{"a block list at its key's column, last in the file",
+			"items:\n  - id: a\n    refs:\n    - x.md\n    - y.md",
+			"items:\n  - id: a\n    refs: [p.md]"},
+	}
+	for _, c := range cases {
+		got, d := edited(t, c.text, func(d *Doc) error { return d.SetList([]any{"items", 0, "refs"}, []string{"p.md"}) })
+		if got != c.want {
+			t.Errorf("%s:\n got %q\nwant %q", c.name, got, c.want)
+		}
+		if refs := Prop(Prop(d.Want, "items").([]any)[0], "refs"); JSON(refs) != `["p.md"]` {
+			t.Errorf("%s: the refs read %s", c.name, JSON(refs))
+		}
+	}
+	got, _ := edited(t, "items:\n  - id: a\n    refs:\n      - a.md\n      - b.md\n    kind: idea\n",
+		func(d *Doc) error { return d.SetList([]any{"items", 0, "refs"}, []string{}) })
+	if want := "items:\n  - id: a\n    refs: []\n    kind: idea\n"; got != want {
+		t.Errorf("a block list emptied:\n got %q\nwant %q", got, want)
 	}
 }
 

@@ -979,8 +979,10 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
 edit` (slice 54, `docedit.go`), `Append` adds a block mapping after a block
   list's last item (the document's top one, a ledger file, for `task add`,
   slice 55) (a blank line before it when one parts the last two, a
-  why folded and wrapped at 100), `SetList` replaces a flow list on its line
-  (or a block list item by item, or adds the key), and `Note` adds a paragraph
+  why folded and wrapped at 100), `SetList` writes a list whole as one flow
+  list on its key's line (bug 14: a flow list on that line replaced where it
+  stands; one the formatter wrapped below its key, or a block list, cut from
+  past the key's colon to its last line; or the key added), and `Note` adds a paragraph
   to a text after a blank line (a one-line why in a block mapping becoming a
   folded block), each edit made in `Want` too,
   and `Text` refuses the edits unless the text reads back as `Want`, keys in
@@ -1350,7 +1352,9 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   `Append`, keys in the registry's own order, its why folded); its group is
   `--phase`, else the one a `p<n>-` id names, else the registry's only one.
   `work.Edit` replaces a title (`Set`), a `depends_on` or `refs` (`SetList`)
-  and adds a paragraph to the why (`Note`); `Change.Changed` names the keys.
+  and adds a paragraph to the why (`Note`); `Change.Changed` names the keys,
+  and a list the item lacks compares as an empty one, so emptying it is no
+  change.
   Neither restates `work check`: each runs `work.Issues` on the registry with
   the item as it would be (`sound`), and, the registry having been sound,
   refuses with whatever that finds (an owner not among the people, a

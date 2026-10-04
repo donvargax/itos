@@ -261,21 +261,21 @@ Feature: The work registry
   # committed a change for --refs '' on an item with no refs. A list given is
   # now written as one flow list on its key's line, whatever the old one's
   # shape, and an absent list reads as an empty one.
-  @ID-WORK-26 @bug-14 @wip
+  @ID-WORK-26 @bug-14
   Scenario: work edit replaces a refs list that spans several lines
     Given the work registry has the idea "p1-thing" owned by nobody, its refs a flow list over several lines
     When itos runs the command line "work edit p1-thing --refs features/a.feature"
     Then itos exits with code 0
     And the registry's item "p1-thing" has the refs "features/a.feature"
 
-  @ID-WORK-27 @bug-14 @wip
+  @ID-WORK-27 @bug-14
   Scenario: work edit empties a refs list written as a block list
     Given the work registry has the idea "p1-thing" owned by nobody, its refs a block list of "a.md" and "b.md"
     When itos runs the command line "work edit p1-thing --refs ''"
     Then itos exits with code 0
     And the registry's item "p1-thing" has no refs
 
-  @ID-WORK-28 @bug-14 @wip
+  @ID-WORK-28 @bug-14
   Scenario: work edit with empty refs on an item that has none changes nothing and commits nothing
     Given the work registry has the idea "p1-thing" owned by nobody
     When itos runs the command line "work edit p1-thing --refs ''"
