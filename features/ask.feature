@@ -170,3 +170,17 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
     Then itos exits with code 0
     And the file "notes/decisions/0008-triage-issues-with-labels.md" has the line "# Triage issues with labels"
+
+  # The commits itos makes of its own files (the registry's, ask's, task
+  # add's) wrapped their bodies with a plain wrap, so a question or a why
+  # could start a line with a word the header lint reads as a footer, and
+  # the commit drew its footer-leading-blank warning (docs: answer q-10,
+  # 2026-10-04; work done's run address before it). They wrap as itos commit
+  # does since bug 15, which never starts a line with a footer token
+  # (p1-done-body-url-footer).
+  @ID-ASK-17 @bug-18 @wip
+  Scenario: ask add's commit body never starts a line with a word the lint reads as a footer
+    When itos runs ask add with a question whose commit body would wrap to start a line with "recommendation: hold it."
+    Then itos exits with code 0
+    And no line of HEAD's message starts with "recommendation:"
+    And the message of HEAD says "recommendation: hold it."
