@@ -3679,7 +3679,7 @@ items:
     phase: 1
     owner: donvargax
     status: doing
-    depends_on: []
+    depends_on: [T-081]
     kind: slice
     why: >
       Was p1-add-to-empty-list.
@@ -3692,6 +3692,15 @@ items:
       Specified as @ID-INIT-23 to 25 in features/init.feature: init lists phase 1, owned by nobody,
       and work add and task add write the first entry into an empty list. A command that adds a
       phase is p1-work-add-phase.
+
+      First attempt (2026-10-03): the fix is written, not committed (the empty-list Append, init
+      listing phase 1, the new step; INIT-25 passes). Two blockers. The released init corpus case it
+      changes cannot be named in Changes: within the 100-character footer line, which T-081 fixes.
+      And INIT-23 and 24 cannot pass while the starter config requires a Task footer of docs, since
+      work add and task add commit docs with none: the user decides between dropping docs from the
+      starter's required_for (as this repository does), a hook exemption for registry-only docs
+      commits, or something else. Until then the fix lands with INIT-25 and leaves INIT-23 and 24
+      @wip.
     refs: [features/init.feature, internal/value/docedit.go, internal/cli/starter.go]
 
   - id: p1-commit-rollback-tested
