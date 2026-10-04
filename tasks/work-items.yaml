@@ -4031,6 +4031,13 @@ items:
       recommends counting a commit that adds or changes a scenario tagged @<id>, which needs no new
       footer.
 
+      The user's calls (2026-10-04): an explicit Item: footer (itos commit --item <id>), allowed on
+      any commit, checked against the registry by the commit-msg hook, and accepted in place of
+      Task: for test, docs and chore, so a red-first test: commit of a slice's steps can be made
+      (today test needs a Task footer, which a slice has none of). work show counts it. No inference
+      from a commit's diff: if forgetting the flag proves a problem, the commit-msg hook warns of a
+      commit touching a scenario tagged @<id> without it.
+
   - id: p1-commit-wrap-hook
     title: The commit-msg hook wraps a long body line, as itos commit does
     phase: 1
