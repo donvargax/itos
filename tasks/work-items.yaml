@@ -1436,6 +1436,12 @@ items:
       unproven. The coordinator had done it by hand for one task that day and by reasoning alone
       for every scenario.
 
+      The user's call (2026-10-04): deferred to the agents' instructions until a design proves a
+      spec red: the brief asks an agent to write the steps and run the scenarios before writing the
+      code that makes them pass. Not enforced: whether an agent followed red, green, refactor cannot
+      be verified yet. A proof must tell a scenario that fails at a step from one with an undefined
+      step, and allow a guard scenario meant to pass before the work.
+
   - id: p1-commit-message-file
     title: Commit messages through a file, so a heredoc cannot be piped into git
     phase: 1
