@@ -3605,3 +3605,19 @@ items:
       p1-work-brief's filled brief with the agent's reading list, and is the input of a read-only
       post-landing review.
     refs: [features/show.feature]
+
+  - id: p3-post-landing-review
+    title: A read-only reviewer reviews each landed item while the next one is built
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-57]
+    kind: idea
+    why: >
+      The user's call (2026-10-03): the gates check behaviour, nobody checks design, simplicity or
+      readability, and the coordinator reads reports, not diffs. After an item lands, a read-only
+      agent reviews its commits (itos work show <id> --patch) against its spec while the next
+      implementer works; it reads git, never the working tree, so the two never touch the same
+      paths. Findings come to the coordinator, who files them with itos work add or drops them.
+      Tried first on slice 54; if it finds things worth fixing it becomes a standing step and later
+      a reviewer agent shipped in the plugin.
