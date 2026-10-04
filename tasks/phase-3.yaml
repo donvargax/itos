@@ -609,3 +609,19 @@
   done_when:
     - run: 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" node tools/itos/conformance/run.ts --bin tools/bin/itos'
       timeout: 900
+
+- id: T-081
+  type: ci
+  title: "Changes: names a corpus case by a unique prefix of its name"
+  why: >
+    Found by bug 12's agent: a corpus case is named in a Changes: footer by its file and its whole
+    name (T-071), and the header lint caps a footer line at 100 characters, so a fix that changes a
+    case whose name is long, init.yaml's starter case at 103 characters alone, cannot be committed
+    in a form previous-release accepts, short of a breaking change. previous-release now reads a
+    case entry (<file>.yaml: <name>) as naming the one case of that file whose name is the entry's
+    or starts with it; an entry that starts more than one case names none, and is warned of as an
+    entry naming nothing is. The self-test proves a fix naming a long case by a prefix passes, and a
+    prefix two cases share does not.
+  done_when:
+    - run: node tools/selftest/previous-release.ts
+      timeout: 900
