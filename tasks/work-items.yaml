@@ -1484,14 +1484,15 @@ items:
       (PLAN sections, ARCHITECTURE); the coordinator's view: close it once the brief template points
       at itos work show.
 
-  - id: p1-work-queue-order
-    title: "The registry holds the order of the queue, not HANDOFF's prose"
+  - id: slice-66
+    title: "The queue in the registry: itos work queue, one shared order, each person their part"
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-work-queue-order.
       The registry knows dependencies but not priority, so the real order lives in HANDOFF's Next
       list and itos work lists ideas unordered. An optional order or priority on items (or an ordered
       queue: list) would let itos work propose in the coordinator's order and HANDOFF point at it.
@@ -1578,7 +1579,7 @@ items:
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: [p1-work-queue-order, p1-follow-ups]
+    depends_on: [slice-66, p1-follow-ups]
     kind: idea
     why: >
       HANDOFF's "Where things stand" is rewritten by hand from run IDs and the log. itos status could
