@@ -44,9 +44,9 @@ phases:
   3: donvargax
 
 queue:
+  - bug-18
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
-  - bug-18
   - p1-registry-archive
   - p1-work-show-gaps
   - p1-release-notes-footers
