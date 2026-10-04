@@ -3674,14 +3674,15 @@ items:
       off. itos:implementer is not one: it only carries the existing implementer rules. The
       post-landing review trial (p3-post-landing-review) is the first evidence to gather.
 
-  - id: p1-add-to-empty-list
+  - id: bug-12
     title: work add and task add write into an empty registry or ledger file
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-add-to-empty-list.
       itos init writes the registry as phases: {} and items: [], and value.Doc's Append adds only to
       a block list with an item, so the first itos work add or task add in a freshly initialised
       repository fails (the registry cannot be edited in place); a ledger file holding [] fails the
@@ -3819,7 +3820,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-add-to-empty-list]
+    depends_on: [bug-12]
     kind: idea
     why: >
       Found specifying bug 12: no command lists a new phase (group) in the registry, so the first
