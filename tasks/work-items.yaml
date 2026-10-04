@@ -1504,6 +1504,9 @@ items:
       queue's order says what comes first; a named marker in the queue can come later if a count is
       wanted.
 
+      Specified as @ID-WORK-30 to 35 and @ID-PUSH-05 (2026-10-04).
+    refs: [features/work.feature, features/push.feature]
+
   - id: slice-53
     title: "A slice is done when its scenarios are live and green, checked"
     phase: 1
