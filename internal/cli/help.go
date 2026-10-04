@@ -55,6 +55,7 @@ Commands:
   task list [--group <g>]          the tasks and their work items' status; runs nothing
   task add <id> --group <g> --type <type> --title <title> --why <why> --check <command> […]
                                    add a task to the ledger and its item, and commit both
+  task next-id                     the ledger's next free task ID; reads only
   work [--as <handle>]             what the person can start, and what waits
   work list                        every item of the work registry, done ones too
   work show <id> [--patch]         an item, its scenarios and its commits; reads only
@@ -98,6 +99,7 @@ Commands:
   tests list <kind> [--at <tree>]  the kind's named tests
   tests smoke check|ids|run <kind> the smoke rule, the smoke IDs, the smoke run
   tests moves <kind>               the staged feature files by the moves rule
+  tests next-id <kind> <stem>      the kind's next free tag of the stem; reads only
   ci plan <from> <to> | --nightly | --whole
                                    print the CI plan; runs nothing
   ci run [<from> <to>] | --nightly run the CI plan
@@ -138,6 +140,7 @@ var helpTexts = map[string]string{
        itos task --pending
        itos task list [--group <g>]
        itos task add <id> --group <g> --type <type> --title <title> --why <why> --check <command> […]
+       itos task next-id
 
 --phase <g> and --<label> <g> are --group <g>, the label being the config's
 ledger.group.label (phase by default).
@@ -158,6 +161,17 @@ check. The status is the task's work item's in the work registry (the item
 whose id is the task's), or "no item".
 
 --json: {"schema":1,"tasks":[{"id","type","title","group","checks","status"}]}`,
+
+	"task next-id": `Usage: itos task next-id
+
+Prints the ledger's next free task ID: one past the highest number of the
+tasks' IDs and of the work registry's item ids that ledger.id matches (work
+promote names a task there before the ledger holds it), with the ledger's
+padding and as wide as ledger.id asks (T-003 after T-001 and T-002). Help for
+writing a task: it reads the working tree, writes nothing and judges nothing,
+and a number only a removed task held is not seen.
+
+--json: {"schema":1,"id"}`,
 
 	"task add": `Usage: itos task add <id> --group <g> --type <type> --title <title> --why <why>
          --check <command> [--timeout <seconds>] [--check <command> [--timeout <seconds>]]…
@@ -497,7 +511,8 @@ commits.since or a footer's since is not a commit of the repository.
 
 	"tests": `Usage: itos tests list <kind> [--at <tree>]
        itos tests smoke check|ids|run <kind>
-       itos tests moves <kind>`,
+       itos tests moves <kind>
+       itos tests next-id <kind> <stem>`,
 
 	"tests list": `Usage: itos tests list <kind> [--at <tree>]
 
@@ -519,6 +534,22 @@ runner's.
 
 --json (check): {"schema":1,"kind","ok","ids","problems":[{"rule","message","fix"}]}
 --json (ids):   {"schema":1,"kind","ids"}`,
+
+	"tests next-id": `Usage: itos tests next-id <kind> <stem>
+
+Prints the next free tag of the kind with the stem, <tag_prefix><stem>-<n>
+(@ID-A-04, @slice-10): n is one past the highest that any tag
+<tag_prefix><stem>-<n> of the kind's files holds at the working tree, live or
+@wip, and any work registry item id <stem>-<n> (an item such as slice-9 is
+named before its scenarios are written). A kind behind a command adapter
+counts its listing's IDs instead of tags. The number keeps the width the stem
+already has; a stem nothing uses starts at 1, padded to two digits where the
+kind's ID pattern is an ID- one and the tag is one of its IDs (@ID-NEW-01).
+Help for writing a spec: it reads, writes nothing and judges nothing, and a
+number only a removed scenario held is not seen. A <kind> the config does not
+have is a usage error (exit 2).
+
+--json: {"schema":1,"kind","stem","id"}`,
 
 	"tests moves": `Usage: itos tests moves <kind>
 

@@ -199,6 +199,8 @@ func testsCommand(args []string, o Out) (int, error) {
 			return 0, usage("tests moves needs <kind>")
 		}
 		return testsMoves(name, o)
+	case "next-id":
+		return testsNextID(rest, o)
 	case "smoke":
 	default:
 		return 0, usage("unknown command: tests %s", sub)

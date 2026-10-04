@@ -88,6 +88,10 @@
   scenarios:
     - id: "@ID-MOVES-01"
       why: the commit-msg hook rejects a test commit that changes a live scenario, the rule's point
+- file: next-id.feature
+  scenarios:
+    - id: "@ID-NEXTID-01"
+      why: the next tag past the highest of a stem, live and @wip scenarios both counted, the command's point
 - file: nightly.feature
   scenarios:
     - id: "@ID-NIGHTLY-01"

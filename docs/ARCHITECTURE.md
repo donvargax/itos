@@ -520,7 +520,8 @@ mechanisms above, written against those modules, read across.
   statuses, the proposal, the edits that take, promote, close, add and
   change an item, and the item as work show prints it;
   below), `internal/follow` (itos follow's threads; below), `internal/ask`
-  (itos ask's questions; below), `internal/guide` (the guides itos go and
+  (itos ask's questions; below), `internal/nextid` (the next free ID of a
+  series; below), `internal/guide` (the guides itos go and
   itos guide print; below), `internal/lock`
   (the lock file a writer of shared data holds; below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
@@ -1189,6 +1190,17 @@ run` is it over the smoke IDs, run through the config's shell with
   itos's streams, its exit the runner's or 1 (`status ?? 1`); CI's plan
   calls the same function for its one merged run. itos compiles none of
   the templates' patterns: the runner reads them in its own dialect.
+- **next-id** (slice 60, `internal/cli/nextid.go`) is help for a spec
+  writer, reading only the working tree. `tests next-id <kind> <stem>` is
+  `tests.NextTag`: every word of a tag line of the kind's feature files that
+  starts with the tag prefix (a command adapter's listed IDs instead), and the
+  work registry's item ids, since `slice-<n>` and `bug-<n>` items are named
+  before their scenarios; `task next-id` is `ledger.NextID`, the ledger's IDs
+  and the registry's that `ledger.id` matches (`work promote` names a task
+  before the ledger holds it), its prefix `ledger.id`'s literal one. Both end
+  in `nextid.Next`: one past the highest `<prefix><digits>`, as wide as the
+  widest the series writes, a fresh `ID-` stem of an `ID-` pattern two digits
+  wide, and the ledger's widened until `ledger.id` matches it.
 - **The moves rule and verify.** The moves rule is `tests.Moves`
   (`internal/tests/moves.go`, `moves.ts`): one comparison, `MoveProblems`
   over two `FeatureSet`s that `ReadFeatures` builds through `ParseFeature`

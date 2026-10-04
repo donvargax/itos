@@ -178,6 +178,8 @@ func task(args []string, o Out) (int, error) {
 		return listTasks(rest, o)
 	case "add":
 		return taskAdd(rest, o)
+	case "next-id":
+		return taskNextID(rest, o)
 	}
 	return runTasks(args, o)
 }
