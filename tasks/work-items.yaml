@@ -4805,6 +4805,11 @@ items:
       MADR makes the frontmatter optional, so a repository whose records carry none gets an empty
       index. The coordinator's call, by decision 1: a record is live unless its status says
       otherwise (superseded, deprecated or rejected), so a record with no status is listed.
+
+      Specified as @ID-ASK-18 in features/ask.feature. Settled: a record is live unless its
+      frontmatter's status says superseded, deprecated or rejected (any case, 'superseded by …'
+      included); a record with no frontmatter, or a frontmatter with no status, is listed, its title
+      from its first heading.
     refs: [internal/adr]
 
   - id: p1-status-last-green
