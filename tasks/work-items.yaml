@@ -43,6 +43,9 @@ phases:
   2: donvargax
   3: donvargax
 
+queue:
+  - slice-67
+
 items:
   # ---- phase 0 ----------------------------------------------------------------
   - id: T-001
