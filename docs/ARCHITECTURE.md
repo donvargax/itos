@@ -726,7 +726,11 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   one message, git's blank line between them, keeps the header, every line
   from the first the lint reads as a footer, comment and indented lines and
   lines within the limit, and breaks the rest greedily at spaces, a list
-  item's continuation indented by its marker's width; each `-m` value is
+  item's continuation indented by its marker's width. A break whose next
+  line would start with a footer token or a breaking-change note (the
+  parser's `footerToken` and `noteLine`), a configured footer key and its
+  colon, or the comment char moves back a word, and with none left the line
+  runs over the limit (bug 15); each `-m` value is
   rewritten in its argument, and an `-F` text (stdin's for `-F -`) goes to
   a temporary file named in its place, removed once git exits. `trailers`
   makes each line a `--trailer`, which git applies before the editor and
