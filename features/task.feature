@@ -90,3 +90,32 @@ Feature: The task runner runs each check once, and lists task status without run
     When itos runs the command line "task add T-003 --group 1 --type tidy --title 'Tidy' --why 'Because.' --check 'true'"
     Then itos exits with code 1
     And its output says "tidy"
+
+  # Bug 13, found by slice 55's post-landing review: writeCommitted, which
+  # writes a command's files and commits them alone, judged a file missing
+  # from the working tree as new, so a ledger file deleted but not committed
+  # was written afresh and committed over the deletion, and its rollback was
+  # never tested. task add now refuses a file with changes no commit holds,
+  # a deletion among them, before writing anything; and a commit a hook
+  # refuses puts every file back, the index too. The holes no scenario can
+  # reach (a second write failing after the first, a git that cannot start,
+  # git add's words swallowed) are the fix's unit tests.
+  @ID-TASK-09 @bug-13 @wip
+  Scenario: task add refuses a ledger file whose deletion no commit holds, and writes nothing
+    Given the work registry has the item "T-001" owned by nobody with the status "done"
+    And the ledger file "tasks/phase-1.yaml" is deleted and the deletion not committed
+    When itos runs the command line "task add T-003 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    Then itos exits with code 1
+    And its output says "tasks/phase-1.yaml"
+    And the file "tasks/phase-1.yaml" does not exist
+    And the registry has no item "T-003"
+
+  @ID-TASK-10 @bug-13 @wip
+  Scenario: task add whose commit a hook refuses leaves the ledger and the registry as they were, and nothing staged
+    Given the work registry has the item "T-001" owned by nobody with the status "done"
+    And a commit-msg hook that refuses every commit
+    When itos runs the command line "task add T-003 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    Then itos exits with code 1
+    And the registry has no item "T-003"
+    And the ledger has no task "T-003"
+    And git reports no change to the working tree or the index

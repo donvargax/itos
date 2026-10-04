@@ -254,3 +254,31 @@ Feature: The work registry
     Then itos exits with code 2
     And its output says "bogus"
     And its output says "take, promote, done"
+
+  # Bug 14, found by slice 54's post-landing review: work edit could not
+  # replace a flow list the formatter had wrapped over several lines (T-073's
+  # refs on this repository's registry), could not empty a block list, and
+  # committed a change for --refs '' on an item with no refs. A list given is
+  # now written as one flow list on its key's line, whatever the old one's
+  # shape, and an absent list reads as an empty one.
+  @ID-WORK-26 @bug-14 @wip
+  Scenario: work edit replaces a refs list that spans several lines
+    Given the work registry has the idea "p1-thing" owned by nobody, its refs a flow list over several lines
+    When itos runs the command line "work edit p1-thing --refs features/a.feature"
+    Then itos exits with code 0
+    And the registry's item "p1-thing" has the refs "features/a.feature"
+
+  @ID-WORK-27 @bug-14 @wip
+  Scenario: work edit empties a refs list written as a block list
+    Given the work registry has the idea "p1-thing" owned by nobody, its refs a block list of "a.md" and "b.md"
+    When itos runs the command line "work edit p1-thing --refs ''"
+    Then itos exits with code 0
+    And the registry's item "p1-thing" has no refs
+
+  @ID-WORK-28 @bug-14 @wip
+  Scenario: work edit with empty refs on an item that has none changes nothing and commits nothing
+    Given the work registry has the idea "p1-thing" owned by nobody
+    When itos runs the command line "work edit p1-thing --refs ''"
+    Then itos exits with code 0
+    And its output says "nothing to change"
+    And the last commit's header is not "docs: edit p1-thing"
