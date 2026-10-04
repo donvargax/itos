@@ -4629,3 +4629,19 @@ items:
       are pointed at records. Where it lives (itos help ask record, the coordinator's guide, or a
       guide of its own) and whether seeding needs a command for a decision with no question, or
       hand-written records in the format, are decided then.
+
+  - id: p1-adr-tools-default-dir
+    title: itos ask record honours adr-tools' default folder, doc/adr
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-69]
+    kind: idea
+    why: >
+      Found building slice-69. adr init with no folder keeps its records in doc/adr and writes no
+      .adr-dir, and adr-tools' _adr_dir uses doc/adr whenever that folder is there. itos ask record
+      looks for a .adr-dir and else writes docs/adr, so in a repository adr-tools set up with its
+      defaults it starts a second log of decisions beside the first, numbered from 1 again. Settled
+      for slice-69 as docs/adr or the .adr-dir's folder, so whether an existing doc/adr wins is the
+      user's call; a scenario beside @ID-ASK-11 would say it.
+    refs: [internal/adr, features/ask.feature]
