@@ -4798,7 +4798,7 @@ items:
     title: A decision record with no frontmatter counts as live in the index
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-71]
     kind: slice
     why: >
