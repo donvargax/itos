@@ -4533,7 +4533,7 @@ items:
     title: itos ask record writes an answered question as an ADR, and itos ask nudges toward it
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
