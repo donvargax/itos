@@ -19,8 +19,8 @@ and the inbox.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `382e7f9`, bug 12's close (its fix's CI run 37185890767, every job,
-`release` cutting v2.21.1); the coordinator's registry batch after it is pushed
+All work is @donvargax's. `main` is green at `fcd13cd`, slice 64's close (the slice's CI run 37187416942, every job,
+`release` cutting v2.22.0); the coordinator's registry batch after it is pushed
 with this file. The coordinator commits only between
 agents, from the main checkout; its docs worktree was dropped (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
@@ -41,7 +41,7 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.21.1 (the starter drops docs from the Task footer and scopes docs, bug 12's second half;
+Released: v2.22.0 (`itos go` and `itos guide work`, the generic guides in the binary, slice 64), v2.21.1 (the starter drops docs from the Task footer and scopes docs, bug 12's second half;
 its Upgrading says how an existing config matches it), v2.21.0 (the `Item:` footer, `itos commit --item`, taken in place of `Task:` for test, docs
 and chore here, slice 63), v2.20.0 (`itos ask`, the user's questions beside the registry, slice 62), v2.19.2 (one lock keeps every write of two writers at once to follow's threads and a stealth
 config's registry and ledger, bug 16), v2.19.1 (the wrap never starts a line with a footer token, a note or a comment, bug 15), v2.19.0 (`itos follow`, private threads with people, slice 61), v2.18.0 (`itos commit` wraps a long body line under the built-in lint, slice 58), v2.17.0 (`itos work show`, slice 57; plugin 2.7.0), v2.16.0 (`itos push` returns at once for a registry-only range, slice 56), v2.15.3 (work edit writes a list whole, whatever its old shape, bug 14), v2.15.2 (a ledger file deleted but not committed is refused, and the writers'
@@ -69,18 +69,16 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
    - each landed item gets a read-only review (`p3-post-landing-review`,
      input `itos work show <id> --patch`); slice 57's found
      `p1-work-show-gaps`;
-   - the user's calls of 2026-10-04, each to specify as a slice, in this
-     order: **`slice-64`**, `itos go` and `itos guide work` (was
-     `p3-coordinator-skill`; @ID-GUIDE-01 to 05; then the plugin's skills
-     wrapping them, and this repository's ORCHESTRATING.md keeping only what
-     is its own);
-     **`p1-work-queue-order`** (a top-level `queue:` list);
-     **`p1-handoff-status`**'s first slice (`itos status`, the state alone);
-     then **`p1-itos-upgrade`** (the user's call, 2026-10-04: `itos upgrade`
-     moves the pin and walks the Upgrading sections since the old version,
-     applying what is mechanical; no self-rewriting binary, the pin stays the
-     update);
-     `p1-wip-red-first` is the brief's;
+   - the user's order (2026-10-04): **`slice-65`** (`work promote --title`,
+     @ID-WORK-29); **`p1-work-queue-order`** (one shared `queue:` list, each
+     person's view filtered to what they can take, two takes of one item
+     caught by git with a clear message); **`p1-handoff-status`**'s first
+     slice (`itos status`, the state alone, which `itos go` then prints at its
+     end); then this file is deleted, in the docs commit that cuts
+     `docs/ORCHESTRATING.md` to what is this repository's own
+     (`p1-orchestrating-own-notes`; sessions start with `! itos go`); then
+     **`p1-itos-upgrade`**; `p3-plugin-guide-wrappers` (the plugin drops its
+     itos skill) any time;
    - **`p1-push-needs-hooks`** waits on the user (q-2);
      **`slice-60`** (`itos tests next-id`, `itos task next-id`, @ID-NEXTID-01
      to 05; the rest of `p1-tests-next-id-and-steps` after it); `slice-59`
