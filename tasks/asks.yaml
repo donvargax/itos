@@ -14,3 +14,5 @@ questions:
   - id: q-5
     item: "slice-59"
     question: "Once itos init --agent-rules lands, does this repository's hand-written AGENTS.md become the generated block (the coordinator recommends yes, a small docs task)?"
+  - id: q-6
+    question: "Set a unit coverage threshold? Coverage is collected with none since the template's demo app left; it blocks nothing."
