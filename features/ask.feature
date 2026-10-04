@@ -161,3 +161,51 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
     Then itos exits with code 0
     And git reports no change to the working tree or the index
+
+  # Decision records are MADR 4's (adr/madr), not adr-tools' Nygard format
+  # (the user's calls, 2026-10-04, q-9 and q-10, p1-adr-madr): the maintained
+  # template, and the closer fit to a question and its answer. A record is
+  # NNNN-slug.md in docs/decisions, MADR's own folder, or the folder
+  # work.decisions names; optional YAML frontmatter holds its status and
+  # date, which no section repeats; the bare-minimal sections hold the
+  # question (Context and Problem Statement), the options (Considered
+  # Options), the answer (Decision Outcome) and its consequences. A record
+  # superseded says so in its status, and the index lists the accepted ones
+  # only. This replaced the Nygard records of v2.28.0, which no one used, in
+  # v3.0.0.
+  @ID-ASK-14 @slice-71 @wip
+  Scenario: ask record writes an answered question as the next MADR record in docs/decisions
+    Given itos has run the command line "ask add 'Labels or Projects?'"
+    And itos has run the command line "ask answer q-1 'Labels, with trust by who acted.'"
+    When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
+    Then itos exits with code 0
+    And the file "docs/decisions/0001-triage-issues-with-labels.md" has the line "status: accepted"
+    And the file "docs/decisions/0001-triage-issues-with-labels.md" has the line "# Triage issues with labels"
+    And the file "docs/decisions/0001-triage-issues-with-labels.md" has the line "## Decision Outcome" after the line "## Context and Problem Statement"
+    And the file "docs/decisions/0001-triage-issues-with-labels.md" says "Labels or Projects?"
+    And the file "docs/decisions/0001-triage-issues-with-labels.md" says "Labels, with trust by who acted."
+    And the file "docs/decisions/README.md" says "Triage issues with labels"
+    And the last commit's header is "docs: record q-1 as decision 1"
+
+  @ID-ASK-15 @slice-71 @wip
+  Scenario: A superseded record says so in its status and leaves the index
+    Given itos has run the command line "ask add 'Labels or Projects?'"
+    And itos has run the command line "ask answer q-1 'Labels.'"
+    And itos has run the command line "ask record q-1 --title 'Triage issues with labels'"
+    And itos has run the command line "ask add 'Labels still?'"
+    And itos has run the command line "ask answer q-2 'Projects now.'"
+    When itos runs the command line "ask record q-2 --title 'Triage issues with Projects' --supersedes 1"
+    Then itos exits with code 0
+    And the file "docs/decisions/0001-triage-issues-with-labels.md" has the line "status: superseded by ADR-0002"
+    And the file "docs/decisions/README.md" says "Triage issues with Projects"
+    And the file "docs/decisions/README.md" does not say "Triage issues with labels"
+
+  @ID-ASK-16 @slice-71 @wip
+  Scenario: work.decisions names the folder, and the records already in it set the next number
+    Given work.decisions is "notes/decisions"
+    And the committed file "notes/decisions/0007-use-go.md" holding "# Use Go"
+    And itos has run the command line "ask add 'Labels or Projects?'"
+    And itos has run the command line "ask answer q-1 'Labels.'"
+    When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
+    Then itos exits with code 0
+    And the file "notes/decisions/0008-triage-issues-with-labels.md" has the line "# Triage issues with labels"
