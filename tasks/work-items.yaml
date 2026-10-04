@@ -4805,3 +4805,16 @@ items:
       index. The coordinator's call, by decision 1: a record is live unless its status says
       otherwise (superseded, deprecated or rejected), so a record with no status is listed.
     refs: [internal/adr]
+
+  - id: p1-status-last-green
+    title: itos status names main's last green run beside a run going or red
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-72]
+    kind: idea
+    why: >
+      Split from slice-72 (2026-10-04): while the head's run is going or red, status names the last
+      commit whose run passed, the one ci.range's provider already reads (LastGreenRun for github,
+      ci.range.command otherwise), so a coordinator knows what main last proved.
+    refs: [features/status.feature, internal/providers/range.go]
