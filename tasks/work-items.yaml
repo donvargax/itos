@@ -3450,7 +3450,7 @@ items:
     title: itos commit wraps the message body to the header lint's line length
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
