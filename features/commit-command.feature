@@ -159,3 +159,26 @@ Feature: itos commit, a commit whose footers itos writes
     Then itos exits with code 0
     And the message of HEAD has the line "Line one."
     And the message of HEAD has the line "Line two."
+
+  # Bug 15, found by slice 58's post-landing review: the wrap broke a body
+  # line at any space, so a continuation line could begin with a footer
+  # token or a breaking-change note (the lint, the footer rules and a
+  # release then read the rest of the body as footers, and an ID footer's
+  # words as IDs), or with git's comment char (git's strip cleanup then
+  # drops the line). A break that would start a line so moves back a word,
+  # or the line runs over the limit when no earlier break is left.
+  @ID-COMMITCMD-16 @bug-15 @wip
+  Scenario: A wrap never starts a line with a breaking-change note
+    Given the message file "msg.txt" with the header "chore: tidy the readme" and a body line whose wrap would start a line with "BREAKING CHANGE: the keys stay."
+    And the header lint is itos's built-in one
+    When itos commits with the arguments "--task T-001 -F msg.txt"
+    Then itos exits with code 0
+    And no line of HEAD's message starts with "BREAKING CHANGE:"
+
+  @ID-COMMITCMD-17 @bug-15 @wip
+  Scenario: A wrap never starts a line with git's comment char, so strip cleanup keeps every word
+    Given the message file "msg.txt" with the header "chore: tidy the readme" and a body line whose wrap would start a line with "#123 for the rest."
+    And the header lint is itos's built-in one
+    When itos commits with the arguments "--task T-001 --cleanup=strip -F msg.txt"
+    Then itos exits with code 0
+    And the message of HEAD says "#123 for the rest."
