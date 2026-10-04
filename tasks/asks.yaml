@@ -28,6 +28,7 @@ questions:
   - id: q-9
     item: "p1-adr-madr"
     question: "Decision records move to MADR 4 (p1-adr-madr). Which folder by default: docs/decisions, MADR's own convention (the coordinator's recommendation, by decision 1, since a default follows the format's convention), or docs/adr as decided for adr-tools' format? Either way .adr-dir stays the escape hatch."
+    answer: "docs/decisions (2026-10-04): MADR's own folder is the default, by decision 1; another folder is configured."
   - id: q-10
     item: "p1-adr-madr"
     question: "Writing MADR instead of Nygard changes what v2.28.0's itos ask record promises, so it is a breaking feat and cuts v3.0.0. Cut v3.0.0 now for it alone, the planned v3 items (v3-hooks-bin-default, v3-stealth-pre-push) moving to the next major (the coordinator's recommendation: majors cost nothing under fix-forward, and holding it means T-085 writes about 20 records in a format being dropped), or hold MADR until those items are ready and ship them together?"
