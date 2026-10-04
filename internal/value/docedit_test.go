@@ -66,6 +66,45 @@ func TestDocAppend(t *testing.T) {
 	if err := d.Append([]any{"items"}, NewMap("id", "x")); err == nil {
 		t.Error("a flow list is not appended to")
 	}
+	d, _ = OpenDoc("phases: { 1: null, items: [] }\n")
+	if err := d.Append([]any{"phases", "items"}, NewMap("id", "x")); err == nil {
+		t.Error("an empty list in a flow mapping is not appended to")
+	}
+}
+
+// An empty flow list, as itos init writes the registry's items (bug 12): the
+// brackets go, and the item is a block list below its key, two columns in;
+// a comment after them stays, and a list on a line of its own is replaced.
+func TestDocAppendEmpty(t *testing.T) {
+	item := NewMap("id", "p1-new", "title", "New", "depends_on", []any{})
+	for _, c := range []struct{ name, text, want string }{
+		{"after its key", "# the registry\nphases:\n  1: null\nitems: []\n",
+			"# the registry\nphases:\n  1: null\nitems:\n  - id: p1-new\n    title: New\n    depends_on: []\n"},
+		{"with a comment", "items:   [] # none yet\nnext: 1",
+			"items: # none yet\n  - id: p1-new\n    title: New\n    depends_on: []\nnext: 1"},
+		{"below its key", "top:\n  items:\n    []\n  next: 1\n",
+			"top:\n  items:\n    - id: p1-new\n      title: New\n      depends_on: []\n  next: 1\n"},
+	} {
+		path := []any{"items"}
+		if strings.HasPrefix(c.text, "top:") {
+			path = []any{"top", "items"}
+		}
+		got, d := edited(t, c.text, func(d *Doc) error { return d.Append(path, item) })
+		if got != c.want {
+			t.Errorf("%s:\n got %q\nwant %q", c.name, got, c.want)
+		}
+		if list, ok := Prop(d.Want, "items").([]any); path[0] == "items" && (!ok || len(list) != 1) {
+			t.Errorf("%s: the items read %s", c.name, JSON(d.Want))
+		}
+	}
+	// A ledger file of comments and [], as init --stealth writes it.
+	got, d := edited(t, "# the ledger\n[]\n", func(d *Doc) error { return d.Append(nil, NewMap("id", "T-1")) })
+	if want := "# the ledger\n- id: T-1\n"; got != want {
+		t.Errorf("a list at the top:\n got %q\nwant %q", got, want)
+	}
+	if JSON(d.Want) != `[{"id":"T-1"}]` {
+		t.Errorf("the list reads %s", JSON(d.Want))
+	}
 }
 
 func TestDocSetList(t *testing.T) {

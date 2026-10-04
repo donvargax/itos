@@ -42,6 +42,7 @@ func initializeInitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a claude on the PATH that lists the plugin "([^"]*)" as installed$`, func(id string) error { return w.fakeClaude(id, false) })
 	sc.Step(`^no claude on the PATH$`, w.noClaude)
 
+	sc.Step(`^the files init wrote are committed$`, w.initCommitted)
 	sc.Step(`^the folder is a git repository$`, w.folderIsRepository)
 	sc.Step(`^the config's commits\.since is HEAD's full SHA$`, w.sinceIsHead)
 	sc.Step(`^the config has no commits\.since$`, func() error { return w.configLacks("commits", "since") })
@@ -59,6 +60,12 @@ func (w *world) repositoryWithoutItos(message string) error {
 		return err
 	}
 	return w.commit(message)
+}
+
+// What init wrote, committed as the adoption its ledger's T-1 is for, past
+// the hooks it installed: the scenario is about what comes after.
+func (w *world) initCommitted() error {
+	return w.commit("chore: adopt itos\n\nTask: T-1")
 }
 
 // The scenario's folder with no git repository in it.

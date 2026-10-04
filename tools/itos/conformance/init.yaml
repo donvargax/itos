@@ -112,7 +112,8 @@ cases:
         #     owner: null # a handle, or null
         #     status: todo # todo, doing, done or blocked
         #     depends_on: []
-        phases: {}
+        phases:
+          1: null # the ledger's phase 1, owned by nobody: a handle, or null
         items: []
       .git/hooks/commit-msg:
         text: |

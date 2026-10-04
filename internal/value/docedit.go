@@ -76,23 +76,48 @@ func (d *Doc) mapAt(path []any) (*yaml.Node, *Map, string, bool, error) {
 // Append adds item to the end of the block list the path names (no path:
 // the document's top), as a block mapping of its keys in their order:
 // written after the list's last item, its dash in that item's column, with a
-// blank line before it when one parts the list's last two items. How each
-// value is written is BlockItem's.
+// blank line before it when one parts the list's last two items. An empty
+// flow list ([]) outside any flow collection, as itos init writes the
+// registry's items and the stealth ledger (bug 12), becomes a block list of
+// the item, as if it had always been there (appendFirst). How each value is
+// written is BlockItem's.
 func (d *Doc) Append(path []any, item *Map, folded ...string) error {
-	list, flow, want, err := d.find(path)
+	list, _, want, err := d.find(path)
 	if err != nil {
 		return err
 	}
 	var holder *Map
-	key := ""
+	var keyNode *yaml.Node
+	key, inFlow := "", false
 	if len(path) > 0 {
-		if _, holder, key, _, err = d.mapAt(path); err != nil {
+		var parent *yaml.Node
+		if parent, holder, key, inFlow, err = d.mapAt(path); err != nil {
 			return err
 		}
+		keyNode, _ = lookup(parent, key)
 	}
 	items, isList := want.([]any)
-	if list.Kind != yaml.SequenceNode || flow || !isList || len(list.Content) == 0 {
-		return fmt.Errorf("%s is not a block list with an item", where(path))
+	if list.Kind != yaml.SequenceNode || !isList {
+		return fmt.Errorf("%s is not a list", where(path))
+	}
+	grow := func(wrote *Map) {
+		grown := append(append([]any{}, items...), wrote)
+		if holder == nil {
+			d.Want = grown
+		} else {
+			holder.Set(key, grown)
+		}
+	}
+	if len(list.Content) == 0 && list.Style&yaml.FlowStyle != 0 && !inFlow {
+		wrote, err := d.appendFirst(list, keyNode, item, folded)
+		if err != nil {
+			return fmt.Errorf("%s: %w", where(path), err)
+		}
+		grow(wrote)
+		return nil
+	}
+	if list.Style&yaml.FlowStyle != 0 || inFlow || len(list.Content) == 0 {
+		return fmt.Errorf("%s is not a block list with an item, nor an empty one ([])", where(path))
 	}
 	last := list.Content[len(list.Content)-1]
 	start, err := d.e.offset(last.Line, 1)
@@ -124,13 +149,44 @@ func (d *Doc) Append(path []any, item *Map, folded ...string) error {
 		put = d.e.nl + put
 	}
 	d.e.edits = append(d.e.edits, edit{at: at, put: lead + put})
-	grown := append(append([]any{}, items...), wrote)
-	if holder == nil {
-		d.Want = grown
-	} else {
-		holder.Set(key, grown)
-	}
+	grow(wrote)
 	return nil
+}
+
+// appendFirst writes item as the one item of an empty flow list ([]) on one
+// line, in block context, and is the item as it reads back: the brackets
+// are taken out, with the spaces before them, and the item is written as a
+// block list below their line, its dash two columns in from its key's (none
+// at the document's top); a line that held nothing but the brackets is
+// replaced by the item. A comment after the brackets stays on its line.
+func (d *Doc) appendFirst(list, key *yaml.Node, item *Map, folded []string) (*Map, error) {
+	start, end, err := d.flowSpan(list)
+	if err != nil {
+		return nil, err
+	}
+	lineStart, err := d.e.offset(list.Line, 1)
+	if err != nil {
+		return nil, err
+	}
+	from := start
+	for from > lineStart && (d.e.text[from-1] == ' ' || d.e.text[from-1] == '\t') {
+		from--
+	}
+	dash := 0
+	if key != nil {
+		dash = key.Column - 1 + 2
+	}
+	put, wrote, err := blockItem(item, dash, d.e.nl, folded)
+	if err != nil {
+		return nil, err
+	}
+	after, lead := d.e.afterLine(end)
+	if from == lineStart && strings.TrimSpace(d.e.text[end:d.e.lineEnd(end)]) == "" {
+		d.e.edits = append(d.e.edits, edit{at: from, cut: after - from, put: put})
+		return wrote, nil
+	}
+	d.e.edits = append(d.e.edits, edit{at: from, cut: end - from}, edit{at: after, put: lead + put})
+	return wrote, nil
 }
 
 // BlockItem is item as the one item of a block list at the top of a

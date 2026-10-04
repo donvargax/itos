@@ -341,6 +341,11 @@ func (w *world) alreadyRan(args string) error {
 	if w.exit != 0 {
 		return fmt.Errorf("itos %s exited %d before the run the scenario is about\n%s", args, w.exit, w.report())
 	}
+	// init --stealth wrote itos's data in the git folder, where the steps
+	// that read the ledger and the registry look for it from now on.
+	if fields := strings.Fields(args); len(fields) > 0 && fields[0] == "init" && slices.Contains(fields, "--stealth") {
+		w.dataDir = stealthDir
+	}
 	return nil
 }
 

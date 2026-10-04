@@ -25,15 +25,20 @@ type Doc struct {
 
 // OpenDoc is the YAML text ready to edit: one document, its top a block
 // mapping, or a block list (a ledger file, which itos task add appends a
-// task to, slice 55).
+// task to, slice 55), or an empty list ([]), which Append makes a block
+// list (bug 12: init writes the stealth ledger so).
 func OpenDoc(text string) (*Doc, error) {
 	var doc yaml.Node
 	if err := yaml.Unmarshal([]byte(text), &doc); err != nil {
 		return nil, err
 	}
-	if len(doc.Content) == 0 || (doc.Content[0].Kind != yaml.MappingNode && doc.Content[0].Kind != yaml.SequenceNode) ||
-		doc.Content[0].Style&yaml.FlowStyle != 0 {
+	if len(doc.Content) == 0 {
 		return nil, fmt.Errorf("its top is neither a block mapping nor a block list")
+	}
+	top := doc.Content[0]
+	emptyList := top.Kind == yaml.SequenceNode && len(top.Content) == 0
+	if (top.Kind != yaml.MappingNode && top.Kind != yaml.SequenceNode) || (top.Style&yaml.FlowStyle != 0 && !emptyList) {
+		return nil, fmt.Errorf("its top is neither a block mapping, a block list nor an empty list")
 	}
 	want, err := Parse(text)
 	if err != nil {

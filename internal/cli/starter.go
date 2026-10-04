@@ -172,7 +172,9 @@ func (s starter) ledger() string {
 `
 }
 
-// starterRegistryText is the work registry, empty.
+// starterRegistryText is the work registry: no item, and the ledger's one
+// phase, owned by nobody, so the first itos work add or task add has a phase
+// to put its item in (bug 12).
 const starterRegistryText = `# The work registry: who owns each phase and each piece of work, and what
 # waits on what. itos work shows what can start; itos work check validates it.
 # An item:
@@ -183,7 +185,8 @@ const starterRegistryText = `# The work registry: who owns each phase and each p
 #     owner: null # a handle, or null
 #     status: todo # todo, doing, done or blocked
 #     depends_on: []
-phases: {}
+phases:
+  1: null # the ledger's phase 1, owned by nobody: a handle, or null
 items: []
 `
 

@@ -272,6 +272,10 @@ Feature: itos init, a repository made ready for itos
   # refused any item anyway. Init now lists its ledger's one group, phase 1,
   # owned by nobody, and both commands write the first item into an empty
   # list. Adding a further phase is p1-work-add-phase.
+  # INIT-23 and 24 stay @wip: the starter requires a Task footer of docs
+  # commits, and work add and task add commit docs with none, so the
+  # commit-msg hook init installed refuses them. The user decides the
+  # remedy (bug-12's why in tasks/work-items.yaml).
   @ID-INIT-23 @bug-12 @wip
   Scenario: In a repository init set up, work add writes the first item into the empty registry, in phase 1
     Given a repository that does not use itos, its one commit "docs: start"
@@ -295,7 +299,7 @@ Feature: itos init, a repository made ready for itos
     And the registry's item "T-2" is a task titled "Tidy the readme" with the status "todo"
 
   # The stealth ledger holds no task: it is [] until the first task add.
-  @ID-INIT-25 @bug-12 @wip
+  @ID-INIT-25 @bug-12
   Scenario: Under a stealth config init wrote, task add writes the first task into the empty ledger
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init --stealth"
