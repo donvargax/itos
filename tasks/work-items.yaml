@@ -3758,7 +3758,7 @@ items:
     title: work add and task add write into an empty registry or ledger file
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-081]
     kind: slice
     why: >
