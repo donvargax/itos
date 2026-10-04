@@ -55,6 +55,7 @@ queue:
   - p1-release-notes-footers
   - p1-features-hide-global-itos
   - p1-commit-wrap-review
+  - p1-work-as-empty
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
