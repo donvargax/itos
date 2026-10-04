@@ -4168,7 +4168,7 @@ items:
     title: itos follow and a stealth config keep every write of two writers at once, and follow doc keeps a thread private
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-61]
     kind: slice
     why: >
