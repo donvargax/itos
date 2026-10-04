@@ -3729,3 +3729,15 @@ items:
       its config loaded twice and its own output beside reportWork; the task id checked in three
       places; value.Width carrying the registry's convention into the generic YAML editor; a
       typographic quote in a comment; @ID-WORK-19 not checking the owner it names. One refactor.
+
+  - id: p1-version-mutation-gaps
+    title: internal/version's tests cover numbers with a zero digit and a fourth part
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by itos-cc mutate on internal/version (2026-10-03): leadingInt survives < to <= (no test
+      has a 0 inside a number, such as 1.10.0 against 1.9.0) and parts survives i < 3 to <= (which
+      would panic on a fourth dot part, no test has one, such as 1.2.3-rc.1). Two test cases.
