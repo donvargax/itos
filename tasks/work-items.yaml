@@ -3391,6 +3391,13 @@ items:
 
       The user's call (2026-10-04): deprioritised, to see how sessions work with itos go and no
       AGENTS.md block; the hooks still teach an agent that never ran the guide at its first refusal.
+
+      The user's calls (2026-10-04, later): deprioritised again. A person starts a fresh session
+      with ! itos go, so only that session reads the coordinator's guide, and a subagent learns its
+      role from its brief (run itos guide work first): an agent cannot be trusted to tell its own
+      role from text, and no flow may need the plugin. The block would then hold only the config's
+      rules, which the hooks already teach at the first refusal. Telling people to start with ! itos
+      go belongs in the README.
     refs: [features/init.feature, PLAN.md, integrations/claude-code/skills/itos/SKILL.md]
 
   - id: p3-init-orchestration
