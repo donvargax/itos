@@ -3712,8 +3712,8 @@ items:
   - id: slice-64
     title: ORCHESTRATING.md becomes the itos plugin's /itos:coordinate skill and itos:implementer agent
     phase: 3
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-57]
     kind: slice
     why: >
