@@ -285,6 +285,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeGuardSteps(sc, w)
 	initializeInitSteps(sc, w)
 	initializeWorkSteps(sc, w)
+	initializeShowSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })

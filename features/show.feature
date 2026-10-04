@@ -18,7 +18,7 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
   Background:
     Given a repository whose ledger has the task "T-001"
 
-  @ID-SHOW-01 @slice-57 @wip
+  @ID-SHOW-01 @slice-57
   Scenario: work show lists a slice's commits by the scenarios their footers name, oldest first
     Given the work registry has the item "slice-9" owned by nobody with the status "doing"
     And the committed feature file "features/a.feature" with the live scenario "@ID-A-01" tagged "@slice-9"
@@ -31,8 +31,10 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
     And its output does not say "chore: tidy the readme"
     And its output says "@ID-A-01"
 
-  @ID-SHOW-02 @slice-57 @wip
-  Scenario: work show lists a task's commits by its Task footer, with its take and close
+  # itos's own registry commits are read by their headers: docs: take, docs:
+  # close, docs: add and docs: edit <id>, and docs: promote <idea> to <id>.
+  @ID-SHOW-02 @slice-57
+  Scenario: work show lists a task's commits by its Task footer, and its take by its header
     Given the work registry has the item "T-001" owned by nobody with the status "todo"
     And the commit "docs: take T-001" touching only "tasks/work-items.yaml" on top of it
     And the commit "chore: tidy the readme" naming the task "T-001" on top of it
@@ -42,7 +44,7 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
     And its output says "docs: take T-001" before "chore: tidy the readme"
     And its output does not say "docs: describe the build"
 
-  @ID-SHOW-03 @slice-57 @wip
+  @ID-SHOW-03 @slice-57
   Scenario: work show --patch adds each commit's diff
     Given the work registry has the item "T-001" owned by nobody with the status "todo"
     And the commit "chore: tidy the readme" naming the task "T-001" on top of it
@@ -51,7 +53,7 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
     And its output says "diff --git"
     And its output says "README.md"
 
-  @ID-SHOW-04 @slice-57 @wip
+  @ID-SHOW-04 @slice-57
   Scenario: work show --json gives the item and its commits as data
     Given the work registry has the item "T-001" owned by nobody with the status "todo"
     And the commit "chore: tidy the readme" naming the task "T-001" on top of it
@@ -59,7 +61,7 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
     Then itos exits with code 0
     And its JSON's "commits" has one entry whose "header" is "chore: tidy the readme"
 
-  @ID-SHOW-05 @slice-57 @wip
+  @ID-SHOW-05 @slice-57
   Scenario: work show refuses an item the registry does not have
     Given the work registry has the item "T-001" owned by nobody with the status "todo"
     When itos runs "work show slice-7"
@@ -68,7 +70,7 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
 
   # Under a stealth config a commit's footers of IDs are in its note in
   # refs/notes/itos, never its message, which grep over the log would miss.
-  @ID-SHOW-06 @slice-57 @wip
+  @ID-SHOW-06 @slice-57
   Scenario: Under a stealth config work show finds a task's commits by their notes
     Given itos's config is kept in the git folder
     And the work registry beside the config has the item "T-001" owned by "someone" with the status "doing"

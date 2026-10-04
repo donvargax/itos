@@ -100,6 +100,10 @@
   scenarios:
     - id: "@ID-SHIM-01"
       why: git commit through the link is itos commit in an itos repository, refused before git runs, the shim's point
+- file: show.feature
+  scenarios:
+    - id: "@ID-SHOW-01"
+      why: an item's commits found by the scenarios their footers name, oldest first, the command's core
 - file: since.feature
   scenarios:
     - id: "@ID-SINCE-01"

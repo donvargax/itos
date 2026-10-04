@@ -54,6 +54,7 @@ Commands:
                                    add a task to the ledger and its item, and commit both
   work [--as <handle>]             what the person can start, and what waits
   work list                        every item of the work registry, done ones too
+  work show <id> [--patch]         an item, its scenarios and its commits; reads only
   work take <id> [--as <handle>]   set an item in progress for the person, and commit it
   work promote <idea> --as <id> --kind slice|task
                                    make an idea a slice or a task, and commit it
@@ -164,6 +165,7 @@ or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 	"work": `Usage: itos work [--as <handle>]
        itos work list
+       itos work show <id> [--patch]
        itos work take <id> [--as <handle>]
        itos work promote <idea> --as <id> --kind slice|task
        itos work done <id>
@@ -181,9 +183,29 @@ whatever owner it names (every_item: true in --json).
 
 --json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"}
 
-work list prints every item of the registry instead (itos help work list);
-work take, work promote, work done, work add and work edit write it, each
+work list prints every item of the registry instead (itos help work list),
+work show one item with its scenarios and commits (itos help work show); work
+take, work promote, work done, work add and work edit write it, each
 committing it (itos help work take).`,
+
+	"work show": `Usage: itos work show <id> [--patch]
+
+Prints the item (its title, kind, status, owner, phase, depends_on, the items
+depending on it, refs and why), its scenarios at HEAD (those tagged @<id>,
+@slice-<n> for the item slice-<n>, live or @wip) and its commits, oldest first,
+each with its short SHA and header. A commit is the item's when its footers of
+IDs name the item (Task:) or one of its scenarios (Scenarios:), a later fix
+naming one included, or when it is one of itos's registry commits naming it in
+its header (docs: take <id>, docs: promote <idea> to <id>, docs: close <id>,
+docs: add <id>, docs: edit <id>); under a stealth config the footers are read
+from each commit's note in refs/notes/itos. --patch adds each commit as git
+show prints it, message and diff: the whole of a review's input. It reads,
+never writes, and judges nothing, as work list. Exit 1 when there is no
+registry where itos looks, or no item with the id.
+
+--json: {"schema":1,"ok":true,"item":{…},"depended_on_by":[…],"scenarios":[{"id","file","live"}],
+"commits":[{"sha","short","header","message"?,"patch"?}]}, message and patch with --patch;
+or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 	"work take": `Usage: itos work take <id> [--as <handle>]
 

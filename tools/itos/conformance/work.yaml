@@ -1275,16 +1275,92 @@ cases:
     exit: 2
     stderr: |
       itos: work edit does not take --owner (itos --help)
+  - name: work show prints the item, what depends on it, its scenarios and its commits, oldest first
+    argv: [work, show, x]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: &shown "phases: { 1: null }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: doing, kind: slice, depends_on: [], refs: [features/x.feature], why: Because it is needed. }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea, depends_on: [x] }\n"
+          features/x.feature: "Feature: X\n\n  @ID-X-01 @x\n  Scenario: one\n\n  @ID-X-02 @x @wip\n  Scenario: two\n"
+      - commit: "docs: take x"
+        files: { taken.txt: "taken\n" }
+        label: take
+      - commit: "docs: describe y"
+        files: { y.txt: "y\n" }
+      - commit: "feat: add x\n\nScenarios: @ID-X-01\n"
+        files: { x.txt: "x\n" }
+        label: feat
+    files:
+      itos.yaml: &showConfig |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+        commits:
+          footers:
+            Scenarios: { source: { tests: scenario }, strip_prefix: "@" }
+        tests:
+          scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+      work-items.yaml: *shown
+    exit: 0
+    stdout: |
+      x  X
+        kind: slice, status: doing, owner: a, phase: 1
+        depended on by: y
+        refs: features/x.feature
+
+        Because it is needed.
+
+      Scenarios tagged @x:
+        @ID-X-01  live  x.feature
+        @ID-X-02  wip   x.feature
+
+      Commits, oldest first:
+        {{short.take}} docs: take x
+        {{short.feat}} feat: add x
+  - name: work show --json, the item, what depends on it, its scenarios and its commits as data
+    argv: [work, show, x, --json]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: *shown
+          features/x.feature: "Feature: X\n\n  @ID-X-01 @x\n  Scenario: one\n"
+      - commit: "feat: add x\n\nScenarios: @ID-X-01\n"
+        files: { x.txt: "x\n" }
+        label: feat
+    files:
+      itos.yaml: *showConfig
+      work-items.yaml: *shown
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item:
+        { id: x, title: X, phase: 1, owner: a, status: doing, kind: slice, depends_on: [], refs: [features/x.feature], why: Because it is needed. }
+      depended_on_by: [y]
+      scenarios: [{ id: "@ID-X-01", file: x.feature, live: true }]
+      commits: [{ sha: "{{sha.feat}}", short: "{{short.feat}}", header: "feat: add x" }]
+  - name: work show refuses an id no item has
+    argv: [work, show, nothing]
+    exit: 1
+    stderr: |
+      no item nothing in the registry
+        fix: itos work list names every item
+  - name: work show needs one id
+    argv: [work, show]
+    exit: 2
+    stderr: |
+      itos: work show needs one <id> (itos --help)
   - name: work refuses a subcommand it does not have, naming those it has
     argv: [work, bogus, --x]
     exit: 2
     stderr: |
-      itos: work has no subcommand bogus: it takes list, take, promote, done, add, edit or check, else --as <handle> (itos --help)
+      itos: work has no subcommand bogus: it takes list, show, take, promote, done, add, edit or check, else --as <handle> (itos --help)
   - name: work refuses a flag it does not take
     argv: [work, --as, a, --all]
     exit: 2
     stderr: |
-      itos: work does not take --all: it takes list, take, promote, done, add, edit or check, else --as <handle> (itos --help)
+      itos: work does not take --all: it takes list, show, take, promote, done, add, edit or check, else --as <handle> (itos --help)
   - name: work --as needs a handle
     argv: [work, --as]
     exit: 2

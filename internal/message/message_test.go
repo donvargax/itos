@@ -206,3 +206,23 @@ commits:
 		t.Errorf("missing for a type none requires %q", got)
 	}
 }
+
+// Links are the IDs of every footer of IDs, in the config's order of
+// footers, each footer's prefix taken off; a footer of free text gives none.
+func TestLinks(t *testing.T) {
+	cfg := load(t, `version: 1
+ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+commits:
+  footers:
+    Scenarios: { source: { tests: scenario }, strip_prefix: "@" }
+    Task: { source: ledger }
+    Upgrading: { source: text }
+tests:
+  scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+`)
+	got := Links(cfg, "fix: x\n\nTask: T-1\nScenarios: @ID-A-01, ID-B-02\nUpgrading: none\n")
+	want := []Link{{Key: "Scenarios", ID: "ID-A-01", Tests: "scenario"}, {Key: "Scenarios", ID: "ID-B-02", Tests: "scenario"}, {Key: "Task", ID: "T-1"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Links %+v", got)
+	}
+}

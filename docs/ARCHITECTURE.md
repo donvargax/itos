@@ -506,8 +506,8 @@ mechanisms above, written against those modules, read across.
   `internal/message` (below), `internal/plan` (CI's plan; below),
   `internal/providers` (the range, watch and identity providers and the people;
   below), `internal/work` (the registry and its problems, the items'
-  statuses, the proposal, and the edits that take, promote, close, add and
-  change an item;
+  statuses, the proposal, the edits that take, promote, close, add and
+  change an item, and the item as work show prints it;
   below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git` (the repository's state and ranges, read
@@ -1394,6 +1394,25 @@ add`ed so `--only` can name it, git add's words and the commit's on
   unstaged and removed; what cannot be put back is an error naming the file.
   `internal/cli/workwrite_test.go` makes each of those fail in a scratch
   repository.
+- **work show** (slice 57, `internal/cli/workshow.go`) reads, never writes:
+  the item and the ids of the items whose `depends_on` name it
+  (`work.Show`, `internal/work/show.go`), its scenarios at HEAD by
+  `tests.Tagged` as `work done` reads them, and the commits of HEAD's
+  history, non-merge, oldest first, that belong to it. Which do is itos's
+  knowledge, not git's: `message.History` (`internal/message/history.go`)
+  logs every commit's SHA, short SHA and message with its links, the
+  footers of IDs (`Links`: each footer of `commits.footers` whose source is
+  the ledger or a kind of named tests, its `strip_prefix` taken off), read
+  from the message, or under a stealth config from the itos note (`%N` with
+  `--no-notes --notes=refs/notes/itos`), as every reader of a made commit's
+  links reads them. A commit belongs when a ledger link is the item's id, a
+  tests link is one of its scenarios (with or without the kind's
+  `tag_prefix`), or its header is one of the registry writers' naming the
+  item (`work.RegistryHeader`, kept beside the writers, whose headers its
+  unit test reads). The registry is loaded and not judged, as `work list`
+  loads it. `--patch` hands the commits to `git show`, in order, its notes
+  the itos ones under a stealth config; `--json` gives each commit's message
+  and diff (`git show --format=`) instead.
 - **The hooks** are `hook commit-msg`, `hook pre-push`
   (`internal/cli/hook.go`) and `hooks install` (`internal/cli/install.go`),
   `hooks.ts` with `commit-data.ts`, `commit-scope.ts`, `commit-tasks.ts` and

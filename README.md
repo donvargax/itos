@@ -74,7 +74,9 @@ pre-push` verifies the commits a push adds before they leave, refusing the
   anything.
 - **Work routing**: `itos work` says what the person a session works for can
   start next, from `tasks/work-items.yaml` and `CONTRIBUTORS.md`; `itos work
-list` lists every item with its title, done ones too. `itos work take <id>`
+list` lists every item with its title, done ones too, and `itos work show
+<id>` one item with its scenarios and the commits that belong to it, by
+  their footers, `--patch` adding their diffs. `itos work take <id>`
   sets an item in progress for the person, `itos work promote <idea>` makes
   an idea a slice or a task, `itos work done <id>` marks an item done once
   it has landed (its scenarios live, its commits pushed, its CI run green),
