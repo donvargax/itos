@@ -1612,7 +1612,7 @@ items:
     title: "itos status, where the work stands, printed at the end of itos go"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-61, slice-62, slice-66]
     kind: slice
     why: >
