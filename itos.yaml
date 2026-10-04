@@ -251,7 +251,8 @@ ci:
       }
   # itos push waits for the run of the commit it pushed and exits with its result (slice 51,
   # T-078): an agent starts it in the background and monitors it, a person may pass --no-wait.
-  watch: { provider: github }
+  # itos status names the last nightly's run, nightly.yml's newest on main (slice 72).
+  watch: { provider: github, github: { nightly_workflow: nightly.yml } }
 
 work: # internal/work; the registry is at its default, tasks/work-items.yaml
   groups_key: phases
