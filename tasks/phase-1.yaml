@@ -551,3 +551,16 @@
   done_when:
     - run: grep -q 'itos work add' integrations/claude-code/skills/itos/SKILL.md
     - run: grep -q 'itos work edit' integrations/claude-code/skills/itos/SKILL.md
+
+- id: T-083
+  type: build
+  title: Declare the Item footer in this repository, standing in for Task for test, docs and chore
+  why: >
+    Slice 63 gave itos a footer of work registry items (source registry) that can stand in for
+    another footer (in_place_of). This repository declares it as Item, in place of Task for test,
+    docs and chore, so a slice, which has no task, can commit its steps red first in a test commit
+    before its feat (docs/ORCHESTRATING.md asks the brief for one), and a spec written in a docs
+    commit names its item, which work show then lists.
+  done_when:
+    - run: test "$(tools/bin/itos config get commits.footers.Item.source)" = registry
+    - run: test "$(tools/bin/itos config get commits.footers.Item.in_place_of)" = '{"Task":["test","docs","chore"]}'

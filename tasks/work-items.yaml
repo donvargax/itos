@@ -4256,3 +4256,17 @@ items:
       nothing would pass (a corpus case pins the file meanwhile). Add And the file
       ".git/itos/asks.yaml" exists (the step exists); a live scenario changes only in a feat or fix,
       so fold it into the next one touching stealth.feature.
+
+  - id: T-083
+    title: Declare the Item footer in this repository, standing in for Task for test, docs and chore
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Slice 63 gave itos a footer of work registry items (source registry) that can stand in for
+      another footer (in_place_of). This repository declares it as Item, in place of Task for test,
+      docs and chore, so a slice, which has no task, can commit its steps red first in a test commit
+      before its feat (docs/ORCHESTRATING.md asks the brief for one), and a spec written in a docs
+      commit names its item, which work show then lists.
