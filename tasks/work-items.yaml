@@ -3729,6 +3729,13 @@ items:
       plugin's skills become thin wrappers that run them, so one text, versioned with itos, serves
       both.
 
+      The user's calls (2026-10-04): the command is itos go (the coordinator's guide; itos guide
+      work the implementer's), and a repository's own lessons are docs/ORCHESTRATING.md, holding
+      only what is not generic, which itos go appends when it exists (a config key may point
+      elsewhere, under .git/itos/ for stealth). No failsafes: sessions start with ! itos go by
+      habit. ORCHESTRATING.md here splits into the generic guide, embedded in itos, and this
+      repository's own file.
+
   - id: p3-specialist-agents
     title: Specialist agents (spec writer, reviewer), only once they can be done properly
     phase: 3
