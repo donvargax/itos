@@ -445,9 +445,8 @@ commit, and it says how work is split into commits.
 | ----------------------- | ---------------------------------------------------------------------------- |
 | `PLAN.md`               | What itos is for, its model, schema and command line, and the order of work. |
 | `docs/ARCHITECTURE.md`  | How the code is put together as built, the gates included.                   |
-| `docs/HANDOFF.md`       | Only what the next session should do; the coordinator rewrites it.           |
 | `AGENTS.md`             | The working rules for a session that implements.                             |
-| `docs/ORCHESTRATING.md` | The working rules for the session that coordinates.                          |
+| `docs/ORCHESTRATING.md` | This repository's own notes for the coordinator, after `itos go`'s guide.    |
 | `docs/PHASES.md`        | Who owns which phase, and how work is routed.                                |
 | `tasks/work-items.yaml` | The one list of open work: owners, statuses, dependencies, ideas.            |
 | `tasks/`                | The ledger: every non-feature task and the checks that prove it.             |

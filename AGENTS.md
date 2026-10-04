@@ -55,9 +55,10 @@ Where a rule has a gate, this file names the gate and does not restate it.
 **Which session are you?** If you were handed a slice, a fix or a task to
 implement, you are an implementing session: everything below is yours, you
 do the work yourself, and you don't start subagents. If instead you are the
-session the user is talking to — the one that reads `docs/HANDOFF.md` and
-decides what happens next — you are the coordinator, and
-**`docs/ORCHESTRATING.md` is your file, not this one.** Your job is to hand
+session the user is talking to — the one that starts with `itos go` and
+decides what happens next — you are the coordinator, and **`itos go` (the
+generic guide, then `docs/ORCHESTRATING.md`, this repository's own notes, then
+`itos status`) is yours, not this file.** Your job is to hand
 work out and land it, not to build it. The rule that settles the split:
 **anything that needs a scenario is a slice, and a slice goes to a
 subagent.**
@@ -296,10 +297,7 @@ above its tag line in its feature file, a task's in its `why` in
 `tasks/*.yaml`, how something is put together in `docs/ARCHITECTURE.md`, a
 decision in `PLAN.md`. What is neither a reason, a mechanism nor a decision
 (the steps you took, the counts a gate checks) stays in the git history.
-**Leave `docs/HANDOFF.md` alone** — it holds only what the next session
-should do, it is the coordinator's to rewrite, and it is kept short on
-purpose.
 
 Do the work you were given yourself; don't start subagents or hand it on.
 This last line is for an implementing session; a coordinator follows
-`docs/ORCHESTRATING.md` instead.
+`itos go` instead.
