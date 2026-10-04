@@ -1,6 +1,6 @@
 // Command itos is the Go build of itos, the task tooling: the ledger and its
 // checks, the commit rules, the named tests, the CI plan, the work routing and
-// the hooks, behind one command line (PLAN.md §7). internal/cli holds the
+// the hooks, behind one command line (itos --help). internal/cli holds the
 // command line; internal/launch runs first, and hands the run to the version
 // of itos the repository pins when that is not this binary. Started under the
 // name git, through the link itos git-shim install makes, it is the git shim

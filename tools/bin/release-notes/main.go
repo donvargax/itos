@@ -55,7 +55,8 @@ const (
 	repository = "donvargax/itos"
 )
 
-// The platforms a release publishes, in the install script's order (PLAN.md §10).
+// The platforms a release publishes, in the install script's order
+// (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md).
 var platforms = []string{"linux-amd64", "linux-arm64", "darwin-amd64", "darwin-arm64", "windows-amd64"}
 
 var (

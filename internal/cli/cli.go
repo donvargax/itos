@@ -2,11 +2,11 @@
 // global flags wherever they stand, the command table with every command's
 // argument errors, the extensions a command it does not have runs from the
 // PATH (extension.go), and how a failure is reported and which exit code it
-// takes (PLAN.md §7): 0 success, 1 a policy failure, 2 a usage or config
+// takes (as itos --help lists them): 0 success, 1 a policy failure, 2 a usage or config
 // error, 3 a missing environment.
 //
-// The Go port landed one command group at a time (PLAN.md, phase 2), and
-// every command of the table is ported now. Each takes its arguments as the
+// The Go port landed one command group at a time
+// (docs/decisions/0017-the-go-port-s-proof-is-its-tasks-checks-landed-as-refactor-commits.md), and every command of the table is ported now. Each takes its arguments as the
 // TypeScript does, so a usage error reads the same in both. A command added
 // to the TypeScript alone cannot land: every push runs the whole corpus and
 // every feature against the Go build (tools/selftest/go-port.ts).
@@ -97,7 +97,7 @@ func usage(format string, a ...any) error {
 	return usageError{strings.TrimSpace(fmt.Sprintf(format, a...))}
 }
 
-// Exit codes (PLAN.md §7).
+// Exit codes, as itos --help lists them.
 const (
 	ExitPolicy  = 1
 	ExitUsage   = 2

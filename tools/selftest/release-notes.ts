@@ -1,5 +1,6 @@
 // A release's notes say what a consumer must change. It proves the parts a
-// command can decide of a release's notes (PLAN.md, §10): from T-069 the notes
+// command can decide of a release's notes
+// (docs/decisions/0026-a-release-s-notes-are-generated-from-its-commits-and-end-with-a-complete-upgrading-section.md): from T-069 the notes
 // tools/bin/release-notes generates and the release workflow publishes as the
 // release's description, before it docs/releases/v<version>.md, a committed
 // file:

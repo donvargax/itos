@@ -1,4 +1,4 @@
-// Package out is how a command reports under --json (PLAN.md §7): one object
+// Package out is how a command reports under --json (itos --help): one object
 // on stdout, "schema": 1 first and its keys in the order written, indented as
 // tools/itos/problem.ts's emit prints it, and the problems a check reports,
 // each a sentence with a stable rule id and, where one exists, a fix.

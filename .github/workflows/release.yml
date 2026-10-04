@@ -9,7 +9,8 @@ name: Release
 # through is a missing check, fixed forward with the check and a fix release.
 #
 # What it publishes is what the launcher, a pin, go install and a consumer's install script read
-# (PLAN.md, §10; .goreleaser.yaml): the five archives, itos.schema.json and checksums.txt. In
+# (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md;
+# .goreleaser.yaml): the five archives, itos.schema.json and checksums.txt. In
 # order, all in this one job, since a tag pushed with the workflow's token starts no other
 # workflow:
 #   1. the version; nothing more when there is none;

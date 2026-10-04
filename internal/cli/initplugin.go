@@ -1,8 +1,9 @@
 package cli
 
 // itos init's offer of the itos plugin for Claude Code (slice 49,
-// features/init.feature; PLAN.md §10, "Adoption"), made through Claude
-// Code's own command line, the claude on the PATH: claude plugin list --json
+// features/init.feature;
+// docs/decisions/0031-itos-init-offers-the-plugin-and-the-git-shim-opt-in-everywhere.md),
+// made through Claude Code's own command line, the claude on the PATH: claude plugin list --json
 // says whether itos@itos is installed (any scope, enabled where init runs),
 // and claude plugin marketplace add donvargax/itos then claude plugin install
 // itos@itos, both with --scope, install it.

@@ -19,8 +19,9 @@
 // hold, every key it expects there with the value it expects, at every depth,
 // an array element by element at the same length, and its stdout and stderr as
 // lines that must all still appear, in the same order. A key or a line added
-// passes, since an output that only adds breaks no consumer (PLAN.md §7: keys
-// only ever added); one removed, changed or reordered fails. Its exit code,
+// passes, since an output that only adds breaks no consumer
+// (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md);
+// one removed, changed or reordered fails. Its exit code,
 // stdout_has, stderr_has and files_after are judged as ever. This tree's own
 // corpus, run without the mode, still pins every output exactly. The runner
 // asks the binary its version for the corpus's {{version}}, so a binary
@@ -38,7 +39,8 @@
 // help (an argv holding --help or -h before any --, one starting with help, or
 // none at all, a bare itos printing the help) pins help text, which is
 // documentation, not compatibility: --json and exit codes are the stable
-// interface (PLAN.md), and this tree's own corpus still pins its help exactly.
+// interface (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md),
+// and this tree's own corpus still pins its help exactly.
 // Judged, every feat that adds a flag or a command, which changes itos --help,
 // could pass only as a breaking change. They are taken out of the worktree's
 // fixtures before its runner reads them (oldCorpusScript, with the checkout's
@@ -228,15 +230,18 @@ func run() int {
 		return fail("%s's corpus: cannot leave out its help cases and relax its usage errors: %v", tag, err)
 	}
 	fmt.Printf("%s: %s's conformance corpus: %s not judged, since help text is documentation, not compatibility:\n"+
-		"  --json and exit codes are the stable interface (PLAN.md), and this tree's own corpus pins its help exactly\n",
+		"  --json and exit codes are the stable interface, and this tree's own corpus pins its help exactly\n"+
+		"  (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md)\n",
 		self, tag, skipped)
 	fmt.Printf("%s: %s's conformance corpus: %s judged by their exit code alone:\n"+
 		"  a usage message is documentation, as help is, and a refused argument's exit code, 2, the stable interface\n"+
-		"  (PLAN.md §7); this tree's own corpus pins its usage messages exactly, and a config error's words stay judged\n",
+		"  (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md);\n"+
+		"  this tree's own corpus pins its usage messages exactly, and a config error's words stay judged\n",
 		self, tag, relaxed)
 	fmt.Printf("%s: %s's conformance corpus: judged additively, by this tree's runner (--additive):\n"+
 		"  an old case's JSON must still hold every key it expects with the value it expects, and its stdout and\n"+
-		"  stderr every line it expects, in order; a key or a line added passes (PLAN.md §7: keys only ever added),\n"+
+		"  stderr every line it expects, in order; a key or a line added passes\n"+
+		"  (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md),\n"+
 		"  one removed, changed or reordered does not, and this tree's own corpus pins every output exactly\n",
 		self, tag)
 

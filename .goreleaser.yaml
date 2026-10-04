@@ -5,7 +5,8 @@
 # and publish nothing.
 #
 # What it publishes is what the launcher (internal/launch), a pin, `go install` and a consumer's
-# install script read, unchanged from v2.3.0 (PLAN.md, §10): for linux and darwin on amd64 and
+# install script read, unchanged from v2.3.0
+# (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md): for linux and darwin on amd64 and
 # arm64 and windows on amd64, itos-<version>-<os>-<arch>.tar.gz (.zip for windows) holding the
 # binary (itos, or itos.exe), LICENSE and README.md at its top level; itos.schema.json, the
 # config's JSON Schema; and checksums.txt, every one's SHA-256 in sha256sum's format.

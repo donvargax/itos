@@ -1,5 +1,5 @@
 // Package glob is the path globs (config.ts's globToRegExp and matchesAny),
-// ported as written (PLAN.md §12): `*` does not cross `/`, `**` does, `**/`
+// ported as written (PLAN.md's risks): `*` does not cross `/`, `**` does, `**/`
 // may match nothing, `{a,b}` is either, a glob matches the whole path, and a
 // glob with no `/` matches at the root only.
 //

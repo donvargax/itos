@@ -1,7 +1,8 @@
 // The Go release, built as the release workflow builds it, works: the
 // archives, the config's JSON Schema and checksums.txt GoReleaser writes
 // (.goreleaser.yaml) are what the release publishes and the launcher, a pin
-// and a consumer's pinned install script download (PLAN.md §10), so they are
+// and a consumer's pinned install script download
+// (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md), so they are
 // proven before anyone relies on them.
 //
 //   node tools/selftest/go-release.ts              build the release from the
@@ -47,7 +48,8 @@ import { join, resolve } from "node:path";
 import { ROOT } from "../bin/build-go.ts";
 import { outsideEnv } from "./scratch.ts";
 
-// What a release publishes for each platform (PLAN.md §10): the expectation,
+// What a release publishes for each platform
+// (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md): the expectation,
 // written here rather than read from build-go.ts, so a platform dropped there
 // fails here.
 const PLATFORMS = ["linux-amd64", "linux-arm64", "darwin-amd64", "darwin-arm64", "windows-amd64"];

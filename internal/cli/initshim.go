@@ -1,7 +1,8 @@
 package cli
 
-// itos init's offer of the git shim (slice 50, features/init.feature; PLAN.md
-// §7 and §10, "Adoption"), made as the plugin's is (initplugin.go) and
+// itos init's offer of the git shim (slice 50, features/init.feature;
+// docs/decisions/0031-itos-init-offers-the-plugin-and-the-git-shim-opt-in-everywhere.md),
+// made as the plugin's is (initplugin.go) and
 // installed as git-shim install installs it (gitshim.go): itos linked as git,
 // by default in the folder holding the itos running.
 //

@@ -1,7 +1,8 @@
 // Package launch is the launcher every run of itos passes through first: it
 // picks the version of itos to run and, when that is not the binary that was
 // called, fetches that version's release into a cache, checks it and runs it
-// with the same arguments, handing back its exit code (PLAN.md §10,
+// with the same arguments, handing back its exit code
+// (docs/decisions/0024-a-global-itos-is-a-launcher-that-runs-the-version-a-repository-pins.md,
 // features/pin.feature). The binary that was called is never rewritten.
 //
 // The version to run is ITOS_VERSION when it is set, else the config's
@@ -297,7 +298,8 @@ func binaryName() string {
 	return "itos"
 }
 
-// archiveName is the release's archive for this platform (PLAN.md §10).
+// archiveName is the release's archive for this platform
+// (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md).
 func archiveName(v string) string {
 	ext := "tar.gz"
 	if runtime.GOOS == "windows" {

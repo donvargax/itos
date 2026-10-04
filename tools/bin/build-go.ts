@@ -17,7 +17,8 @@
 //
 // is GoReleaser's (.goreleaser.yaml, run by tools/bin/pinned), as a snapshot
 // that publishes nothing, stamped with that same version: it copies into <out
-// dir> what a release publishes, one archive per platform (PLAN.md §10), the
+// dir> what a release publishes, one archive per platform
+// (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md), the
 // config's JSON Schema and checksums.txt, then prints their paths. An archive
 // is itos-<version>-<os>-<arch>.tar.gz, or .zip for windows, holding at its top
 // level the binary (itos, or itos.exe), LICENSE and README.md. The schema is

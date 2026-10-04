@@ -314,7 +314,7 @@ func oneStepProblems(c *Config, s Step, nightly bool) []out.Problem {
 }
 
 // regexpProblem is a pattern that does not compile as RE2, the config's
-// dialect (PLAN.md, "Pattern dialect"). The TypeScript, which compiles with
+// dialect (docs/decisions/0020-the-config-s-regular-expressions-are-re2.md). The TypeScript, which compiles with
 // JavaScript's RegExp, refuses the same by parsing as RE2 does (lacksInRE2).
 func regexpProblem(pattern, where string) []out.Problem {
 	if _, err := regexp.Compile(pattern); err == nil {

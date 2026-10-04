@@ -260,8 +260,8 @@ cases:
           message: "itos.yaml: ledger.files has no {group}: tasks/all.yaml"
           fix: write {group} in ledger.files where a file's group stands, as in tasks/phase-{group}.yaml
           area: config
-  # The config's patterns are RE2 in both implementations (PLAN.md, "Pattern
-  # dialect"): JavaScript compiles each of these, and the TypeScript refuses
+  # The config's patterns are RE2 in both implementations
+  # (docs/decisions/0020-the-config-s-regular-expressions-are-re2.md): JavaScript compiles each of these, and the TypeScript refuses
   # them as RE2 does, a lookaround outside a class and a backreference in or out
   # of one; tests.<kind>.id is checked as the other four keys are.
   - name: patterns RE2 does not have, a lookaround and a backreference, and a kind's ID pattern

@@ -38,8 +38,8 @@
 // in the output in the same order, lines added before, between or after them
 // passing, and json is what the output's JSON must hold: every key it names
 // there with the value it gives, at every depth, an array element by element
-// at the same length, a key added anywhere passing (PLAN.md §7: keys only ever
-// added). The exit code, stdout_has, stderr_has and files_after are judged as
+// at the same length, a key added anywhere passing
+// (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md). The exit code, stdout_has, stderr_has and files_after are judged as
 // ever. Without it, as this corpus runs, every output is pinned exactly.
 //
 // In every string, `{{dir}}` is the case's folder, `{{PATH}}` the runner's

@@ -1,4 +1,5 @@
-// The Go build held to the whole suite (PLAN.md, "The port's proof"): builds
+// The Go build held to the whole suite
+// (docs/decisions/0017-the-go-port-s-proof-is-its-tasks-checks-landed-as-refactor-commits.md): builds
 // the Go binary with tools/bin/build-go.ts into a scratch folder, as the
 // release does, and runs the whole conformance corpus and every feature
 // against it.
