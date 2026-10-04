@@ -4849,8 +4849,8 @@ items:
   - id: T-089
     title: The module path is github.com/donvargax/itos/v3, and a major release is refused while it is not
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
