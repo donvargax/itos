@@ -3957,3 +3957,17 @@ items:
       whys that git already holds, which makes it slow to read and too big to hand an agent whole.
       work done could move a closed item to an archive file beside it (still read for ids, so none
       is reused, and by itos work show), or drop it with its commits as the record.
+
+  - id: slice-60
+    title: itos tests next-id and itos task next-id, the next free ID for a spec writer
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified as @ID-NEXTID-01 to 05 in features/next-id.feature: the first part of
+      p1-tests-next-id-and-steps (the user's calls, 2026-10-03), the next free tag of a kind by
+      stem, counting the registry's ids for slice-<n> and bug-<n>, and the ledger's next task ID.
+      The steps listing and the undefined-step dry run stay in p1-tests-next-id-and-steps.
+    refs: [features/next-id.feature]
