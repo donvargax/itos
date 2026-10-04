@@ -4540,3 +4540,21 @@ items:
       adr-tools itself is not used: bash only (itos runs on Windows), unmaintained since 2020, and
       it checks nothing.
     refs: [internal/ask, features]
+
+  - id: p1-plan-to-adrs
+    title: PLAN.md's decisions become ADRs in docs/adr/, and PLAN.md keeps what itos is
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [p1-ask-record-decisions]
+    kind: idea
+    why: >
+      The user's calls (2026-10-04). Seed ADRs from PLAN.md's curated decisions only, its decisions
+      table (section 3) and distribution (section 10), in p1-ask-record-decisions's format; the
+      registry's calls stay in history (no sprawl). PLAN.md keeps the goals, non-goals, name and
+      model, and links the index of live decisions. Cut what duplicates or is history: section 7
+      (the command table, which restates --help and drifts), 8 (docs/ARCHITECTURE.md), 9 (the
+      phases), 11 (AGENTS.md), and docs/releases/, which stops at v2.3.0 since CI writes the notes.
+      The Go comments citing PLAN.md sections point at the ADRs, in a refactor commit. Depends on
+      the format being settled, not on the command.
+    refs: [PLAN.md, docs/adr]
