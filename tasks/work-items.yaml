@@ -3720,6 +3720,9 @@ items:
       still say registry for a ledger file. A Go test with a commit-msg hook that exits 1, asserting
       both files as they were, the new file gone and git status clean, then one shared restore.
 
+      Specified as @ID-TASK-09 and 10 in features/task.feature.
+    refs: [features/task.feature, internal/cli/workwrite.go]
+
   - id: bug-14
     title: itos work edit handles every list the registry holds
     phase: 1
