@@ -3407,14 +3407,15 @@ items:
       (p1-wip-red-first). Next after itos work done.
     refs: [tasks/work-items.yaml, tasks/README.md, internal/work/]
 
-  - id: p1-commit-wrap
+  - id: slice-58
     title: itos commit wraps the message body to the header lint's line length
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-commit-wrap.
       The coordinator's commit was refused once that day for a body line over 100 characters, and
       every message after it was checked by hand with awk. itos commit could rewrap each paragraph
       of the body to body-max-line-length before git sees it, leaving footers, lists and indented
