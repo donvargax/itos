@@ -19,8 +19,8 @@ and the inbox.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `7d5c20b`, slice 57's close (the slice's CI run 37175678470, every job,
-`release` cutting v2.17.0); the coordinator's registry batch after it is pushed
+All work is @donvargax's. `main` is green at `0c06b54`, slice 58's close (the slice's CI run 37176768905, every job,
+`release` cutting v2.18.0); the coordinator's registry batch after it is pushed
 with this file. The coordinator commits only between
 agents, from the main checkout; its docs worktree was dropped (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
@@ -41,7 +41,7 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.17.0 (`itos work show`, slice 57; plugin 2.7.0), v2.16.0 (`itos push` returns at once for a registry-only range, slice 56), v2.15.3 (work edit writes a list whole, whatever its old shape, bug 14), v2.15.2 (a ledger file deleted but not committed is refused, and the writers'
+Released: v2.18.0 (`itos commit` wraps a long body line under the built-in lint, slice 58), v2.17.0 (`itos work show`, slice 57; plugin 2.7.0), v2.16.0 (`itos push` returns at once for a registry-only range, slice 56), v2.15.3 (work edit writes a list whole, whatever its old shape, bug 14), v2.15.2 (a ledger file deleted but not committed is refused, and the writers'
 rollback is one tested restore, bug 13), v2.15.1 (the first registry item and ledger task written into init's empty lists, bug 12's
 @ID-INIT-25; T-081 let its Changes: footer name the init case by a prefix), v2.15.0 (`itos task add`, slice 55), v2.14.0 (`itos work add` and `edit`, slice 54; `itos work` refusing
 an unknown subcommand, bug 11), v2.13.0 (`itos work done`, slice 53, which closed itself), v2.12.0 (`itos work take` and `itos work promote`, each committing
@@ -66,14 +66,16 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
    - **`bug-12`** stays open: its fix landed (v2.15.1) with @ID-INIT-25;
      @ID-INIT-23 and 24 wait on the user's call below, then land as a `fix`
      naming them;
-   - **`slice-58`** (`itos commit` wraps a long body line, @ID-COMMITCMD-13
-     to 15); each landed item now gets a read-only review
-     (`p3-post-landing-review`, input `itos work show <id> --patch`);
-   - then the user's calls of 2026-10-04, each to specify as a slice:
-     **`p1-work-queue-order`** (a top-level `queue:` list),
-     **`p1-follow-ups`** (`itos follow`, private, under the git common dir)
-     and **`p1-handoff-status`**'s first slice (`itos status`, the state
-     alone); `p1-wip-red-first` is deferred to the brief;
+   - each landed item gets a read-only review (`p3-post-landing-review`,
+     input `itos work show <id> --patch`); slice 57's found
+     `p1-work-show-gaps`;
+   - the user's calls of 2026-10-04, each to specify as a slice, in this
+     order: **`p1-follow-ups`**' `itos follow` (private, under the git
+     common dir), then its `itos ask` (the user's questions, public); the
+     **`Item:` footer** (`p1-work-show-spec-commits`, which also lets a
+     red-first `test:` commit of a slice be made); **`p1-work-queue-order`**
+     (a top-level `queue:` list); **`p1-handoff-status`**'s first slice
+     (`itos status`, the state alone); `p1-wip-red-first` is the brief's;
    - **`p1-push-needs-hooks`** waits on the user (below), so
      **`slice-59`** (`itos init --agent-rules`, @ID-INIT-26 to 30, the
      non-stealth half of `p3-init-agent-rules`; the stealth half is

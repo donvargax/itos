@@ -148,5 +148,10 @@ above its tag line, in any commit, and never as a change to the scenario.
 - **Assert what a user reads**: the exit code, a sentence of the output, the
   rule a rejection names. Never more of the output than the behaviour is
   about, so that a reworded sentence elsewhere does not fail it.
+- **Never start a description line with `@`.** Gherkin reads a line of the
+  feature's description that begins with `@` as tags, and godog then refuses
+  the file, failing every run of the features. A docs-only push runs no
+  feature, so such a spec reaches `main` green and breaks the next run that
+  reads it (slice 60's spec did); move a word so the line starts otherwise.
 - **Say why beside the scenario** when a setup would make a reader ask: a
   comment above the tag line, which the moving rule ignores.
