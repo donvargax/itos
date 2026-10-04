@@ -4643,14 +4643,15 @@ items:
       frontmatter as YAML and the title from the first heading.
     refs: [internal/ask]
 
-  - id: p1-adr-adoption-guide
-    title: Guidance for a repository moving its existing docs to decision records
+  - id: T-086
+    title: The coordinator's guide says how decisions are recorded, and how a repository moves its docs' decisions into records
     phase: 1
     owner: donvargax
     status: todo
     depends_on: [slice-69, T-085]
-    kind: idea
+    kind: task
     why: >
+      Was p1-adr-adoption-guide.
       The user's call (2026-10-04): once slice 69 is released, a repository adopting itos needs to
       know how to move the decisions its docs already hold into records. Written from what
       p1-plan-to-adrs learns in this repository, the first such move: what becomes a record (curated
