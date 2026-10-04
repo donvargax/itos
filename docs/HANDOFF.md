@@ -19,8 +19,8 @@ and the inbox.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `5c9e514`, slice 62's close (the slice's CI run 37182902311, every job,
-`release` cutting v2.20.0); the coordinator's registry batch after it is pushed
+All work is @donvargax's. `main` is green at `bd23b61`, slice 63's close (the slice's CI run 37184040059, every job,
+`release` cutting v2.21.0); the coordinator's registry batch after it is pushed
 with this file. The coordinator commits only between
 agents, from the main checkout; its docs worktree was dropped (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
@@ -41,7 +41,8 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.20.0 (`itos ask`, the user's questions beside the registry, slice 62), v2.19.2 (one lock keeps every write of two writers at once to follow's threads and a stealth
+Released: v2.21.0 (the `Item:` footer, `itos commit --item`, taken in place of `Task:` for test, docs
+and chore here, slice 63), v2.20.0 (`itos ask`, the user's questions beside the registry, slice 62), v2.19.2 (one lock keeps every write of two writers at once to follow's threads and a stealth
 config's registry and ledger, bug 16), v2.19.1 (the wrap never starts a line with a footer token, a note or a comment, bug 15), v2.19.0 (`itos follow`, private threads with people, slice 61), v2.18.0 (`itos commit` wraps a long body line under the built-in lint, slice 58), v2.17.0 (`itos work show`, slice 57; plugin 2.7.0), v2.16.0 (`itos push` returns at once for a registry-only range, slice 56), v2.15.3 (work edit writes a list whole, whatever its old shape, bug 14), v2.15.2 (a ledger file deleted but not committed is refused, and the writers'
 rollback is one tested restore, bug 13), v2.15.1 (the first registry item and ledger task written into init's empty lists, bug 12's
 @ID-INIT-25; T-081 let its Changes: footer name the init case by a prefix), v2.15.0 (`itos task add`, slice 55), v2.14.0 (`itos work add` and `edit`, slice 54; `itos work` refusing
@@ -64,26 +65,24 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
 `take`, `done`; nothing in `tasks/work-items.yaml` is edited by hand.
 
 1. In order:
-   - **`bug-12`** stays open: its fix landed (v2.15.1) with @ID-INIT-25;
-     @ID-INIT-23 and 24 wait on the user's answer to q-1, then land as a `fix`
-     naming them;
+   - **`bug-12`**'s second half, next: the user answered q-1 (the starter
+     drops `docs` from `required_for` and scopes `docs`); @ID-INIT-23, 24 and
+     31;
    - each landed item gets a read-only review (`p3-post-landing-review`,
      input `itos work show <id> --patch`); slice 57's found
      `p1-work-show-gaps`;
    - the user's calls of 2026-10-04, each to specify as a slice, in this
-     order: **`slice-63`**, the `Item:` footer (was
-     `p1-work-show-spec-commits`; it also lets a red-first `test:` commit of
-     a slice be made, once this repository's `itos.yaml` declares it); **`itos go`** (`p3-coordinator-skill`
+     order: **`itos go`** (`p3-coordinator-skill`
      as the user settled it: the binary serves the generic guides, a
      repository's own lessons stay in its `docs/ORCHESTRATING.md`);
      **`p1-work-queue-order`** (a top-level `queue:` list);
      **`p1-handoff-status`**'s first slice (`itos status`, the state alone);
      `p1-wip-red-first` is the brief's;
    - **`p1-push-needs-hooks`** waits on the user (q-2);
-     **`slice-60`** below, then `slice-59` (`itos init --agent-rules`,
-     deprioritised by the user to see how sessions do with `itos go` alone),
      **`slice-60`** (`itos tests next-id`, `itos task next-id`, @ID-NEXTID-01
-     to 05; the rest of `p1-tests-next-id-and-steps` after it),
+     to 05; the rest of `p1-tests-next-id-and-steps` after it); `slice-59`
+     (`itos init --agent-rules`) after it, deprioritised by the user to see
+     how sessions do with `itos go` alone;
      `p1-registry-archive` (done items leave the 177 KB registry);
    - `p1-work-as-empty`, `p1-push-superseded-run`, `p3-guard-cd`, and the
      itos-cc findings (`p1-version-mutation-gaps`, `p1-schema-contract-tests`,
