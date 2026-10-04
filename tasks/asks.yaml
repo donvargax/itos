@@ -1,0 +1,5 @@
+# itos ask's questions to the person the work is for, written by itos ask (itos help ask).
+questions:
+  - id: q-1
+    item: "bug-12"
+    question: "The starter config itos init writes requires a Task footer of docs commits, but work add, edit, take, done and task add commit docs with none, so every registry command fails under init's own hooks (bug 12's @ID-INIT-23 and 24 wait on this). Drop docs from the starter's required_for, as this repository does (the coordinator's recommendation), exempt a docs commit touching only the registry and ledger in the hook, or something else? The Item: footer, once built, could also satisfy it."
