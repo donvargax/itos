@@ -4663,3 +4663,23 @@ items:
       some it does. Either release-version imports internal/release (which has no dependencies
       outside the standard library either), or a unit test runs both over the same messages.
     refs: [internal/release/releasable.go, tools/bin/release-version/main.go]
+
+  - id: bug-17
+    title: ask record's index survives a formatter, and itos's own commits leave the index as committed
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-69]
+    kind: slice
+    why: >
+      Found 2026-10-04 recording decision 1. Specified as @ID-ASK-12 and 13 in features/ask.feature.
+      The index block in docs/adr/README.md was written with its list against the markers, so a
+      Markdown formatter rewrote it at every record, against the user's call of 2026-10-03 that what
+      itos writes is formatter-stable. And itos commits its own files with git commit --only
+      (internal/cli/workwrite.go): a pre-commit hook that formats them put its version into the
+      commit and the working tree while the real index kept itos's copy, so the next itos push
+      refused an uncommitted change. Settled: a blank line after the begin marker and before the end
+      marker; after the commit, the committed paths' index entries are set to HEAD's (itos refused
+      uncommitted changes to them before writing, so nothing of the person's is lost). The second
+      fix is in the commit every registry, ask and task add command shares.
+    refs: [features/ask.feature, internal/cli/workwrite.go, internal/adr]
