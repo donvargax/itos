@@ -319,28 +319,17 @@ implementation is in flight, so this is the normal case, not an
 interruption. A subagent without a worktree of its own works in the main
 checkout, with its index, so:
 
-- **Commit docs from a worktree of your own**, never from the main checkout
-  while an agent runs (the user's call, 2026-10-03). Make it once:
-
-  ```sh
-  git worktree add -b coord-docs .claude/worktrees/coord-docs origin/main
-  cd .claude/worktrees/coord-docs
-  git branch --set-upstream-to=origin/main coord-docs
-  ln -s <main checkout>/node_modules node_modules
-  vp config --hooks --no-agent
-  ```
-
-  The last line matters: `core.hooksPath` names `.vite-hooks/_`, a folder
-  `vp config` generates and git ignores, so a new worktree has none, and
-  every commit and push there skips the hooks without a word (the first
-  docs commit made this way went to CI unformatted). `tools/bin/itos push`
-  there rebases and pushes as anywhere. It is safe because the paths
-  are disjoint by construction: a coordinator's commits are `docs` commits
-  (`docs/**`, `**/*.md`, `tasks/**`, feature files), an implementing agent's
-  are the code. The one overlap is `tasks/work-items.yaml`, which the agent's
-  closing commit edits: leave the registry, and a feature file the agent is
-  turning live, to after it hands back.
-
+- **Commit only between agents, from the main checkout.** While an
+  implementer runs, keep drafts (specs, registry changes, the handoff) in
+  your scratchpad, and commit them, `itos work add` and `edit` included,
+  once it has handed back. Read-only agents (a post-landing reviewer, a
+  research agent) may run beside it, since they commit nothing. A docs
+  worktree of the coordinator's own was tried on 2026-10-03 and dropped the
+  same day, the user's call: it committed once with no hooks installed
+  (`main` went red), went stale between batches, and shared git's stash with
+  the main checkout, which `vp staged`'s backup uses, so a hook failed
+  there. Waiting for an agent costs minutes; a second place commits are made
+  is a second set of things that can silently differ.
 - **Don't stage or commit in the main checkout while an agent is running.**
   A commit takes everything in the index, the agent's staged files too; and
   two pre-commit hooks at once break `vp staged`'s backup and restore of the

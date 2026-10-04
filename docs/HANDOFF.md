@@ -21,8 +21,8 @@ and the inbox.
 
 All work is @donvargax's. `main` is green at `74fc41a`, slice 55's close (CI run 37169394741, every job,
 `release` cutting v2.15.0); the coordinator's registry batch after it is pushed
-with this file. The coordinator commits docs from
-its own worktree, `.claude/worktrees/coord-docs` (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
+with this file. The coordinator commits only between
+agents, from the main checkout; its docs worktree was dropped (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
 
