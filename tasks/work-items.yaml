@@ -4360,7 +4360,7 @@ items:
     refs: [docs/ORCHESTRATING.md, internal/guide/coordinate.md]
 
   - id: p3-plugin-guide-wrappers
-    title: The plugin's coordinate skill and implementer agent run itos go and itos guide work
+    title: The plugin drops its itos skill; no coordinate skill or implementer agent
     phase: 3
     owner: null
     status: todo
@@ -4372,4 +4372,10 @@ items:
       become thin wrappers that run itos go and itos guide work, so one text, versioned with itos,
       serves both, and the skill's own how-to (skills/itos/SKILL.md) stops restating what itos guide
       work prints.
+
+      The user's calls (2026-10-04), replacing this idea's first plan of thin wrappers: the
+      coordinator asks every implementer to run itos guide work and the person starts sessions with
+      itos go, so the plugin needs neither a coordinate skill nor an implementer agent, and its itos
+      skill goes; the titles and the guard stay. A plugin change raises the plugin's version in a
+      chore commit (T-074).
     refs: [integrations/claude-code/skills/itos/SKILL.md, internal/guide/work.md]
