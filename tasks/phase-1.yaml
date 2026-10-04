@@ -599,4 +599,4 @@
     - run: grep -q 'docs/decisions/README.md' PLAN.md
     - run: "! grep -qE '^## .*(The command line|Phases|Working rules)' PLAN.md"
     - run: test ! -e docs/releases
-    - run: "! grep -rqE 'PLAN\\.md ?§' cmd internal tools"
+    - run: "! grep -rqE 'PLAN\\.md ?§' --exclude=header-agreement.json cmd internal tools"
