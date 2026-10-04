@@ -15,10 +15,14 @@
 package features
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/cucumber/godog"
@@ -79,6 +83,40 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a pre-commit hook that appends a line to each staged Markdown file and stages it again$`, w.formattingPreCommitHook)
 	sc.Step(`^the ledger has no task "([^"]*)"$`, w.ledgerLacks)
 	sc.Step(`^git reports no change to the working tree or the index$`, w.gitStatusClean)
+
+	sc.Step(`^itos runs ask add with a question whose commit body would wrap to start a line with "([^"]*)"$`, w.askAddWrappingTo)
+}
+
+// askAddWrappingTo runs ask add with a question that ends in the text, its
+// words before the text built so that a plain wrap of the commit body at the
+// lint's body limit, as itos's own commits were wrapped before bug 18,
+// breaks just before it. ask add's body is `Ask q-<n> ("<question>"), with
+// itos ask add.`, so the body's prefix and the words before the text fill
+// the first line to the limit exactly, and the text would start the second.
+// The question's id is the next free one of the questions file.
+func (w *world) askAddWrappingTo(text string) error {
+	id, err := w.nextQuestion()
+	if err != nil {
+		return err
+	}
+	prefix := fmt.Sprintf("Ask %s (\"", id)
+	return w.itos("ask", "add", wordsOf(bodyLimit-len(prefix))+" "+text)
+}
+
+// nextQuestion is the id ask add gives the next question: one past the
+// highest the questions file, beside the registry, holds; q-1 with none.
+func (w *world) nextQuestion() (string, error) {
+	text, err := os.ReadFile(filepath.Join(w.dir, w.data(filepath.Join(filepath.Dir(startingRegistry), "asks.yaml"))))
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return "", err
+	}
+	highest := 0
+	for _, m := range regexp.MustCompile(`\bq-(\d+)\b`).FindAllStringSubmatch(string(text), -1) {
+		if n, _ := strconv.Atoi(m[1]); n > highest {
+			highest = n
+		}
+	}
+	return fmt.Sprintf("q-%d", highest+1), nil
 }
 
 // One more item of phase 1, a group nobody owns, in the registry where the
