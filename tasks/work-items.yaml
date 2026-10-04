@@ -3587,7 +3587,7 @@ items:
     title: The plugin skill names itos work add and edit, so agents record gaps through them
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-54]
     kind: task
     why: >
