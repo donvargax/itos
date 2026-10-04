@@ -7,15 +7,29 @@ package cli
 // "docs: answer q-<n>"; under a stealth config the file is in the git folder
 // beside the stealth registry, written under the registry's lock, which every
 // stealth writer holds (bug 16), and nothing is committed. show and the list
-// read, never write.
+// read, never write; the list ends naming the answered questions recorded
+// nowhere, each as itos ask record would record it.
+//
+// record (slice 69) writes an answered question as the next architecture
+// decision record (internal/adr) in the records' folder, notes the record's
+// number on the question and commits the questions, the record, the one it
+// supersedes and the folder's index together, "docs: record q-<n> as
+// decision <m>"; --none notes no record and commits the questions alone,
+// "docs: mark q-<n> as recorded nowhere". Under a stealth config the records
+// are in the git folder too, adr/ beside the stealth config, and nothing is
+// committed.
 
 import (
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 
+	"github.com/donvargax/itos/v2/internal/adr"
 	"github.com/donvargax/itos/v2/internal/ask"
 	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/lock"
@@ -26,7 +40,7 @@ import (
 )
 
 // askTakes is what ask takes, as a usage error names it.
-const askTakes = "it takes add, answer or show, else --all"
+const askTakes = "it takes add, answer, record or show, else --all"
 
 // askCommand is `ask [--all]`, `ask add`, `ask answer` and `ask show`.
 func askCommand(args []string, o Out) (int, error) {
@@ -36,6 +50,8 @@ func askCommand(args []string, o Out) (int, error) {
 		return askAdd(rest, o)
 	case "answer":
 		return askAnswer(rest, o)
+	case "record":
+		return askRecord(rest, o)
 	case "show":
 		return askShow(rest, o)
 	}
@@ -56,10 +72,30 @@ type askEntry struct {
 	Question string `json:"question"`
 	Status   string `json:"status"`
 	Answer   string `json:"answer,omitempty"`
+	// Decision is the record's number, or "none".
+	Decision any `json:"decision,omitempty"`
 }
 
 func entryOf(q ask.Question) askEntry {
-	return askEntry{ID: q.ID, Item: q.Item, Question: q.Question, Status: q.Status(), Answer: q.Answer}
+	e := askEntry{ID: q.ID, Item: q.Item, Question: q.Question, Status: q.Status(), Answer: q.Answer}
+	if n, err := strconv.Atoi(q.Decision); err == nil {
+		e.Decision = n
+	} else if q.Decision != "" {
+		e.Decision = q.Decision
+	}
+	return e
+}
+
+// decisionOf is the question's decision as the list and show say it: "decision
+// <n>", "no decision (--none)", or "" while it is neither.
+func decisionOf(q ask.Question) string {
+	switch q.Decision {
+	case "":
+		return ""
+	case ask.None:
+		return "no decision (--none)"
+	}
+	return "decision " + q.Decision
 }
 
 // loadAsks is the questions in the config's work.asks, the file's text and
@@ -312,6 +348,9 @@ func askShow(args []string, o Out) (int, error) {
 	if q.Item != "" {
 		state += ", about " + q.Item
 	}
+	if d := decisionOf(*q); d != "" {
+		state += ", " + d
+	}
 	fmt.Fprintf(o.Stdout, "%s: %s\n%s\n", q.ID, indented(q.Question, len(q.ID)+2), state)
 	if q.Answer != "" {
 		fmt.Fprintf(o.Stdout, "\n%s\n", strings.TrimRight(q.Answer, "\n"))
@@ -327,7 +366,11 @@ func askList(all bool, o Out) (int, error) {
 		return 0, err
 	}
 	var open, answered []ask.Question
+	var unrecorded []string
 	for _, q := range f.Questions {
+		if q.Unrecorded() {
+			unrecorded = append(unrecorded, "itos ask record "+q.ID)
+		}
 		if q.Answer == "" {
 			open = append(open, q)
 		} else if all {
@@ -341,12 +384,21 @@ func askList(all bool, o Out) (int, error) {
 		}
 		return 0, out.Emit(o.Stdout, out.Field{Key: "questions", Value: entries})
 	}
+	// The nudge: one line naming the answered questions recorded nowhere,
+	// after a blank line when a list is above it.
+	nudge := func() {
+		if len(unrecorded) == 0 {
+			return
+		}
+		fmt.Fprintf(o.Stdout, "\nAnswered and recorded nowhere: %s (--title <title>, or --none)\n", strings.Join(unrecorded, ", "))
+	}
 	if len(open) == 0 && len(answered) == 0 {
 		if all {
 			fmt.Fprintln(o.Stdout, "No questions.")
 		} else {
 			fmt.Fprintln(o.Stdout, "No open questions.")
 		}
+		nudge()
 		return 0, nil
 	}
 	width := 0
@@ -364,6 +416,9 @@ func askList(all bool, o Out) (int, error) {
 			if q.Answer != "" {
 				fmt.Fprintf(o.Stdout, "  %*s  → %s\n", width, "", oneLine(q.Answer))
 			}
+			if d := decisionOf(q); d != "" {
+				fmt.Fprintf(o.Stdout, "  %*s    %s\n", width, "", d)
+			}
 		}
 	}
 	if len(open) > 0 {
@@ -374,6 +429,214 @@ func askList(all bool, o Out) (int, error) {
 	if len(answered) > 0 {
 		fmt.Fprintln(o.Stdout)
 		list("Answered questions:", answered)
+	}
+	nudge()
+	return 0, nil
+}
+
+// askRecord is `ask record <id> --title <title> [--consequences <text>]
+// [--supersedes <n>]`, or `ask record <id> --none`: the answered question
+// written as the next decision record, or marked as recorded nowhere.
+func askRecord(args []string, o Out) (int, error) {
+	pos, flags, set, err := subArgs("ask", "record", args, []string{"--title", "--consequences", "--supersedes"}, []string{"--none"})
+	if err != nil {
+		return 0, err
+	}
+	id, rest, err := askID("record", pos, "<id>")
+	if err != nil {
+		return 0, err
+	}
+	if len(rest) > 0 {
+		return 0, usage("ask record takes one <id>, not %s", strings.Join(rest, " "))
+	}
+	title, consequences := oneLine(flags["--title"]), strings.TrimSpace(flags["--consequences"])
+	supersedes := 0
+	if text, given := flags["--supersedes"]; given {
+		if supersedes, err = strconv.Atoi(text); err != nil || supersedes < 1 {
+			return 0, usage("ask record --supersedes takes a decision record's number, not %q", text)
+		}
+	}
+	none := set["--none"]
+	switch {
+	case none && (title != "" || consequences != "" || supersedes != 0):
+		return 0, usage("ask record --none writes no record, so it takes no --title, --consequences or --supersedes")
+	case !none && title == "":
+		return 0, usage("ask record needs --title <title>, the decision's, or --none")
+	case !none && adr.Slug(title) == "":
+		return 0, usage("ask record --title needs a letter or a digit, which the record's file is named by")
+	}
+	cfg, release, err := heldAsks(o)
+	defer release()
+	if err != nil {
+		return 0, err
+	}
+	f, old, _, err := loadAsks(cfg)
+	if err != nil {
+		return 0, err
+	}
+	q := f.Find(id)
+	switch {
+	case q == nil:
+		return noQuestion(id, o)
+	case q.Answer == "":
+		return refuseWork([]out.Problem{{
+			Rule:    "ask-unanswered",
+			Message: fmt.Sprintf("%s is not answered, so it holds no decision to record", id),
+			Fix:     "itos ask answer " + id + " <text> answers it first",
+		}}, ExitPolicy, o)
+	case q.Decision != "":
+		return refuseWork([]out.Problem{{
+			Rule:    "ask-recorded",
+			Message: fmt.Sprintf("%s is already recorded, as %s", id, decisionOf(*q)),
+			Fix:     "itos ask show " + id + " shows it",
+		}}, ExitPolicy, o)
+	}
+	asks := written{path: cfg.Work.Asks, old: old}
+	if none {
+		q.Decision = ask.None
+		asks.text = ask.Text(f)
+		header := "docs: mark " + id + " as recorded nowhere"
+		body := fmt.Sprintf("Mark %s (\"%s\") as recorded nowhere, its answer having concerned its item alone, so itos ask stops naming it. By itos ask record --none.", id, oneLine(q.Question))
+		sha, code, err := writeCommitted(cfg, []written{asks}, header, body, o)
+		if err != nil || code != 0 {
+			return code, err
+		}
+		return reportRecord(fmt.Sprintf("%s marked as recorded nowhere: %s", id, askCommitted(sha, header)), *q, "", sha, o)
+	}
+	dir, problem, err := decisionsDir(cfg)
+	if err != nil {
+		return 0, err
+	}
+	if problem != nil {
+		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
+	}
+	records, err := adr.List(dir)
+	if err != nil {
+		return 0, err
+	}
+	n, err := adr.Next(dir)
+	if err != nil {
+		return 0, err
+	}
+	context := strings.TrimSpace(q.Question) + "\n\nAsked as " + id
+	if q.Item != "" {
+		context += ", about " + q.Item
+	}
+	if consequences == "" {
+		consequences = "None recorded."
+	}
+	record := adr.Record{Number: n, File: adr.FileName(n, title)}
+	record.Text = adr.Text(adr.New{Number: n, Title: title, Date: time.Now().Format(time.DateOnly),
+		Context: context + ".", Decision: q.Answer, Consequence: consequences})
+	files := []written{asks, {path: filepath.Join(dir, record.File), created: true, rule: "decision-file-uncommitted"}}
+	if supersedes != 0 {
+		at := -1
+		for i, r := range records {
+			if r.Number == supersedes {
+				at = i
+				break
+			}
+		}
+		if at < 0 {
+			return refuseWork([]out.Problem{{
+				Rule:    "ask-no-decision",
+				Message: fmt.Sprintf("there is no decision record %d in %s, so none can be superseded", supersedes, dir),
+				Fix:     "--supersedes takes the number of a record there",
+			}}, ExitPolicy, o)
+		}
+		older := records[at]
+		record.Text = adr.AddLink(record.Text, adr.Supersedes, older)
+		records[at].Text = adr.RemoveStatus(adr.AddLink(older.Text, adr.SupersededBy, record), adr.Accepted)
+		files = append(files, written{path: filepath.Join(dir, older.File), old: older.Text, text: records[at].Text,
+			rule: "decision-file-uncommitted"})
+	}
+	files[1].text = record.Text
+	index := filepath.Join(dir, adr.IndexName)
+	before, err := os.ReadFile(index)
+	there := err == nil
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return 0, err
+	}
+	files = append(files, written{path: index, old: string(before), text: adr.Index(string(before), append(records, record)),
+		created: !there, rule: "decision-index-uncommitted"})
+	q.Decision = strconv.Itoa(n)
+	files[0].text = ask.Text(f)
+	made, err := madeDirs(dir)
+	if err != nil {
+		return 0, err
+	}
+	header := fmt.Sprintf("docs: record %s as decision %d", id, n)
+	body := fmt.Sprintf("Record %s (\"%s\") as decision %d, %s, in %s, by itos ask record.", id, oneLine(q.Question), n, title,
+		filepath.ToSlash(files[1].path))
+	if supersedes != 0 {
+		body += fmt.Sprintf(" It supersedes decision %d, which leaves the index.", supersedes)
+	}
+	sha, code, err := writeCommitted(cfg, files, header, body, o)
+	if err != nil || code != 0 {
+		unmake(made)
+		return code, err
+	}
+	return reportRecord(fmt.Sprintf("%s recorded as decision %d, %s: %s", id, n, filepath.ToSlash(files[1].path), askCommitted(sha, header)),
+		*q, files[1].path, sha, o)
+}
+
+// decisionsDir is the records' folder: under a stealth config adr/ beside
+// it in the git folder, else as adr-tools finds it in the work tree
+// (adr.Dir); a .adr-dir naming no folder inside the repository is the
+// problem.
+func decisionsDir(cfg *config.Loaded) (string, *out.Problem, error) {
+	if cfg.Stealth {
+		return filepath.Join(filepath.Dir(cfg.Path), "adr"), nil, nil
+	}
+	dir, err := adr.Dir("")
+	if err != nil {
+		return "", &out.Problem{
+			Rule:    "adr-dir-outside",
+			Message: err.Error(),
+			Fix:     "write a folder inside the repository in " + adr.DirFile + ", or remove it for " + adr.DefaultDir,
+		}, nil
+	}
+	return dir, nil, nil
+}
+
+// madeDirs makes the folder and those above it that are not there, and
+// says which it made, the deepest first, for unmake.
+func madeDirs(dir string) ([]string, error) {
+	var made []string
+	for at := dir; at != "." && at != string(filepath.Separator) && at != ""; at = filepath.Dir(at) {
+		if _, err := os.Stat(at); err == nil {
+			break
+		}
+		made = append(made, at)
+	}
+	return made, os.MkdirAll(dir, 0o755)
+}
+
+// unmake removes the folders madeDirs made, when they are empty again.
+func unmake(made []string) {
+	for _, dir := range made {
+		// A folder something else wrote into stays.
+		_ = os.Remove(dir)
+	}
+}
+
+// reportRecord prints record's result: the line, unless -q; under --json,
+// ok, the question as it is now, the record written (null for --none) and
+// the commit (null when none).
+func reportRecord(line string, q ask.Question, record, sha string, o Out) (int, error) {
+	if o.JSON {
+		var commit, file any
+		if sha != "" {
+			commit = sha
+		}
+		if record != "" {
+			file = filepath.ToSlash(record)
+		}
+		return 0, out.Emit(o.Stdout, out.Field{Key: "ok", Value: true}, out.Field{Key: "question", Value: entryOf(q)},
+			out.Field{Key: "record", Value: file}, out.Field{Key: "commit", Value: commit})
+	}
+	if !o.Quiet {
+		fmt.Fprintln(o.Stdout, line)
 	}
 	return 0, nil
 }

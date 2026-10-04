@@ -520,7 +520,8 @@ mechanisms above, written against those modules, read across.
   statuses, the proposal, the edits that take, promote, close, add and
   change an item, and the item as work show prints it;
   below), `internal/follow` (itos follow's threads; below), `internal/ask`
-  (itos ask's questions; below), `internal/nextid` (the next free ID of a
+  (itos ask's questions; below), `internal/adr` (the decision records itos
+  ask record writes; below), `internal/nextid` (the next free ID of a
   series; below), `internal/guide` (the guides itos go and
   itos guide print; below), `internal/lock`
   (the lock file a writer of shared data holds; below),
@@ -1530,6 +1531,27 @@ add`ed so `--only` can name it, git add's words and the commit's on
   registry's lock (`heldAsks`) from before the read to after the write, the
   one every stealth writer holds, and commit nothing. `work show` lists the
   questions naming its item (`File.About`), and `--json` gives them always.
+  `record` (slice 69, over `internal/adr`) writes an answered question as an
+  architecture decision record in adr-tools' format, so a repository that
+  already keeps records with adr-tools or log4brains keeps its own: the
+  folder is `adr.Dir`'s, the one a `.adr-dir` at the repository's top
+  names, read as adr-tools' `_adr_dir` reads it, else `docs/adr`, and under
+  a stealth config `adr/` beside the stealth config; the number is one past the highest any name there starts
+  with (`adr.Next`, as `adr-new`), the slug `adr.Slug`'s. `adr.AddLink` and
+  `adr.RemoveStatus` are `_adr_add_link` and `_adr_remove_status` in Go, so
+  a supersede leaves both records as `adr new -s` would, spelt "Superseded"
+  where adr-tools writes "Superceded", which `Record.Live` reads as well.
+  The index is the folder's `README.md`, its part between the markers
+  rewritten whole (`adr.Index`) from the records still live, the rest kept.
+  The question gains `decision: <n>` (or `none` for `--none`), and the
+  questions, the new record, the one it supersedes and the index go through
+  one `writeCommitted`, each `written` naming its own rule for changes no
+  commit holds (`decision-file-uncommitted`, `decision-index-uncommitted`);
+  the folders made for the record are removed again when the write fails
+  (`madeDirs`, `unmake`). A question answered with no decision is
+  `Unrecorded`, and `ask` ends with one line naming each as
+  `itos ask record <id>`. The records' checks (numbers unique, links both
+  ways, the index matching the files) are not here: p1-adr-checks.
 - **go and guide** (slice 64, `internal/cli/guide.go` over `internal/guide`)
   print the guides a session starts from, Markdown files beside the package
   (`coordinate.md`, `work.md`) embedded with `go:embed` and printed as

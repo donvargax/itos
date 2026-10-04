@@ -6,6 +6,12 @@
 // work registry (work.asks), written whole by itos, which commits it alone
 // as the registry's commands commit theirs (internal/cli/ask.go).
 //
+// An answered question is a decision, and itos ask record (slice 69) writes
+// it as an architecture decision record (internal/adr), noting the record's
+// number on the question as its decision, or none for an answer that
+// concerned its item alone; one answered with no decision is recorded
+// nowhere yet, and itos ask names it.
+//
 // The file is itos's own, so it is read with typed structs and written whole,
 // each text as a double-quoted scalar, JSON's escapes being YAML's, so what
 // it holds reads back exactly and no formatter has a reason to change it.
@@ -34,13 +40,24 @@ const (
 )
 
 // Question is one question: its id, the item it holds up ("" for none), its
-// text and its answer ("" while open).
+// text, its answer ("" while open) and its decision: the number of the
+// decision record its answer was written as, None when it was marked as
+// recorded nowhere, "" while it is neither.
 type Question struct {
 	ID       string `yaml:"id"`
 	Item     string `yaml:"item,omitempty"`
 	Question string `yaml:"question"`
 	Answer   string `yaml:"answer,omitempty"`
+	Decision string `yaml:"decision,omitempty"`
 }
+
+// None is the decision of an answer that concerned its item alone, so it is
+// recorded nowhere and itos ask stops naming it.
+const None = "none"
+
+// Unrecorded is whether the question is answered and its answer recorded
+// nowhere: no decision record, and not marked None.
+func (q Question) Unrecorded() bool { return q.Answer != "" && q.Decision == "" }
 
 // Status is the question's status: open, or answered.
 func (q Question) Status() string {
@@ -61,14 +78,20 @@ const head = "# itos ask's questions to the person the work is for, written by i
 // idPattern is what a question's id is: q- and a number, 1 or more.
 var idPattern = regexp.MustCompile(`^q-[1-9][0-9]*$`)
 
+// decisionPattern is what a decision is: a record's number, 1 or more, or
+// None.
+var decisionPattern = regexp.MustCompile(`^(?:[1-9][0-9]*|none)$`)
+
 // ValidID is whether an id may name a question.
 func ValidID(id string) bool { return idPattern.MatchString(id) }
 
 // Parse reads the questions' file's text, at path for what it reports. A
 // file that is not as itos writes it is an error naming it, since writing
 // what was read would drop the rest: an unknown key, a question with no id
-// itos gives, two with one id or one with no text, a second YAML document,
-// or no document at all (itos writes "questions: []" for none).
+// itos gives, two with one id or one with no text, a decision that is
+// neither a record's number nor none, or one on a question not answered, a
+// second YAML document, or no document at all (itos writes "questions: []"
+// for none).
 func Parse(path, text string) (File, error) {
 	var f File
 	dec := yaml.NewDecoder(strings.NewReader(text))
@@ -91,6 +114,10 @@ func Parse(path, text string) (File, error) {
 			return File{}, fmt.Errorf("%s: two questions have the id %s", path, q.ID)
 		case strings.TrimSpace(q.Question) == "":
 			return File{}, fmt.Errorf("%s: %s asks nothing", path, q.ID)
+		case q.Decision != "" && !decisionPattern.MatchString(q.Decision):
+			return File{}, fmt.Errorf("%s: %s's decision is %q, neither a decision record's number nor none", path, q.ID, q.Decision)
+		case q.Decision != "" && q.Answer == "":
+			return File{}, fmt.Errorf("%s: %s has a decision and no answer", path, q.ID)
 		}
 		seen[q.ID] = true
 	}
@@ -98,7 +125,8 @@ func Parse(path, text string) (File, error) {
 }
 
 // Text is the file as itos writes it: its head comment, then each question
-// a block mapping, its texts double-quoted.
+// a block mapping, its texts double-quoted, its decision, a number or none,
+// plain.
 func Text(f File) string {
 	var b strings.Builder
 	b.WriteString(head)
@@ -115,6 +143,9 @@ func Text(f File) string {
 		fmt.Fprintf(&b, "    question: %s\n", quoted(q.Question))
 		if q.Answer != "" {
 			fmt.Fprintf(&b, "    answer: %s\n", quoted(q.Answer))
+		}
+		if q.Decision != "" {
+			fmt.Fprintf(&b, "    decision: %s\n", q.Decision)
 		}
 	}
 	return b.String()

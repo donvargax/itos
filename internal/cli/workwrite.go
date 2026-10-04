@@ -151,9 +151,9 @@ func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text stri
 // which the command makes, when git knows nothing of it either: one deleted
 // and the deletion not committed, staged or not, is a change no commit holds
 // (bug 13), which a commit of the file written afresh would undo. The
-// problem names the file, the registry, a ledger file or itos ask's
-// questions.
-func uncommitted(cfg *config.Loaded, file string) *out.Problem {
+// problem names the file, the registry, a ledger file, itos ask's
+// questions, or the rule the command gives (a decision record's).
+func uncommitted(cfg *config.Loaded, file, rule string) *out.Problem {
 	_, err := os.Lstat(file)
 	there := !errors.Is(err, fs.ErrNotExist)
 	tracked := git.Succeeds("ls-files", "--error-unmatch", "--", file)
@@ -161,12 +161,14 @@ func uncommitted(cfg *config.Loaded, file string) *out.Problem {
 	if err == nil && strings.TrimSpace(status) == "" && tracked == there {
 		return nil
 	}
-	rule := "ledger-file-uncommitted"
-	switch file {
-	case cfg.Work.Registry:
+	switch {
+	case rule != "":
+	case file == cfg.Work.Registry:
 		rule = "work-registry-uncommitted"
-	case cfg.Work.Asks:
+	case file == cfg.Work.Asks:
 		rule = "asks-file-uncommitted"
+	default:
+		rule = "ledger-file-uncommitted"
 	}
 	return &out.Problem{
 		Rule:    rule,
@@ -182,11 +184,13 @@ func writeRegistry(cfg *config.Loaded, old string, change work.Change, o Out) (s
 }
 
 // written is one file a command writes: its path, its text before and
-// after, and whether it is new (not there before, so put back by removing
-// it).
+// after, whether it is new (not there before, so put back by removing it),
+// and the rule that refuses it with changes no commit holds, when it is
+// neither the registry, the questions nor a ledger file.
 type written struct {
 	path, old, text string
 	created         bool
+	rule            string
 }
 
 // writeCommitted writes the files and, in a project, commits them alone:
@@ -199,7 +203,8 @@ type written struct {
 // as it was, file and index, a new one removed (restore); a refusal exits 1,
 // the rest are errors. work's commands write the registry alone
 // (writeRegistry), task add a ledger file and the registry (slice 55), ask
-// the questions alone (slice 62).
+// the questions alone (slice 62), ask record the questions, a decision
+// record, the one it supersedes and their index (slice 69).
 func writeCommitted(cfg *config.Loaded, files []written, header, body string, o Out) (string, int, error) {
 	paths := make([]string, len(files))
 	for i, f := range files {
@@ -207,7 +212,7 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 	}
 	if !cfg.Stealth {
 		for _, f := range files {
-			if p := uncommitted(cfg, f.path); p != nil {
+			if p := uncommitted(cfg, f.path, f.rule); p != nil {
 				code, err := refuseWork([]out.Problem{*p}, ExitPolicy, o)
 				return "", code, err
 			}

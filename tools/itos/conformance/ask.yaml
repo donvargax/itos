@@ -6,7 +6,12 @@
 # have, no question with the id, one already answered, a file with changes no
 # commit holds, a file itos did not write whole); a stealth config's
 # questions beside its registry in the git folder, nothing committed; and
-# work.asks moving the file.
+# work.asks moving the file. Slice 69's: the list naming the answered
+# questions recorded nowhere, --all and show giving each one's decision;
+# record writing the next decision record, its index and the decision on the
+# question, committing them together, a supersede editing both records, the
+# folder a .adr-dir names, --none, a stealth config's records in the git
+# folder, and record's refusals.
 files:
   itos.yaml: |
     version: 1
@@ -35,6 +40,8 @@ cases:
       Open questions:
         q-2  Is the archive worth it?  (x)
         q-3  Which way?
+
+      Answered and recorded nowhere: itos ask record q-1 (--title <title>, or --none)
   - name: ask --all lists the answered questions after the open ones, each with its answer
     argv: [ask, --all]
     exit: 0
@@ -46,6 +53,51 @@ cases:
       Answered questions:
         q-1  Labels or Projects?  (x)
              → Labels, with trust by who acted.
+
+      Answered and recorded nowhere: itos ask record q-1 (--title <title>, or --none)
+  - name: ask --all gives each answered question's decision, and names none when every answer is recorded
+    argv: [ask, --all]
+    files:
+      asks.yaml: "questions:\n  - { id: q-1, question: a, answer: b, decision: 3 }\n  - { id: q-2, question: c, answer: d, decision: none }\n"
+    exit: 0
+    stdout: |
+      No open questions.
+
+      Answered questions:
+        q-1  a
+             → b
+               decision 3
+        q-2  c
+             → d
+               no decision (--none)
+  - name: ask show gives the question's decision
+    argv: [ask, show, q-1]
+    files:
+      asks.yaml: "questions:\n  - { id: q-1, question: a, answer: b, decision: 3 }\n"
+    exit: 0
+    stdout: |
+      q-1: a
+      answered, decision 3
+
+      b
+  - name: ask --json gives each question's decision, a number or none
+    argv: [ask, --all, --json]
+    files:
+      asks.yaml: "questions:\n  - { id: q-1, question: a, answer: b, decision: 3 }\n  - { id: q-2, question: c, answer: d, decision: none }\n"
+    exit: 0
+    json:
+      schema: 1
+      questions:
+        - { id: q-1, question: a, status: answered, answer: b, decision: 3 }
+        - { id: q-2, question: c, status: answered, answer: d, decision: none }
+  - name: ask refuses a decision that is neither a record's number nor none, and leaves the file as it is
+    argv: [ask, add, Which way?]
+    files:
+      asks.yaml: &baddecision "questions:\n  - { id: q-1, question: a, answer: b, decision: \"0003\" }\n"
+    exit: 2
+    stderr_has: "asks.yaml: q-1's decision is \"0003\", neither a decision record's number nor none"
+    files_after:
+      asks.yaml: *baddecision
   - name: ask --json lists the open questions
     argv: [ask, --json]
     exit: 0
@@ -98,7 +150,7 @@ cases:
     argv: [ask, list]
     exit: 2
     stderr: |
-      itos: ask has no subcommand list: it takes add, answer or show, else --all (itos --help)
+      itos: ask has no subcommand list: it takes add, answer, record or show, else --all (itos --help)
   - name: ask add needs the question
     argv: [ask, add, --item, x]
     exit: 2
@@ -242,3 +294,186 @@ cases:
     stdout: |
       Open questions:
         q-5  Moved?
+  - name: ask record writes the answer as the first decision record, makes the index, notes the decision and commits them
+    argv: [ask, record, q-1, --title, Triage issues with labels]
+    git:
+      - commit: "docs: start"
+        files: { asks.yaml: *asks }
+    exit: 0
+    stdout_has: "q-1 recorded as decision 1, docs/adr/0001-triage-issues-with-labels.md: committed "
+    files_after:
+      asks.yaml: |
+        # itos ask's questions to the person the work is for, written by itos ask (itos help ask).
+        questions:
+          - id: q-1
+            item: "x"
+            question: "Labels or Projects?"
+            answer: "Labels, with trust by who acted."
+            decision: 1
+          - id: q-2
+            item: "x"
+            question: "Is the archive\nworth it?"
+          - id: q-3
+            question: "Which way?"
+      docs/adr/README.md: |
+        # Decisions
+
+        The decisions that still stand, one record each. A record superseded keeps its
+        file and leaves this list, which itos ask record writes.
+
+        <!-- itos:decisions:begin -->
+        - [1. Triage issues with labels](0001-triage-issues-with-labels.md)
+        <!-- itos:decisions:end -->
+  - name: ask record --supersedes marks the old record as adr-tools does, and the index keeps its own text and drops it
+    argv: [ask, record, q-1, --title, Use labels, --supersedes, "4"]
+    git:
+      - commit: "docs: start"
+        files:
+          asks.yaml: *asks
+          docs/adr/0004-use-projects.md: &projects "# 4. Use Projects\n\nDate: 2020-01-02\n\n## Status\n\nAccepted\n\n## Context\n\nc\n\n## Decision\n\nd\n\n## Consequences\n\ne\n"
+          docs/adr/0005-use-go.md: "# 5. Use Go\n\n## Status\n\nAccepted\n"
+          docs/adr/README.md: "# Our records\n\n<!-- itos:decisions:begin -->\n- old\n<!-- itos:decisions:end -->\n\nKept.\n"
+    exit: 0
+    stdout_has: "q-1 recorded as decision 6, docs/adr/0006-use-labels.md: committed "
+    files_after:
+      docs/adr/0004-use-projects.md: "# 4. Use Projects\n\nDate: 2020-01-02\n\n## Status\n\nSuperseded by [6. Use labels](0006-use-labels.md)\n\n## Context\n\nc\n\n## Decision\n\nd\n\n## Consequences\n\ne\n"
+      docs/adr/README.md: "# Our records\n\n<!-- itos:decisions:begin -->\n- [5. Use Go](0005-use-go.md)\n- [6. Use labels](0006-use-labels.md)\n<!-- itos:decisions:end -->\n\nKept.\n"
+  - name: ask record writes in the folder a .adr-dir names, numbered past the highest name there
+    argv: [ask, record, q-1, --title, Labels!, --consequences, Projects stay unused.]
+    git:
+      - commit: "docs: start"
+        files:
+          asks.yaml: *asks
+          .adr-dir: "decisions\n"
+          decisions/0009-superseded.md: "# 9. Old\n\n## Status\n\nSuperceded by [10. New](0010-new.md)\n"
+          decisions/0010-new.md: "# 10. New\n\n## Status\n\nAccepted\n"
+          docs/adr/0042-elsewhere.md: "# 42. Elsewhere\n"
+    exit: 0
+    stdout_has: "q-1 recorded as decision 11, decisions/0011-labels.md: committed "
+    files_after:
+      decisions/README.md: |
+        # Decisions
+
+        The decisions that still stand, one record each. A record superseded keeps its
+        file and leaves this list, which itos ask record writes.
+
+        <!-- itos:decisions:begin -->
+        - [10. New](0010-new.md)
+        - [11. Labels!](0011-labels.md)
+        <!-- itos:decisions:end -->
+      docs/adr/README.md: null
+  - name: ask record --none marks the answer as recorded nowhere, writes no record and commits the questions alone
+    argv: [ask, record, q-1, --none]
+    git:
+      - commit: "docs: start"
+        files: { asks.yaml: *asks }
+    exit: 0
+    stdout_has: "q-1 marked as recorded nowhere: committed "
+    files_after:
+      asks.yaml: |
+        # itos ask's questions to the person the work is for, written by itos ask (itos help ask).
+        questions:
+          - id: q-1
+            item: "x"
+            question: "Labels or Projects?"
+            answer: "Labels, with trust by who acted."
+            decision: none
+          - id: q-2
+            item: "x"
+            question: "Is the archive\nworth it?"
+          - id: q-3
+            question: "Which way?"
+      docs/adr/README.md: null
+  - name: ask record refuses a question not answered
+    argv: [ask, record, q-2, --title, Archive]
+    exit: 1
+    stderr: |
+      q-2 is not answered, so it holds no decision to record
+        fix: itos ask answer q-2 <text> answers it first
+    files_after:
+      docs/adr/README.md: null
+  - name: ask record refuses a question already recorded
+    argv: [ask, record, q-1, --none]
+    files:
+      asks.yaml: "questions:\n  - { id: q-1, question: a, answer: b, decision: 3 }\n"
+    exit: 1
+    stderr: |
+      q-1 is already recorded, as decision 3
+        fix: itos ask show q-1 shows it
+  - name: ask record refuses to supersede a record the folder does not have, and writes nothing
+    argv: [ask, record, q-1, --title, Labels, --supersedes, "2"]
+    git:
+      - commit: "docs: start"
+        files: { asks.yaml: *asks }
+    exit: 1
+    stderr: |
+      there is no decision record 2 in docs/adr, so none can be superseded
+        fix: --supersedes takes the number of a record there
+    files_after:
+      asks.yaml: *asks
+      docs/adr/README.md: null
+  - name: ask record refuses a .adr-dir naming a folder outside the repository
+    argv: [ask, record, q-1, --title, Labels]
+    files:
+      .adr-dir: "../elsewhere\n"
+    exit: 1
+    stderr: |
+      .adr-dir names "../elsewhere", which is no folder inside the repository
+        fix: write a folder inside the repository in .adr-dir, or remove it for docs/adr
+  - name: ask record refuses an index with changes no commit holds, and writes nothing
+    argv: [ask, record, q-1, --title, Labels]
+    git:
+      - commit: "docs: start"
+        files: { asks.yaml: *asks }
+    files:
+      docs/adr/README.md: "mine\n"
+    exit: 1
+    stderr: |
+      docs/adr/README.md has changes no commit holds, which itos's commit of it would sweep in
+        fix: commit or drop the changes to docs/adr/README.md first
+    files_after:
+      asks.yaml: *asks
+      docs/adr/README.md: "mine\n"
+      docs/adr/0001-labels.md: null
+  - name: ask record needs a title, or --none
+    argv: [ask, record, q-1]
+    exit: 2
+    stderr: |
+      itos: ask record needs --title <title>, the decision's, or --none (itos --help)
+  - name: ask record --none takes no title
+    argv: [ask, record, q-1, --none, --title, Labels]
+    exit: 2
+    stderr: |
+      itos: ask record --none writes no record, so it takes no --title, --consequences or --supersedes (itos --help)
+  - name: ask record --supersedes takes a record's number
+    argv: [ask, record, q-1, --title, Labels, --supersedes, "0004-use-projects"]
+    exit: 2
+    stderr: |
+      itos: ask record --supersedes takes a decision record's number, not "0004-use-projects" (itos --help)
+  - name: under a stealth config ask record writes the records in the git folder and commits nothing
+    argv: [ask, record, q-1, --title, Labels, --json]
+    git: []
+    files:
+      itos.yaml: null
+      asks.yaml: null
+      .git/itos/itos.yaml: "version: 1\nwork: { registry: work-items.yaml }\n"
+      .git/itos/asks.yaml: *asks
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      question: { id: q-1, item: x, question: "Labels or Projects?", status: answered, answer: "Labels, with trust by who acted.", decision: 1 }
+      record: .git/itos/adr/0001-labels.md
+      commit: null
+    files_after:
+      .git/itos/adr/README.md: |
+        # Decisions
+
+        The decisions that still stand, one record each. A record superseded keeps its
+        file and leaves this list, which itos ask record writes.
+
+        <!-- itos:decisions:begin -->
+        - [1. Labels](0001-labels.md)
+        <!-- itos:decisions:end -->
+      .git/itos/work-items.yaml.lock: null
+      docs/adr/README.md: null

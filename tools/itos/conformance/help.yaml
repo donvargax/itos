@@ -37,6 +37,8 @@ cases:
         ask [--all]                      the open questions to the person the work is for
         ask add <text> [--item <id>]     ask a question, and commit it
         ask answer <id> <text>           answer a question, and commit it
+        ask record <id> --title <title> [--consequences <text>] [--supersedes <n>] [--none]
+                                         write an answer as a decision record, and commit it
         ask show <id>                    a question and its answer
         follow [--all]                   your open threads with people; private, never committed
         follow add <id> --with <who> --title <title> --note <text>
@@ -400,6 +402,8 @@ cases:
       Usage: itos ask [--all]
              itos ask add <text> [--item <id>]
              itos ask answer <id> <text>
+             itos ask record <id> --title <title> [--consequences <text>] [--supersedes <n>]
+             itos ask record <id> --none
              itos ask show <id>
 
       The questions waiting on the person the work is for, kept as data beside the
@@ -414,15 +418,23 @@ cases:
       written while the registry's lock is held, as every stealth writer holds it,
       and nothing is committed.
 
-      itos ask lists the open questions, each with the item it names; --all adds
-      the answered ones after them, each with its answer. Exit 1 for a refusal (no
-      question with the id, an item the registry does not have), 2 for a usage
-      error or an asks.yaml itos cannot read or did not write whole (a key it does
-      not know, an id not q-<n> or given twice, a second YAML document, an empty
-      file), which it leaves as it is.
+      An answered question is a decision: itos ask record writes it as an
+      architecture decision record, notes the record's number on the question and
+      commits both (itos help ask record), or with --none marks an answer that
+      concerned its item alone, recorded nowhere.
 
-      --json: {"schema":1,"questions":[{"id","item"?,"question","status","answer"?}]},
-      status open or answered; each subcommand's in its help (itos help ask <subcommand>)
+      itos ask lists the open questions, each with the item it names, then one line
+      naming the answered questions recorded nowhere yet, each as itos ask record
+      <id>, when there are any; --all adds the answered ones after the open ones,
+      each with its answer and its decision. Exit 1 for a refusal (no question with
+      the id, an item the registry does not have), 2 for a usage error or an
+      asks.yaml itos cannot read or did not write whole (a key it does not know, an
+      id not q-<n> or given twice, a decision neither a number nor none, a second
+      YAML document, an empty file), which it leaves as it is.
+
+      --json: {"schema":1,"questions":[{"id","item"?,"question","status","answer"?,"decision"?}]},
+      status open or answered, decision the record's number or "none"; each
+      subcommand's in its help (itos help ask <subcommand>)
   - name: itos ask add --help
     argv: [ask, add, --help]
     exit: 0
@@ -455,17 +467,56 @@ cases:
       a stealth config the file is written and nothing committed.
 
       --json: as itos ask add's, the question as it is after
+  - name: itos ask record --help
+    argv: [ask, record, --help]
+    exit: 0
+    stdout: |
+      Usage: itos ask record <id> --title <title> [--consequences <text>] [--supersedes <n>]
+             itos ask record <id> --none
+
+      Writes the answered question as the next architecture decision record, in
+      adr-tools' format (npryce/adr-tools), so records it or log4brains made are
+      read as they are: NNNN-<slug>.md, the slug the title lowercased with each run
+      of other characters one dash, starting "# <n>. <title>", then the date it is
+      recorded, its status Accepted, the question as its context ("Asked as <id>",
+      with the item it names), the answer as its decision, and --consequences as
+      its consequences, else "None recorded.". The records' folder is the one a
+      .adr-dir file at the repository's top names, as adr-tools reads it, else
+      docs/adr; the number is one past the highest
+      any name there starts with. The folder's README.md is the index of the
+      decisions still standing, between <!-- itos:decisions:begin --> and
+      <!-- itos:decisions:end -->, made when missing, its text outside them kept.
+      --supersedes <n> marks record <n> as adr-tools does: it loses Accepted and
+      gains "Superseded by [<new>](<file>)", the new one "Supersedes [<n>. …](…)",
+      and it leaves the index (adr-tools' "Superceded" reads the same). The question
+      gains "decision: <n>". Then commits the questions' file, the record, the one
+      it supersedes and the index together, "docs: record <id> as decision <n>", as
+      itos ask add commits.
+
+      --none writes no record: the answer concerned its item alone, and the
+      question gains "decision: none", so itos ask stops naming it; the questions'
+      file is committed alone, "docs: mark <id> as recorded nowhere".
+
+      Refused, nothing written (exit 1): no question with the id, one not answered,
+      one already recorded or marked, --supersedes naming no record in the folder,
+      a .adr-dir naming no folder inside the repository, a file with changes no
+      commit holds, a commit a hook refuses (the files put back). Under a stealth
+      config the records are in the git folder beside the stealth config, adr/,
+      and nothing is committed.
+
+      --json: {"schema":1,"ok":true,"question":{…,"decision"},"record":"<path>"|null,"commit":"<sha>"|null},
+      or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
   - name: itos ask show --help
     argv: [ask, show, --help]
     exit: 0
     stdout: |
       Usage: itos ask show <id>
 
-      Prints the question: its id and text, whether it is open or answered and the
-      item it names, then its answer when it has one. It reads, never writes. Exit 1
+      Prints the question: its id and text, whether it is open or answered, the
+      item it names and its decision, then its answer when it has one. It reads, never writes. Exit 1
       when no question has the id.
 
-      --json: {"schema":1,"ok":true,"question":{"id","item"?,"question","status","answer"?}}
+      --json: {"schema":1,"ok":true,"question":{"id","item"?,"question","status","answer"?,"decision"?}}
   - name: itos follow --help
     argv: [follow, --help]
     exit: 0

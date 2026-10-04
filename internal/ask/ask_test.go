@@ -12,11 +12,16 @@ func TestTextReadsBack(t *testing.T) {
 	f.Add("Labels or Projects?", "slice-9")
 	q := f.Add("Two lines:\nthe second \"quoted\" & <b> 'single' ünïcode \t tab", "")
 	q.Answer = "Labels: yes."
+	f.Add("Recorded?", "").Answer = "Yes."
+	f.Questions[2].Decision = "12"
+	f.Add("Recorded nowhere?", "").Answer = "No."
+	f.Questions[3].Decision = None
 	back, err := Parse("asks.yaml", Text(f))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(back.Questions) != 2 || back.Questions[0] != f.Questions[0] || back.Questions[1] != f.Questions[1] {
+	if len(back.Questions) != 4 || back.Questions[0] != f.Questions[0] || back.Questions[1] != f.Questions[1] ||
+		back.Questions[2] != f.Questions[2] || back.Questions[3] != f.Questions[3] {
 		t.Errorf("read back %+v, wrote %+v", back.Questions, f.Questions)
 	}
 	if back.Questions[0].Status() != Open || back.Questions[1].Status() != Answered {
@@ -46,15 +51,17 @@ func TestNextID(t *testing.T) {
 // A file itos did not write whole is refused, naming it.
 func TestParseRefuses(t *testing.T) {
 	for name, text := range map[string]string{
-		"empty":       "",
-		"comment":     "# nothing\n",
-		"unknown key": "questions: []\nother: 1\n",
-		"bad id":      "questions:\n  - { id: x-1, question: a }\n",
-		"zero id":     "questions:\n  - { id: q-0, question: a }\n",
-		"twice":       "questions:\n  - { id: q-1, question: a }\n  - { id: q-1, question: b }\n",
-		"no text":     "questions:\n  - { id: q-1, question: \" \" }\n",
-		"two docs":    "questions: []\n---\nquestions: []\n",
-		"field":       "questions:\n  - { id: q-1, question: a, status: open }\n",
+		"empty":        "",
+		"comment":      "# nothing\n",
+		"unknown key":  "questions: []\nother: 1\n",
+		"bad id":       "questions:\n  - { id: x-1, question: a }\n",
+		"zero id":      "questions:\n  - { id: q-0, question: a }\n",
+		"twice":        "questions:\n  - { id: q-1, question: a }\n  - { id: q-1, question: b }\n",
+		"no text":      "questions:\n  - { id: q-1, question: \" \" }\n",
+		"two docs":     "questions: []\n---\nquestions: []\n",
+		"field":        "questions:\n  - { id: q-1, question: a, status: open }\n",
+		"bad decision": "questions:\n  - { id: q-1, question: a, answer: b, decision: 0001 }\n",
+		"open decided": "questions:\n  - { id: q-1, question: a, decision: 3 }\n",
 	} {
 		if _, err := Parse("tasks/asks.yaml", text); err == nil || !strings.Contains(err.Error(), "tasks/asks.yaml") {
 			t.Errorf("%s: %v", name, err)
