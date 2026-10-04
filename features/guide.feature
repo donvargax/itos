@@ -52,3 +52,37 @@ Feature: itos go and itos guide, the guides a session starts from
     Then itos exits with code 2
     And its output says "review"
     And its output says "coordinate, work"
+
+  # What holds on one machine only (a stale itos on the PATH, a local path) is
+  # neither the repository's notes nor the generic guide's: it goes in this
+  # clone's own notes, .git/itos/notes.md under the git common dir, which git
+  # never commits and every linked worktree shares (the user's call,
+  # 2026-10-04). itos go prints them after the repository's notes and before
+  # the status, and nothing at all when there are none: the coordinator's
+  # guide names the file, and that line is the nudge to keep them there.
+  @ID-GUIDE-06 @slice-68 @wip
+  Scenario: itos go prints this clone's own notes after the repository's, before the status
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "docs/ORCHESTRATING.md" holding "Our own lesson: the inbox is read first."
+    And this clone's own notes holding "The itos on this machine's PATH is stale."
+    When itos runs "go"
+    Then itos exits with code 0
+    And its output says "Our own lesson: the inbox is read first." before "# This clone's own notes"
+    And its output says "The itos on this machine's PATH is stale." before "# Where things stand"
+
+  # 07 and 08 hold before the work too: they keep the section from being
+  # printed always, empty.
+  @ID-GUIDE-07 @slice-68 @wip
+  Scenario: itos go prints no section for this clone when it keeps no notes
+    Given a repository that does not use itos, its one commit "docs: start"
+    When itos runs "go"
+    Then itos exits with code 0
+    And its output does not say "# This clone's own notes"
+
+  @ID-GUIDE-08 @slice-68 @wip
+  Scenario: itos go prints no section for this clone when its notes hold only blanks
+    Given a repository that does not use itos, its one commit "docs: start"
+    And this clone's own notes holding "   "
+    When itos runs "go"
+    Then itos exits with code 0
+    And its output does not say "# This clone's own notes"
