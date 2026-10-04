@@ -46,7 +46,7 @@ phases:
 queue:
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
-  - p1-done-body-url-footer
+  - bug-18
   - p1-registry-archive
   - p1-work-show-gaps
   - p1-release-notes-footers
@@ -4494,14 +4494,15 @@ items:
       nightly and the last green run need a provider each: p1-status-nightly-green.
     refs: [features/status.feature]
 
-  - id: p1-done-body-url-footer
+  - id: bug-18
     title: itos's own commit bodies put no line where the lint reads a footer
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-done-body-url-footer.
       Found by slice 67's agent (2026-10-04): work done's close commit printed the header lint's
       footer-leading-blank warning. Its body ends with the run's address on a line of its own
       (https://…), which the lint reads as a footer token (https:). Keep the address inside a
