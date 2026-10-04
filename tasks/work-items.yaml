@@ -4289,3 +4289,19 @@ items:
       docs and chore, so a slice, which has no task, can commit its steps red first in a test commit
       before its feat (docs/ORCHESTRATING.md asks the brief for one), and a spec written in a docs
       commit names its item, which work show then lists.
+
+  - id: p1-release-notes-footers
+    title: Release notes quote only real footers, and a multi-line footer as written
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found 2026-10-04 reading v2.15.1's and v2.21.1's notes: a footerless docs commit whose wrapped
+      body has a line starting Changes: was listed under What it changes on purpose (b79c767 in
+      v2.15.1); and a multi-line Upgrading footer (63d7046 in v2.21.1) is quoted as a blockquote
+      whose later lines lose their indent and the quote marker, so a config snippet in it does not
+      render as copyable. Footers are the last paragraph's trailers only when git reads them as
+      trailers; a multi-line free-text footer keeps its lines (p3-text-footer-lines). Also: an
+      Upgrading that starts with none followed by text reads as none.
