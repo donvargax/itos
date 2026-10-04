@@ -3590,3 +3590,18 @@ items:
       item's take and close are registry-only commits itos wrote and checked, and waiting a CI run
       for each made one item cost three waits. Prose ranges still wait, since they can fail.
     refs: [features/watch.feature, internal/cli/watch.go]
+
+  - id: slice-57
+    title: itos work show, an item's spec and commits, the unit an agent reads and a reviewer reviews
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-54]
+    kind: slice
+    why: >
+      Specified as @ID-SHOW-01 to 06 in features/show.feature (the user's calls, 2026-10-03): which
+      commits belong to an item is itos's knowledge, in footers and, under stealth, in notes; work
+      show lists them with the item and its scenarios, --patch adds the diffs. It replaces
+      p1-work-brief's filled brief with the agent's reading list, and is the input of a read-only
+      post-landing review.
+    refs: [features/show.feature]
