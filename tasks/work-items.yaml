@@ -58,6 +58,7 @@ queue:
   - p1-work-as-empty
   - p1-push-superseded-run
   - p3-guard-cd
+  - p1-version-mutation-gaps
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
