@@ -3,6 +3,7 @@ questions:
   - id: q-1
     item: "bug-12"
     question: "The starter config itos init writes requires a Task footer of docs commits, but work add, edit, take, done and task add commit docs with none, so every registry command fails under init's own hooks (bug 12's @ID-INIT-23 and 24 wait on this). Drop docs from the starter's required_for, as this repository does (the coordinator's recommendation), exempt a docs commit touching only the registry and ledger in the hook, or something else? The Item: footer, once built, could also satisfy it."
+    answer: "Option 1 (2026-10-04): drop docs from the starter's required_for, as this repository does, and give docs the starter's one path scope (Markdown, docs/ and itos's data beside the ledger), so a change labelled docs to skip the Task footer is still refused. Every other type stays unscoped."
   - id: q-2
     item: "p1-push-needs-hooks"
     question: "Refusing itos commit and itos push when the hook they rely on cannot run breaks every consumer without hooks installed. Put it behind a config key, off by default until v3.0.0, with only the clear bug (core.hooksPath naming a missing folder) refused at once as a fix (the coordinator's recommendation)?"
