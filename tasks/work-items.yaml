@@ -45,12 +45,12 @@ phases:
 
 queue:
   - T-089
+  - T-087
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
   - p1-registry-archive
   - p1-work-show-gaps
   - p1-release-notes-footers
-  - T-087
   - p1-commit-wrap-review
   - p1-work-as-empty
   - p1-push-superseded-run
