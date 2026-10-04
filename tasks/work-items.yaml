@@ -4575,7 +4575,7 @@ items:
     refs: [features/ask.feature, internal/ask]
 
   - id: T-085
-    title: PLAN.md's decisions become records in docs/adr/, and PLAN.md keeps what itos is
+    title: PLAN.md's decisions become records in docs/decisions/, and PLAN.md keeps what itos is
     phase: 1
     owner: donvargax
     status: todo
@@ -4594,6 +4594,9 @@ items:
 
       Waits on p1-adr-madr (2026-10-04): the records it seeds are written in MADR, once q-9 and q-10
       settle the folder and the release.
+
+      Slice 71 landed (v3.0.0): records are MADR 4 in docs/decisions, decision 1 already there, so
+      seeding numbers from 0002, by hand in the exact form itos ask record writes.
     refs: [PLAN.md, docs/adr]
 
   - id: p1-status-nightly-green
