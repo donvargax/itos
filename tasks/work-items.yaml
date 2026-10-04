@@ -4521,14 +4521,15 @@ items:
       there, since an empty file prints nothing. No itos notes command: it is a plain file.
     refs: [features/guide.feature]
 
-  - id: p1-ask-record-decisions
+  - id: slice-69
     title: itos ask record writes an answered question as an ADR, and itos ask nudges toward it
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ask-record-decisions.
       The user's calls (2026-10-04). Decisions a human can find: the user's calls sat in item whys
       (85 in the registry, 28 in PLAN.md), unreadable to a person and lost once p1-registry-archive
       drops done items. ADRs on demand, never written by agents unasked, to avoid sprawl: an
@@ -4551,7 +4552,7 @@ items:
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: [p1-ask-record-decisions]
+    depends_on: [slice-69]
     kind: idea
     why: >
       The user's calls (2026-10-04). Seed ADRs from PLAN.md's curated decisions only, its decisions
