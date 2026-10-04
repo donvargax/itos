@@ -3709,14 +3709,15 @@ items:
       of slice 55 found the only undo code in itos untested, with holes (p1-commit-rollback-tested).
       Worth making a standing step.
 
-  - id: p3-coordinator-skill
+  - id: slice-64
     title: ORCHESTRATING.md becomes the itos plugin's /itos:coordinate skill and itos:implementer agent
     phase: 3
     owner: null
     status: todo
     depends_on: [p1-handoff-status, slice-57]
-    kind: idea
+    kind: slice
     why: >
+      Was p3-coordinator-skill.
       The user's calls (2026-10-03): the coordinator's guide is itos's, not a project's. What a
       command can decide becomes a gate; the judgment left becomes a skill shipped in the plugin
       with disable-model-invocation: true, so only the user starts it (/itos:coordinate) and no
