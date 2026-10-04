@@ -44,7 +44,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-084
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
   - p1-status-releases-nightly
