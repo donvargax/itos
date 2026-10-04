@@ -1617,6 +1617,11 @@ items:
       follow-ups join it as they land. The inbox becomes a config command or an extension, not built
       in; offline it prints the local part and says what it could not reach.
 
+      Specified as @ID-STATUS-01 to 05 (2026-10-04), the state alone. Once it lands, docs/HANDOFF.md
+      is deleted in the commit that cuts docs/ORCHESTRATING.md to this repository's own
+      (p1-orchestrating-own-notes).
+    refs: [features/status.feature]
+
   - id: p1-work-spend
     title: "The tokens each item cost, recorded by the coordinator and summed"
     phase: 1
