@@ -3753,3 +3753,15 @@ items:
       Found by itos-cc crap (2026-10-03): compareSame (complexity 36), validate and compare are the
       schema-contract gate's core (T-070) and only the nightly's TypeScript self-test reaches them,
       so a bug there would quietly let a breaking config change through.
+
+  - id: p1-tools-bin-shared
+    title: tools/bin's programs share git, lastRelease and anyReleasable
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by itos-cc dry (2026-10-03): git(), lastRelease() and anyReleasable() are copied across
+      plugin-version, previous-release, release-version and schema-contract. One shared package
+      under tools/bin.
