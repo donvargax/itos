@@ -168,6 +168,13 @@ the rest.
 > scenario this slice will make untrue, and that the `feat` corrects it and
 > says so.>
 >
+> Red first: write the steps the scenarios need and commit them alone, in a
+> `test:` commit with the scenarios still `@wip`, before any code; run the
+> scenarios with `@wip` removed locally and see each fail at the step that
+> checks the behaviour (not at an undefined step), then write the code and
+> remove `@wip` in the `feat`. Report each scenario's failing step. A guard
+> scenario meant to pass before the work says so in its comment.
+>
 > Check the scenarios' labels and names against what you build, correcting
 > only a name, never what a scenario checks. If a scenario can't show the
 > behaviour it names, stop and propose the change, as `AGENTS.md` says.
@@ -193,7 +200,8 @@ the rest.
 > `main`, get CI green, and wait for the CI result before you report:
 > `tools/bin/itos push` waits for it, run in the background and monitored.
 >
-> Report: the commits, the CI run URL, the scenarios turned green, <the
+> Report: the commits, the CI run URL, each scenario's failing step before
+> the work, the scenarios turned green, <the
 > slice's own questions>, what the next slice will find missing (the
 > `kind: idea` items its last `docs` commit added), and any scenario text
 > corrected and why.
@@ -261,6 +269,11 @@ teaches you a new one, stated as the rule and its reason.
   wrong thing or proves nothing. Before committing a spec, look its names up
   in the code and the interface, and ask whether the scenario can fail
   before the work.
+- **Red first, checkable after the fact** (the user's call, 2026-10-04). An
+  agent commits the steps in a `test:` commit, scenarios still `@wip`, before
+  the `feat`, and reports each scenario's failing step. Nothing enforces it
+  yet (`p1-wip-red-first`), but git shows the order, and a reviewer can check
+  that commit out and run the scenarios to see them red.
 - **Agents hand back before CI finishes.** A report often says "CI not
   confirmed", and not by the agent's choice: the harness asks a subagent for
   its hand-back while its CI watch still runs (T-077's agent said so), so a
