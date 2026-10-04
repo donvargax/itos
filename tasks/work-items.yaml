@@ -4276,7 +4276,7 @@ items:
     title: Declare the Item footer in this repository, standing in for Task for test, docs and chore
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     why: >
