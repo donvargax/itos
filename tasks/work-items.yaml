@@ -3686,3 +3686,18 @@ items:
       path deleted but not staged passes the clean check and is staged on rollback; its messages
       still say registry for a ledger file. A Go test with a commit-msg hook that exits 1, asserting
       both files as they were, the new file gone and git status clean, then one shared restore.
+
+  - id: p1-work-edit-lists
+    title: itos work edit handles every list the registry holds
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the post-landing review of slice 54: value.Doc refuses a flow list that spans several
+      lines, which the formatter writes for long lists, so itos work edit T-073 --refs fails on this
+      registry today with a message that does not say how to fix it; a block list cannot be emptied
+      (the error says to edit it by hand); and --refs '' on an item with no refs commits a change.
+      Replace a multi-line flow list whole by a one-line one, empty a block list in place, and
+      compare an absent key as an empty list.
