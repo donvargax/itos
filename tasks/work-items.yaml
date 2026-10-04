@@ -4213,8 +4213,8 @@ items:
   - id: slice-62
     title: itos ask, the questions waiting on the user, public beside the registry
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-61]
     kind: slice
     why: >
