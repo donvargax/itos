@@ -10,7 +10,9 @@ package cli
 // fetched, and the commits since it the next release would carry, the feat,
 // fix and breaking ones, read from the commits as fetched here; after the
 // head's CI run (slice 72), the last nightly's, looked at once through the
-// same provider when it names a nightly, and left out when it names none; then the
+// same provider when it names a nightly, and left out when it names none;
+// before it, while the head's run is going or has not passed (slice 73), the
+// commit main last proved, as ci.range's provider names it, read once; then the
 // person's items in progress, the next ones they can start in the queue's
 // order (a handful), and the open questions of itos ask. It reads, never writes. What cannot be reached is
 // one line naming it, and the rest still prints, exit 0; a status that
@@ -67,6 +69,10 @@ type standing struct {
 	Every  bool        `json:"every_item,omitempty"`
 	Head   *remoteHead `json:"head"`
 	CI     *ciStanding `json:"ci"`
+	// LastGreen is the commit main last proved; nil when the head's run
+	// passed or was not read, ci.range's provider is none, it names no
+	// commit, or it cannot be read.
+	LastGreen *lastGreen `json:"last_green"`
 	// Nightly is the last nightly's run; nil when ci.watch names no
 	// nightly, it has no run yet, or it cannot be read.
 	Nightly *providers.Run `json:"nightly"`
@@ -102,6 +108,13 @@ type remoteHead struct {
 	Commit      string `json:"commit"`
 	Header      string `json:"header"`
 	LastFetched bool   `json:"last_fetched"`
+}
+
+// lastGreen is the commit ci.range's provider names as main's last green
+// one, and its header ("" when the commit is not fetched here).
+type lastGreen struct {
+	Commit string `json:"commit"`
+	Header string `json:"header"`
 }
 
 // ciStanding is the head's CI run as one look saw it: its result, success,
@@ -259,6 +272,9 @@ func (st *standing) readBranch(cfg *config.Loaded, remote, ref, branch string, o
 	}
 	st.start = append(st.start, line)
 	st.readCI(cfg, remote, sha, o)
+	if st.CI != nil && st.CI.Result != "success" {
+		st.readLastGreen(cfg, remote, o)
+	}
 	st.readRelease(remote, branch, head)
 }
 
@@ -449,6 +465,42 @@ func (st *standing) readCI(cfg *config.Loaded, remote, sha string, o Out) {
 	}
 }
 
+// readLastGreen looks once at the commit main last proved, through
+// ci.range's provider, and prints nothing when the provider is none.
+func (st *standing) readLastGreen(cfg *config.Loaded, remote string, o Out) {
+	remoteURL, _ := git.Output("remote", "get-url", remote)
+	look, ok, err := providers.LastGreenProvider(cfg, providers.WatchSetup{
+		Env:       os.Getenv,
+		RemoteURL: strings.TrimSpace(remoteURL),
+		GhToken:   providers.GhToken,
+		Stderr:    o.Stderr,
+	})
+	switch {
+	case err != nil:
+		st.unread(fmt.Sprintf("The last green commit cannot be read: %s", err))
+		return
+	case !ok:
+		return
+	}
+	sha, err := look()
+	switch {
+	case err != nil:
+		st.unread(fmt.Sprintf("The last green commit cannot be read: %s", err))
+	case sha == "":
+		st.start = append(st.start, "Last green: none found")
+	default:
+		green := &lastGreen{Commit: sha}
+		line := "Last green: " + short(sha)
+		if git.HasCommit(sha) {
+			header, _ := git.Output("log", "-1", "--format=%s", sha)
+			green.Header = strings.TrimSpace(header)
+			line += " " + green.Header
+		}
+		st.LastGreen = green
+		st.start = append(st.start, line)
+	}
+}
+
 // readNightly looks once at the last nightly's run on the branch through
 // ci.watch's provider, and prints nothing when it names no nightly.
 func (st *standing) readNightly(cfg *config.Loaded, remote, branch string, o Out) {
@@ -516,6 +568,7 @@ func (st *standing) fields() []out.Field {
 	return append(fields, []out.Field{
 		{Key: "head", Value: st.Head},
 		{Key: "ci", Value: st.CI},
+		{Key: "last_green", Value: st.LastGreen},
 		{Key: "nightly", Value: st.Nightly},
 		{Key: "release", Value: st.Release},
 		{Key: "unreleased", Value: st.Unreleased},

@@ -1611,6 +1611,19 @@ add`ed so `--only` can name it, git add's words and the commit's on
   look and no line; the head's line and the nightly's share `runLine`, so
   both word a result alike. The nightly is read even where the head is not
   (no remote, no branch yet): the command provider needs neither.
+  While the head's run is going, did not pass or has not started (any
+  result but `success`; not when it could not be read), the commit main
+  last proved follows it (slice 73, `readLastGreen`): one call of the
+  `providers.LastGreenLook` that `LastGreenProvider` builds from
+  `ci.range`, the provider a push's range starts from. `none` gives no look
+  and no line; `command` is `ci.range.command`'s first line, as `FirstLine`
+  reads it but failing when the command fails; `github` is the `GitHub`
+  value with `ci.range.github`'s workflow and branch, its token and
+  repository found by `watchGitHub` as the watch's are (the environment,
+  else gh and the remote's URL), so it reads outside CI, where
+  `RangeProvider` finds neither; its `LastGreen` is `LastGreenRun` with what
+  went wrong, which `LastGreenRun`, never failing, drops. The commit's header
+  is the local commit's when it is fetched, else the SHA stands alone.
   The newest release (slice 70, `readRelease`) is asked of the same remote
   with `git ls-remote --tags` under the same timeout, an annotated tag's
   peeled `^{}` commit standing for it, and read from `refs/tags/` as last

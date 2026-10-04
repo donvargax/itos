@@ -1,8 +1,10 @@
 package providers
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -73,5 +75,52 @@ func TestLastGreenRun(t *testing.T) {
 	asked = nil
 	if got := (GitHub{Workflow: "ci.yml", Branch: "main"}).LastGreenRun(); got != "" || asked != nil {
 		t.Errorf("without a repository nobody is asked: %q, %v", got, asked)
+	}
+}
+
+// What itos status reads of the last green commit (slice 73): LastGreen
+// says why it could not read the runs, where LastGreenRun reads none.
+func TestLastGreenSaysWhatWentWrong(t *testing.T) {
+	answer, status := `{"workflow_runs":[{"head_sha":"abc","conclusion":"success","created_at":"x"}]}`, 200
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(answer))
+	}))
+	defer server.Close()
+	defer func(api string) { GitHubAPI = api }(GitHubAPI)
+	GitHubAPI = server.URL
+
+	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "main"}
+	if sha, err := g.LastGreen(); sha != "abc" || err != nil {
+		t.Errorf("LastGreen = %q, %v, want abc", sha, err)
+	}
+	answer = `{"workflow_runs":[]}`
+	if sha, err := g.LastGreen(); sha != "" || err != nil {
+		t.Errorf("no green run: LastGreen = %q, %v, want none and no error", sha, err)
+	}
+	for _, c := range []struct {
+		answer string
+		status int
+	}{{"{}", 404}, {"not json", 200}} {
+		answer, status = c.answer, c.status
+		if sha, err := g.LastGreen(); sha != "" || err == nil {
+			t.Errorf("%d %s: LastGreen = %q, %v, want an error", c.status, c.answer, sha, err)
+		}
+	}
+}
+
+// ci.range's provider none reads no last green commit, and github's says
+// before asking when it has no token, naming ci.range.
+func TestTheLastGreenProviderIsCIRanges(t *testing.T) {
+	noEnv := func(string) string { return "" }
+	signedOut := func() (string, error) { return "", errors.New("exit 4") }
+	setup := WatchSetup{Env: noEnv, GhToken: signedOut, RemoteURL: "git@github.com:o/n.git"}
+	cfg := githubWatchConfig()
+	if _, ok, err := LastGreenProvider(cfg, setup); ok || err == nil || !strings.HasPrefix(err.Error(), "ci.range's github provider needs a token") {
+		t.Fatalf("github with no token: ok %v, err %v", ok, err)
+	}
+	cfg.CI.Range.Provider = "none"
+	if _, ok, err := LastGreenProvider(cfg, setup); ok || err != nil {
+		t.Fatalf("provider none: ok %v, err %v", ok, err)
 	}
 }

@@ -131,7 +131,7 @@ Feature: itos status, where the work stands
   # provider reads it for a push's range (the github provider's last green
   # run, or ci.range.command's first line), only when the head's run has not
   # passed (p1-status-last-green).
-  @ID-STATUS-11 @slice-73 @wip
+  @ID-STATUS-11 @slice-73
   Scenario: While the head's run is going, status names main's last green commit
     Given the watched run never finishes
     And the remote has gained the commit "fix: one" touching "a.txt"
@@ -142,7 +142,7 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "fix: one"
 
-  @ID-STATUS-12 @slice-73 @wip
+  @ID-STATUS-12 @slice-73
   Scenario: When the head's run passed, status names no last green commit
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote has gained the commit "fix: one" touching "a.txt"

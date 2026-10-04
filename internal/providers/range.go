@@ -112,19 +112,25 @@ type GitHub struct {
 // LastGreenRun is the head commit of the workflow's last successful run on
 // the branch, read from the GitHub API with the workflow's token
 // (`actions: read`). Anything that goes wrong reads as "no green run", which
-// runs everything, and with no repository nobody is asked. The runs are
-// listed and the newest success taken: the API's own `status=success` filter
-// can answer with a run far older than the newest green one, and the range
-// would then name every task since.
+// runs everything, and with no repository nobody is asked.
 func (g GitHub) LastGreenRun() string {
 	if g.Repository == "" {
 		return ""
 	}
+	sha, _ := g.LastGreen()
+	return sha
+}
+
+// LastGreen is LastGreenRun with what went wrong: "" and no error when no
+// listed run succeeded. The runs are listed and the newest success taken:
+// the API's own `status=success` filter can answer with a run far older than
+// the newest green one, and the range would then name every task since.
+func (g GitHub) LastGreen() (string, error) {
 	url := fmt.Sprintf("%s/repos/%s/actions/workflows/%s/runs?branch=%s&per_page=50",
 		GitHubAPI, g.Repository, g.Workflow, encodeURIComponent(g.Branch))
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	if g.Token != "" {
@@ -132,19 +138,58 @@ func (g GitHub) LastGreenRun() string {
 	}
 	res, err := (&http.Client{Timeout: Timeout}).Do(req)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode > 299 {
-		return ""
+		return "", fmt.Errorf("GitHub answered %s for %s's runs", res.Status, g.Workflow)
 	}
 	var body struct {
 		WorkflowRuns []WorkflowRun `json:"workflow_runs"`
 	}
-	if json.NewDecoder(res.Body).Decode(&body) != nil {
-		return ""
+	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
+		return "", fmt.Errorf("GitHub's list of %s's runs cannot be read: %w", g.Workflow, err)
 	}
-	return FirstGreen(body.WorkflowRuns)
+	return FirstGreen(body.WorkflowRuns), nil
+}
+
+// LastGreenLook is one look at the commit main last proved, as ci.range's
+// provider names it: "" and no error when it names none.
+type LastGreenLook func() (sha string, err error)
+
+// LastGreenProvider is the look itos status takes at the last green commit
+// (slice 73), through ci.range's provider: ok is false for none. command is
+// ci.range.command's first line, an error when it fails; github is the last
+// green run of ci.range.github's workflow on its branch, the repository and
+// token found as ci.watch's github provider finds them (the environment,
+// else the remote's URL and gh), so it reads outside CI too. An error is a
+// provider that cannot look at all, said before any request.
+func LastGreenProvider(cfg *config.Loaded, s WatchSetup) (look LastGreenLook, ok bool, err error) {
+	r := cfg.CI.Range
+	switch r.Provider {
+	case "none":
+		return nil, false, nil
+	case "command":
+		command := ""
+		if r.Command != nil {
+			command = *r.Command
+		}
+		return func() (string, error) {
+			var stdout bytes.Buffer
+			res := shell.Run(cfg, command, shell.Options{Stdout: &stdout, Stderr: s.Stderr, Timeout: Timeout})
+			if !res.OK() {
+				return "", fmt.Errorf("ci.range.command failed (exit %s): %s", res.Status(), command)
+			}
+			line, _, _ := strings.Cut(value.Trim(stdout.String()), "\n")
+			return value.Trim(line), nil
+		}, true, nil
+	}
+	g, err := watchGitHub(cfg, "ci.range", s)
+	if err != nil {
+		return nil, false, err
+	}
+	g.Workflow, g.Branch = r.GitHub.Workflow, r.GitHub.Branch
+	return g.LastGreen, true, nil
 }
 
 // WorkflowRun is what the github provider reads of a run.
