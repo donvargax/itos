@@ -44,7 +44,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-69
   - slice-70
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
