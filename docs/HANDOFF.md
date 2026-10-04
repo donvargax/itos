@@ -19,8 +19,8 @@ and the inbox.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `74fc41a`, slice 55's close (CI run 37169394741, every job,
-`release` cutting v2.15.0); the coordinator's registry batch after it is pushed
+All work is @donvargax's. `main` is green at `b357802`, bug 12's first half (CI run 37172003272, every job,
+`release` cutting v2.15.1); the coordinator's registry batch after it is pushed
 with this file. The coordinator commits only between
 agents, from the main checkout; its docs worktree was dropped (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
@@ -41,7 +41,8 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.15.0 (`itos task add`, slice 55), v2.14.0 (`itos work add` and `edit`, slice 54; `itos work` refusing
+Released: v2.15.1 (the first registry item and ledger task written into init's empty lists, bug 12's
+@ID-INIT-25; T-081 let its Changes: footer name the init case by a prefix), v2.15.0 (`itos task add`, slice 55), v2.14.0 (`itos work add` and `edit`, slice 54; `itos work` refusing
 an unknown subcommand, bug 11), v2.13.0 (`itos work done`, slice 53, which closed itself), v2.12.0 (`itos work take` and `itos work promote`, each committing
 the registry alone, slice 52), v2.11.0 (`itos push` waits for CI with `ci.watch`, opt-in, and
 `itos ci watch`, slice 51), v2.10.0 (init's rerun notes a pin behind the newest and a missing
@@ -61,12 +62,9 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
 `take`, `done`; nothing in `tasks/work-items.yaml` is edited by hand.
 
 1. In order:
-   - **`T-081`** first (`Changes:` names a corpus case by a unique prefix),
-     then **`bug-12`** (`p1-add-to-empty-list`; work add and task add in a
-     repository init set up), whose fix is written and waits on T-081: its
-     released init corpus case cannot be named within a 100-character footer
-     line. Resume it with @ID-INIT-25; INIT-23 and 24 stay `@wip` until the
-     user's call below;
+   - **`bug-12`** stays open: its fix landed (v2.15.1) with @ID-INIT-25;
+     @ID-INIT-23 and 24 wait on the user's call below, then land as a `fix`
+     naming them;
    - **`bug-13`** (`p1-commit-rollback-tested`, @ID-TASK-09 and 10) and
      **`bug-14`** (`p1-work-edit-lists`, @ID-WORK-26 to 28), specified;
    - **`slice-56`** (`itos push` returns at once for a registry-only range,
