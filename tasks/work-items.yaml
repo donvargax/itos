@@ -4643,6 +4643,10 @@ items:
       defaults it starts a second log of decisions beside the first, numbered from 1 again. Settled
       for slice-69 as docs/adr or the .adr-dir's folder, so whether an existing doc/adr wins is the
       user's call; a scenario beside @ID-ASK-11 would say it.
+
+      The user's call (2026-10-04, q-8): no. docs/adr stays the default and another folder is
+      configured with .adr-dir; defaults follow the most common convention, configuration is the
+      escape hatch. Nothing to build.
     refs: [internal/adr, features/ask.feature]
 
   - id: p1-release-rules-one-copy
