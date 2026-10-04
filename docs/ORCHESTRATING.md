@@ -110,6 +110,11 @@ install`, because a second install can load two copies of a tool;
 
 ## Lessons from this repository
 
+- **Trace each Given to where itos runs before handing a spec out.** Twice on
+  2026-10-04 a scenario asserted what its setup could not produce: `itos go`
+  prints no status without a config (slice 68), and a step that changes the
+  remote fetches nothing into the clone itos runs in (slice 70). Red first
+  caught both, each at the cost of an agent's round trip.
 - **A checkpoint push that names a task runs that task's checks**, so one
   pushed before the task's `done_when` is met is red by design. Likewise an
   `after: push` check waiting on a release or a tag fails every push naming its
