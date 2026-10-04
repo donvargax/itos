@@ -307,3 +307,69 @@ Feature: itos init, a repository made ready for itos
     Then itos exits with code 0
     And the ledger file "tasks/phase-1.yaml" has the task "T-1" with the check "true"
     And the registry's item "T-1" is a task titled "Tidy the readme" with the status "todo"
+
+  # Slice 59, the first half of p3-init-agent-rules (the user's calls,
+  # 2026-10-03; PLAN.md §10, "Adoption"): init readies agents too. What the
+  # config decides (the commit types, the footer each needs, the paths each
+  # may touch, what each gate runs) is generated from the config into a
+  # marked block of AGENTS.md, between <!-- itos:begin --> and
+  # <!-- itos:end -->, beside a line pointing to the itos skill of the Claude
+  # Code plugin, which holds how to work with itos; and CLAUDE.md gets a line
+  # importing it, @AGENTS.md, so Claude Code reads it. The block is written
+  # formatter-stable, one line per paragraph and no code span across lines,
+  # so a project's formatter leaves it alone. It is offered as the plugin is
+  # (slice 49): --agent-rules writes it, --no-agent-rules declines, a terminal
+  # is asked, and anywhere else nothing is written and the report says how.
+  # itos touches only what is inside the markers: an AGENTS.md without them
+  # gains the block at its end, its text kept; a CLAUDE.md that lacks the
+  # import gains it as its last line, a missing one is created holding it.
+  # Run again, init reports a block the config no longer matches, naming
+  # itos init --agent-rules, which rewrites only inside the markers; like the
+  # plugin, it is reported and never counted as missing. The stealth half
+  # (CLAUDE.local.md and Codex's AGENTS.override.md under .git/info/exclude)
+  # is p3-init-agent-rules-stealth.
+  @ID-INIT-26 @slice-59 @wip
+  Scenario: With --agent-rules init writes the config's rules into a marked block of AGENTS.md, and CLAUDE.md imports it
+    Given a repository that does not use itos, its one commit "docs: start"
+    When itos runs "init --agent-rules"
+    Then itos exits with code 0
+    And the file "AGENTS.md" has the line "<!-- itos:begin -->"
+    And the file "AGENTS.md" has the line "<!-- itos:end -->"
+    And the file "AGENTS.md" says "Task:" between the markers
+    And the file "CLAUDE.md" has the line "@AGENTS.md"
+
+  @ID-INIT-27 @slice-59 @wip
+  Scenario: Away from a terminal and with no --agent-rules, init writes no rules and says how to
+    Given a repository that does not use itos, its one commit "docs: start"
+    When itos runs "init"
+    Then itos exits with code 0
+    And the file "AGENTS.md" does not exist
+    And its output says "--agent-rules"
+
+  @ID-INIT-28 @slice-59 @wip
+  Scenario: An AGENTS.md of the project's own keeps its text, and gains the block at its end
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "AGENTS.md" holding "Be kind to the build."
+    When itos runs "init --agent-rules"
+    Then itos exits with code 0
+    And the file "AGENTS.md" has the line "Be kind to the build."
+    And the file "AGENTS.md" has the line "<!-- itos:begin -->" after the line "Be kind to the build."
+
+  @ID-INIT-29 @slice-59 @wip
+  Scenario: Run again after the config changed, init reports the rules the config no longer matches and changes nothing
+    Given a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init --agent-rules"
+    And the config's commits.types gains "deps"
+    When itos runs "init"
+    Then its output says "itos init --agent-rules"
+    And the file "AGENTS.md" does not say "deps" between the markers
+
+  @ID-INIT-30 @slice-59 @wip
+  Scenario: Run again with --agent-rules, init rewrites the block alone, the text outside the markers kept
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "AGENTS.md" holding "Be kind to the build."
+    And itos has already run "init --agent-rules"
+    And the config's commits.types gains "deps"
+    When itos runs "init --agent-rules"
+    Then the file "AGENTS.md" says "deps" between the markers
+    And the file "AGENTS.md" has the line "Be kind to the build."
