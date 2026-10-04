@@ -1045,3 +1045,64 @@ cases:
     exit: 2
     stderr: |
       itos: work promote needs --as <id>, the slice's or the task's id (itos --help)
+  - name: work done marks an item done and commits the registry alone, saying what it could not check
+    argv: [work, done, x]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: *takeable
+    files:
+      work-items.yaml: *takeable
+    exit: 0
+    stdout_has: "x is done: committed "
+    stderr_has:
+      - "itos: the repository has no remote, so whether its commits are pushed was not checked"
+      - "itos: ci.watch.provider is none, so CI was not checked"
+    files_after:
+      work-items.yaml: "# who does what\nphases: { 1: null }\nitems:\n  - id: x # the first\n    title: \"X, quoted\"\n    phase: 1\n    owner: null\n    status: done\n    depends_on: []\n"
+  - name: work done refuses an item one of whose scenarios at HEAD is still @wip
+    argv: [work, done, x, --json]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: *takeable
+          features/x.feature: "Feature: X\n\n  @ID-X-01 @x @wip\n  Scenario: one\n\n  @ID-X-02 @x\n  Scenario: two\n"
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+        tests:
+          scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
+      work-items.yaml: *takeable
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: work-done-wip
+          message: "x's scenario @ID-X-01 (x.feature) is still @wip at HEAD"
+          fix: "implement it and commit it live, then run itos work done x again"
+    files_after:
+      work-items.yaml: *takeable
+  - name: work done refuses an idea, naming work promote
+    argv: [work, done, idea]
+    exit: 1
+    stderr: |
+      idea is an idea, not yet specified, so there is nothing of it to be done
+        fix: itos work promote idea --as <id> --kind slice|task, then build it
+  - name: work done refuses a deferred item
+    argv: [work, done, parked]
+    exit: 1
+    stderr: |
+      parked is deferred: put off for now
+        fix: remove parked's deferred: first
+  - name: work done of an item already done changes nothing
+    argv: [work, done, done, --json]
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: done, title: Done, phase: 1, owner: a, status: done, depends_on: [] }
+      commit: null

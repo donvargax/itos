@@ -506,7 +506,8 @@ mechanisms above, written against those modules, read across.
   `internal/message` (below), `internal/plan` (CI's plan; below),
   `internal/providers` (the range, watch and identity providers and the people;
   below), `internal/work` (the registry and its problems, the items'
-  statuses, the proposal, and the edits that take and promote an item;
+  statuses, the proposal, and the edits that take, promote and close an
+  item;
   below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git` (the repository's state and ranges, read
@@ -1320,6 +1321,22 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   footer on a take would make CI run the task's checks before its work
   exists. Under a stealth config the registry is in the git folder, tracked
   by nothing: written, nothing committed, and `--json`'s `commit` null.
+- **work done** (slice 53, `internal/cli/workdone.go`) is the landing's
+  check, then a registry write like the two above: `work.Done` judges the
+  registry alone (an idea, a deferred item or a status neither todo nor doing
+  refused, an item already done `Unchanged`), then the command checks, in
+  cost order, stopping at the first that refuses (exit 1): the item's
+  scenarios at HEAD (`tests.Tagged`, the Gherkin kinds' scenarios whose tag
+  line, or their file's, holds `@<id>`, so `@slice-<n>` for the item
+  `slice-<n>`; a command adapter's list carries no tags and is left out),
+  none still `@wip`; no commit of HEAD that no remote has (`rev-list HEAD
+--not --remotes`, said and skipped with no remote at all); a task's static
+  checks, by the commit-msg hook's `firstFailure`, when the id is a task of
+  the ledger; and with `ci.watch`, HEAD's run, by `itos ci watch`'s `watcher`
+  and `watchRun`, so a run still going is waited for and one that does not
+  end exits 3. Without `ci.watch` CI is not checked, said on stderr, and
+  `--json`'s `ci` is `unwatched`. The close commit is `docs: close <id>`,
+  its body naming the run that passed.
 - **The hooks** are `hook commit-msg`, `hook pre-push`
   (`internal/cli/hook.go`) and `hooks install` (`internal/cli/install.go`),
   `hooks.ts` with `commit-data.ts`, `commit-scope.ts`, `commit-tasks.ts` and

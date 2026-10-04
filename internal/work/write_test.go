@@ -78,6 +78,32 @@ func TestPromote(t *testing.T) {
 	}
 }
 
+func TestDone(t *testing.T) {
+	text := "phases: { 1: null }\nitems:\n" +
+		"  - { id: s, title: S, phase: 1, owner: q, status: doing } # landing\n" +
+		"  - { id: d, title: D, phase: 1, owner: q, status: done }\n" +
+		"  - { id: i, title: I, phase: 1, status: todo, kind: idea }\n" +
+		"  - { id: p, title: P, phase: 1, status: todo, deferred: later }\n"
+	r := registryOf(t, text)
+	change, problem, err := Done(r, text, "s")
+	if err != nil || problem != nil {
+		t.Fatal(err, problem)
+	}
+	if !strings.Contains(change.Text, "{ id: s, title: S, phase: 1, owner: q, status: done } # landing") ||
+		change.Header != "docs: close s" || change.Body != `Set s ("S") to done, with itos work done.` ||
+		change.Item.At("owner") != "q" {
+		t.Errorf("done s: %+v", change)
+	}
+	if change, problem, _ := Done(r, text, "d"); problem != nil || !change.Unchanged {
+		t.Errorf("d is done already: %+v %+v", change, problem)
+	}
+	for id, rule := range map[string]string{"i": "work-done-idea", "p": "work-done-deferred", "x": "work-unknown-item"} {
+		if _, problem, _ := Done(r, text, id); problem == nil || problem.Rule != rule {
+			t.Errorf("%s: %+v, not %s", id, problem, rule)
+		}
+	}
+}
+
 func TestWrap(t *testing.T) {
 	if got := Wrap("one two three four", 9); got != "one two\nthree\nfour" {
 		t.Errorf("%q", got)

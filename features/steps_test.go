@@ -82,6 +82,7 @@ type scratchConfig struct {
 	noPeople          bool         // the config names no people file (no work.people)
 	noWork            bool         // the config has no work section, only work's defaults
 	smoke             bool         // tests.scenario has a smoke set, features/smoke.yaml
+	scenarios         bool         // the config has the kind tests.scenario, reading features/
 	smokeEveryFile    *bool        // tests.scenario.smoke.every_file
 	noTagPrefix       bool         // the kind written without tag_prefix
 	hooksManager      string       // hooks.manager
@@ -754,7 +755,7 @@ func (w *world) testsKind() string {
 	switch {
 	case w.config.ciTests != "":
 		return w.config.ciTests
-	case w.config.rangeCheck || w.config.smoke || w.config.moves != nil:
+	case w.config.rangeCheck || w.config.smoke || w.config.moves != nil || w.config.scenarios:
 		return "scenario"
 	}
 	return ""

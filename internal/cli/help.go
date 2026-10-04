@@ -55,6 +55,7 @@ Commands:
   work take <id> [--as <handle>]   set an item in progress for the person, and commit it
   work promote <idea> --as <id> --kind slice|task
                                    make an idea a slice or a task, and commit it
+  work done <id>                   mark an item done once it has landed, and commit it
   work check [<file>]              validate the work registry
   commit [--task <id>] [--scenarios <ids>] [--<footer> <text>] [<git commit args>…]
                                    git commit, with the footers itos writes
@@ -137,6 +138,7 @@ whose id is the task's), or "no item".
        itos work list
        itos work take <id> [--as <handle>]
        itos work promote <idea> --as <id> --kind slice|task
+       itos work done <id>
        itos work check [<file>]
 
 Who the session works for (--as, else the config's work.identity provider) and
@@ -150,7 +152,8 @@ whatever owner it names (every_item: true in --json).
 --json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"}
 
 work list prints every item of the registry instead (itos help work list);
-work take and work promote write it, each committing it (itos help work take).`,
+work take, work promote and work done write it, each committing it (itos help
+work take).`,
 
 	"work take": `Usage: itos work take <id> [--as <handle>]
 
@@ -183,6 +186,25 @@ and nothing committed.
 
 --json: {"schema":1,"ok":true,"item":{…},"was","rewritten":[…],"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+
+	"work done": `Usage: itos work done <id>
+
+Marks the item done once its work has landed, its status done and its owner
+left as it is, and commits the registry alone, "docs: close <id>", as work take
+does (itos help work take). Landed is: none of the item's scenarios at HEAD
+(those tagged @<id>, @slice-<n> for the item slice-<n>) still @wip; no commit
+of HEAD that no remote has (itos push them); a task's static checks passing, as
+the commit-msg hook runs them; and with ci.watch, HEAD's CI run passed, waited
+for as itos ci watch waits when it is still going. Without ci.watch CI is not
+checked, and done says so. Refused, nothing written (exit 1): any of those not
+so, a registry that is not sound or has changes no commit holds, an id no item
+has, an idea (work promote it first), an item deferred, a commit a hook refuses.
+Exit 3 when the run does not end within ci.watch.timeout or cannot be looked
+at. An item already done changes nothing. Under a stealth config the registry
+is written and nothing committed.
+
+--json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"commit":"<sha>"|null},
+or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}],"ci"?,"run"?}`,
 
 	"work list": `Usage: itos work list
 

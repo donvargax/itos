@@ -10,7 +10,8 @@ import (
 )
 
 // The commands that write the registry (slice 52): work take sets an item
-// in progress for the person, work promote makes an idea a slice or a task.
+// in progress for the person, work promote makes an idea a slice or a task,
+// and work done (slice 53) marks an item done.
 // Each judges a sound registry and gives a Change, the registry's text with
 // the edit made in place (value.Doc: every comment, quote and line kept), the
 // item as it is after and the commit message that records it, or the
@@ -117,6 +118,54 @@ func Take(r Registry, text, id, person string, every bool) (Change, *out.Problem
 	}
 	body += ", with itos work take."
 	return Change{Text: edited, Item: after, Header: "docs: take " + id, Body: body}, nil, nil
+}
+
+// Done is the registry with the item done (slice 53): its status done, its
+// owner left as it is. Whether the work landed (its scenarios live, its
+// commits pushed, its CI run green, a task's checks passing) is the command
+// line's to judge (internal/cli/workdone.go); Done judges the registry
+// alone. Refused, with nothing changed: an id no item has, an idea (not yet
+// specified, so nothing of it can be done: work promote makes it a slice or
+// a task), an item deferred, and one whose status is neither todo nor doing.
+// An item already done is Unchanged.
+func Done(r Registry, text, id string) (Change, *out.Problem, error) {
+	i := find(r, id)
+	if i < 0 {
+		return Change{}, unknown(id), nil
+	}
+	item := r.Items[i]
+	refuse := func(rule, message, fix string) (Change, *out.Problem, error) {
+		return Change{}, &out.Problem{Rule: rule, Message: message, Fix: fix}, nil
+	}
+	status := item.At("status")
+	switch {
+	case status == "done":
+		return Change{Item: item, Unchanged: true}, nil, nil
+	case item.At("kind") == "idea":
+		return refuse("work-done-idea", id+" is an idea, not yet specified, so there is nothing of it to be done",
+			"itos work promote "+id+" --as <id> --kind slice|task, then build it")
+	case item.At("deferred") != value.Undefined:
+		return refuse("work-done-deferred", fmt.Sprintf("%s is deferred: %s", id, value.Trim(value.String(item.At("deferred")))),
+			"remove "+id+"'s deferred: first")
+	case status != "todo" && status != "doing":
+		return refuse("work-done-status", fmt.Sprintf("%s is %s, neither todo nor doing", id, value.String(status)),
+			"set "+id+"'s status to doing first (itos work take "+id+")")
+	}
+	doc, err := value.OpenDoc(text)
+	if err != nil {
+		return Change{}, nil, err
+	}
+	if err := doc.Set([]any{"items", i, "status"}, "done"); err != nil {
+		return Change{}, nil, err
+	}
+	edited, err := doc.Text()
+	if err != nil {
+		return Change{}, nil, err
+	}
+	after := value.Copy(item).(*value.Map)
+	after.Set("status", "done")
+	body := fmt.Sprintf("Set %s (%s) to done, with itos work done.", id, value.JSON(value.String(item.At("title"))))
+	return Change{Text: edited, Item: after, Header: "docs: close " + id, Body: body}, nil, nil
 }
 
 // ownerOf is an item's owner, else its group's, nil when neither has one.

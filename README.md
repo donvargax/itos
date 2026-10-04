@@ -73,9 +73,10 @@ pre-push` verifies the commits a push adds before they leave, refusing the
 - **Work routing**: `itos work` says what the person a session works for can
   start next, from `tasks/work-items.yaml` and `CONTRIBUTORS.md`; `itos work
 list` lists every item with its title, done ones too. `itos work take <id>`
-  sets an item in progress for the person and `itos work promote <idea>` makes
-  an idea a slice or a task, each editing the registry in place and committing
-  it alone.
+  sets an item in progress for the person, `itos work promote <idea>` makes
+  an idea a slice or a task, and `itos work done <id>` marks an item done once
+  it has landed (its scenarios live, its commits pushed, its CI run green),
+  each editing the registry in place and committing it alone.
 
 `tools/bin/itos --help` lists the commands, and `itos <command> --help` each
 one. A command itos does not have runs `itos-<command>` from the `PATH`, so

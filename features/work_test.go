@@ -1,7 +1,8 @@
 // The steps of the commands that write the work registry (work.feature,
 // slices 52 and 53): a registry of items with owners, dependencies and
-// ideas, committed, so a command's own commit holds only its change; and
-// what the registry reads after, and what the last commit holds.
+// ideas, committed, so a command's own commit holds only its change; a
+// scenario tagged for an item; and what the registry reads after, and what
+// the last commit holds.
 package features
 
 import (
@@ -28,6 +29,7 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the work registry has the idea "([^"]*)" owned by nobody$`, func(id string) error {
 		return w.registryItem(id, "null", "todo", "", "idea")
 	})
+	sc.Step(`^a feature file with the scenario "([^"]*)" tagged "([^"]*)"$`, w.taggedScenario)
 
 	sc.Step(`^the registry's item "([^"]*)" has the status "([^"]*)" and the owner "([^"]*)"$`, w.registryItemIs)
 	sc.Step(`^the work registry beside the config gives the item "([^"]*)" the status "([^"]*)"$`, func(id, status string) error {
@@ -196,4 +198,19 @@ func (w *world) stillStaged(path string) error {
 		return fmt.Errorf("%s is not staged; the staged files are %q\n%s", path, out, w.report())
 	}
 	return nil
+}
+
+// A feature file of one scenario, its tag line the scenario's ID and the
+// tags, committed, so a command reading the scenarios at HEAD finds it; the
+// config gains the kind tests.scenario, which reads features/.
+func (w *world) taggedScenario(id, tags string) error {
+	w.config.scenarios = true
+	if err := w.writeConfig(); err != nil {
+		return err
+	}
+	text := fmt.Sprintf("Feature: Tagged\n\n  %s %s\n  Scenario: %s runs\n    When it runs\n", id, tags, id)
+	if err := w.write(filepath.Join("features", "tagged.feature"), text); err != nil {
+		return err
+	}
+	return w.commit("test: a tagged scenario")
 }

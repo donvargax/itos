@@ -148,7 +148,7 @@ Feature: The work registry
 
   # Slice 53: done is the landing's check, run by the agent after its push.
   # A slice's scenarios are those tagged @slice-<n> for the item slice-<n>.
-  @ID-WORK-15 @slice-53 @wip
+  @ID-WORK-15 @slice-53
   Scenario: work done refuses a slice one of whose scenarios is still @wip, naming it
     Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
     And a feature file with the scenario "@ID-A-01" tagged "@slice-9 @wip"
@@ -157,7 +157,7 @@ Feature: The work registry
     And its output says "@ID-A-01"
     And the registry's item "slice-9" has the status "doing" and the owner "someone"
 
-  @ID-WORK-16 @slice-53 @wip
+  @ID-WORK-16 @slice-53
   Scenario: work done refuses while the branch has commits no remote has, naming itos push
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -166,7 +166,7 @@ Feature: The work registry
     Then itos exits with code 1
     And its output says "itos push"
 
-  @ID-WORK-17 @slice-53 @wip
+  @ID-WORK-17 @slice-53
   Scenario: work done refuses while HEAD's CI run failed, with ci.watch
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -176,7 +176,7 @@ Feature: The work registry
     Then itos exits with code 1
     And its output says "https://ci.example/runs/1"
 
-  @ID-WORK-18 @slice-53 @wip
+  @ID-WORK-18 @slice-53
   Scenario: work done, everything landed, marks the item done and commits it
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"

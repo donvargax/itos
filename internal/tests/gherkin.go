@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/source"
 	"github.com/donvargax/itos/v2/internal/value"
 )
@@ -156,4 +157,56 @@ func gherkinList(o Options, at string) (List, error) {
 		}
 	}
 	return List{Protocol: 1, Tests: tests, Files: files}, nil
+}
+
+// Tagged are the scenarios of the config's Gherkin kinds at a tree whose
+// tag line, or a tag line of their file's header, holds the tag as a whole
+// word (work done's "@slice-<n>", slice 53), in each kind's order, each ID
+// with its kind's tag prefix, as the tag line writes it. A kind behind a
+// command adapter is left out: the protocol's list carries no tags.
+func Tagged(cfg *config.Loaded, tag, at string) ([]Test, error) {
+	has := regexp.MustCompile("(^|" + value.Space + ")" + regexp.QuoteMeta(tag) + "(" + value.Space + "|$)")
+	tagLine := func(line string) bool { return startsWithTag(line) && has.MatchString(line) }
+	var tagged []Test
+	for _, name := range cfg.Tests.Keys {
+		k := cfg.Tests.Values[name]
+		if k.Adapter.Command != "" || k.Adapter.Name != "gherkin" {
+			continue
+		}
+		o, err := gherkinOptions(cfg, name, k)
+		if err != nil {
+			return nil, err
+		}
+		byPath, err := featureTexts(at, o.Root)
+		if err != nil {
+			return nil, err
+		}
+		paths := make([]string, 0, len(byPath))
+		for path := range byPath {
+			paths = append(paths, path)
+		}
+		sort.Strings(paths)
+		for _, path := range paths {
+			f, err := ParseFeature(byPath[path], o)
+			if err != nil {
+				return nil, err
+			}
+			whole := false
+			for _, line := range strings.Split(f.Header, "\n") {
+				whole = whole || tagLine(line)
+			}
+			rel, err := filepath.Rel(o.Root, path)
+			if err != nil {
+				return nil, err
+			}
+			for _, id := range f.IDs {
+				b := f.Blocks[id]
+				first, _, _ := strings.Cut(b.Body, "\n")
+				if whole || tagLine(first) {
+					tagged = append(tagged, Test{ID: o.TagPrefix + id, File: filepath.ToSlash(rel), Live: !f.FileWip && !b.Wip})
+				}
+			}
+		}
+	}
+	return tagged, nil
 }

@@ -35,10 +35,11 @@ without `gh`, or with it signed out, it says so and proposes `--as`. It lists:
 `--json`) every item with its kind, status and title, done ones too, and
 `tools/bin/itos work check`
 validates the file (known IDs, owners `CONTRIBUTORS.md` lists, no cycle,
-nothing `done` that waits on something open). A session takes an item by
-setting its `owner` and `status: doing` in a `docs` commit before starting,
-marks it `done` when it lands, and adds the items a slice discovers with their
-dependencies.
+nothing `done` that waits on something open). A session takes an item with
+`tools/bin/itos work take <id>` before starting (its `owner` and `status:
+doing`, committed alone), closes it with `tools/bin/itos work done <id>` once
+it has landed (no `@wip` scenario of it left, its commits pushed, its CI run
+green), and adds the items a slice discovers with their dependencies.
 
 The registry is the one list of open work: no TODO or ROADMAP file sits beside
 it. A gap a slice leaves is added as a `kind: idea` item — a title, a short
