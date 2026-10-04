@@ -4222,3 +4222,17 @@ items:
       of 2026-10-04 (questions to the user stay public, as itos ask, committed beside the registry,
       replacing the handoff's open questions and review list).
     refs: [features/ask.feature, features/stealth.feature]
+
+  - id: p1-asks-check
+    title: config check and the commit-msg hook judge itos ask's questions file
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-62]
+    kind: idea
+    why: >
+      Slice 62 left asks.yaml judged only by the next itos ask that reads it: config check does not
+      read it, and the commit-msg hook checks itos's data at commit only for the config, the ledger,
+      the registry and the smoke set. A hand edit that breaks it (an unknown key, an id given twice,
+      an --item naming no item) lands unnoticed until an ask command or work show stops on it with
+      exit 2.
