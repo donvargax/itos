@@ -1533,6 +1533,22 @@ add`ed so `--only` can name it, git add's words and the commit's on
   repository the guide prints alone. A config that cannot be read, or notes
   that are there but cannot be read, is a warning on stderr, never a
   failure: the guide is what a session starts from. They write nothing.
+- **status** (slice 67, `internal/cli/status.go`) is where the work stands,
+  built from what already records it and never written: the remote branch's
+  head is asked of the remote (`git ls-remote` with `GIT_TERMINAL_PROMPT=0`
+  and a 20 s timeout), the branch's upstream or origin's `HEAD` from a
+  detached one, and read from `refs/remotes/` as last fetched when the remote
+  does not answer; its header is the local commit's when it is fetched. Its
+  CI run is one call of the `providers.Watch` that `watcher` builds for
+  `itos ci watch`, so one look, never the loop; a run not done is `going`.
+  The person is `work.Whoami`'s, as `itos work`'s, and the items are
+  `work.Propose`'s: in progress, then `work.Startable`, the proposal's own
+  and unowned items merged in `inQueueOrder`, cut to five; the questions are
+  `loadAsks`'s open ones. Each part that cannot be reached appends a line to
+  `standing.Unread` and to the lines printed, and the rest goes on. `itos go`
+  (`goStatus`) computes it after the guide and prints it after a second
+  `---`, or under `--json` as the `status` key; a config that is not there
+  or not read, or a registry with problems, is one line on stderr instead.
 - **The lock** (`internal/lock`, bug 16) is the one way itos keeps two
   writers of a file from losing a change: `lock.Hold(path)` makes
   `path.lock` with `O_EXCL`, which works the same on Linux, macOS and
