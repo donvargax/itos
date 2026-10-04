@@ -4,7 +4,8 @@
 // the pre-push hook and hooks.pre_push's commands, a push of a new branch,
 // and what the remote's branches hold afterwards; two takes of one item of
 // the work registry, one the remote's and one the clone's, and the owner the
-// remote's registry gives it (slice 66).
+// remote's registry gives it (slice 66); a tag on the remote's head, and a
+// fetch of the remote into the clone (status.feature, slice 70).
 package features
 
 import (
@@ -29,6 +30,12 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 		return w.git("config", "--local", key, value)
 	})
 	sc.Step(`^the remote has gained the commit "([^"]*)" touching "([^"]*)"$`, w.remoteGainsCommit)
+	sc.Step(`^the remote's head is tagged "([^"]*)"$`, func(tag string) error {
+		return w.gitIn(w.remote(), "tag", tag, "HEAD")
+	})
+	sc.Step(`^the clone has fetched the remote$`, func() error {
+		return w.git("fetch", "-q", "origin")
+	})
 	sc.Step(`^the clone has the commit "([^"]*)" touching "([^"]*)"$`, w.cloneCommits)
 	sc.Step(`^the clone's "([^"]*)" has an uncommitted change$`, w.uncommittedChange)
 	sc.Step(`^the clone's "([^"]*)" still has its uncommitted change$`, w.stillUncommitted)
