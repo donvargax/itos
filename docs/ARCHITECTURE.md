@@ -1385,9 +1385,11 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   and what else is staged stays staged (git commits the path through a
   temporary index). A commit that fails puts the file back and the index
   entry with `git reset`, which is exact since the registry was clean. The
-  commit is a `docs` one with no footer, its body wrapped at 100: a `Task:`
-  footer on a take would make CI run the task's checks before its work
-  exists. Under a stealth config the registry is in the git folder, tracked
+  commit is a `docs` one with no footer, its body wrapped at 100 by the wrap
+  `itos commit` uses (`selfBody`, `message.Wrap`, bug 18), so no line starts
+  with what the header lint reads as a footer or with git's comment char: a
+  `Task:` footer on a take would make CI run the task's checks before its
+  work exists. Under a stealth config the registry is in the git folder, tracked
   by nothing: written, nothing committed, and `--json`'s `commit` null.
 - **work done** (slice 53, `internal/cli/workdone.go`) is the landing's
   check, then a registry write like the two above: `work.Done` judges the
