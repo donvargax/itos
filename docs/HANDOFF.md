@@ -61,13 +61,14 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
 `take`, `done`; nothing in `tasks/work-items.yaml` is edited by hand.
 
 1. In order:
-   - **`p1-add-to-empty-list`** first: `itos work add` and `task add` fail
-     on the empty registry and ledger `itos init` writes, and no command
-     adds a phase, so every newly adopted repository starts broken;
-   - **`p1-commit-rollback-tested`**: the only undo code in itos
-     (`writeCommitted`) has no test and has holes (slice 55's review);
-   - **`p1-work-edit-lists`**: `itos work edit` fails on multi-line lists,
-     T-073's among them (slice 54's review);
+   - **`T-081`** first (`Changes:` names a corpus case by a unique prefix),
+     then **`bug-12`** (`p1-add-to-empty-list`; work add and task add in a
+     repository init set up), whose fix is written and waits on T-081: its
+     released init corpus case cannot be named within a 100-character footer
+     line. Resume it with @ID-INIT-25; INIT-23 and 24 stay `@wip` until the
+     user's call below;
+   - **`bug-13`** (`p1-commit-rollback-tested`, @ID-TASK-09 and 10) and
+     **`bug-14`** (`p1-work-edit-lists`, @ID-WORK-26 to 28), specified;
    - **`slice-56`** (`itos push` returns at once for a registry-only range,
      @ID-WATCH-10 and 11);
    - **`slice-57`** (`itos work show`, @ID-SHOW-01 to 06), then each landed
@@ -110,7 +111,16 @@ Deferred until itos-cc is published: `p3-role-protocol`, `p3-debt-role`,
 `v3-hooks-bin-default` and `v3-stealth-pre-push` (a stealth config's hooks
 gain the pre-push entry, changing a released corpus case).
 
-Open for the user: when the other repositories move (by hand from a
+Open for the user, blocking bug 12's @ID-INIT-23 and 24: the starter config
+`itos init` writes requires a `Task:` footer of `docs` commits (your call), but
+`work add`, `edit`, `take`, `done` and `task add` commit `docs` with no footer
+on purpose, so every registry command fails under init's own hooks. The
+coordinator recommends dropping `docs` from the starter's `required_for`, as
+this repository's `itos.yaml` does; the alternatives are a hook exemption for
+a `docs` commit touching only the registry and ledger, or a footer on registry
+commits (impossible for an idea, which names no task).
+
+Also open for the user: when the other repositories move (by hand from a
 release's notes now, or with `itos pin`; `itos init` only reports what an
 existing repository lacks). Whether this repository's hand-written rules in
 `AGENTS.md` become the generated block, once `p3-init-agent-rules` lands (the
