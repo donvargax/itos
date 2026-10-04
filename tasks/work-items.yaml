@@ -51,6 +51,7 @@ queue:
   - slice-60
   - slice-59
   - p1-registry-archive
+  - p1-work-show-gaps
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
