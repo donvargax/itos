@@ -1558,7 +1558,7 @@ items:
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: []
+    depends_on: [slice-60]
     kind: idea
     why: >
       Writing a scenario meant grepping features/ for the next free ID and steps_test.go for the
@@ -1570,6 +1570,8 @@ items:
       The user's calls (2026-10-03), from the session that built slices 46 to 50: every spec that day
       needed the next slice, @ID-, @bug- and T- number and the step texts grepped by hand, and one
       new Then collided with an existing Given of the same words. Fourth.
+
+      Its next-id part is slice-60; what is left is itos tests steps and itos tests undefined.
 
   - id: p1-handoff-status
     title: "itos status replaces docs/HANDOFF.md"
