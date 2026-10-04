@@ -281,14 +281,19 @@ func RemoveStatus(text, status string) string {
 // Index is the index's text: the text it had, its part between the markers
 // made the list of the live records, the rest kept; the markers and the list
 // added at its end when it has none, and a heading for an index that is
-// new ("" before).
+// new ("" before). A blank line follows the begin marker and comes before
+// the end one, the form a Markdown formatter leaves alone (bug 17): a list
+// against a comment is one it rewrites.
 func Index(before string, records []Record) string {
 	var list strings.Builder
-	list.WriteString(Begin + "\n")
+	list.WriteString(Begin + "\n\n")
 	for _, r := range records {
 		if r.Live() {
 			fmt.Fprintf(&list, "- [%s](%s)\n", r.Title(), r.File)
 		}
+	}
+	if list.Len() > len(Begin)+2 {
+		list.WriteString("\n")
 	}
 	list.WriteString(End)
 	if start := strings.Index(before, Begin); start >= 0 {

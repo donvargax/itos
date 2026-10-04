@@ -144,7 +144,7 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
   # push refused the uncommitted change (found 2026-10-04, recording
   # decision 1). Every command that commits itos's files alone shares that
   # commit, so the second scenario holds for each of them.
-  @ID-ASK-12 @bug-17 @wip
+  @ID-ASK-12 @bug-17
   Scenario: ask record writes the index as a Markdown formatter leaves it, a blank line inside each marker
     Given itos has run the command line "ask add 'Labels or Projects?'"
     And itos has run the command line "ask answer q-1 'Labels.'"
@@ -153,7 +153,7 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     And in the file "docs/adr/README.md" the line after "<!-- itos:decisions:begin -->" is blank
     And in the file "docs/adr/README.md" the line before "<!-- itos:decisions:end -->" is blank
 
-  @ID-ASK-13 @bug-17 @wip
+  @ID-ASK-13 @bug-17
   Scenario: When a pre-commit hook rewrites the files itos commits, the index is left as the commit has them
     Given a pre-commit hook that appends a line to each staged Markdown file and stages it again
     And itos has run the command line "ask add 'Labels or Projects?'"

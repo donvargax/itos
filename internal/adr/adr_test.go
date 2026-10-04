@@ -117,24 +117,28 @@ func TestDirListNext(t *testing.T) {
 	}
 }
 
-// The index lists the live records between the markers, keeps the text
-// outside them, and is made with a heading when there was none.
+// The index lists the live records between the markers, a blank line inside
+// each (bug 17), keeps the text outside them, and is made with a heading
+// when there was none.
 func TestIndex(t *testing.T) {
 	records := []Record{
 		{Number: 1, File: "0001-a.md", Text: "# 1. A\n\n## Status\n\nSuperseded by [2. B](0002-b.md)\n"},
 		{Number: 2, File: "0002-b.md", Text: "# 2. B\n\n## Status\n\nAccepted\n"},
 	}
 	made := Index("", records)
-	if !strings.HasPrefix(made, "# Decisions\n") || !strings.Contains(made, Begin+"\n- [2. B](0002-b.md)\n"+End+"\n") || strings.Contains(made, "[1. A]") {
+	if !strings.HasPrefix(made, "# Decisions\n") || !strings.Contains(made, Begin+"\n\n- [2. B](0002-b.md)\n\n"+End+"\n") || strings.Contains(made, "[1. A]") {
 		t.Errorf("a new index:\n%s", made)
 	}
 	kept := Index("# Ours\n\n"+Begin+"\n- old\n"+End+"\n\nMore.\n", records)
-	if kept != "# Ours\n\n"+Begin+"\n- [2. B](0002-b.md)\n"+End+"\n\nMore.\n" {
+	if kept != "# Ours\n\n"+Begin+"\n\n- [2. B](0002-b.md)\n\n"+End+"\n\nMore.\n" {
 		t.Errorf("an index with markers:\n%s", kept)
 	}
 	added := Index("# Ours", records)
-	if added != "# Ours\n\n"+Begin+"\n- [2. B](0002-b.md)\n"+End+"\n" {
+	if added != "# Ours\n\n"+Begin+"\n\n- [2. B](0002-b.md)\n\n"+End+"\n" {
 		t.Errorf("an index without markers:\n%s", added)
+	}
+	if empty := Index("# Ours\n\n"+Begin+"\n- old\n"+End+"\n", records[:1]); empty != "# Ours\n\n"+Begin+"\n\n"+End+"\n" {
+		t.Errorf("an index of no live record:\n%s", empty)
 	}
 }
 

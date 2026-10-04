@@ -49,6 +49,12 @@ func gitIn(t *testing.T, args ...string) string {
 // A commit-msg hook in git's own hooks folder that exits 1.
 func refusingHook(t *testing.T) {
 	t.Helper()
+	gitHook(t, "commit-msg", "#!/bin/sh\necho refused >&2\nexit 1\n")
+}
+
+// The hook, by its name, in git's own hooks folder.
+func gitHook(t *testing.T, name, script string) {
+	t.Helper()
 	if runtime.GOOS == "windows" {
 		t.Skip("the hook is a shell script")
 	}
@@ -56,7 +62,7 @@ func refusingHook(t *testing.T) {
 	if err := os.MkdirAll(hooks, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(hooks, "commit-msg"), []byte("#!/bin/sh\necho refused >&2\nexit 1\n"), 0o755); err != nil {
+	if err := os.WriteFile(filepath.Join(hooks, name), []byte(script), 0o755); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -180,5 +186,33 @@ func TestRefuseUncommittedDeletion(t *testing.T) {
 				t.Errorf("git status was\n%s\nand is\n%s", status, now)
 			}
 		})
+	}
+}
+
+// A pre-commit hook that rewrites the files it commits, as a formatter does,
+// leaves them in the commit and the working tree in its version; git's
+// index of them is set to the commit's, so git status reports nothing of
+// them (bug 17), and a change staged before stays staged.
+func TestCommitLeavesTheIndexAsCommitted(t *testing.T) {
+	cfg := rollbackRepo(t)
+	gitHook(t, "pre-commit", `#!/bin/sh
+git diff --cached --name-only -- '*.yaml' | while IFS= read -r file; do
+	echo '# formatted' >>"$file"
+	git add -- "$file" || exit 1
+done
+`)
+	if err := os.WriteFile("ledger.yaml", []byte("- id: T-1\n- id: T-3\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, "add", "--", "ledger.yaml")
+	sha, code, err, stderr := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
+	if sha == "" || code != 0 || err != nil {
+		t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
+	}
+	if text := gitIn(t, "show", "HEAD:new.yaml"); text != "- id: T-2\n# formatted\n" {
+		t.Errorf("the commit holds new.yaml as %q", text)
+	}
+	if status := gitIn(t, "status", "--porcelain", "--untracked-files=all"); status != "M  ledger.yaml\n" {
+		t.Errorf("git status reports:\n%s", status)
 	}
 }

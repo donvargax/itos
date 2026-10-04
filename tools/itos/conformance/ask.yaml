@@ -322,7 +322,9 @@ cases:
         file and leaves this list, which itos ask record writes.
 
         <!-- itos:decisions:begin -->
+
         - [1. Triage issues with labels](0001-triage-issues-with-labels.md)
+
         <!-- itos:decisions:end -->
   - name: ask record --supersedes marks the old record as adr-tools does, and the index keeps its own text and drops it
     argv: [ask, record, q-1, --title, Use labels, --supersedes, "4"]
@@ -337,7 +339,7 @@ cases:
     stdout_has: "q-1 recorded as decision 6, docs/adr/0006-use-labels.md: committed "
     files_after:
       docs/adr/0004-use-projects.md: "# 4. Use Projects\n\nDate: 2020-01-02\n\n## Status\n\nSuperseded by [6. Use labels](0006-use-labels.md)\n\n## Context\n\nc\n\n## Decision\n\nd\n\n## Consequences\n\ne\n"
-      docs/adr/README.md: "# Our records\n\n<!-- itos:decisions:begin -->\n- [5. Use Go](0005-use-go.md)\n- [6. Use labels](0006-use-labels.md)\n<!-- itos:decisions:end -->\n\nKept.\n"
+      docs/adr/README.md: "# Our records\n\n<!-- itos:decisions:begin -->\n\n- [5. Use Go](0005-use-go.md)\n- [6. Use labels](0006-use-labels.md)\n\n<!-- itos:decisions:end -->\n\nKept.\n"
   - name: ask record writes in the folder a .adr-dir names, numbered past the highest name there
     argv: [ask, record, q-1, --title, Labels!, --consequences, Projects stay unused.]
     git:
@@ -358,8 +360,10 @@ cases:
         file and leaves this list, which itos ask record writes.
 
         <!-- itos:decisions:begin -->
+
         - [10. New](0010-new.md)
         - [11. Labels!](0011-labels.md)
+
         <!-- itos:decisions:end -->
       docs/adr/README.md: null
   - name: ask record --none marks the answer as recorded nowhere, writes no record and commits the questions alone
@@ -473,7 +477,9 @@ cases:
         file and leaves this list, which itos ask record writes.
 
         <!-- itos:decisions:begin -->
+
         - [1. Labels](0001-labels.md)
+
         <!-- itos:decisions:end -->
       .git/itos/work-items.yaml.lock: null
       docs/adr/README.md: null

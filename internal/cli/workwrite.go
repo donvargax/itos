@@ -274,6 +274,14 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 	} else if err != nil {
 		return "", 0, restored(cfg, files, modes, fmt.Errorf("cannot run git: %w", err))
 	}
+	// git commit --only stages the files in the real index before the hooks
+	// run on a temporary one, so a hook that rewrites them, a formatter,
+	// puts its version in the commit and the working tree while the real
+	// index keeps itos's (bug 17). Their entries are set to the commit's:
+	// they had no change of the person's, which uncommitted refused above.
+	if err := gitErr(append([]string{"reset", "-q", "--"}, paths...)...); err != nil {
+		return "", 0, fmt.Errorf("the commit of %s was made, but git's index of them cannot be set to it: %w", named, err)
+	}
 	sha, err := git.Output("rev-parse", "HEAD")
 	if err != nil {
 		return "", 0, err
