@@ -3345,6 +3345,9 @@ items:
       Specified as @ID-INIT-26 to 30 in features/init.feature, the non-stealth half, opt-in as the
       plugin is (the coordinator's call, 2026-10-04: writing AGENTS.md uninvited would change what a
       released init does). The stealth half is p3-init-agent-rules-stealth.
+
+      The user's call (2026-10-04): deprioritised, to see how sessions work with itos go and no
+      AGENTS.md block; the hooks still teach an agent that never ran the guide at its first refusal.
     refs: [features/init.feature, PLAN.md, integrations/claude-code/skills/itos/SKILL.md]
 
   - id: p3-init-orchestration
