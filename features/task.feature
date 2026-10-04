@@ -100,7 +100,7 @@ Feature: The task runner runs each check once, and lists task status without run
   # refuses puts every file back, the index too. The holes no scenario can
   # reach (a second write failing after the first, a git that cannot start,
   # git add's words swallowed) are the fix's unit tests.
-  @ID-TASK-09 @bug-13 @wip
+  @ID-TASK-09 @bug-13
   Scenario: task add refuses a ledger file whose deletion no commit holds, and writes nothing
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     And the ledger file "tasks/phase-1.yaml" is deleted and the deletion not committed
@@ -110,7 +110,7 @@ Feature: The task runner runs each check once, and lists task status without run
     And the file "tasks/phase-1.yaml" does not exist
     And the registry has no item "T-003"
 
-  @ID-TASK-10 @bug-13 @wip
+  @ID-TASK-10 @bug-13
   Scenario: task add whose commit a hook refuses leaves the ledger and the registry as they were, and nothing staged
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     And a commit-msg hook that refuses every commit

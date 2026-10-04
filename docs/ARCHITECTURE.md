@@ -1371,10 +1371,19 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   `value.Doc`'s `Append` with no path, the document's top list, its checks a
   block list below `done_when` (`BlockItem` writes a file's first task).
   `writeRegistry` is `writeCommitted` of the registry alone; `task add` gives
-  it both files, each refused when git does not hold it as HEAD has it (a new
-  file only when something is there already), a new one `git add`ed so
-  `--only` can name it, and a commit that fails puts every file back, a new
-  one removed from the index and the folder.
+  it both files, each refused before anything is written when git does not
+  hold it as HEAD has it (`uncommitted`, naming the file): a file there must
+  be tracked with no change, and one not there, which the command makes,
+  unknown to git, so a file deleted and the deletion not committed is
+  refused rather than written afresh over it (bug 13). A new file is `git
+add`ed so `--only` can name it, git add's words and the commit's on
+  stderr. Whatever fails after the first write, a later write (`put` says
+  whether it touched the file), git add, a git that cannot start or a commit
+  a hook refuses, goes through one `restore`: every file written gets its old
+  text back where it differs, and its index entry reset to HEAD's, a new one
+  unstaged and removed; what cannot be put back is an error naming the file.
+  `internal/cli/workwrite_test.go` makes each of those fail in a scratch
+  repository.
 - **The hooks** are `hook commit-msg`, `hook pre-push`
   (`internal/cli/hook.go`) and `hooks install` (`internal/cli/install.go`),
   `hooks.ts` with `commit-data.ts`, `commit-scope.ts`, `commit-tasks.ts` and

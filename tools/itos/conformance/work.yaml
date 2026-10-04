@@ -970,7 +970,7 @@ cases:
     git: []
     exit: 1
     stderr: |
-      work-items.yaml has changes no commit holds, which the registry's commit would sweep in
+      work-items.yaml has changes no commit holds, which itos's commit of it would sweep in
         fix: commit or drop the changes to work-items.yaml first
     files_after:
       work-items.yaml: *registry

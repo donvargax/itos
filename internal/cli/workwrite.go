@@ -15,6 +15,7 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -121,18 +122,29 @@ func soundRegistry(o Out) (*config.Loaded, work.Registry, string, int, error) {
 	return cfg, registry, string(text), 0, nil
 }
 
-// uncommitted is the problem of a registry git does not hold as HEAD has it
-// (untracked, or changed, staged or not), which a commit of it would sweep
-// in beside the command's own change; nil when it is clean.
-func uncommitted(file string) *out.Problem {
+// uncommitted is the problem of a file a command writes and commits that
+// git does not hold as HEAD has it, which the command's commit would sweep in
+// beside its own change; nil when it is clean. A file in the working tree is
+// clean when git tracks it and reports no change to it; a file not there,
+// which the command makes, when git knows nothing of it either: one deleted
+// and the deletion not committed, staged or not, is a change no commit holds
+// (bug 13), which a commit of the file written afresh would undo. The
+// problem names the file, the registry or a ledger file.
+func uncommitted(cfg *config.Loaded, file string) *out.Problem {
+	_, err := os.Lstat(file)
+	there := !errors.Is(err, fs.ErrNotExist)
 	tracked := git.Succeeds("ls-files", "--error-unmatch", "--", file)
 	status, err := git.Output("status", "--porcelain", "--", file)
-	if tracked && err == nil && strings.TrimSpace(status) == "" {
+	if err == nil && strings.TrimSpace(status) == "" && tracked == there {
 		return nil
 	}
+	rule := "work-registry-uncommitted"
+	if file != cfg.Work.Registry {
+		rule = "ledger-file-uncommitted"
+	}
 	return &out.Problem{
-		Rule:    "work-registry-uncommitted",
-		Message: file + " has changes no commit holds, which the registry's commit would sweep in",
+		Rule:    rule,
+		Message: file + " has changes no commit holds, which itos's commit of it would sweep in",
 		Fix:     "commit or drop the changes to " + file + " first",
 	}
 }
@@ -155,11 +167,12 @@ type written struct {
 // git commit --only, with the header and body, through the hooks, what else
 // is staged left staged. Its result is the new commit's SHA, "" under a
 // stealth config, which commits nothing. A file with changes no commit holds
-// is refused before anything is written (exit 1), a new one only when
-// something is there already; a commit that fails (a hook refusing it) puts
-// every file back as it was, file and index, a new one removed, and exits 1.
-// work's commands write the registry alone (writeRegistry), task add a
-// ledger file and the registry (slice 55).
+// (uncommitted), a deletion among them, is refused before anything is
+// written (exit 1). Whatever fails after the first write, a write, git add,
+// a git that cannot start or a commit a hook refuses, puts every file back
+// as it was, file and index, a new one removed (restore); a refusal exits 1,
+// the rest are errors. work's commands write the registry alone
+// (writeRegistry), task add a ledger file and the registry (slice 55).
 func writeCommitted(cfg *config.Loaded, files []written, header, body string, o Out) (string, int, error) {
 	paths := make([]string, len(files))
 	for i, f := range files {
@@ -167,68 +180,32 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 	}
 	if !cfg.Stealth {
 		for _, f := range files {
-			if _, err := os.Stat(f.path); f.created && errors.Is(err, fs.ErrNotExist) {
-				continue
-			}
-			if p := uncommitted(f.path); p != nil {
+			if p := uncommitted(cfg, f.path); p != nil {
 				code, err := refuseWork([]out.Problem{*p}, ExitPolicy, o)
 				return "", code, err
 			}
 		}
 	}
+	named := and(paths)
 	modes := make([]fs.FileMode, len(files))
 	for i, f := range files {
 		modes[i] = fs.FileMode(0o644)
 		if info, err := os.Stat(f.path); err == nil {
 			modes[i] = info.Mode().Perm()
 		}
-		if err := os.WriteFile(f.path, []byte(f.text), modes[i]); err != nil {
-			return "", 0, err
+		if touched, err := put(f.path, f.text, modes[i]); err != nil {
+			if !touched {
+				i--
+			}
+			return "", 0, restored(cfg, files[:i+1], modes, fmt.Errorf("%s cannot be written: %w", f.path, err))
 		}
 	}
 	if cfg.Stealth {
 		return "", 0, nil
 	}
-	argv := []string{"commit", "--only", "-m", header, "-m", value.Wrap(body, bodyWidth)}
-	if o.Quiet {
-		argv = append(argv, "--quiet")
-	}
-	argv = append(argv, "--")
-	argv = append(argv, paths...)
-	var runErr error
-	for _, f := range files {
-		// A path git does not know is no pathspec for --only until it is
-		// added.
-		if f.created && runErr == nil {
-			_, runErr = git.Output("add", "--", f.path)
-		}
-	}
-	if runErr == nil {
-		cmd := exec.Command(git.Bin(), argv...)
-		cmd.Env = append(withoutFooters(os.Environ()), AmendEnv+"=0")
-		// stdout is the command's own result; git's and the hooks' words go
-		// to stderr.
-		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, o.Stderr, o.Stderr
-		runErr = cmd.Run()
-	}
-	var exit *exec.ExitError
-	if runErr != nil && !errors.As(runErr, &exit) {
-		return "", 0, fmt.Errorf("cannot run git: %w", runErr)
-	}
-	if runErr != nil {
-		var restoreErr error
-		for i, f := range files {
-			if f.created {
-				git.Succeeds("rm", "-q", "--cached", "--", f.path)
-				restoreErr = errors.Join(restoreErr, os.Remove(f.path))
-			} else {
-				restoreErr = errors.Join(restoreErr, os.WriteFile(f.path, []byte(f.old), modes[i]))
-				git.Succeeds("reset", "-q", "--", f.path)
-			}
-		}
-		named := and(paths)
-		if restoreErr != nil {
-			return "", 0, fmt.Errorf("the commit failed, and %s cannot be put back: %w", named, restoreErr)
+	failed := func(step string, exit *exec.ExitError) (string, int, error) {
+		if err := restored(cfg, files, modes, nil); err != nil {
+			return "", 0, fmt.Errorf("%s failed (git exited %d): %w", step, exit.ExitCode(), err)
 		}
 		as := "is as it was"
 		if len(files) > 1 {
@@ -236,16 +213,119 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 		}
 		code, err := refuseWork([]out.Problem{{
 			Rule:    "work-commit-failed",
-			Message: fmt.Sprintf("the commit of %s failed (git exited %d), so %s %s", named, exit.ExitCode(), named, as),
+			Message: fmt.Sprintf("%s failed (git exited %d), so %s %s", step, exit.ExitCode(), named, as),
 			Fix:     "fix what git or the hook above says, then run the command again",
 		}}, ExitPolicy, o)
 		return "", code, err
+	}
+	var exit *exec.ExitError
+	for _, f := range files {
+		// A path git does not know is no pathspec for --only until it is
+		// added; what git add says goes to stderr, as the commit's words do.
+		if !f.created {
+			continue
+		}
+		if err := gitTo(o.Stderr, nil, "add", "--", f.path); errors.As(err, &exit) {
+			return failed("git add of "+f.path, exit)
+		} else if err != nil {
+			return "", 0, restored(cfg, files, modes, fmt.Errorf("cannot run git: %w", err))
+		}
+	}
+	argv := []string{"commit", "--only", "-m", header, "-m", value.Wrap(body, bodyWidth)}
+	if o.Quiet {
+		argv = append(argv, "--quiet")
+	}
+	argv = append(argv, "--")
+	argv = append(argv, paths...)
+	if err := gitTo(o.Stderr, append(withoutFooters(os.Environ()), AmendEnv+"=0"), argv...); errors.As(err, &exit) {
+		return failed("the commit of "+named, exit)
+	} else if err != nil {
+		return "", 0, restored(cfg, files, modes, fmt.Errorf("cannot run git: %w", err))
 	}
 	sha, err := git.Output("rev-parse", "HEAD")
 	if err != nil {
 		return "", 0, err
 	}
 	return strings.TrimSpace(sha), 0, nil
+}
+
+// put writes the text to the file in the mode, as os.WriteFile does, and
+// says whether it touched the file: false when the file could not be opened,
+// so it is as it was.
+func put(path, text string, mode fs.FileMode) (bool, error) {
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, mode)
+	if err != nil {
+		return false, err
+	}
+	_, err = f.WriteString(text)
+	return true, errors.Join(err, f.Close())
+}
+
+// gitTo runs git with its stdout and stderr to w, and stdin the command's,
+// under env (nil: the command's own).
+func gitTo(w io.Writer, env []string, args ...string) error {
+	cmd := exec.Command(git.Bin(), args...)
+	cmd.Env = env
+	// stdout is the command's own result; git's and the hooks' words go to
+	// stderr.
+	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, w, w
+	return cmd.Run()
+}
+
+// restore puts the files back as they were before the command wrote them,
+// and git's index for them as HEAD has it (they were clean before): a file
+// that was there gets its old text back, in its mode, where it differs; a
+// new one is unstaged and removed. Each file is put back whatever failed
+// with another, and what failed is the error, naming the file.
+func restore(cfg *config.Loaded, files []written, modes []fs.FileMode) error {
+	var failed error
+	for i, f := range files {
+		var err error
+		if f.created {
+			if !cfg.Stealth {
+				err = gitErr("rm", "-q", "--cached", "--ignore-unmatch", "--", f.path)
+			}
+			if rm := os.Remove(f.path); rm != nil && !errors.Is(rm, fs.ErrNotExist) {
+				err = errors.Join(err, rm)
+			}
+		} else {
+			if now, read := os.ReadFile(f.path); read != nil || string(now) != f.old {
+				err = os.WriteFile(f.path, []byte(f.old), modes[i])
+			}
+			if !cfg.Stealth {
+				err = errors.Join(err, gitErr("reset", "-q", "--", f.path))
+			}
+		}
+		if err != nil {
+			failed = errors.Join(failed, fmt.Errorf("%s cannot be put back: %w", f.path, err))
+		}
+	}
+	return failed
+}
+
+// restored is cause, after restore has put the files back; when that fails
+// too, an error that says both.
+func restored(cfg *config.Loaded, files []written, modes []fs.FileMode, cause error) error {
+	err := restore(cfg, files, modes)
+	switch {
+	case err == nil:
+		return cause
+	case cause == nil:
+		return err
+	}
+	return fmt.Errorf("%w, and %w", cause, err)
+}
+
+// gitErr runs git, its output dropped; the error says what git said on
+// stderr when it fails.
+func gitErr(args ...string) error {
+	var stderr strings.Builder
+	cmd := exec.Command(git.Bin(), args...)
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("git %s: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
+	}
+	return nil
 }
 
 // and is the names joined as a list is said: "a", "a and b", "a, b and c".

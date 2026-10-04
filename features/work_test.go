@@ -2,9 +2,10 @@
 // slices 52 to 54) and the ledger (task add, task.feature, slice 55): a
 // registry of items with owners, dependencies and ideas, committed, so a
 // command's own commit holds only its change; a scenario tagged for an
-// item; and what the registry reads after (an item's status, owner, kind,
-// title, dependencies and why), a ledger file's task, and what the last
-// commit holds.
+// item; a ledger file deleted and a commit-msg hook that refuses, for a
+// commit that cannot be made (bug 13); and what the registry reads after
+// (an item's status, owner, kind, title, dependencies and why), a ledger
+// file's task, what the last commit holds, and what git status reports.
 package features
 
 import (
@@ -50,6 +51,11 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the last commit touches only "([^"]*)" and "([^"]*)"$`, func(a, b string) error { return w.lastTouchesOnly(a, b) })
 	sc.Step(`^the ledger file "([^"]*)" has the task "([^"]*)" with the check "([^"]*)"$`, w.ledgerFileHasTask)
 	sc.Step(`^"([^"]*)" is still staged$`, w.stillStaged)
+
+	sc.Step(`^the ledger file "([^"]*)" is deleted and the deletion not committed$`, w.ledgerFileDeleted)
+	sc.Step(`^a commit-msg hook that refuses every commit$`, w.refusingCommitMsgHook)
+	sc.Step(`^the ledger has no task "([^"]*)"$`, w.ledgerLacks)
+	sc.Step(`^git reports no change to the working tree or the index$`, w.gitStatusClean)
 }
 
 // One more item of phase 1, a group nobody owns, in the registry where the
@@ -292,6 +298,67 @@ func (w *world) registryWhyEnds(id, end string) error {
 	why, _ := item["why"].(string)
 	if !strings.HasSuffix(strings.TrimRight(why, "\n"), end) {
 		return fmt.Errorf("%s's why is %q, which does not end with %q\n%s", id, why, end, w.report())
+	}
+	return nil
+}
+
+// The ledger file, where the scenario keeps itos's data, removed from the
+// working tree: git sees it deleted, the deletion neither staged nor
+// committed.
+func (w *world) ledgerFileDeleted(file string) error {
+	return os.Remove(filepath.Join(w.dir, w.data(file)))
+}
+
+// A commit-msg hook in git's own hooks folder that says it refuses and exits
+// 1, so every commit that runs the hooks fails.
+func (w *world) refusingCommitMsgHook() error {
+	out, err := w.gitOutput("rev-parse", "--git-path", "hooks")
+	if err != nil {
+		return err
+	}
+	dir := strings.TrimSpace(out)
+	if !filepath.IsAbs(dir) {
+		dir = filepath.Join(w.dir, dir)
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, "commit-msg"), []byte("#!/bin/sh\necho 'the hook refuses every commit' >&2\nexit 1\n"), 0o755)
+}
+
+// No file of the ledger, every one ledger.files names in its folder, has the
+// task.
+func (w *world) ledgerLacks(id string) error {
+	files, err := filepath.Glob(filepath.Join(w.dir, w.data(strings.ReplaceAll(w.ledgerFilesPattern(), "{group}", "*"))))
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		text, err := os.ReadFile(file)
+		if err != nil {
+			return err
+		}
+		var tasks []map[string]any
+		if err := yaml.Unmarshal(text, &tasks); err != nil {
+			return fmt.Errorf("%s does not read: %w\n%s", file, err, text)
+		}
+		for _, t := range tasks {
+			if fmt.Sprint(t["id"]) == id {
+				return fmt.Errorf("%s still has the task %s\n%s\n%s", file, id, text, w.report())
+			}
+		}
+	}
+	return nil
+}
+
+// git status lists nothing: no file changed, staged or untracked.
+func (w *world) gitStatusClean() error {
+	out, err := w.gitOutput("status", "--porcelain", "--untracked-files=all")
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(out) != "" {
+		return fmt.Errorf("git status reports:\n%s\n%s", out, w.report())
 	}
 	return nil
 }

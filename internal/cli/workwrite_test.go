@@ -1,0 +1,184 @@
+package cli
+
+import (
+	"errors"
+	"io/fs"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
+	"strings"
+	"testing"
+
+	"github.com/donvargax/itos/v2/internal/config"
+)
+
+// The rollback of writeCommitted (bug 13): a scratch repository, its files
+// committed, as the current folder, away from the user's git config, with a
+// fixed author. registry.yaml is the registry, ledger.yaml a ledger file.
+func rollbackRepo(t *testing.T) *config.Loaded {
+	t.Helper()
+	dir := gitConfigRepo(t, "version: 1\n")
+	for name, value := range map[string]string{
+		"GIT_AUTHOR_NAME": "A", "GIT_AUTHOR_EMAIL": "a@example.com",
+		"GIT_COMMITTER_NAME": "A", "GIT_COMMITTER_EMAIL": "a@example.com",
+	} {
+		t.Setenv(name, value)
+	}
+	for name, text := range map[string]string{"registry.yaml": "items: []\n", "ledger.yaml": "- id: T-1\n"} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	gitIn(t, "add", "--", "itos.yaml", "registry.yaml", "ledger.yaml")
+	gitIn(t, "commit", "-q", "-m", "chore: start")
+	cfg := &config.Loaded{}
+	cfg.Work.Registry = "registry.yaml"
+	return cfg
+}
+
+func gitIn(t *testing.T, args ...string) string {
+	t.Helper()
+	out, err := exec.Command("git", args...).CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+	}
+	return string(out)
+}
+
+// A commit-msg hook in git's own hooks folder that exits 1.
+func refusingHook(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("the hook is a shell script")
+	}
+	hooks := filepath.Join(".git", "hooks")
+	if err := os.MkdirAll(hooks, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hooks, "commit-msg"), []byte("#!/bin/sh\necho refused >&2\nexit 1\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// The registry edited and a new ledger file, as task add writes them.
+func rollbackFiles() []written {
+	return []written{
+		{path: "registry.yaml", old: "items: []\n", text: "items:\n  - id: T-2\n"},
+		{path: "new.yaml", text: "- id: T-2\n", created: true},
+	}
+}
+
+// Every file as it was, the new one gone, and git status reporting nothing.
+func asItWas(t *testing.T) {
+	t.Helper()
+	if text, err := os.ReadFile("registry.yaml"); err != nil || string(text) != "items: []\n" {
+		t.Errorf("registry.yaml reads %q (%v)", text, err)
+	}
+	if _, err := os.Stat("new.yaml"); !errors.Is(err, fs.ErrNotExist) {
+		t.Errorf("new.yaml is still there (%v)", err)
+	}
+	if status := gitIn(t, "status", "--porcelain", "--untracked-files=all"); status != "" {
+		t.Errorf("git status reports:\n%s", status)
+	}
+}
+
+func writeAndCommit(t *testing.T, cfg *config.Loaded, files []written, body string) (string, int, error, string) {
+	t.Helper()
+	var stdout, stderr strings.Builder
+	sha, code, err := writeCommitted(cfg, files, "docs: add T-2", body, Out{Stdout: &stdout, Stderr: &stderr})
+	return sha, code, err, stderr.String()
+}
+
+// A commit a hook refuses puts every file back, file and index, the new one
+// removed and unstaged, and says so.
+func TestRollbackHookRefuses(t *testing.T) {
+	cfg := rollbackRepo(t)
+	refusingHook(t)
+	head := gitIn(t, "rev-parse", "HEAD")
+	sha, code, err, stderr := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
+	if sha != "" || code != ExitPolicy || err != nil {
+		t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
+	}
+	asItWas(t)
+	if want := "the commit of registry.yaml and new.yaml failed (git exited 1), so registry.yaml and new.yaml are as they were"; !strings.Contains(stderr, want) || !strings.Contains(stderr, "refused") {
+		t.Errorf("stderr:\n%s", stderr)
+	}
+	if gitIn(t, "rev-parse", "HEAD") != head {
+		t.Error("a commit was made")
+	}
+}
+
+// A write that fails after the first one puts the first back.
+func TestRollbackSecondWriteFails(t *testing.T) {
+	cfg := rollbackRepo(t)
+	files := rollbackFiles()
+	files[1].path = filepath.Join("missing", "new.yaml")
+	_, _, err, _ := writeAndCommit(t, cfg, files, "Add T-2.")
+	if err == nil || !strings.Contains(err.Error(), filepath.Join("missing", "new.yaml")+" cannot be written") {
+		t.Fatalf("the error is %v", err)
+	}
+	asItWas(t)
+}
+
+// A git that cannot start the commit, here because the message is longer
+// than any system lets a program be given, puts back what git add staged.
+func TestRollbackGitCannotStart(t *testing.T) {
+	cfg := rollbackRepo(t)
+	_, code, err, stderr := writeAndCommit(t, cfg, rollbackFiles(), strings.Repeat("word ", 1<<20))
+	if err == nil || !strings.Contains(err.Error(), "cannot run git") {
+		t.Fatalf("exit %d, the error is %v\n%s", code, err, stderr)
+	}
+	asItWas(t)
+}
+
+// git add refusing the new file puts everything back and shows what git
+// said.
+func TestRollbackGitAddFails(t *testing.T) {
+	cfg := rollbackRepo(t)
+	if err := os.WriteFile(filepath.Join(".git", "info", "exclude"), []byte("new.yaml\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	_, code, err, stderr := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
+	if code != ExitPolicy || err != nil {
+		t.Fatalf("exit %d, %v\n%s", code, err, stderr)
+	}
+	asItWas(t)
+	if !strings.Contains(stderr, "ignored") || !strings.Contains(stderr, "git add of new.yaml failed (git exited 1)") {
+		t.Errorf("stderr:\n%s", stderr)
+	}
+}
+
+// A file deleted and the deletion not committed, staged or not, is a change
+// no commit holds: refused before anything is written, the message naming
+// the file, not the registry.
+func TestRefuseUncommittedDeletion(t *testing.T) {
+	for _, staged := range []bool{false, true} {
+		t.Run(map[bool]string{false: "unstaged", true: "staged"}[staged], func(t *testing.T) {
+			cfg := rollbackRepo(t)
+			if staged {
+				gitIn(t, "rm", "-q", "--", "ledger.yaml")
+			} else if err := os.Remove("ledger.yaml"); err != nil {
+				t.Fatal(err)
+			}
+			status := gitIn(t, "status", "--porcelain")
+			files := []written{
+				{path: "ledger.yaml", text: "- id: T-2\n", created: true},
+				{path: "registry.yaml", old: "items: []\n", text: "items:\n  - id: T-2\n"},
+			}
+			_, code, err, stderr := writeAndCommit(t, cfg, files, "Add T-2.")
+			if code != ExitPolicy || err != nil {
+				t.Fatalf("exit %d, %v\n%s", code, err, stderr)
+			}
+			if !strings.HasPrefix(stderr, "ledger.yaml has changes no commit holds") || strings.Contains(stderr, "registry") {
+				t.Errorf("stderr:\n%s", stderr)
+			}
+			if _, err := os.Stat("ledger.yaml"); !errors.Is(err, fs.ErrNotExist) {
+				t.Error("ledger.yaml was written")
+			}
+			if now := gitIn(t, "status", "--porcelain"); now != status {
+				t.Errorf("git status was\n%s\nand is\n%s", status, now)
+			}
+		})
+	}
+}
