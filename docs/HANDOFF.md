@@ -70,9 +70,10 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
      input `itos work show <id> --patch`); slice 57's found
      `p1-work-show-gaps`;
    - the user's calls of 2026-10-04, each to specify as a slice, in this
-     order: **`itos go`** (`p3-coordinator-skill`
-     as the user settled it: the binary serves the generic guides, a
-     repository's own lessons stay in its `docs/ORCHESTRATING.md`);
+     order: **`slice-64`**, `itos go` and `itos guide work` (was
+     `p3-coordinator-skill`; @ID-GUIDE-01 to 05; then the plugin's skills
+     wrapping them, and this repository's ORCHESTRATING.md keeping only what
+     is its own);
      **`p1-work-queue-order`** (a top-level `queue:` list);
      **`p1-handoff-status`**'s first slice (`itos status`, the state alone);
      then **`p1-itos-upgrade`** (the user's call, 2026-10-04: `itos upgrade`
