@@ -50,7 +50,7 @@ func TestText(t *testing.T) {
 		}
 	}
 	r := Record{Text: useGo}
-	if r.Title() != "Use Go" || r.Status() != "accepted" || !r.Accepted() {
+	if r.Title() != "Use Go" || r.Status() != "accepted" || !r.Live() {
 		t.Errorf("read back: %q %q", r.Title(), r.Status())
 	}
 }
@@ -59,16 +59,37 @@ func TestText(t *testing.T) {
 // heading in a code block and no frontmatter at all read as they mean.
 func TestReadByStructure(t *testing.T) {
 	quoted := Record{Text: "---\r\ndate: 2020-01-01\r\nstatus: \"Accepted\"\r\n---\r\n\r\n```\r\n# not it\r\n```\r\n\r\n# Use Go\r\n"}
-	if !quoted.Accepted() || quoted.Title() != "Use Go" {
+	if quoted.Status() != "Accepted" || quoted.Title() != "Use Go" {
 		t.Errorf("quoted: %q %q", quoted.Status(), quoted.Title())
 	}
 	bare := Record{Text: "# Use Go\n\nstatus: accepted\n"}
-	if bare.Accepted() || bare.Title() != "Use Go" {
+	if bare.Status() != "" || bare.Title() != "Use Go" {
 		t.Errorf("no frontmatter: %q %q", bare.Status(), bare.Title())
 	}
 	broken := Record{Text: "---\nstatus: [accepted\n---\n# X\n"}
-	if broken.Accepted() {
+	if broken.Status() != "" {
 		t.Error("frontmatter that is not YAML has no status")
+	}
+}
+
+// A record is live unless its status says superseded, deprecated or
+// rejected, in any case: one with no frontmatter, or with frontmatter but no
+// status, is live (bug 19).
+func TestLive(t *testing.T) {
+	for text, want := range map[string]bool{
+		"# A\n":                                             true,
+		"---\ndate: 2020-01-01\n---\n\n# A\n":               true,
+		"---\nstatus: accepted\n---\n\n# A\n":               true,
+		"---\nstatus: Proposed\n---\n\n# A\n":               true,
+		"---\nstatus: [accepted\n---\n# A\n":                true,
+		"---\nstatus: superseded by ADR-0002\n---\n\n# A\n": false,
+		"---\nstatus: Superseded by ADR-0002\n---\n\n# A\n": false,
+		"---\nstatus: deprecated\n---\n\n# A\n":             false,
+		"---\nstatus: REJECTED\n---\n\n# A\n":               false,
+	} {
+		if got := (Record{Text: text}).Live(); got != want {
+			t.Errorf("Live() = %v, want %v, for:\n%s", got, want, text)
+		}
 	}
 }
 
@@ -79,7 +100,7 @@ func TestSetStatus(t *testing.T) {
 	if want := strings.Replace(useGo, "status: accepted", "status: superseded by ADR-0002", 1); got != want {
 		t.Errorf("replaced:\n%s", got)
 	}
-	if (Record{Text: got}).Accepted() || (Record{Text: got}).Status() != "superseded by ADR-0002" {
+	if (Record{Text: got}).Live() || (Record{Text: got}).Status() != "superseded by ADR-0002" {
 		t.Errorf("the status read back: %q", (Record{Text: got}).Status())
 	}
 	added := SetStatus("---\ndate: 2020-01-01\n---\n\n# A\n", SupersededBy(12))
@@ -127,29 +148,30 @@ func TestListNext(t *testing.T) {
 	}
 }
 
-// The index lists the accepted records between the markers, by number and
+// The index lists the live records between the markers, by number and
 // title, a blank line inside each (bug 17), keeps the text outside them,
 // and is made with a heading when there was none.
 func TestIndex(t *testing.T) {
 	records := []Record{
 		{Number: 1, File: "0001-a.md", Text: "---\nstatus: superseded by ADR-0002\n---\n\n# A\n"},
 		{Number: 2, File: "0002-b.md", Text: "---\nstatus: accepted\n---\n\n# B\n"},
+		{Number: 3, File: "0003-c.md", Text: "# C\n"},
 	}
 	made := Index("", records)
-	if !strings.HasPrefix(made, "# Decisions\n") || !strings.Contains(made, Begin+"\n\n- [ADR-0002: B](0002-b.md)\n\n"+End+"\n") ||
+	if !strings.HasPrefix(made, "# Decisions\n") || !strings.Contains(made, Begin+"\n\n- [ADR-0002: B](0002-b.md)\n- [ADR-0003: C](0003-c.md)\n\n"+End+"\n") ||
 		strings.Contains(made, "0001-a.md") {
 		t.Errorf("a new index:\n%s", made)
 	}
 	kept := Index("# Ours\n\n"+Begin+"\n- old\n"+End+"\n\nMore.\n", records)
-	if kept != "# Ours\n\n"+Begin+"\n\n- [ADR-0002: B](0002-b.md)\n\n"+End+"\n\nMore.\n" {
+	if kept != "# Ours\n\n"+Begin+"\n\n- [ADR-0002: B](0002-b.md)\n- [ADR-0003: C](0003-c.md)\n\n"+End+"\n\nMore.\n" {
 		t.Errorf("an index with markers:\n%s", kept)
 	}
 	added := Index("# Ours", records)
-	if added != "# Ours\n\n"+Begin+"\n\n- [ADR-0002: B](0002-b.md)\n\n"+End+"\n" {
+	if added != "# Ours\n\n"+Begin+"\n\n- [ADR-0002: B](0002-b.md)\n- [ADR-0003: C](0003-c.md)\n\n"+End+"\n" {
 		t.Errorf("an index without markers:\n%s", added)
 	}
 	if empty := Index("# Ours\n\n"+Begin+"\n- old\n"+End+"\n", records[:1]); empty != "# Ours\n\n"+Begin+"\n\n"+End+"\n" {
-		t.Errorf("an index of no accepted record:\n%s", empty)
+		t.Errorf("an index of no live record:\n%s", empty)
 	}
 }
 

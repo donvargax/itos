@@ -9,7 +9,9 @@
 // More Information when it supersedes another. A record superseded says so
 // in its status, "superseded by ADR-NNNN", as MADR's template spells it.
 // The folder's README.md holds, between itos's markers, the index of the
-// records whose status is accepted.
+// live records: every record but those whose status says superseded,
+// deprecated or rejected, so a record with no frontmatter, which MADR
+// allows, is listed (bug 19).
 //
 // A record is read by its structure, never its bytes: the status is the
 // frontmatter's, parsed as YAML, the title the first "# " heading after it,
@@ -45,7 +47,7 @@ const (
 	End   = "<!-- itos:decisions:end -->"
 )
 
-// Accepted is a new record's status, the one the index lists.
+// Accepted is a new record's status.
 const Accepted = "accepted"
 
 // Ref is how MADR names a record from another: "ADR-0007".
@@ -92,9 +94,18 @@ func (r Record) Status() string {
 	return strings.TrimSpace(status)
 }
 
-// Accepted is whether the record's status is accepted, the records the
-// index lists.
-func (r Record) Accepted() bool { return strings.EqualFold(r.Status(), Accepted) }
+// ended is the statuses that take a record out of the index, in lower
+// case, each the start of a status: "superseded by ADR-0002" is one.
+var ended = []string{"superseded", "deprecated", "rejected"}
+
+// Live is whether the record still stands, the records the index lists:
+// true unless its status starts, in any case, with superseded, deprecated
+// or rejected. A record with no status, no frontmatter or frontmatter that
+// is not YAML is live, since MADR makes the frontmatter optional (bug 19).
+func (r Record) Live() bool {
+	status := strings.ToLower(r.Status())
+	return !slices.ContainsFunc(ended, func(e string) bool { return strings.HasPrefix(status, e) })
+}
 
 // Title is the record's title: its first "# " heading after the
 // frontmatter, outside a fenced code block; "" when it has none.
@@ -266,7 +277,7 @@ func Text(n New) string {
 }
 
 // Index is the index's text: the text it had, its part between the markers
-// made the list of the accepted records, by number and title, the rest
+// made the list of the live records, by number and title, the rest
 // kept; the markers and the list added at its end when it has none, and a
 // heading for an index that is new ("" before). A blank line follows the
 // begin marker and comes before the end one, the form a Markdown formatter
@@ -275,7 +286,7 @@ func Index(before string, records []Record) string {
 	var list strings.Builder
 	list.WriteString(Begin + "\n\n")
 	for _, r := range records {
-		if r.Accepted() {
+		if r.Live() {
 			fmt.Fprintf(&list, "- [%s: %s](%s)\n", Ref(r.Number), r.Title(), r.File)
 		}
 	}

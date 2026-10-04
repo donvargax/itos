@@ -190,7 +190,7 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
   # no frontmatter got an empty index (found by slice 71's agent). A record
   # is live unless its status says otherwise (superseded, deprecated or
   # rejected), by decision 1 (p1-decisions-no-frontmatter).
-  @ID-ASK-18 @bug-19 @wip
+  @ID-ASK-18 @bug-19
   Scenario: A record with no frontmatter is listed in the index as live
     Given the committed file "docs/decisions/0001-use-go.md" holding "# Use Go"
     And itos has run the command line "ask add 'Labels or Projects?'"

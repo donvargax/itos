@@ -365,6 +365,7 @@ cases:
 
         <!-- itos:decisions:begin -->
 
+        - [ADR-0008: Bare](0008-bare.md)
         - [ADR-0010: New](0010-new.md)
         - [ADR-0011: Labels!](0011-labels.md)
 
