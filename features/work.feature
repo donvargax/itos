@@ -294,3 +294,75 @@ Feature: The work registry
     When itos runs the command line "work promote p1-thing --as slice-7 --kind slice --title 'The thing, specified'"
     Then itos exits with code 0
     And the registry's item "slice-7" is titled "The thing, specified"
+
+  # Slice 66 (the user's calls, 2026-10-04, p1-work-queue-order): the order
+  # of the work lived in the handoff's prose, rewritten by hand. The registry
+  # now holds it, as a top-level queue: list of item ids, one for the whole
+  # repository, ideas included. itos work queue <id> puts an item at the top
+  # (--top), before or after another (--before, --after), or takes it out
+  # (--drop), committing the registry alone as the other registry commands
+  # do (docs: queue <id>). itos work proposes what a person can start in the
+  # queue's order, items the queue does not name after them; each person
+  # sees only their part, since what they cannot take is not proposed. work
+  # done takes a closed item out of the queue in its own commit, and work
+  # check refuses a queue naming an item the registry does not have or one
+  # twice.
+  @ID-WORK-30 @slice-66 @wip
+  Scenario: work queue --top puts an item first, and commits the registry alone
+    Given the work registry has the item "slice-8" owned by nobody with the status "todo"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs "work queue slice-9 --top"
+    Then itos exits with code 0
+    And the registry's queue is "slice-9"
+    And the last commit's header is "docs: queue slice-9"
+    And the last commit touches only "tasks/work-items.yaml"
+
+  @ID-WORK-31 @slice-66 @wip
+  Scenario: work proposes what the person can start in the queue's order, the unqueued after
+    Given the work registry has the item "slice-7" owned by nobody with the status "todo"
+    And the work registry has the item "slice-8" owned by nobody with the status "todo"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And itos has run "work queue slice-8 --top"
+    And itos has run "work queue slice-9 --after slice-8"
+    When itos runs "work --as someone"
+    Then itos exits with code 0
+    And its output says "slice-8" before "slice-9"
+    And its output says "slice-9" before "slice-7"
+
+  @ID-WORK-32 @slice-66 @wip
+  Scenario: Each person sees their part of the queue, and not what another owns
+    Given the work registry has the item "slice-8" owned by "ana" with the status "todo"
+    And the work registry has the item "slice-9" owned by "bo" with the status "todo"
+    And itos has run "work queue slice-8 --top"
+    And itos has run "work queue slice-9 --after slice-8"
+    When itos runs "work --as bo"
+    Then itos exits with code 0
+    And its output says "slice-9"
+    And its output does not say "slice-8"
+
+  @ID-WORK-33 @slice-66 @wip
+  Scenario: work queue --drop takes an item out of the queue
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And itos has run "work queue slice-9 --top"
+    When itos runs "work queue slice-9 --drop"
+    Then itos exits with code 0
+    And the registry's queue is empty
+
+  @ID-WORK-34 @slice-66 @wip
+  Scenario: work done takes the closed item out of the queue
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And itos has run "work queue slice-9 --top"
+    And ci.watch runs a command that reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And the registry's queue is empty
+
+  @ID-WORK-35 @slice-66 @wip
+  Scenario: work check refuses a queue naming an item the registry does not have
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the registry's queue names "slice-404"
+    When itos checks the work registry
+    Then itos exits with code 1
+    And its output says "slice-404"
