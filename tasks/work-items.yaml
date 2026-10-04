@@ -3849,7 +3849,7 @@ items:
     title: "Changes: names a corpus case by a unique prefix of its name"
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     why: >
