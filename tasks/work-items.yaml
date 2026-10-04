@@ -45,6 +45,7 @@ phases:
 
 queue:
   - bug-19
+  - slice-73
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
   - p1-registry-archive
