@@ -3988,3 +3988,21 @@ items:
       stem, counting the registry's ids for slice-<n> and bug-<n>, and the ledger's next task ID.
       The steps listing and the undefined-step dry run stay in p1-tests-next-id-and-steps.
     refs: [features/next-id.feature]
+
+  - id: p1-work-show-gaps
+    title: "itos work show: the review of slice 57"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-57]
+    kind: idea
+    why: >
+      Found by slice 57's post-landing review (2026-10-04). Sure: --json --patch under a stealth
+      config carries no footers (message is %B, patch has no note) and runs one git show per commit;
+      under stealth with no refs/notes/itos (a fresh clone) git's warning is dropped and work show
+      lists only registry commits, exit 0, with no hint; scenarios are read at HEAD only, so a
+      commit naming a removed scenario drops out, and a kind behind a command adapter has no tags.
+      Fairly sure: a promoted idea's own add and edit commits are not followed, and work show <idea>
+      after its promotion says unknown item without naming what it became. Low: a literal why: |
+      prints each line as a paragraph. Cleanup: history.go and workshow.go rebuild the notes
+      arguments showNotes has, BareID would do for TagPrefix+ID, Link.Key is unused.
