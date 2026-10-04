@@ -578,15 +578,15 @@
 
 - id: T-085
   type: docs
-  title: PLAN.md's decisions become records in docs/adr/, and PLAN.md keeps what itos is
+  title: PLAN.md's decisions become records in docs/decisions/, and PLAN.md keeps what itos is
   why: >
     Was p1-plan-to-adrs (the user's calls, 2026-10-04). A person cannot find a decision in a
-    909-line plan or a registry's whys; slice 69 gave itos decision records in adr-tools' format,
+    909-line plan or a registry's whys; slice 69 gave itos decision records, MADR 4 since slice 71,
     with an index of the live ones. Seed them from PLAN.md's curated decisions only: one record
     per row of its decisions table and per decision of its distribution section, written by hand
     in the format itos ask record writes (it numbers past them), each Context saying why and each
     Date the day it was decided where PLAN.md says so, else today's; the index block in
-    docs/adr/README.md as ask record writes it. The registry's calls stay in history, so the
+    docs/decisions/README.md as ask record writes it. The registry's calls stay in history, so the
     records do not sprawl. PLAN.md keeps the goals, non-goals, name and model, and links the
     index; what duplicates or is history goes: the command table (it restates --help and drifts),
     the architecture (docs/ARCHITECTURE.md), the phases, the working rules (AGENTS.md), and
@@ -594,9 +594,9 @@
     comments that cite a PLAN.md section by number cite the record instead, in a refactor commit
     naming this task. What this move teaches feeds p1-adr-adoption-guide.
   done_when:
-    - run: grep -q 'itos:decisions:begin' docs/adr/README.md
-    - run: test "$(ls docs/adr | grep -cE '^[0-9]{4}-.*\.md$')" -ge 15
-    - run: grep -q 'docs/adr/README.md' PLAN.md
+    - run: grep -q 'itos:decisions:begin' docs/decisions/README.md
+    - run: test "$(ls docs/decisions | grep -cE '^[0-9]{4}-.*\.md$')" -ge 15
+    - run: grep -q 'docs/decisions/README.md' PLAN.md
     - run: "! grep -qE '^## .*(The command line|Phases|Working rules)' PLAN.md"
     - run: test ! -e docs/releases
     - run: "! grep -rqE 'PLAN\\.md ?§' cmd internal tools"
