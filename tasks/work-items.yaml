@@ -2269,6 +2269,10 @@ items:
       links back. A provider beside identity, people and range, judged by corpus cases once
       p1-conformance-http gives HTTP providers some, and bound by T-057's trust rule: only issues
       a login on the allow-list opened, or labelled itos-accepted by such a login, are work.
+
+      The user's lean (2026-10-04): labels tell itos's issues from external ones, and issues are
+      also how agents in different repositories talk (p2-cross-repo-contract); a label sorts an
+      issue, never makes it trusted, which stays who acted (the inbox's rule). Not needed yet.
     refs: [PLAN.md]
 
   - id: p2-github-pure
