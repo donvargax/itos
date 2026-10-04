@@ -48,6 +48,7 @@ queue:
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
   - p1-status-releases-nightly
+  - p1-done-body-url-footer
   - slice-60
   - slice-59
   - p1-registry-archive
