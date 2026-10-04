@@ -4634,7 +4634,7 @@ items:
     title: config check holds the decision records to unique numbers and real supersede links
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-69]
     kind: slice
     why: >
