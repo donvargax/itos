@@ -73,7 +73,8 @@ nothing by itself.
    such an item: specify it, commit the spec, then
    `tools/bin/itos work promote <idea> --as <id> --kind slice|task`, which
    renames it, rewrites every `depends_on` naming it and commits the registry
-   alone. The item stays `todo`: the agent takes it with `itos work take`.
+   alone; add `--title <title>` when the spec has made it something its
+   idea's title no longer says. The item stays `todo`: the agent takes it with `itos work take`.
    An item with `deferred:` waits until its reason goes; the user lifts it,
    not the coordinator.
 2. Start **one** implementing subagent with the brief below. One at a time:

@@ -1340,7 +1340,8 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   after, the item as it reads after, the items whose `depends_on` were
   renamed, the commit's header and body, or `Unchanged` (an item already in
   progress for the person); or an `out.Problem` that refuses, nothing
-  written. `work take`'s person is `Whoami`'s, as for `work`, nobody or one
+  written. `work.Promote` also replaces the title when `--title` gives one
+  (slice 65), its body naming the new title. `work take`'s person is `Whoami`'s, as for `work`, nobody or one
   the people do not list exiting 3; under a stealth config with no `--as`
   nobody is asked, as `ProposeEvery` asks nobody, and the owner is left as it
   is. Ownership is the item's owner, else its group's (`ownerOf`, as
