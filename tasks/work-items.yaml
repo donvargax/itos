@@ -4066,3 +4066,17 @@ items:
       cog's; a project that delegates its lint gets no wrapping. A key beside the delegate (say
       commits.header_lint.body_max_line_length) would give the limit; worth it only if a consumer
       with a delegate asks.
+
+  - id: slice-61
+    title: itos follow, private threads with people
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified as @ID-FOLLOW-01 to 07 in features/follow.feature: the first part of p1-follow-ups,
+      the user's calls of 2026-10-04 (every thread private, under the git common dir, never
+      committed, shared by worktrees; follow doc writes a thread out as Markdown). itos ask, the
+      user's public questions, is the next part.
+    refs: [features/follow.feature]
