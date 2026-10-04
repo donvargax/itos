@@ -4610,7 +4610,7 @@ items:
     title: itos status names the last nightly's run and its result
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-70]
     kind: slice
     why: >
