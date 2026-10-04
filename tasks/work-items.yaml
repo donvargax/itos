@@ -31,6 +31,11 @@
 #
 # CI reads it too: a task a pushed commit names whose item is still `todo`
 # waits (itos.yaml's `ci.wait_on_status`), since nobody has started it.
+#
+# The top-level `queue:` lists item ids in the order the work comes in, one
+# queue for the repository, ideas included: `itos work` proposes in its order,
+# `itos work queue <id> --top|--before <id>|--after <id>|--drop` edits it and
+# `itos work done` takes a closed item out of it.
 
 phases:
   0: donvargax
