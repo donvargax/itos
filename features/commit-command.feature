@@ -132,7 +132,7 @@ Feature: itos commit, a commit whose footers itos writes
   # limit, an indented line, the header and the footers are left as written.
   # It never joins lines, so a message already wrapped is unchanged. A word
   # longer than the limit stays whole, for the lint to judge.
-  @ID-COMMITCMD-13 @slice-58 @wip
+  @ID-COMMITCMD-13 @slice-58
   Scenario: A body line longer than the lint's limit is wrapped at word boundaries, and the commit is accepted
     Given the message file "msg.txt" with the header "chore: tidy the readme" and a body line of 150 characters
     And the header lint is itos's built-in one
@@ -141,7 +141,7 @@ Feature: itos commit, a commit whose footers itos writes
     And no line of HEAD's message is longer than 100 characters
     And HEAD's message body has the same words as the file's, in order
 
-  @ID-COMMITCMD-14 @slice-58 @wip
+  @ID-COMMITCMD-14 @slice-58
   Scenario: A list item longer than the limit wraps under its own text
     Given the message file "msg.txt" with the header "chore: tidy the readme" and a body list item of 150 characters
     And the header lint is itos's built-in one
@@ -151,7 +151,7 @@ Feature: itos commit, a commit whose footers itos writes
     And every line of HEAD's message body after the item's first starts with two spaces
 
   # Passes before the slice; it guards the wrapping against joining lines.
-  @ID-COMMITCMD-15 @slice-58 @wip
+  @ID-COMMITCMD-15 @slice-58
   Scenario: Body lines within the limit are left as written, never joined
     Given the message file "msg.txt" with the header "chore: tidy the readme" and the body lines "Line one." and "Line two."
     And the header lint is itos's built-in one

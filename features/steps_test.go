@@ -40,6 +40,7 @@ type world struct {
 	watchURL      string            // the run the watch command reports
 	registryLines []string          // the registry's items, one line each, as the work steps wrote them
 	noGh          bool              // the PATH has no gh
+	messageFile   string            // the message file's text, as a step wrote it
 
 	exit           int
 	stdout, stderr string

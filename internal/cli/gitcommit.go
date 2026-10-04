@@ -19,6 +19,11 @@ package cli
 // git tells the commit-msg hook nothing of an amend, so itos commit tells it
 // (slice 37): AmendEnv says whether --amend is among the arguments it hands
 // git, always, so the hook never guesses for a commit made through itos.
+//
+// A message from -m or -F (-F - included) has its long body lines wrapped to
+// the built-in header lint's limit before git sees it (slice 58, wrapBody),
+// so a commit is not refused for a line itos can break; the editor's
+// message is the hook's to judge.
 
 import (
 	"errors"
@@ -189,13 +194,23 @@ var (
 )
 
 // gitArgs are what itos reads of git commit's arguments, before any "--":
-// the messages -m gives, the file -F gives, whether the commit amends HEAD
-// (the last of --amend and --no-amend winning) and whether --no-edit keeps
-// the message it starts with.
+// the messages -m gives and the file -F gives, each with where it sits among
+// the arguments, whether the commit amends HEAD (the last of --amend and
+// --no-amend winning) and whether --no-edit keeps the message it starts with.
 type gitArgs struct {
 	messages      []string
+	messagesAt    []valueAt
 	file          string
+	fileAt        valueAt
 	amend, noEdit bool
+}
+
+// valueAt is where an option's value sits among git's arguments: the
+// argument's index, -1 when there is none, and what comes before the value
+// in it ("--message=", "-am", or "" when the value is an argument of its own).
+type valueAt struct {
+	index  int
+	prefix string
 }
 
 // readGitArgs reads git commit's arguments as git reads them, a valued
@@ -204,12 +219,12 @@ func readGitArgs(args []string) gitArgs {
 	var g gitArgs
 	for i := 0; i < len(args); i++ {
 		arg := args[i]
-		next := func() string {
+		next := func() (string, valueAt) {
 			if i+1 < len(args) {
 				i++
-				return args[i]
+				return args[i], valueAt{index: i}
 			}
-			return ""
+			return "", valueAt{index: -1}
 		}
 		name, value, given := strings.Cut(arg, "=")
 		switch {
@@ -220,25 +235,27 @@ func readGitArgs(args []string) gitArgs {
 		case arg == "--no-edit", arg == "--edit":
 			g.noEdit = arg == "--no-edit"
 		case strings.HasPrefix(arg, "--") && slices.Contains(gitValued, name):
+			at := valueAt{index: i, prefix: name + "="}
 			if !given {
-				value = next()
+				value, at = next()
 			}
 			switch name {
 			case "--message":
-				g.messages = append(g.messages, value)
+				g.messages, g.messagesAt = append(g.messages, value), append(g.messagesAt, at)
 			case "--file":
-				g.file = value
+				g.file, g.fileAt = value, at
 			}
 		case strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--"):
-			g.readCluster(arg[1:], next)
+			g.readCluster(arg[1:], i, next)
 		}
 	}
 	return g
 }
 
-// readCluster reads one cluster of short options (-am), the first valued
-// one taking the rest of it as its value, or the next argument.
-func (g *gitArgs) readCluster(cluster string, next func() string) {
+// readCluster reads one cluster of short options (-am), the argument at
+// index, the first valued one taking the rest of it as its value, or the
+// next argument.
+func (g *gitArgs) readCluster(cluster string, index int, next func() (string, valueAt)) {
 	for j := 0; j < len(cluster); j++ {
 		c := cluster[j]
 		switch {
@@ -248,14 +265,15 @@ func (g *gitArgs) readCluster(cluster string, next func() string) {
 			return
 		case strings.IndexByte(gitShortValued, c) >= 0:
 			value := cluster[j+1:]
+			at := valueAt{index: index, prefix: "-" + cluster[:j+1]}
 			if value == "" {
-				value = next()
+				value, at = next()
 			}
 			switch c {
 			case 'm':
-				g.messages = append(g.messages, value)
+				g.messages, g.messagesAt = append(g.messages, value), append(g.messagesAt, at)
 			case 'F':
-				g.file = value
+				g.file, g.fileAt = value, at
 			}
 			return
 		}
@@ -329,6 +347,56 @@ func refuseCommit(cfg *config.Loaded, found []out.Problem, o Out) (int, error) {
 	return ExitPolicy, nil
 }
 
+// wrapBody is git's arguments with the message they give wrapped to the
+// header lint's body line limit (message.Wrap, slice 58), and the file it
+// wrote the message to, for the caller to remove, "" when none: each -m in
+// its place, or the -F file's text, stdin's for -F -, in a file of its own,
+// named where the file was. The arguments as given when the limit is 0, the
+// message comes from the editor or HEAD, git will refuse them (-m with -F),
+// or the -F file is already wrapped or cannot be read, which git reports.
+func wrapBody(args []string, g gitArgs, limit int) ([]string, string, error) {
+	if limit <= 0 || len(g.messages) > 0 && g.file != "" {
+		return args, "", nil
+	}
+	args = slices.Clone(args)
+	if len(g.messages) > 0 {
+		for i, text := range message.Wrap(g.messages, limit, message.CommentChar()) {
+			if at := g.messagesAt[i]; at.index >= 0 {
+				args[at.index] = at.prefix + text
+			}
+		}
+		return args, "", nil
+	}
+	if g.file == "" || g.fileAt.index < 0 {
+		return args, "", nil
+	}
+	var raw []byte
+	var err error
+	if g.file == "-" {
+		raw, err = io.ReadAll(os.Stdin)
+	} else {
+		raw, err = os.ReadFile(typed(g.file))
+	}
+	if err != nil {
+		return args, "", nil
+	}
+	text := message.Wrap([]string{string(raw)}, limit, message.CommentChar())[0]
+	if text == string(raw) && g.file != "-" {
+		return args, "", nil
+	}
+	f, err := os.CreateTemp("", "itos-message-*")
+	if err != nil {
+		return nil, "", err
+	}
+	defer f.Close()
+	if _, err := f.WriteString(text); err != nil {
+		os.Remove(f.Name())
+		return nil, "", err
+	}
+	args[g.fileAt.index] = g.fileAt.prefix + f.Name()
+	return args, f.Name(), nil
+}
+
 // trailers are the footers as git commit's own --trailer arguments.
 func trailers(lines []string) []string {
 	var args []string
@@ -391,7 +459,14 @@ func gitCommit(args []string, o Out) (int, error) {
 	if o.Quiet {
 		argv = append(argv, "--quiet")
 	}
-	argv = append(argv, flags.git...)
+	given, written, err := wrapBody(flags.git, g, message.BodyLimit(cfg))
+	if err != nil {
+		return 0, err
+	}
+	if written != "" {
+		defer os.Remove(written)
+	}
+	argv = append(argv, given...)
 	stdout := o.Stdout
 	if o.JSON {
 		stdout = o.Stderr

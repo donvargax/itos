@@ -39,6 +39,136 @@ func initializeCommitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the itos note on HEAD says "([^"]*)"$`, w.headNoteSays)
 	sc.Step(`^no commit was made$`, w.noCommitMade)
 	sc.Step(`^the commit is refused$`, w.commitRefused)
+
+	sc.Step(`^the message file "([^"]*)" with the header "([^"]*)" and a body line of (\d+) characters$`,
+		func(file, header string, n int) error {
+			return w.writeMessageFile(file, header, wordsOf(n))
+		})
+	sc.Step(`^the message file "([^"]*)" with the header "([^"]*)" and a body list item of (\d+) characters$`,
+		func(file, header string, n int) error {
+			return w.writeMessageFile(file, header, "- "+wordsOf(n-2))
+		})
+	sc.Step(`^the message file "([^"]*)" with the header "([^"]*)" and the body lines "([^"]*)" and "([^"]*)"$`,
+		func(file, header, a, b string) error {
+			return w.writeMessageFile(file, header, a+"\n"+b)
+		})
+	sc.Step(`^no line of HEAD's message is longer than (\d+) characters$`, w.headLinesFit)
+	sc.Step(`^HEAD's message body has the same words as the file's, in order$`, w.headBodyHasFileWords)
+	sc.Step(`^every line of HEAD's message body after the item's first starts with two spaces$`, w.itemLinesIndented)
+	sc.Step(`^the message of HEAD has the line "([^"]*)"$`, w.headHasLine)
+}
+
+// Words of prose, n characters in all, the last cut short to fit: no word
+// ends in a colon, so no line of them reads as a footer.
+func wordsOf(n int) string {
+	words := strings.Fields("the readme said how to build itos but not how to run its scenarios " +
+		"so a reader who came for the tests found nothing and asked again")
+	var b strings.Builder
+	for i := 0; b.Len() < n; i++ {
+		if b.Len() > 0 {
+			b.WriteByte(' ')
+		}
+		b.WriteString(words[i%len(words)])
+	}
+	text := b.String()[:n]
+	if strings.HasSuffix(text, " ") {
+		text = text[:n-1] + "s"
+	}
+	return text
+}
+
+// A message file in the scratch repository, a header, a blank line and the
+// body, which -F names relative to the folder itos runs in.
+func (w *world) writeMessageFile(file, header, body string) error {
+	w.messageFile = header + "\n\n" + body + "\n"
+	return os.WriteFile(filepath.Join(w.dir, file), []byte(w.messageFile), 0o644)
+}
+
+// Each line of HEAD's message, footers included, is at most n characters.
+func (w *world) headLinesFit(n int) error {
+	message, err := w.newHeadMessage()
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(message, "\n") {
+		if len([]rune(line)) > n {
+			return fmt.Errorf("a line of HEAD's message is %d characters long, over %d:\n%s", len([]rune(line)), n, message)
+		}
+	}
+	return nil
+}
+
+// HEAD's message body: the lines after its header, up to the trailers git
+// reads at its end, which itos's footers are.
+func (w *world) headBody() ([]string, string, error) {
+	message, err := w.newHeadMessage()
+	if err != nil {
+		return nil, "", err
+	}
+	trailers, err := w.gitOutput("log", "-1", "--format=%(trailers:only)")
+	if err != nil {
+		return nil, "", err
+	}
+	lines := strings.Split(strings.TrimRight(message, "\n"), "\n")
+	block := strings.Split(strings.TrimRight(trailers, "\n"), "\n")
+	if strings.TrimSpace(trailers) != "" && len(block) < len(lines) &&
+		slices.Equal(lines[len(lines)-len(block):], block) {
+		lines = lines[:len(lines)-len(block)]
+	}
+	return lines[1:], message, nil
+}
+
+// HEAD's body holds the message file's body word for word: the wrapping
+// broke lines, and lost, added or moved no word.
+func (w *world) headBodyHasFileWords() error {
+	body, message, err := w.headBody()
+	if err != nil {
+		return err
+	}
+	_, want, _ := strings.Cut(w.messageFile, "\n")
+	if got := strings.Fields(strings.Join(body, "\n")); !slices.Equal(got, strings.Fields(want)) {
+		return fmt.Errorf("HEAD's body does not have the file's words in order; the file's body:\n%s\nHEAD's message:\n%s",
+			want, message)
+	}
+	return nil
+}
+
+// The body's list item goes on over more than one line, and each line after
+// its first is indented by two spaces, under the item's text.
+func (w *world) itemLinesIndented() error {
+	body, message, err := w.headBody()
+	if err != nil {
+		return err
+	}
+	first := slices.IndexFunc(body, func(l string) bool { return strings.HasPrefix(l, "- ") })
+	if first < 0 {
+		return fmt.Errorf("HEAD's body has no list item:\n%s", message)
+	}
+	rest := body[first+1:]
+	for len(rest) > 0 && rest[len(rest)-1] == "" {
+		rest = rest[:len(rest)-1]
+	}
+	if len(rest) == 0 {
+		return fmt.Errorf("HEAD's list item has no line after its first:\n%s", message)
+	}
+	for _, line := range rest {
+		if !strings.HasPrefix(line, "  ") {
+			return fmt.Errorf("a line after the list item's first does not start with two spaces, %q:\n%s", line, message)
+		}
+	}
+	return nil
+}
+
+// HEAD's message has the line, whole.
+func (w *world) headHasLine(line string) error {
+	message, err := w.newHeadMessage()
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(strings.Split(message, "\n"), line) {
+		return fmt.Errorf("HEAD's message has no line %q:\n%s", line, message)
+	}
+	return nil
 }
 
 // A commit made through itos, which has to succeed: the scenario's commit
