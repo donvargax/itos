@@ -3711,6 +3711,15 @@ items:
       specialist agents. ORCHESTRATING.md is deleted, and docs/HANDOFF.md once itos status covers
       it. The last item before the user puts itos in their other repositories.
 
+      The user's calls (2026-10-04): the orchestration guidance is generic; what is learnt from
+      using itos in one repository stays in that repository, and what is learnt here that holds for
+      any project goes into the generic guide. The implementer needs no orchestration guidance. The
+      guidance is served by the itos binary itself, a CLI-only mode: itos guide coordinate prints
+      the coordinator's guide (a person can start a session with ! itos guide coordinate) and itos
+      guide work the implementer's, which the coordinator asks each subagent to run first; the
+      plugin's skills become thin wrappers that run them, so one text, versioned with itos, serves
+      both.
+
   - id: p3-specialist-agents
     title: Specialist agents (spec writer, reviewer), only once they can be done properly
     phase: 3
