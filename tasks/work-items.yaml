@@ -59,6 +59,7 @@ queue:
   - p1-push-superseded-run
   - p3-guard-cd
   - p1-version-mutation-gaps
+  - p1-schema-contract-tests
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
