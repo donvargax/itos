@@ -50,6 +50,7 @@ queue:
   - p3-plugin-guide-wrappers
   - slice-60
   - slice-59
+  - p1-registry-archive
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
