@@ -3701,3 +3701,15 @@ items:
       (the error says to edit it by hand); and --refs '' on an item with no refs commits a change.
       Replace a multi-line flow list whole by a one-line one, empty a block list in place, and
       compare an absent key as an empty list.
+
+  - id: p1-work-as-empty
+    title: itos work --as= with no handle is refused, as --as with none is
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the post-landing review of slice 54: an empty --as= falls back to the identity
+      provider, so --as=$UNSET silently proposes another person's work, bug 11's failure mode. Also
+      work check ignores every argument after its first.
