@@ -3637,3 +3637,16 @@ items:
       definition carries the implementer rules and preloads the itos skill. A thin layer, not
       specialist agents. ORCHESTRATING.md is deleted, and docs/HANDOFF.md once itos status covers
       it. The last item before the user puts itos in their other repositories.
+
+  - id: p3-specialist-agents
+    title: Specialist agents (spec writer, reviewer), only once they can be done properly
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-03): specialist agents are wanted later, but done badly they waste
+      tokens for little gain, so none are built until there is a clear design and evidence they pay
+      off. itos:implementer is not one: it only carries the existing implementer rules. The
+      post-landing review trial (p3-post-landing-review) is the first evidence to gather.
