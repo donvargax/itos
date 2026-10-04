@@ -4631,6 +4631,10 @@ items:
       itos reads. itos never rewrites a record after writing it but for the Status section on a
       supersede. No frontmatter: it would repeat the Status section and drift from it, and adr-tools
       writes none.
+
+      Since slice 71 (2026-10-04) records are MADR 4: their status lives in the YAML frontmatter,
+      which no section repeats, so the earlier objection to frontmatter no longer applies; read the
+      frontmatter as YAML and the title from the first heading.
     refs: [internal/ask]
 
   - id: p1-adr-adoption-guide
