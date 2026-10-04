@@ -4652,7 +4652,15 @@ items:
       Since slice 71 (2026-10-04) records are MADR 4: their status lives in the YAML frontmatter,
       which no section repeats, so the earlier objection to frontmatter no longer applies; read the
       frontmatter as YAML and the title from the first heading.
-    refs: [internal/ask]
+
+      Specified as @ID-CONFIG-24 and 25 (2026-10-04). Settled: config check reads the folder
+      work.decisions names (absent folder, nothing to check) and reports two problems, each with a
+      rule id and a fix: decisions-number-twice (two NNNN-*.md files share a number, naming both)
+      and decisions-superseded-by-missing (a status 'superseded by ADR-NNNN' naming a number no file
+      has). The commit-msg hook runs config check when a record or the index is staged, as it does
+      for the ledger and the registry. Not held: the index against the folder, since ask record
+      writes it whole at every record and nothing regenerates it on demand.
+    refs: [features/config.feature, internal/adr, internal/cli/configcheck.go]
 
   - id: T-086
     title: The coordinator's guide says how decisions are recorded, and how a repository moves its docs' decisions into records
