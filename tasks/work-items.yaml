@@ -4494,3 +4494,23 @@ items:
       footer-leading-blank warning. Its body ends with the run's address on a line of its own
       (https://…), which the lint reads as a footer token (https:). Keep the address inside a
       sentence, or after a word, so the body is clean under itos's own lint.
+
+  - id: slice-68
+    title: itos go prints this clone's own notes, kept uncommitted under the git common dir
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified as @ID-GUIDE-06 to 08 in features/guide.feature (the user's calls, 2026-10-04).
+      Notes true of one machine only (a stale itos on the PATH, a local path) had nowhere to go but
+      an agent's private memory. itos go prints .git/itos/notes.md (git's common dir, so every
+      linked worktree shares it, as itos follow's threads do) under the heading '# This clone's own
+      notes', whose first line says they are uncommitted and hold what is true on this machine only;
+      after the repository's own notes, before the status; nothing when the file is missing or holds
+      only blanks. --json gains a local_notes field naming the file, beside notes. A stealth config
+      whose guide.orchestrating names that same file prints it once. The coordinator's guide
+      (internal/guide/coordinate.md) gains one line naming the file, the nudge to keep such notes
+      there, since an empty file prints nothing. No itos notes command: it is a plain file.
+    refs: [features/guide.feature]
