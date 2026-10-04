@@ -272,10 +272,13 @@ Feature: itos init, a repository made ready for itos
   # refused any item anyway. Init now lists its ledger's one group, phase 1,
   # owned by nobody, and both commands write the first item into an empty
   # list. Adding a further phase is p1-work-add-phase.
-  # INIT-23 and 24 stay @wip: the starter requires a Task footer of docs
-  # commits, and work add and task add commit docs with none, so the
-  # commit-msg hook init installed refuses them. The user decides the
-  # remedy (bug-12's why in tasks/work-items.yaml).
+  # Its second half (the user's call, 2026-10-04, q-1): the starter required
+  # a Task footer of docs commits, and every registry command commits docs
+  # with none, so the hooks init installed refused them. The starter now
+  # leaves docs out of required_for, as this repository does, and gives docs
+  # the one path scope the starter has, Markdown, docs/ and itos's own data
+  # beside the ledger, so a change labelled docs to skip the footer is still
+  # refused (@ID-INIT-31); every other type stays unscoped.
   @ID-INIT-23 @bug-12 @wip
   Scenario: In a repository init set up, work add writes the first item into the empty registry, in phase 1
     Given a repository that does not use itos, its one commit "docs: start"
@@ -373,3 +376,13 @@ Feature: itos init, a repository made ready for itos
     When itos runs "init --agent-rules"
     Then the file "AGENTS.md" says "deps" between the markers
     And the file "AGENTS.md" has the line "Be kind to the build."
+
+  @ID-INIT-31 @bug-12 @wip
+  Scenario: In a repository init set up, a docs commit touching code is refused, so docs cannot skip the Task footer
+    Given a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init"
+    And the files init wrote are committed
+    And a change to "src/app.js" is staged
+    When the commit-msg hook checks the message "docs: describe the app"
+    Then itos exits with code 1
+    And its output says "docs commits may not touch src/app.js"
