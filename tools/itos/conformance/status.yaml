@@ -9,6 +9,12 @@
 # is a line, and the rest prints, exit 0. itos go prints it after the guide,
 # and skips one that cannot be computed with a line on stderr.
 #
+# Slice 70: after the head and its CI run, the newest release, the highest tag
+# v<semver> on the remote (asked of it as the head is, else as last fetched),
+# and the commits since it the next release would carry, the feat, fix and
+# breaking ones as tools/bin/release-version counts them, read from the
+# commits as fetched here, saying they may be behind when the head is not.
+#
 # The remote is a bare one in the git folder, .git/origin.git, holding the
 # repository's one commit; the watch command, report.sh, prints run.json with
 # SHA replaced by the commit it was given.
@@ -61,6 +67,8 @@ cases:
 
       origin/main: {{short.head}} chore: first
       CI: success, https://ci.example/runs/{{sha.head}}
+
+      Newest release: no release yet.
 
       In progress for a:
         busy  Busy
@@ -184,6 +192,8 @@ cases:
           status: completed
           conclusion: success
           jobs: [{ name: ci, status: completed, conclusion: success }]
+      release: null
+      unreleased: null
       doing: [{ id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [] }]
       next:
         - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [] }
@@ -206,11 +216,95 @@ cases:
       person: a
       head: null
       ci: null
+      release: null
+      unreleased: null
       doing: []
       next: []
       more: 0
       questions: []
       unread: ["No remote origin, so neither its head nor its CI run is read."]
+  - name: status names the newest release and the feat, fix and breaking commits since it
+    argv: [status]
+    git:
+      - commit: "chore: first"
+        files: { README.md: "first\n" }
+      - run: git tag v1.2.0-rc.1 && git tag -a v1.2.0 -m v1.2.0 && git tag v1.1.0 && git tag v1.3
+      - commit: "feat: add the archive"
+        files: { a.txt: "a\n" }
+      - commit: "docs: describe the archive"
+        files: { b.md: "b\n" }
+      - commit: "fix(cli): mend the archive"
+        files: { a.txt: "a2\n" }
+      - commit: "refactor!: rename the archive"
+        files: { a.txt: "a3\n" }
+      - run: 'git commit -q --allow-empty -m "chore: drop the old name" -m "Why it goes." -m "BREAKING-CHANGE: the old name is gone" && git tag latest'
+        label: head
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q --tags origin main
+    exit: 0
+    stdout_has: "CI: success, https://ci.example/runs/{{sha.head}}\n\nNewest release: v1.2.0\nUnreleased since v1.2.0, oldest first:\n  feat: add the archive\n  fix(cli): mend the archive\n  refactor!: rename the archive\n  chore: drop the old name\n\nIn progress for a:\n"
+  - name: the release is asked of the remote, whose tags this clone may not have
+    argv: [status]
+    git:
+      - commit: "chore: first"
+        files: { README.md: "first\n" }
+      - run: git tag v1.0.0 && git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q origin main && git tag v2.0.0 && git push -q origin v2.0.0 && git tag -d v2.0.0 >/dev/null
+    exit: 0
+    stdout_has: "Newest release: v2.0.0\nNothing unreleased since v2.0.0.\n"
+  - name: a remote that cannot be reached gives its release as last fetched
+    argv: [status]
+    git:
+      - commit: "chore: first"
+        files: { README.md: "first\n" }
+      - run: git tag v1.2.0
+      - commit: "feat: add the archive"
+        files: { a.txt: "a\n" }
+        label: head
+      - run: git remote add origin .git/nowhere.git && git update-ref refs/remotes/origin/main HEAD
+    exit: 0
+    stdout_has: "CI: success, https://ci.example/runs/{{sha.head}}\n\nNewest release: v1.2.0 (as last fetched)\nUnreleased since v1.2.0, oldest first:\n  feat: add the archive\n"
+  - name: where the remote's head is not fetched here the commits since the release may be behind
+    argv: [status]
+    git:
+      - commit: "chore: first"
+        files: { README.md: "first\n" }
+      - run: 'git tag v1.2.0 && git init -q --bare -b main .git/origin.git && git remote add origin .git/origin.git && git push -q --tags origin main && git fetch -q origin && git clone -q .git/origin.git .git/other && git -C .git/other commit -q --allow-empty -m "feat: add the archive" && git -C .git/other push -q origin main && rm -rf .git/other'
+    exit: 0
+    stdout_has: "Newest release: v1.2.0\norigin/main is not fetched here up to its head, so the commits since v1.2.0 may be behind.\nNothing unreleased since v1.2.0, as fetched here.\n"
+  - name: status --json gives the newest release and the headers of the commits since it
+    argv: [status, --json]
+    git:
+      - commit: "chore: first"
+        files: { README.md: "first\n" }
+        label: release
+      - run: git tag -a v1.2.0 -m v1.2.0
+      - commit: "feat: add the archive"
+        files: { a.txt: "a\n" }
+      - commit: "docs: describe the archive"
+        files: { b.md: "b\n" }
+        label: head
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q --tags origin main
+    files:
+      work-items.yaml: "phases: { 1: a }\nitems: []\n"
+      asks.yaml: null
+    exit: 0
+    json:
+      schema: 1
+      person: a
+      head: { remote: origin, branch: main, commit: "{{sha.head}}", header: "docs: describe the archive", last_fetched: false }
+      ci:
+        result: success
+        run:
+          url: "https://ci.example/runs/{{sha.head}}"
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+      release: { tag: v1.2.0, commit: "{{sha.release}}", last_fetched: false }
+      unreleased: ["feat: add the archive"]
+      doing: []
+      next: []
+      more: 0
+      questions: []
+      unread: []
   - name: status takes no arguments
     argv: [status, work]
     exit: 2

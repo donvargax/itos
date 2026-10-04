@@ -71,7 +71,7 @@ Feature: itos status, where the work stands
   # it, the ones the next release would carry (the user's calls, 2026-10-04,
   # p1-status-releases-nightly). The last nightly and the last green run need
   # a provider each and wait on an item of their own.
-  @ID-STATUS-06 @slice-70 @wip
+  @ID-STATUS-06 @slice-70
   Scenario: status names the newest release, and the feat and fix commits since it
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote's head is tagged "v1.2.0"
@@ -83,7 +83,7 @@ Feature: itos status, where the work stands
     And its output says "v1.2.0" before "feat: add the archive"
     And its output does not say "docs: describe the archive"
 
-  @ID-STATUS-07 @slice-70 @wip
+  @ID-STATUS-07 @slice-70
   Scenario: With no release yet, status says so and prints the rest
     Given the watched run's jobs "ci" and "platform" succeed
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -92,7 +92,7 @@ Feature: itos status, where the work stands
     And its output says "no release yet"
     And its output says "slice-9"
 
-  @ID-STATUS-08 @slice-70 @wip
+  @ID-STATUS-08 @slice-70
   Scenario: Where the remote's head is not fetched here, status says its unreleased commits may be behind
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote's head is tagged "v1.2.0"

@@ -1587,6 +1587,18 @@ add`ed so `--only` can name it, git add's words and the commit's on
   does not answer; its header is the local commit's when it is fetched. Its
   CI run is one call of the `providers.Watch` that `watcher` builds for
   `itos ci watch`, so one look, never the loop; a run not done is `going`.
+  The newest release (slice 70, `readRelease`) is asked of the same remote
+  with `git ls-remote --tags` under the same timeout, an annotated tag's
+  peeled `^{}` commit standing for it, and read from `refs/tags/` as last
+  fetched when the head was (the remote is not waited for twice) or the tags
+  do not come; `release.Newest` picks the highest `v<semver>`, a prerelease
+  below its release. The unreleased commits are `git log <release>..<head>`
+  in this clone, kept where `release.Releasable` holds: a feat, a fix, or a
+  `!` or `BREAKING-CHANGE` footer of any type, the rules
+  `tools/bin/release-version` keeps its own copy of, since it imports the
+  standard library alone. A head not fetched here lists to the remote branch
+  as last fetched, with a line saying the list may be behind. status never
+  fetches.
   The person is `work.Whoami`'s, as `itos work`'s, and the items are
   `work.Propose`'s: in progress, then `work.Startable`, the proposal's own
   and unowned items merged in `inQueueOrder`, cut to five; the questions are

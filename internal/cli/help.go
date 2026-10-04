@@ -50,7 +50,7 @@ Usage: itos <command> [args] [global flags]
 Commands:
   go                               the coordinator's guide, the repository's own notes, the status
   guide coordinate|work            a guide shipped in itos: the coordinator's, the implementer's
-  status [--as <handle>]           where things stand: the remote's head and CI, work, questions
+  status [--as <handle>]           where things stand: head, CI, release, work, questions
   task <id>…                       run the tasks' checks; the status table
   task list [--group <g>]          the tasks and their work items' status; runs nothing
   task add <id> --group <g> --type <type> --title <title> --why <why> --check <command> […]
@@ -1080,19 +1080,26 @@ identity provider's, as itos work): the remote branch's head, its short SHA
 and header, asked of the remote (the branch's upstream, else origin), or as
 last fetched when the remote cannot be reached; its CI run, looked at once
 through ci.watch's provider and never waited for, a run still going said to
-be going; the person's items in progress; the next items they can start,
+be going; the newest release, the highest tag v<semver> on the remote (a
+prerelease below its release), asked of it as the head is, or as last fetched,
+or no release yet; the commits since it the next release would carry, the
+feat, fix and breaking ones, by header, oldest first, read from the commits as
+fetched here, with a line saying they may be behind when the head is not
+fetched; the person's items in progress; the next items they can start,
 theirs and the unowned, in the queue's order and the unqueued after, five at
-most; and the open questions (itos ask). It reads, never writes. What cannot
-be reached (no remote, ci.watch.provider none, a provider that fails or prints
-no run) is one line naming it, and the rest still prints, exit 0. Exit 1 when
-the work registry is not there or not sound, 3 when --as is not among the
-people. itos go prints it last.
+most; and the open questions (itos ask). It reads, never writes or fetches.
+What cannot be reached (no remote, ci.watch.provider none, a provider that
+fails or prints no run) is one line naming it, and the rest still prints,
+exit 0. Exit 1 when the work registry is not there or not sound, 3 when --as
+is not among the people. itos go prints it last.
 
 --json: {"schema":1,"person","every_item"?,"head":{"remote","branch","commit",
-"header","last_fetched"}|null,"ci":{"result","run"?}|null,"doing","next",
+"header","last_fetched"}|null,"ci":{"result","run"?}|null,"release":{"tag",
+"commit","last_fetched"}|null,"unreleased":["<header>"]|null,"doing","next",
 "more","questions":[{"id","item"?,"question","status"}],"unread"}, result
 success, failure (or another conclusion), going, or none for no run yet;
-unread the lines of what could not be reached`,
+unreleased null with no release or when they cannot be listed; unread the
+lines of what could not be reached`,
 
 	"guide": `Usage: itos guide coordinate|work
 

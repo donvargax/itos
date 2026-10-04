@@ -5,9 +5,12 @@ package cli
 // place of a handoff file rewritten by hand. The remote branch's head is
 // asked of the remote (git ls-remote), else read as last fetched; its CI run
 // is looked at once through ci.watch's provider, never waited for, a run
-// still going reported as going; then the person's items in progress, the
-// next ones they can start in the queue's order (a handful), and the open
-// questions of itos ask. It reads, never writes. What cannot be reached is
+// still going reported as going; then (slice 70) the newest release, the
+// highest tag v<semver> asked of the remote as the head is, else as last
+// fetched, and the commits since it the next release would carry, the feat,
+// fix and breaking ones, read from the commits as fetched here; then the
+// person's items in progress, the next ones they can start in the queue's
+// order (a handful), and the open questions of itos ask. It reads, never writes. What cannot be reached is
 // one line naming it, and the rest still prints, exit 0; a status that
 // cannot be computed at all (no config, no registry, one with problems) is
 // exit 2 or 1, as itos work's. itos go prints it after the guides
@@ -27,6 +30,7 @@ import (
 	"github.com/donvargax/itos/v2/internal/git"
 	"github.com/donvargax/itos/v2/internal/out"
 	"github.com/donvargax/itos/v2/internal/providers"
+	"github.com/donvargax/itos/v2/internal/release"
 	"github.com/donvargax/itos/v2/internal/value"
 	"github.com/donvargax/itos/v2/internal/work"
 )
@@ -57,17 +61,31 @@ var lsRemoteTimeout = 20 * time.Second
 
 // standing is where things stand, as --json gives it.
 type standing struct {
-	Person    any          `json:"person"`
-	Every     bool         `json:"every_item,omitempty"`
-	Head      *remoteHead  `json:"head"`
-	CI        *ciStanding  `json:"ci"`
-	Doing     []any        `json:"doing"`
-	Next      []any        `json:"next"`
-	More      int          `json:"more"`
-	Questions []askEntry   `json:"questions"`
-	Unread    []string     `json:"unread"`
-	unowned   map[any]bool // the next items nobody owns
-	start     []string     // the lines of the head and CI, in order
+	Person  any         `json:"person"`
+	Every   bool        `json:"every_item,omitempty"`
+	Head    *remoteHead `json:"head"`
+	CI      *ciStanding `json:"ci"`
+	Release *newest     `json:"release"`
+	// Unreleased are the headers of the commits since the release the next
+	// one would carry, oldest first; nil when there is no release or they
+	// cannot be listed.
+	Unreleased []string     `json:"unreleased"`
+	Doing      []any        `json:"doing"`
+	Next       []any        `json:"next"`
+	More       int          `json:"more"`
+	Questions  []askEntry   `json:"questions"`
+	Unread     []string     `json:"unread"`
+	unowned    map[any]bool // the next items nobody owns
+	start      []string     // the lines of the head and CI, in order
+	released   []string     // the lines of the release section, in order
+}
+
+// newest is the newest release: its tag, the commit it names, and whether
+// it was read as last fetched, the remote not answering.
+type newest struct {
+	Tag         string `json:"tag"`
+	Commit      string `json:"commit"`
+	LastFetched bool   `json:"last_fetched"`
 }
 
 // remoteHead is the remote branch's head: its commit and header ("" when
@@ -228,28 +246,166 @@ func (st *standing) readHead(cfg *config.Loaded, o Out) {
 	}
 	st.start = append(st.start, line)
 	st.readCI(cfg, remote, sha, o)
+	st.readRelease(remote, branch, head)
 }
 
 // lsRemote is the commit the remote's ref names, "" when it has no such
 // ref; reached is false when the remote did not answer in time, or at all.
 // It never prompts for credentials.
 func lsRemote(remote, ref string) (sha string, reached bool) {
+	refs, reached := askRemote(remote, ref)
+	return refs[ref], reached
+}
+
+// askRemote is git ls-remote's refs, each name the commit or object it
+// names; reached is false when the remote did not answer in time, or at all.
+// It never prompts for credentials.
+func askRemote(args ...string) (refs map[string]string, reached bool) {
 	ctx, cancel := context.WithTimeout(context.Background(), lsRemoteTimeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, git.Bin(), "ls-remote", remote, ref)
+	cmd := exec.CommandContext(ctx, git.Bin(), append([]string{"ls-remote"}, args...)...)
 	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout
 	if err := cmd.Run(); err != nil {
-		return "", false
+		return nil, false
 	}
+	refs = map[string]string{}
 	for _, line := range strings.Split(stdout.String(), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) == 2 && fields[1] == ref {
-			return fields[0], true
+		if fields := strings.Fields(line); len(fields) == 2 {
+			refs[fields[1]] = fields[0]
 		}
 	}
-	return "", true
+	return refs, true
+}
+
+// releaseTags are the tags the remote has, each the commit it names, an
+// annotated tag peeled to its commit; reached is false when the remote did
+// not answer. Asked of the remote alone when it answered for the head, so
+// a remote that did not is not waited for twice.
+func releaseTags(remote string, ask bool) (tags map[string]string, reached bool) {
+	if !ask {
+		return nil, false
+	}
+	refs, reached := askRemote("--tags", remote)
+	if !reached {
+		return nil, false
+	}
+	return peeled(refs, func(ref string) (string, bool) { return strings.CutPrefix(ref, "refs/tags/") }), true
+}
+
+// fetchedTags are the tags this clone has, as last fetched, each the commit
+// it names.
+func fetchedTags() map[string]string {
+	out, err := git.Output("for-each-ref", "--format=%(objectname) %(refname) %(*objectname)", "refs/tags/")
+	if err != nil {
+		return map[string]string{}
+	}
+	refs := map[string]string{}
+	for _, line := range strings.Split(out, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 {
+			refs[fields[1]] = fields[0]
+		}
+		if len(fields) == 3 {
+			refs[fields[1]+"^{}"] = fields[2]
+		}
+	}
+	return peeled(refs, func(ref string) (string, bool) { return strings.CutPrefix(ref, "refs/tags/") })
+}
+
+// peeled are the refs' tag names, each the commit it names: its peeled ^{}
+// entry where it has one, an annotated tag's commit, else its own object.
+func peeled(refs map[string]string, name func(string) (string, bool)) map[string]string {
+	tags := map[string]string{}
+	for ref, sha := range refs {
+		if strings.HasSuffix(ref, "^{}") {
+			continue
+		}
+		if tag, ok := name(ref); ok {
+			tags[tag] = sha
+			if commit, ok := refs[ref+"^{}"]; ok {
+				tags[tag] = commit
+			}
+		}
+	}
+	return tags
+}
+
+// readRelease reads the newest release, the highest tag v<semver>, asked
+// of the remote when it answered for the head, else as last fetched, and
+// the commits since it the next release would carry: the feat, fix and
+// breaking ones (release.Releasable, as the release cut counts them) from
+// the release to the remote's head, read from the commits as fetched here.
+// Where the head is not fetched here, they are listed to the remote branch
+// as last fetched, and a line says the list may be behind.
+func (st *standing) readRelease(remote, branch string, head *remoteHead) {
+	tags, reached := releaseTags(remote, !head.LastFetched)
+	if !reached {
+		if !head.LastFetched {
+			st.releaseUnread(fmt.Sprintf("%s's tags cannot be read, so its newest release is as last fetched.", remote))
+		}
+		tags = fetchedTags()
+	}
+	names := make([]string, 0, len(tags))
+	for name := range tags {
+		names = append(names, name)
+	}
+	tag := release.Newest(names)
+	if tag == "" {
+		st.released = append(st.released, "Newest release: no release yet.")
+		return
+	}
+	st.Release = &newest{Tag: tag, Commit: tags[tag], LastFetched: !reached}
+	line := "Newest release: " + tag
+	if !reached {
+		line += " (as last fetched)"
+	}
+	st.released = append(st.released, line)
+	tip, asFetched := head.Commit, ""
+	if !git.HasCommit(tip) {
+		asFetched = ", as fetched here"
+		fetched, err := git.Output("rev-parse", "--verify", "--quiet", "refs/remotes/"+remote+"/"+branch+"^{commit}")
+		tip = strings.TrimSpace(fetched)
+		if err != nil || tip == "" {
+			st.releaseUnread(fmt.Sprintf("%s/%s is not fetched here, so the commits since %s are not listed.", remote, branch, tag))
+			return
+		}
+		st.releaseUnread(fmt.Sprintf("%s/%s is not fetched here up to its head, so the commits since %s may be behind.",
+			remote, branch, tag))
+	}
+	if !git.HasCommit(st.Release.Commit) {
+		st.releaseUnread(fmt.Sprintf("%s's commit is not fetched here, so the commits since it are not listed.", tag))
+		return
+	}
+	log, err := git.Output("log", "--reverse", "--format=%B%x1e", st.Release.Commit+".."+tip)
+	if err != nil {
+		st.releaseUnread(fmt.Sprintf("The commits since %s cannot be read.", tag))
+		return
+	}
+	st.Unreleased = []string{}
+	for _, record := range strings.Split(log, "\x1e") {
+		message := strings.TrimSpace(record)
+		if message != "" && release.Releasable(message) {
+			header, _, _ := strings.Cut(message, "\n")
+			st.Unreleased = append(st.Unreleased, header)
+		}
+	}
+	if len(st.Unreleased) == 0 {
+		st.released = append(st.released, fmt.Sprintf("Nothing unreleased since %s%s.", tag, asFetched))
+		return
+	}
+	st.released = append(st.released, fmt.Sprintf("Unreleased since %s%s, oldest first:", tag, asFetched))
+	for _, header := range st.Unreleased {
+		st.released = append(st.released, "  "+header)
+	}
+}
+
+// releaseUnread records what of the release could not be read, as a line
+// of the release section.
+func (st *standing) releaseUnread(line string) {
+	st.Unread = append(st.Unread, line)
+	st.released = append(st.released, line)
 }
 
 // readCI looks once at the commit's CI run through ci.watch's provider.
@@ -306,6 +462,8 @@ func (st *standing) fields() []out.Field {
 	return append(fields, []out.Field{
 		{Key: "head", Value: st.Head},
 		{Key: "ci", Value: st.CI},
+		{Key: "release", Value: st.Release},
+		{Key: "unreleased", Value: st.Unreleased},
 		{Key: "doing", Value: st.Doing},
 		{Key: "next", Value: st.Next},
 		{Key: "more", Value: st.More},
@@ -315,12 +473,19 @@ func (st *standing) fields() []out.Field {
 }
 
 // print writes the status as text: the heading, the head and its CI run
-// (or what could not be reached), the items in progress, the next ones and
-// the open questions, each a short section.
+// (or what could not be reached), the newest release and the commits since
+// it, the items in progress, the next ones and the open questions, each a
+// short section.
 func (st *standing) print(w io.Writer) {
 	fmt.Fprintf(w, "%s\n\n", statusHeading)
 	for _, line := range st.start {
 		fmt.Fprintln(w, line)
+	}
+	if len(st.released) > 0 {
+		fmt.Fprintln(w)
+		for _, line := range st.released {
+			fmt.Fprintln(w, line)
+		}
 	}
 	whose := ""
 	if p, ok := st.Person.(string); ok {
