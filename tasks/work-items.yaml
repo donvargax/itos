@@ -3707,7 +3707,7 @@ items:
     title: The registry and ledger commands' rollback is tested, and has no holes
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     why: >
