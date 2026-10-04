@@ -3714,7 +3714,7 @@ items:
     phase: 3
     owner: null
     status: todo
-    depends_on: [p1-handoff-status, slice-57]
+    depends_on: [slice-57]
     kind: slice
     why: >
       Was p3-coordinator-skill.
@@ -3745,6 +3745,10 @@ items:
       Specified as @ID-GUIDE-01 to 05 (2026-10-04). Not in it, each its own step after: the plugin
       skills becoming wrappers that run itos go and itos guide work, and this repository's
       ORCHESTRATING.md keeping only what is its own.
+
+      Its wait on p1-handoff-status dropped (2026-10-04): that wait was for deleting docs/HANDOFF.md
+      once itos status covers it, which the spec of @ID-GUIDE-01 to 05 leaves out; itos go and itos
+      guide need nothing of itos status.
     refs:
       [features/guide.feature, docs/ORCHESTRATING.md, integrations/claude-code/skills/itos/SKILL.md]
 
