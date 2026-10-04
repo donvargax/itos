@@ -52,7 +52,12 @@ func initializeCommitSteps(sc *godog.ScenarioContext, w *world) {
 		func(file, header, a, b string) error {
 			return w.writeMessageFile(file, header, a+"\n"+b)
 		})
+	sc.Step(`^the message file "([^"]*)" with the header "([^"]*)" and a body line whose wrap would start a line with "([^"]*)"$`,
+		func(file, header, text string) error {
+			return w.writeMessageFile(file, header, wordsOf(bodyLimit)+" "+text)
+		})
 	sc.Step(`^no line of HEAD's message is longer than (\d+) characters$`, w.headLinesFit)
+	sc.Step(`^no line of HEAD's message starts with "([^"]*)"$`, w.headNoLineStartsWith)
 	sc.Step(`^HEAD's message body has the same words as the file's, in order$`, w.headBodyHasFileWords)
 	sc.Step(`^every line of HEAD's message body after the item's first starts with two spaces$`, w.itemLinesIndented)
 	sc.Step(`^the message of HEAD has the line "([^"]*)"$`, w.headHasLine)
@@ -77,6 +82,11 @@ func wordsOf(n int) string {
 	return text
 }
 
+// bodyLimit is the built-in header lint's body-max-line-length. A body line
+// of wordsOf(bodyLimit), a space and a text is one a greedy wrap at the limit
+// breaks just before the text, so the text would start the second line.
+const bodyLimit = 100
+
 // A message file in the scratch repository, a header, a blank line and the
 // body, which -F names relative to the folder itos runs in.
 func (w *world) writeMessageFile(file, header, body string) error {
@@ -93,6 +103,20 @@ func (w *world) headLinesFit(n int) error {
 	for _, line := range strings.Split(message, "\n") {
 		if len([]rune(line)) > n {
 			return fmt.Errorf("a line of HEAD's message is %d characters long, over %d:\n%s", len([]rune(line)), n, message)
+		}
+	}
+	return nil
+}
+
+// No line of HEAD's message, footers included, begins with the text.
+func (w *world) headNoLineStartsWith(text string) error {
+	message, err := w.newHeadMessage()
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(message, "\n") {
+		if strings.HasPrefix(line, text) {
+			return fmt.Errorf("a line of HEAD's message starts with %q:\n%s", text, message)
 		}
 	}
 	return nil

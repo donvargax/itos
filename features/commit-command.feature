@@ -167,7 +167,7 @@ Feature: itos commit, a commit whose footers itos writes
   # words as IDs), or with git's comment char (git's strip cleanup then
   # drops the line). A break that would start a line so moves back a word,
   # or the line runs over the limit when no earlier break is left.
-  @ID-COMMITCMD-16 @bug-15 @wip
+  @ID-COMMITCMD-16 @bug-15
   Scenario: A wrap never starts a line with a breaking-change note
     Given the message file "msg.txt" with the header "chore: tidy the readme" and a body line whose wrap would start a line with "BREAKING CHANGE: the keys stay."
     And the header lint is itos's built-in one
@@ -175,7 +175,7 @@ Feature: itos commit, a commit whose footers itos writes
     Then itos exits with code 0
     And no line of HEAD's message starts with "BREAKING CHANGE:"
 
-  @ID-COMMITCMD-17 @bug-15 @wip
+  @ID-COMMITCMD-17 @bug-15
   Scenario: A wrap never starts a line with git's comment char, so strip cleanup keeps every word
     Given the message file "msg.txt" with the header "chore: tidy the readme" and a body line whose wrap would start a line with "#123 for the rest."
     And the header lint is itos's built-in one

@@ -20,7 +20,7 @@ func TestWrapBody(t *testing.T) {
 		{[]string{"-am" + long}, []string{"-am" + wrapped}},
 		{[]string{"--message", long, "--", "x"}, []string{"--message", wrapped, "--", "x"}},
 	} {
-		got, written, err := wrapBody(c.args, readGitArgs(c.args), 100)
+		got, written, err := wrapBody(c.args, readGitArgs(c.args), 100, nil)
 		if err != nil || written != "" || !slices.Equal(got, c.want) {
 			t.Errorf("wrapBody(%q) = %q, %q, %v", c.args, got, written, err)
 		}
@@ -30,7 +30,7 @@ func TestWrapBody(t *testing.T) {
 		if len(args) == 2 {
 			limit = 0
 		}
-		if got, _, _ := wrapBody(args, readGitArgs(args), limit); !slices.Equal(got, args) {
+		if got, _, _ := wrapBody(args, readGitArgs(args), limit, nil); !slices.Equal(got, args) {
 			t.Errorf("wrapBody(%q, %d) = %q", args, limit, got)
 		}
 	}
@@ -40,7 +40,7 @@ func TestWrapBody(t *testing.T) {
 		t.Fatal(err)
 	}
 	args := []string{"-F", file}
-	got, written, err := wrapBody(args, readGitArgs(args), 100)
+	got, written, err := wrapBody(args, readGitArgs(args), 100, nil)
 	if err != nil || written == "" || !slices.Equal(got, []string{"-F", written}) {
 		t.Fatalf("wrapBody(%q) = %q, %q, %v", args, got, written, err)
 	}

@@ -348,19 +348,20 @@ func refuseCommit(cfg *config.Loaded, found []out.Problem, o Out) (int, error) {
 }
 
 // wrapBody is git's arguments with the message they give wrapped to the
-// header lint's body line limit (message.Wrap, slice 58), and the file it
+// header lint's body line limit (message.Wrap, slice 58), no line starting
+// with one of keys, the configured footers', and the file it
 // wrote the message to, for the caller to remove, "" when none: each -m in
 // its place, or the -F file's text, stdin's for -F -, in a file of its own,
 // named where the file was. The arguments as given when the limit is 0, the
 // message comes from the editor or HEAD, git will refuse them (-m with -F),
 // or the -F file is already wrapped or cannot be read, which git reports.
-func wrapBody(args []string, g gitArgs, limit int) ([]string, string, error) {
+func wrapBody(args []string, g gitArgs, limit int, keys []string) ([]string, string, error) {
 	if limit <= 0 || len(g.messages) > 0 && g.file != "" {
 		return args, "", nil
 	}
 	args = slices.Clone(args)
 	if len(g.messages) > 0 {
-		for i, text := range message.Wrap(g.messages, limit, message.CommentChar()) {
+		for i, text := range message.Wrap(g.messages, limit, message.CommentChar(), keys) {
 			if at := g.messagesAt[i]; at.index >= 0 {
 				args[at.index] = at.prefix + text
 			}
@@ -380,7 +381,7 @@ func wrapBody(args []string, g gitArgs, limit int) ([]string, string, error) {
 	if err != nil {
 		return args, "", nil
 	}
-	text := message.Wrap([]string{string(raw)}, limit, message.CommentChar())[0]
+	text := message.Wrap([]string{string(raw)}, limit, message.CommentChar(), keys)[0]
 	if text == string(raw) && g.file != "-" {
 		return args, "", nil
 	}
@@ -459,7 +460,11 @@ func gitCommit(args []string, o Out) (int, error) {
 	if o.Quiet {
 		argv = append(argv, "--quiet")
 	}
-	given, written, err := wrapBody(flags.git, g, message.BodyLimit(cfg))
+	var keys []string
+	if cfg != nil {
+		keys = cfg.Commits.Footers.Keys
+	}
+	given, written, err := wrapBody(flags.git, g, message.BodyLimit(cfg), keys)
 	if err != nil {
 		return 0, err
 	}
