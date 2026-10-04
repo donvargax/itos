@@ -19,8 +19,8 @@ and the inbox.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `15e73ea`, slice 61's close (the slice's CI run 37178053088, every job,
-`release` cutting v2.19.0); the coordinator's registry batch after it is pushed
+All work is @donvargax's. `main` is green at `d3d62bd`, bug 15's close (its fix's CI run 37178864613, every job,
+`release` cutting v2.19.1); the coordinator's registry batch after it is pushed
 with this file. The coordinator commits only between
 agents, from the main checkout; its docs worktree was dropped (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
@@ -41,7 +41,7 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.19.0 (`itos follow`, private threads with people, slice 61), v2.18.0 (`itos commit` wraps a long body line under the built-in lint, slice 58), v2.17.0 (`itos work show`, slice 57; plugin 2.7.0), v2.16.0 (`itos push` returns at once for a registry-only range, slice 56), v2.15.3 (work edit writes a list whole, whatever its old shape, bug 14), v2.15.2 (a ledger file deleted but not committed is refused, and the writers'
+Released: v2.19.1 (the wrap never starts a line with a footer token, a note or a comment, bug 15), v2.19.0 (`itos follow`, private threads with people, slice 61), v2.18.0 (`itos commit` wraps a long body line under the built-in lint, slice 58), v2.17.0 (`itos work show`, slice 57; plugin 2.7.0), v2.16.0 (`itos push` returns at once for a registry-only range, slice 56), v2.15.3 (work edit writes a list whole, whatever its old shape, bug 14), v2.15.2 (a ledger file deleted but not committed is refused, and the writers'
 rollback is one tested restore, bug 13), v2.15.1 (the first registry item and ledger task written into init's empty lists, bug 12's
 @ID-INIT-25; T-081 let its Changes: footer name the init case by a prefix), v2.15.0 (`itos task add`, slice 55), v2.14.0 (`itos work add` and `edit`, slice 54; `itos work` refusing
 an unknown subcommand, bug 11), v2.13.0 (`itos work done`, slice 53, which closed itself), v2.12.0 (`itos work take` and `itos work promote`, each committing
@@ -69,8 +69,9 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
    - each landed item gets a read-only review (`p3-post-landing-review`,
      input `itos work show <id> --patch`); slice 57's found
      `p1-work-show-gaps`;
-   - **`bug-15`** (v2.18.0's wrap can start a line with a footer token or a
-     comment, @ID-COMMITCMD-16 and 17), specified;
+   - **`bug-16`** (v2.19.0's follow-ups and a stealth config's data lost to
+     two writers at once, and `follow doc` leaving a thread readable in the
+     work tree; @ID-FOLLOW-08 to 12, @ID-STEALTH-23), specified;
    - the user's calls of 2026-10-04, each to specify as a slice, in this
      order: `itos ask` (the rest of **`p1-follow-ups`**: the user's
      questions, public, replacing "Open for the user" below); the **`Item:`
