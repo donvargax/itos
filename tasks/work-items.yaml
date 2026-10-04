@@ -1488,7 +1488,7 @@ items:
     title: "A slice is done when its scenarios are live and green, checked"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-51, slice-52]
     kind: slice
     why: >
