@@ -3865,3 +3865,16 @@ items:
       entry's or starts with it; an entry that starts more than one case names none, and is warned
       of as an entry naming nothing is. The self-test proves a fix naming a long case by a prefix
       passes, and a prefix two cases share does not.
+
+  - id: p1-task-add-from-idea
+    title: task add turns an idea into its task
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found making T-082 (2026-10-04): task add refuses an id the registry has, and work promote
+      renames an idea without writing a ledger entry, so an idea that becomes a task still needs its
+      ledger entry written by hand before the promote. task add --from <idea> could write the ledger
+      entry and promote the idea in one commit, its why kept.
