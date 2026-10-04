@@ -4082,3 +4082,18 @@ items:
       committed, shared by worktrees; follow doc writes a thread out as Markdown). itos ask, the
       user's public questions, is the next part.
     refs: [features/follow.feature]
+
+  - id: p1-follow-reopen
+    title: itos follow reopen, a closed thread back among the open ones
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-61]
+    kind: idea
+    why: >
+      Slice 61 left a closed thread closed for good: follow note adds to it, but it stays out of
+      itos follow's list, and follow close refuses it again. The case the user named first (it works
+      when tested and breaks two days later) is a thread closed too soon, so it wants follow reopen
+      <id> [--note <text>], a dated note saying so, or a note on a closed thread that reopens it;
+      which is the user's call.
+    refs: [features/follow.feature]
