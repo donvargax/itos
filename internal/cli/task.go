@@ -173,8 +173,11 @@ type taskRow struct {
 }
 
 func task(args []string, o Out) (int, error) {
-	if sub, rest := split(args); sub == "list" {
+	switch sub, rest := split(args); sub {
+	case "list":
 		return listTasks(rest, o)
+	case "add":
+		return taskAdd(rest, o)
 	}
 	return runTasks(args, o)
 }

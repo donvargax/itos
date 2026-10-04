@@ -123,3 +123,24 @@ func TestDocNote(t *testing.T) {
 		t.Error("a block keeping its trailing lines is not noted")
 	}
 }
+
+// A ledger file: a list at the top, a task appended with its checks as a
+// block list of mappings below their key (slice 55).
+func TestDocAppendTop(t *testing.T) {
+	task := NewMap("id", "T-3", "type", "chore", "title", "Tidy", "why", "It drifted.",
+		"done_when", []any{NewMap("run", "true"), NewMap("run", "go test ./...", "timeout", float64(900))})
+	text := "# the ledger\n- id: T-1\n  title: One\n\n- { id: T-2, title: Two }\n\n# a closing note\n"
+	got, d := edited(t, text, func(d *Doc) error { return d.Append(nil, task, "why") })
+	added := "- id: T-3\n  type: chore\n  title: Tidy\n  why: >\n    It drifted.\n  done_when:\n" +
+		"    - run: \"true\"\n    - run: go test ./...\n      timeout: 900\n"
+	if want := "# the ledger\n- id: T-1\n  title: One\n\n- { id: T-2, title: Two }\n\n" + added + "\n# a closing note\n"; got != want {
+		t.Errorf("a list at the top:\n got %q\nwant %q", got, want)
+	}
+	if list := d.Want.([]any); len(list) != 3 || JSON(Prop(list[2], "done_when")) != `[{"run":"true"},{"run":"go test ./...","timeout":900}]` {
+		t.Errorf("the list reads %s", JSON(d.Want))
+	}
+	one, err := BlockItem(task, "why")
+	if err != nil || one != added {
+		t.Errorf("one item:\n got %q, %v\nwant %q", one, err, added)
+	}
+}

@@ -1,8 +1,9 @@
 // The steps of the commands that write the work registry (work.feature,
-// slices 52 to 54): a registry of items with owners, dependencies and
-// ideas, committed, so a command's own commit holds only its change; a
-// scenario tagged for an item; and what the registry reads after (an item's
-// status, owner, kind, title, dependencies and why), and what the last
+// slices 52 to 54) and the ledger (task add, task.feature, slice 55): a
+// registry of items with owners, dependencies and ideas, committed, so a
+// command's own commit holds only its change; a scenario tagged for an
+// item; and what the registry reads after (an item's status, owner, kind,
+// title, dependencies and why), a ledger file's task, and what the last
 // commit holds.
 package features
 
@@ -45,7 +46,9 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^the registry's item "([^"]*)" has a why ending with "([^"]*)"$`, w.registryWhyEnds)
 	sc.Step(`^the last commit's header is "([^"]*)"$`, w.lastHeaderIs)
-	sc.Step(`^the last commit touches only "([^"]*)"$`, w.lastTouchesOnly)
+	sc.Step(`^the last commit touches only "([^"]*)"$`, func(path string) error { return w.lastTouchesOnly(path) })
+	sc.Step(`^the last commit touches only "([^"]*)" and "([^"]*)"$`, func(a, b string) error { return w.lastTouchesOnly(a, b) })
+	sc.Step(`^the ledger file "([^"]*)" has the task "([^"]*)" with the check "([^"]*)"$`, w.ledgerFileHasTask)
 	sc.Step(`^"([^"]*)" is still staged$`, w.stillStaged)
 }
 
@@ -186,15 +189,49 @@ func (w *world) lastHeaderIs(header string) error {
 	return nil
 }
 
-func (w *world) lastTouchesOnly(path string) error {
+// The last commit touches the paths and nothing else, in any order.
+func (w *world) lastTouchesOnly(paths ...string) error {
 	out, err := w.gitOutput("diff-tree", "--no-commit-id", "--name-only", "-r", "--root", "HEAD")
 	if err != nil {
 		return err
 	}
-	if got := strings.Fields(out); !slices.Equal(got, []string{path}) {
-		return fmt.Errorf("the last commit touches %v, not only %s\n%s", got, path, w.report())
+	got, want := strings.Fields(out), slices.Clone(paths)
+	slices.Sort(got)
+	slices.Sort(want)
+	if !slices.Equal(got, want) {
+		return fmt.Errorf("the last commit touches %v, not only %v\n%s", got, paths, w.report())
 	}
 	return nil
+}
+
+// The ledger file, read where the scenario keeps itos's data, has the task,
+// one of whose checks runs the command (run:).
+func (w *world) ledgerFileHasTask(file, id, command string) error {
+	text, err := os.ReadFile(filepath.Join(w.dir, w.data(file)))
+	if err != nil {
+		return err
+	}
+	var tasks []struct {
+		ID       string `yaml:"id"`
+		DoneWhen []struct {
+			Run string `yaml:"run"`
+		} `yaml:"done_when"`
+	}
+	if err := yaml.Unmarshal(text, &tasks); err != nil {
+		return fmt.Errorf("%s does not read: %w\n%s", file, err, text)
+	}
+	for _, t := range tasks {
+		if t.ID != id {
+			continue
+		}
+		for _, c := range t.DoneWhen {
+			if c.Run == command {
+				return nil
+			}
+		}
+		return fmt.Errorf("%s's task %s has no check that runs %q\n%s\n%s", file, id, command, text, w.report())
+	}
+	return fmt.Errorf("%s has no task %s\n%s\n%s", file, id, text, w.report())
 }
 
 func (w *world) stillStaged(path string) error {

@@ -9,19 +9,22 @@
 # each task reading the exit status by its own run: or fails:; the counting
 # checks append to `runs`, so files_after counts their runs. task list prints
 # each task's status from the work registry, or "no item", and runs nothing;
-# without work.registry, the registry beside the ledger.
+# without work.registry, the registry beside the ledger. task add writes a task
+# at the end of its group's file (made when there is none), its checks and
+# their timeouts, and its item into the registry, committing both alone (or,
+# under a stealth config, nothing); and what it refuses.
 git:
   - commit: "docs: start"
     files: { README.md: "scratch\n" }
 files:
-  itos.yaml: |
+  itos.yaml: &config |
     version: 1
     ledger:
       files: "tasks/phase-{group}.yaml"
       group: { label: phase, pattern: "\\d+", numeric: true }
       id: "T-\\d+"
     commits: { types: [build, ci, docs, test] }
-  tasks/phase-1.yaml: |
+  tasks/phase-1.yaml: &phase1 |
     - id: T-001
       type: build
       title: Checks that pass
@@ -39,7 +42,7 @@ files:
       type: docs
       title: Reviewed by hand
       done_when: []
-  tasks/phase-2.yaml: |
+  tasks/phase-2.yaml: &phase2 |
     - id: T-004
       type: ci
       title: Waits on the push
@@ -554,3 +557,98 @@ cases:
     stdout: |
 
       review   B-1  build    Second
+  - name: task add writes the task after the last of its group's file and its item into the registry, and commits both alone
+    argv: [task, add, T-006, --group, "1", --type, docs, --title, "Write: the guide", --why, It is missing., --check, "true", --check, "sh -c 'exit 0'", --timeout, "30"]
+    git:
+      - commit: "docs: start"
+        files:
+          itos.yaml: *config
+          tasks/phase-1.yaml: *phase1
+          tasks/phase-2.yaml: *phase2
+          tasks/work-items.yaml: &registry "phases: { 1: null, 2: null }\nitems:\n  - { id: T-001, title: Checks that pass, phase: 1, status: done }\n"
+      - stage: { README.md: "staged\n" }
+    files:
+      tasks/work-items.yaml: *registry
+    exit: 0
+    stdout_has: "T-006 is a new task in tasks/phase-1.yaml, and an item in tasks/work-items.yaml: committed "
+    files_after:
+      tasks/phase-1.yaml: "- id: T-001\n  type: build\n  title: Checks that pass\n  done_when:\n    - run: echo first\n    - fails: sh -c 'echo second; exit 1'\n- id: T-002\n  type: ci\n  title: A check that fails\n  done_when:\n    - run: \"true\"\n    - run: sh -c 'echo broken >&2; exit 5'\n    - run: echo still runs\n- id: T-003\n  type: docs\n  title: Reviewed by hand\n  done_when: []\n- id: T-006\n  type: docs\n  title: \"Write: the guide\"\n  why: >\n    It is missing.\n  done_when:\n    - run: \"true\"\n    - run: sh -c 'exit 0'\n      timeout: 30\n"
+      tasks/work-items.yaml: "phases: { 1: null, 2: null }\nitems:\n  - { id: T-001, title: Checks that pass, phase: 1, status: done }\n  - id: T-006\n    title: \"Write: the guide\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    kind: task\n    why: >\n      It is missing.\n"
+  - name: under a stealth config task add makes the file of a group that has none, with a check's timeout, and commits nothing
+    argv: [task, add, T-010, --phase, "3", --type, build, --title, Three, --why, A phase of its own., --check, go vet ./..., --timeout, "120", --json]
+    git: []
+    files:
+      itos.yaml: null
+      tasks/phase-1.yaml: null
+      tasks/phase-2.yaml: null
+      tasks/notes.yaml: null
+      .git/itos/itos.yaml: *config
+      .git/itos/tasks/phase-1.yaml: *phase1
+      .git/itos/tasks/work-items.yaml: "phases: { 1: null, 3: null }\nitems:\n  - { id: T-001, title: Checks that pass, phase: 1, status: done }\n"
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      task: { id: T-010, type: build, title: Three, why: "A phase of its own.\n", done_when: [{ run: go vet ./..., timeout: 120 }] }
+      file: .git/itos/tasks/phase-3.yaml
+      item: { id: T-010, title: Three, phase: 3, owner: null, status: todo, depends_on: [], kind: task, why: "A phase of its own.\n" }
+      commit: null
+    files_after:
+      .git/itos/tasks/phase-3.yaml: "- id: T-010\n  type: build\n  title: Three\n  why: >\n    A phase of its own.\n  done_when:\n    - run: go vet ./...\n      timeout: 120\n"
+  - name: task add refuses an id the ledger has
+    argv: [task, add, T-004, --group, "1", --type, docs, --title, Again, --why, A second one., --check, "true"]
+    files:
+      tasks/work-items.yaml: *registry
+    exit: 1
+    stderr: |
+      T-004 is already a task of the ledger, in tasks/phase-2.yaml: Waits on the push
+        fix: give the new task an ID the ledger does not have
+  - name: task add refuses an id ledger.id does not match
+    argv: [task, add, task-6, --group, "1", --type, docs, --title, Six, --why, Because., --check, "true"]
+    files:
+      tasks/work-items.yaml: *registry
+    exit: 1
+    stderr: |
+      task-6 is not a task ID by ledger.id (^T-\d+$)
+        fix: give the task an ID ledger.id matches, so a Task footer can name it
+  - name: task add refuses a type commits.types does not list
+    argv: [task, add, T-006, --group, "1", --type, chore, --title, Six, --why, Because., --check, "true", --json]
+    files:
+      tasks/work-items.yaml: *registry
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: ledger-add-type
+          message: "chore is not a commit type: commits.types lists build, ci, docs, test"
+          fix: pass --type with one of build, ci, docs, test
+  - name: task add refuses a group the registry does not list, as work check would, writing nothing
+    argv: [task, add, T-006, --group, "4", --type, docs, --title, Six, --why, Because., --check, "true"]
+    files:
+      tasks/work-items.yaml: *registry
+    exit: 1
+    stderr: |
+      T-006: phase 4 is not listed
+        fix: add phase 4 to phases: in tasks/work-items.yaml, or move T-006 to a listed one
+    files_after:
+      tasks/phase-4.yaml: null
+      tasks/work-items.yaml: *registry
+  - name: task add refuses a group ledger.group.pattern does not match
+    argv: [task, add, T-006, --group, two, --type, docs, --title, Six, --why, Because., --check, "true"]
+    files:
+      tasks/work-items.yaml: *registry
+    exit: 1
+    stderr: |
+      two is not a phase ledger.files can name: ledger.group.pattern is \d+
+        fix: pass a phase ledger.group.pattern matches
+  - name: task add needs a check
+    argv: [task, add, T-006, --group, "1", --type, docs, --title, Six, --why, Because.]
+    exit: 2
+    stderr: |
+      itos: task add needs <id>, --group <g>, --type <type>, --title <title>, --why <why> and a --check <command> (itos --help)
+  - name: task add takes a timeout only after a check
+    argv: [task, add, T-006, --group, "1", --type, docs, --title, Six, --why, Because., --timeout, "30", --check, "true"]
+    exit: 2
+    stderr: |
+      itos: task add takes one --timeout <seconds> after a --check, a number above 0, for that check (itos --help)

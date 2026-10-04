@@ -50,6 +50,8 @@ Usage: itos <command> [args] [global flags]
 Commands:
   task <id>…                       run the tasks' checks; the status table
   task list [--group <g>]          the tasks and their work items' status; runs nothing
+  task add <id> --group <g> --type <type> --title <title> --why <why> --check <command> […]
+                                   add a task to the ledger and its item, and commit both
   work [--as <handle>]             what the person can start, and what waits
   work list                        every item of the work registry, done ones too
   work take <id> [--as <handle>]   set an item in progress for the person, and commit it
@@ -117,6 +119,7 @@ var helpTexts = map[string]string{
        itos task --group <g> [--skip <ids>]
        itos task --pending
        itos task list [--group <g>]
+       itos task add <id> --group <g> --type <type> --title <title> --why <why> --check <command> […]
 
 --phase <g> and --<label> <g> are --group <g>, the label being the config's
 ledger.group.label (phase by default).
@@ -137,6 +140,27 @@ check. The status is the task's work item's in the work registry (the item
 whose id is the task's), or "no item".
 
 --json: {"schema":1,"tasks":[{"id","type","title","group","checks","status"}]}`,
+
+	"task add": `Usage: itos task add <id> --group <g> --type <type> --title <title> --why <why>
+         --check <command> [--timeout <seconds>] [--check <command> [--timeout <seconds>]]…
+
+Adds a task at the end of its group's ledger file (ledger.files with {group}
+filled in, made when the group has none yet): its id, type, title, why (a
+folded text) and done_when, one run: check per --check in order, a --timeout
+after a --check giving that check its own seconds. Adds its item to the work
+registry, a task, todo and nobody's, as work add does, then commits the ledger
+file and the registry alone, "docs: add <id>", as work take commits the
+registry (itos help work take); a commit a hook refuses puts both back.
+--phase <g> and --<label> <g> are --group <g>. Refused, nothing written (exit
+1): an <id> ledger.id does not match or the ledger already has, a <type>
+commits.types does not list, a group ledger.group.pattern does not match, a
+ledger with problems (itos config check), a registry that is not sound, what
+work add refuses (an <id> an item has, a group the registry does not list),
+either file with changes no commit holds. Under a stealth config both are
+written and nothing committed.
+
+--json: {"schema":1,"ok":true,"task":{…},"file":"<ledger file>","item":{…},"commit":"<sha>"|null},
+or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 	"work": `Usage: itos work [--as <handle>]
        itos work list

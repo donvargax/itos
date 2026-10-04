@@ -977,7 +977,8 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   the mapping's last one-line value, `Lead` puts a sentence before a why (a
   new first line of a folded or literal block), and, for `work add` and `work
 edit` (slice 54, `docedit.go`), `Append` adds a block mapping after a block
-  list's last item (a blank line before it when one parts the last two, a
+  list's last item (the document's top one, a ledger file, for `task add`,
+  slice 55) (a blank line before it when one parts the last two, a
   why folded and wrapped at 100), `SetList` replaces a flow list on its line
   (or a block list item by item, or adds the key), and `Note` adds a paragraph
   to a text after a blank line (a one-line why in a block mapping becoming a
@@ -1357,6 +1358,23 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   does not match and a group not given where none is plain are judged before
   it. `edit` changes no owner, kind or status: `take`, `promote` and `done`
   own those, each with its own rules.
+- **task add** (slice 55, `internal/cli/taskadd.go`) writes two files in one
+  commit: the task at the end of its group's ledger file (`ledger.Add`,
+  `internal/ledger/add.go`) and its item, a task, todo and nobody's, through
+  `work.Add` as `work add` makes one. `ledger.Add` judges the id against
+  `ledger.id`, the type against `commits.types`, then a ledger without
+  problems (`Issues`, as `config check`) that lacks the id; the group's file
+  is the one `Files` gives for it (numeric groups compared as numbers), else
+  `ledger.files` with `{group}` filled in, made new when `ledger.group.pattern`
+  matches. The task's keys are in the order the ledger's own are written (id,
+  type, title, why, done_when; a check's run, then timeout), appended by
+  `value.Doc`'s `Append` with no path, the document's top list, its checks a
+  block list below `done_when` (`BlockItem` writes a file's first task).
+  `writeRegistry` is `writeCommitted` of the registry alone; `task add` gives
+  it both files, each refused when git does not hold it as HEAD has it (a new
+  file only when something is there already), a new one `git add`ed so
+  `--only` can name it, and a commit that fails puts every file back, a new
+  one removed from the index and the folder.
 - **The hooks** are `hook commit-msg`, `hook pre-push`
   (`internal/cli/hook.go`) and `hooks install` (`internal/cli/install.go`),
   `hooks.ts` with `commit-data.ts`, `commit-scope.ts`, `commit-tasks.ts` and

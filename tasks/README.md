@@ -107,7 +107,10 @@ before committing.
 ## Task file format
 
 One YAML file per phase (`tasks/phase-<n>.yaml`). A task is done when every
-check passes.
+check passes. Add one with `tools/bin/itos task add <id> --group <n> --type
+<type> --title … --why … --check '<command>'` (`--check` once per check,
+`--timeout <seconds>` after one), which writes it at the end of its phase's
+file and its item into the work registry, and commits the two alone.
 
 ```yaml
 - id: T-008

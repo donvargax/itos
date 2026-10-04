@@ -42,7 +42,9 @@ it has landed (no `@wip` scenario of it left, its commits pushed, its CI run
 green), and adds the items a slice discovers with their dependencies with
 `tools/bin/itos work add <id> --title … --why …` (an idea unless `--kind`
 says otherwise), changing one's title, dependencies or refs, or adding a note
-to its why, with `tools/bin/itos work edit <id>`.
+to its why, with `tools/bin/itos work edit <id>`. A task is added with
+`tools/bin/itos task add <id>`, which writes it into its phase's ledger file
+and its item into the registry in one commit.
 
 The registry is the one list of open work: no TODO or ROADMAP file sits beside
 it. A gap a slice leaves is added as a `kind: idea` item — a title, a short

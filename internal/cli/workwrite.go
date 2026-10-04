@@ -138,54 +138,105 @@ func uncommitted(file string) *out.Problem {
 }
 
 // writeRegistry writes the change to the registry and, in a project,
-// commits the registry alone: git commit --only, with the change's header
-// and body, through the hooks, what else is staged left staged. Its result
-// is the new commit's SHA, "" under a stealth config, which commits nothing.
-// A registry with changes no commit holds is refused before anything is
-// written (exit 1); a commit that fails (a hook refusing it) puts the
-// registry back as it was, file and index, and exits 1.
+// commits the registry alone (writeCommitted).
 func writeRegistry(cfg *config.Loaded, old string, change work.Change, o Out) (string, int, error) {
-	file := cfg.Work.Registry
+	return writeCommitted(cfg, []written{{path: cfg.Work.Registry, old: old, text: change.Text}}, change.Header, change.Body, o)
+}
+
+// written is one file a command writes: its path, its text before and
+// after, and whether it is new (not there before, so put back by removing
+// it).
+type written struct {
+	path, old, text string
+	created         bool
+}
+
+// writeCommitted writes the files and, in a project, commits them alone:
+// git commit --only, with the header and body, through the hooks, what else
+// is staged left staged. Its result is the new commit's SHA, "" under a
+// stealth config, which commits nothing. A file with changes no commit holds
+// is refused before anything is written (exit 1), a new one only when
+// something is there already; a commit that fails (a hook refusing it) puts
+// every file back as it was, file and index, a new one removed, and exits 1.
+// work's commands write the registry alone (writeRegistry), task add a
+// ledger file and the registry (slice 55).
+func writeCommitted(cfg *config.Loaded, files []written, header, body string, o Out) (string, int, error) {
+	paths := make([]string, len(files))
+	for i, f := range files {
+		paths[i] = f.path
+	}
 	if !cfg.Stealth {
-		if p := uncommitted(file); p != nil {
-			code, err := refuseWork([]out.Problem{*p}, ExitPolicy, o)
-			return "", code, err
+		for _, f := range files {
+			if _, err := os.Stat(f.path); f.created && errors.Is(err, fs.ErrNotExist) {
+				continue
+			}
+			if p := uncommitted(f.path); p != nil {
+				code, err := refuseWork([]out.Problem{*p}, ExitPolicy, o)
+				return "", code, err
+			}
 		}
 	}
-	mode := fs.FileMode(0o644)
-	if info, err := os.Stat(file); err == nil {
-		mode = info.Mode().Perm()
-	}
-	if err := os.WriteFile(file, []byte(change.Text), mode); err != nil {
-		return "", 0, err
+	modes := make([]fs.FileMode, len(files))
+	for i, f := range files {
+		modes[i] = fs.FileMode(0o644)
+		if info, err := os.Stat(f.path); err == nil {
+			modes[i] = info.Mode().Perm()
+		}
+		if err := os.WriteFile(f.path, []byte(f.text), modes[i]); err != nil {
+			return "", 0, err
+		}
 	}
 	if cfg.Stealth {
 		return "", 0, nil
 	}
-	argv := []string{"commit", "--only", "-m", change.Header, "-m", value.Wrap(change.Body, bodyWidth)}
+	argv := []string{"commit", "--only", "-m", header, "-m", value.Wrap(body, bodyWidth)}
 	if o.Quiet {
 		argv = append(argv, "--quiet")
 	}
-	argv = append(argv, "--", file)
-	cmd := exec.Command(git.Bin(), argv...)
-	cmd.Env = append(withoutFooters(os.Environ()), AmendEnv+"=0")
-	// stdout is the command's own result; git's and the hooks' words go to
-	// stderr.
-	cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, o.Stderr, o.Stderr
-	runErr := cmd.Run()
+	argv = append(argv, "--")
+	argv = append(argv, paths...)
+	var runErr error
+	for _, f := range files {
+		// A path git does not know is no pathspec for --only until it is
+		// added.
+		if f.created && runErr == nil {
+			_, runErr = git.Output("add", "--", f.path)
+		}
+	}
+	if runErr == nil {
+		cmd := exec.Command(git.Bin(), argv...)
+		cmd.Env = append(withoutFooters(os.Environ()), AmendEnv+"=0")
+		// stdout is the command's own result; git's and the hooks' words go
+		// to stderr.
+		cmd.Stdin, cmd.Stdout, cmd.Stderr = os.Stdin, o.Stderr, o.Stderr
+		runErr = cmd.Run()
+	}
 	var exit *exec.ExitError
 	if runErr != nil && !errors.As(runErr, &exit) {
 		return "", 0, fmt.Errorf("cannot run git: %w", runErr)
 	}
 	if runErr != nil {
-		restoreErr := os.WriteFile(file, []byte(old), mode)
-		git.Succeeds("reset", "-q", "--", file)
+		var restoreErr error
+		for i, f := range files {
+			if f.created {
+				git.Succeeds("rm", "-q", "--cached", "--", f.path)
+				restoreErr = errors.Join(restoreErr, os.Remove(f.path))
+			} else {
+				restoreErr = errors.Join(restoreErr, os.WriteFile(f.path, []byte(f.old), modes[i]))
+				git.Succeeds("reset", "-q", "--", f.path)
+			}
+		}
+		named := and(paths)
 		if restoreErr != nil {
-			return "", 0, fmt.Errorf("the commit failed, and %s cannot be put back: %w", file, restoreErr)
+			return "", 0, fmt.Errorf("the commit failed, and %s cannot be put back: %w", named, restoreErr)
+		}
+		as := "is as it was"
+		if len(files) > 1 {
+			as = "are as they were"
 		}
 		code, err := refuseWork([]out.Problem{{
 			Rule:    "work-commit-failed",
-			Message: fmt.Sprintf("the commit of %s failed (git exited %d), so %s is as it was", file, exit.ExitCode(), file),
+			Message: fmt.Sprintf("the commit of %s failed (git exited %d), so %s %s", named, exit.ExitCode(), named, as),
 			Fix:     "fix what git or the hook above says, then run the command again",
 		}}, ExitPolicy, o)
 		return "", code, err
@@ -195,6 +246,14 @@ func writeRegistry(cfg *config.Loaded, old string, change work.Change, o Out) (s
 		return "", 0, err
 	}
 	return strings.TrimSpace(sha), 0, nil
+}
+
+// and is the names joined as a list is said: "a", "a and b", "a, b and c".
+func and(names []string) string {
+	if len(names) < 2 {
+		return strings.Join(names, "")
+	}
+	return strings.Join(names[:len(names)-1], ", ") + " and " + names[len(names)-1]
 }
 
 // committed is how a registry command's text output ends: the commit it

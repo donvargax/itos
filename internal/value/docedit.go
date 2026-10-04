@@ -73,22 +73,22 @@ func (d *Doc) mapAt(path []any) (*yaml.Node, *Map, string, bool, error) {
 	return parent, m, key, flow, nil
 }
 
-// Append adds item to the end of the block list the path names, as a block
-// mapping of its keys in their order: written after the list's last item,
-// its dash in that item's column, with a blank line before it when one
-// parts the list's last two items. A string is written plain where it reads
-// back as itself, else double quoted, and a key named in folded as a folded
-// block (>) of its words wrapped at Width, which reads back as them joined
-// by spaces with a line break after; nil is null, a number plain, a list of
-// strings a flow list on its key's line.
+// Append adds item to the end of the block list the path names (no path:
+// the document's top), as a block mapping of its keys in their order:
+// written after the list's last item, its dash in that item's column, with a
+// blank line before it when one parts the list's last two items. How each
+// value is written is BlockItem's.
 func (d *Doc) Append(path []any, item *Map, folded ...string) error {
 	list, flow, want, err := d.find(path)
 	if err != nil {
 		return err
 	}
-	_, holder, key, _, err := d.mapAt(path)
-	if err != nil {
-		return err
+	var holder *Map
+	key := ""
+	if len(path) > 0 {
+		if _, holder, key, _, err = d.mapAt(path); err != nil {
+			return err
+		}
 	}
 	items, isList := want.([]any)
 	if list.Kind != yaml.SequenceNode || flow || !isList || len(list.Content) == 0 {
@@ -116,11 +116,50 @@ func (d *Doc) Append(path []any, item *Map, folded ...string) error {
 		}
 		next = after
 	}
-	var b strings.Builder
-	b.WriteString(lead)
-	if len(list.Content) > 1 && d.partedByBlank(start) {
-		b.WriteString(d.e.nl)
+	put, wrote, err := blockItem(item, dash, d.e.nl, folded)
+	if err != nil {
+		return err
 	}
+	if len(list.Content) > 1 && d.partedByBlank(start) {
+		put = d.e.nl + put
+	}
+	d.e.edits = append(d.e.edits, edit{at: at, put: lead + put})
+	grown := append(append([]any{}, items...), wrote)
+	if holder == nil {
+		d.Want = grown
+	} else {
+		holder.Set(key, grown)
+	}
+	return nil
+}
+
+// BlockItem is item as the one item of a block list at the top of a
+// document, as Append writes an item (a ledger file of one task, slice 55):
+// a string plain where it reads back as itself, else double quoted, and a
+// key named in folded as a folded block (>) of its words wrapped at Width,
+// which reads back as them joined by spaces with a line break after; nil is
+// null, a number plain, a list of strings a flow list on its key's line, and
+// a list of mappings a block list below its key, each item's keys so
+// written. The text ends with a line break and reads back as the list.
+func BlockItem(item *Map, folded ...string) (string, error) {
+	text, wrote, err := blockItem(item, 0, "\n", folded)
+	if err != nil {
+		return "", err
+	}
+	now, err := Parse(text)
+	if err != nil {
+		return "", fmt.Errorf("the item would not read back: %w", err)
+	}
+	if !same(now, []any{wrote}) {
+		return "", fmt.Errorf("the item would read back as %s, not %s", JSON(now), JSON([]any{wrote}))
+	}
+	return text, nil
+}
+
+// blockItem is item as a block list's item whose dash is in the column
+// dash, each line ended by nl, and the item as it reads back.
+func blockItem(item *Map, dash int, nl string, folded []string) (string, *Map, error) {
+	var b strings.Builder
 	indent := strings.Repeat(" ", dash+2)
 	wrote := NewMap()
 	for i, k := range item.Keys() {
@@ -132,37 +171,62 @@ func (d *Doc) Append(path []any, item *Map, folded ...string) error {
 		var put string
 		switch t := v.(type) {
 		case nil:
-			put = " null" + d.e.nl
+			put = " null" + nl
 		case string:
 			if !slices.Contains(folded, k) {
-				put = " " + token(t, 0) + d.e.nl
+				put = " " + token(t, 0) + nl
 				break
 			}
 			if words(t) == "" {
-				return fmt.Errorf("%s has no words to fold", k)
+				return "", nil, fmt.Errorf("%s has no words to fold", k)
 			}
-			put = " >" + d.e.nl + indented(t, indent+"  ", d.e.nl)
+			put = " >" + nl + indented(t, indent+"  ", nl)
 			v = words(t) + "\n"
 		case float64:
-			put = " " + Number(t) + d.e.nl
+			put = " " + Number(t) + nl
 		case bool:
-			put = fmt.Sprintf(" %t%s", t, d.e.nl)
+			put = fmt.Sprintf(" %t%s", t, nl)
 		case []any:
+			if maps, ok := mappings(t); ok {
+				var nested strings.Builder
+				read := make([]any, len(maps))
+				for j, m := range maps {
+					text, back, err := blockItem(m, dash+4, nl, nil)
+					if err != nil {
+						return "", nil, fmt.Errorf("%s: %w", k, err)
+					}
+					nested.WriteString(text)
+					read[j] = back
+				}
+				put, v = nl+nested.String(), read
+				break
+			}
 			flowList, err := flowStrings(t)
 			if err != nil {
-				return fmt.Errorf("%s: %w", k, err)
+				return "", nil, fmt.Errorf("%s: %w", k, err)
 			}
-			put = " " + flowList + d.e.nl
+			put = " " + flowList + nl
 			v = Copy(t)
 		default:
-			return fmt.Errorf("%s is neither a text, a number, null nor a list", k)
+			return "", nil, fmt.Errorf("%s is neither a text, a number, null nor a list", k)
 		}
 		b.WriteString(prefix + k + ":" + put)
 		wrote.Set(k, v)
 	}
-	d.e.edits = append(d.e.edits, edit{at: at, put: b.String()})
-	holder.Set(key, append(append([]any{}, items...), wrote))
-	return nil
+	return b.String(), wrote, nil
+}
+
+// mappings is a list that is not empty and holds only mappings, as them.
+func mappings(list []any) ([]*Map, bool) {
+	maps := make([]*Map, len(list))
+	for i, v := range list {
+		m, ok := v.(*Map)
+		if !ok {
+			return nil, false
+		}
+		maps[i] = m
+	}
+	return maps, len(maps) > 0
 }
 
 // partedByBlank is whether a blank line comes between the item starting at

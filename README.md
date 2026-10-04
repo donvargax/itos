@@ -34,7 +34,9 @@ it, and the instructions then point to the check instead of restating it.
 ## What it does
 
 - **A ledger of tasks with executable checks** (`tasks/`): `itos task <id>`
-  runs a task's `done_when` commands and says done, pending or failing.
+  runs a task's `done_when` commands and says done, pending or failing, and
+  `itos task add <id>` writes a new one into its group's file and its item
+  into the work registry, committing the two alone.
 - **Commit rules**: Conventional Commits; each `feat` or `fix` names the
   scenarios it turns green (`Scenarios: @ID-…`), every other type the task it
   belongs to (`Task: T-…`), and each type may touch only certain paths.

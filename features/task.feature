@@ -9,7 +9,8 @@ Feature: The task runner runs each check once, and lists task status without run
   exit code, read the way its own run: or fails: says. itos task list runs
   no check at all. It prints each task's status from the work registry (todo,
   doing, done or blocked), or "no item" for a task the registry does not
-  have.
+  have. itos task add writes a new task into the ledger and its item into
+  the registry.
 
   Background:
     Given a repository whose ledger has the tasks "T-001" and "T-002"
@@ -59,7 +60,7 @@ Feature: The task runner runs each check once, and lists task status without run
   # kind task beside it, todo; it refuses an id ledger.id does not match, an
   # id the ledger has, and a type commits.types does not list; and it commits
   # the ledger file and the registry alone.
-  @ID-TASK-05 @slice-55 @wip
+  @ID-TASK-05 @slice-55
   Scenario: task add writes the task into its group's ledger file and its item into the registry, and commits both
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     When itos runs the command line "task add T-003 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
@@ -69,21 +70,21 @@ Feature: The task runner runs each check once, and lists task status without run
     And the last commit's header is "docs: add T-003"
     And the last commit touches only "tasks/phase-1.yaml" and "tasks/work-items.yaml"
 
-  @ID-TASK-06 @slice-55 @wip
+  @ID-TASK-06 @slice-55
   Scenario: task add refuses an id the ledger already has
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     When itos runs the command line "task add T-002 --group 1 --type chore --title 'Again' --why 'A second one.' --check 'true'"
     Then itos exits with code 1
     And its output says "T-002"
 
-  @ID-TASK-07 @slice-55 @wip
+  @ID-TASK-07 @slice-55
   Scenario: task add refuses an id that ledger.id does not match
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     When itos runs the command line "task add task-3 --group 1 --type chore --title 'Tidy' --why 'Because.' --check 'true'"
     Then itos exits with code 1
     And its output says "ledger.id"
 
-  @ID-TASK-08 @slice-55 @wip
+  @ID-TASK-08 @slice-55
   Scenario: task add refuses a type the config's commits.types does not list
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     When itos runs the command line "task add T-003 --group 1 --type tidy --title 'Tidy' --why 'Because.' --check 'true'"

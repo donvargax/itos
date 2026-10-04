@@ -24,14 +24,16 @@ type Doc struct {
 }
 
 // OpenDoc is the YAML text ready to edit: one document, its top a block
-// mapping.
+// mapping, or a block list (a ledger file, which itos task add appends a
+// task to, slice 55).
 func OpenDoc(text string) (*Doc, error) {
 	var doc yaml.Node
 	if err := yaml.Unmarshal([]byte(text), &doc); err != nil {
 		return nil, err
 	}
-	if len(doc.Content) == 0 || doc.Content[0].Kind != yaml.MappingNode || doc.Content[0].Style&yaml.FlowStyle != 0 {
-		return nil, fmt.Errorf("its top is not a block mapping")
+	if len(doc.Content) == 0 || (doc.Content[0].Kind != yaml.MappingNode && doc.Content[0].Kind != yaml.SequenceNode) ||
+		doc.Content[0].Style&yaml.FlowStyle != 0 {
+		return nil, fmt.Errorf("its top is neither a block mapping nor a block list")
 	}
 	want, err := Parse(text)
 	if err != nil {
