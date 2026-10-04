@@ -4134,8 +4134,8 @@ items:
   - id: bug-15
     title: itos commit never wraps a line to start with a footer token, a breaking-change note or a comment
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-58]
     kind: slice
     why: >
