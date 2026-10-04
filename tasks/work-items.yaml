@@ -3739,6 +3739,8 @@ items:
       Replace a multi-line flow list whole by a one-line one, empty a block list in place, and
       compare an absent key as an empty list.
 
+      Specified as @ID-WORK-26 to 28 in features/work.feature.
+
   - id: p1-work-as-empty
     title: itos work --as= with no handle is refused, as --as with none is
     phase: 1
