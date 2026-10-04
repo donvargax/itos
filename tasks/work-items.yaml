@@ -1589,14 +1589,15 @@ items:
 
       Its next-id part is slice-60; what is left is itos tests steps and itos tests undefined.
 
-  - id: p1-handoff-status
-    title: "itos status replaces docs/HANDOFF.md"
+  - id: slice-67
+    title: "itos status, where the work stands, printed at the end of itos go"
     phase: 1
     owner: donvargax
     status: todo
     depends_on: [slice-66, p1-follow-ups]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-handoff-status.
       HANDOFF's "Where things stand" is rewritten by hand from run IDs and the log. itos status could
       print main's head and last green CI run, the last nightly, the last release and the commits since
       it (feat and fix apart from the rest), the items doing and the ideas added since a date; itos
