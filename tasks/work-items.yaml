@@ -60,6 +60,7 @@ queue:
   - p3-guard-cd
   - p1-version-mutation-gaps
   - p1-schema-contract-tests
+  - p1-tools-bin-shared
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
