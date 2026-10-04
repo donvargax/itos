@@ -3,6 +3,7 @@ package follow
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -25,7 +26,9 @@ func TestSaveThenLoadKeepsEveryThread(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if info.Mode().Perm() != 0o600 {
+	// Windows keeps no Unix permission bits: Go reports a writable file
+	// there as 0666 whatever it was given.
+	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Errorf("the file's mode is %v, not 0600", info.Mode().Perm())
 	}
 	got, err := Load(path)
