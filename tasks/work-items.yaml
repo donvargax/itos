@@ -4041,7 +4041,7 @@ items:
     title: itos work show lists the commits that wrote an item's spec
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-57]
     kind: slice
     why: >
