@@ -271,7 +271,7 @@ Neither command touches a `git` that is not a link to itos.
 
 **The Claude Code plugin**: this repository is also a Claude Code plugin
 marketplace, and its one plugin, `itos`, is published from it, with a version
-of its own. `itos init --plugin` installs it, or from Claude Code:
+of its own, raised only when the plugin changes, not with each itos release. `itos init --plugin` installs it, or from Claude Code:
 
 ```
 /plugin marketplace add donvargax/itos
