@@ -178,7 +178,7 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
   # 2026-10-04; work done's run address before it). They wrap as itos commit
   # does since bug 15, which never starts a line with a footer token
   # (p1-done-body-url-footer).
-  @ID-ASK-17 @bug-18 @wip
+  @ID-ASK-17 @bug-18
   Scenario: ask add's commit body never starts a line with a word the lint reads as a footer
     When itos runs ask add with a question whose commit body would wrap to start a line with "recommendation: hold it."
     Then itos exits with code 0

@@ -6,11 +6,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v2/internal/config"
+	"github.com/donvargax/itos/v2/internal/value"
 )
 
 // The rollback of writeCommitted (bug 13): a scratch repository, its files
@@ -214,5 +216,47 @@ done
 	}
 	if status := gitIn(t, "status", "--porcelain", "--untracked-files=all"); status != "M  ledger.yaml\n" {
 		t.Errorf("git status reports:\n%s", status)
+	}
+}
+
+// The body of a commit itos makes of its own files never starts a line with
+// what the header lint reads as a footer, nor with git's comment char, where
+// a plain wrap at the same width would (bug 18): ask's "word:", as in docs:
+// answer q-10, work done's run address after its "passed:", and a "#". The
+// words are kept, in order, and no line is longer than the width.
+func TestCommitBodyWrapsClearOfFooters(t *testing.T) {
+	cfg := rollbackRepo(t)
+	footer := regexp.MustCompile(`^[\w-]+(?::\s|\s+#)`)
+	old := "items: []\n"
+	for i, text := range []string{
+		"recommendation: majors cost nothing under fix-forward.",
+		"passed: https://github.com/donvargax/itos/actions/runs/37228229727.",
+		"#12 is the issue it closes.",
+	} {
+		// The words before the text fill the first line to the width, so a
+		// plain wrap starts the second with the text.
+		lead := "Set slice-71 (\"itos ask record writes MADR 4 records\") to done, with itos work done. HEAD's CI run"
+		lead += strings.Repeat(" x", (bodyWidth-len(lead))/2)
+		if len(lead) < bodyWidth {
+			lead += "s"
+		}
+		body := lead + " " + text
+		if plain := value.Wrap(body, bodyWidth); !strings.Contains(plain, "\n"+text) {
+			t.Fatalf("a plain wrap does not start a line with %q:\n%s", text, plain)
+		}
+		files := []written{{path: "registry.yaml", old: old, text: strings.Repeat("# edit\n", i+1) + old}}
+		if sha, code, err, stderr := writeAndCommit(t, cfg, files, body); sha == "" || code != 0 || err != nil {
+			t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
+		}
+		old = files[0].text
+		got := strings.TrimSpace(gitIn(t, "log", "-1", "--format=%b"))
+		for _, line := range strings.Split(got, "\n") {
+			if footer.MatchString(line) || strings.HasPrefix(line, "#") || len(line) > bodyWidth {
+				t.Errorf("the body has the line %q:\n%s", line, got)
+			}
+		}
+		if strings.Join(strings.Fields(got), " ") != body {
+			t.Errorf("the body's words are not the given ones, in order:\n%s", got)
+		}
 	}
 }

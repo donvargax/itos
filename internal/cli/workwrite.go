@@ -28,14 +28,14 @@ import (
 	"github.com/donvargax/itos/v2/internal/git"
 	"github.com/donvargax/itos/v2/internal/ledger"
 	"github.com/donvargax/itos/v2/internal/lock"
+	"github.com/donvargax/itos/v2/internal/message"
 	"github.com/donvargax/itos/v2/internal/out"
 	"github.com/donvargax/itos/v2/internal/providers"
-	"github.com/donvargax/itos/v2/internal/value"
 	"github.com/donvargax/itos/v2/internal/work"
 )
 
 // bodyWidth is the width a registry commit's body is wrapped at: the header
-// lint's body-max-line-length.
+// lint's body-max-line-length (selfBody).
 const bodyWidth = 100
 
 // workArgs reads a registry command's arguments: one id, and the valued
@@ -263,7 +263,7 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 			return "", 0, restored(cfg, files, modes, fmt.Errorf("cannot run git: %w", err))
 		}
 	}
-	argv := []string{"commit", "--only", "-m", header, "-m", value.Wrap(body, bodyWidth)}
+	argv := []string{"commit", "--only", "-m", header, "-m", selfBody(cfg, header, body)}
 	if o.Quiet {
 		argv = append(argv, "--quiet")
 	}
@@ -287,6 +287,19 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 		return "", 0, err
 	}
 	return strings.TrimSpace(sha), 0, nil
+}
+
+// selfBody is the body of a commit itos makes of its own files, its words
+// on one line, then wrapped at bodyWidth by the wrap itos commit uses
+// (message.Wrap, bug 15): no line starts with a token the header lint reads
+// as a footer, a breaking-change note, a configured footer's key and its
+// colon, or git's comment char, a break there moving back a word. A plain
+// wrap started lines with whatever word came next, so a question or a why
+// holding "word:" drew the lint's footer-leading-blank warning on itos's own
+// commit (bug 18).
+func selfBody(cfg *config.Loaded, header, body string) string {
+	parts := []string{header, strings.Join(strings.Fields(body), " ")}
+	return message.Wrap(parts, bodyWidth, message.CommentChar(), cfg.Commits.Footers.Keys)[1]
 }
 
 // put writes the text to the file in the mode, as os.WriteFile does, and
