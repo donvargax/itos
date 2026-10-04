@@ -579,3 +579,17 @@
   done_when:
     - run: 'test "$(tools/bin/itos config get ci.watch.provider)" = github'
       timeout: 60
+
+- id: T-079
+  type: chore
+  title: The docs and the plugin's skill name itos work take, done and promote, and itos push's wait
+  why: >
+    Was p1-docs-name-work-take, found by slice 52's agent. AGENTS.md told an agent to take an item by
+    editing its owner and status in a docs commit, docs/ORCHESTRATING.md to promote an idea by
+    changing its kind by hand, and the itos plugin's skill said nothing of taking, closing or
+    waiting for CI, though slices 51 to 53 made each a command: itos work take, done and promote
+    write the registry and commit it alone, and itos push waits for CI with ci.watch. They now say
+    so. The skill is the plugin's, so its version rises to 2.5.0 in the same push (T-074).
+  done_when:
+    - run: grep -q 'itos work take' AGENTS.md && grep -q 'itos work promote' docs/ORCHESTRATING.md && grep -q 'itos work done' integrations/claude-code/skills/itos/SKILL.md
+      timeout: 60
