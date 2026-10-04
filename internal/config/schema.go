@@ -209,6 +209,7 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 	"work", about("The work registry, its statuses, the people and the identity.", obj(nil,
 		"registry", about("The work registry's file; by default work-items.yaml beside the ledger's files.", str),
 		"asks", about("itos ask's questions' file; by default asks.yaml beside the work registry.", str),
+		"decisions", about("The folder itos ask record writes its MADR decision records and their index in; by default docs/decisions.", str),
 		"groups_key", about("The registry's key whose entries name each group's owner.", str),
 		"statuses", about("The statuses a work item may have.", strs),
 		"people", about("Who may own work: the source and the file it reads.", obj([]string{"source", "file"},

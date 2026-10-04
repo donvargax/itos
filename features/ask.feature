@@ -63,42 +63,13 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
   # An answered question is a decision, but read where it was asked it is lost
   # among the questions, and a person cannot read a registry's whys. itos ask
   # record writes one, on demand, as an architecture decision record in
-  # adr-tools' format (NNNN-slug.md; Date, Status, Context, Decision,
-  # Consequences), in docs/adr/ or the folder a .adr-dir file names, as
-  # adr-tools reads it, so a repository that already keeps ADRs keeps its
-  # own; the next number is past the highest file there. Its README.md holds,
-  # between itos's markers, the index of the decisions still live, so a
-  # reader never wades through superseded ones. itos ask nudges toward it:
+  # docs/decisions or the folder work.decisions names (its format is MADR's,
+  # below); the next number is past the highest file there. Its README.md
+  # holds, between itos's markers, the index of the decisions that stand, so
+  # a reader never wades through superseded ones. itos ask nudges toward it:
   # an answered question recorded nowhere else is named, until it is recorded
   # or marked --none, an answer that concerned its item alone (the user's
   # calls, 2026-10-04, p1-ask-record-decisions).
-  @ID-ASK-06 @slice-69
-  Scenario: ask record writes an answered question as the next decision record, and commits it with the question
-    Given itos has run the command line "ask add 'Labels or Projects?'"
-    And itos has run the command line "ask answer q-1 'Labels, with trust by who acted.'"
-    When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
-    Then itos exits with code 0
-    And the file "docs/adr/0001-triage-issues-with-labels.md" says "# 1. Triage issues with labels"
-    And the file "docs/adr/0001-triage-issues-with-labels.md" says "Labels or Projects?"
-    And the file "docs/adr/0001-triage-issues-with-labels.md" says "Labels, with trust by who acted."
-    And the file "docs/adr/0001-triage-issues-with-labels.md" says "Accepted"
-    And the file "docs/adr/README.md" says "Triage issues with labels"
-    And the last commit's header is "docs: record q-1 as decision 1"
-
-  @ID-ASK-07 @slice-69
-  Scenario: A decision that supersedes another takes it out of the index, and each file links the other
-    Given itos has run the command line "ask add 'Labels or Projects?'"
-    And itos has run the command line "ask answer q-1 'Labels.'"
-    And itos has run the command line "ask record q-1 --title 'Triage issues with labels'"
-    And itos has run the command line "ask add 'Labels still?'"
-    And itos has run the command line "ask answer q-2 'Projects now.'"
-    When itos runs the command line "ask record q-2 --title 'Triage issues with Projects' --supersedes 1"
-    Then itos exits with code 0
-    And the file "docs/adr/0001-triage-issues-with-labels.md" says "Superseded by"
-    And the file "docs/adr/0002-triage-issues-with-projects.md" says "Supersedes"
-    And the file "docs/adr/README.md" says "Triage issues with Projects"
-    And the file "docs/adr/README.md" does not say "Triage issues with labels"
-
   @ID-ASK-08 @slice-69
   Scenario: ask names the answered questions recorded nowhere else
     Given itos has run the command line "ask add 'Labels or Projects?'"
@@ -115,7 +86,7 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     When itos runs "ask"
     Then itos exits with code 0
     And its output does not say "itos ask record"
-    And the file "docs/adr/README.md" does not exist
+    And the file "docs/decisions/README.md" does not exist
 
   @ID-ASK-10 @slice-69
   Scenario: ask record refuses a question not yet answered
@@ -123,17 +94,7 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
     Then itos exits with code 1
     And its output says "q-1"
-    And the file "docs/adr/README.md" does not exist
-
-  @ID-ASK-11 @slice-69
-  Scenario: The folder a .adr-dir names, and the records already in it, set where the next one goes
-    Given the committed file ".adr-dir" holding "doc/decisions"
-    And the committed file "doc/decisions/0007-use-go.md" holding "# 7. Use Go"
-    And itos has run the command line "ask add 'Labels or Projects?'"
-    And itos has run the command line "ask answer q-1 'Labels.'"
-    When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
-    Then itos exits with code 0
-    And the file "doc/decisions/0008-triage-issues-with-labels.md" says "# 8. Triage issues with labels"
+    And the file "docs/decisions/README.md" does not exist
 
   # A project's pre-commit hook may format what it commits, as this
   # repository's vp staged does. itos ask record's index block was not
@@ -150,8 +111,8 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     And itos has run the command line "ask answer q-1 'Labels.'"
     When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
     Then itos exits with code 0
-    And in the file "docs/adr/README.md" the line after "<!-- itos:decisions:begin -->" is blank
-    And in the file "docs/adr/README.md" the line before "<!-- itos:decisions:end -->" is blank
+    And in the file "docs/decisions/README.md" the line after "<!-- itos:decisions:begin -->" is blank
+    And in the file "docs/decisions/README.md" the line before "<!-- itos:decisions:end -->" is blank
 
   @ID-ASK-13 @bug-17
   Scenario: When a pre-commit hook rewrites the files itos commits, the index is left as the commit has them
@@ -173,7 +134,7 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
   # superseded says so in its status, and the index lists the accepted ones
   # only. This replaced the Nygard records of v2.28.0, which no one used, in
   # v3.0.0.
-  @ID-ASK-14 @slice-71 @wip
+  @ID-ASK-14 @slice-71
   Scenario: ask record writes an answered question as the next MADR record in docs/decisions
     Given itos has run the command line "ask add 'Labels or Projects?'"
     And itos has run the command line "ask answer q-1 'Labels, with trust by who acted.'"
@@ -187,7 +148,7 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     And the file "docs/decisions/README.md" says "Triage issues with labels"
     And the last commit's header is "docs: record q-1 as decision 1"
 
-  @ID-ASK-15 @slice-71 @wip
+  @ID-ASK-15 @slice-71
   Scenario: A superseded record says so in its status and leaves the index
     Given itos has run the command line "ask add 'Labels or Projects?'"
     And itos has run the command line "ask answer q-1 'Labels.'"
@@ -200,7 +161,7 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     And the file "docs/decisions/README.md" says "Triage issues with Projects"
     And the file "docs/decisions/README.md" does not say "Triage issues with labels"
 
-  @ID-ASK-16 @slice-71 @wip
+  @ID-ASK-16 @slice-71
   Scenario: work.decisions names the folder, and the records already in it set the next number
     Given work.decisions is "notes/decisions"
     And the committed file "notes/decisions/0007-use-go.md" holding "# Use Go"

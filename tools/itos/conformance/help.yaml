@@ -37,7 +37,7 @@ cases:
         ask [--all]                      the open questions to the person the work is for
         ask add <text> [--item <id>]     ask a question, and commit it
         ask answer <id> <text>           answer a question, and commit it
-        ask record <id> --title <title> [--consequences <text>] [--supersedes <n>] [--none]
+        ask record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>] [--none]
                                          write an answer as a decision record, and commit it
         ask show <id>                    a question and its answer
         follow [--all]                   your open threads with people; private, never committed
@@ -402,7 +402,7 @@ cases:
       Usage: itos ask [--all]
              itos ask add <text> [--item <id>]
              itos ask answer <id> <text>
-             itos ask record <id> --title <title> [--consequences <text>] [--supersedes <n>]
+             itos ask record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>]
              itos ask record <id> --none
              itos ask show <id>
 
@@ -471,27 +471,29 @@ cases:
     argv: [ask, record, --help]
     exit: 0
     stdout: |
-      Usage: itos ask record <id> --title <title> [--consequences <text>] [--supersedes <n>]
+      Usage: itos ask record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>]
              itos ask record <id> --none
 
       Writes the answered question as the next architecture decision record, in
-      adr-tools' format (npryce/adr-tools), so records it or log4brains made are
-      read as they are: NNNN-<slug>.md, the slug the title lowercased with each run
-      of other characters one dash, starting "# <n>. <title>", then the date it is
-      recorded, its status Accepted, the question as its context ("Asked as <id>",
-      with the item it names), the answer as its decision, and --consequences as
-      its consequences, else "None recorded.". The records' folder is the one a
-      .adr-dir file at the repository's top names, as adr-tools reads it, else
-      docs/adr; the number is one past the highest
-      any name there starts with. The folder's README.md is the index of the
-      decisions still standing, between <!-- itos:decisions:begin --> and
-      <!-- itos:decisions:end -->, made when missing, its text outside them kept.
-      --supersedes <n> marks record <n> as adr-tools does: it loses Accepted and
-      gains "Superseded by [<new>](<file>)", the new one "Supersedes [<n>. …](…)",
-      and it leaves the index (adr-tools' "Superceded" reads the same). The question
-      gains "decision: <n>". Then commits the questions' file, the record, the one
-      it supersedes and the index together, "docs: record <id> as decision <n>", as
-      itos ask add commits.
+      MADR 4's format (adr/madr, its bare-minimal sections): NNNN-<slug>.md, the
+      slug the title lowercased with each run of other characters one dash. Its
+      YAML frontmatter holds "status: accepted" and the date it is recorded; then
+      "# <title>"; "## Context and Problem Statement", the question and "Asked as
+      <id>" (with the item it names); "## Considered Options", a bullet for each
+      --option given, else "The options are those the question names."; "## Decision
+      Outcome", the answer; and "### Consequences", --consequences, else "None
+      recorded.". The records' folder is the one work.decisions names, by default
+      docs/decisions; the number is one past the highest any name there starts
+      with. The folder's README.md is the index of the records whose status is
+      accepted, by number and title, between <!-- itos:decisions:begin --> and
+      <!-- itos:decisions:end -->, made when missing, its text outside them kept. A
+      record is read by its frontmatter and headings, so one edited by hand reads
+      the same. --supersedes <n> sets record <n>'s status to "superseded by
+      ADR-<nnnn>", the new record's number in four digits, so it leaves the index,
+      and the new record ends with "## More Information", "Supersedes ADR-<nnnn>.".
+      The question gains "decision: <n>". Then commits the questions' file, the
+      record, the one it supersedes and the index together, "docs: record <id> as
+      decision <n>", as itos ask add commits.
 
       --none writes no record: the answer concerned its item alone, and the
       question gains "decision: none", so itos ask stops naming it; the questions'
@@ -499,10 +501,10 @@ cases:
 
       Refused, nothing written (exit 1): no question with the id, one not answered,
       one already recorded or marked, --supersedes naming no record in the folder,
-      a .adr-dir naming no folder inside the repository, a file with changes no
-      commit holds, a commit a hook refuses (the files put back). Under a stealth
-      config the records are in the git folder beside the stealth config, adr/,
-      and nothing is committed.
+      a file with changes no commit holds, a commit a hook refuses (the files put
+      back). Under a stealth config the records are in the git folder beside the
+      stealth config, decisions/ unless its work.decisions names another, and
+      nothing is committed.
 
       --json: {"schema":1,"ok":true,"question":{…,"decision"},"record":"<path>"|null,"commit":"<sha>"|null},
       or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}

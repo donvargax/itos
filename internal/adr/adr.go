@@ -1,18 +1,23 @@
 // Package adr is the architecture decision records itos ask record writes
-// (slice 69, features/ask.feature): an answered question written as a
-// record in adr-tools' format (npryce/adr-tools, read 2026-10-04), so a
-// repository that already keeps records with adr-tools or log4brains keeps
-// its own and itos adds to them. A record is a Markdown file NNNN-slug.md,
-// its first line "# N. Title", then "Date: YYYY-MM-DD" and the sections
-// Status, Context, Decision and Consequences, as adr-tools' template.md
-// lays them out; links between records are lines of the Status section,
-// "Superseded by [N. Title](file)" and "Supersedes [N. Title](file)".
-// adr-tools spells them "Superceded" and "Supercedes": itos writes the
-// right spelling and reads both. The folder's README.md holds, between
-// itos's markers, the index of the decisions still live.
+// (features/ask.feature): an answered question written as a record in MADR
+// 4's format (adr/madr 4.0.0, its bare-minimal template), the maintained
+// one under the adr organisation (slice 71, which replaced slice 69's
+// adr-tools records). A record is a Markdown file NNNN-slug.md: YAML
+// frontmatter holding its status and date, which no section repeats; the
+// title as "# Title", with no number; then the sections Context and Problem
+// Statement, Considered Options, Decision Outcome and its Consequences, and
+// More Information when it supersedes another. A record superseded says so
+// in its status, "superseded by ADR-NNNN", as MADR's template spells it.
+// The folder's README.md holds, between itos's markers, the index of the
+// records whose status is accepted.
 //
-// The functions here are text in, text out, but for Dir, List and Next,
-// which read the folder; internal/cli/ask.go writes and commits.
+// A record is read by its structure, never its bytes: the status is the
+// frontmatter's, parsed as YAML, the title the first "# " heading after it,
+// so a record a person or a formatter rewrote reads the same. Everything
+// written here is in the form a Markdown formatter leaves alone (bug 17).
+//
+// The functions here are text in, text out, but for List and Next, which
+// read the folder; internal/cli/ask.go writes and commits.
 package adr
 
 import (
@@ -22,17 +27,14 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
 	"unicode"
+
+	"go.yaml.in/yaml/v3"
 )
-
-// DefaultDir is where the records go when no .adr-dir names a folder.
-const DefaultDir = "docs/adr"
-
-// DirFile is the file that names the records' folder, as adr-tools reads it.
-const DirFile = ".adr-dir"
 
 // IndexName is the index's file in the records' folder.
 const IndexName = "README.md"
@@ -43,37 +45,14 @@ const (
 	End   = "<!-- itos:decisions:end -->"
 )
 
-// Accepted is a new record's status, and the status a record superseded
-// loses.
-const Accepted = "Accepted"
+// Accepted is a new record's status, the one the index lists.
+const Accepted = "accepted"
 
-// The links a supersede writes: the old record gains the first, the new one
-// the second.
-const (
-	SupersededBy = "Superseded by"
-	Supersedes   = "Supersedes"
-)
+// Ref is how MADR names a record from another: "ADR-0007".
+func Ref(n int) string { return fmt.Sprintf("ADR-%04d", n) }
 
-// Dir is the records' folder of the work tree at top: the folder its
-// .adr-dir names, relative to top, as adr-tools' _adr_dir reads it, else
-// DefaultDir. adr-tools walks up from where it is run; itos runs at the
-// repository's top, and looks there alone. A .adr-dir that names no folder
-// inside the work tree is an error.
-func Dir(top string) (string, error) {
-	raw, err := os.ReadFile(filepath.Join(top, DirFile))
-	if err == nil {
-		named, _, _ := strings.Cut(string(raw), "\n")
-		named = strings.TrimSpace(named)
-		if named == "" || !filepath.IsLocal(filepath.FromSlash(named)) {
-			return "", fmt.Errorf("%s names %q, which is no folder inside the repository", DirFile, named)
-		}
-		return filepath.ToSlash(filepath.Clean(named)), nil
-	}
-	if !errors.Is(err, fs.ErrNotExist) {
-		return "", err
-	}
-	return DefaultDir, nil
-}
+// SupersededBy is the status of a record the record n supersedes.
+func SupersededBy(n int) string { return "superseded by " + Ref(n) }
 
 // Record is a record in the folder: its number, its file's name and its
 // text.
@@ -83,43 +62,88 @@ type Record struct {
 	Text   string
 }
 
-// Title is the record's title as adr-tools' _adr_title reads it, its first
-// line without the "# ": "7. Use Go".
+// frontmatter splits the text into its YAML frontmatter's lines, without
+// the fences, and the line index the body starts at; ok is false when the
+// text has none: no "---" first line, or no closing "---" or "...".
+func frontmatter(lines []string) (yamlLines []string, body int, ok bool) {
+	if len(lines) == 0 || strings.TrimRight(lines[0], " \t\r") != "---" {
+		return nil, 0, false
+	}
+	for i := 1; i < len(lines); i++ {
+		if fence := strings.TrimRight(lines[i], " \t\r"); fence == "---" || fence == "..." {
+			return lines[1:i], i + 1, true
+		}
+	}
+	return nil, 0, false
+}
+
+// Status is the record's status as its frontmatter gives it, trimmed; ""
+// when it has no frontmatter, no status or frontmatter that is not YAML.
+func (r Record) Status() string {
+	front, _, ok := frontmatter(strings.Split(r.Text, "\n"))
+	if !ok {
+		return ""
+	}
+	var meta map[string]any
+	if yaml.Unmarshal([]byte(strings.Join(front, "\n")), &meta) != nil {
+		return ""
+	}
+	status, _ := meta["status"].(string)
+	return strings.TrimSpace(status)
+}
+
+// Accepted is whether the record's status is accepted, the records the
+// index lists.
+func (r Record) Accepted() bool { return strings.EqualFold(r.Status(), Accepted) }
+
+// Title is the record's title: its first "# " heading after the
+// frontmatter, outside a fenced code block; "" when it has none.
 func (r Record) Title() string {
-	first, _, _ := strings.Cut(r.Text, "\n")
-	return strings.TrimPrefix(strings.TrimRight(first, "\r"), "# ")
-}
-
-// Live is whether the record still stands: no line of its Status section
-// says it is superseded, in either spelling.
-func (r Record) Live() bool {
-	for _, line := range statusLines(r.Text) {
-		if strings.HasPrefix(line, SupersededBy+" ") || strings.HasPrefix(line, "Superceded by ") {
-			return false
+	lines := strings.Split(r.Text, "\n")
+	_, start, _ := frontmatter(lines)
+	fence := ""
+	for _, line := range lines[start:] {
+		line = strings.TrimRight(line, " \t\r")
+		trimmed := strings.TrimLeft(line, " ")
+		switch {
+		case fence != "":
+			if strings.HasPrefix(trimmed, fence) {
+				fence = ""
+			}
+		case strings.HasPrefix(trimmed, "```"), strings.HasPrefix(trimmed, "~~~"):
+			fence = trimmed[:3]
+		case strings.HasPrefix(line, "# "):
+			return strings.TrimSpace(line[2:])
 		}
 	}
-	return true
+	return ""
 }
 
-// statusLines are the lines of the text's Status section.
-func statusLines(text string) []string {
-	var lines []string
-	in := false
-	for _, line := range strings.Split(text, "\n") {
-		line = strings.TrimRight(line, "\r")
-		if strings.HasPrefix(line, "##") {
-			in = line == "## Status"
-			continue
-		}
-		if in {
-			lines = append(lines, line)
+// SetStatus is the text with its frontmatter's status set: the status line
+// replaced, one added at the frontmatter's end when it has none, and
+// frontmatter holding it added at the top of a text with none.
+func SetStatus(text, status string) string {
+	lines := strings.Split(text, "\n")
+	front, body, ok := frontmatter(lines)
+	line := "status: " + status
+	if !ok {
+		return "---\n" + line + "\n---\n\n" + text
+	}
+	for i, l := range front {
+		if strings.HasPrefix(l, "status:") {
+			eol := ""
+			if strings.HasSuffix(l, "\r") {
+				eol = "\r"
+			}
+			lines[1+i] = line + eol
+			return strings.Join(lines, "\n")
 		}
 	}
-	return lines
+	out := append(append(slices.Clone(lines[:body-1]), line), lines[body-1:]...)
+	return strings.Join(out, "\n")
 }
 
-// numbered is a file name's leading number, as adr-tools reads it
-// (grep -Eo '^[0-9]+'), and whether it has one.
+// numbered is a file name's leading number, and whether it has one.
 var numbered = regexp.MustCompile(`^[0-9]+`)
 
 func numberOf(name string) (int, bool) {
@@ -157,9 +181,8 @@ func List(dir string) ([]Record, error) {
 	return records, nil
 }
 
-// Next is the next record's number, as adr-tools' adr-new gives it: one past
-// the highest number any name in the folder starts with, 1 when there is
-// none or no folder.
+// Next is the next record's number: one past the highest number any name in
+// the folder starts with, 1 when there is none or no folder.
 func Next(dir string) (int, error) {
 	entries, err := os.ReadDir(dir)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -177,10 +200,9 @@ func Next(dir string) (int, error) {
 	return highest + 1, nil
 }
 
-// Slug is the title as adr-tools makes a file name of it: lowercase, each
-// run of characters that are not letters or digits one dash, none at
-// either end. adr-tools' tr reads bytes, so it makes a dash of every letter
-// past ASCII; itos keeps them, lowercased.
+// Slug is the title as a file name: lowercase, each run of characters that
+// are not letters or digits one dash, none at either end; letters past
+// ASCII are kept, lowercased.
 func Slug(title string) string {
 	var b strings.Builder
 	dash := false
@@ -204,92 +226,57 @@ func FileName(n int, title string) string {
 	return fmt.Sprintf("%04d-%s.md", n, Slug(title))
 }
 
-// New is what a new record says.
+// New is what a new record says: the options are one line each, none for a
+// question that names its own; Supersedes is the number of the record it
+// supersedes, 0 for none.
 type New struct {
-	Number                                      int
-	Title, Date, Context, Decision, Consequence string
+	Title, Date, Context, Decision, Consequences string
+	Options                                      []string
+	Supersedes                                   int
 }
 
-// Text is the new record in adr-tools' template, its status Accepted.
+// NoOptions is Considered Options' text when no option is given.
+const NoOptions = "The options are those the question names."
+
+// NoConsequences is Consequences' text when none is given.
+const NoConsequences = "None recorded."
+
+// Text is the new record, its status accepted: MADR's bare-minimal
+// sections under its optional frontmatter, and More Information naming the
+// record it supersedes.
 func Text(n New) string {
-	return fmt.Sprintf("# %d. %s\n\nDate: %s\n\n## Status\n\n%s\n\n## Context\n\n%s\n\n## Decision\n\n%s\n\n## Consequences\n\n%s\n",
-		n.Number, n.Title, n.Date, Accepted, strings.TrimSpace(n.Context), strings.TrimSpace(n.Decision),
-		strings.TrimSpace(n.Consequence))
-}
-
-// AddLink is the text with a link to the target added at the end of its
-// Status section, as adr-tools' _adr_add_link adds one: before the next
-// heading, the link line and a blank line. A Status section that ends the
-// file, where adr-tools adds nothing, gets it at the end.
-func AddLink(text, kind string, target Record) string {
-	link := fmt.Sprintf("%s [%s](%s)", kind, target.Title(), target.File)
-	lines := strings.SplitAfter(text, "\n")
 	var b strings.Builder
-	in := false
-	for _, line := range lines {
-		bare := strings.TrimRight(line, "\r\n")
-		if strings.HasPrefix(bare, "##") {
-			if in {
-				b.WriteString(link + "\n\n")
-			}
-			in = bare == "## Status"
-		}
-		b.WriteString(line)
+	fmt.Fprintf(&b, "---\nstatus: %s\ndate: %s\n---\n\n# %s\n\n", Accepted, n.Date, n.Title)
+	fmt.Fprintf(&b, "## Context and Problem Statement\n\n%s\n\n## Considered Options\n\n", strings.TrimSpace(n.Context))
+	if len(n.Options) == 0 {
+		b.WriteString(NoOptions + "\n")
 	}
-	if in {
-		out := b.String()
-		if !strings.HasSuffix(out, "\n") && out != "" {
-			out += "\n"
-		}
-		return out + "\n" + link + "\n"
+	for _, option := range n.Options {
+		fmt.Fprintf(&b, "- %s\n", option)
 	}
-	return b.String()
-}
-
-// RemoveStatus is the text with the status line removed from its Status
-// section, as adr-tools' _adr_remove_status removes it, and the blank lines
-// left there one at most in a row.
-func RemoveStatus(text, status string) string {
-	lines := strings.SplitAfter(text, "\n")
-	var b strings.Builder
-	in, afterBlank := false, false
-	for _, line := range lines {
-		bare := strings.TrimRight(line, "\r\n")
-		if strings.HasPrefix(bare, "##") {
-			in = false
-		}
-		if bare == "## Status" {
-			in = true
-		}
-		switch {
-		case in && strings.TrimSpace(bare) == "":
-			if !afterBlank {
-				b.WriteString(line)
-			}
-			afterBlank = true
-			continue
-		case in && bare == status:
-			continue
-		case in:
-			afterBlank = false
-		}
-		b.WriteString(line)
+	consequences := strings.TrimSpace(n.Consequences)
+	if consequences == "" {
+		consequences = NoConsequences
+	}
+	fmt.Fprintf(&b, "\n## Decision Outcome\n\n%s\n\n### Consequences\n\n%s\n", strings.TrimSpace(n.Decision), consequences)
+	if n.Supersedes != 0 {
+		fmt.Fprintf(&b, "\n## More Information\n\nSupersedes %s.\n", Ref(n.Supersedes))
 	}
 	return b.String()
 }
 
 // Index is the index's text: the text it had, its part between the markers
-// made the list of the live records, the rest kept; the markers and the list
-// added at its end when it has none, and a heading for an index that is
-// new ("" before). A blank line follows the begin marker and comes before
-// the end one, the form a Markdown formatter leaves alone (bug 17): a list
-// against a comment is one it rewrites.
+// made the list of the accepted records, by number and title, the rest
+// kept; the markers and the list added at its end when it has none, and a
+// heading for an index that is new ("" before). A blank line follows the
+// begin marker and comes before the end one, the form a Markdown formatter
+// leaves alone (bug 17): a list against a comment is one it rewrites.
 func Index(before string, records []Record) string {
 	var list strings.Builder
 	list.WriteString(Begin + "\n\n")
 	for _, r := range records {
-		if r.Live() {
-			fmt.Fprintf(&list, "- [%s](%s)\n", r.Title(), r.File)
+		if r.Accepted() {
+			fmt.Fprintf(&list, "- [%s: %s](%s)\n", Ref(r.Number), r.Title(), r.File)
 		}
 	}
 	if list.Len() > len(Begin)+2 {

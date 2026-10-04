@@ -1532,17 +1532,24 @@ add`ed so `--only` can name it, git add's words and the commit's on
   one every stealth writer holds, and commit nothing. `work show` lists the
   questions naming its item (`File.About`), and `--json` gives them always.
   `record` (slice 69, over `internal/adr`) writes an answered question as an
-  architecture decision record in adr-tools' format, so a repository that
-  already keeps records with adr-tools or log4brains keeps its own: the
-  folder is `adr.Dir`'s, the one a `.adr-dir` at the repository's top
-  names, read as adr-tools' `_adr_dir` reads it, else `docs/adr`, and under
-  a stealth config `adr/` beside the stealth config; the number is one past the highest any name there starts
-  with (`adr.Next`, as `adr-new`), the slug `adr.Slug`'s. `adr.AddLink` and
-  `adr.RemoveStatus` are `_adr_add_link` and `_adr_remove_status` in Go, so
-  a supersede leaves both records as `adr new -s` would, spelt "Superseded"
-  where adr-tools writes "Superceded", which `Record.Live` reads as well.
+  architecture decision record in MADR 4's format (slice 71, which replaced
+  slice 69's adr-tools records): YAML frontmatter holding the status and the
+  date, then MADR's bare-minimal sections (`adr.Text`), Considered Options
+  from `--option`, which `repeated` takes out of the arguments before
+  `subArgs` reads the rest. The folder is `work.decisions`, `docs/decisions`
+  by default; `stealthOnly` makes it `decisions`, which `beside` puts in the
+  git folder beside the stealth config. The number is one past the highest
+  any name there starts with (`adr.Next`), the slug `adr.Slug`'s. A record
+  is read by its structure, never its bytes: `Record.Status` parses the
+  frontmatter as YAML, `Record.Title` takes the first `# ` heading after it,
+  outside a code block. A supersede sets the old record's status to
+  `superseded by ADR-NNNN` (`adr.SetStatus`, which replaces the frontmatter's
+  status line, adds one, or adds frontmatter to a record with none), and the
+  new record ends with More Information naming the old one.
   The index is the folder's `README.md`, its part between the markers
-  rewritten whole (`adr.Index`) from the records still live, the rest kept.
+  rewritten whole (`adr.Index`) from the records whose status is accepted,
+  by number and title, the rest kept; everything written is in the form a
+  Markdown formatter leaves alone (bug 17).
   The question gains `decision: <n>` (or `none` for `--none`), and the
   questions, the new record, the one it supersedes and the index go through
   one `writeCommitted`, each `written` naming its own rule for changes no
@@ -1550,8 +1557,8 @@ add`ed so `--only` can name it, git add's words and the commit's on
   the folders made for the record are removed again when the write fails
   (`madeDirs`, `unmake`). A question answered with no decision is
   `Unrecorded`, and `ask` ends with one line naming each as
-  `itos ask record <id>`. The records' checks (numbers unique, links both
-  ways, the index matching the files) are not here: p1-adr-checks.
+  `itos ask record <id>`. The records' checks (numbers unique, supersedes
+  valid, the index matching the files) are not here: p1-adr-checks.
 - **go and guide** (slice 64, `internal/cli/guide.go` over `internal/guide`)
   print the guides a session starts from, Markdown files beside the package
   (`coordinate.md`, `work.md`) embedded with `go:embed` and printed as

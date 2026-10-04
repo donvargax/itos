@@ -11,13 +11,14 @@ package cli
 // nowhere, each as itos ask record would record it.
 //
 // record (slice 69) writes an answered question as the next architecture
-// decision record (internal/adr) in the records' folder, notes the record's
-// number on the question and commits the questions, the record, the one it
-// supersedes and the folder's index together, "docs: record q-<n> as
-// decision <m>"; --none notes no record and commits the questions alone,
-// "docs: mark q-<n> as recorded nowhere". Under a stealth config the records
-// are in the git folder too, adr/ beside the stealth config, and nothing is
-// committed.
+// decision record, in MADR 4's format since slice 71 (internal/adr), in the
+// folder work.decisions names, notes the record's number on the question and
+// commits the questions, the record, the one it supersedes and the folder's
+// index together, "docs: record q-<n> as decision <m>"; --none notes no
+// record and commits the questions alone, "docs: mark q-<n> as recorded
+// nowhere". Under a stealth config the records are in the git folder too,
+// decisions/ beside the stealth config (work.decisions resolved there), and
+// nothing is committed.
 
 import (
 	"errors"
@@ -434,10 +435,15 @@ func askList(all bool, o Out) (int, error) {
 	return 0, nil
 }
 
-// askRecord is `ask record <id> --title <title> [--consequences <text>]
-// [--supersedes <n>]`, or `ask record <id> --none`: the answered question
-// written as the next decision record, or marked as recorded nowhere.
+// askRecord is `ask record <id> --title <title> [--option <text>]…
+// [--consequences <text>] [--supersedes <n>]`, or `ask record <id> --none`:
+// the answered question written as the next decision record, or marked as
+// recorded nowhere.
 func askRecord(args []string, o Out) (int, error) {
+	options, args, err := repeated("ask record", "--option", args)
+	if err != nil {
+		return 0, err
+	}
 	pos, flags, set, err := subArgs("ask", "record", args, []string{"--title", "--consequences", "--supersedes"}, []string{"--none"})
 	if err != nil {
 		return 0, err
@@ -458,8 +464,8 @@ func askRecord(args []string, o Out) (int, error) {
 	}
 	none := set["--none"]
 	switch {
-	case none && (title != "" || consequences != "" || supersedes != 0):
-		return 0, usage("ask record --none writes no record, so it takes no --title, --consequences or --supersedes")
+	case none && (title != "" || consequences != "" || supersedes != 0 || len(options) > 0):
+		return 0, usage("ask record --none writes no record, so it takes no --title, --option, --consequences or --supersedes")
 	case !none && title == "":
 		return 0, usage("ask record needs --title <title>, the decision's, or --none")
 	case !none && adr.Slug(title) == "":
@@ -503,13 +509,7 @@ func askRecord(args []string, o Out) (int, error) {
 		}
 		return reportRecord(fmt.Sprintf("%s marked as recorded nowhere: %s", id, askCommitted(sha, header)), *q, "", sha, o)
 	}
-	dir, problem, err := decisionsDir(cfg)
-	if err != nil {
-		return 0, err
-	}
-	if problem != nil {
-		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
-	}
+	dir := filepath.FromSlash(cfg.Work.Decisions)
 	records, err := adr.List(dir)
 	if err != nil {
 		return 0, err
@@ -522,12 +522,9 @@ func askRecord(args []string, o Out) (int, error) {
 	if q.Item != "" {
 		context += ", about " + q.Item
 	}
-	if consequences == "" {
-		consequences = "None recorded."
-	}
 	record := adr.Record{Number: n, File: adr.FileName(n, title)}
-	record.Text = adr.Text(adr.New{Number: n, Title: title, Date: time.Now().Format(time.DateOnly),
-		Context: context + ".", Decision: q.Answer, Consequence: consequences})
+	record.Text = adr.Text(adr.New{Title: title, Date: time.Now().Format(time.DateOnly), Context: context + ".",
+		Options: options, Decision: q.Answer, Consequences: consequences, Supersedes: supersedes})
 	files := []written{asks, {path: filepath.Join(dir, record.File), created: true, rule: "decision-file-uncommitted"}}
 	if supersedes != 0 {
 		at := -1
@@ -545,8 +542,7 @@ func askRecord(args []string, o Out) (int, error) {
 			}}, ExitPolicy, o)
 		}
 		older := records[at]
-		record.Text = adr.AddLink(record.Text, adr.Supersedes, older)
-		records[at].Text = adr.RemoveStatus(adr.AddLink(older.Text, adr.SupersededBy, record), adr.Accepted)
+		records[at].Text = adr.SetStatus(older.Text, adr.SupersededBy(n))
 		files = append(files, written{path: filepath.Join(dir, older.File), old: older.Text, text: records[at].Text,
 			rule: "decision-file-uncommitted"})
 	}
@@ -578,25 +574,6 @@ func askRecord(args []string, o Out) (int, error) {
 	}
 	return reportRecord(fmt.Sprintf("%s recorded as decision %d, %s: %s", id, n, filepath.ToSlash(files[1].path), askCommitted(sha, header)),
 		*q, files[1].path, sha, o)
-}
-
-// decisionsDir is the records' folder: under a stealth config adr/ beside
-// it in the git folder, else as adr-tools finds it in the work tree
-// (adr.Dir); a .adr-dir naming no folder inside the repository is the
-// problem.
-func decisionsDir(cfg *config.Loaded) (string, *out.Problem, error) {
-	if cfg.Stealth {
-		return filepath.Join(filepath.Dir(cfg.Path), "adr"), nil, nil
-	}
-	dir, err := adr.Dir("")
-	if err != nil {
-		return "", &out.Problem{
-			Rule:    "adr-dir-outside",
-			Message: err.Error(),
-			Fix:     "write a folder inside the repository in " + adr.DirFile + ", or remove it for " + adr.DefaultDir,
-		}, nil
-	}
-	return dir, nil, nil
 }
 
 // madeDirs makes the folder and those above it that are not there, and
@@ -639,4 +616,35 @@ func reportRecord(line string, q ask.Question, record, sha string, o Out) (int, 
 		fmt.Fprintln(o.Stdout, line)
 	}
 	return 0, nil
+}
+
+// repeated takes every occurrence of the flag out of args, as `--flag
+// <value>` or `--flag=<value>`, before the arguments' "--": the values in
+// order and the arguments left. A flag with no value, or an empty one, is a
+// usage error naming the command.
+func repeated(command, flag string, args []string) (values, rest []string, err error) {
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if arg == "--" {
+			rest = append(rest, args[i:]...)
+			break
+		}
+		name, value, joined := strings.Cut(arg, "=")
+		if name != flag {
+			rest = append(rest, arg)
+			continue
+		}
+		if !joined {
+			if i+1 >= len(args) {
+				return nil, nil, usage("%s %s needs a value", command, flag)
+			}
+			i++
+			value = args[i]
+		}
+		if value = oneLine(value); value == "" {
+			return nil, nil, usage("%s %s needs a value", command, flag)
+		}
+		values = append(values, value)
+	}
+	return values, rest, nil
 }

@@ -7,67 +7,91 @@ import (
 	"testing"
 )
 
-// adr-tools' template, as adr new writes it for "Use Go" (its body text
-// left as the template has it).
-const useGo = `# 1. Use Go
+// A new record in MADR 4's bare-minimal sections, its status and date in the
+// frontmatter alone.
+const useGo = `---
+status: accepted
+date: 2026-10-04
+---
 
-Date: 2026-10-04
+# Use Go
 
-## Status
+## Context and Problem Statement
 
-Accepted
+Go or Rust?
 
-## Context
+Asked as q-1.
 
-The issue motivating this decision.
+## Considered Options
 
-## Decision
+- Go
+- Rust
 
-The change.
+## Decision Outcome
 
-## Consequences
+Go.
 
-What becomes easier.
+### Consequences
+
+None recorded.
 `
 
-// A supersede edits both records as adr-tools' adr new -s does (its output,
-// 2026-10-04), with the right spelling: the old record loses Accepted and
-// gains the link to the new, the new one gains the link to the old after
-// its status.
-func TestSupersedeAsAdrTools(t *testing.T) {
-	old := Record{Number: 1, File: "0001-use-go.md", Text: useGo}
-	newer := Record{Number: 2, File: "0002-use-rust.md", Text: strings.ReplaceAll(strings.ReplaceAll(useGo, "1. Use Go", "2. Use Rust"), "2026-10-04", "2026-10-05")}
-	gotOld := RemoveStatus(AddLink(old.Text, SupersededBy, newer), Accepted)
-	wantOld := strings.Replace(useGo, "Accepted\n", "Superseded by [2. Use Rust](0002-use-rust.md)\n", 1)
-	if gotOld != wantOld {
-		t.Errorf("the old record:\n%s\nwant:\n%s", gotOld, wantOld)
+func TestText(t *testing.T) {
+	got := Text(New{Title: "Use Go", Date: "2026-10-04", Context: "Go or Rust?\n\nAsked as q-1.", Options: []string{"Go", "Rust"},
+		Decision: "Go."})
+	if got != useGo {
+		t.Errorf("the record:\n%s\nwant:\n%s", got, useGo)
 	}
-	gotNew := AddLink(newer.Text, Supersedes, old)
-	wantNew := strings.Replace(newer.Text, "Accepted\n", "Accepted\n\nSupersedes [1. Use Go](0001-use-go.md)\n", 1)
-	if gotNew != wantNew {
-		t.Errorf("the new record:\n%s\nwant:\n%s", gotNew, wantNew)
+	bare := Text(New{Title: "Use Rust", Date: "2026-10-05", Context: "c", Decision: "d", Consequences: "e", Supersedes: 1})
+	for _, want := range []string{"## Considered Options\n\n" + NoOptions + "\n\n", "### Consequences\n\ne\n",
+		"\n## More Information\n\nSupersedes ADR-0001.\n"} {
+		if !strings.Contains(bare, want) {
+			t.Errorf("the record should say %q:\n%s", want, bare)
+		}
 	}
-	if (Record{Text: gotOld}).Live() || !(Record{Text: gotNew}).Live() {
-		t.Error("the old record should be superseded and the new one live")
-	}
-	if (Record{Text: strings.Replace(useGo, "Accepted", "Superceded by [2. X](0002-x.md)", 1)}).Live() {
-		t.Error("adr-tools' spelling should read as superseded")
-	}
-	if !(Record{Text: strings.Replace(useGo, "The change.", "Superseded by nothing yet.", 1)}).Live() {
-		t.Error("a line outside the Status section should not supersede")
+	r := Record{Text: useGo}
+	if r.Title() != "Use Go" || r.Status() != "accepted" || !r.Accepted() {
+		t.Errorf("read back: %q %q", r.Title(), r.Status())
 	}
 }
 
-// A Status section that ends the record gets its link at the end.
-func TestAddLinkStatusLast(t *testing.T) {
-	got := AddLink("# 3. X\n\n## Status\n\nAccepted", Supersedes, Record{File: "0001-a.md", Text: "# 1. A\n"})
-	if want := "# 3. X\n\n## Status\n\nAccepted\n\nSupersedes [1. A](0001-a.md)\n"; got != want {
-		t.Errorf("got %q, want %q", got, want)
+// A record is read by its structure: a quoted status, CRLF line endings, a
+// heading in a code block and no frontmatter at all read as they mean.
+func TestReadByStructure(t *testing.T) {
+	quoted := Record{Text: "---\r\ndate: 2020-01-01\r\nstatus: \"Accepted\"\r\n---\r\n\r\n```\r\n# not it\r\n```\r\n\r\n# Use Go\r\n"}
+	if !quoted.Accepted() || quoted.Title() != "Use Go" {
+		t.Errorf("quoted: %q %q", quoted.Status(), quoted.Title())
+	}
+	bare := Record{Text: "# Use Go\n\nstatus: accepted\n"}
+	if bare.Accepted() || bare.Title() != "Use Go" {
+		t.Errorf("no frontmatter: %q %q", bare.Status(), bare.Title())
+	}
+	broken := Record{Text: "---\nstatus: [accepted\n---\n# X\n"}
+	if broken.Accepted() {
+		t.Error("frontmatter that is not YAML has no status")
 	}
 }
 
-// Slugs as adr-tools makes them: lowercase, each run of other characters a
-// dash, none at the ends.
+// Superseding sets the status: the line replaced, added to frontmatter
+// without one, and frontmatter added to a record with none.
+func TestSetStatus(t *testing.T) {
+	got := SetStatus(useGo, SupersededBy(2))
+	if want := strings.Replace(useGo, "status: accepted", "status: superseded by ADR-0002", 1); got != want {
+		t.Errorf("replaced:\n%s", got)
+	}
+	if (Record{Text: got}).Accepted() || (Record{Text: got}).Status() != "superseded by ADR-0002" {
+		t.Errorf("the status read back: %q", (Record{Text: got}).Status())
+	}
+	added := SetStatus("---\ndate: 2020-01-01\n---\n\n# A\n", SupersededBy(12))
+	if added != "---\ndate: 2020-01-01\nstatus: superseded by ADR-0012\n---\n\n# A\n" {
+		t.Errorf("added:\n%s", added)
+	}
+	if made := SetStatus("# A\n", SupersededBy(3)); made != "---\nstatus: superseded by ADR-0003\n---\n\n# A\n" {
+		t.Errorf("made:\n%s", made)
+	}
+}
+
+// Slugs: lowercase, each run of other characters a dash, none at the ends.
 func TestSlug(t *testing.T) {
 	for title, want := range map[string]string{
 		"Triage issues with labels": "triage-issues-with-labels",
@@ -84,61 +108,48 @@ func TestSlug(t *testing.T) {
 	}
 }
 
-// The folder: a .adr-dir's, else docs/adr; a .adr-dir naming a folder
-// outside is refused. The next number is past the
-// highest name, the records listed by number.
-func TestDirListNext(t *testing.T) {
-	top := t.TempDir()
-	if dir, err := Dir(top); err != nil || dir != DefaultDir {
-		t.Errorf("no folder: %q, %v", dir, err)
-	}
-	if n, err := Next(filepath.Join(top, DefaultDir)); err != nil || n != 1 {
+// The next number is past the highest name, the records listed by number.
+func TestListNext(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "docs/decisions")
+	if n, err := Next(dir); err != nil || n != 1 {
 		t.Errorf("next in no folder: %d, %v", n, err)
 	}
-	write(t, filepath.Join(top, DirFile), "doc/decisions\n")
-	if dir, err := Dir(top); err != nil || dir != "doc/decisions" {
-		t.Errorf(".adr-dir: %q, %v", dir, err)
-	}
-	write(t, filepath.Join(top, DirFile), "../elsewhere\n")
-	if _, err := Dir(top); err == nil {
-		t.Error("a .adr-dir outside the repository should be refused")
-	}
-	dir := filepath.Join(top, "doc/decisions")
-	write(t, filepath.Join(dir, "0007-use-go.md"), "# 7. Use Go\n")
-	write(t, filepath.Join(dir, "0010-later.md"), "# 10. Later\n")
+	write(t, filepath.Join(dir, "0007-use-go.md"), "# Use Go\n")
+	write(t, filepath.Join(dir, "0010-later.md"), "---\nstatus: accepted\n---\n\n# Later\n")
 	write(t, filepath.Join(dir, "README.md"), "index\n")
 	write(t, filepath.Join(dir, "0012-notes.txt"), "not a record\n")
 	if n, err := Next(dir); err != nil || n != 13 {
 		t.Errorf("next: %d, %v", n, err)
 	}
 	records, err := List(dir)
-	if err != nil || len(records) != 2 || records[0].Number != 7 || records[1].Title() != "10. Later" {
+	if err != nil || len(records) != 2 || records[0].Number != 7 || records[1].Title() != "Later" {
 		t.Errorf("list: %+v, %v", records, err)
 	}
 }
 
-// The index lists the live records between the markers, a blank line inside
-// each (bug 17), keeps the text outside them, and is made with a heading
-// when there was none.
+// The index lists the accepted records between the markers, by number and
+// title, a blank line inside each (bug 17), keeps the text outside them,
+// and is made with a heading when there was none.
 func TestIndex(t *testing.T) {
 	records := []Record{
-		{Number: 1, File: "0001-a.md", Text: "# 1. A\n\n## Status\n\nSuperseded by [2. B](0002-b.md)\n"},
-		{Number: 2, File: "0002-b.md", Text: "# 2. B\n\n## Status\n\nAccepted\n"},
+		{Number: 1, File: "0001-a.md", Text: "---\nstatus: superseded by ADR-0002\n---\n\n# A\n"},
+		{Number: 2, File: "0002-b.md", Text: "---\nstatus: accepted\n---\n\n# B\n"},
 	}
 	made := Index("", records)
-	if !strings.HasPrefix(made, "# Decisions\n") || !strings.Contains(made, Begin+"\n\n- [2. B](0002-b.md)\n\n"+End+"\n") || strings.Contains(made, "[1. A]") {
+	if !strings.HasPrefix(made, "# Decisions\n") || !strings.Contains(made, Begin+"\n\n- [ADR-0002: B](0002-b.md)\n\n"+End+"\n") ||
+		strings.Contains(made, "0001-a.md") {
 		t.Errorf("a new index:\n%s", made)
 	}
 	kept := Index("# Ours\n\n"+Begin+"\n- old\n"+End+"\n\nMore.\n", records)
-	if kept != "# Ours\n\n"+Begin+"\n\n- [2. B](0002-b.md)\n\n"+End+"\n\nMore.\n" {
+	if kept != "# Ours\n\n"+Begin+"\n\n- [ADR-0002: B](0002-b.md)\n\n"+End+"\n\nMore.\n" {
 		t.Errorf("an index with markers:\n%s", kept)
 	}
 	added := Index("# Ours", records)
-	if added != "# Ours\n\n"+Begin+"\n\n- [2. B](0002-b.md)\n\n"+End+"\n" {
+	if added != "# Ours\n\n"+Begin+"\n\n- [ADR-0002: B](0002-b.md)\n\n"+End+"\n" {
 		t.Errorf("an index without markers:\n%s", added)
 	}
 	if empty := Index("# Ours\n\n"+Begin+"\n- old\n"+End+"\n", records[:1]); empty != "# Ours\n\n"+Begin+"\n\n"+End+"\n" {
-		t.Errorf("an index of no live record:\n%s", empty)
+		t.Errorf("an index of no accepted record:\n%s", empty)
 	}
 }
 

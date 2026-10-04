@@ -894,6 +894,7 @@ cases:
         work:
           registry: tasks/work-items.yaml
           asks: asks.yaml
+          decisions: docs/decisions
           groups_key: phases
           statuses:
             - todo

@@ -70,6 +70,9 @@ func defaults() *value.Map {
 			// itos ask's questions, beside the registry wherever it is
 			// (slice 62, DefaultsFor).
 			"asks", "tasks/asks.yaml",
+			// itos ask record's decision records, in MADR's own folder
+			// (slice 71); a stealth config's are beside it (stealthOnly).
+			"decisions", "docs/decisions",
 			"groups_key", "phases",
 			"statuses", l("todo", "doing", "done", "blocked"),
 			"people", m("source", "all-contributors-md", "file", "CONTRIBUTORS.md"),
@@ -122,9 +125,11 @@ func DefaultsFor(file *value.Map, stealth bool) *value.Map {
 // stealthOnly sets in a table what a stealth config has whatever its file
 // says, the one person's itos in a repository that does not use it:
 // hooks.bin is itos, the global launcher, and there is no work.people, so
-// no people file is read, the person being the only one.
+// no people file is read, the person being the only one; work.decisions is
+// decisions, which beside resolves to <git common dir>/itos/decisions.
 func stealthOnly(table *value.Map) {
 	table.At("hooks").(*value.Map).Set("bin", GlobalBin)
+	table.At("work").(*value.Map).Set("decisions", "decisions")
 	table.At("work").(*value.Map).Delete("people")
 }
 
