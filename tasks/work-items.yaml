@@ -3561,3 +3561,19 @@ items:
       committed alone; ids ledger.id does not match or the ledger has, and types commits.types
       lacks, are refused. The last registry item added by hand, since slice 54 builds work add.
     refs: [features/task.feature, internal/ledger/, internal/work/write.go]
+
+  - id: p1-skill-work-add
+    title: The plugin skill names itos work add and edit, so agents record gaps through them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-54]
+    kind: idea
+    why: >
+      Found by slice 54's agent: integrations/claude-code/skills/itos/SKILL.md names itos work take,
+      done and list, but not work add and work edit, so an agent in another repository still adds
+      the ideas it finds by editing the registry's YAML by hand, which slice 54 made unnecessary. A
+      bullet saying to record a gap with itos work add <id> --title … --why … and to note on an item
+      with itos work edit <id> --note …, with the plugin's minor version raised in a chore commit
+      (T-074's rule).
+    refs: [integrations/claude-code/skills/itos/SKILL.md]
