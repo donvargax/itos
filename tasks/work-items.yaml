@@ -49,7 +49,7 @@ queue:
   - p1-registry-archive
   - p1-work-show-gaps
   - p1-release-notes-footers
-  - p1-features-hide-global-itos
+  - T-087
   - p1-commit-wrap-review
   - p1-work-as-empty
   - p1-push-superseded-run
@@ -4372,14 +4372,15 @@ items:
       trailers; a multi-line free-text footer keeps its lines (p3-text-footer-lines). Also: an
       Upgrading that starts with none followed by text reads as none.
 
-  - id: p1-features-hide-global-itos
-    title: The features' PATH hides a global itos, as it hides claude
+  - id: T-087
+    title: The features' PATH hides any itos but the one under test, as it hides claude
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-features-hide-global-itos.
       Found by bug 12's agent (2026-10-04): the scenarios' PATH hides claude but not itos, so a
       scenario whose hooks call itos (the starter's hooks.bin) passed locally against the
       developer's global itos rather than the one under test, and failed only in CI. Hiding itos
