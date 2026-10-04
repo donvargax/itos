@@ -4497,7 +4497,7 @@ items:
     refs: [features/status.feature]
 
   - id: p1-done-body-url-footer
-    title: work done's commit body puts no line where the lint reads a footer
+    title: itos's own commit bodies put no line where the lint reads a footer
     phase: 1
     owner: null
     status: todo
@@ -4508,6 +4508,12 @@ items:
       footer-leading-blank warning. Its body ends with the run's address on a line of its own
       (https://…), which the lint reads as a footer token (https:). Keep the address inside a
       sentence, or after a word, so the body is clean under itos's own lint.
+
+      Wider than work done (2026-10-04): docs: answer q-10 (eae51e7) drew the same warning, its
+      wrapped body starting a line with 'recommendation:'. Every command that commits itos's files
+      wraps its body with value.Wrap (internal/cli/workwrite.go), not the wrap bug 15 fixed for itos
+      commit, which never starts a line with a footer token; use that one there too, which covers
+      the run's address of work done as well.
 
   - id: slice-68
     title: itos go prints this clone's own notes, kept uncommitted under the git common dir
