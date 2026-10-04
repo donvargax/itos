@@ -110,7 +110,7 @@ Feature: itos status, where the work stands
   # the run as ci.watch.command does, given no commit. A config naming
   # neither prints no nightly line, and one that cannot be read is said in a
   # line, the rest still printed.
-  @ID-STATUS-09 @slice-72 @wip
+  @ID-STATUS-09 @slice-72
   Scenario: status names the last nightly's run and its result
     Given the watched run's jobs "ci" and "platform" succeed
     And ci.watch.nightly_command reports the run "https://ci.example/nightly/7", its job "nightly" failed
@@ -119,7 +119,7 @@ Feature: itos status, where the work stands
     And its output says "https://ci.example/nightly/7"
     And its output says "failure"
 
-  @ID-STATUS-10 @slice-72 @wip
+  @ID-STATUS-10 @slice-72
   Scenario: With no nightly configured, status prints no nightly line
     Given the watched run's jobs "ci" and "platform" succeed
     When itos runs "status --as someone"

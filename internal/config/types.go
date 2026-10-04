@@ -287,11 +287,16 @@ type Range struct {
 
 // Watch is how itos push and itos ci watch wait for a commit's CI run
 // (slice 51): the provider, none by default, and how often and how long.
+// itos status reads the last nightly's run through the same provider
+// (slice 72): NightlyCommand for command, GitHub.NightlyWorkflow for github,
+// neither read when unset.
 type Watch struct {
-	Provider string  `json:"provider"`
-	Command  *string `json:"command"`
-	GitHub   struct {
-		Workflow string `json:"workflow"`
+	Provider       string  `json:"provider"`
+	Command        *string `json:"command"`
+	NightlyCommand *string `json:"nightly_command"`
+	GitHub         struct {
+		Workflow        string `json:"workflow"`
+		NightlyWorkflow string `json:"nightly_workflow"`
 	} `json:"github"`
 	// Seconds; never nil once loaded, the table giving both.
 	Interval *float64 `json:"interval"`

@@ -5,7 +5,10 @@ package providers
 // ci.watch.interval seconds until the run completes. github reads the run of
 // ci.watch.github.workflow through GitHub's API, as the range provider beside
 // it reads the last green one; command runs ci.watch.command and reads the run
-// from its stdout.
+// from its stdout. The same provider gives itos status one look at the last
+// nightly's run (slice 72): github reads ci.watch.github.nightly_workflow's
+// newest run on the branch, command runs ci.watch.nightly_command, given no
+// commit, and reads its stdout as ci.watch.command's.
 
 import (
 	"bytes"
@@ -89,13 +92,60 @@ func WatchProvider(cfg *config.Loaded, s WatchSetup) (watch Watch, ok bool, err 
 		}
 		return commandWatch(cfg, command, s.Stderr), true, nil
 	}
+	g, err := watchGitHub(cfg, s)
+	if err != nil {
+		return nil, false, err
+	}
+	g.Workflow = w.GitHub.Workflow
+	return g.RunOf, true, nil
+}
+
+// Nightly looks once at the last nightly's run: found is false when there
+// is none yet.
+type Nightly func() (run Run, found bool, err error)
+
+// NightlyProvider is the look at the last nightly's run ci.watch's provider
+// gives, on the branch: ok is false when the provider names no nightly (none,
+// github with no ci.watch.github.nightly_workflow, command with no
+// ci.watch.nightly_command). An error is a provider that cannot look, as
+// WatchProvider's.
+func NightlyProvider(cfg *config.Loaded, branch string, s WatchSetup) (nightly Nightly, ok bool, err error) {
+	w := cfg.CI.Watch
+	switch w.Provider {
+	case "none":
+		return nil, false, nil
+	case "command":
+		if w.NightlyCommand == nil || value.Trim(*w.NightlyCommand) == "" {
+			return nil, false, nil
+		}
+		command := *w.NightlyCommand
+		return func() (Run, bool, error) {
+			run, err := commandRun(cfg, "ci.watch.nightly_command", command, s.Stderr)
+			return run, err == nil, err
+		}, true, nil
+	}
+	if w.GitHub.NightlyWorkflow == "" {
+		return nil, false, nil
+	}
+	g, err := watchGitHub(cfg, s)
+	if err != nil {
+		return nil, false, err
+	}
+	g.Workflow, g.Branch = w.GitHub.NightlyWorkflow, branch
+	return g.NewestRun, true, nil
+}
+
+// watchGitHub is the github provider's repository and token, the workflow
+// left to the caller: the token from ci.range.github.token_env, else gh,
+// the repository from ci.range.github.repository_env, else the remote's URL.
+func watchGitHub(cfg *config.Loaded, s WatchSetup) (GitHub, error) {
 	r := cfg.CI.Range.GitHub
 	token := firstSet(s.Env, r.TokenEnv)
 	if token == "" && s.GhToken != nil {
 		token, _ = s.GhToken()
 	}
 	if token == "" {
-		return nil, false, fmt.Errorf("ci.watch's github provider needs a token, and there is none: set %s (ci.range.github.token_env), or install gh and run gh auth login",
+		return GitHub{}, fmt.Errorf("ci.watch's github provider needs a token, and there is none: set %s (ci.range.github.token_env), or install gh and run gh auth login",
 			orList(r.TokenEnv))
 	}
 	repository := s.Env(r.RepositoryEnv)
@@ -103,11 +153,10 @@ func WatchProvider(cfg *config.Loaded, s WatchSetup) (watch Watch, ok bool, err 
 		repository = GitHubRepository(s.RemoteURL)
 	}
 	if repository == "" {
-		return nil, false, fmt.Errorf("ci.watch's github provider cannot tell the GitHub repository from the remote's URL %q: set %s to owner/name",
+		return GitHub{}, fmt.Errorf("ci.watch's github provider cannot tell the GitHub repository from the remote's URL %q: set %s to owner/name",
 			s.RemoteURL, r.RepositoryEnv)
 	}
-	g := GitHub{Repository: repository, Token: token, Workflow: w.GitHub.Workflow}
-	return g.RunOf, true, nil
+	return GitHub{Repository: repository, Token: token}, nil
 }
 
 // orList is names joined as a sentence lists alternatives: A, B or C.
@@ -150,18 +199,25 @@ func GitHubRepository(remoteURL string) string {
 // command that fails or prints anything else is an error.
 func commandWatch(cfg *config.Loaded, command string, stderr io.Writer) Watch {
 	return func(sha string) (Run, bool, error) {
-		var stdout bytes.Buffer
 		filled := strings.ReplaceAll(command, "{sha}", tests.ShellWord(sha))
-		res := shell.Run(cfg, filled, shell.Options{Stdout: &stdout, Stderr: stderr, Timeout: Timeout})
-		if !res.OK() {
-			return Run{}, false, fmt.Errorf("ci.watch.command failed (exit %s): %s", res.Status(), filled)
-		}
-		run, err := ReadRun(stdout.Bytes())
-		if err != nil {
-			return Run{}, false, fmt.Errorf("ci.watch.command printed no run: %s", err)
-		}
-		return run, true, nil
+		run, err := commandRun(cfg, "ci.watch.command", filled, stderr)
+		return run, err == nil, err
 	}
+}
+
+// commandRun runs the command, the config key named in its errors, and
+// reads the run from its stdout.
+func commandRun(cfg *config.Loaded, key, command string, stderr io.Writer) (Run, error) {
+	var stdout bytes.Buffer
+	res := shell.Run(cfg, command, shell.Options{Stdout: &stdout, Stderr: stderr, Timeout: Timeout})
+	if !res.OK() {
+		return Run{}, fmt.Errorf("%s failed (exit %s): %s", key, res.Status(), command)
+	}
+	run, err := ReadRun(stdout.Bytes())
+	if err != nil {
+		return Run{}, fmt.Errorf("%s printed no run: %s", key, err)
+	}
+	return run, nil
 }
 
 // statuses are the statuses a run or a job may have.
@@ -208,6 +264,20 @@ func ReadRun(text []byte) (Run, error) {
 // Transient; any other refusal (a bad token, no such workflow) ends the
 // watch.
 func (g GitHub) RunOf(sha string) (Run, bool, error) {
+	return g.newestOf(fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?head_sha=%s&per_page=20",
+		g.Repository, url.PathEscape(g.Workflow), url.QueryEscape(sha)))
+}
+
+// NewestRun is the workflow's newest run on the branch, with its jobs, as
+// RunOf reads a commit's: found is false when the workflow has never run
+// there.
+func (g GitHub) NewestRun() (Run, bool, error) {
+	return g.newestOf(fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?branch=%s&per_page=20",
+		g.Repository, url.PathEscape(g.Workflow), url.QueryEscape(g.Branch)))
+}
+
+// newestOf is the newest of the runs the API path lists, with its jobs.
+func (g GitHub) newestOf(path string) (Run, bool, error) {
 	var runs struct {
 		WorkflowRuns []struct {
 			ID         int64   `json:"id"`
@@ -217,8 +287,6 @@ func (g GitHub) RunOf(sha string) (Run, bool, error) {
 			CreatedAt  string  `json:"created_at"`
 		} `json:"workflow_runs"`
 	}
-	path := fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?head_sha=%s&per_page=20",
-		g.Repository, url.PathEscape(g.Workflow), url.QueryEscape(sha))
 	if err := g.get(path, &runs); err != nil {
 		return Run{}, false, err
 	}

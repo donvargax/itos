@@ -143,3 +143,58 @@ func TestAServerErrorIsTransient(t *testing.T) {
 		t.Fatalf("a 502 is %v, not transient", err)
 	}
 }
+
+func TestTheNightlyIsReadOnlyWhereTheProviderNamesOne(t *testing.T) {
+	noEnv := func(string) string { return "" }
+	signedOut := func() (string, error) { return "", errors.New("exit 4") }
+	setup := WatchSetup{Env: noEnv, GhToken: signedOut, RemoteURL: "git@github.com:o/n.git"}
+	cfg := githubWatchConfig()
+	if _, ok, err := NightlyProvider(cfg, "main", setup); ok || err != nil {
+		t.Fatalf("github with no nightly workflow: ok %v, err %v", ok, err)
+	}
+	cfg.CI.Watch.GitHub.NightlyWorkflow = "nightly.yml"
+	if _, ok, err := NightlyProvider(cfg, "main", setup); ok || err == nil || !strings.Contains(err.Error(), "token") {
+		t.Fatalf("github's nightly with no token: ok %v, err %v", ok, err)
+	}
+	command := "cat nightly.json"
+	cfg.CI.Watch.Provider, cfg.CI.Watch.NightlyCommand = "none", &command
+	if _, ok, err := NightlyProvider(cfg, "main", setup); ok || err != nil {
+		t.Fatalf("provider none: ok %v, err %v", ok, err)
+	}
+	cfg.CI.Watch.Provider, cfg.CI.Watch.NightlyCommand = "command", nil
+	if _, ok, err := NightlyProvider(cfg, "main", setup); ok || err != nil {
+		t.Fatalf("command with no nightly command: ok %v, err %v", ok, err)
+	}
+}
+
+func TestNewestRunReadsTheBranchsNewestRun(t *testing.T) {
+	var asked []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked = append(asked, r.URL.RequestURI())
+		switch {
+		case strings.Contains(r.URL.Path, "/workflows/"):
+			w.Write([]byte(`{"workflow_runs":[
+				{"id":3,"html_url":"red","status":"completed","conclusion":"failure","created_at":"2026-10-04T11:44:00Z"},
+				{"id":2,"html_url":"green","status":"completed","conclusion":"success","created_at":"2026-10-03T11:44:00Z"}]}`))
+		case strings.HasSuffix(r.URL.Path, "/runs/3/jobs"):
+			w.Write([]byte(`{"jobs":[{"name":"nightly","status":"completed","conclusion":"failure"}]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+	was := GitHubAPI
+	GitHubAPI = server.URL
+	defer func() { GitHubAPI = was }()
+
+	run, found, err := GitHub{Repository: "o/n", Token: "t", Workflow: "nightly.yml", Branch: "main"}.NewestRun()
+	if err != nil || !found {
+		t.Fatalf("found %v, err %v", found, err)
+	}
+	if run.URL != "red" || run.Conclusion != "failure" || len(run.Jobs) != 1 || run.Jobs[0].Name != "nightly" {
+		t.Fatalf("read %+v", run)
+	}
+	if !strings.Contains(asked[0], "/repos/o/n/actions/workflows/nightly.yml/runs?branch=main") {
+		t.Fatalf("asked %v", asked)
+	}
+}

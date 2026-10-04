@@ -1599,6 +1599,18 @@ add`ed so `--only` can name it, git add's words and the commit's on
   does not answer; its header is the local commit's when it is fetched. Its
   CI run is one call of the `providers.Watch` that `watcher` builds for
   `itos ci watch`, so one look, never the loop; a run not done is `going`.
+  The last nightly's run (slice 72, `readNightly`) is one call of the
+  `providers.Nightly` that `NightlyProvider` builds from the same
+  `ci.watch.provider`: `command` runs `ci.watch.nightly_command` with nothing
+  filled in and reads its stdout with `ReadRun` (`commandRun`, shared with
+  the watch); `github` is the `GitHub` value with
+  `ci.watch.github.nightly_workflow` and the head's branch, whose
+  `NewestRun` lists the workflow's runs on the branch and reads the newest
+  as `RunOf` reads a commit's (`newestOf`), with the token and repository
+  the watch takes (`watchGitHub`). A provider naming no nightly gives no
+  look and no line; the head's line and the nightly's share `runLine`, so
+  both word a result alike. The nightly is read even where the head is not
+  (no remote, no branch yet): the command provider needs neither.
   The newest release (slice 70, `readRelease`) is asked of the same remote
   with `git ls-remote --tags` under the same timeout, an annotated tag's
   peeled `^{}` commit standing for it, and read from `refs/tags/` as last

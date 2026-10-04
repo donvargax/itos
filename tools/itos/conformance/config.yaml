@@ -1004,6 +1004,22 @@ cases:
     exit: 0
     stdout: |
       work-items.yaml
+  - name: config get reads ci.watch's nightly workflow, a key itos status reads
+    argv: [config, get, ci.watch.github.nightly_workflow]
+    files:
+      itos.yaml: |
+        version: 1
+        ci:
+          steps: []
+          watch: { provider: github, github: { nightly_workflow: nightly.yml }, nightly_command: "cat nightly.json" }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+    exit: 0
+    stdout: |
+      nightly.yml
+  - name: ci.watch's nightly keys have no default, so status prints no nightly
+    argv: [config, get, ci.watch.nightly_command]
+    exit: 0
+    stdout: ""
   - name: config get refuses a key the config does not have, naming the keys there
     argv: [config, get, hooks.no_such_key]
     exit: 2

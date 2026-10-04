@@ -15,6 +15,11 @@
 # breaking ones as tools/bin/release-version counts them, read from the
 # commits as fetched here, saying they may be behind when the head is not.
 #
+# Slice 72: after the head's CI run, the last nightly's, looked at once
+# through the same provider: the command one runs ci.watch.nightly_command,
+# given no commit, and reads its stdout as ci.watch.command's. A provider
+# naming no nightly prints no nightly line.
+#
 # The remote is a bare one in the git folder, .git/origin.git, holding the
 # repository's one commit; the watch command, report.sh, prints run.json with
 # SHA replaced by the commit it was given.
@@ -97,6 +102,55 @@ cases:
         {"url":"https://ci.example/runs/1","status":"completed","conclusion":"failure","jobs":[{"name":"ci","status":"completed","conclusion":"failure"},{"name":"platform","status":"completed","conclusion":"success"}]}
     exit: 0
     stdout_has: "CI: failure, https://ci.example/runs/1; failed jobs: ci\n"
+  - name: the last nightly's run follows the head's, the jobs that failed named
+    argv: [status]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+          identity: { provider: command, command: "echo a" }
+        ci:
+          steps: []
+          watch: { provider: command, command: "sh report.sh {sha}", nightly_command: "cat nightly.json", interval: 0 }
+      nightly.json: |
+        {"url":"https://ci.example/nightly/7","status":"completed","conclusion":"failure","jobs":[{"name":"nightly","status":"completed","conclusion":"failure"}]}
+    exit: 0
+    stdout_has: "CI: success, https://ci.example/runs/{{sha.head}}\nNightly: failure, https://ci.example/nightly/7; failed jobs: nightly\n\nNewest release: no release yet.\n"
+  - name: a nightly still going is said to be going
+    argv: [status]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+          identity: { provider: command, command: "echo a" }
+        ci:
+          steps: []
+          watch: { provider: command, command: "sh report.sh {sha}", nightly_command: "cat nightly.json", interval: 0 }
+      nightly.json: |
+        {"url":"https://ci.example/nightly/8","status":"in_progress","jobs":[{"name":"nightly","status":"in_progress"}]}
+    exit: 0
+    stdout_has: "Nightly: going, https://ci.example/nightly/8\n"
+  - name: a nightly command that prints no run is a line, and the rest prints
+    argv: [status]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+          identity: { provider: command, command: "echo a" }
+        ci:
+          steps: []
+          watch: { provider: command, command: "sh report.sh {sha}", nightly_command: "cat nightly.json", interval: 0 }
+      nightly.json: "not json\n"
+    exit: 0
+    stdout_has:
+      - "CI: success, https://ci.example/runs/{{sha.head}}\nThe nightly cannot be read: ci.watch.nightly_command printed no run: "
+      - "In progress for a:\n  busy  Busy\n"
   - name: a watch command that prints no run is a line, and the rest prints
     argv: [status]
     files:
@@ -192,6 +246,7 @@ cases:
           status: completed
           conclusion: success
           jobs: [{ name: ci, status: completed, conclusion: success }]
+      nightly: null
       release: null
       unreleased: null
       doing: [{ id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [] }]
@@ -216,6 +271,7 @@ cases:
       person: a
       head: null
       ci: null
+      nightly: null
       release: null
       unreleased: null
       doing: []
@@ -223,6 +279,46 @@ cases:
       more: 0
       questions: []
       unread: ["No remote origin, so neither its head nor its CI run is read."]
+  - name: status --json gives the last nightly's run
+    argv: [status, --json]
+    files:
+      itos.yaml: |
+        version: 1
+        work:
+          registry: work-items.yaml
+          people: { source: yaml, file: people.yaml }
+          identity: { provider: command, command: "echo a" }
+        ci:
+          steps: []
+          watch: { provider: command, command: "sh report.sh {sha}", nightly_command: "cat nightly.json", interval: 0 }
+      nightly.json: |
+        {"url":"https://ci.example/nightly/7","status":"completed","conclusion":"success","jobs":[{"name":"nightly","status":"completed","conclusion":"success"}]}
+      work-items.yaml: "phases: { 1: a }\nitems: []\n"
+      asks.yaml: null
+    exit: 0
+    json:
+      schema: 1
+      person: a
+      head: { remote: origin, branch: main, commit: "{{sha.head}}", header: "chore: first", last_fetched: false }
+      ci:
+        result: success
+        run:
+          url: "https://ci.example/runs/{{sha.head}}"
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+      nightly:
+        url: "https://ci.example/nightly/7"
+        status: completed
+        conclusion: success
+        jobs: [{ name: nightly, status: completed, conclusion: success }]
+      release: null
+      unreleased: null
+      doing: []
+      next: []
+      more: 0
+      questions: []
+      unread: []
   - name: status names the newest release and the feat, fix and breaking commits since it
     argv: [status]
     git:
@@ -298,6 +394,7 @@ cases:
           status: completed
           conclusion: success
           jobs: [{ name: ci, status: completed, conclusion: success }]
+      nightly: null
       release: { tag: v1.2.0, commit: "{{sha.release}}", last_fetched: false }
       unreleased: ["feat: add the archive"]
       doing: []

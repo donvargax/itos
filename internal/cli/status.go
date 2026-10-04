@@ -8,7 +8,9 @@ package cli
 // still going reported as going; then (slice 70) the newest release, the
 // highest tag v<semver> asked of the remote as the head is, else as last
 // fetched, and the commits since it the next release would carry, the feat,
-// fix and breaking ones, read from the commits as fetched here; then the
+// fix and breaking ones, read from the commits as fetched here; after the
+// head's CI run (slice 72), the last nightly's, looked at once through the
+// same provider when it names a nightly, and left out when it names none; then the
 // person's items in progress, the next ones they can start in the queue's
 // order (a handful), and the open questions of itos ask. It reads, never writes. What cannot be reached is
 // one line naming it, and the rest still prints, exit 0; a status that
@@ -61,11 +63,14 @@ var lsRemoteTimeout = 20 * time.Second
 
 // standing is where things stand, as --json gives it.
 type standing struct {
-	Person  any         `json:"person"`
-	Every   bool        `json:"every_item,omitempty"`
-	Head    *remoteHead `json:"head"`
-	CI      *ciStanding `json:"ci"`
-	Release *newest     `json:"release"`
+	Person any         `json:"person"`
+	Every  bool        `json:"every_item,omitempty"`
+	Head   *remoteHead `json:"head"`
+	CI     *ciStanding `json:"ci"`
+	// Nightly is the last nightly's run; nil when ci.watch names no
+	// nightly, it has no run yet, or it cannot be read.
+	Nightly *providers.Run `json:"nightly"`
+	Release *newest        `json:"release"`
 	// Unreleased are the headers of the commits since the release the next
 	// one would carry, oldest first; nil when there is no release or they
 	// cannot be listed.
@@ -202,15 +207,23 @@ func (st *standing) unread(line string) {
 	st.start = append(st.start, line)
 }
 
-// readHead reads the remote branch's head and its CI run: the branch's
-// upstream (origin and the branch's own name when it has none set), or
-// origin's HEAD from a detached HEAD.
+// readHead reads the remote branch's head and its CI run, then the last
+// nightly's run on that branch: the branch's upstream (origin and the
+// branch's own name when it has none set), or origin's HEAD from a detached
+// HEAD.
 func (st *standing) readHead(cfg *config.Loaded, o Out) {
 	remote, ref := "origin", "HEAD"
 	if branch := git.Branch(); branch != "" {
 		remote, ref, _ = git.Upstream(branch)
 	}
 	branch := strings.TrimPrefix(ref, "refs/heads/")
+	st.readBranch(cfg, remote, ref, branch, o)
+	st.readNightly(cfg, remote, branch, o)
+}
+
+// readBranch reads the remote branch's head, its CI run and the newest
+// release.
+func (st *standing) readBranch(cfg *config.Loaded, remote, ref, branch string, o Out) {
 	if _, err := git.Output("remote", "get-url", remote); err != nil {
 		st.unread(fmt.Sprintf("No remote %s, so neither its head nor its CI run is read.", remote))
 		return
@@ -430,26 +443,67 @@ func (st *standing) readCI(cfg *config.Loaded, remote, sha string, o Out) {
 		if run.Jobs == nil {
 			run.Jobs = []providers.Job{}
 		}
-		result := "going"
-		if run.Done() {
-			result = run.Conclusion
-		}
+		result, line := runLine("CI", run)
 		st.CI = &ciStanding{Result: result, Run: &run}
-		line := "CI: " + result
-		if run.URL != "" {
-			line += ", " + run.URL
-		}
-		var failed []string
-		for _, j := range run.Jobs {
-			if j.Done() && j.Conclusion != "success" && j.Conclusion != "skipped" && j.Conclusion != "neutral" {
-				failed = append(failed, j.Name)
-			}
-		}
-		if len(failed) > 0 {
-			line += "; failed jobs: " + strings.Join(failed, ", ")
-		}
 		st.start = append(st.start, line)
 	}
+}
+
+// readNightly looks once at the last nightly's run on the branch through
+// ci.watch's provider, and prints nothing when it names no nightly.
+func (st *standing) readNightly(cfg *config.Loaded, remote, branch string, o Out) {
+	remoteURL, _ := git.Output("remote", "get-url", remote)
+	look, ok, err := providers.NightlyProvider(cfg, branch, providers.WatchSetup{
+		Env:       os.Getenv,
+		RemoteURL: strings.TrimSpace(remoteURL),
+		GhToken:   providers.GhToken,
+		Stderr:    o.Stderr,
+	})
+	switch {
+	case err != nil:
+		st.unread(fmt.Sprintf("The nightly cannot be read: %s", err))
+		return
+	case !ok:
+		return
+	}
+	run, found, err := look()
+	switch {
+	case err != nil:
+		st.unread(fmt.Sprintf("The nightly cannot be read: %s", err))
+	case !found:
+		st.start = append(st.start, fmt.Sprintf("Nightly: no run on %s yet", branch))
+	default:
+		if run.Jobs == nil {
+			run.Jobs = []providers.Job{}
+		}
+		_, line := runLine("Nightly", run)
+		st.Nightly = &run
+		st.start = append(st.start, line)
+	}
+}
+
+// runLine is a run's result, success, failure (or another conclusion), or
+// going while it runs, and its line: the label, the result, its address and
+// the jobs that failed.
+func runLine(label string, run providers.Run) (result, line string) {
+	result = "going"
+	if run.Done() {
+		result = run.Conclusion
+	}
+	line = label + ": " + result
+	if run.URL != "" {
+		line += ", " + run.URL
+	}
+	var failed []string
+	for _, j := range run.Jobs {
+		if j.Done() && j.Conclusion != "success" && j.Conclusion != "skipped" && j.Conclusion != "neutral" {
+			failed = append(failed, j.Name)
+		}
+	}
+	if len(failed) > 0 {
+		line += "; failed jobs: " + strings.Join(failed, ", ")
+	}
+	return result, line
 }
 
 // fields are the status as --json gives it, its keys as standing's, with
@@ -462,6 +516,7 @@ func (st *standing) fields() []out.Field {
 	return append(fields, []out.Field{
 		{Key: "head", Value: st.Head},
 		{Key: "ci", Value: st.CI},
+		{Key: "nightly", Value: st.Nightly},
 		{Key: "release", Value: st.Release},
 		{Key: "unreleased", Value: st.Unreleased},
 		{Key: "doing", Value: st.Doing},
