@@ -4388,7 +4388,7 @@ items:
     title: docs/ORCHESTRATING.md keeps only what is this repository's own
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-64]
     kind: task
     why: >
