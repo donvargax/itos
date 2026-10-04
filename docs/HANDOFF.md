@@ -12,12 +12,12 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after T-079 and T-080 landed.
+Last updated 2026-10-03, after slice 54 landed (v2.14.0).
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `9e1f31e` (CI run 37166052497,
-every job; v2.13.0 is the newest release, the plugin at 2.5.0). The coordinator commits docs from
+All work is @donvargax's. `main` is green at `2cf7a38` (CI run 37167980458,
+every job, `release` cutting v2.14.0). The coordinator commits docs from
 its own worktree, `.claude/worktrees/coord-docs` (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
@@ -37,7 +37,8 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.13.0 (`itos work done`, slice 53, which closed itself), v2.12.0 (`itos work take` and `itos work promote`, each committing
+Released: v2.14.0 (`itos work add` and `edit`, slice 54; `itos work` refusing
+an unknown subcommand, bug 11), v2.13.0 (`itos work done`, slice 53, which closed itself), v2.12.0 (`itos work take` and `itos work promote`, each committing
 the registry alone, slice 52), v2.11.0 (`itos push` waits for CI with `ci.watch`, opt-in, and
 `itos ci watch`, slice 51), v2.10.0 (init's rerun notes a pin behind the newest and a missing
 people file, slice 50's rest), v2.9.0 (`itos init --git-shim`, untagged features need no Scenarios
@@ -50,23 +51,25 @@ change any other repository.
 
 ## Next
 
-One slice at a time, the user's order:
+One slice at a time, the user's order. Everything in 1 comes before the user
+puts itos in their other repositories (the user's call, 2026-10-03). Every
+item's registry steps are commands now: `itos work add`, `edit`, `promote`,
+`take`, `done`; nothing in `tasks/work-items.yaml` is edited by hand.
 
-1. The orchestration commands, the user's order (2026-10-03), ahead of the
-   rest of init:
-   - **`slice-54`** (`itos work add` and `edit`, @ID-WORK-19 to 24) and
-     **`slice-55`** (`itos task add`, @ID-TASK-05 to 08), `@wip`; then
-     `p1-wip-red-first`, which needs a way to run `@wip` scenarios. After
-     these, the user puts itos in their other repositories;
-   - **`p1-handoff-status`**, after `p1-work-queue-order` and
-     `p1-follow-ups`: `itos status` replaces this file;
-   - **`p1-tests-next-id-and-steps`**;
-   - **`p1-work-brief`**, now `itos work show`;
-   - **`p1-push-needs-hooks`**: `itos commit` and `itos push` check the
-     gates they rely on;
-   - `p1-commit-wrap`, small: `itos commit` rewraps the body.
-2. Then `p3-init-agent-rules` and `p3-init-orchestration` (agent files;
-   PLAN.md §10, "Adoption"), `p3-pr-rebase-merge` and `p3-init-starter-ci`.
+1. In order:
+   - **`slice-55`** (`itos task add`, @ID-TASK-05 to 08);
+   - **`slice-56`** (`itos push` returns at once for a registry-only range,
+     @ID-WATCH-10 and 11);
+   - **`slice-57`** (`itos work show`, @ID-SHOW-01 to 06), then each landed
+     item gets a read-only review (`p3-post-landing-review`, tried first on
+     slice 54);
+   - **`p1-push-needs-hooks`**, **`p3-init-agent-rules`**,
+     **`p1-wip-red-first`**, **`p1-handoff-status`** after
+     `p1-work-queue-order` and `p1-follow-ups`, **`p1-tests-next-id-and-steps`**,
+     `p1-commit-wrap`, `p1-skill-work-add`;
+   - last, **`p3-coordinator-skill`**: `ORCHESTRATING.md` and this file give
+     way to `/itos:coordinate` and `itos:implementer`.
+2. Then `p3-init-orchestration` (PLAN.md §10, "Adoption"), `p3-pr-rebase-merge` and `p3-init-starter-ci`.
 3. **`p3-human-waiver`** (`itos waive`, a plain config list; the guard keeps
    agents off it), after those.
 4. **`p2-github-hybrid`**, then **`p2-github-pure`** (labels or Projects is
