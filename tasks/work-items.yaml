@@ -1178,14 +1178,15 @@ items:
       highest slice, T-<n+1> after the highest of the ledger's IDs and the registry's tasks, kept
       to ledger.id; the spec (@ID-WORK-12) names the id, so this needs its own scenario.
 
-  - id: p1-docs-name-work-take
+  - id: T-079
     title: The rules and the plugin's skill name itos work take and promote
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-docs-name-work-take.
       AGENTS.md and docs/ORCHESTRATING.md still say to take an item by setting its owner and
       status: doing in a docs commit, and to promote an idea by hand, and the plugin's itos skill
       (integrations/claude-code) says the same; since slice 52 itos work take and itos work promote
