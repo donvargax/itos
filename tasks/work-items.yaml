@@ -1581,6 +1581,12 @@ items:
       ORCHESTRATING.md point to itos status. About eight handoff commits that day were state alone.
       Third of the orchestration commands.
 
+      The user's call (2026-10-04): a first slice of itos status prints the state alone (main's head
+      and its last green run and any run going, the newest releases and what is unreleased, the last
+      nightly, the items in progress), which removes most handoff commits; the queue and the
+      follow-ups join it as they land. The inbox becomes a config command or an extension, not built
+      in; offline it prints the local part and says what it could not reach.
+
   - id: p1-work-spend
     title: "The tokens each item cost, recorded by the coordinator and summed"
     phase: 1
