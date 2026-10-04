@@ -1485,6 +1485,13 @@ items:
       list and itos work lists ideas unordered. An optional order or priority on items (or an ordered
       queue: list) would let itos work propose in the coordinator's order and HANDOFF point at it.
 
+      The user's call (2026-10-04): a top-level queue: list of item ids in the registry, ideas
+      included, one queue filtered by owner, edited by commands (itos work queue <id> --top,
+      --before <id>, --after <id>, --drop), work done taking an item off it, work check validating
+      it, and itos work proposing in its order with unqueued items after. No milestones for now: the
+      queue's order says what comes first; a named marker in the queue can come later if a count is
+      wanted.
+
   - id: slice-53
     title: "A slice is done when its scenarios are live and green, checked"
     phase: 1
