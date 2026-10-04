@@ -12,12 +12,16 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 54 landed (v2.14.0).
+Last updated 2026-10-04, at the end of the session that built slices 46 to 55
+(v2.4.0 to v2.15.0) and the itos commands that replace the coordinator's hand
+work. Start the next session by reading this file, `itos work`, the last nightly
+and the inbox.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `2cf7a38` (CI run 37167980458,
-every job, `release` cutting v2.14.0). The coordinator commits docs from
+All work is @donvargax's. `main` is green at `74fc41a`, slice 55's close (CI run 37169394741, every job,
+`release` cutting v2.15.0); the coordinator's registry batch after it is pushed
+with this file. The coordinator commits docs from
 its own worktree, `.claude/worktrees/coord-docs` (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
@@ -37,7 +41,7 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.14.0 (`itos work add` and `edit`, slice 54; `itos work` refusing
+Released: v2.15.0 (`itos task add`, slice 55), v2.14.0 (`itos work add` and `edit`, slice 54; `itos work` refusing
 an unknown subcommand, bug 11), v2.13.0 (`itos work done`, slice 53, which closed itself), v2.12.0 (`itos work take` and `itos work promote`, each committing
 the registry alone, slice 52), v2.11.0 (`itos push` waits for CI with `ci.watch`, opt-in, and
 `itos ci watch`, slice 51), v2.10.0 (init's rerun notes a pin behind the newest and a missing
@@ -57,16 +61,25 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
 `take`, `done`; nothing in `tasks/work-items.yaml` is edited by hand.
 
 1. In order:
-   - **`slice-55`** (`itos task add`, @ID-TASK-05 to 08);
+   - **`p1-add-to-empty-list`** first: `itos work add` and `task add` fail
+     on the empty registry and ledger `itos init` writes, and no command
+     adds a phase, so every newly adopted repository starts broken;
+   - **`p1-commit-rollback-tested`**: the only undo code in itos
+     (`writeCommitted`) has no test and has holes (slice 55's review);
+   - **`p1-work-edit-lists`**: `itos work edit` fails on multi-line lists,
+     T-073's among them (slice 54's review);
    - **`slice-56`** (`itos push` returns at once for a registry-only range,
      @ID-WATCH-10 and 11);
    - **`slice-57`** (`itos work show`, @ID-SHOW-01 to 06), then each landed
-     item gets a read-only review (`p3-post-landing-review`, tried first on
-     slice 54);
+     item gets a read-only review (`p3-post-landing-review`; its first two
+     trials each found a real gap every gate missed, so keep it);
    - **`p1-push-needs-hooks`**, **`p3-init-agent-rules`**,
      **`p1-wip-red-first`**, **`p1-handoff-status`** after
      `p1-work-queue-order` and `p1-follow-ups`, **`p1-tests-next-id-and-steps`**,
      `p1-commit-wrap`, `p1-skill-work-add`;
+   - `p1-work-as-empty`, `p1-push-superseded-run`, `p3-guard-cd`, and the
+     itos-cc findings (`p1-version-mutation-gaps`, `p1-schema-contract-tests`,
+     `p1-tools-bin-shared`); `p1-registry-code-cleanup` when convenient;
    - last, **`p3-coordinator-skill`**: `ORCHESTRATING.md` and this file give
      way to `/itos:coordinate` and `itos:implementer`.
 2. Then `p3-init-orchestration` (PLAN.md §10, "Adoption"), `p3-pr-rebase-merge` and `p3-init-starter-ci`.
@@ -76,6 +89,13 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
    open for the user).
 5. For the user's stealth work in a monorepo: `p3-stealth-scope` (phase 1)
    and `p3-stealth-branch-push`.
+
+itos-cc (on the PATH as an extension) was tried on itos: issues
+donvargax/itos-cc#1 to #8 are filed; use it by hand, as advice, not a gate,
+until #1, #2 and #4 are fixed; mutate only in a scratch clone (it annotates
+source files). `vp staged`'s backup uses git's stash, shared by every
+worktree: a commit hook failing with "lint-staged failed due to a git
+error" is transient; run the command again.
 
 Small ideas, any time: `p3-guard-windows-paths` (the guard reads a Git Bash
 `/c/…` folder as relative), `p3-plugin-guard-tested`,
