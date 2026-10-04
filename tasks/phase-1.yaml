@@ -617,3 +617,29 @@
   done_when:
     - run: grep -q '^## Decisions$' internal/guide/coordinate.md
     - run: grep -q 'ask record' internal/guide/coordinate.md
+
+- id: T-087
+  type: test
+  title: The features' PATH hides any itos but the one under test, as it hides claude
+  why: >
+    Was p1-features-hide-global-itos. The scenarios' PATH hides claude but not itos, so a scenario
+    whose hooks call itos ran the developer's global itos, not the one under test: bug 12's
+    agent saw one pass locally and fail in CI, and this machine's global itos lags the tree. The
+    steps put the itos under test on the PATH only where a step asks for it (itosOnPath) and hide
+    every other. The check runs the features with a failing itos first on the PATH, which only a
+    PATH that hides it lets pass.
+  done_when:
+    - run: sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\nexit 97\n" > "$d/itos" && chmod +x "$d/itos" && PATH="$d:$PATH" go test ./features -count=1'
+      cost: late
+
+- id: T-088
+  type: refactor
+  title: One copy of what a releasable commit is, for itos status and the release cut
+  why: >
+    Was p1-release-rules-one-copy. Slice 70 gave itos status the rules for a releasable commit in
+    internal/release while tools/bin/release-version keeps its own copy, and nothing checks that
+    the two agree, so status could list commits the next release does not carry. release-version
+    imports internal/release, which needs nothing outside the standard library, and its copy goes.
+  done_when:
+    - run: grep -q 'itos/v3/internal/release"' tools/bin/release-version/main.go
+    - run: go test ./tools/bin/release-version/... ./internal/release/...
