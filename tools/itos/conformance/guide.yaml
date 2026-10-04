@@ -1,0 +1,96 @@
+# itos go and itos guide (slice 64): the guides shipped in the binary,
+# printed as written with no config and outside a repository; itos go's
+# appended notes, docs/ORCHESTRATING.md from the repository's top (from a
+# subfolder too) or the file guide.orchestrating names, beside a stealth
+# config in the git folder; the usage errors.
+cases:
+  - name: guide work prints the implementer's guide outside a repository
+    argv: [guide, work]
+    exit: 0
+    stdout_has: "# Working with itos\n"
+  - name: go prints the coordinator's guide outside a repository
+    argv: [go]
+    exit: 0
+    stdout_has: "# Coordinating with itos\n"
+  - name: guide coordinate is go
+    argv: [guide, coordinate]
+    git: []
+    files:
+      docs/ORCHESTRATING.md: "Ours.\n"
+    exit: 0
+    stdout_has: ["# Coordinating with itos\n", "\n\n---\n\nOurs.\n"]
+  - name: go appends docs/ORCHESTRATING.md after a line of ---
+    argv: [go]
+    git: []
+    files:
+      docs/ORCHESTRATING.md: "Ours.\n"
+    exit: 0
+    stdout_has: ["# Coordinating with itos\n", "\n\n---\n\nOurs.\n"]
+  - name: go from a subfolder reads docs/ORCHESTRATING.md at the repository's top
+    argv: [go]
+    git: []
+    files:
+      docs/ORCHESTRATING.md: "Ours.\n"
+      sub/: ""
+    cwd: sub
+    exit: 0
+    stdout_has: "\n---\n\nOurs.\n"
+  - name: go appends the file guide.orchestrating names
+    argv: [go]
+    git: []
+    files:
+      itos.yaml: "version: 1\nguide: { orchestrating: notes/agents.md }\n"
+      notes/agents.md: "Kept elsewhere.\n"
+    exit: 0
+    stdout_has: "\n---\n\nKept elsewhere.\n"
+  - name: go reads a stealth config's guide.orchestrating beside it, in the git folder
+    argv: [go]
+    git: []
+    files:
+      .git/itos/itos.yaml: "version: 1\nguide: { orchestrating: notes.md }\n"
+      .git/itos/notes.md: "Kept in the git folder.\n"
+    exit: 0
+    stdout_has: "\n---\n\nKept in the git folder.\n"
+  - name: config get gives a stealth config's guide.orchestrating beside it
+    argv: [config, get, guide.orchestrating]
+    git: []
+    files:
+      .git/itos/itos.yaml: "version: 1\n"
+    exit: 0
+    stdout: |
+      .git/itos/docs/ORCHESTRATING.md
+  - name: guide with a name it has no guide by names those it has
+    argv: [guide, review]
+    exit: 2
+    stderr: |
+      itos: no guide review: the guides are coordinate, work (itos --help)
+  - name: guide needs a name
+    argv: [guide]
+    exit: 2
+    stderr: |
+      itos: guide needs a name: coordinate, work (itos --help)
+  - name: go takes no arguments
+    argv: [go, work]
+    exit: 2
+    stderr: |
+      itos: go takes no arguments: work (itos --help)
+  - name: guide as --json
+    argv: [guide, work, --json]
+    exit: 0
+    stdout_has: ['"schema": 1', '"guide": "work"', '"text": "# Working with itos\n']
+  - name: go as --json names the file it appended
+    argv: [go, --json]
+    git: []
+    files:
+      docs/ORCHESTRATING.md: "Ours.\n"
+    exit: 0
+    stdout_has: ['"guide": "coordinate"', '"notes": "docs/ORCHESTRATING.md"']
+  - name: go from a subfolder names the file it appended from there
+    argv: [go, --json]
+    git: []
+    files:
+      docs/ORCHESTRATING.md: "Ours.\n"
+      sub/: ""
+    cwd: sub
+    exit: 0
+    stdout_has: '"notes": "../docs/ORCHESTRATING.md"'

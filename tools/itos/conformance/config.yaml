@@ -911,6 +911,8 @@ cases:
           commit_msg:
             task_checks: true
             check_timeout: 60
+        guide:
+          orchestrating: docs/ORCHESTRATING.md
   # config get: a key's value as the tools read it, for a program beside itos
   # (the Claude Code plugin asks for hooks.bin) that would get the defaults,
   # the stealth config and a subfolder wrong reading itos.yaml itself.

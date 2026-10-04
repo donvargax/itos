@@ -14,14 +14,14 @@ Feature: itos go and itos guide, the guides a session starts from
   They read and print, never write, and need no config: any git repository
   will do. The plugin's skills wrapping them is a later step.
 
-  @ID-GUIDE-01 @slice-64 @wip
+  @ID-GUIDE-01 @slice-64
   Scenario: itos go prints the coordinator's guide
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "go"
     Then itos exits with code 0
     And its output says "# Coordinating with itos"
 
-  @ID-GUIDE-02 @slice-64 @wip
+  @ID-GUIDE-02 @slice-64
   Scenario: itos go appends the repository's own orchestrating notes after the guide
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "docs/ORCHESTRATING.md" holding "Our own lesson: the inbox is read first."
@@ -29,7 +29,7 @@ Feature: itos go and itos guide, the guides a session starts from
     Then itos exits with code 0
     And its output says "# Coordinating with itos" before "Our own lesson: the inbox is read first."
 
-  @ID-GUIDE-03 @slice-64 @wip
+  @ID-GUIDE-03 @slice-64
   Scenario: guide.orchestrating names the file itos go appends
     Given a repository whose ledger has the task "T-001"
     And the committed file "notes/agents.md" holding "Kept elsewhere."
@@ -38,14 +38,14 @@ Feature: itos go and itos guide, the guides a session starts from
     Then itos exits with code 0
     And its output says "Kept elsewhere."
 
-  @ID-GUIDE-04 @slice-64 @wip
+  @ID-GUIDE-04 @slice-64
   Scenario: itos guide work prints the implementer's guide
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "guide work"
     Then itos exits with code 0
     And its output says "# Working with itos"
 
-  @ID-GUIDE-05 @slice-64 @wip
+  @ID-GUIDE-05 @slice-64
   Scenario: itos guide refuses a guide it does not have, naming those it has
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "guide review"

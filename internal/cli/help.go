@@ -48,6 +48,8 @@ const mainCommands = `itos: tasks, their checks, commit rules and CI plans
 Usage: itos <command> [args] [global flags]
 
 Commands:
+  go                               the coordinator's guide, then the repository's own notes
+  guide coordinate|work            a guide shipped in itos: the coordinator's, the implementer's
   task <id>…                       run the tasks' checks; the status table
   task list [--group <g>]          the tasks and their work items' status; runs nothing
   task add <id> --group <g> --type <type> --title <title> --why <why> --check <command> […]
@@ -935,6 +937,32 @@ item it names, then its answer when it has one. It reads, never writes. Exit 1
 when no question has the id.
 
 --json: {"schema":1,"ok":true,"question":{"id","item"?,"question","status","answer"?}}`,
+
+	"go": `Usage: itos go
+
+Prints the coordinator's guide, the one shipped in itos, the same in every
+repository: how the session that coordinates the work runs it, from reading
+where things stand to handing one item at a time to an implementing agent and
+landing it. A session that coordinates starts with it (! itos go). Then, after
+a line of ---, the repository's own notes, when it keeps them: the file
+guide.orchestrating names (docs/ORCHESTRATING.md by default), read from the
+repository's top, or in the git folder's itos/ for a stealth config. It needs
+no config and writes nothing; outside a repository the guide prints alone.
+Same as itos guide coordinate.
+
+--json: {"schema":1,"guide":"coordinate","text","notes"?}, notes the file
+appended`,
+
+	"guide": `Usage: itos guide coordinate|work
+
+Prints a guide shipped in itos, as written, the same in every repository:
+coordinate, the coordinator's, as itos go prints it with the repository's own
+notes after it; work, the implementer's, which a coordinator asks each agent
+it starts to run first: how to take an item, commit, push and read what a
+gate says. It needs no config and writes nothing. A name it has no guide by
+is a usage error (exit 2) naming those it has.
+
+--json: {"schema":1,"guide","text","notes"?}`,
 
 	"version": `Usage: itos version [--check]
 

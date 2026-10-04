@@ -64,6 +64,10 @@
   scenarios:
     - id: "@ID-FOOT-01"
       why: the hook rejects a footer by itos's own rule with a delegate that carries none, the file's point
+- file: guide.feature
+  scenarios:
+    - id: "@ID-GUIDE-02"
+      why: itos go prints the coordinator's guide and then the repository's own notes, both halves of the file's point
 - file: guard.feature
   scenarios:
     - id: "@ID-GUARD-03"

@@ -84,6 +84,9 @@ func defaults() *value.Map {
 			// a check that needs longer is late.
 			"commit_msg", m("task_checks", true, "check_timeout", 60.0),
 		),
+		// The repository's own notes, which itos go appends to the
+		// coordinator's guide (slice 64): beside its other docs.
+		"guide", m("orchestrating", "docs/ORCHESTRATING.md"),
 	)
 }
 

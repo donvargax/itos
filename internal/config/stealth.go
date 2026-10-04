@@ -9,7 +9,8 @@ package config
 // mode.
 //
 // The files that config names for itos's own data (the ledger, the work
-// registry, itos ask's questions and the smoke sets) are read beside it, in that folder; the
+// registry, itos ask's questions, the smoke sets and the notes itos go
+// appends) are read beside it, in that folder; the
 // project's own paths (a kind's tests, the scopes' globs, the commands) stay
 // the root's. Its defaults fit one person whatever the file says
 // (stealthOnly, defaults.go): hooks.bin is itos, the global launcher, and
@@ -144,6 +145,7 @@ func beside(tree *value.Map, file string) {
 	at(tree.At("ledger"), "files")
 	at(tree.At("work"), "registry")
 	at(tree.At("work"), "asks")
+	at(tree.At("guide"), "orchestrating")
 	if kinds, ok := tree.At("tests").(*value.Map); ok {
 		for _, name := range kinds.Keys() {
 			at(value.Prop(kinds.At(name), "smoke"), "file")

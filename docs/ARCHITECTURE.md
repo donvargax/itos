@@ -515,7 +515,8 @@ mechanisms above, written against those modules, read across.
   statuses, the proposal, the edits that take, promote, close, add and
   change an item, and the item as work show prints it;
   below), `internal/follow` (itos follow's threads; below), `internal/ask`
-  (itos ask's questions; below), `internal/lock`
+  (itos ask's questions; below), `internal/guide` (the guides itos go and
+  itos guide print; below), `internal/lock`
   (the lock file a writer of shared data holds; below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git` (the repository's state and ranges, read
@@ -1484,6 +1485,21 @@ add`ed so `--only` can name it, git add's words and the commit's on
   registry's lock (`heldAsks`) from before the read to after the write, the
   one every stealth writer holds, and commit nothing. `work show` lists the
   questions naming its item (`File.About`), and `--json` gives them always.
+- **go and guide** (slice 64, `internal/cli/guide.go` over `internal/guide`)
+  print the guides a session starts from, Markdown files beside the package
+  (`coordinate.md`, `work.md`) embedded with `go:embed` and printed as
+  written, so one text, versioned with itos, serves every repository and the
+  binary needs no file of its own at run time. They are generic by rule:
+  what a repository learns that holds for no other is that repository's own
+  notes, which `itos go` (and `itos guide coordinate`, the same) appends
+  after a line of `---`: `guide.orchestrating`, a path read where the
+  config's other paths are, whose default `docs/ORCHESTRATING.md` is in the
+  one table and which `beside` puts in the git folder under a stealth config.
+  With no config the default is read from the repository's top, reached by
+  `git rev-parse --show-cdup` so the path stays relative; outside a
+  repository the guide prints alone. A config that cannot be read, or notes
+  that are there but cannot be read, is a warning on stderr, never a
+  failure: the guide is what a session starts from. They write nothing.
 - **The lock** (`internal/lock`, bug 16) is the one way itos keeps two
   writers of a file from losing a change: `lock.Hold(path)` makes
   `path.lock` with `O_EXCL`, which works the same on Linux, macOS and

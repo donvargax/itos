@@ -230,6 +230,10 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 			"check_timeout", about("The seconds a check may hold a commit, above 0.", num),
 		)),
 	)),
+	"guide", about("What itos go prints beside the guide shipped in itos.", obj(nil,
+		"orchestrating", about("The repository's own notes for the session that coordinates its work, which itos go appends to "+
+			"the coordinator's guide when the file exists; in the git folder's itos/ for a stealth config.", str),
+	)),
 ))
 
 // KnownKey is whether the schema has a dotted key path, each part a key of
