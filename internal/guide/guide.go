@@ -10,6 +10,7 @@ package guide
 import (
 	_ "embed"
 	"slices"
+	"strings"
 )
 
 //go:embed coordinate.md
@@ -26,10 +27,13 @@ var guides = map[string]string{
 	"work":     work,
 }
 
-// Text is the guide by its name, as written, and whether there is one.
+// Text is the guide by its name, as written, and whether there is one. Its
+// lines end in LF wherever the binary was built: go:embed takes a file's
+// bytes as the checkout has them, and a checkout that writes text with CRLF
+// (git's core.autocrlf, as on a Windows runner) would embed it so.
 func Text(name string) (string, bool) {
 	text, ok := guides[name]
-	return text, ok
+	return strings.ReplaceAll(text, "\r\n", "\n"), ok
 }
 
 // Names are the guides' names, sorted.
