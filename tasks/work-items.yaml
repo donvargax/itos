@@ -3420,7 +3420,9 @@ items:
       every message after it was checked by hand with awk. itos commit could rewrap each paragraph
       of the body to body-max-line-length before git sees it, leaving footers, lists and indented
       lines as written.
-    refs: [internal/cli/commit.go, internal/message/]
+
+      Specified as @ID-COMMITCMD-13 to 15 in features/commit-command.feature.
+    refs: [features/commit-command.feature, internal/cli/commit.go, internal/message/]
 
   - id: T-078
     title: This repository opts in to ci.watch, and its agents stop watching CI by hand
