@@ -4130,3 +4130,18 @@ items:
       by labels and trusted by who acted, never through live chat; one coordinator per repository at
       a time (p1-checkout-lease). Cross-repository depends_on references (owner/repo#item), stored
       and reported but judged by the coordinator, only once someone needs them.
+
+  - id: bug-15
+    title: itos commit never wraps a line to start with a footer token, a breaking-change note or a comment
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-58]
+    kind: slice
+    why: >
+      Found by slice 58's post-landing review (2026-10-04), in v2.18.0: wrapLine breaks at any
+      space, so a continuation line can start with a footer token (Task: T-012 then reads 'for',
+      'the', 'rest' as IDs and the hook refuses), a BREAKING CHANGE note (a release reads a major
+      change) or git's comment char (strip cleanup drops the words). Specified as @ID-COMMITCMD-16
+      and 17. Minor findings of the same review are p1-commit-wrap-review.
+    refs: [features/commit-command.feature, internal/message/wrap.go]
