@@ -71,9 +71,9 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
      input `itos work show <id> --patch`); slice 57's found
      `p1-work-show-gaps`;
    - the user's calls of 2026-10-04, each to specify as a slice, in this
-     order: the **`Item:`
-     footer** (`p1-work-show-spec-commits`, which also lets a red-first
-     `test:` commit of a slice be made); **`itos go`** (`p3-coordinator-skill`
+     order: **`slice-63`**, the `Item:` footer (was
+     `p1-work-show-spec-commits`; it also lets a red-first `test:` commit of
+     a slice be made, once this repository's `itos.yaml` declares it); **`itos go`** (`p3-coordinator-skill`
      as the user settled it: the binary serves the generic guides, a
      repository's own lessons stay in its `docs/ORCHESTRATING.md`);
      **`p1-work-queue-order`** (a top-level `queue:` list);
