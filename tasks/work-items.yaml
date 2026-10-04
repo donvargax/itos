@@ -3163,6 +3163,11 @@ items:
       mutants, fully or as a random spot check, refusing a commit whose recorded results do not
       hold, so forging them is a bad bet. Per function, since itos-cc's annotation comment would
       change a file's hash. Until then, mutation comments added by hand go in refactor commits.
+
+      The split (the user's question, 2026-10-03): the role, the hook's check, CI's re-run and the
+      debt list are itos's; the evidence is itos-cc's, whose cache already hashes each function.
+      What itos-cc still needs is donvargax/itos-cc#8: a check mode that runs nothing, the tests'
+      hash in the cache, and a sample mode for CI.
     refs: [PLAN.md]
 
   - id: p3-debt-claims
