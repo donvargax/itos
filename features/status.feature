@@ -77,6 +77,7 @@ Feature: itos status, where the work stands
     And the remote's head is tagged "v1.2.0"
     And the remote has gained the commit "feat: add the archive" touching "a.txt"
     And the remote has gained the commit "docs: describe the archive" touching "b.md"
+    And the clone has fetched the remote
     When itos runs "status --as someone"
     Then itos exits with code 0
     And its output says "v1.2.0" before "feat: add the archive"
@@ -90,3 +91,13 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "no release yet"
     And its output says "slice-9"
+
+  @ID-STATUS-08 @slice-70 @wip
+  Scenario: Where the remote's head is not fetched here, status says its unreleased commits may be behind
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the remote's head is tagged "v1.2.0"
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "v1.2.0"
+    And its output says "may be behind"
