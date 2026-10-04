@@ -1,11 +1,11 @@
 @phase-1
 Feature: The next free ID, for a spec writer
-  Writing a scenario or a task meant grepping features/ for the next free
-  @ID-, @slice- and @bug- number, and the ledger for the next task ID (the
+  Writing a scenario or a task meant grepping features/ for the next
+  free @ID-, @slice- and @bug- number, and the ledger for the next task ID (the
   user's calls, 2026-10-03, p1-tests-next-id-and-steps). itos tests next-id
   <kind> <stem> prints the next free tag of the kind whose name is the stem,
-  a dash and a number: one past the highest the kind's files hold, live or
-  @wip, and, for a stem the registry's ids also use (slice-<n>, bug-<n>),
+  a dash and a number: one past the highest the kind's files hold, live
+  or @wip, and, for a stem the registry's ids also use (slice-<n>, bug-<n>),
   past the highest of those too, since an item can be named before its
   scenarios are written; a stem nothing uses yet starts at 1, padded to two
   digits where the kind's ID pattern is an ID- one, as the README's IDs are.
