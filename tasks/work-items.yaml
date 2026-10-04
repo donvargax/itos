@@ -46,6 +46,7 @@ phases:
 queue:
   - slice-67
   - p1-orchestrating-own-notes
+  - p1-itos-upgrade
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
