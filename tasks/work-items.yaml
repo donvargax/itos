@@ -44,7 +44,7 @@ phases:
   3: donvargax
 
 queue:
-  - p1-orchestrating-own-notes
+  - T-084
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
   - p1-status-releases-nightly
@@ -4384,14 +4384,15 @@ items:
       there, and putting the itos under test on the PATH only where a step asks (itosOnPath), would
       catch it before the push.
 
-  - id: p1-orchestrating-own-notes
+  - id: T-084
     title: docs/ORCHESTRATING.md keeps only what is this repository's own
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-64]
-    kind: idea
+    kind: task
     why: >
+      Was p1-orchestrating-own-notes.
       itos go now prints the generic coordinator's guide (internal/guide/coordinate.md, slice 64)
       and then appends docs/ORCHESTRATING.md, so the file repeats the guide. Cut it to what holds
       here alone: the consumer-report inbox (tools/bin/inbox.ts, its allow-list, itos-accepted, no
