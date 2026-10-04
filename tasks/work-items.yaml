@@ -4480,3 +4480,16 @@ items:
       (@ID-STATUS-01 to 05) left them out, so status reads only the head's own run. Until they join
       it, docs/HANDOFF.md still carries the release and the nightly by hand.
     refs: [features/status.feature]
+
+  - id: p1-done-body-url-footer
+    title: work done's commit body puts no line where the lint reads a footer
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice 67's agent (2026-10-04): work done's close commit printed the header lint's
+      footer-leading-blank warning. Its body ends with the run's address on a line of its own
+      (https://…), which the lint reads as a footer token (https:). Keep the address inside a
+      sentence, or after a word, so the body is clean under itos's own lint.
