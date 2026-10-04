@@ -4236,3 +4236,17 @@ items:
       the registry and the smoke set. A hand edit that breaks it (an unknown key, an id given twice,
       an --item naming no item) lands unnoticed until an ask command or work show stops on it with
       exit 2.
+
+  - id: p1-stealth-24-checks-file
+    title: "@ID-STEALTH-24 checks the questions file is written"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-62]
+    kind: idea
+    why: >
+      Found by slice 62's agent: @ID-STEALTH-24's name says ask add writes the question in the git
+      folder, but its steps check only exit 0 and that git sees nothing, so a command that did
+      nothing would pass (a corpus case pins the file meanwhile). Add And the file
+      ".git/itos/asks.yaml" exists (the step exists); a live scenario changes only in a feat or fix,
+      so fold it into the next one touching stealth.feature.
