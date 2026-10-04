@@ -3848,8 +3848,8 @@ items:
   - id: T-081
     title: "Changes: names a corpus case by a unique prefix of its name"
     phase: 3
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
