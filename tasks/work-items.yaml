@@ -3513,7 +3513,7 @@ items:
     title: The conformance runner runs on a PATH of its own, as the help tests now do
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     why: >
