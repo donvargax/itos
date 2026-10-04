@@ -4585,3 +4585,17 @@ items:
       The Go comments citing PLAN.md sections point at the ADRs, in a refactor commit. Depends on
       the format being settled, not on the command.
     refs: [PLAN.md, docs/adr]
+
+  - id: p1-status-nightly-green
+    title: itos status adds the last nightly and main's last green run
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-70]
+    kind: idea
+    why: >
+      Split from slice-70 (2026-10-04). The last nightly's result (red first, since a red nightly is
+      the first item) and main's last green run beside a run going. Each needs a provider: the
+      nightly's workflow is no key ci.watch has, while the last green run is what ci.range's
+      provider already reads. This session found the red nightly only by reading it by hand.
+    refs: [features/status.feature, internal/providers]
