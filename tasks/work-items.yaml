@@ -3706,8 +3706,8 @@ items:
   - id: bug-13
     title: The registry and ledger commands' rollback is tested, and has no holes
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
