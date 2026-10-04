@@ -3755,6 +3755,8 @@ items:
       always asks implementers to run it); the plugin keeps the titles and the guard. itos go prints
       itos status at its end once that exists. The title was the promoted idea's until this edit,
       which misled the user: p1-promote-title.
+
+      The promote fix named above was specified as slice-65.
     refs:
       [features/guide.feature, docs/ORCHESTRATING.md, integrations/claude-code/skills/itos/SKILL.md]
 
