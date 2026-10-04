@@ -219,3 +219,31 @@ Feature: Every key the config accepts is one itos reads
     When itos runs "config get hooks.no_such_key"
     Then itos exits with code 2
     And its output says "hooks.no_such_key"
+
+  # Decision records are itos's data too: a record written or edited by
+  # hand could share another's number, or say it was superseded by one that
+  # does not exist, and nothing said so (p1-adr-checks, 2026-10-04). config
+  # check holds the folder work.decisions names to both rules, and the
+  # commit-msg hook runs it when a record is staged. The index is not held to
+  # the folder: itos ask record writes it whole at every record.
+  @ID-CONFIG-24 @slice-74 @wip
+  Scenario: config check refuses two decision records with the same number
+    Given the committed file "docs/decisions/0001-use-go.md" holding "# Use Go"
+    And the committed file "docs/decisions/0001-use-rust.md" holding "# Use Rust"
+    When itos runs "config check"
+    Then itos exits with code 1
+    And its output says "0001"
+
+  @ID-CONFIG-25 @slice-74 @wip
+  Scenario: config check refuses a record superseded by one the folder does not have
+    Given the committed file "docs/decisions/0001-use-go.md" holding the lines:
+      """
+      ---
+      status: superseded by ADR-0009
+      ---
+
+      # Use Go
+      """
+    When itos runs "config check"
+    Then itos exits with code 1
+    And its output says "ADR-0009"
