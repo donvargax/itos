@@ -1182,7 +1182,7 @@ items:
     title: The rules and the plugin's skill name itos work take and promote
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     why: >
