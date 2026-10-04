@@ -12,12 +12,12 @@ Read [AGENTS.md](../AGENTS.md), [PLAN.md](../PLAN.md),
 [tasks/work-items.yaml](../tasks/work-items.yaml) before taking work; a
 coordinator reads [docs/ORCHESTRATING.md](ORCHESTRATING.md) too.
 
-Last updated 2026-10-03, after slice 53 landed (v2.13.0).
+Last updated 2026-10-03, after T-079 and T-080 landed.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `091d58d` (CI run 37164741824,
-every job; v2.13.0 is the newest release). The coordinator commits docs from
+All work is @donvargax's. `main` is green at `9e1f31e` (CI run 37166052497,
+every job; v2.13.0 is the newest release, the plugin at 2.5.0). The coordinator commits docs from
 its own worktree, `.claude/worktrees/coord-docs` (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
 consumers); Node stays as dev tooling.
@@ -54,10 +54,6 @@ One slice at a time, the user's order:
 
 1. The orchestration commands, the user's order (2026-10-03), ahead of the
    rest of init:
-   - **`p1-docs-name-work-take`**: AGENTS.md, ORCHESTRATING.md and the
-     plugin's skill still say to edit the registry by hand (the skill needs a
-     plugin version bump); then `p1-corpus-own-path`, which every agent still
-     works around;
    - **`p1-work-edit`**: `itos work add`, `edit` and `itos task add` write
      the registry and ledger, confirm a new spec's `@wip` scenarios fail
      (`p1-wip-red-first`), and commit, as every one of these commands does;
