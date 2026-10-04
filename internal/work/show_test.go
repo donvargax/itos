@@ -25,8 +25,12 @@ func TestRegistryHeaderReadsTheWritersHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	queue, _, err := Queue(r, text, "a", Place{Top: true})
+	if err != nil {
+		t.Fatal(err)
+	}
 	for header, want := range map[string]string{
-		take.Header: "a", done.Header: "a", promote.Header: "slice-1",
+		take.Header: "a", done.Header: "a", promote.Header: "slice-1", queue.Header: "a",
 		"docs: add T-1": "T-1", "docs: edit p1-x": "p1-x",
 	} {
 		if id, ok := RegistryHeader(header); !ok || id != want {

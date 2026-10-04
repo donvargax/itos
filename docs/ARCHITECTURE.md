@@ -271,7 +271,12 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   is read in the bare repository itself (`git log --format=%s main`,
   `git rev-list --merges main`), so what was pushed is what the remote has,
   not what the clone thinks it pushed; an uncommitted change is a known line
-  appended to the file, read back with `git diff HEAD` still seeing it.
+  appended to the file, read back with `git diff HEAD` still seeing it. Two
+  takes of one item (slice 66) edit the item's one line of the registry as
+  the work steps write it, its owner and status, so they conflict: the
+  remote's first pushes the clone's registry to the remote, so both start
+  from it, and the remote's registry is read with `git show main:<registry>`
+  in the bare repository.
 - **The CI watch's scenarios** (`watch_test.go`, `watch.feature`): the
   clone of push's scenarios, its config's `ci.watch` a command provider with
   no interval, `sh <support>/watch.sh {sha}`, committed and pushed to the
@@ -787,7 +792,13 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
 <sha>` (never `git pull`, so neither `pull.rebase`, `pull.ff` nor a fork
   point enters it), after `rewriteNotes` under a stealth config so the
   rebase carries the itos notes; afterwards `git.Rebasing` or
-  `git.Conflicted` is the stop (exit 1, how to go on), and a non-zero exit
+  `git.Conflicted` is the stop (exit 1, how to go on; when the work registry
+  is among the conflicted files, `registryConflict` adds what happened in a
+  person's words, slice 66: the file, each item both sides changed by
+  `work.Clashes` over the registry at `REBASE_HEAD^`, `HEAD` and
+  `REBASE_HEAD`, the upstream's owner of one it took, and `git rebase --skip`
+  to give the item up, since two takes of one item meet there and the remote
+  keeps the first), and a non-zero exit
   without either a rebase that did not start (exit 1). HEAD at or behind
   the fetched commit (`rev-list --count <sha>..HEAD` of 0) is nothing to
   push, exit 0. `push` then runs `git push <remote> HEAD:<ref>`, an explicit
@@ -1012,7 +1023,10 @@ edit` (slice 54, `docedit.go`), `Append` adds a block mapping after a block
   stands; one the formatter wrapped below its key, or a block list, cut from
   past the key's colon to its last line; or the key added), and `Note` adds a paragraph
   to a text after a blank line (a one-line why in a block mapping becoming a
-  folded block), each edit made in `Want` too,
+  folded block), and `SetBlockList` (slice 66) writes a list whole as a block
+  list below its key, `[]` when empty, added before a given key above the
+  comments leading into it (the registry's queue, before `items:`), a shape
+  no formatter rewraps however long it grows, each edit made in `Want` too,
   and `Text` refuses the edits unless the text reads back as `Want`, keys in
   any order. Of two edits at one offset the earlier writes first. The patterns are compiled as RE2, the
   config's dialect, which the TypeScript held them to by refusing what RE2
@@ -1391,6 +1405,24 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   does not match and a group not given where none is plain are judged before
   it. `edit` changes no owner, kind or status: `take`, `promote` and `done`
   own those, each with its own rules.
+- **The queue** (slice 66, `internal/work/queue.go`) is a top-level `queue:`
+  list of item ids, one for the repository, ideas included: the order the
+  work comes in, kept in the registry rather than in a handoff's prose.
+  `work.Load` keeps it as written (`Registry.Queue`), `work.Issues` refuses a
+  queue that is not a list, an id no item has and one named twice
+  (`queueIssues`), and `Queued` gives a sound one's ids. `work.Queue` puts an
+  item first, just before or after one the queue holds, or out of it (`work
+queue <id> --top|--before|--after|--drop`, `internal/cli/workwrite.go`),
+  the queue written whole with `value.Doc`'s `SetBlockList` before `items:`
+  and committed by `writeRegistry` as `docs: queue <id>`; an item done is
+  refused, and one already where it is put is `Unchanged`. `Propose` walks
+  the items in the queue's order, the unqueued after in the registry's
+  (`inQueueOrder`), so every list of the proposal, `--json`'s too, is in it,
+  and what another person owns stays out of each, every person seeing their
+  part. `work done` takes the closed item out (`work.Unqueue`) in a commit of
+  its own after the close, under a stealth config while it still holds the
+  registry's lock; `work.Promote` renames an idea in the queue as in every
+  `depends_on`.
 - **task add** (slice 55, `internal/cli/taskadd.go`) writes two files in one
   commit: the task at the end of its group's ledger file (`ledger.Add`,
   `internal/ledger/add.go`) and its item, a task, todo and nobody's, through
@@ -1431,7 +1463,7 @@ add`ed so `--only` can name it, git add's words and the commit's on
   links reads them. A commit belongs when a ledger link is the item's id, a
   tests link is one of its scenarios (with or without the kind's
   `tag_prefix`), or its header is one of the registry writers' naming the
-  item (`work.RegistryHeader`, kept beside the writers, whose headers its
+  item (`work.RegistryHeader`, `docs: queue <id>` among them, kept beside the writers, whose headers its
   unit test reads). The registry is loaded and not judged, as `work list`
   loads it. `--patch` hands the commits to `git show`, in order, its notes
   the itos ones under a stealth config; `--json` gives each commit's message

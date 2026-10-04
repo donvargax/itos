@@ -216,3 +216,30 @@ func TestDocAppendTop(t *testing.T) {
 		t.Errorf("one item:\n got %q, %v\nwant %q", one, err, added)
 	}
 }
+
+// The queue's shape (slice 66): a block list whatever it was, added before
+// items above the comments that lead into it, emptied to [].
+func TestDocSetBlockList(t *testing.T) {
+	set := func(list ...string) func(d *Doc) error {
+		return func(d *Doc) error { return d.SetBlockList([]any{"queue"}, list, "items") }
+	}
+	for _, c := range []struct{ name, text, want string }{
+		{"added before items, after a blank line",
+			"phases:\n  1: a\n\n# the items\nitems: []\n",
+			"phases:\n  1: a\n\nqueue:\n  - b\n  - \"c: d\"\n\n# the items\nitems: []\n"},
+		{"added before items, no blank line",
+			"phases: { 1: null }\nitems: []\n",
+			"phases: { 1: null }\nqueue:\n  - b\n  - \"c: d\"\nitems: []\n"},
+		{"added last with no items", "phases: { 1: null }\n", "phases: { 1: null }\nqueue:\n  - b\n  - \"c: d\"\n"},
+		{"a flow list replaced", "queue: [x, y] # q\nitems: []\n", "queue:\n  - b\n  - \"c: d\" # q\nitems: []\n"},
+		{"a block list replaced in its column", "queue:\n    - x\n    - y\n\nitems: []\n", "queue:\n    - b\n    - \"c: d\"\n\nitems: []\n"},
+		{"nothing replaced", "queue:\nitems: []\n", "queue:\n  - b\n  - \"c: d\"\nitems: []\n"},
+	} {
+		if got, _ := edited(t, c.text, set("b", "c: d")); got != c.want {
+			t.Errorf("%s:\n got %q\nwant %q", c.name, got, c.want)
+		}
+	}
+	if got, _ := edited(t, "queue:\n  - x\n  - y\nitems: []\n", set()); got != "queue: []\nitems: []\n" {
+		t.Errorf("emptied: %q", got)
+	}
+}

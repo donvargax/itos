@@ -35,6 +35,10 @@ type Registry struct {
 	People bool
 	Phases *value.Map
 	Items  []*value.Map
+	// Queue is the registry's queue: as written, a list of item ids when it
+	// is sound, the order the work comes in (slice 66); Undefined when it
+	// has none.
+	Queue any
 }
 
 // Load reads the registry at path and the people of the config's source.
@@ -75,7 +79,7 @@ func Load(cfg *config.Loaded, path string) (Registry, error) {
 			items = append(items, copied)
 		}
 	}
-	r := Registry{Phases: phases, Items: items}
+	r := Registry{Phases: phases, Items: items, Queue: value.Copy(value.Prop(raw, "queue"))}
 	if !cfg.Stealth {
 		if logins, err := providers.People(cfg.Work.People); err == nil {
 			r.Logins, r.People = logins, true
@@ -316,7 +320,38 @@ func Issues(cfg *config.Loaded, r Registry, file string) ([]out.Problem, error) 
 				fmt.Sprintf("add %s to %s, or set %s's owner to one of its logins", value.String(owner), c.listedIn, group(phase))))
 		}
 	}
+	found = append(found, c.queueIssues(r.Queue, file)...)
 	return append(found, c.cycles(file)...), nil
+}
+
+// queueIssues are the queue's problems (slice 66): a queue that is not a
+// list, and each id in it that no item has or that it names a second time.
+// No queue, or a null one, is an empty one.
+func (c checker) queueIssues(queue any, file string) []out.Problem {
+	if absent(queue) {
+		return nil
+	}
+	list, ok := queue.([]any)
+	if !ok {
+		return []out.Problem{problem("work-queue-not-list", "queue: is not a list of item ids",
+			"write queue: in "+file+" as a list of item ids, or remove it")}
+	}
+	var found []out.Problem
+	seen := map[string]bool{}
+	for _, entry := range list {
+		k, id := key(entry), value.String(entry)
+		if _, known := c.byID[k]; !known {
+			found = append(found, problem("work-queue-unknown-item",
+				fmt.Sprintf("queue: names unknown \"%s\"", id),
+				fmt.Sprintf("remove \"%s\" from queue: in %s, or add an item %s", id, file, id)))
+		} else if seen[k] {
+			found = append(found, problem("work-queue-twice",
+				fmt.Sprintf("queue: names \"%s\" twice", id),
+				fmt.Sprintf("remove one of the two \"%s\" from queue: in %s", id, file)))
+		}
+		seen[k] = true
+	}
+	return found
 }
 
 // Problems are the registry's problems, or that there is none where itos

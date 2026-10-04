@@ -18,9 +18,13 @@ is not yours: run `itos guide work` and follow that one.
 
 ## The loop
 
-1. **Pick the next item** among what `itos work` proposes. An item someone
-   else owns is theirs; one whose dependencies are not done waits; one marked
-   deferred waits until the person lifts it.
+1. **Pick the next item** among what `itos work` proposes, in the order of
+   the registry's queue. An item someone else owns is theirs; one whose
+   dependencies are not done waits; one marked deferred waits until the
+   person lifts it. The queue is the order the person wants, kept by
+   `itos work queue <id> --top`, `--before <id>`, `--after <id>` or `--drop`,
+   each committing the registry alone; `itos work done` takes a closed item
+   out.
 2. **Specify it** if it is not yet: `@wip` scenarios for a behaviour, or a
    task with checks for anything else. An idea becomes work with
    `itos work promote <idea> --as <id> --kind slice|task`, and

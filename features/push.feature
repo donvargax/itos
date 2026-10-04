@@ -60,7 +60,7 @@ Feature: itos push, the pull-rebase-push routine as one command
   # registry, so the second push's rebase stops on the conflict and nothing
   # lands twice; the conflict is the lock. itos push names the registry and
   # says what happened in a person's words, rather than git's alone.
-  @ID-PUSH-05 @slice-66 @wip
+  @ID-PUSH-05 @slice-66
   Scenario: A take that meets another person's take of the same item stops, and says the item was taken
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the remote has gained the commit "docs: take slice-9" making "ana" the owner of "slice-9"

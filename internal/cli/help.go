@@ -65,6 +65,8 @@ Commands:
                                    add an item to the work registry, and commit it
   work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--note <text>]
                                    change an item, or add a note to its why, and commit it
+  work queue <id> --top|--before <id>|--after <id>|--drop
+                                   order the work: put an item in the queue, or take it out
   work check [<file>]              validate the work registry
   ask [--all]                      the open questions to the person the work is for
   ask add <text> [--item <id>]     ask a question, and commit it
@@ -185,22 +187,27 @@ or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
        itos work done <id>
        itos work add <id> --title <title> --why <why> […]
        itos work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--note <text>]
+       itos work queue <id> --top|--before <id>|--after <id>|--drop
        itos work check [<file>]
 
 Who the session works for (--as, else the config's work.identity provider) and
 their items: in progress, can start now, unowned, waiting, ideas, deferred.
+Each list is in the order of the registry's queue (itos help work queue), the
+items it does not name after, in the registry's order; what another person
+owns is in none, so each person sees their part of the queue.
 Exit 1 when the registry is not sound, 3 when --as is not among the people.
 With no people to read (a stealth config, or a people file missing or
 unreadable) any handle is taken, and nothing is said of them. Under a stealth
 config with no --as, no identity is looked up: every item is the session's,
 whatever owner it names (every_item: true in --json).
 
---json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"}
+--json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"},
+each list in the queue's order
 
 work list prints every item of the registry instead (itos help work list),
 work show one item with its scenarios and commits (itos help work show); work
-take, work promote, work done, work add and work edit write it, each
-committing it (itos help work take).`,
+take, work promote, work done, work add, work edit and work queue write it,
+each committing it (itos help work take).`,
 
 	"work show": `Usage: itos work show <id> [--patch]
 
@@ -213,7 +220,7 @@ text. A commit is the item's when its footers of IDs name the item (Task:) or
 one of its scenarios (Scenarios:), a later fix naming one included, or when it
 is one of itos's registry commits naming it in its header (docs: take <id>,
 docs: promote <idea> to <id>, docs: close <id>, docs: add <id>, docs: edit
-<id>); under a stealth config the footers are read from each commit's note in
+<id>, docs: queue <id>); under a stealth config the footers are read from each commit's note in
 refs/notes/itos. --patch adds each commit as git show prints it, message and
 diff: the whole of a review's input. It reads, never writes, and judges
 nothing, as work list. Exit 1 when there is no registry where itos looks, or no
@@ -270,10 +277,11 @@ checked, and done says so. Refused, nothing written (exit 1): any of those not
 so, a registry that is not sound or has changes no commit holds, an id no item
 has, an idea (work promote it first), an item deferred, a commit a hook refuses.
 Exit 3 when the run does not end within ci.watch.timeout or cannot be looked
-at. An item already done changes nothing. Under a stealth config the registry
-is written and nothing committed.
+at. An item already done changes nothing. An item the registry's queue holds
+is then taken out of it, in a commit of its own, "docs: queue <id>". Under a
+stealth config the registry is written and nothing committed.
 
---json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"commit":"<sha>"|null},
+--json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"queue_commit"?:"<sha>"|null,"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}],"ci"?,"run"?}`,
 
 	"work add": `Usage: itos work add <id> --title <title> --why <why> [--kind idea|slice|task]
@@ -310,6 +318,24 @@ stealth config the registry is written and nothing committed.
 --json: {"schema":1,"ok":true,"item":{…},"changed":["title"|"depends_on"|"refs"|"why",…],"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
+	"work queue": `Usage: itos work queue <id> --top|--before <id>|--after <id>|--drop
+
+Orders the work: the registry's queue, a top-level queue: list of item ids,
+one for the whole repository, ideas included, says what comes first, and itos
+work proposes in its order. --top puts the item first, --before and --after
+just before or after an item the queue holds, --drop takes it out; an item the
+queue holds already is moved. The queue is written whole as a block list
+before items:, then the registry is committed alone, "docs: queue <id>", as
+work take does (itos help work take). work done takes a closed item out.
+Refused, nothing written (exit 1): a registry that is not sound or has changes
+no commit holds, an id no item has, an item done, an item placed before or
+after itself or an item the queue does not hold, a commit a hook refuses. An
+item already where it is put, or not in the queue for --drop, changes nothing.
+Under a stealth config the registry is written and nothing committed.
+
+--json: {"schema":1,"ok":true,"item":{…},"queue":[…],"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+
 	"work list": `Usage: itos work list
 
 Prints every item of the work registry (the config's work.registry, by default
@@ -327,7 +353,8 @@ Validates the work registry (the config's work.registry, by default
 work-items.yaml in the ledger's folder, or <file>): that it is there,
 duplicate IDs, unknown groups (the owners per group under work.groups_key,
 phases by default), statuses (those work.statuses lists), kinds, owners and
-dependencies, cycles. Exit 1 on a problem. The messages call a group by
+dependencies, cycles, and the queue (a list of item ids, none unknown, none
+twice). Exit 1 on a problem. The messages call a group by
 ledger.group.label (phase by default).
 
 --json: {"schema":1,"file","sound","problems":[{"rule","message","fix"?}]}`,
@@ -420,7 +447,10 @@ push. It refuses to start when tracked files have uncommitted changes (commit
 or stash them first; untracked files are no reason), when a rebase is in
 progress or a conflict is left, and on a detached HEAD. A rebase that stops is
 left in progress for the person and nothing is pushed: resolve the conflicts,
-git rebase --continue, then itos push again, or git rebase --abort. Only HEAD
+git rebase --continue, then itos push again, or git rebase --abort. A conflict
+in the work registry is said in a person's words beside that: the file, each
+item a commit on the upstream changed too, its owner there when it took it
+first, which the remote keeps, and git rebase --skip to give it up. Only HEAD
 goes, to that branch, whatever the config's push refspecs say, so the stealth
 mode's refs/notes/itos stays local; under a stealth config notes.rewriteRef is
 set first, as itos commit sets it, so the rebase carries the notes. It never

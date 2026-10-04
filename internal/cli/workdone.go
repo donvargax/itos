@@ -8,10 +8,13 @@ package cli
 // remote has, a task's static checks passing as the commit-msg hook runs
 // them, and with ci.watch HEAD's CI run green, waited for as itos ci watch
 // waits when it is still going. The first that is not refuses, naming what
-// to do; without ci.watch CI is not checked, and done says so.
+// to do; without ci.watch CI is not checked, and done says so. An item the
+// registry's queue holds is then taken out of it, in a commit of its own
+// (slice 66).
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/donvargax/itos/v2/internal/check"
@@ -82,7 +85,49 @@ func workDone(args []string, o Out) (int, error) {
 	if err != nil || code != 0 {
 		return code, err
 	}
-	return reportWork(fmt.Sprintf("%s is done: %s", id, committed(sha, change.Header)), *change, sha, ci.fields(), o)
+	line := fmt.Sprintf("%s is done: %s", id, committed(sha, change.Header))
+	fields := ci.fields()
+	unqueued, queueSHA, code, err := unqueueDone(cfg, id, o)
+	if err != nil || code != 0 {
+		return code, err
+	}
+	if unqueued != nil {
+		line += "; out of the queue: " + committed(queueSHA, unqueued.Header)
+		var commit any
+		if queueSHA != "" {
+			commit = queueSHA
+		}
+		fields = append(fields, out.Field{Key: "queue_commit", Value: commit})
+	}
+	return reportWork(line, *change, sha, fields, o)
+}
+
+// unqueueDone takes the item just closed out of the registry's queue, in a
+// commit of its own (slice 66): the queue holds the work still to do. The
+// change is nil when the queue does not hold the item; the SHA is the
+// commit's, "" under a stealth config, whose registry is written and not
+// committed, its lock still held.
+func unqueueDone(cfg *config.Loaded, id string, o Out) (*work.Change, string, int, error) {
+	raw, err := os.ReadFile(cfg.Work.Registry)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	registry, err := work.Load(cfg, cfg.Work.Registry)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	change, ok, err := work.Unqueue(registry, string(raw), id)
+	if err != nil {
+		return nil, "", 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+	}
+	if !ok {
+		return nil, "", 0, nil
+	}
+	sha, code, err := writeRegistry(cfg, string(raw), change, o)
+	if err != nil || code != 0 {
+		return nil, "", code, err
+	}
+	return &change, sha, 0, nil
 }
 
 // doneChange is the registry's change that makes the item done (work.Done),

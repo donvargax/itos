@@ -15,7 +15,9 @@ package cli
 // for any push, nothing else goes with it (refs/notes/itos stays local in
 // the stealth mode), and nothing forces it: a force flag or a + refspec is
 // a usage error, and a push the remote refuses is reported with git's exit
-// code, never retried.
+// code, never retried. A rebase that stops on a conflict in the work
+// registry says so in a person's words beside git's advice (slice 66): two
+// takes of one item meet there, and the remote keeps the first.
 
 import (
 	"bytes"
@@ -29,6 +31,7 @@ import (
 	"github.com/donvargax/itos/v2/internal/config"
 	"github.com/donvargax/itos/v2/internal/git"
 	"github.com/donvargax/itos/v2/internal/out"
+	"github.com/donvargax/itos/v2/internal/work"
 )
 
 // readPushArgs refuses every argument but --no-wait, which it gives: itos
@@ -219,10 +222,12 @@ func (r pushRun) rebase(onto string) (int, bool, error) {
 		return ExitMissing, true, nil
 	}
 	if git.Rebasing() || len(git.Conflicted()) > 0 {
-		code, err := r.report(ExitPolicy, "rebase-stopped",
+		lines := []string{
 			fmt.Sprintf("itos push: the rebase onto %s stopped; nothing was pushed.", r.upstream()),
 			"Resolve the conflicts, git add the files and run git rebase --continue, then itos push again;",
-			"or run git rebase --abort to go back to where the branch was.")
+			"or run git rebase --abort to go back to where the branch was.",
+		}
+		code, err := r.report(ExitPolicy, "rebase-stopped", append(lines, r.registryConflict()...)...)
 		return code, true, err
 	}
 	if code != 0 {
@@ -231,6 +236,51 @@ func (r pushRun) rebase(onto string) (int, bool, error) {
 		return code, true, err
 	}
 	return 0, false, nil
+}
+
+// registryConflict is what the push says, in a person's words, when its
+// rebase stopped on a conflict in the work registry (slice 66), nothing when
+// it did not or there is no config to name the registry: two people took the
+// same item, or changed it, and the upstream's commit landed first, so the
+// conflict is the lock and the remote keeps the first take. It names the
+// file and each item both sides changed, the upstream's owner of one it
+// took, and how to give the item up (git rebase --skip drops the commit
+// being replayed, a registry command's being the registry alone).
+func (r pushRun) registryConflict() []string {
+	file := config.Path()
+	if _, err := os.Stat(file); err != nil {
+		return nil
+	}
+	cfg, err := config.Load(file)
+	if err != nil {
+		return nil
+	}
+	registry := path.Clean(filepath.ToSlash(cfg.Work.Registry))
+	hit := false
+	for _, f := range git.Conflicted() {
+		hit = hit || path.Clean(f) == registry
+	}
+	if !hit {
+		return nil
+	}
+	lines := []string{"", fmt.Sprintf("The conflict is in the work registry, %s: a commit on %s changed", registry, r.upstream()),
+		"the same item as yours, so it was taken, or changed, there first, and the remote keeps that."}
+	show := func(rev string) string {
+		text, _ := git.Output("show", rev+":"+registry)
+		return text
+	}
+	for _, c := range work.Clashes(show("REBASE_HEAD^"), show("HEAD"), show("REBASE_HEAD")) {
+		switch {
+		case c.Taken && c.Owner != "":
+			lines = append(lines, fmt.Sprintf("  %s is taken: a commit on %s made %s its owner first.", c.ID, r.upstream(), c.Owner))
+		default:
+			lines = append(lines, fmt.Sprintf("  %s was changed on %s too.", c.ID, r.upstream()))
+		}
+	}
+	return append(lines,
+		"To leave it to them, run git rebase --skip, which drops your commit of the registry, then itos",
+		"push again and itos work for another item; or agree with them who keeps it, and resolve the",
+		"conflict as above.")
 }
 
 // push pushes HEAD to the upstream's branch: the pre-push hook runs, and a

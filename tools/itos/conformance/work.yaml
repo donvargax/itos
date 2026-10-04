@@ -8,7 +8,9 @@
 # an .all-contributorsrc, a YAML list); and who a session works for (--as, or
 # the identity provider: a command, none, or gh, faked on the PATH, and none
 # asked under a stealth config, whose session owns every item); the
-# registry's default beside the ledger, in the folder ledger.files names.
+# registry's default beside the ledger, in the folder ledger.files names;
+# the queue (slice 66): work queue's places, its commit and its refusals, the
+# proposal in its order and work check's problems with it.
 files:
   itos.yaml: |
     version: 1
@@ -1418,14 +1420,147 @@ cases:
     argv: [work, bogus, --x]
     exit: 2
     stderr: |
-      itos: work has no subcommand bogus: it takes list, show, take, promote, done, add, edit or check, else --as <handle> (itos --help)
+      itos: work has no subcommand bogus: it takes list, show, take, promote, done, add, edit, queue or check, else --as <handle> (itos --help)
   - name: work refuses a flag it does not take
     argv: [work, --as, a, --all]
     exit: 2
     stderr: |
-      itos: work does not take --all: it takes list, show, take, promote, done, add, edit or check, else --as <handle> (itos --help)
+      itos: work does not take --all: it takes list, show, take, promote, done, add, edit, queue or check, else --as <handle> (itos --help)
   - name: work --as needs a handle
     argv: [work, --as]
     exit: 2
     stderr: |
       itos: work --as needs a handle (itos --help)
+  - name: work proposes in the queue's order, the unqueued after
+    argv: [work, --as, a]
+    files:
+      work-items.yaml: |
+        phases: { 1: a, 2: null }
+        queue: [free-idea, free, phased, idea]
+        items:
+          - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [] }
+          - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo }
+          - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [] }
+          - { id: free-later, title: Free later, phase: 2, owner: null, status: todo, depends_on: [] }
+          - { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea }
+          - { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea }
+    exit: 0
+    stdout: |
+      Working for a.
+
+      Can start now:
+        phased  Owned by the phase
+        ready  Ready
+
+      Unowned, can start now (agree an owner first):
+        free  Free
+        free-later  Free later
+
+      Ideas, not yet specified (a coordinator specifies one before it starts):
+        free-idea  A free idea
+        idea  An idea
+  - name: work queue --top starts the queue before items, a block list, and commits the registry alone
+    argv: [work, queue, x, --top]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: *takeable
+      - stage: { README.md: "staged\n" }
+    files:
+      work-items.yaml: *takeable
+    exit: 0
+    stdout_has: "x is first in the queue: committed "
+    files_after:
+      work-items.yaml: "# who does what\nphases: { 1: null }\nqueue:\n  - x\nitems:\n  - id: x # the first\n    title: \"X, quoted\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n"
+  - name: under a stealth config work queue --after moves an item and commits nothing
+    argv: [work, queue, x, --after, z, --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: &queued "phases: { 1: null }\n\nqueue:\n  - x\n  - y\n  - z\n\nitems:\n  - { id: x, title: X, phase: 1, status: todo }\n  - { id: y, title: Y, phase: 1, status: todo }\n  - { id: z, title: Z, phase: 1, status: todo }\n  - { id: d, title: D, phase: 1, status: done }\n"
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: x, title: X, phase: 1, status: todo, depends_on: [] }
+      queue: [y, z, x]
+      commit: null
+    files_after:
+      .git/itos/work-items.yaml: "phases: { 1: null }\n\nqueue:\n  - y\n  - z\n  - x\n\nitems:\n  - { id: x, title: X, phase: 1, status: todo }\n  - { id: y, title: Y, phase: 1, status: todo }\n  - { id: z, title: Z, phase: 1, status: todo }\n  - { id: d, title: D, phase: 1, status: done }\n"
+  - name: under a stealth config work queue --drop of the last item leaves an empty queue
+    argv: [work, queue, x, --drop]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases: { 1: null }\nqueue:\n  - x\nitems:\n  - { id: x, title: X, phase: 1, status: todo }\n"
+    exit: 0
+    stdout: |
+      x is out of the queue: the registry is the stealth config's, so nothing is committed
+    files_after:
+      .git/itos/work-items.yaml: "phases: { 1: null }\nqueue: []\nitems:\n  - { id: x, title: X, phase: 1, status: todo }\n"
+  - name: work queue refuses a place beside an item the queue does not hold
+    argv: [work, queue, x, --before, d]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *queued
+    exit: 1
+    stderr: |
+      d is not in the queue
+        fix: queue d first (itos work queue d --top), or name an item the queue holds
+  - name: work queue refuses an item done
+    argv: [work, queue, d, --top, --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *queued
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: work-queue-done
+          message: "d is done, and the queue holds work still to do"
+          fix: "queue an item not done (itos work list)"
+  - name: work queue of an item already where it is put changes nothing
+    argv: [work, queue, y, --after, x]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *queued
+    exit: 0
+    stdout: |
+      y is already after x in the queue; nothing to change
+  - name: work queue needs one place
+    argv: [work, queue, x, --top, --drop]
+    exit: 2
+    stderr: |
+      itos: work queue needs one of --top, --before <id>, --after <id> or --drop (itos --help)
+  - name: work check refuses a queue naming an item the registry does not have, or one twice
+    argv: [work, check, --json]
+    files:
+      work-items.yaml: "phases: { 1: null }\nqueue: [x, nope, x]\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: todo }\n"
+    exit: 1
+    json:
+      schema: 1
+      file: work-items.yaml
+      sound: false
+      problems:
+        - rule: work-queue-unknown-item
+          message: "queue: names unknown \"nope\""
+          fix: "remove \"nope\" from queue: in work-items.yaml, or add an item nope"
+        - rule: work-queue-twice
+          message: "queue: names \"x\" twice"
+          fix: "remove one of the two \"x\" from queue: in work-items.yaml"
+  - name: work check refuses a queue that is not a list
+    argv: [work, check]
+    files:
+      work-items.yaml: "phases: { 1: null }\nqueue: x\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: todo }\n"
+    exit: 1
+    stderr: |
+      queue: is not a list of item ids

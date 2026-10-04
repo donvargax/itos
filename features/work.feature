@@ -307,7 +307,7 @@ Feature: The work registry
   # done takes a closed item out of the queue in its own commit, and work
   # check refuses a queue naming an item the registry does not have or one
   # twice.
-  @ID-WORK-30 @slice-66 @wip
+  @ID-WORK-30 @slice-66
   Scenario: work queue --top puts an item first, and commits the registry alone
     Given the work registry has the item "slice-8" owned by nobody with the status "todo"
     And the work registry has the item "slice-9" owned by nobody with the status "todo"
@@ -317,7 +317,7 @@ Feature: The work registry
     And the last commit's header is "docs: queue slice-9"
     And the last commit touches only "tasks/work-items.yaml"
 
-  @ID-WORK-31 @slice-66 @wip
+  @ID-WORK-31 @slice-66
   Scenario: work proposes what the person can start in the queue's order, the unqueued after
     Given the work registry has the item "slice-7" owned by nobody with the status "todo"
     And the work registry has the item "slice-8" owned by nobody with the status "todo"
@@ -329,7 +329,7 @@ Feature: The work registry
     And its output says "slice-8" before "slice-9"
     And its output says "slice-9" before "slice-7"
 
-  @ID-WORK-32 @slice-66 @wip
+  @ID-WORK-32 @slice-66
   Scenario: Each person sees their part of the queue, and not what another owns
     Given the work registry has the item "slice-8" owned by "ana" with the status "todo"
     And the work registry has the item "slice-9" owned by "bo" with the status "todo"
@@ -340,7 +340,7 @@ Feature: The work registry
     And its output says "slice-9"
     And its output does not say "slice-8"
 
-  @ID-WORK-33 @slice-66 @wip
+  @ID-WORK-33 @slice-66
   Scenario: work queue --drop takes an item out of the queue
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And itos has run "work queue slice-9 --top"
@@ -348,7 +348,7 @@ Feature: The work registry
     Then itos exits with code 0
     And the registry's queue is empty
 
-  @ID-WORK-34 @slice-66 @wip
+  @ID-WORK-34 @slice-66
   Scenario: work done takes the closed item out of the queue
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -359,7 +359,7 @@ Feature: The work registry
     Then itos exits with code 0
     And the registry's queue is empty
 
-  @ID-WORK-35 @slice-66 @wip
+  @ID-WORK-35 @slice-66
   Scenario: work check refuses a queue naming an item the registry does not have
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the registry's queue names "slice-404"

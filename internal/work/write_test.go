@@ -18,7 +18,8 @@ func registryOf(t *testing.T, text string, logins ...string) Registry {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r := Registry{Phases: value.Prop(raw, "phases").(*value.Map), Logins: logins, People: len(logins) > 0}
+	r := Registry{Phases: value.Prop(raw, "phases").(*value.Map), Logins: logins, People: len(logins) > 0,
+		Queue: value.Prop(raw, "queue")}
 	for _, item := range value.Prop(raw, "items").([]any) {
 		m := value.Copy(item).(*value.Map)
 		if m.At("depends_on") == value.Undefined {

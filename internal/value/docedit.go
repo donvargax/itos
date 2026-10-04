@@ -631,3 +631,96 @@ func (d *Doc) Note(path []any, paragraph string) error {
 	m.Set(key, joined)
 	return nil
 }
+
+// SetBlockList gives the key the path names, a key of a block mapping, the
+// list of strings written as a block list, an item a line below the key, its
+// dashes indented two past the key or in the old block list's column, or []
+// on the key's line when the list is empty. A block list is the one shape a
+// formatter leaves as it is however long it grows, which a flow list is not
+// (the registry's queue, slice 66). An old value of nothing or a list of any
+// shape is replaced whole, from just past the key's colon to its last line.
+// A key the mapping lacks is added before the key before, above the comment
+// lines that lead into it, a blank line after it when one is before it; or
+// after the mapping's last key when it has no key before.
+func (d *Doc) SetBlockList(path []any, list []string, before string) error {
+	parent, m, key, flow, err := d.mapAt(path)
+	if err != nil {
+		return err
+	}
+	if flow || parent.Style&yaml.FlowStyle != 0 {
+		return fmt.Errorf("%s is in a flow mapping", where(path))
+	}
+	values := make([]any, len(list))
+	for i, s := range list {
+		values[i] = s
+	}
+	block := func(indent string) string {
+		if len(list) == 0 {
+			return " []"
+		}
+		var b strings.Builder
+		for _, s := range list {
+			b.WriteString(d.e.nl + indent + "- " + token(s, 0))
+		}
+		return b.String()
+	}
+	k, v := lookup(parent, key)
+	if k == nil {
+		bk, _ := lookup(parent, before)
+		if bk == nil {
+			if err := d.addLast(parent, false, key, block("  ")+d.e.nl, ""); err != nil {
+				return fmt.Errorf("%s: %w", where(path), err)
+			}
+			m.Set(key, values)
+			return nil
+		}
+		at, err := d.e.offset(bk.Line, 1)
+		if err != nil {
+			return err
+		}
+		for at > 0 {
+			start := strings.LastIndexByte(d.e.text[:at-1], '\n') + 1
+			if !strings.HasPrefix(strings.TrimSpace(d.e.text[start:at]), "#") {
+				break
+			}
+			at = start
+		}
+		lead := strings.Repeat(" ", bk.Column-1)
+		put := lead + key + ":" + block(lead+"  ") + d.e.nl
+		if at > 0 {
+			start := strings.LastIndexByte(d.e.text[:at-1], '\n') + 1
+			if strings.TrimSpace(d.e.text[start:at]) == "" {
+				put += d.e.nl
+			}
+		}
+		d.e.edits = append(d.e.edits, edit{at: at, put: put})
+		m.Set(key, values)
+		return nil
+	}
+	start, err := d.afterColon(k)
+	if err != nil {
+		return fmt.Errorf("%s: %w", where(path), err)
+	}
+	indent := strings.Repeat(" ", k.Column-1+2)
+	end := 0
+	switch {
+	case isEmpty(v) && v.Kind == yaml.ScalarNode:
+		if _, end, err = d.e.span(v, false); err != nil {
+			return fmt.Errorf("%s: %w", where(path), err)
+		}
+	case v.Kind == yaml.SequenceNode && v.Style&yaml.FlowStyle != 0:
+		if _, end, err = d.flowSpan(v); err != nil {
+			return fmt.Errorf("%s: %w", where(path), err)
+		}
+	case v.Kind == yaml.SequenceNode:
+		if end, err = d.blockEnd(v); err != nil {
+			return fmt.Errorf("%s: %w", where(path), err)
+		}
+		indent = strings.Repeat(" ", v.Column-1)
+	default:
+		return fmt.Errorf("%s is not a list", where(path))
+	}
+	d.e.edits = append(d.e.edits, edit{at: start, cut: end - start, put: block(indent)})
+	m.Set(key, values)
+	return nil
+}

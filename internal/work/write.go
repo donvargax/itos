@@ -24,13 +24,15 @@ import (
 // Change is an edit of the registry: its text after, the item as it reads
 // after (its depends_on a list, as Load gives it), the items whose
 // depends_on now name it, the item's keys the edit changed (work edit's),
-// and the header and body of the commit that records it. Unchanged is an
-// edit with nothing to write: the item was already as asked.
+// the queue after (work queue's and Unqueue's, queue.go), and the header and
+// body of the commit that records it. Unchanged is an edit with nothing to
+// write: the item was already as asked.
 type Change struct {
 	Text      string
 	Item      *value.Map
 	Rewritten []string
 	Changed   []string
+	Queue     []string
 	Header    string
 	Body      string
 	Unchanged bool
@@ -201,7 +203,8 @@ func waitsOn(r Registry, item *value.Map) []string {
 
 // Promote is the registry with the idea made a slice or a task (kind) under
 // a new id (slice 52): its id and kind changed, "Was <old id>." put before
-// its why, and every depends_on that named the old id naming the new one.
+// its why, and every depends_on that named the old id naming the new one,
+// as the queue does when it holds the idea (slice 66).
 // A title given ("" for none) replaces the idea's (slice 65): an idea
 // promoted has usually become something more specific than its title says,
 // and the commit's body names the new title. Refused, with nothing changed: an id no item has, an item that is not an
@@ -276,6 +279,16 @@ func Promote(r Registry, text, id, newID, kind, title string, taskID *regexp.Reg
 			rewritten = append(rewritten, value.String(other.At("id")))
 		}
 	}
+	queued := false
+	for k, q := range Queued(r) {
+		if q != id {
+			continue
+		}
+		if err := doc.Set([]any{"queue", k}, newID); err != nil {
+			return Change{}, nil, err
+		}
+		queued = true
+	}
 	edited, err := doc.Text()
 	if err != nil {
 		return Change{}, nil, err
@@ -291,6 +304,9 @@ func Promote(r Registry, text, id, newID, kind, title string, taskID *regexp.Reg
 			body += "s"
 		}
 		body += " on it"
+	}
+	if queued {
+		body += ", keeping its place in the queue"
 	}
 	body += "."
 	return Change{Text: edited, Item: after, Rewritten: rewritten, Header: "docs: promote " + id + " to " + newID, Body: body}, nil, nil

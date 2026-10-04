@@ -3,6 +3,7 @@ package work
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v2/internal/out"
@@ -75,7 +76,10 @@ func absent(v any) bool { return v == nil || v == value.Undefined }
 // `todo` items, every dependency done, theirs first (the item's owner, else
 // its group's), then the unowned ones in groups nobody owns. Ideas (kind
 // idea) and deferred items (deferred: <reason>) are apart, among the ones
-// the person may look at: theirs, or nobody's.
+// the person may look at: theirs, or nobody's. Each list is in the queue's
+// order, the items it does not name after those it does, in the registry's
+// (slice 66); what another person owns is in no list, so each person sees
+// their part of the queue.
 func Propose(r Registry, handle string) Proposal { return propose(r, handle, false) }
 
 // ProposeEvery is the proposal for a session that owns every item, whoever
@@ -123,13 +127,14 @@ func propose(r Registry, handle string, every bool) Proposal {
 	deferred := func(item *value.Map) bool { return item.At("deferred") != value.Undefined }
 	p := Proposal{Person: handle, Every: every, Doing: []*value.Map{}, Next: []*value.Map{}, Unowned: []*value.Map{},
 		Waiting: []Waiting{}, Ideas: []Waiting{}, Deferred: []*value.Map{}}
-	for _, item := range r.Items {
+	items := inQueueOrder(r)
+	for _, item := range items {
 		if item.At("status") == "doing" && mine(item) {
 			p.Doing = append(p.Doing, item)
 		}
 	}
 	var todo, theirs []*value.Map
-	for _, item := range r.Items {
+	for _, item := range items {
 		if item.At("status") != "todo" {
 			continue
 		}
@@ -163,6 +168,30 @@ func propose(r Registry, handle string, every bool) Proposal {
 		}
 	}
 	return p
+}
+
+// inQueueOrder are the registry's items, those the queue names first, in its
+// order, then the rest in the registry's.
+func inQueueOrder(r Registry) []*value.Map {
+	queued := Queued(r)
+	if len(queued) == 0 {
+		return r.Items
+	}
+	place := map[string]int{}
+	for i, id := range queued {
+		place[id] = i
+	}
+	ordered := slices.Clone(r.Items)
+	slices.SortStableFunc(ordered, func(a, b *value.Map) int {
+		at := func(item *value.Map) int {
+			if i, ok := place[value.String(item.At("id"))]; ok {
+				return i
+			}
+			return len(queued)
+		}
+		return at(a) - at(b)
+	})
+	return ordered
 }
 
 // Fields are the proposal as --json prints it, its keys in work.ts's order,

@@ -490,3 +490,71 @@ func workPromote(args []string, o Out) (int, error) {
 	extra := []out.Field{{Key: "was", Value: id}, {Key: "rewritten", Value: rewritten}}
 	return reportWork(line+": "+committed(sha, change.Header), change, sha, extra, o)
 }
+
+// workQueue is `work queue <id> --top | --before <id> | --after <id> |
+// --drop` (slice 66): the item put first in the registry's queue, just
+// before or after an item it holds, or taken out of it, the queue written
+// whole and the registry committed, "docs: queue <id>" (work.Queue). One
+// place, exactly, is given.
+func workQueue(args []string, o Out) (int, error) {
+	var rest []string
+	top, drop := false, false
+	for _, arg := range args {
+		switch arg {
+		case "--top":
+			top = true
+		case "--drop":
+			drop = true
+		default:
+			rest = append(rest, arg)
+		}
+	}
+	id, flags, err := workArgs("queue", rest, "--before", "--after")
+	if err != nil {
+		return 0, err
+	}
+	at := work.Place{Top: top, Drop: drop, Before: flags["--before"], After: flags["--after"]}
+	given := 0
+	for _, on := range []bool{at.Top, at.Drop, at.Before != "", at.After != ""} {
+		if on {
+			given++
+		}
+	}
+	if given != 1 {
+		return 0, usage("work queue needs one of --top, --before <id>, --after <id> or --drop")
+	}
+	cfg, registry, text, release, code, err := soundRegistry(o)
+	defer release()
+	if cfg == nil {
+		return code, err
+	}
+	change, problem, err := work.Queue(registry, text, id, at)
+	if err != nil {
+		return 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+	}
+	if problem != nil {
+		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
+	}
+	where := "first in the queue"
+	switch {
+	case at.Drop:
+		where = "out of the queue"
+	case at.Before != "":
+		where = "before " + at.Before + " in the queue"
+	case at.After != "":
+		where = "after " + at.After + " in the queue"
+	}
+	queue := make([]any, len(change.Queue))
+	for i, q := range change.Queue {
+		queue[i] = q
+	}
+	extra := []out.Field{{Key: "queue", Value: queue}}
+	if change.Unchanged {
+		return reportWork(id+" is already "+where+"; nothing to change", change, "", extra, o)
+	}
+	sha, code, err := writeRegistry(cfg, text, change, o)
+	if err != nil || code != 0 {
+		return code, err
+	}
+	return reportWork(fmt.Sprintf("%s is %s: %s", id, where, committed(sha, change.Header)), change, sha, extra, o)
+}
