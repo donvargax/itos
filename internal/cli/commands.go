@@ -76,7 +76,8 @@ func split(args []string) (string, []string) {
 // whatever it is, as main.ts takes it, `work list`, which takes nothing
 // else, `work take` and `work promote` (workwrite.go), `work done`
 // (workdone.go), `work add` and `work edit` (workedit.go), or
-// `work [--as <handle>]`.
+// `work [--as <handle>]`, which takes nothing else: an argument it does not
+// know is a usage error, not one ignored (bug 11).
 func workCommand(args []string, o Out) (int, error) {
 	switch sub, rest := split(args); sub {
 	case "take":
@@ -98,9 +99,28 @@ func workCommand(args []string, o Out) (int, error) {
 		}
 		return workList(o)
 	}
-	as, _ := flagValue(args, "--as")
+	as := ""
+	for i := 0; i < len(args); i++ {
+		switch arg := args[i]; {
+		case arg == "--as":
+			if i+1 >= len(args) {
+				return 0, usage("work --as needs a handle")
+			}
+			i++
+			as = args[i]
+		case strings.HasPrefix(arg, "--as="):
+			as = strings.TrimPrefix(arg, "--as=")
+		case strings.HasPrefix(arg, "-"):
+			return 0, usage("work does not take %s: %s", arg, workTakes)
+		default:
+			return 0, usage("work has no subcommand %s: %s", arg, workTakes)
+		}
+	}
 	return workProposal(as, o)
 }
+
+// workTakes is what work takes, as a usage error names it.
+const workTakes = "it takes list, take, promote, done, add, edit or check, else --as <handle>"
 
 // commit is a commit itself (gitCommit), every argument git commit's but
 // itos's own flags, when there is no argument or the first is a flag or "--";

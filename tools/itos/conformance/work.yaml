@@ -1249,3 +1249,18 @@ cases:
     exit: 2
     stderr: |
       itos: work edit does not take --owner (itos --help)
+  - name: work refuses a subcommand it does not have, naming those it has
+    argv: [work, bogus, --x]
+    exit: 2
+    stderr: |
+      itos: work has no subcommand bogus: it takes list, take, promote, done, add, edit or check, else --as <handle> (itos --help)
+  - name: work refuses a flag it does not take
+    argv: [work, --as, a, --all]
+    exit: 2
+    stderr: |
+      itos: work does not take --all: it takes list, take, promote, done, add, edit or check, else --as <handle> (itos --help)
+  - name: work --as needs a handle
+    argv: [work, --as]
+    exit: 2
+    stderr: |
+      itos: work --as needs a handle (itos --help)

@@ -243,3 +243,14 @@ Feature: The work registry
     When itos runs the command line "work edit slice-7 --note 'Nothing to note.'"
     Then itos exits with code 1
     And its output says "slice-7"
+
+  # Bug 11: itos work took anything after it for the proposal's arguments,
+  # so a subcommand it does not have (a typo, or work add on an itos without
+  # it) printed what the person can start and exited 0, the arguments
+  # ignored, as if the command had done what was asked.
+  @ID-WORK-25 @bug-11
+  Scenario: work refuses a subcommand it does not have, naming those it has
+    When itos runs "work bogus --x"
+    Then itos exits with code 2
+    And its output says "bogus"
+    And its output says "take, promote, done"
