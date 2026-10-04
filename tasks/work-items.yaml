@@ -4629,14 +4629,15 @@ items:
       nightly. This repository sets ci.watch.github.nightly_workflow: nightly.yml in a build commit.
     refs: [features/status.feature, internal/providers, internal/cli/status.go]
 
-  - id: p1-adr-checks
-    title: config check holds the decision records to their rules
+  - id: slice-74
+    title: config check holds the decision records to unique numbers and real supersede links
     phase: 1
     owner: donvargax
     status: todo
     depends_on: [slice-69]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-adr-checks.
       Split from slice-69 (2026-10-04): numbers unique, each supersede link answered by the other
       file, the index listing exactly the live records. Rules a command can decide, so a record
       edited by hand or by adr-tools cannot drift unseen.
