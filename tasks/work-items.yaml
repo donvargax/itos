@@ -3371,7 +3371,7 @@ items:
     title: itos work add and edit, and itos task add, write the registry and the ledger and commit
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-52]
     kind: slice
     why: >
