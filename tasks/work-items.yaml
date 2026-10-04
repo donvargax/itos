@@ -3720,14 +3720,15 @@ items:
       still say registry for a ledger file. A Go test with a commit-msg hook that exits 1, asserting
       both files as they were, the new file gone and git status clean, then one shared restore.
 
-  - id: p1-work-edit-lists
+  - id: bug-14
     title: itos work edit handles every list the registry holds
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-work-edit-lists.
       Found by the post-landing review of slice 54: value.Doc refuses a flow list that spans several
       lines, which the formatter writes for long lists, so itos work edit T-073 --refs fails on this
       registry today with a message that does not say how to fix it; a block list cannot be emptied
