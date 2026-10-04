@@ -3276,14 +3276,15 @@ items:
       update.feature.
     refs: [internal/launch/update.go, features/update.feature]
 
-  - id: p3-init-agent-rules
+  - id: slice-59
     title: itos init writes the config's rules for agents as a generated block in AGENTS.md
     phase: 3
     owner: donvargax
     status: todo
     depends_on: [slice-48]
-    kind: idea
+    kind: slice
     why: >
+      Was p3-init-agent-rules.
       The user's call (2026-10-03): init readies agents too, for a repository adopting itos that
       cannot start from the project template. How to work with itos stays in the plugin's skill,
       versioned with itos, and AGENTS.md points to it; what the config decides (the commit types,
@@ -3317,7 +3318,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [p3-init-agent-rules]
+    depends_on: [slice-59]
     kind: idea
     why: >
       The user's call (2026-10-03): the coordinator and implementer split, docs/ORCHESTRATING.md,
