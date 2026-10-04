@@ -4605,14 +4605,15 @@ items:
       seeding numbers from 0002, by hand in the exact form itos ask record writes.
     refs: [PLAN.md, docs/adr]
 
-  - id: p1-status-nightly-green
-    title: itos status adds the last nightly and main's last green run
+  - id: slice-72
+    title: itos status names the last nightly's run and its result
     phase: 1
     owner: donvargax
     status: todo
     depends_on: [slice-70]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-status-nightly-green.
       Split from slice-70 (2026-10-04). The last nightly's result (red first, since a red nightly is
       the first item) and main's last green run beside a run going. Each needs a provider: the
       nightly's workflow is no key ci.watch has, while the last green run is what ci.range's
