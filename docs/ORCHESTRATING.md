@@ -5,7 +5,10 @@
 other: what to read beyond the status, how this repository's gates and
 releases work, and the lessons it taught. The generic rules (the loop, one
 agent at a time, red first, never poll, a report is a claim) are the guide's;
-don't repeat them here. Start a session with `! itos go`.
+don't repeat them here. Start a session with `! tools/bin/itos go`: this
+repository pins no release and runs its own build (`hooks.bin`), so the
+`itos` on a PATH runs whatever version was installed there, and may lack
+commands this tree has.
 
 ## Start of a session, beyond the status
 
