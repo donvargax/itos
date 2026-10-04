@@ -4721,7 +4721,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [T-089]
     kind: task
     why: >
       Was p1-release-rules-one-copy.
