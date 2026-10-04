@@ -4417,3 +4417,17 @@ items:
       registry or the items both sides changed, so an agent reading the JSON cannot tell a lost take
       from any conflict.
     refs: [internal/cli/push.go]
+
+  - id: p1-show-queue-place
+    title: itos work show says where the item is in the queue
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-66]
+    kind: idea
+    why: >
+      Slice 66 puts the order of the work in the registry's queue, but work show, an item's reading
+      list, does not say whether the item is queued or where, and work list --json does not carry
+      the queue, so a reader of one item, or the plugin's titles, cannot see its place without
+      reading the YAML.
+    refs: [internal/work/show.go]
