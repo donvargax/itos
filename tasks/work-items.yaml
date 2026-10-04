@@ -4618,7 +4618,16 @@ items:
       the first item) and main's last green run beside a run going. Each needs a provider: the
       nightly's workflow is no key ci.watch has, while the last green run is what ci.range's
       provider already reads. This session found the red nightly only by reading it by hand.
-    refs: [features/status.feature, internal/providers]
+
+      Specified as @ID-STATUS-09 and 10 (2026-10-04); main's last green run is split off as
+      p1-status-last-green. Settled: two new keys, ci.watch.github.nightly_workflow (the github
+      provider reads that workflow's newest run on the branch it watches) and
+      ci.watch.nightly_command (the command provider runs it, with no {sha}, and reads the run it
+      prints as ci.watch.command's); neither set, no nightly line. status prints 'Nightly: <result>,
+      <address>' after the head's CI line, its result as the head's is (going, success, failure); a
+      nightly that cannot be read is said in a line and the rest prints, exit 0; --json gains
+      nightly. This repository sets ci.watch.github.nightly_workflow: nightly.yml in a build commit.
+    refs: [features/status.feature, internal/providers, internal/cli/status.go]
 
   - id: p1-adr-checks
     title: config check holds the decision records to their rules
