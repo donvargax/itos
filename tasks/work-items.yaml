@@ -3765,3 +3765,16 @@ items:
       Found by itos-cc dry (2026-10-03): git(), lastRelease() and anyReleasable() are copied across
       plugin-version, previous-release, release-version and schema-contract. One shared package
       under tools/bin.
+
+  - id: p3-guard-cd
+    title: The guard judges a git command by the folder a cd in the command moves to
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found 2026-10-03: itos's guard denied cd /tmp/repro && git init && git commit in a scratch
+      repository, judging it by the session's folder, which itos manages; the agent's next command,
+      without its cd, then ran in the coordinator's worktree. The guard should follow a leading cd
+      (and git -C, already handled) to the folder the git command runs in.
