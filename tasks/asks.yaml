@@ -6,3 +6,6 @@ questions:
   - id: q-2
     item: "p1-push-needs-hooks"
     question: "Refusing itos commit and itos push when the hook they rely on cannot run breaks every consumer without hooks installed. Put it behind a config key, off by default until v3.0.0, with only the clear bug (core.hooksPath naming a missing folder) refused at once as a fix (the coordinator's recommendation)?"
+  - id: q-3
+    item: "p1-follow-reopen"
+    question: "A closed itos follow thread: reopen it with an explicit itos follow reopen <id> (the coordinator's recommendation, so a late note does not bring it back by accident), or let any note reopen it?"
