@@ -135,6 +135,30 @@ in the spec or in a gate, ask the person; never weaken a gate to get green.
   an idea (`itos work add <id> --title '…' --why '…'`), not as work folded
   into the current one. The person's review is final.
 
+## Decisions
+
+- **An answered question is a decision.** `itos ask` names the answered
+  ones recorded nowhere else. Offer the person `itos ask record <id> --title
+'…'` for an answer that sets a direction beyond its item, and `--none` for
+  one that only settled its item; write a record only when they agree.
+- **Records live in `docs/decisions/`** (or the folder `work.decisions`
+  names), one MADR file each, and its README.md lists the live ones. Read
+  that index, not the superseded records.
+- **A repository whose docs already hold decisions** (a plan, a design
+  file) moves them into records as one task, the person agreeing first:
+  - Only what was decided becomes a record, one per decision; what the docs
+    describe (a command's options, how a mode works) stays in the docs or
+    the help. A row holding several calls stays one record while it fits a
+    screen.
+  - Seed each one through `itos ask add`, `ask answer` and `ask record`, so
+    every record keeps the question it answers and the format stays itos's.
+  - `git grep` the old doc's name for its citations: point one at a section
+    that left to its record, and keep one at a section that stayed. Code
+    comments change in a `refactor` commit, the rest in `docs` commits; a
+    feature file's description changes only in a feat or a fix.
+  - Aim the task's checks at what it changes: a grep over whole folders also
+    hits fixtures that keep old text on purpose.
+
 ## The brief
 
 Fill in the item, its scenarios and its reads; keep the rest. Each rule in it
