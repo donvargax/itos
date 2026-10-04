@@ -4476,8 +4476,8 @@ items:
   - id: slice-70
     title: itos status names the newest release and the feat and fix commits since it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-67]
     kind: slice
     why: >
