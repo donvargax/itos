@@ -4690,3 +4690,18 @@ items:
       uncommitted changes to them before writing, so nothing of the person's is lost). The second
       fix is in the commit every registry, ask and task add command shares.
     refs: [features/ask.feature, internal/cli/workwrite.go, internal/adr]
+
+  - id: p1-written-files-format-command
+    title: An optional command formats the files itos writes before it commits them
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's calls (2026-10-04): what itos writes is formatter-stable under default settings,
+      and a repository whose pre-commit hook formats gets its own style in the same commit. A
+      repository that checks formatting in CI without fixing it in a hook would go red on itos's
+      files where its settings differ (prose wrapped, other bullets). The escape hatch, convention
+      over configuration (decision 1): an optional config command itos runs on the files it wrote,
+      {files} filled in, before committing them. Not built until a repository needs it.
