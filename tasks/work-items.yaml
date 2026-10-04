@@ -4599,3 +4599,16 @@ items:
       nightly's workflow is no key ci.watch has, while the last green run is what ci.range's
       provider already reads. This session found the red nightly only by reading it by hand.
     refs: [features/status.feature, internal/providers]
+
+  - id: p1-adr-checks
+    title: config check holds the decision records to their rules
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-69]
+    kind: idea
+    why: >
+      Split from slice-69 (2026-10-04): numbers unique, each supersede link answered by the other
+      file, the index listing exactly the live records. Rules a command can decide, so a record
+      edited by hand or by adr-tools cannot drift unseen.
+    refs: [internal/ask]
