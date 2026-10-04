@@ -3670,3 +3670,19 @@ items:
       same way. No command adds a phase either, so a new phase is still a hand edit before task add
       can use it. Found building slice 55.
     refs: [internal/value/docedit.go, internal/cli/starter.go]
+
+  - id: p1-commit-rollback-tested
+    title: The registry and ledger commands' rollback is tested, and has no holes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the post-landing review of slice 55: writeCommitted (internal/cli/workwrite.go), the
+      only code in itos that undoes writes, has no test that makes a commit fail, and slice 55 grew
+      it to several files and new ones. Holes: a failed second write leaves the first file edited; a
+      git that cannot start the commit leaves a new file staged; git add's stderr is swallowed; a
+      path deleted but not staged passes the clean check and is staged on rollback; its messages
+      still say registry for a ledger file. A Go test with a commit-msg hook that exits 1, asserting
+      both files as they were, the new file gone and git status clean, then one shared restore.
