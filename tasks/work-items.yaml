@@ -4681,7 +4681,7 @@ items:
     title: ask record's index survives a formatter, and itos's own commits leave the index as committed
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-69]
     kind: slice
     why: >
