@@ -3155,6 +3155,14 @@ items:
       never formats. Open: moves, since an entry's ID holds a file path (itos-cc reads an
       unchanged function hash under a new ID as a move, and a claim by glob may still break),
       which may want a moves rule like the scenarios' builtin.
+
+      The user's design note (2026-10-03), for when itos-cc fills this role: the agent runs itos-cc
+      mutate on what it changed; the commit hook only checks, by a per-function hash of each changed
+      function (and of the tests that ran) recorded in itos-cc's cache, that results exist for
+      exactly the staged code, refusing a stale or missing one; CI re-runs the changed functions'
+      mutants, fully or as a random spot check, refusing a commit whose recorded results do not
+      hold, so forging them is a bad bet. Per function, since itos-cc's annotation comment would
+      change a file's hash. Until then, mutation comments added by hand go in refactor commits.
     refs: [PLAN.md]
 
   - id: p3-debt-claims
