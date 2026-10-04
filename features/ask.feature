@@ -184,3 +184,18 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     Then itos exits with code 0
     And no line of HEAD's message starts with "recommendation:"
     And the message of HEAD says "recommendation: hold it."
+
+  # MADR makes a record's frontmatter optional, but the index listed only
+  # records whose status says accepted, so a repository whose records carry
+  # no frontmatter got an empty index (found by slice 71's agent). A record
+  # is live unless its status says otherwise (superseded, deprecated or
+  # rejected), by decision 1 (p1-decisions-no-frontmatter).
+  @ID-ASK-18 @bug-19 @wip
+  Scenario: A record with no frontmatter is listed in the index as live
+    Given the committed file "docs/decisions/0001-use-go.md" holding "# Use Go"
+    And itos has run the command line "ask add 'Labels or Projects?'"
+    And itos has run the command line "ask answer q-1 'Labels.'"
+    When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
+    Then itos exits with code 0
+    And the file "docs/decisions/README.md" says "Use Go"
+    And the file "docs/decisions/README.md" says "Triage issues with labels"
