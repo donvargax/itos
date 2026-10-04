@@ -26,7 +26,8 @@
 //            A case's files are laid over the file's own.
 //   stdin, env (laid over the file's), cwd (a folder of the case's)
 //   hide     commands the PATH must not reach (a folder holding one is
-//            replaced by a copy of links without it)
+//            replaced by a copy of links without it), as every itos-*
+//            program of the caller's PATH always is (below)
 //   exit     the expected exit code (required)
 //   stdout, stderr         the exact text; stdout_has, stderr_has: text each
 //                          must contain (one, or a list); json: stdout's JSON
@@ -42,7 +43,7 @@
 // ever. Without it, as this corpus runs, every output is pinned exactly.
 //
 // In every string, `{{dir}}` is the case's folder, `{{PATH}}` the runner's
-// PATH, `{{sha.<label>}}` and `{{short.<label>}}` a labelled commit (40 and 7
+// PATH without the caller's extensions, `{{sha.<label>}}` and `{{short.<label>}}` a labelled commit (40 and 7
 // characters), `{{version}}` the version the binary says it is (`<command>
 // version`'s last word, asked once before any case), so a build stamped with
 // any version passes, and `{{release}}` that version's X.Y.Z, the version a
@@ -50,6 +51,13 @@
 // 2.3.1-dev.5.g1234abc, which no comparator reads). The command runs in a clean environment: no GIT_*, ITOS_*,
 // GITHUB_* or CI variable of the caller's, HOME an empty folder, no global or
 // system git config, and nowhere a release could be fetched from (cleanEnv). Nothing is shared between cases, so they run in parallel.
+//
+// The PATH is the caller's without any itos-<command> on it (T-080): itos runs
+// and lists every extension it finds there, so one installed on the machine
+// would change what a case sees. Each folder holding one is replaced, once a
+// run, by a folder of links to everything else in it, so the other programs
+// there stay reachable. A case that wants an extension writes one itself and
+// puts its folder on the PATH (`env: { PATH: "{{dir}}/bin:{{PATH}}" }`).
 import { spawn, spawnSync } from "node:child_process";
 import {
 	chmodSync,
@@ -176,6 +184,7 @@ function cleanEnv(home: string): NodeJS.ProcessEnv {
 			env[key] = value;
 	return {
 		...env,
+		PATH: RUN_PATH,
 		HOME: home,
 		GIT_CONFIG_NOSYSTEM: "1",
 		GIT_CONFIG_GLOBAL: join(home, ".gitconfig"),
@@ -193,6 +202,18 @@ function cleanEnv(home: string): NodeJS.ProcessEnv {
 }
 
 type Subst = (s: string) => string;
+
+// The PATH every case starts from, and {{PATH}}: the caller's, without its
+// itos extensions once hideExtensions has run.
+let RUN_PATH = process.env.PATH ?? "";
+
+const isExtension = (name: string) => name.startsWith("itos-");
+
+// Sets RUN_PATH to the caller's PATH with no itos-* program on it, the folders
+// it changes made in into.
+function hideExtensions(into: string) {
+	RUN_PATH = hiddenPath(process.env.PATH ?? "", isExtension, into);
+}
 
 // The version the binary says it is, and its X.Y.Z: {{version}} and {{release}}.
 let VERSION = "";
@@ -227,7 +248,7 @@ function substituter(dir: string, labels: Map<string, string>): Subst {
 	return (s) =>
 		s.replace(/\{\{(dir|PATH|version|release|sha\.[\w-]+|short\.[\w-]+)\}\}/g, (whole, name: string) => {
 			if (name === "dir") return dir;
-			if (name === "PATH") return process.env.PATH ?? "";
+			if (name === "PATH") return RUN_PATH;
 			if (name === "version") return VERSION;
 			if (name === "release") return RELEASE;
 			const [form, label] = name.split(".") as [string, string];
@@ -301,17 +322,26 @@ function buildRepo(dir: string, steps: GitStep[], env: NodeJS.ProcessEnv, labels
 	}
 }
 
-// A PATH on which none of `hide` is found: each folder that holds one is
-// replaced by a folder of links to everything else in it.
-function hiddenPath(path: string, hide: string[], scratch: string): string {
+// The names in a folder of the PATH; none for one that cannot be read.
+function entries(folder: string): string[] {
+	try {
+		return readdirSync(folder);
+	} catch {
+		return [];
+	}
+}
+
+// A PATH on which no program hides names is found: each folder that holds one
+// is replaced by a folder of links, in into, to everything else in it.
+function hiddenPath(path: string, hides: (name: string) => boolean, into: string): string {
 	return path
 		.split(delimiter)
 		.map((folder, i) => {
-			if (!hide.some((name) => existsSync(join(folder, name)))) return folder;
-			const copy = join(scratch, `path-${i}`);
+			const names = entries(folder);
+			if (!names.some(hides)) return folder;
+			const copy = join(into, `path-${i}`);
 			mkdirSync(copy, { recursive: true });
-			for (const name of readdirSync(folder))
-				if (!hide.includes(name)) symlinkSync(join(folder, name), join(copy, name));
+			for (const name of names) if (!hides(name)) symlinkSync(join(folder, name), join(copy, name));
 			return copy;
 		})
 		.join(delimiter);
@@ -363,7 +393,8 @@ export async function runCase(
 		const subst = substituter(dir, labels);
 		writeFiles(dir, c.files ?? {}, subst);
 		for (const [key, value] of Object.entries(c.env ?? {})) env[key] = subst(value);
-		if (c.hide?.length) env.PATH = hiddenPath(env.PATH ?? "", c.hide, scratch);
+		const hide = c.hide ?? [];
+		if (hide.length) env.PATH = hiddenPath(env.PATH ?? "", (name) => hide.includes(name), scratch);
 		const run = await execute(bin, c.argv.map(subst), {
 			cwd: c.cwd ? join(dir, c.cwd) : dir,
 			env,
@@ -568,11 +599,23 @@ async function main(args: string[]): Promise<number> {
 		console.error("Usage: node tools/itos/conformance/run.ts --bin <command> [--additive] [--only <file>…]");
 		return 2;
 	}
+	const paths = mkdtempSync(join(tmpdir(), "itos-conformance-path-"));
+	try {
+		return await runAll(binary(bin), only, additive, paths);
+	} finally {
+		rmSync(paths, { recursive: true, force: true });
+	}
+}
+
+// Every case of the fixtures (only, or all), the caller's extensions hidden
+// from the PATH by folders made in paths.
+async function runAll(bin: string, only: string[], additive: boolean, paths: string): Promise<number> {
 	const started = performance.now();
 	let fixtures: Fixture[];
 	try {
 		fixtures = (only.length ? only : fixtureFiles()).map(readFixture);
-		learnVersion(binary(bin));
+		hideExtensions(paths);
+		learnVersion(bin);
 	} catch (error) {
 		console.error(`FAIL ${(error as Error).message}`);
 		return 2;
@@ -581,7 +624,7 @@ async function main(args: string[]): Promise<number> {
 	const jobs = Math.max(1, Math.min(4, availableParallelism() - 1));
 	const results = await pool(cases, jobs, async ({ file, c }) => {
 		try {
-			return { file, c, problems: compare(c, await runCase(binary(bin), c), additive) };
+			return { file, c, problems: compare(c, await runCase(bin, c), additive) };
 		} catch (error) {
 			return { file, c, problems: [`could not run: ${(error as Error).message}`] };
 		}
