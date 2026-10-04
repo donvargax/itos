@@ -4073,7 +4073,7 @@ items:
     title: itos follow, private threads with people
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     why: >
