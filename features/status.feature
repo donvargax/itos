@@ -101,3 +101,27 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "v1.2.0"
     And its output says "may be behind"
+
+  # A red nightly is a coordinator's first item, yet status read only the
+  # head's own run, so a session found the nightly red by hand (2026-10-04,
+  # p1-status-nightly-green). status names the last nightly's run, read once
+  # as the head's is: by ci.watch.github.nightly_workflow for the github
+  # provider, or ci.watch.nightly_command for the command one, which prints
+  # the run as ci.watch.command does, given no commit. A config naming
+  # neither prints no nightly line, and one that cannot be read is said in a
+  # line, the rest still printed.
+  @ID-STATUS-09 @slice-72 @wip
+  Scenario: status names the last nightly's run and its result
+    Given the watched run's jobs "ci" and "platform" succeed
+    And ci.watch.nightly_command reports the run "https://ci.example/nightly/7", its job "nightly" failed
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "https://ci.example/nightly/7"
+    And its output says "failure"
+
+  @ID-STATUS-10 @slice-72 @wip
+  Scenario: With no nightly configured, status prints no nightly line
+    Given the watched run's jobs "ci" and "platform" succeed
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output does not say "Nightly"
