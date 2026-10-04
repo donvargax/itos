@@ -264,3 +264,42 @@ Feature: itos init, a repository made ready for itos
     Given a change to "README.md" is staged
     When the commit-msg hook checks the message "feat: add a page"
     Then itos exits with code 0
+
+  # Bug 12: init writes the registry as phases: {} and items: [], and its
+  # stealth ledger as [], and work add and task add could append only to a
+  # block list that already had an item, so the first item or task of a
+  # freshly adopted repository was refused, and a registry listing no phase
+  # refused any item anyway. Init now lists its ledger's one group, phase 1,
+  # owned by nobody, and both commands write the first item into an empty
+  # list. Adding a further phase is p1-work-add-phase.
+  @ID-INIT-23 @bug-12 @wip
+  Scenario: In a repository init set up, work add writes the first item into the empty registry, in phase 1
+    Given a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init"
+    And the files init wrote are committed
+    When itos runs the command line "work add p1-thing --title 'Do the thing' --why 'Because it is missing.'"
+    Then itos exits with code 0
+    And the registry's item "p1-thing" is an idea titled "Do the thing" with the status "todo"
+    And the last commit's header is "docs: add p1-thing"
+    When itos checks the work registry
+    Then itos exits with code 0
+
+  @ID-INIT-24 @bug-12 @wip
+  Scenario: In a repository init set up, task add writes the first item into the empty registry
+    Given a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init"
+    And the files init wrote are committed
+    When itos runs the command line "task add T-2 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    Then itos exits with code 0
+    And the ledger file "tasks/phase-1.yaml" has the task "T-2" with the check "true"
+    And the registry's item "T-2" is a task titled "Tidy the readme" with the status "todo"
+
+  # The stealth ledger holds no task: it is [] until the first task add.
+  @ID-INIT-25 @bug-12 @wip
+  Scenario: Under a stealth config init wrote, task add writes the first task into the empty ledger
+    Given a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init --stealth"
+    When itos runs the command line "task add T-1 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    Then itos exits with code 0
+    And the ledger file "tasks/phase-1.yaml" has the task "T-1" with the check "true"
+    And the registry's item "T-1" is a task titled "Tidy the readme" with the status "todo"
