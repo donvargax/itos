@@ -18,6 +18,14 @@
 // clone, which may hide the tag or the commits, stops it with exit 2, never a
 // guess.
 //
+// A version is refused (exit 1, nothing on stdout) when its major does not
+// match the module path of HEAD's go.mod (T-089): from v2 Go's module proxy
+// takes a vN.x.y tag only from a module whose path ends in /vN, and a v0 or v1
+// tag only from one with no such suffix, so a release cut from a mismatched
+// go.mod could never be go-installed (v3.0.0 to v3.3.0 were cut from a path
+// ending in /v2). The path moves first, in its own commits, and the release
+// follows. A HEAD without a go.mod has no path to contradict.
+//
 // It prints key=value lines, which the release workflow appends to
 // $GITHUB_OUTPUT as they are:
 //
@@ -31,7 +39,8 @@
 //
 //	go run ./tools/bin/release-version
 //
-// Exit status: 0 computed (next may be empty), 2 it could not read the history.
+// Exit status: 0 computed (next may be empty), 1 the version is refused, 2 it
+// could not read the history or go.mod.
 package main
 
 import (
@@ -50,6 +59,7 @@ const self = "release-version"
 var (
 	typed   = regexp.MustCompile(`^([a-zA-Z]+)(\([^)]*\))?(!)?: `)
 	version = regexp.MustCompile(`^v(\d+)\.(\d+)\.(\d+)$`)
+	suffix  = regexp.MustCompile(`/v(\d+)$`)
 )
 
 func main() {
@@ -87,6 +97,14 @@ func run() int {
 	next := ""
 	if b.kind != "none" {
 		next = bumped(tag, b.kind)
+		module, err := headModule()
+		if err != nil {
+			return fail("%v", err)
+		}
+		if problem := mismatch(next, module); problem != "" {
+			fmt.Fprintf(os.Stderr, "%s: %s\n", self, problem)
+			return 1
+		}
 	}
 	fmt.Printf("last=%s\nnext=%s\nbump=%s\nrange=%s\n", tag, next, b.kind, rng)
 	from := tag
@@ -209,4 +227,53 @@ func bumped(tag, kind string) string {
 		parts[2]++
 	}
 	return fmt.Sprintf("%d.%d.%d", parts[0], parts[1], parts[2])
+}
+
+// headModule is the module path HEAD's go.mod declares, or "" when HEAD has no
+// go.mod.
+func headModule() (string, error) {
+	listed, err := git("ls-tree", "--name-only", "HEAD", "--", "go.mod")
+	if err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(listed) == "" {
+		return "", nil
+	}
+	mod, err := git("show", "HEAD:go.mod")
+	if err != nil {
+		return "", err
+	}
+	for _, line := range strings.Split(mod, "\n") {
+		if rest, ok := strings.CutPrefix(strings.TrimSpace(line), "module"); ok && rest != "" && (rest[0] == ' ' || rest[0] == '\t') {
+			return strings.Trim(strings.TrimSpace(rest), `"`), nil
+		}
+	}
+	return "", fmt.Errorf("HEAD's go.mod has no module line")
+}
+
+// mismatch says why next cannot be released from module, or "" when it can:
+// from v2 the path must end in /v<major>, and below it in no such suffix. A
+// module of "" (no go.mod) never mismatches.
+func mismatch(next, module string) string {
+	if module == "" {
+		return ""
+	}
+	major, _ := strconv.Atoi(next[:strings.Index(next, ".")])
+	has := 0
+	if m := suffix.FindStringSubmatch(module); m != nil {
+		has, _ = strconv.Atoi(m[1])
+	}
+	want := 0
+	if major >= 2 {
+		want = major
+	}
+	if has == want {
+		return ""
+	}
+	base := suffix.ReplaceAllString(module, "")
+	needs := base
+	if want != 0 {
+		needs = fmt.Sprintf("%s/v%d", base, want)
+	}
+	return fmt.Sprintf("refusing v%s: its major is %d, but go.mod's module path is %s, and Go's module proxy takes a v%d tag only from %s: move the module path first (go.mod's module line, every import, the -X ldflags that stamp the version, the go install lines), then release", next, major, module, major, needs)
 }

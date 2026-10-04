@@ -4,9 +4,11 @@ name: Release
 # it releases when the commits since the last vX.Y.Z tag carry a feat, a fix or a breaking change.
 # The tag is the version, computed from those commits (tools/bin/release-version): a breaking
 # change a major, a feat a minor, a fix a patch; with none, nothing is released and the job ends
-# green. It adds no gate of its own: the push's CI, with the schema contract (T-070) and the last
-# release's scenarios and corpus (T-071), is what a release rests on, and a break that slips
-# through is a missing check, fixed forward with the check and a fix release.
+# green. Its one gate of its own is that version against go.mod's module path (T-089): a major
+# the path does not end in (/vN from v2, nothing below) fails the version step, before any tag,
+# since Go's module proxy would refuse that tag. Otherwise the push's CI, with the schema contract
+# (T-070) and the last release's scenarios and corpus (T-071), is what a release rests on, and a
+# break that slips through is a missing check, fixed forward with the check and a fix release.
 #
 # What it publishes is what the launcher, a pin, go install and a consumer's install script read
 # (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md;

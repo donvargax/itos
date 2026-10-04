@@ -9,7 +9,10 @@
 //      before the tag does not count, nor a BREAKING-CHANGE line outside the
 //      last paragraph; a tag HEAD does not reach and a pre-release tag are not
 //      the last release, and tags compare by version (v1.10.0 after v1.9.0);
-//      with no tag a feat is 0.1.0; a shallow clone stops it (exit 2).
+//      with no tag a feat is 0.1.0; a shallow clone stops it (exit 2); and a
+//      version whose major go.mod's module path does not match (v3.x needs a
+//      path ending in /v3, v1.x one with no such suffix) is refused (exit 1),
+//      while one that matches is released (T-089).
 //   2. The release a version publishes, built as a GoReleaser snapshot of this
 //      tree (tools/bin/build-go.ts --release, .goreleaser.yaml) stamped with
 //      the version the commits since the last tag would release (the next
@@ -179,7 +182,77 @@ function versions() {
 		shallowRun.status === 2 && shallowRun.stderr.includes("shallow"),
 		`release-version in a shallow clone: exit ${shallowRun.status}, not 2 saying so\n${shallowRun.stderr}`,
 	);
-	console.log(`== release-version: ${cases.length} histories and a shallow clone`);
+
+	// The module path (T-089): a version whose major go.mod's module path does
+	// not end in (/vN from v2, nothing below) is refused, naming both and the
+	// fix, and nothing goes to stdout for the workflow to read as a version.
+	const moduled = (tag: string, module: string, after: string[]) => {
+		const dir = join(tmp, `history-${++n}`);
+		git(tmp, "init", "-q", "-b", "main", dir);
+		writeFileSync(join(dir, "go.mod"), `module ${module}\n\ngo 1.25\n`);
+		git(dir, "add", "go.mod");
+		commit(dir, "chore: the module");
+		git(dir, "tag", tag);
+		for (const m of after) commit(dir, m);
+		return dir;
+	};
+	const modules: { name: string; dir: () => string; next: string; refused?: string }[] = [
+		{
+			name: "a major to v3 from a path ending in /v2",
+			dir: () => moduled("v2.4.0", "example.com/m/v2", ["feat!: a key goes"]),
+			next: "3.0.0",
+			refused: "example.com/m/v3",
+		},
+		{
+			name: "a feat to v3.1.0 from a path ending in /v2",
+			dir: () => moduled("v3.0.0", "example.com/m/v2", ["feat: a thing"]),
+			next: "3.1.0",
+			refused: "example.com/m/v3",
+		},
+		{
+			name: "a major to v2 from a path with no suffix",
+			dir: () => moduled("v1.2.3", "example.com/m", ["fix!: a key goes"]),
+			next: "2.0.0",
+			refused: "example.com/m/v2",
+		},
+		{
+			name: "a fix to v1.2.4 from a path ending in /v2",
+			dir: () => moduled("v1.2.3", "example.com/m/v2", ["fix: a bug"]),
+			next: "1.2.4",
+			refused: "example.com/m",
+		},
+		{
+			name: "a major to v3 from a path ending in /v3",
+			dir: () => moduled("v2.4.0", "example.com/m/v3", ["feat!: a key goes"]),
+			next: "3.0.0",
+		},
+		{
+			name: "a feat to v1.3.0 from a path with no suffix",
+			dir: () => moduled("v1.2.3", "example.com/m", ["feat: a thing"]),
+			next: "1.3.0",
+		},
+	];
+	for (const c of modules) {
+		const r = run(tool, [], c.dir());
+		const got = fields(r.stdout);
+		if (c.refused) {
+			const said = [`v${c.next}`, c.refused, "move the module path first"].every((word) =>
+				r.stderr.includes(word),
+			);
+			expect(
+				r.status === 1 && r.stdout === "" && said,
+				`release-version over ${c.name}: exit ${r.status}, stdout ${JSON.stringify(r.stdout)}, not exit 1 refusing v${c.next}, naming ${c.refused} and the fix\n${r.stderr}`,
+			);
+			if (r.status === 1) console.log(`   refused: ${r.stderr.trim()}`);
+		} else
+			expect(
+				r.status === 0 && got.next === c.next,
+				`release-version over ${c.name}: exit ${r.status}, next=${got.next}, not next=${c.next}\n${r.stderr}`,
+			);
+	}
+	console.log(
+		`== release-version: ${cases.length} histories, a shallow clone and ${modules.length} module paths`,
+	);
 }
 
 // The version this tree's release would carry, the last release's tag, and
