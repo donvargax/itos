@@ -49,6 +49,7 @@ queue:
   - p1-status-releases-nightly
   - p1-done-body-url-footer
   - slice-59
+  - slice-68
   - p1-registry-archive
   - p1-work-show-gaps
   - p1-release-notes-footers
