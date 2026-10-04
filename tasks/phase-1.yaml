@@ -643,3 +643,20 @@
   done_when:
     - run: grep -q 'itos/v3/internal/release"' tools/bin/release-version/main.go
     - run: go test ./tools/bin/release-version/... ./internal/release/...
+
+- id: T-089
+  type: build
+  title: The module path is github.com/donvargax/itos/v3, and a major release is refused while it is not
+  why: >
+    Found 2026-10-04: v3.0.0 to v3.3.0 were cut from a go.mod whose module path still ends in /v2,
+    and Go's module proxy rejects a v3 tag for a /v2 path, so go install ...@latest gives v2.29.1
+    and the README's and the release notes' go install line fails for every v3 version. A major
+    release was cut with no check of the module path: the missing check of this break, fixed forward
+    (decision 0021). The path becomes /v3 everywhere it is named (go.mod, the imports, the ldflags
+    that stamp the version, the README, the release notes' go install line), and the release cut
+    refuses a version whose major does not match the module path's suffix, so the next major moves
+    the path first. go install works from the first release cut after it.
+  done_when:
+    - run: grep -qx 'module github.com/donvargax/itos/v3' go.mod
+    - run: "! git grep -q 'donvargax/itos/v2' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
+    - run: go build ./...

@@ -4841,3 +4841,20 @@ items:
       fetched here is named by its SHA alone; unreadable, a line saying so and the rest printed,
       exit 0; --json gains last_green. Nothing when the head's run passed.
     refs: [features/status.feature, internal/providers/range.go]
+
+  - id: T-089
+    title: The module path is github.com/donvargax/itos/v3, and a major release is refused while it is not
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Found 2026-10-04: v3.0.0 to v3.3.0 were cut from a go.mod whose module path still ends in /v2,
+      and Go's module proxy rejects a v3 tag for a /v2 path, so go install ...@latest gives v2.29.1
+      and the README's and the release notes' go install line fails for every v3 version. A major
+      release was cut with no check of the module path: the missing check of this break, fixed
+      forward (decision 0021). The path becomes /v3 everywhere it is named (go.mod, the imports, the
+      ldflags that stamp the version, the README, the release notes' go install line), and the
+      release cut refuses a version whose major does not match the module path's suffix, so the next
+      major moves the path first. go install works from the first release cut after it.
