@@ -134,3 +134,30 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
     Then itos exits with code 0
     And the file "doc/decisions/0008-triage-issues-with-labels.md" says "# 8. Triage issues with labels"
+
+  # A project's pre-commit hook may format what it commits, as this
+  # repository's vp staged does. itos ask record's index block was not
+  # formatter-stable (the user's call of 2026-10-03: what itos writes is),
+  # so the formatter rewrote it at every record; and since itos commits its
+  # own files with git commit --only, the formatted file went into the commit
+  # and the working tree while the index kept itos's copy, so the next itos
+  # push refused the uncommitted change (found 2026-10-04, recording
+  # decision 1). Every command that commits itos's files alone shares that
+  # commit, so the second scenario holds for each of them.
+  @ID-ASK-12 @bug-17 @wip
+  Scenario: ask record writes the index as a Markdown formatter leaves it, a blank line inside each marker
+    Given itos has run the command line "ask add 'Labels or Projects?'"
+    And itos has run the command line "ask answer q-1 'Labels.'"
+    When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
+    Then itos exits with code 0
+    And in the file "docs/adr/README.md" the line after "<!-- itos:decisions:begin -->" is blank
+    And in the file "docs/adr/README.md" the line before "<!-- itos:decisions:end -->" is blank
+
+  @ID-ASK-13 @bug-17 @wip
+  Scenario: When a pre-commit hook rewrites the files itos commits, the index is left as the commit has them
+    Given a pre-commit hook that appends a line to each staged Markdown file and stages it again
+    And itos has run the command line "ask add 'Labels or Projects?'"
+    And itos has run the command line "ask answer q-1 'Labels.'"
+    When itos runs the command line "ask record q-1 --title 'Triage issues with labels'"
+    Then itos exits with code 0
+    And git reports no change to the working tree or the index
