@@ -23,3 +23,4 @@ questions:
     item: "p1-adr-tools-default-dir"
     question: "A repository set up with adr-tools' defaults keeps its records in doc/adr with no .adr-dir file, so itos ask record would start a second log in docs/adr, numbered from 1. Should an existing doc/adr holding records win when there is no .adr-dir, as adr-tools' own lookup does (the coordinator's recommendation: compatibility was the point of using its format), or stay with docs/adr unless .adr-dir says otherwise?"
     answer: "No (2026-10-04): docs/adr stays the default and a different folder is configured, with a .adr-dir file. Defaults follow the most common convention; configuration is the escape hatch (convention over configuration). An existing doc/adr does not win on its own."
+    decision: 1
