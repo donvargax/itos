@@ -33,6 +33,13 @@ it, and the instructions then point to the check instead of restating it.
 
 ## What it does
 
+- **Starting a session**: start every fresh agent session in a repository
+  with `! itos go` (`!` runs it in Claude Code's prompt, so its output lands
+  in the session). It prints the coordinator's guide, the repository's own
+  notes, this clone's own notes and where the work stands, so the session you
+  talk to coordinates: it specifies the work and hands each item to an agent.
+  An agent it starts is told by its brief to run `itos guide work`, the
+  implementer's guide, instead; no file asks an agent to judge which it is.
 - **A ledger of tasks with executable checks** (`tasks/`): `itos task <id>`
   runs a task's `done_when` commands and says done, pending or failing, and
   `itos task add <id>` writes a new one into its group's file and its item
