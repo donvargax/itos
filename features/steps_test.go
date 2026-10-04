@@ -94,6 +94,7 @@ type scratchConfig struct {
 	hooksBin          string       // hooks.bin
 	prePushRecord     bool         // hooks.pre_push's commands record that they ran
 	watch             *watchConfig // ci.watch
+	rangeCommand      string       // ci.range.command, with ci.range's provider command, when set
 	ledgerFooter      string       // the key of the footer whose source is the ledger; Task when empty
 	textFooter        *textFooter  // a footer of free text
 	itemFooter        bool         // an Item footer of registry items, in place of the ledger footer for test, docs and chore
@@ -841,6 +842,9 @@ func (w *world) ciSection() string {
 		b.WriteString("  nightly:\n    steps: [{ tasks: done }]\n")
 	case "static":
 		b.WriteString("  nightly:\n    steps: [{ tasks: done, cost: static }]\n")
+	}
+	if w.config.rangeCommand != "" {
+		fmt.Fprintf(&b, "  range:\n    provider: command\n    command: %q\n", w.config.rangeCommand)
 	}
 	b.WriteString(w.watchSection())
 	return b.String()

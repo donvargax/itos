@@ -5,7 +5,8 @@
 // and what the remote's branches hold afterwards; two takes of one item of
 // the work registry, one the remote's and one the clone's, and the owner the
 // remote's registry gives it (slice 66); a tag on the remote's head, and a
-// fetch of the remote into the clone (status.feature, slice 70).
+// fetch of the remote into the clone (status.feature, slice 70); ci.range's
+// command printing one of the remote's commits (slice 73).
 package features
 
 import (
@@ -36,6 +37,7 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the clone has fetched the remote$`, func() error {
 		return w.git("fetch", "-q", "origin")
 	})
+	sc.Step(`^ci\.range runs a command that prints the full SHA of the remote's commit "([^"]*)"$`, w.rangePrintsRemoteCommit)
 	sc.Step(`^the clone has the commit "([^"]*)" touching "([^"]*)"$`, w.cloneCommits)
 	sc.Step(`^the clone's "([^"]*)" has an uncommitted change$`, w.uncommittedChange)
 	sc.Step(`^the clone's "([^"]*)" still has its uncommitted change$`, w.stillUncommitted)
@@ -154,6 +156,27 @@ func (w *world) remoteGainsCommit(subject, path string) error {
 		return err
 	}
 	return w.gitIn(other, "push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main")
+}
+
+// ci.range's provider is command, its command printing the full SHA of the
+// remote's commit with the header, added to the config the Background wrote
+// and left uncommitted in the clone: the remote has moved past the clone, so
+// it cannot be pushed, and itos reads the config from the clone's tree.
+func (w *world) rangePrintsRemoteCommit(header string) error {
+	cmd := exec.Command("git", "log", "--format=%H %s", "main")
+	cmd.Dir = w.remote()
+	cmd.Env = w.env()
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("git log in the remote: %w", err)
+	}
+	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
+		if sha, subject, _ := strings.Cut(line, " "); subject == header {
+			w.config.rangeCommand = "printf '%s\\n' " + sha
+			return w.writeConfig()
+		}
+	}
+	return fmt.Errorf("the remote's main has no commit %q:\n%s", header, out)
 }
 
 // A commit in the clone of that one file, written as the commit's own line.
