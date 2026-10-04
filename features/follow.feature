@@ -74,3 +74,52 @@ Feature: itos follow, private threads with people
     When itos runs "follow"
     Then itos exits with code 0
     And its output says "sync-ana"
+
+  # Bug 16, found by slice 61's post-landing review: every command read the
+  # whole file, changed it and saved it whole with no lock, so two writers at
+  # once (a person and an agent's worktree) lost notes and both exited 0; a
+  # file holding a second YAML document was cut to its first on the next
+  # save; each time printed in its own zone without its offset, so notes
+  # from a UTC container and a local shell read out of order; follow doc
+  # wrote the private thread world-readable and untracked inside the work
+  # tree with no word, one git add -A from a commit, and took - for a file
+  # name. Now a lock is held across load, change and save; a file itos did
+  # not write whole is refused, untouched; times print in the reader's zone;
+  # follow doc writes 0600 and warns of a target inside the work tree that
+  # git does not ignore; and follow doc <id> - prints the Markdown. The same
+  # lock guards a stealth config's registry and ledger (@ID-STEALTH-23).
+  @ID-FOLLOW-08 @bug-16 @wip
+  Scenario: Notes written at the same moment are all kept
+    Given itos has run the command line "follow add sync-ana --with ana --title 'The sync design' --note 'Started.'"
+    When itos runs "follow note sync-ana" with the notes "one" to "twenty" all at once
+    Then every run exited 0
+    And itos follow show sync-ana lists every one of those notes
+
+  @ID-FOLLOW-09 @bug-16 @wip
+  Scenario: A threads file holding a second document is refused, and left as it was
+    Given the threads file holds a second YAML document after the thread "sync-ana"
+    When itos runs the command line "follow note sync-ana 'Hello.'"
+    Then itos exits with code 2
+    And the threads file is as it was
+
+  @ID-FOLLOW-10 @bug-16 @wip
+  Scenario: A note's time prints in the reader's time zone
+    Given the threads file holds the thread "sync-ana" with a note stamped "2026-10-04T14:02:00+09:00"
+    When itos runs "follow show sync-ana" with TZ "UTC"
+    Then itos exits with code 0
+    And its output says "05:02"
+
+  @ID-FOLLOW-11 @bug-16 @wip
+  Scenario: follow doc into the work tree, where git does not ignore it, says so
+    Given itos has run the command line "follow add sync-ana --with ana --title 'The sync design' --note 'Started.'"
+    When itos runs "follow doc sync-ana notes/sync.md"
+    Then itos exits with code 0
+    And its output says "not ignored"
+
+  @ID-FOLLOW-12 @bug-16 @wip
+  Scenario: follow doc to - prints the Markdown and writes no file
+    Given itos has run the command line "follow add sync-ana --with ana --title 'The sync design' --note 'Started.'"
+    When itos runs "follow doc sync-ana -"
+    Then itos exits with code 0
+    And its output says "The sync design"
+    And the file "-" does not exist

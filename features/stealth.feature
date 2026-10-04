@@ -240,3 +240,16 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     Then itos exits with code 0
     And the config's pin is the version "9.2.0" of the release server, with its checksums
     And git status shows nothing to commit
+
+  # Bug 16, its stealth half (the user's call, 2026-10-04: one fix for both,
+  # being one bug): under a stealth config the registry and ledger commands
+  # write the files under the git common dir, shared by every worktree,
+  # reading, changing and saving them whole with no lock, so two sessions in
+  # two worktrees adding items at once lost one. They now take the same lock
+  # itos follow does, across load, change and save.
+  @ID-STEALTH-23 @bug-16 @wip
+  Scenario: Under a stealth config, items added at the same moment are all kept
+    Given the stealth registry has the item "T-001" owned by nobody with the status "done"
+    When itos runs "work add" for the ideas "p1-one" to "p1-ten" all at once
+    Then every run exited 0
+    And the registry has every one of those ideas
