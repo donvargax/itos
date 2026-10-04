@@ -3710,7 +3710,7 @@ items:
       Worth making a standing step.
 
   - id: slice-64
-    title: ORCHESTRATING.md becomes the itos plugin's /itos:coordinate skill and itos:implementer agent
+    title: itos go and itos guide work, the generic guides in the binary
     phase: 3
     owner: donvargax
     status: done
@@ -3749,6 +3749,12 @@ items:
       Its wait on p1-handoff-status dropped (2026-10-04): that wait was for deleting docs/HANDOFF.md
       once itos status covers it, which the spec of @ID-GUIDE-01 to 05 leaves out; itos go and itos
       guide need nothing of itos status.
+
+      Landed 2026-10-04 as v2.22.0. The user's calls since: the plugin ships no coordinate skill and
+      no implementer agent, its itos skill goes too (itos guide work serves it, and the coordinator
+      always asks implementers to run it); the plugin keeps the titles and the guard. itos go prints
+      itos status at its end once that exists. The title was the promoted idea's until this edit,
+      which misled the user: p1-promote-title.
     refs:
       [features/guide.feature, docs/ORCHESTRATING.md, integrations/claude-code/skills/itos/SKILL.md]
 
