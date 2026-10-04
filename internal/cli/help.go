@@ -52,6 +52,9 @@ Commands:
   task list [--group <g>]          the tasks and their work items' status; runs nothing
   work [--as <handle>]             what the person can start, and what waits
   work list                        every item of the work registry, done ones too
+  work take <id> [--as <handle>]   set an item in progress for the person, and commit it
+  work promote <idea> --as <id> --kind slice|task
+                                   make an idea a slice or a task, and commit it
   work check [<file>]              validate the work registry
   commit [--task <id>] [--scenarios <ids>] [--<footer> <text>] [<git commit args>…]
                                    git commit, with the footers itos writes
@@ -132,6 +135,8 @@ whose id is the task's), or "no item".
 
 	"work": `Usage: itos work [--as <handle>]
        itos work list
+       itos work take <id> [--as <handle>]
+       itos work promote <idea> --as <id> --kind slice|task
        itos work check [<file>]
 
 Who the session works for (--as, else the config's work.identity provider) and
@@ -144,7 +149,40 @@ whatever owner it names (every_item: true in --json).
 
 --json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"}
 
-work list prints every item of the registry instead (itos help work list).`,
+work list prints every item of the registry instead (itos help work list);
+work take and work promote write it, each committing it (itos help work take).`,
+
+	"work take": `Usage: itos work take <id> [--as <handle>]
+
+Sets the item in progress for the person, its status doing and its owner the
+person (--as, else the config's work.identity provider, as for work), and
+commits the registry alone, "docs: take <id>", through the hooks, leaving
+whatever else is staged staged. The registry is edited in place, its comments
+and quoting kept. Refused, nothing written (exit 1): a registry that is not
+sound or has changes no commit holds, an id no item has, an idea (work promote
+it first), an item done or deferred, one whose owner, or its group's, is
+someone else, one that waits on an item not done, a commit a hook refuses (the
+registry put back). An item already in progress for the person changes
+nothing. Exit 3 when the person is nobody or not among the people. Under a
+stealth config the registry is written and nothing committed; with no --as
+every item is the session's, and its owner is left as it is.
+
+--json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+
+	"work promote": `Usage: itos work promote <idea> --as <id> --kind slice|task
+
+Makes an idea a slice or a task: renames it <id>, sets its kind, puts
+"Was <idea>." before its why and renames it in every depends_on that names it,
+then commits the registry alone, "docs: promote <idea> to <id>", as work take
+does (itos help work take). Refused, nothing written (exit 1): a registry that
+is not sound or has changes no commit holds, an id no item has, an item that is
+not an idea, an <id> an item already has, a task's <id> that ledger.id does not
+match, a commit a hook refuses. Under a stealth config the registry is written
+and nothing committed.
+
+--json: {"schema":1,"ok":true,"item":{…},"was","rewritten":[…],"commit":"<sha>"|null},
+or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 	"work list": `Usage: itos work list
 

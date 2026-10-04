@@ -22,6 +22,7 @@ var stealthDir = filepath.Join(".git", "itos")
 
 func initializeStealthSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a repository whose ledger has the task "([^"]*)", kept in its git folder$`, w.stealthRepository)
+	sc.Step(`^itos's config is kept in the git folder$`, w.configToGitFolder)
 	sc.Step(`^the work registry beside the config has the item "([^"]*)" with the status "([^"]*)"$`, func(item, status string) error {
 		return w.workingRegistry(w.data(startingRegistry), item, status)
 	})
@@ -194,6 +195,29 @@ func (w *world) stealthRepository(task string) error {
 		return err
 	}
 	return w.commit("docs: start")
+}
+
+// The project's config, ledger, registry and people moved into the git
+// folder, the stealth config, their removal from the root committed, so the
+// working tree is clean.
+func (w *world) configToGitFolder() error {
+	if w.dataDir != "" {
+		return fmt.Errorf("the config is already kept in the git folder")
+	}
+	for _, path := range []string{"itos.yaml", "people.yaml", w.ledgerPath(), startingRegistry} {
+		if err := os.Remove(filepath.Join(w.dir, path)); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+	var tasks []string
+	for _, task := range w.ledger {
+		tasks = append(tasks, task.id)
+	}
+	w.dataDir = stealthDir
+	if err := w.startingFiles(tasks...); err != nil {
+		return err
+	}
+	return w.commit("docs: keep itos in the git folder")
 }
 
 // A linked worktree of the scratch repository, at a path relative to it. The

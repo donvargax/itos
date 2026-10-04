@@ -506,7 +506,8 @@ mechanisms above, written against those modules, read across.
   `internal/message` (below), `internal/plan` (CI's plan; below),
   `internal/providers` (the range, watch and identity providers and the people;
   below), `internal/work` (the registry and its problems, the items'
-  statuses, and the proposal; below),
+  statuses, the proposal, and the edits that take and promote an item;
+  below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git` (the repository's state and ranges, read
   through the real git; below), beside four
@@ -968,7 +969,14 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   (`TypeOf`) and `JSON.stringify` (`JSON`) would, so a problem quoting an odd
   value reads the same in both. `YAML` writes the `yaml` package's block
   style, for `--print-defaults`; `SetScalars` edits a person's YAML in place,
-  for `itos pin` (above). The patterns are compiled as RE2, the
+  for `itos pin` (above), and `Doc` (`doc.go`, slice 52) does the same by
+  paths of keys and indices into the document, for the registry's writers
+  (above): `Set` replaces a one-line scalar in its style (quoted in a flow
+  collection when a plain one would hold its indicators) or adds a key after
+  the mapping's last one-line value, `Lead` puts a sentence before a why (a
+  new first line of a folded or literal block), each edit made in `Want` too,
+  and `Text` refuses the edits unless the text reads back as `Want`, keys in
+  any order. Of two edits at one offset the earlier writes first. The patterns are compiled as RE2, the
   config's dialect, which the TypeScript held them to by refusing what RE2
   cannot compile (the config loader, above); where itos builds a pattern
   around `\s` or trims, it uses `value.Space` and `value.Trim`, JavaScript's
@@ -1285,6 +1293,33 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   the titles (T-066's plugin) keeps them through a registry problem; its
   `--json` items are the same `value.Map`s the proposal writes, so the two
   commands describe an item alike, and its text is `work.PrintList`.
+- **The registry's writers** are `work take` and `work promote` (slice 52,
+  `internal/cli/workwrite.go` over `internal/work/write.go`), the registry
+  being written by commands, never by hand, and each committing its own
+  change. Both start from a sound registry (`work.Problems`, reported as
+  `work check` would, exit 1) and its text. `work.Take` and `work.Promote`
+  judge it, an item found by its id with `find`, and give a `Change`: the text
+  after, the item as it reads after, the items whose `depends_on` were
+  renamed, the commit's header and body, or `Unchanged` (an item already in
+  progress for the person); or an `out.Problem` that refuses, nothing
+  written. `work take`'s person is `Whoami`'s, as for `work`, nobody or one
+  the people do not list exiting 3; under a stealth config with no `--as`
+  nobody is asked, as `ProposeEvery` asks nobody, and the owner is left as it
+  is. Ownership is the item's owner, else its group's (`ownerOf`, as
+  `Propose` reads it). The text is edited with `value.Doc` (below), every
+  comment and quote kept. `writeRegistry` is the part any registry command
+  shares, `work done` (slice 53) included: in a project it refuses a registry
+  git does not hold as HEAD has it (untracked, or changed, staged or not),
+  whose changes the commit would sweep in, then writes the text and runs
+  `git commit --only -m <header> -m <body> -- <registry>` from the top, with
+  the hooks, git's words on stderr, so the commit holds the registry alone
+  and what else is staged stays staged (git commits the path through a
+  temporary index). A commit that fails puts the file back and the index
+  entry with `git reset`, which is exact since the registry was clean. The
+  commit is a `docs` one with no footer, its body wrapped at 100: a `Task:`
+  footer on a take would make CI run the task's checks before its work
+  exists. Under a stealth config the registry is in the git folder, tracked
+  by nothing: written, nothing committed, and `--json`'s `commit` null.
 - **The hooks** are `hook commit-msg`, `hook pre-push`
   (`internal/cli/hook.go`) and `hooks install` (`internal/cli/install.go`),
   `hooks.ts` with `commit-data.ts`, `commit-scope.ts`, `commit-tasks.ts` and

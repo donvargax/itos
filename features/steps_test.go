@@ -38,6 +38,7 @@ type world struct {
 	dataDir       string            // where itos's config and data are written: the root, or the git folder (stealth)
 	linked        string            // the linked worktree of the scratch repository, when the scenario adds one
 	watchURL      string            // the run the watch command reports
+	registryLines []string          // the registry's items, one line each, as the work steps wrote them
 	noGh          bool              // the PATH has no gh
 
 	exit           int
@@ -282,6 +283,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeShimSteps(sc, w)
 	initializeGuardSteps(sc, w)
 	initializeInitSteps(sc, w)
+	initializeWorkSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })

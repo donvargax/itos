@@ -100,12 +100,22 @@ type editor struct {
 }
 
 // apply is the text with the edits made, from the last one back so each
-// offset still holds.
+// offset still holds; of two at the same offset the later is made first, so
+// what the earlier writes there comes before it.
 func (e *editor) apply() string {
-	edits := slices.Clone(e.edits)
-	slices.SortStableFunc(edits, func(a, b edit) int { return b.at - a.at })
+	order := make([]int, len(e.edits))
+	for i := range order {
+		order[i] = i
+	}
+	slices.SortFunc(order, func(a, b int) int {
+		if e.edits[a].at != e.edits[b].at {
+			return e.edits[b].at - e.edits[a].at
+		}
+		return b - a
+	})
 	text := e.text
-	for _, d := range edits {
+	for _, i := range order {
+		d := e.edits[i]
 		text = text[:d.at] + d.put + text[d.at+d.cut:]
 	}
 	return text

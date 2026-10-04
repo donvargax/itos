@@ -74,9 +74,14 @@ func split(args []string) (string, []string) {
 
 // workCommand is `work check [<file>]`, the file the argument after check
 // whatever it is, as main.ts takes it, `work list`, which takes nothing
-// else, or `work [--as <handle>]`.
+// else, `work take` and `work promote` (workwrite.go), or `work [--as
+// <handle>]`.
 func workCommand(args []string, o Out) (int, error) {
 	switch sub, rest := split(args); sub {
+	case "take":
+		return workTake(rest, o)
+	case "promote":
+		return workPromote(rest, o)
 	case "check":
 		file, named := first(rest)
 		return workCheck(typed(file), named, o)
