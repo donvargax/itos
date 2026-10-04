@@ -3813,3 +3813,17 @@ items:
       push's run (68c3bcf, which contained it) cancelled it by the workflow's concurrency; nothing
       had failed. A cancelled run whose commit a newer run on a descendant covers should be
       followed, or reported as superseded with that run, not as a failure.
+
+  - id: p1-work-add-phase
+    title: A command adds a phase to the work registry
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-add-to-empty-list]
+    kind: idea
+    why: >
+      Found specifying bug 12: no command lists a new phase (group) in the registry, so the first
+      item or task of a phase the registry does not list still needs a hand edit of phases:, against
+      the rule that nothing in the registry is edited by hand. Open: a subcommand (itos work phase
+      add <n> --owner) or work add and task add listing an unlisted phase they are given, owned by
+      nobody.
