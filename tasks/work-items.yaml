@@ -3781,6 +3781,10 @@ items:
       starter's required_for (as this repository does), a hook exemption for registry-only docs
       commits, or something else. Until then the fix lands with INIT-25 and leaves INIT-23 and 24
       @wip.
+
+      Its second half, specified 2026-10-04 after the user's answer to q-1: the starter drops docs
+      from required_for and scopes docs to Markdown, docs/** and the ledger's folder (@ID-INIT-31);
+      @ID-INIT-23 and 24 then pass.
     refs: [features/init.feature, internal/value/docedit.go, internal/cli/starter.go]
 
   - id: bug-13
