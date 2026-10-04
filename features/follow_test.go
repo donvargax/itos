@@ -3,7 +3,8 @@
 // its linked worktree, and a file of the repository that exists or says a
 // text. Bug 16's: one command run many times at once, each run's exit
 // checked (stealth.feature's work add uses them too), the threads file
-// written directly, and a run under a time zone.
+// written directly, and a run under a time zone. Bug 17's: the line after or
+// before a text in a file is blank.
 package features
 
 import (
@@ -12,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -31,6 +33,7 @@ func initializeFollowSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the file "([^"]*)" exists$`, w.fileExists)
 	sc.Step(`^the file "([^"]*)" says "([^"]*)"$`, w.fileSays)
 	sc.Step(`^the file "([^"]*)" does not say "([^"]*)"$`, w.fileDoesNotSay)
+	sc.Step(`^in the file "([^"]*)" the line (after|before) "([^"]*)" is blank$`, w.lineBesideIsBlank)
 
 	sc.Step(`^itos runs "([^"]*)" with the notes "([^"]*)" to "([^"]*)" all at once$`, func(line, from, to string) error {
 		notes, err := numbered(from, to)
@@ -248,6 +251,29 @@ func (w *world) fileDoesNotSay(path, text string) error {
 	}
 	if strings.Contains(string(data), text) {
 		return fmt.Errorf("the file %s says %q:\n%s", path, text, data)
+	}
+	return nil
+}
+
+// In the file, from the repository's top, the line after (or before) the
+// first line holding the text is blank: empty, or spaces alone. A text on
+// no line, or on the first or last, fails.
+func (w *world) lineBesideIsBlank(path, side, text string) error {
+	data, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return fmt.Errorf("the file %s cannot be read: %w\n%s", path, err, w.report())
+	}
+	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+	at := slices.IndexFunc(lines, func(line string) bool { return strings.Contains(line, text) })
+	if at < 0 {
+		return fmt.Errorf("no line of %s says %q:\n%s", path, text, data)
+	}
+	beside := at + 1
+	if side == "before" {
+		beside = at - 1
+	}
+	if beside < 0 || beside >= len(lines) || strings.TrimSpace(lines[beside]) != "" {
+		return fmt.Errorf("in %s the line %s %q is not blank:\n%s", path, side, text, data)
 	}
 	return nil
 }

@@ -3,7 +3,8 @@
 // registry of items with owners, dependencies and ideas, committed, so a
 // command's own commit holds only its change; a scenario tagged for an
 // item; a ledger file deleted and a commit-msg hook that refuses, for a
-// commit that cannot be made (bug 13); and what the registry reads after
+// commit that cannot be made (bug 13); a pre-commit hook that rewrites the
+// Markdown files it commits, as a formatter does (bug 17); and what the registry reads after
 // (an item's status, owner, kind, title, dependencies and why), a ledger
 // file's task, what the last commit holds, and what git status reports; an
 // idea whose refs are a flow list over several lines or a block list, and
@@ -71,6 +72,7 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 
 	sc.Step(`^the ledger file "([^"]*)" is deleted and the deletion not committed$`, w.ledgerFileDeleted)
 	sc.Step(`^a commit-msg hook that refuses every commit$`, w.refusingCommitMsgHook)
+	sc.Step(`^a pre-commit hook that appends a line to each staged Markdown file and stages it again$`, w.formattingPreCommitHook)
 	sc.Step(`^the ledger has no task "([^"]*)"$`, w.ledgerLacks)
 	sc.Step(`^git reports no change to the working tree or the index$`, w.gitStatusClean)
 }
@@ -467,6 +469,24 @@ func (w *world) ledgerFileDeleted(file string) error {
 // A commit-msg hook in git's own hooks folder that says it refuses and exits
 // 1, so every commit that runs the hooks fails.
 func (w *world) refusingCommitMsgHook() error {
+	return w.gitHook("commit-msg", "#!/bin/sh\necho 'the hook refuses every commit' >&2\nexit 1\n")
+}
+
+// A pre-commit hook in git's own hooks folder that does what a formatter
+// run on the staged files does (vp staged, bug 17): each staged Markdown
+// file gains a line in the working tree and is staged again, so the commit
+// and the working tree hold the hook's version.
+func (w *world) formattingPreCommitHook() error {
+	return w.gitHook("pre-commit", `#!/bin/sh
+git diff --cached --name-only --diff-filter=ACM -- '*.md' | while IFS= read -r file; do
+	echo 'A line the hook added.' >>"$file"
+	git add -- "$file" || exit 1
+done
+`)
+}
+
+// gitHook writes the hook, by its name, in git's own hooks folder.
+func (w *world) gitHook(name, script string) error {
 	out, err := w.gitOutput("rev-parse", "--git-path", "hooks")
 	if err != nil {
 		return err
@@ -478,7 +498,7 @@ func (w *world) refusingCommitMsgHook() error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(dir, "commit-msg"), []byte("#!/bin/sh\necho 'the hook refuses every commit' >&2\nexit 1\n"), 0o755)
+	return os.WriteFile(filepath.Join(dir, name), []byte(script), 0o755)
 }
 
 // No file of the ledger, every one ledger.files names in its folder, has the
