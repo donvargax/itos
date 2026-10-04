@@ -46,7 +46,7 @@ phases:
 queue:
   - p1-itos-upgrade
   - p3-plugin-guide-wrappers
-  - p1-status-releases-nightly
+  - slice-70
   - p1-done-body-url-footer
   - p1-registry-archive
   - p1-work-show-gaps
@@ -4473,14 +4473,15 @@ items:
       reading the YAML.
     refs: [internal/work/show.go]
 
-  - id: p1-status-releases-nightly
-    title: itos status adds the newest releases, what is unreleased, the last nightly and the last green run
+  - id: slice-70
+    title: itos status names the newest release and the feat and fix commits since it
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-67]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-status-releases-nightly.
       The user's call of 2026-10-04 named, for the first slice of itos status, the newest releases
       and what is unreleased (the feat and fix commits since the last tag), the last nightly and
       whether it is red, and main's last green run beside any run going; the spec slice 67 built
