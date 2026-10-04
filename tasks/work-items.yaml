@@ -1145,7 +1145,7 @@ items:
     title: itos work take, done and promote write the registry
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     why: >
@@ -1164,6 +1164,32 @@ items:
       the change needs, so the coordinator neither stages nor words a registry commit. The
       coordinator never sets doing: the agent's take does, in its first commit, so a push naming a
       task never runs its checks before its work exists (T-077's spec push went red that way).
+
+  - id: p1-work-promote-next-id
+    title: work promote gives the next free id when --as is left out
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slice 52's work promote needs --as <id>, so the next slice number or T- ID is still found by
+      hand. With --as left out it could give the next free one: slice-<n+1> after the registry's
+      highest slice, T-<n+1> after the highest of the ledger's IDs and the registry's tasks, kept
+      to ledger.id; the spec (@ID-WORK-12) names the id, so this needs its own scenario.
+
+  - id: p1-docs-name-work-take
+    title: The rules and the plugin's skill name itos work take and promote
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      AGENTS.md and docs/ORCHESTRATING.md still say to take an item by setting its owner and
+      status: doing in a docs commit, and to promote an idea by hand, and the plugin's itos skill
+      (integrations/claude-code) says the same; since slice 52 itos work take and itos work promote
+      do it and commit it. The skill's change raises the plugin's version.
 
   - id: slice-39
     title: itos push, the pull-rebase-push routine as one command
