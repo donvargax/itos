@@ -593,3 +593,19 @@
   done_when:
     - run: grep -q 'itos work take' AGENTS.md && grep -q 'itos work promote' docs/ORCHESTRATING.md && grep -q 'itos work done' integrations/claude-code/skills/itos/SKILL.md
       timeout: 60
+
+- id: T-080
+  type: test
+  title: The conformance runner hides the caller's itos extensions from the binary it runs
+  why: >
+    Was p1-corpus-own-path. itos --help lists every itos-<command> on the PATH, and this tree's
+    corpus pins the main help exactly, while tools/itos/conformance/run.ts runs the binary with the
+    caller's PATH: on a machine with an extension installed (itos-cc, on the maintainer's) three
+    help cases fail, green in CI, red locally, and every agent ran the corpus with that folder off
+    the PATH. The user's call (2026-10-03): the runner hides itos-* extensions from the binary's
+    PATH, as its hide key and T-077's test PATH do, so a case's verdict no longer depends on the
+    machine; a case that wants an extension still puts one there itself. The check runs the corpus
+    with an extension of its own on the PATH.
+  done_when:
+    - run: 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" node tools/itos/conformance/run.ts --bin tools/bin/itos'
+      timeout: 900

@@ -3523,3 +3523,22 @@ items:
       fails the help cases. Every agent since has run the corpus with that folder off the PATH
       and said so in its report. The runner should build the binary's PATH from what a case needs.
     refs: [tools/itos/conformance/run.ts]
+
+  - id: p3-corpus-asserts-json
+    title: The corpus asserts behaviour through --json and exit codes, pinning text only where it is the spec
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-03), after a day of friction from pinned prose: usage words blocked
+      adding flags (T-075), added report lines and JSON keys read as breaks (T-076), and help text
+      varied with the caller's PATH (T-080). PLAN.md calls --json and exit codes the stable
+      interface, yet many corpus cases assert on human text when they are about behaviour (what was
+      refused, written or committed). Those move to --json fields, exit codes and files; exact text
+      stays pinned only where the text is the spec: help, and the refusal messages people and agents
+      read to know what to do. JSON then compares properly, and most of T-075's and T-076's
+      relaxations stop being needed. A larger job than T-080: rewriting existing cases, and agreeing
+      which text is spec.
+    refs: [tools/itos/conformance/, PLAN.md]
