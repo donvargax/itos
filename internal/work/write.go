@@ -202,10 +202,12 @@ func waitsOn(r Registry, item *value.Map) []string {
 // Promote is the registry with the idea made a slice or a task (kind) under
 // a new id (slice 52): its id and kind changed, "Was <old id>." put before
 // its why, and every depends_on that named the old id naming the new one.
-// Refused, with nothing changed: an id no item has, an item that is not an
+// A title given ("" for none) replaces the idea's (slice 65): an idea
+// promoted has usually become something more specific than its title says,
+// and the commit's body names the new title. Refused, with nothing changed: an id no item has, an item that is not an
 // idea, a new id an item already has, and for a task a new id the ledger's
 // pattern (taskID) does not match.
-func Promote(r Registry, text, id, newID, kind string, taskID *regexp.Regexp) (Change, *out.Problem, error) {
+func Promote(r Registry, text, id, newID, kind, title string, taskID *regexp.Regexp) (Change, *out.Problem, error) {
 	i := find(r, id)
 	if i < 0 {
 		return Change{}, unknown(id), nil
@@ -247,6 +249,13 @@ func Promote(r Registry, text, id, newID, kind string, taskID *regexp.Regexp) (C
 	}
 	after.Set("id", newID)
 	after.Set("kind", kind)
+	retitled := title != "" && item.At("title") != title
+	if retitled {
+		if err := doc.Set([]any{"items", i, "title"}, title); err != nil {
+			return Change{}, nil, err
+		}
+		after.Set("title", title)
+	}
 	if why := value.Prop(value.Prop(doc.Want, "items").([]any)[i], "why"); why != value.Undefined {
 		after.Set("why", why)
 	}
@@ -271,7 +280,11 @@ func Promote(r Registry, text, id, newID, kind string, taskID *regexp.Regexp) (C
 	if err != nil {
 		return Change{}, nil, err
 	}
-	body := fmt.Sprintf("Make the idea %s (%s) the %s %s, with itos work promote", id, value.JSON(value.String(item.At("title"))), kind, newID)
+	body := fmt.Sprintf("Make the idea %s (%s) the %s %s", id, value.JSON(value.String(item.At("title"))), kind, newID)
+	if retitled {
+		body += ", its title now " + value.JSON(title)
+	}
+	body += ", with itos work promote"
 	if len(rewritten) > 0 {
 		body += ", and rename it where " + strings.Join(rewritten, ", ") + " depend"
 		if len(rewritten) == 1 {

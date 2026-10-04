@@ -21,7 +21,7 @@ func TestRegistryHeaderReadsTheWritersHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	promote, _, err := Promote(r, text, "i", "slice-1", "slice", nil)
+	promote, _, err := Promote(r, text, "i", "slice-1", "slice", "", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

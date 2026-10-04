@@ -62,7 +62,7 @@ func TestPromote(t *testing.T) {
 		"  - { id: i, title: I, phase: 1, status: todo, kind: idea, why: 'a gap' }\n" +
 		"  - { id: s, title: S, phase: 1, status: todo, depends_on: [i] }\n"
 	r := registryOf(t, text)
-	change, problem, err := Promote(r, text, "i", "T-9", "task", regexp.MustCompile(`^T-\d+$`))
+	change, problem, err := Promote(r, text, "i", "T-9", "task", "", regexp.MustCompile(`^T-\d+$`))
 	if err != nil || problem != nil {
 		t.Fatal(err, problem)
 	}
@@ -72,10 +72,20 @@ func TestPromote(t *testing.T) {
 		change.Header != "docs: promote i to T-9" {
 		t.Errorf("promote i: %q %v %q", change.Text, change.Rewritten, change.Header)
 	}
-	if _, problem, _ := Promote(r, text, "i", "s", "slice", nil); problem == nil || problem.Rule != "work-promote-taken" {
+	// A title given replaces the idea's, and the body says so (slice 65).
+	change, problem, err = Promote(r, text, "i", "slice-2", "slice", "I, specified", nil)
+	if err != nil || problem != nil {
+		t.Fatal(err, problem)
+	}
+	if !strings.Contains(change.Text, "{ id: slice-2, title: \"I, specified\", phase: 1, status: todo, kind: slice,") ||
+		change.Item.At("title") != "I, specified" ||
+		change.Body != `Make the idea i ("I") the slice slice-2, its title now "I, specified", with itos work promote, and rename it where s depends on it.` {
+		t.Errorf("promote i --title: %q %q", change.Text, change.Body)
+	}
+	if _, problem, _ := Promote(r, text, "i", "s", "slice", "", nil); problem == nil || problem.Rule != "work-promote-taken" {
 		t.Errorf("s is taken: %+v", problem)
 	}
-	if _, problem, _ := Promote(r, text, "i", "nine", "task", regexp.MustCompile(`^T-\d+$`)); problem == nil || problem.Rule != "work-promote-not-task-id" {
+	if _, problem, _ := Promote(r, text, "i", "nine", "task", "", regexp.MustCompile(`^T-\d+$`)); problem == nil || problem.Rule != "work-promote-not-task-id" {
 		t.Errorf("nine is no task ID: %+v", problem)
 	}
 }

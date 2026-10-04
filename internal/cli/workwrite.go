@@ -446,12 +446,13 @@ func workTake(args []string, o Out) (int, error) {
 // promoteKinds are what work promote makes of an idea.
 var promoteKinds = []string{"slice", "task"}
 
-// workPromote is `work promote <idea> --as <id> --kind slice|task`: the idea
-// renamed, given the kind, "Was <idea>." before its why, every depends_on
-// naming it renamed too, and the registry committed (work.Promote). A task's
-// id must match the ledger's ledger.id.
+// workPromote is `work promote <idea> --as <id> --kind slice|task [--title
+// <title>]`: the idea renamed, given the kind (and the title, when given),
+// "Was <idea>." before its why, every depends_on naming it renamed too, and
+// the registry committed (work.Promote). A task's id must match the ledger's
+// ledger.id.
 func workPromote(args []string, o Out) (int, error) {
-	id, flags, err := workArgs("promote", args, "--as", "--kind")
+	id, flags, err := workArgs("promote", args, "--as", "--kind", "--title")
 	if err != nil {
 		return 0, err
 	}
@@ -467,7 +468,7 @@ func workPromote(args []string, o Out) (int, error) {
 	if cfg == nil {
 		return code, err
 	}
-	change, problem, err := work.Promote(registry, text, id, newID, kind, ledger.IDPattern(cfg))
+	change, problem, err := work.Promote(registry, text, id, newID, kind, flags["--title"], ledger.IDPattern(cfg))
 	if err != nil {
 		return 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
 	}

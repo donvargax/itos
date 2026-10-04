@@ -22,7 +22,7 @@ cases:
         work list                        every item of the work registry, done ones too
         work show <id> [--patch]         an item, its scenarios and its commits; reads only
         work take <id> [--as <handle>]   set an item in progress for the person, and commit it
-        work promote <idea> --as <id> --kind slice|task
+        work promote <idea> --as <id> --kind slice|task [--title <title>]
                                          make an idea a slice or a task, and commit it
         work done <id>                   mark an item done once it has landed, and commit it
         work add <id> --title <title> --why <why> […]
@@ -171,7 +171,7 @@ cases:
              itos work list
              itos work show <id> [--patch]
              itos work take <id> [--as <handle>]
-             itos work promote <idea> --as <id> --kind slice|task
+             itos work promote <idea> --as <id> --kind slice|task [--title <title>]
              itos work done <id>
              itos work add <id> --title <title> --why <why> […]
              itos work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--note <text>]
@@ -216,16 +216,17 @@ cases:
     argv: [work, promote, --help]
     exit: 0
     stdout: |
-      Usage: itos work promote <idea> --as <id> --kind slice|task
+      Usage: itos work promote <idea> --as <id> --kind slice|task [--title <title>]
 
       Makes an idea a slice or a task: renames it <id>, sets its kind, puts
       "Was <idea>." before its why and renames it in every depends_on that names it,
       then commits the registry alone, "docs: promote <idea> to <id>", as work take
-      does (itos help work take). Refused, nothing written (exit 1): a registry that
-      is not sound or has changes no commit holds, an id no item has, an item that is
-      not an idea, an <id> an item already has, a task's <id> that ledger.id does not
-      match, a commit a hook refuses. Under a stealth config the registry is written
-      and nothing committed.
+      does (itos help work take). --title gives it a new title in the same commit,
+      whose body says so; without it the idea's title is kept. Refused, nothing
+      written (exit 1): a registry that is not sound or has changes no commit holds,
+      an id no item has, an item that is not an idea, an <id> an item already has, a
+      task's <id> that ledger.id does not match, a commit a hook refuses. Under a
+      stealth config the registry is written and nothing committed.
 
       --json: {"schema":1,"ok":true,"item":{…},"was","rewritten":[…],"commit":"<sha>"|null},
       or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}

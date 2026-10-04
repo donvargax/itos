@@ -1015,6 +1015,23 @@ cases:
       commit: null
     files_after:
       .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - id: slice-7 # the idea\n    title: A thing\n    phase: 1\n    status: todo\n    kind: slice\n    why: >\n      Was p1-thing.\n      A gap\n      left behind.\n  - id: slice-3\n    title: Three\n    phase: 1\n    status: todo\n    depends_on:\n      - slice-7\n  - { id: slice-4, title: Four, phase: 1, status: todo, depends_on: [slice-3, slice-7] }\n"
+  - name: work promote --title gives the promoted item a new title, written in place
+    argv: [work, promote, p1-thing, --as, slice-7, --kind, slice, --title, "The thing, specified", --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - id: p1-thing\n    title: A thing # the plan replaced\n    phase: 1\n    status: todo\n    kind: idea\n    why: a gap\n"
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: slice-7, title: "The thing, specified", phase: 1, status: todo, kind: slice, why: Was p1-thing. a gap, depends_on: [] }
+      was: p1-thing
+      rewritten: []
+      commit: null
+    files_after:
+      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - id: slice-7\n    title: The thing, specified # the plan replaced\n    phase: 1\n    status: todo\n    kind: slice\n    why: Was p1-thing. a gap\n"
   - name: work promote refuses an item that is not an idea
     argv: [work, promote, ready, --as, slice-1, --kind, slice]
     exit: 1

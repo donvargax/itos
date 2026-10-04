@@ -23,8 +23,9 @@ is not yours: run `itos guide work` and follow that one.
    deferred waits until the person lifts it.
 2. **Specify it** if it is not yet: `@wip` scenarios for a behaviour, or a
    task with checks for anything else. An idea becomes work with
-   `itos work promote <idea> --as <id> --kind slice|task`. Leave it `todo`:
-   the agent takes it with `itos work take`.
+   `itos work promote <idea> --as <id> --kind slice|task`, and
+   `--title <title>` when what it has become is no longer what its title
+   says. Leave it `todo`: the agent takes it with `itos work take`.
 3. **Hand it to one implementing agent** with the brief below.
 4. **Check the result** (below), then relay it to the person with what to try
    on the command line.

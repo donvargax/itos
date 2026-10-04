@@ -288,7 +288,7 @@ Feature: The work registry
   # slice 64 carried a title describing a plan the user had already replaced,
   # which misled them. --title gives the item its new title in the same
   # commit; without it the title is kept, as before.
-  @ID-WORK-29 @slice-65 @wip
+  @ID-WORK-29 @slice-65
   Scenario: work promote --title gives the promoted item a new title
     Given the work registry has the idea "p1-thing" owned by nobody
     When itos runs the command line "work promote p1-thing --as slice-7 --kind slice --title 'The thing, specified'"
