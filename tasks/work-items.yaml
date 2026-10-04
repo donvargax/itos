@@ -3703,14 +3703,15 @@ items:
       @wip.
     refs: [features/init.feature, internal/value/docedit.go, internal/cli/starter.go]
 
-  - id: p1-commit-rollback-tested
+  - id: bug-13
     title: The registry and ledger commands' rollback is tested, and has no holes
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-commit-rollback-tested.
       Found by the post-landing review of slice 55: writeCommitted (internal/cli/workwrite.go), the
       only code in itos that undoes writes, has no test that makes a commit fail, and slice 55 grew
       it to several files and new ones. Holes: a failed second write leaves the first file edited; a
