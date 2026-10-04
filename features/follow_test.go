@@ -30,6 +30,7 @@ func initializeFollowSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^the file "([^"]*)" exists$`, w.fileExists)
 	sc.Step(`^the file "([^"]*)" says "([^"]*)"$`, w.fileSays)
+	sc.Step(`^the file "([^"]*)" does not say "([^"]*)"$`, w.fileDoesNotSay)
 
 	sc.Step(`^itos runs "([^"]*)" with the notes "([^"]*)" to "([^"]*)" all at once$`, func(line, from, to string) error {
 		notes, err := numbered(from, to)
@@ -233,6 +234,20 @@ func (w *world) fileSays(path, text string) error {
 	}
 	if !strings.Contains(string(data), text) {
 		return fmt.Errorf("the file %s does not say %q:\n%s", path, text, data)
+	}
+	return nil
+}
+
+// The file, from the repository's top, is there and does not hold the text:
+// a file that is not there says nothing, which is no proof of what it would
+// leave out, so it fails.
+func (w *world) fileDoesNotSay(path, text string) error {
+	data, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return fmt.Errorf("the file %s cannot be read: %w\n%s", path, err, w.report())
+	}
+	if strings.Contains(string(data), text) {
+		return fmt.Errorf("the file %s says %q:\n%s", path, text, data)
 	}
 	return nil
 }
