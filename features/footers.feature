@@ -76,3 +76,52 @@ Feature: The footer rules are itos's, whatever the header lint
     Then itos exits with code 2
     And its output says "tasks"
     And its output does not say "ENOENT"
+
+  # Slice 63 (the user's calls, 2026-10-04, p1-work-show-spec-commits): an
+  # Item footer names the registry item a commit belongs to, for the commits
+  # no other footer ties to it: a spec written in a docs commit, a slice's
+  # steps committed red first in a test commit, a chore it needs. Its source
+  # is the work registry (source: registry), each id checked against the
+  # registry the commit carries, with the rule item-footer. in_place_of says
+  # which other footer it stands in for, and for which types: the config
+  # below takes it in place of Task for test, docs and chore, so a slice,
+  # which has no task, can commit its steps before its feat; every other
+  # type still needs its Task.
+  @ID-FOOT-07 @slice-63 @wip
+  Scenario: A test commit naming a registry item in an Item footer needs no Task footer
+    Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
+    And the work registry has the item "slice-9" owned by nobody with the status "doing"
+    When the commit-msg hook checks the message:
+      """
+      test: add slice 9's steps
+
+      Item: slice-9
+      """
+    Then itos exits with code 0
+
+  @ID-FOOT-08 @slice-63 @wip
+  Scenario: An Item footer naming an item the registry does not have is rejected
+    Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
+    And the work registry has the item "slice-9" owned by nobody with the status "doing"
+    When the commit-msg hook checks the message:
+      """
+      test: add slice 7's steps
+
+      Item: slice-7
+      """
+    Then itos exits with code 1
+    And its output says "slice-7"
+    And its output names the rule "item-footer"
+
+  @ID-FOOT-09 @slice-63 @wip
+  Scenario: A type outside in_place_of still needs its Task footer beside an Item footer
+    Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
+    And the work registry has the item "slice-9" owned by nobody with the status "doing"
+    When the commit-msg hook checks the message:
+      """
+      refactor: split the parser
+
+      Item: slice-9
+      """
+    Then itos exits with code 1
+    And its output names the rule "task-footer"

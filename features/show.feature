@@ -79,3 +79,14 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
     When itos runs "work show T-001"
     Then itos exits with code 0
     And its output says "chore: tidy the readme"
+
+  # Slice 63: a commit whose Item footer names the item belongs to it, so a
+  # spec written in a docs commit is part of what work show lists.
+  @ID-SHOW-07 @slice-63 @wip
+  Scenario: work show lists a commit by its Item footer
+    Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
+    And the work registry has the item "slice-9" owned by nobody with the status "doing"
+    And the commit "docs: specify slice 9" naming the item "slice-9" in an Item footer on top of it
+    When itos runs "work show slice-9"
+    Then itos exits with code 0
+    And its output says "docs: specify slice 9"
