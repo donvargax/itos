@@ -169,7 +169,9 @@ the rest.
 > says so.>
 >
 > Red first: write the steps the scenarios need and commit them alone, in a
-> `test:` commit with the scenarios still `@wip`, before any code; run the
+> `test:` commit with the scenarios still `@wip`, before any code
+> (`tools/bin/itos commit --item <slice id> -F <file>`: a slice has no task,
+> and the `Item:` footer stands in for `Task:` on a `test` commit); run the
 > scenarios with `@wip` removed locally and see each fail at the step that
 > checks the behaviour (not at an undefined step), then write the code and
 > remove `@wip` in the `feat`. Report each scenario's failing step. A guard
@@ -271,7 +273,11 @@ teaches you a new one, stated as the rule and its reason.
   before the work.
 - **Red first, checkable after the fact** (the user's call, 2026-10-04). An
   agent commits the steps in a `test:` commit, scenarios still `@wip`, before
-  the `feat`, and reports each scenario's failing step. Nothing enforces it
+  the `feat`, and reports each scenario's failing step. The commit names the
+  slice in an `Item:` footer (`itos commit --item <id>`, slice 63, T-083),
+  which stands in for `Task:` on `test`, `docs` and `chore`; a spec written
+  by hand in a `docs` commit names its item the same way, so `work show`
+  lists it. Nothing enforces it
   yet (`p1-wip-red-first`), but git shows the order, and a reviewer can check
   that commit out and run the scenarios to see them red.
 - **Agents hand back before CI finishes.** A report often says "CI not

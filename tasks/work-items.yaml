@@ -4257,6 +4257,21 @@ items:
       ".git/itos/asks.yaml" exists (the step exists); a live scenario changes only in a feat or fix,
       so fold it into the next one touching stealth.feature.
 
+  - id: p1-footer-source-message
+    title: config check's message for an unknown footer source names registry
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice 63's agent: config-footer-source still says a source "is ledger, text or {
+      tests: <kind> }", though registry is one now. The message is left as released because a
+      corpus case of v2.20.0 pins it word for word (config.yaml, "names that refer to nothing") and
+      a config error's words are judged by the previous-release check, so changing it is a breaking
+      change; only the fix names registry. Fold it into the next breaking change of config check's
+      messages, or reword it in a fix naming that case in Changes.
+
   - id: T-083
     title: Declare the Item footer in this repository, standing in for Task for test, docs and chore
     phase: 1
