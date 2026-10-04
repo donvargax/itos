@@ -4260,8 +4260,8 @@ items:
   - id: T-083
     title: Declare the Item footer in this repository, standing in for Task for test, docs and chore
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
