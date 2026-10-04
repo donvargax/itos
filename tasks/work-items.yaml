@@ -4824,4 +4824,11 @@ items:
       Split from slice-72 (2026-10-04): while the head's run is going or red, status names the last
       commit whose run passed, the one ci.range's provider already reads (LastGreenRun for github,
       ci.range.command otherwise), so a coordinator knows what main last proved.
+
+      Specified as @ID-STATUS-11 and 12 (2026-10-04). Settled: when the head's run is going or did
+      not pass, status prints 'Last green: <short sha> <header>' after the head's CI line, the
+      commit ci.range's provider gives (RangeProvider in internal/providers/range.go: LastGreenRun
+      for github, ci.range.command's first line otherwise); provider none, no line; a commit not
+      fetched here is named by its SHA alone; unreadable, a line saying so and the rest printed,
+      exit 0; --json gains last_green. Nothing when the head's run passed.
     refs: [features/status.feature, internal/providers/range.go]
