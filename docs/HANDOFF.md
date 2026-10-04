@@ -19,8 +19,8 @@ and the inbox.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `cb518b6`, bug 14's close (its fix's CI run 37173624535, every job,
-`release` cutting v2.15.3); the coordinator's registry batch after it is pushed
+All work is @donvargax's. `main` is green at `d8fa26d`, slice 56's close (the slice's CI run 37174338158, every job,
+`release` cutting v2.16.0); the coordinator's registry batch after it is pushed
 with this file. The coordinator commits only between
 agents, from the main checkout; its docs worktree was dropped (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
@@ -41,7 +41,7 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.15.3 (work edit writes a list whole, whatever its old shape, bug 14), v2.15.2 (a ledger file deleted but not committed is refused, and the writers'
+Released: v2.16.0 (`itos push` returns at once for a registry-only range, slice 56), v2.15.3 (work edit writes a list whole, whatever its old shape, bug 14), v2.15.2 (a ledger file deleted but not committed is refused, and the writers'
 rollback is one tested restore, bug 13), v2.15.1 (the first registry item and ledger task written into init's empty lists, bug 12's
 @ID-INIT-25; T-081 let its Changes: footer name the init case by a prefix), v2.15.0 (`itos task add`, slice 55), v2.14.0 (`itos work add` and `edit`, slice 54; `itos work` refusing
 an unknown subcommand, bug 11), v2.13.0 (`itos work done`, slice 53, which closed itself), v2.12.0 (`itos work take` and `itos work promote`, each committing
@@ -66,18 +66,17 @@ item's registry steps are commands now: `itos work add`, `edit`, `promote`,
    - **`bug-12`** stays open: its fix landed (v2.15.1) with @ID-INIT-25;
      @ID-INIT-23 and 24 wait on the user's call below, then land as a `fix`
      naming them;
-   - **`slice-56`** (`itos push` returns at once for a registry-only range,
-     @ID-WATCH-10 and 11);
    - **`slice-57`** (`itos work show`, @ID-SHOW-01 to 06), then each landed
      item gets a read-only review (`p3-post-landing-review`; its first two
      trials each found a real gap every gate missed, so keep it);
    - **`p1-push-needs-hooks`** waits on the user (below), so
-     **`p3-init-agent-rules`**,
+     **`slice-59`** (`itos init --agent-rules`, @ID-INIT-26 to 30, the
+     non-stealth half of `p3-init-agent-rules`; the stealth half is
+     `p3-init-agent-rules-stealth`),
      **`p1-wip-red-first`**, **`p1-handoff-status`** after
      `p1-work-queue-order` and `p1-follow-ups`, **`p1-tests-next-id-and-steps`**,
      **`slice-58`** (`itos commit` wraps a long body line, @ID-COMMITCMD-13 to 15,
-     specified; was `p1-commit-wrap`); `T-082` (the plugin skill names work add
-     and edit, was `p1-skill-work-add`) is done by the coordinator;
+     specified; was `p1-commit-wrap`); T-082 landed (plugin 2.6.0);
    - `p1-work-as-empty`, `p1-push-superseded-run`, `p3-guard-cd`, and the
      itos-cc findings (`p1-version-mutation-gaps`, `p1-schema-contract-tests`,
      `p1-tools-bin-shared`); `p1-registry-code-cleanup` when convenient;
