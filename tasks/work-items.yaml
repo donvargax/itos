@@ -3367,14 +3367,15 @@ items:
     refs:
       [internal/cli/push.go, internal/cli/commit.go, internal/cli/init.go, docs/ORCHESTRATING.md]
 
-  - id: p1-work-edit
+  - id: slice-54
     title: itos work add and edit, and itos task add, write the registry and the ledger and commit
     phase: 1
     owner: donvargax
     status: todo
     depends_on: [slice-52]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-work-edit.
       The user's calls (2026-10-03). Nearly every registry and ledger change the coordinator made
       that day was an ad-hoc script replacing text in tasks/*.yaml, and it broke when the formatter
       had rewrapped what it matched: one commit claimed a handoff update that never happened.
