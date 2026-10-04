@@ -4040,8 +4040,8 @@ items:
   - id: slice-63
     title: itos work show lists the commits that wrote an item's spec
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-57]
     kind: slice
     why: >
