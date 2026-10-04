@@ -19,8 +19,8 @@ and the inbox.
 
 ## Where things stand
 
-All work is @donvargax's. `main` is green at `642e68b`, slice 65's close (the slice's CI run 37188305952, every job,
-`release` cutting v2.23.0); the coordinator's registry batch after it is pushed
+All work is @donvargax's. `main` is green at `a1232bf`, slice 66's close (the slice's CI run 37189815542, every job,
+`release` cutting v2.24.0); the coordinator's registry batch after it is pushed
 with this file. The coordinator commits only between
 agents, from the main checkout; its docs worktree was dropped (ORCHESTRATING.md). itos is Go only; `tools/bin/itos` builds and runs this
 tree's itos for every gate (`hooks.bin`, internal and unsupported for
@@ -41,7 +41,7 @@ platform jobs green). The last nightly, 37131118750, predates all of that:
 read the next one, and the consumer inbox (`node tools/bin/inbox.ts`), before
 new work; a red nightly comes first.
 
-Released: v2.23.0 (`work promote --title`, slice 65), v2.22.0 (`itos go` and `itos guide work`, the generic guides in the binary, slice 64), v2.21.1 (the starter drops docs from the Task footer and scopes docs, bug 12's second half;
+Released: v2.24.0 (the queue in the registry, `itos work queue`, slice 66), v2.23.0 (`work promote --title`, slice 65), v2.22.0 (`itos go` and `itos guide work`, the generic guides in the binary, slice 64), v2.21.1 (the starter drops docs from the Task footer and scopes docs, bug 12's second half;
 its Upgrading says how an existing config matches it), v2.21.0 (the `Item:` footer, `itos commit --item`, taken in place of `Task:` for test, docs
 and chore here, slice 63), v2.20.0 (`itos ask`, the user's questions beside the registry, slice 62), v2.19.2 (one lock keeps every write of two writers at once to follow's threads and a stealth
 config's registry and ledger, bug 16), v2.19.1 (the wrap never starts a line with a footer token, a note or a comment, bug 15), v2.19.0 (`itos follow`, private threads with people, slice 61), v2.18.0 (`itos commit` wraps a long body line under the built-in lint, slice 58), v2.17.0 (`itos work show`, slice 57; plugin 2.7.0), v2.16.0 (`itos push` returns at once for a registry-only range, slice 56), v2.15.3 (work edit writes a list whole, whatever its old shape, bug 14), v2.15.2 (a ledger file deleted but not committed is refused, and the writers'
@@ -65,31 +65,12 @@ puts itos in their other repositories (the user's call, 2026-10-03). Every
 item's registry steps are commands now: `itos work add`, `edit`, `promote`,
 `take`, `done`; nothing in `tasks/work-items.yaml` is edited by hand.
 
-1. In order:
-   - each landed item gets a read-only review (`p3-post-landing-review`,
-     input `itos work show <id> --patch`); slice 57's found
-     `p1-work-show-gaps`;
-   - the user's order (2026-10-04): **`slice-66`**, the queue (was
-     `p1-work-queue-order`; @ID-WORK-30 to 35, @ID-PUSH-05: one shared `queue:` list, each
-     person's view filtered to what they can take, two takes of one item
-     caught by git with a clear message); **`p1-handoff-status`**'s first
-     slice (`itos status`, the state alone, which `itos go` then prints at its
-     end); then this file is deleted, in the docs commit that cuts
-     `docs/ORCHESTRATING.md` to what is this repository's own
-     (`p1-orchestrating-own-notes`; sessions start with `! itos go`); then
-     **`p1-itos-upgrade`**; `p3-plugin-guide-wrappers` (the plugin drops its
-     itos skill) any time;
-   - **`p1-push-needs-hooks`** waits on the user (q-2);
-     **`slice-60`** (`itos tests next-id`, `itos task next-id`, @ID-NEXTID-01
-     to 05; the rest of `p1-tests-next-id-and-steps` after it); `slice-59`
-     (`itos init --agent-rules`) after it, deprioritised by the user to see
-     how sessions do with `itos go` alone;
-     `p1-registry-archive` (done items leave the 177 KB registry);
-   - `p1-work-as-empty`, `p1-push-superseded-run`, `p3-guard-cd`, and the
-     itos-cc findings (`p1-version-mutation-gaps`, `p1-schema-contract-tests`,
-     `p1-tools-bin-shared`); `p1-registry-code-cleanup` when convenient;
-   - `p2-cross-repo-contract` (itos under a cross-repository coordinator)
-     is recorded, not queued.
+1. **The order is the registry's queue now** (slice 66): `tools/bin/itos work`
+   proposes in it, and `itos work queue <id> --top|--before|--after|--drop`
+   changes it. It holds this file's former list, slice 67 (`itos status`) first;
+   once it lands, this file is deleted in the commit that cuts
+   `docs/ORCHESTRATING.md` to this repository's own (`p1-orchestrating-own-notes`,
+   second). `p1-push-needs-hooks` waits on q-2.
 2. Then `p3-init-orchestration` (PLAN.md §10, "Adoption"), `p3-pr-rebase-merge` and `p3-init-starter-ci`.
 3. **`p3-human-waiver`** (`itos waive`, a plain config list; the guard keeps
    agents off it), after those.
