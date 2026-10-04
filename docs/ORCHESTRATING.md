@@ -12,16 +12,16 @@ commands this tree has.
 
 ## Start of a session, beyond the status
 
-`itos status` gives `main`'s head and its run, the person's work, the queue's
-next items and the open questions. Read these too:
+`itos status` gives `main`'s head and its run, the last nightly, the newest
+release and what is unreleased, the person's work, the queue's next items and
+the open questions. Read these too:
 
-- **The last nightly:** `gh run list --workflow nightly.yml --limit 1`, its
-  failures with `gh run view <id> --log-failed`, or the open "Nightly red"
-  issue. Every feature, the gates' self-tests and every done task's checks run
-  only there, so a change that reaches scenarios no push names shows up the
-  next morning. **A red nightly is the first item**, a `fix` handed to an agent
-  before any new work. It is also the next fix release.
-- **The newest releases:** `gh release list --limit 3`.
+- **A red nightly's failures:** `gh run view <id> --log-failed`, the id from
+  the status's Nightly line, or the open "Nightly red" issue. Every feature,
+  the gates' self-tests and every done task's checks run only there, so a
+  change that reaches scenarios no push names shows up the next morning.
+  **A red nightly is the first item**, a `fix` handed to an agent before any
+  new work. It is also the next fix release.
 - **The inbox:** `node tools/bin/inbox.ts` (below).
 
 Here itos is `tools/bin/itos`, this tree's build, for every command and gate;
