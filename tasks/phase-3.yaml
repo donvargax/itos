@@ -325,7 +325,8 @@
     with a feat naming it, and passes with a breaking change. Built as tools/bin/previous-release,
     a late step of itos.yaml's ci after this tree's corpus. A corpus case is named in Changes: by
     its file and name, as the runner's FAIL line gives them (Changes: hooks.yaml: <case name>),
-    one entry a line. Changes: is source: text, not a footer of IDs: itos commit writes only a
+    or by a prefix of its name no other case of the file starts with, to fit a long name in the
+    footer's 100-character line (T-081), one entry a line. Changes: is source: text, not a footer of IDs: itos commit writes only a
     free-text footer by its name (--changes), an IDs footer refuses an ID gone from the commit's
     tree (the fix that removed its old scenario), and a case name is not an ID; so the check reads
     the entries against the release, and one naming nothing there is a warning, never a failure,

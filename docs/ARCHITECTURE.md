@@ -1700,7 +1700,13 @@ diff --name-only --no-renames`, so a change undone within the range is
     as the schema contract reads it) or is a `fix` whose `Changes:` footer
     names it: an entry a line, scenario IDs (`Changes: @ID-CMSG-03`) or one
     case (`Changes: hooks.yaml: <case name>`), read from the message's last
-    paragraph. A `feat` naming it does not count, and the refusal says so.
+    paragraph. A case entry names the case of that file whose name is the
+    entry's, or else the one case whose name starts with it (T-081), so a name
+    longer than the header lint's 100-character footer line is given by a
+    prefix; the names are the release's fixtures' as they parse, which the
+    script that readies its corpus prints, and a prefix more than one case
+    starts with names none and is warned of as ambiguous. A `feat` naming it
+    does not count, and the refusal says so.
     `Changes:` is a footer of free text in `commits.footers`, so
     `itos commit --changes` writes it and an ID the fix removed is not refused
     at the commit; the check warns about an entry that names nothing of the
@@ -1710,7 +1716,8 @@ diff --name-only --no-renames`, so a change undone within the range is
     that cannot run or whose failure it cannot name; no release tag passes,
     saying so. `tools/selftest/previous-release.ts` proves it in a scratch
     repository whose tag holds two scenarios (a stdlib Go test standing for
-    godog's), this repository's corpus runner, three cases and two help
+    godog's), this repository's corpus runner, four cases (one named longer
+    than a footer line, and two starting with the same word) and two help
     cases, against a script that breaks one scenario and one case, and one
     whose help alone differs, which passes; and a report's lines and a JSON
     object, against a script that adds keys and lines, which passes, and four
