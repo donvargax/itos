@@ -4610,6 +4610,13 @@ items:
       Split from slice-69 (2026-10-04): numbers unique, each supersede link answered by the other
       file, the index listing exactly the live records. Rules a command can decide, so a record
       edited by hand or by adr-tools cannot drift unseen.
+
+      The user's calls (2026-10-04): records are read by their structure, never their bytes: the
+      heading's number and title, Date, the Status section's lines and links, a paragraph's lines
+      read joined, so a repository's formatter (another bullet, prose rewrapped) changes nothing
+      itos reads. itos never rewrites a record after writing it but for the Status section on a
+      supersede. No frontmatter: it would repeat the Status section and drift from it, and adr-tools
+      writes none.
     refs: [internal/ask]
 
   - id: p1-adr-adoption-guide
