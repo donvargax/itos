@@ -39,6 +39,7 @@ type world struct {
 	linked        string            // the linked worktree of the scratch repository, when the scenario adds one
 	watchURL      string            // the run the watch command reports
 	registryLines []string          // the registry's items, one line each, as the work steps wrote them
+	registryQueue []string          // the registry's queue, as a work step wrote it, nil for none
 	noGh          bool              // the PATH has no gh
 	messageFile   string            // the message file's text, as a step wrote it
 	atOnce        []atOnceRun       // the runs of one command started together, as allAtOnce ran them

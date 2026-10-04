@@ -7,7 +7,9 @@
 // (an item's status, owner, kind, title, dependencies and why), a ledger
 // file's task, what the last commit holds, and what git status reports; an
 // idea whose refs are a flow list over several lines or a block list, and
-// the refs an item has after (bug 14).
+// the refs an item has after (bug 14); a command that has to succeed before
+// the run a scenario is about, a queue written into the registry, and the
+// registry's queue after (slice 66).
 package features
 
 import (
@@ -41,6 +43,8 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 		return w.registryIdeaWithRefs(id, fmt.Sprintf("\n      - %s\n      - %s\n", a, b))
 	})
 	sc.Step(`^a feature file with the scenario "([^"]*)" tagged "([^"]*)"$`, w.taggedScenario)
+	sc.Step(`^itos has run "([^"]*)"$`, func(line string) error { return w.hasRunLine(w.dir, line) })
+	sc.Step(`^the registry's queue names "([^"]*)"$`, w.registryQueueNames)
 
 	sc.Step(`^the registry's item "([^"]*)" has the status "([^"]*)" and the owner "([^"]*)"$`, w.registryItemIs)
 	sc.Step(`^the work registry beside the config gives the item "([^"]*)" the status "([^"]*)"$`, func(id, status string) error {
@@ -56,6 +60,8 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the registry's item "([^"]*)" has a why ending with "([^"]*)"$`, w.registryWhyEnds)
 	sc.Step(`^the registry's item "([^"]*)" has the refs "([^"]*)"$`, w.registryItemRefs)
 	sc.Step(`^the registry's item "([^"]*)" has no refs$`, func(id string) error { return w.registryItemRefs(id, "") })
+	sc.Step(`^the registry's queue is "([^"]*)"$`, w.registryQueueIs)
+	sc.Step(`^the registry's queue is empty$`, func() error { return w.registryQueueIs("") })
 	sc.Step(`^the last commit's header is "([^"]*)"$`, w.lastHeaderIs)
 	sc.Step(`^the last commit's header is not "([^"]*)"$`, w.lastHeaderIsNot)
 	sc.Step(`^the last commit touches only "([^"]*)"$`, func(path string) error { return w.lastTouchesOnly(path) })
@@ -138,9 +144,57 @@ func (w *world) commitLeavingStaged(message string) error {
 }
 
 // The registry's lines written where the scenario keeps itos's data, its
-// one phase before them.
+// one phase before them, and its queue after them when a step wrote one.
 func (w *world) writeRegistryLines() error {
-	return w.write(w.data(startingRegistry), "phases: { 1: null }\nitems:\n"+strings.Join(w.registryLines, ""))
+	text := "phases: { 1: null }\nitems:\n" + strings.Join(w.registryLines, "")
+	if w.registryQueue != nil {
+		text += "queue: [" + strings.Join(w.registryQueue, ", ") + "]\n"
+	}
+	return w.write(w.data(startingRegistry), text)
+}
+
+// The registry's queue names one more id, whether an item has it or not,
+// committed as registryItem commits.
+func (w *world) registryQueueNames(id string) error {
+	w.registryQueue = append(w.registryQueue, id)
+	if err := w.writeRegistryLines(); err != nil {
+		return err
+	}
+	if w.dataDir != "" {
+		return nil
+	}
+	return w.commitLeavingStaged("docs: a queue")
+}
+
+// The registry's queue is the comma-separated ids, in order; none ("") is no
+// queue key, null or an empty list.
+func (w *world) registryQueueIs(ids string) error {
+	text, err := os.ReadFile(filepath.Join(w.dir, w.data(startingRegistry)))
+	if err != nil {
+		return err
+	}
+	var registry struct {
+		Queue any `yaml:"queue"`
+	}
+	if err := yaml.Unmarshal(text, &registry); err != nil {
+		return fmt.Errorf("the registry does not read: %w\n%s", err, text)
+	}
+	got := []string{}
+	if list, ok := registry.Queue.([]any); ok {
+		for _, id := range list {
+			got = append(got, fmt.Sprint(id))
+		}
+	} else if registry.Queue != nil {
+		return fmt.Errorf("the registry's queue is %v, not a list\n%s\n%s", registry.Queue, text, w.report())
+	}
+	want := []string{}
+	if ids != "" {
+		want = strings.Split(ids, ",")
+	}
+	if !slices.Equal(got, want) {
+		return fmt.Errorf("the registry's queue is %q, not %q\n%s\n%s", got, want, text, w.report())
+	}
+	return nil
 }
 
 // One more idea of phase 1, todo and owned by nobody, written as a block

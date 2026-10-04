@@ -2,7 +2,9 @@
 // (pre-push.feature): a remote, a bare repository made from the scratch one,
 // a clone of it where itos runs, commits the remote gains from another clone,
 // the pre-push hook and hooks.pre_push's commands, a push of a new branch,
-// and what the remote's branches hold afterwards.
+// and what the remote's branches hold afterwards; two takes of one item of
+// the work registry, one the remote's and one the clone's, and the owner the
+// remote's registry gives it (slice 66).
 package features
 
 import (
@@ -15,6 +17,7 @@ import (
 	"strings"
 
 	"github.com/cucumber/godog"
+	"go.yaml.in/yaml/v3"
 )
 
 // The line an uncommitted change adds to a file of the clone.
@@ -32,6 +35,9 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the remote's branch ends with "([^"]*)" then "([^"]*)", with no merge commit$`, w.remoteEndsWith)
 	sc.Step(`^the remote's branch does not have "([^"]*)"$`, w.remoteLacks)
 	sc.Step(`^the remote's branch has "([^"]*)"$`, w.remoteHas)
+	sc.Step(`^the remote has gained the commit "([^"]*)" making "([^"]*)" the owner of "([^"]*)"$`, w.remoteGainsTake)
+	sc.Step(`^the clone has the commit "([^"]*)" making "([^"]*)" the owner of "([^"]*)"$`, w.cloneTakes)
+	sc.Step(`^the remote's registry gives "([^"]*)" the owner "([^"]*)"$`, w.remoteRegistryOwner)
 
 	sc.Step(`^the pre-push hook is installed$`, func() error {
 		return w.hookInstalled("pre-push", `"$@"`)
@@ -162,6 +168,98 @@ func writeLine(dir, path, subject string) error {
 		return err
 	}
 	return os.WriteFile(full, []byte("A line for "+subject+".\n"), 0o644)
+}
+
+// A take of the item pushed to the remote's main from another clone: the
+// clone's registry, as the scenario wrote it, pushed first, so both start
+// from it, then the item made the owner's and doing there, as itos work take
+// edits it, and committed and pushed past the hooks.
+func (w *world) remoteGainsTake(subject, owner, id string) error {
+	if err := w.git("push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main"); err != nil {
+		return err
+	}
+	other := filepath.Join(w.support, "other")
+	if _, err := os.Stat(other); err != nil {
+		if err := w.gitIn(w.support, "clone", "-q", w.remote(), other); err != nil {
+			return err
+		}
+	} else {
+		if err := w.gitIn(other, "fetch", "-q", "origin"); err != nil {
+			return err
+		}
+		if err := w.gitIn(other, "reset", "-q", "--hard", "origin/main"); err != nil {
+			return err
+		}
+	}
+	if err := w.takeIn(other, id, owner); err != nil {
+		return err
+	}
+	if err := w.gitIn(other, "commit", "-q", "--no-verify", "-am", subject); err != nil {
+		return err
+	}
+	return w.gitIn(other, "push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main")
+}
+
+// A take of the item committed in the clone, past the hooks.
+func (w *world) cloneTakes(subject, owner, id string) error {
+	if err := w.takeIn(w.dir, id, owner); err != nil {
+		return err
+	}
+	path := w.data(startingRegistry)
+	if err := w.git("add", "--", path); err != nil {
+		return err
+	}
+	return w.git("commit", "-q", "--no-verify", "-m", subject, "--", path)
+}
+
+// The registry of the repository in dir with the item's line, as the work
+// steps write it, giving it the owner and the status doing.
+func (w *world) takeIn(dir, id, owner string) error {
+	file := filepath.Join(dir, w.data(startingRegistry))
+	text, err := os.ReadFile(file)
+	if err != nil {
+		return err
+	}
+	lines := strings.Split(string(text), "\n")
+	found := false
+	for i, line := range lines {
+		if strings.Contains(line, "{ id: "+id+",") {
+			line = strings.Replace(line, "owner: null", "owner: "+owner, 1)
+			lines[i] = strings.Replace(line, "status: todo", "status: doing", 1)
+			found = true
+		}
+	}
+	if !found {
+		return fmt.Errorf("the registry in %s has no item %s:\n%s", dir, id, text)
+	}
+	return os.WriteFile(file, []byte(strings.Join(lines, "\n")), 0o644)
+}
+
+// The registry on the remote's main gives the item the owner.
+func (w *world) remoteRegistryOwner(id, owner string) error {
+	cmd := exec.Command("git", "show", "main:"+filepath.ToSlash(w.data(startingRegistry)))
+	cmd.Dir = w.remote()
+	cmd.Env = w.env()
+	text, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("the remote's main has no registry: %w\n%s", err, w.report())
+	}
+	var registry struct {
+		Items []map[string]any `yaml:"items"`
+	}
+	if err := yaml.Unmarshal(text, &registry); err != nil {
+		return fmt.Errorf("the remote's registry does not read: %w\n%s", err, text)
+	}
+	for _, item := range registry.Items {
+		if fmt.Sprint(item["id"]) != id {
+			continue
+		}
+		if fmt.Sprint(item["owner"]) != owner {
+			return fmt.Errorf("the remote's registry gives %s the owner %v, not %s\n%s\n%s", id, item["owner"], owner, text, w.report())
+		}
+		return nil
+	}
+	return fmt.Errorf("the remote's registry has no item %s\n%s\n%s", id, text, w.report())
 }
 
 func (w *world) uncommittedChange(path string) error {
