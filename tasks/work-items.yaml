@@ -4387,8 +4387,8 @@ items:
   - id: T-084
     title: docs/ORCHESTRATING.md keeps only what is this repository's own
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-64]
     kind: task
     why: >
