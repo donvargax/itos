@@ -3960,6 +3960,14 @@ items:
       work done could move a closed item to an archive file beside it (still read for ids, so none
       is reused, and by itos work show), or drop it with its commits as the record.
 
+      The user's call (2026-10-04): the commits are the record of done work (the changelog is
+      generated from them, never committed). work done writes the item's title and why into the
+      close commit's body and drops the item from the registry in the same commit; itos work show
+      <id> reads a dropped item back from its close commit; work add and promote check the close
+      commits too, so a dropped id is never given again; a live item depending on a dropped one
+      reads it as done. Done tasks keep their ledger entries, since the nightly runs every done
+      task's checks.
+
   - id: slice-60
     title: itos tests next-id and itos task next-id, the next free ID for a spec writer
     phase: 1
