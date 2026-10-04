@@ -3741,3 +3741,15 @@ items:
       Found by itos-cc mutate on internal/version (2026-10-03): leadingInt survives < to <= (no test
       has a 0 inside a number, such as 1.10.0 against 1.9.0) and parts survives i < 3 to <= (which
       would panic on a fourth dot part, no test has one, such as 1.2.3-rc.1). Two test cases.
+
+  - id: p1-schema-contract-tests
+    title: tools/bin/schema-contract has Go unit tests
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by itos-cc crap (2026-10-03): compareSame (complexity 36), validate and compare are the
+      schema-contract gate's core (T-070) and only the nightly's TypeScript self-test reaches them,
+      so a bug there would quietly let a breaking config change through.
