@@ -3556,7 +3556,7 @@ items:
     title: itos task add writes a task into the ledger and its item into the registry, and commits
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-54]
     kind: slice
     why: >
