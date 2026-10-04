@@ -430,7 +430,7 @@ func buildAsReleased(dir, tag string) (string, error) {
 	}
 	bin := filepath.Join(dir, "itos")
 	build := exec.Command("go", "build", "-trimpath",
-		"-ldflags", "-s -w -X github.com/donvargax/itos/v2/internal/version.stamp="+next,
+		"-ldflags", "-s -w -X github.com/donvargax/itos/v3/internal/version.stamp="+next,
 		"-o", bin, "./cmd/itos")
 	build.Env = env("CGO_ENABLED=0")
 	if out, err := build.CombinedOutput(); err != nil {

@@ -33,7 +33,7 @@ builds:
     # The tag is the version: internal/version says it (a snapshot's, below, for a build that
     # publishes nothing).
     ldflags:
-      - -s -w -X github.com/donvargax/itos/v2/internal/version.stamp={{ .Version }}
+      - -s -w -X github.com/donvargax/itos/v3/internal/version.stamp={{ .Version }}
     goos: [linux, darwin, windows]
     goarch: [amd64, arm64]
     ignore:

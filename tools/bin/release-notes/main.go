@@ -83,7 +83,7 @@ func run() int {
 	if flag.NArg() > 0 || !semver.MatchString(*ver) || *sums == "" {
 		return fail("usage: go run ./tools/bin/release-notes -version <X.Y.Z> -checksums <checksums.txt> [-from <tag>] [-to <rev>] [-itos <bin>]")
 	}
-	n := notes{Version: *ver, Repository: repository, From: *from}
+	n := notes{Version: *ver, Repository: repository, Module: modulePath(*ver), From: *from}
 	var err error
 	if n.From == "" {
 		if n.From, err = lastRelease(*to, "v"+*ver); err != nil {
@@ -126,11 +126,22 @@ func run() int {
 
 // notes is everything the template reads.
 type notes struct {
-	Version, Repository, From, Range, Changed, Pin string
-	Hashes                                         map[string]string // platform → its archive's SHA-256
-	Commits                                        []commit
-	Upgrading, Changes                             []footer
-	Config                                         []finding
+	Version, Repository, Module, From, Range, Changed, Pin string
+	Hashes                                                 map[string]string // platform → its archive's SHA-256
+	Commits                                                []commit
+	Upgrading, Changes                                     []footer
+	Config                                                 []finding
+}
+
+// modulePath is the Go module a version is go-installed from: the repository's
+// path, ending in /v<major> from v2 as Go requires of a tag (the release cut,
+// tools/bin/release-version, refuses a version go.mod's path does not match).
+func modulePath(version string) string {
+	major, _, _ := strings.Cut(version, ".")
+	if major == "0" || major == "1" {
+		return "github.com/" + repository
+	}
+	return "github.com/" + repository + "/v" + major
 }
 
 type commit struct {
@@ -474,7 +485,7 @@ commits, or whatever type your rules give ` + "`itos.yaml`" + ` and ` + "`tools/
    ` + "```" + `
 
    A CI step that installs itos by ` + "`go install`" + ` moves to
-   ` + "`go install github.com/{{.Repository}}/v2/cmd/itos@v{{.Version}}`" + `.
+   ` + "`go install {{.Module}}/cmd/itos@v{{.Version}}`" + `.
 
 6. **Point the schema line at v{{.Version}}'s.** If ` + "`itos.yaml`" + `'s first line names a release's
    ` + "`itos.schema.json`" + `, make it
