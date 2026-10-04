@@ -4305,3 +4305,17 @@ items:
       render as copyable. Footers are the last paragraph's trailers only when git reads them as
       trailers; a multi-line free-text footer keeps its lines (p3-text-footer-lines). Also: an
       Upgrading that starts with none followed by text reads as none.
+
+  - id: p1-features-hide-global-itos
+    title: The features' PATH hides a global itos, as it hides claude
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug 12's agent (2026-10-04): the scenarios' PATH hides claude but not itos, so a
+      scenario whose hooks call itos (the starter's hooks.bin) passed locally against the
+      developer's global itos rather than the one under test, and failed only in CI. Hiding itos
+      there, and putting the itos under test on the PATH only where a step asks (itosOnPath), would
+      catch it before the push.
