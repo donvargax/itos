@@ -100,11 +100,29 @@ func (w *world) projectHooks(dir string) error {
 
 // hooks install, which has to succeed, its hooks running the itos under
 // test: hooks.bin is itos, found on the PATH git hands its hooks, as a
-// global install is. It is a script that runs the itos under test, not a
-// link to it, since tools/bin/itos finds its checkout from its own path; and
-// it has to run there, so a hook that fails to start cannot pass for one
-// that refuses.
+// global install is (itosOnPath).
 func (w *world) itosHasInstalledHooks() error {
+	if err := w.itosOnPath(); err != nil {
+		return err
+	}
+	if err := w.hooksBinIs("itos"); err != nil {
+		return err
+	}
+	if err := w.itos("hooks", "install"); err != nil {
+		return err
+	}
+	if w.exit != 0 {
+		return fmt.Errorf("hooks install failed\n%s", w.report())
+	}
+	return nil
+}
+
+// The itos under test first on the PATH as itos, as a global install is, so
+// the hooks that call itos run it. It is a script that runs the itos under
+// test, not a link to it, since tools/bin/itos finds its checkout from its
+// own path; and it has to run there, so a hook that fails to start cannot
+// pass for one that refuses.
+func (w *world) itosOnPath() error {
 	bin, err := w.binOnPath()
 	if err != nil {
 		return err
@@ -118,15 +136,6 @@ func (w *world) itosHasInstalledHooks() error {
 	}
 	if w.exit != 0 {
 		return fmt.Errorf("itos on the PATH does not run\n%s", w.report())
-	}
-	if err := w.hooksBinIs("itos"); err != nil {
-		return err
-	}
-	if err := w.itos("hooks", "install"); err != nil {
-		return err
-	}
-	if w.exit != 0 {
-		return fmt.Errorf("hooks install failed\n%s", w.report())
 	}
 	return nil
 }

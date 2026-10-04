@@ -64,8 +64,14 @@ func (w *world) repositoryWithoutItos(message string) error {
 
 // What init wrote, committed as the adoption its ledger's T-1 is for, past
 // the hooks it installed: the scenario is about what comes after.
+// The adoption commit, made with no hook, and from then on the itos under
+// test on the PATH as itos, so the hooks init installed, which call itos as
+// its starter's hooks.bin says, run it and not whatever itos the caller has.
 func (w *world) initCommitted() error {
-	return w.commit("chore: adopt itos\n\nTask: T-1")
+	if err := w.commit("chore: adopt itos\n\nTask: T-1"); err != nil {
+		return err
+	}
+	return w.itosOnPath()
 }
 
 // The scenario's folder with no git repository in it.
