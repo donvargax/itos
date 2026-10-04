@@ -3713,3 +3713,19 @@ items:
       Found by the post-landing review of slice 54: an empty --as= falls back to the identity
       provider, so --as=$UNSET silently proposes another person's work, bug 11's failure mode. Also
       work check ignores every argument after its first.
+
+  - id: p1-registry-code-cleanup
+    title: The registry and ledger writers share their helpers
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the post-landing reviews of slices 54 and 55, none urgent: block-end scanning copied
+      in Append, addLast and Note; two placement rules for a new key; Edit copying Load's
+      normalisation of depends_on (a shared normalize); the id-taken and not-a-task refusals
+      repeated; four []string to []any conversions; task add's own argument parser beside workArgs,
+      its config loaded twice and its own output beside reportWork; the task id checked in three
+      places; value.Width carrying the registry's convention into the generic YAML editor; a
+      typographic quote in a comment; @ID-WORK-19 not checking the owner it names. One refactor.
