@@ -112,3 +112,29 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     Then itos exits with code 3
     And its output says "GH_TOKEN"
     And its output says "gh auth login"
+
+  # Slice 56 (the user's call, 2026-10-03): an item's registry commits, its
+  # take and its close, are written and checked by itos (work check runs
+  # before each), and waiting a whole CI run for each made one item cost
+  # three waits. A push whose commits touch only the work registry pushes
+  # and returns, naming itos ci watch for anyone who wants that run; any
+  # other path in the range, prose included, waits as before, since a prose
+  # range can fail (vp check did, the day this was written).
+  @ID-WATCH-10 @slice-56 @wip
+  Scenario: A push whose commits touch only the work registry does not wait for CI, and says how to
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the clone has the commit "docs: take slice-9" touching "tasks/work-items.yaml"
+    When itos runs "push"
+    Then itos exits with code 0
+    And the watch command was never run
+    And its output says "itos ci watch"
+    And the remote's branch has "docs: take slice-9"
+
+  @ID-WATCH-11 @slice-56 @wip
+  Scenario: A push whose commits touch the registry and anything else waits as before
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the clone has the commit "docs: take slice-9" touching "tasks/work-items.yaml"
+    And the clone has the commit "docs: describe the readme" touching "README.md"
+    When itos runs "push"
+    Then itos exits with code 0
+    And its output says "ci: success"
