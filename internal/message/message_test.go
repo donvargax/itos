@@ -226,3 +226,39 @@ tests:
 		t.Errorf("Links %+v", got)
 	}
 }
+
+// A footer of the work registry is written by --item and stands in for the
+// ledger's where its in_place_of says (slice 63): a type it does not name
+// still needs its own, and a stand-in with no ID stands in for nothing. Its
+// IDs are links, the items' own.
+func TestInPlaceOf(t *testing.T) {
+	cfg := load(t, `version: 1
+ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+commits:
+  footers:
+    Task: { source: ledger, required_for: [test, refactor] }
+    Item: { source: registry, in_place_of: { Task: [test, docs] } }
+`)
+	if flag, what := Flag(cfg, "Item"); flag != "--item" || what != "<id>" {
+		t.Errorf("Flag(Item) = %q %q", flag, what)
+	}
+	if key, ok := RegistryFooter(cfg); !ok || key != "Item" {
+		t.Errorf("RegistryFooter = %q %v", key, ok)
+	}
+	for _, c := range []struct {
+		typ, links string
+		want       []string
+	}{
+		{"test", "Item: slice-9", nil},
+		{"test", "Task: T-1", nil},
+		{"test", "Item:", []string{"Task"}},
+		{"refactor", "Item: slice-9", []string{"Task"}},
+	} {
+		if got := Missing(cfg, c.typ, c.links, ""); !slices.Equal(got, c.want) {
+			t.Errorf("Missing(%s, %q) = %q, want %q", c.typ, c.links, got, c.want)
+		}
+	}
+	if got, want := Links(cfg, "docs: x\n\nItem: slice-9\n"), []Link{{Key: "Item", ID: "slice-9"}}; !reflect.DeepEqual(got, want) {
+		t.Errorf("Links %+v", got)
+	}
+}

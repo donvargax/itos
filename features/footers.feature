@@ -87,7 +87,7 @@ Feature: The footer rules are itos's, whatever the header lint
   # below takes it in place of Task for test, docs and chore, so a slice,
   # which has no task, can commit its steps before its feat; every other
   # type still needs its Task.
-  @ID-FOOT-07 @slice-63 @wip
+  @ID-FOOT-07 @slice-63
   Scenario: A test commit naming a registry item in an Item footer needs no Task footer
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     And the work registry has the item "slice-9" owned by nobody with the status "doing"
@@ -99,7 +99,7 @@ Feature: The footer rules are itos's, whatever the header lint
       """
     Then itos exits with code 0
 
-  @ID-FOOT-08 @slice-63 @wip
+  @ID-FOOT-08 @slice-63
   Scenario: An Item footer naming an item the registry does not have is rejected
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     And the work registry has the item "slice-9" owned by nobody with the status "doing"
@@ -113,7 +113,7 @@ Feature: The footer rules are itos's, whatever the header lint
     And its output says "slice-7"
     And its output names the rule "item-footer"
 
-  @ID-FOOT-09 @slice-63 @wip
+  @ID-FOOT-09 @slice-63
   Scenario: A type outside in_place_of still needs its Task footer beside an Item footer
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     And the work registry has the item "slice-9" owned by nobody with the status "doing"

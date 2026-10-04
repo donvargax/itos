@@ -14,7 +14,7 @@ import (
 
 // Link is one ID a footer of IDs gives: the footer's key, the ID with its
 // strip_prefix taken off, and the kind of named tests the footer's source
-// is, "" for the ledger.
+// is, "" for the ledger and the work registry, whose IDs are items' own.
 type Link struct {
 	Key   string
 	ID    string
@@ -28,7 +28,7 @@ func Links(cfg *config.Loaded, text string) []Link {
 	var links []Link
 	for _, key := range cfg.Commits.Footers.Keys {
 		f := cfg.Commits.Footers.Values[key]
-		if !isLedger(f) && f.Source.Tests == "" {
+		if !ownIDs(f) && f.Source.Tests == "" {
 			continue
 		}
 		for _, id := range IDs(text, key, strip(f)) {

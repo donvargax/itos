@@ -439,7 +439,13 @@ each, and holds it since the TypeScript left (T-062).
   by its key: CI's tasks (`tasksIn` in `ci-scope.ts`) and the commit-msg
   hook's are those of every footer whose `source` is `ledger`, a kind's named
   tests those of every footer whose source is that kind, so `Task:` and
-  `Scenarios:` are only this repository's names for them. What itos prints
+  `Scenarios:` are only this repository's names for them. A footer whose
+  source is `registry` (slice 63) names work items, read from the registry
+  file at the tree its `read_at` says (`work.IDsAt`; under a stealth config
+  the file in the git folder, as the ledger is); its `in_place_of` maps
+  another footer of IDs to the types it stands in for it (`stoodIn`, which
+  both the rule and `itos commit`'s refusal before git runs ask), and
+  `work show` reads its IDs as links to the item, as it reads the ledger's. What itos prints
   names the ledger's folder by `ledger.files` (`ledgerLayout`) and the prose
   steps by `ci.prose.steps`, never `tasks/` or `vp check`. A footer whose
   source is `text` (slice 26) has no IDs and so no source to read: each line

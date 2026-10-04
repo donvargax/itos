@@ -76,7 +76,7 @@ Commands:
                                    close a thread
   follow show <id>                 a thread and all its notes
   follow doc <id> <path> [--force] write a thread out as Markdown
-  commit [--task <id>] [--scenarios <ids>] [--<footer> <text>] [<git commit args>…]
+  commit [--task <id>] [--item <id>] [--scenarios <ids>] [--<footer> <text>] [<git commit args>…]
                                    git commit, with the footers itos writes
   commit check-message <file|->    header lint and footer rules on one message
   commit check-paths --type <t> <path>…
@@ -329,8 +329,8 @@ ledger.group.label (phase by default).
 
 --json: {"schema":1,"file","sound","problems":[{"rule","message","fix"?}]}`,
 
-	"commit": `Usage: itos commit [--task <id>] [--scenarios <ids>] [--<footer> <text|none>]
-                   [--breaking <text>] [<git commit args>…]
+	"commit": `Usage: itos commit [--task <id>] [--item <id>] [--scenarios <ids>]
+                   [--<footer> <text|none>] [--breaking <text>] [<git commit args>…]
        itos commit check-message <file|-> [--at <sha>]
        itos commit check-paths --type <type> <path>…
        itos commit footers <name> <from> <to>
@@ -338,15 +338,17 @@ ledger.group.label (phase by default).
 Runs git commit with every argument but its own flags, and writes the footers
 from them as git's --trailer, so they land whether the message comes from -m,
 -F or the editor. --task writes the footer whose source is the ledger (Task:
-here) and --scenarios the one whose source is a kind of named tests, the
-first of commits.footers each, their IDs separated by commas or spaces and
-written on lines of 100 characters at most, the key on each. Each footer of
-free text (source: text) has a flag of its name in lower case (--upgrading
-for Upgrading:), unless --task, --scenarios or --breaking has that name, and
---breaking writes BREAKING-CHANGE:, the form git reads as a trailer; their
-value is the next argument, whatever it is. Every flag may repeat, and a
-footer the message already has is not written again (trailer.ifExists
-addIfDifferent), so an amend keeps one.
+here), --item the one whose source is the work registry (Item: here; in
+place of Task: for the types its in_place_of names) and --scenarios the one
+whose source is a kind of named tests, the first of commits.footers each,
+their IDs separated by commas or spaces and written on lines of 100
+characters at most, the key on each. Each footer of free text (source: text)
+has a flag of its name in lower case (--upgrading for Upgrading:), unless
+--task, --item, --scenarios or --breaking has that name, and --breaking
+writes BREAKING-CHANGE:, the form git reads as a trailer; their value is the
+next argument, whatever it is. Every flag may repeat, and a footer the
+message already has is not written again (trailer.ifExists addIfDifferent),
+so an amend keeps one.
 
 Before git runs, a commit whose type requires a footer that neither the flags
 nor the message give is refused, naming the flag, and nothing is committed;
@@ -355,10 +357,10 @@ message. A message from the editor, or -F -, is left to the hooks, which judge
 the commit as any other, so a commit they refuse is not made; ITOS_AMEND tells
 them whether --amend is among git's arguments, so they know an amend rather
 than guess one. Under a stealth config (<git common dir>/itos/itos.yaml) the
-links, the footers --task and --scenarios write, are never written into the
-message: they are handed to the hook in ITOS_FOOTERS and written as the new
-commit's note in refs/notes/itos, and notes.rewriteRef is set to that ref, so
-an amend or a rebase carries the note; footers of free text and
+links, the footers --task, --item and --scenarios write, are never written
+into the message: they are handed to the hook in ITOS_FOOTERS and written as
+the new commit's note in refs/notes/itos, and notes.rewriteRef is set to that
+ref, so an amend or a rebase carries the note; footers of free text and
 BREAKING-CHANGE stay in the message.
 -q is git's --quiet. A first argument that is not a flag is a subcommand or a
 usage error, never a path: paths for git go after a flag or after --, as in

@@ -82,7 +82,7 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
 
   # Slice 63: a commit whose Item footer names the item belongs to it, so a
   # spec written in a docs commit is part of what work show lists.
-  @ID-SHOW-07 @slice-63 @wip
+  @ID-SHOW-07 @slice-63
   Scenario: work show lists a commit by its Item footer
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     And the work registry has the item "slice-9" owned by nobody with the status "doing"

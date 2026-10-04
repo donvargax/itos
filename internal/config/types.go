@@ -85,18 +85,26 @@ type Footer struct {
 	// ancestors out of required_for, so a footer added to a project's rules
 	// does not fail the history written before it.
 	Since *string `json:"since"`
+	// InPlaceOf are the other footers this one stands in for, each with the
+	// commit types it does so for (slice 63): a commit of such a type that
+	// carries this footer needs no other footer of that key.
+	InPlaceOf Ordered[Types] `json:"in_place_of"`
 }
 
 // Text is whether the footer is free text (source: text) rather than IDs.
 func (f Footer) Text() bool { return f.Source.IsName && f.Source.Name == "text" }
 
+// Registry is whether the footer names items of the work registry (source:
+// registry).
+func (f Footer) Registry() bool { return f.Source.IsName && f.Source.Name == "registry" }
+
 // Live is whether every ID the footer names must be live (must_be_live).
 func (f Footer) Live() bool { return f.MustBeLive != nil && *f.MustBeLive }
 
-// FooterSource is a footer's source: the ledger, a kind of tests, or free
-// text. Name is the source as written when it is a word (IsName: ledger,
-// text, or any other word the cross-checks refuse); Tests is the kind when
-// it is { tests: <kind> }.
+// FooterSource is a footer's source: the ledger, the work registry, a kind of
+// tests, or free text. Name is the source as written when it is a word
+// (IsName: ledger, registry, text, or any other word the cross-checks
+// refuse); Tests is the kind when it is { tests: <kind> }.
 type FooterSource struct {
 	Name   string
 	IsName bool

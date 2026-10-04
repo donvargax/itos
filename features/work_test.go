@@ -74,7 +74,8 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 // dependency when given and a kind when given. An owner is added to the
 // people, so the registry stays sound, and in a project the registry and the
 // people are committed past the hooks, so a command that commits the
-// registry commits only its own change.
+// registry commits only its own change; a change already staged stays
+// staged.
 func (w *world) registryItem(id, owner, status, dep, kind string) error {
 	deps := "[]"
 	if dep != "" {
@@ -103,7 +104,37 @@ func (w *world) registryItem(id, owner, status, dep, kind string) error {
 	if w.dataDir != "" {
 		return nil
 	}
-	return w.commit("docs: a registry")
+	return w.commitLeavingStaged("docs: a registry")
+}
+
+// Every file committed as commit commits them, but for those already staged,
+// which stay staged and out of the commit: a change the scenario staged
+// first (its Background's) is for the commit it makes, not the registry's
+// (slice 63).
+func (w *world) commitLeavingStaged(message string) error {
+	listed, err := w.gitOutput("diff", "--cached", "--name-only")
+	if err != nil {
+		return err
+	}
+	staged := strings.Fields(listed)
+	if len(staged) == 0 {
+		return w.commit(message)
+	}
+	if err := w.git("add", "-A"); err != nil {
+		return err
+	}
+	if err := w.git(append([]string{"reset", "-q", "--"}, staged...)...); err != nil {
+		return err
+	}
+	if err := w.git("commit", "-q", "--no-verify", "-m", message); err != nil {
+		return err
+	}
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	w.commits = append(w.commits, sha)
+	return w.git(append([]string{"add", "--"}, staged...)...)
 }
 
 // The registry's lines written where the scenario keeps itos's data, its

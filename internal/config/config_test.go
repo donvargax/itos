@@ -200,3 +200,42 @@ func TestGet(t *testing.T) {
 		}
 	}
 }
+
+// A footer's in_place_of names other footers of IDs, for commit types
+// (slice 63); a footer of free text neither stands in nor is stood in for.
+func TestInPlaceOfProblems(t *testing.T) {
+	const head = "version: 1\ncommits:\n  types: [test, docs]\n  footers:\n" +
+		"    Task: { source: ledger, required_for: [test] }\n" +
+		"    Upgrading: { source: text }\n"
+	cases := map[string][]string{
+		"    Item: { source: registry, in_place_of: { Task: [test, docs] } }\n": nil,
+		"    Item: { source: registry, in_place_of: { Task: all } }\n":          nil,
+		"    Item: { source: registry, in_place_of: { Item: [test] } }\n": {
+			"commits.footers.Item.in_place_of names Item itself",
+		},
+		"    Item: { source: registry, in_place_of: { Tusk: [test] } }\n": {
+			"commits.footers.Item.in_place_of names Tusk, which is not one of commits.footers",
+		},
+		"    Item: { source: registry, in_place_of: { Upgrading: [test] } }\n": {
+			"commits.footers.Item.in_place_of names Upgrading, a footer of free text, which no ID stands in for",
+		},
+		"    Item: { source: registry, in_place_of: { Task: [chore] } }\n": {
+			"commits.footers.Item.in_place_of.Task names chore, which is not one of commits.types",
+		},
+		"    Note: { source: text, in_place_of: { Task: [test] } }\n": {
+			"commits.footers.Note.in_place_of is for a footer of IDs, and commits.footers.Note is free text (source: text)",
+		},
+	}
+	for footer, want := range cases {
+		_, err := load(t, head+footer)
+		if want == nil {
+			if err != nil {
+				t.Errorf("%q: got %v, want none", footer, err)
+			}
+			continue
+		}
+		if got := messages(t, err); !slices.Equal(got, want) {
+			t.Errorf("%q: got %q, want %q", footer, got, want)
+		}
+	}
+}

@@ -1,7 +1,8 @@
 // The steps of itos work show (show.feature, slice 57): a feature file whose
 // one live scenario is tagged for an item, committed; a commit naming
-// scenarios in its Scenarios footer; one text of the output before another;
-// and an entry of a list in the JSON output.
+// scenarios in its Scenarios footer, or an item in its Item footer (slice
+// 63); one text of the output before another; and an entry of a list in the
+// JSON output.
 package features
 
 import (
@@ -16,6 +17,9 @@ func initializeShowSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the committed feature file "([^"]*)" with the live scenario "([^"]*)" tagged "([^"]*)"$`, w.committedTaggedScenario)
 	sc.Step(`^the commit "([^"]*)" naming the scenarios "([^"]*)" on top of it$`, func(message, ids string) error {
 		return w.commitOnTop(message + "\n\nScenarios: " + ids + "\n")
+	})
+	sc.Step(`^the commit "([^"]*)" naming the item "([^"]*)" in an Item footer on top of it$`, func(message, id string) error {
+		return w.commitOnTop(message + "\n\nItem: " + id + "\n")
 	})
 	sc.Step(`^its output says "([^"]*)" before "([^"]*)"$`, w.outputSaysBefore)
 	sc.Step(`^its JSON's "([^"]*)" has one entry whose "([^"]*)" is "([^"]*)"$`, w.jsonListHasOne)

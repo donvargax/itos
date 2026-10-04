@@ -128,8 +128,8 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 			"stdin", about("The delegate's command that lints a message on its stdin.", str),
 		)),
 		"footers", about("The footers, by key: where the IDs each names come from, or free text, and which types need it.", mapOf(obj([]string{"source"},
-			"source", about("Where the footer's IDs come from: ledger, or { tests: <kind> }; or text, free text that says what a consumer "+
-				"must do, or none.", either(str, obj([]string{"tests"}, "tests", about("The kind of named tests.", str)))),
+			"source", about("Where the footer's IDs come from: ledger, registry (the work registry's items), or { tests: <kind> }; or "+
+				"text, free text that says what a consumer must do, or none.", either(str, obj([]string{"tests"}, "tests", about("The kind of named tests.", str)))),
 			"strip_prefix", about("A prefix the IDs are written with and read without (not for source: text).", str),
 			"required_for", about("The commit types that must carry the footer: a list, or all.", typesOrAll),
 			"validate_for", about("The commit types whose footer IDs must exist, or whose free text must not be empty: a list, or all.", typesOrAll),
@@ -138,6 +138,8 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 				enum("commit", "worktree")),
 			"since", about("The full SHA of the commit after which the footer is required: verify leaves it and its ancestors out of "+
 				"required_for; the commit-msg hook always requires it.", str),
+			"in_place_of", about("The other footers this one stands in for, by key, each with the commit types it does so for (a list, "+
+				"or all): a commit of such a type that carries this footer needs none of that key (not for source: text).", mapOf(typesOrAll)),
 		))),
 		"path_sets", about("Named path lists; $<name> in a path list stands for one.", mapOf(strs)),
 		"scopes", about("The paths each commit type may touch, by type.", mapOf(obj(nil,

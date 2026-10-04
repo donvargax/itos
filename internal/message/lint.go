@@ -55,6 +55,9 @@ func footerFix(cfg *config.Loaded, rule, message string) (string, error) {
 			return "write after " + key + ": what a consumer must do, or none", nil
 		}
 		src := "the " + f.Source.Tests + " files"
+		if f.Registry() {
+			src = cfg.Work.Registry
+		}
 		if isLedger(f) {
 			layout, err := ledger.LayoutOf(cfg)
 			if err != nil {

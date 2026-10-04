@@ -58,11 +58,14 @@ func typedFooter(cfg *config.Loaded, key, message string) string {
 }
 
 // footerFlag is the flag of itos commit that writes a footer, "" when none
-// does: --task the first of the ledger, --scenarios the first of a kind of
-// named tests.
+// does: --task the first of the ledger, --item the first of the work
+// registry, --scenarios the first of a kind of named tests.
 func footerFlag(cfg *config.Loaded, key string, f config.Footer) string {
 	if k, ok := LedgerFooter(cfg); ok && k == key {
 		return "--task"
+	}
+	if k, ok := RegistryFooter(cfg); ok && k == key {
+		return "--item"
 	}
 	if k, ok := TestsFooter(cfg); ok && k == key {
 		return "--scenarios"

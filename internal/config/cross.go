@@ -115,8 +115,9 @@ func scopeProblems(_ *value.Map, c *Config) []out.Problem {
 	return found
 }
 
-// footerProblems: a footer's source must be the ledger or a kind of tests the
-// config has, and the types it names must be commit types.
+// footerProblems: a footer's source must be the ledger, the work registry or
+// a kind of tests the config has, the types it names must be commit types,
+// and the footers it stands in for must be other footers of IDs.
 func footerProblems(_ *value.Map, c *Config) []out.Problem {
 	var found []out.Problem
 	for _, key := range c.Commits.Footers.Keys {
@@ -126,19 +127,22 @@ func footerProblems(_ *value.Map, c *Config) []out.Problem {
 		found = append(found, textProblems(where, f)...)
 		found = append(found, namedTypeProblems(c, where+".required_for", f.RequiredFor)...)
 		found = append(found, namedTypeProblems(c, where+".validate_for", f.ValidateFor)...)
+		found = append(found, inPlaceOfProblems(c, key, f)...)
 	}
 	return found
 }
 
+// The message is the one released before the registry was a source, which
+// the conformance corpus records; the fix names every source.
 func sourceProblems(c *Config, where string, s FooterSource) []out.Problem {
 	if s.IsName {
-		if s.Name == "ledger" || s.Name == "text" {
+		if s.Name == "ledger" || s.Name == "registry" || s.Name == "text" {
 			return nil
 		}
 		return []out.Problem{{
 			Rule:    "config-footer-source",
 			Message: where + ".source is ledger, text or { tests: <kind> }",
-			Fix:     "set " + where + ".source to ledger, text or { tests: <kind> }",
+			Fix:     "set " + where + ".source to ledger, registry, text or { tests: <kind> }",
 		}}
 	}
 	if _, ok := c.Tests.Get(s.Tests); ok {
@@ -161,7 +165,8 @@ func textProblems(where string, f Footer) []out.Problem {
 	for _, k := range []struct {
 		key string
 		set bool
-	}{{"strip_prefix", f.StripPrefix != nil}, {"must_be_live", f.MustBeLive != nil}, {"read_at", f.ReadAt != nil}} {
+	}{{"strip_prefix", f.StripPrefix != nil}, {"must_be_live", f.MustBeLive != nil}, {"read_at", f.ReadAt != nil},
+		{"in_place_of", len(f.InPlaceOf.Keys) > 0}} {
 		if !k.set {
 			continue
 		}
@@ -170,6 +175,42 @@ func textProblems(where string, f Footer) []out.Problem {
 			Message: where + "." + k.key + " is for a footer of IDs, and " + where + " is free text (source: text)",
 			Fix:     "remove " + where + "." + k.key,
 		})
+	}
+	return found
+}
+
+// inPlaceOfProblems: each footer a footer stands in for (in_place_of) is
+// another footer of commits.footers, one of IDs, since IDs stand in for IDs:
+// a footer of free text says what a consumer must do, which no ID says; and
+// the types it does so for are commit types. A footer of free text standing
+// in is textProblems'.
+func inPlaceOfProblems(c *Config, key string, f Footer) []out.Problem {
+	var found []out.Problem
+	where := "commits.footers." + key + ".in_place_of"
+	for _, other := range f.InPlaceOf.Keys {
+		named, ok := c.Commits.Footers.Get(other)
+		switch {
+		case other == key:
+			found = append(found, out.Problem{
+				Rule:    "config-footer-in-place-of",
+				Message: where + " names " + key + " itself",
+				Fix:     "remove " + other + " from " + where,
+			})
+		case !ok:
+			found = append(found, out.Problem{
+				Rule:    "config-footer-in-place-of",
+				Message: where + " names " + other + ", which is not one of commits.footers",
+				Fix:     "add commits.footers." + other + ", or remove it from " + where,
+			})
+		case named.Text():
+			found = append(found, out.Problem{
+				Rule:    "config-footer-in-place-of",
+				Message: where + " names " + other + ", a footer of free text, which no ID stands in for",
+				Fix:     "remove " + other + " from " + where,
+			})
+		}
+		types := f.InPlaceOf.Values[other]
+		found = append(found, namedTypeProblems(c, where+"."+other, &types)...)
 	}
 	return found
 }

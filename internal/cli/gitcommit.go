@@ -1,8 +1,8 @@
 package cli
 
 // itos commit with no subcommand (slice 31, features/commit-command.feature):
-// git commit with the footers itos writes. itos reads --task and --scenarios
-// and hands every other argument to git commit as it is, so the message comes
+// git commit with the footers itos writes. itos reads --task, --item (slice
+// 63) and --scenarios and hands every other argument to git commit as it is, so the message comes
 // from -m, -F or the editor as git takes it. Each footer is passed as git's
 // own --trailer, which git adds to whatever message it ends up with before
 // the commit-msg hook runs, so the hook judges a footer itos writes as it
@@ -42,19 +42,20 @@ import (
 	"github.com/donvargax/itos/v2/internal/out"
 )
 
-// commitFlags are what itos commit reads of its arguments: the IDs --task
-// and --scenarios give, each flag as often as wanted, written --task <ids> or
-// --task=<ids>, its value one ID or several separated by commas or spaces;
+// commitFlags are what itos commit reads of its arguments: the IDs --task,
+// --item and --scenarios give, each flag as often as wanted, written --task
+// <ids> or --task=<ids>, its value one ID or several separated by commas or
+// spaces;
 // the texts the flags of the footers of free text give (--upgrading <text>,
 // one for each such footer the config declares) and --breaking <text>, each
 // as often as wanted, its value the next argument whatever it is, as git
 // takes an option's value; and the rest, git commit's, in order. A "--" ends
 // what itos reads, as it ends git's options.
 type commitFlags struct {
-	tasks, scenarios []string
-	texts            []said
-	breaking         []string
-	git              []string
+	tasks, items, scenarios []string
+	texts                   []said
+	breaking                []string
+	git                     []string
 }
 
 // said is one footer of free text a flag gives: its key and its text.
@@ -77,6 +78,8 @@ func readCommitFlags(args []string, texts map[string]string) (commitFlags, error
 		switch {
 		case name == "--task":
 			into = &f.tasks
+		case name == "--item":
+			into = &f.items
 		case name == "--scenarios":
 			into = &f.scenarios
 		case name == "--breaking" || isText:
@@ -120,13 +123,14 @@ func readCommitFlags(args []string, texts map[string]string) (commitFlags, error
 }
 
 // footerLines are the footers the flags write: the links, each "<key>:
-// <ids>", the ledger's first, the config's footer for each source; and the
+// <ids>", the ledger's first, then the work registry's, then the named
+// tests', the config's footer for each source; and the
 // content, each "<key>: <text>", the footers of free text in the config's
 // order, then BREAKING-CHANGE, the form git reads as a trailer. A link flag
 // whose footer the config does not have is a usage error, and one given with
 // no config is the error loading it gave (missing).
 func (f commitFlags) footerLines(cfg *config.Loaded, missing error) (links, content []string, err error) {
-	if len(f.tasks) > 0 || len(f.scenarios) > 0 {
+	if len(f.tasks) > 0 || len(f.items) > 0 || len(f.scenarios) > 0 {
 		if cfg == nil {
 			return nil, nil, missing
 		}
@@ -136,6 +140,7 @@ func (f commitFlags) footerLines(cfg *config.Loaded, missing error) (links, cont
 			key          func(*config.Loaded) (string, bool)
 		}{
 			{"--task", "the ledger", f.tasks, message.LedgerFooter},
+			{"--item", "the work registry", f.items, message.RegistryFooter},
 			{"--scenarios", "a kind of named tests", f.scenarios, message.TestsFooter},
 		} {
 			if len(flag.ids) == 0 {
@@ -407,8 +412,8 @@ func trailers(lines []string) []string {
 	return args
 }
 
-// gitCommit is `itos commit [--task <ids>] [--scenarios <ids>] [--<footer>
-// <text>] [--breaking <text>] [<git commit args>…]`: a commit missing a
+// gitCommit is `itos commit [--task <ids>] [--item <ids>] [--scenarios
+// <ids>] [--<footer> <text>] [--breaking <text>] [<git commit args>…]`: a commit missing a
 // footer its type requires refused before git runs, else git commit with the
 // footers as trailers, or under a stealth config the links as the new
 // commit's note and the content as trailers, git's streams the terminal's

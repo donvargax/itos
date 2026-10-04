@@ -184,7 +184,7 @@ Feature: itos commit, a commit whose footers itos writes
     And the message of HEAD says "#123 for the rest."
 
   # Slice 63: --item writes the Item footer, as --task writes the Task one.
-  @ID-COMMITCMD-18 @slice-63 @wip
+  @ID-COMMITCMD-18 @slice-63
   Scenario: --item writes the Item footer into the commit's message
     Given the config has an Item footer of registry items, taken in place of Task for test, docs and chore
     And the work registry has the item "slice-9" owned by nobody with the status "doing"

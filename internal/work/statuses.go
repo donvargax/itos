@@ -56,3 +56,40 @@ func (s Statuses) Of(id string) (any, bool) {
 	}
 	return status, true
 }
+
+// IDsAt are the ids of the registry's items at path in a tree: a commit,
+// "index" for the staged tree, or "" for the working tree (slice 63, the
+// footer whose source is the registry). A tree without the registry, or one
+// that does not read as a list of items, has none; an id that is not text is
+// no item's.
+func IDsAt(path, tree string) (map[string]bool, error) {
+	from := source.Worktree
+	if tree != "" {
+		var err error
+		if from, err = source.At(tree); err != nil {
+			return nil, err
+		}
+	}
+	ids := map[string]bool{}
+	if !from.Has(path) {
+		return ids, nil
+	}
+	text, err := from.Read(path)
+	if err != nil {
+		return ids, nil
+	}
+	raw, err := value.Parse(text)
+	if err != nil {
+		return ids, nil
+	}
+	list, ok := value.Prop(raw, "items").([]any)
+	if !ok {
+		return ids, nil
+	}
+	for _, item := range list {
+		if id, ok := value.Prop(item, "id").(string); ok {
+			ids[id] = true
+		}
+	}
+	return ids, nil
+}

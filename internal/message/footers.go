@@ -8,13 +8,15 @@
 //
 // A footer is `<Key>: <id> <id>, …` at the start of a line, and may repeat
 // over several lines to stay within the line length limit. Per key of
-// commits.footers: its source (the ledger, or a kind's named tests as its
-// adapter lists them), strip_prefix, required_for, validate_for,
-// must_be_live, and read_at: `commit` reads the IDs that exist at the commit
+// commits.footers: its source (the ledger, the work registry's items, or a
+// kind's named tests as its adapter lists them), strip_prefix, required_for,
+// validate_for, must_be_live, in_place_of (the footers it stands in for, and
+// for which types: a type that requires one of them is satisfied by this one
+// instead, slice 63), and read_at: `commit` reads the IDs that exist at the commit
 // being checked (the staged tree by default, the commit Reading.At names),
 // so a later commit that sets a test back to wip or drops a task does not
-// fail an older one, but for the stealth config's ledger, in no commit, read
-// in the working tree; `worktree`, or none, the working tree; since, a commit
+// fail an older one, but for the stealth config's ledger and registry, in no
+// commit, read in the working tree; `worktree`, or none, the working tree; since, a commit
 // that verify leaves out of required_for with its ancestors (Reading.Made).
 //
 // A footer whose source is text carries no IDs: `<Key>: <text>`, each line
@@ -44,6 +46,7 @@ import (
 	"github.com/donvargax/itos/v2/internal/source"
 	"github.com/donvargax/itos/v2/internal/tests"
 	"github.com/donvargax/itos/v2/internal/value"
+	"github.com/donvargax/itos/v2/internal/work"
 )
 
 // Reading is where the footer rules read a read_at: commit footer's IDs: At
@@ -138,6 +141,10 @@ func applies(types *config.Types, typ string) bool {
 
 func isLedger(f config.Footer) bool { return f.Source.IsName && f.Source.Name == "ledger" }
 
+// ownIDs is whether a footer's IDs are its source's own, the ledger's tasks
+// or the registry's items, rather than a kind's named tests.
+func ownIDs(f config.Footer) bool { return isLedger(f) || f.Registry() }
+
 func strip(f config.Footer) string {
 	if f.StripPrefix == nil {
 		return ""
@@ -164,10 +171,14 @@ func example(cfg *config.Loaded, key string, f config.Footer) string {
 	return fmt.Sprintf(`"%s: %s%s…"`, key, strip(f), hint)
 }
 
-// noun is what a footer's IDs are called: tasks, or the kind's name plural.
+// noun is what a footer's IDs are called: tasks, items, or the kind's name
+// plural.
 func noun(f config.Footer) string {
 	if isLedger(f) {
 		return "tasks"
+	}
+	if f.Registry() {
+		return "items"
 	}
 	return f.Source.Tests + "s"
 }
@@ -176,7 +187,7 @@ func noun(f config.Footer) string {
 // built-in Gherkin adapter, which reads that tag, lists the kind; a command
 // adapter says what is live itself.
 func notLiveWhy(cfg *config.Loaded, f config.Footer) (string, error) {
-	if isLedger(f) {
+	if ownIDs(f) {
 		return "not live", nil
 	}
 	if err := cfg.Section("tests"); err != nil {
@@ -197,6 +208,10 @@ func knownAt(cfg *config.Loaded, f config.Footer, tree string) (known, error) {
 		ids, err := ledger.IDs(cfg, tree)
 		return known{all: ids, notLive: map[string]bool{}}, err
 	}
+	if f.Registry() {
+		ids, err := work.IDsAt(cfg.Work.Registry, tree)
+		return known{all: ids, notLive: map[string]bool{}}, err
+	}
 	if tree == "" {
 		tree = "worktree"
 	}
@@ -214,11 +229,21 @@ func knownAt(cfg *config.Loaded, f config.Footer, tree string) (known, error) {
 	return k, nil
 }
 
-// needSource is a ledger footer's source in the current source, which a
-// project may have configured without making yet: its folder missing is one
-// problem naming it, exit 2 (a file the config names that cannot be read),
-// not the read's own error.
+// needSource is a ledger or registry footer's source in the current source,
+// which a project may have configured without making yet: the ledger's folder
+// or the registry's file missing is one problem naming it, exit 2 (a file the
+// config names that cannot be read), not the read's own error.
 func needSource(cfg *config.Loaded, key string, f config.Footer) error {
+	if f.Registry() {
+		if source.Has(cfg.Work.Registry) {
+			return nil
+		}
+		return &config.Error{File: config.Path(), Problems: []out.Problem{{
+			Rule:    "footer-source-missing",
+			Message: fmt.Sprintf("the %s: footer names items of the work registry, and its file %s does not exist", key, cfg.Work.Registry),
+			Fix:     "create " + cfg.Work.Registry + " with the work items, or point work.registry at the file that holds them",
+		}}}
+	}
 	if !isLedger(f) {
 		return nil
 	}
@@ -240,11 +265,12 @@ func needSource(cfg *config.Loaded, key string, f config.Footer) error {
 // commit with none at all predates its source (a project's first commits may
 // name tasks before the ledger is committed), so there is nothing to read at
 // it: the working tree is read instead, and a warning says so. The stealth
-// config's ledger is in the git folder, which no commit carries: a footer of
-// the ledger is read against its file there, at every commit, saying nothing.
+// config's ledger and registry are in the git folder, which no commit
+// carries: a footer of either is read against its file there, at every
+// commit, saying nothing.
 func knownFor(cfg *config.Loaded, key string, f config.Footer, r Reading) (known, error) {
 	tree := r.tree(f)
-	if cfg.Stealth && isLedger(f) {
+	if cfg.Stealth && ownIDs(f) {
 		tree = ""
 	}
 	if tree == "" {
@@ -273,7 +299,7 @@ func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (strin
 		return checkText(cfg, key, f, typ, message, required), nil
 	}
 	ids := IDs(message, key, strip(f))
-	if required && len(ids) == 0 {
+	if required && len(ids) == 0 && !stoodIn(cfg, key, typ, message) {
 		return fmt.Sprintf("%s commits need a %s footer%s", typ, example(cfg, key, f), stealthNeed(cfg, key, f)), nil
 	}
 	// No ID, nothing to check: the footer's source is not read.
@@ -303,6 +329,24 @@ func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (strin
 		return why + ": " + strings.Join(pending, ", "), nil
 	}
 	return "", nil
+}
+
+// stoodIn is whether another footer of IDs that the footers carry stands in
+// for the footer key in a commit of the type typ (its in_place_of names key
+// for typ), so the commit needs no footer of key. A stand-in's own IDs are
+// its own rule's to judge.
+func stoodIn(cfg *config.Loaded, key, typ, footers string) bool {
+	for _, other := range cfg.Commits.Footers.Keys {
+		f := cfg.Commits.Footers.Values[other]
+		if other == key || f.Text() {
+			continue
+		}
+		types, ok := f.InPlaceOf.Get(key)
+		if ok && applies(&types, typ) && len(IDs(footers, other, strip(f))) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // checkText is a free-text footer's rule: a type it is required for carries

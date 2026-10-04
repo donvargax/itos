@@ -3,8 +3,9 @@ package cli
 // work show (slice 57, features/show.feature): one item's spec and commits,
 // the reading list of the agent that builds it and the input of a review of
 // it once landed. Which commits belong to an item is itos's knowledge, not
-// git's: those whose footers of IDs name the item (Task:) or one of its
-// scenarios (Scenarios:), read from the note under a stealth config as every
+// git's: those whose footers of IDs name the item (Task:, or Item:, the
+// footer of the work registry, slice 63) or one of its scenarios
+// (Scenarios:), read from the note under a stealth config as every
 // reader of links reads them, and itos's own registry commits, which name it
 // in their headers (docs: take <id>, docs: close <id>, docs: add <id>,
 // docs: edit <id>, docs: promote <idea> to <id>). Beside them it lists the

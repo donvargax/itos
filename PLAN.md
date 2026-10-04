@@ -363,7 +363,7 @@ config at the top and runs from there (§5).
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `task <id>…`, `--phase <g>`, `--pending`, `task list`                                                                                                                                        | Runs the tasks' checks in written order, each distinct check once, or lists the tasks with their work items' status, running nothing; a status table.                                                                                                                                         |
 | `work [--as <h>]`, `work list`, `work check [<file>]`                                                                                                                                        | Who the session works for and what they can start; every item of the registry with its title, done ones too, judging nothing; validates the registry.                                                                                                                                         |
-| `commit [--task <id>] [--scenarios <ids>] [--<footer> <text>] [--breaking <text>] [<git commit args>…]`                                                                                      | `git commit` with the footers itos writes from its flags, as git's `--trailer`, a commit missing a required one refused before git runs; the hooks judge them as typed ones, and git's exit code is itos's.                                                                                   |
+| `commit [--task <id>] [--item <id>] [--scenarios <ids>] [--<footer> <text>] [--breaking <text>] [<git commit args>…]`                                                                        | `git commit` with the footers itos writes from its flags, as git's `--trailer`, a commit missing a required one refused before git runs; the hooks judge them as typed ones, and git's exit code is itos's.                                                                                   |
 | `commit check-message <file\|->`, `commit check-paths --type <t> <p>…`                                                                                                                       | The header lint and the footer rules on one message; the scope rules alone, to plan a split.                                                                                                                                                                                                  |
 | `commit footers <name> <from> <to>`                                                                                                                                                          | A range's free-text footers with their commits, leaving out `none`, for a release's notes.                                                                                                                                                                                                    |
 | `push [--no-wait]`                                                                                                                                                                           | Pulls the upstream with a rebase whatever git's settings say, then pushes HEAD to it in a separate step; refuses uncommitted changes, stops with a stopped rebase, never forces; with `ci.watch`, waits for its run.                                                                          |
@@ -448,6 +448,23 @@ subcommand, anything else a commit. It is the habit an agent is pointed to
 (the plugin answers a bare `git commit` with it, §10), the other half of
 pushing through itos (`itos push`, below), and the one the stealth mode keeps,
 where the same lines become a note on the new commit instead (slice 32, §5).
+
+**The Item footer** (slice 63, the user's calls of 2026-10-04): a commit no
+other footer ties to its work item (a spec written in a `docs` commit, a
+slice's steps committed red first in a `test` commit, a chore it needs)
+names the item in a footer whose source is the work registry
+(`source: registry`), checked against the registry the commit carries, an
+unknown id refused by the footer's rule. A footer's `in_place_of` maps
+another footer's key to the commit types it stands in for that footer
+(`{ Task: [test, docs, chore] }`, a list or `all`, as `required_for` is
+written): a commit of such a type carrying it needs no footer of that key,
+so a slice, which has no task, can commit its steps before its feat; every
+other type still needs its own. Only footers of IDs stand in, and for
+footers of IDs: no ID says what a consumer must do. `itos commit --item
+<id>` writes it, found by its source as `--task` is, and `work show` counts
+a commit whose footer names the item. Nothing is inferred from a commit's
+diff; if forgetting the flag proves a problem, the commit-msg hook can warn
+of a commit touching a scenario tagged `@<id>` without it.
 
 **itos push** (slice 39, the user's call of 2026-10-03: built in, since
 extensions are for what is not core) is the routine every session ended

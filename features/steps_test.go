@@ -95,6 +95,7 @@ type scratchConfig struct {
 	watch             *watchConfig // ci.watch
 	ledgerFooter      string       // the key of the footer whose source is the ledger; Task when empty
 	textFooter        *textFooter  // a footer of free text
+	itemFooter        bool         // an Item footer of registry items, in place of the ledger footer for test, docs and chore
 	featMustTouch     string       // commits.scopes.feat.must_touch, one glob, when set
 	ledgerFiles       string       // ledger.files; tasks/phase-{group}.yaml when empty
 	prosePaths        string       // ci.prose.paths, one glob
@@ -191,6 +192,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.commitOnTop(message + "\n\nTask: " + task + "\n" + footer + "\n")
 	})
 	sc.Step(`^the config requires an? "([^"]*)" footer of free text for "([^"]*)"$`, w.requiresTextFooter)
+	sc.Step(`^the config has an Item footer of registry items, taken in place of Task for test, docs and chore$`, func() error {
+		w.config.itemFooter = true
+		return w.writeConfig()
+	})
 	sc.Step(`^the config's feat commits must touch "([^"]*)"$`, func(glob string) error {
 		w.config.featMustTouch = glob
 		return w.writeConfig()
@@ -626,6 +631,14 @@ func (w *world) writeConfig() error {
       validate_for: [feat, fix]
       must_be_live: true
 `, kind)
+	}
+	if w.config.itemFooter {
+		fmt.Fprintf(&b, `    Item:
+      source: registry
+      validate_for: all
+      read_at: commit
+      in_place_of: { %s: [test, docs, chore] }
+`, footer)
 	}
 	if t := w.config.textFooter; t != nil {
 		fmt.Fprintf(&b, "    %s:\n      source: text\n      required_for: [%s]\n", t.key, strings.Join(t.types, ", "))
