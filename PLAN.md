@@ -482,7 +482,13 @@ pushed either way. A run still going, or not there, after `ci.watch.timeout`
 seconds (1800 by default), and a provider that cannot look, exit 3 naming
 `itos ci watch <sha>`, which waits for any commit's run the same way, HEAD's
 by default, and re-attaches after an interruption or to check a run an agent
-claims. `--no-wait` pushes and returns. The `github` provider reads
+claims. `--no-wait` pushes and returns, and so does a push whose commits, the ones
+it adds to the upstream's branch after the rebase, touch only
+`work.registry` (slice 56, the user's call of 2026-10-03): an item's take
+and close are registry commits itos wrote and checked, and a run waited for
+each made one item cost three waits; it names `itos ci watch <sha>` for
+that run, and any other path, prose included, waits as before, since a
+prose range can fail. The `github` provider reads
 `ci.watch.github.workflow`'s newest run for the commit (`head_sha`) and its
 jobs from GitHub's API, beside the range provider, with a token from
 `ci.range.github.token_env`, else `gh auth token`, and with neither exits 3

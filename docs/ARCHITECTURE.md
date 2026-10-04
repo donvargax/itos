@@ -782,7 +782,13 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   config that cannot be read (said on stderr, the push's exit unchanged) or
   `ci.watch.provider: none` it reports as before; else it prints the push's
   line and hands the pushed SHA to `watchRun` (below), whose code is push's,
-  and under `--json` adds its `ci` and `run` keys to push's object.
+  and under `--json` adds its `ci` and `run` keys to push's object. Before
+  that, `registryOnly` (slice 56) reads the paths of `onto..HEAD`, the
+  commits the push added after the rebase (`git log --name-only
+--no-renames --diff-merges=first-parent`): when there are some and every
+  one is `work.registry`, push reports the push and a line naming `itos ci
+watch <sha>`, exit 0, with no provider made; a push that made the branch
+  has no `onto` and is never registry-only.
 - **The git shim** (`internal/shim`, `internal/git/bin.go`,
   `internal/config/managed.go`, `internal/cli/gitshim.go`, slice 41):
   `cmd/itos` asks `shim.Named(os.Args[0])` first (base name `git`, or on

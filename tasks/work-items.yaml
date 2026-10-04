@@ -3878,3 +3878,16 @@ items:
       renames an idea without writing a ledger entry, so an idea that becomes a task still needs its
       ledger entry written by hand before the promote. task add --from <idea> could write the ledger
       entry and promote the idea in one commit, its why kept.
+
+  - id: p1-push-json-not-waited
+    title: itos push --json says why it did not wait for CI
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found making slice 56 (2026-10-03): a push whose commits touch only the work registry returns
+      without waiting, and under --json its object is the one --no-wait or ci.watch.provider none
+      prints, with no ci key, so a script cannot tell a run skipped on purpose from no watch set up.
+      A ci value such as "not-waited", added beside success, failure, timeout and error, would say it.
