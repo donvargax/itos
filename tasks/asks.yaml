@@ -19,3 +19,6 @@ questions:
     question: "Set a unit coverage threshold? Coverage is collected with none since the template's demo app left; it blocks nothing."
   - id: q-7
     question: "Confirm or overturn the coordinator's older calls: slice 4 drops the keys of features not built yet; slice 7 counts a task with no work item as in progress; slice 8 tries each cost pattern as written and as hooks.bin to itos; slice 9 reads a check's reused run even when an earlier check of its task changed the tree; slice 10 keeps a failing delegate's exit code in the hook; slice 13 makes a missing ledger folder exit 2; slice 46's pre-push verify is silent when commits pass, with no opt-out."
+  - id: q-8
+    item: "p1-adr-tools-default-dir"
+    question: "A repository set up with adr-tools' defaults keeps its records in doc/adr with no .adr-dir file, so itos ask record would start a second log in docs/adr, numbered from 1. Should an existing doc/adr holding records win when there is no .adr-dir, as adr-tools' own lookup does (the coordinator's recommendation: compatibility was the point of using its format), or stay with docs/adr unless .adr-dir says otherwise?"
