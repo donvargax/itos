@@ -4644,3 +4644,19 @@ items:
       for slice-69 as docs/adr or the .adr-dir's folder, so whether an existing doc/adr wins is the
       user's call; a scenario beside @ID-ASK-11 would say it.
     refs: [internal/adr, features/ask.feature]
+
+  - id: p1-release-rules-one-copy
+    title: One copy of what a releasable commit is, for status and the release cut
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slice 70 gave itos status the rules for a releasable commit (a feat, a fix, or a ! or
+      BREAKING-CHANGE footer of any type) in internal/release, while tools/bin/release-version keeps
+      its own copy because it imports the standard library alone. Nothing checks that the two agree,
+      so if one changes alone, status would list commits the next release does not carry, or miss
+      some it does. Either release-version imports internal/release (which has no dependencies
+      outside the standard library either), or a unit test runs both over the same messages.
+    refs: [internal/release/releasable.go, tools/bin/release-version/main.go]
