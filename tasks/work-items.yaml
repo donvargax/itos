@@ -3727,7 +3727,7 @@ items:
     title: itos work edit handles every list the registry holds
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     why: >
