@@ -57,6 +57,7 @@ queue:
   - p1-commit-wrap-review
   - p1-work-as-empty
   - p1-push-superseded-run
+  - p3-guard-cd
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
