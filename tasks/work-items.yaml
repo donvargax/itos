@@ -4722,7 +4722,7 @@ items:
     title: itos ask record writes MADR 4 records in docs/decisions, replacing the Nygard ones (v3.0.0)
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-69]
     kind: slice
     why: >
