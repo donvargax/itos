@@ -3509,14 +3509,15 @@ items:
       @ID-WORK-18's promise as released.
     refs: [internal/cli/workdone.go, features/work.feature]
 
-  - id: p1-corpus-own-path
+  - id: T-080
     title: The conformance runner runs on a PATH of its own, as the help tests now do
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-corpus-own-path.
       T-077 gave internal/cli's help tests a PATH of their own, but the conformance runner
       (tools/itos/conformance/run.ts) still reads the caller's, so an itos extension installed
       there (itos-cc, on the maintainer's machine) adds an Extensions block to itos --help and
