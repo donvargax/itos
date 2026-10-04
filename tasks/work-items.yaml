@@ -4514,6 +4514,13 @@ items:
       commit, which never starts a line with a footer token; use that one there too, which covers
       the run's address of work done as well.
 
+      Specified as @ID-ASK-17 in features/ask.feature. Settled: the commit every registry, ask, task
+      add and work done command shares wraps its body with bug 15's footer-safe wrap
+      (internal/message), not value.Wrap, so no line starts with a token the header lint reads as a
+      footer or with git's comment char; the words are kept, in order. One scenario through ask add;
+      a unit test over the shared commit covers the rest, work done's run address among them.
+    refs: [features/ask.feature, internal/cli/workwrite.go, internal/message/wrap.go]
+
   - id: slice-68
     title: itos go prints this clone's own notes, kept uncommitted under the git common dir
     phase: 1
