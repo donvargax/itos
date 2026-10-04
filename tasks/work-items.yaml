@@ -1488,7 +1488,7 @@ items:
     title: "The queue in the registry: itos work queue, one shared order, each person their part"
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
