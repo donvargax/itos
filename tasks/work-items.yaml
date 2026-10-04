@@ -3404,6 +3404,9 @@ items:
       under the git common dir. itos follow doc writes the whole thread (questions, answers and what
       led to the conclusion) as the raw material another agent refines into the published document:
       an architecture, a test plan.
+
+      The user's call (2026-10-04): itos follow is built first, before itos ask and before the
+      queue.
     refs: [docs/HANDOFF.md, tasks/work-items.yaml]
 
   - id: p1-push-needs-hooks
