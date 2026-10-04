@@ -4500,7 +4500,7 @@ items:
     title: itos go prints this clone's own notes, kept uncommitted under the git common dir
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     why: >
