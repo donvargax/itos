@@ -3292,6 +3292,11 @@ items:
       rules that no longer match the config. Codex's file is always AGENTS.override.md, never an
       AGENTS.md (the user's call): with no AGENTS.md to copy it holds the rules block alone, and
       an untracked AGENTS.md would make git refuse the pull the day the project adds its own.
+
+      The user's call (2026-10-03): files itos writes into a project are written formatter-stable
+      (one line per paragraph, no hard wraps, no code span across lines), so a project's formatter
+      leaves them alone and the drift check stays exact, rather than asking every project to exclude
+      them from its formatter.
     refs: [PLAN.md, integrations/claude-code/skills/itos/SKILL.md]
 
   - id: p3-init-orchestration
