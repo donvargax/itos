@@ -11,3 +11,6 @@ questions:
     question: "A closed itos follow thread: reopen it with an explicit itos follow reopen <id> (the coordinator's recommendation, so a late note does not bring it back by accident), or let any note reopen it?"
   - id: q-4
     question: "When do the other repositories move to the current itos (by hand from a release's notes, or with itos pin)?"
+  - id: q-5
+    item: "slice-59"
+    question: "Once itos init --agent-rules lands, does this repository's hand-written AGENTS.md become the generated block (the coordinator recommends yes, a small docs task)?"
