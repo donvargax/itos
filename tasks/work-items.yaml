@@ -4060,6 +4060,11 @@ items:
       from a commit's diff: if forgetting the flag proves a problem, the commit-msg hook warns of a
       commit touching a scenario tagged @<id> without it.
 
+      Specified as @ID-FOOT-07 to 09, @ID-COMMITCMD-18 and @ID-SHOW-07: a footer source registry,
+      in_place_of naming the footer it stands in for and for which types, itos commit --item, and
+      work show counting it.
+    refs: [features/footers.feature, features/commit-command.feature, features/show.feature]
+
   - id: p1-commit-wrap-hook
     title: The commit-msg hook wraps a long body line, as itos commit does
     phase: 1
