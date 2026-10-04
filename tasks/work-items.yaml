@@ -3370,6 +3370,14 @@ items:
       handoff's "User review" list holds by hand: with these, and p1-work-queue-order, itos status
       can replace docs/HANDOFF.md. Little ceremony is the requirement: a note in one command, no
       footers, no scenarios.
+
+      The user's calls (2026-10-04): mostly the user's internal to-do list, so every follow-up is
+      private: one store under the git common dir, never committed, shared by worktrees, a store per
+      clone accepted; the questions the handoff holds for the user go there too. Commands: itos
+      follow add <id> --with <login|me> --note, itos follow note <id> (a dated entry appended), itos
+      follow close <id>, itos follow (the open ones), and itos follow doc <id> <path>, which writes
+      the thread as a Markdown file anywhere, in the repository or not, the thread recording the
+      link.
     refs: [docs/HANDOFF.md, tasks/work-items.yaml]
 
   - id: p1-push-needs-hooks
