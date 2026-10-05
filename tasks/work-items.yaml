@@ -3924,7 +3924,7 @@ items:
       chose.
 
   - id: p1-nightly-late-done-checks
-    title: The nightly runs every done task's checks, not only the static ones
+    title: done_when holds acceptance only, and guarantees come from standing rules, not tasks
     phase: 1
     owner: null
     status: todo
@@ -3937,3 +3937,20 @@ items:
       again once its task is done. ADR-0016 says the nightly runs the checks of every done task.
       Either the nightly runs the late ones too, or grep and test join ci.cost.static (they are
       fast), which also runs them in the commit-msg hook.
+
+      Design discussion with the user, 2026-10-05, undecided (the user is thinking it over; see
+      q-13). Found: the nightly's { tasks: done, cost: static } step skips every check matching no
+      ci.cost.static pattern, a grep included; and both incidents it was made for or caught (T-024,
+      fixed by T-029; T-079, fixed by T-092) were checks aimed wrong or gone stale, never a product
+      regression. Agreed: re-running done tasks' checks buys upkeep, not protection (unless they are
+      features); the inverted static/late default is out of v4. The coordinator's proposal: (1)
+      done_when is acceptance only, run while the task is open and never after, so it cannot break
+      later; supersede ADR-0016 and drop the nightly's done-task step. (2) Guarantees come from
+      generic standing rules itos enforces, never from a task: a Go coverage threshold (q-6); every
+      tools/bin program and gate has a self-test a standing CI or nightly step runs, config check
+      refusing one none exercises; a docs reference check (every command, path, scenario ID and ADR
+      the docs name exists), replacing doc-mentions-X greps. (3) Optionally, a done_when check must
+      run a test artifact (go test -run, a self-test, scenarios, the corpus, an itos gate), never a
+      raw grep or test; prose tasks have no check and are accepted by the user's review (the
+      coordinator leans to it). Before removing the step, done tasks' checks are audited for
+      invariants no standing step covers, and those become named steps by rule, not an agent's call.
