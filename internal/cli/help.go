@@ -635,7 +635,10 @@ Prints docs_only=true when the range touches only prose (ci.prose.paths).
 
 Prints FROM=<sha>, where a push's range starts: the pull request's base, else
 what the ci.range provider says if it is an ancestor of the head, else empty
-(run everything). A provider that fails is not an error.
+(run everything). A provider that fails is not an error. github says the
+nearest of the head's first parents, from its parent, with a green run of
+ci.range.github.workflow on its branch, asking GitHub's API at GITHUB_API_URL,
+else https://api.github.com, about each commit's runs, 100 at most.
 
 --json: {"schema":1,"from"}`,
 
@@ -645,9 +648,10 @@ Waits for the CI run of the commit, HEAD's by default, as itos push waits for
 the run of the commit it pushed: looks at it every ci.watch.interval seconds,
 printing the run's address and each job's result once, as it finishes, until
 the run completes or ci.watch.timeout seconds pass. ci.watch.provider says how
-it looks: github asks GitHub's API for the run of ci.watch.github.workflow,
-with a token from ci.range.github.token_env, else gh auth token, for the
-repository ci.range.github.repository_env names, else the remote's URL;
+it looks: github asks GitHub's API (GITHUB_API_URL, else
+https://api.github.com) for the run of ci.watch.github.workflow, with a token
+from ci.range.github.token_env, else gh auth token, for the repository
+ci.range.github.repository_env names, else the remote's URL;
 command runs ci.watch.command, {sha} standing for the full SHA, and reads one
 JSON object from its stdout: {"url","status","conclusion","jobs":[{"name",
 "status","conclusion"}]}, status queued, in_progress or completed, conclusion

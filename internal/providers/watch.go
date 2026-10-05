@@ -96,7 +96,7 @@ func WatchProvider(cfg *config.Loaded, s WatchSetup) (watch Watch, ok bool, err 
 	if err != nil {
 		return nil, false, err
 	}
-	g.Workflow = w.GitHub.Workflow
+	g.Workflow, g.API = w.GitHub.Workflow, s.Env(APIEnv)
 	return g.RunOf, true, nil
 }
 
@@ -321,14 +321,16 @@ func deref(s *string) string {
 	return *s
 }
 
-// get reads one GitHub API path into into.
+// get reads one GitHub API path into into, with the token when there is one.
 func (g GitHub) get(path string, into any) error {
-	req, err := http.NewRequest(http.MethodGet, GitHubAPI+path, nil)
+	req, err := http.NewRequest(http.MethodGet, g.api()+path, nil)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("Authorization", "Bearer "+g.Token)
+	if g.Token != "" {
+		req.Header.Set("Authorization", "Bearer "+g.Token)
+	}
 	res, err := (&http.Client{Timeout: Timeout}).Do(req)
 	if err != nil {
 		return Transient{fmt.Errorf("GitHub's API did not answer: %w", err)}

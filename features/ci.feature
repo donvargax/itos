@@ -124,7 +124,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # GITHUB_API_URL when it is set, as Actions sets it and GitHub Enterprise
   # needs it, else https://api.github.com; that is also how a scenario points
   # itos at a fake GitHub. ci.watch's provider asks the same address.
-  @ID-CI-09 @bug-23 @wip
+  @ID-CI-09 @bug-23
   Scenario: ci range starts at the head's parent when its run is green, whatever the list of runs says
     Given ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
     And three commits on top of the first
@@ -134,7 +134,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And the range starts at the head's parent
 
-  @ID-CI-10 @bug-23 @wip
+  @ID-CI-10 @bug-23
   Scenario: ci range passes over an ancestor whose run failed or is still going
     Given ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
     And three commits on top of the first
@@ -145,7 +145,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And the range starts at the first commit
 
-  @ID-CI-11 @bug-23 @wip
+  @ID-CI-11 @bug-23
   Scenario: ci range starts nowhere, running everything, when no ancestor has a green run
     Given ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
     And three commits on top of the first

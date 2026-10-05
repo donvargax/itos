@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"strings"
 	"time"
@@ -17,10 +18,10 @@ import (
 )
 
 // Range is a ci.range provider: the start commit it proposes for a push's
-// range, before RangeStart holds it to the head's ancestry. "" means "run
-// everything", and so does every way a lookup can fail: a provider never
-// errors, since a range that cannot be found is the whole history.
-type Range func() string
+// range to the head, before RangeStart holds it to the head's ancestry. ""
+// means "run everything", and so does every way a lookup can fail: a provider
+// never errors, since a range that cannot be found is the whole history.
+type Range func(head string) string
 
 // Env is how a provider reads the environment (os.Getenv in the binary).
 type Env func(string) string
@@ -28,27 +29,29 @@ type Env func(string) string
 // RangeProvider is the provider itos.yaml's ci.range names
 // (providers.ts's rangeProvider): `none`, `command` (its stdout's first
 // line, through the config's shell, its stderr on stderr) or `github` (the
-// last green run of the workflow). Each is a function of the config's
-// ci.range and the environment, so a provider over another forge's API is
-// one more case beside github's.
+// head's nearest first parent with a green run of the workflow, asking the
+// API at GITHUB_API_URL). Each is a function of the config's ci.range and the
+// environment, so a provider over another forge's API is one more case beside
+// github's.
 func RangeProvider(cfg *config.Loaded, env Env, stderr io.Writer) Range {
 	r := cfg.CI.Range
 	switch r.Provider {
 	case "none":
-		return func() string { return "" }
+		return func(string) string { return "" }
 	case "command":
 		command := ""
 		if r.Command != nil {
 			command = *r.Command
 		}
-		return func() string { return FirstLine(cfg, command, stderr) }
+		return func(string) string { return FirstLine(cfg, command, stderr) }
 	}
 	return GitHub{
 		Repository: env(r.GitHub.RepositoryEnv),
 		Token:      firstSet(env, r.GitHub.TokenEnv),
 		Workflow:   r.GitHub.Workflow,
 		Branch:     r.GitHub.Branch,
-	}.LastGreenRun
+		API:        env(APIEnv),
+	}.NearestGreen
 }
 
 // firstSet is the first of the named variables that is set and not empty.
@@ -85,7 +88,7 @@ func RangeStart(head, base string, provider Range) string {
 	if base != "" {
 		return base
 	}
-	green := provider()
+	green := provider(head)
 	if green == "" || head == "" {
 		return ""
 	}
@@ -95,8 +98,19 @@ func RangeStart(head, base string, provider Range) string {
 	return ""
 }
 
-// GitHubAPI is where the github provider asks; a test points it elsewhere.
+// GitHubAPI is where the github provider asks when it is given no address of
+// its own (GitHub.API); a test points it elsewhere.
 var GitHubAPI = "https://api.github.com"
+
+// APIEnv is the variable that gives the GitHub API's address, as GitHub
+// Actions sets it, a GitHub Enterprise server's own in its runs: ci.range's
+// and ci.watch's github providers ask there when it is set.
+const APIEnv = "GITHUB_API_URL"
+
+// FirstParentsAsked is how many of the head's first parents the github range
+// provider asks about, nearest first, before it gives up and runs everything;
+// a test lowers it.
+var FirstParentsAsked = 100
 
 // Timeout is how long the github provider waits for the API. Node's fetch
 // waits however long it takes; past this the lookup fails, which runs
@@ -104,30 +118,80 @@ var GitHubAPI = "https://api.github.com"
 var Timeout = time.Minute
 
 // GitHub is the github provider's question: the workflow's runs on a branch
-// of a repository ("owner/name"), asked with a token when there is one.
+// of a repository ("owner/name"), asked with a token when there is one, of the
+// API at API, else at GitHubAPI.
 type GitHub struct {
 	Repository, Token, Workflow, Branch string
+	API                                 string
 }
 
-// LastGreenRun is the head commit of the workflow's last successful run on
-// the branch, read from the GitHub API with the workflow's token
-// (`actions: read`). Anything that goes wrong reads as "no green run", which
-// runs everything, and with no repository nobody is asked.
-func (g GitHub) LastGreenRun() string {
-	if g.Repository == "" {
+// api is the address the provider asks, with no slash at its end.
+func (g GitHub) api() string {
+	if g.API != "" {
+		return strings.TrimRight(g.API, "/")
+	}
+	return GitHubAPI
+}
+
+// NearestGreen is where a push's range to the head starts (bug 23): the
+// nearest of the head's first parents, from its parent, with a successful run
+// of the workflow on the branch, each asked about by its own runs. The head's
+// own run is the one asking, and a run that failed, was cancelled or is still
+// going is passed over. The branch's list of runs is not read: GitHub served
+// it stale on 2026-10-05, naming a run a day old as the newest green one, and
+// the range then reached back past commits already proved. Past
+// FirstParentsAsked first parents with none green, and on anything that goes
+// wrong, there is no start, which runs everything; with no repository nobody
+// is asked.
+func (g GitHub) NearestGreen(head string) string {
+	if g.Repository == "" || head == "" {
 		return ""
 	}
-	sha, _ := g.LastGreen()
-	return sha
+	parents, err := git.Lines("rev-list", "--first-parent", "--skip=1",
+		fmt.Sprintf("--max-count=%d", FirstParentsAsked), head, "--")
+	if err != nil {
+		return ""
+	}
+	for _, sha := range parents {
+		green, err := g.GreenRunOf(sha)
+		if err != nil {
+			return ""
+		}
+		if green {
+			return sha
+		}
+	}
+	return ""
 }
 
-// LastGreen is LastGreenRun with what went wrong: "" and no error when no
-// listed run succeeded. The runs are listed and the newest success taken:
+// GreenRunOf is whether the workflow has a successful run of the commit, given
+// by its full SHA, on the branch.
+func (g GitHub) GreenRunOf(sha string) (bool, error) {
+	var body struct {
+		WorkflowRuns []WorkflowRun `json:"workflow_runs"`
+	}
+	path := fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?branch=%s&head_sha=%s&per_page=20",
+		g.Repository, url.PathEscape(g.Workflow), encodeURIComponent(g.Branch), encodeURIComponent(sha))
+	if err := g.get(path, &body); err != nil {
+		return false, err
+	}
+	for _, r := range body.WorkflowRuns {
+		if r.HeadSHA == sha && r.Conclusion != nil && *r.Conclusion == "success" {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// LastGreen is the head commit of the workflow's last successful run on the
+// branch, as itos status reads it, read from the GitHub API with the token: ""
+// and no error when no listed run succeeded. The runs are listed and the
+// newest success taken:
 // the API's own `status=success` filter can answer with a run far older than
 // the newest green one, and the range would then name every task since.
 func (g GitHub) LastGreen() (string, error) {
 	url := fmt.Sprintf("%s/repos/%s/actions/workflows/%s/runs?branch=%s&per_page=50",
-		GitHubAPI, g.Repository, g.Workflow, encodeURIComponent(g.Branch))
+		g.api(), g.Repository, g.Workflow, encodeURIComponent(g.Branch))
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return "", err

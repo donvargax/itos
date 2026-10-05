@@ -198,3 +198,28 @@ func TestNewestRunReadsTheBranchsNewestRun(t *testing.T) {
 		t.Fatalf("asked %v", asked)
 	}
 }
+
+// ci.watch's github provider asks the API GITHUB_API_URL names, as ci.range's
+// does (bug 23): GitHub Actions sets it, a GitHub Enterprise server's own.
+func TestTheGitHubWatchAsksGitHubAPIURL(t *testing.T) {
+	var asked []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked = append(asked, r.URL.Path)
+		w.Write([]byte(`{"workflow_runs":[]}`))
+	}))
+	defer server.Close()
+	was := GitHubAPI
+	GitHubAPI = "http://127.0.0.1:1/not-asked"
+	defer func() { GitHubAPI = was }()
+	env := map[string]string{"GITHUB_TOKEN": "t", "GITHUB_REPOSITORY": "o/n", "GITHUB_API_URL": server.URL + "/api/v3"}
+	watch, ok, err := WatchProvider(githubWatchConfig(), WatchSetup{Env: func(name string) string { return env[name] }})
+	if !ok || err != nil {
+		t.Fatalf("ok %v, err %v", ok, err)
+	}
+	if _, found, err := watch("abc"); found || err != nil {
+		t.Fatalf("found %v, err %v", found, err)
+	}
+	if len(asked) != 1 || asked[0] != "/api/v3/repos/o/n/actions/workflows/ci.yml/runs" {
+		t.Fatalf("asked %v", asked)
+	}
+}

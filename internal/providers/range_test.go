@@ -2,8 +2,12 @@ package providers
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"os/exec"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -31,50 +35,178 @@ func TestFirstGreen(t *testing.T) {
 	}
 }
 
-// The request the provider makes, and every failure read as no green run.
-func TestLastGreenRun(t *testing.T) {
-	var asked *http.Request
-	answer, status := `{"workflow_runs":[{"head_sha":"abc","conclusion":"success","created_at":"x"}]}`, 200
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		asked = r
-		w.WriteHeader(status)
-		_, _ = w.Write([]byte(answer))
-	}))
+// A repository for the walk, the working folder for the test: c0, c1, a side
+// branch off c1 (s1) merged after c2 (m), then the head, c3. Its first
+// parents from the head's parent are m, c2, c1 and c0; s1 is none of them.
+func walkRepository(t *testing.T) map[string]string {
+	t.Helper()
+	// Away from the repository a hook runs the tests in: the walk's git
+	// reads the environment too.
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
+		t.Setenv(name, "")
+		os.Unsetenv(name)
+	}
+	dir := t.TempDir()
+	t.Chdir(dir)
+	run := func(args ...string) string {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"}, args...)...)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	commit := func(name string) string {
+		run("commit", "-q", "--allow-empty", "-m", name)
+		return run("rev-parse", "HEAD")
+	}
+	shas := map[string]string{}
+	run("init", "-q", "-b", "main")
+	shas["c0"], shas["c1"] = commit("c0"), commit("c1")
+	run("checkout", "-q", "-b", "side")
+	shas["s1"] = commit("s1")
+	run("checkout", "-q", "main")
+	shas["c2"] = commit("c2")
+	run("merge", "-q", "--no-ff", "-m", "m", "side")
+	shas["m"] = run("rev-parse", "HEAD")
+	shas["c3"] = commit("c3")
+	return shas
+}
+
+// A fake GitHub answering each commit's runs from conclusions, by full SHA:
+// "" a run still going, "none" no run; it records each request.
+type walkServer struct {
+	runs   map[string]string
+	answer string // when set, the body of every answer
+	status int
+	asked  []*http.Request
+}
+
+func (s *walkServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	s.asked = append(s.asked, r)
+	if s.status != 0 {
+		w.WriteHeader(s.status)
+	}
+	if s.answer != "" {
+		_, _ = w.Write([]byte(s.answer))
+		return
+	}
+	sha := r.URL.Query().Get("head_sha")
+	conclusion, ok := s.runs[sha]
+	if !ok || conclusion == "none" {
+		_, _ = w.Write([]byte(`{"workflow_runs":[]}`))
+		return
+	}
+	c := "null"
+	if conclusion != "" {
+		c = `"` + conclusion + `"`
+	}
+	fmt.Fprintf(w, `{"workflow_runs":[{"head_sha":%q,"status":"completed","conclusion":%s,"created_at":"x"}]}`, sha, c)
+}
+
+func (s *walkServer) askedFor() []string {
+	var shas []string
+	for _, r := range s.asked {
+		shas = append(shas, r.URL.Query().Get("head_sha"))
+	}
+	return shas
+}
+
+// The github range provider walks the head's first parents from its parent,
+// asking each commit's own runs, and starts at the first with a green run:
+// a failed, cancelled or unfinished run is passed over, the head's own run
+// and a merged branch's commits are never asked about (bug 23).
+func TestNearestGreenWalksTheFirstParents(t *testing.T) {
+	shas := walkRepository(t)
+	s := &walkServer{runs: map[string]string{
+		shas["c3"]: "success", shas["m"]: "failure", shas["c2"]: "", shas["s1"]: "success", shas["c1"]: "success",
+	}}
+	server := httptest.NewServer(s)
 	defer server.Close()
 	defer func(api string) { GitHubAPI = api }(GitHubAPI)
-	GitHubAPI = server.URL
+	GitHubAPI = "http://127.0.0.1:1/not-asked"
 
-	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "a b&c"}
-	if got := g.LastGreenRun(); got != "abc" {
-		t.Errorf("LastGreenRun = %q, want abc", got)
+	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "a b&c", API: server.URL + "/"}
+	if got := g.NearestGreen(shas["c3"]); got != shas["c1"] {
+		t.Fatalf("NearestGreen = %q, want c1 %q; asked %v", got, shas["c1"], s.askedFor())
 	}
-	if want := "/repos/o/r/actions/workflows/ci.yml/runs?branch=a%20b%26c&per_page=50"; asked.URL.RequestURI() != want {
+	if want := []string{shas["m"], shas["c2"], shas["c1"]}; !slices.Equal(s.askedFor(), want) {
+		t.Fatalf("asked %v, want m, c2, c1 %v", s.askedFor(), want)
+	}
+	asked := s.asked[0]
+	if want := "/repos/o/r/actions/workflows/ci.yml/runs?branch=a%20b%26c&head_sha=" + shas["m"] + "&per_page=20"; asked.URL.RequestURI() != want {
 		t.Errorf("asked %s, want %s", asked.URL.RequestURI(), want)
 	}
 	if asked.Header.Get("Authorization") != "Bearer t" || asked.Header.Get("Accept") != "application/vnd.github+json" {
 		t.Errorf("headers %v", asked.Header)
 	}
 
-	asked = nil
-	g.Token = ""
-	g.LastGreenRun()
-	if asked == nil || asked.Header.Get("Authorization") != "" {
-		t.Errorf("without a token, no authorization: %v", asked)
+	s.asked, g.Token = nil, ""
+	s.runs[shas["c1"]] = "cancelled"
+	if got := g.NearestGreen(shas["c3"]); got != "" {
+		t.Fatalf("no green first parent: NearestGreen = %q", got)
 	}
+	if want := []string{shas["m"], shas["c2"], shas["c1"], shas["c0"]}; !slices.Equal(s.askedFor(), want) {
+		t.Fatalf("asked %v, want every first parent %v", s.askedFor(), want)
+	}
+	if s.asked[0].Header.Get("Authorization") != "" {
+		t.Errorf("without a token, no authorization: %v", s.asked[0].Header)
+	}
+}
 
+// Past FirstParentsAsked first parents the provider gives up, which runs
+// everything.
+func TestNearestGreenAsksABoundedNumberOfFirstParents(t *testing.T) {
+	shas := walkRepository(t)
+	s := &walkServer{runs: map[string]string{shas["c1"]: "success"}}
+	server := httptest.NewServer(s)
+	defer server.Close()
+	defer func(n int) { FirstParentsAsked = n }(FirstParentsAsked)
+	FirstParentsAsked = 2
+
+	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "main", API: server.URL}
+	if got := g.NearestGreen(shas["c3"]); got != "" || len(s.asked) != 2 {
+		t.Fatalf("NearestGreen = %q after %v, want none after two", got, s.askedFor())
+	}
+	FirstParentsAsked = 3
+	if got := g.NearestGreen(shas["c3"]); got != shas["c1"] {
+		t.Fatalf("NearestGreen = %q, want c1", got)
+	}
+}
+
+// Anything that goes wrong reads as no green run, and the walk stops there;
+// a green run of another commit, as a server ignoring head_sha would list,
+// is not the commit's; with no repository nobody is asked.
+func TestNearestGreenReadsEveryFailureAsNoGreenRun(t *testing.T) {
+	shas := walkRepository(t)
+	s := &walkServer{}
+	server := httptest.NewServer(s)
+	defer server.Close()
+	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "main", API: server.URL}
 	for _, c := range []struct {
 		answer string
 		status int
-	}{{answer, 404}, {"not json", 200}, {`{"workflow_runs":{}}`, 200}, {`{}`, 200}} {
-		answer, status = c.answer, c.status
-		if got := g.LastGreenRun(); got != "" {
-			t.Errorf("%d %s: LastGreenRun = %q, want none", c.status, c.answer, got)
+	}{
+		{`{"workflow_runs":[{"head_sha":"abc","conclusion":"success"}]}`, 404},
+		{"not json", 200},
+		{`{"workflow_runs":{}}`, 200},
+	} {
+		s.answer, s.status, s.asked = c.answer, c.status, nil
+		if got := g.NearestGreen(shas["c3"]); got != "" || len(s.asked) != 1 {
+			t.Errorf("%d %s: NearestGreen = %q after %d requests, want none after one", c.status, c.answer, got, len(s.asked))
 		}
 	}
-
-	asked = nil
-	if got := (GitHub{Workflow: "ci.yml", Branch: "main"}).LastGreenRun(); got != "" || asked != nil {
-		t.Errorf("without a repository nobody is asked: %q, %v", got, asked)
+	s.answer, s.status, s.asked = `{"workflow_runs":[{"head_sha":"`+shas["c0"]+`","conclusion":"success"}]}`, 0, nil
+	if got := g.NearestGreen(shas["c3"]); got != shas["c0"] || len(s.asked) != 4 {
+		t.Errorf("another commit's green run: NearestGreen = %q after %d requests, want c0 after four", got, len(s.asked))
+	}
+	if got := g.NearestGreen("not-a-commit"); got != "" {
+		t.Errorf("a head the repository does not have: NearestGreen = %q", got)
+	}
+	s.asked = nil
+	if got := (GitHub{Workflow: "ci.yml", Branch: "main", API: server.URL}).NearestGreen(shas["c3"]); got != "" || s.asked != nil {
+		t.Errorf("without a repository nobody is asked: %q, %v", got, s.askedFor())
 	}
 }
 
