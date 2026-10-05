@@ -80,6 +80,7 @@ type scratchConfig struct {
 	stopAtFirst       *bool        // ci.stop_at_first_failure
 	nightlyTasks      string       // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
 	costStatic        []string     // ci.cost.static
+	keepWrittenOrder  *bool        // ci.cost.keep_written_order
 	covers            []cover      // ci.covers
 	nightlyOnly       []string     // ci.nightly_only
 	registry          string       // work.registry
@@ -177,6 +178,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^a range check that records where its range starts$`, w.recordingRangeCheck)
 	sc.Step(`^the config's shell is the recording shell$`, w.recordingShell)
 	sc.Step(`^the task "([^"]*)" has the check "([^"]*)"$`, w.taskHasCheck)
+	sc.Step(`^the task "([^"]*)" has the check "([^"]*)", then the check "([^"]*)"$`, w.taskHasTwoChecks)
 	sc.Step(`^the CI steps are "([^"]*)"$`, func(step string) error { return w.ciStepsAre(step) })
 	sc.Step(`^the config's ci section holds only a github watch of "([^"]*)"$`, func(workflow string) error {
 		w.config.ciWatchOnly = workflow
@@ -292,6 +294,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^hooks\.manager is "([^"]*)"$`, w.hooksManagerIs)
 	sc.Step(`^hooks\.bin is "([^"]*)"$`, w.hooksBinIs)
 	sc.Step(`^ci\.cost\.static is "([^"]*)"$`, w.costStaticIs)
+	sc.Step(`^ci\.cost\.keep_written_order is (true|false)$`, w.keepWrittenOrderIs)
 	sc.Step(`^ci\.covers says the step "([^"]*)" covers "([^"]*)"$`, w.coversIs)
 	sc.Step(`^ci\.nightly_only is "([^"]*)"$`, w.nightlyOnlyIs)
 	sc.Step(`^"([^"]*)" is a script that records it ran$`, w.recordingScript)
@@ -861,11 +864,17 @@ func (w *world) ciSection() string {
 	if w.config.stopAtFirst != nil {
 		fmt.Fprintf(&b, "  stop_at_first_failure: %t\n", *w.config.stopAtFirst)
 	}
+	if len(w.config.costStatic) > 0 || w.config.keepWrittenOrder != nil {
+		b.WriteString("  cost:\n")
+	}
 	if len(w.config.costStatic) > 0 {
-		b.WriteString("  cost:\n    static:\n")
+		b.WriteString("    static:\n")
 		for _, pattern := range w.config.costStatic {
 			fmt.Fprintf(&b, "      - %q\n", pattern)
 		}
+	}
+	if w.config.keepWrittenOrder != nil {
+		fmt.Fprintf(&b, "    keep_written_order: %t\n", *w.config.keepWrittenOrder)
 	}
 	if len(w.config.covers) > 0 {
 		b.WriteString("  covers:\n")
@@ -1232,6 +1241,12 @@ func (w *world) taskHasCheck(task, check string) error {
 	return w.stagedChecks(task, fmt.Sprintf("{ run: %q }", check))
 }
 
+// The ledger's task, with two checks in the order written and no cost: of
+// their own, staged as taskHasCheck stages one.
+func (w *world) taskHasTwoChecks(task, first, second string) error {
+	return w.stagedChecks(task, fmt.Sprintf("{ run: %q }", first), fmt.Sprintf("{ run: %q }", second))
+}
+
 // A script at the path in the scratch repository that writes the recording
 // check's file when it runs, whatever its arguments: a check that calls it
 // ran exactly when the file is there.
@@ -1561,6 +1576,12 @@ func (w *world) hooksBinIs(bin string) error {
 
 func (w *world) costStaticIs(pattern string) error {
 	w.config.costStatic = []string{pattern}
+	return w.writeConfig()
+}
+
+func (w *world) keepWrittenOrderIs(value string) error {
+	on := value == "true"
+	w.config.keepWrittenOrder = &on
 	return w.writeConfig()
 }
 
