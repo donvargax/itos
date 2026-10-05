@@ -36,7 +36,7 @@ type World = {
 	hooksBin?: string; // what itos config get hooks.bin prints
 	executables?: string[]; // the paths test -x passes, the only ones that start
 	onPath?: string[]; // commands on the PATH besides itos
-	itos?: Record<string, unknown>; // stdout JSON by "work list" or "task list", whichever itos runs
+	itos?: Record<string, unknown>; // stdout JSON by "work list --all", "work list" or "task list"
 	registry?: string;
 	runs: string[][]; // every argv run, in order
 	drawn: string[]; // every AssistantMessage text the engine was handed to draw
@@ -56,10 +56,16 @@ const found = (w: World, program: string) =>
 // itos config get hooks.bin: the value, or an older itos's usage error.
 const configGet = (w: World) => (w.pathItos === "answers" ? ok(`${w.hooksBin}\n`) : ok("", 2));
 
-// itos work list or task list, by the two words before --json.
+// Where the itos command starts in an argv, after the words that start itos.
+const commandAt = (argv: readonly string[]) =>
+	argv.findIndex((word) => word === "work" || word === "task");
+
+// itos work list [--all] or task list, by the words between the program and
+// --json; one World.itos does not answer is refused as a usage error, exit 2,
+// as an itos older than slice 77 refuses work list --all.
 function listed(w: World, argv: readonly string[]): Answer {
-	const answer = w.itos?.[argv.slice(-3, -1).join(" ")];
-	return ok(JSON.stringify(answer ?? {}), answer === undefined ? 1 : 0);
+	const answer = w.itos?.[argv.slice(commandAt(argv), -1).join(" ")];
+	return answer === undefined ? ok("", 2) : ok(JSON.stringify(answer));
 }
 
 function itosRun(w: World, argv: readonly string[]): Answer {
@@ -100,7 +106,7 @@ function world(on: On, w: World): void {
 const asked = (w: World) => w.runs.filter((argv) => argv.at(-1) === "--json");
 
 // The words that started them: the itos the resolution chose.
-const programs = (w: World) => asked(w).map((argv) => argv.slice(0, -3).join(" "));
+const programs = (w: World) => asked(w).map((argv) => argv.slice(0, commandAt(argv)).join(" "));
 
 // An itos on the PATH that answers config get, its hooks.bin naming itself.
 const GLOBAL = { pathItos: "answers", hooksBin: "itos", top: ROOT } as const;
@@ -119,14 +125,14 @@ const draw = ($: Engine, text: string) =>
 test("the titles come from the project's itos: every registry item, then the ledger's tasks", async ($, on) => {
 	const w: World = {
 		...GLOBAL,
-		itos: { "work list": WORK_LIST, "task list": TASK_LIST },
+		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
 		runs: [],
 		drawn: [],
 	};
 	world(on, w);
 	await start($);
 	expect(asked(w)).toEqual([
-		["itos", "work", "list", "--json"],
+		["itos", "work", "list", "--all", "--json"],
 		["itos", "task", "list", "--json"],
 	]);
 	await draw($, "T-066 waits on slice 43; T-007 stays.");
@@ -135,10 +141,27 @@ test("the titles come from the project's itos: every registry item, then the led
 	]);
 });
 
-test("drawing runs nothing; the titles are asked for again at each turn's start", async ($, on) => {
+test("an itos older than slice 77, which refuses work list --all, is asked for plain work list", async ($, on) => {
 	const w: World = {
 		...GLOBAL,
 		itos: { "work list": WORK_LIST, "task list": TASK_LIST },
+		runs: [],
+		drawn: [],
+	};
+	world(on, w);
+	await start($);
+	expect(asked(w)).toContainEqual(["itos", "work", "list", "--all", "--json"]);
+	expect(asked(w).at(-1)).toEqual(["itos", "work", "list", "--json"]);
+	await draw($, "T-066 waits on slice 43.");
+	expect(w.drawn).toEqual([
+		"`T-066: The itos plugin for Claude Code` waits on `slice-43: itos work list`.",
+	]);
+});
+
+test("drawing runs nothing; the titles are asked for again at each turn's start", async ($, on) => {
+	const w: World = {
+		...GLOBAL,
+		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
 		runs: [],
 		drawn: [],
 	};
@@ -149,7 +172,7 @@ test("drawing runs nothing; the titles are asked for again at each turn's start"
 	await draw($, "T-066 again");
 	expect(w.runs).toHaveLength(ran);
 	expect(asked(w)).toHaveLength(2);
-	w.itos = { "work list": { ...WORK_LIST, items: [{ id: "T-066", title: "Renamed" }] } };
+	w.itos = { "work list --all": { ...WORK_LIST, items: [{ id: "T-066", title: "Renamed" }] } };
 	await $.turn.start({ text: "next", turnId: "t2" });
 	expect(asked(w)).toHaveLength(4);
 	await draw($, "T-066");
@@ -161,7 +184,7 @@ test("the itos the repository's hooks.bin names runs, a path read from the repos
 		...GLOBAL,
 		hooksBin: ".tools/bin/itos",
 		executables: [`${ROOT}/.tools/bin/itos`],
-		itos: { "work list": WORK_LIST, "task list": TASK_LIST },
+		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
 		runs: [],
 		drawn: [],
 	};
@@ -179,7 +202,7 @@ test("from a subfolder, a relative hooks.bin is resolved against the repository'
 		root: `${ROOT}/internal/cli`,
 		hooksBin: "tools/bin/itos",
 		executables: [`${ROOT}/tools/bin/itos`],
-		itos: { "work list": WORK_LIST, "task list": TASK_LIST },
+		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
 		runs: [],
 		drawn: [],
 	};
@@ -193,13 +216,13 @@ test("a hooks.bin of several words starts with its first, the rest passed before
 		...GLOBAL,
 		hooksBin: "go run ./cmd/itos",
 		onPath: ["go"],
-		itos: { "work list": WORK_LIST, "task list": TASK_LIST },
+		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
 		runs: [],
 		drawn: [],
 	};
 	world(on, w);
 	await start($);
-	expect(asked(w)[0]).toEqual(["go", "run", "./cmd/itos", "work", "list", "--json"]);
+	expect(asked(w)[0]).toEqual(["go", "run", "./cmd/itos", "work", "list", "--all", "--json"]);
 });
 
 test("a hooks.bin path that is not executable is no answer: tools/bin/itos runs", async ($, on) => {
@@ -207,7 +230,7 @@ test("a hooks.bin path that is not executable is no answer: tools/bin/itos runs"
 		...GLOBAL,
 		hooksBin: ".tools/bin/itos",
 		executables: [`${ROOT}/tools/bin/itos`],
-		itos: { "work list": WORK_LIST, "task list": TASK_LIST },
+		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
 		runs: [],
 		drawn: [],
 	};
@@ -221,7 +244,7 @@ test("an itos older than v2.4.0, whose config get exits 2, is no answer: tools/b
 		top: ROOT,
 		pathItos: "too old",
 		executables: [`${ROOT}/tools/bin/itos`],
-		itos: { "work list": WORK_LIST, "task list": TASK_LIST },
+		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
 		runs: [],
 		drawn: [],
 	};
@@ -236,7 +259,7 @@ test("with no itos on the PATH, tools/bin/itos at the top runs", async ($, on) =
 	const w: World = {
 		top: ROOT,
 		executables: [`${ROOT}/tools/bin/itos`],
-		itos: { "work list": WORK_LIST, "task list": TASK_LIST },
+		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
 		runs: [],
 		drawn: [],
 	};
@@ -251,7 +274,7 @@ test("with neither itos nor tools/bin/itos, the itos on the PATH is tried and th
 	const w: World = { top: ROOT, registry: REGISTRY, runs: [], drawn: [] };
 	world(on, w);
 	await start($);
-	expect(programs(w)).toEqual(["itos", "itos"]);
+	expect(programs(w)).toEqual(["itos", "itos", "itos"]); // work list --all, task list, work list
 	await draw($, "T-066 and `slice-43`.");
 	expect(w.drawn).toEqual(["`T-066: From the registry file` and `slice-43: itos work list`."]);
 });
@@ -267,7 +290,7 @@ test("an itos older than v2.3.0, whose work list prints the proposal, reads as n
 	};
 	world(on, w);
 	await start($);
-	expect(programs(w)).toEqual(["itos", "itos"]);
+	expect(programs(w)).toEqual(["itos", "itos", "itos"]); // work list --all, task list, work list
 	await draw($, "T-066, T-007");
 	expect(w.drawn).toEqual(["`T-066: From the registry file`, `T-007: The commit rules`"]);
 });

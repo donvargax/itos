@@ -95,6 +95,16 @@ async function registryFile($: EngineInterface, root: string): Promise<Titles | 
 	}
 }
 
+// Every registry item, done ones too, from itos work list --all (v3.x, slice
+// 77), which v4.0.0 keeps while plain work list comes to print the open items
+// alone; plain work list, every item before v4.0.0, when an older itos
+// refuses --all.
+async function everyItem($: EngineInterface, root: string, bin: string[]): Promise<unknown> {
+	return (
+		(await itos($, root, bin, ["work", "list", "--all"])) ?? itos($, root, bin, ["work", "list"])
+	);
+}
+
 // Every registry item from itos work list, wherever work.registry puts the
 // registry, and the ledger's tasks from itos task list, which may have no
 // item, both from the itos the repository's hooks run; the registry file read
@@ -103,7 +113,7 @@ async function refresh($: EngineInterface): Promise<void> {
 	const root = await $.session.root();
 	const bin = await resolveItos($, root);
 	const [work, tasks] = await Promise.all([
-		itos($, root, bin, ["work", "list"]),
+		everyItem($, root, bin),
 		itos($, root, bin, ["task", "list"]),
 	]);
 	const items = listed(work, "items") ?? (await registryFile($, root));
