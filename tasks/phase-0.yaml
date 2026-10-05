@@ -139,9 +139,9 @@
     # The github provider's choice of run, ci-range.ts's until the TypeScript left (T-062).
     - run: go test ./internal/providers -run '^TestFirstGreen$'
       cost: static
-    - fails: tools/bin/itos verify HEAD "$(git commit-tree 'HEAD^{tree}' -p HEAD -m 'update things')"
     - run: tools/bin/itos verify "" HEAD
       cost: late # sized by the history, not by the change
+    - fails: tools/bin/itos verify HEAD "$(git commit-tree 'HEAD^{tree}' -p HEAD -m 'update things')"
     - run: vp run ci
 
 - id: T-009
