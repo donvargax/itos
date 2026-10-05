@@ -4965,3 +4965,16 @@ items:
       as release-notes.ts proves the notes: every Upgrading and Changes footer itos commit footers
       lists, each config key schema-contract names, and previous the last release.
       docs/ARCHITECTURE.md describes the asset beside the notes, in a docs commit.
+
+  - id: p1-upgrade-on-major
+    title: itos status shows the pin against the newest release, and a new major asks to upgrade
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Split from p1-itos-upgrade (the user's calls, 2026-10-04): upgrading constantly makes no sense
+      at the current release pace, so only a new major is something to act on. itos status shows the
+      pin and the newest release, and the guide's rule (upgrade first) fires on a major, asking the
+      person through itos ask by default. Low priority, after slice-75.
