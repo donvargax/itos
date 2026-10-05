@@ -139,8 +139,13 @@
     # The github provider's choice of run, ci-range.ts's until the TypeScript left (T-062).
     - run: go test ./internal/providers -run '^TestFirstGreen$'
       cost: static
-    - run: tools/bin/itos verify "" HEAD
-      cost: late # sized by the history, not by the change
+    # Since the release before HEAD, not the whole history: verify judges every
+    # commit by today's rules, and 1435336 (build: version 2.3.0) touched the
+    # plugin's manifest when a build commit still could. Each commit was judged
+    # by the rules of its day when it was pushed; p1-verify-data-per-commit is
+    # the fix that would let this check reach back again.
+    - run: tools/bin/itos verify "$(git describe --tags --abbrev=0 --match 'v*' HEAD^)" HEAD
+      cost: late
     - fails: tools/bin/itos verify HEAD "$(git -c user.name=itos -c user.email=itos@example.invalid commit-tree 'HEAD^{tree}' -p HEAD -m 'update things')"
     - run: vp run ci
 
