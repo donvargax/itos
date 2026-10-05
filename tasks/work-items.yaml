@@ -3833,8 +3833,8 @@ items:
   - id: slice-77
     title: work list --all lists every item, before v4.0.0 makes the open ones the default
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
