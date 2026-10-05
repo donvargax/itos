@@ -3984,3 +3984,18 @@ items:
       that by hand (the split rules, the gates table), which drifts from the config. It gains the
       block, CLAUDE.md the import, and the hand-written sections the block covers shrink to what no
       command can check: which session you are, the never list, finishing.
+
+  - id: p3-stealth-override-copy-drift
+    title: Under a stealth config, a stale copy of AGENTS.md in AGENTS.override.md is noticed without running itos init
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-80]
+    kind: idea
+    why: >
+      Found in slice 80: Codex reads AGENTS.override.md in place of AGENTS.md, so after a pull that
+      changes the project's AGENTS.md the person's Codex reads the old copy until they run itos
+      init, the only command that reports it. Something run often (itos go, itos status, or a
+      post-merge hook under the stealth config) could report the drift, or refresh the copy, which
+      is itos's own text between its markers.
+    refs: [internal/cli/initrulesstealth.go, features/init.feature]
