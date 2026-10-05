@@ -4026,8 +4026,8 @@ items:
   - id: T-094
     title: The module path is github.com/donvargax/itos/v4, for v4.0.0
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
