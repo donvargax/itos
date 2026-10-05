@@ -3898,8 +3898,8 @@ items:
   - id: bug-25
     title: Plain work list prints a blocked item, every status but done and dropped being open
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
