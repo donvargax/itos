@@ -54,6 +54,7 @@ phases:
   3: donvargax
 
 queue:
+  - slice-59
   - p1-nightly-late-done-checks
   - p1-work-show-gaps
   - p1-release-notes-footers
