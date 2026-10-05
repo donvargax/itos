@@ -3849,19 +3849,9 @@ items:
     title: work drop takes an item out of the open work, its reason in the commit
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      The user's calls (2026-10-04): nothing took an idea out of the registry, so 125 piled up. work
-      drop <id> --why <reason> sets the status dropped, drops the why, leaves the queue and commits
-      the reason as the body. Specified as @ID-WORK-40 to 43 in features/work.feature. Once it
-      lands, v3-hooks-bin-default and v3-stealth-pre-push are dropped as folded into slice 79, and
-      the coordinator goes through the ideas with the user, proposing drops.
-
-      This repository's itos.yaml lists work.statuses (todo, doing, done, blocked), so dropped must
-      be a status itos knows whatever the list says, or the list gains it in the same push; a
-      consumer listing statuses is then told in the Upgrading footer.
     refs: [features/work.feature]
 
   - id: slice-79
