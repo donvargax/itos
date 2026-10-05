@@ -51,6 +51,7 @@ type world struct {
 	stdout, stderr string
 
 	releases  *releaseServer // the release server, when the scenario starts one
+	github    *fakeGitHub    // the fake GitHub ci.range asks, when the scenario starts one
 	vars      []string       // variables the scenario sets in itos's environment, NAME=value
 	ranMark   int            // the fake itos runs recorded before the last run of itos began
 	askedMark int            // the requests the release server had before the last run of itos began
@@ -97,6 +98,7 @@ type scratchConfig struct {
 	prePushCommit     string       // hooks.pre_push's command, one that commits in the clone
 	watch             *watchConfig // ci.watch
 	rangeCommand      string       // ci.range.command, with ci.range's provider command, when set
+	rangeGitHub       *[2]string   // ci.range.github's workflow and branch, with ci.range's provider github, when set
 	ledgerFooter      string       // the key of the footer whose source is the ledger; Task when empty
 	textFooter        *textFooter  // a footer of free text
 	itemFooter        bool         // an Item footer of registry items, in place of the ledger footer for test, docs and chore
@@ -306,6 +308,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeFollowSteps(sc, w)
 	initializeGuideSteps(sc, w)
 	initializeUpgradeSteps(sc, w)
+	initializeRangeSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -879,6 +882,9 @@ func (w *world) ciSection() string {
 	}
 	if w.config.rangeCommand != "" {
 		fmt.Fprintf(&b, "  range:\n    provider: command\n    command: %q\n", w.config.rangeCommand)
+	}
+	if r := w.config.rangeGitHub; r != nil {
+		fmt.Fprintf(&b, "  range:\n    provider: github\n    github: { workflow: %q, branch: %q }\n", r[0], r[1])
 	}
 	b.WriteString(w.watchSection())
 	return b.String()
