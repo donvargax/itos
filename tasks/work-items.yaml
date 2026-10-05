@@ -3980,3 +3980,14 @@ items:
       post-merge hook under the stealth config) could report the drift, or refresh the copy, which
       is itos's own text between its markers.
     refs: [internal/cli/initrulesstealth.go, features/init.feature]
+
+  - id: slice-81
+    title: A scope's except list takes paths back out of its never
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Issue #10. Specified as @ID-COMMITCMD-19 to 21 in features/commit-command.feature.
+    refs: [features/commit-command.feature, internal/scope]
