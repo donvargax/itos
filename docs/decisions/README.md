@@ -37,5 +37,6 @@ file and leaves this list, which itos ask record writes.
 - [ADR-0030: itos init readies a repository and doubles as a doctor](0030-itos-init-readies-a-repository-and-doubles-as-a-doctor.md)
 - [ADR-0031: itos init offers the plugin and the git shim, opt-in everywhere](0031-itos-init-offers-the-plugin-and-the-git-shim-opt-in-everywhere.md)
 - [ADR-0033: itos's own guides say how to work with itos, not the plugin](0033-itos-s-own-guides-say-how-to-work-with-itos-not-the-plugin.md)
+- [ADR-0034: The work registry is an index, and a why lives in the spec](0034-the-work-registry-is-an-index-and-a-why-lives-in-the-spec.md)
 
 <!-- itos:decisions:end -->
