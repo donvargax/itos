@@ -36,6 +36,6 @@ file and leaves this list, which itos ask record writes.
 - [ADR-0029: The plugin's hooks run the itos the repository's git hooks run](0029-the-plugin-s-hooks-run-the-itos-the-repository-s-git-hooks-run.md)
 - [ADR-0030: itos init readies a repository and doubles as a doctor](0030-itos-init-readies-a-repository-and-doubles-as-a-doctor.md)
 - [ADR-0031: itos init offers the plugin and the git shim, opt-in everywhere](0031-itos-init-offers-the-plugin-and-the-git-shim-opt-in-everywhere.md)
-- [ADR-0032: itos init generates the config's rules into a marked block of AGENTS.md](0032-itos-init-generates-the-config-s-rules-into-a-marked-block-of-agents-md.md)
+- [ADR-0033: itos's own guides say how to work with itos, not the plugin](0033-itos-s-own-guides-say-how-to-work-with-itos-not-the-plugin.md)
 
 <!-- itos:decisions:end -->
