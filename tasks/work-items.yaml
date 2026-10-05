@@ -5009,3 +5009,17 @@ items:
       body names the record's file, docs/decisions/<nnnn>-<slug>.md, on one line over 100
       characters, the header lint refuses the commit, and ask record puts everything back. It should
       wrap or shorten that line, or cap the slug, as itos commit wraps a body.
+
+  - id: p1-wip-id-collision
+    title: A @wip scenario reusing a live scenario's ID is refused
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found 2026-10-04: slice 75's spec added @wip scenarios @ID-UPGRADE-01 to 10 in a new
+      upgrade.feature while upgrading.feature held live @ID-UPGRADE-01 to 03, and neither the
+      commit-msg hook nor CI said so; the coordinator caught it by hand before an agent built on
+      them. An ID is one scenario's, @wip or not, and one area is one feature file: both rules hold
+      at commit.
