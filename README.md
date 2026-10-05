@@ -299,7 +299,8 @@ install, above, lets each repository's pin pick the version).
   it, `T-066` as `` `T-066: The itos plugin for Claude Code` ``, and "slice 43"
   as the registry's `slice-43`. Only the drawing changes: the transcript and
   what Claude reads back stay as written. The titles come from
-  `itos work list --json` and `itos task list --json`, asked at the start of
+  `itos work list --all --json` (plain `itos work list --json` on an older itos,
+  which refuses `--all`) and `itos task list --json`, asked at the start of
   the session and of each turn; with no itos that answers, from
   `tasks/work-items.yaml`.
 - **A guard.** A `PreToolUse` hook on Bash runs `itos hook pre-tool-use`, which

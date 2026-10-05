@@ -118,9 +118,12 @@ history (`vp run changelog`), and the decisions behind it are records in
   `hooks/titles.ts` writes beside each known ID in prose, never in fenced code
   or a longer code span. The titles are asked for at `session.start` (a hot
   reload fires it again) and `turn.start`, never while drawing:
-  `$.process.run` of `itos work list --json` and `itos task list --json` in
-  the session's root, the items first and then the tasks with no item; a run
-  that cannot start, exits non-zero or prints no `items` (an itos older than
+  `$.process.run` of `itos work list --all --json` and `itos task list --json`
+  in the session's root, the items first and then the tasks with no item. An
+  itos older than slice 77 refuses `--all`, so a `--all` run that gives no
+  answer is followed by plain `itos work list --json`, every item before
+  v4.0.0 (slice 79 makes plain `work list` the open items alone); a run that
+  cannot start, exits non-zero or prints no `items` (an itos older than
   v2.3.0 reads `work list` as `work`) falls back to reading
   `tasks/work-items.yaml` with `$.fs`. Both hooks run the itos the
   repository's git hooks run (T-073), resolved before each refresh and each
@@ -1405,7 +1408,8 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   the GitLab and Forgejo APIs wait for `p1-conformance-http`, as the range
   ones do: neither implementation's schema accepts them yet, so a config
   naming one is a config error, not a command that runs half-built.
-  `work list` is `work.Load` and nothing after it: every item in the
+  `work list` (and `work list --all`, slice 77, the same until v4.0.0) is
+  `work.Load` and nothing after it: every item in the
   registry's order, judged by nothing, as `task list` is not, so a reader of
   the titles (T-066's plugin) keeps them through a registry problem; its
   `--json` items are the same `value.Map`s the proposal writes, so the two
