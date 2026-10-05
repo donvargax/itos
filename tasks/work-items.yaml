@@ -3834,14 +3834,9 @@ items:
     title: work list --all lists every item, before v4.0.0 makes the open ones the default
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      The user's calls (2026-10-04): work list will print the open items alone in v4.0.0 (slice 79),
-      so --all lands first as a minor, and the plugin's titles, which need every item's title, ask
-      for it, falling back to plain work list on an older itos; the plugin's version rises (T-074).
-      Specified as @ID-WORK-39 in features/work.feature.
     refs: [features/work.feature, integrations/claude-code/hooks/register.ts]
 
   - id: slice-78
