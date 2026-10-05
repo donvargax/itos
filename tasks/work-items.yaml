@@ -3928,8 +3928,8 @@ items:
   - id: bug-23
     title: ci range's github provider starts at the head's nearest ancestor with a green run
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
