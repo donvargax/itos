@@ -3981,3 +3981,18 @@ items:
       coordinator recommended the plugin stop calling the guard, the README suggest the deny rules,
       and the command go in the next major; the user is looking for another solution first.
     refs: [internal/guard/guard.go, integrations/claude-code/hooks/hooks.json]
+
+  - id: p3-init-agent-rules-import-check
+    title: itos init reports a CLAUDE.md that no longer imports AGENTS.md
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [slice-59]
+    kind: idea
+    why: >
+      Slice 59 writes the @AGENTS.md line into CLAUDE.md with the rules block, but a rerun compares
+      only the block with the config: a CLAUDE.md whose import was removed, or replaced by a copy of
+      the rules, leaves Claude Code reading no rules or stale ones, and nothing says so. A rerun
+      where the block is there could report a CLAUDE.md lacking the import, naming itos init
+      --agent-rules, never counted as missing.
+    refs: [features/init.feature, internal/cli/initrules.go]
