@@ -4946,8 +4946,8 @@ items:
   - id: T-091
     title: Each release publishes upgrading.json, its Upgrading section as data
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
