@@ -57,6 +57,7 @@ queue:
   - bug-26
   - bug-27
   - slice-81
+  - slice-82
   - p1-nightly-late-done-checks
   - p1-work-show-gaps
   - p1-release-notes-footers
