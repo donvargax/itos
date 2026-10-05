@@ -13,7 +13,8 @@
 // registry's queue after (slice 66); the folder work.decisions names for
 // itos ask record's decision records (slice 71); an item with a why, a task
 // with none and a ledger task with one, and an item's why gone after (slice
-// 76).
+// 76); a queue that no longer names an item and the last commit's body
+// (slice 78).
 package features
 
 import (
@@ -81,8 +82,10 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the registry's item "([^"]*)" has no refs$`, func(id string) error { return w.registryItemRefs(id, "") })
 	sc.Step(`^the registry's queue is "([^"]*)"$`, w.registryQueueIs)
 	sc.Step(`^the registry's queue is empty$`, func() error { return w.registryQueueIs("") })
+	sc.Step(`^the registry's queue does not name "([^"]*)"$`, w.registryQueueLacks)
 	sc.Step(`^the last commit's header is "([^"]*)"$`, w.lastHeaderIs)
 	sc.Step(`^the last commit's header is not "([^"]*)"$`, w.lastHeaderIsNot)
+	sc.Step(`^the last commit's body says "([^"]*)"$`, w.lastBodySays)
 	sc.Step(`^the last commit touches only "([^"]*)"$`, func(path string) error { return w.lastTouchesOnly(path) })
 	sc.Step(`^the last commit touches only "([^"]*)" and "([^"]*)"$`, func(a, b string) error { return w.lastTouchesOnly(a, b) })
 	sc.Step(`^the ledger file "([^"]*)" has the task "([^"]*)" with the check "([^"]*)"$`, w.ledgerFileHasTask)
@@ -228,6 +231,27 @@ func (w *world) registryQueueNames(id string) error {
 		return nil
 	}
 	return w.commitLeavingStaged("docs: a queue")
+}
+
+// The registry's queue, read as registryQueueIs reads it, does not name the
+// id (slice 78: work drop takes the item out of it).
+func (w *world) registryQueueLacks(id string) error {
+	text, err := os.ReadFile(filepath.Join(w.dir, w.data(startingRegistry)))
+	if err != nil {
+		return err
+	}
+	var registry struct {
+		Queue []any `yaml:"queue"`
+	}
+	if err := yaml.Unmarshal(text, &registry); err != nil {
+		return fmt.Errorf("the registry does not read: %w\n%s", err, text)
+	}
+	for _, q := range registry.Queue {
+		if fmt.Sprint(q) == id {
+			return fmt.Errorf("the registry's queue still names %s\n%s\n%s", id, text, w.report())
+		}
+	}
+	return nil
 }
 
 // The registry's queue is the comma-separated ids, in order; none ("") is no
@@ -410,6 +434,19 @@ func (w *world) lastHeaderIsNot(header string) error {
 	}
 	if strings.TrimSpace(out) == header {
 		return fmt.Errorf("the last commit's header is %q\n%s", header, w.report())
+	}
+	return nil
+}
+
+// The last commit's body holds the text, its words compared whatever the
+// lines it is wrapped over (slice 78: work drop's reason is the body).
+func (w *world) lastBodySays(text string) error {
+	out, err := w.gitOutput("log", "-1", "--format=%b")
+	if err != nil {
+		return err
+	}
+	if !strings.Contains(strings.Join(strings.Fields(out), " "), strings.Join(strings.Fields(text), " ")) {
+		return fmt.Errorf("the last commit's body does not say %q:\n%s\n%s", text, out, w.report())
 	}
 	return nil
 }
