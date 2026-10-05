@@ -4010,3 +4010,18 @@ items:
       with a long name, a long item id, task add's ledger path under a deep data folder. One answer
       for all, in selfBody, beats fixing each body.
     refs: [internal/cli/workwrite.go, internal/message/wrap.go]
+
+  - id: p3-release-notes-ci-install
+    title: A release's notes give its one-step CI install filled in
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [T-093]
+    kind: idea
+    why: >
+      Found in T-093: the README's Install section says a release's notes give everything filled in
+      for it, but tools/bin/release-notes prints the install script, the pin and the schema line and
+      not the CI install T-093 added: the action line, uses donvargax/itos@v<x.y.z>, and the two
+      lines that fetch tools/bin/install-launcher from the release's tag and run it. Its Upgrading
+      section could give both with the release's version, and its self-test hold them there.
+    refs: [tools/bin/release-notes/main.go, action.yml, tools/bin/install-launcher]
