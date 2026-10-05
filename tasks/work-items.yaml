@@ -5127,3 +5127,16 @@ items:
       holds no Markdown; the step still guards a future one, but the comments' reason is stale. A ci
       commit could reword both (a Markdown change in the plugin's folder), keeping the step.
     refs: [itos.yaml, tools/selftest/plugin-version.ts]
+
+  - id: p1-upgrade-lists-go-install
+    title: itos upgrade lists a CI's go install line among what the person moves
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-75]
+    kind: idea
+    why: >
+      Found by slice 75's agent (the user agreed, 2026-10-04): the release notes also ask a project
+      to move a CI step's go install .../cmd/itos@v<version>, which itos upgrade neither edits nor
+      mentions. It lists it with the asks, never edits it, keeping to the three edits the user
+      chose.
