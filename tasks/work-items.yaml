@@ -4880,14 +4880,15 @@ items:
       before and after.
     refs: [features/status.feature, internal/release, tools/bin/release-version]
 
-  - id: p1-last-release-one-rule
-    title: tools/bin release-notes, schema-contract and previous-release pick the last release by internal/release
+  - id: T-090
+    title: release-notes, schema-contract and previous-release pick the last release by internal/release's one rule
     phase: 1
     owner: null
     status: todo
     depends_on: [bug-20]
-    kind: idea
+    kind: task
     why: >
+      Was p1-last-release-one-rule.
       Bug 20 put the rule for the last release (v followed by three numbers and nothing else,
       ordered numerically) in internal/release, and status and release-version pick with it.
       tools/bin/release-notes, schema-contract and previous-release still keep their own vX.Y.Z
