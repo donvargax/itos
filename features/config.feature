@@ -262,3 +262,24 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 0
     And the file ".git/hooks/commit-msg" runs "itos hook commit-msg"
     And the file ".git/hooks/commit-msg" does not name "tools/bin/itos"
+
+  # Bug 26 (issue #11; was p1-ci-watch-alone; the user's call, 2026-10-05).
+  # The schema required ci.steps whenever a ci section was written, so a
+  # repository adopting itos step by step, its commit gates first and its CI
+  # plan later, could not let itos status, itos push and itos ci watch read
+  # its CI through ci.watch, and a stealth config, with no CI plan of its
+  # own, had to write steps: []. ci.steps is needed only by the commands
+  # that run the plan, ci plan and ci run, so it is required there, as a
+  # section a tool cannot work without, and ci.watch and ci.range are each
+  # valid without it.
+  @ID-CONFIG-28 @bug-26 @wip
+  Scenario: A ci section holding only a watch passes config check
+    Given the config's ci section holds only a github watch of "ci.yml"
+    When itos checks the config
+    Then itos exits with code 0
+
+  @ID-CONFIG-29 @bug-26 @wip
+  Scenario: Without ci.steps, ci plan says the plan is missing
+    Given the config's ci section holds only a github watch of "ci.yml"
+    When itos plans CI over the commits after the first
+    Then its output says "ci.steps is missing"
