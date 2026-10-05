@@ -4720,7 +4720,7 @@ items:
     title: One copy of what a releasable commit is, for itos status and the release cut
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-089]
     kind: task
     why: >
