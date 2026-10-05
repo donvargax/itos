@@ -54,7 +54,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-59
   - bug-24
   - bug-25
   - p1-nightly-late-done-checks
