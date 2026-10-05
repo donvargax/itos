@@ -2080,15 +2080,9 @@ items:
     title: config check warns of a check static by ci.cost.static written below a late one
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-ledger-pattern-static-after-late.
-      Issue #4: ledger-static-after-late (internal/ledger, orderProblems) sees only an explicit
-      cost: static, so with keep_written_order a check static by a ci.cost.static pattern below a
-      late one runs late without a word, and the hook and the nightly's done-task step leave it
-      out. Asked for: report it too, as a problem or at least a warning.
     refs: [internal/ledger/ledger.go]
 
   - id: slice-26
