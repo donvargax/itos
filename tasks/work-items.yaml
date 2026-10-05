@@ -4992,3 +4992,16 @@ items:
       run, release-notes -json, which the workflow now makes and uploads as upgrading.json.
       upgrading-json.ts judges only the asset it generates itself; a --json <file> mode, as
       release-notes.ts has --notes, would let release-cut.ts judge the snapshot's.
+
+  - id: p1-ask-record-long-title
+    title: itos ask record's commit body fits the line limit whatever the title's length
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found 2026-10-04 recording q-12: with a title of about 120 characters, ask record's commit
+      body names the record's file, docs/decisions/<nnnn>-<slug>.md, on one line over 100
+      characters, the header lint refuses the commit, and ask record puts everything back. It should
+      wrap or shorten that line, or cap the slug, as itos commit wraps a body.
