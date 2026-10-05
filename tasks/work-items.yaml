@@ -2105,16 +2105,9 @@ items:
     title: A CI runner installs the global itos in one step, the pin choosing what runs
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-27]
     kind: task
-    why: >
-      Was p3-global-install-ci.
-      With a pin, a repository can drop its install script (README, A global install), but
-      hooks.bin still defaults to tools/bin/itos, the shims hooks install writes call it, and a CI
-      runner has no global itos: such a repository needs hooks.bin set to itos and an install step
-      in CI, which no command writes and no document gives yet. One line for CI (go install of the
-      pinned version, or a small action) and hooks install offering hooks.bin itos would close it.
     refs: [README.md, internal/cli/install.go]
 
   - id: p3-release-signatures
