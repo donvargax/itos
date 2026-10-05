@@ -4971,7 +4971,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-75]
     kind: idea
     why: >
       Split from p1-itos-upgrade (the user's calls, 2026-10-04): upgrading constantly makes no sense
