@@ -77,20 +77,35 @@ func (l *Loaded) Get(key string) any {
 	return at
 }
 
-// HasSection is whether the file has a section, rather than only its
-// defaults.
-func (l *Loaded) HasSection(key string) bool { return l.file.Has(key) }
+// HasSection is whether the file has a section, or a key at a dotted path
+// (ci.steps), rather than only its defaults.
+func (l *Loaded) HasSection(key string) bool {
+	parts := strings.Split(key, ".")
+	at := l.file
+	for _, part := range parts[:len(parts)-1] {
+		next, ok := at.At(part).(*value.Map)
+		if !ok {
+			return false
+		}
+		at = next
+	}
+	return at.Has(parts[len(parts)-1])
+}
 
-// Section is an error when the file lacks a section a tool cannot work
-// without.
+// Section is an error when the file lacks a section, or a key of one (as
+// ci plan and ci run need ci.steps), that a tool cannot work without.
 func (l *Loaded) Section(key string) error {
 	if l.HasSection(key) {
 		return nil
 	}
+	fix := "add a " + key + ": section"
+	if strings.Contains(key, ".") {
+		fix = "add " + key
+	}
 	return &Error{File: l.Path, Problems: []out.Problem{{
 		Rule:    "config-missing-section",
 		Message: key + " is missing",
-		Fix:     "add a " + key + ": section",
+		Fix:     fix,
 	}}}
 }
 

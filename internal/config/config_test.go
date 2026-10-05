@@ -239,3 +239,25 @@ func TestInPlaceOfProblems(t *testing.T) {
 		}
 	}
 }
+
+// A ci section may hold the watch alone (bug 26); a tool that needs its
+// steps asks for ci.steps, a key below the section, by its dotted path.
+func TestSectionReadsADottedKey(t *testing.T) {
+	c, err := load(t, "version: 1\nci:\n  watch: { provider: github }\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Section("ci"); err != nil {
+		t.Fatalf("ci: %v", err)
+	}
+	if got := messages(t, c.Section("ci.steps")); !slices.Equal(got, []string{"ci.steps is missing"}) {
+		t.Fatalf("ci.steps: %v", got)
+	}
+	if got := messages(t, c.Section("ledger.files")); !slices.Equal(got, []string{"ledger.files is missing"}) {
+		t.Fatalf("ledger.files: %v", got)
+	}
+	c, err = load(t, "version: 1\nci:\n  steps: []\n")
+	if err != nil || c.Section("ci.steps") != nil {
+		t.Fatalf("ci.steps written: %v", err)
+	}
+}

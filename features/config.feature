@@ -272,13 +272,13 @@ Feature: Every key the config accepts is one itos reads
   # that run the plan, ci plan and ci run, so it is required there, as a
   # section a tool cannot work without, and ci.watch and ci.range are each
   # valid without it.
-  @ID-CONFIG-28 @bug-26 @wip
+  @ID-CONFIG-28 @bug-26
   Scenario: A ci section holding only a watch passes config check
     Given the config's ci section holds only a github watch of "ci.yml"
     When itos checks the config
     Then itos exits with code 0
 
-  @ID-CONFIG-29 @bug-26 @wip
+  @ID-CONFIG-29 @bug-26
   Scenario: Without ci.steps, ci plan says the plan is missing
     Given the config's ci section holds only a github watch of "ci.yml"
     When itos plans CI over the commits after the first

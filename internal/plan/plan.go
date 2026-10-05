@@ -138,10 +138,13 @@ func (s Step) costed(cfg *config.Loaded) Step {
 }
 
 // ciSteps are ci.steps as the run takes them; a config error without a ci
-// section.
+// section, or with one that has no steps: a ci section may hold only the
+// range or the watch, which other commands read, but the plan is its steps.
 func ciSteps(cfg *config.Loaded) ([]Step, error) {
-	if err := cfg.Section("ci"); err != nil {
-		return nil, err
+	for _, key := range []string{"ci", "ci.steps"} {
+		if err := cfg.Section(key); err != nil {
+			return nil, err
+		}
 	}
 	steps := make([]Step, len(cfg.CI.Steps))
 	for i, s := range cfg.CI.Steps {
