@@ -4880,3 +4880,27 @@ items:
       internal/release's Newest and its tests change to match; the release-cut self-test passes
       before and after.
     refs: [features/status.feature, internal/release, tools/bin/release-version]
+
+  - id: p1-last-release-one-rule
+    title: tools/bin release-notes, schema-contract and previous-release pick the last release by internal/release
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [bug-20]
+    kind: idea
+    why: >
+      Bug 20 put the rule for the last release (v followed by three numbers and nothing else,
+      ordered numerically) in internal/release, and status and release-version pick with it.
+      tools/bin/release-notes, schema-contract and previous-release still keep their own vX.Y.Z
+      regex and git version sort (git tag --merged --sort=-v:refname), which orders a number with
+      leading zeros as a fraction. They agree on every tag this repository has, but nothing holds
+      them to the cut, so one changed alone would judge a release against a different last release
+      than the one the cut counted from. Each can list the tags it reaches as now and pick with
+      release.Newest.
+    refs:
+      [
+        tools/bin/release-notes,
+        tools/bin/schema-contract,
+        tools/bin/previous-release,
+        internal/release,
+      ]
