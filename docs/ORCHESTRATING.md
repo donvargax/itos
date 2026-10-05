@@ -131,9 +131,10 @@ install`, because a second install can load two copies of a tool;
 - **Windows is a platform job.** It has caught `go:embed` reading CRLF
   checkouts and a test asserting Unix file modes. Expect what touches files,
   modes or line endings to need a Windows thought.
-- **The features hide `claude` from the PATH, but not `itos`**
-  (`p1-features-hide-global-itos`). A scenario whose hooks call `itos` can pass
-  locally against a global itos and fail in CI.
+- **The features hide `claude`, `itos` and every `itos-*` from the PATH**
+  (T-087): a scenario runs the itos under test only where a step asks
+  (`itosOnPath`). A task's check that should prove a fix can pass before it
+  too (T-087's did): ask the agent how it showed the change matters.
 - **The rtk hook rewrites `git pull`** and could fail with "Cannot rebase onto
   multiple branches". `itos push` runs git itself, which is one more reason to
   use it.
