@@ -191,3 +191,37 @@ Feature: itos commit, a commit whose footers itos writes
     When itos commits with the arguments "--item slice-9 -m 'test: add slice 9 steps'"
     Then itos exits with code 0
     And the message of HEAD has the footer "Item: slice-9"
+
+  # Slice 81 (issue #10; the user's call, 2026-10-05). A scope could say
+  # only, never and must_touch, so "nothing under src/ but a game's themes"
+  # could not be written, and a consumer enforced it with a range check of
+  # its own, which itos commit check-paths does not run: planning a split
+  # with it approved paths the hook then refused. A scope's except list,
+  # beside never, takes paths back out of it: a path matching never is
+  # refused unless it matches except. except applies to never alone, and
+  # config check refuses an except in a scope that has no never. The hook,
+  # verify and check-paths read the same scopes.
+  @ID-COMMITCMD-19 @slice-81 @wip
+  Scenario: check-paths lets a path through that a scope's except takes out of its never
+    Given the config's chore commits may never touch "src/**" except "src/games/*/themes/**"
+    When itos runs "commit check-paths --type chore src/games/cielo/themes/colours.ts"
+    Then itos exits with code 0
+
+  @ID-COMMITCMD-20 @slice-81 @wip
+  Scenario: check-paths refuses a path under never that except does not name
+    Given the config's chore commits may never touch "src/**" except "src/games/*/themes/**"
+    When itos runs "commit check-paths --type chore src/games/cielo/sim/nudo.ts"
+    Then itos exits with code 1
+    And its output says "src/games/cielo/sim/nudo.ts"
+
+  @ID-COMMITCMD-21 @slice-81 @wip
+  Scenario: The commit-msg hook takes a scope's except as check-paths does
+    Given the config's chore commits may never touch "src/**" except "src/games/*/themes/**"
+    And a change to "src/games/cielo/themes/colours.ts" is staged
+    When the commit-msg hook checks the message:
+      """
+      chore: tune the colours
+
+      Task: T-001
+      """
+    Then itos exits with code 0
