@@ -2104,8 +2104,8 @@ items:
   - id: T-093
     title: A CI runner installs the global itos in one step, the pin choosing what runs
     phase: 3
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-27]
     kind: task
     why: >
