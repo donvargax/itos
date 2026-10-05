@@ -2070,14 +2070,15 @@ items:
     kind: slice
     refs: [features/smoke.feature, internal/cli/commands.go]
 
-  - id: p1-ledger-pattern-static-after-late
-    title: config check reports a check static by ci.cost.static written below a late one
+  - id: bug-27
+    title: config check warns of a check static by ci.cost.static written below a late one
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ledger-pattern-static-after-late.
       Issue #4: ledger-static-after-late (internal/ledger, orderProblems) sees only an explicit
       cost: static, so with keep_written_order a check static by a ci.cost.static pattern below a
       late one runs late without a word, and the hook and the nightly's done-task step leave it
