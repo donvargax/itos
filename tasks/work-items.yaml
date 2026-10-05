@@ -1894,17 +1894,10 @@ items:
     title: "v3: a stealth config declares the pre-push hook without hooks.pre_push"
     phase: 3
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: [slice-46]
     kind: idea
     deferred: the next major release, since it changes a released corpus case
-    why: >
-      Once the pre-push hook verifies the pushed commits (slice 46) it has work without
-      hooks.pre_push, but hooks install under a stealth config still declares no pre-push entry
-      without it, as the last release's corpus case "a stealth config declares the hooks in the
-      git config, over the markers, and no pre-push entry without hooks.pre_push" promises. So a
-      stealth user's commits are first judged by nobody. Declaring it always changes that case,
-      a breaking change, so it waits for v3 beside v3-hooks-bin-default.
     refs: [internal/cli/gitconfig.go, tools/itos/conformance/hooks.yaml]
 
   - id: p3-human-waiver
