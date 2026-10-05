@@ -170,3 +170,28 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "Newest release: v1.2.0"
     And its output does not say "v1.3.0-rc.1"
+
+  # Bug 24 (p1-status-last-green-walk, the user's call, 2026-10-05). Since
+  # bug 23 ci range's github provider walks the head's first parents and asks
+  # each commit's own runs, because GitHub's list of a branch's runs answered
+  # stale (issue #8). status's look at the last green commit still took the
+  # newest success from that list, so it could name a commit a day old. It
+  # reads it as ci range does now: from the head of the branch as fetched,
+  # that head included, along its first parents, at most 100, the first
+  # commit with a green run of ci.range.github's workflow; none found is
+  # "Last green: none found", as before. Its looks at GitHub, this one and
+  # the nightly's, ask GITHUB_API_URL when it is set, else
+  # https://api.github.com, as ci range and ci watch do since bug 23.
+  @ID-STATUS-14 @bug-24 @wip
+  Scenario: status names the nearest commit with a green run, whatever the list of runs says
+    Given the watched run never finishes
+    And ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
+    And the remote has gained the commit "fix: one" touching "a.txt"
+    And the remote has gained the commit "feat: two" touching "b.txt"
+    And the clone has fetched the remote
+    And the fake GitHub's list of runs names a green run of the first commit alone
+    And the fake GitHub has a green run of the remote's commit "fix: one"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "Last green:"
+    And its output says "fix: one"
