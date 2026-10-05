@@ -4076,8 +4076,8 @@ items:
   - id: slice-76
     title: "The registry is an index: a why is an idea's, the others' live in their spec"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
