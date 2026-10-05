@@ -4909,7 +4909,7 @@ items:
     title: itos push names and waits for the commit it pushed, not HEAD after the push
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
     why: >
