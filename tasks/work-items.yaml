@@ -3917,16 +3917,9 @@ items:
     title: When work list prints the open items alone, say so wherever it is said to print every item
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-77]
     kind: idea
-    why: >
-      Found by slice 77's agent: slice 79 flips work list to the open items alone, and several texts
-      still say it prints every item. internal/guide/coordinate.md says itos work list shows every
-      item (a guide corpus case prints it), itos help work and the top-level help describe plain
-      work list as every item, the work list usage error still says it takes no arguments though it
-      takes --all, and docs/ARCHITECTURE.md's work list passage says every item. Each wants
-      rewording in slice 79's push, the guide and help with their corpus cases.
 
   - id: p1-work-drop-check-scenarios
     title: Scenarios showing work check with dropped items
