@@ -1373,7 +1373,9 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   for `p1-conformance-http`) is another such value and another case in
   `RangeProvider`. The API's address is `GITHUB_API_URL` (`APIEnv`) when the
   environment sets it, as Actions does and GitHub Enterprise needs, for
-  ci.range's and ci.watch's providers, else the variable `GitHubAPI`, so a
+  every look at GitHub, ci.range's, ci.watch's and itos status's (bug 24:
+  `watchGitHub` gives the address with the repository and token), else the
+  variable `GitHubAPI`, so a
   unit test points either at an `httptest` server and the scenarios point
   the binary at one through the environment, as no conformance case can
   reach the network. Node's `fetch` waits however long the API takes; the
@@ -1719,8 +1721,8 @@ add`ed so `--only` can name it, git add's words and the commit's on
   the watch); `github` is the `GitHub` value with
   `ci.watch.github.nightly_workflow` and the head's branch, whose
   `NewestRun` lists the workflow's runs on the branch and reads the newest
-  as `RunOf` reads a commit's (`newestOf`), with the token and repository
-  the watch takes (`watchGitHub`). A provider naming no nightly gives no
+  as `RunOf` reads a commit's (`newestOf`), with the token, repository and
+  API address the watch takes (`watchGitHub`). A provider naming no nightly gives no
   look and no line; the head's line and the nightly's share `runLine`, so
   both word a result alike. The nightly is read even where the head is not
   (no remote, no branch yet): the command provider needs neither.
@@ -1734,10 +1736,13 @@ add`ed so `--only` can name it, git add's words and the commit's on
   value with `ci.range.github`'s workflow and branch, its token and
   repository found by `watchGitHub` as the watch's are (the environment,
   else gh and the remote's URL), so it reads outside CI, where
-  `RangeProvider` finds neither; its `LastGreen` lists the branch's runs at
-  `GitHubAPI` and takes `FirstGreen`, the newest success, saying what went
-  wrong, rather than walking the first parents as the range provider does
-  since bug 23. The commit's header
+  `RangeProvider` finds neither, and the API's address; the look is given
+  the branch's head as fetched (`refs/remotes/<remote>/<branch>`), and its
+  `LastGreenFrom` walks from it as `NearestGreen` walks from a push's head
+  (bug 24: the one walk, `greenFirstParent`, the head itself included here
+  and its parent first there), saying what went wrong where the range reads
+  it as no start. It reads no list of the branch's runs, for bug 23's
+  reason. The commit's header
   is the local commit's when it is fetched, else the SHA stands alone.
   The newest release (slice 70, `readRelease`) is asked of the same remote
   with `git ls-remote --tags` under the same timeout, an annotated tag's
@@ -2247,9 +2252,11 @@ TestFeatures/…` lines); a green run closes it.
   record of what it ran (`-json`). They ask `tools/bin/itos` for the plan and
   the tests (`ci plan --json`, `ci scope`, `tests list --json`), so they hold
   the binary to this repository's config; the github provider's choice of
-  run, which no command reaches without a network, is `TestFirstGreen` in
-  `internal/providers` (itos status's reading of the list), and the range
-  provider's walk is `TestNearestGreen*` there and bug 23's scenarios.
+  run, which no command reaches without a network, is the walk's
+  `TestNearestGreen*` and `TestLastGreenFromWalksFromTheHeadAndSaysWhatWentWrong`
+  in `internal/providers` and bugs 23's and 24's scenarios. T-008's check
+  still runs `TestFirstGreen`, the newest success of a list of runs, which
+  nothing reads since bug 24 (`p1-t008-check-the-walk`).
   `config-gate.ts` proves itos's data is checked where it is guarded: in a
   scratch worktree, running both hooks as git does, the commit-msg hook
   rejects a commit staging a ledger with a misspelt key and passes a sound
