@@ -3953,3 +3953,17 @@ items:
       where the block is there could report a CLAUDE.md lacking the import, naming itos init
       --agent-rules, never counted as missing.
     refs: [features/init.feature, internal/cli/initrules.go]
+
+  - id: p1-t008-check-the-walk
+    title: T-008's check runs the walk's test, not FirstGreen's
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-008 (done) checks the github provider's choice of run with go test -run '^TestFirstGreen$',
+      but since bug 24 nothing reads a list of runs for its newest success: ci range and itos status
+      both walk the head's first parents (NearestGreen, LastGreenFrom). FirstGreen and its test stay
+      only for that check. Pointing it at TestNearestGreen and TestLastGreenFrom would let
+      FirstGreen go; it is a done task's check, so the user decides.
