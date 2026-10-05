@@ -2698,16 +2698,9 @@ items:
     title: itos init --agents writes the orchestration files, the project's own from then on
     phase: 3
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: [slice-59]
     kind: idea
-    why: >
-      The user's call (2026-10-03): the coordinator and implementer split, docs/ORCHESTRATING.md,
-      docs/HANDOFF.md and the brief template go into itos init behind a flag (or a question on a
-      terminal), written once as the project's own files, never over an existing one and never
-      managed after, only reported missing. It is a way of running agents rather than a rule
-      itos enforces, so it is flagged to move into an extension of its own later. Pairs with
-      p1-work-brief, which fills the brief template from the registry.
     refs: [docs/ORCHESTRATING.md, docs/HANDOFF.md]
 
   - id: T-075
