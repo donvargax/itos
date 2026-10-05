@@ -933,8 +933,19 @@ ever changed, and a file's CRLF line endings are kept. --agent-rules writes
 it, --no-agent-rules declines; on a terminal with neither it asks, yes its
 default answer; anywhere else it writes nothing and says how to. Run again
 where a config is, it never asks: a block the config no longer matches is
-reported, never counted as missing, and --agent-rules rewrites it. Under
---stealth, which changes nothing tracked, --agent-rules is refused.
+reported, never counted as missing, and --agent-rules rewrites it.
+
+Under a stealth config, which changes nothing tracked, AGENTS.md and CLAUDE.md
+are never written. The block goes to <git common dir>/itos/AGENTS.md, which
+every worktree shares, and each agent gets a file at the worktree's top, listed
+in the git folder's info/exclude: CLAUDE.local.md, whose block imports
+@AGENTS.md when the project has one, then that file, by the path git names the
+common dir by; and AGENTS.override.md, which Codex reads in place of AGENTS.md,
+holding a copy of the project's AGENTS.md between <!-- itos:agents-md:begin -->
+and <!-- itos:agents-md:end -->, then the block. A CLAUDE.local.md or
+AGENTS.override.md already there is yours: it gains only the block, at its end.
+Run again, a copy that no longer matches AGENTS.md is reported as well, and
+--agent-rules rewrites it.
 
 --json: {"schema":1,"config","action":"initialized","git_init","since","files":[{"path","action"}],
         "pin","pin_problem"?,"hooks","plugin","git_shim","agent_rules"} (hooks as itos hooks install
@@ -947,8 +958,8 @@ reported, never counted as missing, and --agent-rules rewrites it. Under
         link to itos is there) or failed;
         agent_rules {"action","files":[{"path","action"}],"problem"?}, action one of written,
         current (the block matches the config), stale (it does not, and was not rewritten),
-        offered, declined, stealth (not offered under --stealth) or failed; each file's action
-        wrote, updated or kept`,
+        offered, declined or failed; under a stealth config, stale too when the copy of
+        AGENTS.md no longer matches it; each file's action wrote, updated or kept`,
 
 	"follow": `Usage: itos follow [--all]
        itos follow add <id> --with <who> --title <title> --note <text>

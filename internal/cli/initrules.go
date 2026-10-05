@@ -27,9 +27,8 @@ package cli
 // and anywhere else nothing is written and the report says how. Run again
 // where a config is, it never asks: a block the config no longer matches is
 // reported, naming itos init --agent-rules, never counted as missing, and
-// --agent-rules rewrites it. Under --stealth nothing tracked may change, so
-// no block is offered and --agent-rules is refused: the stealth rules are
-// p3-init-agent-rules-stealth's.
+// --agent-rules rewrites it. Under a stealth config nothing tracked may
+// change, so the block goes where git never looks (initrulesstealth.go).
 
 import (
 	"bufio"
@@ -79,20 +78,14 @@ func parseRulesFlag(args []string, i int, f *rulesFlag) (int, error) {
 	return 1, nil
 }
 
-// rulesRefused is the usage error of --agent-rules under --stealth.
-func rulesRefused() error {
-	return usage("under --stealth, --agent-rules would write %s and %s, which the project tracks; "+
-		"the stealth config's rules for agents are not written yet", agentsFile, claudeFile)
-}
-
 // rulesOutcome is what came of the offer, init's --json "agent_rules":
 // action one of written (the block written or rewritten, or CLAUDE.md given
 // its import), current (the block matches the config, nothing to write),
-// stale (a rerun's block the config no longer matches, not rewritten),
-// offered (no block, and nobody asked), declined, stealth (not offered under
-// --stealth) or failed (exit 1 when --agent-rules or a terminal asked for
-// it); files each file written, or kept as it was, as the starter's are;
-// problem why it failed.
+// stale (a rerun's block the config no longer matches, or under a stealth
+// config a copy of AGENTS.md that no longer matches it, not rewritten),
+// offered (no block, and nobody asked), declined or failed (exit 1 when
+// --agent-rules or a terminal asked for it); files each file written, or
+// kept as it was, as the starter's are; problem why it failed.
 type rulesOutcome struct {
 	Action  string        `json:"action"`
 	Files   []writtenFile `json:"files"`
@@ -119,10 +112,10 @@ func (r rulesOffer) run() (rulesOutcome, int) {
 	say := func(format string, a ...any) { fmt.Fprintf(r.log, format+"\n", a...) }
 	none := []writtenFile{}
 	switch {
-	case r.stealth:
-		return rulesOutcome{Action: "stealth", Files: none}, 0
 	case r.flag.given && !r.flag.write:
 		return rulesOutcome{Action: "declined", Files: none}, 0
+	case r.stealth:
+		return r.runStealth()
 	}
 	failed := func(problem string, asked bool) (rulesOutcome, int) {
 		if !asked {
@@ -143,7 +136,8 @@ func (r rulesOffer) run() (rulesOutcome, int) {
 	if !r.flag.given && found == nil {
 		answer := ""
 		if r.ask && !r.rerun {
-			answer = r.question()
+			answer = r.question(fmt.Sprintf("Write the rules the config decides into %s, between itos's markers, "+
+				"and import it from %s?", agentsFile, claudeFile))
 		}
 		switch {
 		case answer == "no":
@@ -159,7 +153,7 @@ func (r rulesOffer) run() (rulesOutcome, int) {
 	if err != nil {
 		return failed("the config "+r.file+" does not load, so there are no rules to write", r.flag.given || found == nil)
 	}
-	block := rulesBlock(cfg, r.file)
+	block := rulesBlock(cfg, code(r.file), code)
 	if !r.flag.given && found != nil {
 		if *found == block {
 			return rulesOutcome{Action: "current", Files: none}, 0
@@ -195,11 +189,10 @@ var rulesHowTo = "itos's rules for agents are not written: itos init --agent-rul
 
 // question asks the terminal whether to write the block, until it answers:
 // "yes", "no", or "" when its input ends first.
-func (r rulesOffer) question() string {
+func (r rulesOffer) question(prompt string) string {
 	lines := bufio.NewReader(r.answers)
 	for {
-		fmt.Fprintf(r.log, "Write the rules the config decides into %s, between itos's markers, and import it from %s? [Y/n]: ",
-			agentsFile, claudeFile)
+		fmt.Fprintf(r.log, "%s [Y/n]: ", prompt)
 		line, err := lines.ReadString('\n')
 		answer := strings.ToLower(strings.TrimSpace(line))
 		switch {
@@ -247,29 +240,69 @@ func writeText(p, text string, crlf bool) error {
 // A file with one marker and not the other, or more than one block, is an
 // error: which text is itos's would be a guess.
 func splitBlock(text string) (string, *string, string, error) {
+	return splitBlockOf(text, agentsFile, rulesBegin, rulesEnd)
+}
+
+// splitBlockOf is splitBlock for the file name's text and a block between
+// the lines begin and end.
+func splitBlockOf(text, name, begin, end string) (string, *string, string, error) {
 	lines := strings.SplitAfter(text, "\n")
-	is := func(marker string) func(string) bool {
-		return func(l string) bool { return strings.TrimSpace(l) == marker }
+	at, err := blockSpan(lines, name, begin, end, noSpan)
+	if err != nil || at == noSpan {
+		return text, nil, "", err
 	}
-	begin, end := slices.IndexFunc(lines, is(rulesBegin)), slices.IndexFunc(lines, is(rulesEnd))
-	switch {
-	case begin < 0 && end < 0:
-		return text, nil, "", nil
-	case end < 0:
-		return "", nil, "", fmt.Errorf("%s has a %s line with no %s line after it; put the markers right by hand",
-			agentsFile, rulesBegin, rulesEnd)
-	case begin < 0 || end < begin:
-		return "", nil, "", fmt.Errorf("%s has a %s line with no %s line before it; put the markers right by hand",
-			agentsFile, rulesEnd, rulesBegin)
-	}
-	if slices.ContainsFunc(lines[end+1:], is(rulesBegin)) || slices.ContainsFunc(lines[end+1:], is(rulesEnd)) {
-		return "", nil, "", fmt.Errorf("%s has more than one block between %s and %s; leave one", agentsFile, rulesBegin, rulesEnd)
-	}
-	block := strings.Join(lines[begin:end+1], "")
+	block := strings.Join(lines[at[0]:at[1]+1], "")
 	if !strings.HasSuffix(block, "\n") {
 		block += "\n"
 	}
-	return strings.Join(lines[:begin], ""), &block, strings.Join(lines[end+1:], ""), nil
+	return strings.Join(lines[:at[0]], ""), &block, strings.Join(lines[at[1]+1:], ""), nil
+}
+
+// noSpan is the span of no lines.
+var noSpan = [2]int{-1, -1}
+
+// blockSpan is the indexes of the lines begin and end that mark a block in
+// the file name's lines, its lines from skip[0] through skip[1] not looked
+// at (another block's, say); noSpan when it has neither marker. One marker
+// and not the other, or more than one block, is an error.
+func blockSpan(lines []string, name, begin, end string, skip [2]int) ([2]int, error) {
+	find := func(marker string, from int) int {
+		for i := from; i < len(lines); i++ {
+			if (i < skip[0] || i > skip[1]) && strings.TrimSpace(lines[i]) == marker {
+				return i
+			}
+		}
+		return -1
+	}
+	b, e := find(begin, 0), find(end, 0)
+	switch {
+	case b < 0 && e < 0:
+		return noSpan, nil
+	case e < 0:
+		return noSpan, fmt.Errorf("%s has a %s line with no %s line after it; put the markers right by hand",
+			name, begin, end)
+	case b < 0 || e < b:
+		return noSpan, fmt.Errorf("%s has a %s line with no %s line before it; put the markers right by hand",
+			name, end, begin)
+	}
+	if find(begin, e+1) >= 0 || find(end, e+1) >= 0 {
+		return noSpan, fmt.Errorf("%s has more than one block between %s and %s; leave one", name, begin, end)
+	}
+	return [2]int{b, e}, nil
+}
+
+// appendBlock is text with the block at its end, after a blank line.
+func appendBlock(text, block string) string {
+	if text == "" {
+		return block
+	}
+	if !strings.HasSuffix(text, "\n") {
+		text += "\n"
+	}
+	if strings.TrimSpace(text[strings.LastIndex(strings.TrimSuffix(text, "\n"), "\n")+1:]) != "" {
+		text += "\n"
+	}
+	return text + block
 }
 
 // writeRules writes the block into AGENTS.md, in place of the one found or
@@ -298,13 +331,7 @@ func writeRules(text, before string, found *string, after, block string) ([]writ
 		}
 	default:
 		agents.Action = "updated"
-		if !strings.HasSuffix(text, "\n") {
-			text += "\n"
-		}
-		if strings.TrimSpace(text[strings.LastIndex(strings.TrimSuffix(text, "\n"), "\n")+1:]) != "" {
-			text += "\n"
-		}
-		if err := writeText(agentsFile, text+block, crlf); err != nil {
+		if err := writeText(agentsFile, appendBlock(text, block), crlf); err != nil {
 			return nil, err
 		}
 	}
@@ -394,13 +421,15 @@ func typesOf(cfg *config.Loaded, t *config.Types) []string {
 	return nil
 }
 
-// rulesBlock is the block the config decides, its markers included, LF.
-func rulesBlock(cfg *config.Loaded, file string) string {
+// rulesBlock is the block the config decides, its markers included, LF;
+// source names the config in Markdown, and data the path of a file of
+// itos's own data the config names.
+func rulesBlock(cfg *config.Loaded, source string, data func(string) string) string {
 	var paras []string
 	add := func(lines ...string) { paras = append(paras, strings.Join(lines, "\n")) }
 	add(rulesBegin)
 	add("## The rules itos holds this repository to")
-	add("Generated by itos init from " + code(file) + ", which decides them: change the config, then run " +
+	add("Generated by itos init from " + source + ", which decides them: change the config, then run " +
 		code("itos init --agent-rules") + ", which rewrites only what is between these markers. " +
 		"The hooks and CI hold every commit to these rules.")
 
@@ -430,9 +459,9 @@ func rulesBlock(cfg *config.Loaded, file string) string {
 			what := "is free text"
 			switch {
 			case f.Source.IsName && f.Source.Name == "ledger":
-				what = "names tasks of the ledger, " + code(cfg.Ledger.Files)
+				what = "names tasks of the ledger, " + data(cfg.Ledger.Files)
 			case f.Registry():
-				what = "names items of the work registry, " + code(cfg.Work.Registry)
+				what = "names items of the work registry, " + data(cfg.Work.Registry)
 			case f.Source.Tests != "":
 				what = "names " + code(f.Source.Tests) + " tests by their IDs"
 				if f.Live() {

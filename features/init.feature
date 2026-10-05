@@ -333,7 +333,7 @@ Feature: itos init, a repository made ready for itos
   # itos init --agent-rules, which rewrites only inside the markers; like the
   # plugin, it is reported and never counted as missing. The stealth half
   # (CLAUDE.local.md and Codex's AGENTS.override.md under .git/info/exclude)
-  # is p3-init-agent-rules-stealth.
+  # is slice 80, below.
   @ID-INIT-26 @slice-59
   Scenario: With --agent-rules init writes the config's rules into a marked block of AGENTS.md, and CLAUDE.md imports it
     Given a repository that does not use itos, its one commit "docs: start"
@@ -405,7 +405,7 @@ Feature: itos init, a repository made ready for itos
   # only between the markers; that is never counted as missing. v4.1.0
   # refused --stealth --agent-rules (exit 2, "not written yet"); accepting it
   # is additive (T-095 taught the release check so).
-  @ID-INIT-32 @slice-80 @wip
+  @ID-INIT-32 @slice-80
   Scenario: With --stealth --agent-rules init writes the rules in the git folder and the files agents read, git status left clean
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "init --stealth --agent-rules"
@@ -417,7 +417,7 @@ Feature: itos init, a repository made ready for itos
     And the file "AGENTS.md" does not exist
     And the file "CLAUDE.md" does not exist
 
-  @ID-INIT-33 @slice-80 @wip
+  @ID-INIT-33 @slice-80
   Scenario: Under --stealth the project's AGENTS.md is imported by CLAUDE.local.md and copied, marked, into AGENTS.override.md
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "AGENTS.md" holding "Be kind to the build."
@@ -429,7 +429,7 @@ Feature: itos init, a repository made ready for itos
     And the file "AGENTS.override.md" has the line "<!-- itos:agents-md:begin -->"
     And the file "AGENTS.override.md" has the line "<!-- itos:begin -->" after the line "Be kind to the build."
 
-  @ID-INIT-34 @slice-80 @wip
+  @ID-INIT-34 @slice-80
   Scenario: Under --stealth a CLAUDE.local.md and an AGENTS.override.md of the person's keep their text and gain the blocks alone
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "AGENTS.md" holding "Be kind to the build."
@@ -443,7 +443,7 @@ Feature: itos init, a repository made ready for itos
     And the file "AGENTS.override.md" says "Task:" between the markers
     And the file "AGENTS.override.md" does not name "Be kind to the build."
 
-  @ID-INIT-35 @slice-80 @wip
+  @ID-INIT-35 @slice-80
   Scenario: Under a stealth config, run again after the project's AGENTS.md changed, init reports the stale copy and changes nothing
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "AGENTS.md" holding "Be kind to the build."
@@ -454,7 +454,7 @@ Feature: itos init, a repository made ready for itos
     And its output says "itos init --agent-rules"
     And the file "AGENTS.override.md" does not name "Be kinder to the build."
 
-  @ID-INIT-36 @slice-80 @wip
+  @ID-INIT-36 @slice-80
   Scenario: Under a stealth config, run again with --agent-rules, init refreshes the copy and the rules, git status still clean
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "AGENTS.md" holding "Be kind to the build."
@@ -468,7 +468,7 @@ Feature: itos init, a repository made ready for itos
     And the file ".git/itos/AGENTS.md" says "deps" between the markers
     And git status shows nothing to commit
 
-  @ID-INIT-37 @slice-80 @wip
+  @ID-INIT-37 @slice-80
   Scenario: Under --stealth, away from a terminal and with no --agent-rules, init writes no rules and says how to
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "init --stealth"

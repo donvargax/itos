@@ -77,9 +77,6 @@ func initCommand(args []string, o Out) (int, error) {
 	if stealth && plugin.scope == "project" {
 		return 0, pluginRefused()
 	}
-	if stealth && rules.write {
-		return 0, rulesRefused()
-	}
 	log := o.Stdout
 	if o.JSON {
 		log = o.Stderr
@@ -92,9 +89,6 @@ func initCommand(args []string, o Out) (int, error) {
 		stealth = stealth || config.IsStealth(file)
 		if stealth && plugin.scope == "project" {
 			return 0, pluginRefused()
-		}
-		if stealth && rules.write {
-			return 0, rulesRefused()
 		}
 		return initReport(file, pluginOffer{flag: plugin, stealth: stealth}, shimOffer{flag: shim},
 			rulesOffer{flag: rules, stealth: stealth, rerun: true, file: file}, o)
