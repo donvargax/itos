@@ -4015,3 +4015,19 @@ items:
       which AGENTS.md forbids for status and owner. itos work defer <id> --why '…' could set it, and
       --lift take it off, each committing the registry alone as work drop does, the reason the
       commit's body. The user wants it first among the ideas of that report.
+
+  - id: p1-text-from-file
+    title: The commands that take free text read it from a file or stdin, and their help says to quote it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Reported by an agent on Windows, 2026-10-05: ask add and work add join the words after the id,
+      and their help says the text needs no quotes unless the shell would read it, but shells read a
+      lot. bash drops the rest after # and splits at a semicolon; PowerShell drops commas between
+      arguments, evaluates parentheses and dollar words, and before 7.3 mangles embedded quotes.
+      itos receives what is left and cannot tell. The help of ask add, work add, and every --why and
+      --note could say to quote the text, and each could take it from a file or stdin (-F <file>, -
+      for stdin), as itos commit does, the one way that works the same on every shell.
