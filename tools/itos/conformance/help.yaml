@@ -21,7 +21,7 @@ cases:
                                          add a task to the ledger and its item, and commit both
         task next-id                     the ledger's next free task ID; reads only
         work [--as <handle>]             what the person can start, and what waits
-        work list [--all]                every item of the work registry, done ones too
+        work list [--all]                the open items of the work registry; --all every one
         work show <id> [--patch]         an item, its scenarios and its commits; reads only
         work take <id> [--as <handle>]   set an item in progress for the person, and commit it
         work promote <idea> --as <id> --kind slice|task [--title <title>]
@@ -217,10 +217,10 @@ cases:
       --json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"},
       each list in the queue's order
 
-      work list prints every item of the registry instead (itos help work list),
-      work show one item with its scenarios and commits (itos help work show); work
-      take, work promote, work done, work add, work edit, work queue and work drop
-      write it, each committing it (itos help work take).
+      work list prints the registry's open items instead, and --all every item
+      (itos help work list), work show one item with its scenarios and commits (itos
+      help work show); work take, work promote, work done, work add, work edit, work
+      queue and work drop write it, each committing it (itos help work take).
   - name: itos work take --help
     argv: [work, take, --help]
     exit: 0
@@ -315,15 +315,15 @@ cases:
 
       Changes an item: its title, its depends_on or its refs, each replaced (an
       empty --depends-on or --refs empties the list), or adds --note's paragraph to
-      its why, after a blank line in a folded why (on a slice or a task it warns
-      that its why belongs in its feature file or its ledger entry, which v4.0.0
-      will require); then commits the registry alone, "docs: edit <id>", as work
-      take does (itos help work take). An owner changes by work take, a kind by work
-      promote, a status by work take and work done.
+      its why, after a blank line in a folded why; then commits the registry alone,
+      "docs: edit <id>", as work take does (itos help work take). An owner changes
+      by work take, a kind by work promote, a status by work take and work done.
       Refused, nothing written (exit 1): a registry that is not sound or has changes
-      no commit holds, an id no item has, what work check would find with the item
-      so (a dependency on no item, a cycle, an item done waiting on one not done), a
-      commit a hook refuses. An item already as asked changes nothing. Under a
+      no commit holds, an id no item has, --note on a slice or a task (the registry
+      keeps an idea's why alone: a slice's belongs in its feature file, a task's in
+      its ledger entry), what work check would find with the item so (a dependency
+      on no item, a cycle, an item done waiting on one not done), a commit a hook
+      refuses. An item already as asked changes nothing. Under a
       stealth config the registry is written and nothing committed.
 
       --json: {"schema":1,"ok":true,"item":{…},"changed":["title"|"depends_on"|"refs"|"why",…],"commit":"<sha>"|null},
@@ -378,17 +378,17 @@ cases:
     stdout: |
       Usage: itos work list [--all]
 
-      Prints every item of the work registry (the config's work.registry, by default
-      work-items.yaml in the ledger's folder), in its order, whatever its status,
-      kind or owner, done ones too: its id, kind, status and title, "-" for a kind
-      or status it does not give. It judges nothing, so a registry that is not sound
-      still lists; exit 1 when there is no registry where itos looks.
+      Prints the open items of the work registry (the config's work.registry, by
+      default work-items.yaml in the ledger's folder), todo and doing, in its order,
+      whatever their kind or owner: each one's id, kind, status and title, "-" for a
+      kind or status it does not give, and (deferred) after the title of one
+      deferred. --all prints every item, whatever its status, done and dropped ones
+      too (until v4.0.0, plain work list printed every item). It judges nothing, so
+      a registry that is not sound still lists; exit 1 when there is no registry
+      where itos looks.
 
-      --all prints the same, every item. v4.0.0 will make plain work list print the
-      open items alone, and --all every one: ask for --all to read every item.
-
-      --json: {"schema":1,"file","items":[{"id","title",…}]}, each item with its
-      fields as work --json writes it
+      --json: {"schema":1,"file","items":[{"id","title",…}]}, the items it would
+      print, each with its fields as work --json writes it
   - name: itos work show --help
     argv: [work, show, --help]
     exit: 0

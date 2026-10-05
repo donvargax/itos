@@ -1,5 +1,5 @@
 # The work registry (`itos work`, `work list`, `work check`):
-# every item listed, done ones too, judged or not;
+# the open items listed, every one with --all, judged or not;
 # what a person can start, what nobody owns, what waits and on what, ideas and
 # deferred items apart; every problem `work check` finds, with its rule and
 # fix, a group called by ledger.group.label, the groups' owners under
@@ -816,8 +816,24 @@ cases:
         - rule: work-unknown-status
           message: 'n: unknown status "todo"'
           fix: set n's status to one of open, closed
-  - name: work list prints every item in the registry's order, done ones and other people's too
+  - name: work list prints the open items in the registry's order, other people's too, a deferred one marked so
     argv: [work, list]
+    exit: 0
+    stdout: |
+      ready        -      todo   Ready
+      later        -      todo   Later
+      busy         -      doing  Busy
+      free         -      todo   Free
+      phased       -      todo   Owned by the phase
+      idea         idea   todo   An idea
+      idea-later   idea   todo   A later idea
+      parked       task   todo   Parked  (deferred)
+      parked-idea  idea   todo   A parked idea  (deferred)
+      free-idea    idea   todo   A free idea
+      theirs       idea   todo   Theirs
+      slice        slice  todo   A slice
+  - name: work list --all prints every item in the registry's order, done ones too
+    argv: [work, list, --all]
     exit: 0
     stdout: |
       done         -      done   Done
@@ -828,12 +844,19 @@ cases:
       phased       -      todo   Owned by the phase
       idea         idea   todo   An idea
       idea-later   idea   todo   A later idea
-      parked       task   todo   Parked
-      parked-idea  idea   todo   A parked idea
+      parked       task   todo   Parked  (deferred)
+      parked-idea  idea   todo   A parked idea  (deferred)
       free-idea    idea   todo   A free idea
       theirs       idea   todo   Theirs
       slice        slice  todo   A slice
-  - name: work list --json, each item as work --json writes it, and where the registry was read
+  - name: work list leaves out a done, dropped or blocked item, which --all prints
+    argv: [work, list]
+    files:
+      work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: d, title: D, phase: 1, owner: a, status: done }\n  - { id: r, title: R, phase: 1, owner: a, status: dropped }\n  - { id: b, title: B, phase: 1, owner: a, status: blocked }\n  - { id: t, title: T, phase: 1, owner: a, status: todo }\n"
+    exit: 0
+    stdout: |
+      t  -  todo  T
+  - name: work list --json, the open items each as work --json writes it, and where the registry was read
     argv: [work, list, --json]
     files:
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: done, issue: 3 }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea, depends_on: [x] }\n"
@@ -842,9 +865,8 @@ cases:
       schema: 1
       file: work-items.yaml
       items:
-        - { id: x, title: X, phase: 1, owner: a, status: done, issue: 3, depends_on: [] }
         - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea, depends_on: [x] }
-  - name: work list --all prints every item, as work list does until v4.0.0
+  - name: work list --all prints every item, done ones too
     argv: [work, list, --all]
     files:
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: done }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea }\n"
@@ -852,7 +874,7 @@ cases:
     stdout: |
       x  -     done  X
       y  idea  todo  Y
-  - name: work list --all --json writes what work list --json writes
+  - name: work list --all --json writes every item as work list --json writes the open ones
     argv: [work, list, --all, --json]
     files:
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: done }\n"
@@ -863,7 +885,7 @@ cases:
       items:
         - { id: x, title: X, phase: 1, owner: a, status: done, depends_on: [] }
   - name: work list judges nothing, so a registry that is not sound still lists
-    argv: [work, list]
+    argv: [work, list, --all]
     files:
       work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: nobody, status: todo, depends_on: [nope] }\n  - { id: y, phase: 1 }\n"
     exit: 0
@@ -877,21 +899,21 @@ cases:
     exit: 1
     stderr: |
       no work registry at work-items.yaml
-  - name: work list takes no arguments
+  - name: work list takes no argument but --all
     argv: [work, list, --as, a]
     exit: 2
     stderr: |
-      itos: work list takes no arguments: --as a (itos --help)
+      itos: work list takes only --all: --as a (itos --help)
   - name: work list reads a stealth config's registry in the git folder
     argv: [work, list]
     git: []
     files:
       itos.yaml: null
       .git/itos/itos.yaml: *stealth
-      .git/itos/work-items.yaml: "phases: { 1: q }\nitems:\n  - { id: x, title: X, phase: 1, owner: q, status: done }\n"
+      .git/itos/work-items.yaml: "phases: { 1: q }\nitems:\n  - { id: x, title: X, phase: 1, owner: q, status: todo }\n"
     exit: 0
     stdout: |
-      x  -  done  X
+      x  -  todo  X
   - name: work take sets an item in progress for the person and commits the registry alone, its comments and quoting kept
     argv: [work, take, x]
     git:
@@ -979,7 +1001,7 @@ cases:
     exit: 1
     stderr: |
       no item nope in the registry
-        fix: itos work list names every item
+        fix: itos work list --all names every item
   - name: work take of an item already in progress for the person changes nothing
     argv: [work, take, busy]
     exit: 0
@@ -1296,7 +1318,7 @@ cases:
     exit: 1
     stderr: |
       no item nope in the registry
-        fix: itos work list names every item
+        fix: itos work list --all names every item
   - name: work edit of an item already as asked changes nothing
     argv: [work, edit, ready, --title, Ready, --depends-on, done]
     exit: 0
@@ -1428,7 +1450,7 @@ cases:
     exit: 1
     stderr: |
       no item nothing in the registry
-        fix: itos work list names every item
+        fix: itos work list --all names every item
   - name: work show needs one id
     argv: [work, show]
     exit: 2

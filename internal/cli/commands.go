@@ -80,8 +80,8 @@ func split(args []string) (string, []string) {
 
 // workCommand is `work check [<file>]`, the file the argument after check
 // whatever it is, as main.ts takes it, `work list [--all]`, which takes
-// nothing else (--all lists what plain work list lists until v4.0.0 makes
-// it the open items alone, slice 79), `work take` and `work promote` (workwrite.go), `work done`
+// nothing else (plain work list lists the open items, --all every one,
+// slice 79), `work take` and `work promote` (workwrite.go), `work done`
 // (workdone.go), `work add` and `work edit` (workedit.go), `work queue`
 // (workwrite.go), `work drop` (workdrop.go), `work show` (workshow.go), or
 // `work [--as <handle>]`, which takes nothing else: an argument it does not
@@ -109,15 +109,18 @@ func workCommand(args []string, o Out) (int, error) {
 		return workCheck(typed(file), named, o)
 	case "list":
 		var others []string
+		all := false
 		for _, arg := range rest {
-			if arg != "--all" {
+			if arg == "--all" {
+				all = true
+			} else {
 				others = append(others, arg)
 			}
 		}
 		if len(others) > 0 {
-			return 0, usage("work list takes no arguments: %s", strings.Join(others, " "))
+			return 0, usage("work list takes only --all: %s", strings.Join(others, " "))
 		}
-		return workList(o)
+		return workList(all, o)
 	}
 	as := ""
 	for i := 0; i < len(args); i++ {

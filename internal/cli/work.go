@@ -103,17 +103,17 @@ func workProposal(as string, o Out) (int, error) {
 	return 0, nil
 }
 
-// workList is `work list` (slice 43), and `work list --all` (slice 77),
-// the same: every item of the registry, in its order, whatever its status,
-// kind or owner, done ones too, which work leaves out. --all comes before
-// v4.0.0 (slice 79) makes plain work list print the open items alone, so a
-// caller that needs every item (the Claude Code plugin's titles) can ask
-// for them by name first. It judges nothing, as task list does not, so a registry with
+// workList is `work list` (slice 43), the open items of the registry
+// (todo and doing, slice 79) in its order, whatever their kind or owner, a
+// deferred one marked so; with --all (slice 77) every item, done and
+// dropped ones too. Plain work list printed every item until v4.0.0, so a
+// caller that needs every item (the Claude Code plugin's titles) asks for
+// --all. It judges nothing, as task list does not, so a registry with
 // problems still lists; a registry that is not there is the one problem it
 // reports, on stderr whatever --json says, exit 1. Under --json each item
 // is written as work --json writes it, so the two describe an item alike,
 // and file says where the registry was read.
-func workList(o Out) (int, error) {
+func workList(all bool, o Out) (int, error) {
 	cfg, err := config.Load(config.Path())
 	if err != nil {
 		return 0, err
@@ -127,15 +127,19 @@ func workList(o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	listed := registry.Items
+	if !all {
+		listed = work.Open(listed)
+	}
 	if o.JSON {
-		items := make([]any, len(registry.Items))
-		for i, item := range registry.Items {
+		items := make([]any, len(listed))
+		for i, item := range listed {
 			items[i] = item
 		}
 		return 0, out.Emit(o.Stdout,
 			out.Field{Key: "file", Value: file},
 			out.Field{Key: "items", Value: items})
 	}
-	work.PrintList(o.Stdout, registry.Items)
+	work.PrintList(o.Stdout, listed)
 	return 0, nil
 }

@@ -199,7 +199,7 @@ cases:
     exit: 1
     stderr: |
       no item nope in work-items.yaml, so no question can name it
-        fix: itos work list names every item; --item may be left out
+        fix: itos work list --all names every item; --item may be left out
     files_after:
       asks.yaml: null
   - name: ask add refuses a questions file with changes no commit holds

@@ -190,7 +190,7 @@ func TestEdit(t *testing.T) {
 		"  - id: b\n    title: B\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    why: >\n      A reason.\n"
 	r := registryOf(t, text)
 	title, deps := "Bee", []string{"a"}
-	change, found, err := Edit(cfg, r, text, "b", Edits{Title: &title, DependsOn: &deps, Note: "And more."})
+	change, found, err := Edit(cfg, r, text, "b", Edits{Title: &title, DependsOn: &deps, Note: "And more."}, nil)
 	if err != nil || found != nil {
 		t.Fatal(err, found)
 	}
@@ -201,18 +201,30 @@ func TestEdit(t *testing.T) {
 		change.Body != `Change b ("Bee"): its title, its depends_on and a note on its why, with itos work edit.` {
 		t.Errorf("edit b:\n got %q\nwant %q\n%s", change.Text, want, change.Body)
 	}
-	if change, _, _ := Edit(cfg, r, text, "b", Edits{Title: new("B")}); !change.Unchanged {
+	if change, _, _ := Edit(cfg, r, text, "b", Edits{Title: new("B")}, nil); !change.Unchanged {
 		t.Errorf("b is already titled B: %+v", change)
 	}
 	// b has no refs: an empty list given is already so (bug 14).
-	if change, _, _ := Edit(cfg, r, text, "b", Edits{Refs: &[]string{}}); !change.Unchanged {
+	if change, _, _ := Edit(cfg, r, text, "b", Edits{Refs: &[]string{}}, nil); !change.Unchanged {
 		t.Errorf("b already has no refs: %+v", change)
 	}
 	// a is done, so it cannot wait on b, which is not.
-	if _, found, _ := Edit(cfg, r, text, "a", Edits{DependsOn: &[]string{"b"}}); len(found) == 0 || found[0].Rule != "work-done-before-dependency" {
+	if _, found, _ := Edit(cfg, r, text, "a", Edits{DependsOn: &[]string{"b"}}, nil); len(found) == 0 || found[0].Rule != "work-done-before-dependency" {
 		t.Errorf("a done before b: %+v", found)
 	}
-	if _, found, _ := Edit(cfg, r, text, "z", Edits{Note: "x"}); len(found) == 0 || found[0].Rule != "work-unknown-item" {
+	if _, found, _ := Edit(cfg, r, text, "z", Edits{Note: "x"}, nil); len(found) == 0 || found[0].Rule != "work-unknown-item" {
 		t.Errorf("no z: %+v", found)
+	}
+	// A note on a slice or a task is refused, whatever else is asked: its why
+	// is its spec's (slice 79). An item of no kind is read by its id.
+	specs := "phases: { 1: null }\nitems:\n" +
+		"  - { id: slice-2, title: S, phase: 1, owner: null, status: todo }\n" +
+		"  - { id: T-3, title: T, phase: 1, owner: null, status: todo }\n" +
+		"  - { id: c, title: C, phase: 1, owner: null, status: todo, kind: task }\n"
+	rs := registryOf(t, specs)
+	for _, id := range []string{"slice-2", "T-3", "c"} {
+		if _, found, _ := Edit(cfg, rs, specs, id, Edits{Title: new("New"), Note: "x"}, regexp.MustCompile(`^T-\d+$`)); len(found) == 0 || found[0].Rule != "work-note-spec" {
+			t.Errorf("a note on %s: %+v", id, found)
+		}
 	}
 }

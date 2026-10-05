@@ -56,22 +56,15 @@ Feature: The work registry
   # Slice 43: itos work lists only what a person can start and what waits,
   # but the plugin's titles (T-066) need every item's title, done ones
   # included, from wherever work.registry puts the registry. work list prints
-  # every item in the registry's order, with its kind, status and title,
-  # whoever owns it; --json gives the same as items, each with its id and
-  # title.
-  @ID-WORK-06 @slice-43
-  Scenario: work list prints every item of the registry, done ones included
-    Given the work registry has the item "T-001" with the status "done" and the item "slice-1" with the status "todo"
-    When itos runs "work list"
-    Then itos exits with code 0
-    And its output says "T-001"
-    And its output says "slice-1"
-
+  # the items in the registry's order, with their kind, status and title,
+  # whoever owns them; --json gives the same as items, each with its id and
+  # title. Plain work list printed every item until v4.0.0, which made it the
+  # open items alone and --all every one (slice 79, @ID-WORK-44).
   @ID-WORK-07 @slice-43
   Scenario: work list reads the registry where work.registry puts it
     Given work.registry is "plans/work.yaml"
     And the work registry at "plans/work.yaml" has the item "T-001" with the status "done"
-    When itos runs "work list --json"
+    When itos runs "work list --all --json"
     Then itos exits with code 0
     And its JSON lists the item "T-001" with its title
 
@@ -376,9 +369,9 @@ Feature: The work registry
   # index fields alone (id, title, kind, status, owner, phase, depends_on,
   # refs) at about 200 bytes, and the registry grows with the open work, not
   # the history; the dropped text stays in git's history. work show reads a
-  # task's why from its ledger entry. A note on a slice or a task still lands
-  # in its why until v4.0.0 (slice 79), with a warning naming where its why
-  # belongs.
+  # task's why from its ledger entry. A note on a slice or a task landed in
+  # its why until v4.0.0, with a warning naming where its why belongs; slice
+  # 79 refuses it (@ID-WORK-45).
   @ID-WORK-36 @slice-76
   Scenario: work done drops the why of the item it closes
     Given a clone of it, where itos runs
@@ -396,14 +389,6 @@ Feature: The work registry
     When itos runs "work show T-001"
     Then itos exits with code 0
     And its output says "The ledger says why."
-
-  @ID-WORK-38 @slice-76
-  Scenario: work edit --note on a slice warns that its why belongs in its feature file, and still appends it
-    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
-    When itos runs the command line "work edit slice-9 --note 'A decision.'"
-    Then itos exits with code 0
-    And its output says "feature file"
-    And the registry's item "slice-9" has a why ending with "A decision."
 
   # Slice 77: work list's default changes in v4.0.0 (slice 79) to the open
   # items alone, so --all comes first, saying what the default says today,
@@ -473,7 +458,7 @@ Feature: The work registry
   # p3-global-install-ci); and a stealth config declares the pre-push hook
   # without hooks.pre_push (was v3-stealth-pre-push). The last two are
   # @ID-CONFIG-26 and 27 and @ID-STEALTH-25.
-  @ID-WORK-44 @slice-79 @wip
+  @ID-WORK-44 @slice-79
   Scenario: work list prints the open items alone, and --all every one
     Given the work registry has the item "T-001" with the status "done" and the item "slice-1" with the status "todo"
     And the work registry has the item "p1-gone" owned by nobody with the status "dropped"
@@ -486,7 +471,7 @@ Feature: The work registry
     Then itos exits with code 0
     And its output says "T-001"
 
-  @ID-WORK-45 @slice-79 @wip
+  @ID-WORK-45 @slice-79
   Scenario: work edit --note on a slice is refused, naming its feature file
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs the command line "work edit slice-9 --note 'A decision.'"

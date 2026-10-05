@@ -180,7 +180,7 @@ func itemProblem(cfg *config.Loaded, item string) (*out.Problem, error) {
 	return &out.Problem{
 		Rule:    "ask-unknown-item",
 		Message: fmt.Sprintf("no item %s in %s, so no question can name it", item, file),
-		Fix:     "itos work list names every item; --item may be left out",
+		Fix:     "itos work list --all names every item; --item may be left out",
 	}, nil
 }
 

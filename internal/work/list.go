@@ -9,11 +9,25 @@ import (
 	"github.com/donvargax/itos/v3/internal/value"
 )
 
-// PrintList writes every item as `work list` prints it (slice 43), one line
-// each in the registry's order: its id, kind, status and title, the first
-// three in columns as wide as their widest. An item that gives no kind or no
+// Open is the items work list prints by default (slice 79): those still to
+// do or in progress, todo and doing, in the order given. A done or dropped
+// item, or one of any other status, is left to work list --all.
+func Open(items []*value.Map) []*value.Map {
+	open := []*value.Map{}
+	for _, item := range items {
+		if status := item.At("status"); status == "todo" || status == "doing" {
+			open = append(open, item)
+		}
+	}
+	return open
+}
+
+// PrintList writes the items as `work list` prints them (slice 43), one line
+// each in the order given: its id, kind, status and title, the first three
+// in columns as wide as their widest. An item that gives no kind or no
 // status shows "-" there, so the columns hold, and one with no title
-// nothing after them.
+// nothing after them; a deferred one (deferred: <reason>) has (deferred)
+// after its title (slice 79), since its status alone says todo.
 func PrintList(w io.Writer, items []*value.Map) {
 	cell := func(v any) string {
 		if absent(v) {
@@ -27,6 +41,9 @@ func PrintList(w io.Writer, items []*value.Map) {
 		title := ""
 		if t := item.At("title"); !absent(t) {
 			title = value.String(t)
+		}
+		if !absent(item.At("deferred")) {
+			title = strings.TrimLeft(title+"  (deferred)", " ")
 		}
 		rows[i] = [4]string{cell(item.At("id")), cell(item.At("kind")), cell(item.At("status")), title}
 		for c := range widths {

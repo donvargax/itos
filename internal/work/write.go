@@ -52,7 +52,7 @@ func find(r Registry, id string) int {
 // unknown is the problem of an id no item has.
 func unknown(id string) *out.Problem {
 	return &out.Problem{Rule: "work-unknown-item", Message: fmt.Sprintf("no item %s in the registry", id),
-		Fix: "itos work list names every item"}
+		Fix: "itos work list --all names every item"}
 }
 
 // Take is the registry with the item set in progress for person (slice 52):
@@ -453,22 +453,37 @@ type Edits struct {
 	Note            string
 }
 
+// WhereWhy is where a slice's or a task's why lives (slice 76), the
+// registry being an index whose whys are an idea's: SpecKind's kinds.
+var WhereWhy = map[string]string{
+	"slice": "its feature file (the description, and the comments above its scenarios)",
+	"task":  "its ledger entry",
+}
+
 // Edit is the registry with the item's title, depends_on or refs replaced
 // and a paragraph added to its why (value.Doc's Note: a blank line, then the
 // paragraph, in a folded why). A list given is written whole, one flow list
 // on its key's line, whatever shape the old one had (value.Doc's SetList,
 // bug 14). Change.Changed names the keys it changed.
-// Refused, with nothing changed: an id no item has, and whatever work check
-// would find in the registry with the item so (a dependency on no item, a
-// cycle, an item done waiting on one not done). An item already as asked,
-// with no note, is Unchanged; a list the item lacks is as asked when the
-// list given is empty.
-func Edit(cfg *config.Loaded, r Registry, text, id string, e Edits) (Change, []out.Problem, error) {
+// Refused, with nothing changed: an id no item has, a note on a slice or a
+// task (SpecKind, taskID read as Add reads it), whose why lives in its spec
+// (slice 79), and whatever work check would find in the registry with the
+// item so (a dependency on no item, a cycle, an item done waiting on one not
+// done). An item already as asked, with no note, is Unchanged; a list the
+// item lacks is as asked when the list given is empty.
+func Edit(cfg *config.Loaded, r Registry, text, id string, e Edits, taskID *regexp.Regexp) (Change, []out.Problem, error) {
 	i := find(r, id)
 	if i < 0 {
 		return Change{}, []out.Problem{*unknown(id)}, nil
 	}
 	item := r.Items[i]
+	if kind := SpecKind(item, taskID); e.Note != "" && WhereWhy[kind] != "" {
+		return Change{}, []out.Problem{{
+			Rule:    "work-note-spec",
+			Message: fmt.Sprintf("%s is a %s, whose why belongs in %s, not the registry, which keeps an idea's why alone", id, kind, WhereWhy[kind]),
+			Fix:     fmt.Sprintf("write the note in %s's %s", id, strings.TrimPrefix(WhereWhy[kind], "its ")),
+		}}, nil
+	}
 	doc, err := value.OpenDoc(text)
 	if err != nil {
 		return Change{}, nil, err
