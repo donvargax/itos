@@ -199,3 +199,18 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     Then itos exits with code 0
     And the file "docs/decisions/README.md" says "Use Go"
     And the file "docs/decisions/README.md" says "Triage issues with labels"
+
+  # Bug 22 (found 2026-10-04 recording q-12): ask record's commit body names
+  # the record's file, docs/decisions/<nnnn>-<slug>.md, on one line, so a
+  # title of about 120 characters made that line longer than the header
+  # lint's 100, the commit-msg hook refused it, and ask record put
+  # everything back. The body keeps every line within the limit, as itos
+  # commit wraps a body (slice 58); the record's file name and title are
+  # unchanged.
+  @ID-ASK-19 @bug-22 @wip
+  Scenario: ask record of a long title commits a body whose every line is within the limit
+    Given itos has run the command line "ask add 'Where does how to work with itos live?'"
+    And itos has run the command line "ask answer q-1 'In its own guides.'"
+    When itos runs the command line "ask record q-1 --title 'itos init generates the config rules into a marked block of AGENTS.md, and the guides of itos say how to work with it'"
+    Then itos exits with code 0
+    And the last commit's body has no line longer than 100 characters
