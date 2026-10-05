@@ -16,7 +16,7 @@ import (
 
 // Found is a problem config check reports, with the area it is in: the
 // config, the ledger, the registry, a smoke set, the decision records or, as
-// a warning, the people.
+// a warning, the ledger or the people.
 type Found struct {
 	out.Problem
 	Area string `json:"area"`
@@ -65,8 +65,9 @@ func smokeFindings(cfg *config.Loaded) ([]Found, []string, error) {
 // lines it prints when it finds nothing (config-check.ts's configFindings).
 // Its code is 2 when the config is invalid or the ledger's folder is
 // missing, since nothing else can be read, else 1 for any problem; a warning
-// (a project's people file missing or unreadable, work.PeopleProblem) never
-// sets it.
+// (a check static by a ci.cost.static pattern that written order runs late,
+// ledger.Findings, or a project's people file missing or unreadable,
+// work.PeopleProblem) never sets it.
 func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) {
 	path := config.Path()
 	cfg, err := config.Load(path)
@@ -103,12 +104,13 @@ func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) 
 	if err != nil {
 		return 0, nil, nil, nil, err
 	}
-	found := tagged("ledger", ledger.Issues(cfg, files))
+	ledgerProblems, ledgerWarnings := ledger.Findings(cfg, files)
+	found := tagged("ledger", ledgerProblems)
 	registry, err := work.Problems(cfg)
 	if err != nil {
 		return 0, nil, nil, nil, err
 	}
-	var warnings []Found
+	warnings := tagged("ledger", ledgerWarnings)
 	if p := work.PeopleProblem(cfg); p != nil {
 		warnings = append(warnings, Found{*p, "people"})
 	}

@@ -7,6 +7,7 @@
 # to nothing, a commits.since or a footer's since that is no full SHA or no
 # commit here, a footer of free text with a key that reads IDs), exit 2;
 # a missing ledger folder, one problem naming it, exit 2; each ledger problem (written order among them, a check that calls hooks.bin read as itos), exit 1;
+# a check static by a ci.cost.static pattern that written order runs late, a warning that passes;
 # the registry's and the smoke set's problems beside them; the decision
 # records' (a number twice, a supersede link to no record); a project's people
 # file missing or unreadable, a warning that passes; the nightly's
@@ -362,6 +363,90 @@ cases:
     exit: 1
     stderr: |
       FAIL T-090: check 1 says cost: static below check 0, which is late: written order runs it late
+  # Bug 27: a check static by a ci.cost.static pattern, written below a late
+  # one, runs late just the same, and is a warning, never a failure: failing
+  # ledgers that passed before would break every project holding one.
+  - name: a check static by a pattern written below a late one is a warning (pattern-static-after-late)
+    argv: [config, check, --ledger, pattern.yaml]
+    files:
+      pattern.yaml: |
+        - id: T-093
+          type: build
+          title: A check static by a pattern written below a late one
+          done_when:
+            - run: vp run changelog
+            - run: vp check
+    exit: 0
+    stdout: |
+      itos.yaml is valid, and so are the 1 ledger files it reads
+      work-items.yaml: sound
+      smoke.yaml: every file has a smoke test (1 in all)
+    stderr: |
+      WARN T-093: check 1 is static by ci.cost.static below check 0, which is late: written order runs it late
+  - name: the same as --json, the warning with its rule, fix and area
+    argv: [config, check, --json, --ledger, pattern.yaml]
+    files:
+      pattern.yaml: |
+        - id: T-093
+          type: build
+          title: A check static by a pattern written below a late one
+          done_when:
+            - run: vp run changelog
+            - run: vp check
+    exit: 0
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: true
+      problems: []
+      warnings:
+        - rule: ledger-pattern-static-after-late
+          message: "T-093: check 1 is static by ci.cost.static below check 0, which is late: written order runs it late"
+          fix: "move check 1 above check 0, or write cost: late on check 1 if it is meant to run late"
+          area: ledger
+  - name: beside an explicit cost static below a late check, which still fails
+    argv: [config, check, --ledger, both.yaml]
+    files:
+      both.yaml: |
+        - id: T-094
+          type: build
+          title: Explicit static below a late check
+          done_when:
+            - run: vp run changelog
+            - { run: vp check, cost: static }
+        - id: T-095
+          type: build
+          title: Pattern-static below a late check
+          done_when:
+            - run: vp run changelog
+            - run: vp check
+    exit: 1
+    stderr: |
+      FAIL T-094: check 1 says cost: static below check 0, which is late: written order runs it late
+      WARN T-095: check 1 is static by ci.cost.static below check 0, which is late: written order runs it late
+  - name: without keep_written_order, a check static by a pattern below a late one is not reported
+    argv: [config, check, -q, --ledger, pattern.yaml]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits: { types: [build, docs] }
+        tests:
+          scenario: { root: features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: smoke.yaml } }
+        ci:
+          steps: [{ run: vp check, cost: static }]
+          cost: { static: ["^vp check$"], keep_written_order: false }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+      pattern.yaml: |
+        - id: T-093
+          type: build
+          title: A check static by a pattern written below a late one
+          done_when:
+            - run: vp run changelog
+            - run: vp check
+    exit: 0
+    stdout: ""
+    stderr: ""
   - name: a check that calls hooks.bin is read as itos by the patterns, one under another path as written
     argv: [config, check, --ledger, bin.yaml]
     files:

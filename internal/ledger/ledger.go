@@ -3,7 +3,9 @@
 // (config.ts's ledgerLayout, ledgerFiles and ledgerIssues). The schema is
 // strict: duplicate or malformed IDs, unknown types, unknown keys, both or
 // neither of run and fails, and a cost: static written below a late check of
-// the same task, which written order would run late anyway.
+// the same task, which written order would run late anyway. A check static
+// by a ci.cost.static pattern written there is run late just the same, and
+// is a warning (bug 27).
 package ledger
 
 import (
@@ -147,6 +149,16 @@ func checkProblems(check any, where string) []out.Problem {
 	return found
 }
 
+// commandOf is a check's command, run's else fails', and whether it is text.
+func commandOf(check any) (string, bool) {
+	command := value.Prop(check, "run")
+	if command == nil || command == value.Undefined {
+		command = value.Prop(check, "fails")
+	}
+	text, ok := command.(string)
+	return text, ok
+}
+
 // lateByItself is whether a check is late by itself: its own cost, else the
 // patterns.
 func lateByItself(cfg *config.Loaded, check any) bool {
@@ -154,17 +166,18 @@ func lateByItself(cfg *config.Loaded, check any) bool {
 	case "late", "static":
 		return cost == "late"
 	}
-	command := value.Prop(check, "run")
-	if command == nil || command == value.Undefined {
-		command = value.Prop(check, "fails")
-	}
-	text, ok := command.(string)
+	text, ok := commandOf(check)
 	return !(ok && cfg.MatchesStatic(text))
 }
 
-// orderProblems: a cost: static written below a late check, which written
-// order runs late.
-func orderProblems(cfg *config.Loaded, checks []any) []out.Problem {
+// orderFindings are what written order does to a task's checks under
+// ci.cost.keep_written_order: a cost: static written below a late check,
+// which it runs late, is a problem; a check static by a ci.cost.static
+// pattern written there, run late just the same, is a warning (bug 27). The
+// explicit mark asks for what the order cannot give, while a pattern match
+// is the cost rule's own reading, and failing ledgers that passed before
+// would break every project holding one.
+func orderFindings(cfg *config.Loaded, checks []any) (problems, warnings []out.Problem) {
 	firstLate := -1
 	for i, check := range checks {
 		if lateByItself(cfg, check) {
@@ -173,17 +186,23 @@ func orderProblems(cfg *config.Loaded, checks []any) []out.Problem {
 		}
 	}
 	if firstLate < 0 || !cfg.CI.Cost.KeepWrittenOrder {
-		return nil
+		return nil, nil
 	}
-	var found []out.Problem
 	for n := firstLate + 1; n < len(checks); n++ {
-		if value.Prop(checks[n], "cost") == "static" {
-			found = append(found, problem("ledger-static-after-late",
+		switch cost := value.Prop(checks[n], "cost"); {
+		case cost == "static":
+			problems = append(problems, problem("ledger-static-after-late",
 				fmt.Sprintf("check %d says cost: static below check %d, which is late: written order runs it late", n, firstLate),
 				fmt.Sprintf("move check %d above check %d, or remove its cost: static", n, firstLate)))
+		case cost == value.Undefined || cost == nil:
+			if text, ok := commandOf(checks[n]); ok && cfg.MatchesStatic(text) {
+				warnings = append(warnings, problem("ledger-pattern-static-after-late",
+					fmt.Sprintf("check %d is static by ci.cost.static below check %d, which is late: written order runs it late", n, firstLate),
+					fmt.Sprintf("move check %d above check %d, or write cost: late on check %d if it is meant to run late", n, firstLate, n)))
+			}
 		}
 	}
-	return found
+	return problems, warnings
 }
 
 // IDPattern is the pattern a task's whole ID must match: ledger.id, or any
@@ -252,9 +271,9 @@ func jsSource(pattern string) string {
 	return b.String()
 }
 
-// taskProblems are one task's own problems, its checks' included.
-func taskProblems(cfg *config.Loaded, task any) []out.Problem {
-	var found []out.Problem
+// taskFindings are one task's own problems, its checks' included, and its
+// warnings.
+func taskFindings(cfg *config.Loaded, task any) (found, warnings []out.Problem) {
 	for _, k := range value.Keys(task) {
 		if !value.Includes(taskKeys, k) {
 			found = append(found, problem("ledger-unknown-key", "unknown key "+k,
@@ -268,12 +287,13 @@ func taskProblems(cfg *config.Loaded, task any) []out.Problem {
 	}
 	checks, ok := doneWhen.([]any)
 	if !ok {
-		return append(found, problem("ledger-done-when", "done_when is not a list", "write done_when as a list of checks"))
+		return append(found, problem("ledger-done-when", "done_when is not a list", "write done_when as a list of checks")), nil
 	}
 	for n, check := range checks {
 		found = append(found, checkProblems(check, fmt.Sprintf("check %d", n))...)
 	}
-	return append(found, orderProblems(cfg, checks)...)
+	order, warnings := orderFindings(cfg, checks)
+	return append(found, order...), warnings
 }
 
 // read is a ledger file's tasks, or the problem reading it.
@@ -306,8 +326,15 @@ func read(file string) ([]any, *out.Problem) {
 
 // Issues are the ledger's problems over the given files, each with its rule.
 func Issues(cfg *config.Loaded, files []string) []out.Problem {
+	found, _ := Findings(cfg, files)
+	return found
+}
+
+// Findings are the ledger's problems over the given files and its warnings,
+// which config check prints and never fails on, each with its rule and its
+// message after the task's id.
+func Findings(cfg *config.Loaded, files []string) (found, warned []out.Problem) {
 	seen := map[string]string{}
-	var found []out.Problem
 	for _, file := range files {
 		tasks, unreadable := read(file)
 		if unreadable != nil {
@@ -319,7 +346,7 @@ func Issues(cfg *config.Loaded, files []string) []out.Problem {
 			if !ok {
 				id = fmt.Sprintf("task %d of %s", i+1, file)
 			}
-			own := taskProblems(cfg, task)
+			own, warnings := taskFindings(cfg, task)
 			if other, twice := seen[id]; twice {
 				own = append(own, problem("ledger-duplicate-id", "also in "+other, "give one of the two "+id+" tasks another id"))
 			}
@@ -328,7 +355,11 @@ func Issues(cfg *config.Loaded, files []string) []out.Problem {
 				p.Message = id + ": " + p.Message
 				found = append(found, p)
 			}
+			for _, p := range warnings {
+				p.Message = id + ": " + p.Message
+				warned = append(warned, p)
+			}
 		}
 	}
-	return found
+	return found, warned
 }

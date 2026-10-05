@@ -58,7 +58,7 @@ Feature: The cost rule knows itos however the project calls it
   # something the order cannot give, while a pattern match is the cost
   # rule's own reading, and failing ledgers that pass today would turn a
   # patch into a break for every consumer holding one.
-  @ID-COST-04 @bug-27 @wip
+  @ID-COST-04 @bug-27
   Scenario: config check warns of a check static by ci.cost.static written below a late one
     Given ci.cost.static is "^itos work check$"
     And ci.cost.keep_written_order is true

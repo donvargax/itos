@@ -12,7 +12,7 @@ import (
 // itos), else late; with ci.cost.keep_written_order, a check below a late
 // check of its task is late too. config check's written-order rule reads the
 // ledger as written, before it is typed, so it keeps its own reading of the
-// same rule (ledger.orderProblems).
+// same rule (ledger.orderFindings).
 
 // Cost is a cost class.
 type Cost string

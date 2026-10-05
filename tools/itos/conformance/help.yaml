@@ -1277,8 +1277,10 @@ cases:
       each kind's smoke set and the decision records in the folder work.decisions
       names: no two share a number, and a record whose status is "superseded by
       ADR-NNNN" names a number a record there has. Exit 2 when the config is invalid,
-      1 for any other problem. A project's people file missing or unreadable is a warning (WARN),
-      which never fails it; a stealth config reads none. --print-defaults prints the
+      1 for any other problem. A warning (WARN) never fails it: a check static by a
+      ci.cost.static pattern written below a late check of its task, which
+      ci.cost.keep_written_order runs late, and a project's people file missing or
+      unreadable (a stealth config reads none). --print-defaults prints the
       values the tools take when a key is left out (work.registry's in this config's
       ledger folder; a stealth config's hooks.bin, itos, and no work.people), and
       checks nothing.

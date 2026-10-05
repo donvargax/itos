@@ -107,7 +107,7 @@ func Add(cfg *config.Loaded, n NewTask) (Added, []out.Problem, error) {
 		}
 		task.Set("done_when", checks)
 	}
-	if found := taskProblems(cfg, task); len(found) > 0 {
+	if found, _ := taskFindings(cfg, task); len(found) > 0 {
 		for i := range found {
 			found[i].Message = n.ID + ": " + found[i].Message
 		}
