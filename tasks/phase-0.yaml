@@ -141,7 +141,7 @@
       cost: static
     - run: tools/bin/itos verify "" HEAD
       cost: late # sized by the history, not by the change
-    - fails: tools/bin/itos verify HEAD "$(git commit-tree 'HEAD^{tree}' -p HEAD -m 'update things')"
+    - fails: tools/bin/itos verify HEAD "$(git -c user.name=itos -c user.email=itos@example.invalid commit-tree 'HEAD^{tree}' -p HEAD -m 'update things')"
     - run: vp run ci
 
 - id: T-009
