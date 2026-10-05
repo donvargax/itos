@@ -31,7 +31,9 @@ is not yours: run `itos guide work` and follow that one.
    person lifts it. The queue is the order the person wants, kept by
    `itos work queue <id> --top`, `--before <id>`, `--after <id>` or `--drop`,
    each committing the registry alone; `itos work done` takes a closed item
-   out.
+   out. An item no longer wanted is dropped, once the person agrees, with
+   `itos work drop <id> --why '…'`, the reason its commit's body; it stays
+   in the registry, never proposed again.
 2. **Specify it** if it is not yet: `@wip` scenarios for a behaviour, or a
    task with checks for anything else. An idea becomes work with
    `itos work promote <idea> --as <id> --kind slice|task`, and

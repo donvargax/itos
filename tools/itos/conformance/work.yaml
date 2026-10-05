@@ -1438,12 +1438,12 @@ cases:
     argv: [work, bogus, --x]
     exit: 2
     stderr: |
-      itos: work has no subcommand bogus: it takes list, show, take, promote, done, add, edit, queue or check, else --as <handle> (itos --help)
+      itos: work has no subcommand bogus: it takes list, show, take, promote, done, add, edit, queue, drop or check, else --as <handle> (itos --help)
   - name: work refuses a flag it does not take
     argv: [work, --as, a, --all]
     exit: 2
     stderr: |
-      itos: work does not take --all: it takes list, show, take, promote, done, add, edit, queue or check, else --as <handle> (itos --help)
+      itos: work does not take --all: it takes list, show, take, promote, done, add, edit, queue, drop or check, else --as <handle> (itos --help)
   - name: work --as needs a handle
     argv: [work, --as]
     exit: 2
@@ -1582,3 +1582,84 @@ cases:
     exit: 1
     stderr: |
       queue: is not a list of item ids
+  # Slice 78: work drop takes an item out of the open work, its status
+  # dropped, a status itos knows whatever work.statuses lists.
+  - name: work drop marks an item dropped, drops its why, takes it out of the queue, and commits the registry alone
+    argv: [work, drop, x, --why, Superseded by y.]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: &droppable "phases: { 1: null }\nqueue:\n  - x\n  - y\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: todo, kind: idea, why: a gap }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo }\n"
+    files:
+      work-items.yaml: *droppable
+    exit: 0
+    stdout_has: "x is dropped: committed "
+    files_after:
+      work-items.yaml: "phases: { 1: null }\nqueue:\n  - y\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo }\n"
+  - name: under a stealth config work drop writes the registry and commits nothing
+    argv: [work, drop, x, --why, Not needed., --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *droppable
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea, depends_on: [] }
+      commit: null
+    files_after:
+      .git/itos/work-items.yaml: "phases: { 1: null }\nqueue:\n  - y\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo }\n"
+  - name: work drop refuses an item an item still to do depends on, naming it
+    argv: [work, drop, x, --why, Not needed.]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: x, title: X, phase: 1, status: todo }\n  - { id: y, title: Y, phase: 1, status: todo, depends_on: [x] }\n  - { id: z, title: Z, phase: 1, status: done }\n"
+    exit: 1
+    stderr: |
+      x is depended on by y, still to do
+        fix: take x out of their depends_on first (itos work edit <id> --depends-on …), or drop them first
+  - name: work drop refuses an item done
+    argv: [work, drop, z, --why, Too late.]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: z, title: Z, phase: 1, status: done }\n"
+    exit: 1
+    stderr: |
+      z is done, and a done item stays done
+        fix: drop an item still to do (itos work list)
+  - name: work drop needs a reason
+    argv: [work, drop, x]
+    exit: 2
+    stderr: |
+      itos: work drop needs --why <reason>, the commit's record of why the item is dropped (itos --help)
+  - name: work take refuses an item dropped, naming its status
+    argv: [work, take, x, --as, a]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: x, title: X, phase: 1, status: dropped }\n"
+    exit: 1
+    stderr: |
+      x is dropped, taken out of the open work
+        fix: take an item that is todo (itos work)
+  - name: work check knows dropped whatever work.statuses lists, and reports an item still to do depending on one
+    argv: [work, check, --json]
+    files:
+      itos.yaml: "version: 1\nwork:\n  registry: work-items.yaml\n  statuses: [open, closed]\n  people: { source: yaml, file: people.yaml }\n"
+      work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea }\n  - { id: y, title: Y, phase: 1, owner: null, status: open, depends_on: [x] }\n  - { id: z, title: Z, phase: 1, owner: null, status: dropped, depends_on: [x] }\n"
+    exit: 1
+    json:
+      schema: 1
+      file: work-items.yaml
+      sound: false
+      problems:
+        - rule: work-dropped-dependency
+          message: "y: depends on \"x\", which is dropped and will never be done"
+          fix: "remove \"x\" from y's depends_on (itos work edit y --depends-on …), or drop y too"

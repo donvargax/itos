@@ -60,9 +60,9 @@ func unknown(id string) *out.Problem {
 // every item (a stealth config with no --as, as ProposeEvery): no owner
 // refuses it, and the owner is left as it is. Refused, with nothing changed:
 // an id no item has, an idea (work promote makes it a slice or a task
-// first), an item done or deferred, one whose owner, or its group's, is
-// someone else, and one with a dependency not done. An item already in
-// progress for the person is Unchanged.
+// first), an item done, dropped (slice 78) or deferred, one whose owner, or
+// its group's, is someone else, and one with a dependency not done. An item
+// already in progress for the person is Unchanged.
 func Take(r Registry, text, id, person string, every bool) (Change, *out.Problem, error) {
 	i := find(r, id)
 	if i < 0 {
@@ -74,6 +74,9 @@ func Take(r Registry, text, id, person string, every bool) (Change, *out.Problem
 	}
 	status := item.At("status")
 	switch {
+	case status == Dropped:
+		return refuse("work-take-dropped", id+" is dropped, taken out of the open work",
+			"take an item that is todo (itos work)")
 	case item.At("kind") == "idea":
 		return refuse("work-take-idea", id+" is an idea, not yet specified: make it a slice or a task first",
 			"itos work promote "+id+" --as <id> --kind slice|task")
@@ -134,8 +137,8 @@ func Take(r Registry, text, id, person string, every bool) (Change, *out.Problem
 // line's to judge (internal/cli/workdone.go); Done judges the registry
 // alone. Refused, with nothing changed: an id no item has, an idea (not yet
 // specified, so nothing of it can be done: work promote makes it a slice or
-// a task), an item deferred, and one whose status is neither todo nor doing.
-// An item already done is Unchanged.
+// a task), an item dropped or deferred, and one whose status is neither todo
+// nor doing. An item already done is Unchanged.
 func Done(r Registry, text, id string) (Change, *out.Problem, error) {
 	i := find(r, id)
 	if i < 0 {
@@ -149,6 +152,9 @@ func Done(r Registry, text, id string) (Change, *out.Problem, error) {
 	switch {
 	case status == "done":
 		return Change{Item: item, Unchanged: true}, nil, nil
+	case status == Dropped:
+		return refuse("work-done-dropped", id+" is dropped, taken out of the open work, so it is never done",
+			"close an item that is in progress")
 	case item.At("kind") == "idea":
 		return refuse("work-done-idea", id+" is an idea, not yet specified, so there is nothing of it to be done",
 			"itos work promote "+id+" --as <id> --kind slice|task, then build it")
@@ -222,7 +228,7 @@ func waitsOn(r Registry, item *value.Map) []string {
 // promoted has usually become something more specific than its title says,
 // and the commit's body names the new title. Refused, with nothing changed: an id no item has, an item that is not an
 // idea, a new id an item already has, and for a task a new id the ledger's
-// pattern (taskID) does not match.
+// pattern (taskID) does not match, and an idea dropped (slice 78).
 func Promote(r Registry, text, id, newID, kind, title string, taskID *regexp.Regexp) (Change, *out.Problem, error) {
 	i := find(r, id)
 	if i < 0 {
@@ -231,6 +237,10 @@ func Promote(r Registry, text, id, newID, kind, title string, taskID *regexp.Reg
 	item := r.Items[i]
 	refuse := func(rule, message, fix string) (Change, *out.Problem, error) {
 		return Change{}, &out.Problem{Rule: rule, Message: message, Fix: fix}, nil
+	}
+	if item.At("status") == Dropped {
+		return refuse("work-promote-dropped", id+" is dropped, taken out of the open work",
+			"add the work anew with itos work add, under an id no item has")
 	}
 	if item.At("kind") != "idea" {
 		what := "has no kind"

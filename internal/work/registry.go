@@ -20,6 +20,19 @@ import (
 // kinds are the kinds an item may have.
 var kinds = []string{"slice", "task", "idea"}
 
+// Dropped is the status work drop gives an item taken out of the open work
+// (slice 78): a status itos knows whatever work.statuses lists, since itos
+// alone sets it, as a project lists the statuses its own items move
+// through. A dropped item stays in the registry, so its id is never given
+// again, and nothing proposes it, takes it or closes it.
+const Dropped = "dropped"
+
+// live is whether an item is still to be done: neither done nor dropped.
+func live(item *value.Map) bool {
+	status := item.At("status")
+	return status != "done" && status != Dropped
+}
+
 // Registry is the registry as read: the people's logins, whether there are
 // people to hold owners to, each group's owner (by the key work.groups_key
 // names) and the items, each with its depends_on, a list (none when it gives
@@ -179,14 +192,15 @@ func (c checker) itemIssues(item *value.Map) ([]out.Problem, error) {
 	}
 	add(!value.Truthy(item.At("title")), "work-no-title", id+": no title", "give "+id+" a title")
 	statuses := c.cfg.Work.Statuses
-	add(!value.Includes(statuses, status), "work-unknown-status",
+	add(status != Dropped && !value.Includes(statuses, status), "work-unknown-status",
 		fmt.Sprintf("%s: unknown status \"%s\"", id, value.String(status)),
 		fmt.Sprintf("set %s's status to one of %s", id, strings.Join(statuses, ", ")))
 	add(kind != value.Undefined && !value.Includes(kinds, kind), "work-unknown-kind",
 		fmt.Sprintf("%s: unknown kind \"%s\"", id, value.String(kind)),
 		fmt.Sprintf("set %s's kind to one of %s", id, strings.Join(kinds, ", ")))
-	// An idea is specified (kind slice or task) before anyone takes it.
-	add(kind == "idea" && status != "todo", "work-idea-started",
+	// An idea is specified (kind slice or task) before anyone takes it; one
+	// dropped was never started.
+	add(kind == "idea" && status != "todo" && status != Dropped, "work-idea-started",
 		fmt.Sprintf("%s: an idea is %s; specify it first (kind slice or task)", id, value.String(status)),
 		fmt.Sprintf("specify %s (kind: slice or task, with its scenarios or ledger entry), or set it back to todo", id))
 	why, deferred := item.At("why"), item.At("deferred")
@@ -194,7 +208,7 @@ func (c checker) itemIssues(item *value.Map) ([]out.Problem, error) {
 		id+": why is not a text", "write "+id+"'s why as text, or remove it")
 	add(deferred != value.Undefined && !text(deferred), "work-deferred-no-reason",
 		id+": deferred needs its reason", "write why "+id+" is deferred in its deferred:, or remove the key")
-	add(deferred != value.Undefined && status != "todo", "work-deferred-started",
+	add(deferred != value.Undefined && status != "todo" && status != Dropped, "work-deferred-started",
 		fmt.Sprintf("%s: deferred, but %s", id, value.String(status)),
 		fmt.Sprintf("remove %s's deferred:, or set it back to todo", id))
 	owner := item.At("owner")
@@ -216,6 +230,11 @@ func (c checker) itemIssues(item *value.Map) ([]out.Problem, error) {
 		add(status == "done" && other.At("status") != "done", "work-done-before-dependency",
 			fmt.Sprintf("%s: done, but \"%s\" is %s", id, value.String(dep), value.String(other.At("status"))),
 			fmt.Sprintf("finish %s first, or set %s back to doing", value.String(dep), id))
+		// An item still to do that waits on a dropped one waits for ever
+		// (slice 78).
+		add(live(item) && other.At("status") == Dropped, "work-dropped-dependency",
+			fmt.Sprintf("%s: depends on \"%s\", which is dropped and will never be done", id, value.String(dep)),
+			fmt.Sprintf("remove \"%s\" from %s's depends_on (itos work edit %s --depends-on …), or drop %s too", value.String(dep), id, id, id))
 	}
 	return found, nil
 }

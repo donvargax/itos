@@ -69,6 +69,7 @@ Commands:
                                    change an item, or add a note to its why, and commit it
   work queue <id> --top|--before <id>|--after <id>|--drop
                                    order the work: put an item in the queue, or take it out
+  work drop <id> --why <reason>    take an item out of the open work, and commit the reason
   work check [<file>]              validate the work registry
   ask [--all]                      the open questions to the person the work is for
   ask add <text> [--item <id>]     ask a question, and commit it
@@ -206,6 +207,7 @@ or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
        itos work add <id> --title <title> --why <why> […]
        itos work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--note <text>]
        itos work queue <id> --top|--before <id>|--after <id>|--drop
+       itos work drop <id> --why <reason>
        itos work check [<file>]
 
 Who the session works for (--as, else the config's work.identity provider) and
@@ -224,8 +226,8 @@ each list in the queue's order
 
 work list prints every item of the registry instead (itos help work list),
 work show one item with its scenarios and commits (itos help work show); work
-take, work promote, work done, work add, work edit and work queue write it,
-each committing it (itos help work take).`,
+take, work promote, work done, work add, work edit, work queue and work drop
+write it, each committing it (itos help work take).`,
 
 	"work show": `Usage: itos work show <id> [--patch]
 
@@ -239,7 +241,7 @@ text. A commit is the item's when its footers of IDs name the item (Task:) or
 one of its scenarios (Scenarios:), a later fix naming one included, or when it
 is one of itos's registry commits naming it in its header (docs: take <id>,
 docs: promote <idea> to <id>, docs: close <id>, docs: add <id>, docs: edit
-<id>, docs: queue <id>); under a stealth config the footers are read from each commit's note in
+<id>, docs: queue <id>, docs: drop <id>); under a stealth config the footers are read from each commit's note in
 refs/notes/itos. --patch adds each commit as git show prints it, message and
 diff: the whole of a review's input. It reads, never writes, and judges
 nothing, as work list. Exit 1 when there is no registry where itos looks, or no
@@ -258,9 +260,9 @@ commits the registry alone, "docs: take <id>", through the hooks, leaving
 whatever else is staged staged. The registry is edited in place, its comments
 and quoting kept. Refused, nothing written (exit 1): a registry that is not
 sound or has changes no commit holds, an id no item has, an idea (work promote
-it first), an item done or deferred, one whose owner, or its group's, is
-someone else, one that waits on an item not done, a commit a hook refuses (the
-registry put back). An item already in progress for the person changes
+it first), an item done, dropped or deferred, one whose owner, or its group's,
+is someone else, one that waits on an item not done, a commit a hook refuses
+(the registry put back). An item already in progress for the person changes
 nothing. Exit 3 when the person is nobody or not among the people. Under a
 stealth config the registry is written and nothing committed; with no --as
 every item is the session's, and its owner is left as it is.
@@ -276,9 +278,9 @@ then commits the registry alone, "docs: promote <idea> to <id>", as work take
 does (itos help work take). --title gives it a new title in the same commit,
 whose body says so; without it the idea's title is kept. Refused, nothing
 written (exit 1): a registry that is not sound or has changes no commit holds,
-an id no item has, an item that is not an idea, an <id> an item already has, a
-task's <id> that ledger.id does not match, a commit a hook refuses. Under a
-stealth config the registry is written and nothing committed.
+an id no item has, an item that is not an idea, an idea dropped, an <id> an
+item already has, a task's <id> that ledger.id does not match, a commit a hook
+refuses. Under a stealth config the registry is written and nothing committed.
 
 --json: {"schema":1,"ok":true,"item":{…},"was","rewritten":[…],"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
@@ -296,11 +298,12 @@ the commit-msg hook runs them; and with ci.watch, HEAD's CI run passed, waited
 for as itos ci watch waits when it is still going. Without ci.watch CI is not
 checked, and done says so. Refused, nothing written (exit 1): any of those not
 so, a registry that is not sound or has changes no commit holds, an id no item
-has, an idea (work promote it first), an item deferred, a commit a hook refuses.
-Exit 3 when the run does not end within ci.watch.timeout or cannot be looked
-at. An item already done changes nothing. An item the registry's queue holds
-is then taken out of it, in a commit of its own, "docs: queue <id>". Under a
-stealth config the registry is written and nothing committed.
+has, an idea (work promote it first), an item dropped or deferred, a commit a
+hook refuses. Exit 3 when the run does not end within ci.watch.timeout or
+cannot be looked at. An item already done changes nothing. An item the
+registry's queue holds is then taken out of it, in a commit of its own, "docs:
+queue <id>". Under a stealth config the registry is written and nothing
+committed.
 
 --json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"queue_commit"?:"<sha>"|null,"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}],"ci"?,"run"?}`,
@@ -341,6 +344,25 @@ stealth config the registry is written and nothing committed.
 --json: {"schema":1,"ok":true,"item":{…},"changed":["title"|"depends_on"|"refs"|"why",…],"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
+	"work drop": `Usage: itos work drop <id> --why <reason>
+
+Takes an item out of the open work: its status dropped, a status itos knows
+whatever work.statuses lists, its why dropped as work done drops a closed
+item's, and the item taken out of the registry's queue; then commits the
+registry alone, "docs: drop <id>", as work take does (itos help work take),
+the reason the commit's body: the commit is the record of why. The item stays
+in the registry, so its id is never given again; work never proposes it, work
+take refuses it, and work check reports an item still to do that depends on
+it. Refused, nothing written (exit 1): a registry that is not sound or has
+changes no commit holds, an id no item has, an item done, an item that an item
+neither done nor dropped depends on (naming those: edit their depends_on, or
+drop them, first), a commit a hook refuses. An item already dropped changes
+nothing. Exit 2 without --why. Under a stealth config the registry is written
+and nothing committed.
+
+--json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+
 	"work queue": `Usage: itos work queue <id> --top|--before <id>|--after <id>|--drop
 
 Orders the work: the registry's queue, a top-level queue: list of item ids,
@@ -351,10 +373,11 @@ queue holds already is moved. The queue is written whole as a block list
 before items:, then the registry is committed alone, "docs: queue <id>", as
 work take does (itos help work take). work done takes a closed item out.
 Refused, nothing written (exit 1): a registry that is not sound or has changes
-no commit holds, an id no item has, an item done, an item placed before or
-after itself or an item the queue does not hold, a commit a hook refuses. An
-item already where it is put, or not in the queue for --drop, changes nothing.
-Under a stealth config the registry is written and nothing committed.
+no commit holds, an id no item has, an item done or dropped, an item placed
+before or after itself or an item the queue does not hold, a commit a hook
+refuses. An item already where it is put, or not in the queue for --drop,
+changes nothing. Under a stealth config the registry is written and nothing
+committed.
 
 --json: {"schema":1,"ok":true,"item":{…},"queue":[…],"commit":"<sha>"|null}, or
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,

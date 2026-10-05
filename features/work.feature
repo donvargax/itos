@@ -427,7 +427,7 @@ Feature: The work registry
   # again; work never proposes it and work take refuses it. An item a live
   # item depends on is refused, naming the dependants, so the person edits
   # them first.
-  @ID-WORK-40 @slice-78 @wip
+  @ID-WORK-40 @slice-78
   Scenario: work drop marks an idea dropped, takes it out of the queue, and commits the reason
     Given the work registry has the idea "p1-thing" owned by nobody
     And the registry's queue names "p1-thing"
@@ -439,7 +439,7 @@ Feature: The work registry
     And the last commit's body says "Superseded by slice 9."
     And the last commit touches only "tasks/work-items.yaml"
 
-  @ID-WORK-41 @slice-78 @wip
+  @ID-WORK-41 @slice-78
   Scenario: work drop refuses a done item
     Given the work registry has the item "slice-9" owned by nobody with the status "done"
     When itos runs the command line "work drop slice-9 --why 'Too late.'"
@@ -447,7 +447,7 @@ Feature: The work registry
     And its output says "done"
     And the registry's item "slice-9" has the status "done" and the owner "nobody"
 
-  @ID-WORK-42 @slice-78 @wip
+  @ID-WORK-42 @slice-78
   Scenario: work drop refuses an item a live item depends on, naming it
     Given the work registry has the idea "p1-thing" owned by nobody
     And the work registry has the item "slice-3" owned by nobody with the status "todo", depending on "p1-thing"
@@ -456,7 +456,7 @@ Feature: The work registry
     And its output says "slice-3"
     And the registry's item "p1-thing" has the status "todo" and the owner "nobody"
 
-  @ID-WORK-43 @slice-78 @wip
+  @ID-WORK-43 @slice-78
   Scenario: work take refuses a dropped item
     Given the work registry has the item "slice-9" owned by nobody with the status "dropped"
     When itos runs "work take slice-9 --as someone"

@@ -83,7 +83,7 @@ func split(args []string) (string, []string) {
 // nothing else (--all lists what plain work list lists until v4.0.0 makes
 // it the open items alone, slice 79), `work take` and `work promote` (workwrite.go), `work done`
 // (workdone.go), `work add` and `work edit` (workedit.go), `work queue`
-// (workwrite.go), `work show` (workshow.go), or
+// (workwrite.go), `work drop` (workdrop.go), `work show` (workshow.go), or
 // `work [--as <handle>]`, which takes nothing else: an argument it does not
 // know is a usage error, not one ignored (bug 11).
 func workCommand(args []string, o Out) (int, error) {
@@ -100,6 +100,8 @@ func workCommand(args []string, o Out) (int, error) {
 		return workEdit(rest, o)
 	case "queue":
 		return workQueue(rest, o)
+	case "drop":
+		return workDrop(rest, o)
 	case "show":
 		return workShow(rest, o)
 	case "check":
@@ -138,7 +140,7 @@ func workCommand(args []string, o Out) (int, error) {
 }
 
 // workTakes is what work takes, as a usage error names it.
-const workTakes = "it takes list, show, take, promote, done, add, edit, queue or check, else --as <handle>"
+const workTakes = "it takes list, show, take, promote, done, add, edit, queue, drop or check, else --as <handle>"
 
 // commit is a commit itself (gitCommit), every argument git commit's but
 // itos's own flags, when there is no argument or the first is a flag or "--";

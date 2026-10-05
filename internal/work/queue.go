@@ -40,8 +40,8 @@ func Queued(r Registry) []string {
 
 // Queue is the registry with the item put where at says, the queue written
 // whole (slice 66). An item the queue holds already is moved. Refused, with
-// nothing changed: an id no item has, an item done (the queue holds work to
-// do), and for --before or --after the item itself or one the queue does not
+// nothing changed: an id no item has, an item done or dropped (the queue
+// holds work to do), and for --before or --after the item itself or one the queue does not
 // hold. An item already where it is put, or out of a queue that does not hold
 // it, is Unchanged.
 func Queue(r Registry, text, id string, at Place) (Change, *out.Problem, error) {
@@ -65,6 +65,9 @@ func Queue(r Registry, text, id string, at Place) (Change, *out.Problem, error) 
 	case item.At("status") == "done":
 		return refuse("work-queue-done", id+" is done, and the queue holds work still to do",
 			"queue an item not done (itos work list)")
+	case item.At("status") == Dropped:
+		return refuse("work-queue-dropped", id+" is dropped, and the queue holds work still to do",
+			"queue an item still to do (itos work list)")
 	case at.Top:
 		after = append([]string{id}, rest...)
 		body = fmt.Sprintf("Put %s (%s) first in the queue, with itos work queue.", id, title)

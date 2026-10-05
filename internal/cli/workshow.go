@@ -8,7 +8,8 @@ package cli
 // (Scenarios:), read from the note under a stealth config as every
 // reader of links reads them, and itos's own registry commits, which name it
 // in their headers (docs: take <id>, docs: close <id>, docs: add <id>,
-// docs: edit <id>, docs: promote <idea> to <id>). Beside them it lists the
+// docs: edit <id>, docs: queue <id>, docs: drop <id>, docs: promote <idea>
+// to <id>). Beside them it lists the
 // questions of itos ask that name the item (slice 62). A task's why is read
 // from its ledger entry, where it lives, the registry being an index (slice
 // 76). It reads, never writes.

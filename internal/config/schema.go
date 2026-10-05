@@ -215,7 +215,7 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 		"asks", about("itos ask's questions' file; by default asks.yaml beside the work registry.", str),
 		"decisions", about("The folder itos ask record writes its MADR decision records and their index in; by default docs/decisions.", str),
 		"groups_key", about("The registry's key whose entries name each group's owner.", str),
-		"statuses", about("The statuses a work item may have.", strs),
+		"statuses", about("The statuses a work item may have; dropped, which itos work drop gives, is known whatever this lists.", strs),
 		"people", about("Who may own work: the source and the file it reads.", obj([]string{"source", "file"},
 			"source", enum("all-contributors-md", "all-contributorsrc", "yaml"),
 			"file", str,
