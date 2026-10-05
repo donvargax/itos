@@ -1337,20 +1337,28 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   `ci.range` is a config error even with `--base`, then `RangeStart` keeps a
   pull request's base without asking the provider, else holds the provider's
   start to the head with `git merge-base --is-ancestor`. A provider is a
-  `Range`, a function giving the start or `""`, never an error, made by
-  `RangeProvider(cfg, env, stderr)` from `ci.range` and the environment:
-  `none`; `command`, which is `FirstLine` (the command through the config's
-  shell, its stderr on itos's, its output's first line trimmed as JavaScript
-  trims), the reading the `command` identity provider shares; and `github`,
-  a `GitHub` value (repository, token, workflow, branch) whose `LastGreenRun`
-  lists the workflow's runs from the API through `net/http` and takes
-  `FirstGreen`, the newest success. A provider over another forge's API
-  (GitLab, Forgejo, waiting for `p1-conformance-http`) is another such value
-  and another case in `RangeProvider`; the API's address is a variable
-  (`GitHubAPI`), so a unit test points it at an `httptest` server, as no
-  conformance case can reach the network. Node's `fetch` waits however long
-  the API takes; the port gives up after `Timeout` (a minute), which reads as
-  no green run and runs everything.
+  `Range`, a function of the head giving the start or `""`, never an error,
+  made by `RangeProvider(cfg, env, stderr)` from `ci.range` and the
+  environment: `none`; `command`, which is `FirstLine` (the command through
+  the config's shell, its stderr on itos's, its output's first line trimmed
+  as JavaScript trims), the reading the `command` identity provider shares;
+  and `github`, a `GitHub` value (repository, token, workflow, branch, API
+  address) whose `NearestGreen` walks the head's first parents from its
+  parent (`git rev-list --first-parent`, `FirstParentsAsked` of them, 100)
+  and asks the API through `net/http` for each commit's runs (`GreenRunOf`,
+  `head_sha=` on the branch), starting at the first with a successful run of
+  that commit. It reads no list of the branch's runs: GitHub served that list
+  stale on 2026-10-05 and the range reached back past commits already proved
+  (bug 23). A provider over another forge's API (GitLab, Forgejo, waiting
+  for `p1-conformance-http`) is another such value and another case in
+  `RangeProvider`. The API's address is `GITHUB_API_URL` (`APIEnv`) when the
+  environment sets it, as Actions does and GitHub Enterprise needs, for
+  ci.range's and ci.watch's providers, else the variable `GitHubAPI`, so a
+  unit test points either at an `httptest` server and the scenarios point
+  the binary at one through the environment, as no conformance case can
+  reach the network. Node's `fetch` waits however long the API takes; the
+  port gives up after `Timeout` (a minute), which reads as no green run and
+  runs everything, as every failure of the walk does.
 - **Waiting for a CI run** (slice 51) is `ci watch` and the end of `itos
 push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   the range provider. `WatchProvider(cfg, WatchSetup)` makes a `Watch` from
@@ -1706,8 +1714,10 @@ add`ed so `--only` can name it, git add's words and the commit's on
   value with `ci.range.github`'s workflow and branch, its token and
   repository found by `watchGitHub` as the watch's are (the environment,
   else gh and the remote's URL), so it reads outside CI, where
-  `RangeProvider` finds neither; its `LastGreen` is `LastGreenRun` with what
-  went wrong, which `LastGreenRun`, never failing, drops. The commit's header
+  `RangeProvider` finds neither; its `LastGreen` lists the branch's runs at
+  `GitHubAPI` and takes `FirstGreen`, the newest success, saying what went
+  wrong, rather than walking the first parents as the range provider does
+  since bug 23. The commit's header
   is the local commit's when it is fetched, else the SHA stands alone.
   The newest release (slice 70, `readRelease`) is asked of the same remote
   with `git ls-remote --tags` under the same timeout, an annotated tag's
@@ -2218,7 +2228,8 @@ TestFeatures/…` lines); a green run closes it.
   the tests (`ci plan --json`, `ci scope`, `tests list --json`), so they hold
   the binary to this repository's config; the github provider's choice of
   run, which no command reaches without a network, is `TestFirstGreen` in
-  `internal/providers`.
+  `internal/providers` (itos status's reading of the list), and the range
+  provider's walk is `TestNearestGreen*` there and bug 23's scenarios.
   `config-gate.ts` proves itos's data is checked where it is guarded: in a
   scratch worktree, running both hooks as git does, the commit-msg hook
   rejects a commit staging a ledger with a misspelt key and passes a sound
