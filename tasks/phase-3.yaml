@@ -673,3 +673,17 @@
     - run: sh -c 'd=$(mktemp -d) && tools/bin/install-launcher "$d" 3.5.0 && "$d/itos" version | grep -q "3\.5\.0"'
       timeout: 120
     - run: actionlint
+
+- id: T-096
+  type: docs
+  title: This repository's AGENTS.md holds the generated rules block, its hand-written part only what no command checks
+  why: >
+    q-5, the user's call (2026-10-05). Since slice 59 itos init --agent-rules writes what itos.yaml
+    decides (commit types, footers, the paths each type may touch, what each gate runs) into a
+    marked block of AGENTS.md, and CLAUDE.md imports it. AGENTS.md here restates much of that by
+    hand (the split rules, the gates table), which drifts from the config. It gains the block,
+    CLAUDE.md the import, and the hand-written sections the block covers shrink to what no command
+    can check: which session you are, the never list, finishing.
+  done_when:
+    - run: grep -qx '<!-- itos:begin -->' AGENTS.md
+    - run: grep -qx '@AGENTS.md' CLAUDE.md

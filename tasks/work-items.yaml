@@ -3975,3 +3975,18 @@ items:
       the help cases it leaves out, and a unit test proves it reads such a case as one and leaves it
       out while a config error's case stays judged. This tree's own corpus still pins every usage
       message exactly.
+
+  - id: T-096
+    title: This repository's AGENTS.md holds the generated rules block, its hand-written part only what no command checks
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      q-5, the user's call (2026-10-05). Since slice 59 itos init --agent-rules writes what
+      itos.yaml decides (commit types, footers, the paths each type may touch, what each gate runs)
+      into a marked block of AGENTS.md, and CLAUDE.md imports it. AGENTS.md here restates much of
+      that by hand (the split rules, the gates table), which drifts from the config. It gains the
+      block, CLAUDE.md the import, and the hand-written sections the block covers shrink to what no
+      command can check: which session you are, the never list, finishing.
