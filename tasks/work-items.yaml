@@ -4859,3 +4859,23 @@ items:
       ldflags that stamp the version, the README, the release notes' go install line), and the
       release cut refuses a version whose major does not match the module path's suffix, so the next
       major moves the path first. go install works from the first release cut after it.
+
+  - id: bug-20
+    title: itos status counts from the newest plain release, by the release cut's one rule
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [slice-70, T-088]
+    kind: slice
+    why: >
+      Found by T-088's agent (2026-10-04). Specified as @ID-STATUS-13 in features/status.feature.
+      status took the highest v<semver> tag, a prerelease or build-metadata one included, as the
+      newest release, while the release cut counts from the newest plain vX.Y.Z and itos never cuts
+      a prerelease, so with an -rc tag status would list commits since a tag the next release does
+      not count from. Settled: the cut's rule is the true one; internal/release holds it once (a
+      release tag is v followed by three dot-separated numbers and nothing else, ordered
+      numerically), status and tools/bin/release-version both use it, and release-version's own
+      regex and sort go, its reachability (--merged HEAD) kept as how it lists tags.
+      internal/release's Newest and its tests change to match; the release-cut self-test passes
+      before and after.
+    refs: [features/status.feature, internal/release, tools/bin/release-version]
