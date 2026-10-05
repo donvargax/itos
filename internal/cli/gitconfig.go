@@ -9,10 +9,10 @@ package cli
 // core.hooksPath cannot remove them. It is the manager a stealth config
 // picks. Each hook is one entry, itos-commit-msg and itos-pre-push (git
 // refuses a hook named after its event), whose command is hooks.bin's
-// `hook <event>`, git appending the hook's arguments; the pre-push one only
-// when hooks.pre_push gives it commands to run, since without them every
-// push would fail, and a pre-push entry of itos's is removed when it gives
-// none. An entry already as itos would write it is left alone, so running it
+// `hook <event>`, git appending the hook's arguments; the pre-push one when
+// hooks.pre_push gives it commands to run, or always under a stealth config
+// (declaresPrePush), and a pre-push entry of itos's is removed otherwise.
+// An entry already as itos would write it is left alone, so running it
 // twice changes nothing; one under itos's name that does not call itos is
 // replaced only with --force, as a hook file is.
 
@@ -22,6 +22,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/donvargax/itos/v3/internal/config"
 	"github.com/donvargax/itos/v3/internal/git"
 	"github.com/donvargax/itos/v3/internal/out"
 	"github.com/donvargax/itos/v3/internal/value"
@@ -112,6 +113,15 @@ func undeclare(root string, h configHook, print bool) (string, error) {
 		return "", err
 	}
 	return "removed", nil
+}
+
+// declaresPrePush is whether the git config gets itos's pre-push entry:
+// when hooks.pre_push gives it commands, and always under a stealth config
+// (slice 79), since the pre-push hook verifies the pushed commits whatever
+// hooks.pre_push says (slice 46) and a stealth user has no CI of the
+// project's to judge their commits.
+func declaresPrePush(cfg *config.Loaded) bool {
+	return cfg.Hooks.PrePush != nil || cfg.Stealth
 }
 
 // declareHooks is `hooks install` for the git config: 0 when every entry is

@@ -93,7 +93,7 @@ func TestLoadLaysTheFileOverTheDefaults(t *testing.T) {
 	if c.Ledger.Check.Timeout != 5 || c.Ledger.Group.Label != "phase" || c.Ledger.ID != nil {
 		t.Errorf("ledger: %+v", c.Ledger)
 	}
-	if c.Work.Registry != "work/work-items.yaml" || c.Hooks.Bin != "tools/bin/itos" || !c.CI.StopAtFirstFailure {
+	if c.Work.Registry != "work/work-items.yaml" || c.Hooks.Bin != "itos" || !c.CI.StopAtFirstFailure {
 		t.Errorf("registry %q, bin %q, stop %v", c.Work.Registry, c.Hooks.Bin, c.CI.StopAtFirstFailure)
 	}
 	if c.Work.Asks != "work/asks.yaml" {
@@ -129,7 +129,7 @@ func TestAsksBesideTheRegistry(t *testing.T) {
 
 // hooks.bin as a command's first word is also read as itos, and only then.
 func TestReadings(t *testing.T) {
-	c, err := load(t, "version: 1\nci: { steps: [], cost: { static: [\"^itos work check$\"] } }\n")
+	c, err := load(t, "version: 1\nci: { steps: [], cost: { static: [\"^itos work check$\"] } }\nhooks: { bin: tools/bin/itos }\n")
 	if err != nil {
 		t.Fatal(err)
 	}

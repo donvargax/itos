@@ -294,7 +294,7 @@ func hooksInstall(flag string, print, force bool, o Out) (int, error) {
 	}
 	say(fmt.Sprintf("%s %s (%s)", verb, managerNames[found.manager], found.marker))
 	if found.manager == "git-config" {
-		return declareHooks(found, root, bin, cfg.Hooks.PrePush != nil, print, force, o, say)
+		return declareHooks(found, root, bin, declaresPrePush(cfg), print, force, o, say)
 	}
 	if found.manager != "vp" && found.manager != "husky" && found.manager != "git" {
 		return printSnippet(found, root, bin, o, say)

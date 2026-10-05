@@ -225,7 +225,7 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 	)),
 	"hooks", about("The hook manager, the binary the shims call, the pre-push commands and the commit-msg hook's task checks.", obj(nil,
 		"manager", about("The hook manager itos hooks install writes for, over the one it detects.", enum(HookManagers...)),
-		"bin", about("How the project calls itos: what the shims call.", str),
+		"bin", about("How the project calls itos: what the shims call; by default itos, the global launcher. Internal and unsupported, for a repository that must run its own build.", str),
 		"pre_push", about("The pre-push hook's commands.", obj([]string{"per_base", "whole"},
 			"per_base", about("Run once per remote base the clone has, {base} standing for it.", str),
 			"whole", about("Run when there is no base.", str),

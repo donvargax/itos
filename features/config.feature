@@ -146,12 +146,6 @@ Feature: Every key the config accepts is one itos reads
     When itos checks the smoke set
     Then itos exits with code 0
 
-  @ID-CONFIG-16 @slice-19
-  Scenario: config check --print-defaults lists hooks.bin's default
-    When itos prints the defaults of the config
-    Then itos exits with code 0
-    And its output says "bin: tools/bin/itos"
-
   # ledger.group.label names what a ledger's groups are (phases here). It was
   # accepted and read by nothing: the tools said "phase" whatever it was.
   @ID-CONFIG-17 @slice-21
@@ -254,14 +248,14 @@ Feature: Every key the config accepts is one itos reads
   # repository gets no default naming a script it lacks; a CI runner gets
   # one with the action of T-093. The key stays, internal and unsupported,
   # for a repository that must run its own build, as this one does.
-  @ID-CONFIG-26 @slice-79 @wip
+  @ID-CONFIG-26 @slice-79
   Scenario: config check --print-defaults lists hooks.bin's default, the global itos
     When itos prints the defaults of the config
     Then itos exits with code 0
     And its output says "bin: itos"
     And its output does not say "bin: tools/bin/itos"
 
-  @ID-CONFIG-27 @slice-79 @wip
+  @ID-CONFIG-27 @slice-79
   Scenario: Without hooks.bin, hooks install writes shims that run the itos on the PATH
     Given hooks.manager is "git"
     When itos installs the hooks

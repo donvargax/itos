@@ -431,8 +431,8 @@ func pinBehind(cfg *config.Loaded) *out.Problem {
 // executable for plain git (outside Windows, which has no executable bit and
 // runs a hook whatever its mode) or not calling itos; a lefthook or pre-commit
 // config without itos's snippet; an entry of the git config missing. The
-// pre-push one under the git config only when hooks.pre_push gives it
-// commands, as hooks install declares it.
+// pre-push one under the git config only when hooks install declares it
+// (declaresPrePush).
 func hookProblems(cfg *config.Loaded, file string) []out.Problem {
 	const root = "."
 	bin := cfg.Hooks.Bin
@@ -450,7 +450,7 @@ func hookProblems(cfg *config.Loaded, file string) []out.Problem {
 			return problems
 		}
 		for _, event := range shimNames {
-			if event == "pre-push" && cfg.Hooks.PrePush == nil {
+			if event == "pre-push" && !declaresPrePush(cfg) {
 				continue
 			}
 			name := hookEntry(event)

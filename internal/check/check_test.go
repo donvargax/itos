@@ -87,7 +87,7 @@ func TestRunnerFailures(t *testing.T) {
 // as itos), else late; with keep_written_order a static check below a late
 // one is late, and the hook's checks stop at the first late one.
 func TestCostedChecks(t *testing.T) {
-	cfg := load(t, "version: 1\nci: { steps: [\"true\"], cost: { static: [\"^itos config check$\"], keep_written_order: true } }\n")
+	cfg := load(t, "version: 1\nci: { steps: [\"true\"], cost: { static: [\"^itos config check$\"], keep_written_order: true } }\nhooks: { bin: tools/bin/itos }\n")
 	task := ledger.Task{ID: "T-1", DoneWhen: []ledger.Check{
 		{Run: text("tools/bin/itos config check")},
 		{Run: text("sh -c 'x'"), Cost: "static"},

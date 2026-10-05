@@ -130,7 +130,7 @@ cases:
       .husky/: ""
       managed.yaml: "version: 1\nhooks: { manager: git }\n"
     files_after:
-      .git/hooks/commit-msg: { text: "#!/bin/sh\nexec tools/bin/itos hook commit-msg \"$1\"\n", executable: true }
+      .git/hooks/commit-msg: { text: "#!/bin/sh\nexec itos hook commit-msg \"$1\"\n", executable: true }
       .husky/commit-msg: null
     exit: 0
     stdout: |
@@ -145,9 +145,9 @@ cases:
     stdout: |
       Using husky (--manager husky)
       ==> .husky/commit-msg
-      exec tools/bin/itos hook commit-msg "$1"
+      exec itos hook commit-msg "$1"
       ==> .husky/pre-push
-      exec tools/bin/itos hook pre-push "$@"
+      exec itos hook pre-push "$@"
   - name: a hook of the project's own is never replaced without --force
     argv: [hooks, install]
     files:
@@ -331,7 +331,7 @@ cases:
     argv: [hooks, install, --print, --manager, git-config]
     exit: 0
     stdout: "Using the git config (--manager git-config)\n[hook \"itos-commit-msg\"]\n\tevent = commit-msg\n\tcommand = tools/bin/itos hook commit-msg\n[hook \"itos-pre-push\"]\n\tevent = pre-push\n\tcommand = tools/bin/itos hook pre-push\n"
-  - name: a stealth config declares the hooks in the git config, over the markers, and no pre-push entry without hooks.pre_push
+  - name: a stealth config declares the hooks in the git config, over the markers, the pre-push one without hooks.pre_push
     argv: [hooks, install, --json]
     files:
       itos.yaml: null
@@ -349,9 +349,14 @@ cases:
           event: commit-msg
           command: itos hook commit-msg
           action: wrote
+        - name: itos-pre-push
+          event: pre-push
+          command: itos hook pre-push
+          action: wrote
     stderr: |
       Using the git config (stealth config .git/itos/itos.yaml)
       wrote hook.itos-commit-msg
+      wrote hook.itos-pre-push
   - name: commit-msg rejects a staged path the type may not touch
     argv: [hook, commit-msg, msg]
     git:

@@ -724,8 +724,8 @@ line on stderr saying why.`,
 	"hooks install": `Usage: itos hooks install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]
 
 Writes the commit-msg and pre-push hooks as one-line shims calling
-` + "`" + `<hooks.bin> hook …` + "`" + ` (tools/bin/itos by default; itos, the global
-launcher, under a stealth config, whatever it says), for the hook manager
+` + "`" + `<hooks.bin> hook …` + "`" + ` (itos, the global launcher, by default, and under a
+stealth config whatever it says), for the hook manager
 --manager names, else the one hooks.manager names. Without either, a stealth
 config declares them in the git config; any other detects the hook manager
 from its markers and says which it found: Vite+ (a .vite-hooks/ folder, or
@@ -738,10 +738,11 @@ and writes nothing. A hook that is not a shim is left alone, and the exit is
 
 git-config declares the hooks in the repository's own git config, never
 committed: hook.itos-commit-msg, and hook.itos-pre-push when hooks.pre_push
-is set, each running ` + "`" + `<hooks.bin> hook <event>` + "`" + `. Git runs them beside the
-hook in core.hooksPath or the hooks folder, so the project's hooks and
-settings stay as they are. It needs a git that runs the hooks its config
-declares (git hook list shows them), else it exits 3.
+is set or the config is a stealth one, each running
+` + "`" + `<hooks.bin> hook <event>` + "`" + `. Git runs them beside the hook in core.hooksPath or
+the hooks folder, so the project's hooks and settings stay as they are. It
+needs a git that runs the hooks its config declares (git hook list shows
+them), else it exits 3.
 
 --json: {"schema":1,"manager","marker","files":[{"path","content","action"}]}
         or, for lefthook, pre-commit and prek, {"schema":1,"manager","marker","file","snippet","installed"}

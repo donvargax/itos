@@ -79,9 +79,12 @@ func defaults() *value.Map {
 			"identity", m("provider", "github", "hint", "pass --as <handle>"),
 		),
 		"hooks", m(
-			// How the project calls itos: the wrapper this repository and its
-			// template ship.
-			"bin", "tools/bin/itos",
+			// How the project calls itos: the global launcher (slice 79), which
+			// runs the version the repository pins, as a stealth config's
+			// hooks always have. Until v4.0.0 it was tools/bin/itos, the
+			// wrapper this repository ships; a repository that must run its
+			// own build still sets it, the key being internal and unsupported.
+			"bin", GlobalBin,
 			// A static check takes seconds (the cost rule), so a minute leaves
 			// room for a slow machine while a commit is never held for minutes;
 			// a check that needs longer is late.
@@ -93,9 +96,10 @@ func defaults() *value.Map {
 	)
 }
 
-// GlobalBin is how a stealth config's hooks call itos: the global launcher,
-// on the PATH, since a repository that does not use itos has no wrapper of
-// its own to call.
+// GlobalBin is how hooks call itos by default (slice 79), and a stealth
+// config's whatever it says: the global launcher, on the PATH, which runs
+// the version the repository pins, a repository that does not use itos
+// having no wrapper of its own to call.
 const GlobalBin = "itos"
 
 // DefaultsFor is the table as it applies to a config file (nil for none),

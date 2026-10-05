@@ -268,7 +268,7 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
   # stealth config declares the pre-push hook always. It changes the last
   # release's corpus case "a stealth config declares the hooks in the git
   # config, over the markers, and no pre-push entry without hooks.pre_push".
-  @ID-STEALTH-25 @slice-79 @wip
+  @ID-STEALTH-25 @slice-79
   Scenario: In stealth mode hooks install declares the pre-push hook without hooks.pre_push
     When itos installs the hooks
     Then itos exits with code 0
