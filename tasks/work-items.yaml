@@ -55,7 +55,6 @@ phases:
 
 queue:
   - p1-nightly-late-done-checks
-  - slice-79
   - p1-work-show-gaps
   - p1-release-notes-footers
   - p1-commit-wrap-review
