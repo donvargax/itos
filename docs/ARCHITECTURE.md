@@ -143,7 +143,9 @@ history (`vp run changelog`), and the decisions behind it are records in
   than the guard, whose usage error Claude Code would take as a block)
   becomes 1, which Claude Code reports and lets the command run; the guard
   itself never exits 2.
-  `skills/itos/SKILL.md` is the skill. The module and tests are typed by the
+  The plugin has no skill (T-092): how to work with itos is itos's own guides,
+  `itos go` and `itos guide work` (`internal/guide/`), versioned with the
+  binary, so no flow needs the plugin. The module and tests are typed by the
   declarations Claude Code writes beside a plugin it loads
   (`.claude-plugin/types/`, git-ignored, which the plugin's `tsconfig.json`
   extends), so the repository's type-aware lint leaves the plugin out;
@@ -1964,8 +1966,8 @@ all`; a module replaced by a version is checked as that version, one
     change to the Claude Code plugin to a raise of its version, since Claude
     Code offers an installed plugin an update only when that version changes.
     It runs in CI as a static step with `-range-from "$FROM"`, and as a prose
-    step too, as a range that touches only the plugin's `SKILL.md` is
-    prose-only. It compares the trees at the range's start and at HEAD (`git
+    step too, as a range that touches only Markdown in the plugin's folder
+    is prose-only (its skill's, until T-092 dropped it). It compares the trees at the range's start and at HEAD (`git
 diff --name-only --no-renames`, so a change undone within the range is
     none) under the plugin's folder (`-plugin`, `integrations/claude-code` by
     default, `.` for a plugin with a repository of its own); when they differ,
@@ -2136,7 +2138,7 @@ check`'s written-order rule reads too); then the late steps (the dependency chec
   runs `ci.prose.steps` (`vp check`, and `itos config check`, since
   `CONTRIBUTORS.md`, the people a registry's owners must be among, is
   Markdown; the registry and the ledger, under `tasks/`, are not prose; and
-  the plugin's version rule, since the plugin's skill is Markdown) and the named tasks' static and `prose: true` checks,
+  the plugin's version rule, since a change to the plugin can be Markdown alone) and the named tasks' static and `prose: true` checks,
   and no features.
 - **The platform jobs** (`ci.yml`'s `platform`, T-072) run beside it on every
   push, a matrix of `ubuntu-latest`, `macos-latest` and `windows-latest`,

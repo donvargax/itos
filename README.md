@@ -302,10 +302,6 @@ install, above, lets each repository's pin pick the version).
   `itos work list --json` and `itos task list --json`, asked at the start of
   the session and of each turn; with no itos that answers, from
   `tasks/work-items.yaml`.
-- **A skill**, `itos`, on working in such a repository: find work with
-  `itos work`, commit with `itos commit --task <id>` or `--scenarios <ids>`,
-  push with `itos push`, and fix what a gate reports rather than run the
-  gates by hand or skip them.
 - **A guard.** A `PreToolUse` hook on Bash runs `itos hook pre-tool-use`, which
   denies an agent's `git commit` or `git push`, its reason naming
   `itos commit --task <id>` (or `--scenarios <ids>`) or `itos push`, so the
@@ -316,9 +312,12 @@ install, above, lets each repository's pin pick the version).
   stay the gates. Under a pin older than v2.3.0 the launcher answers for the
   hook with nothing; with no itos found the plugin answers nothing.
 
-Try it in a repository itos manages: ask Claude what to work on next (it runs
-`itos work`, and the IDs in its answer carry their titles), or ask it to
-commit with `git commit`, which the guard turns into `itos commit`. To wire
+How to work with itos is not the plugin's: it is itos's own guides, versioned
+with the binary, `itos go` for the session you talk to and `itos guide work` for
+an agent it starts (above), so no flow needs the plugin. Try it in a repository
+itos manages: start a session with `! itos go` (the IDs in Claude's answers
+carry their titles), or ask Claude to commit with `git commit`, which the guard
+turns into `itos commit`. To wire
 only the guard, without the plugin, put the hook in `.claude/settings.json`:
 
 ```json
