@@ -3991,3 +3991,14 @@ items:
     why: >
       Issue #10. Specified as @ID-COMMITCMD-19 to 21 in features/commit-command.feature.
     refs: [features/commit-command.feature, internal/scope]
+
+  - id: slice-82
+    title: The built-in moves rule on a kind whose adapter is a command
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Issue #9. Specified in features/moves-command.feature.
+    refs: [features/moves-command.feature, internal/tests/tests.go]
