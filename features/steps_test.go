@@ -40,6 +40,7 @@ type world struct {
 	watchURL      string            // the run the watch command reports
 	registryLines []string          // the registry's items, one line each, as the work steps wrote them
 	registryQueue []string          // the registry's queue, as a work step wrote it, nil for none
+	registryText  string            // the registry's text as the work steps last wrote it
 	noGh          bool              // the PATH has no gh
 	messageFile   string            // the message file's text, as a step wrote it
 	atOnce        []atOnceRun       // the runs of one command started together, as allAtOnce ran them
@@ -380,6 +381,8 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the recording check ran$`, func() error { return w.recordingCheckRan(true) })
 	sc.Step(`^the recording check did not run$`, func() error { return w.recordingCheckRan(false) })
 	sc.Step(`^the file "([^"]*)" calls itos$`, w.fileCallsItos)
+	sc.Step(`^the file "([^"]*)" runs "([^"]*)"$`, w.fileRuns)
+	sc.Step(`^the file "([^"]*)" does not name "([^"]*)"$`, w.fileDoesNotName)
 	sc.Step(`^"([^"]*)" was given "([^"]*)"$`, func(script, arg string) error {
 		return w.scriptWasGiven(script, arg, true)
 	})
@@ -1697,15 +1700,19 @@ func (w *world) proposesToStart(item string) error {
 }
 
 // The registry at path holds these unowned items of phase 1, each with its
-// status, in the working tree alone.
+// status, in the working tree alone. At the starting registry's path they
+// are the work steps' lines too, so an item a later step adds joins them
+// rather than replacing them (slice 79).
 func (w *world) workingRegistryItems(path string, items [][2]string) error {
-	var b strings.Builder
-	b.WriteString("phases: { 1: null }\nitems:\n")
+	var lines []string
 	for _, item := range items {
-		fmt.Fprintf(&b, "  - { id: %s, title: %s, phase: 1, owner: null, status: %s, depends_on: [] }\n",
-			item[0], item[0], item[1])
+		lines = append(lines, fmt.Sprintf("  - { id: %s, title: %s, phase: 1, owner: null, status: %s, depends_on: [] }\n",
+			item[0], item[0], item[1]))
 	}
-	return w.write(path, b.String())
+	if filepath.Clean(path) == w.data(startingRegistry) {
+		w.registryLines = append(w.registryLines, lines...)
+	}
+	return w.write(path, "phases: { 1: null }\nitems:\n"+strings.Join(lines, ""))
 }
 
 // The nightly's one step runs the checks of the tasks whose work item is
@@ -1953,6 +1960,41 @@ func (w *world) recordingCheckRan(want bool) error {
 	}
 	if ran != want {
 		return fmt.Errorf("the recording check ran: %t, not %t\n%s", ran, want, w.report())
+	}
+	return nil
+}
+
+// The file, from the repository's top, has a line that runs the command:
+// past its indentation and an exec, the line starts with the command's
+// words, so a command under a longer path (tools/bin/itos for itos) does
+// not count (slice 79).
+func (w *world) fileRuns(path, command string) error {
+	text, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return fmt.Errorf("%s cannot be read: %w\n%s", path, err, w.report())
+	}
+	want := strings.Fields(command)
+	for _, line := range strings.Split(strings.ReplaceAll(string(text), "\r\n", "\n"), "\n") {
+		words := strings.Fields(line)
+		if len(words) > 0 && words[0] == "exec" {
+			words = words[1:]
+		}
+		if len(words) >= len(want) && slices.Equal(words[:len(want)], want) {
+			return nil
+		}
+	}
+	return fmt.Errorf("%s does not run %q:\n%s", path, command, text)
+}
+
+// The file, from the repository's top, is there and nowhere names the
+// text.
+func (w *world) fileDoesNotName(path, name string) error {
+	text, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return fmt.Errorf("%s cannot be read: %w\n%s", path, err, w.report())
+	}
+	if strings.Contains(string(text), name) {
+		return fmt.Errorf("%s names %q:\n%s", path, name, text)
 	}
 	return nil
 }

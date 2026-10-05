@@ -71,6 +71,7 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 		return w.registryItemIs(id, status, "")
 	})
 	sc.Step(`^the registry has no item "([^"]*)"$`, w.registryLacks)
+	sc.Step(`^the registry is unchanged$`, w.registryUnchanged)
 	sc.Step(`^the registry's item "([^"]*)" is a (slice|task) whose why starts with "([^"]*)"$`, w.registryItemKind)
 	sc.Step(`^the registry's item "([^"]*)" depends on "([^"]*)"$`, w.registryItemDependsOn)
 	sc.Step(`^the registry's item "([^"]*)" is an? (idea|slice|task) titled "([^"]*)" with the status "([^"]*)"$`, w.registryItemMade)
@@ -218,7 +219,33 @@ func (w *world) writeRegistryLines() error {
 	if w.registryQueue != nil {
 		text += "queue: [" + strings.Join(w.registryQueue, ", ") + "]\n"
 	}
+	w.registryText = text
 	return w.write(w.data(startingRegistry), text)
+}
+
+// The registry is as the work steps last wrote it, in the working tree and,
+// where the registry is committed, at HEAD: the command wrote nothing and
+// committed nothing (slice 79).
+func (w *world) registryUnchanged() error {
+	path := w.data(startingRegistry)
+	text, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return err
+	}
+	if string(text) != w.registryText {
+		return fmt.Errorf("the registry changed:\n%s\n%s", text, w.report())
+	}
+	if w.dataDir != "" {
+		return nil
+	}
+	committed, err := w.gitOutput("show", "HEAD:"+filepath.ToSlash(path))
+	if err != nil {
+		return err
+	}
+	if committed != w.registryText {
+		return fmt.Errorf("the registry at HEAD changed:\n%s\n%s", committed, w.report())
+	}
+	return nil
 }
 
 // The registry's queue names one more id, whether an item has it or not,
