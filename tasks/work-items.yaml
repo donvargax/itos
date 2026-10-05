@@ -4053,3 +4053,19 @@ items:
       teaching every new repository a key it should not need. Dropping the two lines changes init's
       output and its corpus cases (init.yaml), so it is a behaviour change of its own, not slice
       79's.
+
+  - id: p1-git-config-pre-push-always
+    title: The git-config hook manager declares the pre-push hook whatever hooks.pre_push says
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice 79's agent: a stealth config now declares hook.itos-pre-push always, since the
+      pre-push hook verifies the pushed commits whatever hooks.pre_push says (slice 46), and the
+      shim managers (vp, husky, plain git) always write the pre-push shim; but a project that picks
+      --manager git-config, or hooks.manager git-config, still gets the pre-push entry only with
+      hooks.pre_push, and an existing one is removed without it. One rule for every manager would be
+      simpler; changing it changes a released behaviour (hooks.yaml's git-config cases), so it waits
+      for a decision.
