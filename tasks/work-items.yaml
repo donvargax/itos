@@ -3954,3 +3954,16 @@ items:
       raw grep or test; prose tasks have no check and are accepted by the user's review (the
       coordinator leans to it). Before removing the step, done tasks' checks are audited for
       invariants no standing step covers, and those become named steps by rule, not an agent's call.
+
+  - id: p1-guide-work-show-why
+    title: itos guide work says where a slice's or task's why is, not work show's why
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-76]
+    kind: idea
+    why: >
+      Found by slice 76's agent: internal/guide/work.md says work show gives an item's why (the
+      decisions behind it), which after slice 76 holds for ideas and a task's ledger why alone; a
+      slice's decisions are in its scenarios' comments. A guide is Go-embedded, so the fix is a fix
+      commit.
