@@ -5098,3 +5098,33 @@ items:
       v3-stealth-pre-push, changing that corpus case). @ID-WORK-44 and 45 in features/work.feature;
       the hooks.bin and stealth scenarios are written when p3-global-install-ci is specified.
     refs: [features/work.feature]
+
+  - id: p3-guide-feature-plugin-line
+    title: guide.feature's description stops saying the plugin's skills will wrap the guides
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-092's agent: features/guide.feature's description ends "The plugin's skills
+      wrapping them is a later step", which T-092 made untrue (the plugin dropped its skill and
+      wraps neither guide). A docs commit may not change a feature's header or Background, so the
+      line waits for the next feat or fix that touches guide.feature to say the plugin wraps
+      neither.
+    refs: [features/guide.feature]
+
+  - id: p3-plugin-version-prose-reason
+    title: The plugin version rule's prose step gives a reason that holds after the skill left
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-092's agent: itos.yaml runs the plugin's version rule among ci.prose.steps
+      "as the plugin's skill is Markdown", and tools/selftest/plugin-version.ts says the same and
+      uses a skills/itos/SKILL.md as its Markdown fixture. T-092 dropped the skill, so the plugin
+      holds no Markdown; the step still guards a future one, but the comments' reason is stale. A ci
+      commit could reword both (a Markdown change in the plugin's folder), keeping the step.
+    refs: [itos.yaml, tools/selftest/plugin-version.ts]

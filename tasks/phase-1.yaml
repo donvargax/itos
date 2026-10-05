@@ -547,10 +547,11 @@
     repository still recorded the gaps it found by editing the registry's YAML by hand, which
     slice 54 made unnecessary. The skill now says to record a gap with itos work add and to note
     on an item with itos work edit; the plugin's minor version is raised in the chore commit
-    T-074's rule asks for.
+    T-074's rule asks for. T-092 dropped the skill, how to work with itos being itos's own guides,
+    so the checks read the guide that holds each command.
   done_when:
-    - run: grep -q 'itos work add' integrations/claude-code/skills/itos/SKILL.md
-    - run: grep -q 'itos work edit' integrations/claude-code/skills/itos/SKILL.md
+    - run: grep -q 'itos work add' internal/guide/work.md
+    - run: grep -q 'itos work edit' internal/guide/coordinate.md
 
 - id: T-083
   type: build

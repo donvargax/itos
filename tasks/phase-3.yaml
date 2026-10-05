@@ -590,9 +590,11 @@
     changing its kind by hand, and the itos plugin's skill said nothing of taking, closing or
     waiting for CI, though slices 51 to 53 made each a command: itos work take, done and promote
     write the registry and commit it alone, and itos push waits for CI with ci.watch. They now say
-    so. The skill is the plugin's, so its version rises to 2.5.0 in the same push (T-074).
+    so. The skill is the plugin's, so its version rises to 2.5.0 in the same push (T-074). The
+    coordinator's guide took promote from docs/ORCHESTRATING.md, and T-092 dropped the skill, how to
+    work with itos being itos's own guides, so the check reads the guide that holds each command.
   done_when:
-    - run: grep -q 'itos work take' AGENTS.md && grep -q 'itos work promote' docs/ORCHESTRATING.md && grep -q 'itos work done' integrations/claude-code/skills/itos/SKILL.md
+    - run: grep -q 'itos work take' AGENTS.md && grep -q 'itos work promote' internal/guide/coordinate.md && grep -q 'itos work done' internal/guide/work.md
       timeout: 60
 
 - id: T-080
