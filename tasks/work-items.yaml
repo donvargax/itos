@@ -3071,14 +3071,15 @@ items:
       prints, with no ci key, so a script cannot tell a run skipped on purpose from no watch set up.
       A ci value such as "not-waited", added beside success, failure, timeout and error, would say it.
 
-  - id: p3-init-agent-rules-stealth
+  - id: slice-80
     title: Under --stealth, init writes the rules for agents where git never sees them
     phase: 3
     owner: null
     status: todo
     depends_on: [slice-59]
-    kind: idea
+    kind: slice
     why: >
+      Was p3-init-agent-rules-stealth.
       The stealth half of slice 59 (p3-init-agent-rules, the user's calls of 2026-10-03, in
       slice-59's why): nothing tracked is touched and every file written is listed in
       .git/info/exclude; the rules go to <git common dir>/itos/AGENTS.md; Claude Code gets a
