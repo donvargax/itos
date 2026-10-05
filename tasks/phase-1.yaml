@@ -717,3 +717,20 @@
   done_when:
     - run: "! git grep -q 'donvargax/itos/v3' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
     - run: go build ./...
+
+- id: T-095
+  type: ci
+  title: The last release's usage errors are left out of the release check, as its help cases are
+  why: >
+    T-075 judged the old corpus's usage errors by their exit code alone, 2. A usage error pins only
+    what a command refuses, and refusing less is additive: slice 80 makes itos init --stealth
+    --agent-rules, which v4.1.0 refused as not written yet, do what it says, and the check would
+    call that a breaking change and cut v5.0.0 (the user's call, 2026-10-05: correct the check).
+    previous-release now leaves an old usage error's case out of the run, counted and said beside
+    the help cases it leaves out, and a unit test proves it reads such a case as one and leaves it
+    out while a config error's case stays judged. This tree's own corpus still pins every usage
+    message exactly.
+  done_when:
+    - run: go test ./tools/bin/previous-release
+    - run: go run ./tools/bin/previous-release
+      timeout: 900
