@@ -11,7 +11,9 @@
 // the refs an item has after (bug 14); a command that has to succeed before
 // the run a scenario is about, a queue written into the registry, and the
 // registry's queue after (slice 66); the folder work.decisions names for
-// itos ask record's decision records (slice 71).
+// itos ask record's decision records (slice 71); an item with a why, a task
+// with none and a ledger task with one, and an item's why gone after (slice
+// 76).
 package features
 
 import (
@@ -39,6 +41,13 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the work registry has the item "([^"]*)" owned by nobody with the status "([^"]*)", depending on "([^"]*)"$`, func(id, status, dep string) error {
 		return w.registryItem(id, "null", status, dep, "")
 	})
+	sc.Step(`^the work registry has the item "([^"]*)" owned by "([^"]*)" with the status "([^"]*)" and the why "([^"]*)"$`, func(id, owner, status, why string) error {
+		return w.registryItemWhy(id, owner, status, "", "", why)
+	})
+	sc.Step(`^the work registry has the task "([^"]*)" owned by nobody with the status "([^"]*)" and no why$`, func(id, status string) error {
+		return w.registryItem(id, "null", status, "", "task")
+	})
+	sc.Step(`^the ledger's task "([^"]*)" has the why "([^"]*)"$`, w.ledgerTaskWhy)
 	sc.Step(`^the work registry has the idea "([^"]*)" owned by nobody$`, func(id string) error {
 		return w.registryItem(id, "null", "todo", "", "idea")
 	})
@@ -56,6 +65,7 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	})
 
 	sc.Step(`^the registry's item "([^"]*)" has the status "([^"]*)" and the owner "([^"]*)"$`, w.registryItemIs)
+	sc.Step(`^the registry's item "([^"]*)" has the status "([^"]*)" and no why$`, w.registryItemWithoutWhy)
 	sc.Step(`^the work registry beside the config gives the item "([^"]*)" the status "([^"]*)"$`, func(id, status string) error {
 		return w.registryItemIs(id, status, "")
 	})
@@ -121,12 +131,18 @@ func (w *world) nextQuestion() (string, error) {
 
 // One more item of phase 1, a group nobody owns, in the registry where the
 // scenario keeps itos's data: its owner (null for nobody), status, one
-// dependency when given and a kind when given. An owner is added to the
+// dependency when given, a kind when given and a why when given. An owner is added to the
 // people, so the registry stays sound, and in a project the registry and the
 // people are committed past the hooks, so a command that commits the
 // registry commits only its own change; a change already staged stays
 // staged.
 func (w *world) registryItem(id, owner, status, dep, kind string) error {
+	return w.registryItemWhy(id, owner, status, dep, kind, "")
+}
+
+// registryItemWhy is registryItem with a why ("" for none), one quoted line
+// after the item's dependencies (slice 76).
+func (w *world) registryItemWhy(id, owner, status, dep, kind, why string) error {
 	deps := "[]"
 	if dep != "" {
 		deps = "[" + dep + "]"
@@ -135,7 +151,11 @@ func (w *world) registryItem(id, owner, status, dep, kind string) error {
 	if kind != "" {
 		line += ", kind: " + kind
 	}
-	w.registryLines = append(w.registryLines, line+", depends_on: "+deps+" }\n")
+	line += ", depends_on: " + deps
+	if why != "" {
+		line += fmt.Sprintf(", why: %q", why)
+	}
+	w.registryLines = append(w.registryLines, line+" }\n")
 	if err := w.writeRegistryLines(); err != nil {
 		return err
 	}
@@ -576,6 +596,41 @@ func (w *world) gitStatusClean() error {
 	}
 	if strings.TrimSpace(out) != "" {
 		return fmt.Errorf("git status reports:\n%s\n%s", out, w.report())
+	}
+	return nil
+}
+
+// The ledger's task, added after the others when the ledger lacks it, has
+// the why, written and committed as registryItem commits (slice 76: a
+// task's why lives in its ledger entry).
+func (w *world) ledgerTaskWhy(task, why string) error {
+	i := slices.IndexFunc(w.ledger, func(t ledgerTask) bool { return t.id == task })
+	if i < 0 {
+		w.ledger = append(w.ledger, ledgerTask{id: task})
+		i = len(w.ledger) - 1
+	}
+	w.ledger[i].why = why
+	if err := w.write(w.data(w.ledgerPath()), w.ledgerText()); err != nil {
+		return err
+	}
+	if w.dataDir != "" {
+		return nil
+	}
+	return w.commitLeavingStaged("docs: a ledger")
+}
+
+// The item has the status and no why: no why key, or an empty one (slice
+// 76: work done drops the why of the item it closes).
+func (w *world) registryItemWithoutWhy(id, status string) error {
+	if err := w.registryItemIs(id, status, ""); err != nil {
+		return err
+	}
+	item, err := w.registryItemOf(id)
+	if err != nil {
+		return err
+	}
+	if why, has := item["why"]; has && why != nil && why != "" {
+		return fmt.Errorf("%s still has the why %q\n%s", id, why, w.report())
 	}
 	return nil
 }

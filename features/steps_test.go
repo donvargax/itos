@@ -128,10 +128,12 @@ type textFooter struct {
 // pattern does.
 type cover struct{ by, matches string }
 
-// One task of the scratch ledger: its ID and its checks, each written as YAML.
+// One task of the scratch ledger: its ID, its checks, each written as YAML,
+// and its why ("" for none).
 type ledgerTask struct {
 	id     string
 	checks []string
+	why    string
 }
 
 // One key the scenario sets by its dotted path, to a string. A key under
@@ -954,6 +956,9 @@ func (w *world) ledgerText() string {
 		fmt.Fprintf(&b, "- { id: %s, type: chore, title: %s", task.id, taskTitles[i%len(taskTitles)])
 		if len(task.checks) > 0 {
 			fmt.Fprintf(&b, ", done_when: [%s]", strings.Join(task.checks, ", "))
+		}
+		if task.why != "" {
+			fmt.Fprintf(&b, ", why: %q", task.why)
 		}
 		b.WriteString(" }\n")
 	}
