@@ -144,6 +144,10 @@
   scenarios:
     - id: "@ID-UPDATE-06"
       why: a pin fallen behind runs and is told the newer release, the question and the notice together
+- file: upgrade-command.feature
+  scenarios:
+    - id: "@ID-UPGRADECMD-01"
+      why: the pin moved to the newest and every release's asks since the old pin listed, oldest first, the command's whole path
 - file: upgrading.feature
   scenarios:
     - id: "@ID-UPGRADE-01"

@@ -31,6 +31,7 @@ var commands = map[string]command{
 	"push":     push,
 	"git-shim": gitShim,
 	"pin":      pinCommand,
+	"upgrade":  upgradeCommand,
 	"init":     initCommand,
 	"follow":   followCommand,
 	"ask":      askCommand,

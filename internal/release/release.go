@@ -6,12 +6,13 @@
 // checksums.txt lists its archives, whose names carry its version, and its
 // SHA-256 is what a pin holds (pin.checksums). The launcher (internal/launch)
 // fetches and runs releases through it, and itos pin (internal/cli) reads one
-// to move a pin.
+// to move a pin, and itos upgrade each release's upgrading.json (slice 75).
 package release
 
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -60,13 +61,29 @@ func Get(url string, timeout time.Duration) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%s: %s", url, resp.Status)
+		return nil, &StatusError{URL: url, Status: resp.Status, Code: resp.StatusCode}
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", url, err)
 	}
 	return body, nil
+}
+
+// StatusError is an answer other than 200 OK: its address and its status, so
+// a caller can tell an asset the release does not have (404) from a server
+// that failed.
+type StatusError struct {
+	URL, Status string
+	Code        int
+}
+
+func (e *StatusError) Error() string { return fmt.Sprintf("%s: %s", e.URL, e.Status) }
+
+// NotFound is whether the error is an answer saying the address has nothing.
+func NotFound(err error) bool {
+	var s *StatusError
+	return errors.As(err, &s) && s.Code == http.StatusNotFound
 }
 
 // SHA256 is the bytes' SHA-256, in lowercase hex, as pin.checksums and a
@@ -93,4 +110,16 @@ func VersionOf(sums []byte) string {
 		}
 	}
 	return ""
+}
+
+// Listed is the SHA-256 checksums.txt gives the asset, as sha256sum writes a
+// line ("<hex>  <name>", or "<hex> *<name>" in binary mode), in lowercase.
+func Listed(sums []byte, asset string) (string, bool) {
+	for _, line := range strings.Split(string(sums), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) == 2 && strings.TrimPrefix(fields[1], "*") == asset {
+			return strings.ToLower(fields[0]), true
+		}
+	}
+	return "", false
 }

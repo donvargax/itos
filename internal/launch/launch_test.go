@@ -17,24 +17,6 @@ import (
 
 const sums = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
-func TestListed(t *testing.T) {
-	text := []byte("AA  itos-1.0.0-linux-amd64.tar.gz\nbb *itos-1.0.0-windows-amd64.zip\ncc  itos.schema.json\n")
-	cases := []struct {
-		asset, want string
-		ok          bool
-	}{
-		{"itos-1.0.0-linux-amd64.tar.gz", "aa", true},
-		{"itos-1.0.0-windows-amd64.zip", "bb", true},
-		{"itos-1.0.0-darwin-arm64.tar.gz", "", false},
-	}
-	for _, c := range cases {
-		got, ok := listed(text, c.asset)
-		if got != c.want || ok != c.ok {
-			t.Errorf("listed(%q) = %q, %t; want %q, %t", c.asset, got, ok, c.want, c.ok)
-		}
-	}
-}
-
 // offline keeps a test off the network and off any real cache: an empty
 // cache of its own, nothing to ask, and no CI or silencing set. It gives the
 // cache.

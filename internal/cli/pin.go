@@ -27,38 +27,15 @@ const pinTimeout = 30 * time.Second
 
 // pinCommand is `pin [<version>]`.
 func pinCommand(args []string, o Out) (int, error) {
-	for _, a := range args {
-		if strings.HasPrefix(a, "-") {
-			return 0, usage("pin takes only a <version> (%s)", a)
-		}
-	}
-	if len(args) > 1 {
-		return 0, usage("pin takes one <version> at most: %s", strings.Join(args, " "))
-	}
-	want := ""
-	if len(args) == 1 {
-		want = strings.TrimPrefix(args[0], "v")
-		if !config.PinVersion.MatchString(want) {
-			return 0, usage("pin needs a release's version, such as 2.5.0, not %s", args[0])
-		}
-	}
-	file := config.Path()
-	text, err := os.ReadFile(file)
+	want, err := versionArg("pin", args)
 	if err != nil {
-		return 0, &config.Error{File: file, Problems: []out.Problem{{
-			Rule:    "config-unreadable",
-			Message: "cannot be read: " + err.Error(),
-			Fix:     "create " + file + ", or correct its YAML",
-		}}}
+		return 0, err
 	}
-	tree, err := value.Parse(string(text))
+	c, err := readConfigPin()
 	if err != nil {
-		return 0, config.Invalid(file, "cannot be read: "+err.Error())
+		return 0, err
 	}
-	pin := value.Prop(tree, "pin")
-	was, _ := value.Prop(pin, "version").(string)
-	wasSums, _ := value.Prop(pin, "checksums").(string)
-
+	file, was, wasSums := c.file, c.version, c.checksums
 	v, sums, err := pinned(want)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s; %s is left as it was\n", err, file)
@@ -77,7 +54,7 @@ func pinCommand(args []string, o Out) (int, error) {
 		return code, out.Emit(o.Stdout, fields...)
 	}
 	if was == v && config.PinChecksums.MatchString(wasSums) {
-		if wasSums != sum {
+		if c.replaced(v, sum) {
 			if !o.JSON {
 				fmt.Fprintf(o.Stderr, "itos: %s pins itos %s with the checksums %s, but its checksums.txt is %s now: "+
 					"the release changed after it was pinned; the pin is left as it was\n", file, v, wasSums, sum)
@@ -91,10 +68,9 @@ func pinCommand(args []string, o Out) (int, error) {
 		fmt.Fprintf(o.Stdout, "%s already pins itos %s: nothing to change.\n", file, v)
 		return 0, nil
 	}
-	edited, err := value.SetScalars(string(text), "pin", [][2]string{{"version", v}, {"checksums", sum}})
+	edited, err := c.moved(c.text, v, sum)
 	if err != nil {
-		return 0, fmt.Errorf("cannot edit the pin in %s (%s): set pin.version to %s and pin.checksums to %s",
-			file, err, v, sum)
+		return 0, err
 	}
 	if err := writeKeepingMode(file, edited); err != nil {
 		return 0, err
@@ -110,6 +86,72 @@ func pinCommand(args []string, o Out) (int, error) {
 	fmt.Fprintf(o.Stdout, "Read its notes, their Upgrading section above all, before you commit the change: %s\n",
 		release.NotesURL(v))
 	return 0, nil
+}
+
+// versionArg is the one <version> a command that moves the pin takes, a
+// leading v dropped, "" when it names none.
+func versionArg(name string, args []string) (string, error) {
+	for _, a := range args {
+		if strings.HasPrefix(a, "-") {
+			return "", usage("%s takes only a <version> (%s)", name, a)
+		}
+	}
+	if len(args) > 1 {
+		return "", usage("%s takes one <version> at most: %s", name, strings.Join(args, " "))
+	}
+	if len(args) == 0 {
+		return "", nil
+	}
+	want := strings.TrimPrefix(args[0], "v")
+	if !config.PinVersion.MatchString(want) {
+		return "", usage("%s needs a release's version, such as 2.5.0, not %s", name, args[0])
+	}
+	return want, nil
+}
+
+// configPin is the config itos finds, its text, and the pin it holds: its
+// version and checksums as written, "" for none.
+type configPin struct{ file, text, version, checksums string }
+
+// readConfigPin reads the config itos finds, the stealth one included, and
+// its pin.
+func readConfigPin() (configPin, error) {
+	file := config.Path()
+	text, err := os.ReadFile(file)
+	if err != nil {
+		return configPin{}, &config.Error{File: file, Problems: []out.Problem{{
+			Rule:    "config-unreadable",
+			Message: "cannot be read: " + err.Error(),
+			Fix:     "create " + file + ", or correct its YAML",
+		}}}
+	}
+	tree, err := value.Parse(string(text))
+	if err != nil {
+		return configPin{}, config.Invalid(file, "cannot be read: "+err.Error())
+	}
+	pin := value.Prop(tree, "pin")
+	was, _ := value.Prop(pin, "version").(string)
+	wasSums, _ := value.Prop(pin, "checksums").(string)
+	return configPin{file: file, text: string(text), version: was, checksums: wasSums}, nil
+}
+
+// replaced is whether the config pins the version v with other checksums
+// than sum, those of its checksums.txt now: the release changed after it was
+// pinned
+// (docs/decisions/0025-itos-pin-refuses-a-release-changed-after-it-was-pinned.md).
+func (c configPin) replaced(v, sum string) bool {
+	return c.version == v && config.PinChecksums.MatchString(c.checksums) && c.checksums != sum
+}
+
+// moved is the text, the config's, with pin.version set to v and
+// pin.checksums to sum, every other byte as it was.
+func (c configPin) moved(text, v, sum string) (string, error) {
+	edited, err := value.SetScalars(text, "pin", [][2]string{{"version", v}, {"checksums", sum}})
+	if err != nil {
+		return "", fmt.Errorf("cannot edit the pin in %s (%s): set pin.version to %s and pin.checksums to %s",
+			c.file, err, v, sum)
+	}
+	return edited, nil
 }
 
 // pinned is the release to pin, the version asked for or, with none, the

@@ -95,6 +95,7 @@ Commands:
   git-shim install|uninstall [--dir <folder>]
                                    link itos as git, for itos's commit and push
   pin [<version>]                  move the config's pin to a release, the newest by default
+  upgrade [<version>]              move to a newer itos, listing what each release since asks
   init [--stealth] [--plugin [<scope>]] [--git-shim [--git-shim-dir <folder>] | --no-git-shim]
                                    ready a repository for itos; run again, what is missing
   verify <from> <to>               re-check every commit of a range
@@ -794,6 +795,40 @@ whatever the pin says.
 
 --json: {"schema":1,"config","action","version","checksums","previous"?,"notes"?},
         action one of pinned, already, refused`,
+
+	"upgrade": `Usage: itos upgrade [<version>]
+
+Moves the project to a newer itos: <version> (a leading v is taken), or with
+none the newest, asked for as itos pin asks for it. The version it moves from
+is the config's pin, or with no pin the install script's,
+tools/bin/install-itos; with neither it exits 1, naming itos pin, and so does
+a version older than that one, which is itos pin's to move back to.
+
+It prints, oldest first, what each release after the version it leaves asks:
+its breaking changes, its Upgrading footers, the old scenarios and corpus
+cases it changes on purpose and the config keys it adds, removes or gives
+another default. It reads them from each release's upgrading.json
+(<ITOS_RELEASES>/download/v<version>/upgrading.json), walking back through
+each one's previous from the new release to the old version. A release with
+no upgrading.json, cut before they were published, is named by its notes,
+<ITOS_RELEASES>/tag/v<version>, and the walk stops there.
+
+It edits only what a release fixes exactly: the pin (pin.version and
+pin.checksums, as itos pin sets them; none is added where there is none), the
+config's first line when it is a yaml-language-server schema line naming a
+release's itos.schema.json, and the install script's version= line and each
+platform's sum= hash, from the new release's checksums.txt. What the releases
+ask is listed for the person to do, never edited. A config or an install
+script it cannot edit so exits 2. It fetches everything before it writes
+anything, so a release that cannot be fetched exits 3, every file untouched.
+A project already on the version changes nothing, exit 0; a pin on it with
+other checksums is left as it is, exit 1: the release changed after it was
+pinned. It commits nothing, and runs the binary called, whatever the pin says.
+
+--json: {"schema":1,"action","from","to","releases","edited"},
+        action one of upgraded, already, refused; each release
+        {"version","breaking","upgrading","changes","config"}, or
+        {"version","notes"} for one with no upgrading.json`,
 
 	"init": `Usage: itos init [--stealth] [--plugin [project|user|local|no]]
                  [--git-shim [--git-shim-dir <folder>] | --no-git-shim]

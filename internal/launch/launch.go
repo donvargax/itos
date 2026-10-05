@@ -25,8 +25,9 @@
 // checked against.
 //
 // git-shim install and uninstall always run the binary that was called, the
-// one they link as git, and so does pin, which moves the pin and may be newer
-// than the version pinned (slice 47), and init, which writes the config and
+// one they link as git, and so do pin, which moves the pin and may be newer
+// than the version pinned (slice 47), upgrade, which moves it too and walks
+// the releases since (slice 75), and init, which writes the config and
 // its pin where there is none (slice 48); the git shim's own runs (git-shim run) are launched
 // as any other, so in a pinned repository git commit is the pinned itos's,
 // when it has the shim (Handed tells internal/shim the version, bug 7).
@@ -112,13 +113,14 @@ func Main(args []string, stderr io.Writer) (int, bool) {
 // commands, which the binary that was called runs whatever the pin says:
 // git-shim install and uninstall link that binary as git (slice 41), so no
 // version a pin picks runs them, or the link would point into the cache; pin
-// moves the pin (slice 47), which the version it names may predate; init
+// moves the pin (slice 47), which the version it names may predate, and so
+// does upgrade (slice 75); init
 // readies a repository (slice 48), where there is no config to pin a version,
 // and the newest release must not run in its place.
 func binaryCommand(args []string) bool {
 	rest := cli.Parse(args).Rest
 	switch {
-	case len(rest) >= 1 && (rest[0] == "pin" || rest[0] == "init"):
+	case len(rest) >= 1 && (rest[0] == "pin" || rest[0] == "upgrade" || rest[0] == "init"):
 		return true
 	case len(rest) >= 2 && rest[0] == "git-shim":
 		return rest[1] == "install" || rest[1] == "uninstall"
@@ -360,7 +362,7 @@ func fetch(cache, dir string, t target) error {
 // happens, so the cache never holds a half or unchecked release.
 func install(cache, dir, v string, sums []byte) error {
 	asset := archiveName(v)
-	want, ok := listed(sums, asset)
+	want, ok := release.Listed(sums, asset)
 	if !ok {
 		return fmt.Errorf("the checksums.txt of itos %s lists no %s: no release of it for this platform", v, asset)
 	}
@@ -377,18 +379,6 @@ func install(cache, dir, v string, sums []byte) error {
 		return fmt.Errorf("itos %s: %w", v, err)
 	}
 	return store(cache, dir, binary, sums)
-}
-
-// listed is the SHA-256 checksums.txt gives the asset, as sha256sum writes a
-// line ("<hex>  <name>", or "<hex> *<name>" in binary mode).
-func listed(sums []byte, asset string) (string, bool) {
-	for _, line := range strings.Split(string(sums), "\n") {
-		fields := strings.Fields(line)
-		if len(fields) == 2 && strings.TrimPrefix(fields[1], "*") == asset {
-			return strings.ToLower(fields[0]), true
-		}
-	}
-	return "", false
 }
 
 // extract is the binary at the top of a release's archive.
