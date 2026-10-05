@@ -53,7 +53,7 @@ phases:
 queue:
   - p1-nightly-late-done-checks
   - slice-78
-  - p3-global-install-ci
+  - T-093
   - slice-79
   - p1-work-show-gaps
   - p1-release-notes-footers
@@ -1806,7 +1806,7 @@ items:
     phase: 3
     owner: donvargax
     status: todo
-    depends_on: [p3-global-install-ci, slice-47]
+    depends_on: [T-093, slice-47]
     kind: idea
     deferred: the next major release, the user's call (2026-10-03)
     why: >
@@ -2099,14 +2099,15 @@ items:
       itos push cannot take, saying so.
     refs: [features/shim.feature, internal/cli/push.go]
 
-  - id: p3-global-install-ci
-    title: A repository relying on a global itos runs it from its hooks and its CI
+  - id: T-093
+    title: A CI runner installs the global itos in one step, the pin choosing what runs
     phase: 3
     owner: null
     status: todo
     depends_on: [slice-27]
-    kind: idea
+    kind: task
     why: >
+      Was p3-global-install-ci.
       With a pin, a repository can drop its install script (README, A global install), but
       hooks.bin still defaults to tools/bin/itos, the shims hooks install writes call it, and a CI
       runner has no global itos: such a repository needs hooks.bin set to itos and an install step
@@ -3862,7 +3863,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-76, slice-77, slice-78, p3-global-install-ci]
+    depends_on: [slice-76, slice-77, slice-78, T-093]
     kind: slice
     why: >
       The user's calls (2026-10-04): a green push with a breaking change cuts a major at once, so
