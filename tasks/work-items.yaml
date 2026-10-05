@@ -1217,29 +1217,9 @@ items:
     title: "itos work show <item>, the reads an agent needs, instead of a filled brief"
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The coordinator writes each agent brief by hand from ORCHESTRATING.md's template. itos brief
-      <item> would fill a template the project owns (work.brief.template) with what it knows: the
-      item's title, why and refs; a slice's @slice-<n> scenarios and which are @wip, a task's
-      done_when as the ledger holds it; the earlier commits on the same feature file or task; the ideas
-      depending on it; the command that runs what the slice reaches, from the kind's run.select
-      template. The decisions the agent builds to stay the coordinator's, in an optional brief: field
-      on the item, written when it is specified. An idea is refused: specify it first. Output is text
-      or --json; nothing reads it back. Which done tasks a slice will reach cannot be known before the
-      work: slice-16 catches that after.
-      The user's calls (2026-10-03), from the session that built slices 46 to 50: no brief command. A brief
-      is kept nowhere, so the decisions go into the spec before an agent starts and the brief
-      points at it (ORCHESTRATING.md); what is left to derive is the reads: itos work show <item>
-      prints the item, its scenarios live or @wip, the earlier commits on its feature file or
-      task, and the items depending on it, run by the agent itself. Fifth.
-
-      Slice 57 (itos work show, v2.17.0) built the reading list this asked for: the item, its
-      scenarios and its commits. What is left, if anything, is the reads a brief adds beyond them
-      (PLAN sections, ARCHITECTURE); the coordinator's view: close it once the brief template points
-      at itos work show.
 
   - id: slice-66
     title: "The queue in the registry: itos work queue, one shared order, each person their part"
