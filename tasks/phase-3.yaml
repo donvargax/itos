@@ -626,3 +626,25 @@
   done_when:
     - run: node tools/selftest/previous-release.ts
       timeout: 900
+
+- id: T-092
+  type: chore
+  title: The Claude Code plugin drops its itos skill, how to work with itos being itos's own guides
+  why: >
+    The user's calls (2026-10-04): a person starts a session with ! itos go and the coordinator
+    tells every implementer to run itos guide work first, so how to work with itos is itos's own
+    guides, versioned with the binary, and no flow may need the plugin. The plugin's itos skill
+    restated those guides and goes, with no coordinate skill or implementer agent in its place; the
+    titles and the guard stay. The README's plugin section and docs/ARCHITECTURE.md stop naming the
+    skill, and plugin.json's description stops saying the plugin says how to work. Removing a skill
+    is a breaking change to the plugin, so its version rises to 3.0.0, in a chore commit of the same
+    push (T-074). Two done tasks checked the skill's text, and the nightly runs every done task's
+    checks: T-079's and T-082's checks now read the guide that holds each command
+    (internal/guide/work.md or coordinate.md), so both stay green. ADR-0032 said how to work with
+    itos stayed in the plugin's skill; ADR-0033 supersedes it: the guides hold it.
+  done_when:
+    - run: test ! -e integrations/claude-code/skills
+    - run: "! grep -rn 'skills/itos' README.md docs/ARCHITECTURE.md tasks/phase-1.yaml integrations/claude-code"
+    - run: grep -q '"version":.*"3.0.0"' integrations/claude-code/.claude-plugin/plugin.json
+    - run: tools/bin/itos task T-079 && tools/bin/itos task T-082
+      timeout: 120

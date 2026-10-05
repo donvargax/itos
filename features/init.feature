@@ -319,8 +319,8 @@ Feature: itos init, a repository made ready for itos
   # config decides (the commit types, the footer each needs, the paths each
   # may touch, what each gate runs) is generated from the config into a
   # marked block of AGENTS.md, between <!-- itos:begin --> and
-  # <!-- itos:end -->, beside a line pointing to the itos skill of the Claude
-  # Code plugin, which holds how to work with itos; and CLAUDE.md gets a line
+  # <!-- itos:end -->; how to work with itos is itos's own guides, itos go and
+  # itos guide work (decision 33), not the block; and CLAUDE.md gets a line
   # importing it, @AGENTS.md, so Claude Code reads it. The block is written
   # formatter-stable, one line per paragraph and no code span across lines,
   # so a project's formatter leaves it alone. It is offered as the plugin is
