@@ -80,8 +80,8 @@ Feature: itos push, the pull-rebase-push routine as one command
   @ID-PUSH-06 @bug-21 @wip
   Scenario: itos push names the commit git pushed, though a commit lands while its pre-push hook runs
     Given the pre-push hook is installed
-    And the clone has the commit "docs: mine" touching "mine.md"
     And hooks.pre_push's command commits "docs: late" touching "late.md" in the clone
+    And the clone has the commit "docs: mine" touching "mine.md"
     When itos runs "push --no-wait"
     Then itos exits with code 0
     And the remote's branch has "docs: mine"

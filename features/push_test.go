@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -52,6 +53,8 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 		return w.hookInstalled("pre-push", `"$@"`)
 	})
 	sc.Step(`^hooks\.pre_push's commands record that they ran$`, w.recordingPrePush)
+	sc.Step(`^hooks\.pre_push's command commits "([^"]*)" touching "([^"]*)" in the clone$`, w.committingPrePush)
+	sc.Step(`^its output names the remote branch's head as the commit pushed$`, w.outputNamesRemoteHead)
 	sc.Step(`^git pushes HEAD to the remote's new branch "([^"]*)"$`, func(branch string) error {
 		return w.run(w.dir, "git", "push", "origin", "HEAD:refs/heads/"+branch)
 	})
@@ -74,21 +77,65 @@ func (w *world) prePushRecord() string { return filepath.Join(w.support, "pre-pu
 // no uncommitted change, which itos push would refuse, and no commit of it
 // but the scenario's is pushed afterwards.
 func (w *world) recordingPrePush() error {
+	w.config.prePushRecord = true
+	return w.pushPrePushConfig("chore: record the pre-push commands")
+}
+
+// hooks.pre_push's per_base and whole each make a commit in the clone of
+// the file, written as the commit's own line, while the push runs (bug 21):
+// a commit landing during the hook's minutes of unit tests. git's hooks are
+// off for that commit, as the scenario's setup, and the config is committed
+// and pushed as recordingPrePush's is. One of the two runs on a push.
+func (w *world) committingPrePush(subject, path string) error {
+	full := filepath.Join(w.dir, path)
+	w.config.prePushCommit = fmt.Sprintf("printf '%%s\\n' %s > %s && git -C %s add -- %s && "+
+		"git -C %s -c core.hooksPath=/dev/null commit -q --no-verify -m %s -- %s",
+		quote("A line for "+subject+"."), quote(full), quote(w.dir), quote(path),
+		quote(w.dir), quote(subject), quote(path))
+	return w.pushPrePushConfig("chore: commit while the pre-push hook runs")
+}
+
+// The clone's config, as the scenario set it, committed with the subject and
+// pushed to the remote's main past the hooks.
+func (w *world) pushPrePushConfig(subject string) error {
 	if len(w.ledger) == 0 {
 		return errors.New("the ledger has no task for the config's commit to name")
 	}
-	w.config.prePushRecord = true
 	if err := w.writeConfig(); err != nil {
 		return err
 	}
 	if err := w.git("add", "--", w.data("itos.yaml")); err != nil {
 		return err
 	}
-	if err := w.git("commit", "-q", "--no-verify", "-m", "chore: record the pre-push commands\n\nTask: "+w.ledger[0].id+"\n"); err != nil {
+	if err := w.git("commit", "-q", "--no-verify", "-m", subject+"\n\nTask: "+w.ledger[0].id+"\n"); err != nil {
 		return err
 	}
 	return w.git("push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main")
 }
+
+// The output's "Pushed <sha>" names the commit the remote's main is at: the
+// short SHA it prints is the start of that commit's full one.
+func (w *world) outputNamesRemoteHead() error {
+	cmd := exec.Command("git", "rev-parse", "main")
+	cmd.Dir = w.remote()
+	cmd.Env = w.env()
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("git rev-parse main in the remote: %w", err)
+	}
+	head := strings.TrimSpace(string(out))
+	m := pushedLine.FindStringSubmatch(w.output())
+	if m == nil {
+		return fmt.Errorf("the output names no commit pushed; the remote's main is at %s\n%s", head, w.report())
+	}
+	if len(m[1]) < 7 || !strings.HasPrefix(head, m[1]) {
+		return fmt.Errorf("the output says Pushed %s, but the remote's main is at %s\n%s", m[1], head, w.report())
+	}
+	return nil
+}
+
+// The line itos push prints for the commit it pushed.
+var pushedLine = regexp.MustCompile(`Pushed ([0-9a-f]+) to `)
 
 func (w *world) remoteHas(subject string) error {
 	subjects, _, err := w.remoteHistory()

@@ -93,6 +93,7 @@ type scratchConfig struct {
 	hooksManager      string       // hooks.manager
 	hooksBin          string       // hooks.bin
 	prePushRecord     bool         // hooks.pre_push's commands record that they ran
+	prePushCommit     string       // hooks.pre_push's command, one that commits in the clone
 	watch             *watchConfig // ci.watch
 	rangeCommand      string       // ci.range.command, with ci.range's provider command, when set
 	ledgerFooter      string       // the key of the footer whose source is the ledger; Task when empty
@@ -742,7 +743,7 @@ func (w *world) writeConfig() error {
 		w.writeWork(&b)
 	}
 	if w.config.hooksManager != "" || w.config.hooksBin != "" || w.config.taskChecks != nil || w.config.checkTimeout > 0 ||
-		w.config.prePushRecord {
+		w.config.prePushRecord || w.config.prePushCommit != "" {
 		b.WriteString("hooks:\n")
 	}
 	if w.config.hooksManager != "" {
@@ -754,6 +755,9 @@ func (w *world) writeConfig() error {
 	if w.config.prePushRecord {
 		record := "printf '%s\\n' ran >> " + quote(w.prePushRecord())
 		fmt.Fprintf(&b, "  pre_push: { per_base: %q, whole: %q }\n", record, record)
+	}
+	if c := w.config.prePushCommit; c != "" {
+		fmt.Fprintf(&b, "  pre_push: { per_base: %q, whole: %q }\n", c, c)
 	}
 	if w.config.taskChecks != nil || w.config.checkTimeout > 0 {
 		b.WriteString("  commit_msg:\n")
