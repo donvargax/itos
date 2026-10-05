@@ -1,26 +1,23 @@
 package release
 
 // What the next release would carry (slice 70, itos status): the newest
-// release is the highest tag of the form v<semver>, a prerelease below its
-// release as semver orders them, and a releasable commit is one the release
+// release is the highest tag vX.Y.Z, three numbers and nothing else, as the
+// release cut counts from it (bug 20), and a releasable commit is one the release
 // cut counts (T-069): a feat, a fix, or a commit of any type marked as
-// breaking. tools/bin/release-version imports Type and Breaking from here
-// (T-088), so status and the release cut read a commit from one copy.
+// breaking. tools/bin/release-version imports Type, Breaking and Newest
+// from here (T-088, bug 20), so status and the release cut read a commit and
+// pick the last release from one copy.
 
 import (
 	"regexp"
-	"strconv"
 	"strings"
 )
 
 var (
 	// typed is a Conventional Commits header's type, scope and !.
 	typed = regexp.MustCompile(`^([a-zA-Z]+)(\([^)]*\))?(!)?: `)
-	// semverTag is a tag v<semver>: its three numbers, its prerelease and
-	// its build metadata.
-	semverTag = regexp.MustCompile(`^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)` +
-		`(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?` +
-		`(?:\+[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*)?$`)
+	// releaseTag is a release's tag, vX.Y.Z, and its three numbers.
+	releaseTag = regexp.MustCompile(`^v(\d+)\.(\d+)\.(\d+)$`)
 )
 
 // Releasable says whether a commit's message makes a release: a feat or a
@@ -62,11 +59,17 @@ func Breaking(message string) bool {
 	return false
 }
 
-// IsTag says whether the tag names a release: v<semver>.
-func IsTag(tag string) bool { return semverTag.MatchString(tag) }
+// IsTag says whether the tag names a release: v followed by three
+// dot-separated numbers and nothing else. itos never cuts a prerelease, so a
+// tag with a prerelease or build metadata names none (bug 20); a number with
+// leading zeros counts, as the release cut has always taken it.
+func IsTag(tag string) bool { return releaseTag.MatchString(tag) }
 
-// Newest is the highest of the tags that name a release, as semver orders
-// them, "" when none does.
+// Newest is the highest of the tags that name a release, by their numbers,
+// "" when none does. The release cut (tools/bin/release-version) and itos
+// status both pick the last release with it. Two spellings of one version
+// (v1.0.0, v01.0.0) go to the shorter, then the later by name, so the pick
+// does not hang on the order the tags are listed in.
 func Newest(tags []string) string {
 	newest := ""
 	for _, t := range tags {
@@ -77,55 +80,26 @@ func Newest(tags []string) string {
 	return newest
 }
 
-// compareTags orders two release tags as semver does: by their numbers,
-// then a prerelease below its release, prereleases by their identifiers,
-// numeric ones numerically and below alphanumeric ones; build metadata does
-// not count.
+// compareTags orders two release tags by their numbers, each compared as a
+// number however long, then a tie as Newest breaks it.
 func compareTags(a, b string) int {
-	x, y := semverTag.FindStringSubmatch(a), semverTag.FindStringSubmatch(b)
+	x, y := releaseTag.FindStringSubmatch(a), releaseTag.FindStringSubmatch(b)
 	for i := 1; i <= 3; i++ {
-		m, _ := strconv.ParseUint(x[i], 10, 64)
-		n, _ := strconv.ParseUint(y[i], 10, 64)
-		if m != n {
-			if m < n {
-				return -1
-			}
-			return 1
-		}
-	}
-	switch {
-	case x[4] == y[4]:
-		return 0
-	case x[4] == "":
-		return 1
-	case y[4] == "":
-		return -1
-	}
-	p, q := strings.Split(x[4], "."), strings.Split(y[4], ".")
-	for i := 0; i < len(p) && i < len(q); i++ {
-		if c := compareIdentifier(p[i], q[i]); c != 0 {
+		if c := compareNumbers(x[i], y[i]); c != 0 {
 			return c
 		}
 	}
-	return len(p) - len(q)
+	if len(a) != len(b) {
+		return len(b) - len(a)
+	}
+	return strings.Compare(a, b)
 }
 
-func compareIdentifier(a, b string) int {
-	m, aErr := strconv.ParseUint(a, 10, 64)
-	n, bErr := strconv.ParseUint(b, 10, 64)
-	switch {
-	case aErr == nil && bErr == nil:
-		if m == n {
-			return 0
-		}
-		if m < n {
-			return -1
-		}
-		return 1
-	case aErr == nil:
-		return -1
-	case bErr == nil:
-		return 1
+// compareNumbers orders two runs of digits by the numbers they write.
+func compareNumbers(a, b string) int {
+	a, b = strings.TrimLeft(a, "0"), strings.TrimLeft(b, "0")
+	if len(a) != len(b) {
+		return len(a) - len(b)
 	}
 	return strings.Compare(a, b)
 }

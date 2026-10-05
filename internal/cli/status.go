@@ -6,8 +6,8 @@ package cli
 // asked of the remote (git ls-remote), else read as last fetched; its CI run
 // is looked at once through ci.watch's provider, never waited for, a run
 // still going reported as going; then (slice 70) the newest release, the
-// highest tag v<semver> asked of the remote as the head is, else as last
-// fetched, and the commits since it the next release would carry, the feat,
+// highest tag vX.Y.Z by the release cut's rule, asked of the remote as the
+// head is, else as last fetched, and the commits since it the next release would carry, the feat,
 // fix and breaking ones, read from the commits as fetched here; after the
 // head's CI run (slice 72), the last nightly's, looked at once through the
 // same provider when it names a nightly, and left out when it names none;
@@ -361,9 +361,10 @@ func peeled(refs map[string]string, name func(string) (string, bool)) map[string
 	return tags
 }
 
-// readRelease reads the newest release, the highest tag v<semver>, asked
-// of the remote when it answered for the head, else as last fetched, and
-// the commits since it the next release would carry: the feat, fix and
+// readRelease reads the newest release, the highest tag vX.Y.Z by the
+// release cut's rule (release.Newest, bug 20; a prerelease is never one),
+// asked of the remote when it answered for the head, else as last fetched,
+// and the commits since it the next release would carry: the feat, fix and
 // breaking ones (release.Releasable, as the release cut counts them) from
 // the release to the remote's head, read from the commits as fetched here.
 // Where the head is not fetched here, they are listed to the remote branch

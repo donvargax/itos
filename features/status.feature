@@ -66,8 +66,8 @@ Feature: itos status, where the work stands
 
   # What is released and what is not was still read by hand (gh release list,
   # git log since the tag). status names the newest release, the highest tag
-  # of the form v<semver> on the remote (asked of it as the head is, else as
-  # last fetched), and the feat and fix commits on the remote branch since
+  # vX.Y.Z on the remote (three numbers and nothing else, bug 20; asked of it
+  # as the head is, else as last fetched), and the feat and fix commits on the remote branch since
   # it, the ones the next release would carry (the user's calls, 2026-10-04,
   # p1-status-releases-nightly). The last nightly and the last green run need
   # a provider each and wait on an item of their own.
@@ -158,7 +158,7 @@ Feature: itos status, where the work stands
   # list commits since a tag the next release does not count from (found by
   # T-088's agent, 2026-10-04). status reads the newest release by the cut's
   # rule, from the one copy in internal/release.
-  @ID-STATUS-13 @bug-20 @wip
+  @ID-STATUS-13 @bug-20
   Scenario: status counts from the newest plain release, never a prerelease, as the release cut does
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote's head is tagged "v1.2.0"

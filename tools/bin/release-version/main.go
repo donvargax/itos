@@ -2,9 +2,9 @@
 // the commits since the last one (T-069): the tag is the version, and nothing
 // in the tree holds one.
 //
-// The last release is the newest vX.Y.Z tag reachable from HEAD, by version,
-// as tools/bin/schema-contract and tools/bin/previous-release find it; the
-// commits are <tag>..HEAD, so nothing before the tag counts. Of those:
+// The last release is the newest vX.Y.Z tag reachable from HEAD, by its
+// numbers, picked by internal/release (Newest, bug 20), the rule itos status
+// reads the newest release with; the commits are <tag>..HEAD, so nothing before the tag counts. Of those:
 //
 //   - any commit marked as breaking (a ! before its header's colon, of any
 //     type, or a BREAKING-CHANGE: or BREAKING CHANGE: footer in its message's
@@ -35,8 +35,9 @@
 //	range=v2.3.0..HEAD
 //
 // and on stderr one line saying why. A commit is read by internal/release
-// (Type and Breaking, T-088), the copy itos status reads it with; beside it,
-// release-version imports only the standard library.
+// (Type and Breaking, T-088), the copy itos status reads it with, and the last
+// release is picked there too (Newest, bug 20); beside it, release-version
+// imports only the standard library.
 //
 //	go run ./tools/bin/release-version
 //
@@ -59,10 +60,7 @@ import (
 
 const self = "release-version"
 
-var (
-	version = regexp.MustCompile(`^v(\d+)\.(\d+)\.(\d+)$`)
-	suffix  = regexp.MustCompile(`/v(\d+)$`)
-)
+var suffix = regexp.MustCompile(`/v(\d+)$`)
 
 func main() {
 	os.Exit(run())
@@ -132,19 +130,14 @@ func git(args ...string) (string, error) {
 	return string(out), nil
 }
 
-// lastRelease is the newest vX.Y.Z tag reachable from HEAD, by version, or ""
-// for none. itos status's rule (release.Newest) is to adopt this one in a fix.
+// lastRelease is the newest release tag reachable from HEAD, by
+// release.Newest's rule, or "" for none.
 func lastRelease() (string, error) {
-	out, err := git("tag", "--merged", "HEAD", "--list", "v*", "--sort=-v:refname")
+	out, err := git("tag", "--merged", "HEAD")
 	if err != nil {
 		return "", err
 	}
-	for _, t := range strings.Split(out, "\n") {
-		if version.MatchString(t) {
-			return t, nil
-		}
-	}
-	return "", nil
+	return release.Newest(strings.Split(out, "\n")), nil
 }
 
 // messages splits git log's records into each commit's message, trimmed.
@@ -193,9 +186,9 @@ func bumpOf(messages []string) bump {
 // bumped is the version after tag (0.0.0 for none) bumped by kind.
 func bumped(tag, kind string) string {
 	parts := [3]int{}
-	if m := version.FindStringSubmatch(tag); m != nil {
-		for i := range parts {
-			parts[i], _ = strconv.Atoi(m[i+1])
+	if release.IsTag(tag) {
+		for i, n := range strings.Split(tag[1:], ".") {
+			parts[i], _ = strconv.Atoi(n)
 		}
 	}
 	switch kind {
