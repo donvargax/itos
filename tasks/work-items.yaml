@@ -45,7 +45,7 @@ phases:
 
 queue:
   - T-092
-  - p1-registry-archive
+  - slice-76
   - p1-work-show-gaps
   - p1-release-notes-footers
   - p1-commit-wrap-review
@@ -4069,14 +4069,15 @@ items:
       existing AGENTS.override.md or CLAUDE.local.md only gains the block, after asking; a rerun
       refreshes the blocks and reports a stale copy.
 
-  - id: p1-registry-archive
-    title: Done items leave the live registry
+  - id: slice-76
+    title: "The registry is an index: a why is an idea's, the others' live in their spec"
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-registry-archive.
       Found 2026-10-04: tasks/work-items.yaml is 177 KB, over 200 items, mostly done ones with long
       whys that git already holds, which makes it slow to read and too big to hand an agent whole.
       work done could move a closed item to an archive file beside it (still read for ids, so none
