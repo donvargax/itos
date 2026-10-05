@@ -46,3 +46,23 @@ Feature: The cost rule knows itos however the project calls it
       """
     Then itos exits with code 0
     And the recording check did not run
+
+  # Bug 27 (issue #4; was p1-ledger-pattern-static-after-late). With
+  # ci.cost.keep_written_order, a task's checks never run before the ones
+  # written above them, so a static check below a late one runs late, and
+  # the hook and the nightly's done tasks leave it out. config check said so
+  # for a check marked cost: static (ledger-static-after-late) but not for
+  # one static by a ci.cost.static pattern, which is left out just the same,
+  # without a word. It now names that one too. As a warning, not a problem
+  # (the coordinator's call, 2026-10-05): the explicit mark asks for
+  # something the order cannot give, while a pattern match is the cost
+  # rule's own reading, and failing ledgers that pass today would turn a
+  # patch into a break for every consumer holding one.
+  @ID-COST-04 @bug-27 @wip
+  Scenario: config check warns of a check static by ci.cost.static written below a late one
+    Given ci.cost.static is "^itos work check$"
+    And ci.cost.keep_written_order is true
+    And the task "T-001" has the check "exit 0", then the check "itos work check"
+    When itos checks the config
+    Then itos exits with code 0
+    And its output says "static by ci.cost.static"
