@@ -2091,19 +2091,22 @@ diff --name-only --no-renames`, so a change undone within the range is
     command, with the linked `yaml`, deletes them from each fixture's `cases`
     in place, keeping the rest of the file as written, and the check prints
     how many it left out of which file and why (v2.3.0: 37 of `help.yaml`'s
-    38, its `itos version` case still judged). The same script takes the
-    words out of each usage error's case (T-075, the user's call,
-    2026-10-03): a case expecting exit 2, nothing on stdout, and on stderr
-    exactly one `itos: <message> (itos --help)` line, the suffix cli's
-    `failure` prints for a usage error and for nothing else, loses its
-    `stdout` and `stderr` and is judged by its exit code alone, since a usage
-    message that lists what a command takes is documentation as help is. A
-    config error (config check's `FAIL …` lines, or an `itos: … is missing`
-    about a file the config names) and a case pinning its output with
-    `stdout_has`, `stderr_has` or `json` keep their words judged. Each
-    rewritten fixture must parse back equal to the old one less those keys,
-    or the check stops, and it prints how many it relaxed in which file
-    (v2.8.1: 34, in seven files). A failing subtest
+    38, its `itos version` case still judged). The same script leaves out
+    each usage error's case (T-095, the user's call, 2026-10-05): a case
+    expecting exit 2, nothing on stdout, and on stderr exactly one
+    `itos: <message> (itos --help)` line, the suffix cli's `failure` prints
+    for a usage error and for nothing else (T-075's reading). Such a case
+    pins only what a command refuses, and refusing less is additive: T-075
+    judged it by its exit code alone, which still read a command that comes
+    to accept what it refused (slice 80's `init --stealth --agent-rules`) as
+    a breaking change. Its `files_after` leaves with it, losing nothing, as
+    a refused command writes nothing. A config error (config check's
+    `FAIL …` lines, or an `itos: … is missing` about a file the config
+    names) and a case pinning its output with `stdout_has`, `stderr_has` or
+    `json` stay judged word for word. Each rewritten fixture must parse back
+    equal to the old one less the cases left out, or the check stops, and it
+    prints how many usage errors it left out of which file beside the help
+    cases (v4.1.1: 72, in thirteen files). A failing subtest
     (`TestFeatures/<name>`, spaces as underscores) is named by the `@ID-` tag
     above its `Scenario:` line in the release's feature files, a failing case
     by the runner's `FAIL <file>: <name>` line as `<file base name>: <name>`.
@@ -2133,7 +2136,11 @@ diff --name-only --no-renames`, so a change undone within the range is
     whose help alone differs, which passes; and a report's lines and a JSON
     object, against a script that adds keys and lines, which passes, and four
     that each take a key away, change a value, change a line or swap two,
-    each refused.
+    each refused; and two usage errors and a config error, against a script
+    that rewords all three and gives a usage error exit 1, refused for the
+    config error alone. Its unit test runs the script on a scratch fixture:
+    the help case and the usage errors leave, the config errors and a case
+    pinned by `stderr_has` stay.
   - **commit-msg** first checks itos's own data when the commit stages any
     of it (`commit-data.ts`): the config, a ledger file, the registry or a
     smoke set, as the staged config names them, runs `config check`'s
