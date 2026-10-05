@@ -2817,15 +2817,9 @@ items:
     title: The plugin's skill says itos push waits for CI with ci.watch, and itos ci watch re-attaches
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: [slice-51]
     kind: idea
-    why: >
-      The Claude Code plugin's itos skill tells an agent to push with itos push and react to what
-      a gate reports, and says nothing of the CI run. With ci.watch the push waits, so the skill
-      should say to run it in the background and watch it, to read its job lines and exit code,
-      and to run itos ci watch <sha> after an interruption or to check a run another session
-      claims. A plugin change raises plugin.json's version (T-074).
     refs: [integrations/claude-code/skills/]
 
   - id: p1-ci-watch-failed-step
