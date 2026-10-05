@@ -4444,8 +4444,8 @@ items:
   - id: T-092
     title: The Claude Code plugin drops its itos skill, how to work with itos being itos's own guides
     phase: 3
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-64]
     kind: task
     why: >
