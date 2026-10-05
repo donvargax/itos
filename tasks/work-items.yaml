@@ -3997,3 +3997,17 @@ items:
       work list as every item, the work list usage error still says it takes no arguments though it
       takes --all, and docs/ARCHITECTURE.md's work list passage says every item. Each wants
       rewording in slice 79's push, the guide and help with their corpus cases.
+
+  - id: p1-work-drop-check-scenarios
+    title: Scenarios showing work check with dropped items
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slice 78's @ID-WORK-43 passed before work drop was built: itos refused the whole registry for
+      its unknown status, the message naming "dropped", so it does not show that dropped is known
+      whatever work.statuses lists. No scenario shows that, nor that work check reports an item
+      still to do depending on a dropped one, nor that work drop removes a why (@ID-WORK-40's idea
+      has none); unit tests and the corpus cover them.
