@@ -5079,6 +5079,10 @@ items:
       the reason as the body. Specified as @ID-WORK-40 to 43 in features/work.feature. Once it
       lands, v3-hooks-bin-default and v3-stealth-pre-push are dropped as folded into slice 79, and
       the coordinator goes through the ideas with the user, proposing drops.
+
+      This repository's itos.yaml lists work.statuses (todo, doing, done, blocked), so dropped must
+      be a status itos knows whatever the list says, or the list gains it in the same push; a
+      consumer listing statuses is then told in the Upgrading footer.
     refs: [features/work.feature]
 
   - id: slice-79
