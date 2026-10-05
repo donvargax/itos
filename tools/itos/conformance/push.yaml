@@ -80,7 +80,7 @@ cases:
     exit: 0
     stdout: |
       Pushed {{short.head}} to origin/main.
-    stderr_has: "HEAD -> main"
+    stderr_has: "{{sha.head}} -> main"
     files_after:
       .git/origin.git/refs/heads/main: "{{sha.head}}\n"
   - name: nothing to push is success
@@ -115,7 +115,7 @@ cases:
         files: { notes.md: "ours\n" }
     exit: 0
     stdout_has: "to origin/main."
-    stderr_has: "HEAD -> main"
+    stderr_has: " -> main"
   - name: a rebase that stops pushes nothing and says how to go on
     argv: [push]
     git:

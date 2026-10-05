@@ -11,9 +11,14 @@ package cli
 // pocket a change. It refuses to start when tracked files have uncommitted
 // changes instead, untracked files being no reason to. A rebase that stops
 // is left for the person to finish, and nothing is pushed. The push is
-// HEAD to the upstream's branch, an explicit refspec, so the hooks run as
-// for any push, nothing else goes with it (refs/notes/itos stays local in
-// the stealth mode), and nothing forces it: a force flag or a + refspec is
+// the commit HEAD is at once the rebase is done, by its full SHA, to the
+// upstream's branch, an explicit refspec, so the hooks run as for any push,
+// nothing else goes with it (refs/notes/itos stays local in the stealth
+// mode), and nothing forces it. That commit is resolved once (bug 21):
+// git runs the pre-push hook after it resolves the refspec, and a commit
+// made during the hook's unit tests moves HEAD, so nothing after the push
+// reads HEAD again; the commit named, waited for and counted is the one
+// pushed. Nothing forces the push: a force flag or a + refspec is
 // a usage error, and a push the remote refuses is reported with git's exit
 // code, never retried. A rebase that stops on a conflict in the work
 // registry says so in a person's words beside git's advice (slice 66): two
@@ -72,6 +77,7 @@ type pushRun struct {
 	o              Out
 	git            io.Writer // where git's stdout goes: stderr under --json
 	remote, branch string
+	sha            string   // the commit pushed, resolved once before the push
 	noWait         bool     // --no-wait: push and return, whatever ci.watch says
 	watched        *watched // the CI run waited for after the push, if one was
 }
@@ -84,10 +90,8 @@ func (r pushRun) report(code int, outcome string, lines ...string) (int, error) 
 		if r.remote != "" {
 			fields = append(fields, out.Field{Key: "remote", Value: r.remote}, out.Field{Key: "branch", Value: r.branch})
 		}
-		if outcome == "pushed" {
-			if sha, err := git.Output("rev-parse", "HEAD"); err == nil {
-				fields = append(fields, out.Field{Key: "commit", Value: strings.TrimSpace(sha)})
-			}
+		if outcome == "pushed" && r.sha != "" {
+			fields = append(fields, out.Field{Key: "commit", Value: r.sha})
 		}
 		if r.watched != nil {
 			fields = append(fields, r.watched.fields()...)
@@ -143,13 +147,19 @@ func push(args []string, o Out) (int, error) {
 	if code != 0 {
 		return r.report(code, "fetch-failed", fmt.Sprintf("itos push: fetching %s failed (git's message above); nothing was pushed", r.upstream()))
 	}
-	if exists {
-		if !git.Succeeds("merge-base", "--is-ancestor", onto, "HEAD") {
-			if code, done, err := r.rebase(onto); done {
-				return code, err
-			}
+	if exists && !git.Succeeds("merge-base", "--is-ancestor", onto, "HEAD") {
+		if code, done, err := r.rebase(onto); done {
+			return code, err
 		}
-		ahead, _ := git.Output("rev-list", "--count", onto+"..HEAD")
+	}
+	sha, err := git.Output("rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+	if err != nil {
+		fmt.Fprintf(o.Stderr, "itos: cannot resolve HEAD after the rebase: %s\n", err)
+		return ExitMissing, nil
+	}
+	r.sha = strings.TrimSpace(sha)
+	if exists {
+		ahead, _ := git.Output("rev-list", "--count", onto+".."+r.sha)
 		if strings.TrimSpace(ahead) == "0" {
 			return r.report(0, "nothing-to-push", fmt.Sprintf("Nothing to push: %s is at %s.", branch, r.upstream()))
 		}
@@ -283,15 +293,17 @@ func (r pushRun) registryConflict() []string {
 		"conflict as above.")
 }
 
-// push pushes HEAD to the upstream's branch: the pre-push hook runs, and a
-// refusal is reported with git's exit code. onto is the upstream's commit
-// the branch was rebased onto, empty when the push makes the branch.
+// push pushes the commit resolved before it, r.sha, to the upstream's
+// branch: the pre-push hook runs, and a refusal is reported with git's exit
+// code. onto is the upstream's commit the branch was rebased onto, empty
+// when the push makes the branch. HEAD is not read again: a commit made
+// while the hook ran is not the one pushed.
 func (r pushRun) push(remote, ref, onto string) (int, error) {
 	argv := []string{"push"}
 	if r.o.Quiet {
 		argv = append(argv, "--quiet")
 	}
-	code, err := r.run(r.o.Stderr, append(argv, remote, "HEAD:"+ref)...)
+	code, err := r.run(r.o.Stderr, append(argv, remote, r.sha+":"+ref)...)
 	if err != nil {
 		fmt.Fprintf(r.o.Stderr, "itos: cannot run git: %s\n", err)
 		return ExitMissing, nil
@@ -301,7 +313,7 @@ func (r pushRun) push(remote, ref, onto string) (int, error) {
 			fmt.Sprintf("itos push: the push to %s failed (git's message above); nothing was forced.", r.upstream()),
 			"If the remote moved, run itos push again to rebase onto it; if a hook refused it, fix what it reported first.")
 	}
-	short, _ := git.Output("rev-parse", "--short", "HEAD")
+	short, _ := git.Output("rev-parse", "--short", r.sha)
 	pushed := fmt.Sprintf("Pushed %s to %s.", strings.TrimSpace(short), r.upstream())
 	if r.noWait {
 		return r.report(0, "pushed", pushed)
@@ -327,9 +339,8 @@ func (r *pushRun) wait(remote, onto, pushed string) (int, error) {
 		fmt.Fprintf(r.o.Stderr, "itos: no CI run watched, the config cannot be read: %s\n", err)
 		return r.report(0, "pushed", pushed)
 	}
-	sha, _ := git.Output("rev-parse", "HEAD")
-	sha = strings.TrimSpace(sha)
-	if cfg.CI.Watch.Provider != "none" && registryOnly(onto, cfg.Work.Registry) {
+	sha := r.sha
+	if cfg.CI.Watch.Provider != "none" && registryOnly(onto, sha, cfg.Work.Registry) {
 		return r.report(0, "pushed", pushed,
 			fmt.Sprintf("Its commits touch only %s, so its CI run is not waited for; itos ci watch %s waits for it.", cfg.Work.Registry, sha))
 	}
@@ -354,16 +365,16 @@ func (r *pushRun) wait(remote, onto, pushed string) (int, error) {
 }
 
 // registryOnly is whether the commits the push added to the upstream's
-// branch, onto..HEAD, touch the work registry and no other path. A push
+// branch, onto..pushed, touch the work registry and no other path. A push
 // that makes the branch has no onto, and is never registry-only: what it
 // adds is not known without the remote's other branches. A merge counts
 // what it brought in against its first parent, and a commit that touches
 // no path adds nothing to the answer.
-func registryOnly(onto, registry string) bool {
+func registryOnly(onto, pushed, registry string) bool {
 	if onto == "" {
 		return false
 	}
-	text, err := git.Output("log", "--format=", "--name-only", "--no-renames", "--diff-merges=first-parent", onto+"..HEAD")
+	text, err := git.Output("log", "--format=", "--name-only", "--no-renames", "--diff-merges=first-parent", onto+".."+pushed)
 	if err != nil {
 		return false
 	}

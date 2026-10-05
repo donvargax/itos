@@ -807,12 +807,17 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   `REBASE_HEAD`, the upstream's owner of one it took, and `git rebase --skip`
   to give the item up, since two takes of one item meet there and the remote
   keeps the first), and a non-zero exit
-  without either a rebase that did not start (exit 1). HEAD at or behind
-  the fetched commit (`rev-list --count <sha>..HEAD` of 0) is nothing to
-  push, exit 0. `push` then runs `git push <remote> HEAD:<ref>`, an explicit
-  refspec, so a configured push refspec (the notes') sends nothing and the
-  pre-push hook runs as for any push; a refusal is reported with git's exit
-  code. Each git runs through `runGit` with the terminal's stdin (a
+  without either a rebase that did not start (exit 1). HEAD is then
+  resolved to a full SHA once (`rev-parse HEAD^{commit}`, kept as
+  `pushRun.sha`), and nothing after reads HEAD again (bug 21): git runs the
+  pre-push hook after it resolves the refspec, so a commit made during the
+  hook's unit tests moves HEAD without being pushed. That commit at or
+  behind the fetched one (`rev-list --count <onto>..<sha>` of 0) is nothing
+  to push, exit 0. `push` then runs `git push <remote> <sha>:<ref>`, an
+  explicit refspec, so a configured push refspec (the notes') sends nothing
+  and the pre-push hook runs as for any push; a refusal is reported with
+  git's exit code. The success line's short SHA, `--json`'s `commit`, the
+  registry-only range and the run waited for are all that SHA's. Each git runs through `runGit` with the terminal's stdin (a
   credential prompt), its stdout the terminal's, or stderr under `--json`,
   where stdout is `{"schema":1,"ok","outcome","remote"?,"branch"?,
 "commit"?}`; a global `-q` passes `--quiet` to the rebase and the push and
@@ -824,7 +829,7 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   `ci.watch.provider: none` it reports as before; else it prints the push's
   line and hands the pushed SHA to `watchRun` (below), whose code is push's,
   and under `--json` adds its `ci` and `run` keys to push's object. Before
-  that, `registryOnly` (slice 56) reads the paths of `onto..HEAD`, the
+  that, `registryOnly` (slice 56) reads the paths of `onto..<sha>`, the
   commits the push added after the rebase (`git log --name-only
 --no-renames --diff-merges=first-parent`): when there are some and every
   one is `work.registry`, push reports the push and a line naming `itos ci

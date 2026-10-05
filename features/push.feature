@@ -77,7 +77,7 @@ Feature: itos push, the pull-rebase-push routine as one command
   # that would never come (found by bug 20's agent, 2026-10-04,
   # p1-push-names-head-after-hook). itos push resolves the commit once,
   # before pushing, and pushes, names and waits on that one.
-  @ID-PUSH-06 @bug-21 @wip
+  @ID-PUSH-06 @bug-21
   Scenario: itos push names the commit git pushed, though a commit lands while its pre-push hook runs
     Given the pre-push hook is installed
     And hooks.pre_push's command commits "docs: late" touching "late.md" in the clone
