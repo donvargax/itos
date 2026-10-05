@@ -3867,6 +3867,9 @@ items:
       footers tell a consumer to set hooks.bin: tools/bin/itos to keep a script, or install the
       launcher (T-093's action in CI); to ask work list --all for every item; and to move go install
       lines to /v4. The inverted static/late default is out (the user's call, 2026-10-05).
+
+      The user's calls (2026-10-05, morning): the spec is approved as written, and nothing more
+      joins v4.0.0; p1-push-needs-hooks stays out of it.
     refs: [features/work.feature, features/config.feature, features/stealth.feature, go.mod]
 
   - id: p3-guide-feature-plugin-line
