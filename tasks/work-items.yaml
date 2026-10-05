@@ -3929,19 +3929,9 @@ items:
     title: ci range's github provider starts at the head's nearest ancestor with a green run
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-range-start-from-ancestry.
-      Issue #8. On 2026-10-05 near 13:30Z the provider's answer jumped far back in two repositories
-      at once (character-editor run 37318371439 began 371 commits back at a62b36c, past its green
-      parent 17c410b; itos run 37316223828 began at 8e3acf8, a day old, past the green 612bf3b and
-      8255a8e). The same lookup later answered right, so GitHub's runs list
-      (?branch=main&per_page=50) served stale data. The wide range ran old task checks (T-113 there,
-      T-092 here), and the next run's range no longer reached them. A robust start walks the head's
-      first parents and asks each commit's own runs (?head_sha=), taking the first green one, within
-      a bound; the dropped red check then cannot happen either, since a right range never held it.
     refs: [internal/providers/range.go]
 
   - id: p1-status-last-green-walk
