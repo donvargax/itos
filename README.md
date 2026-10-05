@@ -204,6 +204,11 @@ names where releases come from (`<base>/download/v<version>/<asset>`,
 `https://github.com/donvargax/itos/releases` by default) and `ITOS_CACHE` the
 cache (`itos/` in your user cache folder by default).
 
+From v4.0.0 the hooks `itos hooks install` writes call `itos`, this launcher,
+unless the config sets `hooks.bin` (internal and unsupported, for a repository
+that must run its own build, as this one sets `tools/bin/itos`), so every
+machine that commits, and CI, needs it on the `PATH`.
+
 **In CI** (from the first release after v3.7.1): a CI runner gets the global
 itos in one step, and the repository's pin chooses what runs, as on your
 machine; a repository with no pin runs the version installed. On GitHub
@@ -421,7 +426,9 @@ repository's own `.git/config`, which git never commits:
 	command = itos hook commit-msg
 ```
 
-and `hook.itos-pre-push` too when the config sets `hooks.pre_push`. Git
+and `hook.itos-pre-push` beside it (from v4.0.0; before, only when the
+config set `hooks.pre_push`), since the pre-push hook verifies the commits a
+push adds and you have no CI of the project's to judge them. Git
 (2.5x) runs a hook declared in its config as well as the project's own in
 `core.hooksPath` or `.git/hooks`, so the project's hooks and settings stay as
 they are, both run on every commit, and a hook manager that resets

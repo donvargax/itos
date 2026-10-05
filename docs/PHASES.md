@@ -32,7 +32,8 @@ without `gh`, or with it signed out, it says so and proposes `--as`. It lists:
 - what is deferred (`deferred: <reason>` on a `todo` item), with its reason.
 
 `vp run work --json` gives the same to an agent, `tools/bin/itos work list` (or
-`--json`) every item with its kind, status and title, done ones too,
+`--json`) the open items with their kind, status and title, `--all` every one,
+done ones too,
 `tools/bin/itos work show <id>` one item with its scenarios and its commits
 so far (`--patch` adds their diffs: what a review of it reads), and
 `tools/bin/itos work check`

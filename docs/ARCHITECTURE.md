@@ -122,7 +122,7 @@ history (`vp run changelog`), and the decisions behind it are records in
   in the session's root, the items first and then the tasks with no item. An
   itos older than slice 77 refuses `--all`, so a `--all` run that gives no
   answer is followed by plain `itos work list --json`, every item before
-  v4.0.0 (slice 79 makes plain `work list` the open items alone); a run that
+  v4.0.0 (slice 79 made plain `work list` the open items alone); a run that
   cannot start, exits non-zero or prints no `items` (an itos older than
   v2.3.0 reads `work list` as `work`) falls back to reading
   `tasks/work-items.yaml` with `$.fs`. Both hooks run the itos the
@@ -676,8 +676,8 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   lists `configFindings`' problems and `hookProblems`', for the manager
   `chosenManager` gives (a shim file missing, not calling itos or, for
   plain git, not executable; a lefthook or pre-commit config without
-  itos's lines; a git config entry missing, the pre-push one only with
-  `hooks.pre_push`, as `declareHooks` writes it), exit 1 when there is
+  itos's lines; a git config entry missing, the pre-push one only when
+  `declaresPrePush` says `declareHooks` writes it), exit 1 when there is
   any; then its notes, never counted as missing (slice 50), under their
   own heading and in the `checked` object's `notes`: `configFindings`'
   warnings (the people file's) and `pinBehind`, a pin older than the
@@ -967,8 +967,12 @@ watch <sha>`, exit 0, with no provider made; a push that made the branch
   kind) and decoded into the typed `Config` the tools read. `DefaultsFor` is
   `defaultsFor`, the registry beside the config's ledger, and takes whether
   the config is the stealth one, whose `hooks.bin` is `GlobalBin` (`itos`)
-  and which has no `work.people` (`stealthOnly`, laid over the file too, so
-  the file cannot say otherwise); `config check
+  whatever the file says and which has no `work.people` (`stealthOnly`, laid
+  over the file too, so the file cannot say otherwise). `GlobalBin` is every
+  config's default `hooks.bin` since v4.0.0 (slice 79; `tools/bin/itos`
+  before), the launcher on the `PATH` running the version the repository
+  pins; the key stays, internal and unsupported, for a repository that must
+  run its own build, as this one sets it. `config check
 --print-defaults` prints exactly that tree, so a default cannot be applied
   without being printed. A key with no default is a nil pointer, a nil list or
   an empty `Ordered` (a mapping whose order matters, as written); the file as
@@ -1408,12 +1412,15 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   the GitLab and Forgejo APIs wait for `p1-conformance-http`, as the range
   ones do: neither implementation's schema accepts them yet, so a config
   naming one is a config error, not a command that runs half-built.
-  `work list` (and `work list --all`, slice 77, the same until v4.0.0) is
-  `work.Load` and nothing after it: every item in the
-  registry's order, judged by nothing, as `task list` is not, so a reader of
-  the titles (T-066's plugin) keeps them through a registry problem; its
-  `--json` items are the same `value.Map`s the proposal writes, so the two
-  commands describe an item alike, and its text is `work.PrintList`.
+  `work list` is `work.Load` and `work.Open` after it: the open items
+  (todo and doing, slice 79) in the registry's order, and with `--all`
+  (slice 77) every item, which plain `work list` printed until v4.0.0;
+  judged by nothing, as `task list` is not, so a reader of the titles
+  (T-066's plugin, which asks `--all`) keeps them through a registry
+  problem. Its `--json` items are the same `value.Map`s the proposal
+  writes, so the two commands describe an item alike, and its text is
+  `work.PrintList`, which marks a deferred item `(deferred)` after its
+  title.
 - **The registry's writers** are `work take` and `work promote` (slice 52,
   `internal/cli/workwrite.go` over `internal/work/write.go`), the registry
   being written by commands, never by hand, and each committing its own
@@ -1468,7 +1475,10 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   `work.Edit` replaces a title (`Set`), a `depends_on` or `refs` (`SetList`)
   and adds a paragraph to the why (`Note`); `Change.Changed` names the keys,
   and a list the item lacks compares as an empty one, so emptying it is no
-  change.
+  change. A note on a slice or a task (`SpecKind`, an item of no kind read
+  by its id) is refused before anything is written, rule `work-note-spec`,
+  naming where its why lives (`WhereWhy`): the registry keeps an idea's why
+  alone (decision 0034, slice 79; slice 76 only warned).
   Neither restates `work check`: each runs `work.Issues` on the registry with
   the item as it would be (`sound`), and, the registry having been sound,
   refuses with whatever that finds (an owner not among the people, a
@@ -1787,7 +1797,10 @@ install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   stealth config, unless `--manager` or `hooks.manager` names one, the
   manager is the git config (`internal/cli/gitconfig.go`, slice 33):
   `declareHooks` writes `hook.itos-commit-msg` and, when `hooks.pre_push` is
-  set, `hook.itos-pre-push` into the repository's own config
+  set or the config is the stealth one (`declaresPrePush`, slice 79: the
+  pre-push hook verifies the pushed commits whatever `hooks.pre_push` says,
+  and a stealth user has no CI of the project's to judge them),
+  `hook.itos-pre-push` into the repository's own config
   (`git config --local --replace-all`, its `.command` `<hooks.bin> hook
 <event>`, `itos hook <event>` under a stealth config, git appending the hook's arguments, and its one `.event`), and
   removes an itos pre-push entry when it is not. Git runs those beside the
