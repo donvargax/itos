@@ -4031,3 +4031,16 @@ items:
       itos receives what is left and cannot tell. The help of ask add, work add, and every --why and
       --note could say to quote the text, and each could take it from a file or stdin (-F <file>, -
       for stdin), as itos commit does, the one way that works the same on every shell.
+
+  - id: p1-commit-empty-hint
+    title: itos commit with nothing staged names --allow-empty
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Reported by an agent, 2026-10-05: closing a task whose done_when passes with no change left to
+      make, itos commit --task <id> fails as git does (nothing to commit) until one finds
+      --allow-empty. The error could name the flag. It should not apply it on its own: an empty
+      commit is deliberate.
