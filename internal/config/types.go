@@ -145,6 +145,7 @@ func (t *Types) UnmarshalJSON(data []byte) error {
 type Scope struct {
 	Only      []string `json:"only"`
 	Never     []string `json:"never"`
+	Except    []string `json:"except"` // takes paths back out of Never alone
 	MustTouch []string `json:"must_touch"`
 }
 

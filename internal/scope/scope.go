@@ -1,6 +1,7 @@
 // Package scope is the path rules of commits.scopes (commit-scope.ts's
 // scopeIssues): which paths each commit type may touch. `only`: every
-// touched path must match; `never`: no touched path may match; `must_touch`:
+// touched path must match; `never`: no touched path may match, unless it
+// matches `except`, which takes paths back out of never alone; `must_touch`:
 // at least one must. Its `$sets` are already expanded by the config's loader.
 //
 // It takes a type and its paths and gives the problems, so commit
@@ -67,7 +68,7 @@ func (r *Rules) Issues(typ string, files []string) ([]out.Problem, error) {
 			}
 		}
 		if rules.Never != nil {
-			ok, err := glob.MatchesAny(file, rules.Never)
+			ok, err := barred(rules, file)
 			if err != nil {
 				return nil, err
 			}
@@ -119,7 +120,8 @@ func (r *Rules) split(rule, typ, file string) (out.Problem, error) {
 	}, nil
 }
 
-// TypesFor is the types whose only and never let a path through, in the
+// TypesFor is the types whose only and never (with its except) let a path
+// through, in the
 // order commits.scopes writes them: where a rejected path goes. A type
 // without path rules is not among them.
 func (r *Rules) TypesFor(file string) ([]string, error) {
@@ -136,7 +138,7 @@ func (r *Rules) TypesFor(file string) ([]string, error) {
 			}
 		}
 		if rules.Never != nil {
-			ok, err := glob.MatchesAny(file, rules.Never)
+			ok, err := barred(rules, file)
 			if err != nil {
 				return nil, err
 			}
@@ -147,6 +149,17 @@ func (r *Rules) TypesFor(file string) ([]string, error) {
 		types = append(types, typ)
 	}
 	return types, nil
+}
+
+// barred is whether a scope's never refuses a path: it matches never and
+// not except.
+func barred(rules config.Scope, file string) (bool, error) {
+	ok, err := glob.MatchesAny(file, rules.Never)
+	if err != nil || !ok || rules.Except == nil {
+		return ok, err
+	}
+	excepted, err := glob.MatchesAny(file, rules.Except)
+	return !excepted, err
 }
 
 // Reject prints the rejection as the hook has always printed it:

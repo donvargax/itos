@@ -97,14 +97,21 @@ func (c *Config) sinces() []since {
 	return found
 }
 
+// scopeProblems: a scope is a commit type's, and an except list, which
+// takes paths back out of never alone, stands beside a never.
 func scopeProblems(_ *value.Map, c *Config) []out.Problem {
 	types := c.Commits.Types
-	if types == nil {
-		return nil
-	}
 	var found []out.Problem
 	for _, typ := range c.Commits.Scopes.Keys {
-		if !slices.Contains(types, typ) {
+		if s := c.Commits.Scopes.Values[typ]; s.Except != nil && len(s.Never) == 0 {
+			found = append(found, out.Problem{
+				Rule:    "config-scope-except",
+				Message: "commits.scopes." + typ + " has an except and no never, and except takes paths out of never alone",
+				Fix: "write the globs its except takes paths out of under commits.scopes." + typ + ".never, " +
+					"or remove commits.scopes." + typ + ".except",
+			})
+		}
+		if types != nil && !slices.Contains(types, typ) {
 			found = append(found, out.Problem{
 				Rule:    "config-scope-type",
 				Message: "commits.scopes." + typ + " is not one of commits.types",

@@ -5,7 +5,8 @@
 # a backreference, a repeat count above 1000, a letter escape, an empty class,
 # a kind's ID pattern among them), a name that refers
 # to nothing, a commits.since or a footer's since that is no full SHA or no
-# commit here, a footer of free text with a key that reads IDs), exit 2;
+# commit here, a footer of free text with a key that reads IDs, a scope's except
+# without a never), exit 2;
 # a missing ledger folder, one problem naming it, exit 2; each ledger problem (written order among them, a check that calls hooks.bin read as itos), exit 1;
 # a check static by a ci.cost.static pattern that written order runs late, a warning that passes;
 # the registry's and the smoke set's problems beside them; the decision
@@ -349,6 +350,38 @@ cases:
       FAIL itos.yaml: a CI step needs exactly one of run and tests: {"run":"a","tests":"scenario"}
       FAIL itos.yaml: a CI step runs tests: unit, and tests.unit.run.whole is missing
       FAIL itos.yaml: a CI step needs exactly one of run and tests: {"cost":"late"}
+  - name: an except in a scope with no never (config-scope-except)
+    argv: [config, check, --json]
+    files:
+      itos.yaml: &except |
+        version: 1
+        commits:
+          types: [chore, docs]
+          scopes:
+            chore: { except: ["src/games/*/themes/**"] }
+            docs: { only: ["**/*.md"], never: [], except: ["docs/**"] }
+    exit: 2
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: config-scope-except
+          message: "itos.yaml: commits.scopes.chore has an except and no never, and except takes paths out of never alone"
+          fix: write the globs its except takes paths out of under commits.scopes.chore.never, or remove commits.scopes.chore.except
+          area: config
+        - rule: config-scope-except
+          message: "itos.yaml: commits.scopes.docs has an except and no never, and except takes paths out of never alone"
+          fix: write the globs its except takes paths out of under commits.scopes.docs.never, or remove commits.scopes.docs.except
+          area: config
+  - name: the same as text, and commit check-paths refuses the config too
+    argv: [commit, check-paths, --type, chore, src/games/cielo/themes/colours.ts]
+    files:
+      itos.yaml: *except
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: commits.scopes.chore has an except and no never, and except takes paths out of never alone
+      FAIL itos.yaml: commits.scopes.docs has an except and no never, and except takes paths out of never alone
   - name: a static check written below a late one (static-after-late)
     argv: [config, check, --ledger, late.yaml]
     files:

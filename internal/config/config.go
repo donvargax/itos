@@ -198,7 +198,7 @@ func expandSets(tree *value.Map) []out.Problem {
 	if scopes, ok := value.Prop(commits, "scopes").(*value.Map); ok {
 		for _, typ := range scopes.Keys() {
 			rule := scopes.At(typ).(*value.Map)
-			for _, k := range []string{"only", "never", "must_touch"} {
+			for _, k := range []string{"only", "never", "except", "must_touch"} {
 				if globs, ok := rule.At(k).([]any); ok {
 					rule.Set(k, expand(globs, "commits.scopes."+typ+"."+k))
 				}

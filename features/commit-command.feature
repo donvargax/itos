@@ -201,20 +201,20 @@ Feature: itos commit, a commit whose footers itos writes
   # refused unless it matches except. except applies to never alone, and
   # config check refuses an except in a scope that has no never. The hook,
   # verify and check-paths read the same scopes.
-  @ID-COMMITCMD-19 @slice-81 @wip
+  @ID-COMMITCMD-19 @slice-81
   Scenario: check-paths lets a path through that a scope's except takes out of its never
     Given the config's chore commits may never touch "src/**" except "src/games/*/themes/**"
     When itos runs "commit check-paths --type chore src/games/cielo/themes/colours.ts"
     Then itos exits with code 0
 
-  @ID-COMMITCMD-20 @slice-81 @wip
+  @ID-COMMITCMD-20 @slice-81
   Scenario: check-paths refuses a path under never that except does not name
     Given the config's chore commits may never touch "src/**" except "src/games/*/themes/**"
     When itos runs "commit check-paths --type chore src/games/cielo/sim/nudo.ts"
     Then itos exits with code 1
     And its output says "src/games/cielo/sim/nudo.ts"
 
-  @ID-COMMITCMD-21 @slice-81 @wip
+  @ID-COMMITCMD-21 @slice-81
   Scenario: The commit-msg hook takes a scope's except as check-paths does
     Given the config's chore commits may never touch "src/**" except "src/games/*/themes/**"
     And a change to "src/games/cielo/themes/colours.ts" is staged

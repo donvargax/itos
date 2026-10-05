@@ -2,8 +2,11 @@ package cli
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v4/internal/config"
 )
 
 func TestCodeFencesWithMoreBackticksThanItHolds(t *testing.T) {
@@ -109,5 +112,28 @@ func TestWriteRulesLeavesACLAUDELinkedToAGENTS(t *testing.T) {
 	got, _ := os.ReadFile(agentsFile)
 	if strings.Contains(string(got), claudeImport) || string(got) != "Mine.\n\n"+block {
 		t.Errorf("AGENTS.md: %q", got)
+	}
+}
+
+// A scope's except is said beside its never.
+func TestRulesBlockSaysExcept(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "itos.yaml")
+	text := `version: 1
+commits:
+  types: [chore]
+  scopes:
+    chore: { never: ["src/**"], except: ["src/games/*/themes/**"] }
+`
+	if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block := rulesBlock(cfg, "itos.yaml", code)
+	want := "- `chore` may not touch `src/**`, except `src/games/*/themes/**`."
+	if !strings.Contains(block, want) {
+		t.Errorf("the block does not say %q:\n%s", want, block)
 	}
 }

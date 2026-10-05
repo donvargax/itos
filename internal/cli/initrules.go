@@ -512,7 +512,11 @@ func rulesBlock(cfg *config.Loaded, source string, data func(string) string) str
 			rules = append(rules, "may touch only "+codes(s.Only, "and"))
 		}
 		if len(s.Never) > 0 {
-			rules = append(rules, "may not touch "+codes(s.Never, "or"))
+			never := "may not touch " + codes(s.Never, "or")
+			if len(s.Except) > 0 {
+				never += ", except " + codes(s.Except, "or")
+			}
+			rules = append(rules, never)
 		}
 		if len(s.MustTouch) > 0 {
 			rules = append(rules, "must touch at least one of "+codes(s.MustTouch, "or"))

@@ -1,8 +1,8 @@
 # Each commit type's path rules as the project template sets them (itos.yaml's
 # `commits`, tasks/README.md's table), the traps they set when a piece of work
 # is split into commits, the rejection's wording and its --json with each
-# problem's rule and fix, and another project's rules (the rules are the
-# config's).
+# problem's rule and fix, a never with an except that takes paths back out of
+# it, and another project's rules (the rules are the config's).
 files:
   itos.yaml: |
     version: 1
@@ -179,6 +179,40 @@ cases:
         - rule: scope-never
           message: refactor commits may not touch e2e/features/a.feature
           fix: "split the commit: stage e2e/features/a.feature in a commit of another type (feat, fix, test, chore, docs, style)"
+  # Slice 81: a scope's except takes paths back out of its never, and
+  # $sets work in it as in never; the fix's types are where never and except
+  # let the path through.
+  - name: except takes a path back out of never
+    argv: [commit, check-paths, --type, chore, src/games/cielo/themes/colours.ts, package.json]
+    env: { ITOS_CONFIG: themes.yaml }
+    files:
+      themes.yaml: &themes |
+        version: 1
+        commits:
+          types: [feat, chore, docs]
+          path_sets:
+            themes: ["src/games/*/themes/**"]
+          scopes:
+            feat: {}
+            chore: { never: ["src/**"], except: [$themes] }
+            docs: { only: ["**/*.md"] }
+    exit: 0
+  - name: --json of a path under never that except does not name
+    argv: [commit, check-paths, --type, chore, --json, src/games/cielo/sim/nudo.ts]
+    env: { ITOS_CONFIG: themes.yaml }
+    files:
+      themes.yaml: *themes
+    exit: 1
+    json:
+      schema: 1
+      type: chore
+      files:
+        - src/games/cielo/sim/nudo.ts
+      ok: false
+      problems:
+        - rule: scope-never
+          message: chore commits may not touch src/games/cielo/sim/nudo.ts
+          fix: "split the commit: stage src/games/cielo/sim/nudo.ts in a commit of another type (feat)"
   - name: another project's rules, from the config ITOS_CONFIG names (lax-refactor)
     argv: [commit, check-paths, --type, refactor, e2e/features/list.feature]
     env: { ITOS_CONFIG: lax.yaml }
