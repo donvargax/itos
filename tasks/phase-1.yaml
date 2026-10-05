@@ -642,7 +642,7 @@
     the two agree, so status could list commits the next release does not carry. release-version
     imports internal/release, which needs nothing outside the standard library, and its copy goes.
   done_when:
-    - run: grep -q 'itos/v3/internal/release"' tools/bin/release-version/main.go
+    - run: grep -Eq 'itos/v[0-9]+/internal/release"' tools/bin/release-version/main.go
     - run: go test ./tools/bin/release-version/... ./internal/release/...
 
 - id: T-089
@@ -658,7 +658,7 @@
     refuses a version whose major does not match the module path's suffix, so the next major moves
     the path first. go install works from the first release cut after it.
   done_when:
-    - run: grep -qx 'module github.com/donvargax/itos/v3' go.mod
+    - run: grep -Eqx 'module github.com/donvargax/itos/v([3-9]|[1-9][0-9]+)' go.mod
     - run: "! git grep -q 'donvargax/itos/v2' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
     - run: go build ./...
 
@@ -674,7 +674,7 @@
     lists the tags it reaches as now and picks with release.Newest.
   done_when:
     - run: "! grep -l 'v:refname' tools/bin/release-notes/main.go tools/bin/schema-contract/main.go tools/bin/previous-release/main.go"
-    - run: test "$(grep -l 'itos/v3/internal/release\"' tools/bin/release-notes/main.go tools/bin/schema-contract/main.go tools/bin/previous-release/main.go | wc -l)" -eq 3
+    - run: test "$(grep -lE 'itos/v[0-9]+/internal/release"' tools/bin/release-notes/main.go tools/bin/schema-contract/main.go tools/bin/previous-release/main.go | wc -l)" -eq 3
     - run: go test ./tools/... ./internal/release/...
 
 - id: T-091
@@ -708,7 +708,7 @@
   why: >
     Slice 79 cuts v4.0.0, and tools/bin/release-version refuses a v4 tag from a go.mod whose module
     path ends in /v3 (T-089), as Go's module proxy refuses it. The path moves to /v4 everywhere it
-    is named, in one refactor commit before the push that carries slice 79's breaking feats: go.mod,
+    is named, in one refactor commit in the push that carries slice 79's breaking feats: go.mod,
     every import of itos's own packages, the -X ldflags that stamp the version (.goreleaser.yaml,
     tools/bin/itos, tools/bin/build-go.ts, CI's Build itos step), go-hooks.ts's module prefix, and
     the go install lines of the README and ARCHITECTURE. The done tasks whose checks named the /v3
