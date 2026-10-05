@@ -1,0 +1,99 @@
+#!/bin/sh
+# install-launcher <dir> [<version>]: the global itos, the launcher, from a release into <dir>
+# (T-093), so a CI runner gets it in one step and the repository's pin chooses what runs
+# (docs/decisions/0024-a-global-itos-is-a-launcher-that-runs-the-version-a-repository-pins.md).
+#
+# It fetches <base>/download/v<version>/checksums.txt and this platform's archive,
+# itos-<version>-<os>-<arch>.tar.gz, or itos-<version>-windows-amd64.zip under Git Bash or MSYS
+# (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md),
+# checks the archive against its line, and unpacks itos (itos.exe on Windows) into <dir>. <base> is
+# ITOS_RELEASES, as the launcher reads it, else https://github.com/donvargax/itos/releases. With
+# no version it installs the newest, read from the archive names <base>/latest/download/
+# checksums.txt lists. Anything missing or not matching fails, non-zero, and installs nothing.
+#
+# POSIX sh, curl, tar or unzip, and sha256sum or shasum: what a Linux, macOS or Windows (Git
+# Bash) runner carries. action.yml at the repository's top runs it for GitHub Actions.
+set -eu
+
+die() {
+	echo "install-launcher: $*" >&2
+	exit 1
+}
+
+[ $# -ge 1 ] && [ $# -le 2 ] && [ -n "$1" ] || {
+	echo "usage: install-launcher <dir> [<version>]" >&2
+	exit 2
+}
+dir=$1
+version=${2:-}
+version=${version#v}
+base=${ITOS_RELEASES:-https://github.com/donvargax/itos/releases}
+base=${base%/}
+
+case "$(uname -s)-$(uname -m)" in
+Linux-x86_64 | Linux-amd64) platform=linux-amd64 ;;
+Linux-aarch64 | Linux-arm64) platform=linux-arm64 ;;
+Darwin-x86_64) platform=darwin-amd64 ;;
+Darwin-arm64) platform=darwin-arm64 ;;
+MINGW*-x86_64 | MSYS*-x86_64) platform=windows-amd64 ;;
+*) die "no itos archive for $(uname -s)-$(uname -m)" ;;
+esac
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+fetch() { # <url> <file>
+	curl -fsSL --retry 3 -o "$2" "$1" || die "cannot fetch $1"
+}
+
+# A release's version, from the archive names its checksums.txt lists, as the launcher reads it.
+version_of() { # <checksums.txt>
+	awk '{
+		name = $2
+		sub(/^\*/, "", name)
+		if (name ~ /^itos-[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?-[0-9a-z]+-[0-9a-z]+\.(tar\.gz|zip)$/) {
+			sub(/^itos-/, "", name)
+			sub(/-[0-9a-z]+-[0-9a-z]+\.(tar\.gz|zip)$/, "", name)
+			print name
+			exit
+		}
+	}' "$1"
+}
+
+if [ -z "$version" ]; then
+	fetch "$base/latest/download/checksums.txt" "$tmp/latest.txt"
+	version=$(version_of "$tmp/latest.txt")
+	[ -n "$version" ] || die "$base/latest/download/checksums.txt names no itos archive"
+fi
+
+case "$platform" in
+windows-*) archive="itos-$version-$platform.zip" bin=itos.exe ;;
+*) archive="itos-$version-$platform.tar.gz" bin=itos ;;
+esac
+
+fetch "$base/download/v$version/checksums.txt" "$tmp/checksums.txt"
+want=$(awk -v a="$archive" '$2 == a || $2 == "*" a { print $1; exit }' "$tmp/checksums.txt")
+[ -n "$want" ] || die "v$version's checksums.txt has no line for $archive"
+
+fetch "$base/download/v$version/$archive" "$tmp/$archive"
+if command -v sha256sum >/dev/null 2>&1; then
+	got=$(cd "$tmp" && sha256sum "$archive" | awk '{ print $1 }')
+elif command -v shasum >/dev/null 2>&1; then
+	got=$(cd "$tmp" && shasum -a 256 "$archive" | awk '{ print $1 }')
+else
+	die "neither sha256sum nor shasum is on the PATH"
+fi
+got=${got#\\}
+[ "$got" = "$want" ] || die "$archive does not match its line in v$version's checksums.txt (want $want, got $got)"
+
+mkdir -p "$tmp/out"
+case "$archive" in
+*.zip) unzip -o -q "$tmp/$archive" "$bin" -d "$tmp/out" || die "cannot unpack $bin from $archive" ;;
+*) tar -xzf "$tmp/$archive" -C "$tmp/out" "$bin" || die "cannot unpack $bin from $archive" ;;
+esac
+[ -f "$tmp/out/$bin" ] || die "$archive holds no $bin"
+
+mkdir -p "$dir" || die "cannot make $dir"
+cp "$tmp/out/$bin" "$dir/$bin" || die "cannot write $dir/$bin"
+chmod 755 "$dir/$bin"
+echo "install-launcher: itos $version in $dir/$bin"

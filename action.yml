@@ -1,0 +1,38 @@
+# The global itos, the launcher, on a GitHub Actions runner in one step (T-093):
+#
+#   - uses: donvargax/itos@v<x.y.z>
+#
+# installs that release's itos (the newest for a ref that is not a version, or the `version`
+# input's) into the runner's temporary folder and puts it on the PATH. The repository's pin then
+# chooses the itos that runs, as it does for a person's global install
+# (docs/decisions/0024-a-global-itos-is-a-launcher-that-runs-the-version-a-repository-pins.md); a
+# repository with no pin runs the version installed. tools/bin/install-launcher does the work, so
+# other CI runs the same script.
+name: itos
+description: Install the itos launcher on the PATH; the repository's pin chooses the itos that runs.
+author: donvargax
+branding:
+  icon: check-square
+  color: green
+inputs:
+  version:
+    description: >-
+      The release to install, x.y.z. By default the action's own ref when it is vX.Y.Z, else the
+      newest release.
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Install itos
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        REF: ${{ github.action_ref }}
+      run: |
+        version=$VERSION
+        if [ -z "$version" ] && [[ $REF =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          version=${REF#v}
+        fi
+        sh "$GITHUB_ACTION_PATH/tools/bin/install-launcher" "$RUNNER_TEMP/itos-bin" ${version:+"$version"}
+        echo "$RUNNER_TEMP/itos-bin" >> "$GITHUB_PATH"
