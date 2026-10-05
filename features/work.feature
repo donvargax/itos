@@ -485,7 +485,7 @@ Feature: The work registry
   # the rule is by the two statuses itos knows to be closed: plain work list
   # prints every item whose status is neither done nor dropped, blocked and
   # any status a project adds among them.
-  @ID-WORK-46 @bug-25 @wip
+  @ID-WORK-46 @bug-25
   Scenario: work list prints a blocked item among the open ones
     Given the work registry has the item "T-001" with the status "done" and the item "slice-1" with the status "blocked"
     When itos runs "work list"

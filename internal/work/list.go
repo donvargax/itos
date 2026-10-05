@@ -9,13 +9,15 @@ import (
 	"github.com/donvargax/itos/v4/internal/value"
 )
 
-// Open is the items work list prints by default (slice 79): those still to
-// do or in progress, todo and doing, in the order given. A done or dropped
-// item, or one of any other status, is left to work list --all.
+// Open is the items work list prints by default (slice 79): those not
+// closed, in the order given. Closed is done or dropped, the two statuses
+// itos knows to end an item (bug 25), so blocked, any status a project adds
+// to work.statuses and an item with no status are open; done and dropped
+// are left to work list --all.
 func Open(items []*value.Map) []*value.Map {
 	open := []*value.Map{}
 	for _, item := range items {
-		if status := item.At("status"); status == "todo" || status == "doing" {
+		if status := item.At("status"); status != "done" && status != "dropped" {
 			open = append(open, item)
 		}
 	}

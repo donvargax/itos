@@ -380,11 +380,12 @@ cases:
       Usage: itos work list [--all]
 
       Prints the open items of the work registry (the config's work.registry, by
-      default work-items.yaml in the ledger's folder), todo and doing, in its order,
-      whatever their kind or owner: each one's id, kind, status and title, "-" for a
-      kind or status it does not give, and (deferred) after the title of one
-      deferred. --all prints every item, whatever its status, done and dropped ones
-      too (until v4.0.0, plain work list printed every item). It judges nothing, so
+      default work-items.yaml in the ledger's folder), every one whose status is
+      neither done nor dropped (blocked and any status work.statuses adds among
+      them), in its order, whatever their kind or owner: each one's id, kind, status
+      and title, "-" for a kind or status it does not give, and (deferred) after the
+      title of one deferred. --all prints every item, done and dropped ones too
+      (until v4.0.0, plain work list printed every item). It judges nothing, so
       a registry that is not sound still lists; exit 1 when there is no registry
       where itos looks.
 

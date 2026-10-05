@@ -849,13 +849,15 @@ cases:
       free-idea    idea   todo   A free idea
       theirs       idea   todo   Theirs
       slice        slice  todo   A slice
-  - name: work list leaves out a done, dropped or blocked item, which --all prints
+  - name: work list leaves out a done or dropped item, which --all prints, and lists a blocked one or any other status
     argv: [work, list]
     files:
-      work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: d, title: D, phase: 1, owner: a, status: done }\n  - { id: r, title: R, phase: 1, owner: a, status: dropped }\n  - { id: b, title: B, phase: 1, owner: a, status: blocked }\n  - { id: t, title: T, phase: 1, owner: a, status: todo }\n"
+      work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: d, title: D, phase: 1, owner: a, status: done }\n  - { id: r, title: R, phase: 1, owner: a, status: dropped }\n  - { id: b, title: B, phase: 1, owner: a, status: blocked }\n  - { id: t, title: T, phase: 1, owner: a, status: todo }\n  - { id: v, title: V, phase: 1, owner: a, status: review }\n"
     exit: 0
     stdout: |
-      t  -  todo  T
+      b  -  blocked  B
+      t  -  todo     T
+      v  -  review   V
   - name: work list --json, the open items each as work --json writes it, and where the registry was read
     argv: [work, list, --json]
     files:

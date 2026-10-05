@@ -104,8 +104,8 @@ func workProposal(as string, o Out) (int, error) {
 }
 
 // workList is `work list` (slice 43), the open items of the registry
-// (todo and doing, slice 79) in its order, whatever their kind or owner, a
-// deferred one marked so; with --all (slice 77) every item, done and
+// (every one neither done nor dropped, slice 79 and bug 25) in its order,
+// whatever their kind or owner, a deferred one marked so; with --all (slice 77) every item, done and
 // dropped ones too. Plain work list printed every item until v4.0.0, so a
 // caller that needs every item (the Claude Code plugin's titles) asks for
 // --all. It judges nothing, as task list does not, so a registry with

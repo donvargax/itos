@@ -1461,7 +1461,9 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   ones do: neither implementation's schema accepts them yet, so a config
   naming one is a config error, not a command that runs half-built.
   `work list` is `work.Load` and `work.Open` after it: the open items
-  (todo and doing, slice 79) in the registry's order, and with `--all`
+  (every one neither done nor dropped, slice 79 and bug 25: the two
+  statuses itos knows to be closed, so blocked and any status a project
+  adds to `work.statuses` are open) in the registry's order, and with `--all`
   (slice 77) every item, which plain `work list` printed until v4.0.0;
   judged by nothing, as `task list` is not, so a reader of the titles
   (T-066's plugin, which asks `--all`) keeps them through a registry

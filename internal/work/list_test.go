@@ -30,8 +30,9 @@ func TestPrintList(t *testing.T) {
 	}
 }
 
-// work list's default is the open items, todo and doing, in their order;
-// done, dropped, blocked and no status are --all's alone (slice 79).
+// work list's default is the open items in their order: every one neither
+// done nor dropped, blocked, a status itos does not know and no status
+// among them (bug 25); done and dropped are --all's alone (slice 79).
 func TestOpen(t *testing.T) {
 	var ids []string
 	for _, item := range Open([]*value.Map{
@@ -41,10 +42,11 @@ func TestOpen(t *testing.T) {
 		value.NewMap("id", "d", "status", "todo"),
 		value.NewMap("id", "e", "status", "blocked"),
 		value.NewMap("id", "f"),
+		value.NewMap("id", "g", "status", "review"),
 	}) {
 		ids = append(ids, value.String(item.At("id")))
 	}
-	if strings.Join(ids, " ") != "b d" {
-		t.Errorf("open: %v, want b d", ids)
+	if strings.Join(ids, " ") != "b d e f g" {
+		t.Errorf("open: %v, want b d e f g", ids)
 	}
 }
