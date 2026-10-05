@@ -1568,7 +1568,7 @@ items:
     phase: 1
     owner: donvargax
     status: todo
-    depends_on: []
+    depends_on: [T-091]
     kind: slice
     why: >
       Was p1-itos-upgrade.
@@ -1583,6 +1583,14 @@ items:
       major is something to act on: itos status shows the pin and the newest, and the guide's rule
       (upgrade first) fires on a major, asking the person through itos ask by default. That
       integration is low priority, after itos upgrade itself.
+
+      The user's calls (2026-10-04, this session): each release's asks come from a release asset,
+      upgrading.json (T-091), not the notes' Markdown, and itos upgrade walks back through each
+      one's previous; it applies only the pin, the schema line and the install script's version and
+      hashes, and lists the rest; it is a new command and itos pin stays as released. Specified as
+      @ID-UPGRADE-01 to 10 in features/upgrade.feature. Showing the pin against the newest in itos
+      status, and the guide's upgrade-first rule on a major, come after this, as their own item.
+    refs: [features/upgrade.feature, features/pin.feature, tools/bin/release-notes/main.go]
 
   - id: p1-tests-next-id-and-steps
     title: "Spec help: the next free test ID, the steps that exist, the ones still undefined"
