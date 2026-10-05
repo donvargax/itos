@@ -2166,15 +2166,9 @@ items:
     title: The pre-push hook passes when hooks.pre_push gives it nothing to run
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-33]
     kind: idea
-    why: >
-      Found in slice 33: hook pre-push with no hooks.pre_push fails every push with the
-      TypeScript's "Cannot read properties of undefined (reading 'whole')", and every file manager
-      writes the pre-push shim whether or not the config sets it, so a config without pre-push
-      commands refuses every push. The git-config manager declares no pre-push entry then; the
-      hook could pass with nothing to run, or hooks install write no pre-push shim, with a scenario.
     refs: [internal/cli/hook.go, internal/cli/install.go]
 
   - id: p3-git-config-stale-shims
