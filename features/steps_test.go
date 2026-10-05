@@ -430,7 +430,7 @@ func moduleRoot() (string, error) {
 // settings), with no global or system git config and a fixed identity, and
 // what keeps the launcher off the network and any real cache (launcherEnv),
 // and the scenario's git link and extensions first on the PATH (pathFirst),
-// the caller's PATH without its claude (callerPath) after them.
+// the caller's PATH without its claude or its itos (callerPath) after them.
 func (w *world) env() []string {
 	var env []string
 	for _, kv := range os.Environ() {
@@ -458,13 +458,23 @@ func (w *world) env() []string {
 }
 
 // basePath is the PATH every command starts from: the caller's without its
-// claude (callerPath), and without its gh too when the scenario has none.
+// claude or its itos (callerPath), and without its gh too when the scenario
+// has none.
 func (w *world) basePath() string {
 	if w.noGh {
-		return pathHiding("claude", "gh")
+		return pathHiding(slices.Concat(hiddenAlways, []string{"gh"})...)
 	}
 	return callerPath()
 }
+
+// The programs no scenario reaches on the caller's PATH: its claude, its itos
+// and its itos extensions (itos-*). The itos the caller has installed may lag
+// the tree, so a hook or a step that ran it would test that build instead of
+// the one under test (T-087); and itos runs and lists every extension it
+// finds, so one installed on the machine would change what a scenario sees, as
+// T-080 found for the corpus. A scenario's own claude, extensions and itos
+// (itosOnPath, the itos under test) go first on the PATH instead.
+var hiddenAlways = []string{"claude", "itos", "itos-*"}
 
 var (
 	hiddenPathsMu sync.Mutex
@@ -472,15 +482,14 @@ var (
 	callerPathDir string
 )
 
-// callerPath is the caller's PATH with no claude on it, so no scenario
-// reaches the Claude Code of the machine it runs on: each folder holding one
-// is replaced by a folder of links to everything else in it, as the corpus's
-// hide does, or left out where links cannot be made. A scenario's own claude
-// goes first on the PATH (init_test.go).
-func callerPath() string { return pathHiding("claude") }
+// callerPath is the caller's PATH with none of hiddenAlways on it, so no
+// scenario reaches the Claude Code or the itos of the machine it runs on: each
+// folder holding one is replaced by a folder of links to everything else in
+// it, as the corpus's hide does, or left out where links cannot be made.
+func callerPath() string { return pathHiding(hiddenAlways...) }
 
 // pathHiding is the caller's PATH with none of the programs named on it,
-// made once a run for each set of names, as callerPath hides claude.
+// made once a run for each set of names, as callerPath hides hiddenAlways.
 func pathHiding(names ...string) string {
 	hiddenPathsMu.Lock()
 	defer hiddenPathsMu.Unlock()
@@ -519,14 +528,25 @@ func removeCallerPath() {
 }
 
 // isOneOf is whether a folder's entry is a program of the names the PATH
-// would find: the name, or on windows the name with any extension.
+// would find: the name, or on windows the name with any extension. A name
+// ending in * is a prefix, so itos-* is every itos extension.
 func isOneOf(e os.DirEntry, names []string) bool {
 	name := e.Name()
+	same := func(a, b string) bool { return a == b }
+	starts := strings.HasPrefix
 	if runtime.GOOS == "windows" {
 		name = strings.TrimSuffix(name, filepath.Ext(name))
-		return slices.ContainsFunc(names, func(n string) bool { return strings.EqualFold(name, n) })
+		same = strings.EqualFold
+		starts = func(s, prefix string) bool {
+			return len(s) >= len(prefix) && strings.EqualFold(s[:len(prefix)], prefix)
+		}
 	}
-	return slices.Contains(names, name)
+	return slices.ContainsFunc(names, func(n string) bool {
+		if prefix, ok := strings.CutSuffix(n, "*"); ok {
+			return starts(name, prefix)
+		}
+		return same(name, n)
+	})
 }
 
 // linkAllBut makes links a folder of links to every entry of folder but the
