@@ -106,3 +106,50 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     When itos runs CI over the commits after the first
     Then itos exits with code 0
     And its output does not say "work is missing"
+
+  # Bug 23 (issue #8). ci range's github provider took the newest green run
+  # from GitHub's list of the workflow's runs on the branch. On 2026-10-05,
+  # near 13:30Z, that list answered stale in two repositories at once: here
+  # run 37316223828 began its range at 8e3acf8, a day old, past the green
+  # 612bf3b, and character-editor's run 37318371439 began 371 commits back,
+  # past its green parent. The wide range ran old task checks (T-092, T-113),
+  # and the next run's right range no longer reached them, so a red check was
+  # dropped. The coordinator's calls (2026-10-05, the user agreeing to the
+  # fix): the provider asks each commit's own runs instead, walking the
+  # head's first parents from its parent (the head's own run is the one
+  # asking), and the range starts at the first commit with a green run of
+  # the workflow; a run failed, cancelled or still going is passed over. Past
+  # 100 first parents with none green the start is empty, which runs
+  # everything, as a provider that fails does. The provider asks
+  # GITHUB_API_URL when it is set, as Actions sets it and GitHub Enterprise
+  # needs it, else https://api.github.com; that is also how a scenario points
+  # itos at a fake GitHub. ci.watch's provider asks the same address.
+  @ID-CI-09 @bug-23 @wip
+  Scenario: ci range starts at the head's parent when its run is green, whatever the list of runs says
+    Given ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
+    And three commits on top of the first
+    And the fake GitHub's list of runs names a green run of the first commit alone
+    And the fake GitHub has a green run of the head's parent
+    When itos prints where the range of the head starts
+    Then itos exits with code 0
+    And the range starts at the head's parent
+
+  @ID-CI-10 @bug-23 @wip
+  Scenario: ci range passes over an ancestor whose run failed or is still going
+    Given ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
+    And three commits on top of the first
+    And the fake GitHub has a failed run of the head's parent
+    And the fake GitHub has a run still going of the commit before the head's parent
+    And the fake GitHub has a green run of the first commit
+    When itos prints where the range of the head starts
+    Then itos exits with code 0
+    And the range starts at the first commit
+
+  @ID-CI-11 @bug-23 @wip
+  Scenario: ci range starts nowhere, running everything, when no ancestor has a green run
+    Given ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
+    And three commits on top of the first
+    And the fake GitHub has a failed run of the head's parent
+    When itos prints where the range of the head starts
+    Then itos exits with code 0
+    And the range is empty
