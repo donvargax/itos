@@ -135,6 +135,21 @@ jobs:
       - name: Features
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: go test ./features -count=1
+      # The global itos as a consumer's CI gets it, from this repository's own action (T-093),
+      # proved on every platform by every push. Last, so the launcher it puts on the PATH cannot
+      # stand in for the build the steps above test; this repository pins nothing, so the
+      # launcher runs as itself and says its own version.
+      - name: Install the launcher
+        id: launcher
+        if: ${{ !cancelled() }}
+        uses: ./
+      - name: The launcher
+        if: ${{ !cancelled() && steps.launcher.outcome == 'success' }}
+        run: |
+          command -v itos
+          out=$(itos version)
+          echo "$out"
+          grep -Eq '^itos [0-9]+\.[0-9]+\.[0-9]+' <<<"$out"
 
   # A push to main whose ci job and platform jobs are green cuts a release when its commits since
   # the last tag carry a feat, a fix or a breaking change (T-069; release.yml says how). The only
