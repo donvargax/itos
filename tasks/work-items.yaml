@@ -2080,7 +2080,7 @@ items:
     title: config check warns of a check static by ci.cost.static written below a late one
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
