@@ -6,7 +6,8 @@
 // the work registry, one the remote's and one the clone's, and the owner the
 // remote's registry gives it (slice 66); a tag on the remote's head, and a
 // fetch of the remote into the clone (status.feature, slice 70); ci.range's
-// command printing one of the remote's commits (slice 73).
+// command printing one of the remote's commits (slice 73), and the full SHA of
+// a commit of the remote's main by its header (bug 24's fake GitHub too).
 package features
 
 import (
@@ -210,20 +211,29 @@ func (w *world) remoteGainsCommit(subject, path string) error {
 // and left uncommitted in the clone: the remote has moved past the clone, so
 // it cannot be pushed, and itos reads the config from the clone's tree.
 func (w *world) rangePrintsRemoteCommit(header string) error {
+	sha, err := w.remoteCommit(header)
+	if err != nil {
+		return err
+	}
+	w.config.rangeCommand = "printf '%s\\n' " + sha
+	return w.writeConfig()
+}
+
+// The full SHA of the commit with the header on the remote's main.
+func (w *world) remoteCommit(header string) (string, error) {
 	cmd := exec.Command("git", "log", "--format=%H %s", "main")
 	cmd.Dir = w.remote()
 	cmd.Env = w.env()
 	out, err := cmd.Output()
 	if err != nil {
-		return fmt.Errorf("git log in the remote: %w", err)
+		return "", fmt.Errorf("git log in the remote: %w", err)
 	}
 	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
 		if sha, subject, _ := strings.Cut(line, " "); subject == header {
-			w.config.rangeCommand = "printf '%s\\n' " + sha
-			return w.writeConfig()
+			return sha, nil
 		}
 	}
-	return fmt.Errorf("the remote's main has no commit %q:\n%s", header, out)
+	return "", fmt.Errorf("the remote's main has no commit %q:\n%s", header, out)
 }
 
 // A commit in the clone of that one file, written as the commit's own line.

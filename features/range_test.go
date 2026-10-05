@@ -1,4 +1,5 @@
-// The steps of ci range's github provider (ci.feature, bug 23): a fake GitHub,
+// The steps of ci range's github provider (ci.feature, bug 23), and of status's
+// look at the last green commit through it (status.feature, bug 24): a fake GitHub,
 // an httptest server itos is pointed at through GITHUB_API_URL, holding runs
 // of one workflow on one branch of one repository. It answers the workflow's
 // runs endpoint as GitHub does: with head_sha, that commit's runs; without,
@@ -132,6 +133,19 @@ func initializeRangeSteps(sc *godog.ScenarioContext, w *world) {
 			return err
 		}
 		g.run(sha, "completed", map[string]string{"green": "success", "failed": "failure"}[kind])
+		return nil
+	})
+	// status's look at the last green commit walks the remote's branch as
+	// fetched (status.feature, bug 24), so its runs are of the remote's commits.
+	sc.Step(`^the fake GitHub has a green run of the remote's commit "([^"]*)"$`, func(header string) error {
+		if w.github == nil {
+			return fmt.Errorf("no fake GitHub: start one first")
+		}
+		sha, err := w.remoteCommit(header)
+		if err != nil {
+			return err
+		}
+		w.github.run(sha, "completed", "success")
 		return nil
 	})
 	sc.Step(`^the fake GitHub has a run still going of (the head's parent|the commit before the head's parent|the first commit)$`, func(which string) error {
