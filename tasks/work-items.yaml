@@ -556,16 +556,9 @@ items:
     title: The release workflow runs the notes check before it publishes
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [T-024]
     kind: idea
-    why: >
-      release.yml refuses a tag without docs/releases/v<version>.md, but only checks that the file
-      is there: tools/selftest/release-notes.ts, which proves the Upgrading section is last, pins the
-      tarball and names every changed default, runs only as T-024's check, so a later release's
-      notes are judged only if its task names it. The workflow could run it beside release.ts (it
-      needs gh and the previous release, both there), so no release is published with notes that
-      miss a changed key.
 
   - id: p1-release-notes-schema-keys
     title: The notes check sees keys added to or removed from the schema, not only the defaults
