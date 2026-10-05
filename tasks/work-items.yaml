@@ -1567,7 +1567,7 @@ items:
     title: "itos upgrade moves the pin and walks each release's Upgrading section since the old one"
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-091]
     kind: slice
     why: >
