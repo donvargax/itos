@@ -3897,8 +3897,8 @@ items:
   - id: bug-24
     title: itos status finds the last green commit by the head's ancestry, as ci range does
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
