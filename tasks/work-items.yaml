@@ -3925,14 +3925,15 @@ items:
       (footer-max-line-length) after the command has run. Found 2026-10-05 dropping q-14's ideas.
       Say so before committing, or write the reason so it cannot parse as a footer.
 
-  - id: p1-range-start-from-ancestry
-    title: ci range's github provider finds the last green run by the head's ancestry, not by the runs list
+  - id: bug-23
+    title: ci range's github provider starts at the head's nearest ancestor with a green run
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-range-start-from-ancestry.
       Issue #8. On 2026-10-05 near 13:30Z the provider's answer jumped far back in two repositories
       at once (character-editor run 37318371439 began 371 commits back at a62b36c, past its green
       parent 17c410b; itos run 37316223828 began at 8e3acf8, a day old, past the green 612bf3b and
