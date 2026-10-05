@@ -675,3 +675,28 @@
     - run: "! grep -l 'v:refname' tools/bin/release-notes/main.go tools/bin/schema-contract/main.go tools/bin/previous-release/main.go"
     - run: test "$(grep -l 'itos/v3/internal/release\"' tools/bin/release-notes/main.go tools/bin/schema-contract/main.go tools/bin/previous-release/main.go | wc -l)" -eq 3
     - run: go test ./tools/... ./internal/release/...
+
+- id: T-091
+  type: build
+  title: Each release publishes upgrading.json, its Upgrading section as data
+  why: >
+    Split from p1-itos-upgrade (the user's calls, 2026-10-04): itos upgrade walks the Upgrading
+    sections of every release between a project's pin and the new one, and reads each from a release
+    asset, not the notes' Markdown. tools/bin/release-notes gains -json, writing what it already
+    gathers for the Upgrading section as {"schema":1,"version":"<X.Y.Z>","previous":"<the last
+    release,
+    X.Y.Z>","breaking":[{"commit","header","text"}],"upgrading":[{"commit","header","text"}],"changes":[{"commit","header","text"}],"config":[{"key","change"}]},
+    each list what the Markdown section quotes (Upgrading footers saying none left out, as there),
+    in the same order. previous is how itos upgrade walks back from the new release to the pin
+    without listing releases through an API. The release workflow writes it beside notes.md and
+    uploads it as the asset upgrading.json before the draft is published, so the release and every
+    asset appear together. It is not in checksums.txt: itos only prints it, and the pin is still
+    checked against checksums.txt. tools/selftest/upgrading-json.ts proves the asset for a range as
+    release-notes.ts proves the notes: every Upgrading and Changes footer itos commit footers lists,
+    each config key schema-contract names, and previous the last release. docs/ARCHITECTURE.md
+    describes the asset beside the notes, in a docs commit.
+  done_when:
+    - run: grep -q 'upgrading.json' .github/workflows/release.yml
+    - run: node tools/selftest/upgrading-json.ts
+    - run: go test ./tools/...
+    - run: grep -q 'upgrading.json' docs/ARCHITECTURE.md

@@ -4932,3 +4932,27 @@ items:
       hooks.pre_push command that commits in the clone (made with git's hooks off, as the scenario's
       setup), and the output naming the remote branch's head as pushed.
     refs: [features/push.feature, internal/cli/push.go]
+
+  - id: T-091
+    title: Each release publishes upgrading.json, its Upgrading section as data
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Split from p1-itos-upgrade (the user's calls, 2026-10-04): itos upgrade walks the Upgrading
+      sections of every release between a project's pin and the new one, and reads each from a
+      release asset, not the notes' Markdown. tools/bin/release-notes gains -json, writing what it
+      already gathers for the Upgrading section as {"schema":1,"version":"<X.Y.Z>","previous":"<the
+      last release,
+      X.Y.Z>","breaking":[{"commit","header","text"}],"upgrading":[{"commit","header","text"}],"changes":[{"commit","header","text"}],"config":[{"key","change"}]},
+      each list what the Markdown section quotes (Upgrading footers saying none left out, as there),
+      in the same order. previous is how itos upgrade walks back from the new release to the pin
+      without listing releases through an API. The release workflow writes it beside notes.md and
+      uploads it as the asset upgrading.json before the draft is published, so the release and every
+      asset appear together. It is not in checksums.txt: itos only prints it, and the pin is still
+      checked against checksums.txt. tools/selftest/upgrading-json.ts proves the asset for a range
+      as release-notes.ts proves the notes: every Upgrading and Changes footer itos commit footers
+      lists, each config key schema-contract names, and previous the last release.
+      docs/ARCHITECTURE.md describes the asset beside the notes, in a docs commit.
