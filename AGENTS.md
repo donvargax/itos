@@ -119,26 +119,13 @@ file.
   `git commit` or `git push` here and names these commands.
 - **Decide the split before you start editing.** Each type may touch only
   certain paths, so one piece of work is often two or three commits. The
-  rules are `commits.scopes` in `itos.yaml`, and `tasks/README.md` has them
-  as a table. The ones that catch people out:
-  - **The implementation** is `commits.path_sets.implementation`:
-    `{cmd,internal}/**/*.go`, itos's Go packages. `feat` and `fix` must
-    change it or `features/**`; `chore`, `build`, `ci` and `docs` may not
-    touch it.
-  - `build` and `ci` may touch only config: root `*.json`, `*.yaml`, `*.yml`,
-    `*.ts` and `*.toml` files, `go.mod`, `go.sum`, `.gitignore`,
-    `.editorconfig`, `.vite-hooks/**`, `.github/**`, `tools/bin/**`,
-    `tools/selftest/**`, `tools/changelog.ts` and `.claude/settings.json` —
-    **not** `tasks/**`. A ledger edit that accompanies a config change is its
-    own `docs` commit.
-  - `docs` may touch `**/*.md`, `docs/**`, `tasks/**` and feature files —
-    **not** config, the steps or the implementation.
-  - `refactor` and `perf` may not touch feature files; `test` is limited to
-    `features/**` (the steps, the smoke set), the Go packages' `*_test.go`,
-    the conformance corpus and fixtures in `tools/itos/`, and
-    `tools/selftest/**`.
+  rules are `commits.scopes` in `itos.yaml`; the block at the end of this
+  file lists them, generated from it. What they leave you to know:
+  - **The implementation** is `{cmd,internal}/**/*.go`, itos's Go packages.
     A change to what itos does, with its conformance case, is a `feat` or a
     `fix`, never a `test`.
+  - `build` and `ci` may not touch `tasks/**`: a ledger edit that accompanies
+    a config change is its own `docs` commit.
   - **A change to the Claude Code plugin** (anything under
     `integrations/claude-code/`, its Markdown included) raises the version in
     `integrations/claude-code/.claude-plugin/plugin.json` in the same push,
@@ -165,13 +152,32 @@ Every commit and every push runs the checks for you. **Don't run them by hand
 first, and don't add verification rounds of your own.** Write the code,
 commit, and read what the gate says.
 
-| Gate           | What it runs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **pre-commit** | `vp staged` (formats and lints the staged files by `staged` in `vite.config.ts`, fixing in place and re-staging them: `vp check --fix` for TypeScript, YAML and Markdown, `gofmt -w` and `go vet` for Go), then, when `go.mod` or `go.sum` is staged, the dependency check (`go run ./tools/bin/deps-check`, T-067: no Go module younger than 7 days unless `deps-check.json` excepts it with a reason, then govulncheck; it needs the network), then the unit tests the change reaches, itos's Go packages' (`tools/bin/go-unit-tests --cached`: the packages under `cmd/` and `internal/` a staged file is in and every package importing them, its tests included; all of them when `go.mod` or `go.sum` changes; no `go` at all when neither is staged), then `fallow audit` on what is new against HEAD. The tests and the audit are skipped when every staged file is Markdown, under `docs/**`, under `tasks/**` (the ledger and the work registry) or a feature file (`.vite-hooks/pre-commit`). itos's own data is the commit-msg hook's.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| **commit-msg** | `tools/bin/itos hook commit-msg`, the Go binary like every gate that calls itos (a Go tree that does not build stops it with exit 3 and one line naming the build): `itos config check`'s problems over the staged tree when `itos.yaml`, a ledger file, the work registry or the smoke set is staged (the only check of them at commit), then the type's path rules (`commits.scopes`), then outside `feat` and `fix` the scenario moving rule (`tests.scenario.range_checks`), then the header lint, itos's built-in one (`config-conventional`'s rules, commitlint's rule ids and words), and, beside it, itos's rule per footer of `commits.footers` (the footer is there, and every ID it names exists at the commit, a scenario live), both reported, then the static checks of each task the `Task:` footer names, up to its first late one: a failure rejects the commit when the task's work item is `done`, and is only printed (`failing T-…`) while it is in progress.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| **pre-push**   | `tools/bin/itos hook pre-push`: first the commit rules over the commits each pushed ref adds, as `itos verify` (silent when they pass; a failure refuses the push, saying to amend or rebase), then the unit tests the pushed commits reach (`hooks.pre_push`: `tools/bin/go-unit-tests <remote sha>`, picking the Go packages as pre-commit does; the whole suite when there is no remote commit to compare with), and nothing slow. The scenarios and task checks your commits name are CI's.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| **CI**         | `.github/workflows/ci.yml`, on every push to `main`. Its range starts at the last green run on `main` (`itos ci range`); `itos verify` re-checks every commit in it after `commits.since` against the commit-msg rules; then `vp run ci` (`itos ci run`) runs the plan `itos.yaml`'s `ci` states, in cost order, stopping at the first failure: `vp check`, `gofmt`, `go vet`, the smoke rule, `itos config check`, the plugin's version rule (T-074: a range that changes `integrations/claude-code/` must raise its `plugin.json` version), the static checks of the tasks the commits name, the dependency check when the range changes `go.mod` or `go.sum`, the schema contract when it has a `feat` or a `fix` (T-070: the config's schema against the one the last release published, which it downloads; a breaking change fails unless a commit marks it), the whole unit suite (the Go packages'), the audit, the conformance corpus, the last release's scenarios and corpus against this tree's itos when it has a `feat` or a `fix` (T-071: an old scenario or case that fails needs a breaking change, or a fix naming it in `Changes:`), T-007 (the commit rules), one run of the features over the smoke set (`features/smoke.yaml`) and the scenarios and task subsets the commits name, then the named tasks' other checks. The job builds the Go itos once, first (`Build itos`), and the corpus and the features run it, `tools/bin/itos`. A range of only Markdown and `docs/**` runs `vp check`, `itos config check`, the plugin's version rule and the named tasks' static and `prose: true` checks. |
-| **nightly**    | `.github/workflows/nightly.yml`, on `main` at 11:44 UTC or by hand: every feature, then the gates self-tests (`tools/selftest/gates.ts`, and `go-hooks.ts`, the hooks' choice of unit tests), the release build, the config's schema, the static checks of every done task, and last that the newest release is attested (T-069's check, which pushes leave to it). A red run opens one "Nightly red" issue, or comments on the open one; a green run closes it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+The block at the end of this file lists what the commit-msg hook, the
+pre-push hook, CI and the nightly run, generated from `itos.yaml`. Beside
+it:
+
+- **pre-commit** is not itos's: `.vite-hooks/pre-commit` runs `vp staged`
+  (formats and lints the staged files by `staged` in `vite.config.ts`,
+  fixing in place and re-staging them: `vp check --fix` for TypeScript, YAML
+  and Markdown, `gofmt -w` and `go vet` for Go), then, when `go.mod` or
+  `go.sum` is staged, the dependency check (`go run ./tools/bin/deps-check`,
+  T-067: no Go module younger than 7 days unless `deps-check.json` excepts
+  it with a reason, then govulncheck; it needs the network), then the unit
+  tests the change reaches (`tools/bin/go-unit-tests --cached`), then
+  `fallow audit` on what is new against HEAD. The tests and the audit are
+  skipped when every staged file is Markdown, under `docs/**`, under
+  `tasks/**` or a feature file.
+- **Every gate that calls itos runs `tools/bin/itos`,** the Go binary built
+  from this tree; a Go tree that does not build stops it with exit 3 and one
+  line naming the build.
+- **CI** (`.github/workflows/ci.yml`, on every push to `main`) starts its
+  range at the commit nearest the head with a green run (`itos ci range`),
+  re-checks every commit in it with `itos verify`, builds the Go itos once,
+  then runs the plan. Its platform jobs run the unit tests and every feature
+  on Linux, macOS and Windows (T-072).
+- **The nightly** (`.github/workflows/nightly.yml`, on `main` at 11:44 UTC or
+  by hand) opens one "Nightly red" issue when it fails, or comments on the
+  open one; a green run closes it.
 
 So: formatting, lint, types, the unit tests your change reaches, the audit,
 commit shape and the scenarios you named are **not your job to verify**. The
@@ -302,3 +308,98 @@ decision as a record in `docs/decisions/`. What is neither a reason, a mechanism
 Do the work you were given yourself; don't start subagents or hand it on.
 This last line is for an implementing session; a coordinator follows
 `itos go` instead.
+
+<!-- itos:begin -->
+
+## The rules itos holds this repository to
+
+Generated by itos init from `itos.yaml`, which decides them: change the config, then run `itos init --agent-rules`, which rewrites only what is between these markers. The hooks and CI hold every commit to these rules.
+
+### Commit types
+
+A commit's type is one of `feat`, `fix`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `docs`, `style` or `revert`. The header is held to commitlint's config-conventional rules by itos's own lint: `type: subject` or `type(scope): subject`.
+
+### Footers
+
+- `Task:` names tasks of the ledger, `tasks/phase-{group}.yaml`.
+- `Scenarios:` names `scenario` tests by their IDs, live ones only (not `@wip`).
+- `Item:` names items of the work registry, `tasks/work-items.yaml`.
+- `Upgrading:` is free text.
+- `Changes:` is free text.
+
+The footers each type needs:
+
+- `feat`: `Scenarios:` and `Upgrading:`.
+- `fix`: `Scenarios:` and `Upgrading:`.
+- `refactor`: `Task:`.
+- `perf`: `Task:`.
+- `test`: `Task:` or `Item:`.
+- `build`: `Task:`.
+- `ci`: `Task:`.
+- `chore`: `Task:` or `Item:`.
+- `docs`: none.
+- `style`: none.
+- `revert`: `Task:`.
+
+### The paths each type may touch
+
+- `feat` must touch at least one of `{cmd,internal}/**/*.go` or `features/**`.
+- `fix` must touch at least one of `{cmd,internal}/**/*.go` or `features/**`.
+- `refactor` may not touch `features/**/*.feature`.
+- `perf` may not touch `features/**/*.feature`.
+- `test` may touch only `features/**`, `**/*.test.ts`, `{cmd,internal}/**/*_test.go`, `tools/itos/conformance/**`, `tools/itos/fixtures/**` and `tools/selftest/**`.
+- `build` may touch only `*.{json,yaml,yml,ts,toml}`, `go.mod`, `go.sum`, `.gitignore`, `.editorconfig`, `.vite-hooks/**`, `.github/**`, `tools/bin/**`, `tools/selftest/**`, `tools/changelog.ts` and `.claude/settings.json`.
+- `ci` may touch only `*.{json,yaml,yml,ts,toml}`, `go.mod`, `go.sum`, `.gitignore`, `.editorconfig`, `.vite-hooks/**`, `.github/**`, `tools/bin/**`, `tools/selftest/**`, `tools/changelog.ts` and `.claude/settings.json`.
+- `chore` may not touch `{cmd,internal}/**/*.go`.
+- `docs` may touch only `**/*.md`, `docs/**`, `tasks/**` and `features/**/*.feature`.
+- `style` may touch anything.
+- `revert` may touch anything.
+
+### What the gates run
+
+The commit-msg hook, `tools/bin/itos hook commit-msg`, runs these on every commit, the first to fail refusing it:
+
+- itos's own data, when the commit stages any of it (the config, the ledger, the work registry and the smoke sets), as `itos config check` judges it.
+- The paths the commit's type may touch.
+- The `scenario-moves` rule: outside `feat` and `fix`, the `scenario` tests may only move between files, unchanged.
+- The header and the footers.
+- The static checks of the tasks `Task:` names: a failure refuses the commit once the task's work item is done, and is only printed while it is not.
+
+The pre-push hook, `tools/bin/itos hook pre-push`, runs these on every push:
+
+- The commit rules above, over every commit the push adds, as `itos verify` judges them.
+- `tools/bin/go-unit-tests {base}`, `{base}` the remote's commit, or `tools/bin/go-unit-tests --all` when there is none to compare with.
+
+CI runs its plan, `itos ci run`, on every push, in this order, stopping at the first failure:
+
+- `vp check`
+- `! gofmt -l features cmd internal | grep .`
+- `go vet ./...`
+- `tools/bin/itos tests smoke check scenario`
+- `tools/bin/itos config check`
+- `go run ./tools/bin/plugin-version -range-from "${FROM-}"`
+- The static checks of the tasks the push's commits name.
+- `go run ./tools/bin/deps-check -changed-since "${FROM-}"`
+- `go run ./tools/bin/schema-contract -range-from "${FROM-}"`
+- `go test ./cmd/... ./internal/...`
+- `vp run audit`
+- `node tools/itos/conformance/run.ts --bin tools/bin/itos`
+- `go run ./tools/bin/previous-release -range-from "${FROM-}"`
+- `tools/bin/itos task T-007`
+- The `scenario` tests of the smoke set and those the push's commits name, in one run.
+- The other checks of the tasks the push's commits name.
+
+A push that touches only `**/*.md` and `docs/**` runs only `vp check`, `tools/bin/itos config check` and `go run ./tools/bin/plugin-version -range-from "${FROM-}"`, and the static checks of the tasks its commits name.
+
+The nightly, `itos ci run --nightly`, runs these in order:
+
+- Every `scenario` test.
+- `node tools/selftest/gates.ts`
+- `node tools/selftest/go-hooks.ts`
+- `node tools/selftest/go-release.ts`
+- `node tools/selftest/go-schema.ts`
+- The static checks of every task whose work item is `done`.
+- `sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'`
+- `sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'`
+
+<!-- itos:end -->
