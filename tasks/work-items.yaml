@@ -3077,18 +3077,9 @@ items:
     title: Under --stealth, init writes the rules for agents where git never sees them
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-59]
     kind: slice
-    why: >
-      Was p3-init-agent-rules-stealth.
-      The stealth half of slice 59 (p3-init-agent-rules, the user's calls of 2026-10-03, in
-      slice-59's why): nothing tracked is touched and every file written is listed in
-      .git/info/exclude; the rules go to <git common dir>/itos/AGENTS.md; Claude Code gets a
-      CLAUDE.local.md importing @AGENTS.md (when the project has one) and that file; Codex gets an
-      AGENTS.override.md holding a marked copy of the project's AGENTS.md and the rules block; an
-      existing AGENTS.override.md or CLAUDE.local.md only gains the block, after asking; a rerun
-      refreshes the blocks and reports a stale copy.
 
   - id: slice-76
     title: "The registry is an index: a why is an idea's, the others' live in their spec"
