@@ -17,11 +17,12 @@
 //     corpus's {{version}} whatever the tag's package.json says, and the help
 //     cases are left out, said with their count;
 //   - the wordy one passes: help text is documentation, not compatibility, so
-//     an old help case that differs is never judged; nor are an old usage
-//     error's words, which differ too, its exit code alone judged (T-075);
-//   - the reworded one fails naming the usage error whose exit code differs
-//     and the config error whose words differ, never the usage error whose
-//     words alone differ;
+//     an old help case that differs is never judged; nor is an old usage
+//     error, which pins only what a command refuses (T-095), so both usage
+//     errors are left out, said with their count;
+//   - the reworded one fails naming the config error whose words differ, and
+//     neither usage error, though one's words differ and the other's exit
+//     code;
 //   - the adding one passes, the old corpus judged additively (T-076): a key
 //     added to the JSON, at the top and deeper, and lines added between and
 //     after the report's pass; one with a key removed, a value changed, a line
@@ -148,8 +149,8 @@ func TestFeatures(t *testing.T) {
     exit: 0
     json: { state: { ready: true, items: [a, b] }, count: 2 }
 `,
-	// Refusals: two usage errors, whose words the new binary may change and
-	// whose exit code it may not, and a config error, whose words it may not.
+	// Refusals: two usage errors, never judged, since refusing less is additive
+	// (T-095), and a config error, whose words the new binary may not change.
 	"tools/itos/conformance/refuse.yaml": `cases:
   - name: an unknown command is a usage error
     argv: [wave]
@@ -339,47 +340,46 @@ try {
 	on("main");
 	let r = run(repo, ["-bin", good]);
 	const leftOut = "2 help cases (help.yaml 2) not judged, since help text is documentation";
-	const relaxed = "2 usage errors (refuse.yaml 2) judged by their exit code alone:";
+	const relaxed = "2 usage errors (refuse.yaml 2) not judged, since a usage error pins only";
 	const additively = "v1.0.0's conformance corpus: judged additively";
 	expect(
 		r.status === 0 &&
 			r.output.includes("v1.0.0's scenarios: all 2 pass") &&
-			r.output.includes("9/9 conformance cases pass") &&
+			r.output.includes("7/7 conformance cases pass") &&
 			r.output.includes(leftOut) &&
 			r.output.includes(relaxed) &&
 			r.output.includes(additively),
-		`the release's own binary should pass every scenario and case, the help cases left out and the usage errors relaxed, both counted, and the corpus judged additively, said, exited ${r.status}:\n${r.output}`,
+		`the release's own binary should pass every scenario and case, the help cases and the usage errors left out, both counted, and the corpus judged additively, said, exited ${r.status}:\n${r.output}`,
 	);
 
 	// 1a. One whose help and usage errors' words differ, and nothing else,
 	// passes with no commit that says why: an old help case is never judged,
-	// nor an old usage error's words.
+	// nor an old usage error.
 	r = run(repo, ["-bin", wordy]);
 	expect(
 		r.status === 0 &&
 			r.output.includes(leftOut) &&
 			r.output.includes(relaxed) &&
-			r.output.includes("9/9 conformance cases pass") &&
+			r.output.includes("7/7 conformance cases pass") &&
 			!r.output.includes("help.yaml: itos --help") &&
 			!r.output.includes("fails"),
-		`a binary whose help and usage errors' words alone differ should pass, its old help cases not judged and its usage errors judged by their exit code, exited ${r.status}:\n${r.output}`,
+		`a binary whose help and usage errors' words alone differ should pass, its old help cases and usage errors not judged, exited ${r.status}:\n${r.output}`,
 	);
 
-	// 1b. One whose usage error's exit code differs, or whose config error's
-	// words do, is refused, naming those two cases and not the usage error
-	// whose words alone differ.
+	// 1b. One whose config error's words differ is refused, naming that case
+	// alone: neither usage error, though one's words differ and the other's
+	// exit code too, since an old usage error is never judged.
 	r = run(repo, ["-bin", reworded]);
 	expect(
 		r.status === 1 &&
-			r.output.includes("v1.0.0's conformance case refuse.yaml: greet takes no argument fails") &&
-			r.output.includes("exit: expected 2, got 1") &&
 			r.output.includes(
 				"v1.0.0's conformance case refuse.yaml: a config that is not version 1 fails",
 			) &&
 			r.output.includes("- FAIL itos.yaml: version 2 is not 1") &&
+			!r.output.includes("greet takes no argument") &&
 			!r.output.includes("an unknown command is a usage error") &&
-			r.output.includes("7/9 conformance cases pass"),
-		`a usage error whose exit code differs and a config error whose words differ should be refused, and a usage error whose words alone differ not named, exited ${r.status}:\n${r.output}`,
+			r.output.includes("6/7 conformance cases pass"),
+		`a config error whose words differ should be refused, and neither usage error named, whatever its words or exit code, exited ${r.status}:\n${r.output}`,
 	);
 
 	// 1c. One that only adds, keys to the JSON at the top and deeper, lines to
@@ -388,7 +388,7 @@ try {
 	r = run(repo, ["-bin", adding]);
 	expect(
 		r.status === 0 &&
-			r.output.includes("9/9 conformance cases pass") &&
+			r.output.includes("7/7 conformance cases pass") &&
 			!r.output.includes("fails"),
 		`a binary that only adds keys to an old case's JSON and lines to its stdout should pass, exited ${r.status}:\n${r.output}`,
 	);
@@ -401,7 +401,7 @@ try {
 			r.status === 1 &&
 				r.output.includes(`v1.0.0's conformance case report.yaml: ${t.case}`) &&
 				!r.output.includes(`report.yaml: ${other}`) &&
-				r.output.includes("8/9 conformance cases pass"),
+				r.output.includes("6/7 conformance cases pass"),
 			`a binary with ${t.what} in an old case's output should be refused, naming that case alone, exited ${r.status}:\n${r.output}`,
 		);
 	}
@@ -422,7 +422,7 @@ try {
 	expect(
 		r.output.includes("1 of 2 fail") &&
 			!r.output.includes("says its name") &&
-			r.output.includes("8/9 conformance cases pass") &&
+			r.output.includes("6/7 conformance cases pass") &&
 			!r.output.includes("help.yaml: itos --help") &&
 			!r.output.includes("help greet"),
 		`only the scenario and the case the binary breaks should be named, no help case, exited ${r.status}:\n${r.output}`,
@@ -564,5 +564,5 @@ try {
 finish(
 	problems,
 	"previous-release",
-	"An old scenario or case the new binary breaks is refused, unless a breaking change or a fix's Changes: footer says why, naming a case by its name or a prefix no other case starts with; a feat's never does; an old case's output is judged additively, a key or a line added passing and one removed, changed or reordered refused; an old help case is never judged, an old usage error only by its exit code, an old config error word for word; and a run that cannot check out the release never passes",
+	"An old scenario or case the new binary breaks is refused, unless a breaking change or a fix's Changes: footer says why, naming a case by its name or a prefix no other case starts with; a feat's never does; an old case's output is judged additively, a key or a line added passing and one removed, changed or reordered refused; an old help case or usage error is never judged, an old config error word for word; and a run that cannot check out the release never passes",
 );
