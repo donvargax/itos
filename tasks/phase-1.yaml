@@ -660,3 +660,18 @@
     - run: grep -qx 'module github.com/donvargax/itos/v3' go.mod
     - run: "! git grep -q 'donvargax/itos/v2' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
     - run: go build ./...
+
+- id: T-090
+  type: refactor
+  title: release-notes, schema-contract and previous-release pick the last release by internal/release's one rule
+  why: >
+    Was p1-last-release-one-rule. Bug 20 put the rule for the last release (v followed by three
+    numbers and nothing else, ordered numerically) in internal/release, and status and the release
+    cut pick with it, while tools/bin/release-notes, schema-contract and previous-release kept their
+    own vX.Y.Z regex and git's version sort, which orders a number with leading zeros as a
+    fraction. They agree on every tag this repository has, but nothing held them to the cut. Each
+    lists the tags it reaches as now and picks with release.Newest.
+  done_when:
+    - run: "! grep -l 'v:refname' tools/bin/release-notes/main.go tools/bin/schema-contract/main.go tools/bin/previous-release/main.go"
+    - run: test "$(grep -l 'itos/v3/internal/release\"' tools/bin/release-notes/main.go tools/bin/schema-contract/main.go tools/bin/previous-release/main.go | wc -l)" -eq 3
+    - run: go test ./tools/... ./internal/release/...
