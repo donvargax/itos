@@ -3796,15 +3796,9 @@ items:
     title: itos ask record's commit body fits the line limit whatever the title's length
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-ask-record-long-title.
-      Found 2026-10-04 recording q-12: with a title of about 120 characters, ask record's commit
-      body names the record's file, docs/decisions/<nnnn>-<slug>.md, on one line over 100
-      characters, the header lint refuses the commit, and ask record puts everything back. It should
-      wrap or shorten that line, or cap the slug, as itos commit wraps a body.
     refs: [features/ask.feature]
 
   - id: p1-wip-id-collision
