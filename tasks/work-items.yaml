@@ -3966,8 +3966,8 @@ items:
   - id: T-095
     title: The last release's usage errors are left out of the release check, as its help cases are
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
