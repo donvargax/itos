@@ -4719,8 +4719,8 @@ items:
   - id: T-088
     title: One copy of what a releasable commit is, for itos status and the release cut
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-089]
     kind: task
     why: >
