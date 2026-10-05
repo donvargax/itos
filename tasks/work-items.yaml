@@ -4865,7 +4865,7 @@ items:
     title: itos status counts from the newest plain release, by the release cut's one rule
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-70, T-088]
     kind: slice
     why: >
