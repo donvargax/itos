@@ -4884,8 +4884,8 @@ items:
   - id: T-090
     title: release-notes, schema-contract and previous-release pick the last release by internal/release's one rule
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [bug-20]
     kind: task
     why: >
