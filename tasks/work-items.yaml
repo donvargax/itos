@@ -3254,33 +3254,9 @@ items:
     title: "The registry is an index: a why is an idea's, the others' live in their spec"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-registry-archive.
-      Found 2026-10-04: tasks/work-items.yaml is 177 KB, over 200 items, mostly done ones with long
-      whys that git already holds, which makes it slow to read and too big to hand an agent whole.
-      work done could move a closed item to an archive file beside it (still read for ids, so none
-      is reused, and by itos work show), or drop it with its commits as the record.
-
-      The user's call (2026-10-04): the commits are the record of done work (the changelog is
-      generated from them, never committed). work done writes the item's title and why into the
-      close commit's body and drops the item from the registry in the same commit; itos work show
-      <id> reads a dropped item back from its close commit; work add and promote check the close
-      commits too, so a dropped id is never given again; a live item depending on a dropped one
-      reads it as done. Done tasks keep their ledger entries, since the nightly runs every done
-      task's checks.
-
-      The user's calls (2026-10-04, replacing the archive and the drop): the registry is an index,
-      as its header already says a why is for an idea above all. A slice's or a bug's why lives in
-      its feature file, a task's in its ledger entry, a change's in its commit. work done drops the
-      closed item's why; work show reads a task's why from its ledger; work edit --note on a slice
-      or task warns until v4.0.0 (slice 79) refuses it. The coordinator's guide
-      (internal/guide/coordinate.md) stops sending decisions to the item's why, and the slice's last
-      docs commit drops the why of every done item of this repository's registry (about 246 KB to
-      140 KB), the text staying in git's history. Specified as @ID-WORK-36 to 38 in
-      features/work.feature.
     refs: [features/work.feature, internal/guide/coordinate.md]
 
   - id: slice-60
