@@ -54,7 +54,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-096
   - p1-nightly-late-done-checks
   - p1-work-show-gaps
   - p1-release-notes-footers
