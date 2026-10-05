@@ -334,7 +334,7 @@ Feature: itos init, a repository made ready for itos
   # plugin, it is reported and never counted as missing. The stealth half
   # (CLAUDE.local.md and Codex's AGENTS.override.md under .git/info/exclude)
   # is p3-init-agent-rules-stealth.
-  @ID-INIT-26 @slice-59 @wip
+  @ID-INIT-26 @slice-59
   Scenario: With --agent-rules init writes the config's rules into a marked block of AGENTS.md, and CLAUDE.md imports it
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "init --agent-rules"
@@ -344,7 +344,7 @@ Feature: itos init, a repository made ready for itos
     And the file "AGENTS.md" says "Task:" between the markers
     And the file "CLAUDE.md" has the line "@AGENTS.md"
 
-  @ID-INIT-27 @slice-59 @wip
+  @ID-INIT-27 @slice-59
   Scenario: Away from a terminal and with no --agent-rules, init writes no rules and says how to
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "init"
@@ -352,7 +352,7 @@ Feature: itos init, a repository made ready for itos
     And the file "AGENTS.md" does not exist
     And its output says "--agent-rules"
 
-  @ID-INIT-28 @slice-59 @wip
+  @ID-INIT-28 @slice-59
   Scenario: An AGENTS.md of the project's own keeps its text, and gains the block at its end
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "AGENTS.md" holding "Be kind to the build."
@@ -361,7 +361,7 @@ Feature: itos init, a repository made ready for itos
     And the file "AGENTS.md" has the line "Be kind to the build."
     And the file "AGENTS.md" has the line "<!-- itos:begin -->" after the line "Be kind to the build."
 
-  @ID-INIT-29 @slice-59 @wip
+  @ID-INIT-29 @slice-59
   Scenario: Run again after the config changed, init reports the rules the config no longer matches and changes nothing
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init --agent-rules"
@@ -370,7 +370,7 @@ Feature: itos init, a repository made ready for itos
     Then its output says "itos init --agent-rules"
     And the file "AGENTS.md" does not say "deps" between the markers
 
-  @ID-INIT-30 @slice-59 @wip
+  @ID-INIT-30 @slice-59
   Scenario: Run again with --agent-rules, init rewrites the block alone, the text outside the markers kept
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "AGENTS.md" holding "Be kind to the build."

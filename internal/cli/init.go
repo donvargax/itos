@@ -44,15 +44,20 @@ import (
 )
 
 // initCommand is `init [--stealth] [--plugin [<scope>]] [--git-shim
-// [--git-shim-dir <folder>] | --no-git-shim]`.
+// [--git-shim-dir <folder>] | --no-git-shim] [--agent-rules |
+// --no-agent-rules]`.
 func initCommand(args []string, o Out) (int, error) {
 	stealth := false
 	var plugin pluginFlag
 	var shim shimFlag
+	var rules rulesFlag
 	for i := 0; i < len(args); i++ {
 		n, err := parsePluginFlag(args, i, &plugin)
 		if err == nil && n == 0 {
 			n, err = parseShimFlag(args, i, &shim)
+		}
+		if err == nil && n == 0 {
+			n, err = parseRulesFlag(args, i, &rules)
 		}
 		switch {
 		case err != nil:
@@ -62,8 +67,8 @@ func initCommand(args []string, o Out) (int, error) {
 		case args[i] == "--stealth":
 			stealth = true
 		default:
-			return 0, usage("init takes only --stealth, --plugin [<scope>], --git-shim, --git-shim-dir <folder> "+
-				"and --no-git-shim (%s)", args[i])
+			return 0, usage("init takes only --stealth, --plugin [<scope>], --git-shim, --git-shim-dir <folder>, "+
+				"--no-git-shim, --agent-rules and --no-agent-rules (%s)", args[i])
 		}
 	}
 	if shim.given && !shim.install && shim.dir != "" {
@@ -71,6 +76,9 @@ func initCommand(args []string, o Out) (int, error) {
 	}
 	if stealth && plugin.scope == "project" {
 		return 0, pluginRefused()
+	}
+	if stealth && rules.write {
+		return 0, rulesRefused()
 	}
 	log := o.Stdout
 	if o.JSON {
@@ -85,7 +93,11 @@ func initCommand(args []string, o Out) (int, error) {
 		if stealth && plugin.scope == "project" {
 			return 0, pluginRefused()
 		}
-		return initReport(file, pluginOffer{flag: plugin, stealth: stealth}, shimOffer{flag: shim}, o)
+		if stealth && rules.write {
+			return 0, rulesRefused()
+		}
+		return initReport(file, pluginOffer{flag: plugin, stealth: stealth}, shimOffer{flag: shim},
+			rulesOffer{flag: rules, stealth: stealth, rerun: true, file: file}, o)
 	}
 	if named := os.Getenv("ITOS_CONFIG"); named != "" {
 		return 0, usage("init writes itos.yaml at the repository's top, or with --stealth in the git folder, "+
@@ -95,7 +107,8 @@ func initCommand(args []string, o Out) (int, error) {
 	// answer into its buffer.
 	ask, answers := !o.JSON && onTerminal(), bufio.NewReader(os.Stdin)
 	return initWrite(stealth, initialized, pluginOffer{flag: plugin, stealth: stealth, ask: ask, answers: answers},
-		shimOffer{flag: shim, ask: ask, answers: answers}, log, o)
+		shimOffer{flag: shim, ask: ask, answers: answers}, rulesOffer{flag: rules, stealth: stealth, ask: ask, answers: answers},
+		log, o)
 }
 
 // atTop moves to the top of the repository the folder is in, after git init
@@ -124,10 +137,12 @@ type writtenFile struct {
 }
 
 // initWrite writes the starter, pins the newest release, installs the hooks
-// and makes the plugin's offer and the git shim's; its exit code is hooks
-// install's, else 1 when claude failed at installing the plugin asked for or
-// the git shim asked for could not be linked.
-func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer, log io.Writer, o Out) (int, error) {
+// and makes the plugin's offer, the git shim's and that of the rules for
+// agents; its exit code is hooks install's, else 1 when claude failed at
+// installing the plugin asked for, the git shim asked for could not be
+// linked or the rules asked for could not be written.
+func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer, rulesOffer rulesOffer, log io.Writer,
+	o Out) (int, error) {
 	file := "itos.yaml"
 	if stealth {
 		common, err := git.Read("rev-parse", "--git-common-dir")
@@ -232,15 +247,17 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 	if err != nil {
 		return 0, err
 	}
-	offer.log, shimOffer.log = log, log
+	offer.log, shimOffer.log, rulesOffer.log = log, log, log
 	if o.JSON {
-		offer.log, shimOffer.log = io.Discard, io.Discard
+		offer.log, shimOffer.log, rulesOffer.log = io.Discard, io.Discard, io.Discard
 	}
 	plugin, pluginCode := offer.run()
 	shim, shimCode := shimOffer.run()
+	rulesOffer.file = file
+	rules, rulesCode := rulesOffer.run()
 	code := hooksCode
 	if code == 0 {
-		code = max(pluginCode, shimCode)
+		code = max(pluginCode, shimCode, rulesCode)
 	}
 	if o.JSON {
 		var at, pin any
@@ -257,7 +274,7 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 			fields = append(fields, out.Field{Key: "pin_problem", Value: pinErr.Error()})
 		}
 		fields = append(fields, out.Field{Key: "hooks", Value: hooks}, out.Field{Key: "plugin", Value: plugin},
-			out.Field{Key: "git_shim", Value: shim})
+			out.Field{Key: "git_shim", Value: shim}, out.Field{Key: "agent_rules", Value: rules})
 		return code, out.Emit(o.Stdout, fields...)
 	}
 	if hooksCode != 0 {
@@ -281,6 +298,11 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 		if plugin.Action == "installed" && plugin.Scope == "project" {
 			if status, _ := git.Output("status", "--porcelain", "--", projectSettings); status != "" {
 				paths = append(paths, projectSettings)
+			}
+		}
+		for _, f := range rules.Files {
+			if f.Action != "kept" {
+				paths = append(paths, f.Path)
 			}
 		}
 		fmt.Fprintf(log, "Commit what init wrote with the task that adopts itos: git add %s, then itos commit --task %s -m 'chore: adopt itos'\n",
@@ -351,8 +373,10 @@ func starterSmokeSet(list tests.List) (string, int) {
 // repository lacks or cannot be read (config check's warning), and a pin
 // behind the newest release, where the release server answers; then makes
 // the plugin's offer and the git shim's, which never ask, and install only
-// for --plugin and --git-shim. Neither not installed is counted as missing.
-func initReport(file string, offer pluginOffer, shimOffer shimOffer, o Out) (int, error) {
+// for --plugin and --git-shim; then the offer of the rules for agents, which
+// reports a block the config no longer matches and writes one only for
+// --agent-rules. None of them not in place is counted as missing.
+func initReport(file string, offer pluginOffer, shimOffer shimOffer, rulesOffer rulesOffer, o Out) (int, error) {
 	_, found, notes, _, err := configFindings("")
 	if err != nil {
 		return 0, err
@@ -374,13 +398,14 @@ func initReport(file string, offer pluginOffer, shimOffer shimOffer, o Out) (int
 		if notes == nil {
 			notes = []Found{}
 		}
-		offer.log, shimOffer.log = io.Discard, io.Discard
+		offer.log, shimOffer.log, rulesOffer.log = io.Discard, io.Discard, io.Discard
 		plugin, pluginCode := offer.run()
 		shim, shimCode := shimOffer.run()
-		return max(code, pluginCode, shimCode), out.Emit(o.Stdout, out.Field{Key: "config", Value: file},
+		rules, rulesCode := rulesOffer.run()
+		return max(code, pluginCode, shimCode, rulesCode), out.Emit(o.Stdout, out.Field{Key: "config", Value: file},
 			out.Field{Key: "action", Value: "checked"}, out.Field{Key: "missing", Value: found},
 			out.Field{Key: "plugin", Value: plugin}, out.Field{Key: "notes", Value: notes},
-			out.Field{Key: "git_shim", Value: shim})
+			out.Field{Key: "git_shim", Value: shim}, out.Field{Key: "agent_rules", Value: rules})
 	}
 	list := func(found []Found) {
 		for _, f := range found {
@@ -402,10 +427,11 @@ func initReport(file string, offer pluginOffer, shimOffer shimOffer, o Out) (int
 		fmt.Fprintln(o.Stdout, "Noted, not counted as missing:")
 		list(notes)
 	}
-	offer.log, shimOffer.log = o.Stdout, o.Stdout
+	offer.log, shimOffer.log, rulesOffer.log = o.Stdout, o.Stdout, o.Stdout
 	_, pluginCode := offer.run()
 	_, shimCode := shimOffer.run()
-	return max(code, pluginCode, shimCode), nil
+	_, rulesCode := rulesOffer.run()
+	return max(code, pluginCode, shimCode, rulesCode), nil
 }
 
 // pinBehind is the note of a pin behind the newest release, nil when the

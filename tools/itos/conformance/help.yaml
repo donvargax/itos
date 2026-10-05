@@ -62,6 +62,7 @@ cases:
         pin [<version>]                  move the config's pin to a release, the newest by default
         upgrade [<version>]              move to a newer itos, listing what each release since asks
         init [--stealth] [--plugin [<scope>]] [--git-shim [--git-shim-dir <folder>] | --no-git-shim]
+             [--agent-rules | --no-agent-rules]
                                          ready a repository for itos; run again, what is missing
         verify <from> <to>               re-check every commit of a range
         tests list <kind> [--at <tree>]  the kind's named tests
@@ -887,6 +888,7 @@ cases:
     stdout: |
       Usage: itos init [--stealth] [--plugin [project|user|local|no]]
                        [--git-shim [--git-shim-dir <folder>] | --no-git-shim]
+                       [--agent-rules | --no-agent-rules]
 
       Readies the repository it runs in for itos, at its top, after git init where
       the folder is no repository yet. Where there is no config it writes a starter:
@@ -939,15 +941,33 @@ cases:
       it never asks: a shim not linked is reported, never counted as missing, and
       --git-shim links it.
 
+      It offers the rules for agents the same way: what the config decides (the
+      commit types, the footer each type needs, the paths each type may touch and
+      what the hooks and CI run), generated from it into AGENTS.md between the lines
+      <!-- itos:begin --> and <!-- itos:end -->, and a line importing it, @AGENTS.md,
+      at the end of CLAUDE.md, written when it is missing. The block has one line a
+      paragraph, so a Markdown formatter leaves it as written. An AGENTS.md without
+      the markers gains the block at its end, its text kept; nothing outside them is
+      ever changed, and a file's CRLF line endings are kept. --agent-rules writes
+      it, --no-agent-rules declines; on a terminal with neither it asks, yes its
+      default answer; anywhere else it writes nothing and says how to. Run again
+      where a config is, it never asks: a block the config no longer matches is
+      reported, never counted as missing, and --agent-rules rewrites it. Under
+      --stealth, which changes nothing tracked, --agent-rules is refused.
+
       --json: {"schema":1,"config","action":"initialized","git_init","since","files":[{"path","action"}],
-              "pin","pin_problem"?,"hooks","plugin","git_shim"} (hooks as itos hooks install --json prints it),
-              or {"schema":1,"config","action":"checked","missing":[{"rule","message","fix"?,"area"}],"plugin",
-              "notes":[{"rule","message","fix"?,"area"}],"git_shim"};
+              "pin","pin_problem"?,"hooks","plugin","git_shim","agent_rules"} (hooks as itos hooks install
+              --json prints it), or {"schema":1,"config","action":"checked","missing":[{"rule","message",
+              "fix"?,"area"}],"plugin","notes":[{"rule","message","fix"?,"area"}],"git_shim","agent_rules"};
               plugin {"action","scope","excluded","problem"?}, action one of installed, already,
               offered, declined, no_claude, unknown (claude plugin list failed) or failed;
               git_shim {"action","link","on_path","before_git","problem"?}, action one of linked,
               replaced (a link to another itos), kept, offered, declined, refused (a git that is no
-              link to itos is there) or failed
+              link to itos is there) or failed;
+              agent_rules {"action","files":[{"path","action"}],"problem"?}, action one of written,
+              current (the block matches the config), stale (it does not, and was not rewritten),
+              offered, declined, stealth (not offered under --stealth) or failed; each file's action
+              wrote, updated or kept
   - name: itos verify --help
     argv: [verify, --help]
     exit: 0
