@@ -478,3 +478,17 @@ Feature: The work registry
     Then itos exits with code 1
     And its output says "feature file"
     And the registry is unchanged
+
+  # Bug 25 (the user's call, 2026-10-05): slice 79 read "open" as todo and
+  # doing, so plain work list left a blocked item out, though it is work
+  # still to be done, only waiting. work.statuses is the project's to set, so
+  # the rule is by the two statuses itos knows to be closed: plain work list
+  # prints every item whose status is neither done nor dropped, blocked and
+  # any status a project adds among them.
+  @ID-WORK-46 @bug-25 @wip
+  Scenario: work list prints a blocked item among the open ones
+    Given the work registry has the item "T-001" with the status "done" and the item "slice-1" with the status "blocked"
+    When itos runs "work list"
+    Then itos exits with code 0
+    And its output says "slice-1"
+    And its output does not say "T-001"
