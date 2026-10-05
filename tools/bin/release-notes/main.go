@@ -48,6 +48,8 @@ import (
 	"regexp"
 	"strings"
 	"text/template"
+
+	"github.com/donvargax/itos/v3/internal/release"
 )
 
 const (
@@ -60,9 +62,8 @@ const (
 var platforms = []string{"linux-amd64", "linux-arm64", "darwin-amd64", "darwin-arm64", "windows-amd64"}
 
 var (
-	typed   = regexp.MustCompile(`^([a-zA-Z]+)(\([^)]*\))?(!)?: `)
-	release = regexp.MustCompile(`^v\d+\.\d+\.\d+$`)
-	semver  = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+	typed  = regexp.MustCompile(`^([a-zA-Z]+)(\([^)]*\))?(!)?: `)
+	semver = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
 )
 
 func main() {
@@ -173,18 +174,20 @@ func command(name string, args ...string) (string, error) {
 	return string(out), nil
 }
 
-// lastRelease is the newest vX.Y.Z tag reachable from rev but own, or "".
+// lastRelease is the newest release tag reachable from rev but own, or "",
+// picked by release.Newest, the release cut's rule (T-090).
 func lastRelease(rev, own string) (string, error) {
-	out, err := command("git", "tag", "--merged", rev, "--list", "v*", "--sort=-v:refname")
+	out, err := command("git", "tag", "--merged", rev, "--list", "v*")
 	if err != nil {
 		return "", err
 	}
+	var tags []string
 	for _, t := range strings.Split(out, "\n") {
-		if release.MatchString(t) && t != own {
-			return t, nil
+		if t != own {
+			tags = append(tags, t)
 		}
 	}
-	return "", nil
+	return release.Newest(tags), nil
 }
 
 // readChecksums reads each platform's archive hash from checksums.txt, and

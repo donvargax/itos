@@ -120,6 +120,8 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	"github.com/donvargax/itos/v3/internal/release"
 )
 
 // commit is one commit since the release's tag.
@@ -876,7 +878,6 @@ func git(args ...string) (string, error) {
 var (
 	releasable = regexp.MustCompile(`^(feat|fix)(\([^)]*\))?!?: `)
 	headerType = regexp.MustCompile(`^([a-zA-Z]+)(\([^)]*\))?(!?): `)
-	version    = regexp.MustCompile(`^v\d+\.\d+\.\d+$`)
 )
 
 func anyReleasable(headers string) bool {
@@ -888,19 +889,14 @@ func anyReleasable(headers string) bool {
 	return false
 }
 
-// lastRelease is the newest vX.Y.Z tag reachable from HEAD, by version, or ""
-// for none.
+// lastRelease is the newest release tag reachable from HEAD, or "" for none,
+// picked by release.Newest, the release cut's rule (T-090).
 func lastRelease() (string, error) {
-	out, err := git("tag", "--merged", "HEAD", "--list", "v*", "--sort=-v:refname")
+	out, err := git("tag", "--merged", "HEAD", "--list", "v*")
 	if err != nil {
 		return "", err
 	}
-	for _, t := range strings.Split(out, "\n") {
-		if version.MatchString(t) {
-			return t, nil
-		}
-	}
-	return "", nil
+	return release.Newest(strings.Split(out, "\n")), nil
 }
 
 // commitsSince lists the commits in <tag>..HEAD, newest first, each with its

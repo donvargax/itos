@@ -6,7 +6,9 @@ package release
 // cut counts (T-069): a feat, a fix, or a commit of any type marked as
 // breaking. tools/bin/release-version imports Type, Breaking and Newest
 // from here (T-088, bug 20), so status and the release cut read a commit and
-// pick the last release from one copy.
+// pick the last release from one copy; tools/bin/release-notes,
+// schema-contract and previous-release pick the release they judge against
+// with Newest too (T-090).
 
 import (
 	"regexp"
@@ -66,8 +68,9 @@ func Breaking(message string) bool {
 func IsTag(tag string) bool { return releaseTag.MatchString(tag) }
 
 // Newest is the highest of the tags that name a release, by their numbers,
-// "" when none does. The release cut (tools/bin/release-version) and itos
-// status both pick the last release with it. Two spellings of one version
+// "" when none does. The release cut (tools/bin/release-version), itos
+// status and the tools that judge a release against the last one
+// (release-notes, schema-contract, previous-release) all pick it with this. Two spellings of one version
 // (v1.0.0, v01.0.0) go to the shorter, then the later by name, so the pick
 // does not hang on the order the tags are listed in.
 func Newest(tags []string) string {
