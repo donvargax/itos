@@ -637,6 +637,28 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   that version with those checksums (exit 0), or when it is that version
   with other valid checksums (exit 1: the release changed after it was
   pinned, and re-pinning it quietly would defeat the pin).
+- **itos upgrade** (`internal/cli/upgrade.go`, slice 75) is the launcher's
+  own command too (`binaryCommand`), and moves the pin with pin's code: the
+  config and its pin read by `readConfigPin`, the release by `pinned`, the
+  edit by `configPin.moved` and the refusal of a release changed after it
+  was pinned by `configPin.replaced`. The version it moves from is the pin's,
+  else the `version=` line of `tools/bin/install-itos`, the install script
+  the notes write; with neither, or a version older than that, it refuses
+  (exit 1) and names `itos pin`. It walks back from the new release through
+  each `upgrading.json`'s `previous` (T-091) until the old version, asking
+  `internal/release` for each; `release.Get` reports an answer other than
+  200 OK as a `StatusError`, so a 404 (`release.NotFound`), a release cut
+  before T-091, ends the walk naming its notes, while any other failure
+  exits 3. A file of a schema it does not read is named by its notes too.
+  Every edit is made in memory first, the pin, the config's first line when
+  it is a `yaml-language-server` schema line naming a release's
+  `itos.schema.json` (only its version changes), and the script's
+  `version=` value and each `platform=<os-arch> sum=<hash>` hash, looked up
+  in the new `checksums.txt` by `release.Listed` (the launcher's reader of
+  that file); a layout it cannot edit so exits 2. Only then are the files
+  written, so a failed fetch or edit leaves every file as it was. It prints
+  each release's lists oldest first, or under `--json` returns them as
+  `upgrading.json` holds them, and commits nothing.
 - **itos init** (`internal/cli/init.go`, `starter.go`, slice 48) is the
   launcher's own command too (`binaryCommand`): where there is no config
   there is no pin to hand it to, and the newest release must not run in its

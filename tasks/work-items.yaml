@@ -5023,3 +5023,17 @@ items:
       commit-msg hook nor CI said so; the coordinator caught it by hand before an agent built on
       them. An ID is one scenario's, @wip or not, and one area is one feature file: both rules hold
       at commit.
+
+  - id: p1-upgrade-notices
+    title: The notice of a pin fallen behind, and itos init's note of it, name itos upgrade
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-75]
+    kind: idea
+    why: >
+      Found working slice 75: the launcher's notice of a pin behind the newest release ("itos X is
+      out (this repository pins Y)", internal/launch/update.go) names the release's notes, and itos
+      init's note of the same says "itos pin moves it there; read the notes of the releases between
+      them". itos upgrade now does both in one run, so they could name it instead; the words are
+      held by update.feature, init.feature and the corpus, so the change is a slice of its own.
