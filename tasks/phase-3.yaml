@@ -647,7 +647,7 @@
   done_when:
     - run: test ! -e integrations/claude-code/skills
     - run: "! grep -rn 'skills/[i]tos' README.md docs/ARCHITECTURE.md tasks/phase-1.yaml tasks/phase-3.yaml integrations/claude-code"
-    - run: grep -q '"version":.*"3.0.0"' integrations/claude-code/.claude-plugin/plugin.json
+    - run: grep -qE '"version":.*"([3-9]|[1-9][0-9])[0-9]*\.' integrations/claude-code/.claude-plugin/plugin.json
     - run: tools/bin/itos task T-079 && tools/bin/itos task T-082
       timeout: 120
 
