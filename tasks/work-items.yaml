@@ -3898,17 +3898,9 @@ items:
     title: itos status finds the last green commit by the head's ancestry, as ci range does
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-status-last-green-walk.
-      Since bug 23 ci range's github provider walks the head's first parents, asking each commit's
-      runs, and ci range and ci watch ask GITHUB_API_URL when it is set. itos status's look at the
-      last green commit (LastGreenProvider) still takes the newest success from the branch's list of
-      runs, which GitHub served stale on 2026-10-05, and it and the nightly look ask api.github.com
-      whatever GITHUB_API_URL says. Status could walk from the branch's head and take the address as
-      the others do; bug 23 left it out of scope.
     refs: [internal/providers/range.go]
 
   - id: bug-25
