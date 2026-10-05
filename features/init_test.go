@@ -51,6 +51,14 @@ func initializeInitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the file "([^"]*)" does not exist$`, w.fileDoesNotExist)
 	sc.Step(`^claude was given "([^"]*)"$`, func(args string) error { return w.claudeGiven(args, true) })
 	sc.Step(`^claude was not given "([^"]*)"$`, func(args string) error { return w.claudeGiven(args, false) })
+
+	sc.Step(`^the config's commits\.types gains "([^"]*)"$`, w.typesGain)
+	sc.Step(`^the file "([^"]*)" says "([^"]*)" between the markers$`, func(path, text string) error {
+		return w.saysBetweenMarkers(path, text, true)
+	})
+	sc.Step(`^the file "([^"]*)" does not say "([^"]*)" between the markers$`, func(path, text string) error {
+		return w.saysBetweenMarkers(path, text, false)
+	})
 }
 
 // A repository with one commit, a README, and nothing of itos: no config in
@@ -300,6 +308,87 @@ func (w *world) claudeGiven(args string, given bool) error {
 			how = "was"
 		}
 		return fmt.Errorf("claude %s given %q; its runs: %q\n%s", how, args, runs, w.report())
+	}
+	return nil
+}
+
+// The config itos finds gains a commit type at the end of commits.types,
+// written back in place, uncommitted: the config changed after the last run.
+func (w *world) typesGain(typ string) error {
+	path := filepath.Join(w.dir, "itos.yaml")
+	if _, err := os.Stat(path); err != nil {
+		path = filepath.Join(w.dir, stealthDir, "itos.yaml")
+	}
+	text, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("there is no config: %w\n%s", err, w.report())
+	}
+	var doc yaml.Node
+	if err := yaml.Unmarshal(text, &doc); err != nil || len(doc.Content) == 0 {
+		return fmt.Errorf("the config is not YAML: %v\n%s", err, text)
+	}
+	types := mappingValue(mappingValue(doc.Content[0], "commits"), "types")
+	if types == nil || types.Kind != yaml.SequenceNode {
+		return fmt.Errorf("the config has no commits.types list:\n%s", text)
+	}
+	types.Content = append(types.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: typ})
+	out, err := yaml.Marshal(&doc)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, out, 0o644)
+}
+
+// The value of a key of a YAML mapping, nil when it is no mapping or has no
+// such key.
+func mappingValue(node *yaml.Node, key string) *yaml.Node {
+	if node == nil || node.Kind != yaml.MappingNode {
+		return nil
+	}
+	for i := 0; i+1 < len(node.Content); i += 2 {
+		if node.Content[i].Value == key {
+			return node.Content[i+1]
+		}
+	}
+	return nil
+}
+
+// The markers itos writes its block of a project file between, each a line
+// of its own.
+const (
+	beginMarker = "<!-- itos:begin -->"
+	endMarker   = "<!-- itos:end -->"
+)
+
+// Whether the file's text between its markers, a line that is the begin
+// marker and the first after it that is the end one, holds the text, as says
+// it must or must not: a file without both markers has no block, which is no
+// proof of what it would leave out, so it fails either way.
+func (w *world) saysBetweenMarkers(path, text string, says bool) error {
+	data, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return fmt.Errorf("the file %s cannot be read: %w\n%s", path, err, w.report())
+	}
+	lines := strings.Split(strings.ReplaceAll(string(data), "\r\n", "\n"), "\n")
+	is := func(marker string) func(string) bool {
+		return func(l string) bool { return strings.TrimSpace(l) == marker }
+	}
+	begin := slices.IndexFunc(lines, is(beginMarker))
+	end := -1
+	if begin >= 0 {
+		if at := slices.IndexFunc(lines[begin+1:], is(endMarker)); at >= 0 {
+			end = begin + 1 + at
+		}
+	}
+	if end < 0 {
+		return fmt.Errorf("the file %s has no %s line with an %s line after it:\n%s", path, beginMarker, endMarker, data)
+	}
+	block := strings.Join(lines[begin+1:end], "\n")
+	switch found := strings.Contains(block, text); {
+	case found && !says:
+		return fmt.Errorf("the file %s says %q between its markers:\n%s", path, text, block)
+	case !found && says:
+		return fmt.Errorf("the file %s does not say %q between its markers:\n%s", path, text, block)
 	}
 	return nil
 }
