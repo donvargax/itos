@@ -4377,7 +4377,7 @@ items:
     title: The features' PATH hides any itos but the one under test, as it hides claude
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     why: >
