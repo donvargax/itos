@@ -265,8 +265,14 @@ what the hooks and CI run) into `AGENTS.md`, between `<!-- itos:begin -->` and
 `@AGENTS.md` line to `CLAUDE.md` so Claude Code reads it; `--no-agent-rules`
 declines. The block is one line a paragraph, so a Markdown formatter leaves it
 alone. Run again, init reports a block the config no longer matches, and
-`itos init --agent-rules` rewrites only what is between the markers. How to
-work with itos is not in the block: start a session with `! itos go`, and brief
+`itos init --agent-rules` rewrites only what is between the markers. Under
+`--stealth` nothing tracked changes, so `--agent-rules` writes the block to
+`.git/itos/AGENTS.md`, which every worktree shares, with a `CLAUDE.local.md`
+importing it (and `@AGENTS.md`, when the project has one) for Claude Code and
+an `AGENTS.override.md` for Codex holding a marked copy of the project's
+`AGENTS.md`, then the block; both are listed in `.git/info/exclude`, and a file
+of yours already there only gains the block. Run again, init also reports a
+copy that no longer matches `AGENTS.md`. How to work with itos is not in the block: start a session with `! itos go`, and brief
 an implementer to run `itos guide work` first.
 
 **Where itos reads its config.** itos reads `itos.yaml` in the folder it runs

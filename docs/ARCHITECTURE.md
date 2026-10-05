@@ -747,8 +747,26 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   without a flag asks a terminal (sharing the one reader of stdin) or says
   how; a rerun with no flag reads no config unless a block is there, and
   then compares it with `rulesBlock`'s, saying only that it is stale.
-  `--stealth --agent-rules` is a usage error, and under a stealth config
-  nothing is offered: p3-init-agent-rules-stealth writes its files.
+  Under a stealth config `runStealth` (`initrulesstealth.go`, slice 80)
+  makes the same offer and writes three files, never `AGENTS.md` or
+  `CLAUDE.md`: the block to `<git common dir>/itos/AGENTS.md`, a
+  `CLAUDE.local.md` whose block imports `@AGENTS.md` when the project has
+  one and then that file, by the path `git rev-parse --git-common-dir`
+  gives (relative in the main worktree, absolute in a linked one), and an
+  `AGENTS.override.md` holding a copy of `AGENTS.md` between
+  `<!-- itos:agents-md:begin -->` and `<!-- itos:agents-md:end -->`, then the
+  block. `blockSpan`, which `splitBlock` now calls, finds a block's marker
+  lines while skipping another's, so the rules markers are looked for
+  outside the copy. An `AGENTS.override.md` is itos's, and gets the copy,
+  when it is missing, holds the copy's markers or holds nothing outside the
+  rules block; any other is the person's and only gains the block, as a
+  `CLAUDE.local.md` always does. `plan` computes each file's next text, so a
+  rerun compares texts and says whether the rules or the copy are stale; a
+  rewrite refuses a file at the top that the project tracks, and lists both
+  files with `excludeIfShown`, the plugin's, which adds a line only while git
+  shows the file. The shared block names the config and its ledger and
+  registry by their place beside it (`stealthSource`, `stealthData`), since
+  their paths differ between worktrees and the block must not.
 - **Extensions** (`internal/cli/extension.go`, slice 29): a command itos
   does not have runs `itos-<command>` from the `PATH`, as git runs
   `git-<command>`. `cli.Parse` reads the arguments for both `cli.Main` and
