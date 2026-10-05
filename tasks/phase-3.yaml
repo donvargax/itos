@@ -650,3 +650,26 @@
     - run: grep -q '"version":.*"3.0.0"' integrations/claude-code/.claude-plugin/plugin.json
     - run: tools/bin/itos task T-079 && tools/bin/itos task T-082
       timeout: 120
+
+- id: T-093
+  type: build
+  title: A CI runner installs the global itos in one step, the pin choosing what runs
+  why: >
+    Was p3-global-install-ci, the prerequisite of v4.0.0's hooks.bin default (slice 79): with
+    hooks.bin defaulting to itos, a repository's hooks and CI run the itos on the PATH, and a CI
+    runner has none. The coordinator's calls (2026-10-05, the user asleep, to review):
+    tools/bin/install-launcher <dir> [<version>] is a POSIX sh script that downloads a release's
+    archive for the runner's platform and its checksums.txt (ITOS_RELEASES, by default this
+    repository's GitHub releases; with no version, the newest), checks the archive against its
+    line, and unpacks itos (itos.exe on Windows, from the zip) into <dir>. action.yml at the
+    repository's top is a composite action, uses donvargax/itos@v<x.y.z>, that runs that script
+    into the runner's temporary folder for the version of its own ref (the newest for a ref that
+    is not a version) and adds the folder to the PATH. The installed binary is the launcher, so
+    the repository's pin decides which itos runs; a repository with no pin runs the version
+    installed. This repository's platform jobs (Linux, macOS, Windows) run the action from the
+    checkout (uses ./) and then itos version, so every push proves it on each platform. The
+    README's install section gives the action line and, for other CI, the script's two lines.
+  done_when:
+    - run: sh -c 'd=$(mktemp -d) && tools/bin/install-launcher "$d" 3.5.0 && "$d/itos" version | grep -q "3\.5\.0"'
+      timeout: 120
+    - run: actionlint
