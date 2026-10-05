@@ -1590,7 +1590,10 @@ items:
       hashes, and lists the rest; it is a new command and itos pin stays as released. Specified as
       @ID-UPGRADE-01 to 10 in features/upgrade.feature. Showing the pin against the newest in itos
       status, and the guide's upgrade-first rule on a major, come after this, as their own item.
-    refs: [features/upgrade.feature, features/pin.feature, tools/bin/release-notes/main.go]
+
+      Its scenarios are @ID-UPGRADECMD-01 to 10 in features/upgrade-command.feature (renamed
+      2026-10-04 from upgrade.feature, whose UPGRADE ids upgrading.feature already held).
+    refs: [features/upgrade-command.feature, features/pin.feature, tools/bin/release-notes/main.go]
 
   - id: p1-tests-next-id-and-steps
     title: "Spec help: the next free test ID, the steps that exist, the ones still undefined"
