@@ -34,7 +34,7 @@ import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 export const ROOT = resolve(import.meta.dirname, "../..");
-const MODULE = "github.com/donvargax/itos/v3";
+const MODULE = "github.com/donvargax/itos/v4";
 
 // The version this checkout's builds say they are (tools/bin/dev-version).
 function devVersion(): string {

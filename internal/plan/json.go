@@ -5,9 +5,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/donvargax/itos/v3/internal/check"
-	"github.com/donvargax/itos/v3/internal/git"
-	"github.com/donvargax/itos/v3/internal/out"
+	"github.com/donvargax/itos/v4/internal/check"
+	"github.com/donvargax/itos/v4/internal/git"
+	"github.com/donvargax/itos/v4/internal/out"
 )
 
 // The plan as JSON, which `ci plan --json` prints (ci-plan-json.ts): the

@@ -12,11 +12,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/donvargax/itos/v3/internal/config"
-	"github.com/donvargax/itos/v3/internal/ledger"
-	"github.com/donvargax/itos/v3/internal/out"
-	"github.com/donvargax/itos/v3/internal/value"
-	"github.com/donvargax/itos/v3/internal/work"
+	"github.com/donvargax/itos/v4/internal/config"
+	"github.com/donvargax/itos/v4/internal/ledger"
+	"github.com/donvargax/itos/v4/internal/out"
+	"github.com/donvargax/itos/v4/internal/value"
+	"github.com/donvargax/itos/v4/internal/work"
 )
 
 // taskAddUsage is what task add needs, as a usage error says it.

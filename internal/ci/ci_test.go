@@ -7,10 +7,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v3/internal/check"
-	"github.com/donvargax/itos/v3/internal/config"
-	"github.com/donvargax/itos/v3/internal/ledger"
-	"github.com/donvargax/itos/v3/internal/plan"
+	"github.com/donvargax/itos/v4/internal/check"
+	"github.com/donvargax/itos/v4/internal/config"
+	"github.com/donvargax/itos/v4/internal/ledger"
+	"github.com/donvargax/itos/v4/internal/plan"
 )
 
 func load(t *testing.T) *config.Loaded {

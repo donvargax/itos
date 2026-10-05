@@ -18,8 +18,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/donvargax/itos/v3/internal/git"
-	"github.com/donvargax/itos/v3/internal/out"
+	"github.com/donvargax/itos/v4/internal/git"
+	"github.com/donvargax/itos/v4/internal/out"
 )
 
 // GitShimSince is the first itos with the git-shim command: the shim hands

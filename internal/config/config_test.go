@@ -7,7 +7,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/donvargax/itos/v3/internal/value"
+	"github.com/donvargax/itos/v4/internal/value"
 )
 
 func load(t *testing.T, text string) (*Loaded, error) {

@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/donvargax/itos/v3/internal/config"
-	"github.com/donvargax/itos/v3/internal/out"
-	"github.com/donvargax/itos/v3/internal/source"
-	"github.com/donvargax/itos/v3/internal/value"
+	"github.com/donvargax/itos/v4/internal/config"
+	"github.com/donvargax/itos/v4/internal/out"
+	"github.com/donvargax/itos/v4/internal/source"
+	"github.com/donvargax/itos/v4/internal/value"
 )
 
 // SmokeScenario is one test of a smoke set, with why it is there.

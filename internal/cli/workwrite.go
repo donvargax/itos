@@ -24,14 +24,14 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v3/internal/config"
-	"github.com/donvargax/itos/v3/internal/git"
-	"github.com/donvargax/itos/v3/internal/ledger"
-	"github.com/donvargax/itos/v3/internal/lock"
-	"github.com/donvargax/itos/v3/internal/message"
-	"github.com/donvargax/itos/v3/internal/out"
-	"github.com/donvargax/itos/v3/internal/providers"
-	"github.com/donvargax/itos/v3/internal/work"
+	"github.com/donvargax/itos/v4/internal/config"
+	"github.com/donvargax/itos/v4/internal/git"
+	"github.com/donvargax/itos/v4/internal/ledger"
+	"github.com/donvargax/itos/v4/internal/lock"
+	"github.com/donvargax/itos/v4/internal/message"
+	"github.com/donvargax/itos/v4/internal/out"
+	"github.com/donvargax/itos/v4/internal/providers"
+	"github.com/donvargax/itos/v4/internal/work"
 )
 
 // bodyWidth is the width a registry commit's body is wrapped at: the header

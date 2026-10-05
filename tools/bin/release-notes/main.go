@@ -65,7 +65,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/donvargax/itos/v3/internal/release"
+	"github.com/donvargax/itos/v4/internal/release"
 )
 
 const (

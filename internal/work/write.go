@@ -5,9 +5,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/donvargax/itos/v3/internal/config"
-	"github.com/donvargax/itos/v3/internal/out"
-	"github.com/donvargax/itos/v3/internal/value"
+	"github.com/donvargax/itos/v4/internal/config"
+	"github.com/donvargax/itos/v4/internal/out"
+	"github.com/donvargax/itos/v4/internal/value"
 )
 
 // The commands that write the registry (slice 52): work take sets an item

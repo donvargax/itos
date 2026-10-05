@@ -23,7 +23,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v3/internal/config"
+	"github.com/donvargax/itos/v4/internal/config"
 )
 
 // BodyLimit is the longest a body line may be under the config's header

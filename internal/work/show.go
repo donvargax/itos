@@ -12,8 +12,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/donvargax/itos/v3/internal/out"
-	"github.com/donvargax/itos/v3/internal/value"
+	"github.com/donvargax/itos/v4/internal/out"
+	"github.com/donvargax/itos/v4/internal/value"
 )
 
 // Shown is an item as work show gives it: the mapping as written, its

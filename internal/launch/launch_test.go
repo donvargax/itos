@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v3/internal/release"
-	"github.com/donvargax/itos/v3/internal/version"
+	"github.com/donvargax/itos/v4/internal/release"
+	"github.com/donvargax/itos/v4/internal/version"
 )
 
 const sums = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"

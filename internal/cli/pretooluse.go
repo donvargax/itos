@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/donvargax/itos/v3/internal/guard"
+	"github.com/donvargax/itos/v4/internal/guard"
 )
 
 // GuardSince is the first itos with hook pre-tool-use: the launcher answers
