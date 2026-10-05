@@ -37,7 +37,8 @@ history (`vp run changelog`), and the decisions behind it are records in
   `checksums.txt` into `dist/goreleaser` and uploads them to a draft release
   whose `target_commitish` is the commit, attests every file `checksums.txt`
   lists (`actions/attest-build-provenance`, Sigstore), writes the notes
-  (`tools/bin/release-notes`, below) and publishes the draft with them
+  (`tools/bin/release-notes`, below) and `upgrading.json` beside them, uploads
+  `upgrading.json` to the draft and publishes the draft with the notes
   (`gh release edit --draft=false --latest`, the GitHub CLI pinned as the
   nightly pins it). GitHub creates the tag when the draft is published, so a
   tag never exists without its assets, and a run that fails leaves at most a
@@ -61,6 +62,22 @@ history (`vp run changelog`), and the decisions behind it are records in
   release (`go run ./tools/bin/schema-contract -json -release <tag>`), then the
   install script, the pin (`pin.checksums` is `checksums.txt`'s own SHA-256),
   `go install` and the schema line, filled from `checksums.txt`.
+- **A release's `upgrading.json`** (`tools/bin/release-notes -json`, T-091) is
+  that Upgrading section as data, the asset `itos upgrade` (slice-75) reads of
+  every release between a project's pin and the new one: `schema`, `version`,
+  `previous` (the last release, `X.Y.Z`, the range's start, `""` with none),
+  then `breaking`, `upgrading` and `changes`, each `{commit, header, text}`,
+  and `config`, each `{key, change}`. They are the very lists the section
+  quotes, in its order (`Upgrading: none` left out, a wrapped footer's lines
+  kept), gathered by the same code, which with -json reads neither
+  git-cliff nor `checksums.txt` for it. `previous` is how `itos upgrade` walks
+  back from the new release to the pin without listing releases through an
+  API. The workflow uploads it while the release is a draft, so it appears
+  with the rest; it is not in `checksums.txt`, so not attested, since itos
+  only prints it and a pin is still checked against `checksums.txt`.
+  `tools/selftest/upgrading-json.ts` proves the asset for a range against
+  `itos commit footers`, `schema-contract -json` and the range's breaking
+  commits. Releases cut before T-091 have none.
 - **The release tools** run at pinned versions through `tools/bin/pinned`, a
   POSIX sh script: GoReleaser and git-cliff, each fetched once into
   `.tools/<tool>-<version>/` from its GitHub release and checked against the
