@@ -5140,3 +5140,18 @@ items:
       to move a CI step's go install .../cmd/itos@v<version>, which itos upgrade neither edits nor
       mentions. It lists it with the asks, never edits it, keeping to the three edits the user
       chose.
+
+  - id: p1-nightly-late-done-checks
+    title: The nightly runs every done task's checks, not only the static ones
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-092's agent, 2026-10-04: T-079's grep check failed from eb408eb (2026-10-04) until
+      T-092 retargeted it, while every nightly stayed green, since the nightly runs { tasks: done,
+      cost: static } and a grep matches no ci.cost.static pattern, so it is late and never runs
+      again once its task is done. ADR-0016 says the nightly runs the checks of every done task.
+      Either the nightly runs the late ones too, or grep and test join ci.cost.static (they are
+      fast), which also runs them in the commit-msg hook.
