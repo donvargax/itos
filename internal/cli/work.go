@@ -103,9 +103,12 @@ func workProposal(as string, o Out) (int, error) {
 	return 0, nil
 }
 
-// workList is `work list` (slice 43): every item of the registry, in its
-// order, whatever its status, kind or owner, done ones too, which work
-// leaves out. It judges nothing, as task list does not, so a registry with
+// workList is `work list` (slice 43), and `work list --all` (slice 77),
+// the same: every item of the registry, in its order, whatever its status,
+// kind or owner, done ones too, which work leaves out. --all comes before
+// v4.0.0 (slice 79) makes plain work list print the open items alone, so a
+// caller that needs every item (the Claude Code plugin's titles) can ask
+// for them by name first. It judges nothing, as task list does not, so a registry with
 // problems still lists; a registry that is not there is the one problem it
 // reports, on stderr whatever --json says, exit 1. Under --json each item
 // is written as work --json writes it, so the two describe an item alike,

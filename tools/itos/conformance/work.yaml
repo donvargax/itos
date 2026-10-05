@@ -844,6 +844,24 @@ cases:
       items:
         - { id: x, title: X, phase: 1, owner: a, status: done, issue: 3, depends_on: [] }
         - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea, depends_on: [x] }
+  - name: work list --all prints every item, as work list does until v4.0.0
+    argv: [work, list, --all]
+    files:
+      work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: done }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea }\n"
+    exit: 0
+    stdout: |
+      x  -     done  X
+      y  idea  todo  Y
+  - name: work list --all --json writes what work list --json writes
+    argv: [work, list, --all, --json]
+    files:
+      work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: done }\n"
+    exit: 0
+    json:
+      schema: 1
+      file: work-items.yaml
+      items:
+        - { id: x, title: X, phase: 1, owner: a, status: done, depends_on: [] }
   - name: work list judges nothing, so a registry that is not sound still lists
     argv: [work, list]
     files:

@@ -57,7 +57,7 @@ Commands:
                                    add a task to the ledger and its item, and commit both
   task next-id                     the ledger's next free task ID; reads only
   work [--as <handle>]             what the person can start, and what waits
-  work list                        every item of the work registry, done ones too
+  work list [--all]                every item of the work registry, done ones too
   work show <id> [--patch]         an item, its scenarios and its commits; reads only
   work take <id> [--as <handle>]   set an item in progress for the person, and commit it
   work promote <idea> --as <id> --kind slice|task [--title <title>]
@@ -198,7 +198,7 @@ written and nothing committed.
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 	"work": `Usage: itos work [--as <handle>]
-       itos work list
+       itos work list [--all]
        itos work show <id> [--patch]
        itos work take <id> [--as <handle>]
        itos work promote <idea> --as <id> --kind slice|task [--title <title>]
@@ -359,13 +359,16 @@ Under a stealth config the registry is written and nothing committed.
 --json: {"schema":1,"ok":true,"item":{…},"queue":[…],"commit":"<sha>"|null}, or
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
-	"work list": `Usage: itos work list
+	"work list": `Usage: itos work list [--all]
 
 Prints every item of the work registry (the config's work.registry, by default
 work-items.yaml in the ledger's folder), in its order, whatever its status,
 kind or owner, done ones too: its id, kind, status and title, "-" for a kind
 or status it does not give. It judges nothing, so a registry that is not sound
 still lists; exit 1 when there is no registry where itos looks.
+
+--all prints the same, every item. v4.0.0 will make plain work list print the
+open items alone, and --all every one: ask for --all to read every item.
 
 --json: {"schema":1,"file","items":[{"id","title",…}]}, each item with its
 fields as work --json writes it`,

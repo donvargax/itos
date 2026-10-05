@@ -410,7 +410,7 @@ Feature: The work registry
   # and the plugin's titles, which need every item's title, ask for it before
   # the default changes (falling back to plain work list on an itos older
   # than this slice, which refuses --all).
-  @ID-WORK-39 @slice-77 @wip
+  @ID-WORK-39 @slice-77
   Scenario: work list --all prints every item of the registry, done ones included
     Given the work registry has the item "T-001" with the status "done" and the item "slice-1" with the status "todo"
     When itos runs "work list --all"
