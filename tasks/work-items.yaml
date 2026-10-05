@@ -4044,3 +4044,19 @@ items:
       make, itos commit --task <id> fails as git does (nothing to commit) until one finds
       --allow-empty. The error could name the flag. It should not apply it on its own: an empty
       commit is deliberate.
+
+  - id: p3-full-code-review
+    title: A full review of the codebase, area by area, with /code-review ultra
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's wish (2026-10-05), low priority. /code-review ultra reviews a diff of at most 500
+      files and 8000 changed lines, and itos is about 57k lines (29k product Go, 13.5k tests, 9k
+      tools, 4.8k features), so a full review is eight or more runs, each a branch adding one area
+      onto an empty base: internal/providers, internal/config, internal/plan and the like fit;
+      internal/cli needs splitting. Start with what touches people's machines (stealth, hooks, the
+      launcher, the git shim). The gates and the release check already cover most of what a review
+      would, so the gain is design and edge cases.
