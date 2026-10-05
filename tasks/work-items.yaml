@@ -1257,6 +1257,9 @@ items:
       it, so a dead machine never wedges the checkout; the shared claim stays status: doing in the
       registry. Left open: two vp staged backups racing in the same instant.
 
+      Reported again by an agent, 2026-10-05: nothing stops two sessions committing in one checkout;
+      the coordinator's guide says not to, an honour system.
+
   - id: slice-75
     title: "itos upgrade moves the pin and walks each release's Upgrading section since the old one"
     phase: 1
