@@ -3,10 +3,9 @@ package release
 // What the next release would carry (slice 70, itos status): the newest
 // release is the highest tag of the form v<semver>, a prerelease below its
 // release as semver orders them, and a releasable commit is one the release
-// cut counts, as tools/bin/release-version reads it (T-069): a feat, a fix,
-// or a commit of any type marked as breaking. release-version imports the
-// standard library alone, so it keeps its own copy of these rules; the two
-// read a commit alike.
+// cut counts (T-069): a feat, a fix, or a commit of any type marked as
+// breaking. tools/bin/release-version imports Type and Breaking from here
+// (T-088), so status and the release cut read a commit from one copy.
 
 import (
 	"regexp"
@@ -15,8 +14,7 @@ import (
 )
 
 var (
-	// typed is a Conventional Commits header's type, scope and !, as
-	// release-version reads it.
+	// typed is a Conventional Commits header's type, scope and !.
 	typed = regexp.MustCompile(`^([a-zA-Z]+)(\([^)]*\))?(!)?: `)
 	// semverTag is a tag v<semver>: its three numbers, its prerelease and
 	// its build metadata.
@@ -28,11 +26,20 @@ var (
 // Releasable says whether a commit's message makes a release: a feat or a
 // fix, or one of any type marked as breaking.
 func Releasable(message string) bool {
-	header, _, _ := strings.Cut(strings.TrimSpace(message), "\n")
-	if t := typed.FindStringSubmatch(header); t != nil && (t[1] == "feat" || t[1] == "fix") {
+	if t := Type(message); t == "feat" || t == "fix" {
 		return true
 	}
 	return Breaking(message)
+}
+
+// Type is the Conventional Commits type of a commit's header, "" when the
+// header has none.
+func Type(message string) string {
+	header, _, _ := strings.Cut(strings.TrimSpace(message), "\n")
+	if t := typed.FindStringSubmatch(header); t != nil {
+		return t[1]
+	}
+	return ""
 }
 
 // Breaking says whether a commit's message is marked as breaking: a !

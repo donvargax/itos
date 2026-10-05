@@ -8,7 +8,7 @@
 //
 //   - any commit marked as breaking (a ! before its header's colon, of any
 //     type, or a BREAKING-CHANGE: or BREAKING CHANGE: footer in its message's
-//     last paragraph, read as those two tools read them) makes a major;
+//     last paragraph) makes a major;
 //   - else a feat makes a minor;
 //   - else a fix makes a patch;
 //   - else nothing is released: no feat, no fix and no breaking change is
@@ -34,8 +34,9 @@
 //	bump=minor       major, minor, patch or none
 //	range=v2.3.0..HEAD
 //
-// and on stderr one line saying why. It imports nothing but the standard
-// library, as tools/bin/deps-check does (T-067).
+// and on stderr one line saying why. A commit is read by internal/release
+// (Type and Breaking, T-088), the copy itos status reads it with; beside it,
+// release-version imports only the standard library.
 //
 //	go run ./tools/bin/release-version
 //
@@ -52,12 +53,13 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/donvargax/itos/v3/internal/release"
 )
 
 const self = "release-version"
 
 var (
-	typed   = regexp.MustCompile(`^([a-zA-Z]+)(\([^)]*\))?(!)?: `)
 	version = regexp.MustCompile(`^v(\d+)\.(\d+)\.(\d+)$`)
 	suffix  = regexp.MustCompile(`/v(\d+)$`)
 )
@@ -131,7 +133,7 @@ func git(args ...string) (string, error) {
 }
 
 // lastRelease is the newest vX.Y.Z tag reachable from HEAD, by version, or ""
-// for none.
+// for none. itos status's rule (release.Newest) is to adopt this one in a fix.
 func lastRelease() (string, error) {
 	out, err := git("tag", "--merged", "HEAD", "--list", "v*", "--sort=-v:refname")
 	if err != nil {
@@ -167,14 +169,12 @@ type bump struct {
 func bumpOf(messages []string) bump {
 	var breaking, feats, fixes int
 	for _, m := range messages {
-		header, _, _ := strings.Cut(m, "\n")
-		t := typed.FindStringSubmatch(header)
 		switch {
-		case markedBreaking(m):
+		case release.Breaking(m):
 			breaking++
-		case t != nil && t[1] == "feat":
+		case release.Type(m) == "feat":
 			feats++
-		case t != nil && t[1] == "fix":
+		case release.Type(m) == "fix":
 			fixes++
 		}
 	}
@@ -188,26 +188,6 @@ func bumpOf(messages []string) bump {
 		b.kind, b.why = "patch", fmt.Sprintf("%d fix(es), no feat and no breaking change", fixes)
 	}
 	return b
-}
-
-// markedBreaking: a ! before the header's colon, or a BREAKING-CHANGE: or
-// BREAKING CHANGE: footer in the message's last paragraph, as
-// tools/bin/schema-contract reads it.
-func markedBreaking(message string) bool {
-	header, rest, _ := strings.Cut(message, "\n")
-	if t := typed.FindStringSubmatch(header); t != nil && t[3] == "!" {
-		return true
-	}
-	if strings.TrimSpace(rest) == "" {
-		return false
-	}
-	paragraphs := strings.Split(strings.TrimSpace(rest), "\n\n")
-	for _, line := range strings.Split(paragraphs[len(paragraphs)-1], "\n") {
-		if strings.HasPrefix(line, "BREAKING-CHANGE:") || strings.HasPrefix(line, "BREAKING CHANGE:") {
-			return true
-		}
-	}
-	return false
 }
 
 // bumped is the version after tag (0.0.0 for none) bumped by kind.
