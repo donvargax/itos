@@ -151,3 +151,22 @@ Feature: itos status, where the work stands
     When itos runs "status --as someone"
     Then itos exits with code 0
     And its output does not say "Last green"
+
+  # status took the highest v<semver> tag, a prerelease included, as the
+  # newest release, while the release cut counts from the newest plain
+  # vX.Y.Z and itos never cuts a prerelease, so with an -rc tag status would
+  # list commits since a tag the next release does not count from (found by
+  # T-088's agent, 2026-10-04). status reads the newest release by the cut's
+  # rule, from the one copy in internal/release.
+  @ID-STATUS-13 @bug-20 @wip
+  Scenario: status counts from the newest plain release, never a prerelease, as the release cut does
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the remote's head is tagged "v1.2.0"
+    And the remote has gained the commit "docs: describe the archive" touching "b.md"
+    And the remote's head is tagged "v1.3.0-rc.1"
+    And the remote has gained the commit "feat: add the archive" touching "a.txt"
+    And the clone has fetched the remote
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "Newest release: v1.2.0"
+    And its output does not say "v1.3.0-rc.1"
