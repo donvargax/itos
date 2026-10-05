@@ -44,7 +44,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-75
   - T-092
   - p1-registry-archive
   - p1-work-show-gaps
