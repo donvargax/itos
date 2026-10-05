@@ -4002,3 +4002,16 @@ items:
     why: >
       Issue #9. Specified in features/moves-command.feature.
     refs: [features/moves-command.feature, internal/tests/tests.go]
+
+  - id: p1-work-defer
+    title: itos work defer sets an item deferred and lifts it, each committing the registry
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Reported by an agent, 2026-10-05: an item is deferred only by editing the registry by hand,
+      which AGENTS.md forbids for status and owner. itos work defer <id> --why '…' could set it, and
+      --lift take it off, each committing the registry alone as work drop does, the reason the
+      commit's body. The user wants it first among the ideas of that report.
