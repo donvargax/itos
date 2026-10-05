@@ -3950,3 +3950,14 @@ items:
       whatever GITHUB_API_URL says. Status could walk from the branch's head and take the address as
       the others do; bug 23 left it out of scope.
     refs: [internal/providers/range.go]
+
+  - id: bug-25
+    title: Plain work list prints a blocked item, every status but done and dropped being open
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified as @ID-WORK-46 in features/work.feature.
+    refs: [features/work.feature]
