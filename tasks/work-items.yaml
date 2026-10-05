@@ -54,6 +54,7 @@ phases:
   3: donvargax
 
 queue:
+  - T-095
   - bug-25
   - p1-nightly-late-done-checks
   - p1-work-show-gaps
