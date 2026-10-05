@@ -247,3 +247,24 @@ Feature: Every key the config accepts is one itos reads
     When itos runs "config check"
     Then itos exits with code 1
     And its output says "ADR-0009"
+
+  # Slice 79, v4.0.0 (was v3-hooks-bin-default; the user's calls, 2026-10-03
+  # and 2026-10-05): hooks.bin defaults to itos, the global launcher, so a
+  # repository with no hooks.bin runs the global itos and its pin, and a new
+  # repository gets no default naming a script it lacks; a CI runner gets
+  # one with the action of T-093. The key stays, internal and unsupported,
+  # for a repository that must run its own build, as this one does.
+  @ID-CONFIG-26 @slice-79 @wip
+  Scenario: config check --print-defaults lists hooks.bin's default, the global itos
+    When itos prints the defaults of the config
+    Then itos exits with code 0
+    And its output says "bin: itos"
+    And its output does not say "bin: tools/bin/itos"
+
+  @ID-CONFIG-27 @slice-79 @wip
+  Scenario: Without hooks.bin, hooks install writes shims that run the itos on the PATH
+    Given hooks.manager is "git"
+    When itos installs the hooks
+    Then itos exits with code 0
+    And the file ".git/hooks/commit-msg" runs "itos hook commit-msg"
+    And the file ".git/hooks/commit-msg" does not name "tools/bin/itos"

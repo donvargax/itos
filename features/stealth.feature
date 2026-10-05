@@ -261,3 +261,15 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     When itos runs the command line "ask add 'Labels or Projects?'"
     Then itos exits with code 0
     And git status shows nothing to commit
+
+  # Slice 79, v4.0.0 (was v3-stealth-pre-push): since slice 46 the pre-push
+  # hook verifies the pushed commits whatever hooks.pre_push says, and a
+  # stealth user has no CI of the project's to judge their commits, so a
+  # stealth config declares the pre-push hook always. It changes the last
+  # release's corpus case "a stealth config declares the hooks in the git
+  # config, over the markers, and no pre-push entry without hooks.pre_push".
+  @ID-STEALTH-25 @slice-79 @wip
+  Scenario: In stealth mode hooks install declares the pre-push hook without hooks.pre_push
+    When itos installs the hooks
+    Then itos exits with code 0
+    And the git config declares a "pre-push" hook that runs itos
