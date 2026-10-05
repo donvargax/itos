@@ -2725,14 +2725,15 @@ items:
       published. The command provider's object would gain optional keys for both.
     refs: [internal/providers/watch.go, internal/cli/watch.go]
 
-  - id: p1-ci-watch-alone
-    title: A ci section may hold watch alone, so a stealth config opts in without a CI plan
+  - id: bug-26
+    title: A ci section may hold watch or range alone, ci.steps needed only by ci plan and ci run
     phase: 1
     owner: donvargax
     status: todo
     depends_on: [slice-51]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ci-watch-alone.
       The schema requires ci.steps whenever ci is written, so a stealth config, which has no CI
       plan of its own, must write ci: { steps: [], watch: … } to wait for the team's CI after a
       push. ci.steps could be required only by the commands that run the plan (ci plan, ci run),
