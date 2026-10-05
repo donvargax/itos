@@ -3899,11 +3899,9 @@ items:
     title: Plain work list prints a blocked item, every status but done and dropped being open
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Specified as @ID-WORK-46 in features/work.feature.
     refs: [features/work.feature]
 
   - id: p3-guard-replacement
