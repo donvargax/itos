@@ -14,7 +14,7 @@
 // itos ask record's decision records (slice 71); an item with a why, a task
 // with none and a ledger task with one, and an item's why gone after (slice
 // 76); a queue that no longer names an item and the last commit's body
-// (slice 78).
+// (slice 78); the last commit's body within a line length (bug 22).
 package features
 
 import (
@@ -86,6 +86,7 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the last commit's header is "([^"]*)"$`, w.lastHeaderIs)
 	sc.Step(`^the last commit's header is not "([^"]*)"$`, w.lastHeaderIsNot)
 	sc.Step(`^the last commit's body says "([^"]*)"$`, w.lastBodySays)
+	sc.Step(`^the last commit's body has no line longer than (\d+) characters$`, w.lastBodyFits)
 	sc.Step(`^the last commit touches only "([^"]*)"$`, func(path string) error { return w.lastTouchesOnly(path) })
 	sc.Step(`^the last commit touches only "([^"]*)" and "([^"]*)"$`, func(a, b string) error { return w.lastTouchesOnly(a, b) })
 	sc.Step(`^the ledger file "([^"]*)" has the task "([^"]*)" with the check "([^"]*)"$`, w.ledgerFileHasTask)
@@ -447,6 +448,23 @@ func (w *world) lastBodySays(text string) error {
 	}
 	if !strings.Contains(strings.Join(strings.Fields(out), " "), strings.Join(strings.Fields(text), " ")) {
 		return fmt.Errorf("the last commit's body does not say %q:\n%s\n%s", text, out, w.report())
+	}
+	return nil
+}
+
+// No line of the last commit's body is longer than n characters (bug 22:
+// ask record named a long title's record file on one line over the lint's
+// limit).
+func (w *world) lastBodyFits(n int) error {
+	out, err := w.gitOutput("log", "-1", "--format=%b")
+	if err != nil {
+		return err
+	}
+	for _, line := range strings.Split(out, "\n") {
+		if len([]rune(line)) > n {
+			return fmt.Errorf("a line of the last commit's body is %d characters long, over %d:\n%s\n%s",
+				len([]rune(line)), n, out, w.report())
+		}
 	}
 	return nil
 }
