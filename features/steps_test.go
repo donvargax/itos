@@ -73,6 +73,7 @@ type scratchConfig struct {
 	moves             *moves       // the kind's range check is the built-in moves rule
 	recordingShell    bool         // shell is the recording shell
 	ciSteps           []string     // ci.steps
+	ciWatchOnly       string       // the workflow of a github ci.watch, the ci section's one key, when set
 	ciTests           string       // a kind of named tests, with run and recognize templates, run by the last of ci.steps
 	runSelect         string       // the scenario kind's run.select, when ciTests gives it none
 	smokeRuns         []string     // commands the kind of ciTests recognizes as its smoke run
@@ -177,6 +178,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the config's shell is the recording shell$`, w.recordingShell)
 	sc.Step(`^the task "([^"]*)" has the check "([^"]*)"$`, w.taskHasCheck)
 	sc.Step(`^the CI steps are "([^"]*)"$`, func(step string) error { return w.ciStepsAre(step) })
+	sc.Step(`^the config's ci section holds only a github watch of "([^"]*)"$`, func(workflow string) error {
+		w.config.ciWatchOnly = workflow
+		return w.writeConfig()
+	})
 	sc.Step(`^the config has no work section$`, func() error {
 		w.config.noWork = true
 		return w.writeConfig()
@@ -838,6 +843,9 @@ func (w *world) data(path string) string { return filepath.Join(w.dataDir, path)
 // it gives none, since a scenario that runs CI for a task's checks or a
 // footer's names needs no step of its own, and the CI settings it sets.
 func (w *world) ciSection() string {
+	if w.config.ciWatchOnly != "" {
+		return fmt.Sprintf("ci:\n  watch:\n    provider: github\n    github: { workflow: %q }\n", w.config.ciWatchOnly)
+	}
 	var b strings.Builder
 	b.WriteString("ci:\n  steps:")
 	if len(w.config.ciSteps) == 0 && w.config.ciTests == "" {
