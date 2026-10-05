@@ -55,6 +55,7 @@ phases:
 
 queue:
   - slice-59
+  - bug-24
   - p1-nightly-late-done-checks
   - p1-work-show-gaps
   - p1-release-notes-footers
