@@ -366,3 +366,127 @@ Feature: The work registry
     When itos checks the work registry
     Then itos exits with code 1
     And its output says "slice-404"
+
+  # Slice 76 (the user's calls, 2026-10-04): the registry is an index, as its
+  # header always said a why is "a short reason, for an idea above all". An
+  # idea's why is the registry's, since an idea has no spec yet; a slice's or
+  # a bug's lives in its feature file (the description, the comments above
+  # its scenarios), a task's in its ledger entry, a change's in its commit.
+  # So work done drops the why of the item it closes, a done item holding its
+  # index fields alone (id, title, kind, status, owner, phase, depends_on,
+  # refs) at about 200 bytes, and the registry grows with the open work, not
+  # the history; the dropped text stays in git's history. work show reads a
+  # task's why from its ledger entry. A note on a slice or a task still lands
+  # in its why until v4.0.0 (slice 79), with a warning naming where its why
+  # belongs.
+  @ID-WORK-36 @slice-76 @wip
+  Scenario: work done drops the why of the item it closes
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing" and the why "Because it was missing."
+    And ci.watch runs a command that reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And the registry's item "slice-9" has the status "done" and no why
+
+  @ID-WORK-37 @slice-76 @wip
+  Scenario: work show prints a task's why from its ledger entry
+    Given the ledger's task "T-001" has the why "The ledger says why."
+    And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
+    When itos runs "work show T-001"
+    Then itos exits with code 0
+    And its output says "The ledger says why."
+
+  @ID-WORK-38 @slice-76 @wip
+  Scenario: work edit --note on a slice warns that its why belongs in its feature file, and still appends it
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs the command line "work edit slice-9 --note 'A decision.'"
+    Then itos exits with code 0
+    And its output says "feature file"
+    And the registry's item "slice-9" has a why ending with "A decision."
+
+  # Slice 77: work list's default changes in v4.0.0 (slice 79) to the open
+  # items alone, so --all comes first, saying what the default says today,
+  # and the plugin's titles, which need every item's title, ask for it before
+  # the default changes (falling back to plain work list on an itos older
+  # than this slice, which refuses --all).
+  @ID-WORK-39 @slice-77 @wip
+  Scenario: work list --all prints every item of the registry, done ones included
+    Given the work registry has the item "T-001" with the status "done" and the item "slice-1" with the status "todo"
+    When itos runs "work list --all"
+    Then itos exits with code 0
+    And its output says "T-001"
+    And its output says "slice-1"
+
+  # Slice 78 (the user's calls, 2026-10-04): nothing took an idea out of the
+  # registry, so ideas only piled up. work drop <id> --why <reason> sets an
+  # item that is not done to the status dropped, drops its why as work done
+  # does, takes it out of the queue and commits the registry alone, "docs:
+  # drop <id>", the reason as the commit's body: the commit is the record of
+  # why. A dropped item stays in the registry, so its id is never given
+  # again; work never proposes it and work take refuses it. An item a live
+  # item depends on is refused, naming the dependants, so the person edits
+  # them first.
+  @ID-WORK-40 @slice-78 @wip
+  Scenario: work drop marks an idea dropped, takes it out of the queue, and commits the reason
+    Given the work registry has the idea "p1-thing" owned by nobody
+    And the registry's queue names "p1-thing"
+    When itos runs the command line "work drop p1-thing --why 'Superseded by slice 9.'"
+    Then itos exits with code 0
+    And the registry's item "p1-thing" has the status "dropped" and no why
+    And the registry's queue does not name "p1-thing"
+    And the last commit's header is "docs: drop p1-thing"
+    And the last commit's body says "Superseded by slice 9."
+    And the last commit touches only "tasks/work-items.yaml"
+
+  @ID-WORK-41 @slice-78 @wip
+  Scenario: work drop refuses a done item
+    Given the work registry has the item "slice-9" owned by nobody with the status "done"
+    When itos runs the command line "work drop slice-9 --why 'Too late.'"
+    Then itos exits with code 1
+    And its output says "done"
+    And the registry's item "slice-9" has the status "done" and the owner "nobody"
+
+  @ID-WORK-42 @slice-78 @wip
+  Scenario: work drop refuses an item a live item depends on, naming it
+    Given the work registry has the idea "p1-thing" owned by nobody
+    And the work registry has the item "slice-3" owned by nobody with the status "todo", depending on "p1-thing"
+    When itos runs the command line "work drop p1-thing --why 'Not needed.'"
+    Then itos exits with code 1
+    And its output says "slice-3"
+    And the registry's item "p1-thing" has the status "todo" and the owner "nobody"
+
+  @ID-WORK-43 @slice-78 @wip
+  Scenario: work take refuses a dropped item
+    Given the work registry has the item "slice-9" owned by nobody with the status "dropped"
+    When itos runs "work take slice-9 --as someone"
+    Then itos exits with code 1
+    And its output says "dropped"
+
+  # Slice 79, v4.0.0 (the user's calls, 2026-10-04): every breaking change
+  # waiting for a major lands in one push, so one release carries them all;
+  # what each could ship first shipped as a minor (slices 76 to 78). This
+  # flips the defaults: work list prints the open items alone (todo and
+  # doing, a deferred one marked so), --all every one; work edit --note on a
+  # slice or a task is refused, naming where its why goes; hooks.bin defaults
+  # to itos, the global launcher (was v3-hooks-bin-default, after
+  # p3-global-install-ci); and a stealth config declares the pre-push hook
+  # without hooks.pre_push (was v3-stealth-pre-push). The last two get their
+  # scenarios when p3-global-install-ci is specified.
+  @ID-WORK-44 @slice-79 @wip
+  Scenario: work list prints the open items alone, and --all every one
+    Given the work registry has the item "T-001" with the status "done" and the item "slice-1" with the status "todo"
+    And the work registry has the item "p1-gone" owned by nobody with the status "dropped"
+    When itos runs "work list"
+    Then itos exits with code 0
+    And its output says "slice-1"
+    And its output does not say "T-001"
+    And its output does not say "p1-gone"
+
+  @ID-WORK-45 @slice-79 @wip
+  Scenario: work edit --note on a slice is refused, naming its feature file
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs the command line "work edit slice-9 --note 'A decision.'"
+    Then itos exits with code 1
+    And its output says "feature file"
+    And the registry is unchanged
