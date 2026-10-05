@@ -16,6 +16,7 @@ questions:
   - id: q-5
     item: "slice-59"
     question: "Once itos init --agent-rules lands, does this repository's hand-written AGENTS.md become the generated block (the coordinator recommends yes, a small docs task)?"
+    answer: "Yes (the user, 2026-10-05). This repository's AGENTS.md gains the generated block, and its hand-written part keeps only what no command checks; T-096."
   - id: q-6
     question: "Set a unit coverage threshold? Coverage is collected with none since the template's demo app left; it blocks nothing."
   - id: q-7
