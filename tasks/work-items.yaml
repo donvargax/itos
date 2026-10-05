@@ -1208,14 +1208,9 @@ items:
     title: Commit messages through a file, so a heredoc cannot be piped into git
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      AGENTS.md warns that git commit -F - <<EOF … | tail hands the heredoc to tail and leaves git
-      waiting, and every session writes its message to a file to avoid it. Belongs to the hooks
-      more than to itos: a helper that takes the message as a file or argument, or a hook that
-      refuses an empty message read from stdin, would make the rule a check.
 
   # More of the same, from the same session, refined with the user.
   - id: p1-work-brief
