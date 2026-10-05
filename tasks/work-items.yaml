@@ -2737,7 +2737,7 @@ items:
     title: A ci section may hold watch or range alone, ci.steps needed only by ci plan and ci run
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [slice-51]
     kind: slice
     why: >
