@@ -4039,3 +4039,17 @@ items:
       go-hooks.ts's module prefix, and the go install lines of the README and ARCHITECTURE. The done
       tasks whose checks named the /v3 path (T-088, T-089, T-090) are reworded to hold whatever the
       major, so the nightly's done-task checks stay green across this move and the next.
+
+  - id: p1-starter-hooks-bin
+    title: itos init's starter config no longer writes hooks.bin
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice 79's agent: hooks.bin defaults to itos since v4.0.0 and the key is internal and
+      unsupported, yet the starter itos init writes still sets hooks: { bin: itos } with a comment,
+      teaching every new repository a key it should not need. Dropping the two lines changes init's
+      output and its corpus cases (init.yaml), so it is a behaviour change of its own, not slice
+      79's.
