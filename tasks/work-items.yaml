@@ -4091,6 +4091,17 @@ items:
       reads it as done. Done tasks keep their ledger entries, since the nightly runs every done
       task's checks.
 
+      The user's calls (2026-10-04, replacing the archive and the drop): the registry is an index,
+      as its header already says a why is for an idea above all. A slice's or a bug's why lives in
+      its feature file, a task's in its ledger entry, a change's in its commit. work done drops the
+      closed item's why; work show reads a task's why from its ledger; work edit --note on a slice
+      or task warns until v4.0.0 (slice 79) refuses it. The coordinator's guide
+      (internal/guide/coordinate.md) stops sending decisions to the item's why, and the slice's last
+      docs commit drops the why of every done item of this repository's registry (about 246 KB to
+      140 KB), the text staying in git's history. Specified as @ID-WORK-36 to 38 in
+      features/work.feature.
+    refs: [features/work.feature, internal/guide/coordinate.md]
+
   - id: slice-60
     title: itos tests next-id and itos task next-id, the next free ID for a spec writer
     phase: 1
