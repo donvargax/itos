@@ -104,6 +104,7 @@ type scratchConfig struct {
 	prosePaths        string       // ci.prose.paths, one glob
 	proseSteps        string       // ci.prose.steps, one command
 	pin               *[2]string   // pin.version and pin.checksums
+	schemaLine        string       // the config's first line, a yaml-language-server schema line, when set
 	comments          []string     // comment lines written after the pin's line
 	settings          []setting
 }
@@ -301,6 +302,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeShowSteps(sc, w)
 	initializeFollowSteps(sc, w)
 	initializeGuideSteps(sc, w)
+	initializeUpgradeSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -623,6 +625,9 @@ func quote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + 
 // prose, a CI, and a people list, plus what the scenario set.
 func (w *world) writeConfig() error {
 	var b strings.Builder
+	if w.config.schemaLine != "" {
+		b.WriteString(w.config.schemaLine + "\n")
+	}
 	b.WriteString("version: 1\n")
 	if p := w.config.pin; p != nil {
 		fmt.Fprintf(&b, "pin: { version: %q, checksums: %q }\n", p[0], p[1])

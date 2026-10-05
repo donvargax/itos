@@ -79,7 +79,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And the config's first line is the schema line of the version "9.1.0" of the release server
     When itos runs "upgrade"
     Then itos exits with code 0
-    And the config's first line is the schema line of the version "9.3.0" of the release server
+    And the config's first line is now the schema line of the version "9.3.0" of the release server
 
   # A project that installs itos with v2.0.0's install script and pins
   # nothing: the script's version is the one it moves from, and no pin is
