@@ -724,3 +724,111 @@ func (d *Doc) SetBlockList(path []any, list []string, before string) error {
 	m.Set(key, values)
 	return nil
 }
+
+// Drop removes the key the path names from its mapping, with its value
+// (slice 76: work done drops the why of the item it closes). In a block
+// mapping the key's line goes, with every line below it that its value
+// holds (those indented past the key, up to the last that is not blank), so
+// a blank line parting it from what follows stays; the key must start its
+// line. In a flow mapping its pair goes with the comma before it, or after
+// it when it is the first, its value a one-line scalar or a flow
+// collection. A key the mapping lacks is no edit.
+func (d *Doc) Drop(path []any) error {
+	parent, m, key, flow, err := d.mapAt(path)
+	if err != nil {
+		return err
+	}
+	k, v := lookup(parent, key)
+	if k == nil {
+		return nil
+	}
+	if k.Anchor != "" || v.Anchor != "" || v.Style&yaml.TaggedStyle != 0 {
+		return fmt.Errorf("%s has an anchor or a tag", where(path))
+	}
+	start, err := d.e.offset(k.Line, k.Column)
+	if err != nil {
+		return err
+	}
+	if flow {
+		err = d.dropPair(v, start)
+	} else {
+		err = d.dropLines(k, start)
+	}
+	if err != nil {
+		return fmt.Errorf("%s: %w", where(path), err)
+	}
+	m.Delete(key)
+	return nil
+}
+
+// dropLines cuts a block mapping's key that starts at start, its line and
+// the lines below it its value holds.
+func (d *Doc) dropLines(k *yaml.Node, start int) error {
+	from, err := d.e.offset(k.Line, 1)
+	if err != nil {
+		return err
+	}
+	if strings.TrimLeft(d.e.text[from:start], " ") != "" {
+		return fmt.Errorf("the key does not start its line")
+	}
+	column := k.Column - 1
+	end, _ := d.e.afterLine(start)
+	for next := end; next < len(d.e.text); {
+		line := d.e.text[next:d.e.lineEnd(next)]
+		after, _ := d.e.afterLine(next)
+		if strings.TrimSpace(line) != "" {
+			if len(line)-len(strings.TrimLeft(line, " ")) <= column {
+				break
+			}
+			end = after
+		}
+		next = after
+	}
+	d.e.edits = append(d.e.edits, edit{at: from, cut: end - from})
+	return nil
+}
+
+// dropPair cuts a flow mapping's pair whose key starts at start, and the
+// comma that parts it from the pair before it, or from the one after it
+// when it is the first.
+func (d *Doc) dropPair(v *yaml.Node, start int) error {
+	var end int
+	switch {
+	case v.Kind == yaml.ScalarNode:
+		_, e, err := d.e.span(v, true)
+		if err != nil {
+			return err
+		}
+		end = e
+	case v.Style&yaml.FlowStyle != 0:
+		_, e, err := d.flowSpan(v)
+		if err != nil {
+			return err
+		}
+		end = e
+	default:
+		return fmt.Errorf("the value on line %d is neither a one-line scalar nor a flow collection", v.Line)
+	}
+	text := d.e.text
+	before := start
+	for before > 0 && strings.IndexByte(" \t\r\n", text[before-1]) >= 0 {
+		before--
+	}
+	if before > 0 && text[before-1] == ',' {
+		d.e.edits = append(d.e.edits, edit{at: before - 1, cut: end - (before - 1)})
+		return nil
+	}
+	after := end
+	for after < len(text) && strings.IndexByte(" \t\r\n", text[after]) >= 0 {
+		after++
+	}
+	if after < len(text) && text[after] == ',' {
+		after++
+		for after < len(text) && strings.IndexByte(" \t", text[after]) >= 0 {
+			after++
+		}
+		end = after
+	}
+	d.e.edits = append(d.e.edits, edit{at: start, cut: end - start})
+	return nil
+}

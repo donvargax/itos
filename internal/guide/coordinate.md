@@ -54,10 +54,12 @@ the briefs, landing and recording.
 
 ## Specifying
 
-- **Every decision goes into the spec before the agent starts**: the
-  scenarios and the comments above them, the item's why
-  (`itos work edit <id> --note '…'`). A brief is read once and lost with the
-  agent; a decision only the brief holds is lost too.
+- **Every decision goes into the spec before the agent starts**: a slice's
+  in its scenarios and the comments above them, a task's in its ledger
+  entry's why. The registry is an index: only an idea, which has no spec
+  yet, keeps its reasons in its why there (`itos work edit <id> --note '…'`),
+  and `itos work done` drops a closed item's why. A brief is read once and
+  lost with the agent; a decision only the brief holds is lost too.
 - **Check a spec's words against the product.** A scenario that names a
   label the product does not use, asserts more than its behaviour, or holds
   either way sends the agent after the wrong thing. Ask whether it can fail
@@ -118,8 +120,9 @@ off mid-item: read its commits with `itos work show <id>` instead.
 **Revert at once**, before writing anything up: a red main blocks everyone
 who pushes after it. One `revert` commit naming the item; if a live scenario
 then cannot pass, set it `@wip` with its reason as a comment above it. Then
-record the attempt in the item's why (the commits, what was found, what is
-left) and give the item back as `todo`. A red run outside any item goes to a
+record the attempt in its spec (a comment above the slice's scenarios, or the
+task's ledger why: the commits, what was found, what is left) and give the
+item back as `todo`. A red run outside any item goes to a
 temporary agent with the run's address and the same rule. If the failure is
 in the spec or in a gate, ask the person; never weaken a gate to get green.
 

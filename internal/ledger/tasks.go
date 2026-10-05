@@ -49,9 +49,12 @@ func (c Check) Pushed() bool { return c.After == "push" }
 // malformed task does not keep the others from running.
 type Task struct {
 	ID, Type, Title string
-	DoneWhen        []Check
-	Group           any
-	Err             error
+	// Why is the task's why as written, "" for none: where a task's reasons
+	// live, the registry being an index (slice 76).
+	Why      string
+	DoneWhen []Check
+	Group    any
+	Err      error
 }
 
 // GroupText is the group as a template literal writes it.
@@ -105,6 +108,9 @@ func taskOf(raw, group any) Task {
 		Type:  value.String(value.Prop(raw, "type")),
 		Title: value.String(value.Prop(raw, "title")),
 		Group: group,
+	}
+	if why, ok := value.Prop(raw, "why").(string); ok {
+		task.Why = why
 	}
 	doneWhen := value.Prop(raw, "done_when")
 	if doneWhen == nil || doneWhen == value.Undefined {

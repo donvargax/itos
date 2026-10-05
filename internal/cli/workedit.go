@@ -6,7 +6,8 @@ package cli
 // or refs, or adds a paragraph to its why; each judges the result as work
 // check does and commits the registry alone through writeRegistry. An
 // owner changes by work take, a kind by work promote, a status by take and
-// done, so edit has no flag for those.
+// done, so edit has no flag for those. A note on a slice or a task warns
+// where its why belongs (slice 76), the registry's whys being an idea's.
 
 import (
 	"fmt"
@@ -119,10 +120,32 @@ func workEdit(args []string, o Out) (int, error) {
 	if change.Unchanged {
 		return reportWork(id+" is already so; nothing to change", change, "", extra, o)
 	}
+	if e.Note != "" {
+		warnNote(id, work.SpecKind(change.Item, taskIDs(cfg)), o)
+	}
 	sha, code, err := writeRegistry(cfg, text, change, o)
 	if err != nil || code != 0 {
 		return code, err
 	}
 	line := fmt.Sprintf("%s's %s changed: %s", id, strings.Join(change.Changed, ", "), committed(sha, change.Header))
 	return reportWork(line, change, sha, extra, o)
+}
+
+// whereWhy is where a slice's or a task's why lives, the registry being an
+// index whose whys are an idea's (slice 76).
+var whereWhy = map[string]string{
+	"slice": "its feature file (the description, and the comments above its scenarios)",
+	"task":  "its ledger entry",
+}
+
+// warnNote says on stderr, for a note on a slice or a task, where its why
+// belongs instead (slice 76): the note is still added, and v4.0.0 refuses it
+// (slice 79). An idea's note, or one on an item of neither kind, says
+// nothing.
+func warnNote(id, kind string, o Out) {
+	where, ok := whereWhy[kind]
+	if !ok {
+		return
+	}
+	fmt.Fprintf(o.Stderr, "itos: %s is a %s, whose why belongs in %s, not the registry: the note is added, but itos v4.0.0 refuses it\n", id, kind, where)
 }

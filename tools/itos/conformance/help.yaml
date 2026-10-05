@@ -264,9 +264,11 @@ cases:
     stdout: |
       Usage: itos work done <id>
 
-      Marks the item done once its work has landed, its status done and its owner
-      left as it is, and commits the registry alone, "docs: close <id>", as work take
-      does (itos help work take). Landed is: none of the item's scenarios at HEAD
+      Marks the item done once its work has landed, its status done, its owner left
+      as it is and its why dropped (the registry is an index: a slice's why lives in
+      its feature file, a task's in its ledger entry, the text in git's history),
+      and commits the registry alone, "docs: close <id>", as work take does (itos
+      help work take). Landed is: none of the item's scenarios at HEAD
       (those tagged @<id>, @slice-<n> for the item slice-<n>) still @wip; no commit
       of HEAD that no remote has (itos push them); a task's static checks passing, as
       the commit-msg hook runs them; and with ci.watch, HEAD's CI run passed, waited
@@ -310,9 +312,11 @@ cases:
 
       Changes an item: its title, its depends_on or its refs, each replaced (an
       empty --depends-on or --refs empties the list), or adds --note's paragraph to
-      its why, after a blank line in a folded why; then commits the registry alone,
-      "docs: edit <id>", as work take does (itos help work take). An owner changes
-      by work take, a kind by work promote, a status by work take and work done.
+      its why, after a blank line in a folded why (on a slice or a task it warns
+      that its why belongs in its feature file or its ledger entry, which v4.0.0
+      will require); then commits the registry alone, "docs: edit <id>", as work
+      take does (itos help work take). An owner changes by work take, a kind by work
+      promote, a status by work take and work done.
       Refused, nothing written (exit 1): a registry that is not sound or has changes
       no commit holds, an id no item has, what work check would find with the item
       so (a dependency on no item, a cycle, an item done waiting on one not done), a
@@ -363,8 +367,9 @@ cases:
       Usage: itos work show <id> [--patch]
 
       Prints the item (its title, kind, status, owner, phase, depends_on, the items
-      depending on it, refs and why), its scenarios at HEAD (those tagged @<id>,
-      @slice-<n> for the item slice-<n>, live or @wip) and its commits, oldest first,
+      depending on it, refs and why, a task's why read from its ledger entry first),
+      its scenarios at HEAD (those tagged @<id>, @slice-<n> for the item slice-<n>,
+      live or @wip) and its commits, oldest first,
       each with its short SHA and header, and between them the questions of itos ask
       naming the item (itos help ask), each with its id, open or answered, and its
       text. A commit is the item's when its footers of IDs name the item (Task:) or
@@ -377,7 +382,7 @@ cases:
       nothing, as work list. Exit 1 when there is no registry where itos looks, or no
       item with the id; 2 when itos ask's file is there and cannot be read.
 
-      --json: {"schema":1,"ok":true,"item":{…},"depended_on_by":[…],"scenarios":[{"id","file","live"}],
+      --json: {"schema":1,"ok":true,"item":{…},"ledger_why"?:"<why>"|null,"depended_on_by":[…],"scenarios":[{"id","file","live"}],
       "questions":[{"id","item","question","status","answer"?}],
       "commits":[{"sha","short","header","message"?,"patch"?}]}, message and patch with --patch;
       or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}

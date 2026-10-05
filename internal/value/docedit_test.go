@@ -243,3 +243,30 @@ func TestDocSetBlockList(t *testing.T) {
 		t.Errorf("emptied: %q", got)
 	}
 }
+
+// A key dropped with its value (slice 76): a folded block's lines, a blank
+// line after it kept; a pair of a flow mapping with its comma, first, last
+// or between; a key the mapping lacks is no edit.
+func TestDocDrop(t *testing.T) {
+	drop := func(i int, key string) func(d *Doc) error {
+		return func(d *Doc) error { return d.Drop([]any{"items", i, key}) }
+	}
+	text := "items:\n  - id: a\n    why: >\n      A gap\n\n      left behind.\n    refs: [a.md]\n\n" +
+		"  - id: b\n    status: done\n    why: One line. # said\n\n" +
+		"  - { id: c, why: \"one, line\", status: done }\n  - { why: [x, y], id: d }\n  - { id: e, why: z }\n  - id: f\n"
+	got, d := edited(t, text, drop(0, "why"), drop(1, "why"), drop(2, "why"), drop(3, "why"), drop(4, "why"), drop(5, "why"))
+	want := "items:\n  - id: a\n    refs: [a.md]\n\n  - id: b\n    status: done\n\n" +
+		"  - { id: c, status: done }\n  - { id: d }\n  - { id: e }\n  - id: f\n"
+	if got != want {
+		t.Errorf("dropped:\n got %q\nwant %q", got, want)
+	}
+	for i, item := range Prop(d.Want, "items").([]any) {
+		if item.(*Map).Has("why") {
+			t.Errorf("item %d still reads a why", i)
+		}
+	}
+	d, _ = OpenDoc("items:\n  - why: first\n    id: a\n")
+	if err := d.Drop([]any{"items", 0, "why"}); err == nil {
+		t.Error("a key on its item's dash line is not dropped")
+	}
+}

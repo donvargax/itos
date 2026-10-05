@@ -126,7 +126,10 @@ func Take(r Registry, text, id, person string, every bool) (Change, *out.Problem
 }
 
 // Done is the registry with the item done (slice 53): its status done, its
-// owner left as it is. Whether the work landed (its scenarios live, its
+// owner left as it is, and its why dropped (slice 76): the registry is an
+// index, a done item holding its index fields alone, and the reasons live
+// in its spec (a slice's feature file, a task's ledger entry) and its
+// commits, the dropped text in git's history. Whether the work landed (its scenarios live, its
 // commits pushed, its CI run green, a task's checks passing) is the command
 // line's to judge (internal/cli/workdone.go); Done judges the registry
 // alone. Refused, with nothing changed: an id no item has, an idea (not yet
@@ -163,13 +166,23 @@ func Done(r Registry, text, id string) (Change, *out.Problem, error) {
 	if err := doc.Set([]any{"items", i, "status"}, "done"); err != nil {
 		return Change{}, nil, err
 	}
+	hasWhy := item.Has("why")
+	if hasWhy {
+		if err := doc.Drop([]any{"items", i, "why"}); err != nil {
+			return Change{}, nil, err
+		}
+	}
 	edited, err := doc.Text()
 	if err != nil {
 		return Change{}, nil, err
 	}
 	after := value.Copy(item).(*value.Map)
 	after.Set("status", "done")
+	after.Delete("why")
 	body := fmt.Sprintf("Set %s (%s) to done, with itos work done.", id, value.JSON(value.String(item.At("title"))))
+	if hasWhy {
+		body += " Its why is dropped, the registry being an index: the spec and the commits keep the reasons."
+	}
 	return Change{Text: edited, Item: after, Header: "docs: close " + id, Body: body}, nil, nil
 }
 

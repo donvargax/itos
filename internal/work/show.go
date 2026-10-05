@@ -9,6 +9,7 @@ package work
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/donvargax/itos/v3/internal/out"
@@ -21,6 +22,10 @@ import (
 type Shown struct {
 	Item         *value.Map
 	DependedOnBy []string
+	// LedgerWhy is a task's why, read from its ledger entry (slice 76: a
+	// task's reasons live there, the registry being an index), "" for none
+	// and for an item that is no task; Print writes it before the item's own.
+	LedgerWhy string
 }
 
 // Show is the item with the id, or the problem of an id no item has.
@@ -41,6 +46,32 @@ func Show(r Registry, id string) (Shown, *out.Problem) {
 	}
 	return shown, nil
 }
+
+// SpecKind is where an item's why lives instead of the registry (slice 76):
+// "slice" for a slice, whose why is its feature file's, "task" for a task,
+// whose why is its ledger entry's, "" for an idea, whose why is the
+// registry's, and for an item of neither. An item of no kind is read by its
+// id, as the registry's header names them: slice-<n> a slice, an id taskID
+// (ledger.id; nil when the config has none) matches a task.
+func SpecKind(item *value.Map, taskID *regexp.Regexp) string {
+	if kind := item.At("kind"); !absent(kind) {
+		if k := value.String(kind); k == "slice" || k == "task" {
+			return k
+		}
+		return ""
+	}
+	id := value.String(item.At("id"))
+	switch {
+	case sliceID.MatchString(id):
+		return "slice"
+	case taskID != nil && taskID.MatchString(id):
+		return "task"
+	}
+	return ""
+}
+
+// sliceID is a slice's id, slice-<n>.
+var sliceID = regexp.MustCompile(`^slice-\d+$`)
 
 // registryVerbs are the words after "docs: " of the headers itos's registry
 // commands commit with, each followed by the item's id: work take, work
@@ -75,7 +106,8 @@ func RegistryHeader(header string) (id string, ok bool) {
 // Print writes the item as work show's text begins: its id and title, then
 // its kind, status, owner (nobody for none), phase, the items it depends on
 // and those depending on it, its refs and issue when it has them, and its why
-// wrapped at width, each paragraph after a blank line.
+// wrapped at width, each paragraph after a blank line: a task's ledger why
+// first (LedgerWhy), then the registry's.
 func (s Shown) Print(w io.Writer, width int) {
 	at := func(key string) string {
 		if v := s.Item.At(key); !absent(v) {
@@ -105,13 +137,18 @@ func (s Shown) Print(w io.Writer, width int) {
 	if issue := s.Item.At("issue"); value.Truthy(issue) {
 		fmt.Fprintf(w, "  issue: #%s\n", value.String(issue))
 	}
-	why := s.Item.At("why")
-	if absent(why) {
-		return
+	printWhy(w, s.LedgerWhy, width)
+	if why := s.Item.At("why"); !absent(why) {
+		printWhy(w, value.String(why), width)
 	}
+}
+
+// printWhy writes a why's paragraphs wrapped at width, each after a blank
+// line; nothing for an empty one.
+func printWhy(w io.Writer, why string, width int) {
 	// A folded why reads its paragraphs as lines, the blank line between two
 	// written ones being a line break.
-	for _, paragraph := range strings.Split(strings.TrimSpace(value.String(why)), "\n") {
+	for _, paragraph := range strings.Split(strings.TrimSpace(why), "\n") {
 		if strings.TrimSpace(paragraph) == "" {
 			continue
 		}

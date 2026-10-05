@@ -9,17 +9,20 @@ package cli
 // reader of links reads them, and itos's own registry commits, which name it
 // in their headers (docs: take <id>, docs: close <id>, docs: add <id>,
 // docs: edit <id>, docs: promote <idea> to <id>). Beside them it lists the
-// questions of itos ask that name the item (slice 62). It reads, never
-// writes.
+// questions of itos ask that name the item (slice 62). A task's why is read
+// from its ledger entry, where it lives, the registry being an index (slice
+// 76). It reads, never writes.
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/donvargax/itos/v3/internal/ask"
 	"github.com/donvargax/itos/v3/internal/config"
 	"github.com/donvargax/itos/v3/internal/git"
+	"github.com/donvargax/itos/v3/internal/ledger"
 	"github.com/donvargax/itos/v3/internal/message"
 	"github.com/donvargax/itos/v3/internal/out"
 	"github.com/donvargax/itos/v3/internal/source"
@@ -76,6 +79,10 @@ func workShow(args []string, o Out) (int, error) {
 	if problem != nil {
 		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
 	}
+	task := work.SpecKind(shown.Item, taskIDs(cfg)) == "task"
+	if task {
+		shown.LedgerWhy = ledgerWhy(cfg, id)
+	}
 	hasHead := git.Succeeds("rev-parse", "--verify", "--quiet", "HEAD")
 	at := "HEAD"
 	if !hasHead {
@@ -99,7 +106,7 @@ func workShow(args []string, o Out) (int, error) {
 	}
 	questions := asks.About(id)
 	if o.JSON {
-		return 0, emitShown(shown, scenarios, questions, commits, patch, o)
+		return 0, emitShown(shown, task, scenarios, questions, commits, patch, o)
 	}
 	shown.Print(o.Stdout, showWidth)
 	printScenarios(scenarios, id, o)
@@ -205,7 +212,7 @@ func showArgs(cfg *config.Loaded) []string {
 // emitShown prints work show --json: the item, the ids of the items
 // depending on it, its scenarios, the questions naming it and its commits,
 // with --patch each one's message and diff.
-func emitShown(shown work.Shown, scenarios []tests.Test, questions []ask.Question, commits []message.Logged, patch bool, o Out) error {
+func emitShown(shown work.Shown, task bool, scenarios []tests.Test, questions []ask.Question, commits []message.Logged, patch bool, o Out) error {
 	if scenarios == nil {
 		scenarios = []tests.Test{}
 	}
@@ -226,11 +233,47 @@ func emitShown(shown work.Shown, scenarios []tests.Test, questions []ask.Questio
 		}
 		listed = append(listed, s)
 	}
-	return out.Emit(o.Stdout,
-		out.Field{Key: "ok", Value: true},
-		out.Field{Key: "item", Value: shown.Item},
+	fields := []out.Field{
+		{Key: "ok", Value: true},
+		{Key: "item", Value: shown.Item},
+	}
+	if task {
+		var why any
+		if shown.LedgerWhy != "" {
+			why = shown.LedgerWhy
+		}
+		fields = append(fields, out.Field{Key: "ledger_why", Value: why})
+	}
+	return out.Emit(o.Stdout, append(fields,
 		out.Field{Key: "depended_on_by", Value: shown.DependedOnBy},
 		out.Field{Key: "scenarios", Value: scenarios},
 		out.Field{Key: "questions", Value: asked},
-		out.Field{Key: "commits", Value: listed})
+		out.Field{Key: "commits", Value: listed})...)
+}
+
+// taskIDs is ledger.id as a pattern, nil when the config has none: an item
+// of no kind is a task by its id only where the ledger says what a task's id
+// is (work.SpecKind).
+func taskIDs(cfg *config.Loaded) *regexp.Regexp {
+	if cfg.Ledger.ID == nil {
+		return nil
+	}
+	return ledger.IDPattern(cfg)
+}
+
+// ledgerWhy is the why of the ledger's task with the id (slice 76: a task's
+// reasons live in its ledger entry), "" when the ledger has no such task, or
+// none to read: work show reads, never judges, so a ledger that cannot be
+// read is config check's to report.
+func ledgerWhy(cfg *config.Loaded, id string) string {
+	tasks, err := ledger.Tasks(cfg)
+	if err != nil {
+		return ""
+	}
+	for _, t := range tasks {
+		if t.ID == id {
+			return t.Why
+		}
+	}
+	return ""
 }

@@ -379,7 +379,7 @@ Feature: The work registry
   # task's why from its ledger entry. A note on a slice or a task still lands
   # in its why until v4.0.0 (slice 79), with a warning naming where its why
   # belongs.
-  @ID-WORK-36 @slice-76 @wip
+  @ID-WORK-36 @slice-76
   Scenario: work done drops the why of the item it closes
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing" and the why "Because it was missing."
@@ -389,7 +389,7 @@ Feature: The work registry
     Then itos exits with code 0
     And the registry's item "slice-9" has the status "done" and no why
 
-  @ID-WORK-37 @slice-76 @wip
+  @ID-WORK-37 @slice-76
   Scenario: work show prints a task's why from its ledger entry
     Given the ledger's task "T-001" has the why "The ledger says why."
     And the work registry has the task "T-001" owned by nobody with the status "todo" and no why
@@ -397,7 +397,7 @@ Feature: The work registry
     Then itos exits with code 0
     And its output says "The ledger says why."
 
-  @ID-WORK-38 @slice-76 @wip
+  @ID-WORK-38 @slice-76
   Scenario: work edit --note on a slice warns that its why belongs in its feature file, and still appends it
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs the command line "work edit slice-9 --note 'A decision.'"

@@ -117,6 +117,22 @@ func TestDone(t *testing.T) {
 	}
 }
 
+// Slice 76: the item closed loses its why, its index fields kept, and the
+// commit's body says so.
+func TestDoneDropsWhy(t *testing.T) {
+	text := "phases: { 1: null }\nitems:\n  - id: s\n    title: S\n    phase: 1\n    status: doing\n    kind: slice\n" +
+		"    why: >\n      Because it\n      was missing.\n    refs: [features/s.feature]\n\n  - { id: t, title: T, phase: 1, status: todo }\n"
+	change, problem, err := Done(registryOf(t, text), text, "s")
+	if err != nil || problem != nil {
+		t.Fatal(err, problem)
+	}
+	want := "phases: { 1: null }\nitems:\n  - id: s\n    title: S\n    phase: 1\n    status: done\n    kind: slice\n" +
+		"    refs: [features/s.feature]\n\n  - { id: t, title: T, phase: 1, status: todo }\n"
+	if change.Text != want || change.Item.Has("why") || !strings.Contains(change.Body, "Its why is dropped") {
+		t.Errorf("done s:\n got %q\nwant %q\n%+v", change.Text, want, change)
+	}
+}
+
 // A config of the registry at work-items.yaml, with no people, in a folder
 // of its own.
 func addConfig(t *testing.T) *config.Loaded {

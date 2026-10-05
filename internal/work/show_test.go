@@ -1,9 +1,12 @@
 package work
 
 import (
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v3/internal/value"
 )
 
 // RegistryHeader reads the headers the registry's writers commit with, so
@@ -63,5 +66,28 @@ func TestShowNamesTheItemsDependingOnIt(t *testing.T) {
 	want := "c  C\n  kind: -, status: todo, owner: q, phase: 1\n  depends on: b, a\n\n  Because.\n"
 	if b.String() != want {
 		t.Errorf("c prints\n%s\nwant\n%s", b.String(), want)
+	}
+}
+
+// Where an item's why lives (slice 76): its kind says, else its id, a task's
+// only where ledger.id is given.
+func TestSpecKind(t *testing.T) {
+	taskID := regexp.MustCompile(`^T-\d+$`)
+	for _, c := range []struct {
+		item   *value.Map
+		taskID *regexp.Regexp
+		want   string
+	}{
+		{value.NewMap("id", "x", "kind", "slice"), taskID, "slice"},
+		{value.NewMap("id", "T-1", "kind", "task"), nil, "task"},
+		{value.NewMap("id", "slice-3", "kind", "idea"), taskID, ""},
+		{value.NewMap("id", "slice-3"), nil, "slice"},
+		{value.NewMap("id", "T-1"), taskID, "task"},
+		{value.NewMap("id", "T-1"), nil, ""},
+		{value.NewMap("id", "p1-thing"), taskID, ""},
+	} {
+		if got := SpecKind(c.item, c.taskID); got != c.want {
+			t.Errorf("%s: %q, not %q", value.JSON(c.item), got, c.want)
+		}
 	}
 }
