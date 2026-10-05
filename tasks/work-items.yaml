@@ -4885,7 +4885,7 @@ items:
     title: release-notes, schema-contract and previous-release pick the last release by internal/release's one rule
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [bug-20]
     kind: task
     why: >
