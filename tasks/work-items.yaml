@@ -4850,7 +4850,7 @@ items:
     title: The module path is github.com/donvargax/itos/v3, and a major release is refused while it is not
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
     why: >
