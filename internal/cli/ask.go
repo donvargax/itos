@@ -29,6 +29,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/donvargax/itos/v3/internal/adr"
 	"github.com/donvargax/itos/v3/internal/ask"
@@ -562,8 +563,15 @@ func askRecord(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	header := fmt.Sprintf("docs: record %s as decision %d", id, n)
-	body := fmt.Sprintf("Record %s (\"%s\") as decision %d, %s, in %s, by itos ask record.", id, oneLine(q.Question), n, title,
-		filepath.ToSlash(files[1].path))
+	// The record's path is one word, which the body's wrap leaves whole: one
+	// longer than a body line, a long title's slug, would put a line over
+	// the lint's limit and the commit would be refused, so the body names
+	// its folder instead, the file being the commit's to show (bug 22).
+	in := filepath.ToSlash(files[1].path)
+	if utf8.RuneCountInString(in+",") > bodyWidth {
+		in = filepath.ToSlash(dir)
+	}
+	body := fmt.Sprintf("Record %s (\"%s\") as decision %d, %s, in %s, by itos ask record.", id, oneLine(q.Question), n, title, in)
 	if supersedes != 0 {
 		body += fmt.Sprintf(" It supersedes decision %d, which leaves the index.", supersedes)
 	}

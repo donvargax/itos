@@ -207,7 +207,7 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
   # everything back. The body keeps every line within the limit, as itos
   # commit wraps a body (slice 58); the record's file name and title are
   # unchanged.
-  @ID-ASK-19 @bug-22 @wip
+  @ID-ASK-19 @bug-22
   Scenario: ask record of a long title commits a body whose every line is within the limit
     Given itos has run the command line "ask add 'Where does how to work with itos live?'"
     And itos has run the command line "ask answer q-1 'In its own guides.'"
