@@ -204,6 +204,28 @@ names where releases come from (`<base>/download/v<version>/<asset>`,
 `https://github.com/donvargax/itos/releases` by default) and `ITOS_CACHE` the
 cache (`itos/` in your user cache folder by default).
 
+**In CI** (from the first release after v3.7.1): a CI runner gets the global
+itos in one step, and the repository's pin chooses what runs, as on your
+machine; a repository with no pin runs the version installed. On GitHub
+Actions:
+
+```yaml
+- uses: donvargax/itos@v<x.y.z> # that release's launcher, on the PATH
+```
+
+(`with: { version: <x.y.z> }` installs another release; at a ref that is not a
+version it installs the newest). Other CI runs the script the action runs,
+fetched from a release tag, into a folder on its `PATH`:
+
+```sh
+curl -fsSL -o install-launcher https://raw.githubusercontent.com/donvargax/itos/v<x.y.z>/tools/bin/install-launcher
+sh install-launcher "$HOME/.local/bin" <x.y.z>
+```
+
+It checks the archive against the release's `checksums.txt` and fails on any
+mismatch or missing asset; with no version it installs the newest, and
+`ITOS_RELEASES` moves where it fetches from.
+
 **Ready a repository** (from v2.7.0): `itos init` in a
 repository, or in a folder that is not one yet (it runs `git init` first),
 writes a starter `itos.yaml` at its top, small and commented: the Conventional
