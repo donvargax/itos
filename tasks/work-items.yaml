@@ -564,19 +564,9 @@ items:
     title: The notes check sees keys added to or removed from the schema, not only the defaults
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [T-024]
     kind: idea
-    why: >
-      The notes check compares the two releases' config check --print-defaults --json, so it sees
-      a key whose default changed, appeared or went, but not a key without a default that the
-      schema gains or drops: slice 4 removes commits.header_lint.use and alongside and
-      ledger.check.pushed for v0.3.0, and the check would pass notes that never named them. A
-      listing of the schema's keys (config check --print-schema, say, which the Go port's JSON
-      Schema gives anyway) would let it require those too. v0.3.0 also narrows hooks.manager,
-      which has no default, to six values: a key whose accepted values change is invisible to the
-      defaults as well. From v1.0.0 each release publishes itos.schema.json (T-054), every key and
-      the values each allows: the check could compare the two releases' schemas.
 
   - id: T-029
     title: A release task's notes check judges its own release, not the current version
