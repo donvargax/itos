@@ -729,6 +729,26 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   and the `checked` object always holds `notes` and `git_shim`. These
   additions to the report passed the last release's corpus because T-076
   judges an old case's output additively, a line or a key added passing.
+  Last, the offer of the rules for agents (`initrules.go`, slice 59),
+  `rulesOffer.run`, after the shim's so the lines the old corpus pins stay
+  adjacent: `rulesBlock` renders the loaded config (`commits.types`, the
+  header lint, each footer's source and `required_for`, with `in_place_of`
+  as an alternative, `commits.scopes` with its `$sets` already expanded, the
+  hooks' rules and `hooks.pre_push`, `ci.steps` in `check.CostOf`'s order,
+  the prose steps and the nightly's) as Markdown a formatter leaves alone:
+  one line a paragraph or list item, a blank line between blocks, every
+  config value through `code`, a one-line code span fenced past any backtick
+  it holds. `splitBlock` cuts `AGENTS.md` around the lines
+  `<!-- itos:begin -->` and `<!-- itos:end -->`, refusing a lone or
+  misordered marker or a second block; `writeRules` replaces that block, or
+  appends one after a blank line, and gives `CLAUDE.md` an `@AGENTS.md` line
+  unless it has one or is `AGENTS.md` itself; both files are read with CRLF
+  made LF and written back with the line endings they had. The first run
+  without a flag asks a terminal (sharing the one reader of stdin) or says
+  how; a rerun with no flag reads no config unless a block is there, and
+  then compares it with `rulesBlock`'s, saying only that it is stale.
+  `--stealth --agent-rules` is a usage error, and under a stealth config
+  nothing is offered: p3-init-agent-rules-stealth writes its files.
 - **Extensions** (`internal/cli/extension.go`, slice 29): a command itos
   does not have runs `itos-<command>` from the `PATH`, as git runs
   `git-<command>`. `cli.Parse` reads the arguments for both `cli.Main` and

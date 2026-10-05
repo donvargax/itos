@@ -257,7 +257,17 @@ committed `.claude/settings.json`), `--plugin user` for every repository of
 yours, `--plugin local` for you alone in this one, the default under
 `--stealth`, which keeps `.claude/settings.local.json` out of `git status`;
 on a terminal it asks, anywhere else it says how. Run again, it reports a
-plugin not installed without counting it as missing.
+plugin not installed without counting it as missing. It offers the rules for
+agents the same way: `--agent-rules` generates what the config decides (the
+commit types, the footer each type needs, the paths each type may touch and
+what the hooks and CI run) into `AGENTS.md`, between `<!-- itos:begin -->` and
+`<!-- itos:end -->` at its end, the rest of the file kept, and adds an
+`@AGENTS.md` line to `CLAUDE.md` so Claude Code reads it; `--no-agent-rules`
+declines. The block is one line a paragraph, so a Markdown formatter leaves it
+alone. Run again, init reports a block the config no longer matches, and
+`itos init --agent-rules` rewrites only what is between the markers. How to
+work with itos is not in the block: start a session with `! itos go`, and brief
+an implementer to run `itos guide work` first.
 
 **Where itos reads its config.** itos reads `itos.yaml` in the folder it runs
 in, or the file `--config` or `ITOS_CONFIG` names; `--root <dir>` runs it as if
