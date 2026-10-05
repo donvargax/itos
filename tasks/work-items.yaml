@@ -4919,4 +4919,10 @@ items:
       here) moves HEAD: the push sent 98f5b0a, the line said Pushed bd346b1, and the wait was for a
       run that never comes. Resolving HEAD to a commit once, before the push, and pushing that
       commit by its SHA would keep what is pushed, named and waited for the same.
-    refs: [internal/cli/push.go]
+
+      Specified as @ID-PUSH-06 in features/push.feature. Settled: itos push resolves HEAD to a full
+      SHA once, after the rebase and before git push, pushes '<sha>:<ref>' and names and waits on
+      that SHA; nothing after the push reads HEAD again. The two new steps are setup and a check: a
+      hooks.pre_push command that commits in the clone (made with git's hooks off, as the scenario's
+      setup), and the output naming the remote branch's head as pushed.
+    refs: [features/push.feature, internal/cli/push.go]
