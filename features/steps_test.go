@@ -105,6 +105,7 @@ type scratchConfig struct {
 	textFooter        *textFooter  // a footer of free text
 	itemFooter        bool         // an Item footer of registry items, in place of the ledger footer for test, docs and chore
 	featMustTouch     string       // commits.scopes.feat.must_touch, one glob, when set
+	choreNeverExcept  *[2]string   // commits.scopes.chore's never and except, one glob each, when set
 	ledgerFiles       string       // ledger.files; tasks/phase-{group}.yaml when empty
 	prosePaths        string       // ci.prose.paths, one glob
 	proseSteps        string       // ci.prose.steps, one command
@@ -214,6 +215,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	})
 	sc.Step(`^the config's feat commits must touch "([^"]*)"$`, func(glob string) error {
 		w.config.featMustTouch = glob
+		return w.writeConfig()
+	})
+	sc.Step(`^the config's chore commits may never touch "([^"]*)" except "([^"]*)"$`, func(never, except string) error {
+		w.config.choreNeverExcept = &[2]string{never, except}
 		return w.writeConfig()
 	})
 	sc.Step(`^the "([^"]*)" footer is required only after HEAD$`, w.textFooterSinceHead)
@@ -697,6 +702,9 @@ func (w *world) writeConfig() error {
 `)
 	if w.config.featMustTouch != "" {
 		fmt.Fprintf(&b, "    feat: { must_touch: [%q] }\n", w.config.featMustTouch)
+	}
+	if c := w.config.choreNeverExcept; c != nil {
+		fmt.Fprintf(&b, "    chore: { never: [%q], except: [%q] }\n", c[0], c[1])
 	}
 	if w.config.since != "" {
 		fmt.Fprintf(&b, "  since: %q\n", w.config.since)
