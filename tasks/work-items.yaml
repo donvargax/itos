@@ -2737,15 +2737,9 @@ items:
     title: A ci section may hold watch or range alone, ci.steps needed only by ci plan and ci run
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-51]
     kind: slice
-    why: >
-      Was p1-ci-watch-alone.
-      The schema requires ci.steps whenever ci is written, so a stealth config, which has no CI
-      plan of its own, must write ci: { steps: [], watch: … } to wait for the team's CI after a
-      push. ci.steps could be required only by the commands that run the plan (ci plan, ci run),
-      as a section a tool cannot work without (config.Section), leaving ci.watch alone valid.
     refs: [internal/config/schema.go, internal/cli/ci.go]
 
   - id: p3-stealth-scope
