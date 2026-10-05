@@ -45,6 +45,7 @@ phases:
 
 queue:
   - slice-76
+  - p1-nightly-late-done-checks
   - slice-77
   - slice-78
   - p3-global-install-ci
