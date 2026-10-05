@@ -3843,8 +3843,8 @@ items:
   - id: slice-79
     title: "v4.0.0: the breaking defaults, flipped in one push"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-76, slice-77, slice-78, T-093]
     kind: slice
     why: >
