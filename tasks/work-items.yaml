@@ -3963,8 +3963,8 @@ items:
   - id: T-096
     title: This repository's AGENTS.md holds the generated rules block, its hand-written part only what no command checks
     phase: 3
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
