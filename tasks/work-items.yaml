@@ -49,6 +49,7 @@ queue:
   - slice-77
   - slice-78
   - p3-global-install-ci
+  - slice-79
   - p1-work-show-gaps
   - p1-release-notes-footers
   - p1-commit-wrap-review
