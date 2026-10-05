@@ -3844,34 +3844,9 @@ items:
     title: "v4.0.0: the breaking defaults, flipped in one push"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-76, slice-77, slice-78, T-093]
     kind: slice
-    why: >
-      The user's calls (2026-10-04): a green push with a breaking change cuts a major at once, so
-      every break waiting for v4 lands in one push and each item's additive part ships first as a
-      minor. Flips: work list prints the open items alone (--all every one); work edit --note on a
-      slice or task is refused; hooks.bin defaults to itos (was v3-hooks-bin-default, so it waits on
-      p3-global-install-ci); a stealth config declares the pre-push hook without hooks.pre_push (was
-      v3-stealth-pre-push, changing that corpus case). @ID-WORK-44 and 45 in features/work.feature;
-      the hooks.bin and stealth scenarios are written when p3-global-install-ci is specified.
-
-      Specified in full (the coordinator, 2026-10-05, the user asleep; to review): @ID-WORK-44 and
-      45, @ID-CONFIG-26 and 27, @ID-STEALTH-25. The one push also carries: (a) the module path moved
-      to github.com/donvargax/itos/v4 (go.mod, every import, the -X ldflags, the go install lines),
-      as a refactor commit, since release-version refuses a v4 tag from a /v3 path (T-089); (b) the
-      texts that say plain work list prints every item (p1-v4-work-list-wording: the coordinator's
-      guide, itos help work and the top-level help, the usage error, docs/ARCHITECTURE.md); (c) the
-      live scenarios and last release's corpus cases the flips change, marked with --breaking, among
-      them @ID-WORK-06, @ID-WORK-38, @ID-CONFIG-16, @ID-COST-02 (its premise is the tools/bin/itos
-      default; it sets hooks.bin explicitly or goes), and the hooks.yaml cases printing
-      tools/bin/itos by default and declaring no stealth pre-push. Its BREAKING-CHANGE and Upgrading
-      footers tell a consumer to set hooks.bin: tools/bin/itos to keep a script, or install the
-      launcher (T-093's action in CI); to ask work list --all for every item; and to move go install
-      lines to /v4. The inverted static/late default is out (the user's call, 2026-10-05).
-
-      The user's calls (2026-10-05, morning): the spec is approved as written, and nothing more
-      joins v4.0.0; p1-push-needs-hooks stays out of it.
     refs: [features/work.feature, features/config.feature, features/stealth.feature, go.mod]
 
   - id: p3-guide-feature-plugin-line
