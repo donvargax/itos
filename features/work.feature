@@ -471,8 +471,8 @@ Feature: The work registry
   # slice or a task is refused, naming where its why goes; hooks.bin defaults
   # to itos, the global launcher (was v3-hooks-bin-default, after
   # p3-global-install-ci); and a stealth config declares the pre-push hook
-  # without hooks.pre_push (was v3-stealth-pre-push). The last two get their
-  # scenarios when p3-global-install-ci is specified.
+  # without hooks.pre_push (was v3-stealth-pre-push). The last two are
+  # @ID-CONFIG-26 and 27 and @ID-STEALTH-25.
   @ID-WORK-44 @slice-79 @wip
   Scenario: work list prints the open items alone, and --all every one
     Given the work registry has the item "T-001" with the status "done" and the item "slice-1" with the status "todo"
@@ -482,6 +482,9 @@ Feature: The work registry
     And its output says "slice-1"
     And its output does not say "T-001"
     And its output does not say "p1-gone"
+    When itos runs "work list --all"
+    Then itos exits with code 0
+    And its output says "T-001"
 
   @ID-WORK-45 @slice-79 @wip
   Scenario: work edit --note on a slice is refused, naming its feature file
