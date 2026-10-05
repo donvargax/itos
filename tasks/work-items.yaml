@@ -1805,21 +1805,10 @@ items:
     title: "v3: hooks.bin defaults to itos, the key kept as internal and unsupported"
     phase: 3
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: [T-093, slice-47]
     kind: idea
     deferred: the next major release, the user's call (2026-10-03)
-    why: >
-      Was v3-hooks-bin-default. The user's calls (2026-10-03): hooks.bin is not dropped, since this
-      repository needs it, judged by its own build through tools/bin/itos; it is marked internal
-      and unsupported, use at your own risk (the schema's description, the help, the docs no
-      longer recommending it to consumers), for a repository that must run its own build of itos.
-      What v3 changes is its default, flipped from tools/bin/itos to itos, the global launcher,
-      so a repository with no hooks.bin runs the global itos and its pin, and a new repository
-      gets no default naming a script it lacks. Breaking for every consumer relying on the
-      default (v2.0.0's notes told them to), so v3's Upgrading asks each to move to a pin and a
-      global itos, or write hooks.bin: tools/bin/itos explicitly. This repository writes it
-      explicitly before v3.
     refs: [PLAN.md, docs/releases/v2.0.0.md]
 
   - id: slice-31
