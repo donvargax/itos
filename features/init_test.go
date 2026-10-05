@@ -59,6 +59,28 @@ func initializeInitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the file "([^"]*)" does not say "([^"]*)" between the markers$`, func(path, text string) error {
 		return w.saysBetweenMarkers(path, text, false)
 	})
+	sc.Step(`^the untracked file "([^"]*)" holding "([^"]*)"$`, w.untrackedFileHolding)
+	sc.Step(`^the file "([^"]*)" names "([^"]*)"$`, w.fileNames)
+}
+
+// The file at the path, from the repository's top, holding the text as one
+// line, never committed nor ignored: a file of the person's own that git
+// shows untracked.
+func (w *world) untrackedFileHolding(path, text string) error {
+	return w.write(path, text+"\n")
+}
+
+// The file, from the repository's top, is there and names the text
+// somewhere, a path say, whatever the text around it.
+func (w *world) fileNames(path, name string) error {
+	text, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return fmt.Errorf("%s cannot be read: %w\n%s", path, err, w.report())
+	}
+	if !strings.Contains(string(text), name) {
+		return fmt.Errorf("%s does not name %q:\n%s", path, name, text)
+	}
+	return nil
 }
 
 // A repository with one commit, a README, and nothing of itos: no config in
