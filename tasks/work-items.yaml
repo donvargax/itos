@@ -3911,3 +3911,16 @@ items:
       hooks.pre_push, and an existing one is removed without it. One rule for every manager would be
       simpler; changing it changes a released behaviour (hooks.yaml's git-config cases), so it waits
       for a decision.
+
+  - id: p1-reason-read-as-footer
+    title: work drop and the other registry commands refuse a reason that would read as a footer before writing
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      work drop --why 'Superseded: …' writes the reason as the commit's body, the header lint reads
+      a body line starting with a word and a colon as a footer, and the commit fails at the hook
+      (footer-max-line-length) after the command has run. Found 2026-10-05 dropping q-14's ideas.
+      Say so before committing, or write the reason so it cannot parse as a footer.
