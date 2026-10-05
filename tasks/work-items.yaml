@@ -3802,6 +3802,7 @@ items:
       body names the record's file, docs/decisions/<nnnn>-<slug>.md, on one line over 100
       characters, the header lint refuses the commit, and ask record puts everything back. It should
       wrap or shorten that line, or cap the slug, as itos commit wraps a body.
+    refs: [features/ask.feature]
 
   - id: p1-wip-id-collision
     title: A @wip scenario reusing a live scenario's ID is refused
