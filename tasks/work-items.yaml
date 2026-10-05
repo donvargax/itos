@@ -2673,14 +2673,9 @@ items:
     title: The update notice names itos pin as the way to move the pin
     phase: 3
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: [slice-47]
     kind: idea
-    why: >
-      Found by slice 47's agent: the notice that a pin has fallen behind (slice 28) names the newer
-      release and its notes, but not that itos pin moves the pin to it, which a person reading it
-      now needs next. A change to what the notice says is a feat with a scenario in
-      update.feature.
     refs: [internal/launch/update.go, features/update.feature]
 
   - id: slice-59
