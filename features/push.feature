@@ -70,3 +70,20 @@ Feature: itos push, the pull-rebase-push routine as one command
     And its output says "tasks/work-items.yaml"
     And its output says "taken"
     And the remote's registry gives "slice-9" the owner "ana"
+
+  # git resolves HEAD before the pre-push hook runs, but itos push read HEAD
+  # again after git push returned, so a commit made while the hook ran (its
+  # unit tests take minutes) was named as pushed, and push waited on a CI run
+  # that would never come (found by bug 20's agent, 2026-10-04,
+  # p1-push-names-head-after-hook). itos push resolves the commit once,
+  # before pushing, and pushes, names and waits on that one.
+  @ID-PUSH-06 @bug-21 @wip
+  Scenario: itos push names the commit git pushed, though a commit lands while its pre-push hook runs
+    Given the pre-push hook is installed
+    And the clone has the commit "docs: mine" touching "mine.md"
+    And hooks.pre_push's command commits "docs: late" touching "late.md" in the clone
+    When itos runs "push --no-wait"
+    Then itos exits with code 0
+    And the remote's branch has "docs: mine"
+    And the remote's branch does not have "docs: late"
+    And its output names the remote branch's head as the commit pushed
