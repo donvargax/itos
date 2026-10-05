@@ -45,7 +45,7 @@ phases:
 
 queue:
   - slice-75
-  - p3-plugin-guide-wrappers
+  - T-092
   - p1-registry-archive
   - p1-work-show-gaps
   - p1-release-notes-footers
@@ -4423,14 +4423,15 @@ items:
       the three-platform CI).
     refs: [docs/ORCHESTRATING.md, internal/guide/coordinate.md]
 
-  - id: p3-plugin-guide-wrappers
-    title: The plugin drops its itos skill; no coordinate skill or implementer agent
+  - id: T-092
+    title: The Claude Code plugin drops its itos skill, how to work with itos being itos's own guides
     phase: 3
     owner: null
     status: todo
     depends_on: [slice-64]
-    kind: idea
+    kind: task
     why: >
+      Was p3-plugin-guide-wrappers.
       Left out of slice 64 by its spec: the Claude Code plugin's /itos:coordinate skill
       (disable-model-invocation: true, so only the person starts it) and itos:implementer agent
       become thin wrappers that run itos go and itos guide work, so one text, versioned with itos,
