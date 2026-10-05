@@ -182,7 +182,7 @@ Feature: itos status, where the work stands
   # "Last green: none found", as before. Its looks at GitHub, this one and
   # the nightly's, ask GITHUB_API_URL when it is set, else
   # https://api.github.com, as ci range and ci watch do since bug 23.
-  @ID-STATUS-14 @bug-24 @wip
+  @ID-STATUS-14 @bug-24
   Scenario: status names the nearest commit with a green run, whatever the list of runs says
     Given the watched run never finishes
     And ci.range asks a fake GitHub for the runs of "ci.yml" on "main"

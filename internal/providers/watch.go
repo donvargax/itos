@@ -96,7 +96,7 @@ func WatchProvider(cfg *config.Loaded, s WatchSetup) (watch Watch, ok bool, err 
 	if err != nil {
 		return nil, false, err
 	}
-	g.Workflow, g.API = w.GitHub.Workflow, s.Env(APIEnv)
+	g.Workflow = w.GitHub.Workflow
 	return g.RunOf, true, nil
 }
 
@@ -135,9 +135,11 @@ func NightlyProvider(cfg *config.Loaded, branch string, s WatchSetup) (nightly N
 	return g.NewestRun, true, nil
 }
 
-// watchGitHub is the github provider's repository and token, the workflow
-// left to the caller: the token from ci.range.github.token_env, else gh,
-// the repository from ci.range.github.repository_env, else the remote's URL.
+// watchGitHub is the github provider's repository, token and API, the
+// workflow left to the caller: the token from ci.range.github.token_env, else
+// gh, the repository from ci.range.github.repository_env, else the remote's
+// URL, the API's address from GITHUB_API_URL, else GitHubAPI. Every look
+// status and the watch take at GitHub asks there (bug 24).
 // key is the config key whose provider asks, named in its errors.
 func watchGitHub(cfg *config.Loaded, key string, s WatchSetup) (GitHub, error) {
 	r := cfg.CI.Range.GitHub
@@ -157,7 +159,7 @@ func watchGitHub(cfg *config.Loaded, key string, s WatchSetup) (GitHub, error) {
 		return GitHub{}, fmt.Errorf("%s's github provider cannot tell the GitHub repository from the remote's URL %q: set %s to owner/name",
 			key, s.RemoteURL, r.RepositoryEnv)
 	}
-	return GitHub{Repository: repository, Token: token}, nil
+	return GitHub{Repository: repository, Token: token, API: s.Env(APIEnv)}, nil
 }
 
 // orList is names joined as a sentence lists alternatives: A, B or C.

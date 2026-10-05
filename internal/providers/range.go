@@ -2,10 +2,8 @@ package providers
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"net/url"
 	"sort"
 	"strings"
@@ -147,21 +145,39 @@ func (g GitHub) NearestGreen(head string) string {
 	if g.Repository == "" || head == "" {
 		return ""
 	}
-	parents, err := git.Lines("rev-list", "--first-parent", "--skip=1",
-		fmt.Sprintf("--max-count=%d", FirstParentsAsked), head, "--")
+	sha, _ := g.greenFirstParent(head, 1)
+	return sha
+}
+
+// LastGreenFrom is the commit itos status names as the last green one (bug
+// 24): the first of the head's first parents, the head itself included, with
+// a successful run of the workflow on the branch, found by NearestGreen's walk
+// and bound, for the reason it gives; "" and no error when none of them has
+// one. Unlike the range's, its failures are said.
+func (g GitHub) LastGreenFrom(head string) (string, error) {
+	return g.greenFirstParent(head, 0)
+}
+
+// greenFirstParent is the walk: the commit's first parents, the commit itself
+// the first of them, skip of them passed over, then at most FirstParentsAsked
+// asked about, nearest first; the first with a green run, "" when none has
+// one, and an error when they cannot be listed or one cannot be asked about.
+func (g GitHub) greenFirstParent(from string, skip int) (string, error) {
+	parents, err := git.Lines("rev-list", "--first-parent", fmt.Sprintf("--skip=%d", skip),
+		fmt.Sprintf("--max-count=%d", FirstParentsAsked), from, "--")
 	if err != nil {
-		return ""
+		return "", fmt.Errorf("the first parents of %s cannot be listed: %w", from, err)
 	}
 	for _, sha := range parents {
 		green, err := g.GreenRunOf(sha)
 		if err != nil {
-			return ""
+			return "", err
 		}
 		if green {
-			return sha
+			return sha, nil
 		}
 	}
-	return ""
+	return "", nil
 }
 
 // GreenRunOf is whether the workflow has a successful run of the commit, given
@@ -183,51 +199,19 @@ func (g GitHub) GreenRunOf(sha string) (bool, error) {
 	return false, nil
 }
 
-// LastGreen is the head commit of the workflow's last successful run on the
-// branch, as itos status reads it, read from the GitHub API with the token: ""
-// and no error when no listed run succeeded. The runs are listed and the
-// newest success taken:
-// the API's own `status=success` filter can answer with a run far older than
-// the newest green one, and the range would then name every task since.
-func (g GitHub) LastGreen() (string, error) {
-	url := fmt.Sprintf("%s/repos/%s/actions/workflows/%s/runs?branch=%s&per_page=50",
-		g.api(), g.Repository, g.Workflow, encodeURIComponent(g.Branch))
-	req, err := http.NewRequest(http.MethodGet, url, nil)
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	if g.Token != "" {
-		req.Header.Set("Authorization", "Bearer "+g.Token)
-	}
-	res, err := (&http.Client{Timeout: Timeout}).Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-	if res.StatusCode < 200 || res.StatusCode > 299 {
-		return "", fmt.Errorf("GitHub answered %s for %s's runs", res.Status, g.Workflow)
-	}
-	var body struct {
-		WorkflowRuns []WorkflowRun `json:"workflow_runs"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&body); err != nil {
-		return "", fmt.Errorf("GitHub's list of %s's runs cannot be read: %w", g.Workflow, err)
-	}
-	return FirstGreen(body.WorkflowRuns), nil
-}
-
 // LastGreenLook is one look at the commit main last proved, as ci.range's
-// provider names it: "" and no error when it names none.
-type LastGreenLook func() (sha string, err error)
+// provider names it, given the head of the branch as fetched: "" and no
+// error when it names none.
+type LastGreenLook func(head string) (sha string, err error)
 
 // LastGreenProvider is the look itos status takes at the last green commit
 // (slice 73), through ci.range's provider: ok is false for none. command is
-// ci.range.command's first line, an error when it fails; github is the last
-// green run of ci.range.github's workflow on its branch, the repository and
-// token found as ci.watch's github provider finds them (the environment,
-// else the remote's URL and gh), so it reads outside CI too. An error is a
-// provider that cannot look at all, said before any request.
+// ci.range.command's first line, an error when it fails, the head unused;
+// github is LastGreenFrom the head, of ci.range.github's workflow on its
+// branch, the repository, token and API's address found as ci.watch's github
+// provider finds them (the environment, else the remote's URL and gh), so it
+// reads outside CI too. An error is a provider that cannot look at all, said
+// before any request.
 func LastGreenProvider(cfg *config.Loaded, s WatchSetup) (look LastGreenLook, ok bool, err error) {
 	r := cfg.CI.Range
 	switch r.Provider {
@@ -238,7 +222,7 @@ func LastGreenProvider(cfg *config.Loaded, s WatchSetup) (look LastGreenLook, ok
 		if r.Command != nil {
 			command = *r.Command
 		}
-		return func() (string, error) {
+		return func(string) (string, error) {
 			var stdout bytes.Buffer
 			res := shell.Run(cfg, command, shell.Options{Stdout: &stdout, Stderr: s.Stderr, Timeout: Timeout})
 			if !res.OK() {
@@ -253,7 +237,7 @@ func LastGreenProvider(cfg *config.Loaded, s WatchSetup) (look LastGreenLook, ok
 		return nil, false, err
 	}
 	g.Workflow, g.Branch = r.GitHub.Workflow, r.GitHub.Branch
-	return g.LastGreen, true, nil
+	return g.LastGreenFrom, true, nil
 }
 
 // WorkflowRun is what the github provider reads of a run.
@@ -264,7 +248,8 @@ type WorkflowRun struct {
 }
 
 // FirstGreen is the newest successful run's head commit, whatever order the
-// list came in; "" when none succeeded.
+// list came in; "" when none succeeded. Nothing reads a list of runs for its
+// green one since bug 24; it stays for T-008's check, which runs its test.
 func FirstGreen(runs []WorkflowRun) string {
 	var green []WorkflowRun
 	for _, r := range runs {

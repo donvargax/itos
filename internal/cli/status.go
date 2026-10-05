@@ -273,7 +273,7 @@ func (st *standing) readBranch(cfg *config.Loaded, remote, ref, branch string, o
 	st.start = append(st.start, line)
 	st.readCI(cfg, remote, sha, o)
 	if st.CI != nil && st.CI.Result != "success" {
-		st.readLastGreen(cfg, remote, o)
+		st.readLastGreen(cfg, remote, branch, o)
 	}
 	st.readRelease(remote, branch, head)
 }
@@ -467,8 +467,9 @@ func (st *standing) readCI(cfg *config.Loaded, remote, sha string, o Out) {
 }
 
 // readLastGreen looks once at the commit main last proved, through
-// ci.range's provider, and prints nothing when the provider is none.
-func (st *standing) readLastGreen(cfg *config.Loaded, remote string, o Out) {
+// ci.range's provider, from the head of the branch as fetched (bug 24), and
+// prints nothing when the provider is none.
+func (st *standing) readLastGreen(cfg *config.Loaded, remote, branch string, o Out) {
 	remoteURL, _ := git.Output("remote", "get-url", remote)
 	look, ok, err := providers.LastGreenProvider(cfg, providers.WatchSetup{
 		Env:       os.Getenv,
@@ -483,7 +484,7 @@ func (st *standing) readLastGreen(cfg *config.Loaded, remote string, o Out) {
 	case !ok:
 		return
 	}
-	sha, err := look()
+	sha, err := look("refs/remotes/" + remote + "/" + branch)
 	switch {
 	case err != nil:
 		st.unread(fmt.Sprintf("The last green commit cannot be read: %s", err))

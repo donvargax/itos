@@ -167,6 +167,47 @@ func TestTheNightlyIsReadOnlyWhereTheProviderNamesOne(t *testing.T) {
 	}
 }
 
+// itos status's looks at GitHub, the nightly's and the last green commit's,
+// ask the API GITHUB_API_URL names, as ci range and ci watch do (bug 24).
+func TestStatusLooksAskGitHubAPIURL(t *testing.T) {
+	var asked []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked = append(asked, r.URL.Path)
+		w.Write([]byte(`{"workflow_runs":[]}`))
+	}))
+	defer server.Close()
+	was := GitHubAPI
+	GitHubAPI = "http://127.0.0.1:1/not-asked"
+	defer func() { GitHubAPI = was }()
+	env := map[string]string{"GITHUB_TOKEN": "t", "GITHUB_REPOSITORY": "o/n", "GITHUB_API_URL": server.URL + "/api/v3"}
+	setup := WatchSetup{Env: func(name string) string { return env[name] }}
+	cfg := githubWatchConfig()
+	cfg.CI.Watch.GitHub.NightlyWorkflow = "nightly.yml"
+	cfg.CI.Range.Provider, cfg.CI.Range.GitHub.Workflow, cfg.CI.Range.GitHub.Branch = "github", "range.yml", "main"
+	nightly, ok, err := NightlyProvider(cfg, "main", setup)
+	if !ok || err != nil {
+		t.Fatalf("nightly: ok %v, err %v", ok, err)
+	}
+	if _, found, err := nightly(); found || err != nil {
+		t.Fatalf("nightly: found %v, err %v", found, err)
+	}
+	if len(asked) != 1 || asked[0] != "/api/v3/repos/o/n/actions/workflows/nightly.yml/runs" {
+		t.Fatalf("the nightly asked %v", asked)
+	}
+	look, ok, err := LastGreenProvider(cfg, setup)
+	if !ok || err != nil {
+		t.Fatalf("last green: ok %v, err %v", ok, err)
+	}
+	shas := walkRepository(t)
+	asked = nil
+	if sha, err := look(shas["c3"]); sha != "" || err != nil {
+		t.Fatalf("last green: %q, %v", sha, err)
+	}
+	if len(asked) == 0 || asked[0] != "/api/v3/repos/o/n/actions/workflows/range.yml/runs" {
+		t.Fatalf("the last green look asked %v", asked)
+	}
+}
+
 func TestNewestRunReadsTheBranchsNewestRun(t *testing.T) {
 	var asked []string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

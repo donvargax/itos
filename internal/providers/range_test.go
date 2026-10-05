@@ -210,33 +210,36 @@ func TestNearestGreenReadsEveryFailureAsNoGreenRun(t *testing.T) {
 	}
 }
 
-// What itos status reads of the last green commit (slice 73): LastGreen
-// says why it could not read the runs, where LastGreenRun reads none.
-func TestLastGreenSaysWhatWentWrong(t *testing.T) {
-	answer, status := `{"workflow_runs":[{"head_sha":"abc","conclusion":"success","created_at":"x"}]}`, 200
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(status)
-		_, _ = w.Write([]byte(answer))
-	}))
+// What itos status reads of the last green commit (bug 24): the walk of
+// NearestGreen, from the head itself, saying why when it cannot list the
+// first parents or ask about one, where NearestGreen reads that as none.
+func TestLastGreenFromWalksFromTheHeadAndSaysWhatWentWrong(t *testing.T) {
+	shas := walkRepository(t)
+	s := &walkServer{runs: map[string]string{shas["c3"]: "success", shas["c2"]: "success"}}
+	server := httptest.NewServer(s)
 	defer server.Close()
-	defer func(api string) { GitHubAPI = api }(GitHubAPI)
-	GitHubAPI = server.URL
-
-	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "main"}
-	if sha, err := g.LastGreen(); sha != "abc" || err != nil {
-		t.Errorf("LastGreen = %q, %v, want abc", sha, err)
+	g := GitHub{Repository: "o/r", Token: "t", Workflow: "ci.yml", Branch: "main", API: server.URL}
+	if sha, err := g.LastGreenFrom(shas["c3"]); sha != shas["c3"] || err != nil {
+		t.Errorf("a green head: LastGreenFrom = %q, %v, want c3", sha, err)
 	}
-	answer = `{"workflow_runs":[]}`
-	if sha, err := g.LastGreen(); sha != "" || err != nil {
-		t.Errorf("no green run: LastGreen = %q, %v, want none and no error", sha, err)
+	s.runs[shas["c3"]], s.asked = "in_progress", nil
+	if sha, err := g.LastGreenFrom(shas["c3"]); sha != shas["c2"] || err != nil {
+		t.Errorf("LastGreenFrom = %q, %v, want c2 after c3 and m; asked %v", sha, err, s.askedFor())
+	}
+	s.runs[shas["c2"]], s.asked = "failure", nil
+	if sha, err := g.LastGreenFrom(shas["c3"]); sha != "" || err != nil || len(s.asked) != 5 {
+		t.Errorf("no green run: LastGreenFrom = %q, %v after %v, want none and no error after five", sha, err, s.askedFor())
+	}
+	if sha, err := g.LastGreenFrom("refs/remotes/origin/main"); sha != "" || err == nil || !strings.Contains(err.Error(), "refs/remotes/origin/main") {
+		t.Errorf("a head the repository does not have: LastGreenFrom = %q, %v, want an error naming it", sha, err)
 	}
 	for _, c := range []struct {
 		answer string
 		status int
 	}{{"{}", 404}, {"not json", 200}} {
-		answer, status = c.answer, c.status
-		if sha, err := g.LastGreen(); sha != "" || err == nil {
-			t.Errorf("%d %s: LastGreen = %q, %v, want an error", c.status, c.answer, sha, err)
+		s.answer, s.status = c.answer, c.status
+		if sha, err := g.LastGreenFrom(shas["c3"]); sha != "" || err == nil {
+			t.Errorf("%d %s: LastGreenFrom = %q, %v, want an error", c.status, c.answer, sha, err)
 		}
 	}
 }
