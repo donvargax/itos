@@ -3795,8 +3795,8 @@ items:
   - id: bug-22
     title: itos ask record's commit body fits the line limit whatever the title's length
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
