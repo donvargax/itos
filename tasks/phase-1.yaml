@@ -701,3 +701,19 @@
     - run: node tools/selftest/upgrading-json.ts
     - run: go test ./tools/...
     - run: grep -q 'upgrading.json' docs/ARCHITECTURE.md
+
+- id: T-094
+  type: refactor
+  title: The module path is github.com/donvargax/itos/v4, for v4.0.0
+  why: >
+    Slice 79 cuts v4.0.0, and tools/bin/release-version refuses a v4 tag from a go.mod whose module
+    path ends in /v3 (T-089), as Go's module proxy refuses it. The path moves to /v4 everywhere it
+    is named, in one refactor commit before the push that carries slice 79's breaking feats: go.mod,
+    every import of itos's own packages, the -X ldflags that stamp the version (.goreleaser.yaml,
+    tools/bin/itos, tools/bin/build-go.ts, CI's Build itos step), go-hooks.ts's module prefix, and
+    the go install lines of the README and ARCHITECTURE. The done tasks whose checks named the /v3
+    path (T-088, T-089, T-090) are reworded to hold whatever the major, so the nightly's done-task
+    checks stay green across this move and the next.
+  done_when:
+    - run: "! git grep -q 'donvargax/itos/v3' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
+    - run: go build ./...
