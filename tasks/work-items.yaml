@@ -2823,6 +2823,8 @@ items:
       the environment, itos hook commit-msg records seeing it, and when git returns without the
       record itos commit undoes that commit (HEAD, unpushed, its own), leaves the changes staged
       and says why. itos push checks before pushing, since proof after the push is too late.
+
+      The user's call (2026-10-05): not part of v4.0.0; a later major may make it a default.
     refs:
       [internal/cli/push.go, internal/cli/commit.go, internal/cli/init.go, docs/ORCHESTRATING.md]
 
