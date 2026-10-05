@@ -4904,14 +4904,15 @@ items:
         internal/release,
       ]
 
-  - id: p1-push-names-head-after-hook
+  - id: bug-21
     title: itos push names and waits for the commit it pushed, not HEAD after the push
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-push-names-head-after-hook.
       Found in bug 20 (2026-10-04). pushRun.push pushes HEAD:<branch>, then reads git rev-parse HEAD
       after git push returns to name the commit pushed and the one whose CI run it waits for. The
       pre-push hook runs the unit tests for minutes, so a commit made in that time (itos work add,
