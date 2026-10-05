@@ -545,8 +545,8 @@ mechanisms above, written against those modules, read across.
   `internal/message` (below), `internal/plan` (CI's plan; below),
   `internal/providers` (the range, watch and identity providers and the people;
   below), `internal/work` (the registry and its problems, the items'
-  statuses, the proposal, the edits that take, promote, close, add and
-  change an item, and the item as work show prints it;
+  statuses, the proposal, the edits that take, promote, close, add,
+  change and drop an item, and the item as work show prints it;
   below), `internal/follow` (itos follow's threads; below), `internal/ask`
   (itos ask's questions; below), `internal/adr` (the decision records itos
   ask record writes; below), `internal/nextid` (the next free ID of a
@@ -1494,6 +1494,19 @@ queue <id> --top|--before|--after|--drop`, `internal/cli/workwrite.go`),
   its own after the close, under a stealth config while it still holds the
   registry's lock; `work.Promote` renames an idea in the queue as in every
   `depends_on`.
+- **work drop** (slice 78, `internal/work/drop.go`,
+  `internal/cli/workdrop.go`) takes an item out of the open work without
+  deleting it, so its id is never given again: `work.Drop` sets its status
+  `dropped` (`work.Dropped`), drops its why as `Done` does, takes it out of
+  the queue and puts the `--why` reason first in the body of its
+  `docs: drop <id>` commit. `dropped` is known whatever `work.statuses`
+  lists, since only itos sets it: `itemIssues` accepts it, exempts a dropped
+  idea or deferred item from the started-item problems, and reports an item
+  still to do (`live`: neither done nor dropped) that depends on a dropped
+  one (`work-dropped-dependency`). `Drop` refuses an item done and one that a
+  live item depends on, naming those (`dependants`); `Take`, `Done`,
+  `Promote` and `Queue` refuse a dropped item, and `Propose` never lists one,
+  its status not being `todo`.
 - **task add** (slice 55, `internal/cli/taskadd.go`) writes two files in one
   commit: the task at the end of its group's ledger file (`ledger.Add`,
   `internal/ledger/add.go`) and its item, a task, todo and nobody's, through

@@ -13,7 +13,7 @@
 # Keys of an item: `id` (a slice as `slice-<n>`, a task by its T- ID, anything
 # not yet numbered as `p<phase>-<name>`), `title`, `phase`, `owner` (a GitHub
 # login that CONTRIBUTORS.md lists, or null), `status` (todo, doing, done,
-# blocked), `depends_on` (item IDs), optional `issue` (a GitHub issue number),
+# blocked, or dropped, which `itos work drop` alone sets), `depends_on` (item IDs), optional `issue` (a GitHub issue number),
 # `refs` (where it is specified), `kind` (slice: needs scenarios and a feat;
 # task: a tasks/ entry with checks, its T- ID given when it is written; idea:
 # a gap with neither yet), optional `why` (an idea's short reason),
@@ -27,6 +27,9 @@
 # ledger entry, a change's in its commit. `itos work done` drops the why of
 # the item it closes, so a done item holds its index fields alone and the
 # file grows with the open work; the dropped text stays in git's history.
+# An item no longer wanted is not deleted: `itos work drop <id> --why '…'`
+# sets it dropped, drops its why and records the reason as its commit's body
+# (slice 78), and the item stays here so its id is never given again.
 #
 # This file is the one list of open work: no TODO or ROADMAP file sits beside
 # it. A gap a slice leaves goes in as a `kind: idea` item, with a title, a
