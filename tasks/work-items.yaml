@@ -3943,3 +3943,19 @@ items:
       first parents and asks each commit's own runs (?head_sha=), taking the first green one, within
       a bound; the dropped red check then cannot happen either, since a right range never held it.
     refs: [internal/providers/range.go]
+
+  - id: p1-status-last-green-walk
+    title: itos status reads the last green commit as ci range finds it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Since bug 23 ci range's github provider walks the head's first parents, asking each commit's
+      runs, and ci range and ci watch ask GITHUB_API_URL when it is set. itos status's look at the
+      last green commit (LastGreenProvider) still takes the newest success from the branch's list of
+      runs, which GitHub served stale on 2026-10-05, and it and the nightly look ask api.github.com
+      whatever GITHUB_API_URL says. Status could walk from the branch's head and take the address as
+      the others do; bug 23 left it out of scope.
+    refs: [internal/providers/range.go]
