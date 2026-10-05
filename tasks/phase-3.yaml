@@ -670,9 +670,9 @@
     checkout (uses ./) and then itos version, so every push proves it on each platform. The
     README's install section gives the action line and, for other CI, the script's two lines.
   done_when:
+    - run: actionlint
     - run: sh -c 'd=$(mktemp -d) && tools/bin/install-launcher "$d" 3.5.0 && "$d/itos" version | grep -q "3\.5\.0"'
       timeout: 120
-    - run: actionlint
 
 - id: T-096
   type: docs

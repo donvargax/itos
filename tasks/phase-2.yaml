@@ -344,9 +344,9 @@
     and the schema beside the TypeScript tarball, which stays until phase 3
     switches the consumers. Closes p2-go-release-proves-its-archives.
   done_when:
+    - run: actionlint
     - run: sh -c 'd=$(mktemp -d) && node tools/bin/build-go.ts --release "$d" && node tools/selftest/go-release.ts --dir "$d"'
       timeout: 900
-    - run: actionlint
 
 - id: T-056
   type: build

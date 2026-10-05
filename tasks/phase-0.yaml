@@ -12,8 +12,8 @@
     Go module (go.mod) carries the features' steps; the template's page and
     its build went in phase 1 (T-014).
   done_when:
-    - run: vp install
     - run: go mod verify
+    - run: vp install
 
 - id: T-002
   type: build
@@ -76,9 +76,9 @@
     fail, so the runner compares what it claims to.
   done_when:
     - run: tools/bin/itos config check
-    - fails: ITOS_CONFIG=tools/itos/fixtures/typo.yaml tools/bin/itos config check
     - fails: tools/bin/itos config check --ledger tools/itos/fixtures/static-after-late.yaml
     - fails: tools/bin/itos work check tools/itos/fixtures/cycle.yaml
+    - fails: ITOS_CONFIG=tools/itos/fixtures/typo.yaml tools/bin/itos config check
     - fails: tools/bin/itos task T-000
     - run: ITOS_CONFIG=tools/itos/fixtures/lax-refactor.yaml tools/bin/itos commit check-paths --type refactor features/since.feature
     - run: ITOS_CONFIG=tools/itos/fixtures/command-adapter.yaml tools/bin/itos tests list fixture --json
@@ -139,9 +139,9 @@
     # The github provider's choice of run, ci-range.ts's until the TypeScript left (T-062).
     - run: go test ./internal/providers -run '^TestFirstGreen$'
       cost: static
+    - fails: tools/bin/itos verify HEAD "$(git commit-tree 'HEAD^{tree}' -p HEAD -m 'update things')"
     - run: tools/bin/itos verify "" HEAD
       cost: late # sized by the history, not by the change
-    - fails: tools/bin/itos verify HEAD "$(git commit-tree 'HEAD^{tree}' -p HEAD -m 'update things')"
     - run: vp run ci
 
 - id: T-009
