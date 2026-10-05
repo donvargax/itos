@@ -12,9 +12,10 @@ name: Release
 #
 # What it publishes is what the launcher, a pin, go install and a consumer's install script read
 # (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md;
-# .goreleaser.yaml): the five archives, itos.schema.json and checksums.txt. In
-# order, all in this one job, since a tag pushed with the workflow's token starts no other
-# workflow:
+# .goreleaser.yaml): the five archives, itos.schema.json and checksums.txt; and upgrading.json,
+# the Upgrading section as data, which itos upgrade reads of every release since a project's pin
+# (T-091). In order, all in this one job, since a tag pushed with the workflow's token starts no
+# other workflow:
 #   1. the version; nothing more when there is none;
 #   2. the tag, made locally only;
 #   3. GoReleaser (tools/bin/pinned, at the version pinned there) builds, packs and uploads a draft
@@ -23,9 +24,12 @@ name: Release
 #      <file> -R donvargax/itos` checks one);
 #   5. the notes are generated (tools/bin/release-notes: git-cliff over the range, every
 #      Upgrading: and Changes: footer, the config's changes, the install lines and the pin filled
-#      from checksums.txt);
-#   6. the draft is published with those notes, which is when GitHub creates the tag, so the tag
-#      and a release holding every asset appear together. A run that fails before leaves no tag,
+#      from checksums.txt), and upgrading.json beside them (release-notes -json: the same
+#      breaking changes, footers and config changes, and previous, the last release);
+#   6. upgrading.json is uploaded to the draft, then the draft is published with those notes,
+#      which is when GitHub creates the tag, so the tag and a release holding every asset appear
+#      together. upgrading.json is not in checksums.txt, so neither attested nor read by a pin:
+#      itos only prints it. A run that fails before leaves no tag,
 #      only a draft the next run replaces; a tag is never moved.
 # The releaser never commits: the notes are the release's description, not a file.
 on:
@@ -105,6 +109,8 @@ jobs:
         run: |
           go run ./tools/bin/release-notes -version "$NEXT" -from "$LAST" \
             -checksums dist/goreleaser/checksums.txt > "$RUNNER_TEMP/notes.md"
+          go run ./tools/bin/release-notes -json -version "$NEXT" -from "$LAST" \
+            > "$RUNNER_TEMP/upgrading.json"
           cat "$RUNNER_TEMP/notes.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Publish
         if: steps.version.outputs.next != ''
@@ -112,4 +118,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: v${{ steps.version.outputs.next }}
-        run: gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest
+        # The asset is named after the file, upgrading.json; it goes up while the release is a
+        # draft, so the release is never seen without it.
+        run: |
+          gh release upload "$TAG" "$RUNNER_TEMP/upgrading.json"
+          gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest

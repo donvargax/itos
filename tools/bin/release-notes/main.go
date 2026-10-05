@@ -5,6 +5,7 @@
 //
 //	go run ./tools/bin/release-notes -version <X.Y.Z> -checksums <checksums.txt>
 //	                                 [-from <tag>] [-to <rev>] [-itos <bin>]
+//	go run ./tools/bin/release-notes -json -version <X.Y.Z> [-from <tag>] [-to <rev>] [-itos <bin>]
 //
 // The range is <from>..<to>: <from> the last release's tag (default: the
 // newest vX.Y.Z tag reachable from <to> other than v<version>, which the
@@ -28,7 +29,22 @@
 //     two lines with checksums.txt's own SHA-256, go install and the schema
 //     line, and how to check.
 //
+// -json writes, instead of the notes, the release's upgrading.json (T-091):
+// the Upgrading section as data, for itos upgrade, from the very lists the
+// section quotes, in its order (Upgrading footers saying none left out, as
+// there), with neither git-cliff nor checksums.txt, which it does not read:
+//
+//	{"schema": 1, "version": "<X.Y.Z>", "previous": "<the last release, X.Y.Z; empty with none>",
+//	 "breaking": [{"commit", "header", "text"}], "upgrading": [{"commit", "header", "text"}],
+//	 "changes": [{"commit", "header", "text"}], "config": [{"key", "change"}]}
+//
+// previous is the range's start, <from>: how itos upgrade walks back from a
+// release to a project's pin without listing releases through an API. The
+// release workflow uploads it to the draft beside the archives; it is not in
+// checksums.txt, since itos only prints it.
+//
 // tools/selftest/release-notes.ts proves notes it writes against the range,
+// tools/selftest/upgrading-json.ts the asset,
 // and tools/selftest/release-cut.ts runs both on a snapshot. It imports
 // nothing but the standard library (T-067). Exit status: 0 written, 2 a part
 // could not be read (a tool that fails, a checksums.txt without an archive of
@@ -76,13 +92,14 @@ func run() int {
 	from := flag.String("from", "", "the last release's tag (default: the newest vX.Y.Z reachable from -to but v<version>)")
 	to := flag.String("to", "HEAD", "the range's end")
 	itos := flag.String("itos", "tools/bin/itos", "the itos whose commit footers reads the range's footers")
+	asJSON := flag.Bool("json", false, "write the release's upgrading.json instead of the notes")
 	flag.Parse()
 	fail := func(format string, a ...any) int {
 		fmt.Fprintf(os.Stderr, self+": "+format+"\n", a...)
 		return 2
 	}
-	if flag.NArg() > 0 || !semver.MatchString(*ver) || *sums == "" {
-		return fail("usage: go run ./tools/bin/release-notes -version <X.Y.Z> -checksums <checksums.txt> [-from <tag>] [-to <rev>] [-itos <bin>]")
+	if flag.NArg() > 0 || !semver.MatchString(*ver) || (*sums == "") != *asJSON {
+		return fail("usage: go run ./tools/bin/release-notes -version <X.Y.Z> (-checksums <checksums.txt> | -json) [-from <tag>] [-to <rev>] [-itos <bin>]")
 	}
 	n := notes{Version: *ver, Repository: repository, Module: modulePath(*ver), From: *from}
 	var err error
@@ -96,14 +113,18 @@ func run() int {
 		rng = n.From + ".." + *to
 	}
 	n.Range = rng
-	if n.Hashes, n.Pin, err = readChecksums(*sums, *ver); err != nil {
-		return fail("%v", err)
+	if !*asJSON {
+		if n.Hashes, n.Pin, err = readChecksums(*sums, *ver); err != nil {
+			return fail("%v", err)
+		}
 	}
 	if n.Commits, err = commits(rng); err != nil {
 		return fail("%v", err)
 	}
-	if n.Changed, err = cliff(rng); err != nil {
-		return fail("%v", err)
+	if !*asJSON {
+		if n.Changed, err = cliff(rng); err != nil {
+			return fail("%v", err)
+		}
 	}
 	if n.Upgrading, err = footers(*itos, "Upgrading", n.From, *to); err != nil {
 		return fail("%v", err)
@@ -117,12 +138,76 @@ func run() int {
 			return fail("%v", err)
 		}
 	}
+	if *asJSON {
+		var b bytes.Buffer
+		enc := json.NewEncoder(&b)
+		enc.SetEscapeHTML(false)
+		enc.SetIndent("", "  ")
+		if err := enc.Encode(n.asset()); err != nil {
+			return fail("%v", err)
+		}
+		fmt.Print(b.String())
+		return 0
+	}
 	text, err := n.render()
 	if err != nil {
 		return fail("%v", err)
 	}
 	fmt.Print(text)
 	return 0
+}
+
+// upgrading is a release's upgrading.json (T-091), its fields in the order
+// they are written.
+type upgrading struct {
+	Schema    int         `json:"schema"`
+	Version   string      `json:"version"`
+	Previous  string      `json:"previous"`
+	Breaking  []entry     `json:"breaking"`
+	Upgrading []entry     `json:"upgrading"`
+	Changes   []entry     `json:"changes"`
+	Config    []configKey `json:"config"`
+}
+
+// entry is one thing a commit asks: the commit, its header and the text.
+type entry struct {
+	Commit string `json:"commit"`
+	Header string `json:"header"`
+	Text   string `json:"text"`
+}
+
+type configKey struct {
+	Key    string `json:"key"`
+	Change string `json:"change"`
+}
+
+// asset is the Upgrading section's data as upgrading.json holds it: what the
+// section quotes, in its order, each list empty rather than null.
+func (n notes) asset() upgrading {
+	a := upgrading{
+		Schema:    1,
+		Version:   n.Version,
+		Previous:  strings.TrimPrefix(n.From, "v"),
+		Breaking:  []entry{},
+		Upgrading: []entry{},
+		Changes:   []entry{},
+		Config:    []configKey{},
+	}
+	for _, c := range n.Commits {
+		if c.Breaking != "" {
+			a.Breaking = append(a.Breaking, entry{c.SHA, c.Header, c.Breaking})
+		}
+	}
+	for _, f := range n.Upgrading {
+		a.Upgrading = append(a.Upgrading, entry{f.SHA, f.Subject, f.Text})
+	}
+	for _, f := range n.Changes {
+		a.Changes = append(a.Changes, entry{f.SHA, f.Subject, f.Text})
+	}
+	for _, f := range n.Config {
+		a.Config = append(a.Config, configKey{f.Path, f.Change})
+	}
+	return a
 }
 
 // notes is everything the template reads.
