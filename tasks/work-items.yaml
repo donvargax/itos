@@ -4542,3 +4542,20 @@ items:
       Issue #14's other half: inside push CI ci watch on HEAD waits on its own run; it could read
       GITHUB_RUN_ID and refuse or pass.
     refs: [internal/cli/watch.go]
+
+  - id: p3-command-providers-back
+    title: Other hosts' providers come back behind a direnv-style trust gate
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-05), very low priority. v5 removes the command providers (slice 85)
+      because itos ran a repository's own commands without anyone choosing to: the plugin's guard
+      and titles ran its tools/bin/itos or hooks.bin (T-097), the git shim's push ran
+      ci.watch.command, itos go and status ran ci.range.command and the identity command. Providers
+      for other hosts (gitlab, forgejo, command) come back behind itos trust: a local record of the
+      config's hash, never in the repository, without which every implicit run of a repository's
+      commands is refused or skipped.
+    refs: [internal/providers, PLAN.md]
