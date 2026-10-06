@@ -802,7 +802,7 @@ func (w *world) writeConfig() error {
 	}
 	for _, s := range w.config.settings {
 		path := strings.Split(s.key, ".")
-		if path[0] == "ledger" || path[0] == "commits" || path[0] == "work" && len(path) == 2 && !w.config.noWork {
+		if path[0] == "ledger" || path[0] == "commits" || path[0] == "ci" || path[0] == "work" && len(path) >= 2 && !w.config.noWork {
 			continue
 		}
 		b.WriteString(nested(path, s.value, 0))
@@ -820,8 +820,8 @@ func (w *world) writeWork(b *strings.Builder) {
 		fmt.Fprintf(b, "registry: %q, ", w.config.registry)
 	}
 	for _, s := range w.config.settings {
-		if path := strings.Split(s.key, "."); path[0] == "work" && len(path) == 2 {
-			fmt.Fprintf(b, "%s: %q, ", path[1], s.value)
+		if path := strings.Split(s.key, "."); path[0] == "work" && len(path) >= 2 {
+			fmt.Fprintf(b, "%s, ", flowSetting(path[1:], s.value))
 		}
 	}
 	if w.config.groupsKey != "" {
@@ -858,7 +858,8 @@ func (w *world) data(path string) string { return filepath.Join(w.dataDir, path)
 // footer's names needs no step of its own, and the CI settings it sets.
 func (w *world) ciSection() string {
 	if w.config.ciWatchOnly != "" {
-		return fmt.Sprintf("ci:\n  watch:\n    provider: github\n    github: { workflow: %q }\n", w.config.ciWatchOnly)
+		return fmt.Sprintf("ci:\n  watch:\n    provider: github\n    github: { workflow: %q }\n", w.config.ciWatchOnly) +
+			w.settingsUnder("ci")
 	}
 	var b strings.Builder
 	b.WriteString("ci:\n  steps:")
@@ -915,7 +916,17 @@ func (w *world) ciSection() string {
 		fmt.Fprintf(&b, "  range:\n    provider: github\n    github: { workflow: %q, branch: %q }\n", r[0], r[1])
 	}
 	b.WriteString(w.watchSection())
+	b.WriteString(w.settingsUnder("ci"))
 	return b.String()
+}
+
+// A key path set to value in a flow mapping: key: "value", or key: { … }
+// for a longer path.
+func flowSetting(path []string, value string) string {
+	if len(path) == 1 {
+		return fmt.Sprintf("%s: %q", path[0], value)
+	}
+	return path[0] + ": { " + flowSetting(path[1:], value) + " }"
 }
 
 // The scenario's settings under a section the config writes, as lines below it.

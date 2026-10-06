@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/cucumber/godog"
@@ -21,7 +22,13 @@ type watchConfig struct {
 	provider string // ci.watch.provider
 	timeout  int    // ci.watch.timeout, when above 0
 	nightly  bool   // whether ci.watch.nightly_command runs the nightly's script
+	github   bool   // whether it asks the fake GitHub
+	// ci.watch.github.nightly_workflow, when set
+	nightlyWorkflow string
 }
+
+// The workflow ci.watch asks the fake GitHub about.
+const watchedWorkflow = "ci.yml"
 
 // One look at the watched run, as the watch command prints it.
 type watchedRun struct {
@@ -76,6 +83,30 @@ func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 		return nil
 	})
 	sc.Step(`^its output says "([^"]*)" once, before "([^"]*)"$`, w.outputSaysOnceBefore)
+
+	sc.Step(`^ci\.watch asks a fake GitHub, which reports the run "([^"]*)"$`, w.watchAsksFakeGitHub)
+	sc.Step(`^ci\.watch's nightly workflow on the fake GitHub has the run "([^"]*)", its job "([^"]*)" failed$`, w.nightlyOnFakeGitHub)
+	sc.Step(`^the fake GitHub refuses the token$`, func() error {
+		if w.github == nil {
+			return errors.New("no fake GitHub: start one first")
+		}
+		w.github.refuses = true
+		return nil
+	})
+	sc.Step(`^no GitHub token in the environment$`, func() error {
+		w.vars = slices.DeleteFunc(w.vars, func(v string) bool { return strings.HasPrefix(v, "GITHUB_TOKEN=") })
+		return nil
+	})
+	sc.Step(`^the fake GitHub was asked for the run of the clone's HEAD$`, w.fakeGitHubGivenHead)
+	sc.Step(`^the fake GitHub was never asked about a run$`, func() error {
+		if w.github == nil {
+			return errors.New("no fake GitHub: start one first")
+		}
+		if asked := w.github.requests(); len(asked) > 0 {
+			return fmt.Errorf("the fake GitHub was asked %v\n%s", asked, w.report())
+		}
+		return nil
+	})
 }
 
 func job(name, conclusion string) watchedJob {
@@ -134,9 +165,72 @@ func (w *world) nightlyCommandReports(url, name string) error {
 	return w.pushConfig("chore: read the nightly")
 }
 
-// The script prints one run a poll, the nth poll the nth run, the last run
-// for every poll after it.
+// ci.watch's provider is github, asking the fake GitHub about ci.yml with no
+// interval between looks, and the fake GitHub reports the run at the address
+// for the commit it is asked about, its jobs ci and platform succeeding until a
+// step says otherwise.
+func (w *world) watchAsksFakeGitHub(url string) error {
+	w.fakeGitHub()
+	w.watchURL = url
+	w.config.watch = &watchConfig{provider: "github", github: true}
+	if err := w.watchedRunPolls(w.finished(job("ci", "success"), job("platform", "success"))); err != nil {
+		return err
+	}
+	return w.pushConfig("chore: watch CI")
+}
+
+// ci.watch.github.nightly_workflow is nightly.yml, whose one run on main the
+// fake GitHub holds: at the address, completed, its one job failed, added to
+// the ci.watch the Background set up and pushed with it.
+func (w *world) nightlyOnFakeGitHub(url, name string) error {
+	if w.config.watch == nil || !w.config.watch.github {
+		return errors.New("no ci.watch asking a fake GitHub for the nightly to join: set one up first")
+	}
+	g := w.github
+	g.mu.Lock()
+	failure := "failure"
+	g.runs = append(g.runs, gitHubRun{ID: len(g.runs) + 1, HeadSHA: strings.Repeat("0", 40), HeadBranch: "main",
+		Status: "completed", Conclusion: &failure, CreatedAt: "2026-10-05T11:00:00Z", HTMLURL: url,
+		workflow: "nightly.yml", jobs: []watchedJob{job(name, "failure")}})
+	g.mu.Unlock()
+	w.config.watch.nightlyWorkflow = "nightly.yml"
+	return w.pushConfig("chore: read the nightly")
+}
+
+// Every look at the watched run the fake GitHub gave was of the clone's HEAD,
+// by its full SHA, and it gave one.
+func (w *world) fakeGitHubGivenHead() error {
+	if w.github == nil {
+		return errors.New("no fake GitHub: start one first")
+	}
+	head, err := w.head()
+	if err != nil {
+		return err
+	}
+	w.github.mu.Lock()
+	given := slices.Clone(w.github.given)
+	w.github.mu.Unlock()
+	if len(given) == 0 {
+		return fmt.Errorf("the fake GitHub was never asked for the watched run; it was asked %v\n%s", w.github.requests(), w.report())
+	}
+	for _, sha := range given {
+		if sha != head {
+			return fmt.Errorf("the fake GitHub was asked for the run of %q, not HEAD's %s\n%s", sha, head, w.report())
+		}
+	}
+	return nil
+}
+
+// The watched run's looks, one a poll, the nth poll the nth look, the last
+// look for every poll after it: the fake GitHub's, when ci.watch asks it, else
+// the watch command's script prints them.
 func (w *world) watchedRunPolls(runs ...watchedRun) error {
+	if w.config.watch != nil && w.config.watch.github {
+		w.github.mu.Lock()
+		w.github.watched = runs
+		w.github.mu.Unlock()
+		return nil
+	}
 	var b strings.Builder
 	b.WriteString("n=$(wc -l < " + quote(w.watchRecord()) + " | tr -d ' ')\ncase \"$n\" in\n")
 	for i, run := range runs {
@@ -187,6 +281,16 @@ func (w *world) watchSection() string {
 		return ""
 	}
 	var b strings.Builder
+	if c.github {
+		fmt.Fprintf(&b, "  watch:\n    provider: %s\n    interval: 0\n    github:\n      workflow: %s\n", c.provider, watchedWorkflow)
+		if c.nightlyWorkflow != "" {
+			fmt.Fprintf(&b, "      nightly_workflow: %s\n", c.nightlyWorkflow)
+		}
+		if c.timeout > 0 {
+			fmt.Fprintf(&b, "    timeout: %d\n", c.timeout)
+		}
+		return b.String()
+	}
 	fmt.Fprintf(&b, "  watch:\n    provider: %s\n    command: %q\n    interval: 0\n",
 		c.provider, "sh "+quote(w.watchScriptPath())+" {sha}")
 	if c.timeout > 0 {
