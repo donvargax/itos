@@ -4717,11 +4717,9 @@ items:
     title: itos's own git calls pass over any itos shim, not only itself
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Specified as @ID-PUSH-07 in features/push.feature.
     refs: [features/push.feature, internal/git/bin.go]
 
   - id: p1-shim-install-hard-linked-itos
