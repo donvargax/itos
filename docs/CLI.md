@@ -1,0 +1,151 @@
+# CLI design guidelines
+
+These are the rules for the itos command line. Each rule names its source. When itos does not follow a rule yet, the rule says so and the gap is listed in [Where itos does not follow these rules yet](#where-itos-does-not-follow-these-rules-yet).
+
+Use these rules when you add or change a command, a flag, an exit code or an output. Decision records in `docs/decisions/` can change a rule. When a decision changes a rule, change this document in the same commit.
+
+## Sources
+
+| Key      | Source                                                                                                                                                                       |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLIG     | Command Line Interface Guidelines, <https://clig.dev>. The anchor after the key names the section, for example CLIG `#help`.                                                 |
+| GNU-CLI  | GNU Coding Standards, "Standards for Command Line Interfaces", <https://www.gnu.org/prep/standards/html_node/Command_002dLine-Interfaces.html>                               |
+| GNU-VER  | GNU Coding Standards, "--version", <https://www.gnu.org/prep/standards/html_node/_002d_002dversion.html>                                                                     |
+| GNU-HELP | GNU Coding Standards, "--help", <https://www.gnu.org/prep/standards/html_node/_002d_002dhelp.html>                                                                           |
+| GNU-ERR  | GNU Coding Standards, "Formatting Error Messages", <https://www.gnu.org/prep/standards/html_node/Errors.html>                                                                |
+| POSIX    | POSIX.1-2024 Base Definitions, section 12.2, "Utility Syntax Guidelines", <https://pubs.opengroup.org/onlinepubs/9799919799/basedefs/V1_chap12.html#tag_12_02>               |
+| COBRA    | Cobra README, "Concepts", <https://github.com/spf13/cobra/blob/main/README.md#concepts>                                                                                      |
+| D35      | Decision 35, [Only machine output is itos's contract](decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md) |
+
+## The contract with scripts
+
+Scripts can rely on three things only (D35):
+
+- The exit code.
+- The `--json` output, less every key named `message` or `fix`. These keys hold the same sentences as the plain output.
+- The files that itos writes.
+
+All plain output is for people. It can change in any release. A script reads `--json` and the exit code, never the plain output and never a `message`.
+
+The `previous-release` check holds each release to this contract (T-100). It runs the scenarios and the corpus cases of the last release against the new binary. A change to the contract is a breaking change, and a breaking change makes a major release.
+
+### Exit codes
+
+| Code | Meaning                                                                                                                                                  |
+| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Success.                                                                                                                                                 |
+| 1    | A check said no: a rule refused a commit, a check failed, an item is not ready.                                                                          |
+| 2    | A usage error or a config error.                                                                                                                         |
+| 3    | The environment is missing something: a person, a tool, a release, a git repository.                                                                     |
+| 75   | A temporary failure. The same command can pass when you run it again with no change, for example after a network failure. Planned for v6.0.0 (slice-86). |
+
+These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.h` value `EX_TEMPFAIL` for 75 (CLIG `#the-basics`: map the non-zero codes to the most important failure modes).
+
+## Rules
+
+### Command names and grammar
+
+1. Keep the program name short and lowercase. (POSIX guidelines 1 and 2; CLIG `#naming`.) itos follows this rule.
+2. Write a subcommand name in lowercase, with dashes between words: `check-paths`, `next-id`. itos follows this rule.
+3. Name a group of commands with a noun. Name an action in a group with a verb in the imperative: `work take`, `config get`. (CLIG `#subcommands`; COBRA `#concepts`, `APPNAME VERB NOUN --ADJECTIVE` or `APPNAME COMMAND ARG --FLAG`.) Some groups do not follow this rule yet: `ask`, `follow`, `commit`, `verify`.
+4. Use the singular for a group name. Some groups do not follow this rule yet: `tests` and `hooks`.
+5. Do not give two commands similar names or overlapping meanings. (CLIG `#subcommands`.) `hook` and `hooks` do not follow this rule yet.
+6. Do not name a command with an everyday verb when the same verb in a request can point to a different command. An agent picks a command by its name before it reads the help. Example: "I need to ask someone this" means `itos follow`, but the word "ask" points to `itos ask`. (This rule comes from use of itos, and agrees with CLIG `#subcommands`.)
+7. Do not add a new implicit default subcommand, a command that runs an action when you give it no subcommand. (CLIG `#future-proofing`, "Don't have a catch-all subcommand".) The existing ones stay: `task <id>`, `work`, `ask`, `follow`.
+8. Do not let a command accept an abbreviation of a subcommand. Make an alias only when you name it explicitly. (CLIG `#future-proofing`.) itos follows this rule.
+
+### Help and version
+
+9. Show help for `itos`, `itos --help`, `itos help <command>` and `<command> --help`, and for `-h` in any position. Write help to stdout and exit 0. (CLIG `#help`; GNU-HELP.) itos follows this rule.
+10. In the help of each command, give the shape of its `--json` output and its exit codes. itos follows this rule.
+11. Support `--version` and `version`. The first line of the output is `itos <version>`. (GNU-CLI; GNU-VER; CLIG `#arguments-and-flags`.) itos does not support `--version` yet (slice-87).
+12. For an unknown command, exit 2. If you can guess the command that the person meant, name it. (CLIG `#help`.) `itos help nosuch` exits 0 now, and itos gives no suggestions yet.
+13. For a group with no subcommand, name the subcommands that the group takes. `itos hook` does not do this yet.
+14. End the help with an example or two and the address for issue reports. (CLIG `#help`; GNU-HELP.) itos does not do this yet.
+
+### Flags and arguments
+
+15. Give each flag a long form. Give a one-letter form only to the most common flags. (CLIG `#arguments-and-flags`; GNU-CLI.) itos follows this rule: `-h` and `-q` are its only short flags.
+16. Use the standard name when a standard name exists: `--json`, `-q`/`--quiet`, `-h`/`--help`, `--force`, `--version`. (CLIG `#arguments-and-flags`.)
+17. Let a flag mean the same thing in every command. (CLIG `#subcommands`.) `--as` does not follow this rule yet: it names a person in `work`, `status` and `work take`, and a new ID in `work promote`.
+18. Use a flag to change an action, never to select a different action. (COBRA `#concepts`.) `work queue --drop` and `config check --print-defaults` do not follow this rule yet.
+19. Accept `--flag=value` and `--flag value`. (CLIG `#arguments-and-flags`; GNU-CLI, as `getopt_long` reads them.) Only `work --as=` accepts the first form now. Other commands ignore `--flag=value` and exit 0.
+20. Refuse an unknown flag, and a flag with no value, with exit 2. (CLIG `#robustness-guidelines`.) Some commands refuse an unknown flag now and some ignore it.
+21. Give an option-argument to its option only. Never read it as a global flag. (POSIX guidelines 6 and 14.) Now `task list --group --json` reads `--json` as the global flag.
+22. Do not make an option-argument optional. (POSIX guideline 7.) `init --plugin [<scope>]` does not follow this rule yet.
+23. Let `--` end the options, and let `-` mean stdin or stdout. (POSIX guidelines 10 and 13; CLIG `#arguments-and-flags`.) itos follows this rule.
+24. Accept flags in any position. (CLIG `#arguments-and-flags`.) itos follows this rule.
+25. Check each argument before you use it, and refuse a bad one with exit 2. (CLIG `#robustness-guidelines`.) Now `ci plan nosuchref HEAD` prints a plan and exits 0.
+
+### Output
+
+26. Write the main output to stdout. Write logs, progress and errors to stderr. (CLIG `#the-basics`.) itos follows this rule.
+27. Print JSON only with `--json`. `--json` prints one object with `"schema": 1`, and a later release only adds keys to it. (CLIG `#output`; D35.) `config get` does not follow this rule yet: it prints a mapping or a list as JSON with no flag.
+28. When the plain output of a command looks like data, such as the YAML from `config get`, write a line on stderr that tells the reader to use `--json` in scripts.
+29. With `--json`, print the object for every failure too: `"ok": false` and the rule ID of each problem. (CLIG `#output`; D35.) Now a usage error or an unexpected error prints nothing on stdout.
+30. Do not use colour, and pass `NO_COLOR` on to the programs that itos runs. (CLIG `#output`, `#environment-variables`.) itos follows this rule.
+
+### Errors and exit codes
+
+31. Get the exit code from the kind of the error, never from a default. (CLIG `#the-basics`.) Now every error that is not a usage error or a config error exits 2. For example, `verify nosuchref HEAD` exits 2 with a raw git command line. This rule must hold before exit 75 can mean what it says.
+32. Start each error line with `itos:`. Write it for people: say what happened and what to do next. Do not show a raw command line as the message. (GNU-ERR; CLIG `#errors`.) Some error lines do not follow this rule yet.
+33. Let the help and the code agree on each exit code. Now the top-level help says that `itos task` exits 1 for an unknown task, but it exits 2.
+
+### Environment variables
+
+34. Start each environment variable that itos reads with `ITOS_`. Write it in uppercase with underscores. (CLIG `#environment-variables`.) itos follows this rule.
+35. Read settings in this order: flag, then environment variable, then the project config. (CLIG `#configuration`.) itos follows this rule: `--config`, then `ITOS_CONFIG`, then `itos.yaml`, then the stealth config.
+36. Do not let a run in CI depend on the network for an update check. Give an opt-out for the check. (CLIG `#future-proofing`, "Don't create a time bomb".) itos follows this rule: `CI` and `ITOS_NO_UPDATE` stop the check.
+
+### Prompts
+
+37. Ask a question only when stdin and stdout are terminals. Give a flag for each question, so that a script never needs a terminal. (CLIG `#interactivity`.) itos follows this rule: only `init` asks, and each question has a flag.
+
+### Configuration
+
+38. Keep the settings of a project in a file in the repository, under version control. (CLIG `#configuration`.) itos follows this rule with `itos.yaml`. The stealth config in the git folder is an intentional exception for a clone that cannot change the repository.
+
+### Entry points for other programs
+
+Some commands are not for people. Another program calls them: git calls the hook commands, Claude Code calls the guard, and the shim runs when a program calls `git`.
+
+39. An entry point uses the protocol of the program that calls it. It does not use the itos contract when the two do not agree. For example, Claude Code reads exit 2 as "block", so the guard never exits 2.
+40. An entry point for one program does not share a group with entry points for a different program. Name its group for its function and the program that it serves. (CLIG `#subcommands`.) Now `itos hook` holds git's two hooks and Claude Code's guard.
+41. The output of the guard follows the Claude Code schema exactly, with no extra keys. Claude Code can refuse keys it does not know. The guard output is not part of the itos contract, so `previous-release` does not judge it. This tree's corpus and `features/guard.feature` still test it.
+
+### Changing the interface
+
+42. A rename of a command or a flag, or a change to an exit code, is a breaking change (D35). Put the breaking changes that are ready into one major release together. Do not make one major release for each change.
+43. Do not keep code to stay compatible with an old interface. Only `previous-release` judges compatibility, against the contract above.
+
+## Where itos does not follow these rules yet
+
+Each row is a gap that the 2026-10-06 review found and reproduced. The rule number links each gap to its rule.
+
+| Rule | What itos does now                                                                | Example                                                   |
+| ---- | --------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| 3, 6 | `ask` is an everyday verb. A request to ask someone else gets logged as an `ask`. | "I need to ask someone this"                              |
+| 4, 5 | `hook` (entry points) and `hooks` (a command for people) differ by one letter.    | `itos hook commit-msg`, `itos hooks install`              |
+| 11   | No `--version`.                                                                   | `itos --version` exits 2                                  |
+| 12   | An unknown topic exits 0.                                                         | `itos help nosuch`                                        |
+| 13   | A group with no subcommand says that the group is unknown.                        | `itos hook`                                               |
+| 17   | `--as` names a person in some commands and an ID in another.                      | `work promote <idea> --as <id>`                           |
+| 18   | A flag selects a different action.                                                | `work queue <id> --drop`, `config check --print-defaults` |
+| 19   | `--flag=value` is dropped with exit 0.                                            | `task list --group=foo` lists every task                  |
+| 20   | Some commands ignore an unknown flag and exit 0.                                  | `version --bogus`, `ci plan A B --bogus`                  |
+| 21   | A flag's value is read as a global flag.                                          | `task list --group --json`                                |
+| 25   | A bad ref passes.                                                                 | `ci plan nosuchref HEAD` exits 0                          |
+| 27   | JSON with no `--json`.                                                            | `config get` of a mapping                                 |
+| 29   | `--json` prints nothing for a usage error or an unexpected error.                 | `itos --json verify nosuchref HEAD`                       |
+| 31   | Every unclassified error exits 2.                                                 | `verify nosuchref HEAD`                                   |
+| 32   | Error lines with no `itos:` prefix, or a raw command line.                        | `itos: Command failed: git rev-list …`                    |
+| 33   | The help and the code do not agree.                                               | `itos task nope` exits 2; the help says 1                 |
+| 40   | `itos hook` holds the Claude Code guard.                                          | `itos hook pre-tool-use`                                  |
+
+## Open questions
+
+These need a decision before the gaps above become work.
+
+- The new name of the Claude Code guard, now `itos hook pre-tool-use`. The review recommends `itos guard claude-code`, which matches decision 28, `internal/guard` and `features/guard.feature`. The other candidates are `itos agent claude-code pre-tool-use` and `itos hook claude-code pre-tool-use`.
+- The new name of `itos ask`. The review recommends `itos question`. It also recommends `itos followup` for `itos follow`, so that both groups are nouns.
+- What an old name does after a rename. The review recommends a refusal with exit 2 that names the new command, for one major release. Rule 43 does not allow a silent alias.
