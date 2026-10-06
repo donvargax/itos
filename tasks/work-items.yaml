@@ -4467,3 +4467,16 @@ items:
       and a BOM before a line-1 marker makes every run refuse with a misleading message
       (initrules.go:225-234).
     refs: [internal/cli/initrules.go]
+
+  - id: p1-unknown-flags-refused
+    title: Every command refuses an unknown flag
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). hooks install, config check and version read
+      flags with Contains and ignore the rest, so hooks install --prnt installs instead of printing
+      (commands.go:319-351).
+    refs: [internal/cli/commands.go]
