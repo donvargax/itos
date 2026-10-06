@@ -1380,12 +1380,15 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   environment: `none`; `command`, which is `FirstLine` (the command through
   the config's shell, its stderr on itos's, its output's first line trimmed
   as JavaScript trims), the reading the `command` identity provider shares;
-  and `github`, a `GitHub` value (repository, token, workflow, branch, API
+  and `github`, a `GitHub` value (repository, token, workflow, API
   address) whose `NearestGreen` walks the head's first parents from its
   parent (`git rev-list --first-parent`, `FirstParentsAsked` of them, 100)
   and asks the API through `net/http` for each commit's runs (`GreenRunOf`,
-  `head_sha=` on the branch), starting at the first with a successful run of
-  that commit. It reads no list of the branch's runs: GitHub served that list
+  `head_sha=` alone), starting at the first with a successful run of
+  that commit, on whatever branch it ran (bug 29: filtering by
+  `ci.range.github.branch` made a push to another branch start at main's
+  green ancestor; the key is still accepted, unread, until v5 removes it).
+  It reads no list of the branch's runs: GitHub served that list
   stale on 2026-10-05 and the range reached back past commits already proved
   (bug 23). A provider over another forge's API (GitLab, Forgejo, waiting
   for `p1-conformance-http`) is another such value and another case in
@@ -1753,7 +1756,7 @@ add`ed so `--only` can name it, git add's words and the commit's on
   `ci.range`, the provider a push's range starts from. `none` gives no look
   and no line; `command` is `ci.range.command`'s first line, as `FirstLine`
   reads it but failing when the command fails; `github` is the `GitHub`
-  value with `ci.range.github`'s workflow and branch, its token and
+  value with `ci.range.github`'s workflow, its token and
   repository found by `watchGitHub` as the watch's are (the environment,
   else gh and the remote's URL), so it reads outside CI, where
   `RangeProvider` finds neither, and the API's address; the look is given
