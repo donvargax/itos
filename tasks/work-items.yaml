@@ -3040,6 +3040,10 @@ items:
       add <n> --owner) or work add and task add listing an unlisted phase they are given, owned by
       nobody.
 
+      From another coordinator's notes (2026-10-05): task add --group N with a phase the registry
+      does not list fails without help; it could list the phases and how to add one, and default to
+      the only phase when no group is given.
+
   - id: T-081
     title: "Changes: names a corpus case by a unique prefix of its name"
     phase: 3
