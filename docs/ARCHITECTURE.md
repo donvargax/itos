@@ -125,27 +125,27 @@ history (`vp run changelog`), and the decisions behind it are records in
   v4.0.0 (slice 79 made plain `work list` the open items alone); a run that
   cannot start, exits non-zero or prints no `items` (an itos older than
   v2.3.0 reads `work list` as `work`) falls back to reading
-  `tasks/work-items.yaml` with `$.fs`. Both hooks run the itos the
-  repository's git hooks run (T-073), resolved before each refresh and each
-  guarded command: the effective `hooks.bin`, asked of the `itos` on the
-  `PATH` (`itos config get hooks.bin`, which prints it relative to the
-  repository's top, joined to `git rev-parse --show-toplevel`; a bare word is
-  that command on the `PATH`, a path is taken when executable, and a value of
-  several words starts with its first); with no answer (no `itos`, or one
-  older than v2.4.0, whose usage error exits 2) `tools/bin/itos` at the top
-  when it is executable; else the `itos` on the `PATH`. The rule is written
-  twice, `resolveItos` in `register.ts` and `hooks/guard.sh` in POSIX shell,
-  each naming the other: `claude plugin test` runs no process, so a script
-  both shared would leave its cases unproven, while the module's are proven
-  one by one. Its tests (`*.test.ts`, run by `claude plugin test`) drive the
-  module through the engine's own `$`, the test's hooks beneath it answering
-  `session.root`, `process.run` (`itos`, `git`, `test -x`) and `fs.read`.
-  The command hook is `PreToolUse` on Bash, `sh hooks/guard.sh`, which
-  resolves the itos and runs its `hook pre-tool-use` behind two shell
-  guards: nothing found answers nothing, and an exit code 2 (an itos older
-  than the guard, whose usage error Claude Code would take as a block)
-  becomes 1, which Claude Code reports and lets the command run; the guard
-  itself never exits 2.
+  `tasks/work-items.yaml` with `$.fs`. Both hooks run only the `itos` on the
+  `PATH` (T-097), never a program the repository ships: not its `hooks.bin`
+  and not a `tools/bin/itos` at its top. The guard runs before every Bash
+  command and the titles on every reply, in every repository the plugin is
+  enabled for (user scope covers them all), so resolving the repository's own
+  itos, as T-073 did, ran a cloned repository's program just by opening Claude
+  Code there. The `itos` on the `PATH` is the launcher of a global install,
+  which runs the release the repository's pin names, fetched from itos's
+  releases and checked against their checksums; a developer of itos who wants
+  a dev build to answer puts it first on the `PATH` (this repository's own git
+  hooks still run its `hooks.bin`, installed deliberately). Its tests
+  (`*.test.ts`, run by `claude plugin test`) drive the module through the
+  engine's own `$`, the test's hooks beneath it answering `session.root`,
+  `process.run` and `fs.read`; a repository there ships an executable
+  `tools/bin/itos` and a `hooks.bin` script, each answering titles of its own,
+  and the tests prove only `itos` starts. The command hook is `PreToolUse` on
+  Bash, `sh hooks/guard.sh`, which runs `itos hook pre-tool-use` behind two
+  shell guards: no `itos` on the `PATH` answers nothing, and an exit code 2
+  (an itos older than the guard, whose usage error Claude Code would take as
+  a block) becomes 1, which Claude Code reports and lets the command run; the
+  guard itself never exits 2.
   The plugin has no skill (T-092): how to work with itos is itos's own guides,
   `itos go` and `itos guide work` (`internal/guide/`), versioned with the
   binary, so no flow needs the plugin. The module and tests are typed by the

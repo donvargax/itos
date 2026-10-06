@@ -330,13 +330,14 @@ of its own, raised only when the plugin changes, not with each itos release. `it
 /plugin install itos@itos
 ```
 
-It runs the itos the repository's own git hooks run, its `hooks.bin`, in
-every repository you open, and does something only where itos manages the
-repository. It asks the `itos` on your `PATH` for that value
-(`itos config get hooks.bin`, v2.4.0 or later); with no `itos` there, or an
-older one, it runs `tools/bin/itos` at the repository's top when that is
-executable, and else the `itos` on your `PATH` (v2.3.0 or later; a global
-install, above, lets each repository's pin pick the version).
+It runs the `itos` on your `PATH` (v2.3.0 or later) in every repository you
+open, and does something only where itos manages the repository. It never
+runs a program the repository ships, neither its `hooks.bin` nor a
+`tools/bin/itos` at its top, since the guard runs before every Bash command
+and the titles on every reply, and a repository you cloned would otherwise run
+its own program just by being opened. A global install, above, is the
+launcher, which lets each repository's pin pick the version from itos's
+releases; to have a build of your own answer, put it first on your `PATH`.
 
 - **Titles.** An itos ID in Claude's replies is drawn with its title beside
   it, `T-066` as `` `T-066: The itos plugin for Claude Code` ``, and "slice 43"
@@ -354,7 +355,7 @@ install, above, lets each repository's pin pick the version).
   command as bash does, so `git -C . commit` and `make && git push` are
   caught; `sh -c '…'`, `eval` and scripts are not looked into, and the hooks
   stay the gates. Under a pin older than v2.3.0 the launcher answers for the
-  hook with nothing; with no itos found the plugin answers nothing.
+  hook with nothing; with no itos on the `PATH` the plugin answers nothing.
 
 How to work with itos is not the plugin's: it is itos's own guides, versioned
 with the binary, `itos go` for the session you talk to and `itos guide work` for
