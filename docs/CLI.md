@@ -48,11 +48,11 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 
 1. Keep the program name short and lowercase. (POSIX guidelines 1 and 2; CLIG `#naming`.) itos follows this rule.
 2. Write a subcommand name in lowercase, with dashes between words: `check-paths`, `next-id`. itos follows this rule.
-3. Name a group of commands with a noun. Name an action in a group with a verb in the imperative: `work take`, `config get`. (CLIG `#subcommands`; COBRA `#concepts`, `APPNAME VERB NOUN --ADJECTIVE` or `APPNAME COMMAND ARG --FLAG`.) Some groups do not follow this rule yet: `commit`, `verify`. `ask` and `follow` became the groups `question` and `followup` in v6.0.0 (slice-89).
+3. Name a group of commands with a noun. Name an action in a group with a verb in the imperative: `work take`, `config get`. (CLIG `#subcommands`; COBRA `#concepts`, `APPNAME VERB NOUN --ADJECTIVE` or `APPNAME COMMAND ARG --FLAG`.) Some groups do not follow this rule yet: `commit`, `verify`. `ask` and `follow` became the groups `decision` and `followup` in v6.0.0 (slice-89, slice-92).
 4. Use the singular for a group name. Some groups do not follow this rule yet: `tests`. `hooks install` became `hook install` in v6.0.0 (slice-89).
 5. Do not give two commands similar names or overlapping meanings. (CLIG `#subcommands`.) itos follows this rule: since v6.0.0 (slice-89) `hooks install` is `hook install`, and no `hooks` group stands beside `hook`.
-6. Do not name a command with an everyday verb when the same verb in a request can point to a different command. An agent picks a command by its name before it reads the help. Example: "I need to ask someone this" meant `itos follow`, but the word "ask" pointed to `itos ask`. (This rule comes from use of itos, and agrees with CLIG `#subcommands`.) itos follows this rule: since v6.0.0 (slice-89) they are `itos followup` and `itos question`.
-7. Do not add a new implicit default subcommand, a command that runs an action when you give it no subcommand. (CLIG `#future-proofing`, "Don't have a catch-all subcommand".) The existing ones stay: `task <id>`, `work`, `question`, `followup`.
+6. Do not name a command with an everyday verb when the same verb in a request can point to a different command. An agent picks a command by its name before it reads the help. Example: "I need to ask someone this" meant `itos follow`, but the word "ask" pointed to `itos ask`. (This rule comes from use of itos, and agrees with CLIG `#subcommands`.) itos follows this rule: since v6.0.0 (slice-89, slice-92) they are `itos followup` and `itos decision`. A name says who answers, not what is asked (decision 38): `itos question` was still read as "ask someone a question", so the group became `itos decision`.
+7. Do not add a new implicit default subcommand, a command that runs an action when you give it no subcommand. (CLIG `#future-proofing`, "Don't have a catch-all subcommand".) The existing ones stay: `task <id>`, `work`, `decision`, `followup`.
 8. Do not let a command accept an abbreviation of a subcommand. Make an alias only when you name it explicitly. (CLIG `#future-proofing`.) itos follows this rule.
 
 ### Help and version
@@ -141,7 +141,7 @@ Each row is a gap that the 2026-10-06 review found and reproduced. The rule numb
 Decision 36 settles the questions that this review left open. v6.0.0 carries these changes, so the gaps above for rules 3 to 6, 17 to 21, 25, 31 and 40 close with it:
 
 - The Claude Code guard is `itos guard claude-code`. A guard for another harness is `itos guard <harness>`.
-- `itos ask` is `itos question`, and `itos follow` is `itos followup`. `asks.yaml`, `follow-ups.yaml` and the `q-<n>` IDs do not change.
+- `itos ask` is `itos decision` (decision 38 renamed decision 36's `itos question` before any release had it; `itos ask` and `itos question` exit 2 naming `itos decision` and `itos followup`), and `itos follow` is `itos followup`. `asks.yaml`, `follow-ups.yaml` and the `q-<n>` IDs do not change.
 - `hooks install` is `hook install`. `itos hook` holds git's hooks only.
 - `work promote --as` is `--id`, and `work queue --drop` is `--remove`.
 - `hook install` declares itos's two hooks in the clone's git config (`hook.itos-commit-msg` and `hook.itos-pre-push`) and knows no hook manager: `--manager` and `hooks.manager` are gone (decision 37, slice-91). Every itos command that commits or pushes exits 3 when git would not run its hook: the git config does not declare it (run `itos hook install` once in the clone), or the git is older than 2.54.0, the first release that runs the hooks its config declares (git's `Documentation/RelNotes/2.54.0.adoc`).

@@ -590,8 +590,8 @@ mechanisms above, written against those modules, read across.
   statuses, the proposal, the edits that take, promote, close, add,
   change and drop an item, and the item as work show prints it;
   below), `internal/follow` (itos followup's threads; below), `internal/ask`
-  (the questions of itos question; below), `internal/adr` (the decision
-  records itos question record writes; below), `internal/nextid` (the next free ID of a
+  (the questions of itos decision; below), `internal/adr` (the decision
+  records itos decision record writes; below), `internal/nextid` (the next free ID of a
   series; below), `internal/guide` (the guides itos go and
   itos guide print; below), `internal/lock`
   (the lock file a writer of shared data holds; below),
@@ -843,7 +843,8 @@ claude-code` (`cli.Parse`'s rest) chosen for a version older than
   commit a rewritten history dropped) before it uses it. The help is written
   by hand; `TestUsageFlagsAreInTheSpecs` holds every flag a usage line names
   to the spec.
-- **Renamed names** (`internal/cli/renamed.go`, slice 89, decision 36): the
+- **Renamed names** (`internal/cli/renamed.go`, slice 89, decision 36;
+  slice 92, decision 38, for `itos question`): the
   commands and flags v6.0.0 renamed, each with the one line that names its
   replacement, exit 2. `cli.Main` checks the command path
   (`renamedCommand`) before the help, so `itos ask --help` and
@@ -1836,8 +1837,8 @@ add`ed so `--only` can name it, git add's words and the commit's on
   commit holds (`decision-file-uncommitted`, `decision-index-uncommitted`);
   the folders made for the record are removed again when the write fails
   (`madeDirs`, `unmake`). A question answered with no decision is
-  `Unrecorded`, and `question` ends with one line naming each as
-  `itos question record <id>`.
+  `Unrecorded`, and `decision` ends with one line naming each as
+  `itos decision record <id>`.
   `config check` holds the folder to two rules (slice 74, `adr.Problems`,
   area `decisions`): no two records share a number
   (`decisions-number-twice`, naming both files), and a status
@@ -1846,7 +1847,7 @@ add`ed so `--only` can name it, git add's words and the commit's on
   `adr.List` reads the folder through `internal/source`, so the commit-msg
   hook, whose `stagesData` counts a staged record or index in the folder as
   itos's data, judges the records as staged; a folder that is not there
-  holds none. The index is not held to the folder: `question record` writes it
+  holds none. The index is not held to the folder: `decision record` writes it
   whole at every record, and nothing regenerates it on demand.
 - **go and guide** (slice 64, `internal/cli/guide.go` over `internal/guide`)
   print the guides a session starts from, Markdown files beside the package
@@ -1942,7 +1943,7 @@ add`ed so `--only` can name it, git add's words and the commit's on
   from before the read to after the write, around itos followup's threads
   (`heldThreads`) and, under a stealth config, around the registry, which
   every registry and ledger writer reads in `soundRegistry` and writes, and
-  around the questions of itos question beside it (`heldAsks`):
+  around the questions of itos decision beside it (`heldAsks`):
   those files are in the git common dir, shared by every worktree, and the
   lock is `<registry>.lock` beside them. `work done` gives it back while it
   runs the task's checks and asks CI, and takes it again to make its change
