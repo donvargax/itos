@@ -1,11 +1,12 @@
 // The steps of ci range's github provider (ci.feature, bug 23), and of status's
 // look at the last green commit through it (status.feature, bug 24): a fake GitHub,
 // an httptest server itos is pointed at through GITHUB_API_URL, holding runs
-// of one workflow on one branch of one repository. It answers the workflow's
-// runs endpoint as GitHub does: with head_sha, that commit's runs; without,
-// the list of the branch's runs, newest first, which is every run it holds
-// unless a step makes the list say otherwise (stale, as GitHub's was on
-// 2026-10-05). Anything else it is asked is a 404.
+// of one workflow of one repository, each on a branch, the configured one
+// unless a step names another (bug 29). It answers the workflow's runs
+// endpoint as GitHub does: with head_sha, that commit's runs; without, the
+// list of runs, newest first, which is every run it holds unless a step makes
+// the list say otherwise (stale, as GitHub's was on 2026-10-05); and with
+// branch, only the runs on that branch. Anything else it is asked is a 404.
 package features
 
 import (
@@ -60,10 +61,6 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	q := req.URL.Query()
-	if branch := q.Get("branch"); branch != "" && branch != g.branch {
-		writeRuns(rw, nil)
-		return
-	}
 	var runs []gitHubRun
 	if sha := q.Get("head_sha"); sha != "" {
 		for _, r := range g.runs {
@@ -75,6 +72,9 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		runs = slices.Clone(g.list)
 	} else {
 		runs = slices.Clone(g.runs)
+	}
+	if branch := q.Get("branch"); branch != "" {
+		runs = slices.DeleteFunc(runs, func(r gitHubRun) bool { return r.HeadBranch != branch })
 	}
 	slices.Reverse(runs) // newest first, as GitHub lists them
 	writeRuns(rw, runs)
@@ -88,13 +88,19 @@ func writeRuns(rw http.ResponseWriter, runs []gitHubRun) {
 	_ = json.NewEncoder(rw).Encode(map[string]any{"total_count": len(runs), "workflow_runs": runs})
 }
 
-// A run of the commit, created after every run before it: status completed
-// with the conclusion, or the status alone when the conclusion is "".
+// A run of the commit on the configured branch, created after every run
+// before it: status completed with the conclusion, or the status alone when
+// the conclusion is "".
 func (g *fakeGitHub) run(sha, status, conclusion string) gitHubRun {
+	return g.runOn(g.branch, sha, status, conclusion)
+}
+
+// A run of the commit on the branch, as run makes one.
+func (g *fakeGitHub) runOn(branch, sha, status, conclusion string) gitHubRun {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	id := len(g.runs) + 1
-	r := gitHubRun{ID: id, HeadSHA: sha, HeadBranch: g.branch, Status: status,
+	r := gitHubRun{ID: id, HeadSHA: sha, HeadBranch: branch, Status: status,
 		CreatedAt: fmt.Sprintf("2026-10-05T12:%02d:00Z", id), HTMLURL: fmt.Sprintf("https://github.com/%s/actions/runs/%d", fakeRepository, id)}
 	if conclusion != "" {
 		r.Conclusion = &conclusion
@@ -133,6 +139,15 @@ func initializeRangeSteps(sc *godog.ScenarioContext, w *world) {
 			return err
 		}
 		g.run(sha, "completed", map[string]string{"green": "success", "failed": "failure"}[kind])
+		return nil
+	})
+	// A push to another branch is proved by its own green run (bug 29).
+	sc.Step(`^the fake GitHub has a green run of (the head's parent|the commit before the head's parent|the first commit) on the branch "([^"]*)"$`, func(which, branch string) error {
+		g, sha, err := w.fakeGitHubAnd(which)
+		if err != nil {
+			return err
+		}
+		g.runOn(branch, sha, "completed", "success")
 		return nil
 	})
 	// status's look at the last green commit walks the remote's branch as
