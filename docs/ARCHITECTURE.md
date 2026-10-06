@@ -946,10 +946,16 @@ watch <sha>`, exit 0, with no provider made; a push that made the branch
   `cmd/itos` asks `shim.Named(os.Args[0])` first (base name `git`, or on
   windows `git`/`git.exe` in any case) and, when it is, `shim.Main` before
   anything else. The real git is `git.Inherited` (`ITOS_GIT`, unless it is
-  this binary) or `git.Real`: the first `git` (on windows each `PATHEXT`
+  an itos) or `git.Real`: the first `git` (on windows each `PATHEXT`
   extension) in the `PATH`'s absolute folders that is an executable regular
-  file and not `os.SameFile` with `os.Executable`, so a symbolic or hard link
-  to itos is skipped; none is exit 3. With `ITOS_GIT` inherited, a git
+  file and not an itos (`git.IsItos`, bug 45): not `os.SameFile` with
+  `os.Executable`, not a symbolic link whose target, at any link of the chain,
+  is named `itos` (`itos.exe`), and not a Go binary whose build information
+  (`debug/buildinfo`) names `cmd/itos` of the itos module at any major
+  version, so this binary's shim and another itos's (the global one's, seen
+  from a pinned release the launcher runs from its cache or a repository's
+  own build), linked symbolically, hard or copied, are all skipped, by reading
+  files and never by running one; none is exit 3. With `ITOS_GIT` inherited, a git
   started under an itos run, the shim passes through at once. Otherwise
   `parse` reads git's options before the command (`-C` joined as git joins
   them, `-c` kept, `--no-pager`/`-P` passed over, anything else not the
