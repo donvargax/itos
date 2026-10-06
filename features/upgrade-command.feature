@@ -139,3 +139,15 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     Then itos exits with code 1
     And its output says "itos pin"
     And the config has no pin
+
+  # Slice 86 (decision 35): as pin's. @ID-UPGRADECMD-11 replaces
+  # @ID-UPGRADECMD-07, which the feat removes, marked breaking.
+  @ID-UPGRADECMD-11 @slice-86 @wip
+  Scenario: A release server that cannot be reached exits 75, and no file is changed
+    Given the config pins the version "9.1.0" of the release server
+    And the repository has the install script of the version "9.1.0" of the release server
+    And the release server cannot be reached
+    When itos runs "upgrade"
+    Then itos exits with code 75
+    And the config is unchanged
+    And the install script is the one of the version "9.1.0" of the release server

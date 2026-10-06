@@ -172,3 +172,14 @@ Feature: A global itos runs the version a repository pins
     Then itos exits with code 0
     And its output says "already"
     And the config is unchanged
+
+  # Slice 86 (decision 35): a release server that cannot be reached may
+  # answer when run again, so pin exits 75. @ID-PIN-17 replaces @ID-PIN-15,
+  # which the feat removes, marked breaking.
+  @ID-PIN-17 @slice-86 @wip
+  Scenario: A release server that cannot be reached exits 75, and the config is untouched
+    Given the config pins the version "9.1.0" of the release server
+    And the release server cannot be reached
+    When itos runs "pin"
+    Then itos exits with code 75
+    And the config's pin is the version "9.1.0" of the release server, with its checksums

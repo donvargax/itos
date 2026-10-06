@@ -138,3 +138,27 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     When itos runs "push"
     Then itos exits with code 0
     And its output says "ci: success"
+
+  # Slice 86 (decision 35, the user's calls, 2026-10-06): v6.0.0. Exit 75,
+  # sysexits' EX_TEMPFAIL, is a failure that may pass if run again unchanged,
+  # so a retry wrapper can act on it without --json: a look at the run that
+  # fails for a server error or a rate limit itos gave up retrying, and a run
+  # still going at ci.watch.timeout. A refused token, no token and a gh that
+  # does not answer stay 3, since running again unchanged does not help.
+  # @ID-WATCH-12 replaces @ID-WATCH-06, which the feat removes, marked
+  # breaking.
+  @ID-WATCH-12 @slice-86 @wip
+  Scenario: A run still going after ci.watch.timeout exits 75, naming itos ci watch
+    Given the watched run never finishes
+    And ci.watch.timeout is 1
+    And the clone has the commit "chore: tidy the readme" touching "README.md"
+    When itos runs "push"
+    Then itos exits with code 75
+    And its output says "itos ci watch"
+    And the remote's branch has "chore: tidy the readme"
+
+  @ID-WATCH-13 @slice-86 @wip
+  Scenario: A watch whose every look gets a server error exits 75
+    Given the fake GitHub answers every look with a server error
+    When itos runs "ci watch"
+    Then itos exits with code 75

@@ -265,3 +265,15 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     When itos runs CI with an empty range start
     Then itos exits with code 0
     And the recording check ran
+
+  # Slice 86 (decision 35): ci run exited with a failing step's own code, so
+  # a step exiting 75 (or 2, or 3) read as itos's own meaning of it. A failing
+  # step makes ci run exit 1, its output naming the step's code. The step
+  # writes 75 as $((70+5)), so the command printed does not hold the code.
+  @ID-CI-19 @slice-86 @wip
+  Scenario: A step that exits 75 makes ci run exit 1, naming the step's code
+    Given the CI steps are "exit $((70+5))"
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 1
+    And its output says "75"
