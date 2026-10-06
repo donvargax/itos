@@ -4067,11 +4067,9 @@ items:
     title: The range walk counts a commit's green run on any branch
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Issue #15. Specified as @ID-CI-13 in features/ci.feature.
     refs: [features/ci.feature, internal/providers/range.go]
 
   - id: slice-83
