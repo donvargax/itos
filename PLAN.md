@@ -42,9 +42,12 @@ command takes is its `--help`.
   review); CI selection and cost order driven by footers; commit rules
   (header lint, footers, path scopes); work routing; hook entry points and
   one-line shims; YAML for the config and the ledger.
-- **No host lock-in.** Where a CI range starts and who a session works for are
-  providers: `github` now, `gitlab` and `forgejo` with the Go port, `command`
-  and `none` always.
+- **No host lock-in.** Where a CI range starts, how a CI run is watched and
+  who a session works for are providers: `github` and `none` now (`--as`
+  says who a session works for anywhere). The `command` provider went in
+  v5.0.0 (slice 85), since it ran a repository's own commands without anyone
+  choosing to; other hosts come back behind a trust gate
+  (`p3-command-providers-back`).
 
 ### Non-goals
 

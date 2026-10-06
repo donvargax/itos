@@ -303,18 +303,29 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   remote's first pushes the clone's registry to the remote, so both start
   from it, and the remote's registry is read with `git show main:<registry>`
   in the bare repository.
+- **The fake GitHub** (`range_test.go`, for `ci.feature`'s range, `status.feature`
+  and `watch.feature`, bugs 23, 24 and 29, slice 85): an `httptest` server
+  itos is pointed at through `GITHUB_API_URL`, given `GITHUB_REPOSITORY` and
+  `GITHUB_TOKEN` as Actions gives them, started by the first step that asks
+  for it and closed after the scenario. It holds runs of several workflows,
+  each on a branch, and answers a workflow's runs (`head_sha` and `branch`
+  narrowing them, newest first, or a stale list a step sets) and a run's
+  jobs; a step can make it refuse the token, every request a 401.
 - **The CI watch's scenarios** (`watch_test.go`, `watch.feature`): the
-  clone of push's scenarios, its config's `ci.watch` a command provider with
-  no interval, `sh <support>/watch.sh {sha}`, committed and pushed to the
-  remote's main with the hooks left out whenever a step changes it, so the
-  clone holds no uncommitted change for itos push to refuse. The script
-  appends the commit it is given to a file in the support folder, counts its
-  lines to know which look it is, and prints that look's run as JSON (the
-  last run for every look after), so "one poll later" is the second look;
-  "never run" is that file absent. "No gh on the PATH" is `pathHiding`, the
-  caller's PATH with gh hidden as claude always is, and the environment
-  drops every `GH_*` variable beside `GITHUB_*`, so no token reaches a
-  scenario.
+  clone of push's scenarios, its config's `ci.watch` the github provider of
+  ci.yml with no interval, committed and pushed to the remote's main with the
+  hooks left out whenever a step changes it, so the clone holds no
+  uncommitted change for itos push to refuse. The fake GitHub answers a
+  commit of the watched workflow that has no run of its own with the watched
+  run, one look a request, the nth request the nth look and the last look
+  for every request after, recording the commit each look was given, so
+  "one poll later" is the second look and "never asked" is no request at
+  all. "No gh on the PATH" is `pathHiding`, the caller's PATH with gh hidden
+  as claude always is, and the environment drops every `GH_*` variable
+  beside `GITHUB_*`; "no GitHub token" takes the fake's `GITHUB_TOKEN` out,
+  so no token reaches the scenario. Until v5.0.0 (slice 85) the watch was a
+  command provider running a script of the scenario's.
+
 - **The git shim's scenarios** (`shim_test.go`, `shim.feature`): the link
   is to the binary the itos under test runs, never `tools/bin/itos`, a
   script that finds its checkout from its own path; a throwaway extension in
@@ -373,7 +384,14 @@ each, and holds it since the TypeScript left (T-062).
   a key waiting on a feature not built yet (`commits.header_lint.alongside`,
   a second way to tell a commit is pushed) is rejected until that feature
   reads it; `commits.header_lint.use` was, until the built-in lint gave it a
-  second value. **The defaults are one table**,
+  second value. A key or a value a major release removed is refused as
+  removed, not as unknown (`removedKeys` and `removedValues` in
+  `internal/config/schema.go`, rule `config-removed`), its message saying
+  what to write instead, since config check prints the message alone: v5.0.0
+  removed the command providers of `ci.range`, `ci.watch` and
+  `work.identity`, which ran a repository's own commands unasked, and
+  `ci.range.github.branch` (slice 85); `config get` names such a key as
+  removed too. **The defaults are one table**,
   `DEFAULTS` in `config.ts`: the loader lays the file over it
   (`withDefaults`, `tests.<kind>` under each kind the file has), and
   `config check --print-defaults` prints it, so no tool writes a fallback of
@@ -519,7 +537,13 @@ each, and holds it since the TypeScript left (T-062).
   runs them through any binary; a tampered case file must fail, so the
   runner compares what it claims to. It is a regression corpus, run by a CI
   step of its own: a change to what itos does lands with its scenario in
-  `features/` and, where a case records the old behaviour, the case. `tools/itos/fixtures/` holds the configs and ledgers the
+  `features/` and, where a case records the old behaviour, the case. A
+  case's `github` key starts a fake GitHub API in the runner for it alone
+  (slice 85), whose runs answer for a commit or for any commit (`*`), with a
+  sequence of looks for a run going on, so the github providers of
+  `ci.range`, `ci.watch` and `status` have cases without a network; a fake
+  `gh` on the case's PATH gives `work.identity` its person.
+  `tools/itos/fixtures/` holds the configs and ledgers the
   negative proofs in `tasks/phase-0.yaml` run against.
 
 ## The code
@@ -1376,18 +1400,15 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   pull request's base without asking the provider, else holds the provider's
   start to the head with `git merge-base --is-ancestor`. A provider is a
   `Range`, a function of the head giving the start or `""`, never an error,
-  made by `RangeProvider(cfg, env, stderr)` from `ci.range` and the
-  environment: `none`; `command`, which is `FirstLine` (the command through
-  the config's shell, its stderr on itos's, its output's first line trimmed
-  as JavaScript trims), the reading the `command` identity provider shares;
-  and `github`, a `GitHub` value (repository, token, workflow, API
+  made by `RangeProvider(cfg, env)` from `ci.range` and the
+  environment: `none`, and `github`, a `GitHub` value (repository, token, workflow, API
   address) whose `NearestGreen` walks the head's first parents from its
   parent (`git rev-list --first-parent`, `FirstParentsAsked` of them, 100)
   and asks the API through `net/http` for each commit's runs (`GreenRunOf`,
   `head_sha=` alone), starting at the first with a successful run of
   that commit, on whatever branch it ran (bug 29: filtering by
   `ci.range.github.branch` made a push to another branch start at main's
-  green ancestor; the key is still accepted, unread, until v5 removes it).
+  green ancestor; v5.0.0 removed the key, slice 85).
   It reads no list of the branch's runs: GitHub served that list
   stale on 2026-10-05 and the range reached back past commits already proved
   (bug 23). A provider over another forge's API (GitLab, Forgejo, waiting
@@ -1406,11 +1427,9 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
 push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   the range provider. `WatchProvider(cfg, WatchSetup)` makes a `Watch` from
   `ci.watch`, one look at a commit's run: `none` makes none (push then
-  reports as before); `command` runs `ci.watch.command` through the config's
-  shell, `{sha}` one shell word (`tests.ShellWord`), and `ReadRun` holds its
-  stdout to one JSON object, a `Run` (url, status, conclusion, jobs); `github`
-  is the `GitHub` value again, whose `RunOf` lists the workflow's runs for
-  `head_sha`, takes the newest by `created_at`, and reads its jobs, with a
+  reports as before); `github` is the `GitHub` value again, whose `RunOf`
+  lists the workflow's runs for `head_sha`, takes the newest by
+  `created_at`, and reads its jobs, a `Run` (url, status, conclusion, jobs), with a
   token from `ci.range.github.token_env` else `GhToken` (`gh auth token`),
   and the repository from `ci.range.github.repository_env` else
   `GitHubRepository`, the remote's URL read as GitHub's (https, ssh or
@@ -1452,8 +1471,8 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   `Whoami`: `--as`, which must be among the people when
   there are any (exit 3), else the `work.identity` provider, an `Identity` function made
   by `IdentityProvider` (`internal/providers/identity.go`) that answers a
-  handle or why it has none, never an error: `command` through `FirstLine`,
-  `none` with its hint, and `github` running `gh api user --jq .login` as the
+  handle or why it has none, never an error: `none` with its hint, and
+  `github` running `gh api user --jq .login` as the
   TypeScript did, gh's stderr dropped and gh missing (`exec.ErrNotFound`)
   told apart from gh failing. A session with no handle is nobody, and one
   the people do not list owns nothing yet; both still see what nobody owns.
@@ -1739,23 +1758,21 @@ add`ed so `--only` can name it, git add's words and the commit's on
   `itos ci watch`, so one look, never the loop; a run not done is `going`.
   The last nightly's run (slice 72, `readNightly`) is one call of the
   `providers.Nightly` that `NightlyProvider` builds from the same
-  `ci.watch.provider`: `command` runs `ci.watch.nightly_command` with nothing
-  filled in and reads its stdout with `ReadRun` (`commandRun`, shared with
-  the watch); `github` is the `GitHub` value with
+  `ci.watch.provider`: `github` is the `GitHub` value with
   `ci.watch.github.nightly_workflow` and the head's branch, whose
   `NewestRun` lists the workflow's runs on the branch and reads the newest
   as `RunOf` reads a commit's (`newestOf`), with the token, repository and
   API address the watch takes (`watchGitHub`). A provider naming no nightly gives no
   look and no line; the head's line and the nightly's share `runLine`, so
   both word a result alike. The nightly is read even where the head is not
-  (no remote, no branch yet): the command provider needs neither.
+  (no remote, no branch yet), where `GITHUB_REPOSITORY` names the
+  repository.
   While the head's run is going, did not pass or has not started (any
   result but `success`; not when it could not be read), the commit main
   last proved follows it (slice 73, `readLastGreen`): one call of the
   `providers.LastGreenLook` that `LastGreenProvider` builds from
   `ci.range`, the provider a push's range starts from. `none` gives no look
-  and no line; `command` is `ci.range.command`'s first line, as `FirstLine`
-  reads it but failing when the command fails; `github` is the `GitHub`
+  and no line; `github` is the `GitHub`
   value with `ci.range.github`'s workflow, its token and
   repository found by `watchGitHub` as the watch's are (the environment,
   else gh and the remote's URL), so it reads outside CI, where

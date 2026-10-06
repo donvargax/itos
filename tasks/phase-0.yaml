@@ -82,8 +82,8 @@
     - fails: tools/bin/itos task T-000
     - run: ITOS_CONFIG=tools/itos/fixtures/lax-refactor.yaml tools/bin/itos commit check-paths --type refactor features/since.feature
     - run: ITOS_CONFIG=tools/itos/fixtures/command-adapter.yaml tools/bin/itos tests list fixture --json
-    - run: sh -c 'test "$(ITOS_CONFIG=tools/itos/fixtures/range-command-false.yaml tools/bin/itos ci range --head HEAD)" = FROM='
-    - run: sh -c 'ITOS_CONFIG=tools/itos/fixtures/identity-command.yaml tools/bin/itos work | grep -q "Working for someone"'
+    - run: sh -c 'test "$(ITOS_CONFIG=tools/itos/fixtures/range-none.yaml tools/bin/itos ci range --head HEAD)" = FROM='
+    - run: sh -c 'ITOS_CONFIG=tools/itos/fixtures/identity-none.yaml tools/bin/itos work --as donvargax | grep -q "Working for donvargax"'
     - run: node tools/itos/conformance/run.ts --bin tools/bin/itos
     - fails: node tools/itos/conformance/run.ts --bin tools/bin/itos --only tools/itos/conformance/fixtures/tampered.yaml
     - run: go test ./cmd/... ./internal/... # its unit tests, the Go packages' since T-062
