@@ -6,12 +6,13 @@ package cli
 // looked at every ci.watch.interval seconds until it completes, each job's
 // result printed once, as it finishes, and the run's address; the exit is
 // the run's result, 0 when it succeeded and 1 when it did not, naming the
-// jobs that failed. A run still going after ci.watch.timeout seconds, or a
-// provider that cannot look, exits 3, naming itos ci watch <sha> to wait
-// again.
+// jobs that failed. A provider that cannot look exits 3; a run still going
+// after ci.watch.timeout seconds, and a look that fails for a server error, a
+// rate limit or no network giveUp times in a row, exit 75 (slice 86), a
+// failure that may pass when run again; each names itos ci watch <sha> to
+// wait again.
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -20,6 +21,7 @@ import (
 
 	"github.com/donvargax/itos/v5/internal/config"
 	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/out"
 	"github.com/donvargax/itos/v5/internal/providers"
 	"github.com/donvargax/itos/v5/internal/value"
@@ -49,6 +51,12 @@ func (w watched) fields() []out.Field {
 
 // sleep is how a watch waits between two looks; a test makes it instant.
 var sleep = time.Sleep
+
+// giveUp is how many looks in a row may fail for a server error, a rate
+// limit or no network (kind.Temporary) before the watch stops retrying and
+// exits 75: a minute of them at the default ci.watch.interval, so a blip is
+// looked past and an outage is handed to whoever runs it again.
+const giveUp = 6
 
 // watcher is ci.watch's provider for the config at the folder itos runs in,
 // for a commit pushed to remote: ok is false when the provider is none.
@@ -82,17 +90,23 @@ func watchRun(cfg *config.Loaded, look providers.Watch, sha string, o Out) watch
 	shown := "" // the run's address, once printed
 	var last *providers.Run
 	var lastErr error
+	failed := 0 // the looks in a row that failed for a temporary reason
 	for {
 		run, found, err := look(sha)
-		var transient providers.Transient
 		switch {
-		case errors.As(err, &transient):
+		case kind.Of(err) == kind.Temporary:
 			lastErr = err
+			if failed++; failed >= giveUp {
+				fmt.Fprintf(o.Stderr, "itos: %d looks in a row at the CI run of %s failed, the last: %s; %s\n", failed, sha, err, again)
+				return watched{code: ExitTemporary, outcome: "error", run: last}
+			}
 		case err != nil:
 			fmt.Fprintf(o.Stderr, "itos: %s; %s\n", err, again)
 			return watched{code: ExitMissing, outcome: "error", run: last}
-		case found:
-			lastErr = nil
+		case !found:
+			failed = 0
+		default:
+			lastErr, failed = nil, 0
 			if run.URL != "" && run.URL != shown {
 				fmt.Fprintf(progress, "CI run: %s\n", run.URL)
 				shown = run.URL
@@ -119,7 +133,7 @@ func watchRun(cfg *config.Loaded, look providers.Watch, sha string, o Out) watch
 			if lastErr != nil {
 				fmt.Fprintf(o.Stderr, "itos: the last look failed: %s\n", lastErr)
 			}
-			return watched{code: ExitMissing, outcome: "timeout", run: last}
+			return watched{code: ExitTemporary, outcome: "timeout", run: last}
 		}
 		sleep(min(interval, left))
 	}

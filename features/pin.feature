@@ -20,7 +20,8 @@ Feature: A global itos runs the version a repository pins
   <base>/download/v<version>/<asset> (by default the GitHub releases of
   donvargax/itos), and ITOS_CACHE the cache (itos/ in the user's cache folder
   by default). A version that cannot be fetched or checked exits 3, a
-  missing environment, and nothing runs in its place.
+  missing environment, or 75 when the release server cannot be reached
+  (slice 86), and nothing runs in its place.
 
   Background:
     Given a release server offering the versions "9.1.0" and "9.2.0"
@@ -157,14 +158,6 @@ Feature: A global itos runs the version a repository pins
     And its output says "9.3.0"
     And the config's pin is the version "9.1.0" of the release server, with its checksums
 
-  @ID-PIN-15 @slice-47
-  Scenario: A release server that cannot be reached exits 3, and the config is untouched
-    Given the config pins the version "9.1.0" of the release server
-    And the release server cannot be reached
-    When itos runs "pin"
-    Then itos exits with code 3
-    And the config's pin is the version "9.1.0" of the release server, with its checksums
-
   @ID-PIN-16 @slice-47
   Scenario: A pin already on the version asked for is left as it is
     Given the config pins the version "9.2.0" of the release server
@@ -176,7 +169,7 @@ Feature: A global itos runs the version a repository pins
   # Slice 86 (decision 35): a release server that cannot be reached may
   # answer when run again, so pin exits 75. @ID-PIN-17 replaces @ID-PIN-15,
   # which the feat removes, marked breaking.
-  @ID-PIN-17 @slice-86 @wip
+  @ID-PIN-17 @slice-86
   Scenario: A release server that cannot be reached exits 75, and the config is untouched
     Given the config pins the version "9.1.0" of the release server
     And the release server cannot be reached

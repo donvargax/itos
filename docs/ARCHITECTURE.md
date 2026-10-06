@@ -436,8 +436,13 @@ each, and holds it since the TypeScript left (T-062).
   JavaScript's `RegExp` and refused beside that what RE2 cannot compile, so
   a config that passed one implementation passed the other.
 - **One command line** (`internal/cli`): exit 0 on success, 1 for a
-  policy failure (a check failed, a commit rejected, an unknown task), 2 for a
-  usage or config error, 3 for a missing environment. `--json` prints one
+  policy failure (a check failed, a commit rejected, an unknown task, a
+  failing step of `ci run`), 2 for a usage or config error, 3 for a missing
+  environment, 75 for a failure that may pass when run again, and 70 for an
+  error nobody classified. An error's code comes from its kind
+  (`internal/kind`, slice 86), given where the error is made, as
+  `release.Get` makes a server it cannot reach `kind.Temporary`, and read
+  through any wrapping by `cli.ExitCode`; there is no default. `--json` prints one
   object with `"schema": 1`, logs on stderr; each problem in it has a
   sentence, a `rule` id and, where one exists, a `fix`. The task runner is
   called by its own name, `tools/bin/itos task <id>`; `vp run work` and
@@ -585,10 +590,11 @@ mechanisms above, written against those modules, read across.
   (the lock file a writer of shared data holds; below),
   `internal/shell`, `internal/check`, `internal/glob`, `internal/scope`
   (below) and `internal/git` (the repository's state and ranges, read
-  through the real git; below), beside four
+  through the real git; below), beside five
   the TypeScript has no module for:
-  `internal/value`, `internal/source`, `internal/shim` and
-  `internal/release` (below). The port
+  `internal/value`, `internal/source`, `internal/shim`,
+  `internal/release` (below) and `internal/kind` (an error's kind, which gives
+  its exit code; above). The port
   shells out to git where it needs it, as the TypeScript did, but always to
   `git.Bin`, never to a `git` looked up on the `PATH`, which may be itos.
   Every list of paths it reads from git (`diff --name-only`, `diff-tree`,

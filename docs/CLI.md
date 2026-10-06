@@ -31,14 +31,14 @@ The `previous-release` check holds each release to this contract (T-100). It run
 
 ### Exit codes
 
-| Code | Meaning                                                                                                                                                  |
-| ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | Success.                                                                                                                                                 |
-| 1    | A check said no: a rule refused a commit, a check failed, an item is not ready.                                                                          |
-| 2    | A usage error or a config error.                                                                                                                         |
-| 3    | The environment is missing something: a person, a tool, a release, a git repository.                                                                     |
-| 70   | An internal error: itos met an error that it cannot classify. Report it. Planned for v6.0.0 (slice-86).                                                  |
-| 75   | A temporary failure. The same command can pass when you run it again with no change, for example after a network failure. Planned for v6.0.0 (slice-86). |
+| Code | Meaning                                                                                                                   |
+| ---- | ------------------------------------------------------------------------------------------------------------------------- |
+| 0    | Success.                                                                                                                  |
+| 1    | A check said no: a rule refused a commit, a check failed, an item is not ready.                                           |
+| 2    | A usage error or a config error.                                                                                          |
+| 3    | The environment is missing something: a person, a tool, a release, a git repository.                                      |
+| 70   | An internal error: itos met an error that it cannot classify. Report it.                                                  |
+| 75   | A temporary failure. The same command can pass when you run it again with no change, for example after a network failure. |
 
 These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.h` values `EX_SOFTWARE` for 70 and `EX_TEMPFAIL` for 75 (CLIG `#the-basics`: map the non-zero codes to the most important failure modes). Decision 36 sets 70 and 75.
 
@@ -88,7 +88,7 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 
 ### Errors and exit codes
 
-31. Get the exit code from the kind of the error, never from a default. (CLIG `#the-basics`.) Now every error that is not a usage error or a config error exits 2. For example, `verify nosuchref HEAD` exits 2 with a raw git command line. This rule must hold before exit 75 can mean what it says.
+31. Get the exit code from the kind of the error, never from a default. (CLIG `#the-basics`.) itos follows this rule (slice-86): an error takes its kind where it is made (`internal/kind`), and an error that no code classified exits 70. In `ci run` a failing step exits 1 and names the step's own code, so a step's code is never read as itos's.
 32. Start each error line with `itos:`. Write it for people: say what happened and what to do next. Do not show a raw command line as the message. (GNU-ERR; CLIG `#errors`.) Some error lines do not follow this rule yet.
 33. Let the help and the code agree on each exit code. Now the top-level help says that `itos task` exits 1 for an unknown task, but it exits 2.
 
@@ -137,7 +137,6 @@ Each row is a gap that the 2026-10-06 review found and reproduced. The rule numb
 | 25   | A bad ref passes.                                                                 | `ci plan nosuchref HEAD` exits 0                          |
 | 27   | JSON with no `--json`.                                                            | `config get` of a mapping                                 |
 | 29   | `--json` prints nothing for a usage error or an unexpected error.                 | `itos --json verify nosuchref HEAD`                       |
-| 31   | Every unclassified error exits 2.                                                 | `verify nosuchref HEAD`                                   |
 | 32   | Error lines with no `itos:` prefix, or a raw command line.                        | `itos: Command failed: git rev-list …`                    |
 | 33   | The help and the code do not agree.                                               | `itos task nope` exits 2; the help says 1                 |
 | 40   | `itos hook` holds the Claude Code guard.                                          | `itos hook pre-tool-use`                                  |

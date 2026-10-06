@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/out"
 	"github.com/donvargax/itos/v5/internal/release"
 	"github.com/donvargax/itos/v5/internal/value"
@@ -39,7 +40,7 @@ func pinCommand(args []string, o Out) (int, error) {
 	v, sums, err := pinned(want)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s; %s is left as it was\n", err, file)
-		return ExitMissing, nil
+		return ExitCode(err), nil
 	}
 	sum := release.SHA256(sums)
 	report := func(action string, code int) (int, error) {
@@ -149,14 +150,16 @@ func (c configPin) replaced(v, sum string) bool {
 func (c configPin) moved(text, v, sum string) (string, error) {
 	edited, err := value.SetScalars(text, "pin", [][2]string{{"version", v}, {"checksums", sum}})
 	if err != nil {
-		return "", fmt.Errorf("cannot edit the pin in %s (%s): set pin.version to %s and pin.checksums to %s",
-			c.file, err, v, sum)
+		return "", kind.Wrap(kind.Usage, fmt.Errorf("cannot edit the pin in %s (%s): set pin.version to %s and pin.checksums to %s",
+			c.file, err, v, sum))
 	}
 	return edited, nil
 }
 
 // pinned is the release to pin, the version asked for or, with none, the
-// newest, and its checksums.txt.
+// newest, and its checksums.txt. Its errors have their kind: a server that
+// cannot be reached or fails is kind.Temporary (release.Get), a release it
+// does not have or cannot be pinned kind.Missing.
 func pinned(want string) (string, []byte, error) {
 	if want == "" {
 		url := release.LatestURL("checksums.txt")
@@ -166,7 +169,7 @@ func pinned(want string) (string, []byte, error) {
 		}
 		v := release.VersionOf(sums)
 		if v == "" {
-			return "", nil, fmt.Errorf("the newest itos's checksums.txt (%s) names no archive of itos", url)
+			return "", nil, kind.Wrap(kind.Missing, fmt.Errorf("the newest itos's checksums.txt (%s) names no archive of itos", url))
 		}
 		return v, sums, nil
 	}
@@ -176,7 +179,7 @@ func pinned(want string) (string, []byte, error) {
 		return "", nil, fmt.Errorf("cannot fetch itos %s: %w", want, err)
 	}
 	if v := release.VersionOf(sums); v != "" && v != want {
-		return "", nil, fmt.Errorf("the checksums.txt of itos %s (%s) lists the archives of itos %s", want, url, v)
+		return "", nil, kind.Wrap(kind.Missing, fmt.Errorf("the checksums.txt of itos %s (%s) lists the archives of itos %s", want, url, v))
 	}
 	return want, sums, nil
 }

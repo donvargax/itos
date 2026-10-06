@@ -3,7 +3,8 @@
 // argument errors, the extensions a command it does not have runs from the
 // PATH (extension.go), and how a failure is reported and which exit code it
 // takes (as itos --help lists them): 0 success, 1 a policy failure, 2 a usage or config
-// error, 3 a missing environment.
+// error, 3 a missing environment, 75 a failure that may pass when run again, 70
+// an error of no kind (internal/kind).
 //
 // The Go port landed one command group at a time
 // (docs/decisions/0017-the-go-port-s-proof-is-its-tasks-checks-landed-as-refactor-commits.md), and every command of the table is ported now. Each takes its arguments as the
@@ -21,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/out"
 	"github.com/donvargax/itos/v5/internal/tests"
 )
@@ -97,16 +99,45 @@ func usage(format string, a ...any) error {
 	return usageError{strings.TrimSpace(fmt.Sprintf(format, a...))}
 }
 
-// Exit codes, as itos --help lists them.
+// Exit codes, as itos --help lists them. 70 and 75 are sysexits'
+// EX_SOFTWARE and EX_TEMPFAIL (decision 35).
 const (
-	ExitPolicy  = 1
-	ExitUsage   = 2
-	ExitMissing = 3
+	ExitPolicy    = 1
+	ExitUsage     = 2
+	ExitMissing   = 3
+	ExitSoftware  = 70
+	ExitTemporary = 75
 )
 
-// failure reports an error as main.ts does and gives its exit code: a usage
-// error naming the help, a config error as the config check prints it,
-// anything else as its message alone.
+// ExitCode is the exit code of an error's kind (internal/kind), never a
+// default: a usage error and a config error 2, a missing environment 3, a
+// failure that may pass when run again 75, and an error of no kind 70.
+func ExitCode(err error) int {
+	var u usageError
+	var c *config.Error
+	if errors.As(err, &u) || errors.As(err, &c) {
+		return ExitUsage
+	}
+	switch kind.Of(err) {
+	case kind.Usage:
+		return ExitUsage
+	case kind.Missing:
+		return ExitMissing
+	case kind.Temporary:
+		return ExitTemporary
+	}
+	return ExitSoftware
+}
+
+// uneditable is a change to the work registry that cannot be made in place,
+// its text not as itos edits it: a data file itos refuses, exit 2.
+func uneditable(registry string, err error) error {
+	return kind.Wrap(kind.Usage, fmt.Errorf("%s cannot be edited in place: %w", registry, err))
+}
+
+// failure reports an error as main.ts does and gives its exit code, by its
+// kind (ExitCode): a usage error naming the help, a config error as the
+// config check prints it, anything else as its message alone.
 func failure(err error, o Out) int {
 	var u usageError
 	var c *config.Error
@@ -118,7 +149,7 @@ func failure(err error, o Out) int {
 		return configFailure(c, o)
 	}
 	fmt.Fprintf(o.Stderr, "itos: %s\n", err)
-	return ExitUsage
+	return ExitCode(err)
 }
 
 func configFailure(c *config.Error, o Out) int {
@@ -158,7 +189,7 @@ func applyGlobals(g Globals) error {
 	}
 	if g.Root != "" {
 		if err := os.Chdir(g.Root); err != nil {
-			return fmt.Errorf("--root %s: %w", g.Root, err)
+			return kind.Wrap(kind.Usage, fmt.Errorf("--root %s: %w", g.Root, err))
 		}
 	} else if top := config.Top(""); top != "" {
 		if err := moveTo(top); err != nil {

@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/source"
 	"github.com/donvargax/itos/v5/internal/value"
 )
@@ -63,8 +64,9 @@ func (t Task) GroupText() string { return value.String(t.Group) }
 // Tasks are the ledger's tasks (repo.ts's loadTasks): every ledger file's,
 // the files in the order Files gives, each file's in written order. It reads
 // them as they are and checks nothing (config check holds the ledger to its
-// schema); a file that cannot be read or is not a list is an error, and a
-// task whose checks cannot run says so in its Err.
+// schema); a file that cannot be read is an error, one that is not YAML or
+// not a list a data file itos refuses (kind.Usage, exit 2), and a task whose
+// checks cannot run says so in its Err.
 func Tasks(cfg *config.Loaded) ([]Task, error) {
 	files, err := Files(cfg)
 	if err != nil {
@@ -78,14 +80,14 @@ func Tasks(cfg *config.Loaded) ([]Task, error) {
 		}
 		raw, err := value.Parse(text)
 		if err != nil {
-			return nil, err
+			return nil, kind.Wrap(kind.Usage, err)
 		}
 		if raw == nil {
 			continue
 		}
 		list, ok := raw.([]any)
 		if !ok {
-			return nil, fmt.Errorf("%s is not a list of tasks", f.Path)
+			return nil, kind.Wrap(kind.Usage, fmt.Errorf("%s is not a list of tasks", f.Path))
 		}
 		var group any = f.Group
 		if cfg.Ledger.Group.Numeric {

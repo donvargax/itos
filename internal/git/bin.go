@@ -23,14 +23,17 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/donvargax/itos/v5/internal/kind"
 )
 
 // EnvGit names the real git, absolute: set by itos for every program it
 // starts, read by every itos those start.
 const EnvGit = "ITOS_GIT"
 
-// ErrNoGit is Real's error when the PATH has no git but an itos.
-var ErrNoGit = errors.New("no git on the PATH but itos")
+// ErrNoGit is Real's error when the PATH has no git but an itos, a missing
+// environment (kind.Missing, exit 3).
+var ErrNoGit = kind.Wrap(kind.Missing, errors.New("no git on the PATH but itos"))
 
 var (
 	binMu  sync.Mutex

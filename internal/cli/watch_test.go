@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/providers"
 )
 
@@ -48,7 +49,7 @@ func TestATransientFailureIsLookedPast(t *testing.T) {
 	look := func(string) (providers.Run, bool, error) {
 		looks++
 		if looks == 1 {
-			return providers.Run{}, false, providers.Transient{Err: errors.New("502")}
+			return providers.Run{}, false, kind.Wrap(kind.Temporary, errors.New("502"))
 		}
 		return providers.Run{URL: "u", Status: "completed", Conclusion: "cancelled"}, true, nil
 	}
@@ -73,7 +74,27 @@ func TestARunThatNeverAppearsTimesOut(t *testing.T) {
 	look := func(string) (providers.Run, bool, error) { return providers.Run{}, false, nil }
 	var stdout, stderr strings.Builder
 	w := watchRun(watchConfig(0, 0.05), look, "abc", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != ExitMissing || w.outcome != "timeout" || !strings.Contains(stderr.String(), "has not appeared") {
+	if w.code != ExitTemporary || w.outcome != "timeout" || !strings.Contains(stderr.String(), "has not appeared") {
 		t.Fatalf("code %d, outcome %s\n%s", w.code, w.outcome, stderr.String())
+	}
+}
+
+// A look that fails for a temporary reason giveUp times in a row ends the
+// watch with 75 before its timeout; one that answers between them starts the
+// count again (slice 86).
+func TestTemporaryFailuresInARowGiveUpWith75(t *testing.T) {
+	noSleep(t)
+	looks := 0
+	look := func(string) (providers.Run, bool, error) {
+		looks++
+		if looks == giveUp {
+			return providers.Run{}, false, nil
+		}
+		return providers.Run{}, false, kind.Wrap(kind.Temporary, errors.New("500"))
+	}
+	var stdout, stderr strings.Builder
+	w := watchRun(watchConfig(0, 600), look, "abc", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.code != ExitTemporary || w.outcome != "error" || looks != 2*giveUp || !strings.Contains(stderr.String(), "itos ci watch abc") {
+		t.Fatalf("code %d, outcome %s, looks %d\n%s", w.code, w.outcome, looks, stderr.String())
 	}
 }

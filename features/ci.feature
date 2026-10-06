@@ -279,7 +279,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # since no scenario can provoke one on purpose. v6.0.0 ships slice-86, 87,
   # 88, 89 and T-101 in one push: each agent commits and does not push, and
   # the coordinator pushes the stack.
-  @ID-CI-19 @slice-86 @wip
+  @ID-CI-19 @slice-86
   Scenario: A step that exits 75 makes ci run exit 1, naming the step's code
     Given the CI steps are "exit $((70+5))"
     And the commit "chore: tidy the readme" naming the task "T-001" on top of it

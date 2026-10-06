@@ -452,7 +452,7 @@ func workTake(args []string, o Out) (int, error) {
 	}
 	change, problem, err := work.Take(registry, text, id, person, every)
 	if err != nil {
-		return 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+		return 0, uneditable(cfg.Work.Registry, err)
 	}
 	if problem != nil {
 		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
@@ -498,7 +498,7 @@ func workPromote(args []string, o Out) (int, error) {
 	}
 	change, problem, err := work.Promote(registry, text, id, newID, kind, flags["--title"], ledger.IDPattern(cfg))
 	if err != nil {
-		return 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+		return 0, uneditable(cfg.Work.Registry, err)
 	}
 	if problem != nil {
 		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
@@ -558,7 +558,7 @@ func workQueue(args []string, o Out) (int, error) {
 	}
 	change, problem, err := work.Queue(registry, text, id, at)
 	if err != nil {
-		return 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+		return 0, uneditable(cfg.Work.Registry, err)
 	}
 	if problem != nil {
 		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)

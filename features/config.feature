@@ -45,11 +45,12 @@ Feature: Every key the config accepts is one itos reads
     Then the recording shell ran the range check
 
   # The second step writes a file, so whether it ran is read from the tree.
+  # A failing step makes ci run exit 1, naming its own code (slice 86).
   @ID-CONFIG-05 @slice-3
   Scenario: CI stops at the first failing step by default
     Given the CI steps are "exit 3" then a step that records it ran
     When itos runs CI over every commit up to HEAD
-    Then itos exits with code 3
+    Then itos exits with code 1
     And its output says "CI failed at: exit 3"
     And the recording step did not run
 
@@ -58,7 +59,7 @@ Feature: Every key the config accepts is one itos reads
     Given the CI steps are "exit 3" then a step that records it ran
     And ci.stop_at_first_failure is false
     When itos runs CI over every commit up to HEAD
-    Then itos exits with code 3
+    Then itos exits with code 1
     And its output says "CI failed at: exit 3"
     And the recording step ran
 

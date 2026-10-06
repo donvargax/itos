@@ -27,6 +27,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/out"
 	"github.com/donvargax/itos/v5/internal/release"
 	"github.com/donvargax/itos/v5/internal/version"
@@ -123,7 +124,7 @@ func upgradeCommand(args []string, o Out) (int, error) {
 	v, sums, err := pinned(want)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s; every file is left as it was\n", err)
-		return ExitMissing, nil
+		return ExitCode(err), nil
 	}
 	u.to = v
 	sum := release.SHA256(sums)
@@ -144,7 +145,7 @@ func upgradeCommand(args []string, o Out) (int, error) {
 	}
 	if u.releases, err = walkReleases(u.from, v); err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s; every file is left as it was\n", err)
-		return ExitMissing, nil
+		return ExitCode(err), nil
 	}
 
 	text := c.text
@@ -310,10 +311,10 @@ func readInstallScript() (string, bool, error) {
 func scriptVersion(script string) (string, error) {
 	lines := scriptVersionLine.FindAllStringSubmatch(script, -1)
 	if len(lines) != 1 {
-		return "", fmt.Errorf("it has %d version= lines, not one", len(lines))
+		return "", kind.Wrap(kind.Usage, fmt.Errorf("it has %d version= lines, not one", len(lines)))
 	}
 	if !config.PinVersion.MatchString(lines[0][1]) {
-		return "", fmt.Errorf("its version= line names no release's version: %s", lines[0][1])
+		return "", kind.Wrap(kind.Usage, fmt.Errorf("its version= line names no release's version: %s", lines[0][1]))
 	}
 	return lines[0][1], nil
 }
@@ -339,7 +340,7 @@ func moveInstallScript(script, v string, sums []byte) (string, error) {
 		}
 		sum, ok := release.Listed(sums, archive)
 		if !ok {
-			return "", fmt.Errorf("the checksums.txt of itos %s lists no %s, the archive of its %s line", v, archive, platform)
+			return "", kind.Wrap(kind.Missing, fmt.Errorf("the checksums.txt of itos %s lists no %s, the archive of its %s line", v, archive, platform))
 		}
 		edits = append(edits, edit{m[4], m[5], sum})
 	}

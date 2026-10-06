@@ -107,16 +107,6 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And its output says "Set work.decisions to the records' folder."
     And its output says "/tag/v9.2.0"
 
-  @ID-UPGRADECMD-07 @slice-75
-  Scenario: A release server that cannot be reached exits 3, and no file is changed
-    Given the config pins the version "9.1.0" of the release server
-    And the repository has the install script of the version "9.1.0" of the release server
-    And the release server cannot be reached
-    When itos runs "upgrade"
-    Then itos exits with code 3
-    And the config is unchanged
-    And the install script is the one of the version "9.1.0" of the release server
-
   @ID-UPGRADECMD-08 @slice-75
   Scenario: A project already on the version asked for is left as it is
     Given the config pins the version "9.3.0" of the release server
@@ -142,7 +132,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
 
   # Slice 86 (decision 35): as pin's. @ID-UPGRADECMD-11 replaces
   # @ID-UPGRADECMD-07, which the feat removes, marked breaking.
-  @ID-UPGRADECMD-11 @slice-86 @wip
+  @ID-UPGRADECMD-11 @slice-86
   Scenario: A release server that cannot be reached exits 75, and no file is changed
     Given the config pins the version "9.1.0" of the release server
     And the repository has the install script of the version "9.1.0" of the release server

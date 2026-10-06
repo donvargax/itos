@@ -29,6 +29,8 @@ import (
 	"time"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/donvargax/itos/v5/internal/kind"
 )
 
 // FileName is the threads' file in itos's folder of the git common dir.
@@ -87,7 +89,8 @@ func ValidID(id string) bool { return idPattern.MatchString(id) }
 // no id or two with one id, a status neither open nor closed, a second YAML
 // document, or no document at all, which itos never writes (it writes
 // "threads: []" for none), so an empty file is a write cut short, not a
-// clone with no threads.
+// clone with no threads. Each is a data file itos refuses, kind.Usage
+// (exit 2).
 func Load(path string) (File, error) {
 	text, err := os.ReadFile(path)
 	if errors.Is(err, fs.ErrNotExist) {
@@ -96,6 +99,11 @@ func Load(path string) (File, error) {
 	if err != nil {
 		return File{}, err
 	}
+	f, err := parse(path, text)
+	return f, kind.Wrap(kind.Usage, err)
+}
+
+func parse(path string, text []byte) (File, error) {
 	var f File
 	dec := yaml.NewDecoder(bytes.NewReader(text))
 	dec.KnownFields(true)

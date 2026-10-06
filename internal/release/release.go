@@ -20,6 +20,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/donvargax/itos/v5/internal/kind"
 )
 
 // Env is the variable naming the base the releases are fetched from.
@@ -52,20 +54,28 @@ func NotesURL(v string) string {
 	return Base() + "/tag/v" + v
 }
 
-// Get is the body at the address, or why it cannot be had within timeout.
+// Get is the body at the address, or why it cannot be had within timeout,
+// with its kind (slice 86): a server that cannot be reached, does not answer
+// in time, fails (5xx) or limits the rate (429) is kind.Temporary, since
+// asking again may answer; any other answer, as a 404 for a release the
+// server does not have, is kind.Missing.
 func Get(url string, timeout time.Duration) ([]byte, error) {
 	client := &http.Client{Timeout: timeout}
 	resp, err := client.Get(url)
 	if err != nil {
-		return nil, err
+		return nil, kind.Wrap(kind.Temporary, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, &StatusError{URL: url, Status: resp.Status, Code: resp.StatusCode}
+		status := &StatusError{URL: url, Status: resp.Status, Code: resp.StatusCode}
+		if resp.StatusCode >= 500 || resp.StatusCode == http.StatusTooManyRequests {
+			return nil, kind.Wrap(kind.Temporary, status)
+		}
+		return nil, kind.Wrap(kind.Missing, status)
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", url, err)
+		return nil, kind.Wrap(kind.Temporary, fmt.Errorf("%s: %w", url, err))
 	}
 	return body, nil
 }

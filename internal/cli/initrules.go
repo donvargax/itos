@@ -42,6 +42,7 @@ import (
 
 	"github.com/donvargax/itos/v5/internal/check"
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 )
 
 const (
@@ -279,16 +280,22 @@ func blockSpan(lines []string, name, begin, end string, skip [2]int) ([2]int, er
 	case b < 0 && e < 0:
 		return noSpan, nil
 	case e < 0:
-		return noSpan, fmt.Errorf("%s has a %s line with no %s line after it; put the markers right by hand",
+		return noSpan, refusedMarkers("%s has a %s line with no %s line after it; put the markers right by hand",
 			name, begin, end)
 	case b < 0 || e < b:
-		return noSpan, fmt.Errorf("%s has a %s line with no %s line before it; put the markers right by hand",
+		return noSpan, refusedMarkers("%s has a %s line with no %s line before it; put the markers right by hand",
 			name, end, begin)
 	}
 	if find(begin, e+1) >= 0 || find(end, e+1) >= 0 {
-		return noSpan, fmt.Errorf("%s has more than one block between %s and %s; leave one", name, begin, end)
+		return noSpan, refusedMarkers("%s has more than one block between %s and %s; leave one", name, begin, end)
 	}
 	return [2]int{b, e}, nil
+}
+
+// refusedMarkers is a marked block itos cannot place in a file it does not
+// own, which the person puts right: kind.Usage (exit 2).
+func refusedMarkers(format string, a ...any) error {
+	return kind.Wrap(kind.Usage, fmt.Errorf(format, a...))
 }
 
 // appendBlock is text with the block at its end, after a blank line.

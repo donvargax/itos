@@ -64,7 +64,7 @@ func workAdd(args []string, o Out) (int, error) {
 	}
 	change, found, err := work.Add(cfg, registry, text, n, ledger.IDPattern(cfg))
 	if err != nil {
-		return 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+		return 0, uneditable(cfg.Work.Registry, err)
 	}
 	if len(found) > 0 {
 		return refuseWork(found, ExitPolicy, o)
@@ -108,7 +108,7 @@ func workEdit(args []string, o Out) (int, error) {
 	}
 	change, found, err := work.Edit(cfg, registry, text, id, e, taskIDs(cfg))
 	if err != nil {
-		return 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+		return 0, uneditable(cfg.Work.Registry, err)
 	}
 	if len(found) > 0 {
 		return refuseWork(found, ExitPolicy, o)

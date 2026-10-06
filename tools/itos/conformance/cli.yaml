@@ -101,9 +101,9 @@ cases:
     exit: 2
     stderr: |
       itos: pin takes only a <version> (--force) (itos --help)
-  - name: pin with no release to ask exits 3, naming it, and leaves the config as it was
+  - name: pin with no release server to ask exits 75, naming it, and leaves the config as it was
     argv: [pin]
-    exit: 3
+    exit: 75
     stderr_has:
       - "itos: cannot ask for the newest itos: "
       - "/latest/download/checksums.txt"

@@ -122,7 +122,7 @@ func unqueueDone(cfg *config.Loaded, id string, o Out) (*work.Change, string, in
 	}
 	change, ok, err := work.Unqueue(registry, string(raw), id)
 	if err != nil {
-		return nil, "", 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+		return nil, "", 0, uneditable(cfg.Work.Registry, err)
 	}
 	if !ok {
 		return nil, "", 0, nil
@@ -140,7 +140,7 @@ func unqueueDone(cfg *config.Loaded, id string, o Out) (*work.Change, string, in
 func doneChange(cfg *config.Loaded, registry work.Registry, text, id string, o Out) (*work.Change, int, error) {
 	change, problem, err := work.Done(registry, text, id)
 	if err != nil {
-		return nil, 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+		return nil, 0, uneditable(cfg.Work.Registry, err)
 	}
 	if problem != nil {
 		code, err := refuseWork([]out.Problem{*problem}, ExitPolicy, o)

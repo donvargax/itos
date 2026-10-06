@@ -45,8 +45,18 @@ func TestStepStoppedBySignalExitsOne(t *testing.T) {
 	}
 	step := plan.Step{Command: "kill -TERM $$"}
 	code, _, stderr := run(t, &plan.Plan{Order: []plan.Item{{Step: &step}}}, Options{})
-	if code != 1 || stderr != "\nCI failed at: kill -TERM $$\n" {
+	if code != 1 || stderr != "\nCI failed at: kill -TERM $$ (it gave no exit code)\n" {
 		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+}
+
+// A failing step makes the run exit 1, whatever its own code, which it names
+// on stderr and as failed_at's code (slice 86).
+func TestAFailingStepExitsOneNamingItsCode(t *testing.T) {
+	step := plan.Step{Command: "exit 75"}
+	code, stdout, stderr := run(t, &plan.Plan{Order: []plan.Item{{Step: &step}}}, Options{JSON: true})
+	if code != 1 || !strings.Contains(stderr, "CI failed at: exit 75 (it exited 75)") || !strings.Contains(stdout, `"code": 75`) {
+		t.Errorf("exit %d, stdout %q, stderr %q", code, stdout, stderr)
 	}
 }
 

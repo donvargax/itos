@@ -1,6 +1,13 @@
 package release
 
-import "testing"
+import (
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/donvargax/itos/v5/internal/kind"
+)
 
 func TestVersionOf(t *testing.T) {
 	cases := map[string]string{
@@ -48,5 +55,37 @@ func TestListed(t *testing.T) {
 		if got != c.want || ok != c.ok {
 			t.Errorf("Listed(%q) = %q, %t; want %q, %t", c.asset, got, ok, c.want, c.ok)
 		}
+	}
+}
+
+// A server that fails or limits the rate may answer when asked again
+// (kind.Temporary, exit 75), as may one that cannot be reached; an address
+// it has nothing at is a release that is not there (kind.Missing, exit 3).
+func TestGetGivesEachFailureItsKind(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/busy":
+			w.WriteHeader(http.StatusServiceUnavailable)
+		case "/limited":
+			w.WriteHeader(http.StatusTooManyRequests)
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	closed := httptest.NewServer(http.NotFoundHandler())
+	closed.Close()
+	defer server.Close()
+	for url, want := range map[string]kind.Kind{
+		server.URL + "/busy":    kind.Temporary,
+		server.URL + "/limited": kind.Temporary,
+		server.URL + "/none":    kind.Missing,
+		closed.URL + "/any":     kind.Temporary,
+	} {
+		if _, err := Get(url, 5*time.Second); kind.Of(err) != want {
+			t.Errorf("Get(%s): %v, kind %d, want %d", url, err, kind.Of(err), want)
+		}
+	}
+	if _, err := Get(server.URL+"/none", 5*time.Second); !NotFound(err) {
+		t.Errorf("a 404 is not NotFound: %v", err)
 	}
 }

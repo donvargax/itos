@@ -17,12 +17,13 @@
 // A release is fetched from ITOS_RELEASES (the GitHub releases of itos by
 // default), <base>/download/v<version>/<asset>: its checksums.txt, held to
 // pin.checksums when the config pins that version, then the archive for this
-// platform, held to its line in checksums.txt. Anything that cannot be
-// fetched or does not match exits 3, a missing environment, with a line
-// naming what failed; nothing runs in its place, and nothing unverified is
-// left in the cache, ITOS_CACHE (itos/ in the user's cache folder by
-// default), which holds <version>/itos and the <version>/checksums.txt it was
-// checked against.
+// platform, held to its line in checksums.txt. A release server that cannot
+// be reached or fails exits 75, a failure that may pass when run again
+// (slice 86); anything else that cannot be fetched or does not match exits
+// 3, a missing environment; each with a line naming what failed. Nothing
+// runs in its place, and nothing unverified is left in the cache, ITOS_CACHE
+// (itos/ in the user's cache folder by default), which holds <version>/itos
+// and the <version>/checksums.txt it was checked against.
 //
 // git-shim install and uninstall always run the binary that was called, the
 // one they link as git, and so do pin, which moves the pin and may be newer
@@ -62,6 +63,7 @@ import (
 
 	"github.com/donvargax/itos/v5/internal/cli"
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/release"
 	"github.com/donvargax/itos/v5/internal/value"
 	"github.com/donvargax/itos/v5/internal/version"
@@ -124,7 +126,10 @@ func Main(args []string, stderr io.Writer) (int, bool) {
 		}
 	}
 	fmt.Fprintf(stderr, "itos: %s\n", err)
-	return cli.ExitMissing, true
+	// A release server that cannot be reached, or fails, may answer when
+	// asked again (75, release.Get); any other failure to fetch, check or run
+	// the pinned release is one this machine does not have (3).
+	return cli.ExitCode(kind.Else(kind.Missing, err)), true
 }
 
 // binaryCommand is whether the arguments run one of the launcher's own

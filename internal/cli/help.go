@@ -38,10 +38,13 @@ itos runs git commit and git push as itos commit and itos push in a repository
 with an itos config, from any folder of it, and the real git for anything else.`
 
 const exitCodes = `Exit codes: 0 success; 1 policy failure (a check failed, a commit rejected,
-a registry or smoke problem, an unknown task); 2 usage or config error;
-3 missing environment (--as not among the people, a release that cannot be
-fetched or checked, an extension that cannot start, a git shim with no git to
-run). In ` + "`ci run`" + ` a failing step exits with its own code.`
+a registry or smoke problem, an unknown task, a failing step of ci run);
+2 usage or config error; 3 missing environment (--as not among the people, a
+release the server does not have or that fails its check, an extension that
+cannot start, a git shim with no git to run); 70 an error itos cannot
+classify: report it; 75 a failure that may pass when run again unchanged (a
+release server or GitHub's API that cannot be reached or fails, a CI run not
+finished within ci.watch.timeout).`
 
 const mainCommands = `itos: tasks, their checks, commit rules and CI plans
 
@@ -301,11 +304,11 @@ for as itos ci watch waits when it is still going. Without ci.watch CI is not
 checked, and done says so. Refused, nothing written (exit 1): any of those not
 so, a registry that is not sound or has changes no commit holds, an id no item
 has, an idea (work promote it first), an item dropped or deferred, a commit a
-hook refuses. Exit 3 when the run does not end within ci.watch.timeout or
-cannot be looked at. An item already done changes nothing. An item the
-registry's queue holds is then taken out of it, in a commit of its own, "docs:
-queue <id>". Under a stealth config the registry is written and nothing
-committed.
+hook refuses. Exit 75 when the run does not end within ci.watch.timeout or
+GitHub's API keeps failing, 3 when the run cannot be looked at. An item
+already done changes nothing. An item the registry's queue holds is then
+taken out of it, in a commit of its own, "docs: queue <id>". Under a stealth
+config the registry is written and nothing committed.
 
 --json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"queue_commit"?:"<sha>"|null,"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}],"ci"?,"run"?}`,
@@ -514,14 +517,16 @@ leaves out the success lines.
 With ci.watch's provider (none by default), it then waits for the CI run of
 the commit it pushed as itos ci watch does, printing each job's result as it
 finishes and the run's address, and exits with the run's result: 0 when it
-succeeded, 1 when it did not, naming the failed jobs; 3 when the run is still
-going after ci.watch.timeout seconds or cannot be looked at, naming itos ci
-watch <sha>. The commits are pushed either way. --no-wait pushes and returns.
+succeeded, 1 when it did not, naming the failed jobs; 75 when the run is
+still going after ci.watch.timeout seconds or GitHub's API keeps failing, 3
+when it cannot be looked at, naming itos ci watch <sha>. The commits are
+pushed either way. --no-wait pushes and returns.
 
 Exit: 0 pushed, or nothing to push; 1 refused before the pull, the rebase
 stopped, or the CI run waited for failed; 2 an argument; 3 no git repository,
-no upstream and no remote origin, or a CI run not finished or not to be
-looked at; git's own code when the fetch or the push fails.
+no upstream and no remote origin, or a CI run not to be looked at; 75 a CI
+run not finished, or GitHub's API failing; git's own code when the fetch or
+the push fails.
 
 --json: git's output on stderr; {"schema":1,"ok","outcome","remote"?,"branch"?,"commit"?,"ci"?,"run"?},
         outcome one of pushed, nothing-to-push, uncommitted, rebase-in-progress,
@@ -635,7 +640,7 @@ order, stopping at the first failure; with ci.stop_at_first_failure false,
 every one runs and the first failure is the run's. A named task's after: push
 check is listed as pending, to run after the push (itos task, itos work done),
 and is neither run nor counted; one ci.nightly_only lists is left out. With no
-range, every step and every test. A failing step exits with its own code.
+range, every step and every test. A failing step exits 1, naming its code.
 --nightly runs ci.nightly.steps; a { tasks: done } step there runs the checks
 of every task whose work item is done, each shared check once, and a failure
 names the task. With ci.keep_step_order true, a push's run takes ci.steps as
@@ -671,9 +676,10 @@ https://api.github.com) for the run of ci.watch.github.workflow, with a token
 from ci.range.github.token_env, else gh auth token, for the repository
 ci.range.github.repository_env names, else the remote's URL. A run not there
 yet is waited for. Exit 0 when the run succeeded; 1 when it did not, naming the
-failed jobs; 2 ci.watch.provider none, or not a commit; 3 the run still going,
-or not there, after the timeout, a refusal from GitHub's API, or no token,
-naming both ways to give one.
+failed jobs; 2 ci.watch.provider none, or not a commit; 3 a refusal from
+GitHub's API, or no token, naming both ways to give one; 75 the run still
+going, or not there, after the timeout, or six looks in a row failing for a
+server error, a rate limit or no network.
 
 --json: the progress on stderr; {"schema":1,"ok","commit","ci","run"?},
         ci one of success, failure, timeout, error; run {"url","status","conclusion"?,"jobs"}`,
@@ -841,9 +847,10 @@ anchor) exits 2, the config untouched. It prints the old version, the new one
 and the release's notes, <ITOS_RELEASES>/tag/v<version>, whose Upgrading
 section says what the project must change, and commits nothing. A pin already
 on the version changes nothing, exit 0; one on it with other checksums is left
-as it is, exit 1: the release changed after it was pinned. A release that
-cannot be fetched exits 3, the config untouched. It runs the binary called,
-whatever the pin says.
+as it is, exit 1: the release changed after it was pinned. A release the
+server does not have exits 3, and a release server that cannot be reached or
+fails 75, the config untouched. It runs the binary called, whatever the pin
+says.
 
 --json: {"schema":1,"config","action","version","checksums","previous"?,"notes"?},
         action one of pinned, already, refused`,
@@ -872,7 +879,8 @@ release's itos.schema.json, and the install script's version= line and each
 platform's sum= hash, from the new release's checksums.txt. What the releases
 ask is listed for the person to do, never edited. A config or an install
 script it cannot edit so exits 2. It fetches everything before it writes
-anything, so a release that cannot be fetched exits 3, every file untouched.
+anything, so a release the server does not have exits 3, and a release
+server that cannot be reached or fails 75, every file untouched.
 A project already on the version changes nothing, exit 0; a pin on it with
 other checksums is left as it is, exit 1: the release changed after it was
 pinned. It commits nothing, and runs the binary called, whatever the pin says.

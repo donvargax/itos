@@ -33,7 +33,7 @@ func workDrop(args []string, o Out) (int, error) {
 	}
 	change, found, err := work.Drop(cfg, registry, text, id, flags["--why"])
 	if err != nil {
-		return 0, fmt.Errorf("%s cannot be edited in place: %w", cfg.Work.Registry, err)
+		return 0, uneditable(cfg.Work.Registry, err)
 	}
 	if len(found) > 0 {
 		return refuseWork(found, ExitPolicy, o)

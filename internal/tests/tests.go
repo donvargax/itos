@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/shell"
 	"github.com/donvargax/itos/v5/internal/value"
 )
@@ -108,13 +109,14 @@ func ListTestsUnder(cfg *config.Loaded, name, at string, root *string) (List, er
 
 // commandList is a command adapter's list, held to the protocol: a non-zero
 // exit or output that is not the protocol fails whatever needed the list,
-// with the adapter's stderr.
+// with the adapter's stderr, as the config's adapter refused (kind.Usage,
+// exit 2).
 func commandList(cfg *config.Loaded, name, command, at string) (List, error) {
 	var stdout, stderr bytes.Buffer
 	run := shell.Run(cfg, command+" list --at "+ShellWord(at), shell.Options{Stdout: &stdout, Stderr: &stderr})
 	fail := func(why string) (List, error) {
 		text := fmt.Sprintf("tests.%s: `%s list --at %s` %s\n%s", name, command, at, why, stderr.String())
-		return List{}, fmt.Errorf("%s", strings.TrimRightFunc(text, isTrimmed))
+		return List{}, kind.Wrap(kind.Usage, fmt.Errorf("%s", strings.TrimRightFunc(text, isTrimmed)))
 	}
 	if !run.OK() {
 		return fail("exited " + run.Status())

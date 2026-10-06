@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 )
 
 func TestGitHubRepositoryReadsAGitHubRemote(t *testing.T) {
@@ -86,7 +87,7 @@ func TestRunOfReadsTheNewestRunAndItsJobs(t *testing.T) {
 	if !strings.Contains(asked[0], "/repos/o/n/actions/workflows/ci.yml/runs?head_sha=abc") {
 		t.Fatalf("asked %v", asked)
 	}
-	if _, _, err := (GitHub{Repository: "o/n", Token: "bad", Workflow: "ci.yml"}).RunOf("abc"); err == nil || errors.As(err, new(Transient)) {
+	if _, _, err := (GitHub{Repository: "o/n", Token: "bad", Workflow: "ci.yml"}).RunOf("abc"); err == nil || kind.Of(err) == kind.Temporary {
 		t.Fatalf("a refused token: %v", err)
 	}
 }
@@ -104,7 +105,7 @@ func TestRunOfFindsNoRunYet(t *testing.T) {
 	}
 }
 
-func TestAServerErrorIsTransient(t *testing.T) {
+func TestAServerErrorIsTemporary(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusBadGateway)
 	}))
@@ -113,8 +114,8 @@ func TestAServerErrorIsTransient(t *testing.T) {
 	GitHubAPI = server.URL
 	defer func() { GitHubAPI = was }()
 	_, _, err := GitHub{Repository: "o/n", Token: "t", Workflow: "ci.yml"}.RunOf("abc")
-	if !errors.As(err, new(Transient)) {
-		t.Fatalf("a 502 is %v, not transient", err)
+	if kind.Of(err) != kind.Temporary {
+		t.Fatalf("a 502 is %v, not temporary", err)
 	}
 }
 

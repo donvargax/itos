@@ -6,7 +6,8 @@
 //     no task file has (which end the run, whatever the settings), the tasks
 //     named but not started, and, for a prose-only range, what it leaves out.
 //   - A step runs through the config's shell with itos's streams; a failing
-//     step's exit code is the run's.
+//     step makes the run exit 1, naming the step's own exit code (slice 86):
+//     passed through, a step's 75 or 3 would read as itos's meaning of it.
 //   - A task check the plan runs goes through a check.Runner, verbose, so its
 //     command line and output keep their place in the log; a failure exits 1,
 //     naming the task and its title. A check merged into the run of named
@@ -39,7 +40,7 @@ import (
 )
 
 // Failure is where a run stopped, as --json's failed_at gives it: a step
-// (whose exit code is the run's), a task check, or the unknown tasks named.
+// (Code its own exit code), a task check, or the unknown tasks named.
 type Failure struct {
 	Step    *string  `json:"step,omitempty"`
 	Task    string   `json:"task,omitempty"`
@@ -64,8 +65,8 @@ type driver struct {
 	runner *check.Runner
 }
 
-// Run carries out a plan and gives the run's exit code: 0, a failing step's
-// own code, or 1 for a task check or the unknown tasks.
+// Run carries out a plan and gives the run's exit code: 0, or 1 for a
+// failing step, task check or the unknown tasks.
 func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 	for key, value := range cfg.CI.Env {
 		if err := os.Setenv(key, value); err != nil {
@@ -119,7 +120,7 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 	if failed == nil {
 		return 0, nil
 	}
-	return failed.Code, nil
+	return 1, nil
 }
 
 // preamble is what the run says before its first item: the unknown tasks,
@@ -166,20 +167,20 @@ func (d driver) proseLine() string {
 }
 
 // step runs one step through the config's shell, its output in the log; a
-// failure carries its exit code, 1 when it has none (stopped by a signal, or
-// never started).
+// failure carries the step's exit code, named on stderr, 1 when it has none
+// (stopped by a signal, or never started).
 func (d driver) step(command string) *Failure {
 	fmt.Fprintf(d.log, "\n$ %s\n", command)
 	r := shell.Run(d.cfg, command, shell.Options{Stdin: os.Stdin, Stdout: d.log, Stderr: d.stderr})
 	if r.OK() {
 		return nil
 	}
-	fmt.Fprintf(d.stderr, "\nCI failed at: %s\n", command)
-	code := r.Code
-	if code <= 0 {
-		code = 1
+	if r.Code <= 0 {
+		fmt.Fprintf(d.stderr, "\nCI failed at: %s (it gave no exit code)\n", command)
+		return &Failure{Step: &command, Code: 1}
 	}
-	return &Failure{Step: &command, Code: code}
+	fmt.Fprintf(d.stderr, "\nCI failed at: %s (it exited %d)\n", command, r.Code)
+	return &Failure{Step: &command, Code: r.Code}
 }
 
 // check is one task check: logged as merged, covered, left out or pending,

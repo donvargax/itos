@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/out"
 	"github.com/donvargax/itos/v5/internal/source"
 	"github.com/donvargax/itos/v5/internal/value"
@@ -33,7 +34,7 @@ func SmokeFileOf(cfg *config.Loaded, name string) (string, error) {
 		return "", err
 	}
 	if k.Smoke.File == nil || *k.Smoke.File == "" {
-		return "", errors.New("tests." + name + ".smoke.file is missing")
+		return "", kind.Wrap(kind.Usage, errors.New("tests."+name+".smoke.file is missing"))
 	}
 	return *k.Smoke.File, nil
 }
@@ -102,8 +103,13 @@ func entryProblem(e any, n int) (SmokeFile, string) {
 }
 
 // parseSmoke is a smoke list's text held to its shape, or an error naming the
-// file and the entry.
+// file and the entry: a data file itos refuses, kind.Usage (exit 2).
 func parseSmoke(text, where string) ([]SmokeFile, error) {
+	smoke, err := smokeOf(text, where)
+	return smoke, kind.Wrap(kind.Usage, err)
+}
+
+func smokeOf(text, where string) ([]SmokeFile, error) {
 	parsed, err := value.Parse(text)
 	if err != nil {
 		return nil, err
@@ -133,7 +139,7 @@ func LoadSmoke(cfg *config.Loaded, name string) ([]SmokeFile, error) {
 		return nil, err
 	}
 	if !source.Has(path) {
-		return nil, fmt.Errorf("%s is missing (tests.%s.smoke.file)", path, name)
+		return nil, kind.Wrap(kind.Usage, fmt.Errorf("%s is missing (tests.%s.smoke.file)", path, name))
 	}
 	text, err := source.Read(path)
 	if err != nil {
@@ -160,7 +166,7 @@ func LoadSmokeAt(cfg *config.Loaded, name, at string) ([]SmokeFile, error) {
 	}
 	text, err := tree.Read(path)
 	if err != nil {
-		return nil, fmt.Errorf("%s holds no %s", at, path)
+		return nil, kind.Wrap(kind.Usage, fmt.Errorf("%s holds no %s", at, path))
 	}
 	return parseSmoke(text, at+":"+path)
 }

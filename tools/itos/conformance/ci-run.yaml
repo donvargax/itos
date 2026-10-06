@@ -199,7 +199,7 @@ cases:
     stderr: |
 
       CI failed at T-011 (A check that fails), its check: sh -c 'echo broken; exit 4'
-  - name: a failing step ends the run with its own exit code
+  - name: a failing step ends the run with exit 1, naming its own exit code
     argv: [ci, run, "{{sha.every}}", "{{sha.failing}}"]
     files:
       itos.yaml: |
@@ -216,7 +216,7 @@ cases:
         tests:
           scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: e2e/smoke.yaml } }
         work: { registry: tasks/work-items.yaml }
-    exit: 3
+    exit: 1
     stdout: |
 
       $ echo lint
@@ -226,8 +226,8 @@ cases:
       tests fail
     stderr: |
 
-      CI failed at: sh -c 'echo tests fail; exit 3'
-  - name: with ci.stop_at_first_failure false every step and check runs, and the first failure is the run's
+      CI failed at: sh -c 'echo tests fail; exit 3' (it exited 3)
+  - name: with ci.stop_at_first_failure false every step and check runs, and the first failure is named
     argv: [ci, run, "{{sha.every}}", "{{sha.failing}}"]
     files:
       itos.yaml: |
@@ -245,7 +245,7 @@ cases:
         tests:
           scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: e2e/smoke.yaml } }
         work: { registry: tasks/work-items.yaml }
-    exit: 3
+    exit: 1
     stdout: |
 
       $ echo lint
@@ -270,7 +270,7 @@ cases:
       never
     stderr: |
 
-      CI failed at: sh -c 'echo tests fail; exit 3'
+      CI failed at: sh -c 'echo tests fail; exit 3' (it exited 3)
 
       CI failed at T-011 (A check that fails), its check: sh -c 'echo broken; exit 4'
   - name: the same as --json, its verdict the first failure
@@ -291,7 +291,7 @@ cases:
         tests:
           scenario: { root: e2e/features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: e2e/smoke.yaml } }
         work: { registry: tasks/work-items.yaml }
-    exit: 3
+    exit: 1
     json:
       schema: 1
       ok: false

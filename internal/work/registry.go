@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/out"
 	"github.com/donvargax/itos/v5/internal/providers"
 	"github.com/donvargax/itos/v5/internal/source"
@@ -61,12 +62,19 @@ type Registry struct {
 // under a stealth config (bug 46).
 func (r Registry) Nobody() bool { return !r.People || len(r.Logins) == 0 }
 
-// Load reads the registry at path and the people of the config's source.
+// Load reads the registry at path and the people of the config's source. A
+// registry that is not YAML or not the registry's shape is a data file itos
+// refuses, kind.Usage (exit 2).
 func Load(cfg *config.Loaded, path string) (Registry, error) {
 	text, err := source.Read(path)
 	if err != nil {
 		return Registry{}, err
 	}
+	r, err := parse(cfg, text)
+	return r, kind.Wrap(kind.Usage, err)
+}
+
+func parse(cfg *config.Loaded, text string) (Registry, error) {
 	raw, err := value.Parse(text)
 	if err != nil {
 		return Registry{}, err
@@ -334,7 +342,7 @@ func Issues(cfg *config.Loaded, r Registry, file string) ([]out.Problem, error) 
 	for _, item := range r.Items {
 		own, err := c.itemIssues(item)
 		if err != nil {
-			return nil, err
+			return nil, kind.Wrap(kind.Usage, err)
 		}
 		found = append(found, own...)
 	}

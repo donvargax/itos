@@ -22,6 +22,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"github.com/donvargax/itos/v5/internal/kind"
 )
 
 // Suffix is what the lock file's name adds to the data's.
@@ -36,7 +38,8 @@ type Held struct{ path string }
 // Hold takes the lock of the file at path, its folder made (0700) when it
 // is not there: it makes path+Suffix, which no other process may then make,
 // waiting up to Wait while one has it. A lock still held after the wait is
-// an error naming the lock file.
+// an error naming the lock file, kind.Temporary (exit 75): the itos holding
+// it is likely still at work, and the command may pass when run again.
 func Hold(path string) (*Held, error) {
 	file := path + Suffix
 	if err := os.MkdirAll(filepath.Dir(file), 0o700); err != nil {
@@ -58,7 +61,7 @@ func Hold(path string) (*Held, error) {
 			return nil, err
 		}
 		if time.Now().After(deadline) {
-			return nil, fmt.Errorf("%s is held by another itos, still after %s; if no itos is running, one that stopped left it: remove %s and run the command again", file, Wait, file)
+			return nil, kind.Wrap(kind.Temporary, fmt.Errorf("%s is held by another itos, still after %s; if no itos is running, one that stopped left it: remove %s and run the command again", file, Wait, file))
 		}
 		time.Sleep(pause)
 		pause = min(pause*2, 50*time.Millisecond)

@@ -35,6 +35,7 @@ import (
 
 	"github.com/donvargax/itos/v5/internal/config"
 	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/out"
 	"github.com/donvargax/itos/v5/internal/release"
 	"github.com/donvargax/itos/v5/internal/tests"
@@ -118,7 +119,7 @@ func atTop(log io.Writer) (bool, error) {
 	}
 	top, err := git.Output("rev-parse", "--show-toplevel")
 	if top = value.Trim(top); err != nil || top == "" {
-		return false, errors.New("init runs in a repository's working tree, not in its git folder")
+		return false, kind.Wrap(kind.Usage, errors.New("init runs in a repository's working tree, not in its git folder"))
 	}
 	return false, os.Chdir(top)
 }

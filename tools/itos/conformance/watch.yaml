@@ -111,7 +111,7 @@ cases:
         jobs:
           - { name: ci, status: completed, conclusion: success }
           - { name: platform, status: completed, conclusion: success }
-  - name: a run still going after ci.watch.timeout exits 3, naming itos ci watch
+  - name: a run still going after ci.watch.timeout exits 75, naming itos ci watch
     argv: [ci, watch]
     files:
       itos.yaml: |
@@ -125,7 +125,7 @@ cases:
           html_url: "https://ci.example/runs/1"
           status: in_progress
           jobs: [{ name: ci, status: in_progress }]
-    exit: 3
+    exit: 75
     stdout: |
       CI run: https://ci.example/runs/1
     stderr: |

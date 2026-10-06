@@ -7,6 +7,8 @@ import (
 	"errors"
 	"os/exec"
 	"strings"
+
+	"github.com/donvargax/itos/v5/internal/kind"
 )
 
 // Output is a git command's stdout, its stderr dropped; the error when git
@@ -45,11 +47,18 @@ func Parent(sha string) string {
 
 // Read is a git command's stdout, as Output; when git fails, an error worded
 // as Node's execFileSync words it (`Command failed: git …`), its stderr
-// dropped as the TypeScript's git() drops it.
+// dropped as the TypeScript's git() drops it. A git that did not run, or ran
+// where there is no git repository, is a missing environment (kind.Missing,
+// exit 3); any other failure has no kind.
 func Read(args ...string) (string, error) {
 	out, err := Output(args...)
 	if err != nil {
-		return "", errors.New("Command failed: git " + strings.Join(args, " "))
+		failed := errors.New("Command failed: git " + strings.Join(args, " "))
+		var exit *exec.ExitError
+		if !errors.As(err, &exit) || !Succeeds("rev-parse", "--git-dir") {
+			return "", kind.Wrap(kind.Missing, failed)
+		}
+		return "", failed
 	}
 	return out, nil
 }

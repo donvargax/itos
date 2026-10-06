@@ -8,8 +8,9 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
   run's address, and exits with the run's result: 0 when it succeeded, 1
   when it failed, naming the failed jobs. The commits are pushed either way;
   only the waiting is new. --no-wait pushes and returns, as before. A run
-  still going after ci.watch.timeout seconds exits 3 and names itos ci watch
-  <sha>, which waits for any commit's run the same way, HEAD's by default.
+  still going after ci.watch.timeout seconds exits 75 (slice 86) and names
+  itos ci watch <sha>, which waits for any commit's run the same way, HEAD's
+  by default.
 
   ci.watch is opt-in (the user's call, 2026-10-03): its provider is none by
   default, so a config without it pushes exactly as before. github reads the
@@ -75,16 +76,6 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     Then itos exits with code 0
     And the fake GitHub was never asked about a run
 
-  @ID-WATCH-06 @slice-51
-  Scenario: A run still going after ci.watch.timeout exits 3, naming itos ci watch
-    Given the watched run never finishes
-    And ci.watch.timeout is 1
-    And the clone has the commit "chore: tidy the readme" touching "README.md"
-    When itos runs "push"
-    Then itos exits with code 3
-    And its output says "itos ci watch"
-    And the remote's branch has "chore: tidy the readme"
-
   @ID-WATCH-07 @slice-51
   Scenario: itos ci watch waits for HEAD's run with no argument
     Given the watched run's jobs "ci" and "platform" succeed
@@ -147,7 +138,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
   # does not answer stay 3, since running again unchanged does not help.
   # @ID-WATCH-12 replaces @ID-WATCH-06, which the feat removes, marked
   # breaking.
-  @ID-WATCH-12 @slice-86 @wip
+  @ID-WATCH-12 @slice-86
   Scenario: A run still going after ci.watch.timeout exits 75, naming itos ci watch
     Given the watched run never finishes
     And ci.watch.timeout is 1
@@ -157,7 +148,10 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     And its output says "itos ci watch"
     And the remote's branch has "chore: tidy the readme"
 
-  @ID-WATCH-13 @slice-86 @wip
+  # itos gives up retrying after six looks in a row fail so, a minute of them
+  # at the default ci.watch.interval: a blip is looked past, and an outage is
+  # handed back with 75 well before ci.watch.timeout.
+  @ID-WATCH-13 @slice-86
   Scenario: A watch whose every look gets a server error exits 75
     Given the fake GitHub answers every look with a server error
     When itos runs "ci watch"

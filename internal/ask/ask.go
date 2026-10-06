@@ -28,6 +28,8 @@ import (
 	"strings"
 
 	"go.yaml.in/yaml/v3"
+
+	"github.com/donvargax/itos/v5/internal/kind"
 )
 
 // FileName is the questions' file, beside the work registry by default.
@@ -91,8 +93,13 @@ func ValidID(id string) bool { return idPattern.MatchString(id) }
 // itos gives, two with one id or one with no text, a decision that is
 // neither a record's number nor none, or one on a question not answered, a
 // second YAML document, or no document at all (itos writes "questions: []"
-// for none).
+// for none). Each is a data file itos refuses, kind.Usage (exit 2).
 func Parse(path, text string) (File, error) {
+	f, err := parse(path, text)
+	return f, kind.Wrap(kind.Usage, err)
+}
+
+func parse(path, text string) (File, error) {
 	var f File
 	dec := yaml.NewDecoder(strings.NewReader(text))
 	dec.KnownFields(true)

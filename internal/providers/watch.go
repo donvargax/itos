@@ -22,6 +22,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/value"
 )
 
@@ -52,15 +53,10 @@ func (j Job) Done() bool { return j.Status == "completed" && j.Conclusion != "" 
 
 // Watch looks once at the run of a commit, given by its full SHA: found is
 // false while there is none yet. An error ends the watch (exit 3), unless it
-// is Transient, which the next look may not meet.
+// is of kind.Temporary, a look that failed in a way the next may not (no
+// network, a server error, a rate limit): the watch goes on, until it gives
+// up (exit 75).
 type Watch func(sha string) (run Run, found bool, err error)
-
-// Transient is a look that failed in a way the next may not (no network, a
-// server error, a rate limit): the watch goes on, and names it if the
-// timeout comes first.
-type Transient struct{ Err error }
-
-func (t Transient) Error() string { return t.Err.Error() }
 
 // WatchSetup is what the github provider needs from outside the config: the
 // environment, the URL of the remote the commit was pushed to, and how to
@@ -173,7 +169,7 @@ func GitHubRepository(remoteURL string) string {
 // RunOf is the workflow's newest run for the commit, with its jobs, read
 // from the GitHub API with the token: found is false while GitHub has none,
 // as just after a push. A server error, a rate limit or no network is
-// Transient; any other refusal (a bad token, no such workflow) ends the
+// kind.Temporary; any other refusal (a bad token, no such workflow) ends the
 // watch.
 func (g GitHub) RunOf(sha string) (Run, bool, error) {
 	return g.newestOf(fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?head_sha=%s&per_page=20",
@@ -244,18 +240,18 @@ func (g GitHub) get(path string, into any) error {
 	}
 	res, err := (&http.Client{Timeout: Timeout}).Do(req)
 	if err != nil {
-		return Transient{fmt.Errorf("GitHub's API did not answer: %w", err)}
+		return kind.Wrap(kind.Temporary, fmt.Errorf("GitHub's API did not answer: %w", err))
 	}
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode > 299 {
 		err := fmt.Errorf("GitHub's API answered %s for %s", res.Status, path)
 		if res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests {
-			return Transient{err}
+			return kind.Wrap(kind.Temporary, err)
 		}
 		return err
 	}
 	if err := json.NewDecoder(res.Body).Decode(into); err != nil {
-		return Transient{fmt.Errorf("GitHub's API answered what is not JSON for %s: %w", path, err)}
+		return kind.Wrap(kind.Temporary, fmt.Errorf("GitHub's API answered what is not JSON for %s: %w", path, err))
 	}
 	return nil
 }
