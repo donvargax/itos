@@ -4868,7 +4868,7 @@ items:
     title: previous-release judges an old case by itos's machine output alone, and CI reads ci range and version through --json
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: task
     why: >
