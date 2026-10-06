@@ -340,14 +340,15 @@ items:
     kind: task
     refs: [tasks/phase-1.yaml]
 
-  - id: p1-ci-after-push-checks
-    title: CI waits on an after-push check the push itself cannot satisfy
+  - id: bug-28
+    title: "Push CI lists a named task's after: push checks as pending, neither run nor failed"
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ci-after-push-checks.
       CI runs a named task's `after: push` checks on every range that names it. T-021's check
       needs the release a tag makes after the push, so every range naming T-021 was red until
       v0.1.0 existed and green only when re-run after it; its check was made late so the red run
