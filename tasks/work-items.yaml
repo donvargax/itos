@@ -5068,7 +5068,7 @@ items:
     title: Every command parses its flags from a declared spec, and refuses what it does not take
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
