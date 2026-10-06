@@ -4895,12 +4895,9 @@ items:
     title: "v6.0.0: exit 75 for a failure worth retrying, ci run's own exit code, and the machine-output contract announced"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-100]
     kind: slice
-    why: >
-      Decision 35. Specified in features/watch.feature, pin.feature, upgrade-command.feature and
-      ci.feature; carries T-101 in its push.
     refs:
       [
         features/watch.feature,
