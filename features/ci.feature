@@ -173,3 +173,21 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And the recording check did not run
     And its output says "after the push"
+
+  # Bug 29 (issue #15; the user's call, 2026-10-05). Since bug 23 the range
+  # walk asks GitHub for each first parent's own runs, still filtered by
+  # ci.range.github.branch, so a push to another branch found only main's
+  # green ancestor and re-checked commits that branch had already proved. A
+  # green run of the workflow on that exact commit proves it whatever
+  # branch it ran on, so the walk (ci range's, and itos status's last green
+  # commit) no longer filters by branch. If no tool reads
+  # ci.range.github.branch after that, config check warns that it is
+  # ignored, the key kept until the next major.
+  @ID-CI-13 @bug-29 @wip
+  Scenario: ci range starts at the head's parent whose green run was on another branch
+    Given ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
+    And three commits on top of the first
+    And the fake GitHub has a green run of the head's parent on the branch "feature"
+    When itos prints where the range of the head starts
+    Then itos exits with code 0
+    And the range starts at the head's parent
