@@ -4882,7 +4882,7 @@ items:
     title: "v6.0.0: exit 75 for a failure worth retrying, ci run's own exit code, and the machine-output contract announced"
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-100]
     kind: slice
     why: >
