@@ -160,3 +160,31 @@ Feature: The commit-msg hook
       """
     Then itos exits with code 1
     And its output says "src/app.js"
+
+  # Bug 36 (found by the code review of 07b0e6d). The commit-msg hook read
+  # the commit's type from the message file's first line, while the header
+  # lint read the header git will store, after its cleanup: a message whose
+  # first line was blank or a comment (as an editor leaves it) passed the
+  # lint and hid its type from the path rules and the required footers. The
+  # hook reads the type from the same cleaned header the lint reads. A
+  # docstring may not keep a leading blank line, hence the second scenario's
+  # own step.
+  @ID-CMSG-14 @bug-36 @wip
+  Scenario: A message whose first line is a comment is held to its type's path rules
+    Given the config's chore commits may never touch "src/**" except "src/themes/**"
+    And a change to "src/app.js" is staged
+    When the commit-msg hook checks the message:
+      """
+      # Please enter the commit message for your changes.
+      chore: tidy the app
+
+      Task: T-001
+      """
+    Then itos exits with code 1
+    And its output says "src/app.js"
+
+  @ID-CMSG-15 @bug-36 @wip
+  Scenario: A message whose first line is blank is held to its type's footers
+    When the commit-msg hook checks a message whose first line is blank, then "chore: tidy the readme"
+    Then itos exits with code 1
+    And its output says "Task"
