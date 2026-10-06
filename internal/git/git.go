@@ -99,7 +99,8 @@ func splitNUL(out string) []string {
 }
 
 // CommitPaths are the paths a commit touches, against its parent, or every
-// path it holds for a root commit.
+// path it holds for a root commit; a rename is both its paths (bug 32), as
+// the commit-msg hook reads the staged ones.
 func CommitPaths(sha string) ([]string, error) {
-	return Paths("diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha)
+	return Paths("diff-tree", "--no-commit-id", "--name-only", "--no-renames", "-r", "--root", sha)
 }

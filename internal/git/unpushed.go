@@ -57,9 +57,10 @@ func UnpushedBase(to string) string {
 
 // UnpushedPaths are the paths the unpushed commits of to touch, each once,
 // in the order git log first names them: the files the range changed, as
-// git diff names them for a range with one start.
+// git diff names them for a range with one start, a rename both its paths
+// (bug 32).
 func UnpushedPaths(to string) ([]string, error) {
-	lines, err := Paths(append([]string{"log", "--format=", "--name-only"}, Revs(Unpushed, to)...)...)
+	lines, err := Paths(append([]string{"log", "--format=", "--name-only", "--no-renames"}, Revs(Unpushed, to)...)...)
 	if err != nil {
 		return nil, err
 	}

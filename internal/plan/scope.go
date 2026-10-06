@@ -13,9 +13,12 @@ import (
 // start, a rewritten history) touched nothing and names nothing, and is not
 // prose, so the shortcut is never taken on a guess and every test runs.
 
-// Changed are the files a pushed range touched (`git diff --name-only from
-// to`, read NUL-separated so that none comes back quoted, bug 31), the paths its commits touch for the unpushed commits (git.Unpushed);
-// none when it cannot be read or has no start or end.
+// Changed are the files a pushed range touched (`git diff --name-only
+// --no-renames from to`, read NUL-separated so that none comes back quoted,
+// bug 31), the paths its commits touch for the unpushed commits
+// (git.Unpushed); none when it cannot be read or has no start or end. A
+// rename is both its paths (bug 32), so a range that moves code into prose
+// paths is not prose-only.
 func Changed(from, to string) []string {
 	if from == "" || to == "" {
 		return nil
@@ -24,7 +27,7 @@ func Changed(from, to string) []string {
 		paths, _ := git.UnpushedPaths(to)
 		return paths
 	}
-	paths, err := git.Paths("diff", "--name-only", from, to)
+	paths, err := git.Paths("diff", "--name-only", "--no-renames", from, to)
 	if err != nil {
 		return nil
 	}

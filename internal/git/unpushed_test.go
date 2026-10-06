@@ -76,3 +76,22 @@ func TestUnpushed(t *testing.T) {
 		t.Fatalf("growing from two remote branches, UnpushedBase = %q, want \"\"", got)
 	}
 }
+
+// A rename is both its paths (bug 32), in the unpushed commits' paths and in
+// a commit's, with git's rename detection on: the old path's deletion and the
+// new path's addition, as the commit-msg hook reads the staged ones.
+func TestRenameIsBothPaths(t *testing.T) {
+	dir := t.TempDir()
+	gitIn(t, dir, "init", "-q", "-b", "main")
+	t.Chdir(dir)
+	gitIn(t, dir, "config", "diff.renames", "true")
+	commitFile(t, dir, "a")
+	gitIn(t, dir, "mv", "a", "b")
+	gitIn(t, dir, "commit", "-q", "-m", "rename")
+	if got, _ := UnpushedPaths("HEAD"); !slices.Equal(got, []string{"a", "b"}) {
+		t.Fatalf("UnpushedPaths = %q, want [a b]", got)
+	}
+	if got, _ := CommitPaths("HEAD"); !slices.Equal(got, []string{"a", "b"}) {
+		t.Fatalf("CommitPaths = %q, want [a b]", got)
+	}
+}

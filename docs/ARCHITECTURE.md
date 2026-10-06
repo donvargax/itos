@@ -589,7 +589,13 @@ mechanisms above, written against those modules, read across.
   `ls-files`, `ls-tree`, `log --name-only`, `status --porcelain`) is read
   NUL-separated, with `-z` (`git.Paths`, bug 31), so a path git would
   C-quote is matched as it is named; a merge's own paths, read from the
-  headers of its combined diff, are unquoted.
+  headers of its combined diff, are unquoted. Every list of changed paths
+  (the hook's staged paths, verify's commit paths, the CI plan's range and
+  the unpushed commits' paths) is read with `--no-renames` and no diff
+  filter that drops a change type (bug 32), so a rename is its old path's
+  deletion and its new path's addition, a type change (T) is listed, and the
+  hook, verify and the plan agree on what a commit touches; only the
+  conflicted paths select, with `--diff-filter=U`.
 - **The launcher** (`internal/launch`, slice 27) runs before the command
   line: `cmd/itos` calls `launch.Main`, and only when it hands the run back
   `cli.Main`. It picks the version to run, `ITOS_VERSION` when set, else the
@@ -1876,7 +1882,7 @@ add`ed so `--only` can name it, git add's words and the commit's on
   the first to fail deciding, each a call to the judgement its own command
   makes: itos's data at commit is `configFindings` under
   `source.ReadingFrom(source.At("index"), …)` when a staged path (`git diff
---cached --name-only --diff-filter=ACMRD`) is the config, a ledger file, the
+--cached --name-only --no-renames`) is the config, a ledger file, the
   registry or a smoke set as the staged config names them, data that cannot
   be read one `data-unreadable` problem, the rejection's first line the
   staged `commits.reject_message`; the staged rule is `scope.Of(cfg).Issues`

@@ -139,7 +139,7 @@ Feature: The commit-msg hook
   # rename is its old path's deletion and its new path's addition. The
   # symlink is staged in the index alone (git update-index), so no
   # filesystem link is needed on Windows.
-  @ID-CMSG-12 @bug-32 @wip
+  @ID-CMSG-12 @bug-32
   Scenario: A docs commit that renames code into docs/ is refused, naming the old path
     Given "src/app.js" is committed
     And "src/app.js" is staged renamed to "docs/app.md"
@@ -147,7 +147,7 @@ Feature: The commit-msg hook
     Then itos exits with code 1
     And its output says "src/app.js"
 
-  @ID-CMSG-13 @bug-32 @wip
+  @ID-CMSG-13 @bug-32
   Scenario: A never rule refuses a path whose type changed
     Given the config's chore commits may never touch "src/**" except "src/themes/**"
     And "src/app.js" is committed

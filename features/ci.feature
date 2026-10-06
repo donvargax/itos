@@ -240,7 +240,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # into docs/ listed only its new path, made the range prose-only, and the
   # build and the tests were skipped. The plan reads them with --no-renames
   # and every change type, as the commit-msg hook does.
-  @ID-CI-17 @bug-32 @wip
+  @ID-CI-17 @bug-32
   Scenario: A range that renames code into docs/ is not prose-only
     Given "src/app.js" is in the first commit
     And the CI steps are "echo full"

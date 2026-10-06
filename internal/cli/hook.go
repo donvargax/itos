@@ -42,11 +42,14 @@ import (
 )
 
 // stagedFiles are the paths the commit stages, as git names them (repo.ts's
-// stagedFiles), read NUL-separated so that none comes back quoted (bug 31):
-// added, copied, modified, renamed or deleted, against base, or against HEAD
-// when base is "".
+// stagedFiles), read NUL-separated so that none comes back quoted (bug 31),
+// against base, or against HEAD when base is "". Every change type is listed,
+// a type change (T) among them, and with rename detection off, so a rename is
+// its old path's deletion and its new path's addition (bug 32): a rename out
+// of what a type may touch is judged by the path it leaves, as verify and the
+// CI plan judge the commit once it is made.
 func stagedFiles(base string) ([]string, error) {
-	args := []string{"diff", "--cached", "--name-only", "--diff-filter=ACMRD"}
+	args := []string{"diff", "--cached", "--name-only", "--no-renames"}
 	if base != "" {
 		args = append(args, base)
 	}
