@@ -734,3 +734,23 @@
     - run: go test ./tools/bin/previous-release
     - run: go run ./tools/bin/previous-release
       timeout: 900
+
+- id: T-098
+  type: ci
+  title: Only build and ci commits may touch the gates, and style is no type
+  why: >
+    The user's calls (2026-10-05). An Item footer stands in for Task on chore with no checks at all,
+    and chore, refactor, perf and test could edit the gates themselves: itos.yaml, the workflows,
+    the hooks, tools/bin (the release check and the other gates' Go code), tools/selftest and
+    deps-check.json. A path set gates holds those, and only build and ci, which need a Task, may
+    touch it; refactor keeps the rest of the config, such as go.mod for a module move. style goes
+    from commits.types: no commit ever used it, vp staged formats every commit, and it needed no
+    footer and could touch anything. Not a fortress: a build or ci commit can still change the
+    gates, and the coordinator's review of each agent's commits is what catches that
+    (p3-gate-changes-visible).
+  done_when:
+    - run: "! tools/bin/itos commit check-paths --type chore itos.yaml"
+    - run: "! tools/bin/itos commit check-paths --type refactor .github/workflows/ci.yml"
+    - run: "! tools/bin/itos commit check-paths --type test tools/selftest/gates.ts"
+    - run: tools/bin/itos commit check-paths --type ci itos.yaml
+    - run: "! printf 'style: tidy\\n' | tools/bin/itos commit check-message -"
