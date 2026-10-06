@@ -5149,8 +5149,8 @@ items:
   - id: slice-90
     title: itos push exits by the error's kind, not with git's own code
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-86]
     kind: slice
     why: >
