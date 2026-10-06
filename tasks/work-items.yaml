@@ -4684,3 +4684,18 @@ items:
       the SHA-alone line, the JSON's empty header and the help's words for them only served
       ci.range.command, and the corpus case that pinned them went with it. Drop them, or keep them
       for a provider to come (p3-command-providers-back).
+
+  - id: p1-vet-staged-tree
+    title: The pre-commit hook vets the staged tree, so a module move can split by type
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice 85's agent (2026-10-05): T-098 puts tools/bin among the gates, so a module move
+      splits into a refactor (go.mod and the imports) and a ci commit (tools/bin), but the
+      pre-commit hook runs go vet ./... on the working tree, which fails while tools/bin still
+      imports the old path; the agent committed the refactor with tools/bin edited but unstaged.
+      Vetting the staged tree (a worktree of the index), or letting one commit carry a module move,
+      would make the split honest.
