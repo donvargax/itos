@@ -4861,3 +4861,13 @@ items:
       command kind, but itos tests moves <kind> stays Gherkin-only, its pinned message saying the
       rule reads feature files. Waits on slice-82 (q-15).
     refs: [internal/cli, features/moves-command.feature]
+
+  - id: T-100
+    title: previous-release judges an old case by itos's machine output alone, and CI reads ci range and version through --json
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Specified in tasks/phase-1.yaml (decision 35).
