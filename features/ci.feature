@@ -182,7 +182,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # branch it ran on, so the walk (ci range's, and itos status's last green
   # commit) no longer filters by branch. v5 removes ci.range.github.branch
   # itself (slice 85, the user's call), so no warning is needed here.
-  @ID-CI-13 @bug-29 @wip
+  @ID-CI-13 @bug-29
   Scenario: ci range starts at the head's parent whose green run was on another branch
     Given ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
     And three commits on top of the first

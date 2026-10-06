@@ -47,7 +47,6 @@ func RangeProvider(cfg *config.Loaded, env Env, stderr io.Writer) Range {
 		Repository: env(r.GitHub.RepositoryEnv),
 		Token:      firstSet(env, r.GitHub.TokenEnv),
 		Workflow:   r.GitHub.Workflow,
-		Branch:     r.GitHub.Branch,
 		API:        env(APIEnv),
 	}.NearestGreen
 }
@@ -115,9 +114,9 @@ var FirstParentsAsked = 100
 // everything, rather than holding the CI run until its job's own timeout.
 var Timeout = time.Minute
 
-// GitHub is the github provider's question: the workflow's runs on a branch
-// of a repository ("owner/name"), asked with a token when there is one, of the
-// API at API, else at GitHubAPI.
+// GitHub is the github provider's question: the workflow's runs of a
+// repository ("owner/name"), on Branch where a look names one (the nightly's),
+// asked with a token when there is one, of the API at API, else at GitHubAPI.
 type GitHub struct {
 	Repository, Token, Workflow, Branch string
 	API                                 string
@@ -133,11 +132,14 @@ func (g GitHub) api() string {
 
 // NearestGreen is where a push's range to the head starts (bug 23): the
 // nearest of the head's first parents, from its parent, with a successful run
-// of the workflow on the branch, each asked about by its own runs. The head's
+// of the workflow, each asked about by its own runs. The head's
 // own run is the one asking, and a run that failed, was cancelled or is still
 // going is passed over. The branch's list of runs is not read: GitHub served
 // it stale on 2026-10-05, naming a run a day old as the newest green one, and
-// the range then reached back past commits already proved. Past
+// the range then reached back past commits already proved. A run counts on
+// whatever branch it ran (bug 29): a green run of that exact commit proves it,
+// and filtering by ci.range.github.branch made a push to another branch start
+// at main's green ancestor, re-checking what that branch had proved. Past
 // FirstParentsAsked first parents with none green, and on anything that goes
 // wrong, there is no start, which runs everything; with no repository nobody
 // is asked.
@@ -151,7 +153,7 @@ func (g GitHub) NearestGreen(head string) string {
 
 // LastGreenFrom is the commit itos status names as the last green one (bug
 // 24): the first of the head's first parents, the head itself included, with
-// a successful run of the workflow on the branch, found by NearestGreen's walk
+// a successful run of the workflow on any branch, found by NearestGreen's walk
 // and bound, for the reason it gives; "" and no error when none of them has
 // one. Unlike the range's, its failures are said.
 func (g GitHub) LastGreenFrom(head string) (string, error) {
@@ -181,13 +183,14 @@ func (g GitHub) greenFirstParent(from string, skip int) (string, error) {
 }
 
 // GreenRunOf is whether the workflow has a successful run of the commit, given
-// by its full SHA, on the branch.
+// by its full SHA, on any branch (bug 29). Only a run whose head_sha is the
+// commit counts, whatever else the API answers.
 func (g GitHub) GreenRunOf(sha string) (bool, error) {
 	var body struct {
 		WorkflowRuns []WorkflowRun `json:"workflow_runs"`
 	}
-	path := fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?branch=%s&head_sha=%s&per_page=20",
-		g.Repository, url.PathEscape(g.Workflow), encodeURIComponent(g.Branch), encodeURIComponent(sha))
+	path := fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?head_sha=%s&per_page=20",
+		g.Repository, url.PathEscape(g.Workflow), encodeURIComponent(sha))
 	if err := g.get(path, &body); err != nil {
 		return false, err
 	}
@@ -207,7 +210,7 @@ type LastGreenLook func(head string) (sha string, err error)
 // LastGreenProvider is the look itos status takes at the last green commit
 // (slice 73), through ci.range's provider: ok is false for none. command is
 // ci.range.command's first line, an error when it fails, the head unused;
-// github is LastGreenFrom the head, of ci.range.github's workflow on its
+// github is LastGreenFrom the head, of ci.range.github's workflow on any
 // branch, the repository, token and API's address found as ci.watch's github
 // provider finds them (the environment, else the remote's URL and gh), so it
 // reads outside CI too. An error is a provider that cannot look at all, said
@@ -236,7 +239,7 @@ func LastGreenProvider(cfg *config.Loaded, s WatchSetup) (look LastGreenLook, ok
 	if err != nil {
 		return nil, false, err
 	}
-	g.Workflow, g.Branch = r.GitHub.Workflow, r.GitHub.Branch
+	g.Workflow = r.GitHub.Workflow
 	return g.LastGreenFrom, true, nil
 }
 

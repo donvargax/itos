@@ -116,7 +116,8 @@ func (s *walkServer) askedFor() []string {
 // The github range provider walks the head's first parents from its parent,
 // asking each commit's own runs, and starts at the first with a green run:
 // a failed, cancelled or unfinished run is passed over, the head's own run
-// and a merged branch's commits are never asked about (bug 23).
+// and a merged branch's commits are never asked about (bug 23), and the runs
+// are asked for by commit alone, on any branch, though a branch is set (bug 29).
 func TestNearestGreenWalksTheFirstParents(t *testing.T) {
 	shas := walkRepository(t)
 	s := &walkServer{runs: map[string]string{
@@ -135,7 +136,7 @@ func TestNearestGreenWalksTheFirstParents(t *testing.T) {
 		t.Fatalf("asked %v, want m, c2, c1 %v", s.askedFor(), want)
 	}
 	asked := s.asked[0]
-	if want := "/repos/o/r/actions/workflows/ci.yml/runs?branch=a%20b%26c&head_sha=" + shas["m"] + "&per_page=20"; asked.URL.RequestURI() != want {
+	if want := "/repos/o/r/actions/workflows/ci.yml/runs?head_sha=" + shas["m"] + "&per_page=20"; asked.URL.RequestURI() != want {
 		t.Errorf("asked %s, want %s", asked.URL.RequestURI(), want)
 	}
 	if asked.Header.Get("Authorization") != "Bearer t" || asked.Header.Get("Accept") != "application/vnd.github+json" {
