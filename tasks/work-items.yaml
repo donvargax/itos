@@ -4639,3 +4639,19 @@ items:
       The user's call (2026-10-05): with formatters run on every commit, style is never the right
       type. This repository dropped it in T-098; the starter still lists it
       (internal/cli/starter.go), though there it needs a Task.
+
+  - id: p3-gate-changes-visible
+    title: Gate changes made hard to miss, and a human's signature if ever cheap
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-05), very low priority, guardrails over hardening. Everything itos
+      enforces lives in the repository, and CI runs the workflow as the pushed commit has it, so an
+      agent with the person's credentials can change a rule and its check in one push. itos status
+      and itos go could show the gate files changed since a review recorded locally, and release
+      notes a section of gate changes. Beyond that, if ever cheap: commits touching the gates signed
+      by a hardware key that needs a touch, checked by a GitHub ruleset or a workflow outside the
+      repository. Today the coordinator's review of each agent's commits is the layer.
