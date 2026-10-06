@@ -5266,3 +5266,14 @@ items:
       and the nightly's self-tests no longer test what they say. They should run the hooks the git
       config declares, git hook run commit-msg and git hook run pre-push, or tools/bin/itos hook
       <event> beside the project's own hook.
+
+  - id: slice-92
+    title: itos decision holds what waits on the person, and a question for anyone else is itos followup
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified in features/ask.feature (q-18's record).
+    refs: [features/ask.feature, internal/cli]
