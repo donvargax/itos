@@ -4230,3 +4230,17 @@ items:
       a fatal stack overflow, in the commit-msg hook too, and nested aliases expand exponentially
       (value/value.go:192-194). Its @bug-39 scenario is written before it is handed out.
     refs: [internal/value/value.go]
+
+  - id: bug-40
+    title: ci watch retries GitHub's rate limit
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). Only 5xx and 429 count as transient, but
+      GitHub's primary and often its secondary rate limit answer 403, so a long watch or sessions
+      sharing a token end ci watch and itos push with exit 3 (providers/watch.go:343). Its @bug-40
+      scenario is written before it is handed out.
+    refs: [internal/providers/watch.go]
