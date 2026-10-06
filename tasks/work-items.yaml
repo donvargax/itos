@@ -4679,6 +4679,13 @@ items:
       548 seconds locally, which the pre-push hook's unit run waits on whenever internal/cli is
       reached.
 
+      Still so on 2026-10-06: about 300 seconds locally, and internal/cli takes 200 to 290 seconds
+      in CI on every platform, nearly all of it this test. Every push and hook run reaching
+      internal/cli waits on it, and go-hooks.ts runs about 30 minutes, which is why T-102 leaves the
+      self-tests to the nightly. The test commits a 5 MB message (word repeated 1<<20 times) so git
+      cannot start; suspect itos reads that message in quadratic time before git runs (header lint,
+      footer parse), which would be a perf bug of itos itself, not of the test.
+
   - id: bug-45
     title: itos's own git calls pass over any itos shim, not only itself
     phase: 1
