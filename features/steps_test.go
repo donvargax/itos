@@ -80,6 +80,7 @@ type scratchConfig struct {
 	runSelect         string          // the scenario kind's run.select, when ciTests gives it none
 	smokeRuns         []string        // commands the kind of ciTests recognizes as its smoke run
 	stopAtFirst       *bool           // ci.stop_at_first_failure
+	keepStepOrder     *bool           // ci.keep_step_order
 	nightlyTasks      string          // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
 	costStatic        []string        // ci.cost.static
 	keepWrittenOrder  *bool           // ci.cost.keep_written_order
@@ -182,6 +183,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the task "([^"]*)" has the check "([^"]*)"$`, w.taskHasCheck)
 	sc.Step(`^the task "([^"]*)" has the check "([^"]*)", then the check "([^"]*)"$`, w.taskHasTwoChecks)
 	sc.Step(`^the CI steps are "([^"]*)"$`, func(step string) error { return w.ciStepsAre(step) })
+	sc.Step(`^the CI steps are "([^"]*)", then "([^"]*)"$`, func(first, second string) error { return w.ciStepsAre(first, second) })
 	sc.Step(`^the config's ci section holds only a github watch of "([^"]*)"$`, func(workflow string) error {
 		w.config.ciWatchOnly = workflow
 		return w.writeConfig()
@@ -316,6 +318,11 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^hooks\.bin is "([^"]*)"$`, w.hooksBinIs)
 	sc.Step(`^ci\.cost\.static is "([^"]*)"$`, w.costStaticIs)
 	sc.Step(`^ci\.cost\.keep_written_order is (true|false)$`, w.keepWrittenOrderIs)
+	sc.Step(`^ci\.keep_step_order is (true|false)$`, func(value string) error {
+		on := value == "true"
+		w.config.keepStepOrder = &on
+		return w.writeConfig()
+	})
 	sc.Step(`^ci\.covers says the step "([^"]*)" covers "([^"]*)"$`, w.coversIs)
 	sc.Step(`^ci\.nightly_only is "([^"]*)"$`, w.nightlyOnlyIs)
 	sc.Step(`^"([^"]*)" is a script that records it ran$`, w.recordingScript)
@@ -913,6 +920,9 @@ func (w *world) ciSection() string {
 	}
 	if w.config.stopAtFirst != nil {
 		fmt.Fprintf(&b, "  stop_at_first_failure: %t\n", *w.config.stopAtFirst)
+	}
+	if w.config.keepStepOrder != nil {
+		fmt.Fprintf(&b, "  keep_step_order: %t\n", *w.config.keepStepOrder)
 	}
 	if len(w.config.costStatic) > 0 || w.config.keepWrittenOrder != nil {
 		b.WriteString("  cost:\n")
