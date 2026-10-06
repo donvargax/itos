@@ -4848,3 +4848,16 @@ items:
       shim missing. No scenario pins that: one where init runs in a linked worktree after hooks
       install, and reports no hook missing, would.
     refs: [internal/cli/init.go]
+
+  - id: p1-tests-moves-command-kind
+    title: itos tests moves <kind> on a command kind
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-82]
+    kind: idea
+    why: >
+      Found by slice-82's agent (2026-10-06). Once slice 82 lands the built-in moves rule judges a
+      command kind, but itos tests moves <kind> stays Gherkin-only, its pinned message saying the
+      rule reads feature files. Waits on slice-82 (q-15).
+    refs: [internal/cli, features/moves-command.feature]
