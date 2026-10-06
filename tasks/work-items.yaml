@@ -347,8 +347,8 @@ items:
   - id: bug-28
     title: "Push CI lists a named task's after: push checks as pending, neither run nor failed"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
