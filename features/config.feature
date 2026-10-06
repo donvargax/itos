@@ -285,8 +285,7 @@ Feature: Every key the config accepts is one itos reads
   # push.feature, status.feature, the work scenarios with an identity
   # command, and their corpus cases) move to the fake GitHub of bug 23, or
   # go where a github one says the same, each named with --breaking. The
-  # module path moves to github.com/donvargax/itos/v5, as T-094 moved it to
-  # v4. Providers for other hosts come back behind a trust gate:
+  # module path moves to its /v5, as T-094 moved it to /v4. Providers for other hosts come back behind a trust gate:
   # p3-command-providers-back.
   @ID-CONFIG-30 @slice-85
   Scenario: config check refuses ci.range's command provider, removed in v5
