@@ -4808,3 +4808,19 @@ items:
       stderr when a download starts, give the connection a short timeout so a dead one fails in
       seconds, and name the host and the file in a timeout's error. Audit every other network call
       likewise.
+
+  - id: p3-itos-repos
+    title: itos repos, the status of every sibling repository at once
+    phase: 3
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-05): the first need of cross-repository work is one view of every
+      repository's status. It starts as a script, itos-repos, run through the extension mechanism on
+      the work machine: itos status in each direct subfolder that is a git repository using itos,
+      with ITOS_VERSION, ITOS_CONFIG and ITOS_ROOT unset so each runs its own pin and config,
+      read-only, with a timeout each. Once its shape settles (parallel, a compact summary, --json),
+      it is built properly as an extension, here or in its own repository. It reads status --json
+      across versions, so that output becomes a contract (p2-cross-repo-contract).
