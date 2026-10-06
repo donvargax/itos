@@ -538,3 +538,23 @@ Feature: The work registry
     Then itos exits with code 0
     And its output says "solo"
     And its output does not say "gh"
+
+  # Bug 34 (found by the code review of 07b0e6d). work done read the
+  # registry, waited minutes for the task's checks and CI, then wrote back
+  # what it had read, so a registry commit made meanwhile (a take, a queue
+  # change, someone's edit pulled in) was reverted by its close commit. work
+  # done reads the registry again after the wait and closes the item in what
+  # it reads then. Two registry writers at the same instant is not this bug.
+  # The change lands when the fake GitHub is first asked for the run.
+  @ID-WORK-51 @bug-34 @wip
+  Scenario: work done keeps a registry change committed while it waited for CI
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the work registry has the item "slice-2" owned by nobody with the status "todo"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And while work done waits for CI, a commit takes "slice-2" for "other"
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And the registry's item "slice-9" has the status "done" and the owner "someone"
+    And the registry's item "slice-2" has the status "doing" and the owner "other"
