@@ -10,32 +10,6 @@ import (
 	"github.com/donvargax/itos/v4/internal/config"
 )
 
-func TestReadRunTakesTheRunObject(t *testing.T) {
-	run, err := ReadRun([]byte(`{"url":"u","status":"completed","conclusion":"failure","jobs":[{"name":"ci","status":"completed","conclusion":"failure"},{"name":"p","status":"queued"}]}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !run.Done() || run.Conclusion != "failure" || len(run.Jobs) != 2 || !run.Jobs[0].Done() || run.Jobs[1].Done() {
-		t.Fatalf("read %+v", run)
-	}
-}
-
-func TestReadRunRefusesWhatIsNotARun(t *testing.T) {
-	for _, text := range []string{
-		"not json",
-		`{"url":"u","status":"running"}`,
-		`{"url":"u","status":"completed"}`,
-		`{"url":"u","status":"queued","jobs":[{"status":"queued"}]}`,
-		`{"url":"u","status":"queued","jobs":[{"name":"ci","status":"completed"}]}`,
-		`{"url":"u","status":"queued"} {}`,
-		`[]`,
-	} {
-		if _, err := ReadRun([]byte(text)); err == nil {
-			t.Errorf("%s read as a run", text)
-		}
-	}
-}
-
 func TestGitHubRepositoryReadsAGitHubRemote(t *testing.T) {
 	for url, want := range map[string]string{
 		"git@github.com:donvargax/itos.git":          "donvargax/itos",
@@ -156,14 +130,9 @@ func TestTheNightlyIsReadOnlyWhereTheProviderNamesOne(t *testing.T) {
 	if _, ok, err := NightlyProvider(cfg, "main", setup); ok || err == nil || !strings.Contains(err.Error(), "token") {
 		t.Fatalf("github's nightly with no token: ok %v, err %v", ok, err)
 	}
-	command := "cat nightly.json"
-	cfg.CI.Watch.Provider, cfg.CI.Watch.NightlyCommand = "none", &command
+	cfg.CI.Watch.Provider = "none"
 	if _, ok, err := NightlyProvider(cfg, "main", setup); ok || err != nil {
 		t.Fatalf("provider none: ok %v, err %v", ok, err)
-	}
-	cfg.CI.Watch.Provider, cfg.CI.Watch.NightlyCommand = "command", nil
-	if _, ok, err := NightlyProvider(cfg, "main", setup); ok || err != nil {
-		t.Fatalf("command with no nightly command: ok %v, err %v", ok, err)
 	}
 }
 
@@ -183,7 +152,7 @@ func TestStatusLooksAskGitHubAPIURL(t *testing.T) {
 	setup := WatchSetup{Env: func(name string) string { return env[name] }}
 	cfg := githubWatchConfig()
 	cfg.CI.Watch.GitHub.NightlyWorkflow = "nightly.yml"
-	cfg.CI.Range.Provider, cfg.CI.Range.GitHub.Workflow, cfg.CI.Range.GitHub.Branch = "github", "range.yml", "main"
+	cfg.CI.Range.Provider, cfg.CI.Range.GitHub.Workflow = "github", "range.yml"
 	nightly, ok, err := NightlyProvider(cfg, "main", setup)
 	if !ok || err != nil {
 		t.Fatalf("nightly: ok %v, err %v", ok, err)

@@ -13,20 +13,18 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
 
   ci.watch is opt-in (the user's call, 2026-10-03): its provider is none by
   default, so a config without it pushes exactly as before. github reads the
-  run of ci.watch.github.workflow for the commit through GitHub's API, with
-  a token from ci.range.github.token_env, else from gh auth token; with
-  neither it exits 3 naming both, before any request. command runs
-  ci.watch.command with {sha} filled in, once per ci.watch.interval seconds,
-  and reads one JSON object from its stdout: {"url", "status" (queued,
-  in_progress or completed), "conclusion" (when completed), "jobs":
-  [{"name", "status", "conclusion"}]}. A command that fails, or prints what
-  is not that object, exits 3. Here the command is a script of the
-  scenario's that reports a run it was given, so nothing reaches a network.
+  run of ci.watch.github.workflow for the commit through GitHub's API, once
+  per ci.watch.interval seconds, with a token from ci.range.github.token_env,
+  else from gh auth token; with neither it exits 3 naming both, before any
+  request. A refusal from the API ends the watch with exit 3. v5.0.0 removed
+  the command provider (slice 85), which ran a repository's own command on a
+  push. Here GitHub is a fake one, a server of the scenario's that itos is
+  pointed at through GITHUB_API_URL, so nothing reaches a network.
 
   Background:
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
-    And ci.watch runs a command that reports the run "https://ci.example/runs/1"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
 
   @ID-WATCH-01 @slice-51
   Scenario: A push waits for its run, printing each job's result, and exits 0 when it succeeds
@@ -37,7 +35,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     And its output says "ci: success"
     And its output says "platform: success"
     And its output says "https://ci.example/runs/1"
-    And the watch command was given the full SHA of the clone's HEAD
+    And the fake GitHub was asked for the run of the clone's HEAD
 
   # The commits are on the remote whatever the run says: the push is done,
   # and the exit code says what CI made of it.
@@ -66,7 +64,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     And the clone has the commit "chore: tidy the readme" touching "README.md"
     When itos runs "push --no-wait"
     Then itos exits with code 0
-    And the watch command was never run
+    And the fake GitHub was never asked about a run
     And the remote's branch has "chore: tidy the readme"
 
   @ID-WATCH-05 @slice-51
@@ -75,7 +73,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     And the clone has the commit "chore: tidy the readme" touching "README.md"
     When itos runs "push"
     Then itos exits with code 0
-    And the watch command was never run
+    And the fake GitHub was never asked about a run
 
   @ID-WATCH-06 @slice-51
   Scenario: A run still going after ci.watch.timeout exits 3, naming itos ci watch
@@ -93,20 +91,22 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     When itos runs "ci watch"
     Then itos exits with code 0
     And its output says "https://ci.example/runs/1"
-    And the watch command was given the full SHA of the clone's HEAD
+    And the fake GitHub was asked for the run of the clone's HEAD
 
+  # Slice 85: the command provider's run that was no JSON object is gone with
+  # it; GitHub's refusal is the look that ends a github watch.
   @ID-WATCH-08 @slice-51
-  Scenario: A watch command that prints no run object exits 3
-    Given the watch command prints "not json"
+  Scenario: A watch GitHub's API refuses exits 3
+    Given the fake GitHub refuses the token
     When itos runs "ci watch"
     Then itos exits with code 3
 
-  # GITHUB_TOKEN and GH_TOKEN are never in a scenario's environment, and the
-  # PATH has no gh, so neither way to sign in is there: it stops before any
-  # request.
+  # GH_TOKEN is never in a scenario's environment, GITHUB_TOKEN is taken out
+  # of it, and the PATH has no gh, so neither way to sign in is there: it
+  # stops before any request.
   @ID-WATCH-09 @slice-51
   Scenario: The github provider with no token and no gh exits 3, naming both ways to sign in
-    Given ci.watch's provider is "github"
+    Given no GitHub token in the environment
     And no gh on the PATH
     When itos runs "ci watch"
     Then itos exits with code 3
@@ -126,7 +126,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     And the clone has the commit "docs: take slice-9" touching "tasks/work-items.yaml"
     When itos runs "push"
     Then itos exits with code 0
-    And the watch command was never run
+    And the fake GitHub was never asked about a run
     And its output says "itos ci watch"
     And the remote's branch has "docs: take slice-9"
 

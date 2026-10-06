@@ -39,7 +39,6 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the clone has fetched the remote$`, func() error {
 		return w.git("fetch", "-q", "origin")
 	})
-	sc.Step(`^ci\.range runs a command that prints the full SHA of the remote's commit "([^"]*)"$`, w.rangePrintsRemoteCommit)
 	sc.Step(`^the clone has the commit "([^"]*)" touching "([^"]*)"$`, w.cloneCommits)
 	sc.Step(`^the clone's "([^"]*)" has an uncommitted change$`, w.uncommittedChange)
 	sc.Step(`^the clone's "([^"]*)" still has its uncommitted change$`, w.stillUncommitted)
@@ -204,19 +203,6 @@ func (w *world) remoteGainsCommit(subject, path string) error {
 		return err
 	}
 	return w.gitIn(other, "push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main")
-}
-
-// ci.range's provider is command, its command printing the full SHA of the
-// remote's commit with the header, added to the config the Background wrote
-// and left uncommitted in the clone: the remote has moved past the clone, so
-// it cannot be pushed, and itos reads the config from the clone's tree.
-func (w *world) rangePrintsRemoteCommit(header string) error {
-	sha, err := w.remoteCommit(header)
-	if err != nil {
-		return err
-	}
-	w.config.rangeCommand = "printf '%s\\n' " + sha
-	return w.writeConfig()
 }
 
 // The full SHA of the commit with the header on the remote's main.

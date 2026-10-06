@@ -287,11 +287,13 @@ func initializeRangeSteps(sc *godog.ScenarioContext, w *world) {
 
 // ci.range's provider is github, asking about the workflow, and itos runs as
 // Actions runs it, given the repository, a token and the API's address: the
-// fake GitHub's, whose runs are on the branch.
+// fake GitHub's, whose runs are on the branch. The config names no branch:
+// v5.0.0 removed ci.range.github.branch (slice 85), a run counting on any
+// branch since bug 29.
 func (w *world) rangeAsksFakeGitHub(workflow, branch string) error {
 	g := w.fakeGitHub()
 	g.workflow, g.branch = workflow, branch
-	w.config.rangeGitHub = &[2]string{workflow, branch}
+	w.config.rangeGitHub = workflow
 	return w.writeConfig()
 }
 

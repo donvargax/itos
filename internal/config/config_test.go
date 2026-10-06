@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v4/internal/value"
@@ -80,6 +81,28 @@ func TestUnknownKeyFix(t *testing.T) {
 	}
 	if e.Problems[1].Fix != "remove hooks.shims; the keys here are manager, bin, pre_push, commit_msg" {
 		t.Errorf("far: %q", e.Problems[1].Fix)
+	}
+}
+
+// v5.0.0's removed keys and values are refused as removed, each problem
+// saying what to do instead (slice 85), and a value it never had is still an
+// enum's problem.
+func TestRemovedInV5(t *testing.T) {
+	_, err := load(t, "version: 1\nci: { range: { provider: command, command: x, github: { branch: main } }, "+
+		"watch: { provider: command, command: y, nightly_command: z } }\n"+
+		"work: { identity: { provider: command, command: \"echo a\" } }\n")
+	var e *Error
+	if !errors.As(err, &e) || len(e.Problems) != 8 {
+		t.Fatalf("got %v", err)
+	}
+	for _, p := range e.Problems {
+		if p.Rule != "config-removed" || !strings.Contains(p.Message, " was removed in v5; ") || p.Fix == "" {
+			t.Errorf("got %+v", p)
+		}
+	}
+	got := messages(t, func() error { _, err := load(t, "version: 1\nci: { watch: { provider: gitlab } }\n"); return err }())
+	if !slices.Equal(got, []string{`ci.watch.provider should be one of github, none, not "gitlab"`}) {
+		t.Errorf("an unknown provider: %q", got)
 	}
 }
 

@@ -5,7 +5,7 @@
 # be going; the person's items in progress; the next ones they can start,
 # theirs and the unowned, in the queue's order and the unqueued after, five
 # at most; the open questions. What cannot be reached (no remote, a remote
-# that does not answer, ci.watch.provider none, a provider that prints no run)
+# that does not answer, ci.watch.provider none, a provider that cannot look)
 # is a line, and the rest prints, exit 0. itos go prints it after the guide,
 # and skips one that cannot be computed with a line on stderr.
 #
@@ -16,32 +16,30 @@
 # commits as fetched here, saying they may be behind when the head is not.
 #
 # Slice 72: after the head's CI run, the last nightly's, looked at once
-# through the same provider: the command one runs ci.watch.nightly_command,
-# given no commit, and reads its stdout as ci.watch.command's. A provider
-# naming no nightly prints no nightly line.
+# through the same provider: the newest run of ci.watch.github.nightly_workflow
+# on the branch. A provider naming no nightly prints no nightly line.
 #
 # Slice 73: while the head's run is going or did not pass, the commit main
-# last proved follows it, as ci.range's provider names it (here a command),
-# read once: its header when it is fetched here, its SHA alone when not; a
+# last proved follows it, as ci.range's provider names it, read once: the
+# nearest of the head's first parents, the head included, with a green run
+# (bug 24); its header when it is fetched here, its SHA alone when not; a
 # provider that fails is a line, and provider none prints nothing.
 #
 # The remote is a bare one in the git folder, .git/origin.git, holding the
-# repository's one commit; the watch command, report.sh, prints run.json with
-# SHA replaced by the commit it was given.
+# repository's one commit. GitHub is the runner's fake (run.ts), its run
+# answering for any commit, and the person is the one a fake gh, bin/gh, says
+# it is signed in as (work.identity's github provider): v5.0.0 removed the
+# command providers this corpus faked them with (slice 85).
 files:
   itos.yaml: |
     version: 1
     work:
       registry: work-items.yaml
       people: { source: yaml, file: people.yaml }
-      identity: { provider: command, command: "echo a" }
     ci:
       steps: []
-      watch: { provider: command, command: "sh report.sh {sha}", interval: 0 }
-  report.sh: |
-    sed "s/SHA/$1/g" run.json
-  run.json: |
-    {"url":"https://ci.example/runs/SHA","status":"completed","conclusion":"success","jobs":[{"name":"ci","status":"completed","conclusion":"success"}]}
+      watch: { provider: github, interval: 0 }
+  bin/gh: { text: "#!/bin/sh\necho a\n", executable: true }
   people.yaml: "- a\n- b\n"
   work-items.yaml: |
     phases: { 1: a, 2: null }
@@ -63,6 +61,14 @@ files:
       - id: q-2
         item: "ready"
         question: "Which way?"
+env: { PATH: "{{dir}}/bin:{{PATH}}" }
+github:
+  runs:
+    - head_sha: "*"
+      html_url: "https://ci.example/runs/{sha}"
+      status: completed
+      conclusion: success
+      jobs: [{ name: ci, status: completed, conclusion: success }]
 git:
   - commit: "chore: first"
     files: { README.md: "first\n" }
@@ -95,16 +101,25 @@ cases:
     stdout_has: "Nothing in progress for b.\nNext for b, in the queue's order:\n  free  Free  (unowned)\n  theirs  Theirs\n"
   - name: a run still going is said to be going, never waited for
     argv: [status]
-    files:
-      run.json: |
-        {"url":"https://ci.example/runs/1","status":"in_progress","jobs":[{"name":"ci","status":"in_progress"}]}
+    github:
+      runs:
+        - head_sha: "*"
+          html_url: "https://ci.example/runs/1"
+          status: in_progress
+          jobs: [{ name: ci, status: in_progress }]
     exit: 0
     stdout_has: "CI: going, https://ci.example/runs/1\n"
   - name: a run that failed names the jobs that failed
     argv: [status]
-    files:
-      run.json: |
-        {"url":"https://ci.example/runs/1","status":"completed","conclusion":"failure","jobs":[{"name":"ci","status":"completed","conclusion":"failure"},{"name":"platform","status":"completed","conclusion":"success"}]}
+    github:
+      runs:
+        - head_sha: "*"
+          html_url: "https://ci.example/runs/1"
+          status: completed
+          conclusion: failure
+          jobs:
+            - { name: ci, status: completed, conclusion: failure }
+            - { name: platform, status: completed, conclusion: success }
     exit: 0
     stdout_has: "CI: failure, https://ci.example/runs/1; failed jobs: ci\n"
   - name: the last nightly's run follows the head's, the jobs that failed named
@@ -115,12 +130,22 @@ cases:
         work:
           registry: work-items.yaml
           people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
         ci:
           steps: []
-          watch: { provider: command, command: "sh report.sh {sha}", nightly_command: "cat nightly.json", interval: 0 }
-      nightly.json: |
-        {"url":"https://ci.example/nightly/7","status":"completed","conclusion":"failure","jobs":[{"name":"nightly","status":"completed","conclusion":"failure"}]}
+          watch: { provider: github, interval: 0, github: { nightly_workflow: nightly.yml } }
+    github:
+      runs:
+        - head_sha: "*"
+          html_url: "https://ci.example/runs/{sha}"
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+        - workflow: nightly.yml
+          head_sha: "0000000000000000000000000000000000000000"
+          html_url: "https://ci.example/nightly/7"
+          status: completed
+          conclusion: failure
+          jobs: [{ name: nightly, status: completed, conclusion: failure }]
     exit: 0
     stdout_has: "CI: success, https://ci.example/runs/{{sha.head}}\nNightly: failure, https://ci.example/nightly/7; failed jobs: nightly\n\nNewest release: no release yet.\n"
   - name: a nightly still going is said to be going
@@ -131,15 +156,24 @@ cases:
         work:
           registry: work-items.yaml
           people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
         ci:
           steps: []
-          watch: { provider: command, command: "sh report.sh {sha}", nightly_command: "cat nightly.json", interval: 0 }
-      nightly.json: |
-        {"url":"https://ci.example/nightly/8","status":"in_progress","jobs":[{"name":"nightly","status":"in_progress"}]}
+          watch: { provider: github, interval: 0, github: { nightly_workflow: nightly.yml } }
+    github:
+      runs:
+        - head_sha: "*"
+          html_url: "https://ci.example/runs/{sha}"
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+        - workflow: nightly.yml
+          head_sha: "0000000000000000000000000000000000000000"
+          html_url: "https://ci.example/nightly/8"
+          status: in_progress
+          jobs: [{ name: nightly, status: in_progress }]
     exit: 0
     stdout_has: "Nightly: going, https://ci.example/nightly/8\n"
-  - name: a nightly command that prints no run is a line, and the rest prints
+  - name: a refusal from GitHub's API is a line for the run and the nightly, and the rest prints
     argv: [status]
     files:
       itos.yaml: |
@@ -147,22 +181,14 @@ cases:
         work:
           registry: work-items.yaml
           people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
         ci:
           steps: []
-          watch: { provider: command, command: "sh report.sh {sha}", nightly_command: "cat nightly.json", interval: 0 }
-      nightly.json: "not json\n"
+          watch: { provider: github, interval: 0, github: { nightly_workflow: nightly.yml } }
+    github: { refuse: true }
     exit: 0
     stdout_has:
-      - "CI: success, https://ci.example/runs/{{sha.head}}\nThe nightly cannot be read: ci.watch.nightly_command printed no run: "
-      - "In progress for a:\n  busy  Busy\n"
-  - name: a watch command that prints no run is a line, and the rest prints
-    argv: [status]
-    files:
-      report.sh: "echo not json\n"
-    exit: 0
-    stdout_has:
-      - "origin/main: {{short.head}} chore: first\nCI cannot be read: ci.watch.command printed no run: "
+      - "origin/main: {{short.head}} chore: first\nCI cannot be read: GitHub's API answered 401 Unauthorized for "
+      - "The nightly cannot be read: GitHub's API answered 401 Unauthorized for "
       - "In progress for a:\n  busy  Busy\n"
   - name: with ci.watch.provider none the CI run is not read
     argv: [status]
@@ -172,7 +198,6 @@ cases:
         work:
           registry: work-items.yaml
           people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
     exit: 0
     stdout_has: "origin/main: {{short.head}} chore: first\nCI is not read: ci.watch.provider is none.\n"
   - name: while the head's run is going, main's last green commit follows it, before the nightly
@@ -191,15 +216,22 @@ cases:
         work:
           registry: work-items.yaml
           people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
         ci:
           steps: []
-          range: { provider: command, command: "git rev-parse HEAD~1" }
-          watch: { provider: command, command: "sh report.sh {sha}", nightly_command: "cat nightly.json", interval: 0 }
-      run.json: |
-        {"url":"https://ci.example/runs/1","status":"in_progress","jobs":[{"name":"ci","status":"in_progress"}]}
-      nightly.json: |
-        {"url":"https://ci.example/nightly/7","status":"completed","conclusion":"success","jobs":[{"name":"nightly","status":"completed","conclusion":"success"}]}
+          watch: { provider: github, interval: 0, github: { nightly_workflow: nightly.yml } }
+    github:
+      runs:
+        - head_sha: "{{sha.head}}"
+          html_url: "https://ci.example/runs/1"
+          status: in_progress
+          jobs: [{ name: ci, status: in_progress }]
+        - { head_sha: "{{sha.green}}", status: completed, conclusion: success }
+        - workflow: nightly.yml
+          head_sha: "0000000000000000000000000000000000000000"
+          html_url: "https://ci.example/nightly/7"
+          status: completed
+          conclusion: success
+          jobs: [{ name: nightly, status: completed, conclusion: success }]
     exit: 0
     stdout_has: "origin/main: {{short.head}} feat: two\nCI: going, https://ci.example/runs/1\nLast green: {{short.green}} fix: one\nNightly: success, https://ci.example/nightly/7\n"
   - name: a head's run that failed is followed by main's last green commit
@@ -218,68 +250,29 @@ cases:
         work:
           registry: work-items.yaml
           people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
         ci:
           steps: []
-          range: { provider: command, command: "git rev-parse HEAD~1" }
-          watch: { provider: command, command: "sh report.sh {sha}", interval: 0 }
-      run.json: |
-        {"url":"https://ci.example/runs/1","status":"completed","conclusion":"failure","jobs":[{"name":"ci","status":"completed","conclusion":"failure"}]}
+          watch: { provider: github, interval: 0 }
+    github:
+      runs:
+        - head_sha: "{{sha.head}}"
+          html_url: "https://ci.example/runs/1"
+          status: completed
+          conclusion: failure
+          jobs: [{ name: ci, status: completed, conclusion: failure }]
+        - { head_sha: "{{sha.green}}", status: completed, conclusion: success }
     exit: 0
     stdout_has: "CI: failure, https://ci.example/runs/1; failed jobs: ci\nLast green: {{short.green}} fix: one\n\nNewest release: no release yet.\n"
-  - name: a last green commit not fetched here is named by its SHA alone
+  - name: no green run of the head's first parents names no last green commit
     argv: [status]
-    files:
-      itos.yaml: |
-        version: 1
-        work:
-          registry: work-items.yaml
-          people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
-        ci:
-          steps: []
-          range: { provider: command, command: "echo 0123456789abcdef0123456789abcdef01234567" }
-          watch: { provider: command, command: "sh report.sh {sha}", interval: 0 }
-      run.json: |
-        {"url":"https://ci.example/runs/1","status":"in_progress","jobs":[{"name":"ci","status":"in_progress"}]}
-    exit: 0
-    stdout_has: "CI: going, https://ci.example/runs/1\nLast green: 0123456\n\n"
-  - name: a range command that prints nothing names no last green commit
-    argv: [status]
-    files:
-      itos.yaml: |
-        version: 1
-        work:
-          registry: work-items.yaml
-          people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
-        ci:
-          steps: []
-          range: { provider: command, command: "true" }
-          watch: { provider: command, command: "sh report.sh {sha}", interval: 0 }
-      run.json: |
-        {"url":"https://ci.example/runs/1","status":"in_progress","jobs":[{"name":"ci","status":"in_progress"}]}
+    github:
+      runs:
+        - head_sha: "*"
+          html_url: "https://ci.example/runs/1"
+          status: in_progress
+          jobs: [{ name: ci, status: in_progress }]
     exit: 0
     stdout_has: "CI: going, https://ci.example/runs/1\nLast green: none found\n"
-  - name: a range command that fails is a line, and the rest prints
-    argv: [status]
-    files:
-      itos.yaml: |
-        version: 1
-        work:
-          registry: work-items.yaml
-          people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
-        ci:
-          steps: []
-          range: { provider: command, command: "exit 3" }
-          watch: { provider: command, command: "sh report.sh {sha}", interval: 0 }
-      run.json: |
-        {"url":"https://ci.example/runs/1","status":"in_progress","jobs":[{"name":"ci","status":"in_progress"}]}
-    exit: 0
-    stdout_has:
-      - "CI: going, https://ci.example/runs/1\nThe last green commit cannot be read: ci.range.command failed (exit 3): exit 3\n"
-      - "In progress for a:\n  busy  Busy\n"
   - name: with ci.range's provider none no last green commit is read
     argv: [status]
     files:
@@ -288,28 +281,20 @@ cases:
         work:
           registry: work-items.yaml
           people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
         ci:
           steps: []
           range: { provider: none }
-          watch: { provider: command, command: "sh report.sh {sha}", interval: 0 }
-      run.json: |
-        {"url":"https://ci.example/runs/1","status":"in_progress","jobs":[{"name":"ci","status":"in_progress"}]}
+          watch: { provider: github, interval: 0 }
+    github:
+      runs:
+        - head_sha: "*"
+          html_url: "https://ci.example/runs/1"
+          status: in_progress
+          jobs: [{ name: ci, status: in_progress }]
     exit: 0
     stdout_has: "CI: going, https://ci.example/runs/1\n\nNewest release: no release yet.\n"
   - name: when the head's run passed no last green commit is read
     argv: [status]
-    files:
-      itos.yaml: |
-        version: 1
-        work:
-          registry: work-items.yaml
-          people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
-        ci:
-          steps: []
-          range: { provider: command, command: "echo 0123456789abcdef0123456789abcdef01234567" }
-          watch: { provider: command, command: "sh report.sh {sha}", interval: 0 }
     exit: 0
     stdout_has: "CI: success, https://ci.example/runs/{{sha.head}}\n\nNewest release: no release yet.\n"
   - name: with no remote neither the head nor its CI run is read, and the rest prints
@@ -431,14 +416,24 @@ cases:
         work:
           registry: work-items.yaml
           people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
         ci:
           steps: []
-          watch: { provider: command, command: "sh report.sh {sha}", nightly_command: "cat nightly.json", interval: 0 }
-      nightly.json: |
-        {"url":"https://ci.example/nightly/7","status":"completed","conclusion":"success","jobs":[{"name":"nightly","status":"completed","conclusion":"success"}]}
+          watch: { provider: github, interval: 0, github: { nightly_workflow: nightly.yml } }
       work-items.yaml: "phases: { 1: a }\nitems: []\n"
       asks.yaml: null
+    github:
+      runs:
+        - head_sha: "*"
+          html_url: "https://ci.example/runs/{sha}"
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+        - workflow: nightly.yml
+          head_sha: "0000000000000000000000000000000000000000"
+          html_url: "https://ci.example/nightly/7"
+          status: completed
+          conclusion: success
+          jobs: [{ name: nightly, status: completed, conclusion: success }]
     exit: 0
     json:
       schema: 1
@@ -480,15 +475,18 @@ cases:
         work:
           registry: work-items.yaml
           people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo a" }
         ci:
           steps: []
-          range: { provider: command, command: "git rev-parse HEAD~1" }
-          watch: { provider: command, command: "sh report.sh {sha}", interval: 0 }
-      run.json: |
-        {"url":"https://ci.example/runs/1","status":"in_progress","jobs":[{"name":"ci","status":"in_progress"}]}
+          watch: { provider: github, interval: 0 }
       work-items.yaml: "phases: { 1: a }\nitems: []\n"
       asks.yaml: null
+    github:
+      runs:
+        - head_sha: "{{sha.head}}"
+          html_url: "https://ci.example/runs/1"
+          status: in_progress
+          jobs: [{ name: ci, status: in_progress }]
+        - { head_sha: "{{sha.green}}", status: completed, conclusion: success }
     exit: 0
     json:
       schema: 1

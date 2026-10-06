@@ -214,8 +214,8 @@ cases:
           fix: make ci.stop_at_first_failure a boolean
           area: config
         - rule: config-enum
-          message: 'itos.yaml: ci.range.provider should be one of github, command, none, not "gitlab"'
-          fix: set ci.range.provider to one of github, command, none
+          message: 'itos.yaml: ci.range.provider should be one of github, none, not "gitlab"'
+          fix: set ci.range.provider to one of github, none
           area: config
         - rule: config-missing-key
           message: "itos.yaml: work.people.source is missing"
@@ -1034,7 +1034,6 @@ cases:
             provider: github
             github:
               workflow: ci.yml
-              branch: main
               repository_env: GITHUB_REPOSITORY
               token_env:
                 - GITHUB_TOKEN
@@ -1165,15 +1164,20 @@ cases:
         version: 1
         ci:
           steps: []
-          watch: { provider: github, github: { nightly_workflow: nightly.yml }, nightly_command: "cat nightly.json" }
+          watch: { provider: github, github: { nightly_workflow: nightly.yml } }
         work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
     exit: 0
     stdout: |
       nightly.yml
-  - name: ci.watch's nightly keys have no default, so status prints no nightly
-    argv: [config, get, ci.watch.nightly_command]
+  - name: ci.watch's nightly workflow has no default, so status prints no nightly
+    argv: [config, get, ci.watch.github.nightly_workflow]
     exit: 0
     stdout: ""
+  - name: config get refuses a key v5 removed, saying what to do instead
+    argv: [config, get, ci.watch.nightly_command]
+    exit: 2
+    stderr: |
+      itos: config get: ci.watch.nightly_command was removed in v5; remove ci.watch.nightly_command; ci.watch.github.nightly_workflow names the nightly (itos --help)
   - name: config get refuses a key the config does not have, naming the keys there
     argv: [config, get, hooks.no_such_key]
     exit: 2

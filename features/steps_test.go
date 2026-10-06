@@ -37,7 +37,7 @@ type world struct {
 	ledger        []ledgerTask      // the tasks of the ledger's one file (ledgerPath), in order
 	dataDir       string            // where itos's config and data are written: the root, or the git folder (stealth)
 	linked        string            // the linked worktree of the scratch repository, when the scenario adds one
-	watchURL      string            // the run the watch command reports
+	watchURL      string            // the address of the watched run
 	registryLines []string          // the registry's items, one line each, as the work steps wrote them
 	registryQueue []string          // the registry's queue, as a work step wrote it, nil for none
 	registryText  string            // the registry's text as the work steps last wrote it
@@ -51,7 +51,7 @@ type world struct {
 	stdout, stderr string
 
 	releases  *releaseServer // the release server, when the scenario starts one
-	github    *fakeGitHub    // the fake GitHub ci.range asks, when the scenario starts one
+	github    *fakeGitHub    // the fake GitHub ci.range and ci.watch ask, when the scenario starts one
 	vars      []string       // variables the scenario sets in itos's environment, NAME=value
 	ranMark   int            // the fake itos runs recorded before the last run of itos began
 	askedMark int            // the requests the release server had before the last run of itos began
@@ -99,8 +99,7 @@ type scratchConfig struct {
 	prePushRecord     bool         // hooks.pre_push's commands record that they ran
 	prePushCommit     string       // hooks.pre_push's command, one that commits in the clone
 	watch             *watchConfig // ci.watch
-	rangeCommand      string       // ci.range.command, with ci.range's provider command, when set
-	rangeGitHub       *[2]string   // ci.range.github's workflow and branch, with ci.range's provider github, when set
+	rangeGitHub       string       // ci.range.github's workflow, with ci.range's provider github, when set
 	ledgerFooter      string       // the key of the footer whose source is the ledger; Task when empty
 	textFooter        *textFooter  // a footer of free text
 	itemFooter        bool         // an Item footer of registry items, in place of the ledger footer for test, docs and chore
@@ -909,11 +908,8 @@ func (w *world) ciSection() string {
 	case "static":
 		b.WriteString("  nightly:\n    steps: [{ tasks: done, cost: static }]\n")
 	}
-	if w.config.rangeCommand != "" {
-		fmt.Fprintf(&b, "  range:\n    provider: command\n    command: %q\n", w.config.rangeCommand)
-	}
-	if r := w.config.rangeGitHub; r != nil {
-		fmt.Fprintf(&b, "  range:\n    provider: github\n    github: { workflow: %q, branch: %q }\n", r[0], r[1])
+	if r := w.config.rangeGitHub; r != "" {
+		fmt.Fprintf(&b, "  range:\n    provider: github\n    github: { workflow: %q }\n", r)
 	}
 	b.WriteString(w.watchSection())
 	b.WriteString(w.settingsUnder("ci"))

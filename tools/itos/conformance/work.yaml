@@ -6,8 +6,9 @@
 # work.groups_key and the statuses work.statuses lists; the people a registry's
 # owners come from (the All Contributors table,
 # an .all-contributorsrc, a YAML list); and who a session works for (--as, or
-# the identity provider: a command, none, or gh, faked on the PATH, and none
-# asked under a stealth config, whose session owns every item); the
+# the identity provider: gh, faked on the PATH, or none, and none asked
+# under a stealth config, whose session owns every item; v5.0.0 removed the
+# command provider, slice 85); the
 # registry's default beside the ledger, in the folder ledger.files names;
 # the queue (slice 66): work queue's places, its commit and its refusals, the
 # proposal in its order and work check's problems with it.
@@ -17,7 +18,7 @@ files:
     work:
       registry: work-items.yaml
       people: { source: yaml, file: people.yaml }
-      identity: { provider: command, command: "echo a" }
+  bin/gh: { text: "#!/bin/sh\necho a\n", executable: true }
   people.yaml: "- a\n- b\n- a\n"
   work-items.yaml: &registry |
     phases: { 1: a, 2: null }
@@ -35,6 +36,7 @@ files:
       - { id: free-idea, title: A free idea, phase: 2, owner: null, status: todo, kind: idea }
       - { id: theirs, title: Theirs, phase: 1, owner: b, status: todo, kind: idea }
       - { id: slice, title: A slice, phase: 1, owner: b, status: todo, kind: slice }
+env: { PATH: "{{dir}}/bin:{{PATH}}" }
 cases:
   - name: what a person can start, then what nobody owns, what waits, ideas and deferred items
     argv: [work, --as, a]
@@ -581,26 +583,6 @@ cases:
       Can start now:
         x  X
     stderr: ""
-  - name: the identity command gives no handle
-    argv: [work]
-    files:
-      itos.yaml: |
-        version: 1
-        work:
-          registry: work-items.yaml
-          people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "false" }
-    exit: 0
-    stdout: |
-      Working for nobody.
-
-      Unowned, can start now (agree an owner first):
-        free  Free
-
-      Ideas, not yet specified (a coordinator specifies one before it starts):
-        free-idea  A free idea
-    stderr: |
-      `false` gave no handle, so this session is nobody; pass --as <handle>
   - name: identity none makes the session nobody, with its hint
     argv: [work]
     files:
@@ -651,7 +633,7 @@ cases:
         work:
           registry: work-items.yaml
           people: { source: yaml, file: people.yaml }
-          identity: { provider: command, command: "echo newcomer" }
+      bin/gh: { text: "#!/bin/sh\necho newcomer\n", executable: true }
     exit: 0
     stdout: |
       Working for newcomer.
@@ -1091,7 +1073,7 @@ cases:
   - name: work promote refuses a task id ledger.id does not match
     argv: [work, promote, idea, --as, task-1, --kind, task]
     files:
-      itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\nwork:\n  registry: work-items.yaml\n  people: { source: yaml, file: people.yaml }\n  identity: { provider: command, command: \"echo a\" }\n"
+      itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\nwork:\n  registry: work-items.yaml\n  people: { source: yaml, file: people.yaml }\n"
     exit: 1
     stderr: |
       task-1 is not a task ID by ledger.id (^T-\d+$)
@@ -1226,7 +1208,7 @@ cases:
   - name: work add refuses a task id ledger.id does not match
     argv: [work, add, task-1, --kind, task, --phase, "1", --title, T, --why, Because.]
     files:
-      itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\nwork:\n  registry: work-items.yaml\n  people: { source: yaml, file: people.yaml }\n  identity: { provider: command, command: \"echo a\" }\n"
+      itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\nwork:\n  registry: work-items.yaml\n  people: { source: yaml, file: people.yaml }\n"
     exit: 1
     stderr: |
       task-1 is not a task ID by ledger.id (^T-\d+$)

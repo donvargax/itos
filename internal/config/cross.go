@@ -367,22 +367,9 @@ func patternProblems(tree *value.Map, c *Config) []out.Problem {
 	return found
 }
 
-// providerProblems: a command provider needs its command, and only the
-// markdown table reads logins out of links.
+// providerProblems: only the markdown table reads logins out of links.
 func providerProblems(_ *value.Map, c *Config) []out.Problem {
 	var found []out.Problem
-	needsCommand := func(where, provider string, command *string) {
-		if provider == "command" && (command == nil || value.Trim(*command) == "") {
-			found = append(found, out.Problem{
-				Rule:    "config-provider-command",
-				Message: where + ".provider is command, and " + where + ".command is missing",
-				Fix:     "add " + where + ".command, or choose another " + where + ".provider",
-			})
-		}
-	}
-	needsCommand("ci.range", c.CI.Range.Provider, c.CI.Range.Command)
-	needsCommand("ci.watch", c.CI.Watch.Provider, c.CI.Watch.Command)
-	needsCommand("work.identity", c.Work.Identity.Provider, c.Work.Identity.Command)
 	people := c.Work.People
 	if people.LoginFrom == nil {
 		return found

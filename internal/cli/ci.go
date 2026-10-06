@@ -90,7 +90,7 @@ func ciRange(head, base string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	from := providers.RangeStart(head, base, providers.RangeProvider(cfg, os.Getenv, o.Stderr))
+	from := providers.RangeStart(head, base, providers.RangeProvider(cfg, os.Getenv))
 	if o.JSON {
 		return 0, out.Emit(o.Stdout, out.Field{Key: "from", Value: from})
 	}

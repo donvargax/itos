@@ -1,0 +1,12 @@
+# An identity provider that asks no one, so
+#
+#   ITOS_CONFIG=tools/itos/fixtures/identity-none.yaml tools/bin/itos work --as donvargax
+#
+# works for the person --as names, one of CONTRIBUTORS.md, without asking gh.
+# (A command provider did this until v5.0.0 removed it, slice 85.) The
+# registry (at its default, tasks/work-items.yaml) and the people are the
+# project's own.
+version: 1
+work:
+  people: { source: all-contributors-md, file: CONTRIBUTORS.md }
+  identity: { provider: none }

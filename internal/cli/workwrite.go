@@ -435,7 +435,7 @@ func workTake(args []string, o Out) (int, error) {
 	person := ""
 	if !every {
 		listedIn := cfg.Work.People.File
-		who := work.Whoami(registry, listedIn, as, providers.IdentityProvider(cfg, o.Stderr))
+		who := work.Whoami(registry, listedIn, as, providers.IdentityProvider(cfg))
 		switch {
 		case who.Problem != "":
 			return refuseWork([]out.Problem{{Rule: "work-no-person", Message: who.Problem, Fix: "pass --as <handle>"}}, ExitMissing, o)

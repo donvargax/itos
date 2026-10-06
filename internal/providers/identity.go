@@ -3,8 +3,6 @@ package providers
 import (
 	"bytes"
 	"errors"
-	"fmt"
-	"io"
 	"os/exec"
 
 	"github.com/donvargax/itos/v4/internal/config"
@@ -25,28 +23,17 @@ type Identity func() Answer
 
 // IdentityProvider is the provider itos.yaml's work.identity names
 // (providers.ts's identityProvider): `github` (the account gh is signed in
-// as), `none` (only --as, with the config's hint) or `command` (its
-// stdout's first line, through the config's shell, its stderr on stderr).
-func IdentityProvider(cfg *config.Loaded, stderr io.Writer) Identity {
+// as) or `none` (only --as, with the config's hint). The `command` provider,
+// which ran a repository's own command unasked, was removed in v5.0.0
+// (slice 85).
+func IdentityProvider(cfg *config.Loaded) Identity {
 	id := cfg.Work.Identity
-	switch id.Provider {
-	case "github":
-		return GitHubIdentity(id.Hint, GhLogin)
-	case "none":
+	if id.Provider == "none" {
 		return func() Answer {
 			return Answer{Problem: "work.identity is none, so this session is nobody; " + id.Hint}
 		}
 	}
-	command := ""
-	if id.Command != nil {
-		command = *id.Command
-	}
-	return func() Answer {
-		if handle := FirstLine(cfg, command, stderr); handle != "" {
-			return Answer{Handle: handle}
-		}
-		return Answer{Problem: fmt.Sprintf("`%s` gave no handle, so this session is nobody; %s", command, id.Hint)}
-	}
+	return GitHubIdentity(id.Hint, GhLogin)
 }
 
 // GhLogin is the login `gh api user` answers, trimmed as JavaScript trims,

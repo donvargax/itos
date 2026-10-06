@@ -84,7 +84,7 @@ func workProposal(as string, o Out) (int, error) {
 		proposal = work.ProposeEvery(registry)
 	} else {
 		listedIn := cfg.Work.People.File
-		who := work.Whoami(registry, listedIn, as, providers.IdentityProvider(cfg, o.Stderr))
+		who := work.Whoami(registry, listedIn, as, providers.IdentityProvider(cfg))
 		switch {
 		case who.Problem != "":
 			fmt.Fprintln(o.Stderr, who.Problem)

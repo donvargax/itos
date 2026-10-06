@@ -163,7 +163,7 @@ Feature: The work registry
   Scenario: work done refuses while HEAD's CI run failed, with ci.watch
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
-    And ci.watch runs a command that reports the run "https://ci.example/runs/1"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
     And the watched run's job "ci" fails and its job "platform" succeeds
     When itos runs "work done slice-9"
     Then itos exits with code 1
@@ -173,7 +173,7 @@ Feature: The work registry
   Scenario: work done, everything landed, marks the item done and commits it
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
-    And ci.watch runs a command that reports the run "https://ci.example/runs/1"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
     And the watched run's jobs "ci" and "platform" succeed
     When itos runs "work done slice-9"
     Then itos exits with code 0
@@ -346,7 +346,7 @@ Feature: The work registry
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
     And itos has run "work queue slice-9 --top"
-    And ci.watch runs a command that reports the run "https://ci.example/runs/1"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
     And the watched run's jobs "ci" and "platform" succeed
     When itos runs "work done slice-9"
     Then itos exits with code 0
@@ -376,7 +376,7 @@ Feature: The work registry
   Scenario: work done drops the why of the item it closes
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing" and the why "Because it was missing."
-    And ci.watch runs a command that reports the run "https://ci.example/runs/1"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
     And the watched run's jobs "ci" and "platform" succeed
     When itos runs "work done slice-9"
     Then itos exits with code 0

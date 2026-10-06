@@ -28,6 +28,8 @@
 //   hide     commands the PATH must not reach (a folder holding one is
 //            replaced by a copy of links without it), as every itos-*
 //            program of the caller's PATH always is (below)
+//   github   a fake GitHub API the case's itos is pointed at (below); a
+//            case's replaces the file's, and null leaves it out
 //   exit     the expected exit code (required)
 //   stdout, stderr         the exact text; stdout_has, stderr_has: text each
 //                          must contain (one, or a list); json: stdout's JSON
@@ -41,6 +43,25 @@
 // at the same length, a key added anywhere passing
 // (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md). The exit code, stdout_has, stderr_has and files_after are judged as
 // ever. Without it, as this corpus runs, every output is pinned exactly.
+//
+// A case's `github` is a fake of GitHub's API for ci.watch, status and ci
+// range's github providers (slice 85, when v5.0.0 removed the command
+// providers the corpus faked CI with): the runner serves it on 127.0.0.1 for
+// the case alone and gives itos GITHUB_API_URL, GITHUB_REPOSITORY (owner/name)
+// and GITHUB_TOKEN (fake-token) as Actions does, before the case's env. It is
+//
+//   refuse   true: every request is answered 401
+//   runs     the workflow runs it holds, newest first, each with workflow
+//            (ci.yml when left out), head_sha (a full SHA, or * for any
+//            commit, answered as the commit asked about), head_branch (main
+//            when left out), html_url ({sha} standing for the commit asked
+//            about), status, conclusion and jobs ([{name, status,
+//            conclusion}]); or looks, a list of those answer fields, the nth
+//            request that finds the run given the nth, the last one for every
+//            request after it, as a run going on would be seen
+//
+// It answers a workflow's runs (head_sha and branch narrowing them) and a
+// run's jobs, the token required; anything else is a 404.
 //
 // In every string, `{{dir}}` is the case's folder, `{{PATH}}` the runner's
 // PATH without the caller's extensions, `{{sha.<label>}}` and `{{short.<label>}}` a labelled commit (40 and 7
@@ -71,6 +92,7 @@ import {
 	symlinkSync,
 	writeFileSync,
 } from "node:fs";
+import { createServer, type Server } from "node:http";
 import { availableParallelism, tmpdir } from "node:os";
 import { basename, delimiter, dirname, join, relative, resolve } from "node:path";
 import { parse } from "yaml";
@@ -103,6 +125,23 @@ export interface Case {
 	stderr_has?: string | string[];
 	json?: unknown;
 	files_after?: Files;
+	github?: FakeGitHub | null;
+}
+interface FakeLook {
+	html_url?: string;
+	status?: string;
+	conclusion?: string | null;
+	jobs?: { name: string; status: string; conclusion?: string | null }[];
+}
+interface FakeRun extends FakeLook {
+	workflow?: string;
+	head_sha?: string;
+	head_branch?: string;
+	looks?: FakeLook[];
+}
+interface FakeGitHub {
+	refuse?: boolean;
+	runs?: FakeRun[];
 }
 interface Fixture {
 	file: string;
@@ -125,9 +164,10 @@ const CASE_KEYS = new Set([
 	"stderr_has",
 	"json",
 	"files_after",
+	"github",
 ]);
 const STEP_KEYS = new Set(["commit", "stage", "write", "files", "branch", "checkout", "run", "label"]);
-const TOP_KEYS = new Set(["files", "git", "env", "cases"]);
+const TOP_KEYS = new Set(["files", "git", "env", "github", "cases"]);
 
 class FixtureError extends Error {}
 
@@ -158,7 +198,13 @@ export function readFixture(file: string): Fixture {
 		throw new FixtureError(`${file}: ${why}`);
 	};
 	if (!doc || typeof doc !== "object" || !Array.isArray(doc.cases)) return fail("has no list of cases");
-	const top = doc as { files?: Files; git?: GitStep[]; env?: Record<string, string>; cases: Case[] };
+	const top = doc as {
+		files?: Files;
+		git?: GitStep[];
+		env?: Record<string, string>;
+		github?: FakeGitHub;
+		cases: Case[];
+	};
 	const problem = (unknownKey(top, TOP_KEYS) && `unknown key ${unknownKey(top, TOP_KEYS)}`) || stepsProblem(top.git);
 	if (problem) fail(problem);
 	const names = new Set<string>();
@@ -166,7 +212,13 @@ export function readFixture(file: string): Fixture {
 		const why = caseProblem(c, names);
 		if (why) fail(`case ${i + 1}${c?.name ? ` (${c.name})` : ""} ${why}`);
 		names.add(c.name);
-		return { ...c, git: c.git ?? top.git, files: { ...top.files, ...c.files }, env: { ...top.env, ...c.env } };
+		return {
+			...c,
+			git: c.git ?? top.git,
+			files: { ...top.files, ...c.files },
+			env: { ...top.env, ...c.env },
+			github: "github" in c ? c.github : top.github,
+		};
 	});
 	return { file, cases };
 }
@@ -347,6 +399,102 @@ function hiddenPath(path: string, hides: (name: string) => boolean, into: string
 		.join(delimiter);
 }
 
+// The repository and token the fake GitHub answers for.
+const FAKE_REPOSITORY = "owner/name";
+const FAKE_TOKEN = "fake-token";
+
+const NOT_FOUND: [number, unknown] = [404, { message: "Not Found" }];
+const RUNS_PATH = new RegExp(`^/repos/${FAKE_REPOSITORY}/actions/workflows/([^/]+)/runs$`);
+const JOBS_PATH = new RegExp(`^/repos/${FAKE_REPOSITORY}/actions/runs/(\\d+)/jobs$`);
+
+// The commit a fake run answers a request for the workflow's runs as,
+// narrowed to the commit and the branch when the request names them;
+// undefined when it does not answer it.
+function runHead(run: FakeRun, workflow: string, sha: string | null, branch: string | null) {
+	const head = run.head_sha === "*" ? (sha ?? "") : (run.head_sha ?? "");
+	if ((run.workflow ?? "ci.yml") !== workflow || (sha && head !== sha)) return undefined;
+	if (branch && (run.head_branch ?? "main") !== branch) return undefined;
+	return head;
+}
+
+// What a fake GitHub holds and has answered: each run's looks given so far,
+// and the look each last showed, whose jobs its jobs endpoint lists.
+class FakeRuns {
+	private readonly runs: FakeRun[];
+	private readonly seen: number[];
+	private readonly shown: FakeLook[];
+
+	constructor(runs: FakeRun[]) {
+		this.runs = runs;
+		this.seen = runs.map(() => 0);
+		this.shown = runs.map(() => ({}));
+	}
+
+	// The next look at the ith run: the run itself when it has no looks.
+	private look(i: number): FakeLook {
+		const run = this.runs[i]!;
+		if (!run.looks?.length) return run;
+		const look = run.looks[Math.min(this.seen[i]!, run.looks.length - 1)]!;
+		this.seen[i]!++;
+		return look;
+	}
+
+	// The workflow's runs a request finds, newest first, as GitHub lists them.
+	list(workflow: string, sha: string | null, branch: string | null): [number, unknown] {
+		const found = [];
+		for (const [i, run] of this.runs.entries()) {
+			const head = runHead(run, workflow, sha, branch);
+			if (head === undefined) continue;
+			const look = (this.shown[i] = this.look(i));
+			found.push({
+				id: i + 1,
+				head_sha: head,
+				head_branch: run.head_branch ?? "main",
+				html_url: (look.html_url ?? "").replaceAll("{sha}", head),
+				status: look.status ?? "completed",
+				conclusion: look.conclusion ?? null,
+				created_at: new Date(Date.UTC(2000, 0, 2) - i * 60_000).toISOString(),
+			});
+		}
+		return [200, { total_count: found.length, workflow_runs: found }];
+	}
+
+	// The jobs of the run with the ID, as its last look showed them.
+	jobs(id: number): [number, unknown] {
+		const look = this.shown[id - 1];
+		if (!look) return NOT_FOUND;
+		const listed = (look.jobs ?? []).map((j) => ({ ...j, conclusion: j.conclusion ?? null }));
+		return [200, { total_count: listed.length, jobs: listed }];
+	}
+}
+
+// The fake GitHub's answer to one request: its status and its JSON body.
+function answer(fake: FakeGitHub, runs: FakeRuns, method: string | undefined, path: string, token: string | undefined) {
+	if (fake.refuse) return [401, { message: "Bad credentials" }] as [number, unknown];
+	if (method !== "GET" || token !== `Bearer ${FAKE_TOKEN}`) return NOT_FOUND;
+	const url = new URL(path, "http://fake");
+	const jobs = JOBS_PATH.exec(url.pathname);
+	if (jobs) return runs.jobs(Number(jobs[1]));
+	const list = RUNS_PATH.exec(url.pathname);
+	if (!list) return NOT_FOUND;
+	return runs.list(decodeURIComponent(list[1]!), url.searchParams.get("head_sha"), url.searchParams.get("branch"));
+}
+
+// The fake GitHub a case describes, listening on a port of 127.0.0.1 of its
+// own; its address once it listens.
+async function serveGitHub(fake: FakeGitHub): Promise<{ server: Server; url: string }> {
+	const runs = new FakeRuns(fake.runs ?? []);
+	const server = createServer((req, res) => {
+		const [status, body] = answer(fake, runs, req.method, req.url ?? "/", req.headers.authorization);
+		res.writeHead(status, { "Content-Type": "application/json" });
+		res.end(JSON.stringify(body));
+	});
+	await new Promise<void>((done) => server.listen(0, "127.0.0.1", done));
+	const address = server.address();
+	if (!address || typeof address === "string") throw new FixtureError("the fake GitHub has no port");
+	return { server, url: `http://127.0.0.1:${address.port}` };
+}
+
 export interface Outcome {
 	exit: number | null;
 	stdout: string;
@@ -386,12 +534,20 @@ export async function runCase(
 	const home = join(scratch, "home");
 	mkdirSync(dir);
 	mkdirSync(home);
+	let github: Server | undefined;
 	try {
 		const env = cleanEnv(home);
 		const labels = new Map<string, string>();
 		if (c.git) buildRepo(dir, c.git, env, labels);
 		const subst = substituter(dir, labels);
 		writeFiles(dir, c.files ?? {}, subst);
+		if (c.github) {
+			const fake = await serveGitHub(deep(c.github, subst) as FakeGitHub);
+			github = fake.server;
+			env.GITHUB_API_URL = fake.url;
+			env.GITHUB_REPOSITORY = FAKE_REPOSITORY;
+			env.GITHUB_TOKEN = FAKE_TOKEN;
+		}
 		for (const [key, value] of Object.entries(c.env ?? {})) env[key] = subst(value);
 		const hide = c.hide ?? [];
 		if (hide.length) env.PATH = hiddenPath(env.PATH ?? "", (name) => hide.includes(name), scratch);
@@ -409,6 +565,8 @@ export async function runCase(
 		}
 		return { outcome: { ...run, files }, subst, labels };
 	} finally {
+		github?.closeAllConnections();
+		github?.close();
 		rmSync(scratch, { recursive: true, force: true });
 	}
 }

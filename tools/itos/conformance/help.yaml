@@ -1149,15 +1149,11 @@ cases:
       it looks: github asks GitHub's API (GITHUB_API_URL, else
       https://api.github.com) for the run of ci.watch.github.workflow, with a token
       from ci.range.github.token_env, else gh auth token, for the repository
-      ci.range.github.repository_env names, else the remote's URL;
-      command runs ci.watch.command, {sha} standing for the full SHA, and reads one
-      JSON object from its stdout: {"url","status","conclusion","jobs":[{"name",
-      "status","conclusion"}]}, status queued, in_progress or completed, conclusion
-      when completed. A run not there yet is waited for. Exit 0 when the run
-      succeeded; 1 when it did not, naming the failed jobs; 2 ci.watch.provider none,
-      or not a commit; 3 the run still going, or not there, after the timeout, a
-      command that fails or prints no such object, or github with no token, naming
-      both ways to give one.
+      ci.range.github.repository_env names, else the remote's URL. A run not there
+      yet is waited for. Exit 0 when the run succeeded; 1 when it did not, naming the
+      failed jobs; 2 ci.watch.provider none, or not a commit; 3 the run still going,
+      or not there, after the timeout, a refusal from GitHub's API, or no token,
+      naming both ways to give one.
 
       --json: the progress on stderr; {"schema":1,"ok","commit","ci","run"?},
               ci one of success, failure, timeout, error; run {"url","status","conclusion"?,"jobs"}
@@ -1374,15 +1370,13 @@ cases:
       ci.watch's provider and never waited for, a run still going said to be going;
       while it is going or has not passed, the commit main last proved, "Last green:"
       and its short SHA and header (the SHA alone when it is not fetched here), as
-      ci.range's provider names it: ci.range.command's first line for command, for
-      github the nearest of the branch's first parents as fetched, its head included
-      and 100 at most, with a successful run of ci.range.github's workflow on any
-      branch (its repository, token and API address found as ci.watch's), read once,
-      and left out for none; the last nightly's run, looked at once the same way,
-      "Nightly:" and its result and address, read from
-      ci.watch.github.nightly_workflow's newest run on the branch for github, or from
-      ci.watch.nightly_command's stdout for command, run with no {sha}, and left out
-      when the provider's key is not set; the newest release, the highest tag
+      ci.range's provider names it: for github the nearest of the branch's first
+      parents as fetched, its head included and 100 at most, with a successful run of
+      ci.range.github's workflow on any branch (its repository, token and API address
+      found as ci.watch's), read once, and left out for none; the last nightly's run,
+      looked at once the same way, "Nightly:" and its result and address, read from
+      ci.watch.github.nightly_workflow's newest run on the branch, and left out when
+      that key is not set; the newest release, the highest tag
       v<semver> on the remote (a prerelease below its release), asked of it as the
       head is, or as last fetched, or no release yet; the commits since it the next
       release would carry, the feat, fix and breaking ones, by header, oldest first,
@@ -1391,8 +1385,8 @@ cases:
       they can start, theirs and the unowned, in the queue's order and the unqueued
       after, five at most; and the open questions (itos ask). It reads, never writes
       or fetches. What cannot be reached (no remote, ci.watch.provider none, a
-      provider that fails or prints no run, for the head or the nightly, a ci.range
-      provider that fails) is one line naming it, and the rest still prints, exit 0.
+      provider that fails, for the head or the nightly, a ci.range provider that
+      fails) is one line naming it, and the rest still prints, exit 0.
       Exit 1 when the work registry is not there or not sound, 3 when --as is not
       among the people. itos go prints it last.
 

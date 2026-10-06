@@ -304,28 +304,28 @@ Feature: Every key the config accepts is one itos reads
   # module path moves to github.com/donvargax/itos/v5, as T-094 moved it to
   # v4. Providers for other hosts come back behind a trust gate:
   # p3-command-providers-back.
-  @ID-CONFIG-30 @slice-85 @wip
+  @ID-CONFIG-30 @slice-85
   Scenario: config check refuses ci.range's command provider, removed in v5
     Given the config sets "ci.range.provider" to "command"
     When itos checks the config
     Then itos exits with code 2
     And its output says "removed in v5"
 
-  @ID-CONFIG-31 @slice-85 @wip
+  @ID-CONFIG-31 @slice-85
   Scenario: config check refuses ci.watch's command provider, removed in v5
     Given the config sets "ci.watch.provider" to "command"
     When itos checks the config
     Then itos exits with code 2
     And its output says "removed in v5"
 
-  @ID-CONFIG-32 @slice-85 @wip
+  @ID-CONFIG-32 @slice-85
   Scenario: config check refuses work.identity's command provider, removed in v5
     Given the config sets "work.identity.provider" to "command"
     When itos checks the config
     Then itos exits with code 2
     And its output says "removed in v5"
 
-  @ID-CONFIG-33 @slice-85 @wip
+  @ID-CONFIG-33 @slice-85
   Scenario: config check refuses ci.range.github.branch, removed in v5
     Given the config sets "ci.range.github.branch" to "main"
     When itos checks the config

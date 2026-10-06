@@ -4,29 +4,24 @@ package providers
 // CI run of a commit, which itos push and itos ci watch repeat every
 // ci.watch.interval seconds until the run completes. github reads the run of
 // ci.watch.github.workflow through GitHub's API, as the range provider beside
-// it reads the last green one; command runs ci.watch.command and reads the run
-// from its stdout. The same provider gives itos status one look at the last
-// nightly's run (slice 72): github reads ci.watch.github.nightly_workflow's
-// newest run on the branch, command runs ci.watch.nightly_command, given no
-// commit, and reads its stdout as ci.watch.command's.
+// it reads the last green one. The same provider gives itos status one look at
+// the last nightly's run (slice 72): ci.watch.github.nightly_workflow's newest
+// run on the branch. The command provider, which ran ci.watch.command and
+// ci.watch.nightly_command, a repository's own commands, on a push and on
+// itos go, was removed in v5.0.0 (slice 85).
 
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os/exec"
 	"regexp"
-	"slices"
 	"sort"
 	"strings"
 
 	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/shell"
-	"github.com/donvargax/itos/v4/internal/tests"
 	"github.com/donvargax/itos/v4/internal/value"
 )
 
@@ -74,7 +69,6 @@ type WatchSetup struct {
 	Env       Env
 	RemoteURL string
 	GhToken   func() (string, error)
-	Stderr    io.Writer
 }
 
 // WatchProvider is the provider ci.watch names; ok is false for none, which
@@ -82,15 +76,8 @@ type WatchSetup struct {
 // before any request: github with no token, or no repository to ask about.
 func WatchProvider(cfg *config.Loaded, s WatchSetup) (watch Watch, ok bool, err error) {
 	w := cfg.CI.Watch
-	switch w.Provider {
-	case "none":
+	if w.Provider == "none" {
 		return nil, false, nil
-	case "command":
-		command := ""
-		if w.Command != nil {
-			command = *w.Command
-		}
-		return commandWatch(cfg, command, s.Stderr), true, nil
 	}
 	g, err := watchGitHub(cfg, "ci.watch", s)
 	if err != nil {
@@ -106,25 +93,11 @@ type Nightly func() (run Run, found bool, err error)
 
 // NightlyProvider is the look at the last nightly's run ci.watch's provider
 // gives, on the branch: ok is false when the provider names no nightly (none,
-// github with no ci.watch.github.nightly_workflow, command with no
-// ci.watch.nightly_command). An error is a provider that cannot look, as
-// WatchProvider's.
+// or github with no ci.watch.github.nightly_workflow). An error is a provider
+// that cannot look, as WatchProvider's.
 func NightlyProvider(cfg *config.Loaded, branch string, s WatchSetup) (nightly Nightly, ok bool, err error) {
 	w := cfg.CI.Watch
-	switch w.Provider {
-	case "none":
-		return nil, false, nil
-	case "command":
-		if w.NightlyCommand == nil || value.Trim(*w.NightlyCommand) == "" {
-			return nil, false, nil
-		}
-		command := *w.NightlyCommand
-		return func() (Run, bool, error) {
-			run, err := commandRun(cfg, "ci.watch.nightly_command", command, s.Stderr)
-			return run, err == nil, err
-		}, true, nil
-	}
-	if w.GitHub.NightlyWorkflow == "" {
+	if w.Provider == "none" || w.GitHub.NightlyWorkflow == "" {
 		return nil, false, nil
 	}
 	g, err := watchGitHub(cfg, "ci.watch", s)
@@ -195,70 +168,6 @@ func GitHubRepository(remoteURL string) string {
 		return ""
 	}
 	return m[1] + "/" + m[2]
-}
-
-// commandWatch runs the command once a look, {sha} filled in as one shell
-// word, and reads the run from its stdout: one JSON object, Run's shape. A
-// command that fails or prints anything else is an error.
-func commandWatch(cfg *config.Loaded, command string, stderr io.Writer) Watch {
-	return func(sha string) (Run, bool, error) {
-		filled := strings.ReplaceAll(command, "{sha}", tests.ShellWord(sha))
-		run, err := commandRun(cfg, "ci.watch.command", filled, stderr)
-		return run, err == nil, err
-	}
-}
-
-// commandRun runs the command, the config key named in its errors, and
-// reads the run from its stdout.
-func commandRun(cfg *config.Loaded, key, command string, stderr io.Writer) (Run, error) {
-	var stdout bytes.Buffer
-	res := shell.Run(cfg, command, shell.Options{Stdout: &stdout, Stderr: stderr, Timeout: Timeout})
-	if !res.OK() {
-		return Run{}, fmt.Errorf("%s failed (exit %s): %s", key, res.Status(), command)
-	}
-	run, err := ReadRun(stdout.Bytes())
-	if err != nil {
-		return Run{}, fmt.Errorf("%s printed no run: %s", key, err)
-	}
-	return run, nil
-}
-
-// statuses are the statuses a run or a job may have.
-var statuses = []string{"queued", "in_progress", "completed"}
-
-// ReadRun is the run a command printed: one JSON object with a status of
-// statuses, a conclusion when it is completed, a url and jobs, each with a
-// name and a status, and their conclusion when completed.
-func ReadRun(text []byte) (Run, error) {
-	var run Run
-	dec := json.NewDecoder(bytes.NewReader(text))
-	if err := dec.Decode(&run); err != nil {
-		return Run{}, fmt.Errorf("not one JSON object of {url, status, conclusion, jobs}: %s", err)
-	}
-	if dec.More() {
-		return Run{}, errors.New("more than one JSON value")
-	}
-	check := func(what, status, conclusion string) error {
-		if !slices.Contains(statuses, status) {
-			return fmt.Errorf("%s's status %q is none of queued, in_progress or completed", what, status)
-		}
-		if status == "completed" && conclusion == "" {
-			return fmt.Errorf("%s is completed with no conclusion", what)
-		}
-		return nil
-	}
-	if err := check("the run", run.Status, run.Conclusion); err != nil {
-		return Run{}, err
-	}
-	for i, j := range run.Jobs {
-		if j.Name == "" {
-			return Run{}, fmt.Errorf("job %d has no name", i+1)
-		}
-		if err := check("the job "+j.Name, j.Status, j.Conclusion); err != nil {
-			return Run{}, err
-		}
-	}
-	return run, nil
 }
 
 // RunOf is the workflow's newest run for the commit, with its jobs, read

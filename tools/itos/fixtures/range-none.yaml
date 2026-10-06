@@ -1,0 +1,10 @@
+# A range provider that proposes no start, which means "run everything", so
+#
+#   ITOS_CONFIG=tools/itos/fixtures/range-none.yaml tools/bin/itos ci range --head HEAD
+#
+# prints `FROM=` without asking GitHub. (A command provider did this until
+# v5.0.0 removed it, slice 85.)
+version: 1
+ci:
+  steps: [{ run: vp check, cost: static }]
+  range: { provider: none }

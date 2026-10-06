@@ -59,7 +59,6 @@ func watcher(cfg *config.Loaded, remote string, o Out) (providers.Watch, bool, e
 		Env:       os.Getenv,
 		RemoteURL: strings.TrimSpace(remoteURL),
 		GhToken:   providers.GhToken,
-		Stderr:    o.Stderr,
 	})
 }
 
@@ -182,7 +181,7 @@ func ciWatch(args []string, o Out) (int, error) {
 		return watchReport(o, watched{code: ExitMissing, outcome: "error"}, sha)
 	}
 	if !ok {
-		return 0, config.Invalid(cfg.Path, "ci.watch.provider is none, so there is no CI run to watch: set ci.watch.provider to github or command")
+		return 0, config.Invalid(cfg.Path, "ci.watch.provider is none, so there is no CI run to watch: set ci.watch.provider to github")
 	}
 	return watchReport(o, watchRun(cfg, look, sha, o), sha)
 }

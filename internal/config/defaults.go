@@ -47,7 +47,6 @@ func defaults() *value.Map {
 				"provider", "github",
 				"github", m(
 					"workflow", "ci.yml",
-					"branch", "main",
 					"repository_env", "GITHUB_REPOSITORY",
 					"token_env", l("GITHUB_TOKEN", "GH_TOKEN"),
 				),

@@ -17,7 +17,7 @@ Feature: itos status, where the work stands
   Background:
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
-    And ci.watch runs a command that reports the run "https://ci.example/runs/1"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
 
   @ID-STATUS-01 @slice-67
   Scenario: status prints the main branch's head and its CI run's result
@@ -50,7 +50,7 @@ Feature: itos status, where the work stands
 
   @ID-STATUS-04 @slice-67
   Scenario: Where CI cannot be read, status says so and prints the rest
-    Given the watch command prints "not json"
+    Given the fake GitHub refuses the token
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
     When itos runs "status --as someone"
     Then itos exits with code 0
@@ -105,15 +105,14 @@ Feature: itos status, where the work stands
   # A red nightly is a coordinator's first item, yet status read only the
   # head's own run, so a session found the nightly red by hand (2026-10-04,
   # p1-status-nightly-green). status names the last nightly's run, read once
-  # as the head's is: by ci.watch.github.nightly_workflow for the github
-  # provider, or ci.watch.nightly_command for the command one, which prints
-  # the run as ci.watch.command does, given no commit. A config naming
-  # neither prints no nightly line, and one that cannot be read is said in a
-  # line, the rest still printed.
+  # as the head's is: by ci.watch.github.nightly_workflow, its newest run on
+  # the branch (ci.watch.nightly_command went with the command provider in
+  # v5.0.0, slice 85). A config naming none prints no nightly line, and one
+  # that cannot be read is said in a line, the rest still printed.
   @ID-STATUS-09 @slice-72
   Scenario: status names the last nightly's run and its result
     Given the watched run's jobs "ci" and "platform" succeed
-    And ci.watch.nightly_command reports the run "https://ci.example/nightly/7", its job "nightly" failed
+    And ci.watch's nightly workflow on the fake GitHub has the run "https://ci.example/nightly/7", its job "nightly" failed
     When itos runs "status --as someone"
     Then itos exits with code 0
     And its output says "https://ci.example/nightly/7"
@@ -129,15 +128,14 @@ Feature: itos status, where the work stands
   # While main's run is going or red, a coordinator needs what main last
   # proved: status names the last commit whose run passed, as ci.range's
   # provider reads it for a push's range (the github provider's last green
-  # run, or ci.range.command's first line), only when the head's run has not
-  # passed (p1-status-last-green).
+  # run), only when the head's run has not passed (p1-status-last-green).
   @ID-STATUS-11 @slice-73
   Scenario: While the head's run is going, status names main's last green commit
     Given the watched run never finishes
     And the remote has gained the commit "fix: one" touching "a.txt"
     And the remote has gained the commit "feat: two" touching "b.txt"
     And the clone has fetched the remote
-    And ci.range runs a command that prints the full SHA of the remote's commit "fix: one"
+    And the fake GitHub has a green run of the remote's commit "fix: one"
     When itos runs "status --as someone"
     Then itos exits with code 0
     And its output says "fix: one"
@@ -147,7 +145,7 @@ Feature: itos status, where the work stands
     Given the watched run's jobs "ci" and "platform" succeed
     And the remote has gained the commit "fix: one" touching "a.txt"
     And the clone has fetched the remote
-    And ci.range runs a command that prints the full SHA of the remote's commit "fix: one"
+    And the fake GitHub has a green run of the remote's commit "fix: one"
     When itos runs "status --as someone"
     Then itos exits with code 0
     And its output does not say "Last green"

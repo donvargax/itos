@@ -276,11 +276,9 @@ type Cover struct {
 
 // Range is where a push's range starts.
 type Range struct {
-	Provider string  `json:"provider"`
-	Command  *string `json:"command"`
+	Provider string `json:"provider"`
 	GitHub   struct {
 		Workflow      string   `json:"workflow"`
-		Branch        string   `json:"branch"`
 		RepositoryEnv string   `json:"repository_env"`
 		TokenEnv      []string `json:"token_env"`
 	} `json:"github"`
@@ -289,13 +287,10 @@ type Range struct {
 // Watch is how itos push and itos ci watch wait for a commit's CI run
 // (slice 51): the provider, none by default, and how often and how long.
 // itos status reads the last nightly's run through the same provider
-// (slice 72): NightlyCommand for command, GitHub.NightlyWorkflow for github,
-// neither read when unset.
+// (slice 72): GitHub.NightlyWorkflow, not read when unset.
 type Watch struct {
-	Provider       string  `json:"provider"`
-	Command        *string `json:"command"`
-	NightlyCommand *string `json:"nightly_command"`
-	GitHub         struct {
+	Provider string `json:"provider"`
+	GitHub   struct {
 		Workflow        string `json:"workflow"`
 		NightlyWorkflow string `json:"nightly_workflow"`
 	} `json:"github"`
@@ -314,9 +309,8 @@ type Work struct {
 	Statuses  []string `json:"statuses"`
 	People    People   `json:"people"`
 	Identity  struct {
-		Provider string  `json:"provider"`
-		Command  *string `json:"command"`
-		Hint     string  `json:"hint"`
+		Provider string `json:"provider"`
+		Hint     string `json:"hint"`
 	} `json:"identity"`
 }
 

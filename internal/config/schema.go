@@ -93,7 +93,42 @@ var step = about(
 
 var typesOrAll = either(str, strs)
 
-var provider = enum("github", "command", "none")
+var provider = enum("github", "none")
+
+// removedKeys are the keys v5.0.0 removed (slice 85), each with what to do
+// instead: config check refuses one as removed, not as a key it never knew,
+// so a config written for v4 is told what changed. The command providers ran
+// a repository's own commands without anyone choosing to (the git shim's push
+// ran ci.watch.command, itos go and itos status the rest), and nothing has
+// read ci.range.github.branch since bug 29 counts a green run on any branch.
+var removedKeys = map[string]string{
+	"ci.range.command":         "remove ci.range.command, and set ci.range.provider to github or none",
+	"ci.range.github.branch":   "remove ci.range.github.branch: a commit's green run counts on any branch",
+	"ci.watch.command":         "remove ci.watch.command, and set ci.watch.provider to github or none",
+	"ci.watch.nightly_command": "remove ci.watch.nightly_command; ci.watch.github.nightly_workflow names the nightly",
+	"work.identity.command":    "remove work.identity.command, set work.identity.provider to github or none, and pass --as <handle>",
+}
+
+// RemovedKey is what to do instead of a key v5.0.0 removed, and whether it
+// is one, for config get, which refuses it as removed.
+func RemovedKey(key string) (string, bool) {
+	fix, ok := removedKeys[key]
+	return fix, ok
+}
+
+// removedValues are the values v5.0.0 removed from a key, by the key, each
+// with what to do instead.
+var removedValues = map[string]map[string]string{
+	"ci.range.provider":      {"command": "set ci.range.provider to github or none"},
+	"ci.watch.provider":      {"command": "set ci.watch.provider to github or none"},
+	"work.identity.provider": {"command": "set work.identity.provider to github or none, and pass --as <handle> where it ran"},
+}
+
+// removed is the problem of a key or a value v5.0.0 removed, its message
+// saying what to do instead, since config check prints the message alone.
+func removed(what, fix string) out.Problem {
+	return out.Problem{Rule: "config-removed", Message: what + " was removed in v5; " + fix, Fix: fix}
+}
 
 // HookManagers are the hook managers `hooks install` writes or prints for.
 var HookManagers = []string{"vp", "git", "husky", "lefthook", "pre-commit", "prek", "git-config"}
@@ -195,14 +230,11 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 		"wait_on_status", about("The work item statuses whose named tasks wait rather than run.", strs),
 		"stop_at_first_failure", about("Whether CI stops at its first failure, or runs every step and check.", boo),
 		"range", about("Where a push's range starts.", obj(nil,
-			"provider", about("github (the last green run), command (its stdout) or none.", provider),
-			"command", about("The command a command provider runs.", str),
-			"github", about("The GitHub provider's workflow, branch and environment.", obj(nil, "workflow", str, "branch", str, "repository_env", str, "token_env", strs)),
+			"provider", about("github (the head's nearest first parent with a green run) or none.", provider),
+			"github", about("The GitHub provider's workflow and environment.", obj(nil, "workflow", str, "repository_env", str, "token_env", strs)),
 		)),
 		"watch", about("How itos push and itos ci watch wait for a commit's CI run, and how itos status reads it and the last nightly's.", obj(nil,
-			"provider", about("none (push does not wait), github (the workflow's run, through GitHub's API) or command (its stdout).", provider),
-			"command", about("The command a command provider runs once a poll, {sha} standing for the commit: one JSON object on stdout, {url, status, conclusion, jobs}.", str),
-			"nightly_command", about("The command a command provider runs for itos status to read the last nightly's run, given no commit: one JSON object on stdout, as command's. Left out, status prints no nightly.", str),
+			"provider", about("none (push does not wait) or github (the workflow's run, through GitHub's API).", provider),
 			"github", about("The GitHub provider's workflow, and the nightly's, whose newest run on the watched branch itos status reads (left out, it prints no nightly); its token is ci.range.github.token_env's, else gh auth token.", obj(nil,
 				"workflow", str,
 				"nightly_workflow", str,
@@ -222,7 +254,7 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 			"file", str,
 			"login_from", about("The link a login is read out of, {login} standing for it (all-contributors-md).", str),
 		)),
-		"identity", about("Who itos works for: github (gh's account), command (its stdout) or none (only --as).", obj(nil, "provider", provider, "command", str, "hint", str)),
+		"identity", about("Who itos works for: github (gh's account) or none (only --as).", obj(nil, "provider", provider, "hint", str)),
 	)),
 	"hooks", about("The hook manager, the binary the shims call, the pre-push commands and the commit-msg hook's task checks.", obj(nil,
 		"manager", about("The hook manager itos hooks install writes for, over the one it detects.", enum(HookManagers...)),
@@ -344,6 +376,11 @@ func problems(v any, s *spec, path string) []out.Problem {
 	case s.enum != nil:
 		if value.Includes(s.enum, v) {
 			return nil
+		}
+		if text, ok := v.(string); ok {
+			if fix, ok := removedValues[path][text]; ok {
+				return []out.Problem{removed(path+": "+text, fix)}
+			}
 		}
 		values := strings.Join(s.enum, ", ")
 		return []out.Problem{{
@@ -495,6 +532,8 @@ func mappingProblems(v any, s *spec, path string) []out.Problem {
 			found = append(found, problems(m.At(k), s.mapOf, key(k))...)
 		case s.field(k) != nil:
 			found = append(found, problems(m.At(k), s.field(k), key(k))...)
+		case removedKeys[key(k)] != "":
+			found = append(found, removed(key(k), removedKeys[key(k)]))
 		default:
 			found = append(found, unknownKey(key(k), k, s.keys()))
 		}

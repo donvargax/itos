@@ -173,7 +173,7 @@ func statusOf(cfg *config.Loaded, as string, o Out) (*standing, []out.Problem, i
 		proposal = work.ProposeEvery(registry)
 	} else {
 		listedIn := cfg.Work.People.File
-		who := work.Whoami(registry, listedIn, as, providers.IdentityProvider(cfg, o.Stderr))
+		who := work.Whoami(registry, listedIn, as, providers.IdentityProvider(cfg))
 		switch {
 		case who.Problem != "":
 			fmt.Fprintln(o.Stderr, who.Problem)
@@ -475,7 +475,6 @@ func (st *standing) readLastGreen(cfg *config.Loaded, remote, branch string, o O
 		Env:       os.Getenv,
 		RemoteURL: strings.TrimSpace(remoteURL),
 		GhToken:   providers.GhToken,
-		Stderr:    o.Stderr,
 	})
 	switch {
 	case err != nil:
@@ -511,7 +510,6 @@ func (st *standing) readNightly(cfg *config.Loaded, remote, branch string, o Out
 		Env:       os.Getenv,
 		RemoteURL: strings.TrimSpace(remoteURL),
 		GhToken:   providers.GhToken,
-		Stderr:    o.Stderr,
 	})
 	switch {
 	case err != nil:

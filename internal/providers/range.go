@@ -1,9 +1,7 @@
 package providers
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"net/url"
 	"sort"
 	"strings"
@@ -11,8 +9,6 @@ import (
 
 	"github.com/donvargax/itos/v4/internal/config"
 	"github.com/donvargax/itos/v4/internal/git"
-	"github.com/donvargax/itos/v4/internal/shell"
-	"github.com/donvargax/itos/v4/internal/value"
 )
 
 // Range is a ci.range provider: the start commit it proposes for a push's
@@ -25,23 +21,16 @@ type Range func(head string) string
 type Env func(string) string
 
 // RangeProvider is the provider itos.yaml's ci.range names
-// (providers.ts's rangeProvider): `none`, `command` (its stdout's first
-// line, through the config's shell, its stderr on stderr) or `github` (the
-// head's nearest first parent with a green run of the workflow, asking the
-// API at GITHUB_API_URL). Each is a function of the config's ci.range and the
+// (providers.ts's rangeProvider): `none` or `github` (the head's nearest
+// first parent with a green run of the workflow, asking the API at
+// GITHUB_API_URL). Each is a function of the config's ci.range and the
 // environment, so a provider over another forge's API is one more case beside
-// github's.
-func RangeProvider(cfg *config.Loaded, env Env, stderr io.Writer) Range {
+// github's. The `command` provider, which ran a repository's own command
+// unasked, was removed in v5.0.0 (slice 85).
+func RangeProvider(cfg *config.Loaded, env Env) Range {
 	r := cfg.CI.Range
-	switch r.Provider {
-	case "none":
+	if r.Provider == "none" {
 		return func(string) string { return "" }
-	case "command":
-		command := ""
-		if r.Command != nil {
-			command = *r.Command
-		}
-		return func(string) string { return FirstLine(cfg, command, stderr) }
 	}
 	return GitHub{
 		Repository: env(r.GitHub.RepositoryEnv),
@@ -59,19 +48,6 @@ func firstSet(env Env, names []string) string {
 		}
 	}
 	return ""
-}
-
-// FirstLine is a command run through the config's shell, its stdin closed
-// and its stderr on stderr, and the first line of its output, trimmed as
-// JavaScript trims; "" when it fails or prints nothing. The command
-// providers, ci.range's and work.identity's, read their answer this way.
-func FirstLine(cfg *config.Loaded, command string, stderr io.Writer) string {
-	var stdout bytes.Buffer
-	if !shell.Run(cfg, command, shell.Options{Stdout: &stdout, Stderr: stderr}).OK() {
-		return ""
-	}
-	line, _, _ := strings.Cut(value.Trim(stdout.String()), "\n")
-	return value.Trim(line)
 }
 
 // RangeStart is where a CI run's range starts (ci-scope.ts's rangeStart). A
@@ -139,7 +115,8 @@ func (g GitHub) api() string {
 // the range then reached back past commits already proved. A run counts on
 // whatever branch it ran (bug 29): a green run of that exact commit proves it,
 // and filtering by ci.range.github.branch made a push to another branch start
-// at main's green ancestor, re-checking what that branch had proved. Past
+// at main's green ancestor, re-checking what that branch had proved (v5.0.0
+// removed the key, slice 85). Past
 // FirstParentsAsked first parents with none green, and on anything that goes
 // wrong, there is no start, which runs everything; with no repository nobody
 // is asked.
@@ -208,32 +185,16 @@ func (g GitHub) GreenRunOf(sha string) (bool, error) {
 type LastGreenLook func(head string) (sha string, err error)
 
 // LastGreenProvider is the look itos status takes at the last green commit
-// (slice 73), through ci.range's provider: ok is false for none. command is
-// ci.range.command's first line, an error when it fails, the head unused;
-// github is LastGreenFrom the head, of ci.range.github's workflow on any
-// branch, the repository, token and API's address found as ci.watch's github
-// provider finds them (the environment, else the remote's URL and gh), so it
-// reads outside CI too. An error is a provider that cannot look at all, said
+// (slice 73), through ci.range's provider: ok is false for none. github is
+// LastGreenFrom the head, of ci.range.github's workflow on any branch, the
+// repository, token and API's address found as ci.watch's github provider
+// finds them (the environment, else the remote's URL and gh), so it reads
+// outside CI too. An error is a provider that cannot look at all, said
 // before any request.
 func LastGreenProvider(cfg *config.Loaded, s WatchSetup) (look LastGreenLook, ok bool, err error) {
 	r := cfg.CI.Range
-	switch r.Provider {
-	case "none":
+	if r.Provider == "none" {
 		return nil, false, nil
-	case "command":
-		command := ""
-		if r.Command != nil {
-			command = *r.Command
-		}
-		return func(string) (string, error) {
-			var stdout bytes.Buffer
-			res := shell.Run(cfg, command, shell.Options{Stdout: &stdout, Stderr: s.Stderr, Timeout: Timeout})
-			if !res.OK() {
-				return "", fmt.Errorf("ci.range.command failed (exit %s): %s", res.Status(), command)
-			}
-			line, _, _ := strings.Cut(value.Trim(stdout.String()), "\n")
-			return value.Trim(line), nil
-		}, true, nil
 	}
 	g, err := watchGitHub(cfg, "ci.range", s)
 	if err != nil {

@@ -210,6 +210,9 @@ func printDefaults(o Out) (int, error) {
 // config that cannot be loaded fails as it does for every command.
 func configGet(key string, o Out) (int, error) {
 	if known, keys := config.KnownKey(key); !known {
+		if fix, ok := config.RemovedKey(key); ok {
+			return 0, usage("config get: %s was removed in v5; %s", key, fix)
+		}
 		if len(keys) > 0 {
 			return 0, usage("config get: unknown key %s; the keys there are %s", key, strings.Join(keys, ", "))
 		}
