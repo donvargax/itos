@@ -5200,3 +5200,20 @@ items:
       take refuse in a linked worktree, or while another item is doing in the same checkout; a run
       the user asks for explicitly (the devcontainer test) overrides it for that run. LeashBench
       counts such slips as broken rules, so a model's pull back to the norm is measured.
+
+  - id: p1-drafts
+    title: itos draft keeps the coordinator's pending changes, and promotes them when no work is going on
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-06). While an agent holds the checkout the coordinator cannot commit,
+      so it kept its pending specs, ideas and registry edits in session scratch files all day:
+      working memory, lost with the session and invisible to the registry. itos draft saves a
+      pending change, file changes with their commit message or an itos command line to run,
+      clone-local and never committed under .git/itos/drafts like follow-ups; itos status lists the
+      drafts waiting; itos draft promote applies and commits them in order only when no item is
+      doing and no tracked change is uncommitted, so drafting never touches an agent's work. It also
+      turns the guide's commit only between agents into a gate.
