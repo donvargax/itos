@@ -4062,3 +4062,14 @@ items:
     why: >
       Issue #15. Specified as @ID-CI-13 in features/ci.feature.
     refs: [features/ci.feature, internal/providers/range.go]
+
+  - id: slice-83
+    title: CI steps and checks get the range's ends, as ITOS_FROM and ITOS_TO and {from} and {to}
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Issue #12. Specified as @ID-CI-14 and 15 in features/ci.feature.
+    refs: [features/ci.feature, internal/plan]
