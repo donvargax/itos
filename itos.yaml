@@ -18,7 +18,7 @@ ledger:
     timeout: 600 # seconds
 
 commits:
-  types: [feat, fix, refactor, perf, test, build, ci, chore, docs, style, revert]
+  types: [feat, fix, refactor, perf, test, build, ci, chore, docs, revert]
   # itos's own lint of config-conventional's rules, held to commitlint's verdicts over this history
   # (T-063, tools/selftest/header-agreement.ts); the footer rules run beside it.
   header_lint: { use: builtin }
@@ -81,12 +81,24 @@ commits:
     # one place a feat or a fix must change unless it changes the features.
     implementation:
       - "{cmd,internal}/**/*.go"
+    # The gates themselves: the config, the workflows, the hooks, their Go code and self-tests, and
+    # the dependency check's exceptions. Only build and ci, which need a Task, may touch them
+    # (T-098); every other type that could has them in never.
+    gates:
+      - itos.yaml
+      - ".github/**"
+      - ".vite-hooks/**"
+      - "tools/bin/**"
+      - "tools/selftest/**"
+      - deps-check.json
   scopes: # the paths each commit type may touch (tasks/README.md's table)
     feat: { must_touch: [$implementation, "features/**"] }
     fix: { must_touch: [$implementation, "features/**"] }
-    refactor: { never: ["features/**/*.feature"] }
-    perf: { never: ["features/**/*.feature"] }
+    refactor: { never: ["features/**/*.feature", $gates] }
+    perf: { never: ["features/**/*.feature", $gates] }
     test:
+      # The gates' self-tests, tools/selftest/**, left this list for build and ci (T-098).
+      never: [$gates]
       only:
         - "features/**"
         # The TypeScript's unit tests, gone with it (T-062), stay for verify,
@@ -95,12 +107,10 @@ commits:
         - "{cmd,internal}/**/*_test.go" # itos's unit tests, the Go packages'
         - "tools/itos/conformance/**"
         - "tools/itos/fixtures/**"
-        - "tools/selftest/**"
     build: { only: [$config] }
     ci: { only: [$config] }
-    chore: { never: [$implementation] }
+    chore: { never: [$implementation, $gates] }
     docs: { only: ["**/*.md", "docs/**", "tasks/**", "features/**/*.feature"] }
-    style: {}
   reject_message: "Commit rejected (see tasks/README.md):"
   # Where verification starts: verify and the range checks leave this commit
   # and its ancestors out. GitHub made this repository from the project
