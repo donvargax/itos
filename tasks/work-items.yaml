@@ -5183,3 +5183,20 @@ items:
       but itos nosuch --help still prints the main help and exits 0 (help.yaml's case an unknown
       command's help is itos's). Rule 12 of docs/CLI.md asks exit 2 for an unknown command either
       way; the case is a breaking change of its own.
+
+  - id: p1-sequential-gate
+    title: A project that works one item at a time can say so, and itos work take refuses parallel work
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-06). The user works sequentially on main, trunk-based, one agent at a
+      time, from experience: agents, like people, slip back to the common workflow they learned
+      (branches, worktrees, parallel agents), and it causes trouble. The coordinator itself made an
+      unrequested worktree and branch that day, against that rule. The rule is prose today (the
+      guide's One agent at a time). A config key (for example work.parallel: false) makes itos work
+      take refuse in a linked worktree, or while another item is doing in the same checkout; a run
+      the user asks for explicitly (the devcontainer test) overrides it for that run. LeashBench
+      counts such slips as broken rules, so a model's pull back to the norm is measured.
