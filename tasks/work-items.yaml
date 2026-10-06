@@ -56,7 +56,6 @@ phases:
 queue:
   - slice-87
   - slice-86
-  - slice-84
   - bug-36
   - bug-37
   - bug-38
