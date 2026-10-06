@@ -1,4 +1,4 @@
-// Package follow is itos follow's threads (slice 61, features/follow.feature):
+// Package follow is itos followup's threads (slice 61, features/follow.feature):
 // following up with a person, kept as a thread rather than a work item. A
 // thread has an id, the person it is with (free text: no people file is
 // read), a title, a status (open or closed) and its notes, each a dated
@@ -58,7 +58,7 @@ type Note struct {
 }
 
 // Thread is a follow-up with one person. Closed is when it was closed, ""
-// while open; Docs are the files follow doc wrote it to, absolute.
+// while open; Docs are the files followup doc wrote it to, absolute.
 type Thread struct {
 	ID     string   `yaml:"id" json:"id"`
 	With   string   `yaml:"with" json:"with"`
@@ -75,7 +75,7 @@ type File struct {
 }
 
 // head is the comment the file starts with.
-const head = "# itos follow's threads: this clone's own, never committed (itos help follow).\n"
+const head = "# itos followup's threads: this clone's own, never committed (itos help followup).\n"
 
 // idPattern is what a thread's id may be: a word typed on a command line.
 var idPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
@@ -247,7 +247,7 @@ func Markdown(t Thread) string {
 	if t.Status == Closed {
 		state = "closed " + Show(t.Closed)
 	}
-	fmt.Fprintf(&b, "A thread with %s, %s (itos follow show %s).\n", t.With, state, t.ID)
+	fmt.Fprintf(&b, "A thread with %s, %s (itos followup show %s).\n", t.With, state, t.ID)
 	for _, n := range t.Notes {
 		fmt.Fprintf(&b, "\n## %s\n\n%s\n", Show(n.At), strings.TrimRight(n.Text, "\n"))
 	}

@@ -1,6 +1,6 @@
 package cli
 
-// itos ask (slice 62, features/ask.feature): the questions waiting on the
+// itos question (slice 62, features/ask.feature): the questions waiting on the
 // person a repository's work is for, in work.asks beside the registry
 // (internal/ask). add and answer commit the file alone, as the registry's
 // commands commit theirs (writeCommitted), "docs: ask q-<n>" and
@@ -8,7 +8,7 @@ package cli
 // beside the stealth registry, written under the registry's lock, which every
 // stealth writer holds (bug 16), and nothing is committed. show and the list
 // read, never write; the list ends naming the answered questions recorded
-// nowhere, each as itos ask record would record it.
+// nowhere, each as itos question record would record it.
 //
 // record (slice 69) writes an answered question as the next architecture
 // decision record, in MADR 4's format since slice 71 (internal/adr), in the
@@ -44,7 +44,7 @@ import (
 // askTakes is what ask takes, as a usage error names it.
 const askTakes = "it takes add, answer, record or show, else --all"
 
-// askCommand is `ask [--all]`, `ask add`, `ask answer` and `ask show`.
+// askCommand is `question [--all]`, `question add`, `question answer` and `question show`.
 func askCommand(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	switch sub {
@@ -57,12 +57,12 @@ func askCommand(args []string, o Out) (int, error) {
 	case "show":
 		return askShow(rest, o)
 	}
-	pos, _, set, err := subArgs("ask", "", args, nil, []string{"--all"})
+	pos, _, set, err := subArgs("question", "", args, nil, []string{"--all"})
 	if err != nil {
 		return 0, err
 	}
 	if len(pos) > 0 {
-		return 0, usage("ask has no subcommand %s: %s", pos[0], askTakes)
+		return 0, usage("question has no subcommand %s: %s", pos[0], askTakes)
 	}
 	return askList(set["--all"], o)
 }
@@ -143,10 +143,10 @@ func heldAsks(o Out) (cfg *config.Loaded, release func(), err error) {
 // after it are the rest.
 func askID(sub string, pos []string, what string) (string, []string, error) {
 	if len(pos) == 0 {
-		return "", nil, usage("ask %s needs %s", sub, what)
+		return "", nil, usage("question %s needs %s", sub, what)
 	}
 	if !ask.ValidID(pos[0]) {
-		return "", nil, usage("ask %s: %q is no question id (q-<n>)", sub, pos[0])
+		return "", nil, usage("question %s: %q is no question id (q-<n>)", sub, pos[0])
 	}
 	return pos[0], pos[1:], nil
 }
@@ -156,7 +156,7 @@ func noQuestion(id string, o Out) (int, error) {
 	return refuseWork([]out.Problem{{
 		Rule:    "ask-no-question",
 		Message: fmt.Sprintf("there is no question %s", id),
-		Fix:     "itos ask --all lists the questions",
+		Fix:     "itos question --all lists the questions",
 	}}, ExitPolicy, o)
 }
 
@@ -214,17 +214,17 @@ func reportAsk(line string, q ask.Question, sha string, o Out) (int, error) {
 	return 0, nil
 }
 
-// askAdd is `ask add <text>… [--item <id>]`: a question, open, with the next
+// askAdd is `question add <text>… [--item <id>]`: a question, open, with the next
 // free id, naming the item when --item gives one, which the registry must
 // have; the file committed alone, "docs: ask q-<n>".
 func askAdd(args []string, o Out) (int, error) {
-	pos, flags, _, err := subArgs("ask", "add", args, []string{"--item"}, nil)
+	pos, flags, _, err := subArgs("question", "add", args, []string{"--item"}, nil)
 	if err != nil {
 		return 0, err
 	}
 	text := strings.TrimSpace(strings.Join(pos, " "))
 	if text == "" {
-		return 0, usage("ask add needs <text>, the question")
+		return 0, usage("question add needs <text>, the question")
 	}
 	cfg, release, err := heldAsks(o)
 	defer release()
@@ -251,7 +251,7 @@ func askAdd(args []string, o Out) (int, error) {
 		about = " about " + item
 	}
 	header := "docs: ask " + q.ID
-	body := fmt.Sprintf("Ask %s%s (\"%s\"), with itos ask add.", q.ID, about, oneLine(text))
+	body := fmt.Sprintf("Ask %s%s (\"%s\"), with itos question add.", q.ID, about, oneLine(text))
 	file := written{path: cfg.Work.Asks, old: old, text: ask.Text(f), created: !there}
 	sha, code, err := writeCommitted(cfg, []written{file}, header, body, o)
 	if err != nil || code != 0 {
@@ -260,11 +260,11 @@ func askAdd(args []string, o Out) (int, error) {
 	return reportAsk(fmt.Sprintf("%s asked%s: %s", q.ID, about, askCommitted(sha, header)), q, sha, o)
 }
 
-// askAnswer is `ask answer <id> <text>…`: the answer kept beside the
+// askAnswer is `question answer <id> <text>…`: the answer kept beside the
 // question, which is then answered; the file committed alone,
 // "docs: answer q-<n>". A question already answered is refused.
 func askAnswer(args []string, o Out) (int, error) {
-	pos, _, _, err := subArgs("ask", "answer", args, nil, nil)
+	pos, _, _, err := subArgs("question", "answer", args, nil, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -274,7 +274,7 @@ func askAnswer(args []string, o Out) (int, error) {
 	}
 	text := strings.TrimSpace(strings.Join(rest, " "))
 	if text == "" {
-		return 0, usage("ask answer needs <id> <text>, the answer")
+		return 0, usage("question answer needs <id> <text>, the answer")
 	}
 	cfg, release, err := heldAsks(o)
 	defer release()
@@ -293,12 +293,12 @@ func askAnswer(args []string, o Out) (int, error) {
 		return refuseWork([]out.Problem{{
 			Rule:    "ask-answered",
 			Message: fmt.Sprintf("%s is already answered: %s", id, oneLine(q.Answer)),
-			Fix:     "itos ask add asks a new question",
+			Fix:     "itos question add asks a new question",
 		}}, ExitPolicy, o)
 	}
 	q.Answer = text
 	header := "docs: answer " + id
-	body := fmt.Sprintf("Answer %s (\"%s\") with \"%s\", by itos ask answer.", id, oneLine(q.Question), oneLine(text))
+	body := fmt.Sprintf("Answer %s (\"%s\") with \"%s\", by itos question answer.", id, oneLine(q.Question), oneLine(text))
 	sha, code, err := writeCommitted(cfg, []written{{path: cfg.Work.Asks, old: old, text: ask.Text(f)}}, header, body, o)
 	if err != nil || code != 0 {
 		return code, err
@@ -321,10 +321,10 @@ func indented(text string, n int) string {
 	return strings.ReplaceAll(strings.TrimRight(text, "\n"), "\n", "\n"+strings.Repeat(" ", n))
 }
 
-// askShow is `ask show <id>`: the question, its status and the item it
+// askShow is `question show <id>`: the question, its status and the item it
 // names, then its answer when it has one.
 func askShow(args []string, o Out) (int, error) {
-	pos, _, _, err := subArgs("ask", "show", args, nil, nil)
+	pos, _, _, err := subArgs("question", "show", args, nil, nil)
 	if err != nil {
 		return 0, err
 	}
@@ -333,7 +333,7 @@ func askShow(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	if len(rest) > 0 {
-		return 0, usage("ask show takes one <id>, not %s", strings.Join(rest, " "))
+		return 0, usage("question show takes one <id>, not %s", strings.Join(rest, " "))
 	}
 	f, err := readAsks()
 	if err != nil {
@@ -360,7 +360,7 @@ func askShow(args []string, o Out) (int, error) {
 	return 0, nil
 }
 
-// askList is `ask [--all]`: the open questions, or with --all every one, the
+// askList is `question [--all]`: the open questions, or with --all every one, the
 // answered ones after them, each with its answer.
 func askList(all bool, o Out) (int, error) {
 	f, err := readAsks()
@@ -371,7 +371,7 @@ func askList(all bool, o Out) (int, error) {
 	var unrecorded []string
 	for _, q := range f.Questions {
 		if q.Unrecorded() {
-			unrecorded = append(unrecorded, "itos ask record "+q.ID)
+			unrecorded = append(unrecorded, "itos question record "+q.ID)
 		}
 		if q.Answer == "" {
 			open = append(open, q)
@@ -436,16 +436,16 @@ func askList(all bool, o Out) (int, error) {
 	return 0, nil
 }
 
-// askRecord is `ask record <id> --title <title> [--option <text>]…
-// [--consequences <text>] [--supersedes <n>]`, or `ask record <id> --none`:
+// askRecord is `question record <id> --title <title> [--option <text>]…
+// [--consequences <text>] [--supersedes <n>]`, or `question record <id> --none`:
 // the answered question written as the next decision record, or marked as
 // recorded nowhere.
 func askRecord(args []string, o Out) (int, error) {
-	options, args, err := repeated("ask record", "--option", args)
+	options, args, err := repeated("question record", "--option", args)
 	if err != nil {
 		return 0, err
 	}
-	pos, flags, set, err := subArgs("ask", "record", args, []string{"--title", "--consequences", "--supersedes"}, []string{"--none"})
+	pos, flags, set, err := subArgs("question", "record", args, []string{"--title", "--consequences", "--supersedes"}, []string{"--none"})
 	if err != nil {
 		return 0, err
 	}
@@ -454,23 +454,23 @@ func askRecord(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	if len(rest) > 0 {
-		return 0, usage("ask record takes one <id>, not %s", strings.Join(rest, " "))
+		return 0, usage("question record takes one <id>, not %s", strings.Join(rest, " "))
 	}
 	title, consequences := oneLine(flags["--title"]), strings.TrimSpace(flags["--consequences"])
 	supersedes := 0
 	if text, given := flags["--supersedes"]; given {
 		if supersedes, err = strconv.Atoi(text); err != nil || supersedes < 1 {
-			return 0, usage("ask record --supersedes takes a decision record's number, not %q", text)
+			return 0, usage("question record --supersedes takes a decision record's number, not %q", text)
 		}
 	}
 	none := set["--none"]
 	switch {
 	case none && (title != "" || consequences != "" || supersedes != 0 || len(options) > 0):
-		return 0, usage("ask record --none writes no record, so it takes no --title, --option, --consequences or --supersedes")
+		return 0, usage("question record --none writes no record, so it takes no --title, --option, --consequences or --supersedes")
 	case !none && title == "":
-		return 0, usage("ask record needs --title <title>, the decision's, or --none")
+		return 0, usage("question record needs --title <title>, the decision's, or --none")
 	case !none && adr.Slug(title) == "":
-		return 0, usage("ask record --title needs a letter or a digit, which the record's file is named by")
+		return 0, usage("question record --title needs a letter or a digit, which the record's file is named by")
 	}
 	cfg, release, err := heldAsks(o)
 	defer release()
@@ -489,13 +489,13 @@ func askRecord(args []string, o Out) (int, error) {
 		return refuseWork([]out.Problem{{
 			Rule:    "ask-unanswered",
 			Message: fmt.Sprintf("%s is not answered, so it holds no decision to record", id),
-			Fix:     "itos ask answer " + id + " <text> answers it first",
+			Fix:     "itos question answer " + id + " <text> answers it first",
 		}}, ExitPolicy, o)
 	case q.Decision != "":
 		return refuseWork([]out.Problem{{
 			Rule:    "ask-recorded",
 			Message: fmt.Sprintf("%s is already recorded, as %s", id, decisionOf(*q)),
-			Fix:     "itos ask show " + id + " shows it",
+			Fix:     "itos question show " + id + " shows it",
 		}}, ExitPolicy, o)
 	}
 	asks := written{path: cfg.Work.Asks, old: old}
@@ -503,7 +503,7 @@ func askRecord(args []string, o Out) (int, error) {
 		q.Decision = ask.None
 		asks.text = ask.Text(f)
 		header := "docs: mark " + id + " as recorded nowhere"
-		body := fmt.Sprintf("Mark %s (\"%s\") as recorded nowhere, its answer having concerned its item alone, so itos ask stops naming it. By itos ask record --none.", id, oneLine(q.Question))
+		body := fmt.Sprintf("Mark %s (\"%s\") as recorded nowhere, its answer having concerned its item alone, so itos question stops naming it. By itos question record --none.", id, oneLine(q.Question))
 		sha, code, err := writeCommitted(cfg, []written{asks}, header, body, o)
 		if err != nil || code != 0 {
 			return code, err
@@ -571,7 +571,7 @@ func askRecord(args []string, o Out) (int, error) {
 	if utf8.RuneCountInString(in+",") > bodyWidth {
 		in = filepath.ToSlash(dir)
 	}
-	body := fmt.Sprintf("Record %s (\"%s\") as decision %d, %s, in %s, by itos ask record.", id, oneLine(q.Question), n, title, in)
+	body := fmt.Sprintf("Record %s (\"%s\") as decision %d, %s, in %s, by itos question record.", id, oneLine(q.Question), n, title, in)
 	if supersedes != 0 {
 		body += fmt.Sprintf(" It supersedes decision %d, which leaves the index.", supersedes)
 	}

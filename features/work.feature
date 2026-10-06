@@ -112,7 +112,7 @@ Feature: The work registry
   Scenario: work promote renames an idea, makes it a slice, rewrites what depends on it, and commits
     Given the work registry has the idea "p1-thing" owned by nobody
     And the work registry has the item "slice-3" owned by nobody with the status "todo", depending on "p1-thing"
-    When itos runs "work promote p1-thing --as slice-7 --kind slice"
+    When itos runs "work promote p1-thing --id slice-7 --kind slice"
     Then itos exits with code 0
     And the registry has no item "p1-thing"
     And the registry's item "slice-7" is a slice whose why starts with "Was p1-thing."
@@ -284,7 +284,7 @@ Feature: The work registry
   @ID-WORK-29 @slice-65
   Scenario: work promote --title gives the promoted item a new title
     Given the work registry has the idea "p1-thing" owned by nobody
-    When itos runs the command line "work promote p1-thing --as slice-7 --kind slice --title 'The thing, specified'"
+    When itos runs the command line "work promote p1-thing --id slice-7 --kind slice --title 'The thing, specified'"
     Then itos exits with code 0
     And the registry's item "slice-7" is titled "The thing, specified"
 
@@ -334,10 +334,10 @@ Feature: The work registry
     And its output does not say "slice-8"
 
   @ID-WORK-33 @slice-66
-  Scenario: work queue --drop takes an item out of the queue
+  Scenario: work queue --remove takes an item out of the queue
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And itos has run "work queue slice-9 --top"
-    When itos runs "work queue slice-9 --drop"
+    When itos runs "work queue slice-9 --remove"
     Then itos exits with code 0
     And the registry's queue is empty
 
@@ -564,7 +564,7 @@ Feature: The work registry
   # another action than work queue. They are work promote --id and work
   # queue --remove; the old flags exit 2 naming the new ones. The feat
   # rewrites the live scenarios that use them, marked breaking.
-  @ID-WORK-52 @slice-89 @wip
+  @ID-WORK-52 @slice-89
   Scenario: work promote --id renames an idea and makes it a slice
     Given the work registry has the idea "p1-thing" owned by nobody
     When itos runs "work promote p1-thing --id slice-7 --kind slice"
@@ -572,7 +572,7 @@ Feature: The work registry
     And the registry has no item "p1-thing"
     And the registry's item "slice-7" is a slice whose why starts with "Was p1-thing."
 
-  @ID-WORK-53 @slice-89 @wip
+  @ID-WORK-53 @slice-89
   Scenario: work promote --as exits 2, naming --id
     Given the work registry has the idea "p1-thing" owned by nobody
     When itos runs "work promote p1-thing --as slice-7 --kind slice"
@@ -580,7 +580,7 @@ Feature: The work registry
     And its output says "--id"
     And the registry is unchanged
 
-  @ID-WORK-54 @slice-89 @wip
+  @ID-WORK-54 @slice-89
   Scenario: work queue --remove takes an item out of the queue
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And itos has run "work queue slice-9 --top"
@@ -588,7 +588,7 @@ Feature: The work registry
     Then itos exits with code 0
     And the registry's queue is empty
 
-  @ID-WORK-55 @slice-89 @wip
+  @ID-WORK-55 @slice-89
   Scenario: work queue --drop exits 2, naming --remove
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And itos has run "work queue slice-9 --top"

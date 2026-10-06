@@ -11,7 +11,7 @@
 // the refs an item has after (bug 14); a command that has to succeed before
 // the run a scenario is about, a queue written into the registry, and the
 // registry's queue after (slice 66); the folder work.decisions names for
-// itos ask record's decision records (slice 71); an item with a why, a task
+// itos question record's decision records (slice 71); an item with a why, a task
 // with none and a ledger task with one, and an item's why gone after (slice
 // 76); a queue that no longer names an item and the last commit's body
 // (slice 78); the last commit's body within a line length (bug 22); a
@@ -101,14 +101,14 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the ledger has no task "([^"]*)"$`, w.ledgerLacks)
 	sc.Step(`^git reports no change to the working tree or the index$`, w.gitStatusClean)
 
-	sc.Step(`^itos runs ask add with a question whose commit body would wrap to start a line with "([^"]*)"$`, w.askAddWrappingTo)
+	sc.Step(`^itos runs question add with a question whose commit body would wrap to start a line with "([^"]*)"$`, w.askAddWrappingTo)
 }
 
-// askAddWrappingTo runs ask add with a question that ends in the text, its
+// askAddWrappingTo runs question add with a question that ends in the text, its
 // words before the text built so that a plain wrap of the commit body at the
 // lint's body limit, as itos's own commits were wrapped before bug 18,
-// breaks just before it. ask add's body is `Ask q-<n> ("<question>"), with
-// itos ask add.`, so the body's prefix and the words before the text fill
+// breaks just before it. question add's body is `Ask q-<n> ("<question>"), with
+// itos question add.`, so the body's prefix and the words before the text fill
 // the first line to the limit exactly, and the text would start the second.
 // The question's id is the next free one of the questions file.
 func (w *world) askAddWrappingTo(text string) error {
@@ -117,10 +117,10 @@ func (w *world) askAddWrappingTo(text string) error {
 		return err
 	}
 	prefix := fmt.Sprintf("Ask %s (\"", id)
-	return w.itos("ask", "add", wordsOf(bodyLimit-len(prefix))+" "+text)
+	return w.itos("question", "add", wordsOf(bodyLimit-len(prefix))+" "+text)
 }
 
-// nextQuestion is the id ask add gives the next question: one past the
+// nextQuestion is the id question add gives the next question: one past the
 // highest the questions file, beside the registry, holds; q-1 with none.
 func (w *world) nextQuestion() (string, error) {
 	text, err := os.ReadFile(filepath.Join(w.dir, w.data(filepath.Join(filepath.Dir(startingRegistry), "asks.yaml"))))

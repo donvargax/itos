@@ -13,7 +13,7 @@ Feature: itos init, a repository made ready for itos
   itos is never judged. hooks.bin is itos, the global launcher, and the pin
   the newest release, as itos pin writes it; where the release server cannot
   be reached it pins nothing and says how to (a config with no pin runs the
-  binary that was called). Then it installs the hooks, as hooks install
+  binary that was called). Then it installs the hooks, as hook install
   does. With --stealth all of it goes under the git folder and the hooks into
   the git config, nothing the project tracks touched.
 
@@ -104,7 +104,7 @@ Feature: itos init, a repository made ready for itos
     When itos runs "init"
     Then itos exits with code 1
     And its output says "pre-push"
-    And its output says "itos hooks install"
+    And its output says "itos hook install"
     And the file ".git/hooks/pre-push" does not exist
 
   @ID-INIT-09 @slice-48

@@ -8,7 +8,7 @@ package cli
 // stealth one), it writes a starter (starter.go): the config, a ledger and a
 // work registry under tasks/ and, when features/ holds feature files, a smoke
 // set; then pins the newest release as itos pin does, where the release
-// server answers; then installs the hooks as hooks install does. With
+// server answers; then installs the hooks as hook install does. With
 // --stealth all of it goes beside the stealth config in the git folder and
 // the hooks into the git config, so nothing tracked changes. Where a config
 // is there, it writes nothing: it reports what config check finds wrong and
@@ -132,7 +132,7 @@ type writtenFile struct {
 
 // initWrite writes the starter, pins the newest release, installs the hooks
 // and makes the plugin's offer, the git shim's and that of the rules for
-// agents; its exit code is hooks install's, else 1 when claude failed at
+// agents; its exit code is hook install's, else 1 when claude failed at
 // installing the plugin asked for, the git shim asked for could not be
 // linked or the rules asked for could not be written.
 func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer, rulesOffer rulesOffer, log io.Writer,
@@ -305,15 +305,15 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 	return code, nil
 }
 
-// initHooks runs hooks install on the config just written; under --json its
+// initHooks runs hook install on the config just written; under --json its
 // object, without its schema, for init's own.
 func initHooks(o Out) (int, any, error) {
 	if !o.JSON {
-		code, err := hooksInstall("", false, false, o)
+		code, err := hookInstall("", false, false, o)
 		return code, nil, err
 	}
 	var buf bytes.Buffer
-	code, err := hooksInstall("", false, false, Out{JSON: true, Quiet: o.Quiet, Stdout: &buf, Stderr: o.Stderr})
+	code, err := hookInstall("", false, false, Out{JSON: true, Quiet: o.Quiet, Stdout: &buf, Stderr: o.Stderr})
 	if err != nil || buf.Len() == 0 {
 		return code, nil, err
 	}
@@ -321,7 +321,7 @@ func initHooks(o Out) (int, any, error) {
 	// writes it first).
 	hooks := json.RawMessage(bytes.Replace(buf.Bytes(), []byte(`"schema": 1,`), nil, 1))
 	if !json.Valid(hooks) {
-		return 0, nil, fmt.Errorf("hooks install wrote no JSON object: %s", buf.Bytes())
+		return 0, nil, fmt.Errorf("hook install wrote no JSON object: %s", buf.Bytes())
 	}
 	return code, hooks, nil
 }
@@ -446,18 +446,18 @@ func pinBehind(cfg *config.Loaded) *out.Problem {
 	}
 }
 
-// hookProblems are the hooks hooks install would put in place that do not
+// hookProblems are the hooks hook install would put in place that do not
 // call itos, for the manager it would pick: a shim file missing, not
 // executable for plain git (outside Windows, which has no executable bit and
 // runs a hook whatever its mode) or not calling itos; a lefthook or pre-commit
 // config without itos's snippet; an entry of the git config missing. The
-// pre-push one under the git config only when hooks install declares it
+// pre-push one under the git config only when hook install declares it
 // (declaresPrePush).
 func hookProblems(cfg *config.Loaded, file string) []out.Problem {
 	const root = "."
 	bin := cfg.Hooks.Bin
 	found := chosenManager("", cfg, file, root)
-	install := "run itos hooks install"
+	install := "run itos hook install"
 	var problems []out.Problem
 	missing := func(event, message, fix string) {
 		problems = append(problems, out.Problem{Rule: "hook-missing", Message: "the " + event + " hook: " + message, Fix: fix})

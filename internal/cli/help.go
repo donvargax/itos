@@ -63,31 +63,33 @@ Commands:
   work list [--all]                the open items of the work registry; --all every one
   work show <id> [--patch]         an item, its scenarios and its commits; reads only
   work take <id> [--as <handle>]   set an item in progress for the person, and commit it
-  work promote <idea> --as <id> --kind slice|task [--title <title>]
+  work promote <idea> --id <id> --kind slice|task [--title <title>]
                                    make an idea a slice or a task, and commit it
   work done <id>                   mark an item done once it has landed, and commit it
   work add <id> --title <title> --why <why> […]
                                    add an item to the work registry, and commit it
   work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--note <text>]
                                    change an item, or add a note to its why, and commit it
-  work queue <id> --top|--before <id>|--after <id>|--drop
+  work queue <id> --top|--before <id>|--after <id>|--remove
                                    order the work: put an item in the queue, or take it out
   work drop <id> --why <reason>    take an item out of the open work, and commit the reason
   work check [<file>]              validate the work registry
-  ask [--all]                      the open questions to the person the work is for
-  ask add <text> [--item <id>]     ask a question, and commit it
-  ask answer <id> <text>           answer a question, and commit it
-  ask record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>] [--none]
+  question [--all]                 the open questions to the person the work is for
+  question add <text> [--item <id>]
+                                   ask a question, and commit it
+  question answer <id> <text>      answer a question, and commit it
+  question record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>] [--none]
                                    write an answer as a decision record, and commit it
-  ask show <id>                    a question and its answer
-  follow [--all]                   your open threads with people; private, never committed
-  follow add <id> --with <who> --title <title> --note <text>
+  question show <id>               a question and its answer
+  followup [--all]                 your open threads with people; private, never committed
+  followup add <id> --with <who> --title <title> --note <text>
                                    open a thread with someone
-  follow note <id> <text>          add a dated note to a thread
-  follow close <id> [--note <text>]
+  followup note <id> <text>        add a dated note to a thread
+  followup close <id> [--note <text>]
                                    close a thread
-  follow show <id>                 a thread and all its notes
-  follow doc <id> <path> [--force] write a thread out as Markdown
+  followup show <id>               a thread and all its notes
+  followup doc <id> <path> [--force]
+                                   write a thread out as Markdown
   commit [--task <id>] [--item <id>] [--scenarios <ids>] [--<footer> <text>] [<git commit args>…]
                                    git commit, with the footers itos writes
   commit check-message <file|->    header lint and footer rules on one message
@@ -117,9 +119,9 @@ Commands:
   ci watch [<sha>]                 wait for a commit's CI run, HEAD's by default
   hook commit-msg <file>           the commit-msg hook: data, paths, header lint, task checks
   hook pre-push <remote> <url>     the pre-push hook: verify, then the tests the push reaches
-  hook pre-tool-use                Claude Code's PreToolUse hook: denies git commit and git push
-  hooks install [--manager <m>] [--print] [--force]
+  hook install [--manager <m>] [--print] [--force]
                                    write the hooks' one-line shims for the hook manager
+  guard claude-code                Claude Code's PreToolUse hook: denies git commit and git push
   config check [--print-defaults]  validate the config, ledger, registry and smoke sets
   config get <key>                 a config key's value as itos reads it, defaults applied
   version [--check]                the version; --check against the config's requires
@@ -207,11 +209,11 @@ or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
        itos work list [--all]
        itos work show <id> [--patch]
        itos work take <id> [--as <handle>]
-       itos work promote <idea> --as <id> --kind slice|task [--title <title>]
+       itos work promote <idea> --id <id> --kind slice|task [--title <title>]
        itos work done <id>
        itos work add <id> --title <title> --why <why> […]
        itos work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--note <text>]
-       itos work queue <id> --top|--before <id>|--after <id>|--drop
+       itos work queue <id> --top|--before <id>|--after <id>|--remove
        itos work drop <id> --why <reason>
        itos work check [<file>]
 
@@ -240,9 +242,9 @@ Prints the item (its title, kind, status, owner, phase, depends_on, the items
 depending on it, refs and why, a task's why read from its ledger entry first),
 its scenarios at HEAD (those tagged @<id>, @slice-<n> for the item slice-<n>,
 live or @wip) and its commits, oldest first,
-each with its short SHA and header, and between them the questions of itos ask
-naming the item (itos help ask), each with its id, open or answered, and its
-text. A commit is the item's when its footers of IDs name the item (Task:) or
+each with its short SHA and header, and between them the questions of itos
+question naming the item (itos help question), each with its id, open or
+answered, and its text. A commit is the item's when its footers of IDs name the item (Task:) or
 one of its scenarios (Scenarios:), a later fix naming one included, or when it
 is one of itos's registry commits naming it in its header (docs: take <id>,
 docs: promote <idea> to <id>, docs: close <id>, docs: add <id>, docs: edit
@@ -250,7 +252,7 @@ docs: promote <idea> to <id>, docs: close <id>, docs: add <id>, docs: edit
 refs/notes/itos. --patch adds each commit as git show prints it, message and
 diff: the whole of a review's input. It reads, never writes, and judges
 nothing, as work list. Exit 1 when there is no registry where itos looks, or no
-item with the id; 2 when itos ask's file is there and cannot be read.
+item with the id; 2 when itos question's file is there and cannot be read.
 
 --json: {"schema":1,"ok":true,"item":{…},"ledger_why"?:"<why>"|null,"depended_on_by":[…],"scenarios":[{"id","file","live"}],
 "questions":[{"id","item","question","status","answer"?}],
@@ -275,7 +277,7 @@ every item is the session's, and its owner is left as it is.
 --json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
-	"work promote": `Usage: itos work promote <idea> --as <id> --kind slice|task [--title <title>]
+	"work promote": `Usage: itos work promote <idea> --id <id> --kind slice|task [--title <title>]
 
 Makes an idea a slice or a task: renames it <id>, sets its kind, puts
 "Was <idea>." before its why and renames it in every depends_on that names it,
@@ -368,19 +370,19 @@ and nothing committed.
 --json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
-	"work queue": `Usage: itos work queue <id> --top|--before <id>|--after <id>|--drop
+	"work queue": `Usage: itos work queue <id> --top|--before <id>|--after <id>|--remove
 
 Orders the work: the registry's queue, a top-level queue: list of item ids,
 one for the whole repository, ideas included, says what comes first, and itos
 work proposes in its order. --top puts the item first, --before and --after
-just before or after an item the queue holds, --drop takes it out; an item the
+just before or after an item the queue holds, --remove takes it out; an item the
 queue holds already is moved. The queue is written whole as a block list
 before items:, then the registry is committed alone, "docs: queue <id>", as
 work take does (itos help work take). work done takes a closed item out.
 Refused, nothing written (exit 1): a registry that is not sound or has changes
 no commit holds, an id no item has, an item done or dropped, an item placed
 before or after itself or an item the queue does not hold, a commit a hook
-refuses. An item already where it is put, or not in the queue for --drop,
+refuses. An item already where it is put, or not in the queue for --remove,
 changes nothing. Under a stealth config the registry is written and nothing
 committed.
 
@@ -686,7 +688,7 @@ server error, a rate limit or no network.
 
 	"hook": `Usage: itos hook commit-msg <file>
        itos hook pre-push <remote> <url>
-       itos hook pre-tool-use`,
+       itos hook install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]`,
 
 	"hook commit-msg": `Usage: itos hook commit-msg <file>
 
@@ -723,29 +725,7 @@ on, else hooks.pre_push.whole (a new branch, or a base this clone lacks);
 without hooks.pre_push, nothing. A deleted branch runs nothing. Exit 1 when
 a command fails.`,
 
-	"hook pre-tool-use": `Usage: itos hook pre-tool-use
-
-Claude Code's PreToolUse hook, which the itos plugin runs before each Bash
-command. Reads Claude Code's JSON on stdin (tool_name, tool_input.command,
-cwd). In a repository itos manages, found from cwd (else the folder itos runs
-in) as everywhere else, a Bash command that runs git commit or git push is
-denied: exit 0 and Claude Code's deny on stdout, its reason naming itos commit
---task <id> or --scenarios <ids>, or itos push. The command is read as bash
-reads it: each command of a list, pipeline, subshell or substitution, its
-variable assignments skipped, past command, exec, nohup and env, then git (or
-a path ending in /git), its global options (-C moves the folder judged), and
-the subcommand; text an argument carries is not a command. sh -c, eval,
-scripts, git aliases and words built from variables are not looked into.
-Everything else gets no answer (exit 0, nothing on stdout), never an allow,
-so Claude Code's permission rules decide. An input it cannot read: exit 1,
-the reason on stderr; Claude Code blocks a tool on exit 2 alone. Where the
-launcher would hand it to an itos older than 2.3.0, which has no such hook (a
-pin, ITOS_VERSION or the newest release), it gets no answer either, after a
-line on stderr saying why.`,
-
-	"hooks": `Usage: itos hooks install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]`,
-
-	"hooks install": `Usage: itos hooks install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]
+	"hook install": `Usage: itos hook install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]
 
 Writes the commit-msg and pre-push hooks as one-line shims calling
 ` + "`" + `<hooks.bin> hook …` + "`" + ` (itos, the global launcher, by default, and under a
@@ -771,6 +751,28 @@ them), else it exits 3.
 --json: {"schema":1,"manager","marker","files":[{"path","content","action"}]}
         or, for lefthook, pre-commit and prek, {"schema":1,"manager","marker","file","snippet","installed"}
         or, for git-config, {"schema":1,"manager","marker","hooks":[{"name","event","command","action"}]}`,
+
+	"guard": `Usage: itos guard claude-code`,
+
+	"guard claude-code": `Usage: itos guard claude-code
+
+Claude Code's PreToolUse hook, which the itos plugin runs before each Bash
+command. Reads Claude Code's JSON on stdin (tool_name, tool_input.command,
+cwd). In a repository itos manages, found from cwd (else the folder itos runs
+in) as everywhere else, a Bash command that runs git commit or git push is
+denied: exit 0 and Claude Code's deny on stdout, its reason naming itos commit
+--task <id> or --scenarios <ids>, or itos push. The command is read as bash
+reads it: each command of a list, pipeline, subshell or substitution, its
+variable assignments skipped, past command, exec, nohup and env, then git (or
+a path ending in /git), its global options (-C moves the folder judged), and
+the subcommand; text an argument carries is not a command. sh -c, eval,
+scripts, git aliases and words built from variables are not looked into.
+Everything else gets no answer (exit 0, nothing on stdout), never an allow,
+so Claude Code's permission rules decide. An input it cannot read: exit 1,
+the reason on stderr; Claude Code blocks a tool on exit 2 alone. Where the
+launcher would hand it to an itos older than 6.0.0, which has no such command
+(a pin, ITOS_VERSION or the newest release), it gets no answer either, after
+a line on stderr saying why.`,
 
 	"config": `Usage: itos config check [--ledger <file>] [--print-defaults]
        itos config get <key>`,
@@ -971,7 +973,7 @@ Run again, a copy that no longer matches AGENTS.md is reported as well, and
 --agent-rules rewrites it.
 
 --json: {"schema":1,"config","action":"initialized","git_init","since","files":[{"path","action"}],
-        "pin","pin_problem"?,"hooks","plugin","git_shim","agent_rules"} (hooks as itos hooks install
+        "pin","pin_problem"?,"hooks","plugin","git_shim","agent_rules"} (hooks as itos hook install
         --json prints it), or {"schema":1,"config","action":"checked","missing":[{"rule","message",
         "fix"?,"area"}],"plugin","notes":[{"rule","message","fix"?,"area"}],"git_shim","agent_rules"};
         plugin {"action","scope","excluded","problem"?}, action one of installed, already,
@@ -984,12 +986,12 @@ Run again, a copy that no longer matches AGENTS.md is reported as well, and
         offered, declined or failed; under a stealth config, stale too when the copy of
         AGENTS.md no longer matches it; each file's action wrote, updated or kept`,
 
-	"follow": `Usage: itos follow [--all]
-       itos follow add <id> --with <who> --title <title> --note <text>
-       itos follow note <id> <text>
-       itos follow close <id> [--note <text>]
-       itos follow show <id>
-       itos follow doc <id> <path> [--force]
+	"followup": `Usage: itos followup [--all]
+       itos followup add <id> --with <who> --title <title> --note <text>
+       itos followup note <id> <text>
+       itos followup close <id> [--note <text>]
+       itos followup show <id>
+       itos followup doc <id> <path> [--force]
 
 Your threads with people: following up with someone on something, a thread
 of dated notes rather than a work item. A thread has an id, the person it is
@@ -1007,16 +1009,16 @@ lock held waits, and gives up after 10 seconds naming it. An itos stopped
 while it held the lock leaves the file behind: remove it when no itos runs.
 Times print to the minute in your time zone.
 
-itos follow lists the open threads, each with its title, who it is with and
+itos followup lists the open threads, each with its title, who it is with and
 when it last had a note; --all adds the closed ones after them. Exit 1 for a
 refusal (an id a thread has, no thread with the id), 2 for a usage error, a
 lock still held, or a follow-ups.yaml itos cannot read or did not write
 whole (a second YAML document, an empty file), which it leaves as it is.
 
 --json: {"schema":1,"threads":[{"id","with","title","status","opened","last","notes"}]},
-notes the count; each subcommand's in its help (itos help follow <subcommand>)`,
+notes the count; each subcommand's in its help (itos help followup <subcommand>)`,
 
-	"follow add": `Usage: itos follow add <id> --with <who> --title <title> --note <text>
+	"followup add": `Usage: itos followup add <id> --with <who> --title <title> --note <text>
 
 Opens a thread with <who>, its first note <text> dated now. An id is letters,
 digits, '.', '_' and '-', a letter or digit first. Refused, nothing written
@@ -1025,40 +1027,40 @@ digits, '.', '_' and '-', a letter or digit first. Refused, nothing written
 --json: {"schema":1,"ok":true,"thread":{"id","with","title","status","closed"?,"notes":[{"at","text"}],"docs"?}},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
-	"follow note": `Usage: itos follow note <id> <text>…
+	"followup note": `Usage: itos followup note <id> <text>…
 
 Appends a note to the thread, dated now: the words after the id joined by
 spaces, so the text needs no quotes unless the shell would read it; after
 "--" a word that starts with "-" is text too. A closed thread takes notes and
 stays closed. Refused (exit 1): no thread with the id.
 
---json: as itos follow add's, the thread as it is after`,
+--json: as itos followup add's, the thread as it is after`,
 
-	"follow close": `Usage: itos follow close <id> [--note <text>]
+	"followup close": `Usage: itos followup close <id> [--note <text>]
 
 Closes the thread, dated now, with a last note when --note gives one. A closed
-thread is left out of itos follow's list and still shows and takes notes.
+thread is left out of itos followup's list and still shows and takes notes.
 Refused, nothing written (exit 1): no thread with the id, a thread already
 closed.
 
---json: as itos follow add's, the thread as it is after`,
+--json: as itos followup add's, the thread as it is after`,
 
-	"follow show": `Usage: itos follow show <id>
+	"followup show": `Usage: itos followup show <id>
 
 Prints the whole thread: its id and title, who it is with and its status,
 then every note in the order written, each with its date and time, and the
-files itos follow doc wrote it to. It reads, never writes. Exit 1 when no
+files itos followup doc wrote it to. It reads, never writes. Exit 1 when no
 thread has the id.
 
---json: as itos follow add's`,
+--json: as itos followup add's`,
 
-	"follow doc": `Usage: itos follow doc <id> <path> [--force]
-       itos follow doc <id> -
+	"followup doc": `Usage: itos followup doc <id> <path> [--force]
+       itos followup doc <id> -
 
 Writes the whole thread at <path> as Markdown, in the repository or not, the
 folders it needs made: its title, who it is with and its status, then each
 note under its date, in order, the raw material for a document someone
-refines. The thread records the file, as itos follow show prints it. A file
+refines. The thread records the file, as itos followup show prints it. A file
 already at <path> is refused, nothing written (exit 1), unless --force writes
 over it; so is a folder, or no thread with the id.
 
@@ -1067,37 +1069,37 @@ folders made 0700), and a <path> in the work tree that git does not ignore
 is written with a warning on stderr: a git add would commit it. With - for
 <path> the Markdown is printed instead, and no file written or recorded.
 
---json: as itos follow add's, with "path", the file written, absolute; with
--, as itos follow add's with "markdown", the text`,
+--json: as itos followup add's, with "path", the file written, absolute; with
+-, as itos followup add's with "markdown", the text`,
 
-	"ask": `Usage: itos ask [--all]
-       itos ask add <text> [--item <id>]
-       itos ask answer <id> <text>
-       itos ask record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>]
-       itos ask record <id> --none
-       itos ask show <id>
+	"question": `Usage: itos question [--all]
+       itos question add <text> [--item <id>]
+       itos question answer <id> <text>
+       itos question record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>]
+       itos question record <id> --none
+       itos question show <id>
 
 The questions waiting on the person the work is for, kept as data beside the
 work registry rather than by hand: in work.asks, by default asks.yaml in the
 registry's folder (tasks/asks.yaml where the ledger is in tasks/). They are
-public, unlike itos follow's threads: add and answer write the file and commit
-it alone, as work take commits the registry (itos help work take). A question
-has an id, q-1, q-2 and so on, one past the highest the file holds, answered
-or not, so an id is never given twice; its text; the registry item it holds
-up, when --item names one; and its answer, once given, kept beside it. Under a
-stealth config the file is in the git folder beside the stealth registry,
-written while the registry's lock is held, as every stealth writer holds it,
-and nothing is committed.
+public, unlike itos followup's threads: add and answer write the file and
+commit it alone, as work take commits the registry (itos help work take). A
+question has an id, q-1, q-2 and so on, one past the highest the file holds,
+answered or not, so an id is never given twice; its text; the registry item it
+holds up, when --item names one; and its answer, once given, kept beside it.
+Under a stealth config the file is in the git folder beside the stealth
+registry, written while the registry's lock is held, as every stealth writer
+holds it, and nothing is committed.
 
-An answered question is a decision: itos ask record writes it as an
+An answered question is a decision: itos question record writes it as an
 architecture decision record, notes the record's number on the question and
-commits both (itos help ask record), or with --none marks an answer that
+commits both (itos help question record), or with --none marks an answer that
 concerned its item alone, recorded nowhere.
 
-itos ask lists the open questions, each with the item it names, then one line
-naming the answered questions recorded nowhere yet, each as itos ask record
-<id>, when there are any; --all adds the answered ones after the open ones,
-each with its answer and its decision. Exit 1 for a refusal (no question with
+itos question lists the open questions, each with the item it names, then one
+line naming the answered questions recorded nowhere yet, each as itos question
+record <id>, when there are any; --all adds the answered ones after the open
+ones, each with its answer and its decision. Exit 1 for a refusal (no question with
 the id, an item the registry does not have), 2 for a usage error or an
 asks.yaml itos cannot read or did not write whole (a key it does not know, an
 id not q-<n> or given twice, a decision neither a number nor none, a second
@@ -1105,9 +1107,9 @@ YAML document, an empty file), which it leaves as it is.
 
 --json: {"schema":1,"questions":[{"id","item"?,"question","status","answer"?,"decision"?}]},
 status open or answered, decision the record's number or "none"; each
-subcommand's in its help (itos help ask <subcommand>)`,
+subcommand's in its help (itos help question <subcommand>)`,
 
-	"ask add": `Usage: itos ask add <text>… [--item <id>]
+	"question add": `Usage: itos question add <text>… [--item <id>]
 
 Asks a question, open, with the next free id: the words before or after
 --item joined by spaces, so the text needs no quotes unless the shell would
@@ -1122,19 +1124,19 @@ and nothing committed.
 --json: {"schema":1,"ok":true,"question":{"id","item"?,"question","status","answer"?},"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
-	"ask answer": `Usage: itos ask answer <id> <text>…
+	"question answer": `Usage: itos question answer <id> <text>…
 
 Answers the question: the words after the id joined by spaces are kept beside
-it, and it is answered, left out of itos ask's list. Then commits the
-questions' file alone, "docs: answer <id>", as itos ask add does. Refused,
+it, and it is answered, left out of itos question's list. Then commits the
+questions' file alone, "docs: answer <id>", as itos question add does. Refused,
 nothing written (exit 1): no question with the id, a question already
 answered, a file with changes no commit holds, a commit a hook refuses. Under
 a stealth config the file is written and nothing committed.
 
---json: as itos ask add's, the question as it is after`,
+--json: as itos question add's, the question as it is after`,
 
-	"ask record": `Usage: itos ask record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>]
-       itos ask record <id> --none
+	"question record": `Usage: itos question record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>]
+       itos question record <id> --none
 
 Writes the answered question as the next architecture decision record, in
 MADR 4's format (adr/madr, its bare-minimal sections): NNNN-<slug>.md, the
@@ -1155,11 +1157,11 @@ ADR-<nnnn>", the new record's number in four digits, so it leaves the index,
 and the new record ends with "## More Information", "Supersedes ADR-<nnnn>.".
 The question gains "decision: <n>". Then commits the questions' file, the
 record, the one it supersedes and the index together, "docs: record <id> as
-decision <n>", as itos ask add commits.
+decision <n>", as itos question add commits.
 
 --none writes no record: the answer concerned its item alone, and the
-question gains "decision: none", so itos ask stops naming it; the questions'
-file is committed alone, "docs: mark <id> as recorded nowhere".
+question gains "decision: none", so itos question stops naming it; the
+questions' file is committed alone, "docs: mark <id> as recorded nowhere".
 
 Refused, nothing written (exit 1): no question with the id, one not answered,
 one already recorded or marked, --supersedes naming no record in the folder,
@@ -1171,7 +1173,7 @@ nothing is committed.
 --json: {"schema":1,"ok":true,"question":{…,"decision"},"record":"<path>"|null,"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
-	"ask show": `Usage: itos ask show <id>
+	"question show": `Usage: itos question show <id>
 
 Prints the question: its id and text, whether it is open or answered, the
 item it names and its decision, then its answer when it has one. It reads, never writes. Exit 1
@@ -1225,7 +1227,7 @@ release would carry, the feat, fix and breaking ones, by header, oldest first,
 read from the commits as fetched here, with a line saying they may be behind
 when the head is not fetched; the person's items in progress; the next items
 they can start, theirs and the unowned, in the queue's order and the unqueued
-after, five at most; and the open questions (itos ask). It reads, never writes
+after, five at most; and the open questions (itos question). It reads, never writes
 or fetches. What cannot be reached (no remote, ci.watch.provider none, a
 provider that fails, for the head or the nightly, a ci.range provider that
 fails) is one line naming it, and the rest still prints, exit 0.
@@ -1294,8 +1296,8 @@ func helpPath(rest []string) []string {
 }
 
 // help prints what `itos`, `itos help <command>…` and any --help ask for,
-// and gives the exit code: 2 for a bare `itos`, which names no command,
-// else 0.
+// and gives the exit code: 2 for a bare `itos`, which names no command, and
+// for `itos help <topic>` of a command itos does not have, else 0.
 func help(g Globals, o Out) int {
 	name, rest := "", []string(nil)
 	if len(g.Rest) > 0 {
@@ -1304,10 +1306,14 @@ func help(g Globals, o Out) int {
 	path := helpPath(g.Rest)
 	if name == "help" {
 		path = rest
-		// An extension prints its own help.
+		// An extension prints its own help; a topic that is neither one nor
+		// a command of itos's is an unknown command, exit 2 (slice 89).
 		if len(path) > 0 {
 			if ext := extensionPath(path[0]); ext != "" {
 				return runExtension(g, ext, []string{"--help"}, o)
+			}
+			if _, ok := commands[path[0]]; !ok && path[0] != "help" {
+				return failure(usage("unknown command: %s", path[0]), o)
 			}
 		}
 	}

@@ -142,7 +142,7 @@ cases:
       itos.yaml is there already, so init wrote nothing.
       Missing:
         no work registry at tasks/work-items.yaml; move the registry to tasks/work-items.yaml, or set work.registry to where it is
-        the pre-push hook: .git/hooks/pre-push is not there; run itos hooks install
+        the pre-push hook: .git/hooks/pre-push is not there; run itos hook install
       Noted, not counted as missing:
         no people file at CONTRIBUTORS.md (work.people), so the registry's owners go unchecked; list the people who may own work in CONTRIBUTORS.md, or set work.people.file to where they are
     files_after:

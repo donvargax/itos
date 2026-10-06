@@ -99,7 +99,7 @@ Feature: Every key the config accepts is one itos reads
 
   # Detection would pick husky from the .husky folder; the key overrides it.
   @ID-CONFIG-11 @slice-4
-  Scenario: hooks install writes the shims of the manager hooks.manager names, over what it detects
+  Scenario: hook install writes the shims of the manager hooks.manager names, over what it detects
     Given a ".husky" folder
     And hooks.manager is "git"
     When itos installs the hooks
@@ -220,7 +220,7 @@ Feature: Every key the config accepts is one itos reads
   # does not exist, and nothing said so (p1-adr-checks, 2026-10-04). config
   # check holds the folder work.decisions names to both rules, and the
   # commit-msg hook runs it when a record is staged. The index is not held to
-  # the folder: itos ask record writes it whole at every record.
+  # the folder: itos question record writes it whole at every record.
   @ID-CONFIG-24 @slice-74
   Scenario: config check refuses two decision records with the same number
     Given the committed file "docs/decisions/0001-use-go.md" holding "# Use Go"
@@ -257,7 +257,7 @@ Feature: Every key the config accepts is one itos reads
     And its output does not say "bin: tools/bin/itos"
 
   @ID-CONFIG-27 @slice-79
-  Scenario: Without hooks.bin, hooks install writes shims that run the itos on the PATH
+  Scenario: Without hooks.bin, hook install writes shims that run the itos on the PATH
     Given hooks.manager is "git"
     When itos installs the hooks
     Then itos exits with code 0
@@ -340,7 +340,7 @@ Feature: Every key the config accepts is one itos reads
   # tree: the shims landed there, the real hooks never ran, and hooks install
   # reported success. A hooks folder git names absolute is written as named.
   @ID-CONFIG-34 @bug-35
-  Scenario: hooks install writes the shims into an absolute core.hooksPath
+  Scenario: hook install writes the shims into an absolute core.hooksPath
     Given hooks.manager is "git"
     And core.hooksPath is an absolute folder outside the working tree
     When itos installs the hooks
@@ -348,10 +348,10 @@ Feature: Every key the config accepts is one itos reads
     And the file "commit-msg" in that folder calls itos
 
   @ID-CONFIG-35 @bug-35
-  Scenario: hooks install in a linked worktree writes the shims into the repository's hooks folder
+  Scenario: hook install in a linked worktree writes the shims into the repository's hooks folder
     Given hooks.manager is "git"
     And a linked worktree of the repository at "../wt"
-    When itos runs the command line "hooks install" in the linked worktree
+    When itos runs the command line "hook install" in the linked worktree
     Then itos exits with code 0
     And the file ".git/hooks/commit-msg" calls itos
 
@@ -359,14 +359,14 @@ Feature: Every key the config accepts is one itos reads
   # by one letter. With the guard moved out, itos hook holds git's hooks
   # alone, and installing them is itos hook install. The step "itos installs
   # the hooks" runs the new name; the feat rewrites what names the old one.
-  @ID-CONFIG-36 @slice-89 @wip
+  @ID-CONFIG-36 @slice-89
   Scenario: hook install writes the shims of the manager hooks.manager names
     Given hooks.manager is "git"
     When itos runs "hook install"
     Then itos exits with code 0
     And the file ".git/hooks/commit-msg" calls itos
 
-  @ID-CONFIG-37 @slice-89 @wip
+  @ID-CONFIG-37 @slice-89
   Scenario: itos hooks install exits 2, naming itos hook install
     When itos runs "hooks install"
     Then itos exits with code 2

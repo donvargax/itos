@@ -115,7 +115,7 @@ func TestMarkdownIsTheWholeThreadInOrder(t *testing.T) {
 	th := f.Add("sync-ana", "ana", "The sync design", "She covered the retries.", at)
 	th.Note("Backoff agreed.", at.Add(2*time.Hour))
 	th.Close("", at.Add(3*time.Hour))
-	want := "# The sync design\n\nA thread with ana, closed 2026-10-04 12:30 (itos follow show sync-ana).\n\n" +
+	want := "# The sync design\n\nA thread with ana, closed 2026-10-04 12:30 (itos followup show sync-ana).\n\n" +
 		"## 2026-10-04 09:30\n\nShe covered the retries.\n\n## 2026-10-04 11:30\n\nBackoff agreed.\n"
 	if got := Markdown(*th); got != want {
 		t.Errorf("Markdown:\n%s\nwant:\n%s", got, want)

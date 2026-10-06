@@ -1,6 +1,6 @@
 package cli
 
-// `hooks install [--manager <m>] [--print] [--force]` (hooks.ts's
+// `hook install [--manager <m>] [--print] [--force]` (hooks.ts's
 // hooksInstall): the one-line shims calling the two hooks, for the hook
 // manager in use. The manager is the one --manager names, else hooks.manager,
 // else the one found by its markers, in this order: Vite+ (a `.vite-hooks/`
@@ -289,10 +289,10 @@ func place(full, content string, print, force, executable bool) (string, error) 
 	return "wrote", nil
 }
 
-// hooksInstall is `hooks install`: 0 when every shim is in place (or
+// hookInstall is `hook install`: 0 when every shim is in place (or
 // printed), 1 when a hook that is not a shim stood in the way and --force was
 // not given.
-func hooksInstall(flag string, print, force bool, o Out) (int, error) {
+func hookInstall(flag string, print, force bool, o Out) (int, error) {
 	const root = "."
 	file := config.Path()
 	cfg, err := config.Load(file)

@@ -32,8 +32,8 @@ cases:
     argv: [version]
     exit: 0
     stdout_has: "itos 0.2"
-  - name: files_after (a file hooks install writes, expected absent)
-    argv: [hooks, install]
+  - name: files_after (a file hook install writes, expected absent)
+    argv: [hook, install]
     files: { .husky/: "" }
     exit: 0
     files_after:

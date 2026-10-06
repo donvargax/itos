@@ -1,4 +1,4 @@
-// Package guard is itos hook pre-tool-use (slice 42, features/guard.feature):
+// Package guard is itos guard claude-code (slice 42, features/guard.feature):
 // Claude Code's PreToolUse hook, which the itos plugin wires on Bash, asks
 // before each tool runs, sending the tool's name, its input and the session's
 // folder as JSON on stdin. In a repository itos manages (config.Managed,

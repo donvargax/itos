@@ -368,7 +368,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.itos("tests", "moves", kind)
 	})
 	sc.Step(`^itos checks the smoke set$`, func() error { return w.itos("tests", "smoke", "check", "scenario") })
-	sc.Step(`^itos installs the hooks$`, func() error { return w.itos("hooks", "install") })
+	sc.Step(`^itos installs the hooks$`, func() error { return w.itos("hook", "install") })
 	sc.Step(`^itos runs the task "([^"]*)"$`, func(task string) error { return w.itos("task", task) })
 	sc.Step(`^itos runs the task "([^"]*)" from "([^"]*)"$`, func(task, folder string) error {
 		return w.itosIn(filepath.Join(w.dir, folder), "task", task)

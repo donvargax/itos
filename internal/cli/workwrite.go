@@ -151,7 +151,7 @@ func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text stri
 // which the command makes, when git knows nothing of it either: one deleted
 // and the deletion not committed, staged or not, is a change no commit holds
 // (bug 13), which a commit of the file written afresh would undo. The
-// problem names the file, the registry, a ledger file, itos ask's
+// problem names the file, the registry, a ledger file, itos question's
 // questions, or the rule the command gives (a decision record's).
 func uncommitted(cfg *config.Loaded, file, rule string) *out.Problem {
 	_, err := os.Lstat(file)
@@ -202,8 +202,8 @@ type written struct {
 // a git that cannot start or a commit a hook refuses, puts every file back
 // as it was, file and index, a new one removed (restore); a refusal exits 1,
 // the rest are errors. work's commands write the registry alone
-// (writeRegistry), task add a ledger file and the registry (slice 55), ask
-// the questions alone (slice 62), ask record the questions, a decision
+// (writeRegistry), task add a ledger file and the registry (slice 55),
+// question the questions alone (slice 62), question record the questions, a decision
 // record, the one it supersedes and their index (slice 69).
 func writeCommitted(cfg *config.Loaded, files []written, header, body string, o Out) (string, int, error) {
 	paths := make([]string, len(files))
@@ -474,19 +474,19 @@ func workTake(args []string, o Out) (int, error) {
 // promoteKinds are what work promote makes of an idea.
 var promoteKinds = []string{"slice", "task"}
 
-// workPromote is `work promote <idea> --as <id> --kind slice|task [--title
+// workPromote is `work promote <idea> --id <id> --kind slice|task [--title
 // <title>]`: the idea renamed, given the kind (and the title, when given),
 // "Was <idea>." before its why, every depends_on naming it renamed too, and
 // the registry committed (work.Promote). A task's id must match the ledger's
 // ledger.id.
 func workPromote(args []string, o Out) (int, error) {
-	id, flags, err := workArgs("promote", args, "--as", "--kind", "--title")
+	id, flags, err := workArgs("promote", args, "--id", "--kind", "--title")
 	if err != nil {
 		return 0, err
 	}
-	newID, kind := flags["--as"], flags["--kind"]
+	newID, kind := flags["--id"], flags["--kind"]
 	if newID == "" {
-		return 0, usage("work promote needs --as <id>, the slice's or the task's id")
+		return 0, usage("work promote needs --id <id>, the slice's or the task's id")
 	}
 	if kind != "slice" && kind != "task" {
 		return 0, usage("work promote needs --kind %s", strings.Join(promoteKinds, "|"))
@@ -520,19 +520,19 @@ func workPromote(args []string, o Out) (int, error) {
 }
 
 // workQueue is `work queue <id> --top | --before <id> | --after <id> |
-// --drop` (slice 66): the item put first in the registry's queue, just
+// --remove` (slice 66; --drop before v6.0.0): the item put first in the registry's queue, just
 // before or after an item it holds, or taken out of it, the queue written
 // whole and the registry committed, "docs: queue <id>" (work.Queue). One
 // place, exactly, is given.
 func workQueue(args []string, o Out) (int, error) {
 	var rest []string
-	top, drop := false, false
+	top, remove := false, false
 	for _, arg := range args {
 		switch arg {
 		case "--top":
 			top = true
-		case "--drop":
-			drop = true
+		case "--remove":
+			remove = true
 		default:
 			rest = append(rest, arg)
 		}
@@ -541,15 +541,15 @@ func workQueue(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	at := work.Place{Top: top, Drop: drop, Before: flags["--before"], After: flags["--after"]}
+	at := work.Place{Top: top, Remove: remove, Before: flags["--before"], After: flags["--after"]}
 	given := 0
-	for _, on := range []bool{at.Top, at.Drop, at.Before != "", at.After != ""} {
+	for _, on := range []bool{at.Top, at.Remove, at.Before != "", at.After != ""} {
 		if on {
 			given++
 		}
 	}
 	if given != 1 {
-		return 0, usage("work queue needs one of --top, --before <id>, --after <id> or --drop")
+		return 0, usage("work queue needs one of --top, --before <id>, --after <id> or --remove")
 	}
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
@@ -565,7 +565,7 @@ func workQueue(args []string, o Out) (int, error) {
 	}
 	where := "first in the queue"
 	switch {
-	case at.Drop:
+	case at.Remove:
 		where = "out of the queue"
 	case at.Before != "":
 		where = "before " + at.Before + " in the queue"

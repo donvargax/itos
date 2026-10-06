@@ -98,7 +98,7 @@ func (w *world) projectHooks(dir string) error {
 	return w.git("config", "core.hooksPath", dir)
 }
 
-// hooks install, which has to succeed, its hooks running the itos under
+// hook install, which has to succeed, its hooks running the itos under
 // test: hooks.bin is itos, found on the PATH git hands its hooks, as a
 // global install is (itosOnPath).
 func (w *world) itosHasInstalledHooks() error {
@@ -108,11 +108,11 @@ func (w *world) itosHasInstalledHooks() error {
 	if err := w.hooksBinIs("itos"); err != nil {
 		return err
 	}
-	if err := w.itos("hooks", "install"); err != nil {
+	if err := w.itos("hook", "install"); err != nil {
 		return err
 	}
 	if w.exit != 0 {
-		return fmt.Errorf("hooks install failed\n%s", w.report())
+		return fmt.Errorf("hook install failed\n%s", w.report())
 	}
 	return nil
 }

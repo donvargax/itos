@@ -9,7 +9,7 @@ package config
 // mode.
 //
 // The files that config names for itos's own data (the ledger, the work
-// registry, itos ask's questions and decision records, the smoke sets and
+// registry, the questions of itos question and decision records, the smoke sets and
 // the notes itos go appends) are read beside it, in that folder; the
 // project's own paths (a kind's tests, the scopes' globs, the commands) stay
 // the root's. Its defaults fit one person whatever the file says

@@ -1,6 +1,6 @@
 package cli
 
-// `hooks install --manager git-config` (slice 33, features/stealth.feature):
+// `hook install --manager git-config` (slice 33, features/stealth.feature):
 // itos's hooks declared in the repository's own git config, the local one
 // that is never committed, as hook.<name>.event and hook.<name>.command. Git
 // (2.5x) runs a hook declared there as well as the one in core.hooksPath or
@@ -124,13 +124,13 @@ func declaresPrePush(cfg *config.Loaded) bool {
 	return cfg.Hooks.PrePush != nil || cfg.Stealth
 }
 
-// declareHooks is `hooks install` for the git config: 0 when every entry is
+// declareHooks is `hook install` for the git config: 0 when every entry is
 // in place (or printed), 1 when one under itos's name that does not call
 // itos stood in the way, 3 when this git runs no hook its config declares.
 func declareHooks(found foundManager, root, bin string, prePush, print, force bool, o Out, say func(string)) (int, error) {
 	if !print && !configHooksRun(root) {
 		version, _ := git.Output("--version")
-		fmt.Fprintf(o.Stderr, "itos: hooks install --manager git-config needs a git that runs the hooks its config declares (git hook list shows them), which %s does not\n",
+		fmt.Fprintf(o.Stderr, "itos: hook install --manager git-config needs a git that runs the hooks its config declares (git hook list shows them), which %s does not\n",
 			strings.TrimPrefix(value.Trim(version), "git version "))
 		return ExitMissing, nil
 	}

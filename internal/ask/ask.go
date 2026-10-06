@@ -1,16 +1,16 @@
-// Package ask is itos ask's questions (slice 62, features/ask.feature): the
+// Package ask is the questions of itos question (slice 62, features/ask.feature): the
 // questions waiting on the person a repository's work is for, each with an
 // id, q-1, q-2 and so on, never reused, the text asked, the registry item it
 // holds up when it names one, and its answer once given. They are public and
-// committed, unlike itos follow's threads: one file, asks.yaml, beside the
+// committed, unlike itos followup's threads: one file, asks.yaml, beside the
 // work registry (work.asks), written whole by itos, which commits it alone
 // as the registry's commands commit theirs (internal/cli/ask.go).
 //
-// An answered question is a decision, and itos ask record (slice 69) writes
+// An answered question is a decision, and itos question record (slice 69) writes
 // it as an architecture decision record (internal/adr), noting the record's
 // number on the question as its decision, or none for an answer that
 // concerned its item alone; one answered with no decision is recorded
-// nowhere yet, and itos ask names it.
+// nowhere yet, and itos question names it.
 //
 // The file is itos's own, so it is read with typed structs and written whole,
 // each text as a double-quoted scalar, JSON's escapes being YAML's, so what
@@ -54,7 +54,7 @@ type Question struct {
 }
 
 // None is the decision of an answer that concerned its item alone, so it is
-// recorded nowhere and itos ask stops naming it.
+// recorded nowhere and itos question stops naming it.
 const None = "none"
 
 // Unrecorded is whether the question is answered and its answer recorded
@@ -75,7 +75,7 @@ type File struct {
 }
 
 // head is the comment the file starts with.
-const head = "# itos ask's questions to the person the work is for, written by itos ask (itos help ask).\n"
+const head = "# The questions to the person the work is for, written by itos question (itos help question).\n"
 
 // idPattern is what a question's id is: q- and a number, 1 or more.
 var idPattern = regexp.MustCompile(`^q-[1-9][0-9]*$`)

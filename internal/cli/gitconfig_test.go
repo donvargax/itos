@@ -43,11 +43,11 @@ func localConfig(t *testing.T, key string) string {
 // and a second run changes nothing.
 func TestDeclareHooks(t *testing.T) {
 	gitConfigRepo(t, "version: 1\nhooks: { bin: itos, pre_push: { per_base: \"true\", whole: \"true\" } }\n")
-	code, stdout, stderr := run("hooks", "install", "--manager", "git-config")
+	code, stdout, stderr := run("hook", "install", "--manager", "git-config")
 	if code != 0 || stdout != "Using the git config (--manager git-config)\nwrote hook.itos-commit-msg\nwrote hook.itos-pre-push\n" {
 		t.Fatalf("first run: exit %d\n%s%s", code, stdout, stderr)
 	}
-	code, stdout, _ = run("hooks", "install", "--manager", "git-config")
+	code, stdout, _ = run("hook", "install", "--manager", "git-config")
 	if code != 0 || !strings.Contains(stdout, "unchanged hook.itos-commit-msg\nunchanged hook.itos-pre-push\n") {
 		t.Errorf("second run: exit %d\n%s", code, stdout)
 	}
@@ -78,7 +78,7 @@ func TestDeclareHooksOldGit(t *testing.T) {
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	// A run under itos (a hook's) names the real git, which would win.
 	t.Setenv(git.EnvGit, "")
-	code, _, stderr := run("hooks", "install", "--manager", "git-config")
+	code, _, stderr := run("hook", "install", "--manager", "git-config")
 	if code != ExitMissing || !strings.Contains(stderr, "needs a git that runs the hooks its config declares") ||
 		!strings.Contains(stderr, "which 2.30.0 does not") {
 		t.Errorf("exit %d, stderr %q", code, stderr)

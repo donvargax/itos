@@ -25,7 +25,7 @@ var commands = map[string]command{
 	"tests":    testsCommand,
 	"ci":       ciCommand,
 	"hook":     hook,
-	"hooks":    hooks,
+	"guard":    guardCommand,
 	"config":   configCommand,
 	"version":  versionCommand,
 	"push":     push,
@@ -33,8 +33,8 @@ var commands = map[string]command{
 	"pin":      pinCommand,
 	"upgrade":  upgradeCommand,
 	"init":     initCommand,
-	"follow":   followCommand,
-	"ask":      askCommand,
+	"followup": followCommand,
+	"question": askCommand,
 	"go":       goCommand,
 	"guide":    guideCommand,
 	"status":   statusCommand,
@@ -325,26 +325,19 @@ func hook(args []string, o Out) (int, error) {
 		return hookCommitMsg(typed(rest[0]), o)
 	case "pre-push":
 		return hookPrePush(o)
-	case "pre-tool-use":
-		return hookPreToolUse(o)
+	case "install":
+		manager, ok := flagValue(rest, "--manager")
+		if ok && !slices.Contains(managers, manager) {
+			return 0, usage("hook install --manager takes %s", strings.Join(managers, "|"))
+		}
+		return hookInstall(manager, slices.Contains(rest, "--print"), slices.Contains(rest, "--force"), o)
 	}
 	return 0, usage("unknown command: hook %s", sub)
 }
 
-// managers are the hook managers `hooks install --manager` takes: the ones
+// managers are the hook managers `hook install --manager` takes: the ones
 // hooks.manager may name (hooks.ts's MANAGERS is config.ts's HOOK_MANAGERS).
 var managers = config.HookManagers
-
-func hooks(args []string, o Out) (int, error) {
-	if sub, _ := split(args); sub != "install" {
-		return 0, usage("unknown command: hooks %s", sub)
-	}
-	manager, ok := flagValue(args, "--manager")
-	if ok && !slices.Contains(managers, manager) {
-		return 0, usage("hooks install --manager takes %s", strings.Join(managers, "|"))
-	}
-	return hooksInstall(manager, slices.Contains(args, "--print"), slices.Contains(args, "--force"), o)
-}
 
 func configCommand(args []string, o Out) (int, error) {
 	sub, rest := split(args)

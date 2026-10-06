@@ -18,9 +18,9 @@ import (
 // SetBlockList).
 
 // Place is where work queue puts an item: first (Top), just before or just
-// after an item the queue holds (Before, After), or out of the queue (Drop).
+// after an item the queue holds (Before, After), or out of the queue (Remove).
 type Place struct {
-	Top, Drop     bool
+	Top, Remove   bool
 	Before, After string
 }
 
@@ -59,7 +59,7 @@ func Queue(r Registry, text, id string, at Place) (Change, *out.Problem, error) 
 	var after []string
 	var body string
 	switch {
-	case at.Drop:
+	case at.Remove:
 		after = rest
 		body = fmt.Sprintf("Take %s (%s) out of the queue, with itos work queue.", id, title)
 	case item.At("status") == "done":

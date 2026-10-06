@@ -14,7 +14,7 @@ package cli
 // before it, while the head's run is going or has not passed (slice 73), the
 // commit main last proved, as ci.range's provider names it, read once; then the
 // person's items in progress, the next ones they can start in the queue's
-// order (a handful), and the open questions of itos ask. It reads, never writes. What cannot be reached is
+// order (a handful), and the open questions of itos question. It reads, never writes. What cannot be reached is
 // one line naming it, and the rest still prints, exit 0; a status that
 // cannot be computed at all (no config, no registry, one with problems) is
 // exit 2 or 1, as itos work's. itos go prints it after the guides
@@ -43,7 +43,7 @@ import (
 const statusHeading = "# Where things stand"
 
 // questionWidth is how much of a question the status prints, in characters,
-// the rest left to itos ask show.
+// the rest left to itos question show.
 const questionWidth = 80
 
 // clipped is text cut to n characters, an ellipsis ending it when cut.

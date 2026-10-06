@@ -1,6 +1,6 @@
 // The guard's steps (guard.feature): Claude Code's PreToolUse input, built
 // here as Claude Code writes it (the session, the event, the tool's name and
-// input, the folder), handed to itos hook pre-tool-use on stdin, run in the
+// input, the folder), handed to itos guard claude-code on stdin, run in the
 // folder the input names, as Claude Code runs a hook in the session's folder.
 // What itos answers is read as Claude Code reads it: a deny is stdout's JSON,
 // anything else no answer at all.
@@ -64,10 +64,10 @@ func (w *world) askAboutFileTool(tool, file string) error {
 	})
 }
 
-// itos hook pre-tool-use run in the folder dir, input on its stdin.
+// itos guard claude-code run in the folder dir, input on its stdin.
 func (w *world) preToolUse(dir, input string) error {
 	w.markRun()
-	return w.runWith(dir, strings.NewReader(input), w.bin, "hook", "pre-tool-use")
+	return w.runWith(dir, strings.NewReader(input), w.bin, "guard", "claude-code")
 }
 
 // Standard output is Claude Code's deny for a PreToolUse hook, its reason

@@ -10,7 +10,7 @@ package cli
 // in their headers (docs: take <id>, docs: close <id>, docs: add <id>,
 // docs: edit <id>, docs: queue <id>, docs: drop <id>, docs: promote <idea>
 // to <id>). Beside them it lists the
-// questions of itos ask that name the item (slice 62). A task's why is read
+// questions of itos question that name the item (slice 62). A task's why is read
 // from its ledger entry, where it lives, the registry being an index (slice
 // 76). It reads, never writes.
 

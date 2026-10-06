@@ -12,7 +12,7 @@ is not yours: run `itos guide work` and follow that one.
   main branch's head and its CI run, the person's items in progress, the next
   ones in the queue's order and the questions still open. `itos work` shows
   all the person can start and what waits; `itos work list` shows the open
-  items, `itos work list --all` every one; `itos ask` lists the questions.
+  items, `itos work list --all` every one; `itos question` lists the questions.
 - A red CI run on the main branch, or on the slower full run if the
   repository has one (the status reads only the first), is the first item: a
   fix, handed to an agent before any new work, not left for whoever looks
@@ -29,14 +29,14 @@ is not yours: run `itos guide work` and follow that one.
    the registry's queue. An item someone else owns is theirs; one whose
    dependencies are not done waits; one marked deferred waits until the
    person lifts it. The queue is the order the person wants, kept by
-   `itos work queue <id> --top`, `--before <id>`, `--after <id>` or `--drop`,
+   `itos work queue <id> --top`, `--before <id>`, `--after <id>` or `--remove`,
    each committing the registry alone; `itos work done` takes a closed item
    out. An item no longer wanted is dropped, once the person agrees, with
    `itos work drop <id> --why '…'`, the reason its commit's body; it stays
    in the registry, never proposed again.
 2. **Specify it** if it is not yet: `@wip` scenarios for a behaviour, or a
    task with checks for anything else. An idea becomes work with
-   `itos work promote <idea> --as <id> --kind slice|task`, and
+   `itos work promote <idea> --id <id> --kind slice|task`, and
    `--title <title>` when what it has become is no longer what its title
    says. Leave it `todo`: the agent takes it with `itos work take`.
 3. **Hand it to one implementing agent** with the brief below.
@@ -130,8 +130,8 @@ in the spec or in a gate, ask the person; never weaken a gate to get green.
 
 ## Talking to the person
 
-- **Questions go through `itos ask add '…' --item <id>`**, so they outlive
-  the session; the person answers with `itos ask answer`.
+- **Questions go through `itos question add '…' --item <id>`**, so they
+  outlive the session; the person answers with `itos question answer`.
 - **Ask with a recommendation**: the recommended option first, then the
   others. Say in a line what the item is for before asking about its design.
 - **Say why each proposed item matters**: what it fixes or saves, and what it
@@ -142,10 +142,11 @@ in the spec or in a gate, ask the person; never weaken a gate to get green.
 
 ## Decisions
 
-- **An answered question is a decision.** `itos ask` names the answered
-  ones recorded nowhere else. Offer the person `itos ask record <id> --title
-'…'` for an answer that sets a direction beyond its item, and `--none` for
-  one that only settled its item; write a record only when they agree.
+- **An answered question is a decision.** `itos question` names the answered
+  ones recorded nowhere else. Offer the person
+  `itos question record <id> --title '…'` for an answer that sets a
+  direction beyond its item, and `--none` for one that only settled its
+  item; write a record only when they agree.
 - **Records live in `docs/decisions/`** (or the folder `work.decisions`
   names), one MADR file each, and its README.md lists the live ones. Read
   that index, not the superseded records.
@@ -155,8 +156,8 @@ in the spec or in a gate, ask the person; never weaken a gate to get green.
     describe (a command's options, how a mode works) stays in the docs or
     the help. A row holding several calls stays one record while it fits a
     screen.
-  - Seed each one through `itos ask add`, `ask answer` and `ask record`, so
-    every record keeps the question it answers and the format stays itos's.
+  - Seed each one through `itos question add`, `question answer` and
+    `question record`, so every record keeps the question it answers and the format stays itos's.
   - `git grep` the old doc's name for its citations: point one at a section
     that left to its record, and keep one at a section that stayed. Code
     comments change in a `refactor` commit, the rest in `docs` commits; a

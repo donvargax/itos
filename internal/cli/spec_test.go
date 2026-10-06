@@ -12,22 +12,22 @@ import (
 // and everything after a "--" as given.
 func TestReadLine(t *testing.T) {
 	for line, want := range map[string]string{
-		"task list --group=9":                        "task list --group 9",
-		"--json task list --group 9 -q":              "task list --group 9",
-		"task list --root=. --group 9":               "task list --group 9",
-		"work add x --why - --title=-a":              "work add x --why - --title -a",
-		"ask record q-1 --consequences '- a' --none": "ask record q-1 --consequences '- a' --none",
-		"ask record q-1 --option a --option b":       "ask record q-1 --option a --option b",
-		"ci range --head h --base ''":                "ci range --head h --base ''",
-		"commit check-message -":                     "commit check-message -",
-		"tests smoke run scenario --workers=1 -q":    "tests smoke run scenario --workers=1",
-		"tests smoke run scenario -- --json":         "tests smoke run scenario -- --json",
-		"commit --task T-1 -m x --amend":             "commit --task T-1 -m x --amend",
-		"push --force":                               "push --force",
-		"init --plugin --stealth":                    "init --plugin --stealth",
-		"init --plugin=user":                         "init --plugin=user",
-		"work bogus --x":                             "work bogus --x",
-		"ci bogus --x":                               "ci bogus --x",
+		"task list --group=9":                             "task list --group 9",
+		"--json task list --group 9 -q":                   "task list --group 9",
+		"task list --root=. --group 9":                    "task list --group 9",
+		"work add x --why - --title=-a":                   "work add x --why - --title -a",
+		"question record q-1 --consequences '- a' --none": "question record q-1 --consequences '- a' --none",
+		"question record q-1 --option a --option b":       "question record q-1 --option a --option b",
+		"ci range --head h --base ''":                     "ci range --head h --base ''",
+		"commit check-message -":                          "commit check-message -",
+		"tests smoke run scenario --workers=1 -q":         "tests smoke run scenario --workers=1",
+		"tests smoke run scenario -- --json":              "tests smoke run scenario -- --json",
+		"commit --task T-1 -m x --amend":                  "commit --task T-1 -m x --amend",
+		"push --force":                                    "push --force",
+		"init --plugin --stealth":                         "init --plugin --stealth",
+		"init --plugin=user":                              "init --plugin=user",
+		"work bogus --x":                                  "work bogus --x",
+		"ci bogus --x":                                    "ci bogus --x",
 	} {
 		g, err := readLine(fields(line))
 		if err != nil {

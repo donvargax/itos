@@ -1,6 +1,6 @@
 package cli
 
-// itos follow (slice 61, features/follow.feature): the person's private
+// itos followup (slice 61, features/follow.feature): the person's private
 // threads with people, in follow-ups.yaml of itos's folder under the git
 // common dir (internal/follow). Every subcommand reads the file, and add,
 // note, close and doc write it back, holding its lock from before the read
@@ -32,8 +32,8 @@ func followNow() time.Time { return time.Now() }
 // followTakes is what follow takes, as a usage error names it.
 const followTakes = "it takes add, note, close, show or doc, else --all"
 
-// followCommand is `follow [--all]`, `follow add`, `follow note`, `follow close`,
-// `follow show` and `follow doc`.
+// followCommand is `followup [--all]`, `followup add`, `followup note`, `followup close`,
+// `followup show` and `followup doc`.
 func followCommand(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	switch sub {
@@ -53,7 +53,7 @@ func followCommand(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	if len(pos) > 0 {
-		return 0, usage("follow has no subcommand %s: %s", pos[0], followTakes)
+		return 0, usage("followup has no subcommand %s: %s", pos[0], followTakes)
 	}
 	return followList(set["--all"], o)
 }
@@ -63,10 +63,10 @@ func followCommand(args []string, o Out) (int, error) {
 // valued flag with no value or an empty one, and a flag given twice are usage
 // errors; after "--" every argument is positional.
 func followArgs(sub string, args []string, valued, switches []string) ([]string, map[string]string, map[string]bool, error) {
-	return subArgs("follow", sub, args, valued, switches)
+	return subArgs("followup", sub, args, valued, switches)
 }
 
-// subArgs is followArgs for a subcommand of command: itos ask's read so too.
+// subArgs is followArgs for a subcommand of command: itos question's read so too.
 func subArgs(command, sub string, args []string, valued, switches []string) ([]string, map[string]string, map[string]bool, error) {
 	name := strings.TrimSpace(command + " " + sub)
 	var pos []string
@@ -112,10 +112,10 @@ func subArgs(command, sub string, args []string, valued, switches []string) ([]s
 // after it are the rest.
 func threadID(sub string, pos []string, what string) (string, []string, error) {
 	if len(pos) == 0 {
-		return "", nil, usage("follow %s needs %s", sub, what)
+		return "", nil, usage("followup %s needs %s", sub, what)
 	}
 	if !follow.ValidID(pos[0]) {
-		return "", nil, usage("follow %s: %q is no thread id (letters, digits, '.', '_' and '-', a letter or digit first)", sub, pos[0])
+		return "", nil, usage("followup %s: %q is no thread id (letters, digits, '.', '_' and '-', a letter or digit first)", sub, pos[0])
 	}
 	return pos[0], pos[1:], nil
 }
@@ -135,7 +135,7 @@ func threadsFile() string {
 func loadThreads(o Out) (string, follow.File, int, error) {
 	file := threadsFile()
 	if file == "" {
-		fmt.Fprintln(o.Stderr, "itos: follow keeps its threads in the git folder, and this is no git repository")
+		fmt.Fprintln(o.Stderr, "itos: followup keeps its threads in the git folder, and this is no git repository")
 		return "", follow.File{}, ExitMissing, nil
 	}
 	threads, err := follow.Load(file)
@@ -172,7 +172,7 @@ func noThread(id string, o Out) (int, error) {
 	return refuseWork([]out.Problem{{
 		Rule:    "follow-no-thread",
 		Message: fmt.Sprintf("there is no thread %s", id),
-		Fix:     "itos follow --all lists the threads; itos follow add " + id + " opens one",
+		Fix:     "itos followup --all lists the threads; itos followup add " + id + " opens one",
 	}}, ExitPolicy, o)
 }
 
@@ -189,7 +189,7 @@ func reportThread(line string, t follow.Thread, o Out, extra ...out.Field) (int,
 	return 0, nil
 }
 
-// followAdd is `follow add <id> --with <who> --title <title> --note <text>`:
+// followAdd is `followup add <id> --with <who> --title <title> --note <text>`:
 // a new thread, open, its first note dated now.
 func followAdd(args []string, o Out) (int, error) {
 	pos, flags, _, err := followArgs("add", args, []string{"--with", "--title", "--note"}, nil)
@@ -201,10 +201,10 @@ func followAdd(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	if len(rest) > 0 {
-		return 0, usage("follow add takes one <id>, not %s", strings.Join(rest, " "))
+		return 0, usage("followup add takes one <id>, not %s", strings.Join(rest, " "))
 	}
 	if flags["--with"] == "" || flags["--title"] == "" || flags["--note"] == "" {
-		return 0, usage("follow add needs --with <who>, --title <title> and --note <text>")
+		return 0, usage("followup add needs --with <who>, --title <title> and --note <text>")
 	}
 	file, threads, release, code, err := heldThreads(o)
 	defer release()
@@ -215,7 +215,7 @@ func followAdd(args []string, o Out) (int, error) {
 		return refuseWork([]out.Problem{{
 			Rule:    "follow-id-taken",
 			Message: fmt.Sprintf("%s is already a thread, with %s: %s", id, t.With, t.Title),
-			Fix:     "itos follow note " + id + " adds to it; another id opens a new one",
+			Fix:     "itos followup note " + id + " adds to it; another id opens a new one",
 		}}, ExitPolicy, o)
 	}
 	t := threads.Add(id, flags["--with"], flags["--title"], flags["--note"], followNow())
@@ -225,7 +225,7 @@ func followAdd(args []string, o Out) (int, error) {
 	return reportThread(fmt.Sprintf("%s opened, with %s: %s", id, t.With, t.Title), *t, o)
 }
 
-// followNote is `follow note <id> <text>…`: a dated note appended, its words
+// followNote is `followup note <id> <text>…`: a dated note appended, its words
 // joined by spaces.
 func followNote(args []string, o Out) (int, error) {
 	pos, _, _, err := followArgs("note", args, nil, nil)
@@ -238,7 +238,7 @@ func followNote(args []string, o Out) (int, error) {
 	}
 	text := strings.Join(rest, " ")
 	if strings.TrimSpace(text) == "" {
-		return 0, usage("follow note needs <id> <text>")
+		return 0, usage("followup note needs <id> <text>")
 	}
 	file, threads, release, code, err := heldThreads(o)
 	defer release()
@@ -256,7 +256,7 @@ func followNote(args []string, o Out) (int, error) {
 	return reportThread(fmt.Sprintf("%s: note %d added", id, len(t.Notes)), *t, o)
 }
 
-// followClose is `follow close <id> [--note <text>]`: the thread closed, with
+// followClose is `followup close <id> [--note <text>]`: the thread closed, with
 // a last note when given.
 func followClose(args []string, o Out) (int, error) {
 	pos, flags, _, err := followArgs("close", args, []string{"--note"}, nil)
@@ -268,7 +268,7 @@ func followClose(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	if len(rest) > 0 {
-		return 0, usage("follow close takes one <id>, not %s (a last note goes in --note)", strings.Join(rest, " "))
+		return 0, usage("followup close takes one <id>, not %s (a last note goes in --note)", strings.Join(rest, " "))
 	}
 	file, threads, release, code, err := heldThreads(o)
 	defer release()
@@ -283,7 +283,7 @@ func followClose(args []string, o Out) (int, error) {
 		return refuseWork([]out.Problem{{
 			Rule:    "follow-closed",
 			Message: fmt.Sprintf("%s is already closed, since %s", id, follow.Show(t.Closed)),
-			Fix:     "itos follow note " + id + " adds to it",
+			Fix:     "itos followup note " + id + " adds to it",
 		}}, ExitPolicy, o)
 	}
 	t.Close(flags["--note"], followNow())
@@ -293,7 +293,7 @@ func followClose(args []string, o Out) (int, error) {
 	return reportThread(fmt.Sprintf("%s closed: %s", id, t.Title), *t, o)
 }
 
-// followShow is `follow show <id>`: the whole thread, every note in order.
+// followShow is `followup show <id>`: the whole thread, every note in order.
 func followShow(args []string, o Out) (int, error) {
 	pos, _, _, err := followArgs("show", args, nil, nil)
 	if err != nil {
@@ -304,7 +304,7 @@ func followShow(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	if len(rest) > 0 {
-		return 0, usage("follow show takes one <id>, not %s", strings.Join(rest, " "))
+		return 0, usage("followup show takes one <id>, not %s", strings.Join(rest, " "))
 	}
 	file, threads, code, err := loadThreads(o)
 	if file == "" || err != nil {
@@ -334,7 +334,7 @@ func followShow(args []string, o Out) (int, error) {
 	return 0, nil
 }
 
-// followDoc is `follow doc <id> <path> [--force]`: the whole thread as
+// followDoc is `followup doc <id> <path> [--force]`: the whole thread as
 // Markdown at path, readable by the person alone (0600, the folders it makes
 // 0700: the thread is private), the thread recording where. A file already
 // there is refused unless --force. A path in the work tree that git does not
@@ -351,7 +351,7 @@ func followDoc(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	if len(rest) != 1 || rest[0] == "" {
-		return 0, usage("follow doc needs <id> <path>")
+		return 0, usage("followup doc needs <id> <path>")
 	}
 	path := rest[0]
 	if path == "-" {
@@ -409,7 +409,7 @@ func followDoc(args []string, o Out) (int, error) {
 	return reportThread(fmt.Sprintf("%s written to %s", id, path), *t, o, out.Field{Key: "path", Value: target})
 }
 
-// followDocOut is `follow doc <id> -`: the thread's Markdown on stdout, or
+// followDocOut is `followup doc <id> -`: the thread's Markdown on stdout, or
 // under --json in "markdown" beside the thread; nothing written.
 func followDocOut(id string, o Out) (int, error) {
 	file, threads, code, err := loadThreads(o)
@@ -448,7 +448,7 @@ type followEntry struct {
 	Notes  int    `json:"notes"`
 }
 
-// followList is `follow [--all]`: the open threads, or with --all every
+// followList is `followup [--all]`: the open threads, or with --all every
 // thread, the closed ones after them.
 func followList(all bool, o Out) (int, error) {
 	file, threads, code, err := loadThreads(o)

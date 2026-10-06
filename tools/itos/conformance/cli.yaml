@@ -76,11 +76,11 @@ cases:
     exit: 2
     stderr: |
       itos: tests smoke check needs <kind> (itos --help)
-  - name: hooks install takes only the managers it knows
-    argv: [hooks, install, --manager, bogus]
+  - name: hook install takes only the managers it knows
+    argv: [hook, install, --manager, bogus]
     exit: 2
     stderr: |
-      itos: hooks install --manager takes vp|git|husky|lefthook|pre-commit|prek|git-config (itos --help)
+      itos: hook install --manager takes vp|git|husky|lefthook|pre-commit|prek|git-config (itos --help)
   - name: hook needs commit-msg or pre-push
     argv: [hook, pre-commit]
     exit: 2
@@ -299,8 +299,8 @@ cases:
       version: "{{version}}"
       requires: ">=0.1.0"
       satisfied: true
-  - name: follow needs a git repository, and no config
-    argv: [follow]
+  - name: followup needs a git repository, and no config
+    argv: [followup]
     exit: 3
     stderr: |
-      itos: follow keeps its threads in the git folder, and this is no git repository
+      itos: followup keeps its threads in the git folder, and this is no git repository

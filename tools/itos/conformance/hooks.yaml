@@ -1,4 +1,4 @@
-# The hooks: `hooks install` taking the hook manager --manager or
+# The hooks: `hook install` taking the hook manager --manager or
 # hooks.manager names, else the git config for a stealth config, else finding it by its markers, and writing one-line shims
 # (never over a hook of the project's own without --force), printing the snippet a config-file manager takes, or declaring
 # the hooks in the git config; `hook
@@ -50,7 +50,7 @@ files:
   tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n"
 cases:
   - name: Vite+ is found by its folder, and the shims written there
-    argv: [hooks, install]
+    argv: [hook, install]
     files: { .vite-hooks/: "" }
     files_after:
       .vite-hooks/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\n"
@@ -61,7 +61,7 @@ cases:
       wrote .vite-hooks/commit-msg
       wrote .vite-hooks/pre-push
   - name: Vite+ is found by core.hooksPath, as vp config sets it
-    argv: [hooks, install, --print]
+    argv: [hook, install, --print]
     git:
       - run: git config core.hooksPath .vite-hooks/_
     exit: 0
@@ -72,7 +72,7 @@ cases:
       ==> .vite-hooks/pre-push
       exec tools/bin/itos hook pre-push "$@"
   - name: Vite+ wins over the other managers' markers beside it
-    argv: [hooks, install, --print]
+    argv: [hook, install, --print]
     files: { .vite-hooks/: "", .husky/: "", lefthook.yml: "" }
     exit: 0
     stdout: |
@@ -82,7 +82,7 @@ cases:
       ==> .vite-hooks/pre-push
       exec tools/bin/itos hook pre-push "$@"
   - name: --print prints the shims and writes nothing
-    argv: [hooks, install, --print]
+    argv: [hook, install, --print]
     files: { .husky/: "" }
     files_after:
       .husky/commit-msg: null
@@ -94,7 +94,7 @@ cases:
       ==> .husky/pre-push
       exec tools/bin/itos hook pre-push "$@"
   - name: husky is found by its folder
-    argv: [hooks, install]
+    argv: [hook, install]
     files: { .husky/: "" }
     files_after:
       .husky/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\n"
@@ -104,7 +104,7 @@ cases:
       wrote .husky/commit-msg
       wrote .husky/pre-push
   - name: husky is found by core.hooksPath
-    argv: [hooks, install, --print]
+    argv: [hook, install, --print]
     git:
       - run: git config core.hooksPath .husky/_
     exit: 0
@@ -115,7 +115,7 @@ cases:
       ==> .husky/pre-push
       exec tools/bin/itos hook pre-push "$@"
   - name: plain git without any marker, its hooks executable in the repository's hooks folder
-    argv: [hooks, install]
+    argv: [hook, install]
     files_after:
       .git/hooks/commit-msg: { text: "#!/bin/sh\nexec tools/bin/itos hook commit-msg \"$1\"\n", executable: true }
       .git/hooks/pre-push: { text: "#!/bin/sh\nexec tools/bin/itos hook pre-push \"$@\"\n", executable: true }
@@ -125,7 +125,7 @@ cases:
       wrote .git/hooks/commit-msg
       wrote .git/hooks/pre-push
   - name: hooks.manager names the manager over the markers found
-    argv: [hooks, install, --config, managed.yaml]
+    argv: [hook, install, --config, managed.yaml]
     files:
       .husky/: ""
       managed.yaml: "version: 1\nhooks: { manager: git }\n"
@@ -138,7 +138,7 @@ cases:
       wrote .git/hooks/commit-msg
       wrote .git/hooks/pre-push
   - name: --manager names it over hooks.manager
-    argv: [hooks, install, --print, --manager, husky, --config, managed.yaml]
+    argv: [hook, install, --print, --manager, husky, --config, managed.yaml]
     files:
       managed.yaml: "version: 1\nhooks: { manager: git }\n"
     exit: 0
@@ -149,7 +149,7 @@ cases:
       ==> .husky/pre-push
       exec itos hook pre-push "$@"
   - name: a hook of the project's own is never replaced without --force
-    argv: [hooks, install]
+    argv: [hook, install]
     files:
       .husky/commit-msg: &foreign "sh tools/own-check.sh \"$1\" || exit $?\nvp exec commitlint --edit \"$1\"\n"
     files_after:
@@ -162,7 +162,7 @@ cases:
     stderr: |
       .husky/commit-msg is not an itos shim; pass --force to replace it
   - name: --force replaces it
-    argv: [hooks, install, --force]
+    argv: [hook, install, --force]
     files:
       .husky/commit-msg: *foreign
     files_after:
@@ -173,7 +173,7 @@ cases:
       replaced .husky/commit-msg
       wrote .husky/pre-push
   - name: a shim with a shebang and a comment is a shim, and is rewritten
-    argv: [hooks, install]
+    argv: [hook, install]
     files:
       .vite-hooks/commit-msg: "#!/bin/sh\n# written by hand\nexec .tools/bin/itos hook commit-msg \"$1\"\n"
       .vite-hooks/pre-push: "exec tools/bin/itos hook pre-push \"$@\"\n"
@@ -185,7 +185,7 @@ cases:
       wrote .vite-hooks/commit-msg
       unchanged .vite-hooks/pre-push
   - name: a shim with a second command is not a shim
-    argv: [hooks, install]
+    argv: [hook, install]
     files:
       .vite-hooks/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\necho more\n"
     exit: 1
@@ -195,7 +195,7 @@ cases:
     stderr: |
       .vite-hooks/commit-msg is not an itos shim; pass --force to replace it
   - name: hooks.bin names what the shims call
-    argv: [hooks, install, --print, --manager, vp]
+    argv: [hook, install, --print, --manager, vp]
     files:
       itos.yaml: "version: 1\nhooks: { bin: .tools/bin/itos }\n"
     exit: 0
@@ -206,7 +206,7 @@ cases:
       ==> .vite-hooks/pre-push
       exec .tools/bin/itos hook pre-push "$@"
   - name: lefthook's snippet is printed, its config left alone
-    argv: [hooks, install]
+    argv: [hook, install]
     files: { lefthook.yml: "pre-commit:\n" }
     files_after:
       lefthook.yml: "pre-commit:\n"
@@ -224,7 +224,7 @@ cases:
             run: tools/bin/itos hook pre-push {1} {2}
             use_stdin: true
   - name: a lefthook config that already calls itos
-    argv: [hooks, install]
+    argv: [hook, install]
     files: { .lefthook.yaml: "commit-msg:\n  commands:\n    itos:\n      run: tools/bin/itos hook commit-msg {1}\n" }
     exit: 0
     stdout: |
@@ -240,7 +240,7 @@ cases:
             run: tools/bin/itos hook pre-push {1} {2}
             use_stdin: true
   - name: pre-commit's snippet
-    argv: [hooks, install]
+    argv: [hook, install]
     files: { .pre-commit-config.yaml: "repos: []\n" }
     exit: 0
     stdout: |
@@ -263,7 +263,7 @@ cases:
               pass_filenames: false
               always_run: true
   - name: prek, named by --manager, takes pre-commit's snippet
-    argv: [hooks, install, --manager, prek]
+    argv: [hook, install, --manager, prek]
     files: { .pre-commit-config.yaml: "repos: []\n" }
     exit: 0
     stdout: |
@@ -286,7 +286,7 @@ cases:
               pass_filenames: false
               always_run: true
   - name: --json of the shims
-    argv: [hooks, install, --json]
+    argv: [hook, install, --json]
     files: { .vite-hooks/: "", .vite-hooks/pre-push: "exec tools/bin/itos hook pre-push \"$@\"\n" }
     exit: 0
     json:
@@ -307,7 +307,7 @@ cases:
       wrote .vite-hooks/commit-msg
       unchanged .vite-hooks/pre-push
   - name: --json of a snippet
-    argv: [hooks, install, --json, --manager, lefthook]
+    argv: [hook, install, --json, --manager, lefthook]
     exit: 0
     json:
       schema: 1
@@ -328,11 +328,11 @@ cases:
     stderr: |
       Using lefthook (--manager lefthook)
   - name: the git config's entries, printed
-    argv: [hooks, install, --print, --manager, git-config]
+    argv: [hook, install, --print, --manager, git-config]
     exit: 0
     stdout: "Using the git config (--manager git-config)\n[hook \"itos-commit-msg\"]\n\tevent = commit-msg\n\tcommand = tools/bin/itos hook commit-msg\n[hook \"itos-pre-push\"]\n\tevent = pre-push\n\tcommand = tools/bin/itos hook pre-push\n"
   - name: a stealth config declares the hooks in the git config, over the markers, the pre-push one without hooks.pre_push
-    argv: [hooks, install, --json]
+    argv: [hook, install, --json]
     files:
       itos.yaml: null
       .husky/: ""
@@ -867,43 +867,43 @@ cases:
     exit: 0
     stdout: ""
     stderr: ""
-  - name: pre-tool-use denies a git commit in an itos repository, naming itos commit
-    argv: [hook, pre-tool-use]
+  - name: guard claude-code denies a git commit in an itos repository, naming itos commit
+    argv: [guard, claude-code]
     stdin: '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git commit -m x"},"cwd":"{{dir}}"}'
     exit: 0
     stdout: |
       {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"git commit is itos commit in this repository: run itos commit --task <id>, or itos commit --scenarios <ids>, with the same arguments, so the commit carries the footers it needs (itos commit --help)."}}
-  - name: pre-tool-use denies a git push later in a chain, naming itos push
-    argv: [hook, pre-tool-use]
+  - name: guard claude-code denies a git push later in a chain, naming itos push
+    argv: [guard, claude-code]
     stdin: '{"tool_name":"Bash","tool_input":{"command":"go vet ./... && GIT_TRACE=1 git --no-pager push origin main"},"cwd":"{{dir}}"}'
     exit: 0
     stdout: |
       {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"git push is itos push in this repository: run itos push, with no arguments; it pulls the upstream with a rebase, then pushes HEAD to it, never forced (itos push --help)."}}
-  - name: pre-tool-use names both commands for a commit and a push, from the folder itos runs in when the input names none
-    argv: [hook, pre-tool-use]
+  - name: guard claude-code names both commands for a commit and a push, from the folder itos runs in when the input names none
+    argv: [guard, claude-code]
     stdin: '{"tool_name":"Bash","tool_input":{"command":"git push; (cd . && command git -C . commit)"}}'
     exit: 0
     stdout: |
       {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"git commit is itos commit in this repository: run itos commit --task <id>, or itos commit --scenarios <ids>, with the same arguments, so the commit carries the footers it needs (itos commit --help). git push is itos push in this repository: run itos push, with no arguments; it pulls the upstream with a rebase, then pushes HEAD to it, never forced (itos push --help)."}}
-  - name: pre-tool-use gives no answer to another git command
-    argv: [hook, pre-tool-use]
+  - name: guard claude-code gives no answer to another git command
+    argv: [guard, claude-code]
     stdin: '{"tool_name":"Bash","tool_input":{"command":"git log --grep ''git commit''"},"cwd":"{{dir}}"}'
     exit: 0
     stdout: ""
-  - name: pre-tool-use gives no answer to a git commit -C names outside the repository
-    argv: [hook, pre-tool-use]
+  - name: guard claude-code gives no answer to a git commit -C names outside the repository
+    argv: [guard, claude-code]
     stdin: '{"tool_name":"Bash","tool_input":{"command":"git -C / commit -m x"},"cwd":"{{dir}}"}'
     exit: 0
     stdout: ""
-  - name: pre-tool-use gives no answer to another tool
-    argv: [hook, pre-tool-use]
+  - name: guard claude-code gives no answer to another tool
+    argv: [guard, claude-code]
     stdin: '{"tool_name":"Write","tool_input":{"file_path":"{{dir}}/git","content":"git commit"},"cwd":"{{dir}}"}'
     exit: 0
     stdout: ""
-  - name: pre-tool-use cannot read a Bash input with no command, and exits 1
-    argv: [hook, pre-tool-use]
+  - name: guard claude-code cannot read a Bash input with no command, and exits 1
+    argv: [guard, claude-code]
     stdin: '{"tool_name":"Bash","tool_input":{}}'
     exit: 1
     stdout: ""
     stderr: |
-      itos: hook pre-tool-use cannot read Claude Code's PreToolUse input on stdin: the Bash tool's input has no command
+      itos: guard claude-code cannot read Claude Code's PreToolUse input on stdin: the Bash tool's input has no command

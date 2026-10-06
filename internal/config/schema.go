@@ -130,7 +130,7 @@ func removed(what, fix string) out.Problem {
 	return out.Problem{Rule: "config-removed", Message: what + " was removed in v5; " + fix, Fix: fix}
 }
 
-// HookManagers are the hook managers `hooks install` writes or prints for.
+// HookManagers are the hook managers `hook install` writes or prints for.
 var HookManagers = []string{"vp", "git", "husky", "lefthook", "pre-commit", "prek", "git-config"}
 
 // schema is every key the config accepts, each one a tool reads.
@@ -248,8 +248,8 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 	)),
 	"work", about("The work registry, its statuses, the people and the identity.", obj(nil,
 		"registry", about("The work registry's file; by default work-items.yaml beside the ledger's files.", str),
-		"asks", about("itos ask's questions' file; by default asks.yaml beside the work registry.", str),
-		"decisions", about("The folder itos ask record writes its MADR decision records and their index in; by default docs/decisions.", str),
+		"asks", about("itos question's file; by default asks.yaml beside the work registry.", str),
+		"decisions", about("The folder itos question record writes its MADR decision records and their index in; by default docs/decisions.", str),
 		"groups_key", about("The registry's key whose entries name each group's owner.", str),
 		"statuses", about("The statuses a work item may have; dropped, which itos work drop gives, is known whatever this lists.", strs),
 		"people", about("Who may own work: the source and the file it reads.", obj([]string{"source", "file"},
@@ -260,7 +260,7 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 		"identity", about("Who itos works for: github (gh's account) or none (only --as).", obj(nil, "provider", provider, "hint", str)),
 	)),
 	"hooks", about("The hook manager, the binary the shims call, the pre-push commands and the commit-msg hook's task checks.", obj(nil,
-		"manager", about("The hook manager itos hooks install writes for, over the one it detects.", enum(HookManagers...)),
+		"manager", about("The hook manager itos hook install writes for, over the one it detects.", enum(HookManagers...)),
 		"bin", about("How the project calls itos: what the shims call; by default itos, the global launcher. Internal and unsupported, for a repository that must run its own build.", str),
 		"pre_push", about("The pre-push hook's commands.", obj([]string{"per_base", "whole"},
 			"per_base", about("Run once per remote base the clone has, {base} standing for it.", str),

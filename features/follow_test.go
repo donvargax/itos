@@ -1,4 +1,4 @@
-// The steps of itos follow (follow.feature, slice 61): a command line that
+// The steps of itos followup (follow.feature, slice 61): a command line that
 // has to succeed before the run a scenario is about, in the repository or in
 // its linked worktree, and a file of the repository that exists or says a
 // text. Bug 16's: one command run many times at once, each run's exit
@@ -64,7 +64,7 @@ func initializeFollowSteps(sc *godog.ScenarioContext, w *world) {
 		return w.allAtOnce(runs)
 	})
 	sc.Step(`^every run exited 0$`, w.everyRunExited0)
-	sc.Step(`^itos follow show ([^ ]+) lists every one of those notes$`, w.showListsEveryNote)
+	sc.Step(`^itos followup show ([^ ]+) lists every one of those notes$`, w.showListsEveryNote)
 	sc.Step(`^the threads file holds a second YAML document after the thread "([^"]*)"$`, func(id string) error {
 		return w.writeThreads(threadsText(id, "2026-10-04T09:30:15-07:00") + "---\n" + threadsText("flaky-bo", "2026-10-04T10:00:00-07:00"))
 	})
@@ -164,14 +164,14 @@ func (w *world) everyRunExited0() error {
 	return nil
 }
 
-// follow show of the thread prints a note line for every word allAtOnce
+// followup show of the thread prints a note line for every word allAtOnce
 // added: a line whose text after its date and time is the word.
 func (w *world) showListsEveryNote(id string) error {
-	if err := w.itos("follow", "show", id); err != nil {
+	if err := w.itos("followup", "show", id); err != nil {
 		return err
 	}
 	if w.exit != 0 {
-		return fmt.Errorf("follow show %s exited %d\n%s", id, w.exit, w.report())
+		return fmt.Errorf("followup show %s exited %d\n%s", id, w.exit, w.report())
 	}
 	noted := map[string]bool{}
 	for _, line := range strings.Split(w.stdout, "\n") {

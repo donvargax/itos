@@ -41,7 +41,7 @@ func TestQueuePlaces(t *testing.T) {
 		{"a", Place{After: "c"}, []string{"b", "c", "a"}},
 		{"b", Place{After: "c"}, []string{"c", "b"}},
 		{"i", Place{After: "b"}, []string{"b", "i", "c"}},
-		{"b", Place{Drop: true}, []string{"c"}},
+		{"b", Place{Remove: true}, []string{"c"}},
 	} {
 		change, problem, err := Queue(r, queueText, c.id, c.at)
 		if err != nil || problem != nil {
@@ -81,7 +81,7 @@ func TestQueueRefusesAndLeavesAsItIs(t *testing.T) {
 	for _, c := range []struct {
 		id string
 		at Place
-	}{{"b", Place{Top: true}}, {"c", Place{After: "b"}}, {"a", Place{Drop: true}}} {
+	}{{"b", Place{Top: true}}, {"c", Place{After: "b"}}, {"a", Place{Remove: true}}} {
 		change, problem, err := Queue(r, queueText, c.id, c.at)
 		if err != nil || problem != nil || !change.Unchanged {
 			t.Errorf("%s %+v: %v %+v %+v, want unchanged", c.id, c.at, err, problem, change)

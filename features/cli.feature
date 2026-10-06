@@ -41,7 +41,7 @@ Feature: Flags and arguments, parsed from a spec
     And its output says "nosuchref"
     And its output does not say "Command failed"
 
-  @ID-CLI-06 @slice-89 @wip
+  @ID-CLI-06 @slice-89
   Scenario: itos help with an unknown topic exits 2
     When itos runs "help nosuch"
     Then itos exits with code 2

@@ -270,6 +270,14 @@ func Main(args []string, stdout, stderr io.Writer) int {
 		}
 		return runExtension(g, g.Extension, rest, o)
 	}
+	// A name v6.0.0 renamed, run or asked about, names the new one.
+	words := g.Rest
+	if name == "help" {
+		words = rest
+	}
+	if err := renamedCommand(words); err != nil {
+		return failure(err, o)
+	}
 	// `itos`, `itos help …` and any --help print the help, before any config.
 	if g.Help || name == "" || name == "help" {
 		return help(g, o)

@@ -152,7 +152,7 @@ cases:
           message: "itos.yaml: unknown key hooks.shims"
           fix: remove hooks.shims; the keys here are manager, bin, pre_push, commit_msg
           area: config
-  - name: the keys of features not built yet are unknown, header_lint.use is builtin or command, and hooks.manager is one hooks install knows
+  - name: the keys of features not built yet are unknown, header_lint.use is builtin or command, and hooks.manager is one hook install knows
     argv: [config, check, --json]
     files:
       itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", check: { pushed: remote-branch-contains-head } }\ncommits:\n  header_lint: { use: both, alongside: builtin, stdin: lint }\nhooks: { manager: overcommit }\n"

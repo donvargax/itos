@@ -1,5 +1,5 @@
 // Package lock is the one lock itos holds while it changes a file that
-// more than one itos may write at once (bug 16): itos follow's threads and,
+// more than one itos may write at once (bug 16): itos followup's threads and,
 // under a stealth config, the registry and the ledger, each in the git
 // common dir, which every linked worktree of the clone shares. A writer reads
 // the whole file, changes it and saves it whole, so two at once lose one's

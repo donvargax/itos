@@ -243,7 +243,7 @@ func (w *world) amendHead(message string) error {
 }
 
 // The commit-msg hook in the repository's hooks folder (git's own, no hook
-// manager): a shim that runs the itos under test, as the one hooks install
+// manager): a shim that runs the itos under test, as the one hook install
 // writes runs hooks.bin.
 func (w *world) commitMsgHookInstalled() error { return w.hookInstalled("commit-msg", `"$1"`) }
 

@@ -34,10 +34,11 @@ const (
 	envVersion = "ITOS_VERSION" // its version, which the launcher keeps a call back to
 )
 
-// builtin is whether itos has the command itself.
+// builtin is whether itos has the command itself, or had it before v6.0.0
+// renamed it (renamed.go).
 func builtin(name string) bool {
 	_, ok := commands[name]
-	return ok || name == "help"
+	return ok || name == "help" || retiredName(name)
 }
 
 // extensionPath is where the PATH has the program of the extension name, ""

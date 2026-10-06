@@ -121,12 +121,12 @@ var specs = map[string]spec{
 		"list":    {flags: []flagSpec{sw("--all")}},
 		"show":    {flags: []flagSpec{sw("--patch")}},
 		"take":    {flags: []flagSpec{val("--as")}},
-		"promote": {flags: []flagSpec{val("--as"), val("--kind"), val("--title")}},
+		"promote": {flags: []flagSpec{val("--id"), val("--kind"), val("--title")}},
 		"done":    {},
 		"add": {flags: []flagSpec{val("--title"), val("--why"), val("--kind"), val("--phase"), val("--owner"),
 			val("--depends-on"), val("--refs")}},
 		"edit":  {flags: []flagSpec{val("--title"), val("--depends-on"), val("--refs"), val("--note")}},
-		"queue": {flags: []flagSpec{sw("--top"), sw("--drop"), val("--before"), val("--after")}},
+		"queue": {flags: []flagSpec{sw("--top"), sw("--remove"), val("--before"), val("--after")}},
 		"drop":  {flags: []flagSpec{val("--why")}},
 		"check": {},
 	}},
@@ -155,12 +155,12 @@ var specs = map[string]spec{
 		"range": {flags: []flagSpec{val("--head"), val("--base")}},
 	}},
 	"hook": {subs: map[string]spec{
-		"commit-msg":   {},
-		"pre-push":     {},
-		"pre-tool-use": {},
+		"commit-msg": {},
+		"pre-push":   {},
+		"install":    {flags: []flagSpec{val("--manager"), sw("--print"), sw("--force")}},
 	}},
-	"hooks": {subs: map[string]spec{
-		"install": {flags: []flagSpec{val("--manager"), sw("--print"), sw("--force")}},
+	"guard": {subs: map[string]spec{
+		"claude-code": {},
 	}},
 	"config": {subs: map[string]spec{
 		"check": {flags: []flagSpec{sw("--print-defaults"), val("--ledger")}},
@@ -177,14 +177,14 @@ var specs = map[string]spec{
 	"upgrade": {},
 	"init": {flags: []flagSpec{sw("--stealth"), {name: "--plugin", takes: may}, sw("--git-shim"), sw("--no-git-shim"),
 		val("--git-shim-dir"), sw("--agent-rules"), sw("--no-agent-rules")}},
-	"follow": {flags: []flagSpec{sw("--all")}, subs: map[string]spec{
+	"followup": {flags: []flagSpec{sw("--all")}, subs: map[string]spec{
 		"add":   {flags: []flagSpec{val("--with"), val("--title"), val("--note")}},
 		"note":  {},
 		"close": {flags: []flagSpec{val("--note")}},
 		"show":  {},
 		"doc":   {flags: []flagSpec{sw("--force")}},
 	}},
-	"ask": {flags: []flagSpec{sw("--all")}, subs: map[string]spec{
+	"question": {flags: []flagSpec{sw("--all")}, subs: map[string]spec{
 		"add":    {flags: []flagSpec{val("--item")}},
 		"answer": {},
 		"record": {flags: []flagSpec{val("--title"), vals("--option"), val("--consequences"), val("--supersedes"),
@@ -310,6 +310,8 @@ func readLine(args []string) (Globals, error) {
 		case !ok && s.others:
 			g.Rest = append(g.Rest, arg)
 			continue
+		case !ok && renamedFlag(name, flag) != nil:
+			return g, renamedFlag(name, flag)
 		case !ok:
 			return g, usage("%s does not take %s; %s", name, flag, takesWhat(joined(s.flags, more...), s.subs))
 		case seen[f.name] && !f.repeat:

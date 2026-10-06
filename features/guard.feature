@@ -1,10 +1,10 @@
 @phase-3
-Feature: itos hook pre-tool-use, Claude Code's guard against git commit and git push
+Feature: itos guard claude-code, Claude Code's guard against git commit and git push
   An agent that commits or pushes with git by hand skips what itos commit
   writes (the footers) and what itos push checks (no stash, no force, no
   stopped rebase). Claude Code asks a PreToolUse hook before each tool runs,
   sending the tool's name, its input and the session's folder as JSON on
-  stdin; the itos plugin's hook is itos hook pre-tool-use, so a
+  stdin; the itos plugin's hook is itos guard claude-code, so a
   repository's pin picks the version that answers (PLAN.md §10,
   "Adoption"). In a repository itos manages, found from the folder the input
   names as everywhere else, a Bash command that runs git commit or git push
@@ -116,7 +116,7 @@ Feature: itos hook pre-tool-use, Claude Code's guard against git commit and git 
   # itos as Claude Code call the new name; the plugin's guard.sh calls it,
   # and the plugin's version rises. The old name exits 2 naming the new one;
   # guard.sh turns a 2 into 1, so Claude Code is never blocked by it.
-  @ID-GUARD-12 @slice-89 @wip
+  @ID-GUARD-12 @slice-89
   Scenario: itos hook pre-tool-use exits 2, naming itos guard claude-code
     When itos runs "hook pre-tool-use"
     Then itos exits with code 2

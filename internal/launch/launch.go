@@ -40,10 +40,11 @@
 // and which version the itos that was called is (pinLine), since the version
 // line on stdout is the pin's.
 //
-// hook pre-tool-use, Claude Code's guard, is handed on as any other run, but
-// not to an itos older than the guard (cli.GuardSince), which has no such
-// hook: its usage error's exit 2 would make Claude Code block the tool, so
-// the launcher reads the input and answers nothing, exit 0 (slice 44).
+// guard claude-code, Claude Code's guard, is handed on as any other run, but
+// not to an itos older than it (cli.GuardSince, v6.0.0, which renamed hook
+// pre-tool-use), which has no such command: its usage error's exit 2 would
+// make Claude Code block the tool, so the launcher reads the input and
+// answers nothing, exit 0 (slice 44).
 package launch
 
 import (
@@ -151,13 +152,13 @@ func binaryCommand(args []string) bool {
 	return false
 }
 
-// unguarded is whether the arguments run hook pre-tool-use and the version
-// they would be handed to predates the guard, so has no such hook to answer
-// it (slice 44). A version the launcher cannot read (an ITOS_VERSION that is
+// unguarded is whether the arguments run guard claude-code and the version
+// they would be handed to predates it, so has no such command to answer it
+// (slice 44). A version the launcher cannot read (an ITOS_VERSION that is
 // none) is handed on, to fail as it does for any command.
 func unguarded(args []string, t target) bool {
 	rest := cli.Parse(args).Rest
-	return len(rest) >= 2 && rest[0] == "hook" && rest[1] == "pre-tool-use" &&
+	return len(rest) >= 2 && rest[0] == "guard" && rest[1] == "claude-code" &&
 		config.PinVersion.MatchString(t.version) && version.Compare(t.version, cli.GuardSince) < 0
 }
 
@@ -177,7 +178,7 @@ func answerNothing(t target, stdin *os.File, stderr io.Writer) {
 	case t.checksums != "":
 		who = "this repository pins"
 	}
-	fmt.Fprintf(stderr, "itos: hook pre-tool-use answers nothing: %s itos %s, and the guard needs itos %s or later\n",
+	fmt.Fprintf(stderr, "itos: guard claude-code answers nothing: %s itos %s, and the guard needs itos %s or later\n",
 		who, t.version, cli.GuardSince)
 }
 

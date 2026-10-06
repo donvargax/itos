@@ -43,7 +43,8 @@ func TestUsageErrors(t *testing.T) {
 		"tests smoke bogus x": "unknown command: tests smoke bogus",
 		"tests":               "unknown command: tests",
 		"hook commit-msg":     "hook commit-msg needs <file>",
-		"hooks":               "unknown command: hooks",
+		"hook":                "unknown command: hook",
+		"guard":               "unknown command: guard",
 		"ci range --head":     "ci range --head needs a value",
 		"ci":                  "unknown command: ci",
 	} {
