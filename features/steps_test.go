@@ -67,51 +67,52 @@ type world struct {
 
 // What a scenario sets in the scratch repository's itos.yaml.
 type scratchConfig struct {
-	headerLintCommand string       // the header lint delegated to this command
-	headerLintBuiltin bool         // the header lint itos's own (use: builtin)
-	since             string       // commits.since
-	rangeCheck        bool         // a range check that records where its range starts
-	moves             *moves       // the kind's range check is the built-in moves rule
-	recordingShell    bool         // shell is the recording shell
-	ciSteps           []string     // ci.steps
-	ciWatchOnly       string       // the workflow of a github ci.watch, the ci section's one key, when set
-	ciTests           string       // a kind of named tests, with run and recognize templates, run by the last of ci.steps
-	runSelect         string       // the scenario kind's run.select, when ciTests gives it none
-	smokeRuns         []string     // commands the kind of ciTests recognizes as its smoke run
-	stopAtFirst       *bool        // ci.stop_at_first_failure
-	nightlyTasks      string       // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
-	costStatic        []string     // ci.cost.static
-	keepWrittenOrder  *bool        // ci.cost.keep_written_order
-	covers            []cover      // ci.covers
-	nightlyOnly       []string     // ci.nightly_only
-	registry          string       // work.registry
-	taskChecks        *bool        // hooks.commit_msg.task_checks
-	checkTimeout      int          // hooks.commit_msg.check_timeout, when above 0
-	statuses          []string     // work.statuses
-	groupsKey         string       // work.groups_key
-	noPeople          bool         // the config names no people file (no work.people)
-	noWork            bool         // the config has no work section, only work's defaults
-	smoke             bool         // tests.scenario has a smoke set, features/smoke.yaml
-	scenarios         bool         // the config has the kind tests.scenario, reading features/
-	smokeEveryFile    *bool        // tests.scenario.smoke.every_file
-	noTagPrefix       bool         // the kind written without tag_prefix
-	hooksManager      string       // hooks.manager
-	hooksBin          string       // hooks.bin
-	prePushRecord     bool         // hooks.pre_push's commands record that they ran
-	prePushCommit     string       // hooks.pre_push's command, one that commits in the clone
-	watch             *watchConfig // ci.watch
-	rangeGitHub       string       // ci.range.github's workflow, with ci.range's provider github, when set
-	ledgerFooter      string       // the key of the footer whose source is the ledger; Task when empty
-	textFooter        *textFooter  // a footer of free text
-	itemFooter        bool         // an Item footer of registry items, in place of the ledger footer for test, docs and chore
-	featMustTouch     string       // commits.scopes.feat.must_touch, one glob, when set
-	choreNeverExcept  *[2]string   // commits.scopes.chore's never and except, one glob each, when set
-	ledgerFiles       string       // ledger.files; tasks/phase-{group}.yaml when empty
-	prosePaths        string       // ci.prose.paths, one glob
-	proseSteps        string       // ci.prose.steps, one command
-	pin               *[2]string   // pin.version and pin.checksums
-	schemaLine        string       // the config's first line, a yaml-language-server schema line, when set
-	comments          []string     // comment lines written after the pin's line
+	headerLintCommand string          // the header lint delegated to this command
+	headerLintBuiltin bool            // the header lint itos's own (use: builtin)
+	since             string          // commits.since
+	rangeCheck        bool            // a range check that records where its range starts
+	moves             *moves          // the kind's range check is the built-in moves rule
+	adapter           *commandAdapter // the kind's adapter is a command (moves_command_test.go)
+	recordingShell    bool            // shell is the recording shell
+	ciSteps           []string        // ci.steps
+	ciWatchOnly       string          // the workflow of a github ci.watch, the ci section's one key, when set
+	ciTests           string          // a kind of named tests, with run and recognize templates, run by the last of ci.steps
+	runSelect         string          // the scenario kind's run.select, when ciTests gives it none
+	smokeRuns         []string        // commands the kind of ciTests recognizes as its smoke run
+	stopAtFirst       *bool           // ci.stop_at_first_failure
+	nightlyTasks      string          // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
+	costStatic        []string        // ci.cost.static
+	keepWrittenOrder  *bool           // ci.cost.keep_written_order
+	covers            []cover         // ci.covers
+	nightlyOnly       []string        // ci.nightly_only
+	registry          string          // work.registry
+	taskChecks        *bool           // hooks.commit_msg.task_checks
+	checkTimeout      int             // hooks.commit_msg.check_timeout, when above 0
+	statuses          []string        // work.statuses
+	groupsKey         string          // work.groups_key
+	noPeople          bool            // the config names no people file (no work.people)
+	noWork            bool            // the config has no work section, only work's defaults
+	smoke             bool            // tests.scenario has a smoke set, features/smoke.yaml
+	scenarios         bool            // the config has the kind tests.scenario, reading features/
+	smokeEveryFile    *bool           // tests.scenario.smoke.every_file
+	noTagPrefix       bool            // the kind written without tag_prefix
+	hooksManager      string          // hooks.manager
+	hooksBin          string          // hooks.bin
+	prePushRecord     bool            // hooks.pre_push's commands record that they ran
+	prePushCommit     string          // hooks.pre_push's command, one that commits in the clone
+	watch             *watchConfig    // ci.watch
+	rangeGitHub       string          // ci.range.github's workflow, with ci.range's provider github, when set
+	ledgerFooter      string          // the key of the footer whose source is the ledger; Task when empty
+	textFooter        *textFooter     // a footer of free text
+	itemFooter        bool            // an Item footer of registry items, in place of the ledger footer for test, docs and chore
+	featMustTouch     string          // commits.scopes.feat.must_touch, one glob, when set
+	choreNeverExcept  *[2]string      // commits.scopes.chore's never and except, one glob each, when set
+	ledgerFiles       string          // ledger.files; tasks/phase-{group}.yaml when empty
+	prosePaths        string          // ci.prose.paths, one glob
+	proseSteps        string          // ci.prose.steps, one command
+	pin               *[2]string      // pin.version and pin.checksums
+	schemaLine        string          // the config's first line, a yaml-language-server schema line, when set
+	comments          []string        // comment lines written after the pin's line
 	settings          []setting
 }
 
@@ -337,6 +338,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeGuideSteps(sc, w)
 	initializeUpgradeSteps(sc, w)
 	initializeRangeSteps(sc, w)
+	initializeMovesCommandSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -754,6 +756,9 @@ func (w *world) writeConfig() error {
 		if !w.config.noTagPrefix {
 			b.WriteString("    tag_prefix: \"@\"\n")
 		}
+		if a := w.config.adapter; a != nil {
+			fmt.Fprintf(&b, "    adapter: { command: %q, supports_at: %t }\n", w.adapterCommand(), a.supportsAt)
+		}
 	}
 	if w.config.runSelect != "" && w.config.ciTests == "" {
 		fmt.Fprintf(&b, "    run:\n      select: %q\n      ids_pattern: \"@(?:{ids})\\\\b\"\n", w.config.runSelect)
@@ -869,7 +874,7 @@ func (w *world) testsKind() string {
 	switch {
 	case w.config.ciTests != "":
 		return w.config.ciTests
-	case w.config.rangeCheck || w.config.smoke || w.config.moves != nil || w.config.scenarios:
+	case w.config.rangeCheck || w.config.smoke || w.config.moves != nil || w.config.scenarios || w.config.adapter != nil:
 		return "scenario"
 	}
 	return ""
