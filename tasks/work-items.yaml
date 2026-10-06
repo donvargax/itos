@@ -4757,3 +4757,18 @@ items:
     why: >
       Specified as @ID-WORK-47 to 50 in features/work.feature.
     refs: [features/work.feature, internal/providers/identity.go, internal/work]
+
+  - id: p1-task-edit
+    title: itos task edit amends a task's why, title and checks, and commits them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From another coordinator's notes (2026-10-05). Since v4 work edit --note refuses a task and
+      points to its ledger entry, but nothing edits a ledger entry, so an agent hand-edits
+      tasks/*.yaml in a docs commit, or in stealth writes it unrecorded. itos task edit <id>
+      --why/--title/--add-check/--drop-check would write and commit it as task add does (writing
+      only under stealth); changing a done task's checks asks a reason for the commit body, since it
+      changes the evidence (T-008 and T-092's checks were changed by hand on 2026-10-05).
