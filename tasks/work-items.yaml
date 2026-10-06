@@ -4506,3 +4506,15 @@ items:
       the registry already has the item, so a task made by promote needs its ledger entry by hand
       (work/write.go:400).
     refs: [internal/work/write.go]
+
+  - id: p1-supersede-standing-only
+    title: ask record --supersedes refuses a record already superseded
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). Superseding an already superseded record
+      overwrites its link (cli/ask.go:546).
+    refs: [internal/cli/ask.go]
