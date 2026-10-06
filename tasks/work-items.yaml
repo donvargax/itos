@@ -4259,3 +4259,17 @@ items:
       question writes nothing, against the help (cli/initrulesstealth.go:284). Its @bug-42 scenario
       is written before it is handed out.
     refs: [internal/cli/initrulesstealth.go]
+
+  - id: bug-43
+    title: init --stealth on a project's config is a usage error
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). init --stealth --agent-rules where itos.yaml
+      is at the top writes the stealth rules files, which copy an AGENTS.md already holding the
+      block and go stale unreported, and name a stealth config that does not exist (cli/init.go:89).
+      Its @bug-43 scenario is written before it is handed out.
+    refs: [internal/cli/init.go]
