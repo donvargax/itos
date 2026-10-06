@@ -4326,3 +4326,16 @@ items:
       hard link, and once itos.exe is replaced git-shim install and uninstall both refuse their own
       stale shim (gitshim.go:93-103, 166-167).
     refs: [internal/cli/gitshim.go]
+
+  - id: p3-windows-ctrl-c-launcher
+    title: On Windows Ctrl-C does not end the launcher before its child
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). launch/run_other.go and extension_other.go
+      install no interrupt handling, so the prompt returns while git and the editor still hold the
+      console.
+    refs: [internal/launch/run_other.go, internal/cli/extension_other.go]
