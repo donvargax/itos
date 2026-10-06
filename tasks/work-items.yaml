@@ -4002,11 +4002,9 @@ items:
     title: The built-in moves rule on a kind whose adapter is a command
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-100]
     kind: slice
-    why: >
-      Issue #9. Specified in features/moves-command.feature.
     refs: [features/moves-command.feature, internal/tests/tests.go]
 
   - id: p1-work-defer
