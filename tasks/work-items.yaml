@@ -74,6 +74,7 @@ queue:
   - bug-41
   - bug-42
   - bug-43
+  - bug-44
   - p1-nightly-late-done-checks
   - p1-work-show-gaps
   - p1-release-notes-footers
