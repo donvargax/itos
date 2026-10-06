@@ -21,8 +21,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/value"
+	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/value"
 )
 
 // Run is one look at a CI run: its address, its status (queued,

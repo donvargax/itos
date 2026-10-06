@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/donvargax/itos/v4/internal/config"
+	"github.com/donvargax/itos/v5/internal/config"
 )
 
 func rules(t *testing.T, text string) *Rules {

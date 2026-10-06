@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v4/internal/config"
+	"github.com/donvargax/itos/v5/internal/config"
 )
 
 func TestCodeFencesWithMoreBackticksThanItHolds(t *testing.T) {

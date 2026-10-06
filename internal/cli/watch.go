@@ -18,11 +18,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/git"
-	"github.com/donvargax/itos/v4/internal/out"
-	"github.com/donvargax/itos/v4/internal/providers"
-	"github.com/donvargax/itos/v4/internal/value"
+	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v5/internal/out"
+	"github.com/donvargax/itos/v5/internal/providers"
+	"github.com/donvargax/itos/v5/internal/value"
 )
 
 // watched is how a watch ended: its exit code, its outcome (success,

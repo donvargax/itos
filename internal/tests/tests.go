@@ -17,9 +17,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/shell"
-	"github.com/donvargax/itos/v4/internal/value"
+	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/shell"
+	"github.com/donvargax/itos/v5/internal/value"
 )
 
 // Test is one named test: its ID without the tag prefix, its file relative to

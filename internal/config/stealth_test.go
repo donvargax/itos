@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v4/internal/value"
+	"github.com/donvargax/itos/v5/internal/value"
 )
 
 // gitIn runs git in dir, away from the repository a hook runs the tests in.

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"os/exec"
 
-	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/value"
+	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/value"
 )
 
 // Answer is what an identity provider says: the handle the session works

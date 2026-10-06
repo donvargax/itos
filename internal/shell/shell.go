@@ -16,7 +16,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/donvargax/itos/v4/internal/config"
+	"github.com/donvargax/itos/v5/internal/config"
 )
 
 // Grace is how long a command past its timeout has, after SIGTERM, before it

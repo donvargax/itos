@@ -12,7 +12,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/donvargax/itos/v4/internal/work"
+	"github.com/donvargax/itos/v5/internal/work"
 )
 
 // workDrop is `work drop <id> --why <reason>`: the item dropped and the

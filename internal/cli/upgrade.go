@@ -25,10 +25,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/out"
-	"github.com/donvargax/itos/v4/internal/release"
-	"github.com/donvargax/itos/v4/internal/version"
+	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/out"
+	"github.com/donvargax/itos/v5/internal/release"
+	"github.com/donvargax/itos/v5/internal/version"
 )
 
 // installScriptPath is where a project keeps the install script the release

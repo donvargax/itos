@@ -37,11 +37,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/donvargax/itos/v4/internal/cli"
-	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/git"
-	"github.com/donvargax/itos/v4/internal/launch"
-	"github.com/donvargax/itos/v4/internal/version"
+	"github.com/donvargax/itos/v5/internal/cli"
+	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v5/internal/launch"
+	"github.com/donvargax/itos/v5/internal/version"
 )
 
 // Named is whether itos was started under the name git: argv[0]'s base name

@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/donvargax/itos/v4/internal/adr"
-	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/ledger"
-	"github.com/donvargax/itos/v4/internal/out"
-	"github.com/donvargax/itos/v4/internal/tests"
-	"github.com/donvargax/itos/v4/internal/value"
-	"github.com/donvargax/itos/v4/internal/work"
+	"github.com/donvargax/itos/v5/internal/adr"
+	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/ledger"
+	"github.com/donvargax/itos/v5/internal/out"
+	"github.com/donvargax/itos/v5/internal/tests"
+	"github.com/donvargax/itos/v5/internal/value"
+	"github.com/donvargax/itos/v5/internal/work"
 )
 
 // Found is a problem config check reports, with the area it is in: the

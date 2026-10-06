@@ -16,7 +16,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/donvargax/itos/v4/internal/git"
+	"github.com/donvargax/itos/v5/internal/git"
 )
 
 var (

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/git"
+	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/git"
 )
 
 // Range is a ci.range provider: the start commit it proposes for a push's

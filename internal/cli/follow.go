@@ -18,11 +18,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/follow"
-	"github.com/donvargax/itos/v4/internal/git"
-	"github.com/donvargax/itos/v4/internal/lock"
-	"github.com/donvargax/itos/v4/internal/out"
+	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/follow"
+	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v5/internal/lock"
+	"github.com/donvargax/itos/v5/internal/out"
 )
 
 // followNow is the time a change is dated with: the one place follow reads

@@ -11,11 +11,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/git"
-	"github.com/donvargax/itos/v4/internal/ledger"
-	"github.com/donvargax/itos/v4/internal/shell"
-	"github.com/donvargax/itos/v4/internal/value"
+	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v5/internal/ledger"
+	"github.com/donvargax/itos/v5/internal/shell"
+	"github.com/donvargax/itos/v5/internal/value"
 )
 
 // Result is what a check came to: it passed (its exit status is the one its

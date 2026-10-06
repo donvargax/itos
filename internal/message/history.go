@@ -8,8 +8,8 @@ package message
 import (
 	"strings"
 
-	"github.com/donvargax/itos/v4/internal/config"
-	"github.com/donvargax/itos/v4/internal/git"
+	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/git"
 )
 
 // Link is one ID a footer of IDs gives: the footer's key, the ID with its

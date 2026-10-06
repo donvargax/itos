@@ -44,8 +44,8 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/donvargax/itos/v4/internal/out"
-	"github.com/donvargax/itos/v4/internal/source"
+	"github.com/donvargax/itos/v5/internal/out"
+	"github.com/donvargax/itos/v5/internal/source"
 )
 
 // IndexName is the index's file in the records' folder.
