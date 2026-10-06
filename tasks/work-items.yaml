@@ -4001,7 +4001,7 @@ items:
     phase: 1
     owner: donvargax
     status: doing
-    depends_on: []
+    depends_on: [T-100]
     kind: slice
     why: >
       Issue #9. Specified in features/moves-command.feature.
