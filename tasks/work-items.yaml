@@ -4900,3 +4900,16 @@ items:
         features/ci.feature,
         internal/cli/cli.go,
       ]
+
+  - id: p1-problem-fields
+    title: Each --json problem carries its rule's subject as keys, so no script reads a message
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-86]
+    kind: idea
+    why: >
+      Decision 35 (2026-10-06): message and fix may change, yet the path a rule refused, the
+      scenario, the item or the commit is only in the message today (out.Problem is rule, message,
+      fix). Each rule documents its keys; added after v6 they are additive (T-076).
+    refs: [internal/out/out.go]
