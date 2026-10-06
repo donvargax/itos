@@ -4121,16 +4121,9 @@ items:
     title: Renames and type changes hide a path from the hook and from CI's plan
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). The commit-msg hook's git diff --cached and
-      the plan's Changed run with rename detection on, so a rename lists only its new path (git mv
-      of code into docs/ passes a docs commit, and makes a range prose-only so build and tests are
-      skipped), and the hook's --diff-filter=ACMRD leaves out T. verify uses diff-tree and
-      disagrees. Read with --no-renames and every change type. Its @bug-32 scenario is written
-      before it is handed out.
     refs: [internal/cli/hook.go, internal/plan/scope.go]
 
   - id: bug-33
