@@ -63,7 +63,7 @@ queue:
   - p1-release-notes-footers
   - p1-commit-wrap-review
   - p1-work-as-empty
-  - p1-push-superseded-run
+  - bug-41
   - p3-guard-cd
   - p1-version-mutation-gaps
   - p1-schema-contract-tests
@@ -2999,14 +2999,15 @@ items:
       which the guard does not judge. A guard that pushes agents to plumbing commands outside the
       repository it guards is worse than one that follows the cd.
 
-  - id: p1-push-superseded-run
+  - id: bug-41
     title: itos push and itos ci watch follow a run that a newer push superseded
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-push-superseded-run.
       Found 2026-10-03: the coordinator's push of d065f5b exited 1 with CI cancelled, since the next
       push's run (68c3bcf, which contained it) cancelled it by the workflow's concurrency; nothing
       had failed. A cancelled run whose commit a newer run on a descendant covers should be
