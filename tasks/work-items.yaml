@@ -71,12 +71,12 @@ queue:
   - bug-38
   - bug-39
   - bug-40
+  - bug-41
   - p1-nightly-late-done-checks
   - p1-work-show-gaps
   - p1-release-notes-footers
   - p1-commit-wrap-review
   - p1-work-as-empty
-  - bug-41
   - p3-guard-cd
   - p1-version-mutation-gaps
   - p1-schema-contract-tests
