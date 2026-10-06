@@ -5086,12 +5086,9 @@ items:
     title: "v6.0.0's renames: guard claude-code, question, followup, hook install, promote --id, queue --remove"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Specified in features/guard.feature, ask.feature, follow.feature, config.feature, work.feature
-      and cli.feature (decision 36); carries T-101 and the plugin's guard.sh change in the v6 push.
     refs:
       [
         features/guard.feature,
