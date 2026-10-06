@@ -2654,7 +2654,7 @@ items:
     refs: [docs/HANDOFF.md, tasks/work-items.yaml]
 
   - id: slice-91
-    title: itos refuses to commit or push where its hooks cannot run, and installs only git's own hooks
+    title: itos installs its hooks only in the git config, and refuses to commit or push where they will not run
     phase: 1
     owner: donvargax
     status: todo
