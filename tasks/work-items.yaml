@@ -4352,3 +4352,16 @@ items:
       T-\d+|B-\d+ accepts T-1x; every other reader uses ^(?:id)$ (ledger.go:209-216,
       workdone.go:205).
     refs: [internal/ledger/ledger.go]
+
+  - id: p1-config-finite-numbers
+    title: config check refuses .nan and .inf
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). Non-finite numbers pass the schema and
+      decode to nil, so ci.watch.interval: .nan panics itos push and a nan check_timeout leaves the
+      hook uncapped (config.go:117, watch.go:78-79).
+    refs: [internal/config/config.go]
