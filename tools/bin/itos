@@ -43,7 +43,7 @@ if stale; then
 	tmp=$dir/itos.$$
 	touch "$tmp.start"
 	out=$(cd "$root" && CGO_ENABLED=0 go build -trimpath \
-		-ldflags "-s -w -X github.com/donvargax/itos/v4/internal/version.stamp=$version" \
+		-ldflags "-s -w -X github.com/donvargax/itos/v5/internal/version.stamp=$version" \
 		-o "$tmp" ./cmd/itos 2>&1)
 	status=$?
 	if [ "$status" -ne 0 ]; then

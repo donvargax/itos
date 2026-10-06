@@ -125,7 +125,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/donvargax/itos/v4/internal/release"
+	"github.com/donvargax/itos/v5/internal/release"
 )
 
 // commit is one commit since the release's tag.
@@ -430,7 +430,7 @@ func buildAsReleased(dir, tag string) (string, error) {
 	}
 	bin := filepath.Join(dir, "itos")
 	build := exec.Command("go", "build", "-trimpath",
-		"-ldflags", "-s -w -X github.com/donvargax/itos/v4/internal/version.stamp="+next,
+		"-ldflags", "-s -w -X github.com/donvargax/itos/v5/internal/version.stamp="+next,
 		"-o", bin, "./cmd/itos")
 	build.Env = env("CGO_ENABLED=0")
 	if out, err := build.CombinedOutput(); err != nil {
