@@ -4878,7 +4878,7 @@ items:
     title: The module path is github.com/donvargax/itos/v6
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [T-100]
     kind: task
     why: >
