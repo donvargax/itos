@@ -63,6 +63,7 @@ queue:
   - slice-92
   - T-102
   - T-103
+  - bug-47
   - bug-36
   - bug-37
   - bug-38
