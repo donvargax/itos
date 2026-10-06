@@ -4129,15 +4129,9 @@ items:
     title: An empty range start runs every named task's checks
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). Empty FROM means run everything, yet IDsIn
-      returns early when from is empty, so TasksIn and TestsNamedIn name nothing and the plan has no
-      task checks: an API blip, a first run or no green parent within the bound lets a red late
-      check go green and never run again (plan/data.go:62, plan/scope.go:70-102,
-      message/footers.go:417). Its @bug-33 scenario is written before it is handed out.
     refs: [internal/plan/data.go, internal/plan/scope.go, internal/message/footers.go]
 
   - id: bug-34
