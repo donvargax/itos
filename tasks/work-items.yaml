@@ -4940,3 +4940,15 @@ items:
       --json and pins a plain stderr line, no JSON on stdout, which a script reading --json cannot
       use either.
     refs: [tools/itos/conformance/guide.yaml, tools/itos/conformance/status.yaml]
+
+  - id: slice-87
+    title: "itos version says what answers it: --version, latest for pin and upgrade, and the pin named"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified in features/pin.feature, update.feature and upgrade-command.feature.
+    refs:
+      [features/pin.feature, features/update.feature, features/upgrade-command.feature, cmd/itos]
