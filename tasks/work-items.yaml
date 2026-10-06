@@ -4594,8 +4594,8 @@ items:
   - id: T-097
     title: The plugin's guard and titles run only the itos on the PATH
     phase: 3
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
