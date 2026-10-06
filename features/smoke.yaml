@@ -88,6 +88,10 @@
   scenarios:
     - id: "@ID-MOVES-01"
       why: the commit-msg hook rejects a test commit that changes a live scenario, the rule's point
+- file: moves-command.feature
+  scenarios:
+    - id: "@ID-MOVESCMD-02"
+      why: the commit-msg hook refuses a test commit that turns a live test wip, the rule on a command kind
 - file: next-id.feature
   scenarios:
     - id: "@ID-NEXTID-01"
