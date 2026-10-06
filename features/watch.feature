@@ -156,3 +156,53 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     Given the fake GitHub answers every look with a server error
     When itos runs "ci watch"
     Then itos exits with code 75
+
+  # Bug 47 (issue #17; exit 75 the user's call, 2026-10-06): with
+  # cancel-in-progress on CI's concurrency group, a newer push to the branch
+  # cancels the run still going, and the newer run checks the cancelled run's
+  # commits too (ci.range starts at the last green run). ci watch and push
+  # read the cancelled run as a failure and exited 1, so an agent chased a red
+  # that was not there. A cancelled run is no verdict: itos follows the newest
+  # run of ci.watch.github.workflow on the branch whose head has the commit as
+  # an ancestor, waits for it as for its own, and exits with its result,
+  # saying which run it followed. The newer head need not be in the clone (a
+  # push's run is cancelled by someone else's push): GitHub's compare API, or
+  # a fetch, answers the ancestry. A run cancelled with no newer run to follow
+  # exits 75, decision 35's "may pass if run again unchanged", not 1, which
+  # says a check said no. --json: ci gains "cancelled"; a followed run is
+  # "run", and the cancelled one's address is "superseded".
+  @ID-WATCH-14 @bug-47 @wip
+  Scenario: A run cancelled by a newer push is judged by the newer run
+    Given the clone has the commit "chore: tidy the readme" touching "README.md"
+    And the clone has the commit "chore: tidy the notes" touching "NOTES.md"
+    And the fake GitHub reports the run of the clone's HEAD~1 cancelled
+    And the fake GitHub reports the run "https://ci.example/runs/2" of the clone's HEAD, whose jobs "ci" and "platform" succeed
+    When itos runs "ci watch HEAD~1"
+    Then itos exits with code 0
+    And its output says "https://ci.example/runs/2"
+
+  @ID-WATCH-15 @bug-47 @wip
+  Scenario: The newer run failing fails the watch of the cancelled one
+    Given the clone has the commit "chore: tidy the readme" touching "README.md"
+    And the clone has the commit "chore: tidy the notes" touching "NOTES.md"
+    And the fake GitHub reports the run of the clone's HEAD~1 cancelled
+    And the fake GitHub reports the run "https://ci.example/runs/2" of the clone's HEAD, whose job "ci" fails
+    When itos runs "ci watch HEAD~1"
+    Then itos exits with code 1
+    And its output says "ci: failure"
+
+  @ID-WATCH-16 @bug-47 @wip
+  Scenario: A push whose run another push cancelled waits for that push's run
+    Given the clone has the commit "chore: tidy the readme" touching "README.md"
+    And once itos has pushed, another clone pushes the commit "chore: tidy the notes"
+    And the fake GitHub reports the pushed commit's run cancelled, and the run "https://ci.example/runs/2" of the remote's head, whose jobs "ci" and "platform" succeed
+    When itos runs "push"
+    Then itos exits with code 0
+    And its output says "https://ci.example/runs/2"
+
+  @ID-WATCH-17 @bug-47 @wip
+  Scenario: A cancelled run with no newer run exits 75
+    Given the fake GitHub reports the run of the clone's HEAD cancelled
+    When itos runs "ci watch"
+    Then itos exits with code 75
+    And its output says "cancelled"
