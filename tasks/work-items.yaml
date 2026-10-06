@@ -4993,6 +4993,10 @@ items:
       for byte. A declaration left after its release matches nothing in the next comparison and is
       harmless. Releases before the first with these declarations are walked as today.
 
+      The same principle for itos's committed data files (asks.yaml, the registry, the ledger): a
+      format number, and migration steps that itos upgrade applies, so no reader for an old format
+      stays in the code (the user's call, 2026-10-06, while designing p1-followup-state).
+
   - id: p1-push-fits-foreground
     title: itos push never outlives a harness's foreground command
     phase: 1
