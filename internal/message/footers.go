@@ -474,14 +474,20 @@ func PrintFooters(w io.Writer, found []out.Problem) {
 // commit first, each ID once in the order first given, the
 // footer's strip_prefix taken off, and only those whose whole matches the
 // footer's ID pattern (the ledger's id, or its kind's; any ID without one). A
-// range that cannot be read, or has no start or end, gives none. The range is
-// the one CI plans, from..to as git reads it: commits.since does not narrow
-// it, as it narrows verify's, since the TypeScript's plan does not.
+// range that cannot be read, or has no end, gives none. The range is the one
+// CI plans, from..to as git reads it: commits.since does not narrow it, as it
+// narrows verify's, since the TypeScript's plan does not. An empty start is
+// every commit up to to, as `itos ci range` gives it when no green start can
+// be trusted (bug 33): the plan then runs what every one of them names.
 func IDsIn(cfg *config.Loaded, from, to, key string) []string {
-	if from == "" || to == "" {
+	if to == "" {
 		return nil
 	}
-	log, err := git.Output(append(append([]string{"log"}, footersFormat(cfg)...), git.Revs(from, to)...)...)
+	revs := []string{to}
+	if from != "" {
+		revs = git.Revs(from, to)
+	}
+	log, err := git.Output(append(append([]string{"log"}, footersFormat(cfg)...), revs...)...)
 	if err != nil {
 		return nil
 	}

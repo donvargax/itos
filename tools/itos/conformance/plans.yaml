@@ -1294,7 +1294,7 @@ cases:
       left_out: []
       unknown: []
       not_started: []
-  - name: a range with no start is unread and runs every test
+  - name: a range with no start is unread, runs every test and the tasks every commit names
     argv: [ci, plan, "", "{{sha.pair}}", --json]
     exit: 0
     json:
@@ -1327,7 +1327,22 @@ cases:
         - step: vp run e2e
           cost: late
           cost_from: default
-      tasks: []
+        - check:
+            task: T-045
+            index: 0
+            command: vp run changelog
+          cost: late
+          cost_from: default
+          action: run
+        - check:
+            task: T-045
+            index: 1
+            command: sh -c 'test -s docs/changelog/CHANGELOG.md'
+          cost: late
+          cost_from: default
+          action: run
+      tasks:
+        - T-045
       left_out: []
       unknown: []
       not_started: []

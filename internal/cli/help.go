@@ -614,6 +614,8 @@ Prints the plan a CI run would carry out, in cost order, and runs nothing.
 Each task check says what the run does with it: run, merged, covered,
 nightly (ci.nightly_only leaves it out of a push) or, for a named task's
 after: push check in a push, pending (it runs after the push).
+An empty <from> is every commit up to <to>: every test runs, and the checks
+of the tasks those commits name.
 --data-at reads the ledger, the registry and the smoke set at that commit.
 Under a stealth config, given no range, it plans the commits of HEAD on no
 remote branch (every one with no remote), the range's from "--remotes".

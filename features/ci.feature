@@ -258,7 +258,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # went green and never ran again. An empty start reads the footers of
   # every commit up to the head, for the named tasks and the named tests
   # alike.
-  @ID-CI-18 @bug-33 @wip
+  @ID-CI-18 @bug-33
   Scenario: With an empty range start, CI runs the checks of the tasks every commit names
     Given the task "T-001" has a static check that records it ran
     And the commit "chore: tidy the readme" naming the task "T-001" on top of it

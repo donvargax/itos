@@ -10,8 +10,10 @@ import (
 // What a pushed range is (ci-scope.ts): the files it touched, whether it can
 // be read, whether it is prose only, and the tasks and named tests its
 // commits' footers name. A range that cannot be read (a first push, an empty
-// start, a rewritten history) touched nothing and names nothing, and is not
-// prose, so the shortcut is never taken on a guess and every test runs.
+// start, a rewritten history) touched nothing and is not prose, so the
+// shortcut is never taken on a guess and every test runs. An empty start
+// still names what every commit up to the end names (bug 33), so the tasks
+// those commits name run their checks; a start git cannot read names nothing.
 
 // Changed are the files a pushed range touched (`git diff --name-only
 // --no-renames from to`, read NUL-separated so that none comes back quoted,

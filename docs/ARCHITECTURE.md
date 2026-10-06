@@ -1421,7 +1421,9 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   tests through `message.IDsIn`, `footers.ts`'s range log (`git log
 --format=%B from..to`, newest first). That range is `from..to` as the
   TypeScript's plan read it: `commits.since` does not narrow it, as it
-  narrows verify's, and an empty start reads nothing and runs every test.
+  narrows verify's, and an empty start is unread, so every test runs, yet
+  reads the footers of every commit up to the end (bug 33), so the tasks and
+  tests they name run too.
   A stealth config's `ci plan` with no range plans the unpushed commits
   (`git.Unpushed`, above).
 - **CI's driver** is `internal/ci` (`ci.ts`'s `ciRun`), with `ci run` in
