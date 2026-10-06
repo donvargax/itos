@@ -4926,3 +4926,24 @@ items:
     why: >
       Decision 35 (2026-10-06): a rule id is contract, so renaming one is a breaking change, yet
       nothing lists them (73 in the corpus).
+
+  - id: p1-json-cases-pin-json
+    title: The corpus's --json cases pin their output with json:, which a later release judges
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-100]
+    kind: idea
+    why: >
+      Since T-100 previous-release judges an old case's json, exit code and files_after alone, never
+      stdout_has. Eight cases of this tree's corpus run --json and pin their keys with stdout_has
+      instead (guide.yaml's guide and go as --json, four of them; status.yaml's go --json;
+      work.yaml's work list with no registry; tests.yaml's case passes --json through to a runner
+      and is not one), so no later release holds itos to those keys. A test commit pinning them with
+      json: puts them under the contract decision 35 names.
+    refs:
+      [
+        tools/itos/conformance/guide.yaml,
+        tools/itos/conformance/status.yaml,
+        tools/itos/conformance/work.yaml,
+      ]
