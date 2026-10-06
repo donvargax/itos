@@ -4158,3 +4158,18 @@ items:
       commit; two registry writers at once can both pass the uncommitted check (cli/workdone.go:84).
       Its @bug-34 scenario is written before it is handed out.
     refs: [internal/cli/workdone.go, internal/cli/workwrite.go]
+
+  - id: bug-35
+    title: hooks install writes to the hooks folder git names, absolute or not
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). place(filepath.Join(root, p)) with root "."
+      turns an absolute hooks path into a relative one, so in a linked worktree, or with an absolute
+      core.hooksPath, the shims land in a stray folder inside the working tree and the real hooks
+      never run, while hooks install reports success (cli/install.go:309,314). Its @bug-35 scenario
+      is written before it is handed out.
+    refs: [internal/cli/install.go]
