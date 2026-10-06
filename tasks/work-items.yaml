@@ -4493,3 +4493,16 @@ items:
       queue but not in asks.yaml, so work show of the new id loses its open questions
       (work/write.go:232-330).
     refs: [internal/work/write.go]
+
+  - id: p1-task-add-promoted
+    title: task add writes the ledger entry of a promoted task
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). task add refuses with work-add-taken when
+      the registry already has the item, so a task made by promote needs its ledger entry by hand
+      (work/write.go:400).
+    refs: [internal/work/write.go]
