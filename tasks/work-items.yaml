@@ -348,17 +348,9 @@ items:
     title: "Push CI lists a named task's after: push checks as pending, neither run nor failed"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-ci-after-push-checks.
-      CI runs a named task's `after: push` checks on every range that names it. T-021's check
-      needs the release a tag makes after the push, so every range naming T-021 was red until
-      v0.1.0 existed and green only when re-run after it; its check was made late so the red run
-      still proved everything else first. A check that waits on something after the push (a
-      release, a tag) could be reported pending by CI instead, so the push that lands the workflow
-      is green and the next release task does not meet the same red.
 
   - id: T-022
     title: itos config check in the gates
