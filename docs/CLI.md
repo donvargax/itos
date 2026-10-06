@@ -70,13 +70,13 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 16. Use the standard name when a standard name exists: `--json`, `-q`/`--quiet`, `-h`/`--help`, `--force`, `--version`. (CLIG `#arguments-and-flags`.)
 17. Let a flag mean the same thing in every command. (CLIG `#subcommands`.) `--as` does not follow this rule yet: it names a person in `work`, `status` and `work take`, and a new ID in `work promote`.
 18. Use a flag to change an action, never to select a different action. (COBRA `#concepts`.) `work queue --drop` and `config check --print-defaults` do not follow this rule yet.
-19. Accept `--flag=value` and `--flag value`. (CLIG `#arguments-and-flags`; GNU-CLI, as `getopt_long` reads them.) Only `work --as=` accepts the first form now. Other commands ignore `--flag=value` and exit 0.
-20. Refuse an unknown flag, and a flag with no value, with exit 2. (CLIG `#robustness-guidelines`.) Some commands refuse an unknown flag now and some ignore it.
-21. Give an option-argument to its option only. Never read it as a global flag. (POSIX guidelines 6 and 14.) Now `task list --group --json` reads `--json` as the global flag.
+19. Accept `--flag=value` and `--flag value`. (CLIG `#arguments-and-flags`; GNU-CLI, as `getopt_long` reads them.) itos follows this rule (slice-88): every built-in command reads its flags by one spec, `internal/cli/spec.go`.
+20. Refuse an unknown flag, and a flag with no value, with exit 2. (CLIG `#robustness-guidelines`.) itos follows this rule (slice-88), and also refuses a switch given a value and a once-only flag given twice.
+21. Give an option-argument to its option only. Never read it as a global flag. (POSIX guidelines 6 and 14.) itos follows this rule (slice-88): `task list --group --json` is a `--group` with no value, exit 2.
 22. Do not make an option-argument optional. (POSIX guideline 7.) `init --plugin [<scope>]` does not follow this rule yet.
 23. Let `--` end the options, and let `-` mean stdin or stdout. (POSIX guidelines 10 and 13; CLIG `#arguments-and-flags`.) itos follows this rule.
 24. Accept flags in any position. (CLIG `#arguments-and-flags`.) itos follows this rule.
-25. Check each argument before you use it, and refuse a bad one with exit 2. (CLIG `#robustness-guidelines`.) Now `ci plan nosuchref HEAD` prints a plan and exits 0.
+25. Check each argument before you use it, and refuse a bad one with exit 2. (CLIG `#robustness-guidelines`.) itos follows this rule for refs (slice-88): `ci plan nosuchref HEAD` exits 2, naming the ref. A CI range's start may be a full commit name the repository lacks, which the plan reads as a range it cannot read.
 
 ### Output
 

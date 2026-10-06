@@ -820,6 +820,23 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   shows the file. The shared block names the config and its ledger and
   registry by their place beside it (`stealthSource`, `stealthData`), since
   their paths differ between worktrees and the block must not.
+- **Flags by spec** (`internal/cli/spec.go`, slice 88): `specs` declares
+  every built-in command's flags by command path, each a switch, a flag that
+  needs a value or one that may take one (`init --plugin`), and whether it
+  may be repeated; `more` adds the flags the config names (the group label's,
+  commit's free-text footers'), `others` lets git commit's own pass, and
+  `unread` leaves a run's arguments to the program it runs. `readLine`
+  applies the spec in `cli.Main`, after the help and the extensions and
+  before the command: it judges the global flags and the command's together,
+  so a value is never read as a global flag, refuses what the spec does not
+  allow (exit 2), and hands the command its arguments with every flag
+  written `--flag value`, which the readers each command had (`flagValue`,
+  `positional`, `subArgs`, `workArgs`) read as before. `ParseGlobals` stays
+  the lenient reading the launcher and the extensions use. A command checks
+  a ref with `commitRefs` (`rangeRefs` for a CI range, whose start may be a
+  commit a rewritten history dropped) before it uses it. The help is written
+  by hand; `TestUsageFlagsAreInTheSpecs` holds every flag a usage line names
+  to the spec.
 - **Extensions** (`internal/cli/extension.go`, slice 29): a command itos
   does not have runs `itos-<command>` from the `PATH`, as git runs
   `git-<command>`. `cli.Parse` reads the arguments for both `cli.Main` and
