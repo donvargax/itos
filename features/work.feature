@@ -492,3 +492,49 @@ Feature: The work registry
     Then itos exits with code 0
     And its output says "slice-1"
     And its output does not say "T-001"
+
+  # Bug 46 (the user's calls, 2026-10-05). Who the session is came from the
+  # identity provider, github by default, which ran gh api user with no
+  # timeout and stdin inherited, on every itos work, work take, itos status
+  # and itos go in a project, whatever the people file said: a gh call on
+  # every command of a solo project, and a hang when gh waited on a keychain
+  # prompt, a sign-in or a proxy (a work take killed after a minute, on a
+  # stealth-free root on macOS). Now a people file listing one login makes
+  # that login the session without asking; with no people file nobody is
+  # asked and an item taken keeps its owner, as under a stealth config; only
+  # with several people is the provider asked, and gh then gets a few seconds
+  # and no stdin, a gh that does not answer refused with words naming --as.
+  @ID-WORK-47 @bug-46 @wip
+  Scenario: With one person in the people file, work take takes the item for them without asking gh
+    Given the people file lists only "solo"
+    And no identity can be looked up
+    And the work registry has the item "slice-1" owned by nobody with the status "todo"
+    When itos runs "work take slice-1"
+    Then itos exits with code 0
+    And its output says "solo"
+
+  @ID-WORK-48 @bug-46 @wip
+  Scenario: With several people, a gh that does not answer is given up on, naming --as
+    Given the people file lists "solo" and "other"
+    And a gh on the PATH that never answers
+    And the work registry has the item "slice-1" owned by nobody with the status "todo"
+    When itos runs "work take slice-1"
+    Then itos exits with code 3
+    And its output says "--as"
+
+  @ID-WORK-49 @bug-46 @wip
+  Scenario: With no people file, work take asks nobody
+    Given the people file is missing
+    And no identity can be looked up
+    And the work registry has the item "slice-1" owned by nobody with the status "todo"
+    When itos runs "work take slice-1"
+    Then itos exits with code 0
+
+  @ID-WORK-50 @bug-46 @wip
+  Scenario: With one person in the people file, itos status names their work without asking gh
+    Given the people file lists only "solo"
+    And no identity can be looked up
+    When itos runs "status"
+    Then itos exits with code 0
+    And its output says "solo"
+    And its output does not say "gh"
