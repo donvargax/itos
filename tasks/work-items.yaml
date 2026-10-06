@@ -5276,7 +5276,7 @@ items:
     title: itos decision holds what waits on the person, and a question for anyone else is itos followup
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
