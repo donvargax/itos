@@ -87,3 +87,22 @@ Feature: itos push, the pull-rebase-push routine as one command
     And the remote's branch has "docs: mine"
     And the remote's branch does not have "docs: late"
     And its output names the remote branch's head as the commit pushed
+
+  # Bug 45 (the user's call, 2026-10-05). To keep from calling itself, itos
+  # looked for the real git as the first git on the PATH that is not this
+  # very binary. The git shim links git to the itos installed globally, and
+  # the itos running is often another file: a repository's pinned release,
+  # which the launcher runs from its cache, or a repository's own build. That
+  # itos took the shim for the real git, so its own git push origin <branch>
+  # went back into itos, which refused the arguments, and itos push failed
+  # wherever both a pin and the shim were in use (found pushing this
+  # repository, whose tools/bin/itos is not the shim's target). itos's own
+  # git calls pass over any git that is an itos (a link to a file named itos,
+  # or itos.exe), not only itself.
+  @ID-PUSH-07 @bug-45 @wip
+  Scenario: itos push reaches the real git when the git on the PATH is another itos's shim
+    Given another itos is linked as git before the real git on the PATH
+    And the clone has the commit "chore: tidy the readme" touching "README.md"
+    When itos runs "push --no-wait"
+    Then itos exits with code 0
+    And the remote's branch ends with "chore: tidy the readme"
