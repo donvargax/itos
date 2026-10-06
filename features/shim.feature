@@ -7,7 +7,7 @@ Feature: The git shim, git commit and git push as itos's in an itos repository
   stealth config, from any folder of it, git commit runs as itos commit and
   git push as itos push; every other command, and every command in every
   other repository, runs the real git, the first git on the PATH that is not
-  itself, with the same arguments, stdin, terminal and exit code. itos
+  an itos, with the same arguments, stdin, terminal and exit code. itos
   git-shim install links it into a folder and says whether that folder comes
   before the real git on the PATH. Per machine and opt-in: the hooks and
   CI's verify stay the gates.

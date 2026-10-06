@@ -99,7 +99,7 @@ Feature: itos push, the pull-rebase-push routine as one command
   # repository, whose tools/bin/itos is not the shim's target). itos's own
   # git calls pass over any git that is an itos (a link to a file named itos,
   # or itos.exe), not only itself.
-  @ID-PUSH-07 @bug-45 @wip
+  @ID-PUSH-07 @bug-45
   Scenario: itos push reaches the real git when the git on the PATH is another itos's shim
     Given another itos is linked as git before the real git on the PATH
     And the clone has the commit "chore: tidy the readme" touching "README.md"
