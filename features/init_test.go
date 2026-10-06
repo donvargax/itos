@@ -35,7 +35,10 @@ func initializeInitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a folder that is not a git repository$`, w.folderWithoutGit)
 	sc.Step(`^the feature file "([^"]*)" with the scenario "([^"]*)"$`, w.untrackedFeatureFile)
 	sc.Step(`^the feature file "([^"]*)" with a scenario that has no tag$`, w.untaggedFeatureFile)
-	sc.Step(`^the file "([^"]*)" is removed$`, w.removeFile)
+	sc.Step(`^itos's "([^"]*)" hook is taken out of the git config$`, func(event string) error {
+		return w.git("config", "--local", "--remove-section", "hook.itos-"+event)
+	})
+	sc.Step(`^the git config declares no "([^"]*)" hook$`, w.declaresNoHook)
 	sc.Step(`^a claude on the PATH that records its arguments$`, func() error { return w.fakeClaude("", false) })
 	sc.Step(`^a claude on the PATH that records its arguments, writing \.claude/settings\.local\.json as claude does$`,
 		func() error { return w.fakeClaude("", true) })
@@ -86,6 +89,9 @@ func (w *world) fileNames(path, name string) error {
 // A repository with one commit, a README, and nothing of itos: no config in
 // the root or in the git folder, no ledger, no hooks.
 func (w *world) repositoryWithoutItos(message string) error {
+	if err := w.undeclareHooks(w.dir); err != nil {
+		return err
+	}
 	if err := w.write("README.md", "# Scratch\n"); err != nil {
 		return err
 	}
@@ -119,10 +125,6 @@ func (w *world) untrackedFeatureFile(path, id string) error {
 // staged nor committed: a Cucumber project's own, which names no test.
 func (w *world) untaggedFeatureFile(path string) error {
 	return w.write(path, "Feature: "+filepath.Base(path)+"\n\n  Scenario: a page opens\n    When it opens\n")
-}
-
-func (w *world) removeFile(path string) error {
-	return os.Remove(filepath.Join(w.dir, path))
 }
 
 // git finds a repository whose top is the scenario's folder.
@@ -252,6 +254,17 @@ func (w *world) noFileChanged() error {
 	if len(changed) > 0 {
 		slices.Sort(changed)
 		return fmt.Errorf("files changed in the last run: %s\n%s", strings.Join(changed, ", "), w.report())
+	}
+	return nil
+}
+
+// No entry of the repository's own git config is a hook for the event.
+func (w *world) declaresNoHook(event string) error {
+	out, _ := w.gitOutput("config", "--local", "--get-regexp", `^hook\..*\.event$`)
+	for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
+		if _, value, _ := strings.Cut(line, " "); value == event {
+			return fmt.Errorf("the git config declares a %s hook:\n%s\n%s", event, out, w.report())
+		}
 	}
 	return nil
 }

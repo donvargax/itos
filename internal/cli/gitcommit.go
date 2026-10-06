@@ -440,6 +440,11 @@ func gitCommit(args []string, o Out) (int, error) {
 		if found := lacking(cfg, g, links, content, stealth); len(found) > 0 {
 			return refuseCommit(cfg, found, o)
 		}
+		// Where itos is set up, a commit git would make without itos's
+		// commit-msg hook is refused before git runs (slice 91).
+		if err := hooksReady("commit-msg"); err != nil {
+			return 0, err
+		}
 	}
 	argv := []string{"-c", "trailer.ifExists=addIfDifferent", "commit"}
 	env := withoutFooters(os.Environ())

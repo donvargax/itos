@@ -212,6 +212,21 @@ unless the config sets `hooks.bin` (internal and unsupported, for a repository
 that must run its own build, as this one sets `tools/bin/itos`), so every
 machine that commits, and CI, needs it on the `PATH`.
 
+**The hooks** (from v6.0.0): `itos hook install` declares itos's commit-msg
+and pre-push hooks in the clone's own git config, `hook.itos-commit-msg` and
+`hook.itos-pre-push` in `.git/config`, which git never commits and every
+worktree of the clone shares. Git runs them beside the project's own hooks,
+whatever `core.hooksPath` says, so a hook manager's files and settings are the
+project's business and itos writes none of them. Run it once in each clone.
+`itos commit`, `itos push`, the git shim's `git commit` and `git push`, and
+the commands that commit the work registry refuse, exit 3, where git would
+run none of itos's checks: no hook of itos's declared (run `itos hook
+install`), or a git older than 2.54.0, the first that runs the hooks its
+config declares (upgrade git). A project that called `itos hook commit-msg`
+or `itos hook pre-push` from its hook manager's files takes those lines out,
+or the checks run twice, and drops `hooks.manager` from its config, which
+v6.0.0 refuses.
+
 **In CI** (from the first release after v3.7.1): a CI runner gets the global
 itos in one step, and the repository's pin chooses what runs, as on your
 machine; a repository with no pin runs the version installed. On GitHub
@@ -247,11 +262,11 @@ names, and an empty work registry, `tasks/work-items.yaml`; and when
 need and a smoke set, `features/smoke.yaml`, naming one live scenario of each
 file. A file already there is kept. It pins the newest release, as `itos pin`
 does (where it cannot reach the release server it pins nothing and says so),
-then installs the hooks, as `itos hook install` does. Commit what it wrote
+then declares the hooks in the git config, as `itos hook install` does. Commit what it wrote
 with `itos commit --task T-1 -m 'chore: adopt itos'`, and grow the config from
 there: more path scopes, a CI plan, the people. Run again where a config is, it
 writes nothing and lists what is missing (what `itos config check` finds, a
-hook that does not call itos, with the command that puts it right), exiting 1
+hook of itos's the git config does not declare, with what puts it right), exiting 1
 when anything is, so it doubles as a check. `itos init --stealth` does the
 same for one person in a repository whose team does not use itos (below).
 It also offers the Claude Code plugin (below), through the `claude` on your
@@ -446,18 +461,16 @@ repository's own `.git/config`, which git never commits:
 	command = itos hook commit-msg
 ```
 
-and `hook.itos-pre-push` beside it (from v4.0.0; before, only when the
-config set `hooks.pre_push`), since the pre-push hook verifies the commits a
-push adds and you have no CI of the project's to judge them. Git
-(2.5x) runs a hook declared in its config as well as the project's own in
-`core.hooksPath` or `.git/hooks`, so the project's hooks and settings stay as
-they are, both run on every commit, and a hook manager that resets
-`core.hooksPath` cannot remove itos's. Running it again changes nothing. An
-older git, which does not run them, makes `hook install` say so and exit 3;
-`--manager git` still writes shims into `.git/hooks` where the project sets no
-`core.hooksPath`. If an earlier `hook install` wrote those shims, delete
-them, or the hooks run twice; if your config named another `hooks.bin`, run
-`itos hook install` again so its hooks call `itos`.
+and `hook.itos-pre-push` beside it, since the pre-push hook verifies the
+commits a push adds and you have no CI of the project's to judge them. Git
+(2.54.0 and later) runs a hook declared in its config as well as the
+project's own in `core.hooksPath` or `.git/hooks`, so the project's hooks and
+settings stay as they are, both run on every commit, and a hook manager that
+resets `core.hooksPath` cannot remove itos's. Running it again changes
+nothing. An older git, which does not run them, makes `hook install` say so
+and exit 3. If an earlier `hook install` wrote shims into `.git/hooks`,
+delete them, or the hooks run twice; if your config named another
+`hooks.bin`, run `itos hook install` again so its hooks call `itos`.
 
 A footer in a commit message is what everyone reads, so here the links, the
 footers naming tasks and scenarios, live in git notes instead: commit with

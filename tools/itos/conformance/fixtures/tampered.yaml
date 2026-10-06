@@ -32,9 +32,9 @@ cases:
     argv: [version]
     exit: 0
     stdout_has: "itos 0.2"
-  - name: files_after (a file hook install writes, expected absent)
-    argv: [hook, install]
-    files: { .husky/: "" }
+  - name: files_after (a file left as it was, expected changed)
+    argv: [version]
+    files: { notes.md: "as written\n" }
     exit: 0
     files_after:
-      .husky/commit-msg: null
+      notes.md: "changed\n"

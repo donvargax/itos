@@ -1,32 +1,50 @@
 package cli
 
-// `hook install --manager git-config` (slice 33, features/stealth.feature):
-// itos's hooks declared in the repository's own git config, the local one
-// that is never committed, as hook.<name>.event and hook.<name>.command. Git
-// (2.5x) runs a hook declared there as well as the one in core.hooksPath or
-// the hooks folder, so itos's hooks run beside a project's own without
-// touching its hook files or its settings, and a hook manager that resets
-// core.hooksPath cannot remove them. It is the manager a stealth config
-// picks. Each hook is one entry, itos-commit-msg and itos-pre-push (git
-// refuses a hook named after its event), whose command is hooks.bin's
-// `hook <event>`, git appending the hook's arguments; the pre-push one when
-// hooks.pre_push gives it commands to run, or always under a stealth config
-// (declaresPrePush), and a pre-push entry of itos's is removed otherwise.
-// An entry already as itos would write it is left alone, so running it
-// twice changes nothing; one under itos's name that does not call itos is
-// replaced only with --force, as a hook file is.
+// itos's hooks in the git config (slice 33, and since slice 91 the only
+// place itos installs them, decision 37): the repository's own git config,
+// the local one that is never committed and that every worktree of the clone
+// shares, declares each hook as hook.<name>.event and hook.<name>.command.
+// Git runs a hook declared there as well as the one in core.hooksPath or the
+// hooks folder, whatever core.hooksPath says, so itos's hooks run beside a
+// project's own without touching its hook files or its settings, and a hook
+// manager that resets core.hooksPath, or a hooks folder a fresh worktree
+// lacks (issue #16), cannot remove them. Git runs the hooks its config
+// declares from 2.54.0 on (configHooksSince). Each hook is one entry,
+// itos-commit-msg and itos-pre-push (git refuses a hook named after its
+// event), whose command is hooks.bin's `hook <event>`, git appending the
+// hook's arguments. An entry already as itos would write it is left alone,
+// so running hook install twice changes nothing; one under itos's name that
+// does not call itos is replaced only with --force.
+//
+// Every itos command that commits or pushes asks hooksReady first, and
+// refuses with exit 3 where git would run none of itos's checks: a git that
+// runs no hook its config declares, or no entry of itos's for the hook the
+// command relies on (commit-msg for a commit, pre-push for a push).
 
 import (
 	"fmt"
 	"os/exec"
+	"regexp"
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v5/internal/config"
 	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/out"
 	"github.com/donvargax/itos/v5/internal/value"
 )
+
+// configHooksSince is the first git that runs the hooks its config declares:
+// git 2.54.0's release notes (Documentation/RelNotes/2.54.0.adoc) say "Hook
+// commands are now allowed to be defined (possibly centrally) in the
+// configuration files, and run multiple of them for the same hook event."
+const configHooksSince = "2.54.0"
+
+// hookEvents are the two hooks itos declares, in the order it writes them.
+var hookEvents = []string{"commit-msg", "pre-push"}
+
+// callsItos is whether a hook's command runs itos's hook.
+var callsItos = regexp.MustCompile(`\bitos hook (commit-msg|pre-push)\b`)
 
 // configHook is one hook entry of the git config and what becomes of it.
 type configHook struct {
@@ -54,9 +72,67 @@ func configHooksRun(root string) bool {
 	return err == nil && slices.Contains(strings.Fields(listed), probe)
 }
 
-// localValues are the values of a key in the repository's own config.
-func localValues(root, key string) []string {
-	got, err := git.Output("-C", root, "config", "--local", "--get-all", key)
+// gitVersion is the version the git itos runs gives, as "git version"
+// prints it after those words.
+func gitVersion() string {
+	version, _ := git.Output("--version")
+	return strings.TrimPrefix(value.Trim(version), "git version ")
+}
+
+// declared is whether the git config, at any of its levels, declares itos's
+// hook for the event: its entry's event is the event and its command runs
+// itos's hook.
+func declared(root, event string) bool {
+	name := hookEntry(event)
+	commands := configValues(root, "", "hook."+name+".command")
+	return len(commands) > 0 && callsItos.MatchString(commands[len(commands)-1]) &&
+		slices.Contains(configValues(root, "", "hook."+name+".event"), event)
+}
+
+// errOldGit is the refusal of a git that runs no hook its config declares.
+func errOldGit() error {
+	return kind.Wrap(kind.Missing, fmt.Errorf("git %s runs no hook its config declares, so it would run none of "+
+		"itos's checks: upgrade git to %s or later", gitVersion(), configHooksSince))
+}
+
+// hooksReady is nil when git will run itos's hook for each event, else the
+// missing environment (exit 3), naming what to do: a git that runs the hooks
+// its config declares, then each event's entry declared in the git config.
+// Outside a git repository it is nil: git's own refusal says why there.
+func hooksReady(events ...string) error {
+	const root = "."
+	if !git.Succeeds("-C", root, "rev-parse", "--git-dir") {
+		return nil
+	}
+	if !configHooksRun(root) {
+		return errOldGit()
+	}
+	var missing []string
+	for _, event := range events {
+		if !declared(root, event) {
+			missing = append(missing, event)
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+	hooks := "hook is"
+	if len(missing) > 1 {
+		hooks = "hooks are"
+	}
+	return kind.Wrap(kind.Missing, fmt.Errorf("itos's %s %s not declared in this clone's git config, so git "+
+		"would run none of its checks: run itos hook install once in the clone (its worktrees share it), "+
+		"then run this again", and(missing), hooks))
+}
+
+// configValues are the values of a key in the git config: the repository's
+// own when scope is "--local", every level's when it is "".
+func configValues(root, scope, key string) []string {
+	args := []string{"-C", root, "config"}
+	if scope != "" {
+		args = append(args, scope)
+	}
+	got, err := git.Output(append(args, "--get-all", key)...)
 	if err != nil {
 		return nil
 	}
@@ -75,7 +151,7 @@ func gitConfig(root string, args ...string) error {
 // declare is what becomes of one entry: printed, left as it is, refused, or
 // written.
 func declare(root string, h configHook, print, force bool) (string, error) {
-	commands := localValues(root, "hook."+h.Name+".command")
+	commands := configValues(root, "--local", "hook."+h.Name+".command")
 	current := ""
 	if len(commands) > 0 {
 		current = commands[len(commands)-1]
@@ -83,7 +159,7 @@ func declare(root string, h configHook, print, force bool) (string, error) {
 	switch {
 	case print:
 		return "printed", nil
-	case current == h.Command && slices.Equal(localValues(root, "hook."+h.Name+".event"), []string{h.Event}):
+	case current == h.Command && slices.Equal(configValues(root, "--local", "hook."+h.Name+".event"), []string{h.Event}):
 		return "unchanged", nil
 	}
 	foreign := current != "" && !callsItos.MatchString(current)
@@ -102,61 +178,27 @@ func declare(root string, h configHook, print, force bool) (string, error) {
 	return "wrote", nil
 }
 
-// undeclare removes itos's entry for a hook it no longer installs, when
-// there is one that calls itos.
-func undeclare(root string, h configHook, print bool) (string, error) {
-	commands := localValues(root, "hook."+h.Name+".command")
-	if print || len(commands) == 0 || !callsItos.MatchString(commands[len(commands)-1]) {
-		return "", nil
-	}
-	if err := gitConfig(root, "--remove-section", "hook."+h.Name); err != nil {
-		return "", err
-	}
-	return "removed", nil
-}
-
-// declaresPrePush is whether the git config gets itos's pre-push entry:
-// when hooks.pre_push gives it commands, and always under a stealth config
-// (slice 79), since the pre-push hook verifies the pushed commits whatever
-// hooks.pre_push says (slice 46) and a stealth user has no CI of the
-// project's to judge their commits.
-func declaresPrePush(cfg *config.Loaded) bool {
-	return cfg.Hooks.PrePush != nil || cfg.Stealth
-}
-
-// declareHooks is `hook install` for the git config: 0 when every entry is
-// in place (or printed), 1 when one under itos's name that does not call
-// itos stood in the way, 3 when this git runs no hook its config declares.
-func declareHooks(found foundManager, root, bin string, prePush, print, force bool, o Out, say func(string)) (int, error) {
+// declareHooks declares both hooks, each running bin's `hook <event>`: 0
+// when every entry is in place (or printed), 1 when one under itos's name
+// that does not call itos stood in the way, 3 when this git runs no hook its
+// config declares.
+func declareHooks(root, bin string, print, force bool, o Out, say func(string)) (int, error) {
 	if !print && !configHooksRun(root) {
-		version, _ := git.Output("--version")
-		fmt.Fprintf(o.Stderr, "itos: hook install --manager git-config needs a git that runs the hooks its config declares (git hook list shows them), which %s does not\n",
-			strings.TrimPrefix(value.Trim(version), "git version "))
+		fmt.Fprintf(o.Stderr, "itos: hook install: %s\n", errOldGit())
 		return ExitMissing, nil
 	}
 	var hooks []configHook
-	for _, event := range shimNames {
+	for _, event := range hookEvents {
 		h := configHook{Name: hookEntry(event), Event: event, Command: bin + " hook " + event}
-		var action string
-		var err error
-		if event == "pre-push" && !prePush {
-			action, err = undeclare(root, h, print)
-		} else {
-			action, err = declare(root, h, print, force)
-		}
+		action, err := declare(root, h, print, force)
 		if err != nil {
 			return 0, err
 		}
-		if action != "" {
-			h.Action = action
-			hooks = append(hooks, h)
-		}
+		h.Action = action
+		hooks = append(hooks, h)
 	}
 	if o.JSON {
-		if err := out.Emit(o.Stdout,
-			out.Field{Key: "manager", Value: found.manager},
-			out.Field{Key: "marker", Value: found.marker},
-			out.Field{Key: "hooks", Value: hooks}); err != nil {
+		if err := out.Emit(o.Stdout, out.Field{Key: "hooks", Value: hooks}); err != nil {
 			return 0, err
 		}
 	}

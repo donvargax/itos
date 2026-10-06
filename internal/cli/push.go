@@ -132,6 +132,16 @@ func push(args []string, o Out) (int, error) {
 		fmt.Fprintln(o.Stderr, "itos: push runs in a git repository, and this is none")
 		return ExitMissing, nil
 	}
+	// Where itos is set up, a push git would make without itos's pre-push
+	// hook is refused before anything is fetched (slice 91).
+	if exists(config.Path()) {
+		if err := hooksReady("pre-push"); err != nil {
+			if o.JSON {
+				fmt.Fprintf(o.Stderr, "itos: %s\n", err)
+			}
+			return r.report(ExitMissing, "hooks-not-run", "itos: "+err.Error())
+		}
+	}
 	if code, done, err := r.ready(); done {
 		return code, err
 	}

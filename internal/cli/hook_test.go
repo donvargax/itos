@@ -9,25 +9,6 @@ import (
 	"github.com/donvargax/itos/v5/internal/git"
 )
 
-// A hook file is a shim when its one line, besides comments and a shebang,
-// calls itos's hook.
-func TestIsShim(t *testing.T) {
-	for text, want := range map[string]bool{
-		"exec tools/bin/itos hook commit-msg \"$1\"\n":             true,
-		"#!/bin/sh\n# by hand\n\nexec itos hook pre-push \"$@\"\n": true,
-		"exec tools/bin/itos hook commit-msg \"$1\"\necho more\n":  false,
-		"vp exec commitlint --edit \"$1\"\n":                       false,
-		"exec tools/bin/notitos hook commit-msg\n":                 false,
-		"exec tools/bin/itos hook commit-msgs \"$1\"\n":            false,
-		"   \n# nothing\n": false,
-		"exec tools/bin/itos hook pre-push \"$@\" # itos hook commit-msg": true,
-	} {
-		if got := isShim(text); got != want {
-			t.Errorf("isShim(%q) = %v", text, got)
-		}
-	}
-}
-
 // A deleted branch sends nothing, so it runs nothing; a new one is judged by
 // the commits on no remote branch and runs the whole run; neither asks git.
 func TestPushedRefs(t *testing.T) {

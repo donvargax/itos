@@ -36,7 +36,7 @@ The `previous-release` check holds each release to this contract (T-100). It run
 | 0    | Success.                                                                                                                  |
 | 1    | A check said no: a rule refused a commit, a check failed, an item is not ready.                                           |
 | 2    | A usage error or a config error.                                                                                          |
-| 3    | The environment is missing something: a person, a tool, a release, a git repository.                                      |
+| 3    | The environment is missing something: a person, a tool, a release, a git repository, itos's hooks in the git config.      |
 | 70   | An internal error: itos met an error that it cannot classify. Report it.                                                  |
 | 75   | A temporary failure. The same command can pass when you run it again with no change, for example after a network failure. |
 
@@ -111,7 +111,7 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 Some commands are not for people. Another program calls them: git calls the hook commands, Claude Code calls the guard, and the shim runs when a program calls `git`.
 
 39. An entry point uses the protocol of the program that calls it. It does not use the itos contract when the two do not agree. For example, Claude Code reads exit 2 as "block", so the guard never exits 2.
-40. An entry point for one program does not share a group with entry points for a different program. Name its group for its function and the program that it serves. (CLIG `#subcommands`.) itos follows this rule (slice-89): Claude Code's guard is `itos guard claude-code`, and `itos hook` holds git's two hooks and `hook install`, which writes their shims.
+40. An entry point for one program does not share a group with entry points for a different program. Name its group for its function and the program that it serves. (CLIG `#subcommands`.) itos follows this rule (slice-89): Claude Code's guard is `itos guard claude-code`, and `itos hook` holds git's two hooks and `hook install`, which declares them in the git config (slice-91).
 41. The output of the guard follows the Claude Code schema exactly, with no extra keys. Claude Code can refuse keys it does not know. The guard output is not part of the itos contract, so `previous-release` does not judge it. This tree's corpus and `features/guard.feature` still test it.
 
 ### Changing the interface
@@ -144,6 +144,7 @@ Decision 36 settles the questions that this review left open. v6.0.0 carries the
 - `itos ask` is `itos question`, and `itos follow` is `itos followup`. `asks.yaml`, `follow-ups.yaml` and the `q-<n>` IDs do not change.
 - `hooks install` is `hook install`. `itos hook` holds git's hooks only.
 - `work promote --as` is `--id`, and `work queue --drop` is `--remove`.
+- `hook install` declares itos's two hooks in the clone's git config (`hook.itos-commit-msg` and `hook.itos-pre-push`) and knows no hook manager: `--manager` and `hooks.manager` are gone (decision 37, slice-91). Every itos command that commits or pushes exits 3 when git would not run its hook: the git config does not declare it (run `itos hook install` once in the clone), or the git is older than 2.54.0, the first release that runs the hooks its config declares (git's `Documentation/RelNotes/2.54.0.adoc`).
 - `itos help` with an unknown topic exits 2.
 - An old name exits 2 and names the new one. No alias and no feature flag keeps an old interface working.
 - Every command parses its flags from a declared spec (rules 19 to 21 and 25).

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v5/internal/kind"
 )
 
 // A scratch repository with a config, as the current folder, away from the
@@ -33,21 +34,44 @@ func gitConfigRepo(t *testing.T, config string) string {
 	return dir
 }
 
+// itos's two hooks declared in the scratch repository's git config, as hook
+// install names them, each a command that runs nothing (: is sh's no-op), so
+// a commit or a push the test makes is not refused for want of them (slice
+// 91) and runs no check of theirs.
+func standInHooks(t *testing.T) {
+	t.Helper()
+	for _, event := range hookEvents {
+		for key, value := range map[string]string{"event": event, "command": ": itos hook " + event} {
+			if out, err := exec.Command("git", "config", "--local", "hook."+hookEntry(event)+"."+key, value).CombinedOutput(); err != nil {
+				t.Fatalf("git config: %s", out)
+			}
+		}
+	}
+}
+
 func localConfig(t *testing.T, key string) string {
 	t.Helper()
 	out, _ := exec.Command("git", "config", "--local", "--get-all", key).Output()
 	return string(out)
 }
 
-// The hooks are declared once, the pre-push one only with hooks.pre_push,
-// and a second run changes nothing.
+// Both hooks are declared once, the pre-push one whatever hooks.pre_push
+// says, and a second run changes nothing; a commit and a push are ready
+// only once they are.
 func TestDeclareHooks(t *testing.T) {
-	gitConfigRepo(t, "version: 1\nhooks: { bin: itos, pre_push: { per_base: \"true\", whole: \"true\" } }\n")
-	code, stdout, stderr := run("hook", "install", "--manager", "git-config")
-	if code != 0 || stdout != "Using the git config (--manager git-config)\nwrote hook.itos-commit-msg\nwrote hook.itos-pre-push\n" {
+	gitConfigRepo(t, "version: 1\nhooks: { bin: itos }\n")
+	if err := hooksReady("commit-msg"); kind.Of(err) != kind.Missing ||
+		!strings.Contains(err.Error(), "itos hook install") {
+		t.Errorf("ready before hook install: %v", err)
+	}
+	code, stdout, stderr := run("hook", "install")
+	if code != 0 || stdout != "wrote hook.itos-commit-msg\nwrote hook.itos-pre-push\n" {
 		t.Fatalf("first run: exit %d\n%s%s", code, stdout, stderr)
 	}
-	code, stdout, _ = run("hook", "install", "--manager", "git-config")
+	if err := hooksReady("commit-msg", "pre-push"); err != nil {
+		t.Errorf("not ready after hook install: %v", err)
+	}
+	code, stdout, _ = run("hook", "install")
 	if code != 0 || !strings.Contains(stdout, "unchanged hook.itos-commit-msg\nunchanged hook.itos-pre-push\n") {
 		t.Errorf("second run: exit %d\n%s", code, stdout)
 	}
@@ -78,10 +102,14 @@ func TestDeclareHooksOldGit(t *testing.T) {
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	// A run under itos (a hook's) names the real git, which would win.
 	t.Setenv(git.EnvGit, "")
-	code, _, stderr := run("hook", "install", "--manager", "git-config")
-	if code != ExitMissing || !strings.Contains(stderr, "needs a git that runs the hooks its config declares") ||
-		!strings.Contains(stderr, "which 2.30.0 does not") {
+	code, _, stderr := run("hook", "install")
+	if code != ExitMissing || !strings.Contains(stderr, "git 2.30.0 runs no hook its config declares") ||
+		!strings.Contains(stderr, "upgrade git to "+configHooksSince) {
 		t.Errorf("exit %d, stderr %q", code, stderr)
+	}
+	if err := hooksReady("commit-msg"); kind.Of(err) != kind.Missing ||
+		!strings.Contains(err.Error(), configHooksSince) {
+		t.Errorf("ready with an old git: %v", err)
 	}
 	if got := localConfig(t, "hook.itos-commit-msg.command"); got != "" {
 		t.Errorf("declared anyway: %q", got)

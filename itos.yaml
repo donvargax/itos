@@ -269,8 +269,7 @@ work: # internal/work; the registry is at its default, tasks/work-items.yaml
   identity: { provider: github, hint: "pass --as <handle>" }
 
 hooks:
-  manager: vp # shims in .vite-hooks/, written by `itos hooks install`
-  bin: tools/bin/itos # what the shims call: the Go binary, built from cmd/itos on demand
+  bin: tools/bin/itos # what itos's hooks call: the Go binary, built from cmd/itos on demand
   # The unit tests the push reaches, itos's Go packages' (tools/bin/go-unit-tests, which
   # pre-commit runs too).
   pre_push:

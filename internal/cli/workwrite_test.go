@@ -12,15 +12,18 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v5/internal/config"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/value"
 )
 
 // The rollback of writeCommitted (bug 13): a scratch repository, its files
 // committed, as the current folder, away from the user's git config, with a
-// fixed author. registry.yaml is the registry, ledger.yaml a ledger file.
+// fixed author, and itos's hooks stand-ins (standInHooks). registry.yaml is
+// the registry, ledger.yaml a ledger file.
 func rollbackRepo(t *testing.T) *config.Loaded {
 	t.Helper()
 	dir := gitConfigRepo(t, "version: 1\n")
+	standInHooks(t)
 	for name, value := range map[string]string{
 		"GIT_AUTHOR_NAME": "A", "GIT_AUTHOR_EMAIL": "a@example.com",
 		"GIT_COMMITTER_NAME": "A", "GIT_COMMITTER_EMAIL": "a@example.com",
@@ -112,6 +115,23 @@ func TestRollbackHookRefuses(t *testing.T) {
 	if want := "the commit of registry.yaml and new.yaml failed (git exited 1), so registry.yaml and new.yaml are as they were"; !strings.Contains(stderr, want) || !strings.Contains(stderr, "refused") {
 		t.Errorf("stderr:\n%s", stderr)
 	}
+	if gitIn(t, "rev-parse", "HEAD") != head {
+		t.Error("a commit was made")
+	}
+}
+
+// Where the git config declares no commit-msg hook of itos's, nothing is
+// written and nothing committed: the refusal is a missing environment (slice
+// 91).
+func TestRefuseWithoutHooks(t *testing.T) {
+	cfg := rollbackRepo(t)
+	gitIn(t, "config", "--remove-section", "hook.itos-commit-msg")
+	head := gitIn(t, "rev-parse", "HEAD")
+	sha, code, err, stderr := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
+	if sha != "" || code != 0 || kind.Of(err) != kind.Missing || !strings.Contains(err.Error(), "itos hook install") {
+		t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
+	}
+	asItWas(t)
 	if gitIn(t, "rev-parse", "HEAD") != head {
 		t.Error("a commit was made")
 	}

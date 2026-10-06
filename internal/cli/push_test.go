@@ -11,10 +11,12 @@ import (
 
 // A scratch repository with a commit of its own past its upstream, a bare
 // origin in its git folder, and a pre-push hook that makes a commit while
-// the push runs (bug 21), as a commit made during the hook's unit tests.
+// the push runs (bug 21), as a commit made during the hook's unit tests;
+// itos's own hooks are stand-ins (standInHooks).
 func lateCommitRepo(t *testing.T) string {
 	t.Helper()
 	dir := gitConfigRepo(t, "version: 1\n")
+	standInHooks(t)
 	for _, name := range []string{"GIT_AUTHOR_NAME", "GIT_COMMITTER_NAME"} {
 		t.Setenv(name, "itos")
 	}

@@ -157,7 +157,7 @@ var specs = map[string]spec{
 	"hook": {subs: map[string]spec{
 		"commit-msg": {},
 		"pre-push":   {},
-		"install":    {flags: []flagSpec{val("--manager"), sw("--print"), sw("--force")}},
+		"install":    {flags: []flagSpec{sw("--print"), sw("--force")}},
 	}},
 	"guard": {subs: map[string]spec{
 		"claude-code": {},

@@ -80,8 +80,7 @@ cases:
         ci watch [<sha>]                 wait for a commit's CI run, HEAD's by default
         hook commit-msg <file>           the commit-msg hook: data, paths, header lint, task checks
         hook pre-push <remote> <url>     the pre-push hook: verify, then the tests the push reaches
-        hook install [--manager <m>] [--print] [--force]
-                                         write the hooks' one-line shims for the hook manager
+        hook install [--print] [--force] declare the hooks in the clone's git config
         guard claude-code                Claude Code's PreToolUse hook: denies git commit and git push
         config check [--print-defaults]  validate the config, ledger, registry and smoke sets
         config get <key>                 a config key's value as itos reads it, defaults applied
@@ -119,7 +118,8 @@ cases:
       a registry or smoke problem, an unknown task, a failing step of ci run);
       2 usage or config error; 3 missing environment (--as not among the people, a
       release the server does not have or that fails its check, an extension that
-      cannot start, a git shim with no git to run); 70 an error itos cannot
+      cannot start, a git shim with no git to run, a commit or a push itos's hooks
+      would not run in); 70 an error itos cannot
       classify: report it; 75 a failure that may pass when run again unchanged (a
       release server or GitHub's API that cannot be reached or fails, a CI run not
       finished within ci.watch.timeout).
@@ -705,9 +705,16 @@ cases:
       BREAKING-CHANGE stay in the message.
       -q is git's --quiet. A first argument that is not a flag is a subcommand or a
       usage error, never a path: paths for git go after a flag or after --, as in
-      itos commit --task T-1 -m '…' -- README.md. Exit: git's own code; 1 when a
-      required footer is missing; 2 when the first word is no subcommand, a flag
-      has no value or the config no footer for it.
+      itos commit --task T-1 -m '…' -- README.md.
+
+      Where itos is set up (a config is there), it refuses before git runs, exit 3,
+      when git would run none of its checks: the git config declares no commit-msg
+      hook of itos's (run itos hook install once in the clone), or the git runs no
+      hook its config declares (git older than 2.54.0).
+
+      Exit: git's own code; 1 when a required footer is missing; 2 when the first
+      word is no subcommand, a flag has no value or the config no footer for it; 3
+      when itos's commit-msg hook would not run.
 
       --json: git's output on stderr; {"schema":1,"ok","commit"?}, or when a footer
               is missing {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
@@ -780,7 +787,11 @@ cases:
       forces: --force, -f, --force-with-lease or a + refspec is a usage error, as is
       any other argument but --no-wait, and a push the remote or the hook refuses is
       reported, not retried. Nothing to push is success. -q is git's --quiet and
-      leaves out the success lines.
+      leaves out the success lines. Where itos is set up (a config is there), it
+      refuses before anything is fetched, exit 3, when git would run none of its
+      checks: the git config declares no pre-push hook of itos's (run itos hook
+      install once in the clone), or the git runs no hook its config declares (git
+      older than 2.54.0).
 
       With ci.watch's provider (none by default), it then waits for the CI run of
       the commit it pushed as itos ci watch does, printing each job's result as it
@@ -792,8 +803,9 @@ cases:
 
       Exit: 0 pushed, or nothing to push; 1 refused before the pull, the rebase
       stopped, the remote or the pre-push hook refused the push, or the CI run
-      waited for failed; 2 an argument; 3 no git repository, no upstream and no
-      remote origin, a remote that is no repository or that git cannot find, or a
+      waited for failed; 2 an argument; 3 no git repository, itos's pre-push hook
+      that would not run, no upstream and no remote origin, a remote that is no
+      repository or that git cannot find, or a
       CI run not to be looked at; 75 a remote that cannot be reached (a connection
       refused or timed out, a host that does not resolve), a CI run not finished,
       or GitHub's API failing; 70 a fetch or a push that failed for another reason.
@@ -917,14 +929,15 @@ cases:
       carries an ID tag yet, the footer is required of no type, and init says how
       to tag one so that it can be. A file already there is kept. It pins the
       newest release, as itos pin does, or where the release server cannot be
-      reached pins nothing and says so; then installs the hooks, as itos hooks
-      install does, its exit code init's. --stealth writes it all in the git
-      folder, beside the stealth config, and declares the hooks in the git config,
-      so nothing the project tracks changes.
+      reached pins nothing and says so; then declares the hooks in the git config,
+      as itos hook install does, its exit code init's. --stealth writes it all in
+      the git folder, beside the stealth config, so nothing the project tracks
+      changes.
 
       Where a config is there (itos.yaml, or the stealth one), it writes nothing and
-      reports what is missing: what itos config check finds, and each hook that does
-      not call itos, naming the command that puts it right; exit 1 when anything is
+      reports what is missing: what itos config check finds, and each hook of itos's
+      the git config does not declare, or a git that runs no hook its config
+      declares, naming what puts it right; exit 1 when anything is
       missing, 0 when nothing is. It runs the binary called, whatever a pin says.
       Then it notes, never counting them as missing: a people file the config names
       that the repository lacks or cannot read, as itos config check warns, and a
@@ -1187,7 +1200,7 @@ cases:
     stdout: |
       Usage: itos hook commit-msg <file>
              itos hook pre-push <remote> <url>
-             itos hook install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]
+             itos hook install [--print] [--force]
   - name: itos hook commit-msg --help
     argv: [hook, commit-msg, --help]
     exit: 0
@@ -1233,32 +1246,22 @@ cases:
     argv: [hook, install, --help]
     exit: 0
     stdout: |
-      Usage: itos hook install [--manager vp|git|husky|lefthook|pre-commit|prek|git-config] [--print] [--force]
+      Usage: itos hook install [--print] [--force]
 
-      Writes the commit-msg and pre-push hooks as one-line shims calling
-      `<hooks.bin> hook …` (itos, the global launcher, by default, and under a
-      stealth config whatever it says), for the hook manager
-      --manager names, else the one hooks.manager names. Without either, a stealth
-      config declares them in the git config; any other detects the hook manager
-      from its markers and says which it found: Vite+ (a .vite-hooks/ folder, or
-      core.hooksPath .vite-hooks/_), husky (.husky/), lefthook (lefthook.yml),
-      pre-commit or prek (.pre-commit-config.yaml), else plain git (the
-      repository's hooks folder). lefthook and pre-commit keep hooks in their
-      config, so their snippet is printed to add there. --print prints the shims
-      and writes nothing. A hook that is not a shim is left alone, and the exit is
-      1, unless --force replaces it.
+      Declares the commit-msg and pre-push hooks in the clone's own git config,
+      never committed and shared by every worktree of the clone: hook.itos-commit-msg
+      and hook.itos-pre-push, each running `<hooks.bin> hook <event>` (itos, the
+      global launcher, by default). Git runs them beside any hook in core.hooksPath
+      or the hooks folder, whatever core.hooksPath says, so a project's own hooks,
+      its hook manager's files and its settings stay as they are: itos writes none of
+      them. Run it once in each clone; itos commit, itos push and the commands that
+      commit the work registry refuse, exit 3, where it has not run. --print prints
+      the entries and writes nothing. An entry under itos's name that does not call
+      itos is left alone, and the exit is 1, unless --force replaces it. It needs a
+      git that runs the hooks its config declares, git 2.54.0 or later
+      (git hook list shows them), else it exits 3.
 
-      git-config declares the hooks in the repository's own git config, never
-      committed: hook.itos-commit-msg, and hook.itos-pre-push when hooks.pre_push
-      is set or the config is a stealth one, each running
-      `<hooks.bin> hook <event>`. Git runs them beside the hook in core.hooksPath or
-      the hooks folder, so the project's hooks and settings stay as they are. It
-      needs a git that runs the hooks its config declares (git hook list shows
-      them), else it exits 3.
-
-      --json: {"schema":1,"manager","marker","files":[{"path","content","action"}]}
-              or, for lefthook, pre-commit and prek, {"schema":1,"manager","marker","file","snippet","installed"}
-              or, for git-config, {"schema":1,"manager","marker","hooks":[{"name","event","command","action"}]}
+      --json: {"schema":1,"hooks":[{"name","event","command","action"}]}
   - name: itos guard --help
     argv: [guard, --help]
     exit: 0

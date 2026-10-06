@@ -130,9 +130,6 @@ func removed(what, fix string) out.Problem {
 	return out.Problem{Rule: "config-removed", Message: what + " was removed in v5; " + fix, Fix: fix}
 }
 
-// HookManagers are the hook managers `hook install` writes or prints for.
-var HookManagers = []string{"vp", "git", "husky", "lefthook", "pre-commit", "prek", "git-config"}
-
 // schema is every key the config accepts, each one a tool reads.
 var schema = about("itos's policy: the ledger, the commit rules, the named tests, CI's plan, the work routing and the hooks.", obj([]string{"version"},
 	"version", about("The config's format: 1.", num),
@@ -259,9 +256,8 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 		)),
 		"identity", about("Who itos works for: github (gh's account) or none (only --as).", obj(nil, "provider", provider, "hint", str)),
 	)),
-	"hooks", about("The hook manager, the binary the shims call, the pre-push commands and the commit-msg hook's task checks.", obj(nil,
-		"manager", about("The hook manager itos hook install writes for, over the one it detects.", enum(HookManagers...)),
-		"bin", about("How the project calls itos: what the shims call; by default itos, the global launcher. Internal and unsupported, for a repository that must run its own build.", str),
+	"hooks", about("The binary itos's hooks call, the pre-push commands and the commit-msg hook's task checks.", obj(nil,
+		"bin", about("How the project calls itos: what the hooks itos hook install declares call; by default itos, the global launcher. Internal and unsupported, for a repository that must run its own build.", str),
 		"pre_push", about("The pre-push hook's commands.", obj([]string{"per_base", "whole"},
 			"per_base", about("Run once per remote base the clone has, {base} standing for it.", str),
 			"whole", about("Run when there is no base.", str),

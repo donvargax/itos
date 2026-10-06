@@ -150,9 +150,9 @@ cases:
       problems:
         - rule: config-unknown-key
           message: "itos.yaml: unknown key hooks.shims"
-          fix: remove hooks.shims; the keys here are manager, bin, pre_push, commit_msg
+          fix: remove hooks.shims; the keys here are bin, pre_push, commit_msg
           area: config
-  - name: the keys of features not built yet are unknown, header_lint.use is builtin or command, and hooks.manager is one hook install knows
+  - name: the keys of features not built yet are unknown, header_lint.use is builtin or command, and hooks.manager, removed in v6, is unknown
     argv: [config, check, --json]
     files:
       itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", check: { pushed: remote-branch-contains-head } }\ncommits:\n  header_lint: { use: both, alongside: builtin, stdin: lint }\nhooks: { manager: overcommit }\n"
@@ -174,9 +174,9 @@ cases:
           message: "itos.yaml: unknown key commits.header_lint.alongside"
           fix: remove commits.header_lint.alongside; the keys here are use, hook, stdin
           area: config
-        - rule: config-enum
-          message: 'itos.yaml: hooks.manager should be one of vp, git, husky, lefthook, pre-commit, prek, git-config, not "overcommit"'
-          fix: set hooks.manager to one of vp, git, husky, lefthook, pre-commit, prek, git-config
+        - rule: config-unknown-key
+          message: "itos.yaml: unknown key hooks.manager"
+          fix: remove hooks.manager; the keys here are bin, pre_push, commit_msg
           area: config
   - name: wrong types, a value not allowed, missing keys
     argv: [config, check, --json]
@@ -1182,7 +1182,7 @@ cases:
     argv: [config, get, hooks.no_such_key]
     exit: 2
     stderr: |
-      itos: config get: unknown key hooks.no_such_key; the keys there are manager, bin, pre_push, commit_msg (itos --help)
+      itos: config get: unknown key hooks.no_such_key; the keys there are bin, pre_push, commit_msg (itos --help)
   - name: config get refuses a key under a value that has none
     argv: [config, get, hooks.bin.x]
     exit: 2

@@ -240,17 +240,17 @@ Feature: itos commit, a commit whose footers itos writes
   # CI's verify the backstop. No config key turns it off (decision 36). In
   # the v6.0.0 push. The scenarios' repositories install the hooks, so the
   # existing commit and push scenarios hold.
-  @ID-COMMITCMD-22 @slice-91 @wip
+  @ID-COMMITCMD-22 @slice-91
   Scenario: itos's commit-msg hook runs where core.hooksPath names a folder that does not exist
     Given itos has installed the hooks
     And core.hooksPath is "missing/hooks"
     And a change to "README.md" is staged
-    When itos runs the command line "commit -m 'chore: tidy the readme'"
+    When git commits with the message "chore: tidy the readme"
     Then itos exits with code 1
     And its output says "Task"
     And nothing was committed
 
-  @ID-COMMITCMD-23 @slice-91 @wip
+  @ID-COMMITCMD-23 @slice-91
   Scenario: itos commit refuses when its hooks are not declared in the git config
     Given itos's hooks are not installed
     And a change to "README.md" is staged
@@ -259,7 +259,7 @@ Feature: itos commit, a commit whose footers itos writes
     And its output says "itos hook install"
     And nothing was committed
 
-  @ID-COMMITCMD-24 @slice-91 @wip
+  @ID-COMMITCMD-24 @slice-91
   Scenario: itos commit refuses with a git that cannot run the hooks its config declares
     Given itos has installed the hooks
     And the git itos runs cannot run the hooks its config declares

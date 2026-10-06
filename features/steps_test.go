@@ -37,7 +37,6 @@ type world struct {
 	ledger        []ledgerTask      // the tasks of the ledger's one file (ledgerPath), in order
 	dataDir       string            // where itos's config and data are written: the root, or the git folder (stealth)
 	linked        string            // the linked worktree of the scratch repository, when the scenario adds one
-	hooksFolder   string            // the absolute folder core.hooksPath names, when the scenario sets one
 	watchURL      string            // the address of the watched run
 	registryLines []string          // the registry's items, one line each, as the work steps wrote them
 	registryQueue []string          // the registry's queue, as a work step wrote it, nil for none
@@ -97,7 +96,6 @@ type scratchConfig struct {
 	scenarios         bool            // the config has the kind tests.scenario, reading features/
 	smokeEveryFile    *bool           // tests.scenario.smoke.every_file
 	noTagPrefix       bool            // the kind written without tag_prefix
-	hooksManager      string          // hooks.manager
 	hooksBin          string          // hooks.bin
 	prePushRecord     bool            // hooks.pre_push's commands record that they ran
 	prePushCommit     string          // hooks.pre_push's command, one that commits in the clone
@@ -314,7 +312,6 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^smoke\.every_file is (true|false)$`, w.smokeEveryFileIs)
 	sc.Step(`^the kind leaves out tag_prefix$`, w.noTagPrefix)
 	sc.Step(`^a "([^"]*)" folder$`, w.folder)
-	sc.Step(`^hooks\.manager is "([^"]*)"$`, w.hooksManagerIs)
 	sc.Step(`^hooks\.bin is "([^"]*)"$`, w.hooksBinIs)
 	sc.Step(`^ci\.cost\.static is "([^"]*)"$`, w.costStaticIs)
 	sc.Step(`^ci\.cost\.keep_written_order is (true|false)$`, w.keepWrittenOrderIs)
@@ -434,15 +431,6 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the recording step did not run$`, func() error { return w.recordingStepRan(false) })
 	sc.Step(`^the recording check ran$`, func() error { return w.recordingCheckRan(true) })
 	sc.Step(`^the recording check did not run$`, func() error { return w.recordingCheckRan(false) })
-	sc.Step(`^the file "([^"]*)" calls itos$`, w.fileCallsItos)
-	sc.Step(`^core\.hooksPath is an absolute folder outside the working tree$`, w.absoluteHooksPath)
-	sc.Step(`^the file "([^"]*)" in that folder calls itos$`, func(name string) error {
-		if w.hooksFolder == "" {
-			return fmt.Errorf("the scenario sets no hooks folder")
-		}
-		return w.callsItos(filepath.Join(w.hooksFolder, name), name)
-	})
-	sc.Step(`^the file "([^"]*)" runs "([^"]*)"$`, w.fileRuns)
 	sc.Step(`^the file "([^"]*)" does not name "([^"]*)"$`, w.fileDoesNotName)
 	sc.Step(`^"([^"]*)" was given "([^"]*)"$`, func(script, arg string) error {
 		return w.scriptWasGiven(script, arg, true)
@@ -822,12 +810,9 @@ func (w *world) writeConfig() error {
 	if !w.config.noWork {
 		w.writeWork(&b)
 	}
-	if w.config.hooksManager != "" || w.config.hooksBin != "" || w.config.taskChecks != nil || w.config.checkTimeout > 0 ||
+	if w.config.hooksBin != "" || w.config.taskChecks != nil || w.config.checkTimeout > 0 ||
 		w.config.prePushRecord || w.config.prePushCommit != "" {
 		b.WriteString("hooks:\n")
-	}
-	if w.config.hooksManager != "" {
-		fmt.Fprintf(&b, "  manager: %q\n", w.config.hooksManager)
 	}
 	if w.config.hooksBin != "" {
 		fmt.Fprintf(&b, "  bin: %q\n", w.config.hooksBin)
@@ -1819,22 +1804,6 @@ func (w *world) folder(path string) error {
 	return os.MkdirAll(filepath.Join(w.dir, path), 0o755)
 }
 
-// core.hooksPath set by its absolute path to a folder of the scenario's
-// support folder, outside the working tree, as a person sets it to share one
-// hooks folder between repositories (bug 35).
-func (w *world) absoluteHooksPath() error {
-	w.hooksFolder = filepath.Join(w.support, "hooks")
-	if err := os.MkdirAll(w.hooksFolder, 0o755); err != nil {
-		return err
-	}
-	return w.git("config", "core.hooksPath", w.hooksFolder)
-}
-
-func (w *world) hooksManagerIs(manager string) error {
-	w.config.hooksManager = manager
-	return w.writeConfig()
-}
-
 func (w *world) hooksBinIs(bin string) error {
 	w.config.hooksBin = bin
 	return w.writeConfig()
@@ -2303,28 +2272,6 @@ func (w *world) recordingCheckRan(want bool) error {
 	return nil
 }
 
-// The file, from the repository's top, has a line that runs the command:
-// past its indentation and an exec, the line starts with the command's
-// words, so a command under a longer path (tools/bin/itos for itos) does
-// not count (slice 79).
-func (w *world) fileRuns(path, command string) error {
-	text, err := os.ReadFile(filepath.Join(w.dir, path))
-	if err != nil {
-		return fmt.Errorf("%s cannot be read: %w\n%s", path, err, w.report())
-	}
-	want := strings.Fields(command)
-	for _, line := range strings.Split(strings.ReplaceAll(string(text), "\r\n", "\n"), "\n") {
-		words := strings.Fields(line)
-		if len(words) > 0 && words[0] == "exec" {
-			words = words[1:]
-		}
-		if len(words) >= len(want) && slices.Equal(words[:len(want)], want) {
-			return nil
-		}
-	}
-	return fmt.Errorf("%s does not run %q:\n%s", path, command, text)
-}
-
 // The file, from the repository's top, is there and nowhere names the
 // text.
 func (w *world) fileDoesNotName(path, name string) error {
@@ -2334,23 +2281,6 @@ func (w *world) fileDoesNotName(path, name string) error {
 	}
 	if strings.Contains(string(text), name) {
 		return fmt.Errorf("%s names %q:\n%s", path, name, text)
-	}
-	return nil
-}
-
-// The file is a hook that hands its work to itos's hook command.
-func (w *world) fileCallsItos(path string) error {
-	return w.callsItos(filepath.Join(w.dir, path), path)
-}
-
-// The file at full, named shown in a failure, calls itos.
-func (w *world) callsItos(full, path string) error {
-	text, err := os.ReadFile(full)
-	if err != nil {
-		return fmt.Errorf("%s cannot be read: %w\n%s", path, err, w.report())
-	}
-	if !strings.Contains(string(text), "itos hook ") {
-		return fmt.Errorf("%s does not call itos:\n%s\n%s", path, text, w.report())
 	}
 	return nil
 }

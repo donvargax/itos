@@ -1,13 +1,15 @@
-# The hooks: `hook install` taking the hook manager --manager or
-# hooks.manager names, else the git config for a stealth config, else finding it by its markers, and writing one-line shims
-# (never over a hook of the project's own without --force), printing the snippet a config-file manager takes, or declaring
-# the hooks in the git config; `hook
-# commit-msg` (the staged paths, each kind's staged range check, then the
-# header lint, if any, built in or a delegate, and the footer rules, always);
-# `hook pre-push` (git's ref lines on stdin,
-# or pre-commit's environment: once per remote base, else the whole run, and
-# nothing for a deleted branch), after verifying the commits each pushed ref adds, printing
-# nothing for those that pass and refusing the push, running no command, for one that fails.
+# The hooks: `hook install` declaring the two hooks in the git config (slice
+# 91: no hook manager, no hook file, never over an entry of the project's own
+# without --force, refused by a git that runs no hook its config declares),
+# and itos commit and itos push refusing, exit 3, where git would run none of
+# itos's hooks (the runner declares stand-ins in every case's repository);
+# `hook commit-msg` (the staged paths, each kind's staged range check, then
+# the header lint, if any, built in or a delegate, and the footer rules,
+# always); `hook pre-push` (git's ref lines on stdin, or pre-commit's
+# environment: once per remote base, else the whole run, and nothing for a
+# deleted branch), after verifying the commits each pushed ref adds, printing
+# nothing for those that pass and refusing the push, running no command, for
+# one that fails.
 git:
   - commit: "docs: start"
     files: { README.md: "scratch\n" }
@@ -49,301 +51,76 @@ files:
     fi
   tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n"
 cases:
-  - name: Vite+ is found by its folder, and the shims written there
+  - name: hook install declares both hooks in the git config, and leaves the project's hooks and core.hooksPath alone
     argv: [hook, install]
-    files: { .vite-hooks/: "" }
-    files_after:
-      .vite-hooks/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\n"
-      .vite-hooks/pre-push: "exec tools/bin/itos hook pre-push \"$@\"\n"
-    exit: 0
-    stdout: |
-      Found Vite+ (.vite-hooks/)
-      wrote .vite-hooks/commit-msg
-      wrote .vite-hooks/pre-push
-  - name: Vite+ is found by core.hooksPath, as vp config sets it
-    argv: [hook, install, --print]
     git:
-      - run: git config core.hooksPath .vite-hooks/_
-    exit: 0
-    stdout: |
-      Found Vite+ (core.hooksPath .vite-hooks/_)
-      ==> .vite-hooks/commit-msg
-      exec tools/bin/itos hook commit-msg "$1"
-      ==> .vite-hooks/pre-push
-      exec tools/bin/itos hook pre-push "$@"
-  - name: Vite+ wins over the other managers' markers beside it
-    argv: [hook, install, --print]
-    files: { .vite-hooks/: "", .husky/: "", lefthook.yml: "" }
-    exit: 0
-    stdout: |
-      Found Vite+ (.vite-hooks/)
-      ==> .vite-hooks/commit-msg
-      exec tools/bin/itos hook commit-msg "$1"
-      ==> .vite-hooks/pre-push
-      exec tools/bin/itos hook pre-push "$@"
-  - name: --print prints the shims and writes nothing
-    argv: [hook, install, --print]
-    files: { .husky/: "" }
+      - commit: "docs: start"
+        files: { README.md: "scratch\n", .husky/commit-msg: "npx commitlint --edit \"$1\"\n" }
+      - run: git config core.hooksPath .husky
     files_after:
-      .husky/commit-msg: null
+      .husky/commit-msg: "npx commitlint --edit \"$1\"\n"
+      .husky/pre-push: null
+      .git/hooks/commit-msg: null
     exit: 0
     stdout: |
-      Found husky (.husky/)
-      ==> .husky/commit-msg
-      exec tools/bin/itos hook commit-msg "$1"
-      ==> .husky/pre-push
-      exec tools/bin/itos hook pre-push "$@"
-  - name: husky is found by its folder
+      wrote hook.itos-commit-msg
+      wrote hook.itos-pre-push
+  - name: an entry already as hook install writes it is left unchanged
     argv: [hook, install]
-    files: { .husky/: "" }
-    files_after:
-      .husky/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\n"
-    exit: 0
-    stdout: |
-      Found husky (.husky/)
-      wrote .husky/commit-msg
-      wrote .husky/pre-push
-  - name: husky is found by core.hooksPath
-    argv: [hook, install, --print]
     git:
-      - run: git config core.hooksPath .husky/_
+      - run: git config hook.itos-commit-msg.command 'tools/bin/itos hook commit-msg' && git config hook.itos-pre-push.command 'tools/bin/itos hook pre-push'
     exit: 0
     stdout: |
-      Found husky (core.hooksPath .husky/_)
-      ==> .husky/commit-msg
-      exec tools/bin/itos hook commit-msg "$1"
-      ==> .husky/pre-push
-      exec tools/bin/itos hook pre-push "$@"
-  - name: plain git without any marker, its hooks executable in the repository's hooks folder
+      unchanged hook.itos-commit-msg
+      unchanged hook.itos-pre-push
+  - name: --print prints the git config's entries and writes nothing
+    argv: [hook, install, --print]
+    exit: 0
+    stdout: "[hook \"itos-commit-msg\"]\n\tevent = commit-msg\n\tcommand = tools/bin/itos hook commit-msg\n[hook \"itos-pre-push\"]\n\tevent = pre-push\n\tcommand = tools/bin/itos hook pre-push\n"
+  - name: an entry under itos's name that does not call itos is never replaced without --force
     argv: [hook, install]
-    files_after:
-      .git/hooks/commit-msg: { text: "#!/bin/sh\nexec tools/bin/itos hook commit-msg \"$1\"\n", executable: true }
-      .git/hooks/pre-push: { text: "#!/bin/sh\nexec tools/bin/itos hook pre-push \"$@\"\n", executable: true }
-    exit: 0
-    stdout: |
-      Found plain git (no hook manager's marker)
-      wrote .git/hooks/commit-msg
-      wrote .git/hooks/pre-push
-  - name: hooks.manager names the manager over the markers found
-    argv: [hook, install, --config, managed.yaml]
-    files:
-      .husky/: ""
-      managed.yaml: "version: 1\nhooks: { manager: git }\n"
-    files_after:
-      .git/hooks/commit-msg: { text: "#!/bin/sh\nexec itos hook commit-msg \"$1\"\n", executable: true }
-      .husky/commit-msg: null
-    exit: 0
-    stdout: |
-      Using plain git (hooks.manager git)
-      wrote .git/hooks/commit-msg
-      wrote .git/hooks/pre-push
-  - name: --manager names it over hooks.manager
-    argv: [hook, install, --print, --manager, husky, --config, managed.yaml]
-    files:
-      managed.yaml: "version: 1\nhooks: { manager: git }\n"
-    exit: 0
-    stdout: |
-      Using husky (--manager husky)
-      ==> .husky/commit-msg
-      exec itos hook commit-msg "$1"
-      ==> .husky/pre-push
-      exec itos hook pre-push "$@"
-  - name: a hook of the project's own is never replaced without --force
-    argv: [hook, install]
-    files:
-      .husky/commit-msg: &foreign "sh tools/own-check.sh \"$1\" || exit $?\nvp exec commitlint --edit \"$1\"\n"
-    files_after:
-      .husky/commit-msg: *foreign
-      .husky/pre-push: "exec tools/bin/itos hook pre-push \"$@\"\n"
+    git:
+      - run: git config hook.itos-commit-msg.command 'sh tools/own-check.sh'
     exit: 1
     stdout: |
-      Found husky (.husky/)
-      wrote .husky/pre-push
+      wrote hook.itos-pre-push
     stderr: |
-      .husky/commit-msg is not an itos shim; pass --force to replace it
-  - name: --force replaces it
+      hook.itos-commit-msg does not call itos; pass --force to replace it
+  - name: --force replaces an entry that does not call itos
     argv: [hook, install, --force]
-    files:
-      .husky/commit-msg: *foreign
-    files_after:
-      .husky/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\n"
+    git:
+      - run: git config hook.itos-commit-msg.command 'sh tools/own-check.sh'
     exit: 0
     stdout: |
-      Found husky (.husky/)
-      replaced .husky/commit-msg
-      wrote .husky/pre-push
-  - name: a shim with a shebang and a comment is a shim, and is rewritten
-    argv: [hook, install]
-    files:
-      .vite-hooks/commit-msg: "#!/bin/sh\n# written by hand\nexec .tools/bin/itos hook commit-msg \"$1\"\n"
-      .vite-hooks/pre-push: "exec tools/bin/itos hook pre-push \"$@\"\n"
-    files_after:
-      .vite-hooks/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\n"
-    exit: 0
-    stdout: |
-      Found Vite+ (.vite-hooks/)
-      wrote .vite-hooks/commit-msg
-      unchanged .vite-hooks/pre-push
-  - name: a shim with a second command is not a shim
-    argv: [hook, install]
-    files:
-      .vite-hooks/commit-msg: "exec tools/bin/itos hook commit-msg \"$1\"\necho more\n"
-    exit: 1
-    stdout: |
-      Found Vite+ (.vite-hooks/)
-      wrote .vite-hooks/pre-push
-    stderr: |
-      .vite-hooks/commit-msg is not an itos shim; pass --force to replace it
-  - name: hooks.bin names what the shims call
-    argv: [hook, install, --print, --manager, vp]
-    files:
-      itos.yaml: "version: 1\nhooks: { bin: .tools/bin/itos }\n"
-    exit: 0
-    stdout: |
-      Using Vite+ (--manager vp)
-      ==> .vite-hooks/commit-msg
-      exec .tools/bin/itos hook commit-msg "$1"
-      ==> .vite-hooks/pre-push
-      exec .tools/bin/itos hook pre-push "$@"
-  - name: lefthook's snippet is printed, its config left alone
-    argv: [hook, install]
-    files: { lefthook.yml: "pre-commit:\n" }
-    files_after:
-      lefthook.yml: "pre-commit:\n"
-    exit: 0
-    stdout: |
-      Found lefthook (lefthook.yml)
-      Add this to lefthook.yml:
-      commit-msg:
-        commands:
-          itos:
-            run: tools/bin/itos hook commit-msg {1}
-      pre-push:
-        commands:
-          itos:
-            run: tools/bin/itos hook pre-push {1} {2}
-            use_stdin: true
-  - name: a lefthook config that already calls itos
-    argv: [hook, install]
-    files: { .lefthook.yaml: "commit-msg:\n  commands:\n    itos:\n      run: tools/bin/itos hook commit-msg {1}\n" }
-    exit: 0
-    stdout: |
-      Found lefthook (.lefthook.yaml)
-      .lefthook.yaml already calls itos; its snippet:
-      commit-msg:
-        commands:
-          itos:
-            run: tools/bin/itos hook commit-msg {1}
-      pre-push:
-        commands:
-          itos:
-            run: tools/bin/itos hook pre-push {1} {2}
-            use_stdin: true
-  - name: pre-commit's snippet
-    argv: [hook, install]
-    files: { .pre-commit-config.yaml: "repos: []\n" }
-    exit: 0
-    stdout: |
-      Found pre-commit (.pre-commit-config.yaml)
-      Add this to .pre-commit-config.yaml:
-      default_install_hook_types: [pre-commit, commit-msg, pre-push]
-      repos:
-        - repo: local
-          hooks:
-            - id: itos-commit-msg
-              name: itos hook commit-msg
-              entry: tools/bin/itos hook commit-msg
-              language: system
-              stages: [commit-msg]
-            - id: itos-pre-push
-              name: itos hook pre-push
-              entry: tools/bin/itos hook pre-push
-              language: system
-              stages: [pre-push]
-              pass_filenames: false
-              always_run: true
-  - name: prek, named by --manager, takes pre-commit's snippet
-    argv: [hook, install, --manager, prek]
-    files: { .pre-commit-config.yaml: "repos: []\n" }
-    exit: 0
-    stdout: |
-      Using prek (--manager prek)
-      Add this to .pre-commit-config.yaml:
-      default_install_hook_types: [pre-commit, commit-msg, pre-push]
-      repos:
-        - repo: local
-          hooks:
-            - id: itos-commit-msg
-              name: itos hook commit-msg
-              entry: tools/bin/itos hook commit-msg
-              language: system
-              stages: [commit-msg]
-            - id: itos-pre-push
-              name: itos hook pre-push
-              entry: tools/bin/itos hook pre-push
-              language: system
-              stages: [pre-push]
-              pass_filenames: false
-              always_run: true
-  - name: --json of the shims
+      replaced hook.itos-commit-msg
+      wrote hook.itos-pre-push
+  - name: --json of the entries
     argv: [hook, install, --json]
-    files: { .vite-hooks/: "", .vite-hooks/pre-push: "exec tools/bin/itos hook pre-push \"$@\"\n" }
+    git:
+      - run: git config hook.itos-pre-push.command 'tools/bin/itos hook pre-push'
     exit: 0
     json:
       schema: 1
-      manager: vp
-      marker: .vite-hooks/
-      files:
-        - path: .vite-hooks/commit-msg
-          content: |
-            exec tools/bin/itos hook commit-msg "$1"
+      hooks:
+        - name: itos-commit-msg
+          event: commit-msg
+          command: tools/bin/itos hook commit-msg
           action: wrote
-        - path: .vite-hooks/pre-push
-          content: |
-            exec tools/bin/itos hook pre-push "$@"
+        - name: itos-pre-push
+          event: pre-push
+          command: tools/bin/itos hook pre-push
           action: unchanged
     stderr: |
-      Found Vite+ (.vite-hooks/)
-      wrote .vite-hooks/commit-msg
-      unchanged .vite-hooks/pre-push
-  - name: --json of a snippet
-    argv: [hook, install, --json, --manager, lefthook]
-    exit: 0
-    json:
-      schema: 1
-      manager: lefthook
-      marker: --manager lefthook
-      file: lefthook.yml
-      snippet: |-
-        commit-msg:
-          commands:
-            itos:
-              run: tools/bin/itos hook commit-msg {1}
-        pre-push:
-          commands:
-            itos:
-              run: tools/bin/itos hook pre-push {1} {2}
-              use_stdin: true
-      installed: false
-    stderr: |
-      Using lefthook (--manager lefthook)
-  - name: the git config's entries, printed
-    argv: [hook, install, --print, --manager, git-config]
-    exit: 0
-    stdout: "Using the git config (--manager git-config)\n[hook \"itos-commit-msg\"]\n\tevent = commit-msg\n\tcommand = tools/bin/itos hook commit-msg\n[hook \"itos-pre-push\"]\n\tevent = pre-push\n\tcommand = tools/bin/itos hook pre-push\n"
-  - name: a stealth config declares the hooks in the git config, over the markers, the pre-push one without hooks.pre_push
+      wrote hook.itos-commit-msg
+      unchanged hook.itos-pre-push
+  - name: a stealth config declares the hooks the same way, with its own hooks.bin
     argv: [hook, install, --json]
     files:
       itos.yaml: null
-      .husky/: ""
       .git/itos/itos.yaml: "version: 1\nhooks: { bin: itos }\n"
-    files_after:
-      .husky/commit-msg: null
     exit: 0
     json:
       schema: 1
-      manager: git-config
-      marker: stealth config .git/itos/itos.yaml
       hooks:
         - name: itos-commit-msg
           event: commit-msg
@@ -354,9 +131,65 @@ cases:
           command: itos hook pre-push
           action: wrote
     stderr: |
-      Using the git config (stealth config .git/itos/itos.yaml)
       wrote hook.itos-commit-msg
       wrote hook.itos-pre-push
+  - name: a git that runs no hook its config declares makes hook install exit 3, naming the git to upgrade to
+    argv: [hook, install]
+    files:
+      old-git: &old-git
+        text: |
+          #!/bin/sh
+          # A git older than 2.54.0: no git hook list.
+          previous=
+          for word in "$@"; do
+            if [ "$previous" = hook ] && [ "$word" = list ]; then
+              echo "git: 'hook' is not a git command. See 'git --help'." >&2
+              exit 1
+            fi
+            previous=$word
+          done
+          if [ "$1" = --version ]; then echo "git version 2.30.0"; exit 0; fi
+          exec git "$@"
+        executable: true
+    env: { ITOS_GIT: "{{dir}}/old-git" }
+    exit: 3
+    stderr: |
+      itos: hook install: git 2.30.0 runs no hook its config declares, so it would run none of itos's checks: upgrade git to 2.54.0 or later
+  - name: itos commit refuses, exit 3, where the git config declares no commit-msg hook of itos's, and commits nothing
+    argv: [commit, -m, "docs: tidy"]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+        label: base
+      - run: git config --remove-section hook.itos-commit-msg
+      - stage: { README.md: "tidier\n" }
+    exit: 3
+    stderr: |
+      itos: itos's commit-msg hook is not declared in this clone's git config, so git would run none of its checks: run itos hook install once in the clone (its worktrees share it), then run this again
+  - name: itos commit refuses, exit 3, with a git that runs no hook its config declares
+    argv: [commit, -m, "docs: tidy"]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - stage: { README.md: "tidier\n" }
+    files: { old-git: *old-git }
+    env: { ITOS_GIT: "{{dir}}/old-git" }
+    exit: 3
+    stderr: |
+      itos: git 2.30.0 runs no hook its config declares, so it would run none of itos's checks: upgrade git to 2.54.0 or later
+  - name: itos push refuses, exit 3, where the git config declares no pre-push hook of itos's
+    argv: [--json, push]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "scratch\n" }
+      - run: git config --remove-section hook.itos-pre-push
+    exit: 3
+    json:
+      schema: 1
+      ok: false
+      outcome: hooks-not-run
+    stderr: |
+      itos: itos's pre-push hook is not declared in this clone's git config, so git would run none of its checks: run itos hook install once in the clone (its worktrees share it), then run this again
   - name: commit-msg rejects a staged path the type may not touch
     argv: [hook, commit-msg, msg]
     git:

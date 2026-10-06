@@ -8,12 +8,13 @@ package cli
 // stealth one), it writes a starter (starter.go): the config, a ledger and a
 // work registry under tasks/ and, when features/ holds feature files, a smoke
 // set; then pins the newest release as itos pin does, where the release
-// server answers; then installs the hooks as hook install does. With
-// --stealth all of it goes beside the stealth config in the git folder and
-// the hooks into the git config, so nothing tracked changes. Where a config
-// is there, it writes nothing: it reports what config check finds wrong and
-// each hook that does not call itos, naming the command that fixes it, exit 1
-// when anything is missing and 0 when nothing is.
+// server answers; then declares the hooks in the git config as hook install
+// does. With --stealth all of it goes beside the stealth config in the git
+// folder, so nothing tracked changes. Where a config is there, it writes
+// nothing: it reports what config check finds wrong and each hook of itos's
+// the git config does not declare, or a git that runs no hook its config
+// declares, naming what fixes it, exit 1 when anything is missing and 0 when
+// nothing is.
 //
 // It is the launcher's own command, as pin is (internal/launch): where there
 // is no config there is no pin to hand the run to, and the newest release
@@ -30,7 +31,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/donvargax/itos/v5/internal/config"
@@ -309,11 +309,11 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 // object, without its schema, for init's own.
 func initHooks(o Out) (int, any, error) {
 	if !o.JSON {
-		code, err := hookInstall("", false, false, o)
+		code, err := hookInstall(false, false, o)
 		return code, nil, err
 	}
 	var buf bytes.Buffer
-	code, err := hookInstall("", false, false, Out{JSON: true, Quiet: o.Quiet, Stdout: &buf, Stderr: o.Stderr})
+	code, err := hookInstall(false, false, Out{JSON: true, Quiet: o.Quiet, Stdout: &buf, Stderr: o.Stderr})
 	if err != nil || buf.Len() == 0 {
 		return code, nil, err
 	}
@@ -376,7 +376,7 @@ func initReport(file string, offer pluginOffer, shimOffer shimOffer, rulesOffer 
 		return 0, err
 	}
 	if cfg, err := config.Load(file); err == nil {
-		found = append(found, tagged("hooks", hookProblems(cfg, file))...)
+		found = append(found, tagged("hooks", hookProblems())...)
 		if behind := pinBehind(cfg); behind != nil {
 			notes = append(notes, Found{*behind, "pin"})
 		}
@@ -446,74 +446,24 @@ func pinBehind(cfg *config.Loaded) *out.Problem {
 	}
 }
 
-// hookProblems are the hooks hook install would put in place that do not
-// call itos, for the manager it would pick: a shim file missing, not
-// executable for plain git (outside Windows, which has no executable bit and
-// runs a hook whatever its mode) or not calling itos; a lefthook or pre-commit
-// config without itos's snippet; an entry of the git config missing. The
-// pre-push one under the git config only when hook install declares it
-// (declaresPrePush).
-func hookProblems(cfg *config.Loaded, file string) []out.Problem {
+// hookProblems are itos's hooks git would not run, as hook install declares
+// them in the git config (slice 91): a git that runs no hook its config
+// declares, which no entry can mend, else each event whose entry is missing
+// or does not run itos.
+func hookProblems() []out.Problem {
 	const root = "."
-	bin := cfg.Hooks.Bin
-	found := chosenManager("", cfg, file, root)
-	install := "run itos hook install"
 	var problems []out.Problem
 	missing := func(event, message, fix string) {
 		problems = append(problems, out.Problem{Rule: "hook-missing", Message: "the " + event + " hook: " + message, Fix: fix})
 	}
-	switch found.manager {
-	case "git-config":
-		if !configHooksRun(root) {
-			missing("commit-msg", "this git runs no hook its config declares (git hook list shows none)",
-				"use a git that runs them, then "+install)
-			return problems
-		}
-		for _, event := range shimNames {
-			if event == "pre-push" && !declaresPrePush(cfg) {
-				continue
-			}
-			name := hookEntry(event)
-			commands := localValues(root, "hook."+name+".command")
-			if len(commands) == 0 || !callsItos.MatchString(commands[len(commands)-1]) {
-				missing(event, "hook."+name+" in the git config does not run itos", install)
-			}
-		}
-	case "lefthook", "pre-commit", "prek":
-		config := ".pre-commit-config.yaml"
-		if found.manager == "lefthook" {
-			config = lefthookFiles[0]
-			for _, f := range lefthookFiles {
-				if exists(filepath.Join(root, f)) {
-					config = f
-					break
-				}
-			}
-		}
-		text, _ := readIf(filepath.Join(root, config))
-		for _, event := range shimNames {
-			if !strings.Contains(text, bin+" hook "+event) {
-				missing(event, config+" does not call itos", install+" and add the snippet it prints")
-			}
-		}
-	default:
-		dir, err := hookDir(found.manager, root)
-		if err != nil {
-			missing("commit-msg", "the hooks folder is unknown ("+err.Error()+")", install)
-			return problems
-		}
-		for _, event := range shimNames {
-			p, full := hookFile(root, dir, event)
-			info, err := os.Stat(full)
-			text, _ := readIf(full)
-			switch {
-			case err != nil:
-				missing(event, p+" is not there", install)
-			case !callsItos.MatchString(text):
-				missing(event, p+" does not call itos", install+" --force to replace it, or call "+bin+" hook "+event+" from it")
-			case found.manager == "git" && runtime.GOOS != "windows" && info.Mode().Perm()&0o111 == 0:
-				missing(event, p+" is not executable", install+" --force, or chmod +x "+p)
-			}
+	if !configHooksRun(root) {
+		missing("commit-msg", "git "+gitVersion()+" runs no hook its config declares",
+			"upgrade git to "+configHooksSince+" or later, then run itos hook install")
+		return problems
+	}
+	for _, event := range hookEvents {
+		if !declared(root, event) {
+			missing(event, "hook."+hookEntry(event)+" in the git config does not run itos", "run itos hook install")
 		}
 	}
 	return problems

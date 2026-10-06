@@ -175,7 +175,12 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
   `itos.yaml` and ledger, runs the binary `ITOS_BIN` names
   (`tools/bin/itos` by default, the Go binary built from the tree, relative
   to the module's root) in it, and
-  asserts the exit code, the output and the files it leaves. A command runs
+  asserts the exit code, the output and the files it leaves. Every
+  scenario's repository, and each clone itos runs in, declares itos's two
+  hooks in its git config (`declareHooks`, slice 91), each running a
+  stand-in itos that passes whatever it is given, so itos commits and
+  pushes there as it refuses to elsewhere, and no hook's check runs unless
+  the scenario installs one. A command runs
   in a clean environment: the caller's, less `GIT_*`, `ITOS_*`, `GITHUB_*`
   and `CI`, with no global or system git config and a fixed identity, so a
   run inside a git hook or on a runner sees what it sees locally. Its
@@ -729,12 +734,10 @@ claude-code` (`cli.Parse`'s rest) chosen for a version older than
   anything asks `config.Path`, whose stealth lookup caches the git common
   dir per folder. With a config there (`config.Path` names a file that
   exists, the project's or the stealth one) it writes nothing: `initReport`
-  lists `configFindings`' problems and `hookProblems`', for the manager
-  `chosenManager` gives (a shim file missing, not calling itos or, for
-  plain git, not executable; a lefthook or pre-commit config without
-  itos's lines; a git config entry missing, the pre-push one only when
-  `declaresPrePush` says `declareHooks` writes it), exit 1 when there is
-  any; then its notes, never counted as missing (slice 50), under their
+  lists `configFindings`' problems and `hookProblems`' (a git that runs
+  no hook its config declares, `configHooksRun`, else each of itos's two
+  entries the git config does not declare, `declared`; slice 91 reads no
+  hook file), exit 1 when there is any; then its notes, never counted as missing (slice 50), under their
   own heading and in the `checked` object's `notes`: `configFindings`'
   warnings (the people file's) and `pinBehind`, a pin older than the
   newest release by `version.Compare`, asked of the release server as
@@ -752,8 +755,8 @@ claude-code` (`cli.Parse`'s rest) chosen for a version older than
   `hookInstall`, as `hook install` runs, its exit code init's; under
   `--json` its object is captured and nested as `hooks`, its keys in the
   order it wrote them. `--stealth` puts the config at
-  `<git common dir>/itos/itos.yaml` and its files beside it, and
-  `hooksInstall` picks the git config for a stealth config by itself.
+  `<git common dir>/itos/itos.yaml` and its files beside it; the hooks go
+  into the git config either way.
   ITOS_CONFIG naming a file that does not exist is a usage error: init
   writes only the two configs itos finds by itself. Last, both ways, it
   makes the plugin's offer (`initplugin.go`, slice 49), `pluginOffer.run`:
@@ -1987,35 +1990,36 @@ sha>`, or `git.Unpushed` up to the local commit when there is no remote
   with no command run. A config with no `commits` section has no rules to
   verify. Then it runs `hooks.pre_push`'s `per_base` once per remote base
   this clone has (`pushBases`), else `whole`, nothing for a deleted branch,
-  and nothing at all without `hooks.pre_push`. `hooks
-install` picks the manager (`--manager`, `hooks.manager`, then the markers)
-  and writes or prints the one-line shims (`#!/bin/sh` and executable for
-  plain git, written as a new file is), or prints a config-file manager's
-  snippet. A shim's folder is `hookDir`'s: `.vite-hooks` or `.husky`, else
-  the one `git rev-parse --git-path hooks` names, which `hookFile` takes as
-  it is when absolute (an absolute `core.hooksPath`, or a linked worktree's,
-  the main repository's) and under the working tree's root when relative,
-  the name printed being the folder written (bug 35); `init`'s doctor reads
-  the same files. A hook that is not a shim (`isShim`: one line calling `itos hook`,
-  besides comments and a shebang) is replaced only with `--force`. Under a
-  stealth config, unless `--manager` or `hooks.manager` names one, the
-  manager is the git config (`internal/cli/gitconfig.go`, slice 33):
-  `declareHooks` writes `hook.itos-commit-msg` and, when `hooks.pre_push` is
-  set or the config is the stealth one (`declaresPrePush`, slice 79: the
-  pre-push hook verifies the pushed commits whatever `hooks.pre_push` says,
-  and a stealth user has no CI of the project's to judge them),
-  `hook.itos-pre-push` into the repository's own config
+  and nothing at all without `hooks.pre_push`. `hook
+install` (`internal/cli/install.go` over `internal/cli/gitconfig.go`;
+  slice 33, and since slice 91, decision 37, the only way itos installs its
+  hooks) knows no hook manager: it never reads or writes a hook file, a
+  hook manager's config or `core.hooksPath`. `declareHooks` writes
+  `hook.itos-commit-msg` and `hook.itos-pre-push` into the repository's own
+  config, which every worktree of the clone shares
   (`git config --local --replace-all`, its `.command` `<hooks.bin> hook
-<event>`, `itos hook <event>` under a stealth config, git appending the hook's arguments, and its one `.event`), and
-  removes an itos pre-push entry when it is not. Git runs those beside the
-  hook in `core.hooksPath` or the hooks folder, so nothing of the project's
+<event>`, git appending the hook's arguments, and its one `.event`). Git
+  runs those beside the hook in `core.hooksPath` or the hooks folder,
+  whatever `core.hooksPath` says, so a hooks folder a fresh worktree lacks
+  (issue #16) skips none of itos's checks and nothing of the project's
   changes. An entry already as written is `unchanged`; one under itos's name
   whose command does not call itos (`callsItos`) is replaced only with
   `--force`. Before writing, `configHooksRun` asks
   `git -c hook.itos-probe.event=commit-msg -c hook.itos-probe.command=true
 hook list commit-msg` for the probe's name, testing the feature rather
-  than a version, and a git that does not list it exits 3. The hooks
-  this repository's git calls run the Go binary since T-060.
+  than a version, and a git that does not list it exits 3, naming
+  `configHooksSince`, 2.54.0, the first git whose release notes
+  (`Documentation/RelNotes/2.54.0.adoc`) let the config declare hooks.
+  `hooksReady` is the same question asked before git runs by every command
+  that commits or pushes where a config is (slice 91): `gitCommit` (and so
+  the git shim's `git commit`) and `writeCommitted`, the registry writers'
+  commit, need the commit-msg entry, `push` the pre-push one; a git that
+  runs no config hook, or an entry the git config at any level does not
+  declare (`declared`: its event, and a command `callsItos` matches), is
+  `kind.Missing`, exit 3, its `itos:` line naming `itos hook install` or
+  the git to upgrade to. Where there is no config nothing is checked, so
+  the shim's `git commit` outside an itos repository is plain git. The
+  hooks this repository's git calls run the Go binary since T-060.
 - **Every command is ported**, each taking its arguments as the TypeScript
   did, so a usage error read the same in both. While the groups landed, a
   command whose group had not exited 3 saying so; once every push held the
@@ -2119,11 +2123,12 @@ itos`, before any other step calls it. `tools/selftest/go-dogfood.ts`
 
 ## The gates and CI
 
-- **The hooks** (`.vite-hooks/`): `commit-msg` and `pre-push` are one-line
-  shims `itos hook install` writes for the manager `hooks.manager` names
-  (over the one its markers show), calling `itos hook commit-msg` and
-  `itos hook pre-push`; `pre-commit` is the project's own. `vp config`
-  (`prepare`, on `vp install`) points git at the folder.
+- **The hooks**: `itos hook install`, run once in each clone, declares
+  `itos hook commit-msg` and `itos hook pre-push` in the clone's git config
+  (slice 91); `pre-commit` is the project's own, in `.vite-hooks/`, where
+  `vp config` (`prepare`, on `vp install`) points git. `.vite-hooks/`'s
+  `commit-msg` and `pre-push` still call itos until T-101's ci commit takes
+  those lines out, so until then itos's checks run twice on a commit here.
   - **pre-commit** runs `vp staged` (each path's command in `vite.config.ts`'s
     `staged`: `vp check --fix`, or for Go `gofmt -w` and then `go vet` over the
     module, since it reads packages rather than files), then, unless every

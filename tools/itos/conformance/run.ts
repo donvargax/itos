@@ -16,7 +16,9 @@
 //   name     what it shows (unique in its file)
 //   argv     the arguments after `itos`
 //   git      a scratch repository, built first in the case's folder (`git
-//            init -b main`, fixed author and dates, so every SHA is fixed):
+//            init -b main`, fixed author and dates, so every SHA is fixed,
+//            and itos's two hooks declared in its git config as stand-ins,
+//            standInHooks):
 //            steps of `commit: <message>` (with `files:` to write first, and
 //            `stage` those only), `stage: {files}`, `write: {files}`,
 //            `branch: <new>`, `checkout: <ref>`, `run: <sh command>`; any
@@ -363,11 +365,23 @@ function applyStep(dir: string, step: GitStep, env: NodeJS.ProcessEnv, subst: Su
 	if (step.run) sh(dir, env, subst(step.run));
 }
 
+// itos's two hooks, declared in a scratch repository's git config under the
+// names itos hook install gives them (slice 91), each a command that runs
+// nothing (: is sh's no-op). itos refuses to commit or push where its hooks
+// are not declared, so every case's repository has them, and a case's
+// commits run no hook's check, as before itos refused; a case that wants
+// them otherwise changes them in a `run` step.
+const standInHooks: [string, string][] = ["commit-msg", "pre-push"].flatMap((event): [string, string][] => [
+	[`hook.itos-${event}.event`, event],
+	[`hook.itos-${event}.command`, `: itos hook ${event}`],
+]);
+
 // The scratch repository a case's `git` steps describe.
 function buildRepo(dir: string, steps: GitStep[], env: NodeJS.ProcessEnv, labels: Map<string, string>) {
 	const subst = substituter(dir, labels);
 	git(dir, env, ["init", "-q", "-b", "main"]);
 	git(dir, env, ["config", "commit.gpgsign", "false"]);
+	for (const [key, value] of standInHooks) git(dir, env, ["config", key, value]);
 	for (const step of steps) {
 		applyStep(dir, step, env, subst);
 		if (step.label) labels.set(step.label, git(dir, env, ["rev-parse", "HEAD"]));

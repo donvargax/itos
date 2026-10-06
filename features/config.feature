@@ -97,15 +97,6 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 1
     And its output says "b.feature"
 
-  # Detection would pick husky from the .husky folder; the key overrides it.
-  @ID-CONFIG-11 @slice-4
-  Scenario: hook install writes the shims of the manager hooks.manager names, over what it detects
-    Given a ".husky" folder
-    And hooks.manager is "git"
-    When itos installs the hooks
-    Then itos exits with code 0
-    And the file ".git/hooks/commit-msg" calls itos
-
   # Keys for features not built yet: they come back with the feature (a second
   # way to tell a commit is pushed). alongside would run the built-in header
   # lint beside a delegate, warning only; it stays refused, since holding the
@@ -256,14 +247,6 @@ Feature: Every key the config accepts is one itos reads
     And its output says "bin: itos"
     And its output does not say "bin: tools/bin/itos"
 
-  @ID-CONFIG-27 @slice-79
-  Scenario: Without hooks.bin, hook install writes shims that run the itos on the PATH
-    Given hooks.manager is "git"
-    When itos installs the hooks
-    Then itos exits with code 0
-    And the file ".git/hooks/commit-msg" runs "itos hook commit-msg"
-    And the file ".git/hooks/commit-msg" does not name "tools/bin/itos"
-
   # Bug 26 (issue #11; was p1-ci-watch-alone; the user's call, 2026-10-05).
   # The schema required ci.steps whenever a ci section was written, so a
   # repository adopting itos step by step, its commit gates first and its CI
@@ -333,39 +316,10 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 2
     And its output says "removed in v5"
 
-  # Bug 35 (found by the code review of 07b0e6d). hooks install joined the
-  # hooks folder git names onto the working tree's root, so an absolute one
-  # (an absolute core.hooksPath, or a linked worktree, where git names the
-  # main repository's hooks folder) became a stray folder inside the working
-  # tree: the shims landed there, the real hooks never ran, and hooks install
-  # reported success. A hooks folder git names absolute is written as named.
-  @ID-CONFIG-34 @bug-35
-  Scenario: hook install writes the shims into an absolute core.hooksPath
-    Given hooks.manager is "git"
-    And core.hooksPath is an absolute folder outside the working tree
-    When itos installs the hooks
-    Then itos exits with code 0
-    And the file "commit-msg" in that folder calls itos
-
-  @ID-CONFIG-35 @bug-35
-  Scenario: hook install in a linked worktree writes the shims into the repository's hooks folder
-    Given hooks.manager is "git"
-    And a linked worktree of the repository at "../wt"
-    When itos runs the command line "hook install" in the linked worktree
-    Then itos exits with code 0
-    And the file ".git/hooks/commit-msg" calls itos
-
   # Slice 89 (decision of q-16): hooks install and the hook group differed
   # by one letter. With the guard moved out, itos hook holds git's hooks
   # alone, and installing them is itos hook install. The step "itos installs
   # the hooks" runs the new name; the feat rewrites what names the old one.
-  @ID-CONFIG-36 @slice-89
-  Scenario: hook install writes the shims of the manager hooks.manager names
-    Given hooks.manager is "git"
-    When itos runs "hook install"
-    Then itos exits with code 0
-    And the file ".git/hooks/commit-msg" calls itos
-
   @ID-CONFIG-37 @slice-89
   Scenario: itos hooks install exits 2, naming itos hook install
     When itos runs "hooks install"
@@ -380,7 +334,7 @@ Feature: Every key the config accepts is one itos reads
   # settings untouched, so it needs to know no manager. The marker detection,
   # the per-manager writing, --manager and hooks.manager go; the feat removes
   # the scenarios that tested a manager, marked breaking.
-  @ID-CONFIG-38 @slice-91 @wip
+  @ID-CONFIG-38 @slice-91
   Scenario: hook install declares itos's hooks in the git config and touches no hook file
     Given the project's hooks are in ".husky" by core.hooksPath, with a commit-msg hook that records it ran
     When itos runs "hook install"
@@ -390,7 +344,7 @@ Feature: Every key the config accepts is one itos reads
     And the file ".husky/commit-msg" does not name "itos hook"
     And core.hooksPath is still ".husky"
 
-  @ID-CONFIG-39 @slice-91 @wip
+  @ID-CONFIG-39 @slice-91
   Scenario: config check refuses hooks.manager, which v6 removed
     Given the config sets "hooks.manager" to "husky"
     When itos checks the config

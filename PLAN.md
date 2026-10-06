@@ -54,9 +54,9 @@ command takes is its `--help`.
 - **A command runner.** itos runs check commands, CI steps and one merged
   command per kind of named test, nothing else. Scripts and task runners run
   the rest.
-- **Hook management.** Vite+, husky, lefthook, pre-commit or plain git install
-  hooks; itos gives the entry points and writes the shims. A project's own
-  pre-commit hook stays its own.
+- **Hook management.** itos declares its two hooks in the clone's git config
+  and knows no hook manager (decision 37); a project's own hooks, and
+  whatever manages them, stay its own.
 - **The changelog.** git-cliff reads the `Task:` and `Scenarios:` footers;
   itos keeps them and nothing more.
 - **Test running.** It builds one command per kind from a template; the

@@ -129,7 +129,7 @@ Feature: itos push, the pull-rebase-push routine as one command
     Then itos exits with code 3
 
   # Slice 91 (q-2 and q-17): as itos commit's refusal, for the pre-push hook.
-  @ID-PUSH-10 @slice-91 @wip
+  @ID-PUSH-10 @slice-91
   Scenario: itos push refuses when its hooks are not declared in the clone's git config
     Given the clone's itos hooks are not installed
     And the clone has the commit "chore: tidy the readme" touching "README.md"

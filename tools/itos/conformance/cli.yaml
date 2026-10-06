@@ -76,11 +76,11 @@ cases:
     exit: 2
     stderr: |
       itos: tests smoke check needs <kind> (itos --help)
-  - name: hook install takes only the managers it knows
-    argv: [hook, install, --manager, bogus]
+  - name: hook install takes no --manager, which v6 removed with the hook managers
+    argv: [hook, install, --manager, husky]
     exit: 2
     stderr: |
-      itos: hook install --manager takes vp|git|husky|lefthook|pre-commit|prek|git-config (itos --help)
+      itos: hook install does not take --manager; it takes --print or --force (itos --help)
   - name: hook needs commit-msg or pre-push
     argv: [hook, pre-commit]
     exit: 2

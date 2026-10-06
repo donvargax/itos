@@ -211,6 +211,12 @@ func writeCommitted(cfg *config.Loaded, files []written, header, body string, o 
 		paths[i] = f.path
 	}
 	if !cfg.Stealth {
+		// The commit runs through the hooks as any commit, so it is refused,
+		// before anything is written, where git would run none of itos's
+		// (slice 91).
+		if err := hooksReady("commit-msg"); err != nil {
+			return "", 0, err
+		}
 		for _, f := range files {
 			if p := uncommitted(cfg, f.path, f.rule); p != nil {
 				code, err := refuseWork([]out.Problem{*p}, ExitPolicy, o)

@@ -322,11 +322,10 @@ type People struct {
 	LoginFrom *string `json:"login_from"`
 }
 
-// Hooks are the hook manager, the binary the shims call, the pre-push
-// commands and the commit-msg hook's task checks.
+// Hooks are the binary itos's hooks call, the pre-push commands and the
+// commit-msg hook's task checks.
 type Hooks struct {
-	Manager *string `json:"manager"`
-	Bin     string  `json:"bin"`
+	Bin     string `json:"bin"`
 	PrePush *struct {
 		PerBase string `json:"per_base"`
 		Whole   string `json:"whole"`

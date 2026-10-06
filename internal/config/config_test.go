@@ -79,7 +79,7 @@ func TestUnknownKeyFix(t *testing.T) {
 	if e.Problems[0].Fix != "rename hooks.bim to bin" {
 		t.Errorf("near: %q", e.Problems[0].Fix)
 	}
-	if e.Problems[1].Fix != "remove hooks.shims; the keys here are manager, bin, pre_push, commit_msg" {
+	if e.Problems[1].Fix != "remove hooks.shims; the keys here are bin, pre_push, commit_msg" {
 		t.Errorf("far: %q", e.Problems[1].Fix)
 	}
 }
@@ -185,10 +185,10 @@ func TestKnownKey(t *testing.T) {
 		}
 	}
 	cases := map[string][]string{
-		"hooks.no_such_key": {"manager", "bin", "pre_push", "commit_msg"},
+		"hooks.no_such_key": {"bin", "pre_push", "commit_msg"},
 		"hooks.bin.x":       nil,
 		"ci.steps.0":        nil,
-		"hooks.":            {"manager", "bin", "pre_push", "commit_msg"},
+		"hooks.":            {"bin", "pre_push", "commit_msg"},
 	}
 	for key, want := range cases {
 		known, keys := KnownKey(key)

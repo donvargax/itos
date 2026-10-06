@@ -13,9 +13,9 @@ Feature: itos init, a repository made ready for itos
   itos is never judged. hooks.bin is itos, the global launcher, and the pin
   the newest release, as itos pin writes it; where the release server cannot
   be reached it pins nothing and says how to (a config with no pin runs the
-  binary that was called). Then it installs the hooks, as hook install
-  does. With --stealth all of it goes under the git folder and the hooks into
-  the git config, nothing the project tracks touched.
+  binary that was called). Then it declares the hooks in the git config, as
+  hook install does. With --stealth all of it goes under the git folder,
+  nothing the project tracks touched.
 
   Where a config already is, init writes nothing: it reports what is missing
   (the config's problems, a hook not installed) and exits 1 when anything
@@ -32,8 +32,8 @@ Feature: itos init, a repository made ready for itos
     When itos runs "init"
     Then itos exits with code 0
     And the config's commits.since is HEAD's full SHA
-    And the file ".git/hooks/commit-msg" calls itos
-    And the file ".git/hooks/pre-push" calls itos
+    And the git config declares a "commit-msg" hook that runs itos
+    And the git config declares a "pre-push" hook that runs itos
     When itos checks the config
     Then itos exits with code 0
 
@@ -100,12 +100,12 @@ Feature: itos init, a repository made ready for itos
   Scenario: Run again where a hook is missing, init reports it and installs nothing
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"
-    And the file ".git/hooks/pre-push" is removed
+    And itos's "pre-push" hook is taken out of the git config
     When itos runs "init"
     Then itos exits with code 1
     And its output says "pre-push"
     And its output says "itos hook install"
-    And the file ".git/hooks/pre-push" does not exist
+    And the git config declares no "pre-push" hook
 
   @ID-INIT-09 @slice-48
   Scenario: With --stealth init writes everything under the git folder and declares the hooks in the git config
@@ -176,7 +176,7 @@ Feature: itos init, a repository made ready for itos
     When itos runs "init --plugin user"
     Then itos exits with code 0
     And its output says "Claude Code"
-    And the file ".git/hooks/commit-msg" calls itos
+    And the git config declares a "commit-msg" hook that runs itos
 
   @ID-INIT-15 @slice-49
   Scenario: Run again where the plugin is not installed, init reports it and still finds nothing missing
