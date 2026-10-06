@@ -210,7 +210,9 @@ What that means in practice:
   re-running the command to see whether the last one finished, not waiting on
   it in any other way. One monitor per thing you are waiting for, with a
   filter that matches failure as well as success, so silence never reads as
-  progress. A commit needs none of this: its hook returns on its own.
+  progress. A commit needs none of this: its hook returns on its own. (This
+  rule exists because a push outlives the harness's foreground limit; its exit
+  is `p1-push-fits-foreground`.)
 
 ## What no gate does for you
 
