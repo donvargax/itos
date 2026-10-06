@@ -4414,3 +4414,16 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). A later commit in the same push can move
       commits.since back past a bad commit, which verify then skips (config/since.go:66).
     refs: [internal/config/since.go]
+
+  - id: p1-range-push-runs-only
+    title: The range walk counts push runs only
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). GreenRunOf filters by branch and head_sha
+      but not event=push, so a fork's pull-request run on a branch named main can count as green
+      (providers/range.go:189-196).
+    refs: [internal/providers/range.go]
