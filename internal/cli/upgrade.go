@@ -1,11 +1,12 @@
 package cli
 
 // itos upgrade (slice 75, features/upgrade-command.feature): moves a project
-// to a newer itos, <version> or the newest, as itos pin moves the pin, and
-// prints what every release after the version it leaves asks, oldest first,
-// read from each release's upgrading.json (T-091) back through each one's
-// previous, so no API lists the releases. A release with no upgrading.json,
-// cut before T-091, is named by its notes, and the walk stops there.
+// to a newer itos, <version> or the newest (none, or latest), as itos pin
+// moves the pin, and prints what every release after the version it leaves
+// asks, oldest first, read from each release's upgrading.json (T-091) back
+// through each one's previous, so no API lists the releases. A release with
+// no upgrading.json, cut before T-091, is named by its notes, and the walk
+// stops there.
 //
 // It edits only what a release fixes exactly: the pin (pin.go's code), the
 // config's first line when it is the yaml-language-server schema line naming

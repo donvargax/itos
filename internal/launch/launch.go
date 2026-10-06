@@ -32,6 +32,13 @@
 // as any other, so in a pinned repository git commit is the pinned itos's,
 // when it has the shim (Handed tells internal/shim the version, bug 7).
 //
+// A first argument --version is the command version (Args, slice 87), read
+// so before anything else: a pinned release is handed "version", which every
+// release answers, though one older than v6.0.0 has no --version. In a pinned
+// project itos version says on stderr that the repository pins its version,
+// and which version the itos that was called is (pinLine), since the version
+// line on stdout is the pin's.
+//
 // hook pre-tool-use, Claude Code's guard, is handed on as any other run, but
 // not to an itos older than the guard (cli.GuardSince), which has no such
 // hook: its usage error's exit 2 would make Claude Code block the tool, so
@@ -79,6 +86,17 @@ const fetchTimeout = 5 * time.Minute
 // when nothing pins one (ITOS_VERSION naming a version the config does not
 // pin): then checksums.txt is trusted as fetched.
 type target struct{ version, checksums string }
+
+// Args are the arguments as itos reads them: a first argument --version is
+// the command version, the rest as they stand (itos --version --json is itos
+// version --json). Only the first is read so: -v and -V stay unknown, and a
+// --version after a command is that command's.
+func Args(args []string) []string {
+	if len(args) > 0 && args[0] == "--version" {
+		return append([]string{"version"}, args[1:]...)
+	}
+	return args
+}
 
 // Main runs the version of itos the arguments and the environment pick, when
 // it is not this binary: it gives that version's exit code and true. When this
@@ -177,6 +195,7 @@ func choose(args []string, stderr io.Writer) (target, bool) {
 	}
 	switch c.state {
 	case pinned:
+		pinLine(args, c.pin.Version, own, stderr)
 		notice(c.file, c.pin.Version, stderr)
 		if c.pin.Version == own {
 			return target{}, false
@@ -186,6 +205,19 @@ func choose(args []string, stderr io.Writer) (target, bool) {
 		return newest(own)
 	}
 	return target{}, false
+}
+
+// pinLine says on stderr, when the arguments run itos version, that the
+// repository pins the version pin and which version own, the itos that was
+// called, is: the version line on stdout is the pin's, which alone does not
+// say it is a pin's (slice 87). Human output, on stderr
+// (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md).
+func pinLine(args []string, pin, own string, stderr io.Writer) {
+	g := cli.Parse(args)
+	if g.Extension != "" || g.Help || len(g.Rest) == 0 || g.Rest[0] != "version" {
+		return
+	}
+	fmt.Fprintf(stderr, "this repository pins %s; the itos that was called is %s\n", pin, own)
 }
 
 // Handed is the version of another itos than this binary that the launcher

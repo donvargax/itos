@@ -59,7 +59,7 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 
 9. Show help for `itos`, `itos --help`, `itos help <command>` and `<command> --help`, and for `-h` in any position. Write help to stdout and exit 0. (CLIG `#help`; GNU-HELP.) itos follows this rule.
 10. In the help of each command, give the shape of its `--json` output and its exit codes. itos follows this rule.
-11. Support `--version` and `version`. The first line of the output is `itos <version>`. (GNU-CLI; GNU-VER; CLIG `#arguments-and-flags`.) itos does not support `--version` yet (slice-87).
+11. Support `--version` and `version`. The first line of the output is `itos <version>`. (GNU-CLI; GNU-VER; CLIG `#arguments-and-flags`.) itos follows this rule: a first argument `--version` is `itos version` (slice-87).
 12. For an unknown command, exit 2. If you can guess the command that the person meant, name it. (CLIG `#help`.) `itos help nosuch` exits 0 now, and itos gives no suggestions yet.
 13. For a group with no subcommand, name the subcommands that the group takes. `itos hook` does not do this yet.
 14. End the help with an example or two and the address for issue reports. (CLIG `#help`; GNU-HELP.) itos does not do this yet.
@@ -127,7 +127,6 @@ Each row is a gap that the 2026-10-06 review found and reproduced. The rule numb
 | ---- | --------------------------------------------------------------------------------- | --------------------------------------------------------- |
 | 3, 6 | `ask` is an everyday verb. A request to ask someone else gets logged as an `ask`. | "I need to ask someone this"                              |
 | 4, 5 | `hook` (entry points) and `hooks` (a command for people) differ by one letter.    | `itos hook commit-msg`, `itos hooks install`              |
-| 11   | No `--version`.                                                                   | `itos --version` exits 2                                  |
 | 12   | An unknown topic exits 0.                                                         | `itos help nosuch`                                        |
 | 13   | A group with no subcommand says that the group is unknown.                        | `itos hook`                                               |
 | 17   | `--as` names a person in some commands and an ID in another.                      | `work promote <idea> --as <id>`                           |

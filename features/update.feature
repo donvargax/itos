@@ -119,7 +119,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
   # launcher is, whatever the notice; the version line itself is the pin's,
   # as before. Human output (decision 35), on stderr. ITOS_NO_UPDATE turns
   # the notice off, so only the new line can name the pin here.
-  @ID-UPDATE-11 @slice-87 @wip
+  @ID-UPDATE-11 @slice-87
   Scenario: In a pinned project itos version names the pin and the itos that was called
     Given a repository whose ledger has the task "T-001"
     And the config pins the version "9.1.0" of the release server
@@ -129,7 +129,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     And the version "9.1.0" ran with the arguments "version"
     And its output says "pins 9.1.0"
 
-  @ID-UPDATE-12 @slice-87 @wip
+  @ID-UPDATE-12 @slice-87
   Scenario: With no pin itos version names no pin
     Given a repository whose ledger has the task "T-001"
     And ITOS_NO_UPDATE is "1"

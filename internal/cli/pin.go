@@ -1,8 +1,8 @@
 package cli
 
 // itos pin (slice 47, features/pin.feature): moves the config's pin to a
-// release, the newest by default, as the launcher asks for it, or the one
-// named. It writes pin.version and pin.checksums, the SHA-256 of that
+// release, the newest by default or with latest (slice 87), as the launcher
+// asks for it, or the one named. It writes pin.version and pin.checksums, the SHA-256 of that
 // release's checksums.txt, in the config itos finds, the stealth one
 // included, changing those values' bytes alone (value.SetScalars), and
 // commits nothing: the bump is the project's own commit. Like git-shim
@@ -89,7 +89,8 @@ func pinCommand(args []string, o Out) (int, error) {
 }
 
 // versionArg is the one <version> a command that moves the pin takes, a
-// leading v dropped, "" when it names none.
+// leading v dropped, "" when it names none or names latest, which means the
+// newest as no version does (slice 87).
 func versionArg(name string, args []string) (string, error) {
 	for _, a := range args {
 		if strings.HasPrefix(a, "-") {
@@ -99,12 +100,12 @@ func versionArg(name string, args []string) (string, error) {
 	if len(args) > 1 {
 		return "", usage("%s takes one <version> at most: %s", name, strings.Join(args, " "))
 	}
-	if len(args) == 0 {
+	if len(args) == 0 || args[0] == "latest" {
 		return "", nil
 	}
 	want := strings.TrimPrefix(args[0], "v")
 	if !config.PinVersion.MatchString(want) {
-		return "", usage("%s needs a release's version, such as 2.5.0, not %s", name, args[0])
+		return "", usage("%s needs a release's version, such as 2.5.0, or latest, not %s", name, args[0])
 	}
 	return want, nil
 }

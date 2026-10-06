@@ -264,3 +264,50 @@ func TestBinaryCommand(t *testing.T) {
 		}
 	}
 }
+
+// Only a first argument --version is the command version.
+func TestArgs(t *testing.T) {
+	for args, want := range map[string]string{
+		"--version":         "version",
+		"--version --json":  "version --json",
+		"--version --check": "version --check",
+		"--json --version":  "--json --version",
+		"-v":                "-v",
+		"-V":                "-V",
+		"version":           "version",
+		"pin --version":     "pin --version",
+		"work --as someone": "work --as someone",
+		"":                  "",
+	} {
+		if got := strings.Join(Args(strings.Fields(args)), " "); got != want {
+			t.Errorf("Args(%s) = %s, want %s", args, got, want)
+		}
+	}
+}
+
+// A pinned project's itos version names the pin and the itos called on
+// stderr; other commands and an unpinned project say nothing of it.
+func TestPinLine(t *testing.T) {
+	own := version.Version()
+	pinned := "version: 1\npin: { version: \"9.1.0\", checksums: \"" + sums + "\" }\n"
+	line := "this repository pins 9.1.0; the itos that was called is " + own + "\n"
+	cases := []struct{ name, config, args, want string }{
+		{"version under a pin", pinned, "version", line},
+		{"version --json under a pin", pinned, "--json version", line},
+		{"another command under a pin", pinned, "work --as someone", ""},
+		{"version --help under a pin", pinned, "version --help", ""},
+		{"version with no pin", "version: 1\n", "version", ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			offline(t)
+			writeConfig(t, c.config)
+			t.Setenv(EnvVersion, "")
+			var stderr bytes.Buffer
+			choose(strings.Fields(c.args), &stderr)
+			if stderr.String() != c.want {
+				t.Errorf("stderr %q, want %q", stderr.String(), c.want)
+			}
+		})
+	}
+}

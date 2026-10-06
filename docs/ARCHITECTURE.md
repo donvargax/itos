@@ -604,7 +604,10 @@ mechanisms above, written against those modules, read across.
   conflicted paths select, with `--diff-filter=U`.
 - **The launcher** (`internal/launch`, slice 27) runs before the command
   line: `cmd/itos` calls `launch.Main`, and only when it hands the run back
-  `cli.Main`. It picks the version to run, `ITOS_VERSION` when set, else the
+  `cli.Main`. Both get the arguments `launch.Args` gives: a first argument
+  `--version` is the command `version` (slice 87), so a pinned release, even
+  one older than `--version`, is handed `version`; a `--version` anywhere
+  else stays what it was. It picks the version to run, `ITOS_VERSION` when set, else the
   config's `pin.version`, and a binary whose own version that is runs itself,
   so the version the launcher runs (to which it passes `ITOS_VERSION`) never
   launches again. It reads the config where `cli` does (`--config`, else
@@ -646,7 +649,10 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   `install`ing the release the server announces when the cache lacks it,
   checked against the announced `checksums.txt` (`fetch` is the pinned path:
   its `checksums.txt` held to the pin, then the same `install`). `pinned`
-  calls `notice` before the pin runs, even when the pin is this binary.
+  calls `notice` before the pin runs, even when the pin is this binary,
+  and before it, when the command is `version`, `pinLine`, one stderr line
+  naming the pin and this binary's version, unthrottled (slice 87): the
+  version line on stdout is the pin's.
   Both read `announced`: the newest version the server named, kept with the
   time it was had in `<cache>/state/latest` ("<unix seconds> <version>"),
   asked for again (`<base>/latest/download/checksums.txt`, its version read

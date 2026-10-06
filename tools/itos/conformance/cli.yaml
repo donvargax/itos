@@ -87,10 +87,10 @@ cases:
     stderr: |
       itos: unknown command: hook pre-commit (itos --help)
   - name: pin takes a release's version
-    argv: [pin, latest]
+    argv: [pin, newest]
     exit: 2
     stderr: |
-      itos: pin needs a release's version, such as 2.5.0, not latest (itos --help)
+      itos: pin needs a release's version, such as 2.5.0, or latest, not newest (itos --help)
   - name: pin takes one version at most
     argv: [pin, 2.5.0, 2.6.0]
     exit: 2
@@ -120,6 +120,14 @@ cases:
       itos: unknown command: config bogus (itos --help)
   - name: version --json
     argv: [version, --json]
+    exit: 0
+    json:
+      schema: 1
+      version: "{{version}}"
+      requires: ">=0.1.0"
+      satisfied: true
+  - name: a first argument --version is version
+    argv: [--version, --json]
     exit: 0
     json:
       schema: 1

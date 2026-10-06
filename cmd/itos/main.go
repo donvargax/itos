@@ -26,6 +26,7 @@ func main() {
 			os.Exit(code)
 		}
 	}
+	args = launch.Args(args)
 	git.Export()
 	if code, launched := launch.Main(args, os.Stderr); launched {
 		os.Exit(code)

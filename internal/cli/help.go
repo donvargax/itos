@@ -95,8 +95,8 @@ Commands:
   push [--no-wait]                 pull with a rebase, push HEAD; with ci.watch, wait for CI
   git-shim install|uninstall [--dir <folder>]
                                    link itos as git, for itos's commit and push
-  pin [<version>]                  move the config's pin to a release, the newest by default
-  upgrade [<version>]              move to a newer itos, listing what each release since asks
+  pin [<version>|latest]           move the config's pin to a release, the newest by default
+  upgrade [<version>|latest]       move to a newer itos, listing what each release since asks
   init [--stealth] [--plugin [<scope>]] [--git-shim [--git-shim-dir <folder>] | --no-git-shim]
        [--agent-rules | --no-agent-rules]
                                    ready a repository for itos; run again, what is missing
@@ -119,7 +119,8 @@ Commands:
                                    write the hooks' one-line shims for the hook manager
   config check [--print-defaults]  validate the config, ledger, registry and smoke sets
   config get <key>                 a config key's value as itos reads it, defaults applied
-  version [--check]                the version; --check against the config's requires`
+  version [--check]                the version; --check against the config's requires
+  --version                        itos version, as the first argument`
 
 const mainHelpTail = globalFlags + `
 
@@ -827,10 +828,10 @@ link runs in a repository itos manages: git commit or git push, as itos's.
         action one of linked, kept, replaced, refused (install) or removed,
         absent, refused (uninstall)`,
 
-	"pin": `Usage: itos pin [<version>]
+	"pin": `Usage: itos pin [<version>|latest]
 
 Moves the config's pin to a release of itos: <version> (a leading v is taken),
-or with none the newest, asked for as the launcher asks for it
+or with none or latest the newest, asked for as the launcher asks for it
 (<ITOS_RELEASES>/latest/download/checksums.txt) but now, whatever CI,
 ITOS_NO_UPDATE or the once a day say. It sets pin.version and pin.checksums,
 the SHA-256 of that release's checksums.txt, in the config itos finds (the
@@ -847,10 +848,10 @@ whatever the pin says.
 --json: {"schema":1,"config","action","version","checksums","previous"?,"notes"?},
         action one of pinned, already, refused`,
 
-	"upgrade": `Usage: itos upgrade [<version>]
+	"upgrade": `Usage: itos upgrade [<version>|latest]
 
 Moves the project to a newer itos: <version> (a leading v is taken), or with
-none the newest, asked for as itos pin asks for it. The version it moves from
+none or latest the newest, asked for as itos pin asks for it. The version it moves from
 is the config's pin, or with no pin the install script's,
 tools/bin/install-itos; with neither it exits 1, naming itos pin, and so does
 a version older than that one, which is itos pin's to move back to.
@@ -1247,9 +1248,13 @@ is a usage error (exit 2) naming those it has.
 --json: {"schema":1,"guide","text","notes"?}`,
 
 	"version": `Usage: itos version [--check]
+       itos --version [--check]
 
-Prints itos's version, and needs no config. --check exits 1 when it does not
-satisfy the config's requires, and 2 when the config cannot be read.
+Prints itos's version, and needs no config; a first argument --version is itos
+version. In a project that pins a version, the pinned itos answers, and the
+itos that was called says on stderr that the repository pins it and which
+version it is itself. --check exits 1 when it does not satisfy the config's
+requires, and 2 when the config cannot be read.
 
 --json: {"schema":1,"version","requires"?,"satisfied"?}`,
 }

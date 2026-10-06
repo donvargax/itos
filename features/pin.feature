@@ -191,7 +191,7 @@ Feature: A global itos runs the version a repository pins
   # else, so a project's pinned release is handed "version" and answers even
   # if it predates --version. -v and -V stay unknown. itos pin latest and
   # itos upgrade latest are itos pin and itos upgrade with no version.
-  @ID-PIN-18 @slice-87 @wip
+  @ID-PIN-18 @slice-87
   Scenario: itos --version prints its version outside a project
     Given the repository has no itos.yaml
     And ITOS_NO_UPDATE is "1"
@@ -199,13 +199,13 @@ Feature: A global itos runs the version a repository pins
     Then itos exits with code 0
     And its output says "itos "
 
-  @ID-PIN-19 @slice-87 @wip
+  @ID-PIN-19 @slice-87
   Scenario: itos --version in a pinned project hands the pinned release the command version
     Given the config pins the version "9.1.0" of the release server
     When itos runs "--version"
     Then the version "9.1.0" ran with the arguments "version"
 
-  @ID-PIN-20 @slice-87 @wip
+  @ID-PIN-20 @slice-87
   Scenario: itos pin latest moves the pin to the newest release, as itos pin does
     Given the config pins the version "9.1.0" of the release server
     When itos runs "pin latest"
