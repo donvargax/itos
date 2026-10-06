@@ -4989,3 +4989,20 @@ items:
       editor learns to delete and rename a key, and refuses with exit 2 a layout it cannot edit byte
       for byte. A declaration left after its release matches nothing in the next comparison and is
       harmless. Releases before the first with these declarations are walked as today.
+
+  - id: p1-push-fits-foreground
+    title: itos push never outlives a harness's foreground command
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-06). With ci.watch on, itos push waits for CI, often longer than an
+      agent harness lets a foreground command run (Claude Code: 10 minutes), so agents wrote their
+      own wait loops, one on pgrep that matched itself and never ended (bug 35), another sleeping
+      (slice 83), and the coordinator's own push was moved to the background mid-wait. Waiting
+      should be its own step: for example push returns once pushed and prints the itos ci watch line
+      to run in the background, or waits only on a terminal. The exit of ORCHESTRATING.md's
+      wait-loop lesson.
+    refs: [internal/cli/push.go, internal/cli/watch.go]
