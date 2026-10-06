@@ -4789,3 +4789,18 @@ items:
       to a checkout, so a coordinator cannot hand a task's context to another checkout. The
       read-only half exists (task list --json, work list --all --json); an export bundle and an
       import are missing.
+
+  - id: p1-network-timeouts-named
+    title: Every network call itos makes is bounded and says what it waited on
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From a hang reported on 2026-10-05 (bug 46 fixes its cause, gh asked with no timeout). The
+      launcher's downloads may each take 5 minutes in silence (launch.go fetchTimeout) and a first
+      fetch through a work proxy looks like a hang: say fetching itos <version> from <host> on
+      stderr when a download starts, give the connection a short timeout so a dead one fails in
+      seconds, and name the host and the file in a timeout's error. Audit every other network call
+      likewise.
