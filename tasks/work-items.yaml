@@ -4615,19 +4615,9 @@ items:
     title: Only build and ci commits may touch the gates, and style is no type
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      The user's calls (2026-10-05). An Item footer stands in for Task on chore with no checks at
-      all, and chore, refactor, perf and test could edit the gates themselves: itos.yaml, the
-      workflows, the hooks, tools/bin (the release check and the other gates' Go code),
-      tools/selftest and deps-check.json. A path set gates holds those, and only build and ci, which
-      need a Task, may touch it; refactor keeps the rest of the config, such as go.mod for a module
-      move. style goes from commits.types: no commit ever used it, vp staged formats every commit,
-      and it needed no footer and could touch anything. Not a fortress: a build or ci commit can
-      still change the gates, and the coordinator's review of each agent's commits is what catches
-      that (p3-gate-changes-visible).
 
   - id: p3-starter-drops-style
     title: itos init's starter drops style from its commit types
