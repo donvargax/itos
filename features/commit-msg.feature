@@ -55,3 +55,49 @@ Feature: The commit-msg hook
     Then itos exits with code 0
     And its output says "commits.header_lint"
     And its output does not say "commitlint"
+
+  # Bug 30 (found by the code review of 07b0e6d; the user's calls,
+  # 2026-10-05). itos read a commit's type as the first word of its header,
+  # and the header lint, as commitlint does, ignores the headers git writes
+  # itself: Revert "…", Merge …, fixup!, squash!, amend!, Reapply. Such a
+  # header gave a type outside commits.types, so no path scope, no required
+  # footer and no moves rule applied, in the hook and in verify, and verify's
+  # --no-merges left a merge's own changes unjudged: any change could land
+  # with no footer. Now Revert "…" (and Reapply "…") is judged as revert;
+  # fixup!, squash! and amend! as the type of the header they name, after the
+  # last such prefix; and a merge commit by its own changes, the ones no
+  # parent brings: a merge with none passes whatever its header, as GitHub's
+  # "Merge pull request" commits do, while one with changes of its own is
+  # judged by its first line's type, and refused when that has none. Any
+  # other header with no type in commits.types stays refused by the lint.
+  @ID-CMSG-06 @bug-30 @wip
+  Scenario: A Revert "…" header is judged as a revert, which needs its footer
+    When the commit-msg hook checks the message "Revert \"chore: tidy the readme\""
+    Then itos exits with code 1
+    And its output says "Task"
+
+  @ID-CMSG-07 @bug-30 @wip
+  Scenario: A fixup! header is judged by the type of the header it names
+    Given the config's chore commits may never touch "src/**" except "src/themes/**"
+    And a change to "src/app.js" is staged
+    When the commit-msg hook checks the message:
+      """
+      fixup! chore: tidy the readme
+
+      Task: T-001
+      """
+    Then itos exits with code 1
+    And its output says "chore commits may not touch src/app.js"
+
+  @ID-CMSG-08 @bug-30 @wip
+  Scenario: verify judges a merge commit's own changes by its first line's type
+    Given a merge commit "Merge branch 'topic'" on top of it, with a change of its own to "src/app.js"
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 1
+    And its output says "Merge branch 'topic'"
+
+  @ID-CMSG-09 @bug-30 @wip
+  Scenario: verify passes a merge commit with no changes of its own, whatever its header
+    Given a merge commit "Merge branch 'topic'" on top of it, with no change of its own
+    When itos verifies every commit up to HEAD
+    Then itos exits with code 0
