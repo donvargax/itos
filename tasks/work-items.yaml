@@ -4518,3 +4518,15 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). Superseding an already superseded record
       overwrites its link (cli/ask.go:546).
     refs: [internal/cli/ask.go]
+
+  - id: p1-failure-exit-codes
+    title: An I/O failure exits 1, not 2
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). failure() maps any error that is not a usage
+      error to exit 2, which the help gives to usage and config errors.
+    refs: [internal/cli/cli.go]
