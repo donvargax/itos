@@ -4953,3 +4953,18 @@ items:
       Specified in features/pin.feature, update.feature and upgrade-command.feature.
     refs:
       [features/pin.feature, features/update.feature, features/upgrade-command.feature, cmd/itos]
+
+  - id: p1-shim-refuses-hook-skipping
+    title: itos commit and itos push refuse --no-verify, -n and a -c that moves core.hooksPath
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the devcontainer test (2026-10-06): through the git shim, git commit --no-verify and
+      git commit -n committed junk (itos commit passes them on to git), and git -c
+      core.hooksPath=/nonexistent commit and push skipped the hooks, putting a junk commit on the
+      remote. The shim exists so a misbehaving model cannot skip the gates; only CI's verify caught
+      these. Full-path git stays a known gap (a guardrail, not a fortress).
+    refs: [internal/cli/gitcommit.go, internal/cli/push.go, internal/cli/gitshim.go]
