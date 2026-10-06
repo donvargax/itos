@@ -4112,7 +4112,7 @@ items:
     title: itos reads git's path lists unquoted
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
