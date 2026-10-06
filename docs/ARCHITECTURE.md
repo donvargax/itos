@@ -2217,8 +2217,11 @@ check`'s written-order rule reads too); then the late steps (the dependency chec
   set (of the kind the `tests:` step names; a CI without one reads none), the scenarios the `Scenarios:` footers name and the subsets of the
   tasks the ledger footers (`Task:`) name; then the named tasks' late checks. A task's checks
   keep their written order. A check a step has just done is skipped
-  (`ci.covers`), one in `ci.nightly_only` waits for the nightly, and a task
-  whose work item is still `todo` waits (`ci.wait_on_status`). Every one of
+  (`ci.covers`), one in `ci.nightly_only` is left out of the push, one marked
+  `after: push` is listed as pending and neither run nor counted (bug 28: it
+  means something only once the push has landed, so `itos task` and `itos
+work done` run it), and a task whose work item is still `todo` waits
+  (`ci.wait_on_status`). Every one of
   these patterns (`ci.cost.static`, `ci.covers`, `ci.nightly_only` and the
   kind's `recognize` templates) reads a command whose first word is
   `hooks.bin` as starting with `itos`, through one function, `readings` in

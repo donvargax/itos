@@ -179,8 +179,10 @@ kind's `recognize` reads as a run of the features (`go test ./features
 `tools/bin/itos tests smoke run scenario`) joins CI's one run of them; a check that
 is one of `ci.steps`, or that `ci.covers` says a step has done (a run of some
 conformance files by `--only`, after the whole corpus), is skipped; and
-a check in `ci.nightly_only` (the gates self-test) runs only in the nightly,
-after every feature. Every other check runs as it is, in cost order: the
+a check in `ci.nightly_only` (the gates self-test) is left out of the push; and
+an `after: push` check is listed as pending and not run, since it means
+something only once the push has landed: `itos task` and `itos work done` run
+it. Every other check runs as it is, in cost order: the
 static ones (see `cost:` above) right after the static steps, before the unit
 tests, the corpus and the run of the features; the late ones after that
 run. CI stops at the first failure, a check's included, unless
