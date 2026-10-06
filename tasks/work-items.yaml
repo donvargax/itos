@@ -61,6 +61,7 @@ queue:
   - bug-31
   - bug-32
   - bug-33
+  - bug-34
   - slice-82
   - slice-83
   - slice-84
