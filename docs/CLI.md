@@ -48,11 +48,11 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 
 1. Keep the program name short and lowercase. (POSIX guidelines 1 and 2; CLIG `#naming`.) itos follows this rule.
 2. Write a subcommand name in lowercase, with dashes between words: `check-paths`, `next-id`. itos follows this rule.
-3. Name a group of commands with a noun. Name an action in a group with a verb in the imperative: `work take`, `config get`. (CLIG `#subcommands`; COBRA `#concepts`, `APPNAME VERB NOUN --ADJECTIVE` or `APPNAME COMMAND ARG --FLAG`.) Some groups do not follow this rule yet: `ask`, `follow`, `commit`, `verify`.
-4. Use the singular for a group name. Some groups do not follow this rule yet: `tests` and `hooks`.
-5. Do not give two commands similar names or overlapping meanings. (CLIG `#subcommands`.) `hook` and `hooks` do not follow this rule yet.
-6. Do not name a command with an everyday verb when the same verb in a request can point to a different command. An agent picks a command by its name before it reads the help. Example: "I need to ask someone this" means `itos follow`, but the word "ask" points to `itos ask`. (This rule comes from use of itos, and agrees with CLIG `#subcommands`.)
-7. Do not add a new implicit default subcommand, a command that runs an action when you give it no subcommand. (CLIG `#future-proofing`, "Don't have a catch-all subcommand".) The existing ones stay: `task <id>`, `work`, `ask`, `follow`.
+3. Name a group of commands with a noun. Name an action in a group with a verb in the imperative: `work take`, `config get`. (CLIG `#subcommands`; COBRA `#concepts`, `APPNAME VERB NOUN --ADJECTIVE` or `APPNAME COMMAND ARG --FLAG`.) Some groups do not follow this rule yet: `commit`, `verify`. `ask` and `follow` became the groups `question` and `followup` in v6.0.0 (slice-89).
+4. Use the singular for a group name. Some groups do not follow this rule yet: `tests`. `hooks install` became `hook install` in v6.0.0 (slice-89).
+5. Do not give two commands similar names or overlapping meanings. (CLIG `#subcommands`.) itos follows this rule: since v6.0.0 (slice-89) `hooks install` is `hook install`, and no `hooks` group stands beside `hook`.
+6. Do not name a command with an everyday verb when the same verb in a request can point to a different command. An agent picks a command by its name before it reads the help. Example: "I need to ask someone this" meant `itos follow`, but the word "ask" pointed to `itos ask`. (This rule comes from use of itos, and agrees with CLIG `#subcommands`.) itos follows this rule: since v6.0.0 (slice-89) they are `itos followup` and `itos question`.
+7. Do not add a new implicit default subcommand, a command that runs an action when you give it no subcommand. (CLIG `#future-proofing`, "Don't have a catch-all subcommand".) The existing ones stay: `task <id>`, `work`, `question`, `followup`.
 8. Do not let a command accept an abbreviation of a subcommand. Make an alias only when you name it explicitly. (CLIG `#future-proofing`.) itos follows this rule.
 
 ### Help and version
@@ -60,7 +60,7 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 9. Show help for `itos`, `itos --help`, `itos help <command>` and `<command> --help`, and for `-h` in any position. Write help to stdout and exit 0. (CLIG `#help`; GNU-HELP.) itos follows this rule.
 10. In the help of each command, give the shape of its `--json` output and its exit codes. itos follows this rule.
 11. Support `--version` and `version`. The first line of the output is `itos <version>`. (GNU-CLI; GNU-VER; CLIG `#arguments-and-flags`.) itos follows this rule: a first argument `--version` is `itos version` (slice-87).
-12. For an unknown command, exit 2. If you can guess the command that the person meant, name it. (CLIG `#help`.) `itos help nosuch` exits 0 now, and itos gives no suggestions yet.
+12. For an unknown command, exit 2. If you can guess the command that the person meant, name it. (CLIG `#help`.) `itos help nosuch` exits 2 (slice-89), and itos gives no suggestions yet.
 13. For a group with no subcommand, name the subcommands that the group takes. `itos hook` does not do this yet.
 14. End the help with an example or two and the address for issue reports. (CLIG `#help`; GNU-HELP.) itos does not do this yet.
 
@@ -68,8 +68,8 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 
 15. Give each flag a long form. Give a one-letter form only to the most common flags. (CLIG `#arguments-and-flags`; GNU-CLI.) itos follows this rule: `-h` and `-q` are its only short flags.
 16. Use the standard name when a standard name exists: `--json`, `-q`/`--quiet`, `-h`/`--help`, `--force`, `--version`. (CLIG `#arguments-and-flags`.)
-17. Let a flag mean the same thing in every command. (CLIG `#subcommands`.) `--as` does not follow this rule yet: it names a person in `work`, `status` and `work take`, and a new ID in `work promote`.
-18. Use a flag to change an action, never to select a different action. (COBRA `#concepts`.) `work queue --drop` and `config check --print-defaults` do not follow this rule yet.
+17. Let a flag mean the same thing in every command. (CLIG `#subcommands`.) itos follows this rule: `--as` names a person in `work`, `status` and `work take`, and `work promote` takes the new ID as `--id` (slice-89).
+18. Use a flag to change an action, never to select a different action. (COBRA `#concepts`.) `config check --print-defaults` does not follow this rule yet; `work queue --drop` became `--remove` in v6.0.0 (slice-89).
 19. Accept `--flag=value` and `--flag value`. (CLIG `#arguments-and-flags`; GNU-CLI, as `getopt_long` reads them.) itos follows this rule (slice-88): every built-in command reads its flags by one spec, `internal/cli/spec.go`.
 20. Refuse an unknown flag, and a flag with no value, with exit 2. (CLIG `#robustness-guidelines`.) itos follows this rule (slice-88), and also refuses a switch given a value and a once-only flag given twice.
 21. Give an option-argument to its option only. Never read it as a global flag. (POSIX guidelines 6 and 14.) itos follows this rule (slice-88): `task list --group --json` is a `--group` with no value, exit 2.
@@ -111,7 +111,7 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 Some commands are not for people. Another program calls them: git calls the hook commands, Claude Code calls the guard, and the shim runs when a program calls `git`.
 
 39. An entry point uses the protocol of the program that calls it. It does not use the itos contract when the two do not agree. For example, Claude Code reads exit 2 as "block", so the guard never exits 2.
-40. An entry point for one program does not share a group with entry points for a different program. Name its group for its function and the program that it serves. (CLIG `#subcommands`.) Now `itos hook` holds git's two hooks and Claude Code's guard.
+40. An entry point for one program does not share a group with entry points for a different program. Name its group for its function and the program that it serves. (CLIG `#subcommands`.) itos follows this rule (slice-89): Claude Code's guard is `itos guard claude-code`, and `itos hook` holds git's two hooks and `hook install`, which writes their shims.
 41. The output of the guard follows the Claude Code schema exactly, with no extra keys. Claude Code can refuse keys it does not know. The guard output is not part of the itos contract, so `previous-release` does not judge it. This tree's corpus and `features/guard.feature` still test it.
 
 ### Changing the interface
@@ -123,23 +123,18 @@ Some commands are not for people. Another program calls them: git calls the hook
 
 Each row is a gap that the 2026-10-06 review found and reproduced. The rule number links each gap to its rule.
 
-| Rule | What itos does now                                                                | Example                                                   |
-| ---- | --------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| 3, 6 | `ask` is an everyday verb. A request to ask someone else gets logged as an `ask`. | "I need to ask someone this"                              |
-| 4, 5 | `hook` (entry points) and `hooks` (a command for people) differ by one letter.    | `itos hook commit-msg`, `itos hooks install`              |
-| 12   | An unknown topic exits 0.                                                         | `itos help nosuch`                                        |
-| 13   | A group with no subcommand says that the group is unknown.                        | `itos hook`                                               |
-| 17   | `--as` names a person in some commands and an ID in another.                      | `work promote <idea> --as <id>`                           |
-| 18   | A flag selects a different action.                                                | `work queue <id> --drop`, `config check --print-defaults` |
-| 19   | `--flag=value` is dropped with exit 0.                                            | `task list --group=foo` lists every task                  |
-| 20   | Some commands ignore an unknown flag and exit 0.                                  | `version --bogus`, `ci plan A B --bogus`                  |
-| 21   | A flag's value is read as a global flag.                                          | `task list --group --json`                                |
-| 25   | A bad ref passes.                                                                 | `ci plan nosuchref HEAD` exits 0                          |
-| 27   | JSON with no `--json`.                                                            | `config get` of a mapping                                 |
-| 29   | `--json` prints nothing for a usage error or an unexpected error.                 | `itos --json verify nosuchref HEAD`                       |
-| 32   | Error lines with no `itos:` prefix, or a raw command line.                        | `itos: Command failed: git rev-list …`                    |
-| 33   | The help and the code do not agree.                                               | `itos task nope` exits 2; the help says 1                 |
-| 40   | `itos hook` holds the Claude Code guard.                                          | `itos hook pre-tool-use`                                  |
+| Rule | What itos does now                                                | Example                                   |
+| ---- | ----------------------------------------------------------------- | ----------------------------------------- |
+| 13   | A group with no subcommand says that the group is unknown.        | `itos hook`                               |
+| 18   | A flag selects a different action.                                | `config check --print-defaults`           |
+| 19   | `--flag=value` is dropped with exit 0.                            | `task list --group=foo` lists every task  |
+| 20   | Some commands ignore an unknown flag and exit 0.                  | `version --bogus`, `ci plan A B --bogus`  |
+| 21   | A flag's value is read as a global flag.                          | `task list --group --json`                |
+| 25   | A bad ref passes.                                                 | `ci plan nosuchref HEAD` exits 0          |
+| 27   | JSON with no `--json`.                                            | `config get` of a mapping                 |
+| 29   | `--json` prints nothing for a usage error or an unexpected error. | `itos --json verify nosuchref HEAD`       |
+| 32   | Error lines with no `itos:` prefix, or a raw command line.        | `itos: Command failed: git rev-list …`    |
+| 33   | The help and the code do not agree.                               | `itos task nope` exits 2; the help says 1 |
 
 ## Decided for v6.0.0
 

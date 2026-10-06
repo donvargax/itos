@@ -5170,3 +5170,16 @@ items:
       command the parse (values by name, the positional words) would leave one reader.
       readCommitFlags stays, since git commit reaches it through the shim unparsed.
     refs: [internal/cli/spec.go]
+
+  - id: p1-unknown-command-help
+    title: itos <command> --help of no command exits 2, as itos help <command> does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice-89's agent (2026-10-06): slice 89 made itos help nosuch exit 2 (@ID-CLI-06),
+      but itos nosuch --help still prints the main help and exits 0 (help.yaml's case an unknown
+      command's help is itos's). Rule 12 of docs/CLI.md asks exit 2 for an unknown command either
+      way; the case is a breaking change of its own.

@@ -617,7 +617,7 @@
     the list @ID-GUIDE-05 promises, a breaking change for a paragraph.
   done_when:
     - run: grep -q '^## Decisions$' internal/guide/coordinate.md
-    - run: grep -q 'ask record' internal/guide/coordinate.md
+    - run: grep -q 'question record' internal/guide/coordinate.md
 
 - id: T-087
   type: test

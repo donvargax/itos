@@ -89,19 +89,22 @@ list` lists every item with its title, done ones too, and `itos work show
   it has landed (its scenarios live, its commits pushed, its CI run green),
   and `itos work add <id>` and `itos work edit <id>` make an item and change
   one, each editing the registry in place and committing it alone.
-- **Questions to the user**: `itos ask add <text> [--item <id>]` asks the
-  person the work is for a question, `q-1`, `q-2` and so on, `itos ask answer
-<id> <text>` keeps the answer beside it, `itos ask` lists the open ones and
-  `itos ask show <id>` prints one. They are public: `asks.yaml` beside the
-  work registry, each change committed alone, and `itos work show <id>` lists
-  the questions naming the item.
-- **Follow-ups with people**: `itos follow add <id> --with <who> --title …
---note …` opens a thread, `itos follow note <id> <text>` appends a dated
-  note, `itos follow close <id>` closes it, `itos follow` lists the open
-  ones, `itos follow show <id>` prints one whole and `itos follow doc <id>
-<path>` writes it out as Markdown. The threads are yours alone, in the git
-  folder (`follow-ups.yaml` under `git rev-parse --git-common-dir`/itos),
-  never committed and shared by every worktree; no config is needed.
+- **Questions to the user**: `itos question add <text> [--item <id>]` asks
+  the person the work is for a question, `q-1`, `q-2` and so on,
+  `itos question answer <id> <text>` keeps the answer beside it,
+  `itos question` lists the open ones and `itos question show <id>` prints
+  one. They are public: `asks.yaml` beside the work registry, each change
+  committed alone, and `itos work show <id>` lists the questions naming the
+  item.
+- **Follow-ups with people**:
+  `itos followup add <id> --with <who> --title … --note …` opens a thread,
+  `itos followup note <id> <text>` appends a dated note,
+  `itos followup close <id>` closes it, `itos followup` lists the open ones,
+  `itos followup show <id>` prints one whole and
+  `itos followup doc <id> <path>` writes it out as Markdown. The threads are
+  yours alone, in the git folder (`follow-ups.yaml` under
+  `git rev-parse --git-common-dir`/itos), never committed and shared by
+  every worktree; no config is needed.
 
 `tools/bin/itos --help` lists the commands, and `itos <command> --help` each
 one. A command itos does not have runs `itos-<command>` from the `PATH`, so
@@ -204,7 +207,7 @@ names where releases come from (`<base>/download/v<version>/<asset>`,
 `https://github.com/donvargax/itos/releases` by default) and `ITOS_CACHE` the
 cache (`itos/` in your user cache folder by default).
 
-From v4.0.0 the hooks `itos hooks install` writes call `itos`, this launcher,
+From v4.0.0 the hooks `itos hook install` writes call `itos`, this launcher,
 unless the config sets `hooks.bin` (internal and unsupported, for a repository
 that must run its own build, as this one sets `tools/bin/itos`), so every
 machine that commits, and CI, needs it on the `PATH`.
@@ -244,7 +247,7 @@ names, and an empty work registry, `tasks/work-items.yaml`; and when
 need and a smoke set, `features/smoke.yaml`, naming one live scenario of each
 file. A file already there is kept. It pins the newest release, as `itos pin`
 does (where it cannot reach the release server it pins nothing and says so),
-then installs the hooks, as `itos hooks install` does. Commit what it wrote
+then installs the hooks, as `itos hook install` does. Commit what it wrote
 with `itos commit --task T-1 -m 'chore: adopt itos'`, and grow the config from
 there: more path scopes, a CI plan, the people. Run again where a config is, it
 writes nothing and lists what is missing (what `itos config check` finds, a
@@ -347,15 +350,15 @@ releases; to have a build of your own answer, put it first on your `PATH`.
   which refuses `--all`) and `itos task list --json`, asked at the start of
   the session and of each turn; with no itos that answers, from
   `tasks/work-items.yaml`.
-- **A guard.** A `PreToolUse` hook on Bash runs `itos hook pre-tool-use`, which
+- **A guard.** A `PreToolUse` hook on Bash runs `itos guard claude-code`, which
   denies an agent's `git commit` or `git push`, its reason naming
   `itos commit --task <id>` (or `--scenarios <ids>`) or `itos push`, so the
   agent commits with the footers and pushes without forcing. Everything else
   gets no answer, so your own permission rules still decide. It reads the
   command as bash does, so `git -C . commit` and `make && git push` are
   caught; `sh -c '…'`, `eval` and scripts are not looked into, and the hooks
-  stay the gates. Under a pin older than v2.3.0 the launcher answers for the
-  hook with nothing; with no itos on the `PATH` the plugin answers nothing.
+  stay the gates. Under a pin older than v6.0.0 the launcher answers for the
+  guard with nothing; with no itos on the `PATH` the plugin answers nothing.
 
 How to work with itos is not the plugin's: it is itos's own guides, versioned
 with the binary, `itos go` for the session you talk to and `itos guide work` for
@@ -369,7 +372,7 @@ only the guard, without the plugin, put the hook in `.claude/settings.json`:
 {
 	"hooks": {
 		"PreToolUse": [
-			{ "matcher": "Bash", "hooks": [{ "type": "command", "command": "itos hook pre-tool-use" }] }
+			{ "matcher": "Bash", "hooks": [{ "type": "command", "command": "itos guard claude-code" }] }
 		]
 	}
 }
@@ -434,7 +437,7 @@ itos config check
 ```
 
 A global install runs the newest release for such a config unless it pins one
-(`pin`, above). `itos hooks install` then declares itos's hooks in the
+(`pin`, above). `itos hook install` then declares itos's hooks in the
 repository's own `.git/config`, which git never commits:
 
 ```ini
@@ -450,11 +453,11 @@ push adds and you have no CI of the project's to judge them. Git
 `core.hooksPath` or `.git/hooks`, so the project's hooks and settings stay as
 they are, both run on every commit, and a hook manager that resets
 `core.hooksPath` cannot remove itos's. Running it again changes nothing. An
-older git, which does not run them, makes `hooks install` say so and exit 3;
+older git, which does not run them, makes `hook install` say so and exit 3;
 `--manager git` still writes shims into `.git/hooks` where the project sets no
-`core.hooksPath`. If an earlier `hooks install` wrote those shims, delete
+`core.hooksPath`. If an earlier `hook install` wrote those shims, delete
 them, or the hooks run twice; if your config named another `hooks.bin`, run
-`itos hooks install` again so its hooks call `itos`.
+`itos hook install` again so its hooks call `itos`.
 
 A footer in a commit message is what everyone reads, so here the links, the
 footers naming tasks and scenarios, live in git notes instead: commit with

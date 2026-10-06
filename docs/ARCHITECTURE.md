@@ -141,7 +141,7 @@ history (`vp run changelog`), and the decisions behind it are records in
   `process.run` and `fs.read`; a repository there ships an executable
   `tools/bin/itos` and a `hooks.bin` script, each answering titles of its own,
   and the tests prove only `itos` starts. The command hook is `PreToolUse` on
-  Bash, `sh hooks/guard.sh`, which runs `itos hook pre-tool-use` behind two
+  Bash, `sh hooks/guard.sh`, which runs `itos guard claude-code` behind two
   shell guards: no `itos` on the `PATH` answers nothing, and an exit code 2
   (an itos older than the guard, whose usage error Claude Code would take as
   a block) becomes 1, which Claude Code reports and lets the command run; the
@@ -342,7 +342,7 @@ boundary, the ID scheme, the tags, the smoke set, the moving rule.
 - **The guard's scenarios** (`guard_test.go`, `guard.feature`): the steps
   write Claude Code's PreToolUse input themselves, as its documentation
   shows it (`session_id`, `cwd`, `hook_event_name`, `tool_name`,
-  `tool_input`, `tool_use_id`), and run `itos hook pre-tool-use` in the
+  `tool_input`, `tool_use_id`), and run `itos guard claude-code` in the
   folder the input names, with the input on stdin (`runWith`, which `run`
   calls with none). A deny is read as Claude Code reads it, stdout's JSON;
   "writes nothing" is an empty stdout. The repository with no itos config is
@@ -582,9 +582,9 @@ mechanisms above, written against those modules, read across.
   below), `internal/work` (the registry and its problems, the items'
   statuses, the proposal, the edits that take, promote, close, add,
   change and drop an item, and the item as work show prints it;
-  below), `internal/follow` (itos follow's threads; below), `internal/ask`
-  (itos ask's questions; below), `internal/adr` (the decision records itos
-  ask record writes; below), `internal/nextid` (the next free ID of a
+  below), `internal/follow` (itos followup's threads; below), `internal/ask`
+  (the questions of itos question; below), `internal/adr` (the decision
+  records itos question record writes; below), `internal/nextid` (the next free ID of a
   series; below), `internal/guide` (the guides itos go and
   itos guide print; below), `internal/lock`
   (the lock file a writer of shared data holds; below),
@@ -640,9 +640,10 @@ mechanisms above, written against those modules, read across.
   failure is one line on stderr and exit 3 (`cli.ExitMissing`), and nothing
   runs. `run` is `syscall.Exec` on unix, so the version run owns the
   process, its signals and its exit code, and a child whose exit code is
-  passed back elsewhere. Before `ensure`, `unguarded` catches `hook
-pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
-  `cli.GuardSince` (`pretooluse.go`, the first itos with the guard), by any
+  passed back elsewhere. Before `ensure`, `unguarded` catches `guard
+claude-code` (`cli.Parse`'s rest) chosen for a version older than
+  `cli.GuardSince` (`guard.go`, 6.0.0, the first itos with that name; hook
+  pre-tool-use before it), by any
   of `choose`'s branches: `answerNothing` reads stdin to its end (not a
   terminal's), says why in one stderr line and the run exits 0 with nothing
   on stdout, fetching nothing (slice 44); an `ITOS_VERSION` that is no
@@ -746,7 +747,7 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   the list has no test at all (no scenario carries an ID tag, slice 50), it
   writes the config again with `starter.untagged`, whose `Scenarios` footer
   is required of no type, and says how to tag one. Then
-  `hooksInstall`, as `hooks install` runs, its exit code init's; under
+  `hookInstall`, as `hook install` runs, its exit code init's; under
   `--json` its object is captured and nested as `hooks`, its keys in the
   order it wrote them. `--stealth` puts the config at
   `<git common dir>/itos/itos.yaml` and its files beside it, and
@@ -837,6 +838,14 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   commit a rewritten history dropped) before it uses it. The help is written
   by hand; `TestUsageFlagsAreInTheSpecs` holds every flag a usage line names
   to the spec.
+- **Renamed names** (`internal/cli/renamed.go`, slice 89, decision 36): the
+  commands and flags v6.0.0 renamed, each with the one line that names its
+  replacement, exit 2. `cli.Main` checks the command path
+  (`renamedCommand`) before the help, so `itos ask --help` and
+  `itos help ask` say it too; `readLine` checks a flag its spec lacks
+  (`renamedFlag`) before calling it unknown; and `builtin` counts an old
+  command's name, so it never reaches an `itos-<name>` extension. Nothing
+  else keeps an old name working; the file goes with p1-drop-compat-code.
 - **Extensions** (`internal/cli/extension.go`, slice 29): a command itos
   does not have runs `itos-<command>` from the `PATH`, as git runs
   `git-<command>`. `cli.Parse` reads the arguments for both `cli.Main` and
@@ -847,7 +856,8 @@ pre-tool-use` (`cli.Parse`'s rest) chosen for a version older than
   it is `ParseGlobals` as before, global flags anywhere, so a command that
   is neither built in nor found is still `unknown command` and
   `itos bogus --help` still the main help. `extensionPath` refuses a
-  built-in (`builtin`: the command table and `help`, which always win), a
+  built-in (`builtin`: the command table, `help` and the names v6.0.0
+  renamed, which always win), a
   name that is empty, starts with `-` or holds a path separator, so nothing
   but the `PATH` is searched, and takes `exec.LookPath`'s answer, which
   skips relative `PATH` folders (`exec.ErrDot`). After `applyGlobals` (the
@@ -1043,9 +1053,10 @@ watch <sha>`, exit 0, with no provider made; a push that made the branch
   `pathStanding` places the folder and `git.Real`'s folder among the `PATH`'s
   by `os.SameFile`. The launcher's `binaryCommand` leaves both to the binary
   called, so a pin never links a cached version (and `pin`, slice 47, above).
-- **The guard** (`internal/guard`, `internal/cli/pretooluse.go`, slice 42):
-  `hook pre-tool-use` is dispatched with git's two hooks, and
-  `hookPreToolUse` never returns an error, since `failure` would make it a
+- **The guard** (`internal/guard`, `internal/cli/guard.go`, slice 42):
+  `guard claude-code` is a group of its own, apart from git's two hooks
+  (slice 89; `hook pre-tool-use` before v6.0.0), and
+  `guardClaudeCode` never returns an error, since `failure` would make it a
   usage error's exit 2, which Claude Code takes as a block: an input
   `guard.Read` refuses (not one JSON object, no string `tool_name`, a Bash
   input with no string `command`) is one stderr line and exit 1. The folder
@@ -1128,7 +1139,7 @@ watch <sha>`, exit 0, with no provider made; a push that made the branch
   was found, so the absolute `ITOS_CONFIG` an extension is given reads the
   same files when it calls back. `Load` marks it `Stealth`, lays its own
   defaults over the file (`stealthOnly`, slice 35: `hooks.bin` is `itos`, the
-  global launcher, so the hooks `hooks install` declares call it, and there
+  global launcher, so the hooks `hook install` declares call it, and there
   is no `work.people`, the person being the only one; `work` with no `--as`
   asks no identity provider and gives the session every item, slice 38,
   below), and `beside`
@@ -1768,7 +1779,7 @@ add`ed so `--only` can name it, git add's words and the commit's on
   pins `TZ` to the stored stamps' offset. The command line reads the clock
   in `followNow` alone and hands each change its time, and no case reads it
   (a case of add, note or close pins what it prints, never the file).
-  `follow doc` writes `follow.Markdown` where the person typed (`typed`),
+  `followup doc` writes `follow.Markdown` where the person typed (`typed`),
   0600 in folders made 0700, refuses a file already there without
   `--force`, and records the absolute path in the thread's `docs`; when
   `git check-ignore` exits 1 for the typed path (in the work tree, not
@@ -1820,8 +1831,8 @@ add`ed so `--only` can name it, git add's words and the commit's on
   commit holds (`decision-file-uncommitted`, `decision-index-uncommitted`);
   the folders made for the record are removed again when the write fails
   (`madeDirs`, `unmake`). A question answered with no decision is
-  `Unrecorded`, and `ask` ends with one line naming each as
-  `itos ask record <id>`.
+  `Unrecorded`, and `question` ends with one line naming each as
+  `itos question record <id>`.
   `config check` holds the folder to two rules (slice 74, `adr.Problems`,
   area `decisions`): no two records share a number
   (`decisions-number-twice`, naming both files), and a status
@@ -1830,7 +1841,7 @@ add`ed so `--only` can name it, git add's words and the commit's on
   `adr.List` reads the folder through `internal/source`, so the commit-msg
   hook, whose `stagesData` counts a staged record or index in the folder as
   itos's data, judges the records as staged; a folder that is not there
-  holds none. The index is not held to the folder: `ask record` writes it
+  holds none. The index is not held to the folder: `question record` writes it
   whole at every record, and nothing regenerates it on demand.
 - **go and guide** (slice 64, `internal/cli/guide.go` over `internal/guide`)
   print the guides a session starts from, Markdown files beside the package
@@ -1849,7 +1860,7 @@ add`ed so `--only` can name it, git add's words and the commit's on
   failure: the guide is what a session starts from. They write nothing.
   `itos go` alone then prints this clone's own notes (slice 68,
   `localNotes`): `notes.md` in itos's folder of the git common dir
-  (`git rev-parse --git-common-dir`, as itos follow's threads are found),
+  (`git rev-parse --git-common-dir`, as itos followup's threads are found),
   which git never commits and every linked worktree shares, for what holds
   on this machine only. They follow the repository's notes after another
   `---`, under `# This clone's own notes` and a line saying they are
@@ -1923,17 +1934,17 @@ add`ed so `--only` can name it, git add's words and the commit's on
   Windows (`flock` is not on Windows), retrying with a growing pause up to
   `lock.Wait` (10 s) and then failing with an error that names the lock file
   and says to remove it when no itos runs; `Release` removes it. It is held
-  from before the read to after the write, around itos follow's threads
+  from before the read to after the write, around itos followup's threads
   (`heldThreads`) and, under a stealth config, around the registry, which
   every registry and ledger writer reads in `soundRegistry` and writes, and
-  around itos ask's questions beside it (`heldAsks`):
+  around the questions of itos question beside it (`heldAsks`):
   those files are in the git common dir, shared by every worktree, and the
   lock is `<registry>.lock` beside them. `work done` gives it back while it
   runs the task's checks and asks CI, and takes it again to make its change
   on the registry as it then is. A project's registry takes none: its writes
   are commits.
 - **The hooks** are `hook commit-msg`, `hook pre-push`
-  (`internal/cli/hook.go`) and `hooks install` (`internal/cli/install.go`),
+  (`internal/cli/hook.go`) and `hook install` (`internal/cli/install.go`),
   `hooks.ts` with `commit-data.ts`, `commit-scope.ts`, `commit-tasks.ts` and
   `pre-push.ts`. `hook commit-msg` is four rules in the TypeScript's order,
   the first to fail deciding, each a call to the judgement its own command
@@ -2107,7 +2118,7 @@ itos`, before any other step calls it. `tools/selftest/go-dogfood.ts`
 ## The gates and CI
 
 - **The hooks** (`.vite-hooks/`): `commit-msg` and `pre-push` are one-line
-  shims `itos hooks install` writes for the manager `hooks.manager` names
+  shims `itos hook install` writes for the manager `hooks.manager` names
   (over the one its markers show), calling `itos hook commit-msg` and
   `itos hook pre-push`; `pre-commit` is the project's own. `vp config`
   (`prepare`, on `vp install`) points git at the folder.
