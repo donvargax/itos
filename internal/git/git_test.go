@@ -29,7 +29,9 @@ func TestPaths(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "blob"), []byte("text\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	blob := gitIn(t, dir, "hash-object", "-w", "blob")
+	// No line-ending conversion, so that git for windows warns of none,
+	// which gitIn would read into the blob's name.
+	blob := gitIn(t, dir, "-c", "core.autocrlf=false", "hash-object", "-w", "--no-filters", "blob")
 	for _, n := range names {
 		gitIn(t, dir, "update-index", "--add", "--cacheinfo", "100644,"+blob+","+n)
 	}
