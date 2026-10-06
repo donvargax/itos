@@ -129,3 +129,34 @@ Feature: The commit-msg hook
     Given a change to "docs/é.md" is staged
     When the commit-msg hook checks the message "docs: say it in French"
     Then itos exits with code 0
+
+  # Bug 32 (found by the code review of 07b0e6d). The commit-msg hook read
+  # the staged paths with git's rename detection on, so a rename listed only
+  # its new path: git mv of code into docs/ passed a docs commit. Its
+  # --diff-filter=ACMRD also left out T, a path whose type changed (a file
+  # made a symlink), which verify, reading diff-tree, saw. Every list of
+  # changed paths is read with --no-renames and every change type, so a
+  # rename is its old path's deletion and its new path's addition. The
+  # symlink is staged in the index alone (git update-index), so no
+  # filesystem link is needed on Windows.
+  @ID-CMSG-12 @bug-32 @wip
+  Scenario: A docs commit that renames code into docs/ is refused, naming the old path
+    Given "src/app.js" is committed
+    And "src/app.js" is staged renamed to "docs/app.md"
+    When the commit-msg hook checks the message "docs: move the app into the docs"
+    Then itos exits with code 1
+    And its output says "src/app.js"
+
+  @ID-CMSG-13 @bug-32 @wip
+  Scenario: A never rule refuses a path whose type changed
+    Given the config's chore commits may never touch "src/**" except "src/themes/**"
+    And "src/app.js" is committed
+    And "src/app.js" is staged as a symlink
+    When the commit-msg hook checks the message:
+      """
+      chore: link the app
+
+      Task: T-001
+      """
+    Then itos exits with code 1
+    And its output says "src/app.js"

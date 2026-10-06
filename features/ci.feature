@@ -234,3 +234,19 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     When itos plans CI over the commits after the first
     Then itos exits with code 0
     And its output says "echo late" before "echo static"
+
+  # Bug 32 (found by the code review of 07b0e6d). CI's plan read the
+  # range's changed paths with rename detection on, so a commit moving code
+  # into docs/ listed only its new path, made the range prose-only, and the
+  # build and the tests were skipped. The plan reads them with --no-renames
+  # and every change type, as the commit-msg hook does.
+  @ID-CI-17 @bug-32 @wip
+  Scenario: A range that renames code into docs/ is not prose-only
+    Given "src/app.js" is in the first commit
+    And the CI steps are "echo full"
+    And the prose paths are "docs/**" and the prose steps are "echo prose"
+    And the commit "docs: move the app" renaming "src/app.js" to "docs/app.md" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And its output says "echo full"
+    And its output does not say "echo prose"
