@@ -5006,3 +5006,22 @@ items:
       to run in the background, or waits only on a terminal. The exit of ORCHESTRATING.md's
       wait-loop lesson.
     refs: [internal/cli/push.go, internal/cli/watch.go]
+
+  - id: p1-agent-rules-as-data
+    title: The coordinator's and the implementing agent's rules are itos data, each with its exit and dates
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-06). Lessons grew as prose in AGENTS.md and ORCHESTRATING.md, read by
+      every agent for every task, with nothing to retire them; failures of the best model available,
+      but each fixed in prose with no exit. Rules become data (one file, a role field: coordinator
+      or implementer; id, text, why, exit: a registry item or permanent, recorded and last-seen
+      dates), managed by a noun group itos rule (add, seen, list) per docs/CLI.md. A check flags a
+      rule whose exit item is done, and caps each role's count. itos go prints the coordinator's
+      rules and itos guide work the implementer's, so each role reads only its own. For every
+      project itos manages, not only this one. ORCHESTRATING.md's dated lessons (2026-10-06) are its
+      first data.
+    refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
