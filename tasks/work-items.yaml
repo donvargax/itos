@@ -4079,3 +4079,19 @@ items:
     why: >
       Issue #13. Specified as @ID-CI-16 in features/ci.feature.
     refs: [features/ci.feature, internal/plan]
+
+  - id: bug-30
+    title: A header commitlint ignores is judged by the rules all the same
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). Revert "x", Merge, fixup!, squash!, amend!,
+      Reapply and a bare version give Type() a word outside commits.types, so no scope, no required
+      footer and no moves rule applies, in the hook and in verify, and verify's --no-merges leaves a
+      merge's own changes unjudged. The user's call: Revert "x" is judged as revert,
+      fixup!/squash!/amend! as the type of the header they name, and a merge commit's own changes as
+      its first line's type, else refused. Its @bug-30 scenario is written before it is handed out.
+    refs: [internal/message/footers.go, internal/message/ignore.go, internal/cli/verify.go]
