@@ -216,3 +216,22 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     When itos runs CI over the commits after the first
     Then itos exits with code 0
     And its output says "since " with the first commit's full SHA
+
+  # Slice 84 (issue #13; the user's call, 2026-10-05). ci run sorts its
+  # steps by cost class, static before late, so a repository whose previous
+  # CI ran its steps in a chosen order could keep it only by calling every
+  # command static, which empties the cost class of meaning for the hook and
+  # the nightly. ci.keep_step_order: true runs ci.steps as written, then the
+  # named tasks' checks in their ledger order, instead of sorting by cost;
+  # the cost class still decides what the hook and the nightly's static step
+  # run. A named task's check that should run on a prose-only range says
+  # prose: true, as it can already.
+  @ID-CI-16 @slice-84 @wip
+  Scenario: With ci.keep_step_order, ci plan lists the steps as written, a late one before a static one
+    Given ci.cost.static is "^echo static$"
+    And ci.keep_step_order is true
+    And the CI steps are "echo late", then "echo static"
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos plans CI over the commits after the first
+    Then itos exits with code 0
+    And its output says "echo late" before "echo static"
