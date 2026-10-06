@@ -4137,7 +4137,7 @@ items:
     title: work done writes the registry it read before waiting
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
