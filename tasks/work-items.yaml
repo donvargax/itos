@@ -4821,3 +4821,21 @@ items:
       (itos init offers it, slice 50) cannot run the suite. The features and the unit tests should
       resolve git past any itos shim, as itos itself does since bug 45.
     refs: [features/steps_test.go, internal/shim]
+
+  - id: p1-empty-start-ci-red
+    title: An empty-start CI run of this repository cannot go green
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found with bug-33 (2026-10-06). With an empty FROM the workflow's own itos verify "" HEAD
+      fails: 17 commits after commits.since break rules tightened since they landed (refactors
+      touching tools/bin, tests without footers), and T-017's done check, the same verify, is red at
+      HEAD. The plan's plugin-version step then refuses an empty -range-from
+      (p3-plugin-release-tags). Since bug-33 such a run also plans 92 tasks and 178 task checks,
+      none of which it reaches. A green start within ci range's bound hides this; with none, every
+      run stays red until a person decides: waive the commits (p3-human-waiver), move commits.since,
+      or let verify and plugin-version read an empty start differently.
+    refs: [.github/workflows/ci.yml, tools/bin/plugin-version/main.go, tasks/phase-1.yaml]
