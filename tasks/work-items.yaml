@@ -5024,4 +5024,16 @@ items:
       rules and itos guide work the implementer's, so each role reads only its own. For every
       project itos manages, not only this one. ORCHESTRATING.md's dated lessons (2026-10-06) are its
       first data.
+
+      Scope agreed with the user (2026-10-06). One command group for both roles: itos rule add
+      --role coordinator|implementer (a rule for both lists both; a rule with no role is refused);
+      the role decides where a rule is printed (itos go for the coordinator, itos guide work for the
+      implementer), rule list filters by --role, and the cap counts per role. Also in this item: (1)
+      AGENTS.md, which the harness loads for every session whatever its role, shrinks to the
+      generated gates block, the permanent policies and one line sending each role to its own rules,
+      else the separation leaks there; (2) a rule may carry a scope (item kind, commit type, path
+      globs matched against the item's refs), and itos guide work <item> prints only the rules that
+      match, so briefs shrink to the item; (3) a defined moment for sightings: the coordinator's
+      check of a result marks the rules it saw broken (itos rule seen <id>), and the brief's report
+      asks the agent which rules it needed or broke.
     refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
