@@ -29,13 +29,20 @@ const REGISTRY = `items:
     title: itos work list
 `;
 
+// What a repository ships to answer in itos's place: an executable
+// tools/bin/itos at its top, and a hooks.bin naming a script of its own. Each
+// answers with titles of its own, so a reply drawn with them would show it ran.
+const SHIPPED_TOOLS = `${ROOT}/tools/bin/itos`;
+const SHIPPED_HOOKS_BIN = `${ROOT}/.tools/bin/itos`;
+const SHIPPED_LIST = {
+	schema: 1,
+	items: [{ id: "T-066", title: "From a program the repository ships" }],
+};
+
 type World = {
 	root?: string; // the session's root; ROOT when absent
-	top?: string; // what git rev-parse --show-toplevel prints; absent: not a repository
-	pathItos?: "answers" | "too old"; // the itos on the PATH: v2.4.0 or later, or older; absent: none
-	hooksBin?: string; // what itos config get hooks.bin prints
-	executables?: string[]; // the paths test -x passes, the only ones that start
-	onPath?: string[]; // commands on the PATH besides itos
+	pathItos?: boolean; // whether an itos is on the PATH
+	shipped?: boolean; // whether the repository ships SHIPPED_TOOLS and SHIPPED_HOOKS_BIN
 	itos?: Record<string, unknown>; // stdout JSON by "work list --all", "work list" or "task list"
 	registry?: string;
 	runs: string[][]; // every argv run, in order
@@ -47,37 +54,38 @@ const ok = (stdout: string, exitCode = 0) => ({
 });
 type Answer = ReturnType<typeof ok>;
 
-// Whether a program starts: the itos on the PATH, an executable path, another command.
-const found = (w: World, program: string) =>
-	program === "itos"
-		? !!w.pathItos
-		: [...(w.executables ?? []), ...(w.onPath ?? [])].includes(program);
+// The itos command in an argv: the words between the program and --json.
+const command = (argv: readonly string[]) => argv.slice(1, -1).join(" ");
 
-// itos config get hooks.bin: the value, or an older itos's usage error.
-const configGet = (w: World) => (w.pathItos === "answers" ? ok(`${w.hooksBin}\n`) : ok("", 2));
-
-// Where the itos command starts in an argv, after the words that start itos.
-const commandAt = (argv: readonly string[]) =>
-	argv.findIndex((word) => word === "work" || word === "task");
-
-// itos work list [--all] or task list, by the words between the program and
-// --json; one World.itos does not answer is refused as a usage error, exit 2,
-// as an itos older than slice 77 refuses work list --all.
+// itos work list [--all] or task list; one World.itos does not answer is
+// refused as a usage error, exit 2, as an itos older than slice 77 refuses
+// work list --all.
 function listed(w: World, argv: readonly string[]): Answer {
-	const answer = w.itos?.[argv.slice(commandAt(argv), -1).join(" ")];
+	const answer = w.itos?.[command(argv)];
 	return answer === undefined ? ok("", 2) : ok(JSON.stringify(answer));
 }
 
-function itosRun(w: World, argv: readonly string[]): Answer {
-	if (!found(w, argv[0]!)) throw new Error(`${argv[0]}: not found`);
-	return argv[1] === "config" ? configGet(w) : listed(w, argv);
-}
+// The itos on the PATH, were it asked for hooks.bin naming the repository's
+// own script, and its lists.
+const pathItosRun = (w: World, argv: readonly string[]) =>
+	argv[1] === "config" ? ok(".tools/bin/itos\n") : listed(w, argv);
 
-// The commands other than itos, by program.
-const COMMANDS: Record<string, (w: World, argv: readonly string[]) => Answer> = {
-	git: (w) => (w.top ? ok(`${w.top}\n`) : ok("", 128)),
-	test: (w, argv) => ok("", w.executables?.includes(argv[2]!) ? 0 : 1),
+// Every program the session could start, by name: the itos on the PATH, the
+// repository's top from git, test -x passing each shipped path, and the
+// shipped programs themselves; anything else, or one absent, does not start.
+const PROGRAMS: Record<string, (w: World, argv: readonly string[]) => Answer | undefined> = {
+	itos: (w, argv) => (w.pathItos ? pathItosRun(w, argv) : undefined),
+	git: () => ok(`${ROOT}\n`),
+	test: (w) => ok("", w.shipped ? 0 : 1),
+	[SHIPPED_TOOLS]: (w) => (w.shipped ? ok(JSON.stringify(SHIPPED_LIST)) : undefined),
+	[SHIPPED_HOOKS_BIN]: (w) => (w.shipped ? ok(JSON.stringify(SHIPPED_LIST)) : undefined),
 };
+
+function processRun(w: World, argv: readonly string[]): Answer {
+	const answer = PROGRAMS[argv[0]!]?.(w, argv);
+	if (!answer) throw new Error(`${argv[0]}: not found`);
+	return answer;
+}
 
 // The engine beneath the plugin: the session's root, its processes, its files,
 // and the bottoms of the events the plugin passes on.
@@ -87,7 +95,7 @@ function world(on: On, w: World): void {
 	on("process.run", async (_$, e) => {
 		w.runs.push([...e.argv]);
 		expect(e.init?.cwd).toBe(root);
-		return (COMMANDS[e.argv[0]!] ?? itosRun)(w, e.argv);
+		return processRun(w, e.argv);
 	});
 	on("fs.read", async (_$, e) => {
 		expect(e.path).toBe(`${root}/tasks/work-items.yaml`);
@@ -105,11 +113,8 @@ function world(on: On, w: World): void {
 // The itos commands asked for JSON (work list, task list), in order.
 const asked = (w: World) => w.runs.filter((argv) => argv.at(-1) === "--json");
 
-// The words that started them: the itos the resolution chose.
-const programs = (w: World) => asked(w).map((argv) => argv.slice(0, commandAt(argv)).join(" "));
-
-// An itos on the PATH that answers config get, its hooks.bin naming itself.
-const GLOBAL = { pathItos: "answers", hooksBin: "itos", top: ROOT } as const;
+// Every program started, in order.
+const programs = (w: World) => w.runs.map((argv) => argv[0]);
 
 const start = ($: Engine) =>
 	$.session.start({ cwd: ROOT, surface: "terminal", isInteractive: true });
@@ -122,16 +127,14 @@ const draw = ($: Engine, text: string) =>
 		props: { text, isFirstOfReply: true },
 	});
 
-test("the titles come from the project's itos: every registry item, then the ledger's tasks", async ($, on) => {
-	const w: World = {
-		...GLOBAL,
-		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
-		runs: [],
-		drawn: [],
-	};
+// An itos on the PATH that answers both lists.
+const ANSWERS = { pathItos: true, itos: { "work list --all": WORK_LIST, "task list": TASK_LIST } };
+
+test("the titles come from the itos on the PATH: every registry item, then the ledger's tasks", async ($, on) => {
+	const w: World = { ...ANSWERS, runs: [], drawn: [] };
 	world(on, w);
 	await start($);
-	expect(asked(w)).toEqual([
+	expect(w.runs).toEqual([
 		["itos", "work", "list", "--all", "--json"],
 		["itos", "task", "list", "--json"],
 	]);
@@ -143,7 +146,7 @@ test("the titles come from the project's itos: every registry item, then the led
 
 test("an itos older than slice 77, which refuses work list --all, is asked for plain work list", async ($, on) => {
 	const w: World = {
-		...GLOBAL,
+		pathItos: true,
 		itos: { "work list": WORK_LIST, "task list": TASK_LIST },
 		runs: [],
 		drawn: [],
@@ -159,12 +162,7 @@ test("an itos older than slice 77, which refuses work list --all, is asked for p
 });
 
 test("drawing runs nothing; the titles are asked for again at each turn's start", async ($, on) => {
-	const w: World = {
-		...GLOBAL,
-		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
-		runs: [],
-		drawn: [],
-	};
+	const w: World = { ...ANSWERS, runs: [], drawn: [] };
 	world(on, w);
 	await start($);
 	const ran = w.runs.length;
@@ -179,99 +177,30 @@ test("drawing runs nothing; the titles are asked for again at each turn's start"
 	expect(w.drawn.at(-1)).toBe("`T-066: Renamed`");
 });
 
-test("the itos the repository's hooks.bin names runs, a path read from the repository's top", async ($, on) => {
-	const w: World = {
-		...GLOBAL,
-		hooksBin: ".tools/bin/itos",
-		executables: [`${ROOT}/.tools/bin/itos`],
-		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
-		runs: [],
-		drawn: [],
-	};
+// T-097: a cloned repository's tools/bin/itos, or a script its hooks.bin
+// names, would run on every reply for anyone with the plugin enabled. Both are
+// there and executable, and the itos on the PATH would name the script if
+// asked for hooks.bin; only the itos on the PATH runs, never asked for it.
+test("a repository's executable tools/bin/itos and its hooks.bin never run: the itos on the PATH does", async ($, on) => {
+	const w: World = { ...ANSWERS, shipped: true, runs: [], drawn: [] };
 	world(on, w);
 	await start($);
-	expect(w.runs[0]).toEqual(["itos", "config", "get", "hooks.bin"]);
-	expect(programs(w)).toEqual([`${ROOT}/.tools/bin/itos`, `${ROOT}/.tools/bin/itos`]);
+	await $.turn.start({ text: "next", turnId: "t2" });
+	expect(new Set(programs(w))).toEqual(new Set(["itos"]));
+	expect(w.runs.filter((argv) => argv[1] === "config")).toEqual([]);
 	await draw($, "T-066");
 	expect(w.drawn).toEqual(["`T-066: The itos plugin for Claude Code`"]);
 });
 
-test("from a subfolder, a relative hooks.bin is resolved against the repository's top", async ($, on) => {
-	const w: World = {
-		...GLOBAL,
-		root: `${ROOT}/internal/cli`,
-		hooksBin: "tools/bin/itos",
-		executables: [`${ROOT}/tools/bin/itos`],
-		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
-		runs: [],
-		drawn: [],
-	};
+test("from a subfolder too, only the itos on the PATH runs, in the session's root", async ($, on) => {
+	const w: World = { ...ANSWERS, root: `${ROOT}/internal/cli`, shipped: true, runs: [], drawn: [] };
 	world(on, w);
 	await start($);
-	expect(programs(w)).toEqual([`${ROOT}/tools/bin/itos`, `${ROOT}/tools/bin/itos`]);
+	expect(new Set(programs(w))).toEqual(new Set(["itos"]));
 });
 
-test("a hooks.bin of several words starts with its first, the rest passed before the command", async ($, on) => {
-	const w: World = {
-		...GLOBAL,
-		hooksBin: "go run ./cmd/itos",
-		onPath: ["go"],
-		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
-		runs: [],
-		drawn: [],
-	};
-	world(on, w);
-	await start($);
-	expect(asked(w)[0]).toEqual(["go", "run", "./cmd/itos", "work", "list", "--all", "--json"]);
-});
-
-test("a hooks.bin path that is not executable is no answer: tools/bin/itos runs", async ($, on) => {
-	const w: World = {
-		...GLOBAL,
-		hooksBin: ".tools/bin/itos",
-		executables: [`${ROOT}/tools/bin/itos`],
-		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
-		runs: [],
-		drawn: [],
-	};
-	world(on, w);
-	await start($);
-	expect(programs(w)).toEqual([`${ROOT}/tools/bin/itos`, `${ROOT}/tools/bin/itos`]);
-});
-
-test("an itos older than v2.4.0, whose config get exits 2, is no answer: tools/bin/itos at the top runs", async ($, on) => {
-	const w: World = {
-		top: ROOT,
-		pathItos: "too old",
-		executables: [`${ROOT}/tools/bin/itos`],
-		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
-		runs: [],
-		drawn: [],
-	};
-	world(on, w);
-	await start($);
-	expect(programs(w)).toEqual([`${ROOT}/tools/bin/itos`, `${ROOT}/tools/bin/itos`]);
-	await draw($, "T-007");
-	expect(w.drawn).toEqual(["`T-007: The commit rules`"]);
-});
-
-test("with no itos on the PATH, tools/bin/itos at the top runs", async ($, on) => {
-	const w: World = {
-		top: ROOT,
-		executables: [`${ROOT}/tools/bin/itos`],
-		itos: { "work list --all": WORK_LIST, "task list": TASK_LIST },
-		runs: [],
-		drawn: [],
-	};
-	world(on, w);
-	await start($);
-	expect(programs(w)).toEqual([`${ROOT}/tools/bin/itos`, `${ROOT}/tools/bin/itos`]);
-	await draw($, "T-066");
-	expect(w.drawn).toEqual(["`T-066: The itos plugin for Claude Code`"]);
-});
-
-test("with neither itos nor tools/bin/itos, the itos on the PATH is tried and the registry file gives the titles", async ($, on) => {
-	const w: World = { top: ROOT, registry: REGISTRY, runs: [], drawn: [] };
+test("with no itos on the PATH, a repository's tools/bin/itos still never runs: the registry file gives the titles", async ($, on) => {
+	const w: World = { shipped: true, registry: REGISTRY, runs: [], drawn: [] };
 	world(on, w);
 	await start($);
 	expect(programs(w)).toEqual(["itos", "itos", "itos"]); // work list --all, task list, work list
@@ -281,8 +210,7 @@ test("with neither itos nor tools/bin/itos, the itos on the PATH is tried and th
 
 test("an itos older than v2.3.0, whose work list prints the proposal, reads as no itos for the items", async ($, on) => {
 	const w: World = {
-		top: ROOT,
-		pathItos: "too old",
+		pathItos: true,
 		itos: { "work list": PROPOSAL, "task list": TASK_LIST },
 		registry: REGISTRY,
 		runs: [],
