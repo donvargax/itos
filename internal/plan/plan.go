@@ -12,7 +12,12 @@
 //     (nothing at all selected): then it runs as itself.
 //   - A named task's check that is one of the steps this run runs, or that a
 //     ci.covers rule gives to one of them, is covered and not run again. A
-//     check in ci.nightly_only is left to the nightly.
+//     check in ci.nightly_only is left out of the push's run.
+//   - A named task's check marked `after: push` is pending: it means
+//     something only once the push has landed (a release, a tag, the run
+//     itself), so a push's run lists it, neither runs it nor counts it, and
+//     leaves it to `itos task` and `itos work done`. It is never merged or
+//     covered.
 //   - The run is in cost order: the static steps, the named tasks' static
 //     checks, the other steps, then the other checks (internal/check's cost
 //     classes and written order).
@@ -27,8 +32,8 @@
 // check in the order the run takes them, each step with its command and
 // cost (and the kind, for the one run of named tests), each check with its
 // task, its place in done_when, its cost and what the run does with it
-// (Action: run, merged into the kind's run, covered by a step, or left to
-// the nightly).
+// (Action: run, merged into the kind's run, covered by a step, left out by
+// ci.nightly_only, or pending until after the push).
 package plan
 
 import (
@@ -52,8 +57,11 @@ const (
 	Merged Action = "merged"
 	// Covered is a check one of the run's steps has done.
 	Covered Action = "covered"
-	// Nightly is a check a push leaves to the nightly (ci.nightly_only).
+	// Nightly is a check a push leaves out (ci.nightly_only).
 	Nightly Action = "nightly"
+	// Pending is a named task's after: push check in a push: it runs after
+	// the push, by itos task and itos work done, never in the push's run.
+	Pending Action = "pending"
 )
 
 // Step is one step of a run: its command, its cost, and Tests, the kind when
@@ -227,7 +235,7 @@ type merging struct {
 func runsOfKind(cfg *config.Loaded, checks []*Check, kind string, smoke []string) ([]merging, error) {
 	var found []merging
 	for _, c := range checks {
-		if c.Check.Run == nil {
+		if c.Action != Run || c.Check.Run == nil {
 			continue
 		}
 		selection, ok, err := tests.Recognize(cfg, kind, *c.Check.Run, smoke)
@@ -283,11 +291,12 @@ func leftToNightly(cfg *config.Loaded, command string) bool {
 	return false
 }
 
-// markDone gives each check with a run: command that is not merged the step
-// that did it, or, in a push, the nightly when it is the nightly's.
+// markDone gives each check with a run: command that the run would run the
+// step that did it, or, in a push, leaves it out when ci.nightly_only lists
+// it.
 func markDone(cfg *config.Loaded, checks []*Check, steps []string, nightly bool) error {
 	for _, c := range checks {
-		if c.Action == Merged || c.Check.Run == nil {
+		if c.Action != Run || c.Check.Run == nil {
 			continue
 		}
 		by, err := coveredBy(cfg, *c.Check.Run, steps)
@@ -355,6 +364,12 @@ func Make(cfg *config.Loaded, in Input) (*Plan, error) {
 			p.Checks = append(p.Checks, c)
 		} else {
 			p.LeftOut = append(p.LeftOut, c)
+		}
+	}
+	// An after: push check waits for the push whatever else would take it.
+	for _, c := range p.Checks {
+		if c.Check.Pushed() {
+			c.Action = Pending
 		}
 	}
 	kind, err := TestsKind(cfg)

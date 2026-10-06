@@ -102,7 +102,7 @@ files:
   gates.sh: "echo the gates self-test\n"
   run-smoke.sh: "echo the smoke run as itself\n"
 cases:
-  - name: a push's run, in cost order, with what it merged, covered and left to the nightly
+  - name: a push's run, in cost order, with what it merged, covered, left out and left pending
     argv: [ci, run, "{{sha.base}}", "{{sha.every}}"]
     exit: 0
     stdout: |
@@ -131,12 +131,13 @@ cases:
         = run-scenarios "@ID-A-02"   (in the scenario run above)
 
       T-010
-        = sh gates.sh   (runs in the nightly)
+        = sh gates.sh   (left out of push CI by ci.nightly_only)
 
       T-010
         $ false   (must fail)
 
       T-010
+        - echo only after the push   (pending: runs after the push)
 
       CI passed
   - name: a check recognized as the smoke run is in the run of named tests

@@ -27,8 +27,10 @@ Feature: Every command pattern reads hooks.bin as itos
     And the recording check did not run
     And its output says "ran above as"
 
+  # Bug 28 changed the line's words from "runs in the nightly": the nightly
+  # runs no named task's checks, so it says only that push CI leaves it out.
   @ID-BIN-02 @slice-20
-  Scenario: A ci.nightly_only entry written for itos leaves a check that starts with hooks.bin to the nightly
+  Scenario: A ci.nightly_only entry written for itos leaves a check that starts with hooks.bin out of push CI
     Given the CI steps are "exit 0"
     And ci.nightly_only is "itos work check"
     And the task "T-001" has the check "bin/itos work check"
@@ -36,7 +38,7 @@ Feature: Every command pattern reads hooks.bin as itos
     When itos runs CI over the commits after the first
     Then itos exits with code 0
     And the recording check did not run
-    And its output says "runs in the nightly"
+    And its output says "left out of push CI"
 
   # The smoke set lists a scenario, so the run of named tests happens and the
   # recognized check is merged into it rather than run.

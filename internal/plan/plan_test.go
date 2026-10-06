@@ -113,3 +113,44 @@ func TestMakeNightly(t *testing.T) {
 		t.Errorf("plan:\n%s\ntasks %v", got, p.Tasks)
 	}
 }
+
+// Bug 28: in a push, a named task's after: push check is pending, whatever
+// would otherwise merge it, cover it or leave it out, and the kind's run
+// takes no subset from it; the nightly runs it as any other.
+func TestMakePushPending(t *testing.T) {
+	pushed := ledger.Task{ID: "T-2", Title: "Two", DoneWhen: []ledger.Check{
+		{Run: text("quick pushed"), After: "push"},
+		{Run: text("e2e --grep '@ID-B-'"), After: "push"},
+		{Run: text("unit b.test.ts"), After: "push"},
+		{Run: text("slow"), After: "push"},
+		{Run: text("release check"), After: "push"},
+	}}
+	p, err := Make(load(t, scratch), Input{Known: true, Smoke: []string{"ID-S-01"}, Tasks: []ledger.Task{pushed}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `static  lint
+static  T-2: quick pushed   (pending: runs after the push)
+late  unit
+late  e2e --grep '@(?:ID-S-01)'
+late  T-2: e2e --grep '@ID-B-'   (pending: runs after the push)
+late  T-2: unit b.test.ts   (pending: runs after the push)
+late  T-2: slow   (pending: runs after the push)
+late  T-2: release check   (pending: runs after the push)
+`
+	if got := lines(p); got != want {
+		t.Errorf("plan:\n%s\nwant:\n%s", got, want)
+	}
+	nightly, err := Make(load(t, scratch), Input{Nightly: true, Tasks: []ledger.Task{pushed}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(nightly.Checks) != 1 {
+		t.Fatalf("the nightly plans %d checks", len(nightly.Checks))
+	}
+	for _, c := range nightly.Checks {
+		if c.Action != Run {
+			t.Errorf("the nightly leaves %s pending", c.Check.Command())
+		}
+	}
+}

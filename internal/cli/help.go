@@ -608,6 +608,9 @@ each problem.
 	"ci plan": `Usage: itos ci plan <from> <to> | --nightly | --whole [--data-at <sha>]
 
 Prints the plan a CI run would carry out, in cost order, and runs nothing.
+Each task check says what the run does with it: run, merged, covered,
+nightly (ci.nightly_only leaves it out of a push) or, for a named task's
+after: push check in a push, pending (it runs after the push).
 --data-at reads the ledger, the registry and the smoke set at that commit.
 Under a stealth config, given no range, it plans the commits of HEAD on no
 remote branch (every one with no remote), the range's from "--remotes".
@@ -620,10 +623,13 @@ remote branch (every one with no remote), the range's from "--remotes".
 Runs the plan: unknown task IDs fail first, tasks not started and checks a
 prose-only range leaves out are listed, then each step and task check in cost
 order, stopping at the first failure; with ci.stop_at_first_failure false,
-every one runs and the first failure is the run's. With no range, every step
-and every test. A failing step exits with its own code. --nightly runs
-ci.nightly.steps; a { tasks: done } step there runs the checks of every task
-whose work item is done, each shared check once, and a failure names the task.
+every one runs and the first failure is the run's. A named task's after: push
+check is listed as pending, to run after the push (itos task, itos work done),
+and is neither run nor counted; one ci.nightly_only lists is left out. With no
+range, every step and every test. A failing step exits with its own code.
+--nightly runs ci.nightly.steps; a { tasks: done } step there runs the checks
+of every task whose work item is done, each shared check once, and a failure
+names the task.
 
 --json: the run's log on stderr; {"schema":1,"ok","failed_at"?} on stdout`,
 

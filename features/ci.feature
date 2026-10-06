@@ -165,7 +165,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # and neither runs them nor counts them against the run; itos task and
   # itos work done still run them. ci.nightly_only's label for a task's
   # check says only that push CI leaves it out, not that the nightly runs it.
-  @ID-CI-12 @bug-28 @wip
+  @ID-CI-12 @bug-28
   Scenario: Push CI lists a named task's after: push check as pending and does not run it
     Given the task "T-001" has a check that records it ran, after push
     And the commit "chore: tidy the readme" naming the task "T-001" on top of it

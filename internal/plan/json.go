@@ -119,6 +119,10 @@ func (p *Plan) Print(w io.Writer) {
 			continue
 		}
 		c := item.Check
-		fmt.Fprintf(w, "%s  %s: %s   (%s)\n", c.Cost, c.Task.ID, c.Check.Command(), c.Action)
+		action := string(c.Action)
+		if c.Action == Pending {
+			action += ": runs after the push"
+		}
+		fmt.Fprintf(w, "%s  %s: %s   (%s)\n", c.Cost, c.Task.ID, c.Check.Command(), action)
 	}
 }

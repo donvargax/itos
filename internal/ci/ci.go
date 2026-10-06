@@ -10,7 +10,9 @@
 //   - A task check the plan runs goes through a check.Runner, verbose, so its
 //     command line and output keep their place in the log; a failure exits 1,
 //     naming the task and its title. A check merged into the run of named
-//     tests, covered by a step or left to the nightly is only logged. The
+//     tests, covered by a step, left out by ci.nightly_only or pending until
+//     after the push (an after: push check) is only logged, and never fails
+//     the run. The
 //     nightly shares one Runner's runs across its done tasks, so a check they
 //     share runs once; a push runs each named task's checks as its own.
 //   - The first failure ends the run, unless ci.stop_at_first_failure is
@@ -174,8 +176,8 @@ func (d driver) step(command string) *Failure {
 	return &Failure{Step: &command, Code: code}
 }
 
-// check is one task check: logged as merged, covered or left to the
-// nightly, else run; a failure names the task and its title.
+// check is one task check: logged as merged, covered, left out or pending,
+// else run; a failure names the task and its title.
 func (d driver) check(c *plan.Check) *Failure {
 	command := c.Check.Command()
 	fmt.Fprintf(d.log, "\n%s\n", c.Task.ID)
@@ -185,7 +187,9 @@ func (d driver) check(c *plan.Check) *Failure {
 	case plan.Covered:
 		fmt.Fprintf(d.log, "  = %s   (ran above as `%s`)\n", command, c.CoveredBy)
 	case plan.Nightly:
-		fmt.Fprintf(d.log, "  = %s   (runs in the nightly)\n", command)
+		fmt.Fprintf(d.log, "  = %s   (left out of push CI by ci.nightly_only)\n", command)
+	case plan.Pending:
+		fmt.Fprintf(d.log, "  - %s   (pending: runs after the push)\n", command)
 	default:
 		if d.runner.Run(c.Check) != check.Fail {
 			return nil
