@@ -41,6 +41,7 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 		return w.git("remote", "set-url", "origin", url)
 	})
 	sc.Step(`^the clone's remote origin is a folder that is no repository$`, w.originNoRepository)
+	sc.Step(`^the clone's itos hooks are not installed$`, func() error { return w.undeclareHooks(w.dir) })
 	sc.Step(`^the clone has fetched the remote$`, func() error {
 		return w.git("fetch", "-q", "origin")
 	})
@@ -179,8 +180,10 @@ func (w *world) originNoRepository() error {
 }
 
 // The scratch repository's history in a bare remote, and a clone of that,
-// its main tracking the remote's, with the files the scratch repository has
-// not committed laid into it. itos and every later step run in the clone.
+// its main tracking the remote's, itos's hooks declared in its git config as
+// in every scenario's repository (declareHooks), with the files the scratch
+// repository has not committed laid into it. itos and every later step run
+// in the clone.
 func (w *world) cloneOfRemote() error {
 	if err := w.git("clone", "-q", "--bare", w.dir, w.remote()); err != nil {
 		return err
@@ -190,6 +193,10 @@ func (w *world) cloneOfRemote() error {
 		return err
 	}
 	if err := w.gitIn(w.support, "clone", "-q", w.remote(), clone); err != nil {
+		os.RemoveAll(clone)
+		return err
+	}
+	if err := w.declareHooks(clone); err != nil {
 		os.RemoveAll(clone)
 		return err
 	}

@@ -17,6 +17,11 @@ import (
 
 func initializeCommitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the commit-msg hook is installed$`, w.commitMsgHookInstalled)
+	sc.Step(`^itos's hooks are not installed$`, func() error { return w.undeclareHooks(w.dir) })
+	sc.Step(`^the git itos runs cannot run the hooks its config declares$`, w.gitWithoutConfigHooks)
+	sc.Step(`^core\.hooksPath is "([^"]*)"$`, func(dir string) error {
+		return w.git("config", "core.hooksPath", dir)
+	})
 
 	sc.Step(`^itos commits with the arguments "([^"]*)"$`, func(line string) error {
 		args, err := shellWords(line)
@@ -263,6 +268,93 @@ func (w *world) hookInstalled(name, args string) error {
 	}
 	shim := "#!/bin/sh\nexec " + quote(w.bin) + " hook " + name + " " + args + "\n"
 	return os.WriteFile(filepath.Join(dir, name), []byte(shim), 0o755)
+}
+
+// The events itos declares a hook for in the git config, each as the entry
+// hook.itos-<event> (itos hook install's names).
+var itosHookEvents = []string{"commit-msg", "pre-push"}
+
+// The fixture of every scenario's repository (slice 91): itos's two hooks
+// declared in the git config of the repository in dir, under the names itos
+// hook install gives them, each running a stand-in for itos that passes
+// whatever it is given (hookStandIn). itos refuses to commit or push where its
+// hooks are not declared, so every repository a scenario commits or pushes in
+// has them; and a scenario's commits and pushes run no check of a hook unless
+// the scenario installs one (the commit-msg hook is installed, itos has
+// installed the hooks), as before itos refused.
+func (w *world) declareHooks(dir string) error {
+	standIn, err := w.hookStandIn()
+	if err != nil {
+		return err
+	}
+	for _, event := range itosHookEvents {
+		entry := "hook.itos-" + event
+		if err := w.gitIn(dir, "config", "--local", entry+".event", event); err != nil {
+			return err
+		}
+		if err := w.gitIn(dir, "config", "--local", entry+".command", standIn+" hook "+event); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// hookStandIn is the fixture's itos, made once a scenario: a program named
+// itos in a folder of the support folder, off the PATH, that exits 0. It is
+// named with forward slashes, which sh reads on every platform, and quoted
+// only when it holds a space or a quote.
+func (w *world) hookStandIn() (string, error) {
+	dir := filepath.Join(w.support, "fixture-hooks")
+	path := filepath.Join(dir, "itos")
+	if _, err := os.Stat(programPath(path)); err != nil {
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			return "", err
+		}
+		if err := w.writeProgram(path, "#!/bin/sh\nexit 0\n"); err != nil {
+			return "", err
+		}
+	}
+	named := filepath.ToSlash(path)
+	if strings.ContainsAny(named, " '\"") {
+		named = quote(named)
+	}
+	return named, nil
+}
+
+// itos's hooks taken out of the git config of the repository in dir, as in a
+// fresh clone where nobody ran itos hook install.
+func (w *world) undeclareHooks(dir string) error {
+	for _, event := range itosHookEvents {
+		if err := w.gitIn(dir, "config", "--local", "--remove-section", "hook.itos-"+event); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// The git itos runs (ITOS_GIT, which itos takes over the PATH) is one older
+// than config-declared hooks: a program in the support folder that answers
+// git hook list as such a git does, with no such command, and hands every
+// other command to the git on the PATH. A program, not a script, on windows
+// (writeProgram).
+func (w *world) gitWithoutConfigHooks() error {
+	script := `#!/bin/sh
+previous=
+for word in "$@"; do
+  if [ "$previous" = hook ] && [ "$word" = list ]; then
+    echo "git: 'hook' is not a git command. See 'git --help'." >&2
+    exit 1
+  fi
+  previous=$word
+done
+exec git "$@"
+`
+	path := filepath.Join(w.support, "old-git")
+	if err := w.writeProgram(path, script); err != nil {
+		return err
+	}
+	w.vars = append(w.vars, "ITOS_GIT="+programPath(path))
+	return nil
 }
 
 // A line split into words as sh splits it, for the quoting the scenarios

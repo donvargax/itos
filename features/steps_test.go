@@ -473,7 +473,10 @@ func (w *world) setUp() error {
 	if w.support, err = os.MkdirTemp("", "itos-features-support-"); err != nil {
 		return err
 	}
-	return w.git("init", "-q", "-b", "main")
+	if err := w.git("init", "-q", "-b", "main"); err != nil {
+		return err
+	}
+	return w.declareHooks(w.dir)
 }
 
 // The folder holding go.mod, above the working directory go test gives.
@@ -1400,14 +1403,19 @@ func (w *world) sinceIs(value string) error {
 // A clone of the scratch repository one commit deep, as actions/checkout
 // makes by default, with the files the repository has not committed (its
 // config among them) laid into it: only its history is shorter. itos and every
-// later step run in the clone. A plain path clone ignores --depth, so the
-// clone is of a file:// URL.
+// later step run in the clone, itos's hooks declared in its git config
+// (declareHooks). A plain path clone ignores --depth, so the clone is of a
+// file:// URL.
 func (w *world) shallowClone() error {
 	clone, err := os.MkdirTemp("", "itos-features-clone-")
 	if err != nil {
 		return err
 	}
 	if err := w.git("clone", "-q", "--depth", "1", "file://"+w.dir, clone); err != nil {
+		os.RemoveAll(clone)
+		return err
+	}
+	if err := w.declareHooks(clone); err != nil {
 		os.RemoveAll(clone)
 		return err
 	}
