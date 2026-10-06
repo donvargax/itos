@@ -109,3 +109,30 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     When itos runs "version"
     Then itos exits with code 0
     And no version of the release server ran
+
+  # Slice 87 (the user's call, 2026-10-06): in a pinned project itos version
+  # printed the pin's version alone, so an agent told of a new release saw
+  # the old number with nothing saying it was the pin's: the newer-release
+  # notice is said once a day, from a newest asked once a day, and those
+  # throttles stay. The launcher, the itos that was called, says on itos
+  # version that the repository pins its version and which version the
+  # launcher is, whatever the notice; the version line itself is the pin's,
+  # as before. Human output (decision 35), on stderr. ITOS_NO_UPDATE turns
+  # the notice off, so only the new line can name the pin here.
+  @ID-UPDATE-11 @slice-87 @wip
+  Scenario: In a pinned project itos version names the pin and the itos that was called
+    Given a repository whose ledger has the task "T-001"
+    And the config pins the version "9.1.0" of the release server
+    And ITOS_NO_UPDATE is "1"
+    When itos runs "version"
+    Then itos exits with code 0
+    And the version "9.1.0" ran with the arguments "version"
+    And its output says "pins 9.1.0"
+
+  @ID-UPDATE-12 @slice-87 @wip
+  Scenario: With no pin itos version names no pin
+    Given a repository whose ledger has the task "T-001"
+    And ITOS_NO_UPDATE is "1"
+    When itos runs "version"
+    Then itos exits with code 0
+    And its output does not say "pins"

@@ -151,3 +151,11 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     Then itos exits with code 75
     And the config is unchanged
     And the install script is the one of the version "9.1.0" of the release server
+
+  # Slice 87 (the user's call, 2026-10-06): as itos pin latest.
+  @ID-UPGRADECMD-12 @slice-87 @wip
+  Scenario: itos upgrade latest moves the pin to the newest release, as itos upgrade does
+    Given the config pins the version "9.1.0" of the release server
+    When itos runs "upgrade latest"
+    Then itos exits with code 0
+    And the config's pin is the version "9.3.0" of the release server, with its checksums
