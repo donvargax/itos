@@ -5121,3 +5121,17 @@ items:
       prevent a mistake and whether the guidance helps or hurts a model. Check Terminal-Bench's task
       format before building a runner. Needs the devcontainer from the sandbox work.
     refs: [docs/plans/leashbench.md]
+
+  - id: p1-baseline-reminder
+    title: A monthly workflow opens a LeashBench due issue, and a new model makes a run due
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-model-baseline]
+    kind: idea
+    why: >
+      The user's call (2026-10-06), in docs/plans/leashbench.md: a scheduled workflow opens a
+      LeashBench due issue on the first of each month, as the nightly opens Nightly red, so itos
+      go's inbox shows it at a session's start; the issue says a new model also makes a run due, and
+      each results file names its model.
+    refs: [docs/plans/leashbench.md]
