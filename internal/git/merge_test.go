@@ -10,7 +10,8 @@ import (
 
 // A merge's own paths (bug 30): none for a clean merge, even of a file both
 // sides changed, and none for one that takes a side; a path no parent has,
-// a line no parent has, and a quoted path for a merge that adds them; the
+// a line no parent has, and a path git quotes (a byte above ASCII in it,
+// since windows takes no quote in a file's name) for a merge that adds them; the
 // same reading of the index for the merge being made, which MERGE_HEAD
 // names until it is committed.
 func TestOwnPaths(t *testing.T) {
@@ -57,10 +58,10 @@ func TestOwnPaths(t *testing.T) {
 		t.Fatalf("the clean merge being made's own paths = %q, %v", got, err)
 	}
 	write("new.js", "new\n")
-	write(`a "quoted" name`, "q\n")
+	write("señal.md", "q\n")
 	write("f", strings.Replace(strings.Replace(lines, "2\n", "two\n", 1), "9\n", "nine\n5½\n", 1))
-	gitIn(t, dir, "add", "new.js", `a "quoted" name`, "f")
-	want := []string{`a "quoted" name`, "f", "new.js"}
+	gitIn(t, dir, "add", "new.js", "señal.md", "f")
+	want := []string{"f", "new.js", "señal.md"}
 	if got, err := StagedOwnPaths(parents); err != nil || !slices.Equal(got, want) {
 		t.Fatalf("the merge being made's own paths = %q, %v, want %q", got, err, want)
 	}
