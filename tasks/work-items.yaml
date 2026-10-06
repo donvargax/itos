@@ -4454,3 +4454,16 @@ items:
       an AGENTS.md showing the markers in an example fence has the example replaced
       (initrules.go:271).
     refs: [internal/cli/initrules.go]
+
+  - id: p1-rules-line-endings-bom
+    title: The rules files keep mixed line endings and read past a BOM
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). A file with any CRLF is rewritten all-CRLF,
+      and a BOM before a line-1 marker makes every run refuse with a misleading message
+      (initrules.go:225-234).
+    refs: [internal/cli/initrules.go]
