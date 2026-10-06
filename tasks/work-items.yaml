@@ -5078,11 +5078,9 @@ items:
     title: Every command parses its flags from a declared spec, and refuses what it does not take
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Specified in features/cli.feature (decision 36).
     refs: [features/cli.feature, internal/cli/commands.go, internal/cli/cli.go]
 
   - id: slice-89
