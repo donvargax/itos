@@ -5153,3 +5153,20 @@ items:
       git commit's: a fetch that cannot reach the remote exits 128, which is none of itos's codes,
       and a network failure there is not 75. Classify them: a remote that cannot be reached 75, a
       refusal 1.
+
+  - id: p1-cli-readers-from-spec
+    title: Commands read their flags from the spec parse, not from readers of their own
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice-88: readLine judges every command line by its spec and hands the command its
+      arguments with each flag written --flag value, but the commands still read them through the
+      readers they had (flagValue, positional, subArgs, workArgs, repeated, taskAddArgs, init's
+      parsePluginFlag and parseShimFlag), which re-check what the spec has settled and keep their
+      own --flag=value and unknown-flag branches, now dead on the itos command line. Giving each
+      command the parse (values by name, the positional words) would leave one reader.
+      readCommitFlags stays, since git commit reaches it through the shim unparsed.
+    refs: [internal/cli/spec.go]
