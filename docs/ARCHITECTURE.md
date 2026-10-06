@@ -2336,7 +2336,13 @@ work done` run it), and a task whose work item is still `todo` waits
   `CONTRIBUTORS.md`, the people a registry's owners must be among, is
   Markdown; the registry and the ledger, under `tasks/`, are not prose; and
   the plugin's version rule, since a change to the plugin can be Markdown alone) and the named tasks' static and `prose: true` checks,
-  and no features.
+  and no features. `ci.keep_step_order: true` (slice 84, issue #13; off by
+  default, and off here) drops the cost sort from a push's plan: `ci.steps`
+  (or the prose steps) as written, then the named tasks' checks in their
+  ledger order (`asWritten` in `plan.go`), for a repository whose CI ran its
+  steps in a chosen order. The cost class still decides what the commit-msg
+  hook and the nightly's static step run, and what a prose range keeps, so it
+  need not call every command static to keep its order.
 - **The platform jobs** (`ci.yml`'s `platform`, T-072) run beside it on every
   push, a matrix of `ubuntu-latest`, `macos-latest` and `windows-latest`,
   each named `platform (<runner>)`: itos built natively, stamped as

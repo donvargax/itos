@@ -615,6 +615,8 @@ Prints the plan a CI run would carry out, in cost order, and runs nothing.
 Each task check says what the run does with it: run, merged, covered,
 nightly (ci.nightly_only leaves it out of a push) or, for a named task's
 after: push check in a push, pending (it runs after the push).
+With ci.keep_step_order true, a push's plan is ci.steps as written, then the
+named tasks' checks in ledger order.
 An empty <from> is every commit up to <to>: every test runs, and the checks
 of the tasks those commits name.
 --data-at reads the ledger, the registry and the smoke set at that commit.
@@ -635,7 +637,8 @@ and is neither run nor counted; one ci.nightly_only lists is left out. With no
 range, every step and every test. A failing step exits with its own code.
 --nightly runs ci.nightly.steps; a { tasks: done } step there runs the checks
 of every task whose work item is done, each shared check once, and a failure
-names the task.
+names the task. With ci.keep_step_order true, a push's run takes ci.steps as
+written, then the named tasks' checks in ledger order.
 
 --json: the run's log on stderr; {"schema":1,"ok","failed_at"?} on stdout`,
 

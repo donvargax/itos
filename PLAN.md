@@ -244,8 +244,8 @@ The sections: `ledger` (its files, the group in their names, the ID pattern,
 the check timeout), `commits` (types, the header lint, footers, path sets,
 scopes, `since`), `tests` (one entry per kind: adapter, root, ID pattern,
 run and recognize templates, smoke set and whether every file needs a smoke
-test, range checks), `ci` (steps, prose, cost patterns, covers, nightly, the
-range provider, the watch), `work` (registry, its statuses, the key its owners per
+test, range checks), `ci` (steps, prose, cost patterns, whether a push keeps the
+steps' written order, covers, nightly, the range provider, the watch), `work` (registry, its statuses, the key its owners per
 group are under, people, identity) and `hooks` (the manager, over the one
 detected, the binary the shims call, the
 commit-msg hook's task checks and their timeout, the

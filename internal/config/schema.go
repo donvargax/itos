@@ -230,6 +230,8 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 		"nightly", about("The nightly's steps.", obj([]string{"steps"}, "steps", list(step))),
 		"wait_on_status", about("The work item statuses whose named tasks wait rather than run.", strs),
 		"stop_at_first_failure", about("Whether CI stops at its first failure, or runs every step and check.", boo),
+		"keep_step_order", about("Whether ci run runs ci.steps as written, then the named tasks' checks in their ledger order, instead of in cost order; "+
+			"the cost class still decides what the commit-msg hook and the nightly's static step run.", boo),
 		"range", about("Where a push's range starts.", obj(nil,
 			"provider", about("github (the head's nearest first parent with a green run) or none.", provider),
 			"github", about("The GitHub provider's workflow and environment.", obj(nil, "workflow", str, "repository_env", str, "token_env", strs)),

@@ -225,7 +225,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # the cost class still decides what the hook and the nightly's static step
   # run. A named task's check that should run on a prose-only range says
   # prose: true, as it can already.
-  @ID-CI-16 @slice-84 @wip
+  @ID-CI-16 @slice-84
   Scenario: With ci.keep_step_order, ci plan lists the steps as written, a late one before a static one
     Given ci.cost.static is "^echo static$"
     And ci.keep_step_order is true

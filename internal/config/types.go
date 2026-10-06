@@ -236,6 +236,7 @@ type CI struct {
 	} `json:"nightly"`
 	WaitOnStatus       []string `json:"wait_on_status"`
 	StopAtFirstFailure bool     `json:"stop_at_first_failure"`
+	KeepStepOrder      bool     `json:"keep_step_order"`
 	Range              Range    `json:"range"`
 	Watch              Watch    `json:"watch"`
 }

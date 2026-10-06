@@ -101,6 +101,38 @@ func TestMakeProse(t *testing.T) {
 	}
 }
 
+// ci.keep_step_order (issue #13): the steps as written, then the task's
+// checks in their written order, each still with its cost class; a prose
+// range keeps the same order over what it runs.
+func TestMakeKeepStepOrder(t *testing.T) {
+	cfg := load(t, strings.Replace(scratch, "    - { run: lint, cost: static }\n    - unit\n", "    - unit\n    - { run: lint, cost: static }\n", 1)+"  keep_step_order: true\n")
+	p, err := Make(cfg, Input{Known: true, Smoke: []string{"ID-S-01"}, Tasks: []ledger.Task{task}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `late  unit
+static  lint
+late  e2e --grep '@(?:ID-S-01)|@ID-A-'
+static  T-1: quick check   (run)
+late  T-1: e2e --grep '@ID-A-'   (merged)
+late  T-1: unit a.test.ts   (covered)
+late  T-1: slow   (nightly)
+late  T-1: docs   (run)
+late  T-1: quick again   (run)
+`
+	if got := lines(p); got != want {
+		t.Errorf("plan:\n%s\nwant:\n%s", got, want)
+	}
+	prose, err := Make(cfg, Input{Prose: true, Known: true, Tasks: []ledger.Task{task}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = "static  lint\nstatic  T-1: quick check   (run)\nlate  T-1: docs   (run)\n"
+	if got := lines(prose); got != want {
+		t.Errorf("prose plan:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 // The nightly: its steps in written order, the tasks step only the static
 // checks, nothing left to the nightly by the nightly.
 func TestMakeNightly(t *testing.T) {

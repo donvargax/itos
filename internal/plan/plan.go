@@ -20,7 +20,10 @@
 //     covered.
 //   - The run is in cost order: the static steps, the named tasks' static
 //     checks, the other steps, then the other checks (internal/check's cost
-//     classes and written order).
+//     classes and written order). With ci.keep_step_order it is the steps as
+//     written, then the named tasks' checks in their ledger order (issue
+//     #13); the cost class still decides what the commit-msg hook and the
+//     nightly's static step run.
 //   - The nightly runs its own steps in the order written; its `{ tasks:
 //     done }` step stands for the checks of every task whose work item is
 //     done, in cost order where it is written (only the static ones with
@@ -336,6 +339,19 @@ func inCostOrder(steps []Step, checks []*Check) []Item {
 	return order
 }
 
+// asWritten is the steps as written, then the checks in their tasks' order
+// (ci.keep_step_order).
+func asWritten(steps []Step, checks []*Check) []Item {
+	order := []Item{}
+	for i := range steps {
+		order = append(order, Item{Step: &steps[i]})
+	}
+	for _, c := range checks {
+		order = append(order, Item{Check: c})
+	}
+	return order
+}
+
 // runsOnProse is whether a prose-only range still runs a check: one that
 // takes seconds, or one whose result prose can change.
 func runsOnProse(c *Check) bool { return c.Cost == check.Static || c.Check.Prose }
@@ -440,7 +456,11 @@ func Make(cfg *config.Loaded, in Input) (*Plan, error) {
 	if err := markDone(cfg, p.Checks, p.Steps, false); err != nil {
 		return nil, err
 	}
-	p.Order = inCostOrder(runs, p.Checks)
+	if cfg.CI.KeepStepOrder {
+		p.Order = asWritten(runs, p.Checks)
+	} else {
+		p.Order = inCostOrder(runs, p.Checks)
+	}
 	return p, nil
 }
 
