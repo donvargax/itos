@@ -4942,7 +4942,7 @@ items:
     title: "itos version says what answers it: --version, latest for pin and upgrade, and the pin named"
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
