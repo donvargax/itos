@@ -1425,11 +1425,20 @@ Data)` is `planWith`, `DataAt` reading the ledger, the registry and the
   reads the footers of every commit up to the end (bug 33), so the tasks and
   tests they name run too.
   A stealth config's `ci plan` with no range plans the unpushed commits
-  (`git.Unpushed`, above).
+  (`git.Unpushed`, above). The plan carries its range's `Ends` (`ends.go`,
+  slice 83): the start a range check's `{from}` gets (`tests.RangeFrom`: the
+  unpushed commits' base, `commits.since`) and the end, as full SHAs, the
+  start empty for a range that runs everything; the nightly's are those of
+  every commit up to HEAD. Once the plan is made, `{from}` and `{to}` in each
+  step's command, and in the step a covered check names, are filled in by
+  the range checks' filler (`tests.FillRange`, each one shell word), so `ci
+plan` prints the command `ci run` runs, while the cost class and
+  `ci.covers` read the step as `ci.steps` writes it.
 - **CI's driver** is `internal/ci` (`ci.ts`'s `ciRun`), with `ci run` in
   `internal/cli/ci.go` making the plan as `ci plan` does and handing it over:
   the driver never plans, so a run carries out what `ci plan` prints. It sets
-  `ci.env` in its own environment, says the preamble (`Unknown`, named against
+  `ci.env` in its own environment, then `ITOS_FROM` and `ITOS_TO`, the plan's
+  `Ends`, which every step and check it runs inherits, says the preamble (`Unknown`, named against
   the ledger's folder, ends the run whatever `ci.stop_at_first_failure` says;
   `NotStarted`; `Prose` with `LeftOut`), then walks `Order`: a `Step` runs
   through `shell.Run` on itos's own streams (the log is stdout, stderr under

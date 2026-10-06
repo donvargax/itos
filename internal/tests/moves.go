@@ -383,22 +383,34 @@ func (m *Moves) Index(name string) ([]out.Problem, error) {
 }
 
 // RangeCommands are each kind's range commands (tests.<kind>.range_checks[]
-// .range), their {from} and {to} filled in, each one shell word; {from}
-// starts after commits.since.
+// .range), their {from} and {to} filled in by FillRange; {from} is
+// RangeFrom's.
 func RangeCommands(cfg *config.Loaded, from, to string) []string {
-	start := from
-	if from == git.Unpushed {
-		start = git.UnpushedBase(to)
-	}
+	start := RangeFrom(cfg, from, to)
 	var commands []string
 	for _, name := range cfg.Tests.Keys {
 		for _, c := range cfg.Tests.Values[name].RangeChecks {
 			if c.Range == nil || *c.Range == "" {
 				continue
 			}
-			command := strings.ReplaceAll(*c.Range, "{from}", ShellWord(cfg.RangeStart(start)))
-			commands = append(commands, strings.ReplaceAll(command, "{to}", ShellWord(to)))
+			commands = append(commands, FillRange(*c.Range, start, to))
 		}
 	}
 	return commands
+}
+
+// RangeFrom is the start a range's commands are given as {from}: from, the
+// commit the unpushed commits grow from for git.Unpushed, and commits.since
+// when that is empty, all zeros or older (config.RangeStart).
+func RangeFrom(cfg *config.Loaded, from, to string) string {
+	if from == git.Unpushed {
+		from = git.UnpushedBase(to)
+	}
+	return cfg.RangeStart(from)
+}
+
+// FillRange is a command with {from} and {to} filled in, each one shell
+// word: a range check's command, or a CI step's (slice 83).
+func FillRange(command, from, to string) string {
+	return strings.NewReplacer("{from}", ShellWord(from), "{to}", ShellWord(to)).Replace(command)
 }

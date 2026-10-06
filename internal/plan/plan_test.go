@@ -154,3 +154,42 @@ late  T-2: release check   (pending: runs after the push)
 		}
 	}
 }
+
+// A step's {from} and {to} are filled in after the plan is made (slice 83):
+// its cost class and ci.covers read it as ci.steps writes it, and what ci
+// plan prints, the covering step a check names included, is what the run
+// runs.
+func TestFillReadsTheStepAsWritten(t *testing.T) {
+	cfg := load(t, `version: 1
+ci:
+  steps: ["lint {from}", "diff {from} {to}"]
+  cost: { static: ["^lint \\{from\\}$"] }
+`)
+	covered := ledger.Task{ID: "T-1", DoneWhen: []ledger.Check{{Run: text("diff {from} {to}")}}}
+	p, err := Make(cfg, Input{Known: true, Tasks: []ledger.Task{covered}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.fill(Ends{From: "a1", To: "b2"})
+	want := `static  lint 'a1'
+late  diff 'a1' 'b2'
+late  T-1: diff {from} {to}   (covered)
+`
+	if got := lines(p); got != want {
+		t.Errorf("got\n%s\nwant\n%s", got, want)
+	}
+	if p.Checks[0].CoveredBy != "diff 'a1' 'b2'" || p.Steps[0] != "lint 'a1'" || p.Ends.To != "b2" {
+		t.Errorf("covered by %q, steps %q, ends %+v", p.Checks[0].CoveredBy, p.Steps, p.Ends)
+	}
+}
+
+// A range that runs everything, an empty or all-zeros start without
+// commits.since, gives an empty start.
+func TestEndsOfAnEmptyStart(t *testing.T) {
+	cfg := load(t, "version: 1\n")
+	for _, from := range []string{"", "0000000000000000000000000000000000000000"} {
+		if e := EndsOf(cfg, from, ""); e.From != "" {
+			t.Errorf("from %q gives %q", from, e.From)
+		}
+	}
+}

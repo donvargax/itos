@@ -200,7 +200,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # that runs everything), and {from} and {to} in a step's command are
   # filled in as range checks' are. A step only for some paths stays
   # p3-ci-step-paths.
-  @ID-CI-14 @slice-83 @wip
+  @ID-CI-14 @slice-83
   Scenario: A CI step is given the range's start in its environment
     Given the CI steps are "echo from=$ITOS_FROM"
     And the commit "chore: tidy the readme" naming the task "T-001" on top of it
@@ -208,7 +208,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And its output says "from=" with the first commit's full SHA
 
-  @ID-CI-15 @slice-83 @wip
+  @ID-CI-15 @slice-83
   Scenario: A CI step's {from} is filled in with the range's start
     Given the CI steps are "echo since {from}"
     And the commit "chore: tidy the readme" naming the task "T-001" on top of it

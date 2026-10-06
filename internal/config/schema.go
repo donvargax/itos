@@ -218,7 +218,7 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 	))),
 	"ci", about("CI's plan: its steps, the prose shortcut, the cost patterns, what covers a check, the nightly, the range provider and the watch.", obj(nil,
 		"env", about("Variables every step runs with.", mapOf(str)),
-		"steps", about("Every step of CI, in order; ci plan and ci run need it, while the range and the watch are read without it.", list(step)),
+		"steps", about("Every step of CI, in order, given the range's ends as ITOS_FROM and ITOS_TO, and as {from} and {to} in its command; ci plan and ci run need it, while the range and the watch are read without it.", list(step)),
 		"prose", about("A range touching only paths is prose, and runs only steps.", obj([]string{"paths", "steps"}, "paths", strs, "steps", strs)),
 		"cost", about("Which checks with no cost of their own are static.", obj(nil,
 			"static", about("Regular expressions over a command: static when one matches, else late.", strs),

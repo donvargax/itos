@@ -115,6 +115,9 @@ type Plan struct {
 	// NotStarted are the named tasks whose work item is in
 	// ci.wait_on_status: their checks wait.
 	NotStarted []string
+	// Ends are the ends of the range the run is for, filled into its steps
+	// and given to them and its checks as ITOS_FROM and ITOS_TO.
+	Ends Ends
 }
 
 // stepOf is a CI step as the run takes it (ci-scope.ts's stepOf): a command
@@ -534,7 +537,8 @@ func DoneTasks(cfg *config.Loaded) ([]ledger.Task, error) {
 }
 
 // ForNightly is the nightly's plan, the done tasks read from the ledger and
-// the registry, the smoke set from the working tree.
+// the registry, the smoke set from the working tree; its range is every
+// commit up to HEAD.
 func ForNightly(cfg *config.Loaded) (*Plan, error) {
 	done, err := DoneTasks(cfg)
 	if err != nil {
@@ -544,5 +548,10 @@ func ForNightly(cfg *config.Loaded) (*Plan, error) {
 	if err != nil {
 		return nil, err
 	}
-	return Make(cfg, Input{Nightly: true, Tasks: done, Smoke: smoke})
+	p, err := Make(cfg, Input{Nightly: true, Tasks: done, Smoke: smoke})
+	if err != nil {
+		return nil, err
+	}
+	p.fill(EndsOf(cfg, "", "HEAD"))
+	return p, nil
 }

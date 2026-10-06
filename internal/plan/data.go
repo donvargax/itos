@@ -58,6 +58,7 @@ func waiting(cfg *config.Loaded, d Data, id string) bool {
 // read from git, the rest from d. The tasks its ledger footers name run in
 // ledger order, less the ones not started; a named ID no task has is
 // Unknown, and a task not started is NotStarted, both in the footers' order.
+// The range's ends are filled into its steps (EndsOf).
 func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 	ids := TasksIn(cfg, from, to)
 	prose, err := DocsOnly(cfg, Changed(from, to))
@@ -89,5 +90,6 @@ func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 			p.NotStarted = append(p.NotStarted, id)
 		}
 	}
+	p.fill(EndsOf(cfg, from, to))
 	return p, nil
 }

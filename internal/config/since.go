@@ -55,9 +55,9 @@ func Before(f Footer, sha string) bool {
 	return sha == *f.Since || git.Succeeds("merge-base", "--is-ancestor", sha, *f.Since)
 }
 
-// newBranch is whether a range's start is empty or all zeros: a new branch,
+// NewBranch is whether a range's start is empty or all zeros: a new branch,
 // every commit up to its end.
-func newBranch(from string) bool { return strings.Trim(from, "0") == "" }
+func NewBranch(from string) bool { return strings.Trim(from, "0") == "" }
 
 // RangeArgs are a range's commits as git rev-list takes them: from..to,
 // everything up to to when from is empty or all zeros (a new branch), or the
@@ -65,7 +65,7 @@ func newBranch(from string) bool { return strings.Trim(from, "0") == "" }
 // its ancestors (first, since --not would turn it round).
 func (l *Loaded) RangeArgs(from, to string) []string {
 	args := git.Revs(from, to)
-	if newBranch(from) {
+	if NewBranch(from) {
 		args = []string{to}
 	}
 	if sha := l.Since(); sha != "" {
@@ -82,7 +82,7 @@ func (l *Loaded) RangeStart(from string) string {
 	switch {
 	case sha == "":
 		return from
-	case newBranch(from), git.Succeeds("merge-base", "--is-ancestor", from, sha):
+	case NewBranch(from), git.Succeeds("merge-base", "--is-ancestor", from, sha):
 		return sha
 	}
 	return from

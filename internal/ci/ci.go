@@ -19,7 +19,8 @@
 //     false: then everything runs, each failure says where, and the first is
 //     the run's.
 //
-// Every step and check sees ci.env. The log goes to stdout, or to stderr
+// Every step and check sees ci.env, and the range's ends (plan.Ends) as
+// ITOS_FROM and ITOS_TO, which ci.env cannot override. The log goes to stdout, or to stderr
 // under --json, which keeps stdout for its one object.
 package ci
 
@@ -67,6 +68,11 @@ type driver struct {
 // own code, or 1 for a task check or the unknown tasks.
 func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 	for key, value := range cfg.CI.Env {
+		if err := os.Setenv(key, value); err != nil {
+			return 0, err
+		}
+	}
+	for key, value := range map[string]string{"ITOS_FROM": p.Ends.From, "ITOS_TO": p.Ends.To} {
 		if err := os.Setenv(key, value); err != nil {
 			return 0, err
 		}
