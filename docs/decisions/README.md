@@ -40,5 +40,6 @@ file and leaves this list, which itos ask record writes.
 - [ADR-0034: The work registry is an index, and a why lives in the spec](0034-the-work-registry-is-an-index-and-a-why-lives-in-the-spec.md)
 - [ADR-0035: Only machine output is itos's contract: exit codes, --json less message and fix, and the files it writes](0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md)
 - [ADR-0036: v6.0.0 renames commands by the CLI guidelines, parses every flag from a spec and takes exit codes from the error's kind](0036-v6-0-0-renames-commands-by-the-cli-guidelines-parses-every-flag-from-a-spec-and-takes-exit-codes-from-the-error-s-kind.md)
+- [ADR-0037: itos installs its hooks only in the git config, and knows no hook manager](0037-itos-installs-its-hooks-only-in-the-git-config-and-knows-no-hook-manager.md)
 
 <!-- itos:decisions:end -->
