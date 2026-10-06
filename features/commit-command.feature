@@ -225,3 +225,35 @@ Feature: itos commit, a commit whose footers itos writes
       Task: T-001
       """
     Then itos exits with code 0
+
+  # Slice 91 (q-2, the user's call, 2026-10-06): itos commit and itos push
+  # ran git with whatever hooks git would run, so where the hook could not
+  # run (core.hooksPath naming a folder that does not exist, as in a fresh
+  # worktree of a project whose hooks folder is generated; a hooks folder
+  # with no commit-msg or pre-push hook; hooks never installed; a stealth
+  # config's hooks with a git too old to run them) every check was skipped
+  # in silence and the commit or push went through (issue #16). Every itos
+  # command that commits or pushes now refuses first, exit 3, naming the
+  # cause and telling the person to run their project's hook installation:
+  # itos does not know hook managers (the user's call: not a babysitter).
+  # Plain git is still the deliberate way around it, and CI's verify the
+  # backstop. No config key turns it off (decision 36). In the v6.0.0 push.
+  # The scenarios' repositories install the hooks themselves, so the
+  # existing commit and push scenarios hold.
+  @ID-COMMITCMD-22 @slice-91 @wip
+  Scenario: itos commit refuses when core.hooksPath names a folder that does not exist
+    Given core.hooksPath is "missing/hooks"
+    And a change to "README.md" is staged
+    When itos runs the command line "commit --task T-001 -m 'chore: tidy the readme'"
+    Then itos exits with code 3
+    And its output says "core.hooksPath"
+    And nothing was committed
+
+  @ID-COMMITCMD-23 @slice-91 @wip
+  Scenario: itos commit refuses when no commit-msg hook is installed
+    Given the repository's hooks are not installed
+    And a change to "README.md" is staged
+    When itos runs the command line "commit --task T-001 -m 'chore: tidy the readme'"
+    Then itos exits with code 3
+    And its output says "commit-msg"
+    And nothing was committed

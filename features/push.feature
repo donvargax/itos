@@ -127,3 +127,13 @@ Feature: itos push, the pull-rebase-push routine as one command
     And the clone has the commit "chore: tidy the readme" touching "README.md"
     When itos runs "push"
     Then itos exits with code 3
+
+  # Slice 91 (q-2): as itos commit's refusal, for the pre-push hook.
+  @ID-PUSH-10 @slice-91 @wip
+  Scenario: itos push refuses when the pre-push hook cannot run
+    Given the clone's core.hooksPath is "missing/hooks"
+    And the clone has the commit "chore: tidy the readme" touching "README.md"
+    When itos runs "push"
+    Then itos exits with code 3
+    And its output says "pre-push"
+    And the remote's branch does not have "chore: tidy the readme"

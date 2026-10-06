@@ -371,3 +371,27 @@ Feature: Every key the config accepts is one itos reads
     When itos runs "hooks install"
     Then itos exits with code 2
     And its output says "itos hook install"
+
+  # Slice 91 (the user's call, 2026-10-06): itos knew six hook managers
+  # (Vite+, husky, lefthook, pre-commit, plain git and git-config), detected
+  # them, wrote each one's hook format, and kept hooks.manager to override
+  # the detection. It covers only git's own mechanisms now: itos hook install
+  # writes plain git hooks into the folder git uses, or git-config hooks in
+  # stealth mode. Where another tool owns that folder, it writes nothing
+  # there and prints the lines to add to that tool's hooks, the same for
+  # every tool. hooks.manager is removed. In the v6.0.0 push, marked
+  # breaking; the feat removes the scenarios that tested a manager.
+  @ID-CONFIG-38 @slice-91 @wip
+  Scenario: hook install where another tool owns the hooks folder writes nothing there and prints the lines to add
+    Given the project's hooks are in ".husky" by core.hooksPath, with a commit-msg hook that records it ran
+    When itos runs "hook install"
+    Then itos exits with code 0
+    And its output says "itos hook commit-msg"
+    And the file ".husky/commit-msg" does not name "itos hook"
+
+  @ID-CONFIG-39 @slice-91 @wip
+  Scenario: config check refuses hooks.manager, which v6 removed
+    Given the config sets "hooks.manager" to "husky"
+    When itos checks the config
+    Then itos exits with code 2
+    And its output says "hooks.manager"
