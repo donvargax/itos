@@ -4668,3 +4668,15 @@ items:
       Found by T-097's agent (2026-10-05): .claude-plugin/marketplace.json still says the plugin
       says how to find work, commit and push through itos, out of date since T-092 dropped the
       skill, and unlike plugin.json.
+
+  - id: p3-path-refusal-once
+    title: Name a refused path once when a scope's only and never both refuse it
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      A test commit touching tools/selftest/gates.ts is refused twice for the same path, once by
+      test's only list and once by its never (T-098 gave test both): itos commit check-paths and the
+      commit-msg hook print the same line twice. One line per refused path is enough.
