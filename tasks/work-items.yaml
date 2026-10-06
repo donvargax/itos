@@ -5123,6 +5123,10 @@ items:
       the run, results as data per harness and model, and an analysis that shows which rules still
       prevent a mistake and whether the guidance helps or hurts a model. Check Terminal-Bench's task
       format before building a runner. Needs the devcontainer from the sandbox work.
+
+      The user's call (2026-10-06): a run also records process deviations as broken rules, such as a
+      worktree, a branch or a parallel agent nobody asked for, so whether a model slips back to the
+      common workflow is measured per model.
     refs: [docs/plans/leashbench.md]
 
   - id: p1-baseline-reminder
