@@ -5303,3 +5303,14 @@ items:
       kept for the old format. Open risk: whether agents keep the state current. followup note says
       on stderr when the state is older than the newest notes; watch how it goes, and change the
       design if it does not hold.
+
+  - id: p1-ask-20-duplicate
+    title: Drop @ID-ASK-20, which checks what @ID-ASK-22 checks since slice 92
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slice 92 rewrote ASK-20 (slice 89, question add) to run decision add, so it asserts the same
+      as ASK-22. Neither is released yet: dropping one before v6.0.0 costs nothing.
