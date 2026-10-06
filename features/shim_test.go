@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -21,6 +22,7 @@ import (
 
 func initializeShimSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^itos is linked as git before the real git on the PATH$`, w.linkShim)
+	sc.Step(`^another itos is linked as git before the real git on the PATH$`, w.linkOtherShim)
 	sc.Step(`^a repository with no itos config, its change to "([^"]*)" staged$`, w.plainRepository)
 
 	sc.Step(`^git runs "([^"]*)"$`, func(line string) error { return w.gitThroughShim(w.dir, line) })
@@ -95,6 +97,38 @@ func (w *world) linkShim() error {
 		return err
 	}
 	return os.Symlink(bin, programPath(filepath.Join(w.shimFolder(), "git")))
+}
+
+// A copy of the itos binary under test, another file as a pinned release in
+// the launcher's cache or a repository's own build is beside the global itos
+// the shim links (bug 45), linked as git in the scenario's git folder: a
+// symbolic link to the copy, named itos as an install's target is, or on
+// windows a hard link when symbolic links are not allowed.
+func (w *world) linkOtherShim() error {
+	bin, err := w.itosBinary()
+	if err != nil {
+		return err
+	}
+	text, err := os.ReadFile(bin)
+	if err != nil {
+		return err
+	}
+	other := programPath(filepath.Join(w.support, "other-itos", "itos"))
+	if err := os.MkdirAll(filepath.Dir(other), 0o755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(other, text, 0o755); err != nil {
+		return err
+	}
+	if err := os.MkdirAll(w.shimFolder(), 0o755); err != nil {
+		return err
+	}
+	link := programPath(filepath.Join(w.shimFolder(), "git"))
+	err = os.Symlink(other, link)
+	if err != nil && runtime.GOOS == "windows" {
+		err = os.Link(other, link)
+	}
+	return err
 }
 
 // A repository of its own in the support folder, with no itos config, and a

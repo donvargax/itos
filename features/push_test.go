@@ -43,6 +43,7 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the clone's "([^"]*)" has an uncommitted change$`, w.uncommittedChange)
 	sc.Step(`^the clone's "([^"]*)" still has its uncommitted change$`, w.stillUncommitted)
 	sc.Step(`^the remote's branch ends with "([^"]*)" then "([^"]*)", with no merge commit$`, w.remoteEndsWith)
+	sc.Step(`^the remote's branch ends with "([^"]*)"$`, w.remoteEndsWithOne)
 	sc.Step(`^the remote's branch does not have "([^"]*)"$`, w.remoteLacks)
 	sc.Step(`^the remote's branch has "([^"]*)"$`, w.remoteHas)
 	sc.Step(`^the remote has gained the commit "([^"]*)" making "([^"]*)" the owner of "([^"]*)"$`, w.remoteGainsTake)
@@ -392,6 +393,18 @@ func (w *world) remoteEndsWith(older, newer string) error {
 	}
 	if len(subjects) < 2 || subjects[0] != newer || subjects[1] != older {
 		return fmt.Errorf("the remote's main does not end with %q then %q:\n%s", older, newer, strings.Join(subjects, "\n"))
+	}
+	return nil
+}
+
+// The remote's main's newest commit has the header subject.
+func (w *world) remoteEndsWithOne(subject string) error {
+	subjects, _, err := w.remoteHistory()
+	if err != nil {
+		return err
+	}
+	if len(subjects) == 0 || subjects[0] != subject {
+		return fmt.Errorf("the remote's main does not end with %q:\n%s\n%s", subject, strings.Join(subjects, "\n"), w.report())
 	}
 	return nil
 }
