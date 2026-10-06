@@ -2652,14 +2652,15 @@ items:
     kind: idea
     refs: [docs/HANDOFF.md, tasks/work-items.yaml]
 
-  - id: p1-push-needs-hooks
-    title: itos commit and itos push check the gates they rely on
+  - id: slice-91
+    title: itos refuses to commit or push where its hooks cannot run, and installs only git's own hooks
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-push-needs-hooks.
       Found 2026-10-03: the coordinator's first docs commit from a new worktree reached CI
       unformatted. core.hooksPath named .vite-hooks/_, a folder vp config generates and git
       ignores, which the worktree lacked, and git then runs no hook at all, without a word: not
