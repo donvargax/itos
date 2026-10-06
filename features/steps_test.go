@@ -373,7 +373,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	})
 	sc.Step(`^itos lists the tasks$`, func() error { return w.itos("task", "list") })
 	sc.Step(`^itos runs the nightly$`, func() error { return w.itos("ci", "run", "--nightly") })
-	sc.Step(`^itos runs CI over every commit up to HEAD$`, func() error { return w.itos("ci", "run", "", "HEAD") })
+	// Every commit up to HEAD is the range an empty start gives (bug 33).
+	sc.Step(`^itos runs CI (?:over every commit up to HEAD|with an empty range start)$`, func() error {
+		return w.itos("ci", "run", "", "HEAD")
+	})
 	sc.Step(`^itos runs CI over the commits after the first$`, func() error {
 		if len(w.commits) == 0 {
 			return errors.New("the repository has no commit yet")
