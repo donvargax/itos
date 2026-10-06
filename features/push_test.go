@@ -6,8 +6,9 @@
 // the work registry, one the remote's and one the clone's, and the owner the
 // remote's registry gives it (slice 66); a tag on the remote's head, and a
 // fetch of the remote into the clone (status.feature, slice 70); ci.range's
-// command printing one of the remote's commits (slice 73), and the full SHA of
-// a commit of the remote's main by its header (bug 24's fake GitHub too).
+// command printing one of the remote's commits (slice 73), the full SHA of
+// a commit of the remote's main by its header (bug 24's fake GitHub too), and
+// an origin that cannot be reached or is no repository (slice 90).
 package features
 
 import (
@@ -36,6 +37,10 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the remote's head is tagged "([^"]*)"$`, func(tag string) error {
 		return w.gitIn(w.remote(), "tag", tag, "HEAD")
 	})
+	sc.Step(`^the clone's remote origin is "([^"]*)"$`, func(url string) error {
+		return w.git("remote", "set-url", "origin", url)
+	})
+	sc.Step(`^the clone's remote origin is a folder that is no repository$`, w.originNoRepository)
 	sc.Step(`^the clone has fetched the remote$`, func() error {
 		return w.git("fetch", "-q", "origin")
 	})
@@ -161,6 +166,17 @@ func (w *world) remoteHasNoBranch(branch string) error {
 
 // The remote: a bare repository in the support folder, as a host keeps one.
 func (w *world) remote() string { return filepath.Join(w.support, "origin.git") }
+
+// The clone's origin is an empty folder beside the remote (slice 90): a path
+// that exists, so git finds it, and holds no repository, so git says it does
+// not appear to be one. The branch keeps its upstream, origin's main.
+func (w *world) originNoRepository() error {
+	folder := filepath.Join(w.support, "not-a-repository")
+	if err := os.MkdirAll(folder, 0o755); err != nil {
+		return err
+	}
+	return w.git("remote", "set-url", "origin", folder)
+}
 
 // The scratch repository's history in a bare remote, and a clone of that,
 // its main tracking the remote's, with the files the scratch repository has
