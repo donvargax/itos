@@ -4390,3 +4390,15 @@ items:
       anchors never matches and config check reports 0 ledger files as valid; {group} as a folder in
       ledger.files passes and later fails as a missing folder (ledger.go:49, cross.go:358-372).
     refs: [internal/ledger/ledger.go, internal/config/cross.go]
+
+  - id: p3-ledger-numeric-sort
+    title: ledger.group.numeric sorts the files as numbers
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). Files always sort byte-wise, so phase-10
+      comes before phase-2, against the key's own description (ledger.go:77).
+    refs: [internal/ledger/ledger.go]
