@@ -5079,7 +5079,7 @@ items:
     title: "v6.0.0's renames: guard claude-code, question, followup, hook install, promote --id, queue --remove"
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
