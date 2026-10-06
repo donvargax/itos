@@ -4201,3 +4201,18 @@ items:
       check refuses; in stealth every later write then refuses (work/write.go:142-168). Its @bug-37
       scenario is written before it is handed out.
     refs: [internal/work/write.go]
+
+  - id: bug-38
+    title: itos writes its own files atomically
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). Stealth records (workwrite.go put), pin
+      (writeKeepingMode) and upgrade (config then install script) truncate and write in place, so an
+      interrupt or a full disk leaves a file empty or a project half-upgraded. One temp file, fsync
+      and rename helper, as follow.Save does since bug 16. Its @bug-38 scenario is written before it
+      is handed out.
+    refs: [internal/cli/workwrite.go, internal/cli/pin.go, internal/cli/upgrade.go]
