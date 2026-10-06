@@ -4530,3 +4530,15 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). failure() maps any error that is not a usage
       error to exit 2, which the help gives to usage and config errors.
     refs: [internal/cli/cli.go]
+
+  - id: p1-ci-watch-own-run
+    title: itos ci watch knows the run it is part of
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #14's other half: inside push CI ci watch on HEAD waits on its own run; it could read
+      GITHUB_RUN_ID and refuse or pass.
+    refs: [internal/cli/watch.go]
