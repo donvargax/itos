@@ -152,7 +152,8 @@ func isShim(text string) bool {
 	return len(lines) == 1 && callsItos.MatchString(lines[0])
 }
 
-// hookDir is where a file manager keeps its hooks, relative to root.
+// hookDir is where a file manager keeps its hooks: relative to root, or the
+// absolute folder git names (hookFile).
 func hookDir(manager, root string) (string, error) {
 	switch manager {
 	case "vp":
@@ -162,6 +163,23 @@ func hookDir(manager, root string) (string, error) {
 	}
 	dir, err := git.Read("-C", root, "rev-parse", "--git-path", "hooks")
 	return value.Trim(dir), err
+}
+
+// hookFile is the hook file name in the hooks folder dir: the path hooks
+// install names, and the one it reads and writes. A folder git names absolute
+// (an absolute core.hooksPath, or a linked worktree's, which is the main
+// repository's hooks folder) is the folder, whatever root is; joined onto root
+// it became a stray folder inside the working tree, which git never runs (bug
+// 35). A relative one is under root, and named with forward slashes, as git
+// names it. Whether it is absolute is the OS's to say: on Windows a drive
+// letter makes it so.
+func hookFile(root, dir, name string) (shown, full string) {
+	if filepath.IsAbs(filepath.FromSlash(dir)) {
+		full = filepath.Join(dir, name)
+		return full, full
+	}
+	shown = path.Join(dir, name)
+	return shown, filepath.Join(root, shown)
 }
 
 // snippet is what a config-file manager takes.
@@ -306,12 +324,12 @@ func hooksInstall(flag string, print, force bool, o Out) (int, error) {
 	plain := found.manager == "git"
 	files := make([]shimFile, len(shimNames))
 	for i, name := range shimNames {
-		p := path.Join(dir, name)
+		p, full := hookFile(root, dir, name)
 		content := shimLine(name, bin) + "\n"
 		if plain {
 			content = "#!/bin/sh\n" + content
 		}
-		action, err := place(filepath.Join(root, p), content, print, force, plain)
+		action, err := place(full, content, print, force, plain)
 		if err != nil {
 			return 0, err
 		}

@@ -338,7 +338,7 @@ Feature: Every key the config accepts is one itos reads
   # main repository's hooks folder) became a stray folder inside the working
   # tree: the shims landed there, the real hooks never ran, and hooks install
   # reported success. A hooks folder git names absolute is written as named.
-  @ID-CONFIG-34 @bug-35 @wip
+  @ID-CONFIG-34 @bug-35
   Scenario: hooks install writes the shims into an absolute core.hooksPath
     Given hooks.manager is "git"
     And core.hooksPath is an absolute folder outside the working tree
@@ -346,7 +346,7 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 0
     And the file "commit-msg" in that folder calls itos
 
-  @ID-CONFIG-35 @bug-35 @wip
+  @ID-CONFIG-35 @bug-35
   Scenario: hooks install in a linked worktree writes the shims into the repository's hooks folder
     Given hooks.manager is "git"
     And a linked worktree of the repository at "../wt"

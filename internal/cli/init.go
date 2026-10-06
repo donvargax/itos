@@ -29,7 +29,6 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -503,9 +502,9 @@ func hookProblems(cfg *config.Loaded, file string) []out.Problem {
 			return problems
 		}
 		for _, event := range shimNames {
-			p := path.Join(dir, event)
-			info, err := os.Stat(filepath.Join(root, p))
-			text, _ := readIf(filepath.Join(root, p))
+			p, full := hookFile(root, dir, event)
+			info, err := os.Stat(full)
+			text, _ := readIf(full)
 			switch {
 			case err != nil:
 				missing(event, p+" is not there", install)

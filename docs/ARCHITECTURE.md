@@ -1927,7 +1927,12 @@ sha>`, or `git.Unpushed` up to the local commit when there is no remote
 install` picks the manager (`--manager`, `hooks.manager`, then the markers)
   and writes or prints the one-line shims (`#!/bin/sh` and executable for
   plain git, written as a new file is), or prints a config-file manager's
-  snippet; a hook that is not a shim (`isShim`: one line calling `itos hook`,
+  snippet. A shim's folder is `hookDir`'s: `.vite-hooks` or `.husky`, else
+  the one `git rev-parse --git-path hooks` names, which `hookFile` takes as
+  it is when absolute (an absolute `core.hooksPath`, or a linked worktree's,
+  the main repository's) and under the working tree's root when relative,
+  the name printed being the folder written (bug 35); `init`'s doctor reads
+  the same files. A hook that is not a shim (`isShim`: one line calling `itos hook`,
   besides comments and a shebang) is replaced only with `--force`. Under a
   stealth config, unless `--manager` or `hooks.manager` names one, the
   manager is the git config (`internal/cli/gitconfig.go`, slice 33):
