@@ -4759,11 +4759,9 @@ items:
     title: "Who the session is: one person needs no gh, and gh is bounded"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Specified as @ID-WORK-47 to 50 in features/work.feature.
     refs: [features/work.feature, internal/providers/identity.go, internal/work]
 
   - id: p1-task-edit
