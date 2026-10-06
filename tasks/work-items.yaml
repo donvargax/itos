@@ -4592,3 +4592,15 @@ items:
       from the official releases, checked against its checksums, so nothing a repository ships runs.
       Removing the resolution is a behaviour change, so the plugin's version rises by a major, in a
       chore commit of the same push (T-074).
+
+  - id: slice-85
+    title: "v5.0.0: the command providers removed, and ci.range.github.branch"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [bug-29]
+    kind: slice
+    why: >
+      Specified as @ID-CONFIG-30 to 33 in features/config.feature; the comment above them holds the
+      calls.
+    refs: [features/config.feature, internal/providers, go.mod]
