@@ -184,7 +184,7 @@ var specs = map[string]spec{
 		"show":  {},
 		"doc":   {flags: []flagSpec{sw("--force")}},
 	}},
-	"question": {flags: []flagSpec{sw("--all")}, subs: map[string]spec{
+	"decision": {flags: []flagSpec{sw("--all")}, subs: map[string]spec{
 		"add":    {flags: []flagSpec{val("--item")}},
 		"answer": {},
 		"record": {flags: []flagSpec{val("--title"), vals("--option"), val("--consequences"), val("--supersedes"),

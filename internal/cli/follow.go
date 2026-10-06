@@ -66,7 +66,7 @@ func followArgs(sub string, args []string, valued, switches []string) ([]string,
 	return subArgs("followup", sub, args, valued, switches)
 }
 
-// subArgs is followArgs for a subcommand of command: itos question's read so too.
+// subArgs is followArgs for a subcommand of command: itos decision's read so too.
 func subArgs(command, sub string, args []string, valued, switches []string) ([]string, map[string]string, map[string]bool, error) {
 	name := strings.TrimSpace(command + " " + sub)
 	var pos []string

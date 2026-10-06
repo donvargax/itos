@@ -1384,7 +1384,7 @@ cases:
       scenarios: [{ id: "@ID-X-01", file: x.feature, live: true }]
       questions: []
       commits: [{ sha: "{{sha.feat}}", short: "{{short.feat}}", header: "feat: add x" }]
-  # Slice 62: the questions of itos question naming the item, beside its scenarios.
+  # Slice 62: the questions of itos decision naming the item, beside its scenarios.
   - name: work show lists the questions naming the item, open and answered, and no other
     argv: [work, show, x]
     files:

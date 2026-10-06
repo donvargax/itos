@@ -300,7 +300,7 @@ type Watch struct {
 	Timeout  *float64 `json:"timeout"`
 }
 
-// Work is the work registry, itos question's file and decision records'
+// Work is the work registry, itos decision's file and decision records'
 // folder, its statuses, the people and the identity.
 type Work struct {
 	Registry  string   `json:"registry"`

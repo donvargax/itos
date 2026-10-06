@@ -1,7 +1,7 @@
 package cli
 
 // The names v6.0.0 renamed (slice 89, decision 36; docs/CLI.md rules 3 to 6,
-// 17, 18 and 40). An old name keeps no command working: it exits 2 with one
+// 17, 18 and 40; slice 92, decision 38, for itos question). An old name keeps no command working: it exits 2 with one
 // line naming the new one, and an old command's name never reaches an
 // itos-<name> extension on the PATH. Nothing else keeps an old interface
 // working (p1-drop-compat-code).
@@ -18,10 +18,17 @@ import (
 var renamedCommands = []struct{ old, line string }{
 	{"hook pre-tool-use", "itos hook pre-tool-use is itos guard claude-code since v6.0.0"},
 	{"hooks", "itos hooks install is itos hook install since v6.0.0"},
-	{"ask", "itos ask is itos question since v6.0.0, the questions for the person the work is for; " +
-		"to ask someone else, itos followup"},
+	{"ask", "itos ask is itos decision since v6.0.0" + decisionOrFollowup},
+	{"question", "itos question is itos decision" + decisionOrFollowup},
 	{"follow", "itos follow is itos followup since v6.0.0"},
 }
+
+// decisionOrFollowup ends the refusals of itos ask and itos question, the
+// names the decisions waiting on the person went by before v6.0.0 settled on
+// itos decision (slice 92, decision 38): a question for anyone else is a
+// followup.
+const decisionOrFollowup = ", the decisions waiting on the person the work is for; " +
+	"anything to take up with someone else, a question included, is itos followup"
 
 // renamedFlags are the flags v6.0.0 renamed, by the command's path and the
 // old flag: the new flag.

@@ -53,7 +53,7 @@ files:
       - { id: theirs, title: Theirs, phase: 1, owner: b, status: todo, depends_on: [] }
       - { id: idea, title: An idea, phase: 1, owner: a, status: todo, kind: idea, depends_on: [] }
   asks.yaml: |
-    # The questions to the person the work is for, written by itos question (itos help question).
+    # The questions to the person the work is for, written by itos decision (itos help decision).
     questions:
       - id: q-1
         question: "Labels or Projects?"
@@ -353,7 +353,7 @@ cases:
     argv: [status]
     files:
       asks.yaml: |
-        # The questions to the person the work is for, written by itos question (itos help question).
+        # The questions to the person the work is for, written by itos decision (itos help decision).
         questions:
           - id: q-1
             question: "Should the status print a question in full, however long it is, or cut it short so it reads at a glance?"

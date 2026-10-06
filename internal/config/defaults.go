@@ -66,10 +66,10 @@ func defaults() *value.Map {
 			// docs/ is prose: the folder of the config's ledger.files
 			// (DefaultsFor); this, with no ledger.
 			"registry", "tasks/work-items.yaml",
-			// the questions of itos question, beside the registry wherever it is
+			// the questions of itos decision, beside the registry wherever it is
 			// (slice 62, DefaultsFor).
 			"asks", "tasks/asks.yaml",
-			// itos question record's decision records, in MADR's own folder
+			// itos decision record's decision records, in MADR's own folder
 			// (slice 71); a stealth config's are beside it (stealthOnly).
 			"decisions", "docs/decisions",
 			"groups_key", "phases",

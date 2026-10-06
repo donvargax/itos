@@ -211,7 +211,7 @@ Feature: Every key the config accepts is one itos reads
   # does not exist, and nothing said so (p1-adr-checks, 2026-10-04). config
   # check holds the folder work.decisions names to both rules, and the
   # commit-msg hook runs it when a record is staged. The index is not held to
-  # the folder: itos question record writes it whole at every record.
+  # the folder: itos decision record writes it whole at every record.
   @ID-CONFIG-24 @slice-74
   Scenario: config check refuses two decision records with the same number
     Given the committed file "docs/decisions/0001-use-go.md" holding "# Use Go"

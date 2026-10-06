@@ -11,7 +11,7 @@ Feature: itos followup, private threads with people
   of the clone, and readable by no one else. A thread can be written out
   whole as Markdown (followup doc), the raw material another agent refines
   into a published document: an architecture, a test plan. Questions to the
-  user are not threads but itos question, which is public. No config is needed:
+  user are not threads but itos decision, which is public. No config is needed:
   any git repository will do.
 
   Background:

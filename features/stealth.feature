@@ -254,11 +254,11 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
     Then every run exited 0
     And the registry has every one of those ideas
 
-  # Slice 62: under a stealth config itos question writes the questions beside the
+  # Slice 62: under a stealth config itos decision writes the questions beside the
   # stealth registry and commits nothing, as the registry's commands do.
   @ID-STEALTH-24 @slice-62
-  Scenario: Under a stealth config question add writes the question in the git folder, and git sees nothing
-    When itos runs the command line "question add 'Labels or Projects?'"
+  Scenario: Under a stealth config decision add writes the question in the git folder, and git sees nothing
+    When itos runs the command line "decision add 'Labels or Projects?'"
     Then itos exits with code 0
     And git status shows nothing to commit
 

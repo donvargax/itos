@@ -35,13 +35,13 @@ cases:
                                          order the work: put an item in the queue, or take it out
         work drop <id> --why <reason>    take an item out of the open work, and commit the reason
         work check [<file>]              validate the work registry
-        question [--all]                 the open questions to the person the work is for
-        question add <text> [--item <id>]
+        decision [--all]                 the open decisions waiting on the person the work is for
+        decision add <text> [--item <id>]
                                          ask a question, and commit it
-        question answer <id> <text>      answer a question, and commit it
-        question record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>] [--none]
+        decision answer <id> <text>      answer a question, and commit it
+        decision record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>] [--none]
                                          write an answer as a decision record, and commit it
-        question show <id>               a question and its answer
+        decision show <id>               a question and its answer
         followup [--all]                 your open threads with people; private, never committed
         followup add <id> --with <who> --title <title> --note <text>
                                          open a thread with someone
@@ -408,7 +408,7 @@ cases:
       its scenarios at HEAD (those tagged @<id>, @slice-<n> for the item slice-<n>,
       live or @wip) and its commits, oldest first,
       each with its short SHA and header, and between them the questions of itos
-      question naming the item (itos help question), each with its id, open or
+      decision naming the item (itos help decision), each with its id, open or
       answered, and its text. A commit is the item's when its footers of IDs name the item (Task:) or
       one of its scenarios (Scenarios:), a later fix naming one included, or when it
       is one of itos's registry commits naming it in its header (docs: take <id>,
@@ -417,7 +417,7 @@ cases:
       refs/notes/itos. --patch adds each commit as git show prints it, message and
       diff: the whole of a review's input. It reads, never writes, and judges
       nothing, as work list. Exit 1 when there is no registry where itos looks, or no
-      item with the id; 2 when itos question's file is there and cannot be read.
+      item with the id; 2 when itos decision's file is there and cannot be read.
 
       --json: {"schema":1,"ok":true,"item":{…},"ledger_why"?:"<why>"|null,"depended_on_by":[…],"scenarios":[{"id","file","live"}],
       "questions":[{"id","item","question","status","answer"?}],
@@ -438,18 +438,20 @@ cases:
       ledger.group.label (phase by default).
 
       --json: {"schema":1,"file","sound","problems":[{"rule","message","fix"?}]}
-  - name: itos question --help
-    argv: [question, --help]
+  - name: itos decision --help
+    argv: [decision, --help]
     exit: 0
     stdout: |
-      Usage: itos question [--all]
-             itos question add <text> [--item <id>]
-             itos question answer <id> <text>
-             itos question record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>]
-             itos question record <id> --none
-             itos question show <id>
+      Usage: itos decision [--all]
+             itos decision add <text> [--item <id>]
+             itos decision answer <id> <text>
+             itos decision record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>]
+             itos decision record <id> --none
+             itos decision show <id>
 
-      The questions waiting on the person the work is for, kept as data beside the
+      The decisions waiting on the person the work is for, each asked as a
+      question only they can answer; anything to take up with someone else, a
+      question included, is itos followup. They are kept as data beside the
       work registry rather than by hand: in work.asks, by default asks.yaml in the
       registry's folder (tasks/asks.yaml where the ledger is in tasks/). They are
       public, unlike itos followup's threads: add and answer write the file and
@@ -461,13 +463,13 @@ cases:
       registry, written while the registry's lock is held, as every stealth writer
       holds it, and nothing is committed.
 
-      An answered question is a decision: itos question record writes it as an
+      An answered question is a decision: itos decision record writes it as an
       architecture decision record, notes the record's number on the question and
-      commits both (itos help question record), or with --none marks an answer that
+      commits both (itos help decision record), or with --none marks an answer that
       concerned its item alone, recorded nowhere.
 
-      itos question lists the open questions, each with the item it names, then one
-      line naming the answered questions recorded nowhere yet, each as itos question
+      itos decision lists the open questions, each with the item it names, then one
+      line naming the answered questions recorded nowhere yet, each as itos decision
       record <id>, when there are any; --all adds the answered ones after the open
       ones, each with its answer and its decision. Exit 1 for a refusal (no question with
       the id, an item the registry does not have), 2 for a usage error or an
@@ -477,12 +479,12 @@ cases:
 
       --json: {"schema":1,"questions":[{"id","item"?,"question","status","answer"?,"decision"?}]},
       status open or answered, decision the record's number or "none"; each
-      subcommand's in its help (itos help question <subcommand>)
-  - name: itos question add --help
-    argv: [question, add, --help]
+      subcommand's in its help (itos help decision <subcommand>)
+  - name: itos decision add --help
+    argv: [decision, add, --help]
     exit: 0
     stdout: |
-      Usage: itos question add <text>… [--item <id>]
+      Usage: itos decision add <text>… [--item <id>]
 
       Asks a question, open, with the next free id: the words before or after
       --item joined by spaces, so the text needs no quotes unless the shell would
@@ -496,26 +498,26 @@ cases:
 
       --json: {"schema":1,"ok":true,"question":{"id","item"?,"question","status","answer"?},"commit":"<sha>"|null},
       or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
-  - name: itos question answer --help
-    argv: [question, answer, --help]
+  - name: itos decision answer --help
+    argv: [decision, answer, --help]
     exit: 0
     stdout: |
-      Usage: itos question answer <id> <text>…
+      Usage: itos decision answer <id> <text>…
 
       Answers the question: the words after the id joined by spaces are kept beside
-      it, and it is answered, left out of itos question's list. Then commits the
-      questions' file alone, "docs: answer <id>", as itos question add does. Refused,
+      it, and it is answered, left out of itos decision's list. Then commits the
+      questions' file alone, "docs: answer <id>", as itos decision add does. Refused,
       nothing written (exit 1): no question with the id, a question already
       answered, a file with changes no commit holds, a commit a hook refuses. Under
       a stealth config the file is written and nothing committed.
 
-      --json: as itos question add's, the question as it is after
-  - name: itos question record --help
-    argv: [question, record, --help]
+      --json: as itos decision add's, the question as it is after
+  - name: itos decision record --help
+    argv: [decision, record, --help]
     exit: 0
     stdout: |
-      Usage: itos question record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>]
-             itos question record <id> --none
+      Usage: itos decision record <id> --title <title> [--option <text>]… [--consequences <text>] [--supersedes <n>]
+             itos decision record <id> --none
 
       Writes the answered question as the next architecture decision record, in
       MADR 4's format (adr/madr, its bare-minimal sections): NNNN-<slug>.md, the
@@ -536,10 +538,10 @@ cases:
       and the new record ends with "## More Information", "Supersedes ADR-<nnnn>.".
       The question gains "decision: <n>". Then commits the questions' file, the
       record, the one it supersedes and the index together, "docs: record <id> as
-      decision <n>", as itos question add commits.
+      decision <n>", as itos decision add commits.
 
       --none writes no record: the answer concerned its item alone, and the
-      question gains "decision: none", so itos question stops naming it; the
+      question gains "decision: none", so itos decision stops naming it; the
       questions' file is committed alone, "docs: mark <id> as recorded nowhere".
 
       Refused, nothing written (exit 1): no question with the id, one not answered,
@@ -551,11 +553,11 @@ cases:
 
       --json: {"schema":1,"ok":true,"question":{…,"decision"},"record":"<path>"|null,"commit":"<sha>"|null},
       or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
-  - name: itos question show --help
-    argv: [question, show, --help]
+  - name: itos decision show --help
+    argv: [decision, show, --help]
     exit: 0
     stdout: |
-      Usage: itos question show <id>
+      Usage: itos decision show <id>
 
       Prints the question: its id and text, whether it is open or answered, the
       item it names and its decision, then its answer when it has one. It reads, never writes. Exit 1
@@ -1414,7 +1416,7 @@ cases:
       read from the commits as fetched here, with a line saying they may be behind
       when the head is not fetched; the person's items in progress; the next items
       they can start, theirs and the unowned, in the queue's order and the unqueued
-      after, five at most; and the open questions (itos question). It reads, never writes
+      after, five at most; and the open questions (itos decision). It reads, never writes
       or fetches. What cannot be reached (no remote, ci.watch.provider none, a
       provider that fails, for the head or the nightly, a ci.range provider that
       fails) is one line naming it, and the rest still prints, exit 0.

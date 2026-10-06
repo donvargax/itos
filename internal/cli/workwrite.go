@@ -151,7 +151,7 @@ func soundRegistry(o Out) (cfg *config.Loaded, registry work.Registry, text stri
 // which the command makes, when git knows nothing of it either: one deleted
 // and the deletion not committed, staged or not, is a change no commit holds
 // (bug 13), which a commit of the file written afresh would undo. The
-// problem names the file, the registry, a ledger file, itos question's
+// problem names the file, the registry, a ledger file, itos decision's
 // questions, or the rule the command gives (a decision record's).
 func uncommitted(cfg *config.Loaded, file, rule string) *out.Problem {
 	_, err := os.Lstat(file)
@@ -203,7 +203,7 @@ type written struct {
 // as it was, file and index, a new one removed (restore); a refusal exits 1,
 // the rest are errors. work's commands write the registry alone
 // (writeRegistry), task add a ledger file and the registry (slice 55),
-// question the questions alone (slice 62), question record the questions, a decision
+// decision the questions alone (slice 62), decision record the questions, a decision
 // record, the one it supersedes and their index (slice 69).
 func writeCommitted(cfg *config.Loaded, files []written, header, body string, o Out) (string, int, error) {
 	paths := make([]string, len(files))

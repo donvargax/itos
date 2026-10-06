@@ -1,4 +1,4 @@
-// Package adr is the architecture decision records itos question record writes
+// Package adr is the architecture decision records itos decision record writes
 // (features/ask.feature): an answered question written as a record in MADR
 // 4's format (adr/madr 4.0.0, its bare-minimal template), the maintained
 // one under the adr organisation (slice 71, which replaced slice 69's
@@ -21,7 +21,7 @@
 // Config check holds the folder to two rules (slice 74), Problems: no two
 // records share a number, and a record superseded names, in its status, a
 // number a record in the folder has. The index is not held to the folder,
-// since itos question record writes it whole at every record.
+// since itos decision record writes it whole at every record.
 //
 // The functions here are text in, text out, but for List and Next, which
 // read the folder, List through internal/source so that the commit-msg hook
@@ -320,7 +320,7 @@ func Index(before string, records []Record) string {
 		}
 	}
 	if before == "" {
-		before = "# Decisions\n\nThe decisions that still stand, one record each. A record superseded keeps its\nfile and leaves this list, which itos question record writes.\n"
+		before = "# Decisions\n\nThe decisions that still stand, one record each. A record superseded keeps its\nfile and leaves this list, which itos decision record writes.\n"
 	}
 	if !strings.HasSuffix(before, "\n") {
 		before += "\n"

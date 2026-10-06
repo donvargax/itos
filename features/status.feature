@@ -43,7 +43,7 @@ Feature: itos status, where the work stands
   @ID-STATUS-03 @slice-67
   Scenario: status lists the questions still open
     Given the watched run's jobs "ci" and "platform" succeed
-    And itos has run the command line "question add 'Labels or Projects?'"
+    And itos has run the command line "decision add 'Labels or Projects?'"
     When itos runs "status --as someone"
     Then itos exits with code 0
     And its output says "q-1"
