@@ -244,6 +244,9 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the task "([^"]*)" has a static check that records it ran$`, func(task string) error {
 		return w.stagedChecks(task, staticCheck(recordingCheck))
 	})
+	sc.Step(`^the task "([^"]*)" has a check that records it ran, after push$`, func(task string) error {
+		return w.stagedChecks(task, fmt.Sprintf("{ run: %q, after: push }", recordingCheck))
+	})
 	sc.Step(`^the task "([^"]*)" has the late check "([^"]*)"$`, func(task, check string) error {
 		return w.stagedChecks(task, fmt.Sprintf("{ run: %q, cost: late }", check))
 	})
