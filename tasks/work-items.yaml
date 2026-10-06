@@ -4936,14 +4936,10 @@ items:
     kind: idea
     why: >
       Since T-100 previous-release judges an old case's json, exit code and files_after alone, never
-      stdout_has. Eight cases of this tree's corpus run --json and pin their keys with stdout_has
-      instead (guide.yaml's guide and go as --json, four of them; status.yaml's go --json;
-      work.yaml's work list with no registry; tests.yaml's case passes --json through to a runner
-      and is not one), so no later release holds itos to those keys. A test commit pinning them with
-      json: puts them under the contract decision 35 names.
-    refs:
-      [
-        tools/itos/conformance/guide.yaml,
-        tools/itos/conformance/status.yaml,
-        tools/itos/conformance/work.yaml,
-      ]
+      stdout_has. Six cases of this tree's corpus run --json and pin their keys with stdout_has
+      instead (guide.yaml's five guide and go --json cases, status.yaml's go --json), so no later
+      release holds itos to those keys; a test commit pinning them with json: puts them under the
+      contract decision 35 names. work.yaml's "with no registry where itos looks" runs work list
+      --json and pins a plain stderr line, no JSON on stdout, which a script reading --json cannot
+      use either.
+    refs: [tools/itos/conformance/guide.yaml, tools/itos/conformance/status.yaml]
