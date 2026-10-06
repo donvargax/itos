@@ -4086,11 +4086,9 @@ items:
     title: ci.keep_step_order runs ci.steps as written
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Issue #13. Specified as @ID-CI-16 in features/ci.feature.
     refs: [features/ci.feature, internal/plan]
 
   - id: bug-30
