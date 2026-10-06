@@ -11,7 +11,8 @@
 // commit of the watched workflow with no run of its own is answered with the
 // watched run, one look a request, the nth request the nth look and the last
 // look for every request after it, as the run a push started would answer
-// while it goes. Anything else it is asked is a 404, and everything a 401 once
+// while it goes; a step can have it do something first, when it is first
+// asked for the watched run (bug 34). Anything else it is asked is a 404, and everything a 401 once
 // a step makes it refuse the token.
 package features
 
@@ -21,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"regexp"
 	"slices"
 	"strconv"
@@ -63,6 +65,9 @@ type fakeGitHub struct {
 	looks    int          // how many looks at the watched run were given
 	given    []string     // the commits a look at the watched run was given
 	refuses  bool         // whether it answers every request 401
+	// What it does when first asked for the watched run, before it answers
+	// (bug 34): a change made while the asker waits. An error answers 500.
+	firstLook func() error
 }
 
 // The fake GitHub's two endpoints: a workflow's runs, and a run's jobs.
@@ -108,6 +113,13 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			}
 		}
 		if len(runs) == 0 && g.watched != nil && workflow == watchedWorkflow {
+			if g.looks == 0 && g.firstLook != nil {
+				if err := g.firstLook(); err != nil {
+					fmt.Fprintf(os.Stderr, "the fake GitHub's first look failed: %v\n", err)
+					http.Error(rw, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			}
 			runs = []gitHubRun{g.look(sha)}
 		}
 	} else if g.list != nil {

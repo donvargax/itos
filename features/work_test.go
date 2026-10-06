@@ -14,7 +14,8 @@
 // itos ask record's decision records (slice 71); an item with a why, a task
 // with none and a ledger task with one, and an item's why gone after (slice
 // 76); a queue that no longer names an item and the last commit's body
-// (slice 78); the last commit's body within a line length (bug 22).
+// (slice 78); the last commit's body within a line length (bug 22); a
+// registry commit made while work done waits for CI (bug 34).
 package features
 
 import (
@@ -61,6 +62,7 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a feature file with the scenario "([^"]*)" tagged "([^"]*)"$`, w.taggedScenario)
 	sc.Step(`^itos has run "([^"]*)"$`, func(line string) error { return w.hasRunLine(w.dir, line) })
 	sc.Step(`^the registry's queue names "([^"]*)"$`, w.registryQueueNames)
+	sc.Step(`^while work done waits for CI, a commit takes "([^"]*)" for "([^"]*)"$`, w.takenWhileWaiting)
 	sc.Step(`^work\.decisions is "([^"]*)"$`, func(path string) error {
 		return w.configSets("work.decisions", path)
 	})
@@ -180,6 +182,50 @@ func (w *world) registryItemWhy(id, owner, status, dep, kind, why string) error 
 		return nil
 	}
 	return w.commitLeavingStaged("docs: a registry")
+}
+
+// takenWhileWaiting has the fake GitHub, when it is first asked for the
+// watched run, commit in the clone where itos runs a take of the item for
+// the person, before it answers: the item's owner and status doing in the
+// registry, the person added to the people file when it does not list them,
+// in one commit past the hooks, as a take made in another session and
+// pulled in lands while work done waits (bug 34).
+func (w *world) takenWhileWaiting(id, owner string) error {
+	if w.github == nil {
+		return errors.New("no fake GitHub: start one first")
+	}
+	if w.dataDir != "" {
+		return errors.New("a stealth registry is committed by nothing: this needs a project's")
+	}
+	registry, people := w.data(startingRegistry), w.data("people.yaml")
+	item := regexp.MustCompile(`(?m)^(  - \{ id: ` + regexp.QuoteMeta(id) + `, .*?owner: )[^,]*(, status: )[^,]*`)
+	w.github.firstLook = func() error {
+		text, err := os.ReadFile(filepath.Join(w.dir, registry))
+		if err != nil {
+			return err
+		}
+		if !item.Match(text) {
+			return fmt.Errorf("the registry has no item %q to take:\n%s", id, text)
+		}
+		taken := item.ReplaceAll(text, []byte("${1}"+owner+"${2}doing"))
+		if err := os.WriteFile(filepath.Join(w.dir, registry), taken, 0o644); err != nil {
+			return err
+		}
+		listed, err := os.ReadFile(filepath.Join(w.dir, people))
+		if err != nil {
+			return err
+		}
+		if !slices.Contains(strings.Split(string(listed), "\n"), "- "+owner) {
+			if err := os.WriteFile(filepath.Join(w.dir, people), append(listed, []byte("- "+owner+"\n")...), 0o644); err != nil {
+				return err
+			}
+		}
+		if err := w.git("add", "--", registry, people); err != nil {
+			return err
+		}
+		return w.git("commit", "-q", "--no-verify", "-m", "docs: take "+id)
+	}
+	return nil
 }
 
 // Every file committed as commit commits them, but for those already staged,
