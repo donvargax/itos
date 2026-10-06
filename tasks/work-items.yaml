@@ -4627,3 +4627,15 @@ items:
       and it needed no footer and could touch anything. Not a fortress: a build or ci commit can
       still change the gates, and the coordinator's review of each agent's commits is what catches
       that (p3-gate-changes-visible).
+
+  - id: p3-starter-drops-style
+    title: itos init's starter drops style from its commit types
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-05): with formatters run on every commit, style is never the right
+      type. This repository dropped it in T-098; the starter still lists it
+      (internal/cli/starter.go), though there it needs a Task.
