@@ -110,6 +110,15 @@ install`, because a second install can load two copies of a tool;
 
 ## Lessons from this repository
 
+Each lesson fixes a mistake that an agent or the coordinator made. Each lesson
+names its exit: the item that makes the lesson unnecessary, or "permanent"
+when the lesson needs judgement. When the exit item is done, delete the
+lesson in the same commit. Each lesson also gives the date it was recorded
+and the date the mistake was last seen ("by 2026-10-04": it was in this file
+when the file was reorganized that day). Keep at most ten lessons: to add
+one, convert or delete one. `p1-agent-rules-as-data` moves them into itos's
+data.
+
 - **Trace each Given to where itos runs before handing a spec out.** Twice on
   2026-10-04 a scenario asserted what its setup could not produce: `itos go`
   prints no status without a config (slice 68), and a step that changes the
@@ -119,48 +128,48 @@ install`, because a second install can load two copies of a tool;
   task's check has the same trap: one grepping whole folders also hits
   recorded fixtures (`tools/selftest/header-agreement.json` keeps old commit
   messages verbatim, T-085), so aim a check at what the task changes.
+  Exit: permanent. Recorded by 2026-10-04; last seen 2026-10-04.
 - **A checkpoint push that names a task runs that task's checks**, so one
   pushed before the task's `done_when` is met is red by design. Likewise an
   `after: push` check waiting on a release or a tag fails every push naming its
   task until then: write it late. A check that reads CI's own result belongs in
-  `ci.nightly_only`.
+  `ci.nightly_only`. Exit: `p1-nightly-late-done-checks` (q-13). Recorded by
+  2026-10-04.
 - **Settle what breaks compatibility before a major release.** List the open
-  items that change what is accepted, and ask.
+  items that change what is accepted, and ask. Exit: permanent. Recorded by
+  2026-10-04; last seen 2026-10-06 (the v6 bundle).
 - **Name the checks a new gate adds in the next briefs.** A gate landed hours
-  earlier turned `main` red on the next agent's change.
+  earlier turned `main` red on the next agent's change. Exit: permanent.
+  Recorded by 2026-10-04.
 - **Windows is a platform job.** It has caught `go:embed` reading CRLF
-  checkouts and a test asserting Unix file modes. Expect what touches files,
-  modes or line endings to need a Windows thought.
+  checkouts, a test asserting Unix file modes, and a test hashing a blob with
+  `git hash-object`, whose CRLF warning joined the hash (bug 31: use
+  `-c core.autocrlf=false` and `--no-filters`). Expect what touches files,
+  modes or line endings to need a Windows thought. Exit: permanent. Recorded
+  by 2026-10-04; last seen 2026-10-06.
 - **The features hide `claude`, `itos` and every `itos-*` from the PATH**
   (T-087): a scenario runs the itos under test only where a step asks
   (`itosOnPath`). A task's check that should prove a fix can pass before it
-  too (T-087's did): ask the agent how it showed the change matters.
-- **A feat that rewords a config error is a breaking change** as the gates
-  stand: `previous-release` judges a config error's words (T-095), and a feat
-  may not change an old case (slice 82, q-15). Check a feat's spec for a
-  refusal it rewords before handing it out.
+  too (T-087's did): ask the agent how it showed the change matters. A git
+  that is itos is not hidden yet. Exit: permanent, with
+  `p1-tests-hide-git-shim` for the git. Recorded by 2026-10-04.
 - **A feature file's first live scenarios need a smoke entry** in
   `features/smoke.yaml`: CI's `tests smoke check` turned slice 82's feat red
   for one push. Say so in the brief of a slice whose feature file is new.
-- **Agents write their own wait loops** unless told not to, and one built on
-  `pgrep` matched its own command line and never ended (bug 35). The brief
-  says: run `itos push` in the background and watch it with a Monitor.
-- **The rtk hook rewrites `git pull`** and could fail with "Cannot rebase onto
-  multiple branches". `itos push` runs git itself, which is one more reason to
-  use it.
+  Exit: `p1-smoke-rule-at-commit`. Recorded 2026-10-06; last seen 2026-10-06.
+- **Agents write their own wait loops** when `itos push` outlives the
+  harness's foreground limit: one built on `pgrep` matched its own command
+  line and never ended (bug 35), another slept (slice 83). The brief says:
+  run `itos push` in the background and watch it with a Monitor. Exit:
+  `p1-push-fits-foreground`. Recorded 2026-10-06; last seen 2026-10-06.
 - **`vp staged`'s backup uses git's stash**, shared by every worktree. A commit
   hook failing with "lint-staged failed due to a git error" is transient: run
   it again. If a tree is lost anyway, the hook's backup is still in the object
   store. Run `git fsck --no-reflog --unreachable`: the newest `WIP on main`
   commit is the working tree, and its second parent is what was staged.
-  Restore paths with `git checkout <wip> -- <paths>`.
-- **The coordinator's docs worktree was dropped** (2026-10-03). It committed
-  once without hooks and went stale. Commit only between agents, from the main
-  checkout.
+  Restore paths with `git checkout <wip> -- <paths>`. Exit: permanent.
+  Recorded by 2026-10-04.
 - **itos-cc** (on the PATH as an extension) is advice, not a gate, until
   donvargax/itos-cc#1, #2 and #4 are fixed. Mutate only in a scratch clone,
-  since it annotates source files.
-- **Deferred, the user's to lift:** `p1-backport-code-design`, and
-  `p3-role-protocol`, `p3-debt-role` and `p3-debt-claims` until itos-cc is
-  published. v3.0.0 will carry `v3-hooks-bin-default` and
-  `v3-stealth-pre-push`.
+  since it annotates source files. Exit: those three issues. Recorded by
+  2026-10-04.
