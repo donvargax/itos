@@ -106,3 +106,24 @@ Feature: itos push, the pull-rebase-push routine as one command
     When itos runs "push --no-wait"
     Then itos exits with code 0
     And the remote's branch ends with "chore: tidy the readme"
+
+  # Slice 90 (decision 36's rule 31, found by slice 86): itos push exited
+  # with git's own code when its fetch or its push failed, so a remote it
+  # could not reach exited 128, none of itos's codes, and not 75. A remote
+  # that cannot be reached (a connection refused or timed out, a host that
+  # does not resolve) exits 75; a remote that is no repository, or that git
+  # cannot find, exits 3; a push the remote refuses exits 1, as before. In
+  # the v6.0.0 push with slices 86 to 89, since an exit code is the contract.
+  @ID-PUSH-08 @slice-90 @wip
+  Scenario: A push whose remote cannot be reached exits 75
+    Given the clone's remote origin is "https://127.0.0.1:1/itos.git"
+    And the clone has the commit "chore: tidy the readme" touching "README.md"
+    When itos runs "push"
+    Then itos exits with code 75
+
+  @ID-PUSH-09 @slice-90 @wip
+  Scenario: A push whose remote is no repository exits 3
+    Given the clone's remote origin is a folder that is no repository
+    And the clone has the commit "chore: tidy the readme" touching "README.md"
+    When itos runs "push"
+    Then itos exits with code 3
