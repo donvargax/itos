@@ -54,6 +54,7 @@ phases:
   3: donvargax
 
 queue:
+  - slice-89
   - slice-87
   - slice-86
   - bug-36
