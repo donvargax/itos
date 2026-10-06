@@ -4339,3 +4339,16 @@ items:
       install no interrupt handling, so the prompt returns while git and the editor still hold the
       console.
     refs: [internal/launch/run_other.go, internal/cli/extension_other.go]
+
+  - id: p1-ledger-id-grouping
+    title: ledger.id is anchored as a group
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). IDPattern builds ^id$ without grouping, so
+      T-\d+|B-\d+ accepts T-1x; every other reader uses ^(?:id)$ (ledger.go:209-216,
+      workdone.go:205).
+    refs: [internal/ledger/ledger.go]
