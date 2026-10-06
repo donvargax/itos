@@ -153,3 +153,23 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     When itos prints where the range of the head starts
     Then itos exits with code 0
     And the range is empty
+
+  # Bug 28 (issue #14; was p1-ci-after-push-checks; the user's call,
+  # 2026-10-05). Push CI ran a named task's after: push checks, though such
+  # a check means something only once the push has landed: one waiting on a
+  # release or a tag is red on every range that names its task until then
+  # (T-021 here), and itos ci watch, run inside push CI, waits on the run it
+  # is part of. A consumer listed it in ci.nightly_only, whose label then
+  # said it runs in the nightly, which runs no named task's checks. Push CI
+  # now lists a named task's after: push checks as pending, after the push,
+  # and neither runs them nor counts them against the run; itos task and
+  # itos work done still run them. ci.nightly_only's label for a task's
+  # check says only that push CI leaves it out, not that the nightly runs it.
+  @ID-CI-12 @bug-28 @wip
+  Scenario: Push CI lists a named task's after: push check as pending and does not run it
+    Given the task "T-001" has a check that records it ran, after push
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And the recording check did not run
+    And its output says "after the push"
