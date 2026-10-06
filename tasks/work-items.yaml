@@ -5105,3 +5105,19 @@ items:
       old interface working, such as the launcher's version gate for pins older than the guard
       (GuardSince), fallbacks for removed keys or commands, and anything a feature flag keeps for
       backward compatibility. Breaking changes ship together in a major instead.
+
+  - id: p1-model-baseline
+    title: "LeashBench: itos work replayed with the guidance on, gates only and off, across models and harnesses"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-06). Planned in docs/plans/leashbench.md: replays of landed items in
+      three arms (on, gates, off), a fixed recorded container environment, an adapter per harness
+      (Claude Code first, then Codex CLI and others), three repeats per run, judged by itos after
+      the run, results as data per harness and model, and an analysis that shows which rules still
+      prevent a mistake and whether the guidance helps or hurts a model. Check Terminal-Bench's task
+      format before building a runner. Needs the devcontainer from the sandbox work.
+    refs: [docs/plans/leashbench.md]
