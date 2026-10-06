@@ -141,14 +141,14 @@ try {
 			path: "/version",
 		},
 		{
-			what: "a value not allowed, hooks.manager: overcommit",
+			what: "a value not allowed, commits.header_lint.use: commitlint",
 			config: (() => {
 				const c = copy();
-				c.hooks.manager = "overcommit";
+				c.commits.header_lint = { ...c.commits.header_lint, use: "commitlint" };
 				return c;
 			})(),
 			keyword: "enum",
-			path: "/hooks/manager",
+			path: "/commits/header_lint/use",
 		},
 	];
 	const env = outsideEnv();
