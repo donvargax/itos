@@ -4614,8 +4614,8 @@ items:
   - id: T-098
     title: Only build and ci commits may touch the gates, and style is no type
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
