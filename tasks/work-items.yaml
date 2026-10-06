@@ -4745,3 +4745,14 @@ items:
       own is refused, would close the gap; it changes the conformance cases moves.yaml 'a message
       whose type is not one of commits.types is the header lint's, as a merge's is' and
       messages.yaml's version case, so it is the user's call.
+
+  - id: bug-46
+    title: "Who the session is: one person needs no gh, and gh is bounded"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified as @ID-WORK-47 to 50 in features/work.feature.
+    refs: [features/work.feature, internal/providers/identity.go, internal/work]
