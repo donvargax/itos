@@ -2174,53 +2174,44 @@ diff --name-only --no-renames`, so a change undone within the range is
     releasable), as a release's is, unless `-bin` names another:
     `tools/bin/itos` says a pre-release between releases, which the old
     corpus's cases that put the binary's own version into `requires` cannot
-    read. It checks the tag out with `git worktree add
---detach` into a scratch folder, links the checkout's `node_modules` in
-    for the YAML parser its fixture rewrite reads with, takes the help
-    cases out of the release's fixtures, then runs, at once, the release's `go test ./features -count=1
--json` with `ITOS_BIN` naming the binary and this tree's corpus runner over
-    the release's fixtures,
+    read. It checks the tag out with `git worktree add --detach` into a
+    scratch folder, links the checkout's `node_modules` in for the YAML
+    parser its fixture rewrite reads with, leaves in the release's fixtures
+    only what itos's contract holds a case to, then runs, at once, the
+    release's `go test ./features -count=1 -json` with `ITOS_BIN` naming the
+    binary and this tree's corpus runner over the release's fixtures,
     `node <top>/tools/itos/conformance/run.ts --bin <bin> --additive --only <its *.yaml>`
     (T-076): the runner asks the binary its version for the corpus's
     `{{version}}`, so a build stamped with a version the tag never had is not
-    failed for saying it. `--additive` judges each old case by what its
-    output must still hold (the user's call, 2026-10-03: additive properties
-    are compatible, removals and changes breaks): its `json` as a subset of
-    the new, every key it expects there with the value it expects at every
-    depth, an array element by element at the same length, a key added
-    anywhere passing, a failure naming the path (`.plugin.scope: expected
-"user", got "project"`); its `stdout` and `stderr` as lines that must all
-    appear in the new output in the same order, a line added before, between
-    or after them passing, a failure printing the line diff with the lines
-    it lacks marked `-`. The exit code, `stdout_has`, `stderr_has` and
-    `files_after` are judged as ever, and this tree's corpus, run without the
-    flag, pins every output exactly. No release's runner has the mode, so the
-    release's fixtures are read by this tree's runner, not its own. A help case is one whose
-    argv holds `--help` or `-h` before any `--`, starts with `help`, or is
-    empty (a bare itos prints the help); they are never judged (the user's
-    call, 2026-10-03), as help text is documentation, not compatibility:
-    `--json` and exit codes are the stable interface, this tree's own corpus
-    still pins its help exactly, and judged, every feat that adds a flag or a
-    command would pass only as a breaking change. A Node script in the
-    command, with the linked `yaml`, deletes them from each fixture's `cases`
-    in place, keeping the rest of the file as written, and the check prints
-    how many it left out of which file and why (v2.3.0: 37 of `help.yaml`'s
-    38, its `itos version` case still judged). The same script leaves out
-    each usage error's case (T-095, the user's call, 2026-10-05): a case
-    expecting exit 2, nothing on stdout, and on stderr exactly one
-    `itos: <message> (itos --help)` line, the suffix cli's `failure` prints
-    for a usage error and for nothing else (T-075's reading). Such a case
-    pins only what a command refuses, and refusing less is additive: T-075
-    judged it by its exit code alone, which still read a command that comes
-    to accept what it refused (slice 80's `init --stealth --agent-rules`) as
-    a breaking change. Its `files_after` leaves with it, losing nothing, as
-    a refused command writes nothing. A config error (config check's
-    `FAIL …` lines, or an `itos: … is missing` about a file the config
-    names) and a case pinning its output with `stdout_has`, `stderr_has` or
-    `json` stay judged word for word. Each rewritten fixture must parse back
-    equal to the old one less the cases left out, or the check stops, and it
-    prints how many usage errors it left out of which file beside the help
-    cases (v4.1.1: 72, in thirteen files). A failing subtest
+    failed for saying it. The release's scenarios are judged as they stand,
+    by what their steps assert. Its corpus is judged by machine output alone
+    (T-100, decision 35): only exit codes, `--json` less every key named
+    `message` or `fix`, and the files itos writes are its contract, every
+    plain-text output, help, a refusal or a success alike, being for people.
+    A Node script in the command, with the linked `yaml`, rewrites each
+    fixture from what it parses: every case's `stdout`, `stderr`,
+    `stdout_has` and `stderr_has` go, and every `message` and `fix` key at
+    any depth of its `json`; its exit code, `files_after`, every other `json`
+    key and what it sets up stay. The rewritten file must parse back equal to
+    what the script readied, or the check stops, and the check prints how
+    many cases it read, how many lost their plain output and how many
+    message and fix keys it left out (v5.1.0: 872 cases, 704 and 245).
+    `--additive` judges what is left by what the new output must still hold
+    (the user's call, 2026-10-03: additive properties are compatible,
+    removals and changes breaks): its `json` as a subset of the new, every
+    key it expects there with the value it expects at every depth, an array
+    element by element at the same length, a key added anywhere passing, a
+    failure naming the path (`.plugin.scope: expected "user", got
+"project"`). So a rule id renamed, a problem dropped, a key removed, an
+    exit code changed or a file written otherwise is a break, and a reworded
+    refusal, help text or message is not. A help case and a usage error are
+    judged as any case is: the help-case exemption (2026-10-03) and the
+    usage-error one (T-095) were narrower forms of this rule and went with
+    T-100. A usage error the command comes to accept changes its exit code,
+    and fails as any changed exit code does. No release's runner has the
+    mode, so the release's fixtures are read by this tree's runner, not its
+    own, and this tree's corpus, run without the flag or the rewrite, pins
+    every output exactly. A failing subtest
     (`TestFeatures/<name>`, spaces as underscores) is named by the `@ID-` tag
     above its `Scenario:` line in the release's feature files, a failing case
     by the runner's `FAIL <file>: <name>` line as `<file base name>: <name>`.
@@ -2246,15 +2237,19 @@ diff --name-only --no-renames`, so a change undone within the range is
     repository whose tag holds two scenarios (a stdlib Go test standing for
     godog's), this repository's corpus runner, four cases (one named longer
     than a footer line, and two starting with the same word) and two help
-    cases, against a script that breaks one scenario and one case, and one
-    whose help alone differs, which passes; and a report's lines and a JSON
-    object, against a script that adds keys and lines, which passes, and four
-    that each take a key away, change a value, change a line or swap two,
-    each refused; and two usage errors and a config error, against a script
-    that rewords all three and gives a usage error exit 1, refused for the
-    config error alone. Its unit test runs the script on a scratch fixture:
-    the help case and the usage errors leave, the config errors and a case
-    pinned by `stderr_has` stay.
+    cases, against a script that breaks one scenario and one case by its exit
+    code, and one whose help and usage errors' words alone differ, which
+    passes; a report's lines and a JSON object with a message and a fix,
+    against a script that adds keys, rewords the message and fix and
+    rewrites the report, which passes, and three that each take a key away,
+    change a value or change an exit code, each refused; and two usage errors
+    and a config error, against a script that rewords all three and gives a
+    usage error exit 1, refused for that usage error alone. Its unit tests
+    run the script on a scratch fixture, plain output and message and fix
+    keys leaving and the rest staying, then run the readied fixture against
+    the test binary standing in for an itos that rewords everything: the
+    reworded stdout, stderr, message and fix pass, a changed exit code, rule
+    id, removed key and files_after fail.
   - **commit-msg** first checks itos's own data when the commit stages any
     of it (`commit-data.ts`): the config, a ledger file, the registry or a
     smoke set, as the staged config names them, runs `config check`'s
