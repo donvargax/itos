@@ -4427,3 +4427,17 @@ items:
       but not event=push, so a fork's pull-request run on a branch named main can count as green
       (providers/range.go:189-196).
     refs: [internal/providers/range.go]
+
+  - id: p1-rules-block-matches-gates
+    title: The rules block says what the gates enforce, edge cases included
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). only: [] (or an empty $set) refuses every
+      path though the block says the type may touch anything, must_touch: [] goes unmentioned, and
+      staged range checks are listed for every type though the hook runs them only for types with a
+      scope entry (initrules.go:511,521,580).
+    refs: [internal/cli/initrules.go]
