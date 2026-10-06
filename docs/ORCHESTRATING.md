@@ -105,7 +105,8 @@ Each agent gets a worktree of its own (`isolation: "worktree"`, under
 - symlink `node_modules` to the main checkout's instead of running `vp
 install`, because a second install can load two copies of a tool;
 - run `vp config --hooks --no-agent` before the first commit, because a new
-  worktree has no `.vite-hooks/_` and its hooks silently do not run;
+  worktree has no `.vite-hooks/_` and its pre-commit hook silently does not
+  run (itos's own hooks are in the git config, which every worktree shares);
 - pull with `--no-autostash` before each push.
 
 ## Lessons from this repository

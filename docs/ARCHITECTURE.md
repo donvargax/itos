@@ -2127,9 +2127,9 @@ itos`, before any other step calls it. `tools/selftest/go-dogfood.ts`
 - **The hooks**: `itos hook install`, run once in each clone, declares
   `itos hook commit-msg` and `itos hook pre-push` in the clone's git config
   (slice 91); `pre-commit` is the project's own, in `.vite-hooks/`, where
-  `vp config` (`prepare`, on `vp install`) points git. `.vite-hooks/`'s
-  `commit-msg` and `pre-push` still call itos until T-101's ci commit takes
-  those lines out, so until then itos's checks run twice on a commit here.
+  `vp config` (`prepare`, on `vp install`) points git. `.vite-hooks/` holds
+  no `commit-msg` or `pre-push` (T-102): theirs only called itos, which the
+  git config already runs, so itos's checks ran twice on a commit here.
   - **pre-commit** runs `vp staged` (each path's command in `vite.config.ts`'s
     `staged`: `vp check --fix`, or for Go `gofmt -w` and then `go vet` over the
     module, since it reads packages rather than files), then, unless every
@@ -2450,7 +2450,14 @@ TestFeatures/…` lines); a green run closes it.
   CI's plan runs `itos config check` for a range touching
   the registry or the ledger and for a prose-only range touching
   `CONTRIBUTORS.md`. It and `gates.ts` build their worktree with
-  `scratch.ts`; `gates.ts` takes the worktree's `node_modules` away for the
+  `scratch.ts`, and run itos's `commit-msg` and `pre-push` as git runs them,
+  `git hook run` on the hooks the git config declares (T-102): `scratch.ts`'s
+  `hookRun` declares the entries `itos hook install --print` gives in a
+  config file the environment includes only where the git dir is the
+  worktree's (`includeIf.gitdir`), so the checkout's `.git/config`, which a
+  worktree shares, is left as it was, and the unit tests the hooks run in
+  repositories of their own see none of it; `core.hooksPath` there is an
+  empty folder, so `vp`'s hook folder does not run beside them. `gates.ts` takes the worktree's `node_modules` away for the
   commit-msg hook's header case, so the built-in lint is shown judging a
   header with no commitlint to run. `header-agreement.ts` holds the built-in header
   lint to a fixture of commitlint's verdicts (above, `internal/message`).
