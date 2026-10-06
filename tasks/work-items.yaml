@@ -4776,3 +4776,16 @@ items:
       --why/--title/--add-check/--drop-check would write and commit it as task add does (writing
       only under stealth); changing a done task's checks asks a reason for the commit body, since it
       changes the evidence (T-008 and T-092's checks were changed by hand on 2026-10-05).
+
+  - id: p3-stealth-ledger-portability
+    title: A stealth config's ledger, registry and questions exported and imported
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      From another coordinator's notes (2026-10-05): stealth data lives in the git common dir, local
+      to a checkout, so a coordinator cannot hand a task's context to another checkout. The
+      read-only half exists (task list --json, work list --all --json); an export bundle and an
+      import are missing.
