@@ -372,22 +372,23 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 2
     And its output says "itos hook install"
 
-  # Slice 91 (the user's call, 2026-10-06): itos knew six hook managers
-  # (Vite+, husky, lefthook, pre-commit, plain git and git-config), detected
-  # them, wrote each one's hook format, and kept hooks.manager to override
-  # the detection. It covers only git's own mechanisms now: itos hook install
-  # writes plain git hooks into the folder git uses, or git-config hooks in
-  # stealth mode. Where another tool owns that folder, it writes nothing
-  # there and prints the lines to add to that tool's hooks, the same for
-  # every tool. hooks.manager is removed. In the v6.0.0 push, marked
-  # breaking; the feat removes the scenarios that tested a manager.
+  # Slice 91 (q-17, the user's call, 2026-10-06): itos knew six hook managers
+  # (Vite+, husky, lefthook, pre-commit, prek, plain git), detected them by
+  # their marker files and wrote its shims in each one's layout, with
+  # hooks.manager and --manager to override the detection. It now declares
+  # its two hooks in the git config alone, the project's hook files and
+  # settings untouched, so it needs to know no manager. The marker detection,
+  # the per-manager writing, --manager and hooks.manager go; the feat removes
+  # the scenarios that tested a manager, marked breaking.
   @ID-CONFIG-38 @slice-91 @wip
-  Scenario: hook install where another tool owns the hooks folder writes nothing there and prints the lines to add
+  Scenario: hook install declares itos's hooks in the git config and touches no hook file
     Given the project's hooks are in ".husky" by core.hooksPath, with a commit-msg hook that records it ran
     When itos runs "hook install"
     Then itos exits with code 0
-    And its output says "itos hook commit-msg"
+    And the git config declares a "commit-msg" hook that runs itos
+    And the git config declares a "pre-push" hook that runs itos
     And the file ".husky/commit-msg" does not name "itos hook"
+    And core.hooksPath is still ".husky"
 
   @ID-CONFIG-39 @slice-91 @wip
   Scenario: config check refuses hooks.manager, which v6 removed
