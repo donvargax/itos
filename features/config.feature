@@ -283,3 +283,51 @@ Feature: Every key the config accepts is one itos reads
     Given the config's ci section holds only a github watch of "ci.yml"
     When itos plans CI over the commits after the first
     Then its output says "ci.steps is missing"
+
+  # Slice 85, v5.0.0 (the user's calls, 2026-10-05). The code review of
+  # 07b0e6d found itos running a repository's own commands without anyone
+  # choosing to: the git shim's push ran ci.watch.command, and itos go and
+  # itos status ran ci.range.command, ci.watch's commands and work.identity's
+  # command, the first things a person runs in a clone. Running itos task, ci
+  # run or installed hooks is a choice to run a repository's commands, as
+  # make or npm test is; these were not. v5 removes the command provider of
+  # ci.range, ci.watch (its command and nightly_command) and work.identity,
+  # leaving github or none, and --as for who a session works for; config
+  # check refuses the provider, and the keys only it read, saying they were
+  # removed in v5. It also removes ci.range.github.branch, which nothing
+  # reads since bug 29 counts a commit's green run on any branch (if a tool
+  # still reads it, the key stays and this scenario goes). The live
+  # scenarios that fake CI or identity with a command (watch.feature,
+  # push.feature, status.feature, the work scenarios with an identity
+  # command, and their corpus cases) move to the fake GitHub of bug 23, or
+  # go where a github one says the same, each named with --breaking. The
+  # module path moves to github.com/donvargax/itos/v5, as T-094 moved it to
+  # v4. Providers for other hosts come back behind a trust gate:
+  # p3-command-providers-back.
+  @ID-CONFIG-30 @slice-85 @wip
+  Scenario: config check refuses ci.range's command provider, removed in v5
+    Given the config sets "ci.range.provider" to "command"
+    When itos checks the config
+    Then itos exits with code 2
+    And its output says "removed in v5"
+
+  @ID-CONFIG-31 @slice-85 @wip
+  Scenario: config check refuses ci.watch's command provider, removed in v5
+    Given the config sets "ci.watch.provider" to "command"
+    When itos checks the config
+    Then itos exits with code 2
+    And its output says "removed in v5"
+
+  @ID-CONFIG-32 @slice-85 @wip
+  Scenario: config check refuses work.identity's command provider, removed in v5
+    Given the config sets "work.identity.provider" to "command"
+    When itos checks the config
+    Then itos exits with code 2
+    And its output says "removed in v5"
+
+  @ID-CONFIG-33 @slice-85 @wip
+  Scenario: config check refuses ci.range.github.branch, removed in v5
+    Given the config sets "ci.range.github.branch" to "main"
+    When itos checks the config
+    Then itos exits with code 2
+    And its output says "removed in v5"
