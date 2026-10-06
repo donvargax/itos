@@ -4075,8 +4075,8 @@ items:
   - id: slice-83
     title: CI steps and checks get the range's ends, as ITOS_FROM and ITOS_TO and {from} and {to}
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
