@@ -4667,20 +4667,9 @@ items:
     title: The module path is github.com/donvargax/itos/v5, and this config holds nothing v5 removed
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Slice 85 cuts v5.0.0, and tools/bin/release-version refuses a v5 tag from a go.mod whose
-      module path ends in /v4 (T-089), as Go's module proxy refuses it. The path moves to /v5
-      everywhere it is named, as T-094 moved it to /v4, but in two commits since T-098 holds the
-      gates to build and ci commits: a refactor commit for go.mod, every import of itos's own
-      packages under cmd/, internal/ and features/, .goreleaser.yaml's -X ldflags and the go install
-      lines of the README and ARCHITECTURE; then a ci commit for what is under tools/bin (its Go
-      programs' imports, the ldflags of tools/bin/itos, build-go.ts and previous-release), CI's
-      Build itos step and go-hooks.ts's module prefix. Between them tools/bin does not build, which
-      no hook of the first commit runs. This repository's itos.yaml drops ci.range.github.branch,
-      which v5 refuses (slice 85), in a ci commit of its own before the feat.
 
   - id: p1-status-last-green-unfetched
     title: status's last green line keeps a case for a commit not fetched here, which only a command could name
