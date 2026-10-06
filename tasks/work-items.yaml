@@ -4402,3 +4402,15 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). Files always sort byte-wise, so phase-10
       comes before phase-2, against the key's own description (ledger.go:77).
     refs: [internal/ledger/ledger.go]
+
+  - id: p1-since-from-base
+    title: verify reads commits.since from the range's base, not the tree it judges
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). A later commit in the same push can move
+      commits.since back past a bad commit, which verify then skips (config/since.go:66).
+    refs: [internal/config/since.go]
