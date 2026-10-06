@@ -12,8 +12,8 @@
 // watched run, one look a request, the nth request the nth look and the last
 // look for every request after it, as the run a push started would answer
 // while it goes; a step can have it do something first, when it is first
-// asked for the watched run (bug 34). Anything else it is asked is a 404, and everything a 401 once
-// a step makes it refuse the token.
+// asked for the watched run (bug 34). Anything else it is asked is a 404, everything a 401 once
+// a step makes it refuse the token, and everything a 500 once a step makes it fail (slice 86).
 package features
 
 import (
@@ -65,6 +65,7 @@ type fakeGitHub struct {
 	looks    int          // how many looks at the watched run were given
 	given    []string     // the commits a look at the watched run was given
 	refuses  bool         // whether it answers every request 401
+	failing  bool         // whether it answers every request 500, a server error
 	// What it does when first asked for the watched run, before it answers
 	// (bug 34): a change made while the asker waits. An error answers 500.
 	firstLook func() error
@@ -86,6 +87,10 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	g.asked = append(g.asked, req.URL.RequestURI())
 	if g.refuses {
 		http.Error(rw, `{"message":"Bad credentials"}`, http.StatusUnauthorized)
+		return
+	}
+	if g.failing {
+		http.Error(rw, `{"message":"Server Error"}`, http.StatusInternalServerError)
 		return
 	}
 	if req.Method != http.MethodGet || req.Header.Get("Authorization") != "Bearer "+fakeToken {

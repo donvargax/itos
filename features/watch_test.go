@@ -78,6 +78,13 @@ func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 		w.github.refuses = true
 		return nil
 	})
+	sc.Step(`^the fake GitHub answers every look with a server error$`, func() error {
+		if w.github == nil {
+			return errors.New("no fake GitHub: start one first")
+		}
+		w.github.failing = true
+		return nil
+	})
 	sc.Step(`^no GitHub token in the environment$`, func() error {
 		w.vars = slices.DeleteFunc(w.vars, func(v string) bool { return strings.HasPrefix(v, "GITHUB_TOKEN=") })
 		return nil
