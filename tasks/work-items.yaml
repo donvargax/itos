@@ -4595,19 +4595,9 @@ items:
     title: The plugin's guard and titles run only the itos on the PATH
     phase: 3
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05); the user's call. guard.sh and register.ts
-      ran the effective hooks.bin, else an executable tools/bin/itos at the repository's top, else
-      the itos on the PATH, so a cloned repository shipping an executable tools/bin/itos, or naming
-      a script of its own in hooks.bin, had it run before every Bash command Claude Code runs and on
-      every reply, by anyone with the plugin enabled for it, at user scope for every repository. The
-      guard and the titles now run only the itos on the PATH: the launcher fetches a pinned release
-      from the official releases, checked against its checksums, so nothing a repository ships runs.
-      Removing the resolution is a behaviour change, so the plugin's version rises by a major, in a
-      chore commit of the same push (T-074).
 
   - id: slice-85
     title: "v5.0.0: the command providers removed, and ci.range.github.branch"
