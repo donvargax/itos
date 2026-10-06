@@ -37,6 +37,7 @@ type world struct {
 	ledger        []ledgerTask      // the tasks of the ledger's one file (ledgerPath), in order
 	dataDir       string            // where itos's config and data are written: the root, or the git folder (stealth)
 	linked        string            // the linked worktree of the scratch repository, when the scenario adds one
+	hooksFolder   string            // the absolute folder core.hooksPath names, when the scenario sets one
 	watchURL      string            // the address of the watched run
 	registryLines []string          // the registry's items, one line each, as the work steps wrote them
 	registryQueue []string          // the registry's queue, as a work step wrote it, nil for none
@@ -418,6 +419,13 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the recording check ran$`, func() error { return w.recordingCheckRan(true) })
 	sc.Step(`^the recording check did not run$`, func() error { return w.recordingCheckRan(false) })
 	sc.Step(`^the file "([^"]*)" calls itos$`, w.fileCallsItos)
+	sc.Step(`^core\.hooksPath is an absolute folder outside the working tree$`, w.absoluteHooksPath)
+	sc.Step(`^the file "([^"]*)" in that folder calls itos$`, func(name string) error {
+		if w.hooksFolder == "" {
+			return fmt.Errorf("the scenario sets no hooks folder")
+		}
+		return w.callsItos(filepath.Join(w.hooksFolder, name), name)
+	})
 	sc.Step(`^the file "([^"]*)" runs "([^"]*)"$`, w.fileRuns)
 	sc.Step(`^the file "([^"]*)" does not name "([^"]*)"$`, w.fileDoesNotName)
 	sc.Step(`^"([^"]*)" was given "([^"]*)"$`, func(script, arg string) error {
@@ -1781,6 +1789,17 @@ func (w *world) folder(path string) error {
 	return os.MkdirAll(filepath.Join(w.dir, path), 0o755)
 }
 
+// core.hooksPath set by its absolute path to a folder of the scenario's
+// support folder, outside the working tree, as a person sets it to share one
+// hooks folder between repositories (bug 35).
+func (w *world) absoluteHooksPath() error {
+	w.hooksFolder = filepath.Join(w.support, "hooks")
+	if err := os.MkdirAll(w.hooksFolder, 0o755); err != nil {
+		return err
+	}
+	return w.git("config", "core.hooksPath", w.hooksFolder)
+}
+
 func (w *world) hooksManagerIs(manager string) error {
 	w.config.hooksManager = manager
 	return w.writeConfig()
@@ -2291,7 +2310,12 @@ func (w *world) fileDoesNotName(path, name string) error {
 
 // The file is a hook that hands its work to itos's hook command.
 func (w *world) fileCallsItos(path string) error {
-	text, err := os.ReadFile(filepath.Join(w.dir, path))
+	return w.callsItos(filepath.Join(w.dir, path), path)
+}
+
+// The file at full, named shown in a failure, calls itos.
+func (w *world) callsItos(full, path string) error {
+	text, err := os.ReadFile(full)
 	if err != nil {
 		return fmt.Errorf("%s cannot be read: %w\n%s", path, err, w.report())
 	}

@@ -5,7 +5,8 @@
 // checked (stealth.feature's work add uses them too), the threads file
 // written directly, and a run under a time zone. Bug 17's: the line after or
 // before a text in a file is blank. Slice 71's: a file has a line, alone or
-// after another (init.feature's AGENTS.md block uses them too).
+// after another (init.feature's AGENTS.md block uses them too). Bug 35's: a
+// command line run in the linked worktree, the run a scenario is about.
 package features
 
 import (
@@ -30,6 +31,16 @@ func initializeFollowSteps(sc *godog.ScenarioContext, w *world) {
 			return fmt.Errorf("the scenario adds no linked worktree")
 		}
 		return w.hasRunLine(w.linked, line)
+	})
+	sc.Step(`^itos runs the command line "([^"]*)" in the linked worktree$`, func(line string) error {
+		if w.linked == "" {
+			return fmt.Errorf("the scenario adds no linked worktree")
+		}
+		args, err := shellWords(line)
+		if err != nil {
+			return err
+		}
+		return w.itosIn(w.linked, args...)
 	})
 	sc.Step(`^the file "([^"]*)" exists$`, w.fileExists)
 	sc.Step(`^the file "([^"]*)" says "([^"]*)"$`, w.fileSays)
