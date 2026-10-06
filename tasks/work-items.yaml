@@ -5060,3 +5060,14 @@ items:
       to every project and grow as the project lessons did. Once project rules are data
       (p1-agent-rules-as-data) and prove themselves, the built-in text becomes rules too, each with
       its exit and dates, governed in this repository.
+
+  - id: slice-88
+    title: Every command parses its flags from a declared spec, and refuses what it does not take
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified in features/cli.feature (decision 36).
+    refs: [features/cli.feature, internal/cli/commands.go, internal/cli/cli.go]
