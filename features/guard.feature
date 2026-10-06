@@ -107,3 +107,17 @@ Feature: itos hook pre-tool-use, Claude Code's guard against git commit and git 
     Then itos exits with code 0
     And itos writes nothing to stdout
     And no version of the release server ran
+
+  # Slice 89 (decision of q-16): Claude Code's PreToolUse entry point was
+  # itos hook pre-tool-use, in the group that holds git's hooks, under an
+  # exit-code contract that is not git's. It is itos guard claude-code, a
+  # group named for what it does and the harness whose protocol it speaks,
+  # so another harness's guard is itos guard <harness>. The steps that ask
+  # itos as Claude Code call the new name; the plugin's guard.sh calls it,
+  # and the plugin's version rises. The old name exits 2 naming the new one;
+  # guard.sh turns a 2 into 1, so Claude Code is never blocked by it.
+  @ID-GUARD-12 @slice-89 @wip
+  Scenario: itos hook pre-tool-use exits 2, naming itos guard claude-code
+    When itos runs "hook pre-tool-use"
+    Then itos exits with code 2
+    And its output says "itos guard claude-code"

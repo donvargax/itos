@@ -353,3 +353,20 @@ Feature: Every key the config accepts is one itos reads
     When itos runs the command line "hooks install" in the linked worktree
     Then itos exits with code 0
     And the file ".git/hooks/commit-msg" calls itos
+
+  # Slice 89 (decision of q-16): hooks install and the hook group differed
+  # by one letter. With the guard moved out, itos hook holds git's hooks
+  # alone, and installing them is itos hook install. The step "itos installs
+  # the hooks" runs the new name; the feat rewrites what names the old one.
+  @ID-CONFIG-36 @slice-89 @wip
+  Scenario: hook install writes the shims of the manager hooks.manager names
+    Given hooks.manager is "git"
+    When itos runs "hook install"
+    Then itos exits with code 0
+    And the file ".git/hooks/commit-msg" calls itos
+
+  @ID-CONFIG-37 @slice-89 @wip
+  Scenario: itos hooks install exits 2, naming itos hook install
+    When itos runs "hooks install"
+    Then itos exits with code 2
+    And its output says "itos hook install"

@@ -214,3 +214,24 @@ Feature: itos ask, the questions waiting on the person a repository's work is fo
     When itos runs the command line "ask record q-1 --title 'itos init generates the config rules into a marked block of AGENTS.md, and the guides of itos say how to work with it'"
     Then itos exits with code 0
     And the last commit's body has no line longer than 100 characters
+
+  # Slice 89 (decision of q-16): "I need to ask someone this" was logged
+  # with itos ask, whose questions are for the person the work is for, when
+  # it meant itos follow: an agent picks a command by its name, and the
+  # everyday verb pointed the wrong way. The questions are itos question;
+  # asks.yaml, work.asks, the q-<n> ids and the docs: ask q-<n> headers stay.
+  # The feat rewrites the live scenarios that run ask, marked breaking.
+  @ID-ASK-20 @slice-89 @wip
+  Scenario: question add records a question beside the registry, and commits it alone
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs the command line "question add 'Should the starter require a Task footer of docs commits?' --item slice-9"
+    Then itos exits with code 0
+    And its output says "q-1"
+    And the last commit touches only "tasks/asks.yaml"
+
+  @ID-ASK-21 @slice-89 @wip
+  Scenario: itos ask exits 2, naming itos question and itos followup
+    When itos runs "ask"
+    Then itos exits with code 2
+    And its output says "itos question"
+    And its output says "itos followup"

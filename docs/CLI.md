@@ -37,9 +37,10 @@ The `previous-release` check holds each release to this contract (T-100). It run
 | 1    | A check said no: a rule refused a commit, a check failed, an item is not ready.                                                                          |
 | 2    | A usage error or a config error.                                                                                                                         |
 | 3    | The environment is missing something: a person, a tool, a release, a git repository.                                                                     |
+| 70   | An internal error: itos met an error that it cannot classify. Report it. Planned for v6.0.0 (slice-86).                                                  |
 | 75   | A temporary failure. The same command can pass when you run it again with no change, for example after a network failure. Planned for v6.0.0 (slice-86). |
 
-These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.h` value `EX_TEMPFAIL` for 75 (CLIG `#the-basics`: map the non-zero codes to the most important failure modes).
+These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.h` values `EX_SOFTWARE` for 70 and `EX_TEMPFAIL` for 75 (CLIG `#the-basics`: map the non-zero codes to the most important failure modes). Decision 36 sets 70 and 75.
 
 ## Rules
 
@@ -142,10 +143,15 @@ Each row is a gap that the 2026-10-06 review found and reproduced. The rule numb
 | 33   | The help and the code do not agree.                                               | `itos task nope` exits 2; the help says 1                 |
 | 40   | `itos hook` holds the Claude Code guard.                                          | `itos hook pre-tool-use`                                  |
 
-## Open questions
+## Decided for v6.0.0
 
-These need a decision before the gaps above become work.
+Decision 36 settles the questions that this review left open. v6.0.0 carries these changes, so the gaps above for rules 3 to 6, 17 to 21, 25, 31 and 40 close with it:
 
-- The new name of the Claude Code guard, now `itos hook pre-tool-use`. The review recommends `itos guard claude-code`, which matches decision 28, `internal/guard` and `features/guard.feature`. The other candidates are `itos agent claude-code pre-tool-use` and `itos hook claude-code pre-tool-use`.
-- The new name of `itos ask`. The review recommends `itos question`. It also recommends `itos followup` for `itos follow`, so that both groups are nouns.
-- What an old name does after a rename. The review recommends a refusal with exit 2 that names the new command, for one major release. Rule 43 does not allow a silent alias.
+- The Claude Code guard is `itos guard claude-code`. A guard for another harness is `itos guard <harness>`.
+- `itos ask` is `itos question`, and `itos follow` is `itos followup`. `asks.yaml`, `follow-ups.yaml` and the `q-<n>` IDs do not change.
+- `hooks install` is `hook install`. `itos hook` holds git's hooks only.
+- `work promote --as` is `--id`, and `work queue --drop` is `--remove`.
+- `itos help` with an unknown topic exits 2.
+- An old name exits 2 and names the new one. No alias and no feature flag keeps an old interface working.
+- Every command parses its flags from a declared spec (rules 19 to 21 and 25).
+- Each exit code comes from the kind of the error (rule 31), and an error that itos cannot classify exits 70.

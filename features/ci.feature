@@ -270,6 +270,15 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # a step exiting 75 (or 2, or 3) read as itos's own meaning of it. A failing
   # step makes ci run exit 1, its output naming the step's code. The step
   # writes 75 as $((70+5)), so the command printed does not hold the code.
+  # Slice 86 also takes every exit code from the kind of the error, never from
+  # a default (decision of q-16): failure() gave every error that was not a
+  # usage or config error exit 2, so a network error not wrapped by hand
+  # could never be 75. A usage error and a config error exit 2, a missing
+  # environment 3, a failure that may pass when run again 75, and an error
+  # itos cannot classify 70 (sysexits' EX_SOFTWARE: report it), unit-tested
+  # since no scenario can provoke one on purpose. v6.0.0 ships slice-86, 87,
+  # 88, 89 and T-101 in one push: each agent commits and does not push, and
+  # the coordinator pushes the stack.
   @ID-CI-19 @slice-86 @wip
   Scenario: A step that exits 75 makes ci run exit 1, naming the step's code
     Given the CI steps are "exit $((70+5))"

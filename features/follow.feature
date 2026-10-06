@@ -123,3 +123,19 @@ Feature: itos follow, private threads with people
     Then itos exits with code 0
     And its output says "The sync design"
     And the file "-" does not exist
+
+  # Slice 89 (decision of q-16): itos follow is itos followup, a noun group
+  # beside itos question, matching follow-ups.yaml, which stays. The feat
+  # rewrites the live scenarios that run follow, marked breaking.
+  @ID-FOLLOW-13 @slice-89 @wip
+  Scenario: followup add opens a thread kept under the git common dir, and git sees nothing
+    When itos runs the command line "followup add sync-ana --with ana --title 'The sync design' --note 'She covered the retries, not the backoff.'"
+    Then itos exits with code 0
+    And the file ".git/itos/follow-ups.yaml" exists
+    And git status shows nothing to commit
+
+  @ID-FOLLOW-14 @slice-89 @wip
+  Scenario: itos follow exits 2, naming itos followup
+    When itos runs "follow"
+    Then itos exits with code 2
+    And its output says "itos followup"
