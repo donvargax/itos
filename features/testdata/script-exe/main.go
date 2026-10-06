@@ -25,6 +25,7 @@ const marker = "\n#itos-features-script\n"
 func main() { os.Exit(run()) }
 
 func run() int {
+	holdTree()
 	self, err := os.Executable()
 	if err != nil {
 		return fail(err)

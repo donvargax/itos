@@ -279,6 +279,9 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^work\.groups_key is "([^"]*)"$`, w.groupsKeyIs)
 	sc.Step(`^the people file is missing$`, w.peopleFileMissing)
 	sc.Step(`^no identity can be looked up$`, w.noIdentity)
+	sc.Step(`^a gh on the PATH that never answers$`, w.ghNeverAnswers)
+	sc.Step(`^the people file lists only "([^"]*)"$`, func(login string) error { return w.peopleAre(login) })
+	sc.Step(`^the people file lists "([^"]*)" and "([^"]*)"$`, func(a, b string) error { return w.peopleAre(a, b) })
 	sc.Step(`^itos proposes "([^"]*)" to start$`, w.proposesToStart)
 	sc.Step(`^the work registry gives the group "([^"]*)" to the owner "([^"]*)" under "([^"]*)"$`, w.registryGroupOwner)
 	sc.Step(`^the work registry has the item "([^"]*)" in the group "([^"]*)", which it does not list$`, w.registryUnlistedGroup)
@@ -1832,6 +1835,31 @@ func (w *world) noIdentity() error {
 	}
 	script := "#!/bin/sh\necho 'not logged in' >&2\nexit 4\n"
 	return w.writeProgram(filepath.Join(bin, "gh"), script)
+}
+
+// lateAnswer is how long the gh that never answers takes to answer: far past
+// the bound itos gives gh (5 s, bug 46), and short enough that an itos that
+// waited for it shows as a red run, not a hung one.
+const lateAnswer = 30
+
+// The gh first on the PATH does not answer within itos's bound: asked
+// anything, it sleeps lateAnswer seconds, then answers the people file's
+// first login as the account it is signed in as. An itos that waited for it
+// would take the item for that person; one that gives up on it in time
+// kills it, and its sleep with it (gh.exe on windows, as noIdentity's).
+func (w *world) ghNeverAnswers() error {
+	bin, err := w.binOnPath()
+	if err != nil {
+		return err
+	}
+	people := filepath.ToSlash(filepath.Join(w.dir, w.data("people.yaml")))
+	script := fmt.Sprintf("#!/bin/sh\nsleep %d\nsed -n '1s/^- *//p' %s\n", lateAnswer, quote(people))
+	return w.writeProgram(filepath.Join(bin, "gh"), script)
+}
+
+// The people file the config names lists these logins, and no others.
+func (w *world) peopleAre(logins ...string) error {
+	return w.write(w.data("people.yaml"), "- "+strings.Join(logins, "\n- ")+"\n")
 }
 
 // work's text proposal lists the item under "Can start now:", the section of
