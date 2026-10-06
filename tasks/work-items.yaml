@@ -57,6 +57,7 @@ queue:
   - T-097
   - bug-29
   - slice-85
+  - bug-30
   - slice-82
   - slice-83
   - slice-84
