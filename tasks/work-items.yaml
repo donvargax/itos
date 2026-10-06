@@ -5318,3 +5318,17 @@ items:
     why: >
       Slice 92 rewrote ASK-20 (slice 89, question add) to run decision add, so it asserts the same
       as ASK-22. Neither is released yet: dropping one before v6.0.0 costs nothing.
+
+  - id: p1-ci-e2e-workflow
+    title: Run a push's E2E step in a workflow of its own (#18)
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #18: push feedback waits on the merged E2E run, half of CI. It needs three things:
+      running part of the ci plan (stages, as --stage/--except or a ci.stages owning the tests step
+      and E2E-cost task checks), a ci.range per workflow (the E2E workflow starts at its own last
+      green run), and status and ci watch for a third workflow while push waits on the first. Design
+      the stage split first. Unqueued until the user wants it (2026-10-06).
