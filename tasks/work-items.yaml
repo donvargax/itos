@@ -5237,3 +5237,17 @@ items:
       cannot make for a reason of its own exits 128, none of itos's codes (decision 36, docs/CLI.md
       rule 31). Classify it as push does: a hook's refusal 1, anything git reports without a kind
       70.
+
+  - id: p1-go-schema-selftest-enum
+    title: go-schema.ts's value-not-allowed case names hooks.manager, which v6 removed
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-91]
+    kind: idea
+    why: >
+      tools/selftest/go-schema.ts holds the generated schema to a config with hooks.manager:
+      overcommit and expects an enum refusal at /hooks/manager. slice-91 removed hooks.manager, so
+      the schema refuses it by additionalProperties at /hooks and the nightly's go-schema self-test
+      fails. A ci commit (T-101's, which edits the gates anyway) points the case at another enum
+      key, such as commits.header_lint.use.
