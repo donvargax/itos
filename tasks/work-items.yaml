@@ -2657,7 +2657,7 @@ items:
     title: itos installs its hooks only in the git config, and refuses to commit or push where they will not run
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
