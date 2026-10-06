@@ -4245,3 +4245,17 @@ items:
       sharing a token end ci watch and itos push with exit 3 (providers/watch.go:343). Its @bug-40
       scenario is written before it is handed out.
     refs: [internal/providers/watch.go]
+
+  - id: bug-42
+    title: Under --stealth a yes at the terminal writes the rules for agents
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). The stealth branch that only reports is
+      keyed on the flag having been given, which a terminal's answer never sets, so yes to the rules
+      question writes nothing, against the help (cli/initrulesstealth.go:284). Its @bug-42 scenario
+      is written before it is handed out.
+    refs: [internal/cli/initrulesstealth.go]
