@@ -201,6 +201,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.commitOnTop(message + "\n\n" + key + ": " + task + "\n")
 	})
 	sc.Step(`^the commit "([^"]*)" touching only "([^"]*)" on top of it$`, w.commitTouchingOnly)
+	sc.Step(`^a merge commit "([^"]*)" on top of it, with a change of its own to "([^"]*)"$`, w.mergeCommit)
+	sc.Step(`^a merge commit "([^"]*)" on top of it, with no change of its own$`, func(message string) error {
+		return w.mergeCommit(message, "")
+	})
 	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)"$`, func(message, task string) error {
 		return w.commitOnTop(message + "\n\nTask: " + task + "\n")
 	})
@@ -377,7 +381,11 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^itos prints the help of "([^"]*)"$`, func(command string) error {
 		return w.itos(append(strings.Fields(command), "--help")...)
 	})
-	sc.Step(`^the commit-msg hook checks the message "([^"]*)"$`, w.commitMsgHook)
+	// A quote inside the message is written \" and a backslash \\, as in
+	// Revert \"chore: tidy the readme\" (bug 30).
+	sc.Step(`^the commit-msg hook checks the message "((?:[^"\\]|\\.)*)"$`, func(message string) error {
+		return w.commitMsgHook(unescapeQuoted(message))
+	})
 	sc.Step(`^the commit-msg hook checks the message:$`, func(message *godog.DocString) error {
 		return w.commitMsgHook(message.Content + "\n")
 	})
@@ -1043,6 +1051,98 @@ func (w *world) commitTouchingOnly(message, path string) error {
 		return err
 	}
 	w.commits = append(w.commits, sha)
+	return nil
+}
+
+// A merge commit on top of HEAD, with the message: a topic line and the main
+// line each move on by one chore commit naming the ledger's first task, each
+// adding a file of its own (topic.md, main.md), so that both pass the rules
+// themselves and the merge brings both; the merge's tree is the two combined,
+// as git's merge would make it, and with a change of its own (own not "") the
+// path given changed in it alone, in no parent. Built with git's plumbing in
+// a scratch index, so that what the scenario staged stays staged and out of
+// every commit, and HEAD's branch moved to the merge.
+func (w *world) mergeCommit(message, own string) error {
+	if len(w.ledger) == 0 {
+		return errors.New("the repository's ledger has no task to name")
+	}
+	base, err := w.head()
+	if err != nil {
+		return err
+	}
+	index := filepath.Join(w.support, "merge-index")
+	plumb := func(args ...string) (string, error) {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = w.dir
+		cmd.Env = append(w.env(), "GIT_INDEX_FILE="+index)
+		out, err := cmd.Output()
+		if err != nil {
+			return "", fmt.Errorf("git %s: %w", strings.Join(args, " "), err)
+		}
+		return strings.TrimSpace(string(out)), nil
+	}
+	// A tree: the commit's, with each path set to its text.
+	tree := func(from string, texts map[string]string) (string, error) {
+		if _, err := plumb("read-tree", from); err != nil {
+			return "", err
+		}
+		for path, text := range texts {
+			file := filepath.Join(w.support, "merge-blob")
+			if err := os.WriteFile(file, []byte(text), 0o644); err != nil {
+				return "", err
+			}
+			blob, err := plumb("hash-object", "-w", file)
+			if err != nil {
+				return "", err
+			}
+			if _, err := plumb("update-index", "--add", "--cacheinfo", "100644,"+blob+","+path); err != nil {
+				return "", err
+			}
+		}
+		return plumb("write-tree")
+	}
+	// A commit of the tree on the parents.
+	commit := func(tree, message string, parents ...string) (string, error) {
+		args := []string{"commit-tree", tree, "-m", message}
+		for _, p := range parents {
+			args = append(args, "-p", p)
+		}
+		return plumb(args...)
+	}
+	task := w.ledger[0].id
+	topicText := map[string]string{"topic.md": "The topic.\n"}
+	topicTree, err := tree(base, topicText)
+	if err != nil {
+		return err
+	}
+	topic, err := commit(topicTree, "chore: add the topic\n\nTask: "+task+"\n", base)
+	if err != nil {
+		return err
+	}
+	mainTree, err := tree(base, map[string]string{"main.md": "The main line.\n"})
+	if err != nil {
+		return err
+	}
+	mainLine, err := commit(mainTree, "chore: add the main line\n\nTask: "+task+"\n", base)
+	if err != nil {
+		return err
+	}
+	merged := topicText
+	if own != "" {
+		merged[own] = "A change of the merge's own.\n"
+	}
+	mergeTree, err := tree(mainLine, merged)
+	if err != nil {
+		return err
+	}
+	merge, err := commit(mergeTree, message+"\n", mainLine, topic)
+	if err != nil {
+		return err
+	}
+	if _, err := plumb("update-ref", "HEAD", merge); err != nil {
+		return err
+	}
+	w.commits = append(w.commits, topic, mainLine, merge)
 	return nil
 }
 
@@ -1851,6 +1951,19 @@ func (w *world) runWith(dir string, stdin io.Reader, program string, args ...str
 		return fmt.Errorf("running %s: %w", program, err)
 	}
 	return nil
+}
+
+// unescapeQuoted is a step's quoted text with its escapes read: \" a quote,
+// \\ a backslash, a backslash before anything else kept as written.
+func unescapeQuoted(text string) string {
+	var b strings.Builder
+	for i := 0; i < len(text); i++ {
+		if text[i] == '\\' && i+1 < len(text) && (text[i+1] == '"' || text[i+1] == '\\') {
+			i++
+		}
+		b.WriteByte(text[i])
+	}
+	return b.String()
 }
 
 func (w *world) commitMsgHook(message string) error {
