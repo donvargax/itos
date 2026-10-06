@@ -773,3 +773,41 @@
     - run: "! git grep -q 'donvargax/itos/v4' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
     - run: go build ./...
     - run: tools/bin/itos config check
+
+- id: T-100
+  type: ci
+  title: previous-release judges an old case by itos's machine output alone, and CI reads ci range and version through --json
+  why: >
+    Decision 35 (q-15, 2026-10-06): only exit codes, --json less the keys named message and fix,
+    and the files itos writes are the contract; every plain-text output may change in any release.
+    The previous-release check judged an old case's stdout and stderr word for word, less its help
+    cases and usage errors (T-075, T-095), so a feat that reworded a refusal was a breaking change
+    (slice 82, and the config-footer-source message held since v2.20.0). It now judges an old case's
+    exit code, files_after and json, comparing json with every key named message or fix left out
+    at any depth and keys added still passing (T-076), and no longer compares stdout, stderr,
+    stdout_has or stderr_has; the help and usage-error exemptions go, being the general rule now.
+    This repository's workflow reads the two values it takes from plain output, ci range's start
+    and itos version's, through --json, since plain output is no longer promised. Its unit tests
+    show a reworded stderr and a changed message passing, and a changed exit code, rule id, json key
+    or files_after failing.
+  done_when:
+    - run: go test ./tools/bin/previous-release/
+    - run: "! grep -q 'range=$(tools/bin/itos ci range --head' .github/workflows/ci.yml"
+    - run: grep -q 'ci range --json' .github/workflows/ci.yml
+
+- id: T-101
+  type: refactor
+  title: The module path is github.com/donvargax/itos/v6
+  why: >
+    Slice 86 cuts v6.0.0, and tools/bin/release-version refuses a v6 tag from a go.mod whose module
+    path ends in /v5 (T-089), as Go's module proxy refuses it. The path moves to /v6 as T-099 moved
+    it to /v5, in two commits since T-098 holds the gates to build and ci commits: a refactor commit
+    for go.mod, every import of itos's own packages under cmd/, internal/ and features/,
+    .goreleaser.yaml's -X ldflags and the go install lines of the README and ARCHITECTURE; then a ci
+    commit for what is under tools/bin (its Go programs' imports, the ldflags of tools/bin/itos,
+    build-go.ts and previous-release), CI's Build itos step and go-hooks.ts's module prefix. Slice
+    86's agent does it in the same push as the feat, as slice 85's did T-099.
+  done_when:
+    - run: "! git grep -q 'donvargax/itos/v5' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
+    - run: go build ./...
+    - run: tools/bin/itos config check
