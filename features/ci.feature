@@ -191,3 +191,28 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     When itos prints where the range of the head starts
     Then itos exits with code 0
     And the range starts at the head's parent
+
+  # Slice 83 (issue #12; the user's call, 2026-10-05). A CI step was not
+  # given the range it runs for, so a step that depends on it read the
+  # workflow's own variables, which itos ci run <from> <to> on a machine does
+  # not set, and the plan there differed from CI's. Every step, and every
+  # named task's check that ci run runs, gets ITOS_FROM and ITOS_TO in its
+  # environment, the range's ends as full SHAs (ITOS_FROM empty for a range
+  # that runs everything), and {from} and {to} in a step's command are
+  # filled in as range checks' are. A step only for some paths stays
+  # p3-ci-step-paths.
+  @ID-CI-14 @slice-83 @wip
+  Scenario: A CI step is given the range's start in its environment
+    Given the CI steps are "echo from=$ITOS_FROM"
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And its output says "from=" with the first commit's full SHA
+
+  @ID-CI-15 @slice-83 @wip
+  Scenario: A CI step's {from} is filled in with the range's start
+    Given the CI steps are "echo since {from}"
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And its output says "since " with the first commit's full SHA
