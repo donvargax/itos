@@ -428,8 +428,9 @@ func watchProblems(_ *value.Map, c *Config) []out.Problem {
 }
 
 // rangeCheckProblems: a built-in range check runs no command, and the moves
-// rule reads feature files, so it needs a Gherkin kind; its renames are read
-// by it alone.
+// rule reads feature files, or on a kind whose adapter is a command lists the
+// tests at both ends of a commit, so it needs a Gherkin kind or a command
+// that supports at (slice 82); its renames are read by it alone.
 func rangeCheckProblems(_ *value.Map, c *Config) []out.Problem {
 	var found []out.Problem
 	for _, name := range c.Tests.Keys {
@@ -469,7 +470,14 @@ func oneRangeCheckProblems(name string, adapter Adapter, check RangeCheck, at st
 			"remove "+both+" from "+at+", or builtin to run the commands",
 		))
 	}
-	if adapter.Given && (adapter.Name != "gherkin" || adapter.Command != "") {
+	switch {
+	case adapter.Command != "" && (adapter.SupportsAt == nil || !*adapter.SupportsAt):
+		found = append(found, refused(
+			"is builtin: "+*check.Builtin+", which lists the tests at both ends of a commit, and tests."+name+
+				".adapter does not set supports_at: true",
+			"set supports_at: true on tests."+name+".adapter if its command lists the tests of any tree, or remove "+at,
+		))
+	case adapter.Given && adapter.Command == "" && adapter.Name != "gherkin":
 		found = append(found, refused(
 			"is builtin: "+*check.Builtin+", which reads feature files, and tests."+name+".adapter is not gherkin",
 			"remove "+at+", or give it staged and range commands that judge the kind's tests",

@@ -23,11 +23,15 @@ import (
 )
 
 // Test is one named test: its ID without the tag prefix, its file relative to
-// the kind's root (the smoke rule's unit), and whether it is live.
+// the kind's root (the smoke rule's unit), whether it is live, and its title
+// when the adapter gives one (optional in the protocol; the built-in moves
+// rule holds a live test's title on a command kind). The Gherkin adapter
+// gives none: its moves rule compares the whole scenario.
 type Test struct {
-	ID   string `json:"id"`
-	File string `json:"file"`
-	Live bool   `json:"live"`
+	ID    string  `json:"id"`
+	File  string  `json:"file"`
+	Live  bool    `json:"live"`
+	Title *string `json:"title,omitempty"`
 }
 
 // List is the adapter protocol's answer: the tests, and every file, the ones
@@ -162,7 +166,15 @@ func protocolList(raw any) (List, string) {
 		if !value.IsMapping(t) || !idOK || !fileOK || !liveOK {
 			return List{}, "printed a test that is not { id, file, live }: " + value.JSON(t)
 		}
-		list.Tests = append(list.Tests, Test{ID: id, File: file, Live: live})
+		test := Test{ID: id, File: file, Live: live}
+		if title := value.Prop(t, "title"); title != value.Undefined {
+			text, ok := title.(string)
+			if !ok {
+				return List{}, "printed a test whose title is not a string: " + value.JSON(t)
+			}
+			test.Title = &text
+		}
+		list.Tests = append(list.Tests, test)
 	}
 	list.Raw = raw
 	return list, ""

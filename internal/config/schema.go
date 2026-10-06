@@ -212,8 +212,9 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 			"except_types", about("The commit types the rule skips.", strs),
 			"staged", about("The command the commit-msg hook runs on the staged tree.", str),
 			"range", about("The command verify runs over a range, {from} and {to} standing for its ends.", str),
-			"builtin", about("moves: itos's rule that, outside the types excepted, live scenarios only move, unchanged.", enum("moves")),
-			"allowed_renames", about("Scenario renames builtin: moves allows, new name by ID.", mapOf(str)),
+			"builtin", about("moves: itos's rule that, outside the types excepted, live scenarios only move, unchanged; on a kind "+
+				"whose adapter is a command (with supports_at: true), no live test is added, lost, retitled or switched between live and wip.", enum("moves")),
+			"allowed_renames", about("Renames builtin: moves allows, the new scenario name, or a command kind's new test title, by ID.", mapOf(str)),
 		))),
 	))),
 	"ci", about("CI's plan: its steps, the prose shortcut, the cost patterns, what covers a check, the nightly, the range provider and the watch.", obj(nil,

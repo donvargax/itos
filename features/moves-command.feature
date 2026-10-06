@@ -20,12 +20,12 @@ Feature: The built-in moves rule on a kind whose adapter is a command
     And the committed tests.json lists the live test "@ID-A-01" titled "starts in the clearing"
     And the kind's range check is the built-in moves rule, except for "feat, fix"
 
-  @ID-MOVESCMD-01 @slice-82 @wip
+  @ID-MOVESCMD-01 @slice-82
   Scenario: config check accepts the built-in moves rule on a command kind that supports at
     When itos checks the config
     Then itos exits with code 0
 
-  @ID-MOVESCMD-02 @slice-82 @wip
+  @ID-MOVESCMD-02 @slice-82
   Scenario: The commit-msg hook refuses a test commit that turns a live test wip
     Given tests.json is staged listing the test "@ID-A-01" titled "starts in the clearing" as wip
     When the commit-msg hook checks the message:
@@ -37,7 +37,7 @@ Feature: The built-in moves rule on a kind whose adapter is a command
     Then itos exits with code 1
     And its output says "@ID-A-01"
 
-  @ID-MOVESCMD-03 @slice-82 @wip
+  @ID-MOVESCMD-03 @slice-82
   Scenario: The commit-msg hook refuses a test commit that retitles a live test
     Given tests.json is staged listing the live test "@ID-A-01" titled "starts in the meadow"
     When the commit-msg hook checks the message:
@@ -49,7 +49,7 @@ Feature: The built-in moves rule on a kind whose adapter is a command
     Then itos exits with code 1
     And its output says "@ID-A-01"
 
-  @ID-MOVESCMD-04 @slice-82 @wip
+  @ID-MOVESCMD-04 @slice-82
   Scenario: A test commit that adds a wip test and leaves the live ones as they were passes
     Given tests.json is staged listing the live test "@ID-A-01" titled "starts in the clearing" and the wip test "@ID-A-02"
     When the commit-msg hook checks the message:
@@ -60,7 +60,7 @@ Feature: The built-in moves rule on a kind whose adapter is a command
       """
     Then itos exits with code 0
 
-  @ID-MOVESCMD-05 @slice-82 @wip
+  @ID-MOVESCMD-05 @slice-82
   Scenario: config check refuses the built-in moves rule on a command kind that does not support at
     Given the kind's adapter does not support at
     When itos checks the config

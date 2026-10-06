@@ -476,8 +476,14 @@ each, and holds it since the TypeScript left (T-062).
   hook and verify skip a type `except_types` names, and one that is not in
   `commits.types` when the config lists them (a merge's "Merge …"); the
   command ranges wait for the type to have a path rule, the built-in does
-  not. A tree's feature set is read once per run. `config check` refuses
-  `builtin` beside a command, on a kind whose adapter is not `gherkin`, and
+  not. A tree's feature set is read once per run. On a kind whose adapter
+  is a command (slice 82) the rule reads the adapter's listing at both ends
+  instead, so it needs `supports_at: true`: no live test added or lost, none
+  switched between live and wip, and a live test's title, when the adapter
+  gives one at both ends, kept unless `allowed_renames` lists the new one;
+  bodies are not compared, since the adapter lists none. `config check`
+  refuses `builtin` beside a command, on a command kind without
+  `supports_at: true` or a kind whose named adapter is not `gherkin`, and
   `allowed_renames` without it.
 - **The footers** have one reader (`footers.ts`), which the footer rules
   and CI share: which types need each footer, which IDs must exist, and
@@ -1346,7 +1352,14 @@ run` is it over the smoke IDs, run through the config's shell with
   with comment lines dropped, its IDs and files kept in the order
   JavaScript's Maps keep them (files by path, as git lists them; an ID
   written twice keeps its first place and its last block), since the
-  problems are printed in that order. `NewMoves(cfg)` reads each kind's
+  problems are printed in that order. A command kind's comparison is
+  `ListedProblems` over two adapter listings (`moves_command.go`), each read
+  once per tree through `ListTests` at the index or at a commit, a tree that
+  names no commit (the empty tree, an unborn HEAD) listing nothing; a merge's
+  listing before its own changes is the merge's with the tests of its own
+  paths (the kind's root joined to each test's file) as its first parent
+  lists them. `Between` and `Merge` go through one `judge`, which picks the
+  comparison by the kind's adapter. `NewMoves(cfg)` reads each kind's
   feature files once per tree and gives the three callers: `Commit(sha,
 type)` for verify (the commit against `git.Parent`, the empty tree for a
   root commit, nothing read when no check judges the type), `Between` for

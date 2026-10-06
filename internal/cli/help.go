@@ -556,9 +556,10 @@ commits.since or a footer's since is not a commit of the repository.
 	"tests list": `Usage: itos tests list <kind> [--at <tree>]
 
 The kind's adapter's listing: each named test's ID, file and whether it is
-live, at the working tree (default), the index or a commit.
+live, at the working tree (default), the index or a commit. A command
+adapter may give a test a title too.
 
---json: {"schema":1,"protocol":1,"tests":[{"id","file","live"}],"files"}`,
+--json: {"schema":1,"protocol":1,"tests":[{"id","file","live","title"?}],"files"}`,
 
 	"tests smoke": `Usage: itos tests smoke check <kind> [--features <dir>]
        itos tests smoke ids <kind>

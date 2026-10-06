@@ -1,8 +1,10 @@
 package tests
 
-// The moves rule (moves.ts), a built-in range check of a Gherkin kind:
+// The moves rule (moves.ts), a built-in range check of a kind:
 // `{ name, builtin: moves, except_types, allowed_renames }` in
-// tests.<kind>.range_checks. A commit of a type except_types does not name
+// tests.<kind>.range_checks. On a Gherkin kind it reads feature files, as
+// below; on a kind whose adapter is a command it compares the adapter's
+// listings instead (moves_command.go, slice 82). A commit of a type except_types does not name
 // may move scenarios between feature files, create feature files and delete
 // the ones left empty, provided every live scenario keeps its ID, name, tags
 // and steps exactly, none is lost or added, and a file with a live scenario
@@ -178,16 +180,18 @@ func MoveProblems(before, after *FeatureSet, renames map[string]string) []string
 	return problems
 }
 
-// Moves is the moves rule over one config, each kind's feature files read
-// once per tree (verify reads each commit as a child and as a parent).
+// Moves is the moves rule over one config, each kind's feature files, or a
+// command kind's listing, read once per tree (verify reads each commit as a
+// child and as a parent).
 type Moves struct {
-	cfg  *config.Loaded
-	sets map[string]*FeatureSet
+	cfg   *config.Loaded
+	sets  map[string]*FeatureSet
+	lists map[string]List
 }
 
 // NewMoves is the moves rule of a config.
 func NewMoves(cfg *config.Loaded) *Moves {
-	return &Moves{cfg: cfg, sets: map[string]*FeatureSet{}}
+	return &Moves{cfg: cfg, sets: map[string]*FeatureSet{}, lists: map[string]List{}}
 }
 
 // featureSet is the kind's feature files at a tree: a commit, or "index"
@@ -283,24 +287,7 @@ func (m *Moves) judges(c config.RangeCheck, typ string) bool {
 // tree before to the tree after, each worded for "a <type> commit" under the
 // check's name.
 func (m *Moves) Between(typ, before, after string) ([]out.Problem, error) {
-	found := []out.Problem{}
-	for _, c := range m.checks() {
-		if !m.judges(c.check, typ) {
-			continue
-		}
-		was, err := m.featureSet(c.kind, before)
-		if err != nil {
-			return nil, err
-		}
-		now, err := m.featureSet(c.kind, after)
-		if err != nil {
-			return nil, err
-		}
-		for _, p := range MoveProblems(was, now, c.check.AllowedRenames) {
-			found = append(found, out.Problem{Rule: c.check.Name, Message: "a " + typ + " commit " + p})
-		}
-	}
-	return found, nil
+	return m.judge(typ, before, after, nil)
 }
 
 // Merge is the moves rule for a merge commit, which is judged by its own
@@ -308,25 +295,58 @@ func (m *Moves) Between(typ, before, after string) ([]out.Problem, error) {
 // the merge the hook judges), against the same files with its own paths as
 // its first parent has them. What its parents bring was judged in their own
 // commits, so a merge with no feature file among its own paths moves nothing.
+// A command kind's tests are judged by their files the same way.
 func (m *Moves) Merge(typ, parent, after string, own []string) ([]out.Problem, error) {
+	if own == nil {
+		own = []string{}
+	}
+	return m.judge(typ, parent, after, own)
+}
+
+// judge is Between, or with own not nil Merge, over every moves check that
+// judges the type: a Gherkin kind's feature sets, a command kind's listings
+// (moves_command.go).
+func (m *Moves) judge(typ, before, after string, own []string) ([]out.Problem, error) {
 	found := []out.Problem{}
 	for _, c := range m.checks() {
 		if !m.judges(c.check, typ) {
 			continue
 		}
-		was, err := m.ownBefore(c.kind, parent, after, own)
+		var problems []string
+		var err error
+		if k, _ := KindOf(m.cfg, c.kind); k.Adapter.Command != "" {
+			problems, err = m.listedProblems(c, k, before, after, own)
+		} else {
+			problems, err = m.featureProblems(c, before, after, own)
+		}
 		if err != nil {
 			return nil, err
 		}
-		now, err := m.featureSet(c.kind, after)
-		if err != nil {
-			return nil, err
-		}
-		for _, p := range MoveProblems(was, now, c.check.AllowedRenames) {
+		for _, p := range problems {
 			found = append(found, out.Problem{Rule: c.check.Name, Message: "a " + typ + " commit " + p})
 		}
 	}
 	return found, nil
+}
+
+// featureProblems is a Gherkin kind's check from before to after, or for a
+// merge (own not nil) from after with its own paths as before has them.
+func (m *Moves) featureProblems(c movesCheck, before, after string, own []string) ([]string, error) {
+	var was *FeatureSet
+	var err error
+	if own != nil {
+		was, err = m.ownBefore(c.kind, before, after, own)
+	} else {
+		was, err = m.featureSet(c.kind, before)
+	}
+	if err != nil {
+		return nil, err
+	}
+	now, err := m.featureSet(c.kind, after)
+	if err != nil {
+		return nil, err
+	}
+	return MoveProblems(was, now, c.check.AllowedRenames), nil
 }
 
 // Commit is verify's moves rule for one commit: the commit against its

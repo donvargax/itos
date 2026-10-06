@@ -7,7 +7,8 @@
 # scenarios keep their ID, name, tags and steps, none is lost or added, a file
 # with a live scenario keeps its header; @wip ones and comment lines are free;
 # a rename allowed_renames lists passes. config check refuses builtin with a
-# command, on a kind that is not Gherkin, and allowed_renames without it.
+# command, on a command kind without supports_at: true (slice 82), and
+# allowed_renames without it.
 #
 # Every case starts from one feat committing features/a.feature, a live
 # scenario and a @wip one, and the ledger.
@@ -219,7 +220,7 @@ cases:
     exit: 2
     stderr: |
       FAIL itos.yaml: tests.rootless.root is missing
-  - name: config check refuses builtin beside a command, on a kind that is not Gherkin, and allowed_renames without builtin
+  - name: config check refuses builtin beside a command, on a command kind without supports_at, and allowed_renames without builtin
     argv: [config, check, --config, refused.yaml, --json]
     files:
       refused.yaml: |
@@ -249,8 +250,8 @@ cases:
           fix: "remove allowed_renames from tests.scenario.range_checks[1], or make it builtin: moves"
           area: config
         - rule: config-range-check-builtin
-          message: "refused.yaml: tests.command.range_checks[0] is builtin: moves, which reads feature files, and tests.command.adapter is not gherkin"
-          fix: remove tests.command.range_checks[0], or give it staged and range commands that judge the kind's tests
+          message: "refused.yaml: tests.command.range_checks[0] is builtin: moves, which lists the tests at both ends of a commit, and tests.command.adapter does not set supports_at: true"
+          fix: "set supports_at: true on tests.command.adapter if its command lists the tests of any tree, or remove tests.command.range_checks[0]"
           area: config
   - name: builtin takes only moves
     argv: [config, check, --config, other.yaml]
