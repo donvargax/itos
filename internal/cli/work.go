@@ -61,9 +61,10 @@ func workCheck(path string, named bool, o Out) (int, error) {
 // whatever --json says; 3 (a missing environment) when --as is not among the
 // people. An identity provider that cannot say who the session is, or names
 // someone the people do not list, is not an error: the session is nobody, or
-// owns nothing yet, and stderr says so. With no people to read (a stealth
-// config, or a project's people file missing or unreadable) it says nothing
-// of them: the session is whoever --as or the provider says. Under a stealth
+// owns nothing yet, and stderr says so. The provider is asked only when the
+// people list several (bug 46): one person is the session, and with no one
+// in the people (a people file missing, unreadable or listing nobody) the
+// session is nobody and nothing is said of them. Under a stealth
 // config with no --as nobody is asked (slice 38): the person is the only
 // one, so the session owns every item, whatever owner it names; --as still
 // proposes that handle's, as in a project.
@@ -91,7 +92,7 @@ func workProposal(as string, o Out) (int, error) {
 			if as != "" {
 				return ExitMissing, nil
 			}
-		case !who.Listed:
+		case who.Handle != "" && !who.Listed:
 			fmt.Fprintf(o.Stderr, "%s is not in %s: nothing is theirs yet\n", who.Handle, listedIn)
 		}
 		proposal = work.Propose(registry, who.Handle)

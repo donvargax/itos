@@ -504,7 +504,7 @@ Feature: The work registry
   # asked and an item taken keeps its owner, as under a stealth config; only
   # with several people is the provider asked, and gh then gets a few seconds
   # and no stdin, a gh that does not answer refused with words naming --as.
-  @ID-WORK-47 @bug-46 @wip
+  @ID-WORK-47 @bug-46
   Scenario: With one person in the people file, work take takes the item for them without asking gh
     Given the people file lists only "solo"
     And no identity can be looked up
@@ -513,7 +513,7 @@ Feature: The work registry
     Then itos exits with code 0
     And its output says "solo"
 
-  @ID-WORK-48 @bug-46 @wip
+  @ID-WORK-48 @bug-46
   Scenario: With several people, a gh that does not answer is given up on, naming --as
     Given the people file lists "solo" and "other"
     And a gh on the PATH that never answers
@@ -522,7 +522,7 @@ Feature: The work registry
     Then itos exits with code 3
     And its output says "--as"
 
-  @ID-WORK-49 @bug-46 @wip
+  @ID-WORK-49 @bug-46
   Scenario: With no people file, work take asks nobody
     Given the people file is missing
     And no identity can be looked up
@@ -530,7 +530,7 @@ Feature: The work registry
     When itos runs "work take slice-1"
     Then itos exits with code 0
 
-  @ID-WORK-50 @bug-46 @wip
+  @ID-WORK-50 @bug-46
   Scenario: With one person in the people file, itos status names their work without asking gh
     Given the people file lists only "solo"
     And no identity can be looked up

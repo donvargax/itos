@@ -2,8 +2,11 @@ package providers
 
 import (
 	"bytes"
+	"context"
 	"errors"
+	"fmt"
 	"os/exec"
+	"time"
 
 	"github.com/donvargax/itos/v5/internal/config"
 	"github.com/donvargax/itos/v5/internal/value"
@@ -36,20 +39,40 @@ func IdentityProvider(cfg *config.Loaded) Identity {
 	return GitHubIdentity(id.Hint, GhLogin)
 }
 
+// GhTimeout is how long the github provider waits for gh api user before
+// giving up on it (bug 46): gh asked with no bound hung any command that
+// asked, when gh waited on a keychain prompt, a sign-in or a proxy. A fixed
+// bound, not a setting: --as is the way past a gh that does not answer.
+const GhTimeout = 5 * time.Second
+
+// ErrGhNoAnswer is GhLogin's error for a gh that did not answer within
+// GhTimeout, and was killed.
+var ErrGhNoAnswer = errors.New("gh did not answer")
+
 // GhLogin is the login `gh api user` answers, trimmed as JavaScript trims,
-// and the error of a gh that is missing or fails (signed out). gh's stderr
-// is not shown: the provider's answer says what went wrong.
+// and the error of a gh that is missing, fails (signed out) or does not
+// answer within GhTimeout (ErrGhNoAnswer). gh's stdin is the null device, not
+// the terminal, so it cannot wait on a person, and its stderr is not shown:
+// the provider's answer says what went wrong. Past the bound gh is killed
+// with whatever it started (killTree), and its output is not waited for.
 func GhLogin() (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), GhTimeout)
+	defer cancel()
 	var stdout bytes.Buffer
-	cmd := exec.Command("gh", "api", "user", "--jq", ".login")
+	cmd := exec.CommandContext(ctx, "gh", "api", "user", "--jq", ".login")
 	cmd.Stdout = &stdout
+	killTree(cmd)
+	cmd.WaitDelay = time.Second
 	err := cmd.Run()
+	if err != nil && errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return "", ErrGhNoAnswer
+	}
 	return value.Trim(stdout.String()), err
 }
 
 // GitHubIdentity is the GitHub account gh is signed in as, or why there is
-// none: gh not on the PATH, or gh failing or answering nothing, which is gh
-// signed out.
+// none: gh not on the PATH, gh not answering in time, or gh failing or
+// answering nothing, which is gh signed out.
 func GitHubIdentity(hint string, login func() (string, error)) Identity {
 	return func() Answer {
 		handle, err := login()
@@ -58,6 +81,9 @@ func GitHubIdentity(hint string, login func() (string, error)) Identity {
 		}
 		if errors.Is(err, exec.ErrNotFound) {
 			return Answer{Problem: "gh is not installed, so this session is nobody; " + hint}
+		}
+		if errors.Is(err, ErrGhNoAnswer) {
+			return Answer{Problem: fmt.Sprintf("gh did not answer within %s (gh api user), so this session is nobody; pass --as <handle>", GhTimeout)}
 		}
 		return Answer{Problem: "gh is not signed in (gh auth login), so this session is nobody; " + hint}
 	}

@@ -153,7 +153,8 @@ func statusCommand(args []string, o Out) (int, error) {
 }
 
 // statusOf is where things stand for the person --as names (as, "" when not
-// given), else the identity provider's, as itos work proposes. A registry
+// given), else who the people make it, as itos work proposes (Whoami: the
+// one person, nobody, or the identity provider's among several). A registry
 // that is not there or not sound is its problems, exit 1; --as not among the
 // people is exit 3, said on stderr.
 func statusOf(cfg *config.Loaded, as string, o Out) (*standing, []out.Problem, int, error) {
@@ -180,7 +181,7 @@ func statusOf(cfg *config.Loaded, as string, o Out) (*standing, []out.Problem, i
 			if as != "" {
 				return nil, nil, ExitMissing, nil
 			}
-		case !who.Listed:
+		case who.Handle != "" && !who.Listed:
 			fmt.Fprintf(o.Stderr, "%s is not in %s: nothing is theirs yet\n", who.Handle, listedIn)
 		}
 		proposal = work.Propose(registry, who.Handle)

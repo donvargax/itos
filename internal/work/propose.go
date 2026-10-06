@@ -20,11 +20,14 @@ type Identity struct {
 }
 
 // Whoami is who a session works for (work.ts's whoami): --as (as, "" when
-// not given), which must be among the registry's people, else what the
-// identity provider answers, listed or not. With no people (Registry.People:
-// a stealth config, or a project's people file missing) there is no one to
-// hold a handle to, so --as is taken as given and any handle is listed.
-// listedIn is the people's file, as the messages name it.
+// not given), which must be among the registry's people, else who the people
+// make it, asking the identity provider only when they cannot say (bug 46):
+// one person is the session; with nobody to hold a handle to (Nobody) the
+// session is nobody, and no one is asked; only with several is the provider
+// asked, its handle listed or not. With no people (Registry.People: a stealth
+// config, or a project's people file missing) --as is taken as given.
+// listedIn is the people's file, as the messages name it. A session that is
+// nobody has no handle, and no problem unless the provider gave one.
 func Whoami(r Registry, listedIn, as string, identify providers.Identity) Identity {
 	listed := func(handle string) bool {
 		if !r.People {
@@ -42,6 +45,12 @@ func Whoami(r Registry, listedIn, as string, identify providers.Identity) Identi
 			return Identity{Handle: as, Listed: true}
 		}
 		return Identity{Problem: fmt.Sprintf("\"%s\" is not in %s", as, listedIn)}
+	}
+	switch {
+	case r.Nobody():
+		return Identity{}
+	case len(r.Logins) == 1:
+		return Identity{Handle: r.Logins[0], Listed: true}
 	}
 	answer := identify()
 	if answer.Handle == "" {

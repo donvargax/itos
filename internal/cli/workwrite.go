@@ -418,8 +418,10 @@ func reportWork(line string, change work.Change, sha string, extra []out.Field, 
 // workTake is `work take <id> [--as <handle>]`: the item set in progress for
 // the person and the registry committed (work.Take). The person is --as,
 // else who the identity provider says, as for work; one that is nobody, or
-// not among the people, exits 3. Under a stealth config with no --as nobody
-// is asked: every item is the session's, and its owner is left as it is.
+// not among the people, exits 3. Under a stealth config, or with no one in
+// the people (Registry.Nobody: a people file missing or listing nobody), with
+// no --as nobody is asked: every item is the session's, and its owner is left
+// as it is (bug 46).
 func workTake(args []string, o Out) (int, error) {
 	id, flags, err := workArgs("take", args, "--as")
 	if err != nil {
@@ -431,7 +433,7 @@ func workTake(args []string, o Out) (int, error) {
 		return code, err
 	}
 	as := flags["--as"]
-	every := cfg.Stealth && as == ""
+	every := as == "" && (cfg.Stealth || registry.Nobody())
 	person := ""
 	if !every {
 		listedIn := cfg.Work.People.File

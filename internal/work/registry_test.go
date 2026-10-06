@@ -57,3 +57,31 @@ func TestRegistryWithoutPeople(t *testing.T) {
 		t.Errorf("--as q, not among the people, is %+v", who)
 	}
 }
+
+// Whoami asks the identity provider only when the people list several (bug
+// 46): one person is the session, and no one listed is nobody.
+func TestWhoamiAsksOnlyAmongSeveral(t *testing.T) {
+	asked := 0
+	ask := func() providers.Answer { asked++; return providers.Answer{Handle: "b"} }
+	cases := []struct {
+		name  string
+		r     Registry
+		want  Identity
+		asked int
+	}{
+		{"no people file", Registry{}, Identity{}, 0},
+		{"nobody listed", Registry{People: true}, Identity{}, 0},
+		{"one person", Registry{People: true, Logins: []string{"a"}}, Identity{Handle: "a", Listed: true}, 0},
+		{"several", Registry{People: true, Logins: []string{"a", "b"}}, Identity{Handle: "b", Listed: true}, 1},
+	}
+	for _, c := range cases {
+		asked = 0
+		if who := Whoami(c.r, "people.yaml", "", ask); who != c.want || asked != c.asked {
+			t.Errorf("%s: %+v, asked %d times", c.name, who, asked)
+		}
+	}
+	one := Registry{People: true, Logins: []string{"a"}}
+	if who := Whoami(one, "people.yaml", "z", ask); who.Problem == "" {
+		t.Errorf("--as z, not the one person, is %+v", who)
+	}
+}

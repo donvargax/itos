@@ -54,6 +54,13 @@ type Registry struct {
 	Queue any
 }
 
+// Nobody is whether the registry has no one to say who a session is: no
+// people (a stealth config, or a people file missing or unreadable) or a
+// people file that lists nobody. A session with no --as is then nobody,
+// asked of no identity provider, and an item it takes keeps its owner, as
+// under a stealth config (bug 46).
+func (r Registry) Nobody() bool { return !r.People || len(r.Logins) == 0 }
+
 // Load reads the registry at path and the people of the config's source.
 func Load(cfg *config.Loaded, path string) (Registry, error) {
 	text, err := source.Read(path)
