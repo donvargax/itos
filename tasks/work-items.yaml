@@ -4956,11 +4956,9 @@ items:
     title: "itos version says what answers it: --version, latest for pin and upgrade, and the pin named"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Specified in features/pin.feature, update.feature and upgrade-command.feature.
     refs:
       [features/pin.feature, features/update.feature, features/upgrade-command.feature, cmd/itos]
 
