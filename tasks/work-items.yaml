@@ -4825,3 +4825,19 @@ items:
       run stays red until a person decides: waive the commits (p3-human-waiver), move commits.since,
       or let verify and plugin-version read an empty start differently.
     refs: [.github/workflows/ci.yml, tools/bin/plugin-version/main.go, tasks/phase-1.yaml]
+
+  - id: p1-registry-writers-race
+    title: Two registry writers at once in one working tree lose a change
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by bug-34's agent (2026-10-06). Two project registry writers (work take, queue, add,
+      done) started at the same moment in one working tree can both pass the uncommitted check; the
+      second git commit --only then fails on git's index lock, and its restore writes its old
+      registry text back over the first writer's committed change. bug-34's second read narrowed the
+      window from minutes to milliseconds; it is no lock. Rare by the one-agent-per-checkout rule,
+      so an idea until it bites.
+    refs: [internal/cli/workwrite.go]
