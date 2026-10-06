@@ -19,9 +19,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/donvargax/itos/v5/internal/out"
-	"github.com/donvargax/itos/v5/internal/source"
-	"github.com/donvargax/itos/v5/internal/value"
+	"github.com/donvargax/itos/v6/internal/out"
+	"github.com/donvargax/itos/v6/internal/source"
+	"github.com/donvargax/itos/v6/internal/value"
 )
 
 // Error is a config that cannot be used: exit 2, each problem printed as

@@ -5,11 +5,11 @@ import (
 	"io"
 	"os"
 
-	"github.com/donvargax/itos/v5/internal/config"
-	"github.com/donvargax/itos/v5/internal/message"
-	"github.com/donvargax/itos/v5/internal/out"
-	"github.com/donvargax/itos/v5/internal/scope"
-	"github.com/donvargax/itos/v5/internal/source"
+	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v6/internal/message"
+	"github.com/donvargax/itos/v6/internal/out"
+	"github.com/donvargax/itos/v6/internal/scope"
+	"github.com/donvargax/itos/v6/internal/source"
 )
 
 // checkMessage is `commit check-message <file|-> [--at <sha>]` (commit.ts's

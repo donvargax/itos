@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/donvargax/itos/v5/internal/release"
+	"github.com/donvargax/itos/v6/internal/release"
 )
 
 func TestReadConfigTellsNoConfigFromNoPin(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v6/internal/git"
 )
 
 // A deleted branch sends nothing, so it runs nothing; a new one is judged by

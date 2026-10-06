@@ -34,7 +34,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v6/internal/git"
 )
 
 const (

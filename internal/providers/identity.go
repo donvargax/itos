@@ -8,8 +8,8 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/donvargax/itos/v5/internal/config"
-	"github.com/donvargax/itos/v5/internal/value"
+	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v6/internal/value"
 )
 
 // Answer is what an identity provider says: the handle the session works

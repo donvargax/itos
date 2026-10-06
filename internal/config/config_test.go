@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v5/internal/value"
+	"github.com/donvargax/itos/v6/internal/value"
 )
 
 func load(t *testing.T, text string) (*Loaded, error) {

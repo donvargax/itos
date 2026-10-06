@@ -15,8 +15,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/donvargax/itos/v5/internal/config"
-	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v6/internal/git"
 )
 
 // NotesRef is where the stealth mode keeps a commit's footers.

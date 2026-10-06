@@ -3,8 +3,8 @@ package config
 import (
 	"strings"
 
-	"github.com/donvargax/itos/v5/internal/git"
-	"github.com/donvargax/itos/v5/internal/out"
+	"github.com/donvargax/itos/v6/internal/git"
+	"github.com/donvargax/itos/v6/internal/out"
 )
 
 // SinceIssues are the problems with the commits commits.since and each

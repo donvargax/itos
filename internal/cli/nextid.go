@@ -9,12 +9,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/donvargax/itos/v5/internal/config"
-	"github.com/donvargax/itos/v5/internal/ledger"
-	"github.com/donvargax/itos/v5/internal/out"
-	"github.com/donvargax/itos/v5/internal/source"
-	"github.com/donvargax/itos/v5/internal/tests"
-	"github.com/donvargax/itos/v5/internal/work"
+	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v6/internal/ledger"
+	"github.com/donvargax/itos/v6/internal/out"
+	"github.com/donvargax/itos/v6/internal/source"
+	"github.com/donvargax/itos/v6/internal/tests"
+	"github.com/donvargax/itos/v6/internal/work"
 )
 
 // registryIDs are the work registry's item ids, which name a slice, a bug

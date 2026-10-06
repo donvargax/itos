@@ -40,9 +40,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v5/internal/check"
-	"github.com/donvargax/itos/v5/internal/config"
-	"github.com/donvargax/itos/v5/internal/kind"
+	"github.com/donvargax/itos/v6/internal/check"
+	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v6/internal/kind"
 )
 
 const (

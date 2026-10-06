@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v5/internal/out"
-	"github.com/donvargax/itos/v5/internal/value"
+	"github.com/donvargax/itos/v6/internal/out"
+	"github.com/donvargax/itos/v6/internal/value"
 )
 
 // crossProblems is what the schema cannot say, over the file as written:

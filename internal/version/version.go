@@ -4,12 +4,12 @@
 //
 // The version is the release's tag, written nowhere in the tree (T-069): a
 // release's GoReleaser stamps it into the binary with -ldflags
-// "-X github.com/donvargax/itos/v5/internal/version.stamp=<v>", and
+// "-X github.com/donvargax/itos/v6/internal/version.stamp=<v>", and
 // tools/bin/itos and tools/bin/build-go.ts stamp a build of a checkout with
 // the version tools/bin/dev-version reads from git describe (the release's at
 // its tag, 2.3.1-dev.5.g1234abc five commits after v2.3.0).
 // A binary built without the stamp says the module version Go records, which
-// `go install github.com/donvargax/itos/v5/cmd/itos@v<x>` sets (from v2 the
+// `go install github.com/donvargax/itos/v6/cmd/itos@v<x>` sets (from v2 the
 // module path ends in its major version, as Go requires of a v2 tag).
 package version
 

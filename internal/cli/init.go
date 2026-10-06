@@ -33,14 +33,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/donvargax/itos/v5/internal/config"
-	"github.com/donvargax/itos/v5/internal/git"
-	"github.com/donvargax/itos/v5/internal/kind"
-	"github.com/donvargax/itos/v5/internal/out"
-	"github.com/donvargax/itos/v5/internal/release"
-	"github.com/donvargax/itos/v5/internal/tests"
-	"github.com/donvargax/itos/v5/internal/value"
-	"github.com/donvargax/itos/v5/internal/version"
+	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v6/internal/git"
+	"github.com/donvargax/itos/v6/internal/kind"
+	"github.com/donvargax/itos/v6/internal/out"
+	"github.com/donvargax/itos/v6/internal/release"
+	"github.com/donvargax/itos/v6/internal/tests"
+	"github.com/donvargax/itos/v6/internal/value"
+	"github.com/donvargax/itos/v6/internal/version"
 )
 
 // initCommand is `init [--stealth] [--plugin [<scope>]] [--git-shim

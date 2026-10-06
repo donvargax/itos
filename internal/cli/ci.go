@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/donvargax/itos/v5/internal/ci"
-	"github.com/donvargax/itos/v5/internal/config"
-	"github.com/donvargax/itos/v5/internal/out"
-	"github.com/donvargax/itos/v5/internal/plan"
-	"github.com/donvargax/itos/v5/internal/providers"
+	"github.com/donvargax/itos/v6/internal/ci"
+	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v6/internal/out"
+	"github.com/donvargax/itos/v6/internal/plan"
+	"github.com/donvargax/itos/v6/internal/providers"
 )
 
 // planOf is the config and the plan a run of it carries out: the nightly's,

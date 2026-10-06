@@ -89,7 +89,7 @@ func TestRealPassesOverAnotherItos(t *testing.T) {
 		return d
 	}
 	build := filepath.Join(dir("build"), exe("itos"))
-	if out, err := exec.Command(gobin, "build", "-o", build, "github.com/donvargax/itos/v5/cmd/itos").CombinedOutput(); err != nil {
+	if out, err := exec.Command(gobin, "build", "-o", build, "github.com/donvargax/itos/v6/cmd/itos").CombinedOutput(); err != nil {
 		t.Fatalf("go build: %v\n%s", err, out)
 	}
 	write := func(p string, text []byte) {

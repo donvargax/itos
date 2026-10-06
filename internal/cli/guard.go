@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/donvargax/itos/v5/internal/guard"
+	"github.com/donvargax/itos/v6/internal/guard"
 )
 
 // GuardSince is the first itos with guard claude-code (v6.0.0, decision 36;

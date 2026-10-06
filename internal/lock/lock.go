@@ -23,7 +23,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/donvargax/itos/v5/internal/kind"
+	"github.com/donvargax/itos/v6/internal/kind"
 )
 
 // Suffix is what the lock file's name adds to the data's.

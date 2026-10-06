@@ -15,9 +15,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/donvargax/itos/v5/internal/config"
-	"github.com/donvargax/itos/v5/internal/glob"
-	"github.com/donvargax/itos/v5/internal/out"
+	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v6/internal/glob"
+	"github.com/donvargax/itos/v6/internal/out"
 )
 
 // Rules are a config's path rules, and the line a rejection starts with.
