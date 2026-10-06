@@ -4699,3 +4699,15 @@ items:
       imports the old path; the agent committed the refactor with tools/bin edited but unstaged.
       Vetting the staged tree (a worktree of the index), or letting one commit carry a module move,
       would make the split honest.
+
+  - id: p1-slow-rollback-test
+    title: TestRollbackGitCannotStart takes seconds, not nine minutes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice 85's agent (2026-10-05): internal/cli's TestRollbackGitCannotStart took about
+      548 seconds locally, which the pre-push hook's unit run waits on whenever internal/cli is
+      reached.
