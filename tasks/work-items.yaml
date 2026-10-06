@@ -5037,3 +5037,16 @@ items:
       check of a result marks the rules it saw broken (itos rule seen <id>), and the brief's report
       asks the agent which rules it needed or broke.
     refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
+
+  - id: p1-agent-rules-suspend
+    title: A permanent rule can be suspended, printed nowhere but kept, and restored if its mistake comes back
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-agent-rules-as-data]
+    kind: idea
+    why: >
+      The user's call (2026-10-06): a rule with an exit item retires when the item lands, but a
+      permanent one only stops being needed when models stop making the mistake, and nothing shows
+      that. A suspended rule is printed nowhere; a sighting of its mistake restores it; one that
+      stays suspended through a model release is deleted. The vanilla baseline, one rule at a time.
