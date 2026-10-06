@@ -4377,3 +4377,16 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). timeout: 0 or a negative one makes min(own,
       cap) remove the hook's cap (check/captured.go:39).
     refs: [internal/check/captured.go]
+
+  - id: p1-ledger-layout-checks
+    title: config check refuses ledger layouts that read nothing
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). A ledger.group.pattern written with its own
+      anchors never matches and config check reports 0 ledger files as valid; {group} as a folder in
+      ledger.files passes and later fails as a missing folder (ledger.go:49, cross.go:358-372).
+    refs: [internal/ledger/ledger.go, internal/config/cross.go]
