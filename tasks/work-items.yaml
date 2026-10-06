@@ -4365,3 +4365,15 @@ items:
       decode to nil, so ci.watch.interval: .nan panics itos push and a nan check_timeout leaves the
       hook uncapped (config.go:117, watch.go:78-79).
     refs: [internal/config/config.go]
+
+  - id: p1-check-timeout-positive
+    title: A check's timeout must be positive
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). timeout: 0 or a negative one makes min(own,
+      cap) remove the hook's cap (check/captured.go:39).
+    refs: [internal/check/captured.go]
