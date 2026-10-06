@@ -128,7 +128,7 @@ jobs:
           [ "$RUNNER_OS" != Windows ] || exe=.exe
           bin="$RUNNER_TEMP/itos/itos$exe"
           CGO_ENABLED=0 go build -trimpath \
-            -ldflags "-s -w -X github.com/donvargax/itos/v5/internal/version.stamp=$(tools/bin/dev-version)" \
+            -ldflags "-s -w -X github.com/donvargax/itos/v6/internal/version.stamp=$(tools/bin/dev-version)" \
             -o "$bin" ./cmd/itos
           "$bin" version
           echo "ITOS_BIN=$bin" >> "$GITHUB_ENV"

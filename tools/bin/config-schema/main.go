@@ -28,8 +28,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/donvargax/itos/v5/internal/config"
-	"github.com/donvargax/itos/v5/internal/value"
+	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v6/internal/value"
 )
 
 // Draft is the JSON Schema dialect: 2020-12, the one yaml-language-server,
