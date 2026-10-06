@@ -4129,7 +4129,7 @@ items:
     title: An empty range start runs every named task's checks
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
