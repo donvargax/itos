@@ -3309,6 +3309,9 @@ items:
       change; only the fix names registry. Fold it into the next breaking change of config check's
       messages, or reword it in a fix naming that case in Changes.
 
+      Decision 35 (2026-10-06): once T-100 lands a config error's words are no longer judged, so a
+      fix rewords this message with no Changes footer.
+
   - id: T-083
     title: Declare the Item footer in this repository, standing in for Task for test, docs and chore
     phase: 1
