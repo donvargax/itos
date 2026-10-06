@@ -811,3 +811,40 @@
     - run: "! git grep -q 'donvargax/itos/v5' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
     - run: go build ./...
     - run: tools/bin/itos config check
+
+- id: T-102
+  type: ci
+  title: The gate self-tests run the hooks the git config declares, and .vite-hooks no longer calls itos
+  why: >
+    Decision 37 (slice 91) declares itos's hooks in the git config alone, so .vite-hooks/commit-msg and
+    .vite-hooks/pre-push, which hold nothing but a call to tools/bin/itos hook, run itos's checks a
+    second time on every commit and push here: both files go. tools/selftest/gates.ts runs
+    sh .vite-hooks/commit-msg to judge a message, and scratch.ts's hookGates runs
+    sh .vite-hooks/pre-push for gates.ts and go-hooks.ts, so once the files go those self-tests would
+    test nothing of itos's. They run the hooks the git config declares instead (git hook run
+    commit-msg and git hook run pre-push, the scratch worktree declaring them as slice 91's steps
+    do), so the nightly proves what the hooks really run. One ci commit, in the v6.0.0 push.
+  done_when:
+    - run: test ! -e .vite-hooks/commit-msg
+      cost: static
+    - run: test ! -e .vite-hooks/pre-push
+      cost: static
+    - run: "! git grep -q -e 'vite-hooks/commit-msg' -e 'vite-hooks/pre-push' -- tools/selftest"
+      cost: static
+    - run: node tools/selftest/gates.ts
+    - run: node tools/selftest/go-hooks.ts
+      timeout: 900
+
+- id: T-103
+  type: ci
+  title: go-schema.ts's value-not-allowed case names a key v6 still has
+  why: >
+    tools/selftest/go-schema.ts holds the generated schema to a config with hooks.manager: overcommit
+    and expects an enum refusal at /hooks/manager. Slice 91 removed hooks.manager, so the schema now
+    refuses it by additionalProperties at /hooks and the nightly's go-schema self-test fails. The case
+    moves to another key with an enum, such as commits.header_lint.use, still expecting the enum
+    refusal at that key's path. One ci commit, in the v6.0.0 push.
+  done_when:
+    - run: "! git grep -q 'manager' -- tools/selftest/go-schema.ts"
+      cost: static
+    - run: node tools/selftest/go-schema.ts
