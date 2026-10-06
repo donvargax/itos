@@ -5071,3 +5071,24 @@ items:
     why: >
       Specified in features/cli.feature (decision 36).
     refs: [features/cli.feature, internal/cli/commands.go, internal/cli/cli.go]
+
+  - id: slice-89
+    title: "v6.0.0's renames: guard claude-code, question, followup, hook install, promote --id, queue --remove"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified in features/guard.feature, ask.feature, follow.feature, config.feature, work.feature
+      and cli.feature (decision 36); carries T-101 and the plugin's guard.sh change in the v6 push.
+    refs:
+      [
+        features/guard.feature,
+        features/ask.feature,
+        features/follow.feature,
+        features/config.feature,
+        features/work.feature,
+        features/cli.feature,
+        integrations/claude-code/hooks/guard.sh,
+      ]
