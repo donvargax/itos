@@ -235,3 +235,29 @@ Feature: itos question, the questions waiting on the person a repository's work 
     Then itos exits with code 2
     And its output says "itos question"
     And its output says "itos followup"
+
+  # Slice 92 (q-18, the user's call, 2026-10-06): slice 89 renamed itos ask
+  # to itos question, but "what should I ask X?" is a question too, so an
+  # agent still reached for it when the person meant a thread with someone
+  # else. A name should say who answers, not what is asked: these are the
+  # decisions waiting on the person the work is for, which end as decision
+  # records or as --none, so the group is itos decision (add, answer, record,
+  # show, and itos decision to list them). Anything to take up with someone
+  # else, a question included, is itos followup. itos ask and itos question
+  # exit 2 naming both. asks.yaml, work.asks, the q-<n> ids and the docs: ask
+  # q-<n> headers stay. The feat rewrites the scenarios that run question,
+  # which no release has, so nothing breaks beyond decision 36's renames.
+  @ID-ASK-22 @slice-92 @wip
+  Scenario: decision add records a decision waiting on the person, and commits it alone
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs the command line "decision add 'Should the starter require a Task footer of docs commits?' --item slice-9"
+    Then itos exits with code 0
+    And its output says "q-1"
+    And the last commit touches only "tasks/asks.yaml"
+
+  @ID-ASK-23 @slice-92 @wip
+  Scenario: itos question exits 2, naming itos decision and itos followup
+    When itos runs "question"
+    Then itos exits with code 2
+    And its output says "itos decision"
+    And its output says "itos followup"
