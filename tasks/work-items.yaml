@@ -4723,3 +4723,19 @@ items:
     why: >
       Specified as @ID-PUSH-07 in features/push.feature.
     refs: [features/push.feature, internal/git/bin.go]
+
+  - id: p1-shim-install-hard-linked-itos
+    title: git-shim install and uninstall recognise a hard-linked itos as git
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      linksItos (internal/cli/gitshim.go) knows an itos as this binary or a symbolic link to a file
+      named itos, so a git that is a hard link to another itos, as git-shim install makes on windows
+      when symbolic links are refused and which an upgraded itos.exe leaves behind as a different
+      file, is refused as a git that is not a link to itos by install, uninstall and init. Bug 45
+      gave git.IsItos the build information check that tells such a git; the shim commands could use
+      it to replace or remove one.
+    refs: [internal/cli/gitshim.go]
