@@ -5257,14 +5257,15 @@ items:
       fails. A ci commit (T-101's, which edits the gates anyway) points the case at another enum
       key, such as commits.header_lint.use.
 
-  - id: p1-selftests-config-hooks
+  - id: T-102
     title: The gate self-tests reach itos's hooks through .vite-hooks, which T-101 empties of itos
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-91]
-    kind: idea
+    kind: task
     why: >
+      Was p1-selftests-config-hooks.
       tools/selftest/gates.ts runs sh .vite-hooks/commit-msg to judge a message, and scratch.ts's
       hookGates runs sh .vite-hooks/pre-push for gates.ts and go-hooks.ts. Decision 37 has T-101's
       ci commit take itos's lines out of .vite-hooks, after which those gates run no check of itos's
