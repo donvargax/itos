@@ -1504,12 +1504,20 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   and `--json` adding `every_item: true` after a null `person`, a key no
   other proposal has (slice 38, the person being the only one). Otherwise
   `Whoami`: `--as`, which must be among the people when
-  there are any (exit 3), else the `work.identity` provider, an `Identity` function made
+  there are any (exit 3), else who the people make it (bug 46): one login
+  is the session, and with no one listed (`Registry.Nobody`: no people file,
+  an unreadable one, or one listing nobody) the session is nobody and no one
+  is asked, `work take` then leaving the owner as a stealth config does.
+  Only among several people is the `work.identity` provider asked, an
+  `Identity` function made
   by `IdentityProvider` (`internal/providers/identity.go`) that answers a
   handle or why it has none, never an error: `none` with its hint, and
   `github` running `gh api user --jq .login` as the
   TypeScript did, gh's stderr dropped and gh missing (`exec.ErrNotFound`)
-  told apart from gh failing. A session with no handle is nobody, and one
+  told apart from gh failing. gh gets `GhTimeout`, 5 seconds, a constant
+  and no setting, its stdin the null device; past it the context kills gh
+  and, on unix, its process group (`killTree`, `gh_unix.go`), `WaitDelay`
+  stops waiting on its output, and the answer is a problem naming `--as`. A session with no handle is nobody, and one
   the people do not list owns nothing yet; both still see what nobody owns.
   `Propose` keeps each item the mapping as written (`value.Map`, its keys in
   JavaScript's order, `depends_on` added last when absent), so the `--json`
@@ -1539,9 +1547,9 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   progress for the person); or an `out.Problem` that refuses, nothing
   written. `work.Promote` also replaces the title when `--title` gives one
   (slice 65), its body naming the new title. `work take`'s person is `Whoami`'s, as for `work`, nobody or one
-  the people do not list exiting 3; under a stealth config with no `--as`
-  nobody is asked, as `ProposeEvery` asks nobody, and the owner is left as it
-  is. Ownership is the item's owner, else its group's (`ownerOf`, as
+  the people do not list exiting 3; under a stealth config, or with no one
+  in the people (`Registry.Nobody`, bug 46), with no `--as` nobody is asked,
+  as `ProposeEvery` asks nobody, and the owner is left as it is. Ownership is the item's owner, else its group's (`ownerOf`, as
   `Propose` reads it). The text is edited with `value.Doc` (below), every
   comment and quote kept. `writeRegistry` is the part any registry command
   shares, `work done` (slice 53) included: in a project it refuses a registry
