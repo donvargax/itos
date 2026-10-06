@@ -4121,7 +4121,7 @@ items:
     title: Renames and type changes hide a path from the hook and from CI's plan
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
