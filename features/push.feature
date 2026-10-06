@@ -114,14 +114,14 @@ Feature: itos push, the pull-rebase-push routine as one command
   # does not resolve) exits 75; a remote that is no repository, or that git
   # cannot find, exits 3; a push the remote refuses exits 1, as before. In
   # the v6.0.0 push with slices 86 to 89, since an exit code is the contract.
-  @ID-PUSH-08 @slice-90 @wip
+  @ID-PUSH-08 @slice-90
   Scenario: A push whose remote cannot be reached exits 75
     Given the clone's remote origin is "https://127.0.0.1:1/itos.git"
     And the clone has the commit "chore: tidy the readme" touching "README.md"
     When itos runs "push"
     Then itos exits with code 75
 
-  @ID-PUSH-09 @slice-90 @wip
+  @ID-PUSH-09 @slice-90
   Scenario: A push whose remote is no repository exits 3
     Given the clone's remote origin is a folder that is no repository
     And the clone has the commit "chore: tidy the readme" touching "README.md"

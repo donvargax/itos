@@ -791,10 +791,14 @@ cases:
       pushed either way. --no-wait pushes and returns.
 
       Exit: 0 pushed, or nothing to push; 1 refused before the pull, the rebase
-      stopped, or the CI run waited for failed; 2 an argument; 3 no git repository,
-      no upstream and no remote origin, or a CI run not to be looked at; 75 a CI
-      run not finished, or GitHub's API failing; git's own code when the fetch or
-      the push fails.
+      stopped, the remote or the pre-push hook refused the push, or the CI run
+      waited for failed; 2 an argument; 3 no git repository, no upstream and no
+      remote origin, a remote that is no repository or that git cannot find, or a
+      CI run not to be looked at; 75 a remote that cannot be reached (a connection
+      refused or timed out, a host that does not resolve), a CI run not finished,
+      or GitHub's API failing; 70 a fetch or a push that failed for another reason.
+      The kind of a failed fetch or push is read from git's message; git's own exit
+      code is never itos's.
 
       --json: git's output on stderr; {"schema":1,"ok","outcome","remote"?,"branch"?,"commit"?,"ci"?,"run"?},
               outcome one of pushed, nothing-to-push, uncommitted, rebase-in-progress,

@@ -441,8 +441,10 @@ each, and holds it since the TypeScript left (T-062).
   environment, 75 for a failure that may pass when run again, and 70 for an
   error nobody classified. An error's code comes from its kind
   (`internal/kind`, slice 86), given where the error is made, as
-  `release.Get` makes a server it cannot reach `kind.Temporary`, and read
-  through any wrapping by `cli.ExitCode`; there is no default. `--json` prints one
+  `release.Get` makes a server it cannot reach `kind.Temporary` and
+  `git.RemoteFailure` reads a failed fetch's or push's kind from git's
+  stderr (slice 90), and read through any wrapping by `cli.ExitCode`;
+  there is no default. `--json` prints one
   object with `"schema": 1`, logs on stderr; each problem in it has a
   sentence, a `rule` id and, where one exists, a `fix`. The task runner is
   called by its own name, `tools/bin/itos task <id>`; `vp run work` and

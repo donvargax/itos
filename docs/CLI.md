@@ -88,7 +88,7 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 
 ### Errors and exit codes
 
-31. Get the exit code from the kind of the error, never from a default. (CLIG `#the-basics`.) itos follows this rule (slice-86): an error takes its kind where it is made (`internal/kind`), and an error that no code classified exits 70. In `ci run` a failing step exits 1 and names the step's own code, so a step's code is never read as itos's.
+31. Get the exit code from the kind of the error, never from a default. (CLIG `#the-basics`.) itos follows this rule (slice-86): an error takes its kind where it is made (`internal/kind`), and an error that no code classified exits 70. `itos push` reads the kind of a failed fetch or push from git's message (slice-90): a remote that cannot be reached exits 75, a remote that is no repository 3, a push that the remote or a hook refuses 1, never git's own 128. In `ci run` a failing step exits 1 and names the step's own code, so a step's code is never read as itos's.
 32. Start each error line with `itos:`. Write it for people: say what happened and what to do next. Do not show a raw command line as the message. (GNU-ERR; CLIG `#errors`.) Some error lines do not follow this rule yet.
 33. Let the help and the code agree on each exit code. Now the top-level help says that `itos task` exits 1 for an unknown task, but it exits 2.
 

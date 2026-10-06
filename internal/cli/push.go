@@ -19,13 +19,16 @@ package cli
 // made during the hook's unit tests moves HEAD, so nothing after the push
 // reads HEAD again; the commit named, waited for and counted is the one
 // pushed. Nothing forces the push: a force flag or a + refspec is
-// a usage error, and a push the remote refuses is reported with git's exit
-// code, never retried. A rebase that stops on a conflict in the work
+// a usage error, and a push the remote refuses is reported, exit 1, never
+// retried. A fetch or a push that fails exits by the kind of the failure,
+// read from git's words (slice 90), never with git's own code: a remote out
+// of reach 75, one that is no repository 3, any other failure 70. A rebase that stops on a conflict in the work
 // registry says so in a person's words beside git's advice (slice 66): two
 // takes of one item meet there, and the remote keeps the first.
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -35,6 +38,7 @@ import (
 
 	"github.com/donvargax/itos/v5/internal/config"
 	"github.com/donvargax/itos/v5/internal/git"
+	"github.com/donvargax/itos/v5/internal/kind"
 	"github.com/donvargax/itos/v5/internal/out"
 	"github.com/donvargax/itos/v5/internal/work"
 )
@@ -143,9 +147,9 @@ func push(args []string, o Out) (int, error) {
 	if !set && !git.Succeeds("remote", "get-url", remote) {
 		return r.report(ExitMissing, "no-remote", fmt.Sprintf("itos push: %s has no upstream and there is no remote %s to push to", branch, remote))
 	}
-	onto, exists, code := r.fetch(remote, ref)
-	if code != 0 {
-		return r.report(code, "fetch-failed", fmt.Sprintf("itos push: fetching %s failed (git's message above); nothing was pushed", r.upstream()))
+	onto, exists, failure, failed := r.fetch(remote, ref)
+	if failed {
+		return r.report(remoteExit(failure), "fetch-failed", r.remoteLines("fetching "+r.upstream()+" failed", failure)...)
 	}
 	if exists && !git.Succeeds("merge-base", "--is-ancestor", onto, "HEAD") {
 		if code, done, err := r.rebase(onto); done {
@@ -190,26 +194,53 @@ func (r pushRun) ready() (int, bool, error) {
 
 // fetch fetches the upstream's branch and gives the commit fetched; exists
 // is false when the remote has no such branch yet, which a push creates.
-// git's own words are printed only when the fetch fails, and code is then
-// git's exit code.
-func (r pushRun) fetch(remote, ref string) (onto string, exists bool, code int) {
+// git's own words are printed only when the fetch fails, and failure is then
+// their kind (git.RemoteFailure). A remote out of reach, or no repository, is
+// not asked again whether it has the branch: the answer would be the same
+// failure, after a second wait for a connection that times out.
+func (r pushRun) fetch(remote, ref string) (onto string, exists bool, failure kind.Kind, failed bool) {
 	var stderr bytes.Buffer
 	code, err := r.run(&stderr, "fetch", "--quiet", "--no-tags", remote, ref)
 	if err == nil && code == 0 {
 		sha, err := git.Output("rev-parse", "--verify", "--quiet", "FETCH_HEAD^{commit}")
 		if err == nil {
-			return strings.TrimSpace(sha), true, 0
+			return strings.TrimSpace(sha), true, kind.Unknown, false
 		}
 	}
+	failure = git.RemoteFailure(stderr.String())
 	// A remote without the branch says so with ls-remote's exit 2.
-	if lsCode, _ := r.run(io.Discard, "ls-remote", "--exit-code", remote, ref); lsCode == 2 {
-		return "", false, 0
+	if failure == kind.Unknown {
+		if lsCode, _ := r.run(io.Discard, "ls-remote", "--exit-code", remote, ref); lsCode == 2 {
+			return "", false, kind.Unknown, false
+		}
 	}
 	r.o.Stderr.Write(stderr.Bytes())
-	if code == 0 {
-		code = ExitPolicy
+	return "", false, failure, true
+}
+
+// remoteExit is the exit code of a fetch's or a push's failure of the kind:
+// 75 for a remote out of reach, 3 for one that is no repository, 70 for a
+// failure of no kind (ExitCode).
+func remoteExit(failure kind.Kind) int {
+	return ExitCode(kind.Wrap(failure, errors.New("git failed")))
+}
+
+// remoteLines say what failed, by its kind, and what to do next; nothing was
+// pushed, whatever the kind.
+func (r pushRun) remoteLines(what string, failure kind.Kind) []string {
+	switch failure {
+	case kind.Temporary:
+		return []string{
+			fmt.Sprintf("itos push: %s: %s cannot be reached (git's message above); nothing was pushed.", what, r.remote),
+			"Check the network, then run itos push again.",
+		}
+	case kind.Missing:
+		return []string{
+			fmt.Sprintf("itos push: %s: %s is no repository git can find (git's message above); nothing was pushed.", what, r.remote),
+			fmt.Sprintf("Check the remote's URL (git remote get-url %s), then run itos push again.", r.remote),
+		}
 	}
-	return "", false, code
+	return []string{fmt.Sprintf("itos push: %s (git's message above); nothing was pushed", what)}
 }
 
 // rebase rebases the branch onto the commit fetched, with git's own
@@ -294,8 +325,9 @@ func (r pushRun) registryConflict() []string {
 }
 
 // push pushes the commit resolved before it, r.sha, to the upstream's
-// branch: the pre-push hook runs, and a refusal is reported with git's exit
-// code. onto is the upstream's commit the branch was rebased onto, empty
+// branch: the pre-push hook runs, and a refusal, the remote's or the hook's,
+// exits 1; any other failure exits by its kind, read from git's words as they
+// stream to stderr. onto is the upstream's commit the branch was rebased onto, empty
 // when the push makes the branch. HEAD is not read again: a commit made
 // while the hook ran is not the one pushed.
 func (r pushRun) push(remote, ref, onto string) (int, error) {
@@ -303,13 +335,22 @@ func (r pushRun) push(remote, ref, onto string) (int, error) {
 	if r.o.Quiet {
 		argv = append(argv, "--quiet")
 	}
-	code, err := r.run(r.o.Stderr, append(argv, remote, r.sha+":"+ref)...)
+	var stderr bytes.Buffer
+	code, err := r.run(io.MultiWriter(r.o.Stderr, &stderr), append(argv, remote, r.sha+":"+ref)...)
 	if err != nil {
 		fmt.Fprintf(r.o.Stderr, "itos: cannot run git: %s\n", err)
 		return ExitMissing, nil
 	}
 	if code != 0 {
-		return r.report(code, "push-failed",
+		words := stderr.String()
+		if failure := git.RemoteFailure(words); failure != kind.Unknown {
+			return r.report(remoteExit(failure), "push-failed", r.remoteLines("the push to "+r.upstream()+" failed", failure)...)
+		}
+		exit := ExitSoftware
+		if git.Refused(words) {
+			exit = ExitPolicy
+		}
+		return r.report(exit, "push-failed",
 			fmt.Sprintf("itos push: the push to %s failed (git's message above); nothing was forced.", r.upstream()),
 			"If the remote moved, run itos push again to rebase onto it; if a hook refused it, fix what it reported first.")
 	}

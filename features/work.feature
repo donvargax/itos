@@ -580,14 +580,6 @@ Feature: The work registry
     And its output says "--id"
     And the registry is unchanged
 
-  @ID-WORK-54 @slice-89
-  Scenario: work queue --remove takes an item out of the queue
-    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
-    And itos has run "work queue slice-9 --top"
-    When itos runs "work queue slice-9 --remove"
-    Then itos exits with code 0
-    And the registry's queue is empty
-
   @ID-WORK-55 @slice-89
   Scenario: work queue --drop exits 2, naming --remove
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"

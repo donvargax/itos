@@ -91,3 +91,33 @@ func TestPushJSONCommitIsTheOnePushed(t *testing.T) {
 		t.Errorf("outcome %q commit %q, want pushed %s", got.Outcome, got.Commit, pushed)
 	}
 }
+
+// A push that fetched its upstream but cannot reach the URL it pushes to
+// (slice 90) exits 75, not git's 128, and says the remote cannot be reached.
+func TestPushToARemoteOutOfReachExits75(t *testing.T) {
+	lateCommitRepo(t)
+	if out, err := exec.Command("git", "config", "remote.origin.pushurl", "https://127.0.0.1:1/itos.git").CombinedOutput(); err != nil {
+		t.Fatalf("%s: %s", err, out)
+	}
+	code, stdout, stderr := run("push", "--no-wait")
+	if code != ExitTemporary {
+		t.Fatalf("exit %d, want 75\n%s%s", code, stdout, stderr)
+	}
+	if !strings.Contains(stderr, "origin cannot be reached") {
+		t.Errorf("stderr does not say origin cannot be reached:\n%s", stderr)
+	}
+}
+
+// A push the pre-push hook refuses exits 1, a check that said no, though
+// the hook's own words are those of a remote out of reach.
+func TestPushAHookRefusesExits1(t *testing.T) {
+	dir := lateCommitRepo(t)
+	hook := "#!/bin/sh\necho 'dial tcp 127.0.0.1:8080: connect: Connection refused' >&2\nexit 1\n"
+	if err := os.WriteFile(filepath.Join(dir, ".git", "hooks", "pre-push"), []byte(hook), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, stderr := run("push", "--no-wait")
+	if code != ExitPolicy {
+		t.Fatalf("exit %d, want 1\n%s%s", code, stdout, stderr)
+	}
+}
