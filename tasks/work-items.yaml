@@ -4480,3 +4480,16 @@ items:
       flags with Contains and ignore the rest, so hooks install --prnt installs instead of printing
       (commands.go:319-351).
     refs: [internal/cli/commands.go]
+
+  - id: p1-promote-moves-asks
+    title: work promote moves the questions' item to the new id
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). Promote renames the id in depends_on and the
+      queue but not in asks.yaml, so work show of the new id loses its open questions
+      (work/write.go:232-330).
+    refs: [internal/work/write.go]
