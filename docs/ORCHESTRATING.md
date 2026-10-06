@@ -139,6 +139,9 @@ install`, because a second install can load two copies of a tool;
   stand: `previous-release` judges a config error's words (T-095), and a feat
   may not change an old case (slice 82, q-15). Check a feat's spec for a
   refusal it rewords before handing it out.
+- **A feature file's first live scenarios need a smoke entry** in
+  `features/smoke.yaml`: CI's `tests smoke check` turned slice 82's feat red
+  for one push. Say so in the brief of a slice whose feature file is new.
 - **Agents write their own wait loops** unless told not to, and one built on
   `pgrep` matched its own command line and never ended (bug 35). The brief
   says: run `itos push` in the background and watch it with a Monitor.
