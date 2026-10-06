@@ -4313,3 +4313,16 @@ items:
       checksums.txt, so a binary swapped beside a genuine checksums.txt still runs; matters with a
       shared or restored ITOS_CACHE (launch.go:334-343).
     refs: [internal/launch/launch.go]
+
+  - id: p3-windows-hardlink-shim
+    title: A hard-linked git shim on Windows stays manageable
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). When symlinks are not allowed the shim is a
+      hard link, and once itos.exe is replaced git-shim install and uninstall both refuse their own
+      stale shim (gitshim.go:93-103, 166-167).
+    refs: [internal/cli/gitshim.go]
