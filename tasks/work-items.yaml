@@ -4066,8 +4066,8 @@ items:
   - id: bug-29
     title: The range walk counts a commit's green run on any branch
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
