@@ -1,14 +1,16 @@
 // The local gates leave to CI what they do not run, and CI catches it. Run
 // against the real hooks in a scratch worktree of the current tree
 // (uncommitted edits included), so nothing here touches the checkout it was
-// started from:
+// started from; itos's commit-msg and pre-push hooks run as git runs them,
+// from the git config, declared there as itos hook install declares them
+// (decision 37, scratch.ts's hookRun):
 //
 //   - CI runs the whole unit suite and the features, which the hooks leave to it;
 //   - pre-push passes a prose-only push;
 //   - pre-push runs neither the scenarios a commit's `Scenarios:` footer names
 //     nor the checks of the tasks its `Task:` footer names; CI reads those
 //     footers from the pushed range and runs them;
-//   - the commit-msg hook, a one-line shim calling `itos hook commit-msg`,
+//   - the commit-msg hook, `itos hook commit-msg` as the git config declares it,
 //     rejects a commit whose type may not touch a staged path, a scenario
 //     renamed outside feat and fix, and a header without a type, by the
 //     built-in header lint with no node_modules in the scratch copy, so no
@@ -33,13 +35,14 @@ import { ciPlan, featuresStep, hookGates, scratchRepo } from "./scratch.ts";
 const repo = scratchRepo("gates-selftest");
 const { dir, env, git, edit, commit } = repo;
 
-const { problems, timings, expect, gate, preCommit, prePush } = hookGates(repo);
+const hooks = hookGates(repo);
+const { problems, timings, expect, gate, preCommit, prePush } = hooks;
 const messages = mkdtempSync(join(tmpdir(), "gates-selftest-msg-"));
 const commitMsg = (label: string, message: string) => {
 	git("add -A");
 	const file = join(messages, "COMMIT_EDITMSG");
 	writeFileSync(file, message);
-	return gate(`commit-msg, ${label}`, `sh .vite-hooks/commit-msg ${file}`);
+	return hooks.commitMsg(label, file);
 };
 
 let base = "";
@@ -79,7 +82,7 @@ try {
 		`CI did not find T-007 in the pushed range: ${named.join(", ") || "none"}`,
 	);
 
-	// The commit-msg hook, through its shim. A docs commit may not touch itos;
+	// The commit-msg hook, as the git config declares it. A docs commit may not touch itos;
 	// a test commit may not rename a live scenario; the header lint rejects a
 	// header without a type; a docs commit with its footer passes.
 	git(`reset -q --hard ${base}`);

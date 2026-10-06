@@ -3,7 +3,8 @@
 // hook, from the staged tree, and in CI by `itos config check`. Run against the
 // real hooks and the real plan in a scratch worktree of the current tree
 // (uncommitted edits included), so nothing here touches the checkout it was
-// started from:
+// started from; the commit-msg hook runs as git runs it, from the git config
+// (scratch.ts's hookRun):
 //
 //   - a commit staging a ledger with a misspelt key is rejected, by the
 //     commit-msg hook, and a sound ledger edit goes through;
@@ -20,7 +21,7 @@ import { scratchRepo } from "./scratch.ts";
 
 const check = "tools/bin/itos config check";
 const repo = scratchRepo("config-gate-selftest");
-const { dir, sh, git, edit, commit } = repo;
+const { dir, sh, git, edit, commit, hookRun } = repo;
 // A commit as git makes one, without making it: the files staged, the
 // pre-commit hook, then the commit-msg hook on the message. Which hook stopped
 // it, if one did, and what the hooks printed.
@@ -31,7 +32,7 @@ const attempt = (files: string[], message: string) => {
 	if (preCommit.status !== 0) return { stopped: "pre-commit", output: preCommit.output };
 	const file = join(messages, "COMMIT_EDITMSG");
 	writeFileSync(file, message);
-	const commitMsg = sh(`sh .vite-hooks/commit-msg ${file}`);
+	const commitMsg = sh(hookRun("commit-msg", [file]));
 	return {
 		stopped: commitMsg.status !== 0 ? "commit-msg" : "",
 		output: `${preCommit.output}${commitMsg.output}`,

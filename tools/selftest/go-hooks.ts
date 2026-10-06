@@ -1,6 +1,7 @@
 // The hooks run the Go unit tests a change reaches, as they run Vitest's
 // (T-059). Run against the real hooks in a scratch worktree of the current
-// tree (uncommitted edits included), as gates.ts runs the other gates:
+// tree (uncommitted edits included), as gates.ts runs the other gates, itos's
+// pre-push hook as git runs it from the git config (scratch.ts's hookRun):
 //
 //   - pre-commit runs the unit tests of the Go package a staged change touches
 //     and of the packages that import it, and no other package's;

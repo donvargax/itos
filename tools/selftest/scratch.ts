@@ -134,16 +134,68 @@ export function scratchRepo(name: string) {
 		symlinkSync(join(root, "node_modules"), join(dir, "node_modules"));
 		return commit(`${name} base`);
 	};
+	// itos's hooks, declared for the copy alone as itos hook install declares
+	// them in a clone's git config (decision 37): the entries the copy's own
+	// itos prints (hook install --print), in a file the environment includes
+	// where the git dir is the copy's and nowhere else. The copy is a worktree
+	// whose .git/config is the checkout's, which must not change; and git
+	// hands its environment to the hooks and all they run, so an include
+	// matched to the copy's git dir leaves every other repository, the unit
+	// tests' among them, as it was. core.hooksPath, an empty folder there,
+	// keeps the checkout's own hook folder (vp's core.hooksPath names it) from
+	// running beside them, so a hook run is what the git config declares.
+	// Made once, after open.
+	let hooks = "";
+	const declareHooks = () => {
+		if (hooks) return hooks;
+		const printed = JSON.parse(itos(["hook", "install", "--print", "--json"], dir)) as {
+			hooks: { name: string; event: string; command: string }[];
+		};
+		if (!printed.hooks.length) throw new Error("itos hook install --print declares no hook");
+		hooks = mkdtempSync(join(tmpdir(), `${name}-hooks-`));
+		const none = join(hooks, "none");
+		mkdirSync(none);
+		const value = (v: string) => `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+		const config = [`[core]\n\thooksPath = ${value(none)}\n`];
+		for (const hook of printed.hooks)
+			config.push(
+				`[hook ${value(hook.name)}]\n\tevent = ${value(hook.event)}\n\tcommand = ${value(hook.command)}\n`,
+			);
+		const file = join(hooks, "config");
+		writeFileSync(file, config.join(""));
+		Object.assign(env, {
+			GIT_CONFIG_COUNT: "1",
+			GIT_CONFIG_KEY_0: `includeIf.gitdir:${git("rev-parse --absolute-git-dir")}.path`,
+			GIT_CONFIG_VALUE_0: file,
+		});
+		return hooks;
+	};
+	// The command that runs the hooks the copy's git config declares for an
+	// event (git hook run, which fails when none is declared), with its
+	// arguments and, given, its stdin.
+	const hookRun = (event: string, args: string[], input?: string) => {
+		const folder = declareHooks();
+		let stdin = "";
+		if (input !== undefined) {
+			const file = join(folder, `${event}.stdin`);
+			writeFileSync(file, input);
+			stdin = ` --to-stdin=${file}`;
+		}
+		return `git hook run${stdin} ${event} -- ${args.join(" ")}`;
+	};
 	const remove = () => {
 		sh(`git worktree remove --force ${dir}`, undefined, root);
 		rmSync(dir, { recursive: true, force: true });
+		if (hooks) rmSync(hooks, { recursive: true, force: true });
 	};
-	return { root, dir, env, sh, git, edit, commit, open, remove };
+	return { root, dir, env, sh, git, edit, commit, open, hookRun, remove };
 }
 
 // The real hooks, run in a scratch copy and timed for the report, and the
-// problems a self-test collects instead of stopping at the first.
-export function hookGates({ sh, git }: ReturnType<typeof scratchRepo>) {
+// problems a self-test collects instead of stopping at the first: pre-commit,
+// vp's, from its file; commit-msg and pre-push, itos's, as git runs them from
+// the copy's git config (hookRun).
+export function hookGates({ sh, git, hookRun }: ReturnType<typeof scratchRepo>) {
 	const problems: string[] = [];
 	const timings: string[] = [];
 	const expect = (ok: boolean, problem: string) => {
@@ -160,13 +212,18 @@ export function hookGates({ sh, git }: ReturnType<typeof scratchRepo>) {
 		git("add -A");
 		return gate(`pre-commit, ${label}`, "sh .vite-hooks/pre-commit");
 	};
+	const commitMsg = (label: string, file: string) =>
+		gate(`commit-msg, ${label}`, hookRun("commit-msg", [file]));
 	const prePush = (label: string, base: string, sha: string) =>
 		gate(
 			`pre-push, ${label}`,
-			"sh .vite-hooks/pre-push upstream git@example.invalid:upstream.git",
-			`refs/heads/main ${sha} refs/heads/main ${base}\n`,
+			hookRun(
+				"pre-push",
+				["upstream", "git@example.invalid:upstream.git"],
+				`refs/heads/main ${sha} refs/heads/main ${base}\n`,
+			),
 		);
-	return { problems, timings, expect, gate, preCommit, prePush };
+	return { problems, timings, expect, gate, preCommit, commitMsg, prePush };
 }
 
 // The scratch repositories of a check held to the last release

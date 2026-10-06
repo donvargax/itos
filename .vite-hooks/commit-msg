@@ -1,1 +1,0 @@
-exec tools/bin/itos hook commit-msg "$1"
