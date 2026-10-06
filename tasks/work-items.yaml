@@ -4559,3 +4559,18 @@ items:
       config's hash, never in the repository, without which every implicit run of a repository's
       commands is refused or skipped.
     refs: [internal/providers, PLAN.md]
+
+  - id: p3-itos-search
+    title: itos search across the project's records, and itos where first
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's idea (2026-10-05), low priority. grep covers project mode; search earns its place
+      where grep cannot reach: a stealth config's data under .git/itos, a registry that is not files
+      (p2-github-hybrid), and the whys work done drops, kept only in commits, with structured hits
+      (id, kind, status). First, a tenth of the work: itos where prints the paths of every data file
+      the config names, stealth included.
+    refs: [internal/cli]
