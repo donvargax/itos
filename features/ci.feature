@@ -180,9 +180,8 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # green ancestor and re-checked commits that branch had already proved. A
   # green run of the workflow on that exact commit proves it whatever
   # branch it ran on, so the walk (ci range's, and itos status's last green
-  # commit) no longer filters by branch. If no tool reads
-  # ci.range.github.branch after that, config check warns that it is
-  # ignored, the key kept until the next major.
+  # commit) no longer filters by branch. v5 removes ci.range.github.branch
+  # itself (slice 85, the user's call), so no warning is needed here.
   @ID-CI-13 @bug-29 @wip
   Scenario: ci range starts at the head's parent whose green run was on another branch
     Given ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
