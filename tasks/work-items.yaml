@@ -4288,3 +4288,15 @@ items:
       a pin moves (launch/launch.go:442-445). Its @bug-44 scenario is written before it is handed
       out.
     refs: [internal/launch/launch.go]
+
+  - id: p1-launcher-version-env
+    title: The launcher refuses an ITOS_VERSION that is not a version
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by the code review of 07b0e6d (2026-10-05). ITOS_VERSION is used as a path segment
+      unchecked (launch.go:168-176, 321): ../../x makes cached() exec a file outside the cache.
+    refs: [internal/launch/launch.go]
