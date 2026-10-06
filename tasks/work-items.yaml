@@ -4913,3 +4913,14 @@ items:
       scenario, the item or the commit is only in the message today (out.Problem is rule, message,
       fix). Each rule documents its keys; added after v6 they are additive (T-076).
     refs: [internal/out/out.go]
+
+  - id: p1-rule-ids-listed
+    title: The rule ids of --json problems are listed where a script's author finds them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-86]
+    kind: idea
+    why: >
+      Decision 35 (2026-10-06): a rule id is contract, so renaming one is a breaking change, yet
+      nothing lists them (73 in the corpus).
