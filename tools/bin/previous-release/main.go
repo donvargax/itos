@@ -14,16 +14,27 @@
 //	ITOS_BIN=<bin> go test ./features -count=1 -json
 //	node <this tree>/tools/itos/conformance/run.ts --bin <bin> --additive --only <its corpus>
 //
-// The release's corpus runs through this tree's runner, in its --additive
-// mode (T-076): an old case's JSON is judged as what the new output must still
-// hold, every key it expects there with the value it expects, at every depth,
-// an array element by element at the same length, and its stdout and stderr as
-// lines that must all still appear, in the same order. A key or a line added
-// passes, since an output that only adds breaks no consumer
+// The release's scenarios run as they are, each judged by what its steps
+// assert. Its corpus is judged by itos's machine output alone, the only
+// contract it keeps (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md):
+// an old case's exit code, its files_after and its json, the json less every
+// key named message or fix at any depth, since those are the sentences a
+// person reads and change with them. Its stdout, stderr, stdout_has and
+// stderr_has are not compared: every plain-text output, help, a refusal or a
+// success alike, is for people and may change in any release. They are taken
+// out of the worktree's fixtures before the runner reads them
+// (oldCorpusScript), with the message and fix keys, and the check says how
+// many it left out. A help case or a usage error is judged as any other case
+// is, by its exit code and the files it leaves: no rule of its own. This
+// tree's own corpus, run without any of this, still pins every word exactly.
+//
+// The runner is this tree's, in its --additive mode (T-076): what an old case's
+// json holds the new output must still hold, every key with the value it
+// expects, at every depth, an array element by element at the same length. A
+// key added passes, since an output that only adds breaks no consumer
 // (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md);
-// one removed, changed or reordered fails. Its exit code,
-// stdout_has, stderr_has and files_after are judged as ever. This tree's own
-// corpus, run without the mode, still pins every output exactly. The runner
+// one removed or changed fails, so a rule id renamed or a problem dropped is a
+// break, as is an exit code changed or a file written differently. The runner
 // asks the binary its version for the corpus's {{version}}, so a binary
 // stamped with a version the tag never had is not failed for saying it.
 //
@@ -34,35 +45,6 @@
 // between releases (2.3.1-dev.5.g1234abc), which a config's requires cannot
 // name, so the old corpus's cases that require the binary's own version would
 // fail for the stamp alone; the release a consumer gets says X.Y.Z.
-//
-// The old corpus's help cases are left out, never judged: a case that asks for
-// help (an argv holding --help or -h before any --, one starting with help, or
-// none at all, a bare itos printing the help) pins help text, which is
-// documentation, not compatibility: --json and exit codes are the stable
-// interface (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md),
-// and this tree's own corpus still pins its help exactly.
-// Judged, every feat that adds a flag or a command, which changes itos --help,
-// could pass only as a breaking change. They are taken out of the worktree's
-// fixtures before its runner reads them (oldCorpusScript, with the checkout's
-// yaml), and the check says how many it left out and why. help.yaml's other
-// cases, such as itos version's, stay judged.
-//
-// The old corpus's usage errors are left out too (T-095): a case whose argv
-// the command refuses, exit 2 with one "itos: <message> (itos --help)" line on
-// stderr and nothing on stdout, pins only what the command refuses, and
-// refusing less is additive: a command that comes to accept what it refused
-// breaks no consumer, as a flag or a command added does not. T-075 judged such
-// a case by its exit code alone, which still read a command that stops
-// refusing as a breaking change: slice 80 makes itos init --stealth
-// --agent-rules, which v4.1.0 refused as not written yet, succeed. Its words
-// were never judged either, a usage message that lists what a command takes
-// being documentation as help is. The same script takes such a case out, its
-// files_after with it, which loses nothing: a refused command writes nothing.
-// The check says how many it left out and why, beside the help cases. A config
-// error (config check's "FAIL …" lines, or an "itos: … is missing" about a
-// file the config names) keeps its words judged, since what a config may hold
-// is the stable interface too, and so does any case that pins its output
-// another way. This tree's own corpus still pins every usage message exactly.
 //
 // An old scenario or case that fails is accepted when a commit since the tag
 // is marked as breaking (a ! before its header's colon, or a BREAKING-CHANGE:
@@ -231,24 +213,18 @@ func run() int {
 	}
 	fmt.Printf("%s: %s's scenarios and conformance corpus against %s (itos %s), in a scratch worktree of %s\n",
 		self, tag, what, version, tag)
-	skipped, refusals, cases, err := readyOldCorpus(tree)
+	corpusReadied, err := readyOldCorpus(tree)
 	if err != nil {
-		return fail("%s's corpus: cannot leave out its help cases and its usage errors: %v", tag, err)
+		return fail("%s's corpus: cannot leave out its plain output and its message and fix keys: %v", tag, err)
 	}
-	fmt.Printf("%s: %s's conformance corpus: %s not judged, since help text is documentation, not compatibility:\n"+
-		"  --json and exit codes are the stable interface, and this tree's own corpus pins its help exactly\n"+
-		"  (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md)\n",
-		self, tag, skipped)
-	fmt.Printf("%s: %s's conformance corpus: %s not judged, since a usage error pins only what a command refuses:\n"+
-		"  refusing less is additive, as a command that comes to accept what it refused breaks no consumer (T-095);\n"+
-		"  this tree's own corpus pins its usage messages exactly, and a config error's words stay judged\n",
-		self, tag, refusals)
-	fmt.Printf("%s: %s's conformance corpus: judged additively, by this tree's runner (--additive):\n"+
-		"  an old case's JSON must still hold every key it expects with the value it expects, and its stdout and\n"+
-		"  stderr every line it expects, in order; a key or a line added passes\n"+
-		"  (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md),\n"+
-		"  one removed, changed or reordered does not, and this tree's own corpus pins every output exactly\n",
-		self, tag)
+	cases := corpusReadied.Names
+	fmt.Printf("%s: %s's conformance corpus: its %s judged by itos's machine output alone, by this tree's runner (--additive):\n"+
+		"  each one's exit code, files_after and json, a json key added passing and one removed or changed failing;\n"+
+		"  left out as for people, the plain stdout and stderr of %s and %s named message or fix in their json\n"+
+		"  (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md);\n"+
+		"  this tree's own corpus pins every output exactly\n",
+		self, tag, counted(corpusReadied.Cases, "case", "cases"),
+		counted(corpusReadied.Plain, "case", "cases"), counted(corpusReadied.Keys, "key", "keys"))
 
 	var features, corpus suite
 	var wg sync.WaitGroup
@@ -296,77 +272,83 @@ func prepare(tree, top string) error {
 }
 
 // oldCorpusScript readies the fixtures of the corpus in its working directory
-// for the run, keeping the rest of each file as written: it takes the help
-// cases and the usage errors' cases out, since neither is judged (T-095: a
-// usage error pins only what a command refuses, and refusing less is
-// additive). It prints how many of each it left out of each file, and the
-// names of every file's cases as written, those left out included, as JSON
-// ({"help": {"<file>": n}, "usage": {…}, "names": {"<file>": ["<name>", …]}}).
-//
-// A usage error's case is one whose argv the command refuses as a usage
-// error: exit 2, nothing on stdout (or stdout not compared), and on stderr
-// exactly one line, "itos: <message> (itos --help)", the line cli's failure
-// prints for a usage error and for nothing else. A config error prints
-// config check's "FAIL <config>: …" lines, or "itos: …" without the help's
-// name ("… is missing" about a file the config names); a case pinning its
-// output any other way (stdout_has, stderr_has, json) is not read as one.
-// Either stays judged word for word, files_after included. A usage error's
-// case leaves with its files_after, which pins nothing a refusal could break:
-// a refused command writes nothing.
+// for the run, leaving in each case only what itos's contract holds it to
+// (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md):
+// it takes out every case's stdout, stderr, stdout_has and stderr_has, which
+// pin plain text, and every key named message or fix at any depth of its json,
+// which are the same sentences; the exit code, files_after, every other json
+// key and what a case sets up stay as written. It prints how many cases it
+// read, how many of them lost their plain output, how many message and fix
+// keys it left out, and the names of every file's cases, as JSON
+// ({"cases": n, "plain": n, "keys": n, "names": {"<file>": ["<name>", …]}}).
 //
 // It runs with the yaml package prepare links in, the one the corpus runner
-// parses fixtures with; a file that does not parse is left for the runner to
-// report.
+// parses fixtures with, and writes each file back from what it parsed, which
+// it checks reads back the same; a file that does not parse is left for the
+// runner to report.
 const oldCorpusScript = `
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { isSeq, parse, parseDocument } from "yaml";
+import { parse, stringify } from "yaml";
 
 const dir = "tools/itos/conformance";
-const asksHelp = (argv) => {
-	if (!Array.isArray(argv)) return false;
-	if (argv.length === 0 || argv[0] === "help") return true;
-	const end = argv.indexOf("--");
-	const flags = end < 0 ? argv : argv.slice(0, end);
-	return flags.includes("--help") || flags.includes("-h");
+const plain = ["stdout", "stderr", "stdout_has", "stderr_has"];
+const sentences = new Set(["message", "fix"]);
+const told = { cases: 0, plain: 0, keys: 0, names: {} };
+const machine = (value) => {
+	if (Array.isArray(value)) return value.map(machine);
+	if (value === null || typeof value !== "object") return value;
+	const kept = {};
+	for (const [key, v] of Object.entries(value)) {
+		if (sentences.has(key)) told.keys++;
+		else kept[key] = machine(v);
+	}
+	return kept;
 };
-const usageError = (c) =>
-	c !== null &&
-	typeof c === "object" &&
-	c.exit === 2 &&
-	typeof c.stderr === "string" &&
-	/^itos: [^\n]* \(itos --help\)\n$/.test(c.stderr) &&
-	(c.stdout === undefined || c.stdout === "") &&
-	["stdout_has", "stderr_has", "json"].every((key) => c[key] === undefined);
-const touched = { help: {}, usage: {}, names: {} };
 for (const file of readdirSync(dir).filter((f) => f.endsWith(".yaml")).sort()) {
 	const path = join(dir, file);
-	const doc = parseDocument(readFileSync(path, "utf8"));
-	const cases = doc.get("cases");
-	touched.names[file] = [];
-	if (doc.errors.length || !isSeq(cases)) continue;
-	const plain = doc.toJS().cases;
-	touched.names[file] = plain.flatMap((c) => (c && typeof c.name === "string" ? [c.name] : []));
-	const help = new Set(plain.flatMap((c, i) => (asksHelp(c && c.argv) ? [i] : [])));
-	const usage = new Set(plain.flatMap((c, i) => (!help.has(i) && usageError(c) ? [i] : [])));
-	if (!help.size && !usage.size) continue;
-	const out = (i) => help.has(i) || usage.has(i);
-	cases.items = cases.items.filter((_, i) => !out(i));
-	const text = String(doc);
-	if (JSON.stringify(parse(text).cases) !== JSON.stringify(plain.filter((_, i) => !out(i))))
-		throw new Error(file + ": its cases do not read back as written, less its help cases and its usage errors");
+	told.names[file] = [];
+	let doc;
+	try {
+		doc = parse(readFileSync(path, "utf8"));
+	} catch {
+		continue;
+	}
+	if (!doc || !Array.isArray(doc.cases)) continue;
+	told.names[file] = doc.cases.flatMap((c) => (c && typeof c.name === "string" ? [c.name] : []));
+	const cases = doc.cases.map((c) => {
+		if (!c || typeof c !== "object" || Array.isArray(c)) return c;
+		told.cases++;
+		const kept = { ...c };
+		if (plain.some((key) => Object.hasOwn(kept, key))) told.plain++;
+		for (const key of plain) delete kept[key];
+		if (Object.hasOwn(kept, "json")) kept.json = machine(kept.json);
+		return kept;
+	});
+	const readied = { ...doc, cases };
+	const text = stringify(readied, { lineWidth: 0 });
+	if (JSON.stringify(parse(text)) !== JSON.stringify(readied))
+		throw new Error(file + ": its cases do not read back as readied");
 	writeFileSync(path, text);
-	if (help.size) touched.help[file] = help.size;
-	if (usage.size) touched.usage[file] = usage.size;
 }
-console.log(JSON.stringify(touched));
+console.log(JSON.stringify(told));
 `
 
+// readied is what oldCorpusScript did to the release's corpus: how many cases
+// it read, how many lost their plain output, how many message and fix keys it
+// left out of their json, and each corpus file's case names, by its base name,
+// which Changes: entries are read against.
+type readied struct {
+	Cases int                 `json:"cases"`
+	Plain int                 `json:"plain"`
+	Keys  int                 `json:"keys"`
+	Names map[string][]string `json:"names"`
+}
+
 // readyOldCorpus readies the release's corpus in tree as oldCorpusScript
-// does, and says what it left out: "37 help cases (help.yaml 37)" and "34 usage
-// errors (cli.yaml 19, …)"; cases holds each corpus file's case names, by its
-// base name, which Changes: entries are read against.
-func readyOldCorpus(tree string) (help, usage string, cases map[string][]string, err error) {
+// does, and says what it did.
+func readyOldCorpus(tree string) (readied, error) {
+	var r readied
 	cmd := exec.Command("node", "--input-type=module", "-")
 	cmd.Dir = tree
 	cmd.Env = env()
@@ -375,35 +357,20 @@ func readyOldCorpus(tree string) (help, usage string, cases map[string][]string,
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
 	if err != nil {
-		return "", "", nil, fmt.Errorf("node: %v\n%s", err, stderr.String())
+		return r, fmt.Errorf("node: %v\n%s", err, stderr.String())
 	}
-	var touched struct {
-		Help, Usage map[string]int
-		Names       map[string][]string
+	if err := json.Unmarshal(out, &r); err != nil {
+		return r, fmt.Errorf("node said %q: %v", out, err)
 	}
-	if err := json.Unmarshal(out, &touched); err != nil {
-		return "", "", nil, fmt.Errorf("node said %q: %v", out, err)
-	}
-	return counted(touched.Help, "help case", "help cases"), counted(touched.Usage, "usage error", "usage errors"), touched.Names, nil
+	return r, nil
 }
 
-// counted says how many cases counts holds, and how many in each file:
-// "37 help cases (help.yaml 37)", or "no help cases".
-func counted(counts map[string]int, one, many string) string {
-	files := make([]string, 0, len(counts))
-	total := 0
-	for file, n := range counts {
-		files = append(files, fmt.Sprintf("%s %d", file, n))
-		total += n
+// counted is n things, one or many: "1 case", "3 cases".
+func counted(n int, one, many string) string {
+	if n == 1 {
+		return "1 " + one
 	}
-	sort.Strings(files)
-	switch total {
-	case 0:
-		return "no " + many
-	case 1:
-		return fmt.Sprintf("1 %s (%s)", one, files[0])
-	}
-	return fmt.Sprintf("%d %s (%s)", total, many, strings.Join(files, ", "))
+	return fmt.Sprintf("%d %s", n, many)
 }
 
 // buildAsReleased builds this tree's ./cmd/itos into dir, stamped as
