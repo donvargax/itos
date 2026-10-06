@@ -5223,3 +5223,17 @@ items:
       drafts waiting; itos draft promote applies and commits them in order only when no item is
       doing and no tracked change is uncommitted, so drafting never touches an agent's work. It also
       turns the guide's commit only between agents into a gate.
+
+  - id: p1-commit-exit-codes
+    title: itos commit exits by the error's kind, not with git commit's own code
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-90]
+    kind: idea
+    why: >
+      slice-90 classified itos push's failed fetch and push (75, 3, 1, 70), but itos commit still
+      passes git commit's exit code on, as its help says (Exit: git's own code), so a commit git
+      cannot make for a reason of its own exits 128, none of itos's codes (decision 36, docs/CLI.md
+      rule 31). Classify it as push does: a hook's refusal 1, anything git reports without a kind
+      70.
