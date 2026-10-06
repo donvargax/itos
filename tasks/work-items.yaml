@@ -4759,7 +4759,7 @@ items:
     title: "Who the session is: one person needs no gh, and gh is bounded"
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
