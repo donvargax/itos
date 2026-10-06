@@ -28,6 +28,53 @@ func TestIDs(t *testing.T) {
 	}
 }
 
+// The headers git writes itself are judged by what they stand for (bug 30):
+// a revert's or a reapply's as revert, an amend!, fixup! or squash! commit,
+// its prefixes off, as the header it names; a merge's header keeps its word.
+// A named header with no type of the commit types is refused, under its own
+// rule; a revert named is a revert.
+func TestTypeOfGitsHeaders(t *testing.T) {
+	for message, want := range map[string]string{
+		"Revert \"chore: tidy\"\n\nThis reverts commit abc.\n": "revert",
+		"Reapply \"chore: tidy\"\n":                            "revert",
+		"revert: chore: tidy\n":                                "revert",
+		"Reverted the page\n":                                  "Reverted",
+		"fixup! chore: tidy\n\nTask: T-1\n":                    "chore",
+		"fixup! squash! amend! docs(x): a page\n":              "docs",
+		"fixup!feat: a page\n":                                 "feat",
+		"fixup! Revert \"chore: tidy\"\n":                      "revert",
+		"fixup! update things\n":                               "update",
+		"Merge branch 'topic'\n":                               "Merge",
+	} {
+		if got := Type(message); got != want {
+			t.Errorf("Type(%q) = %q, want %q", message, got, want)
+		}
+	}
+	cfg := load(t, "version: 1\ncommits:\n  types: [feat, fix, chore, docs]\n")
+	for message, want := range map[string]string{
+		"fixup! chore: tidy\n":            "",
+		"fixup! Revert \"chore: tidy\"\n": "",
+		"chore: tidy\n":                   "",
+		"Revert \"chore: tidy\"\n":        "",
+		"fixup! update things\n":          `fixup! names the header "update things", which has no type of [feat, fix, chore, docs]`,
+		"squash! fixup! wip: x\n":         `squash! names the header "wip: x", which has no type of [feat, fix, chore, docs]`,
+	} {
+		got := ""
+		if found := namedProblems(cfg, message); len(found) > 0 {
+			got = found[0].Message
+			if found[0].Rule != "named-type" {
+				t.Errorf("namedProblems(%q) under the rule %q", message, found[0].Rule)
+			}
+		}
+		if got != want {
+			t.Errorf("namedProblems(%q) = %q, want %q", message, got, want)
+		}
+	}
+	if !Typed(cfg, "docs") || Typed(cfg, "revert") || !Typed(load(t, "version: 1\ncommits: {}\n"), "revert") {
+		t.Error("Typed does not take commits.types, or config-conventional's without them")
+	}
+}
+
 // A free-text footer's texts, a line each, trimmed, the empty ones kept; a
 // line that only mentions the key is not the footer. None is the word alone,
 // in lower case.

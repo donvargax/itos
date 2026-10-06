@@ -1,10 +1,11 @@
 package cli
 
 // verify is CI's re-check of a pushed range (verify-commits.ts), so a commit
-// made with the hooks bypassed still fails the build: each non-merge
-// commit's message (against the footers' sources at that commit), its paths
-// and the built-in moves rule against its parent, then each kind's range
-// commands once over the range. The commit commits.since names, and its
+// made with the hooks bypassed still fails the build: each commit's
+// message (against the footers' sources at that commit), its paths
+// and the built-in moves rule against its parent, a merge commit's by its
+// own changes alone (bug 30), then each kind's range commands once over the
+// range. The commit commits.since names, and its
 // ancestors, are left out, and the range checks start there: a history
 // written before the rules (a template's squashed first commit, a project
 // adopting itos) is not judged by them. A footer's own since does the same
@@ -59,16 +60,32 @@ type verifier struct {
 
 // commit is one commit: its message at that commit, then its paths and its
 // moves, one rejection. A commit whose message fails is not judged further,
-// and a failing one is named under its report.
+// and a failing one is named under its report. A merge commit is judged by
+// its own changes (git.OwnPaths, bug 30): one with none passes whatever its
+// message says, as the commits that brought its changes were judged, and
+// one with some is judged by them, as its first line's type.
 func (v *verifier) commit(sha string) (verified, error) {
 	text, err := git.Read("log", "-1", "--format=%B", sha)
 	if err != nil {
 		return verified{}, err
 	}
 	header, _, _ := strings.Cut(text, "\n")
-	files, err := git.CommitPaths(sha)
+	parents, err := git.Parents(sha)
 	if err != nil {
 		return verified{}, err
+	}
+	var files []string
+	merge := len(parents) > 1
+	if merge {
+		files, err = git.OwnPaths(sha)
+	} else {
+		files, err = git.CommitPaths(sha)
+	}
+	if err != nil {
+		return verified{}, err
+	}
+	if merge && len(files) == 0 {
+		return verified{SHA: sha, Header: header, OK: true}, nil
 	}
 	reading := message.Reading{At: sha, Made: true, Warn: v.o.Stderr}
 	if v.cfg.Stealth {
@@ -82,7 +99,11 @@ func (v *verifier) commit(sha string) (verified, error) {
 	}
 	ok := code == 0
 	if ok {
-		if ok, err = v.holds(message.Type(text), files, sha); err != nil {
+		judged := judged{typ: message.Type(text), files: files, after: sha, merge: merge}
+		if merge {
+			judged.parent = parents[0]
+		}
+		if ok, err = v.holds(judged); err != nil {
 			return verified{}, err
 		}
 	}
@@ -92,19 +113,35 @@ func (v *verifier) commit(sha string) (verified, error) {
 	return verified{SHA: sha, Header: header, OK: ok}, nil
 }
 
+// judged is a commit as its paths and moves are judged: its type, the paths
+// it changes (a merge's own), the commit, and for a merge its first parent.
+type judged struct {
+	typ           string
+	files         []string
+	after, parent string
+	merge         bool
+}
+
 // holds is a commit's paths against its type's rules and its feature files
-// against its parent's by the moves rule, the problems of both one
-// rejection.
-func (v *verifier) holds(typ string, files []string, sha string) (bool, error) {
+// against its parent's by the moves rule, a merge's by its own changes, the
+// problems of both one rejection, after a merge's with no type (untypedMerge).
+func (v *verifier) holds(c judged) (bool, error) {
 	rules, err := scope.Of(v.cfg)
 	if err != nil {
 		return false, err
 	}
-	found, err := rules.Issues(typ, files)
+	found := untypedMerge(v.cfg, c)
+	paths, err := rules.Issues(c.typ, c.files)
 	if err != nil {
 		return false, err
 	}
-	moved, err := v.moves.Commit(sha, typ)
+	found = append(found, paths...)
+	var moved []out.Problem
+	if c.merge {
+		moved, err = v.moves.Merge(c.typ, c.parent, c.after, c.files)
+	} else {
+		moved, err = v.moves.Commit(c.after, c.typ)
+	}
 	if err != nil {
 		return false, err
 	}
@@ -115,7 +152,27 @@ func (v *verifier) holds(typ string, files []string, sha string) (bool, error) {
 	return len(found) == 0, nil
 }
 
-// verifyRange is `verify <from> <to>`: 0 when every non-merge commit of the
+// untypedMerge is a merge's problem when its first line has no type of the
+// commit types (bug 30): judged by its own changes, a merge with some is
+// judged as its type, and with none the rules would not judge them at all.
+// Nothing for any other commit, whose type is the header lint's to refuse.
+func untypedMerge(cfg *config.Loaded, c judged) []out.Problem {
+	if !c.merge || message.Typed(cfg, c.typ) {
+		return nil
+	}
+	paths := strings.Join(c.files, ", ")
+	if len(c.files) > 3 {
+		paths = fmt.Sprintf("%s and %d more", strings.Join(c.files[:3], ", "), len(c.files)-3)
+	}
+	return []out.Problem{{
+		Rule: "merge-type",
+		Message: fmt.Sprintf("a merge commit with changes of its own (%s) needs one of the commit types in its first line",
+			paths),
+		Fix: "start the merge's first line with the type of its own changes, as in `chore: merge …`, or leave them to a commit of their own",
+	}}
+}
+
+// verifyRange is `verify <from> <to>`: 0 when every commit of the
 // range passes and its range checks hold, else 1; 2 when commits.since is no
 // commit here. from may be empty or all zeros (a new branch): every commit up
 // to to; or git.Unpushed, the commits of to on no remote branch, which
@@ -200,7 +257,7 @@ func (v *verifier) over(from, to string) (verifyRun, error) {
 	if run.since != "" {
 		fmt.Fprintf(v.log, "Not checked: %s (commits.since) and its ancestors\n", short(run.since))
 	}
-	commits, err := git.Lines(append([]string{"rev-list", "--no-merges", "--reverse"}, v.cfg.RangeArgs(from, to)...)...)
+	commits, err := git.Lines(append([]string{"rev-list", "--reverse"}, v.cfg.RangeArgs(from, to)...)...)
 	if err != nil {
 		return run, err
 	}

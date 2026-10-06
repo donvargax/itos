@@ -36,9 +36,9 @@ func Of(cfg *config.Loaded) (*Rules, error) {
 }
 
 // Ruled is whether the type has path rules, even empty ones. One without
-// (a merge, a revert, a type the config does not know) is the header lint's
-// business, so the commit-msg hook runs neither the paths nor the staged
-// range checks for it.
+// (a type the config does not know, a merge's "Merge …") is the header
+// lint's business, so the commit-msg hook runs neither the paths nor the
+// staged range checks for it.
 func (r *Rules) Ruled(typ string) bool {
 	_, ok := r.scopes.Get(typ)
 	return ok

@@ -1,7 +1,9 @@
 package cli
 
 import (
+	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v5/internal/git"
@@ -100,5 +102,52 @@ func TestStagesDecisions(t *testing.T) {
 		if got := stagesData([]string{staged}); got != want {
 			t.Errorf("stagesData(%q) = %v", staged, got)
 		}
+	}
+}
+
+// The hook judges a merge being made as verify judges it made (bug 30): by
+// its own changes, none passing it whatever its message, and some judging it
+// as its first line's type, refused when that is none of the commit types.
+func TestMergeHook(t *testing.T) {
+	dir, _ := notesRepo(t)
+	as := []string{"-c", "user.name=t", "-c", "user.email=t@t"}
+	git := func(args ...string) { gitIn(t, append(as, args...)...) }
+	writeFile(t, "itos.yaml", "version: 1\ncommits:\n  types: [docs, chore]\n  scopes:\n    docs: { only: [\"**/*.md\"] }\n")
+	writeFile(t, "a.md", "a\n")
+	git("add", "itos.yaml", "a.md")
+	git("commit", "-q", "-m", "docs: start the rules")
+	git("checkout", "-q", "-b", "topic")
+	writeFile(t, "topic.md", "topic\n")
+	git("add", "topic.md")
+	git("commit", "-q", "-m", "docs: add the topic")
+	git("checkout", "-q", "-")
+	writeFile(t, "main.md", "main\n")
+	git("add", "main.md")
+	git("commit", "-q", "-m", "docs: add the main line")
+	git("merge", "-q", "--no-ff", "--no-commit", "topic")
+	msg := filepath.Join(dir, ".git", "bug-30-msg")
+	hook := func(message string) (int, string) {
+		t.Helper()
+		writeFile(t, msg, message)
+		code, stdout, stderr := run("hook", "commit-msg", msg)
+		return code, stdout + stderr
+	}
+	if code, out := hook("Merge branch 'topic'\n"); code != 0 {
+		t.Errorf("a merge with no change of its own: exit %d\n%s", code, out)
+	}
+	if code, out := hook("update things\n"); code != 0 {
+		t.Errorf("a merge with no change of its own and a header with no type: exit %d\n%s", code, out)
+	}
+	writeFile(t, "src.js", "src\n")
+	git("add", "src.js")
+	if code, out := hook("Merge branch 'topic'\n"); code != 1 || !strings.Contains(out, "a merge commit with changes of its own (src.js)") {
+		t.Errorf("a merge with a change of its own and no type: exit %d\n%s", code, out)
+	}
+	if code, out := hook("docs: merge the topic\n"); code != 1 || !strings.Contains(out, "docs commits may not touch src.js") ||
+		strings.Contains(out, "topic.md") {
+		t.Errorf("a docs merge with a change of its own: exit %d\n%s", code, out)
+	}
+	if code, out := hook("chore: merge the topic\n"); code != 0 {
+		t.Errorf("a chore merge with a change of its own: exit %d\n%s", code, out)
 	}
 }

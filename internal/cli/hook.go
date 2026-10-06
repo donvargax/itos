@@ -77,7 +77,16 @@ func hookCommitMsg(file string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if code, err := stagedRule(cfg, text, base, o); code != 0 || err != nil {
+	merge, err := stagedMerge()
+	if err != nil {
+		return 0, err
+	}
+	// A merge with no change of its own passes whatever its message says
+	// (bug 30): what it brings was judged in the commits that made it.
+	if merge != nil && len(merge.files) == 0 {
+		return 0, nil
+	}
+	if code, err := stagedRule(cfg, text, base, merge, o); code != 0 || err != nil {
 		return code, err
 	}
 	reading := message.Reading{At: os.Getenv("ITOS_AT"), Warn: o.Stderr}
@@ -94,6 +103,35 @@ func hookCommitMsg(file string, o Out) (int, error) {
 		return code, err
 	}
 	return tasksRule(cfg, footers, o)
+}
+
+// stagedMerge is the commit being made when it is a merge, as verify will
+// judge it once made (bug 30): its own changes (git.StagedOwnPaths) and its
+// first parent; nil when it is not a merge. Its parents are HEAD and the
+// commits a merge in progress brings (MERGE_HEAD), with which git refuses an
+// amend, or for an amend HEAD's own.
+func stagedMerge() (*judged, error) {
+	var parents []string
+	if heads := git.MergeHeads(); len(heads) > 0 {
+		head, err := git.Read("rev-parse", "--verify", "HEAD")
+		if err != nil {
+			return nil, err
+		}
+		parents = append([]string{strings.TrimSpace(head)}, heads...)
+	} else if amending() {
+		var err error
+		if parents, err = git.Parents("HEAD"); err != nil {
+			return nil, err
+		}
+	}
+	if len(parents) < 2 {
+		return nil, nil
+	}
+	own, err := git.StagedOwnPaths(parents)
+	if err != nil {
+		return nil, err
+	}
+	return &judged{files: own, after: "index", parent: parents[0], merge: true}, nil
 }
 
 // handedFooters are the footers a commit being made under a stealth config
@@ -268,20 +306,30 @@ func stagedCheckIssues(cfg *config.Loaded, c config.RangeCheck, typ string) []ou
 // message's type against the staged paths, then the kinds' staged range
 // commands that apply to the type, then the built-in moves rule, HEAD
 // against the index. The paths and the moves rule judge an amend against
-// base, HEAD's parent (judgedBase). The paths and the staged commands are
-// nothing for a type with no path rule (merges, reverts and unknown types
-// are the header lint's); the moves rule judges the types it says it
-// judges. 0 when they hold, else the rejection and 1.
-func stagedRule(cfg *config.Loaded, text, base string, o Out) (int, error) {
+// base, HEAD's parent (judgedBase), and a merge (merge not nil) by its own
+// changes against its first parent, as verify does, refusing one whose type
+// is none of the commit types (untypedMerge). The paths and the staged
+// commands are nothing for a type with no path rule (unknown types are the
+// header lint's); the moves rule judges the types it says it judges. The
+// type is the one the message is judged as (message.Type: a revert git wrote
+// is a revert, a fixup! commit the type of the header it names). 0 when they
+// hold, else the rejection and 1.
+func stagedRule(cfg *config.Loaded, text, base string, merge *judged, o Out) (int, error) {
 	typ := message.Type(text)
 	rules, err := scope.Of(cfg)
 	if err != nil {
 		return 0, err
 	}
 	found := []out.Problem{}
+	if merge != nil {
+		merge.typ = typ
+		found = append(found, untypedMerge(cfg, *merge)...)
+	}
 	if rules.Ruled(typ) {
-		staged, err := stagedFiles(base)
-		if err != nil {
+		var staged []string
+		if merge != nil {
+			staged = merge.files
+		} else if staged, err = stagedFiles(base); err != nil {
 			return 0, err
 		}
 		paths, err := rules.Issues(typ, staged)
@@ -301,7 +349,12 @@ func stagedRule(cfg *config.Loaded, text, base string, o Out) (int, error) {
 	if base != "" {
 		before = base
 	}
-	moved, err := tests.NewMoves(cfg).Between(typ, before, "index")
+	var moved []out.Problem
+	if merge != nil {
+		moved, err = tests.NewMoves(cfg).Merge(typ, merge.parent, "index", merge.files)
+	} else {
+		moved, err = tests.NewMoves(cfg).Between(typ, before, "index")
+	}
 	if err != nil {
 		return 0, err
 	}

@@ -16,7 +16,8 @@ package tests
 // One judgement, Moves.Between, and its callers: the commit-msg hook judges
 // HEAD against the index, or for an amend HEAD's parent against it, verify
 // each commit of its range against its parent (Commit), and `itos tests
-// moves <kind>` HEAD against the index by hand (Index).
+// moves <kind>` HEAD against the index by hand (Index). A merge commit, in
+// the hook or in verify, is judged by its own changes alone (Merge).
 
 import (
 	"regexp"
@@ -196,15 +197,7 @@ func (m *Moves) featureSet(name, tree string) (*FeatureSet, error) {
 	if set, ok := m.sets[key]; ok {
 		return set, nil
 	}
-	k, err := KindOf(m.cfg, name)
-	if err != nil {
-		return nil, err
-	}
-	o, err := gherkinOptions(m.cfg, name, k)
-	if err != nil {
-		return nil, err
-	}
-	texts, err := featureTexts(tree, o.Root)
+	texts, o, err := m.featureTexts(name, tree)
 	if err != nil {
 		return nil, err
 	}
@@ -214,6 +207,47 @@ func (m *Moves) featureSet(name, tree string) (*FeatureSet, error) {
 	}
 	m.sets[key] = set
 	return set, nil
+}
+
+// featureTexts are the kind's feature files at a tree, path to text, and
+// the options they are read by.
+func (m *Moves) featureTexts(name, tree string) (map[string]string, Options, error) {
+	k, err := KindOf(m.cfg, name)
+	if err != nil {
+		return nil, Options{}, err
+	}
+	o, err := gherkinOptions(m.cfg, name, k)
+	if err != nil {
+		return nil, Options{}, err
+	}
+	texts, err := featureTexts(tree, o.Root)
+	return texts, o, err
+}
+
+// ownBefore is a merge's feature files before its own changes: the merge's
+// (after), with each of its own paths as its first parent has them, or
+// without it where that parent has none.
+func (m *Moves) ownBefore(name, parent, after string, own []string) (*FeatureSet, error) {
+	now, o, err := m.featureTexts(name, after)
+	if err != nil {
+		return nil, err
+	}
+	was, _, err := m.featureTexts(name, parent)
+	if err != nil {
+		return nil, err
+	}
+	texts := map[string]string{}
+	for path, text := range now {
+		texts[path] = text
+	}
+	for _, path := range own {
+		if text, ok := was[path]; ok {
+			texts[path] = text
+		} else {
+			delete(texts, path)
+		}
+	}
+	return ReadFeatures(texts, o)
 }
 
 // movesCheck is a kind's built-in moves check.
@@ -237,8 +271,9 @@ func (m *Moves) checks() []movesCheck {
 
 // judges is whether a check judges a commit of this type: one except_types
 // does not name and, when the config lists the commit types, one of them, so
-// a merge's or git's own revert's message ("Merge …", "Revert …") is the
-// header lint's.
+// a header with no type of them is the header lint's. The type is the one
+// the message is judged as (message.Type): a revert git wrote is a revert,
+// and a fixup! commit the type of the header it names (bug 30).
 func (m *Moves) judges(c config.RangeCheck, typ string) bool {
 	types := m.cfg.Commits.Types
 	return !slices.Contains(c.ExceptTypes, typ) && (types == nil || slices.Contains(types, typ))
@@ -254,6 +289,32 @@ func (m *Moves) Between(typ, before, after string) ([]out.Problem, error) {
 			continue
 		}
 		was, err := m.featureSet(c.kind, before)
+		if err != nil {
+			return nil, err
+		}
+		now, err := m.featureSet(c.kind, after)
+		if err != nil {
+			return nil, err
+		}
+		for _, p := range MoveProblems(was, now, c.check.AllowedRenames) {
+			found = append(found, out.Problem{Rule: c.check.Name, Message: "a " + typ + " commit " + p})
+		}
+	}
+	return found, nil
+}
+
+// Merge is the moves rule for a merge commit, which is judged by its own
+// changes alone (bug 30): its feature files, after (a commit, or "index" for
+// the merge the hook judges), against the same files with its own paths as
+// its first parent has them. What its parents bring was judged in their own
+// commits, so a merge with no feature file among its own paths moves nothing.
+func (m *Moves) Merge(typ, parent, after string, own []string) ([]out.Problem, error) {
+	found := []out.Problem{}
+	for _, c := range m.checks() {
+		if !m.judges(c.check, typ) {
+			continue
+		}
+		was, err := m.ownBefore(c.kind, parent, after, own)
 		if err != nil {
 			return nil, err
 		}

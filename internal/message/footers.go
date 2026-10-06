@@ -120,14 +120,76 @@ func Texts(message, key string) []string {
 // word none alone, in lower case as written, around it only whitespace.
 func None(text string) bool { return text == "none" }
 
-// Type is a message's commit type, as the footer rules read it: the word it
-// starts with, "" when none.
+// Type is a message's commit type, as every rule judges it (the paths, the
+// footers, the moves rule): the word its header starts with, "" when none.
+// The headers git writes itself, which the header lint leaves alone as
+// commitlint does, are judged by what they stand for (bug 30): an amend!,
+// fixup! or squash! commit as the header it names, once the prefixes are
+// off (Named), and a revert's or a reapply's, Revert "…" or Reapply "…", as
+// revert.
 func Type(message string) string {
-	if m := typeWord.FindStringSubmatch(message); m != nil {
+	header := Named(message)
+	if reverting.MatchString(header) {
+		return "revert"
+	}
+	if m := typeWord.FindStringSubmatch(header); m != nil {
 		return m[1]
 	}
 	return ""
 }
+
+var (
+	// The prefixes git writes before the header a commit amends, fixes up or
+	// squashes into, as many as it took.
+	namingPrefixes = regexp.MustCompile(`^(?:(?:amend|fixup|squash)!` + value.Space + `*)+`)
+	// The header git writes for a revert, and for a revert of one.
+	reverting = regexp.MustCompile(`^[Rr](?:evert|eapply) `)
+)
+
+// Named is a message's header, less the amend!, fixup! and squash! prefixes
+// that name the header of another commit: that header, or the message's own
+// when it has none.
+func Named(message string) string {
+	header, _, _ := strings.Cut(message, "\n")
+	return replaceFirst(namingPrefixes, header)
+}
+
+// namedProblems are the problems of a message that names another commit's
+// header (amend!, fixup!, squash!): one when that header has no type of the
+// commit types, as any header without one is refused; none for a revert's,
+// judged as revert, or for a message without such a prefix, which the header
+// lint judges.
+func namedProblems(cfg *config.Loaded, message string) []out.Problem {
+	header, _, _ := strings.Cut(message, "\n")
+	prefixes := namingPrefixes.FindString(header)
+	if prefixes == "" {
+		return nil
+	}
+	named := header[len(prefixes):]
+	if reverting.MatchString(named) {
+		return nil
+	}
+	types := Types(cfg)
+	typ := ""
+	if m := headerPattern.FindStringSubmatch(named); m != nil {
+		typ = m[1]
+	}
+	if typ != "" && value.Includes(types, typ) {
+		return nil
+	}
+	prefix, _, _ := strings.Cut(prefixes, "!")
+	return []out.Problem{{
+		Rule: "named-type",
+		Message: fmt.Sprintf("%s! names the header %q, which has no type of [%s]",
+			prefix, named, strings.Join(types, ", ")),
+		Fix: fmt.Sprintf("name a header that starts with one of the commit types, as in `%s! fix: …`", prefix),
+	}}
+}
+
+// Typed is whether a type is one of the commit types: commits.types, or
+// config-conventional's own when the config lists none, as the header lint
+// takes them.
+func Typed(cfg *config.Loaded, typ string) bool { return value.Includes(Types(cfg), typ) }
 
 func applies(types *config.Types, typ string) bool {
 	if types == nil {
@@ -364,13 +426,15 @@ func checkText(cfg *config.Loaded, key string, f config.Footer, typ, message str
 }
 
 // FooterProblems are the footer rules' problems with a message, footer by
-// footer in the config's order, each with its rule (`task-footer`) and fix.
+// footer in the config's order, each with its rule (`task-footer`) and fix,
+// after the one of a header named by amend!, fixup! or squash! that has no
+// type (namedProblems), the header lint's to leave alone and itos's to judge.
 // Under a stealth config the footers of IDs are read from r.Note, and one
 // typed into the message is its footer's problem; a footer of free text is
 // the message's in either mode.
 func FooterProblems(cfg *config.Loaded, message string, r Reading) ([]out.Problem, error) {
 	typ := Type(message)
-	found := []out.Problem{}
+	found := append([]out.Problem{}, namedProblems(cfg, message)...)
 	for _, key := range cfg.Commits.Footers.Keys {
 		why := ""
 		footers := message

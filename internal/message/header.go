@@ -372,10 +372,7 @@ func HeaderProblems(cfg *config.Loaded, raw, commentChar string) ([]Leveled, err
 	} else if p = parse(raw, commentChar); p.header == nil && p.body == nil && p.footer == nil {
 		return []Leveled{}, nil
 	}
-	types := cfg.Commits.Types
-	if types == nil {
-		types = conventionalTypes
-	}
+	types := Types(cfg)
 	var errors, warnings []Leveled
 	for _, r := range rules {
 		why := r.judge(p, types)
@@ -393,6 +390,15 @@ func HeaderProblems(cfg *config.Loaded, raw, commentChar string) ([]Leveled, err
 		}
 	}
 	return append(append([]Leveled{}, errors...), warnings...), nil
+}
+
+// Types are the commit types type-enum takes: commits.types, or
+// config-conventional's own when the config lists none.
+func Types(cfg *config.Loaded) []string {
+	if cfg.Commits.Types == nil {
+		return conventionalTypes
+	}
+	return cfg.Commits.Types
 }
 
 // CommentChar is git's comment character in this repository

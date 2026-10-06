@@ -530,11 +530,14 @@ looked at; git's own code when the fetch or the push fails.
 	"verify": `Usage: itos verify <from> <to>
        itos verify
 
-Re-checks every non-merge commit of the range (from may be empty or all zeros:
-every commit up to <to>): its message, with the footers read at that commit,
-its paths, and, by a kind's built-in moves rule, its feature files against its
+Re-checks every commit of the range (from may be empty or all zeros: every
+commit up to <to>): its message, with the footers read at that commit, its
+paths, and, by a kind's built-in moves rule, its feature files against its
 parent's, unless the rule's except_types names its type; then each kind's
-range command. The commit commits.since names and its ancestors are left out,
+range command. A merge commit is judged by its own changes, the paths of its
+dense combined diff (git diff-tree --cc): with none it passes whatever its
+message, with some it is judged as its first line's type, and refused when
+that is none of the commit types. The commit commits.since names and its ancestors are left out,
 and the range commands start there; a footer's own since leaves that commit
 and its ancestors out of the footer's required_for. Under a stealth config a
 commit's footers of IDs are read from its note in refs/notes/itos, and with
