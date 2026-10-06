@@ -406,6 +406,13 @@ func initializeScenario(sc *godog.ScenarioContext) {
 
 	sc.Step(`^itos exits with code (\d+)$`, w.exitsWith)
 	sc.Step(`^its output says "([^"]*)"$`, w.outputSays)
+	// The range's start as a CI step is given it (slice 83).
+	sc.Step(`^its output says "([^"]*)" with the first commit's full SHA$`, func(text string) error {
+		if len(w.commits) == 0 {
+			return errors.New("the repository has no commit yet")
+		}
+		return w.outputSays(text + w.commits[0])
+	})
 	sc.Step(`^its output does not say "([^"]*)"$`, w.outputDoesNotSay)
 	sc.Step(`^its output names the rule "([^"]*)"$`, w.outputNamesRule)
 	sc.Step(`^its output is a JSON report that is not valid$`, w.invalidJSONReport)
