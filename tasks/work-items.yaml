@@ -4711,3 +4711,14 @@ items:
       Found by slice 85's agent (2026-10-05): internal/cli's TestRollbackGitCannotStart took about
       548 seconds locally, which the pre-push hook's unit run waits on whenever internal/cli is
       reached.
+
+  - id: bug-45
+    title: itos's own git calls pass over any itos shim, not only itself
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified as @ID-PUSH-07 in features/push.feature.
+    refs: [features/push.feature, internal/git/bin.go]
