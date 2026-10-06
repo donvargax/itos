@@ -4871,3 +4871,13 @@ items:
     kind: task
     why: >
       Specified in tasks/phase-1.yaml (decision 35).
+
+  - id: T-101
+    title: The module path is github.com/donvargax/itos/v6
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: [T-100]
+    kind: task
+    why: >
+      Specified in tasks/phase-1.yaml; done by slice-86's agent in its push.
