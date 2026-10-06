@@ -4736,3 +4736,20 @@ items:
       gave git.IsItos the build information check that tells such a git; the shim commands could use
       it to replace or remove one.
     refs: [internal/cli/gitshim.go]
+
+  - id: p1-untyped-ignored-headers
+    title: Judge a one-parent commit whose lint-ignored header names no type
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Bug 30 judged reverts, fixup!, squash! and amend! commits and merge commits by what they stand
+      for. A commit with one parent whose header the lint leaves alone, as commitlint does, but that
+      names no type (a Merge … header, Merged PR, Automatic merge, a bare version such as v1.2.3)
+      still reads as a word outside commits.types, so no path rule, required footer or moves rule
+      applies to it, in the hook or in verify. Refusing it, as an untyped merge with changes of its
+      own is refused, would close the gap; it changes the conformance cases moves.yaml 'a message
+      whose type is not one of commits.types is the header lint's, as a merge's is' and
+      messages.yaml's version case, so it is the user's call.
