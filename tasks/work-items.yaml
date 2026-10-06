@@ -5092,3 +5092,16 @@ items:
         features/cli.feature,
         integrations/claude-code/hooks/guard.sh,
       ]
+
+  - id: p1-drop-compat-code
+    title: No code keeps an old interface working
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-89]
+    kind: idea
+    why: >
+      The user's call (2026-10-06, decision 36): after v6 lands, find and remove code that keeps an
+      old interface working, such as the launcher's version gate for pins older than the guard
+      (GuardSince), fallbacks for removed keys or commands, and anything a feature flag keeps for
+      backward compatibility. Breaking changes ship together in a major instead.
