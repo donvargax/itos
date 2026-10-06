@@ -135,6 +135,13 @@ install`, because a second install can load two copies of a tool;
   (T-087): a scenario runs the itos under test only where a step asks
   (`itosOnPath`). A task's check that should prove a fix can pass before it
   too (T-087's did): ask the agent how it showed the change matters.
+- **A feat that rewords a config error is a breaking change** as the gates
+  stand: `previous-release` judges a config error's words (T-095), and a feat
+  may not change an old case (slice 82, q-15). Check a feat's spec for a
+  refusal it rewords before handing it out.
+- **Agents write their own wait loops** unless told not to, and one built on
+  `pgrep` matched its own command line and never ended (bug 35). The brief
+  says: run `itos push` in the background and watch it with a Monitor.
 - **The rtk hook rewrites `git pull`** and could fail with "Cannot rebase onto
   multiple branches". `itos push` runs git itself, which is one more reason to
   use it.
