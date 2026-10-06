@@ -474,7 +474,7 @@ each, and holds it since the TypeScript left (T-062).
   (`commitMoveIssues`, in that commit's rejection, so it counts against the
   commit), and `itos tests moves <kind>` HEAD against the index by hand. Both
   hook and verify skip a type `except_types` names, and one that is not in
-  `commits.types` when the config lists them (a merge's message); the
+  `commits.types` when the config lists them (a merge's "Merge …"); the
   command ranges wait for the type to have a path rule, the built-in does
   not. A tree's feature set is read once per run. `config check` refuses
   `builtin` beside a command, on a kind whose adapter is not `gherkin`, and
@@ -1340,12 +1340,13 @@ run` is it over the smoke IDs, run through the config's shell with
 type)` for verify (the commit against `git.Parent`, the empty tree for a
   root commit, nothing read when no check judges the type), `Between` for
   the commit-msg hook (HEAD, or for an amend HEAD's parent, against the
-  index) and `Index(kind)` for `tests moves`. The hook's `judgedBase` is
+  index), `Merge` for a merge commit in both (bug 30, below) and
+  `Index(kind)` for `tests moves`. The hook's `judgedBase` is
   that parent (`git.Parent("HEAD")`) when `amending` takes the commit for an
   amend, else HEAD, and the staged-data rule and the path rules read
   `stagedFiles(base)` against it too: an amend is judged as the commit it
   makes, so one that only rewords a feat still has the feat's paths (bug 6). `verify` is `internal/cli/verify.go`: the range's commits
-  from `git rev-list --no-merges --reverse` over `cfg.RangeArgs(from, to)`
+  from `git rev-list --reverse` over `cfg.RangeArgs(from, to)`
   (commits.since and its ancestors left out), each one's message through
   `message.Check` at that commit, the delegate's report on stdout (stderr
   under `--json`), then, only when the message holds, its paths
@@ -1356,6 +1357,34 @@ type)` for verify (the commit against `git.Parent`, the empty tree for a
   `verifyRange` adds only the config's checks, `--json` and the exit code,
   and the pre-push hook calls it on each pushed range. The range
   helpers sit beside `SinceIssue` in `internal/config/since.go`.
+- **The headers git writes, and merges** (bug 30). The header lint leaves
+  git's own headers alone, as commitlint does (`ignore.go`), but every
+  other rule judges them by what they stand for, through `message.Type`,
+  the one reading of a commit's type the paths, the footers, the moves rule
+  and `itos commit`'s footer flags share: `Revert "…"` and `Reapply "…"`
+  are `revert`, and an `amend!`, `fixup!` or `squash!` commit is the type of
+  the header it names once the prefixes are off (`message.Named`), a named
+  header with no type of the commit types refused under `named-type`
+  (`namedProblems`, run first among the footer rules, so every lint path
+  has it). A merge commit is judged by its own changes, `git.OwnPaths`:
+  the paths of its dense combined diff (`git diff-tree --cc`, what `git
+show` shows of a merge), those with a hunk whose lines in the merge are
+  no parent's there. A clean merge has none, even of a file both sides
+  changed, since each hunk is one side's, and so does a conflict resolved by
+  taking a side; the paths whose whole content matches no parent (`-c`)
+  would count every file both sides touched, and a re-merge's diff
+  (`--remerge-diff`) any merge made with another strategy or option. A
+  merge with none passes whatever its message (verify counts it, the hook
+  returns before its rules); one with some is judged as its first line's
+  type, its paths its own and its moves its own paths against its first
+  parent (`Moves.Merge`), and refused under `merge-type` when that type is
+  none of the commit types (`untypedMerge`). The hook reads the merge being
+  made the same way: its parents are HEAD and `MERGE_HEAD`'s commits (or,
+  for an amend, HEAD's), and `git.StagedOwnPaths` commits the index's tree
+  on them, an object nothing keeps, to read its combined diff. Other headers
+  the lint leaves alone that name no type (a "Merge …" header on a commit
+  with one parent, a bare version) keep the word they start with, which no
+  rule judges.
 - **CI's plan** is `internal/plan` (`ci-plan.ts`, `ci-plan-json.ts` and the
   plan's half of `ci-scope.ts`), with `ci plan` and `ci scope` in
   `internal/cli/ci.go`. A `Plan` is a value the driver walks, not text:
