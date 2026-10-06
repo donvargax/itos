@@ -54,7 +54,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-81
   - slice-82
   - p1-nightly-late-done-checks
   - p1-work-show-gaps
