@@ -4655,3 +4655,15 @@ items:
       notes a section of gate changes. Beyond that, if ever cheap: commits touching the gates signed
       by a hardware key that needs a touch, checked by a GitHub ruleset or a workflow outside the
       repository. Today the coordinator's review of each agent's commits is the layer.
+
+  - id: p3-marketplace-description
+    title: The marketplace's plugin description says what the plugin does now
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-097's agent (2026-10-05): .claude-plugin/marketplace.json still says the plugin
+      says how to find work, commit and push through itos, out of date since T-092 dropped the
+      skill, and unlike plugin.json.
