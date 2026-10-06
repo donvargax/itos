@@ -201,6 +201,11 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.commitOnTop(message + "\n\n" + key + ": " + task + "\n")
 	})
 	sc.Step(`^the commit "([^"]*)" touching only "([^"]*)" on top of it$`, w.commitTouchingOnly)
+	sc.Step(`^"([^"]*)" is committed$`, w.fileCommitted)
+	sc.Step(`^"([^"]*)" is in the first commit$`, w.fileInFirstCommit)
+	sc.Step(`^"([^"]*)" is staged renamed to "([^"]*)"$`, w.stageRename)
+	sc.Step(`^"([^"]*)" is staged as a symlink$`, w.stageSymlink)
+	sc.Step(`^the commit "([^"]*)" renaming "([^"]*)" to "([^"]*)" on top of it$`, w.commitRenaming)
 	sc.Step(`^a merge commit "([^"]*)" on top of it, with a change of its own to "([^"]*)"$`, w.mergeCommit)
 	sc.Step(`^a merge commit "([^"]*)" on top of it, with no change of its own$`, func(message string) error {
 		return w.mergeCommit(message, "")
@@ -1047,6 +1052,94 @@ func (w *world) commitTouchingOnly(message, path string) error {
 		return err
 	}
 	if err := w.git("commit", "-q", "--no-verify", "-m", message, "--", path); err != nil {
+		return err
+	}
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	w.commits = append(w.commits, sha)
+	return nil
+}
+
+// The text a scenario's file is committed with: enough lines that git's
+// rename detection pairs it with itself moved.
+func fileText(path string) string {
+	return "The file " + path + ".\nIts second line.\nIts third line.\n"
+}
+
+// The path, new, committed alone on top of HEAD, whatever else is staged.
+func (w *world) fileCommitted(path string) error {
+	if err := w.write(path, fileText(path)); err != nil {
+		return err
+	}
+	if err := w.git("add", "--", path); err != nil {
+		return err
+	}
+	if err := w.git("commit", "-q", "--no-verify", "-m", "chore: add "+path, "--", path); err != nil {
+		return err
+	}
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	w.commits = append(w.commits, sha)
+	return nil
+}
+
+// The path, new, added to the first commit itself, which must still be HEAD:
+// the commits after the first are then only those the scenario makes next.
+func (w *world) fileInFirstCommit(path string) error {
+	if len(w.commits) != 1 {
+		return fmt.Errorf("the repository has %d commits, not just the first", len(w.commits))
+	}
+	if err := w.write(path, fileText(path)); err != nil {
+		return err
+	}
+	if err := w.git("add", "--", path); err != nil {
+		return err
+	}
+	if err := w.git("commit", "-q", "--no-verify", "--amend", "--no-edit", "--", path); err != nil {
+		return err
+	}
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	w.commits[0] = sha
+	return nil
+}
+
+// git mv of the path to its new name, staged: git's rename detection pairs
+// the two, its content being unchanged.
+func (w *world) stageRename(from, to string) error {
+	if err := os.MkdirAll(filepath.Dir(filepath.Join(w.dir, to)), 0o755); err != nil {
+		return err
+	}
+	return w.git("mv", "--", from, to)
+}
+
+// The path made a symlink in the index alone (a type change, git's T), so
+// that no filesystem link is needed where there are none, as on Windows.
+func (w *world) stageSymlink(path string) error {
+	file := filepath.Join(w.support, "symlink-target")
+	if err := os.WriteFile(file, []byte("elsewhere.js"), 0o644); err != nil {
+		return err
+	}
+	blob, err := w.gitOutput("hash-object", "-w", "--no-filters", file)
+	if err != nil {
+		return err
+	}
+	return w.git("update-index", "--cacheinfo", "120000,"+strings.TrimSpace(blob)+","+path)
+}
+
+// One commit on top of HEAD that renames the path, unchanged, and touches
+// nothing else.
+func (w *world) commitRenaming(message, from, to string) error {
+	if err := w.stageRename(from, to); err != nil {
+		return err
+	}
+	if err := w.git("commit", "-q", "--no-verify", "-m", message, "--", from, to); err != nil {
 		return err
 	}
 	sha, err := w.head()
