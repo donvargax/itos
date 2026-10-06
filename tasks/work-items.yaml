@@ -5050,3 +5050,16 @@ items:
       permanent one only stops being needed when models stop making the mistake, and nothing shows
       that. A suspended rule is printed nowhere; a sighting of its mistake restores it; one that
       stays suspended through a model release is deleted. The vanilla baseline, one rule at a time.
+
+  - id: p1-guide-as-rule-data
+    title: itos's built-in guide and brief template are rule data, versioned with itos, with each project's rules layered on top
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-agent-rules-as-data]
+    kind: idea
+    why: >
+      The user's call (2026-10-06): the guide itos go prints and the brief template ship inside itos
+      to every project and grow as the project lessons did. Once project rules are data
+      (p1-agent-rules-as-data) and prove themselves, the built-in text becomes rules too, each with
+      its exit and dates, governed in this repository.
