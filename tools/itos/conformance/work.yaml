@@ -887,7 +887,7 @@ cases:
     argv: [work, list, --as, a]
     exit: 2
     stderr: |
-      itos: work list takes only --all: --as a (itos --help)
+      itos: work list does not take --as; it takes --all (itos --help)
   - name: work list reads a stealth config's registry in the git folder
     argv: [work, list]
     git: []
@@ -1023,7 +1023,7 @@ cases:
     argv: [work, take, free, --kind, slice]
     exit: 2
     stderr: |
-      itos: work take does not take --kind (itos --help)
+      itos: work take does not take --kind; it takes --as (itos --help)
   - name: work promote makes an idea a slice, its why led by its old id, and renames it where items depend on it
     argv: [work, promote, p1-thing, --as, slice-7, --kind, slice, --json]
     git: []
@@ -1317,7 +1317,7 @@ cases:
     argv: [work, edit, ready, --owner, b]
     exit: 2
     stderr: |
-      itos: work edit does not take --owner (itos --help)
+      itos: work edit does not take --owner; it takes --title, --depends-on, --refs or --note (itos --help)
   - name: work show prints the item, what depends on it, its scenarios and its commits, oldest first
     argv: [work, show, x]
     git:
@@ -1449,12 +1449,12 @@ cases:
     argv: [work, --as, a, --all]
     exit: 2
     stderr: |
-      itos: work does not take --all: it takes list, show, take, promote, done, add, edit, queue, drop or check, else --as <handle> (itos --help)
+      itos: work does not take --all; it takes --as, else a subcommand: add, check, done, drop, edit, list, promote, queue, show or take (itos --help)
   - name: work --as needs a handle
     argv: [work, --as]
     exit: 2
     stderr: |
-      itos: work --as needs a handle (itos --help)
+      itos: work --as needs a value (itos --help)
   - name: work proposes in the queue's order, the unqueued after
     argv: [work, --as, a]
     files:

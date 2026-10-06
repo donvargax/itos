@@ -28,6 +28,10 @@
   scenarios:
     - id: "@ID-CI-01"
       why: ci run logs a merged check under the kind it ran in, the file's point
+- file: cli.feature
+  scenarios:
+    - id: "@ID-CLI-01"
+      why: an unknown flag refused with exit 2 by the command's spec, the file's point in one call
 - file: commit-command.feature
   scenarios:
     - id: "@ID-COMMITCMD-01"

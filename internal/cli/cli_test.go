@@ -44,7 +44,7 @@ func TestUsageErrors(t *testing.T) {
 		"tests":               "unknown command: tests",
 		"hook commit-msg":     "hook commit-msg needs <file>",
 		"hooks":               "unknown command: hooks",
-		"ci range --head":     "ci range needs --head <sha>",
+		"ci range --head":     "ci range --head needs a value",
 		"ci":                  "unknown command: ci",
 	} {
 		code, _, stderr := run(strings.Fields(args)...)

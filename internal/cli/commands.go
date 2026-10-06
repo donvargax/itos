@@ -165,6 +165,9 @@ func commit(args []string, o Out) (int, error) {
 			file = "-"
 		}
 		at, _ := flagValue(rest, "--at")
+		if err := commitRefs("commit check-message", at); err != nil {
+			return 0, err
+		}
 		return checkMessage(typed(file), at, o)
 	case "check-paths":
 		typ, ok := flagValue(rest, "--type")
@@ -181,6 +184,9 @@ func commit(args []string, o Out) (int, error) {
 		if len(footers) < 3 {
 			return 0, usage("commit footers needs <name> <from> <to>")
 		}
+		if err := commitRefs("commit footers", footers[1], footers[2]); err != nil {
+			return 0, err
+		}
 		return listFooters(footers[0], footers[1], footers[2], o)
 	}
 	return 0, usage("unknown command: commit %s", sub)
@@ -192,6 +198,9 @@ func verify(args []string, o Out) (int, error) {
 	}
 	if len(args) < 2 {
 		return 0, usage("verify needs <from> <to>")
+	}
+	if err := commitRefs("verify", args[0], args[1]); err != nil {
+		return 0, err
 	}
 	return verifyRange(args[0], args[1], o)
 }
@@ -205,6 +214,11 @@ func testsCommand(args []string, o Out) (int, error) {
 			return 0, usage("tests list needs <kind>")
 		}
 		at, _ := flagValue(rest, "--at")
+		if at != "worktree" && at != "index" {
+			if err := commitRefs("tests list", at); err != nil {
+				return 0, err
+			}
+		}
 		return testsList(name, at, o)
 	case "moves":
 		name, ok := first(positional(rest))
@@ -271,12 +285,21 @@ func ciCommand(args []string, o Out) (int, error) {
 			return 0, usage("ci plan needs <from> <to>, --nightly or --whole")
 		}
 		dataAt, _ := flagValue(rest, "--data-at")
+		if err := rangeRefs("ci plan", from, to, dataAt); err != nil {
+			return 0, err
+		}
 		return ciPlan(from, to, nightly, dataAt, o)
 	case "run":
+		if err := rangeRefs("ci run", from, to); err != nil {
+			return 0, err
+		}
 		return ciRun(from, to, nightly, o)
 	case "scope":
 		if to == "" {
 			return 0, usage("ci scope needs <from> <to>")
+		}
+		if err := rangeRefs("ci scope", from, to); err != nil {
+			return 0, err
 		}
 		return ciScope(from, to, o)
 	case "watch":

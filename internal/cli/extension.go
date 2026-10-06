@@ -65,6 +65,7 @@ func commandAt(args []string) int {
 			return -1
 		case a == "--config" || a == "--root":
 			i++
+		case strings.HasPrefix(a, "--config=") || strings.HasPrefix(a, "--root="):
 		case switches[a] == nil:
 			return i
 		}

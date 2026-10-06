@@ -1,6 +1,7 @@
 // Package cli is itos's one command line, tools/itos/main.ts ported: the
 // global flags wherever they stand, the command table with every command's
-// argument errors, the extensions a command it does not have runs from the
+// argument errors, each command's flags read by its spec (spec.go), the
+// extensions a command it does not have runs from the
 // PATH (extension.go), and how a failure is reported and which exit code it
 // takes (as itos --help lists them): 0 success, 1 a policy failure, 2 a usage or config
 // error, 3 a missing environment, 75 a failure that may pass when run again, 70
@@ -49,7 +50,9 @@ var switches = map[string]func(*Globals){
 }
 
 // ParseGlobals takes the global flags out of the arguments, wherever they
-// stand up to a "--", after which every argument is the command's.
+// stand up to a "--", after which every argument is the command's. It reads
+// them as they come, judging nothing: a built-in command's line is judged by
+// its spec (readLine) before the command runs.
 func ParseGlobals(args []string) Globals {
 	var g Globals
 	head, tail := args, []string(nil)
@@ -62,6 +65,13 @@ func ParseGlobals(args []string) Globals {
 	for i := 0; i < len(head); i++ {
 		arg := head[i]
 		switch {
+		case strings.HasPrefix(arg, "--config=") || strings.HasPrefix(arg, "--root="):
+			name, value, _ := strings.Cut(arg, "=")
+			if name == "--config" {
+				g.Config = value
+			} else {
+				g.Root = value
+			}
 		case arg == "--config" || arg == "--root":
 			value := ""
 			if i+1 < len(head) {
@@ -268,7 +278,11 @@ func Main(args []string, stdout, stderr io.Writer) int {
 	if !ok {
 		return failure(usage("unknown command: %s", name), o)
 	}
-	code, err := command(rest, o)
+	read, err := readLine(args)
+	if err != nil {
+		return failure(err, o)
+	}
+	code, err := command(read.Rest[1:], o)
 	if err != nil {
 		return failure(err, o)
 	}

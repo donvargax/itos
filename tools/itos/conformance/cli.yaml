@@ -25,12 +25,12 @@ cases:
     argv: [commit, -m, "chore: x", --task]
     exit: 2
     stderr: |
-      itos: commit --task needs <id> (itos --help)
+      itos: commit --task needs a value (itos --help)
   - name: commit --breaking needs a text
     argv: [commit, -m, "chore!: x", --breaking]
     exit: 2
     stderr: |
-      itos: commit --breaking needs <text> (itos --help)
+      itos: commit --breaking needs a value (itos --help)
   - name: commit --scenarios needs a footer whose source is a kind of named tests
     argv: [commit, --scenarios, "@ID-A-01", -m, "feat: x"]
     exit: 2
@@ -100,7 +100,7 @@ cases:
     argv: [pin, --force]
     exit: 2
     stderr: |
-      itos: pin takes only a <version> (--force) (itos --help)
+      itos: pin does not take --force; it takes no flag (itos --help)
   - name: pin with no release server to ask exits 75, naming it, and leaves the config as it was
     argv: [pin]
     exit: 75

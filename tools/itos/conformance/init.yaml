@@ -10,12 +10,12 @@ cases:
     argv: [init, --force]
     exit: 2
     stderr: |
-      itos: init takes only --stealth, --plugin [<scope>], --git-shim, --git-shim-dir <folder>, --no-git-shim, --agent-rules and --no-agent-rules (--force) (itos --help)
+      itos: init does not take --force; it takes --stealth, --plugin, --git-shim, --no-git-shim, --git-shim-dir, --agent-rules or --no-agent-rules (itos --help)
   - name: init's --git-shim-dir needs a folder
     argv: [init, --git-shim, --git-shim-dir]
     exit: 2
     stderr: |
-      itos: --git-shim-dir needs <folder> (itos --help)
+      itos: init --git-shim-dir needs a value (itos --help)
   - name: init takes --git-shim or --no-git-shim, not both
     argv: [init, --git-shim, --no-git-shim]
     exit: 2

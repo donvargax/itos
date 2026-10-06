@@ -142,14 +142,11 @@ cases:
     stdout: |
       ID-TWO-01  nested/two.feature  (not live)
       ID-ONE-01  one.feature  (not live)
-  - name: a tree that cannot be read has no tests
+  - name: a tree that names no commit is refused, naming it
     argv: [tests, list, scenario, --at, no-such-commit, --json]
-    exit: 0
-    json:
-      schema: 1
-      protocol: 1
-      tests: []
-      files: []
+    exit: 2
+    stderr: |
+      itos: tests list: no-such-commit is not a commit of this repository (itos --help)
   - name: a command adapter is listed as the command prints it
     argv: [tests, list, fixture, --json]
     exit: 0
