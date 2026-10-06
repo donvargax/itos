@@ -4137,15 +4137,9 @@ items:
     title: work done writes the registry it read before waiting
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). work done reads the registry, waits for task
-      checks and CI for minutes, then writes back what it read, so a registry commit made meanwhile
-      (a take, a queue change, someone else's edit pulled in) is silently reverted by its close
-      commit; two registry writers at once can both pass the uncommitted check (cli/workdone.go:84).
-      Its @bug-34 scenario is written before it is handed out.
     refs: [internal/cli/workdone.go, internal/cli/workwrite.go]
 
   - id: bug-35
