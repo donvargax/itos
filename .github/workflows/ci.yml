@@ -48,15 +48,18 @@ jobs:
       - run: vp install
       # Where the range starts, computed once for every step below: a pull
       # request's base, else the last green run on main, else empty (run
-      # everything). See `tools/bin/itos ci range --help`.
+      # everything). See `tools/bin/itos ci range --help`. Read from --json, since
+      # only machine output is itos's contract (decision 35, T-100); jq fails the
+      # step when the output has no string "from".
       - name: Range
         env:
           BASE: ${{ github.event.pull_request.base.sha }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          range=$(tools/bin/itos ci range --head "$TO" --base "$BASE")
-          echo "$range"
-          echo "$range" >> "$GITHUB_ENV"
+          out=$(tools/bin/itos ci range --json --head "$TO" --base "$BASE")
+          from=$(jq -er '.from | strings' <<<"$out")
+          echo "FROM=$from"
+          echo "FROM=$from" >> "$GITHUB_ENV"
       # The commit-msg hook's rules again, for commits made without hooks.
       - run: tools/bin/itos verify "$FROM" "$TO"
       # actionlint, for the task checks that lint the workflows: the runners
@@ -147,9 +150,9 @@ jobs:
         if: ${{ !cancelled() && steps.launcher.outcome == 'success' }}
         run: |
           command -v itos
-          out=$(itos version)
+          out=$(itos version --json)
           echo "$out"
-          grep -Eq '^itos [0-9]+\.[0-9]+\.[0-9]+' <<<"$out"
+          jq -e '.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+")' <<<"$out"
 
   # A push to main whose ci job and platform jobs are green cuts a release when its commits since
   # the last tag carry a feat, a fix or a breaking change (T-069; release.yml says how). The only
