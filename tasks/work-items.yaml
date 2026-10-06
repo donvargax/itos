@@ -5278,3 +5278,24 @@ items:
     why: >
       Specified in features/ask.feature (q-18's record).
     refs: [features/ask.feature, internal/cli]
+
+  - id: p1-followup-state
+    title: A followup thread has an editable state, the live view, over its append-only notes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-06), to try and change if it does not work. Threads grow large in a
+      months-long collaboration with many meetings, and some never close. Notes stay append-only (a
+      correction is a new note), so the record stays whole for followup doc. Each thread gets a
+      state, replaced with itos followup state <id> <text> and logged as a dated note when it
+      changes; followup show prints the state and only the notes since it was set (--all for
+      everything), and itos followup lists each open thread with its state's first line. One thread
+      per topic, not per team, lets a topic close while the collaboration goes on. follow-ups.yaml
+      gets a format number from now on: this change is additive and needs no migration, and a later
+      change that is not migrates the file once when itos opens it, keeping a backup, with no reader
+      kept for the old format. Open risk: whether agents keep the state current. followup note says
+      on stderr when the state is older than the newest notes; watch how it goes, and change the
+      design if it does not hold.
