@@ -1593,8 +1593,12 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   the ledger; and with `ci.watch`, HEAD's run, by `itos ci watch`'s `watcher`
   and `watchRun`, so a run still going is waited for and one that does not
   end exits 3. Without `ci.watch` CI is not checked, said on stderr, and
-  `--json`'s `ci` is `unwatched`. The close commit is `docs: close <id>`,
-  its body naming the run that passed.
+  `--json`'s `ci` is `unwatched`. Since the checks can take minutes, the
+  registry is then read again (`soundRegistry`) and `work.Done` judged and
+  made afresh on it, so a registry commit made during the wait is kept, not
+  written over with the text read before it, and an item no longer one
+  `work done` may close is refused, nothing written (bug 34). The close
+  commit is `docs: close <id>`, its body naming the run that passed.
 - **work add and work edit** (slice 54, `internal/cli/workedit.go`) write
   the rest of the registry, through `writeRegistry` as the three above.
   `work.Add` puts a new item, todo, at the end of the items (`value.Doc`'s

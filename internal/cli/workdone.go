@@ -8,9 +8,10 @@ package cli
 // remote has, a task's static checks passing as the commit-msg hook runs
 // them, and with ci.watch HEAD's CI run green, waited for as itos ci watch
 // waits when it is still going. The first that is not refuses, naming what
-// to do; without ci.watch CI is not checked, and done says so. An item the
-// registry's queue holds is then taken out of it, in a commit of its own
-// (slice 66).
+// to do; without ci.watch CI is not checked, and done says so. The registry
+// is then read again and the close made on it as it is after the wait (bug
+// 34). An item the registry's queue holds is then taken out of it, in a
+// commit of its own (slice 66).
 
 import (
 	"fmt"
@@ -68,15 +69,18 @@ func workDone(args []string, o Out) (int, error) {
 	if err != nil || code != 0 {
 		return code, err
 	}
-	if cfg.Stealth {
-		// The registry as it is now, another worktree's changes in it, and
-		// the item's change made afresh on it.
-		if cfg, registry, text, release, code, err = soundRegistry(o); cfg == nil {
-			return code, err
-		}
-		if change, code, err = doneChange(cfg, registry, text, id, o); change == nil {
-			return code, err
-		}
+	// The checks can take minutes, and the registry can change meanwhile: a
+	// take or a queue change committed, someone's edit pulled in, another
+	// worktree's write to a stealth registry. The close is made afresh on the
+	// registry as it is now, read again and judged again, so a change made
+	// during the wait is kept rather than written over with the text read
+	// before it (bug 34), and an item no longer one work done may close is
+	// refused, nothing written.
+	if cfg, registry, text, release, code, err = soundRegistry(o); cfg == nil {
+		return code, err
+	}
+	if change, code, err = doneChange(cfg, registry, text, id, o); change == nil {
+		return code, err
 	}
 	if ci.run != nil && ci.run.URL != "" {
 		change.Body += " HEAD's CI run passed: " + ci.run.URL + "."

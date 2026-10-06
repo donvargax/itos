@@ -546,7 +546,7 @@ Feature: The work registry
   # done reads the registry again after the wait and closes the item in what
   # it reads then. Two registry writers at the same instant is not this bug.
   # The change lands when the fake GitHub is first asked for the run.
-  @ID-WORK-51 @bug-34 @wip
+  @ID-WORK-51 @bug-34
   Scenario: work done keeps a registry change committed while it waited for CI
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
