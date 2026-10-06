@@ -40,9 +40,22 @@ func config(key string) string {
 }
 
 // Changed are the tracked files with uncommitted changes, staged or not, as
-// git status --short prints them; untracked files are not among them.
+// git status --short prints them, each path as it is named (bug 31): read
+// NUL-separated, where a rename or a copy names its new path and then its
+// old one, which the line puts first (`R  old -> new`); untracked files are
+// not among them.
 func Changed() []string {
-	lines, _ := Lines("status", "--porcelain", "--untracked-files=no")
+	out, _ := Output("status", "-z", "--porcelain", "--untracked-files=no")
+	entries := splitNUL(out)
+	var lines []string
+	for i := 0; i < len(entries); i++ {
+		line := entries[i]
+		if len(line) > 3 && strings.ContainsAny(line[:2], "RC") && i+1 < len(entries) {
+			i++
+			line = line[:3] + entries[i] + " -> " + line[3:]
+		}
+		lines = append(lines, line)
+	}
 	return lines
 }
 
@@ -63,6 +76,6 @@ func Rebasing() bool {
 
 // Conflicted are the paths a merge or a rebase left unmerged.
 func Conflicted() []string {
-	lines, _ := Lines("diff", "--name-only", "--diff-filter=U")
+	lines, _ := Paths("diff", "--name-only", "--diff-filter=U")
 	return lines
 }

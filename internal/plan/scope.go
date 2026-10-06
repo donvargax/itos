@@ -1,8 +1,6 @@
 package plan
 
 import (
-	"strings"
-
 	"github.com/donvargax/itos/v5/internal/config"
 	"github.com/donvargax/itos/v5/internal/git"
 	"github.com/donvargax/itos/v5/internal/glob"
@@ -16,7 +14,7 @@ import (
 // prose, so the shortcut is never taken on a guess and every test runs.
 
 // Changed are the files a pushed range touched (`git diff --name-only from
-// to`), the paths its commits touch for the unpushed commits (git.Unpushed);
+// to`, read NUL-separated so that none comes back quoted, bug 31), the paths its commits touch for the unpushed commits (git.Unpushed);
 // none when it cannot be read or has no start or end.
 func Changed(from, to string) []string {
 	if from == "" || to == "" {
@@ -26,15 +24,9 @@ func Changed(from, to string) []string {
 		paths, _ := git.UnpushedPaths(to)
 		return paths
 	}
-	diff, err := git.Output("diff", "--name-only", from, to)
+	paths, err := git.Paths("diff", "--name-only", from, to)
 	if err != nil {
 		return nil
-	}
-	var paths []string
-	for _, p := range strings.Split(diff, "\n") {
-		if p != "" {
-			paths = append(paths, p)
-		}
 	}
 	return paths
 }

@@ -69,8 +69,37 @@ func Lines(args ...string) ([]string, error) {
 	return lines, nil
 }
 
+// Paths are the paths a git command lists (diff --name-only, diff-tree,
+// ls-files, ls-tree, log --name-only), read NUL-separated: the command runs
+// with -z after its subcommand, args[0], so each path comes back as it is
+// named (bug 31). Without it git C-quotes a path holding a letter outside
+// ASCII, a quote, a backslash or a control character ("src/caf\303\251.js"),
+// which no rule's glob then matches; core.quotePath=false alone still quotes
+// all but the letters. Empty entries are dropped.
+func Paths(args ...string) ([]string, error) {
+	if len(args) == 0 {
+		return nil, nil
+	}
+	out, err := Read(append([]string{args[0], "-z"}, args[1:]...)...)
+	if err != nil {
+		return nil, err
+	}
+	return splitNUL(out), nil
+}
+
+// splitNUL are the entries of a NUL-separated list, the empty ones dropped.
+func splitNUL(out string) []string {
+	var entries []string
+	for _, e := range strings.Split(out, "\x00") {
+		if e != "" {
+			entries = append(entries, e)
+		}
+	}
+	return entries
+}
+
 // CommitPaths are the paths a commit touches, against its parent, or every
 // path it holds for a root commit.
 func CommitPaths(sha string) ([]string, error) {
-	return Lines("diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha)
+	return Paths("diff-tree", "--no-commit-id", "--name-only", "-r", "--root", sha)
 }

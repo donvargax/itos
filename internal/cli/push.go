@@ -374,17 +374,13 @@ func registryOnly(onto, pushed, registry string) bool {
 	if onto == "" {
 		return false
 	}
-	text, err := git.Output("log", "--format=", "--name-only", "--no-renames", "--diff-merges=first-parent", onto+".."+pushed)
+	files, err := git.Paths("log", "--format=", "--name-only", "--no-renames", "--diff-merges=first-parent", onto+".."+pushed)
 	if err != nil {
 		return false
 	}
 	registry = path.Clean(filepath.ToSlash(registry))
 	touched := false
-	for _, f := range strings.Split(text, "\n") {
-		f = strings.TrimSpace(f)
-		if f == "" {
-			continue
-		}
+	for _, f := range files {
 		if path.Clean(f) != registry {
 			return false
 		}

@@ -179,24 +179,25 @@ func (t gitTree) List(dir string) ([]string, error) {
 		return nil, err
 	}
 	var files []string
-	for _, f := range strings.Split(listed, "\n") {
-		if f != "" && path.Dir(f) == path.Clean(at) {
+	for _, f := range listed {
+		if path.Dir(f) == path.Clean(at) {
 			files = append(files, path.Base(f))
 		}
 	}
-	if len(files) == 0 && strings.TrimSpace(listed) == "" {
+	if len(listed) == 0 {
 		return nil, fmt.Errorf("%s holds no folder %s", t.name(), dir)
 	}
 	return files, nil
 }
 
-// listTree is the files git holds under a folder at a tree, one per line, as
-// git names them.
-func listTree(tree, dir string) (string, error) {
+// listTree is the files git holds under a folder at a tree, as git names
+// them: read NUL-separated, so that a path git would quote is listed as it
+// is named (bug 31).
+func listTree(tree, dir string) ([]string, error) {
 	if tree == "index" {
-		return git.Output("ls-files", "--cached", "--", dir)
+		return git.Paths("ls-files", "--cached", "--", dir)
 	}
-	return git.Output("ls-tree", "-r", "--name-only", tree, "--", dir)
+	return git.Paths("ls-tree", "-r", "--name-only", tree, "--", dir)
 }
 
 var current = Worktree
@@ -232,20 +233,30 @@ func Texts(tree, dir string, keep func(string) bool) map[string]string {
 	if err != nil {
 		return map[string]string{}
 	}
+	spec := tree + ":"
+	if tree == "index" {
+		spec = ":"
+	}
+	texts := map[string]string{}
 	var paths []string
 	var specs bytes.Buffer
-	for _, f := range strings.Split(listed, "\n") {
-		if f == "" || !keep(f) {
+	for _, f := range listed {
+		if !keep(f) {
+			continue
+		}
+		// git cat-file --batch takes one name a line, a carriage return at
+		// its end dropped, so a path with a line break in it is read alone.
+		if strings.ContainsAny(f, "\r\n") {
+			text, err := git.Output("show", spec+f)
+			if err != nil {
+				return map[string]string{}
+			}
+			texts[f] = text
 			continue
 		}
 		paths = append(paths, f)
-		if tree == "index" {
-			specs.WriteString(":" + f + "\n")
-		} else {
-			specs.WriteString(tree + ":" + f + "\n")
-		}
+		specs.WriteString(spec + f + "\n")
 	}
-	texts := map[string]string{}
 	if len(paths) == 0 {
 		return texts
 	}

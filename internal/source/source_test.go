@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"runtime"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -79,6 +81,45 @@ func TestTrees(t *testing.T) {
 	}
 	if got := Texts("no-such-commit", "tasks", all); len(got) != 0 {
 		t.Errorf("unreadable tree's texts %q", got)
+	}
+}
+
+// Texts and List read a tree's paths as they are named (bug 31): a path git
+// would quote, a letter outside ASCII and, where the platform's git takes
+// them, a line break and a carriage return, which git cat-file --batch cannot
+// be handed, are read from the index and from a commit. The names are staged
+// in the index alone, so no file of the work tree needs them.
+func TestTextsOfNamesGitQuotes(t *testing.T) {
+	dir := t.TempDir()
+	gitIn(t, dir, "init", "-q")
+	write(t, filepath.Join(dir, "blob"), "text\n")
+	out, err := exec.Command("git", "-C", dir, "hash-object", "-w", "blob").Output()
+	if err != nil {
+		t.Fatal(err)
+	}
+	blob := strings.TrimSpace(string(out))
+	names := []string{"features/café.feature", "features/plain.feature"}
+	if runtime.GOOS != "windows" {
+		names = append(names, "features/line\nbreak.feature", "features/cr\r.feature")
+	}
+	want := map[string]string{}
+	for _, n := range names {
+		gitIn(t, dir, "update-index", "--add", "--cacheinfo", "100644,"+blob+","+n)
+		want[n] = "text\n"
+	}
+	t.Chdir(dir)
+	all := func(string) bool { return true }
+	if got := Texts("index", "features", all); !reflect.DeepEqual(got, want) {
+		t.Errorf("index texts %q, want %q", got, want)
+	}
+	gitIn(t, dir, "commit", "-qm", "names")
+	if got := Texts("HEAD", "features", all); !reflect.DeepEqual(got, want) {
+		t.Errorf("HEAD texts %q, want %q", got, want)
+	}
+	head, _ := At("HEAD")
+	listed, err := head.List("features")
+	if err != nil || len(listed) != len(names) || !slices.Contains(listed, "café.feature") {
+		t.Errorf("HEAD list %q, %v", listed, err)
 	}
 }
 

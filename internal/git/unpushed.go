@@ -59,7 +59,7 @@ func UnpushedBase(to string) string {
 // in the order git log first names them: the files the range changed, as
 // git diff names them for a range with one start.
 func UnpushedPaths(to string) ([]string, error) {
-	lines, err := Lines(append([]string{"log", "--format=", "--name-only"}, Revs(Unpushed, to)...)...)
+	lines, err := Paths(append([]string{"log", "--format=", "--name-only"}, Revs(Unpushed, to)...)...)
 	if err != nil {
 		return nil, err
 	}

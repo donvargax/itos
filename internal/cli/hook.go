@@ -42,14 +42,15 @@ import (
 )
 
 // stagedFiles are the paths the commit stages, as git names them (repo.ts's
-// stagedFiles): added, copied, modified, renamed or deleted, against base,
-// or against HEAD when base is "".
+// stagedFiles), read NUL-separated so that none comes back quoted (bug 31):
+// added, copied, modified, renamed or deleted, against base, or against HEAD
+// when base is "".
 func stagedFiles(base string) ([]string, error) {
 	args := []string{"diff", "--cached", "--name-only", "--diff-filter=ACMRD"}
 	if base != "" {
 		args = append(args, base)
 	}
-	return git.Lines(args...)
+	return git.Paths(args...)
 }
 
 // judgedBase is the commit the commit being made is judged against, "" for

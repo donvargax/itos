@@ -111,7 +111,7 @@ Feature: The commit-msg hook
   # rule and the footers read at the index and at a commit. Every list of
   # paths itos reads from git is read NUL-separated (or unquoted), so a path
   # is matched as it is named.
-  @ID-CMSG-10 @bug-31 @wip
+  @ID-CMSG-10 @bug-31
   Scenario: A never rule refuses a path whose name git would quote
     Given the config's chore commits may never touch "src/**" except "src/themes/**"
     And a change to "src/café.js" is staged
@@ -124,7 +124,7 @@ Feature: The commit-msg hook
     Then itos exits with code 1
     And its output says "src/café.js"
 
-  @ID-CMSG-11 @bug-31 @wip
+  @ID-CMSG-11 @bug-31
   Scenario: An only rule lets through a path whose name git would quote
     Given a change to "docs/é.md" is staged
     When the commit-msg hook checks the message "docs: say it in French"

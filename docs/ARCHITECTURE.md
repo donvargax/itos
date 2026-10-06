@@ -585,6 +585,11 @@ mechanisms above, written against those modules, read across.
   `internal/release` (below). The port
   shells out to git where it needs it, as the TypeScript did, but always to
   `git.Bin`, never to a `git` looked up on the `PATH`, which may be itos.
+  Every list of paths it reads from git (`diff --name-only`, `diff-tree`,
+  `ls-files`, `ls-tree`, `log --name-only`, `status --porcelain`) is read
+  NUL-separated, with `-z` (`git.Paths`, bug 31), so a path git would
+  C-quote is matched as it is named; a merge's own paths, read from the
+  headers of its combined diff, are unquoted.
 - **The launcher** (`internal/launch`, slice 27) runs before the command
   line: `cmd/itos` calls `launch.Main`, and only when it hands the run back
   `cli.Main`. It picks the version to run, `ITOS_VERSION` when set, else the
