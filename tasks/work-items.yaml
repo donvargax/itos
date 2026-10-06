@@ -4085,8 +4085,8 @@ items:
   - id: slice-84
     title: ci.keep_step_order runs ci.steps as written
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
