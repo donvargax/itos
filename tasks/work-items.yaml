@@ -3978,11 +3978,9 @@ items:
     title: A scope's except list takes paths back out of its never
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Issue #10. Specified as @ID-COMMITCMD-19 to 21 in features/commit-command.feature.
     refs: [features/commit-command.feature, internal/scope]
 
   - id: slice-82
