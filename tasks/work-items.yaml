@@ -4717,7 +4717,7 @@ items:
     title: itos's own git calls pass over any itos shim, not only itself
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
