@@ -4868,11 +4868,9 @@ items:
     title: previous-release judges an old case by itos's machine output alone, and CI reads ci range and version through --json
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Specified in tasks/phase-1.yaml (decision 35).
 
   - id: T-101
     title: The module path is github.com/donvargax/itos/v6
