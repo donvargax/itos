@@ -4076,11 +4076,9 @@ items:
     title: CI steps and checks get the range's ends, as ITOS_FROM and ITOS_TO and {from} and {to}
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Issue #12. Specified as @ID-CI-14 and 15 in features/ci.feature.
     refs: [features/ci.feature, internal/plan]
 
   - id: slice-84
