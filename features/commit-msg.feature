@@ -101,3 +101,31 @@ Feature: The commit-msg hook
     Given a merge commit "Merge branch 'topic'" on top of it, with no change of its own
     When itos verifies every commit up to HEAD
     Then itos exits with code 0
+
+  # Bug 31 (found by the code review of 07b0e6d, by two reviewers apart).
+  # itos read git's lists of paths (diff --name-only, ls-files, ls-tree)
+  # without -z or core.quotePath=false, and git C-quotes a path holding a
+  # letter outside ASCII, a quote, a backslash or a control character
+  # ("src/caf\303\251.js"). A never rule missed such a path and an only rule
+  # refused it, and a feature file so named vanished from what the moves
+  # rule and the footers read at the index and at a commit. Every list of
+  # paths itos reads from git is read NUL-separated (or unquoted), so a path
+  # is matched as it is named.
+  @ID-CMSG-10 @bug-31 @wip
+  Scenario: A never rule refuses a path whose name git would quote
+    Given the config's chore commits may never touch "src/**" except "src/themes/**"
+    And a change to "src/café.js" is staged
+    When the commit-msg hook checks the message:
+      """
+      chore: tidy the readme
+
+      Task: T-001
+      """
+    Then itos exits with code 1
+    And its output says "src/café.js"
+
+  @ID-CMSG-11 @bug-31 @wip
+  Scenario: An only rule lets through a path whose name git would quote
+    Given a change to "docs/é.md" is staged
+    When the commit-msg hook checks the message "docs: say it in French"
+    Then itos exits with code 0
