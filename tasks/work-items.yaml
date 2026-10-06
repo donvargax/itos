@@ -4599,7 +4599,7 @@ items:
     title: "v5.0.0: the command providers removed, and ci.range.github.branch"
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: [bug-29]
     kind: slice
     why: >
