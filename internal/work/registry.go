@@ -441,12 +441,19 @@ func Problems(cfg *config.Loaded) ([]out.Problem, error) {
 
 // ProblemsAt are the problems of the registry at file, the config's
 // work.registry or, named, a file given on the command line, whose fix when
-// it is not there says so.
+// it is not there says so. An alias the YAML reader refuses, inside its own
+// anchor or expanding past its bound, is a problem of the registry, as the
+// bug-39 decision has it, where any other YAML it cannot read is an error.
 func ProblemsAt(cfg *config.Loaded, file string, named bool) ([]out.Problem, error) {
 	if !source.Has(file) {
 		return []out.Problem{Missing(file, named)}, nil
 	}
 	r, err := Load(cfg, file)
+	var alias *value.AliasError
+	if errors.As(err, &alias) {
+		return []out.Problem{problem("work-registry-alias", file+": "+alias.Error(),
+			"write out in its place what the alias *"+alias.Alias+" stands for")}, nil
+	}
 	if err != nil {
 		return nil, err
 	}

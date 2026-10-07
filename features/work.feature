@@ -791,7 +791,7 @@ Feature: The work registry
     And the registry's item "slice-9" has the status "doing" and the owner "someone"
     And the last commit's header is not "docs: close slice-9"
 
-  @ID-WORK-73 @bug-39 @wip
+  @ID-WORK-73 @bug-39
   Scenario: work check refuses a registry whose alias is inside its own anchor, never crashing
     Given the committed file "tasks/work-items.yaml" holding the lines:
       """

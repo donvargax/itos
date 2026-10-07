@@ -358,7 +358,7 @@ Feature: Every key the config accepts is one itos reads
   # ledger, the registry) refuses an alias cycle, and an expansion past a
   # bound, as a problem naming the alias, never a crash: the config's as a
   # config error (exit 2), the registry's as what work check refuses (exit 1).
-  @ID-CONFIG-40 @bug-39 @wip
+  @ID-CONFIG-40 @bug-39
   Scenario: config check refuses a config whose alias is inside its own anchor, never crashing
     Given the committed file "itos.yaml" holding the lines:
       """

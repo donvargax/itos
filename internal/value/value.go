@@ -18,6 +18,11 @@
 // units, and where itos builds a pattern around whitespace or trims it uses
 // Space and Trim, JavaScript's whitespace, not RE2's ASCII one.
 //
+// An alias is read as its own copy of its anchor's value. One inside its
+// own anchor, or aliases expanding past maxAliased values, are refused as an
+// AliasError naming the alias (bug 39), never followed until the stack or
+// the memory runs out.
+//
 // # Editing a person's YAML in place
 //
 // itos writes into files people also edit (the config's pin, the registry,
@@ -228,19 +233,78 @@ func Parse(text string) (any, error) {
 	return convert(&doc)
 }
 
+// maxAliased is how many values the aliases of one document may expand
+// into, counted as each is converted: an alias is converted anew wherever it
+// stands, so nested ones multiply (ten anchors each aliasing the one before
+// ten times are ten billion values). itos's files alias little if at all, and
+// a hundred thousand values converts in a blink, so the bound is far above
+// any file a person writes and far below one that would exhaust memory
+// (bug 39).
+const maxAliased = 100_000
+
+// AliasError is an alias Parse refuses (bug 39): one inside its own anchor,
+// which would expand for ever, or one whose expansion passed maxAliased
+// values. A reader that reports problems rather than failing (work check)
+// tells it from a syntax error by its type.
+type AliasError struct {
+	// Alias is the alias's name, without its *.
+	Alias        string
+	Line, Column int
+	// Cycle is whether the alias is inside its own anchor; else its
+	// expansion passed the bound.
+	Cycle bool
+}
+
+func (e *AliasError) Error() string {
+	place := "the alias *" + e.Alias + " at line " + strconv.Itoa(e.Line) + ", column " + strconv.Itoa(e.Column)
+	if e.Cycle {
+		return place + " is inside its own anchor &" + e.Alias + ", so it would never end"
+	}
+	return place + " expands past " + strconv.Itoa(maxAliased) + " values, the most itos reads through aliases"
+}
+
+// converter turns yaml/v3's nodes into values, remembering the anchored
+// nodes it is inside, so an alias to one of them is refused as a cycle, not
+// followed for ever, and how many values aliases have expanded into (bug 39).
+type converter struct {
+	open    map[*yaml.Node]bool
+	via     *yaml.Node
+	aliased int
+}
+
 func convert(n *yaml.Node) (any, error) {
+	return (&converter{open: map[*yaml.Node]bool{}}).convert(n)
+}
+
+func (c *converter) convert(n *yaml.Node) (any, error) {
+	if c.via != nil {
+		if c.aliased++; c.aliased > maxAliased {
+			return nil, &AliasError{Alias: c.via.Value, Line: c.via.Line, Column: c.via.Column}
+		}
+	}
+	if n.Anchor != "" {
+		c.open[n] = true
+		defer delete(c.open, n)
+	}
 	switch n.Kind {
 	case yaml.DocumentNode:
 		if len(n.Content) == 0 {
 			return nil, nil
 		}
-		return convert(n.Content[0])
+		return c.convert(n.Content[0])
 	case yaml.AliasNode:
-		return convert(n.Alias)
+		if c.open[n.Alias] {
+			return nil, &AliasError{Alias: n.Value, Line: n.Line, Column: n.Column, Cycle: true}
+		}
+		if c.via == nil {
+			c.via = n
+			defer func() { c.via = nil }()
+		}
+		return c.convert(n.Alias)
 	case yaml.SequenceNode:
 		list := make([]any, 0, len(n.Content))
-		for _, c := range n.Content {
-			v, err := convert(c)
+		for _, e := range n.Content {
+			v, err := c.convert(e)
 			if err != nil {
 				return nil, err
 			}
@@ -250,7 +314,7 @@ func convert(n *yaml.Node) (any, error) {
 	case yaml.MappingNode:
 		m := NewMap()
 		for i := 0; i+1 < len(n.Content); i += 2 {
-			k, err := convert(n.Content[i])
+			k, err := c.convert(n.Content[i])
 			if err != nil {
 				return nil, err
 			}
@@ -258,7 +322,7 @@ func convert(n *yaml.Node) (any, error) {
 			if m.Has(key) {
 				return nil, errors.New("Map keys must be unique at line " + strconv.Itoa(n.Content[i].Line) + ", column " + strconv.Itoa(n.Content[i].Column))
 			}
-			v, err := convert(n.Content[i+1])
+			v, err := c.convert(n.Content[i+1])
 			if err != nil {
 				return nil, err
 			}

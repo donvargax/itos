@@ -1,9 +1,12 @@
 package value
 
 import (
+	"fmt"
 	"math"
 	"slices"
+	"strings"
 	"testing"
+	"time"
 )
 
 // Plain scalars resolve by the YAML 1.2 core schema, as the yaml package
@@ -45,6 +48,56 @@ func TestParse(t *testing.T) {
 	}
 	if v, err := Parse("# nothing\n"); v != nil || err != nil {
 		t.Errorf("empty: %v, %v", v, err)
+	}
+}
+
+// An alias inside its own anchor is refused, naming it, where it once
+// recursed until the stack overflowed (bug 39); an alias reused outside its
+// anchor is still read, each place its own copy.
+func TestParseAliasCycle(t *testing.T) {
+	for _, text := range []string{"loop: &x [*x]\n", "a: &x\n  b: &y [1, *x]\n", "a: &x {b: [*x]}\n"} {
+		_, err := Parse(text)
+		if err == nil || !strings.Contains(err.Error(), "alias *x") || !strings.Contains(err.Error(), "inside its own anchor") {
+			t.Errorf("%q: %v", text, err)
+		}
+	}
+	v, err := Parse("a: &x [1, 2]\nb: *x\nc: [*x, *x]\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := JSON(v); got != `{"a":[1,2],"b":[1,2],"c":[[1,2],[1,2]]}` {
+		t.Errorf("aliases reused: %s", got)
+	}
+}
+
+// Nested aliases that would expand exponentially (a billion laughs: nine
+// anchors, each aliasing the one before ten times) are refused once they
+// pass maxAliased values, naming the alias that expanded, and quickly
+// (bug 39).
+func TestParseAliasExpansion(t *testing.T) {
+	var b strings.Builder
+	b.WriteString("l0: &l0 [lol]\n")
+	for i := 1; i <= 9; i++ {
+		fmt.Fprintf(&b, "l%d: &l%d [", i, i)
+		for j := 0; j < 10; j++ {
+			if j > 0 {
+				b.WriteString(", ")
+			}
+			fmt.Fprintf(&b, "*l%d", i-1)
+		}
+		b.WriteString("]\n")
+	}
+	start := time.Now()
+	_, err := Parse(b.String())
+	if err == nil || !strings.Contains(err.Error(), "the alias *l") || !strings.Contains(err.Error(), "expands past 100000 values") {
+		t.Errorf("a billion laughs: %v", err)
+	}
+	if took := time.Since(start); took > 5*time.Second {
+		t.Errorf("a billion laughs took %s to refuse", took)
+	}
+	// Four levels, some twenty thousand values in all, are read.
+	if _, err := Parse(strings.Join(strings.SplitAfter(b.String(), "\n")[:5], "")); err != nil {
+		t.Errorf("four levels: %v", err)
 	}
 }
 
