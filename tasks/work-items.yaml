@@ -5854,3 +5854,19 @@ items:
       answered 500. itos push printed CI failure naming no job, exit 1, a red with nothing to fix. A
       failed run with no failed job could say so and exit 75, as a cancelled run with no successor
       does: a rerun or a new push may pass.
+
+  - id: T-115
+    title: The Windows platform job's features run well under go test's 10-minute limit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Measured 2026-10-07 over 33 green runs: the windows-latest Features step took 263 to 509 s
+      (median about 415 s) against go test's 600 s default, and one run went over and failed with
+      nothing broken; the spread is the runner's, the suite only grows. Find where Windows spends
+      the time first (per-scenario timings from a Windows run: process starts per step, the binary
+      built per scenario, the temp folder), then make those scenarios cheaper or run the suite in
+      shards across jobs; never raise the timeout, which only moves the cliff. Was
+      p1-windows-features-timeout.

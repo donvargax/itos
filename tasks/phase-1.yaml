@@ -1042,3 +1042,17 @@
     which no later move of its comments can break.
   done_when:
     - run: node tools/selftest/gates.ts
+
+- id: T-115
+  type: test
+  title: The Windows platform job's features run well under go test's 10-minute limit
+  why: >
+    Measured 2026-10-07 over 33 green runs: the windows-latest Features step took 263 to 509 s
+    (median about 415 s) against go test's 600 s default, and one run went over and failed with
+    nothing broken; the spread is the runner's, the suite only grows. Find where Windows spends the
+    time first (per-scenario timings from a Windows run: process starts per step, the binary built
+    per scenario, the temp folder), then make those scenarios cheaper or run the suite in shards
+    across jobs; never raise the timeout, which only moves the cliff. Was
+    p1-windows-features-timeout.
+  done_when:
+    - run: go test ./features -count=1
