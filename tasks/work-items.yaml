@@ -6051,7 +6051,7 @@ items:
     title: A pre-release sorts below its release, so an rc's pin is told when the final release is out
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
