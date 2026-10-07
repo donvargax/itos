@@ -589,7 +589,8 @@ mechanisms above, written against those modules, read across.
   below), `internal/work` (the registry and its problems, the items'
   statuses, the proposal, the edits that take, promote, close, add,
   change and drop an item, and the item as work show prints it;
-  below), `internal/follow` (itos followup's threads; below), `internal/ask`
+  below), `internal/follow` (itos followup's threads; below),
+  `internal/draft` (itos draft's drafts; below), `internal/ask`
   (the questions of itos decision; below), `internal/adr` (the decision
   records itos decision record writes; below), `internal/nextid` (the next free ID of a
   series; below), `internal/guide` (the guides itos go and
@@ -1792,6 +1793,36 @@ add`ed so `--only` can name it, git add's words and the commit's on
   ignored) it warns on stderr, and `-` prints the Markdown and writes
   nothing (`followDocOut`). A refusal is `refuseWork`'s problem, exit 1; no
   git repository is exit 3.
+- **draft** (slice 96, `internal/cli/draft.go` over `internal/draft`) is
+  the coordinator's pending changes, kept while an agent holds the checkout
+  and promoted between agents. They are kept as follow's threads are: in
+  `config.StealthFolder` of the absolute git common dir, here its `drafts`
+  folder, never committed and the same from every linked worktree; the list,
+  `drafts.yaml`, is read and written whole with typed structs (`draft.Load`
+  refuses what itos did not write, `draft.Save` writes beside it and moves
+  it over), and every subcommand that writes it loads through `heldDrafts`,
+  which holds `drafts.yaml.lock` until it returns, `promote` included, so a
+  draft is never applied twice. A command draft keeps its arguments as a list
+  and is run by `os.Executable()`, never a shell. A change draft keeps its
+  message, its paths as the top names them, and `<id>.patch` beside the
+  list: `takeChange` reads HEAD into a scratch index (`GIT_INDEX_FILE` in a
+  temporary folder beside the list), adds the paths to it with
+  `git add --all` (new files and deletions too, pathspecs literal), and
+  writes `git diff --cached --binary --full-index --no-renames HEAD`; then
+  `putBack` checks the touched files out of HEAD, or takes a file HEAD lacks
+  out of the index and removes it, so only those paths change. `promote`
+  first refuses while `workGoingOn` finds an item doing in the registry or a
+  tracked change (`git.Changed`), then, from the top, applies each draft in
+  order: a patch with `git apply --index`, which checks every hunk's context
+  and a binary file's preimage, by its full object name, against the tree
+  before writing anything, so a change that no longer applies leaves the
+  tree as it was;
+  then `git commit -F -` with the message, through the hooks, a failed
+  commit put back by `putBack` on the files `git apply --numstat` lists. A
+  draft promoted leaves the list (saved at once) before the next starts; the
+  first that fails is a `draft-not-applied` problem, exit 1, it and those
+  after it kept. `itos status` lists the drafts (`printDrafts`, `drafts` in
+  its JSON).
 - **ask** (slice 62, `internal/cli/ask.go` over `internal/ask`) is the
   questions waiting on the person the work is for, public where follow's
   threads are private: one file, `work.asks`, whose default `DefaultsFor`
@@ -1941,7 +1972,7 @@ add`ed so `--only` can name it, git add's words and the commit's on
   `lock.Wait` (10 s) and then failing with an error that names the lock file
   and says to remove it when no itos runs; `Release` removes it. It is held
   from before the read to after the write, around itos followup's threads
-  (`heldThreads`) and, under a stealth config, around the registry, which
+  (`heldThreads`), itos draft's list (`heldDrafts`) and, under a stealth config, around the registry, which
   every registry and ledger writer reads in `soundRegistry` and writes, and
   around the questions of itos decision beside it (`heldAsks`):
   those files are in the git common dir, shared by every worktree, and the
