@@ -368,3 +368,20 @@ Feature: Every key the config accepts is one itos reads
     When itos runs "config check"
     Then itos exits with code 2
     And its output says "alias"
+
+  # Slice 100: proof.code is read before any work done needs it, so a
+  # config that names no paths, or a check that cannot be given the item's
+  # base, is refused by config check rather than at the first close.
+  @ID-CONFIG-41 @slice-100 @wip
+  Scenario: config check refuses a proof.code whose check does not take {base}
+    Given the committed file "itos.yaml" holding the lines:
+      """
+      version: 1
+      proof:
+        code:
+          paths: ["src/**"]
+          check: "itos-cc mutation check --fail-uncovered --json"
+      """
+    When itos runs "config check"
+    Then itos exits with code 2
+    And its output says "{base}"
