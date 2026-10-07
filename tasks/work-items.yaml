@@ -5212,16 +5212,9 @@ items:
     title: go-schema.ts's value-not-allowed case names hooks.manager, which v6 removed
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-91]
     kind: task
-    why: >
-      Was p1-go-schema-selftest-enum.
-      tools/selftest/go-schema.ts holds the generated schema to a config with hooks.manager:
-      overcommit and expects an enum refusal at /hooks/manager. slice-91 removed hooks.manager, so
-      the schema refuses it by additionalProperties at /hooks and the nightly's go-schema self-test
-      fails. A ci commit (T-101's, which edits the gates anyway) points the case at another enum
-      key, such as commits.header_lint.use.
 
   - id: T-102
     title: The gate self-tests reach itos's hooks through .vite-hooks, which T-101 empties of itos
