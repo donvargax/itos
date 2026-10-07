@@ -18,9 +18,9 @@
 // tools/bin/release-version and itos status: Newest picks the highest
 // vX.Y.Z tag, three numbers and nothing else ordered numerically, so a
 // prerelease or build-metadata tag is never the newest release (a release
-// candidate, which release-version cuts while itos.yaml's release.prerelease
-// is rc, T-118, counts from the last stable release, as the final release
-// does); Releasable is whether a commit's message releases
+// candidate, which release-version cuts while its marker,
+// tools/bin/release-version/prerelease, says rc, T-118, counts from the last
+// stable release, as the final release does); Releasable is whether a commit's message releases
 // anything, a feat, a fix, or a breaking change of any type (Breaking: a !
 // before the header's colon, or a BREAKING-CHANGE footer).
 package release
