@@ -5866,3 +5866,18 @@ items:
       built per scenario, the temp folder), then make those scenarios cheaper or run the suite in
       shards across jobs; never raise the timeout, which only moves the cliff. Was
       p1-windows-features-timeout.
+
+  - id: p1-features-fewer-git-starts
+    title: The features' steps start fewer gits per scenario
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-115 measured the Windows features (run 37651609008): the time is process starts, not slow
+      scenarios. Every scenario's set-up runs git init and four git configs (215 ms on Windows with
+      four at a time), and committing its ledger three gits (349 ms), 50 percent of the suite's time
+      between them. Writing the hooks' entries into .git/config and the commit's sha from its output
+      would cut that, and the job's headroom grows back as the suite grows; worth it only when the
+      Windows Features step nears 300 s again.
