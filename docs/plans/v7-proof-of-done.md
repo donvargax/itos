@@ -119,14 +119,17 @@ anything).
    `p1-upgrade-applies-config-steps` and `p1-upgrade-on-major`, so consumers cross the major
    cleanly. Once the module path moves to `/v7`, main cuts no 6.x patch (T-089's rule: no v7 tag
    from a `/v6` go.mod, and no v6 tag from a `/v7` one).
-2. **Pre-releases** (the user's call, 2026-10-07; T-118): `itos.yaml` gains a pre-release marker,
-   and while it is on, the commits that would cut 7.0.0 cut `7.0.0-rc.1`, `rc.2` and so on, marked
-   pre-release and never latest. `go install …@latest`, the update notice and a bare `itos pin`
-   keep naming 6.x; a repository opts in with `itos pin 7.0.0-rc.<n>` (itos-cc and code-quality
-   first).
+2. **Pre-releases** (the user's call, 2026-10-07; T-118): a pre-release marker,
+   `tools/bin/release-version/prerelease` (T-119: a file of the release tool's own, since
+   `itos.yaml` holds only keys itos reads), and while it says `rc`, the commits that would cut
+   7.0.0 cut `7.0.0-rc.1`, `rc.2` and so on, marked pre-release and never latest.
+   `go install …@latest`, the update notice and a bare `itos pin` keep naming 6.x; a repository
+   opts in with `itos pin 7.0.0-rc.<n>` (itos-cc and code-quality first).
 3. Turn the marker on, move the module path to `/v7`, and land **the itos-cc integration first**:
    the role protocol, the proof rule and `work done`, CI's `mutation sample`, expiring checks.
-   That is `v7.0.0-rc.1`.
+   That is `v7.0.0-rc.1` (T-119 did the first two). Its push must carry a breaking change: until
+   rc.1 is cut, a feat or a fix without one computes a 6.x version, which the `/v7` path refuses
+   (`p1-release-major-from-module-path`).
 4. The rest of the bundle, each item landing as it is ready, each a further rc: the standing rules,
    debt and claims, exit codes, the hook-skipping refusal, config tightening, slice-95, rule 22,
    dropping compatibility code.

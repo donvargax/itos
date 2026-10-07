@@ -1127,7 +1127,9 @@
     tests) from itos.yaml's release.prerelease to that file, then creates it.
   done_when:
     - run: grep -q 'module github.com/donvargax/itos/v7' go.mod
+    - run: "! git grep -q 'donvargax/itos/v6' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
     - run: go build ./...
+    - run: grep -qx rc tools/bin/release-version/prerelease
 
 - id: T-121
   type: test
