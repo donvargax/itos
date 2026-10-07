@@ -4266,15 +4266,9 @@ items:
     title: Two first fetches of a pinned release do not undo each other
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). store removes the release folder without
-      first checking whether another run has just cached it, so a run about to exec it fails with
-      exit 3 (on Windows RemoveAll fails on the running exe): parallel Claude Code tool calls after
-      a pin moves (launch/launch.go:442-445). Its @bug-44 scenario is written before it is handed
-      out.
     refs: [internal/launch/launch.go]
 
   - id: p1-launcher-version-env
