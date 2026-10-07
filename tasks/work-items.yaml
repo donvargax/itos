@@ -5784,3 +5784,18 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-windows-features-timeout
+    title: The Windows platform job's features stay well under go test's 10-minute timeout
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen 2026-10-07 by bug-48's agent: run 37629423442's windows-latest Features step hit go
+      test's default 10-minute timeout (panic: test timed out after 10m0s) with no scenario stuck;
+      the green run before took 387 s there. Every slice adds scenarios, and Windows runs them
+      slowest, so the suite will cross the limit for good. Find where Windows spends the time
+      (process start per step, the binary built per scenario, antivirus on the temp folder), and
+      shard or speed it, rather than raising the timeout, which only moves the cliff.
