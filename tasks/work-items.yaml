@@ -5327,3 +5327,14 @@ items:
     kind: task
     why: >
       Specified in tasks/phase-1.yaml.
+
+  - id: slice-94
+    title: "The Claude Code plugin's calls are a contract: never renamed, and answered under every pin"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified in features/guard.feature.
+    refs: [features/guard.feature, internal/launch]
