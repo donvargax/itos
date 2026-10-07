@@ -5,7 +5,9 @@
 # finishes, and the run's address; the exit is the run's result, 3 for a run
 # still going after ci.watch.timeout, a refusal from the API, and github with
 # no token. ci.watch's provider is none by default, and push then returns as
-# before (push.yaml). The command provider went in v5.0.0 (slice 85).
+# before (push.yaml). The command provider went in v5.0.0 (slice 85). A run a
+# newer push cancelled is followed by the newer run that has the commit, or
+# exits 75 when none does (bug 41).
 #
 # GitHub here is the runner's fake (run.ts): its one run answers for any
 # commit, the commit asked about in its address.
@@ -130,6 +132,63 @@ cases:
       CI run: https://ci.example/runs/1
     stderr: |
       itos: the CI run of {{sha.head}} has not finished after 0.2 seconds (ci.watch.timeout); itos ci watch {{sha.head}} waits for it again
+  - name: a run a newer push cancelled is judged by the newer run, which --json names
+    argv: [ci, watch, --json, "{{short.first}}"]
+    github:
+      runs:
+        - head_sha: "{{sha.head}}"
+          html_url: "https://ci.example/runs/2"
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+        - head_sha: "{{sha.first}}"
+          html_url: "https://ci.example/runs/1"
+          status: completed
+          conclusion: cancelled
+          jobs: [{ name: ci, status: completed, conclusion: cancelled }]
+    exit: 0
+    stderr: |
+      CI run: https://ci.example/runs/1
+        ci: cancelled
+      CI run https://ci.example/runs/1 was cancelled; following https://ci.example/runs/2, the newer run of {{short.head}}, which has {{short.first}}
+      CI run: https://ci.example/runs/2
+        ci: success
+      CI passed: https://ci.example/runs/2
+    json:
+      schema: 1
+      ok: true
+      commit: "{{sha.first}}"
+      ci: success
+      run:
+        url: "https://ci.example/runs/2"
+        status: completed
+        conclusion: success
+        jobs: [{ name: ci, status: completed, conclusion: success }]
+      superseded: "https://ci.example/runs/1"
+  - name: a cancelled run with no newer run to follow exits 75, ci cancelled
+    argv: [ci, watch, --json]
+    github:
+      runs:
+        - head_sha: "{{sha.head}}"
+          html_url: "https://ci.example/runs/1"
+          status: completed
+          conclusion: cancelled
+          jobs: [{ name: ci, status: completed, conclusion: cancelled }]
+    exit: 75
+    stderr: |
+      CI run: https://ci.example/runs/1
+        ci: cancelled
+      CI cancelled: https://ci.example/runs/1; no newer run on main has {{short.head}}, so it has no result: rerun the workflow, and itos ci watch {{sha.head}} waits for it again
+    json:
+      schema: 1
+      ok: false
+      commit: "{{sha.head}}"
+      ci: cancelled
+      run:
+        url: "https://ci.example/runs/1"
+        status: completed
+        conclusion: cancelled
+        jobs: [{ name: ci, status: completed, conclusion: cancelled }]
   - name: a refusal from GitHub's API exits 3
     argv: [ci, watch]
     github: { refuse: true }

@@ -37,7 +37,7 @@ func TestAWatchWaitsForTheRunToAppear(t *testing.T) {
 		return providers.Run{URL: "u", Status: "completed", Conclusion: "success"}, true, nil
 	}
 	var stdout, stderr strings.Builder
-	w := watchRun(watchConfig(0, 60), look, "abc", Out{Stdout: &stdout, Stderr: &stderr})
+	w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
 	if w.code != 0 || w.outcome != "success" || looks != 3 {
 		t.Fatalf("code %d, outcome %s, looks %d\n%s%s", w.code, w.outcome, looks, stdout.String(), stderr.String())
 	}
@@ -51,12 +51,43 @@ func TestATransientFailureIsLookedPast(t *testing.T) {
 		if looks == 1 {
 			return providers.Run{}, false, kind.Wrap(kind.Temporary, errors.New("502"))
 		}
-		return providers.Run{URL: "u", Status: "completed", Conclusion: "cancelled"}, true, nil
+		return providers.Run{URL: "u", Status: "completed", Conclusion: "failure"}, true, nil
 	}
 	var stdout, stderr strings.Builder
-	w := watchRun(watchConfig(0, 60), look, "abc", Out{Stdout: &stdout, Stderr: &stderr})
-	if w.code != ExitPolicy || w.outcome != "failure" || !strings.Contains(stderr.String(), "CI cancelled: u") {
+	w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.code != ExitPolicy || w.outcome != "failure" || !strings.Contains(stderr.String(), "CI failure: u") {
 		t.Fatalf("code %d, outcome %s\n%s%s", w.code, w.outcome, stdout.String(), stderr.String())
+	}
+}
+
+// A cancelled run is no verdict (bug 41): one whose branch has no newer run
+// of the commit exits 75, outcome cancelled; one that has, a rerun of the
+// commit itself here, is followed, and its result is the watch's.
+func TestACancelledRunIsFollowedOr75(t *testing.T) {
+	noSleep(t)
+	cancelled := providers.Run{URL: "u", Status: "completed", Conclusion: "cancelled", ID: 1, HeadSHA: "abc", Branch: "main", Created: "1"}
+	look := func(string) (providers.Run, bool, error) { return cancelled, true, nil }
+	alone := func(string) ([]providers.Run, error) { return []providers.Run{cancelled}, nil }
+	var stdout, stderr strings.Builder
+	w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look, Runs: alone}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.code != ExitTemporary || w.outcome != "cancelled" || w.superseded != "" {
+		t.Fatalf("code %d, outcome %s, superseded %q\n%s", w.code, w.outcome, w.superseded, stderr.String())
+	}
+
+	rerun := providers.Run{URL: "v", Status: "completed", Conclusion: "success", ID: 2, HeadSHA: "abc", Branch: "main", Created: "2"}
+	looks := 0
+	look = func(string) (providers.Run, bool, error) {
+		if looks++; looks == 1 {
+			return cancelled, true, nil
+		}
+		return rerun, true, nil
+	}
+	newer := func(string) ([]providers.Run, error) { return []providers.Run{rerun, cancelled}, nil }
+	stdout.Reset()
+	stderr.Reset()
+	w = watchRun(watchConfig(0, 60), providers.Watcher{Look: look, Runs: newer}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.code != 0 || w.outcome != "success" || w.superseded != "u" || !strings.Contains(stdout.String(), "following v") {
+		t.Fatalf("code %d, outcome %s, superseded %q\n%s%s", w.code, w.outcome, w.superseded, stdout.String(), stderr.String())
 	}
 }
 
@@ -64,7 +95,7 @@ func TestAnErrorEndsTheWatch(t *testing.T) {
 	noSleep(t)
 	look := func(string) (providers.Run, bool, error) { return providers.Run{}, false, errors.New("401") }
 	var stdout, stderr strings.Builder
-	w := watchRun(watchConfig(0, 60), look, "abc", Out{Stdout: &stdout, Stderr: &stderr})
+	w := watchRun(watchConfig(0, 60), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
 	if w.code != ExitMissing || !strings.Contains(stderr.String(), "itos ci watch abc") {
 		t.Fatalf("code %d\n%s", w.code, stderr.String())
 	}
@@ -73,7 +104,7 @@ func TestAnErrorEndsTheWatch(t *testing.T) {
 func TestARunThatNeverAppearsTimesOut(t *testing.T) {
 	look := func(string) (providers.Run, bool, error) { return providers.Run{}, false, nil }
 	var stdout, stderr strings.Builder
-	w := watchRun(watchConfig(0, 0.05), look, "abc", Out{Stdout: &stdout, Stderr: &stderr})
+	w := watchRun(watchConfig(0, 0.05), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
 	if w.code != ExitTemporary || w.outcome != "timeout" || !strings.Contains(stderr.String(), "has not appeared") {
 		t.Fatalf("code %d, outcome %s\n%s", w.code, w.outcome, stderr.String())
 	}
@@ -93,7 +124,7 @@ func TestTemporaryFailuresInARowGiveUpWith75(t *testing.T) {
 		return providers.Run{}, false, kind.Wrap(kind.Temporary, errors.New("500"))
 	}
 	var stdout, stderr strings.Builder
-	w := watchRun(watchConfig(0, 600), look, "abc", Out{Stdout: &stdout, Stderr: &stderr})
+	w := watchRun(watchConfig(0, 600), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
 	if w.code != ExitTemporary || w.outcome != "error" || looks != 2*giveUp || !strings.Contains(stderr.String(), "itos ci watch abc") {
 		t.Fatalf("code %d, outcome %s, looks %d\n%s", w.code, w.outcome, looks, stderr.String())
 	}

@@ -8,7 +8,9 @@ package providers
 // the last nightly's run (slice 72): ci.watch.github.nightly_workflow's newest
 // run on the branch. The command provider, which ran ci.watch.command and
 // ci.watch.nightly_command, a repository's own commands, on a push and on
-// itos go, was removed in v5.0.0 (slice 85).
+// itos go, was removed in v5.0.0 (slice 85). A run a newer push cancelled is
+// no verdict (bug 41): the watch finds the newer run among the workflow's
+// runs on the branch (Watcher.Runs) and follows it.
 
 import (
 	"bytes"
@@ -28,12 +30,18 @@ import (
 
 // Run is one look at a CI run: its address, its status (queued,
 // in_progress or completed), its conclusion once completed (success,
-// failure, cancelled…), and its jobs, each the same.
+// failure, cancelled…), and its jobs, each the same. Its ID, the commit it
+// ran on, its branch and when it was made say which run it is, for finding
+// the run that superseded a cancelled one; --json leaves them out.
 type Run struct {
 	URL        string `json:"url"`
 	Status     string `json:"status"`
 	Conclusion string `json:"conclusion,omitempty"`
 	Jobs       []Job  `json:"jobs"`
+	ID         int64  `json:"-"`
+	HeadSHA    string `json:"-"`
+	Branch     string `json:"-"`
+	Created    string `json:"-"`
 }
 
 // Job is one job of a run, as Run is.
@@ -58,6 +66,18 @@ func (j Job) Done() bool { return j.Status == "completed" && j.Conclusion != "" 
 // up (exit 75).
 type Watch func(sha string) (run Run, found bool, err error)
 
+// Runs lists the workflow's runs on a branch, newest first, their jobs left
+// out: where a watch looks for the run that superseded a cancelled one. An
+// error is as Watch's.
+type Runs func(branch string) ([]Run, error)
+
+// Watcher is ci.watch's provider: Look at a commit's run, and the Runs on a
+// branch.
+type Watcher struct {
+	Look Watch
+	Runs Runs
+}
+
 // WatchSetup is what the github provider needs from outside the config: the
 // environment, the URL of the remote the commit was pushed to, and how to
 // ask gh for its token.
@@ -70,17 +90,17 @@ type WatchSetup struct {
 // WatchProvider is the provider ci.watch names; ok is false for none, which
 // watches nothing. An error is a provider that cannot look at all, said
 // before any request: github with no token, or no repository to ask about.
-func WatchProvider(cfg *config.Loaded, s WatchSetup) (watch Watch, ok bool, err error) {
+func WatchProvider(cfg *config.Loaded, s WatchSetup) (watch Watcher, ok bool, err error) {
 	w := cfg.CI.Watch
 	if w.Provider == "none" {
-		return nil, false, nil
+		return Watcher{}, false, nil
 	}
 	g, err := watchGitHub(cfg, "ci.watch", s)
 	if err != nil {
-		return nil, false, err
+		return Watcher{}, false, err
 	}
 	g.Workflow = w.GitHub.Workflow
-	return g.RunOf, true, nil
+	return Watcher{Look: g.RunOf, Runs: g.RunsOn}, true, nil
 }
 
 // Nightly looks once at the last nightly's run: found is false when there
@@ -184,8 +204,16 @@ func (g GitHub) NewestRun() (Run, bool, error) {
 		g.Repository, url.PathEscape(g.Workflow), url.QueryEscape(g.Branch)))
 }
 
-// newestOf is the newest of the runs the API path lists, with its jobs.
-func (g GitHub) newestOf(path string) (Run, bool, error) {
+// RunsOn is the workflow's runs on the branch, newest first, without their
+// jobs: the last 20, enough to hold the push that superseded a cancelled run.
+func (g GitHub) RunsOn(branch string) ([]Run, error) {
+	return g.list(fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?branch=%s&per_page=20",
+		g.Repository, url.PathEscape(g.Workflow), url.QueryEscape(branch)))
+}
+
+// list is the runs the API path lists, newest first by created_at, without
+// their jobs.
+func (g GitHub) list(path string) ([]Run, error) {
 	var runs struct {
 		WorkflowRuns []struct {
 			ID         int64   `json:"id"`
@@ -193,18 +221,33 @@ func (g GitHub) newestOf(path string) (Run, bool, error) {
 			Status     string  `json:"status"`
 			Conclusion *string `json:"conclusion"`
 			CreatedAt  string  `json:"created_at"`
+			HeadSHA    string  `json:"head_sha"`
+			HeadBranch string  `json:"head_branch"`
 		} `json:"workflow_runs"`
 	}
 	if err := g.get(path, &runs); err != nil {
-		return Run{}, false, err
-	}
-	if len(runs.WorkflowRuns) == 0 {
-		return Run{}, false, nil
+		return nil, err
 	}
 	found := runs.WorkflowRuns
 	sort.SliceStable(found, func(i, j int) bool { return found[i].CreatedAt > found[j].CreatedAt })
-	newest := found[0]
-	run := Run{URL: newest.HTMLURL, Status: newest.Status, Conclusion: deref(newest.Conclusion)}
+	listed := make([]Run, 0, len(found))
+	for _, r := range found {
+		listed = append(listed, Run{URL: r.HTMLURL, Status: r.Status, Conclusion: deref(r.Conclusion),
+			ID: r.ID, HeadSHA: r.HeadSHA, Branch: r.HeadBranch, Created: r.CreatedAt})
+	}
+	return listed, nil
+}
+
+// newestOf is the newest of the runs the API path lists, with its jobs.
+func (g GitHub) newestOf(path string) (Run, bool, error) {
+	found, err := g.list(path)
+	if err != nil {
+		return Run{}, false, err
+	}
+	if len(found) == 0 {
+		return Run{}, false, nil
+	}
+	run := found[0]
 	var jobs struct {
 		Jobs []struct {
 			Name       string  `json:"name"`
@@ -212,7 +255,7 @@ func (g GitHub) newestOf(path string) (Run, bool, error) {
 			Conclusion *string `json:"conclusion"`
 		} `json:"jobs"`
 	}
-	if err := g.get(fmt.Sprintf("/repos/%s/actions/runs/%d/jobs?per_page=100", g.Repository, newest.ID), &jobs); err != nil {
+	if err := g.get(fmt.Sprintf("/repos/%s/actions/runs/%d/jobs?per_page=100", g.Repository, run.ID), &jobs); err != nil {
 		return Run{}, false, err
 	}
 	for _, j := range jobs.Jobs {

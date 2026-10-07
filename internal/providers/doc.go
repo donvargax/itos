@@ -40,10 +40,13 @@
 //
 // # Watching a run
 //
-// WatchProvider(cfg, WatchSetup) makes a Watch from ci.watch, one look at a
-// commit's run: github's RunOf lists the workflow's runs for head_sha, takes
-// the newest by created_at, and reads its jobs, a Run (url, status,
-// conclusion, jobs). Its token is ci.range.github.token_env's variable else
+// WatchProvider(cfg, WatchSetup) makes a Watcher from ci.watch: Look, one
+// look at a commit's run, github's RunOf, which lists the workflow's runs for
+// head_sha, takes the newest by created_at, and reads its jobs, a Run (url,
+// status, conclusion, jobs, and the ID, head, branch and creation --json
+// leaves out); and Runs, RunsOn, the workflow's last 20 runs on a branch,
+// newest first, among which a watch finds the run that superseded a
+// cancelled one (bug 41). Its token is ci.range.github.token_env's variable else
 // GhToken (gh auth token), its repository repository_env's else
 // GitHubRepository, the remote's URL read as GitHub's (https, ssh or
 // scp-like); with no token it fails before any request, naming both ways to

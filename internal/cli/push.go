@@ -395,7 +395,7 @@ func (r *pushRun) wait(remote, onto, pushed string) (int, error) {
 		return r.report(0, "pushed", pushed,
 			fmt.Sprintf("Its commits touch only %s, so its CI run is not waited for; itos ci watch %s waits for it.", cfg.Work.Registry, sha))
 	}
-	look, ok, err := watcher(cfg, remote, r.o)
+	wr, ok, err := watcher(cfg, remote, r.o)
 	if !ok && err == nil {
 		return r.report(0, "pushed", pushed)
 	}
@@ -406,7 +406,7 @@ func (r *pushRun) wait(remote, onto, pushed string) (int, error) {
 		fmt.Fprintf(r.o.Stderr, "itos: %s; the commits are pushed, and itos ci watch %s waits for their run\n", err, sha)
 		r.watched = &watched{code: ExitMissing, outcome: "error"}
 	} else {
-		w := watchRun(cfg, look, sha, r.o)
+		w := watchRun(cfg, wr, sha, remote, r.o)
 		r.watched = &w
 	}
 	if r.o.JSON {

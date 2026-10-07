@@ -390,9 +390,16 @@
 // success, else to stderr with the jobs that did not succeed, skipped and
 // neutral ones aside. A kind.Temporary error is remembered and looked past,
 // and named if the timeout comes first; any other error, or the timeout,
-// exits 3 naming itos ci watch <sha>. The outcome is a watched (code,
-// success/failure/timeout/error, the run as last seen), whose fields are the
-// ci and run keys both commands' --json add.
+// exits 3 naming itos ci watch <sha>. A run that completed cancelled is no
+// result (bug 41): successor lists the workflow's runs on its branch
+// (providers.Watcher.Runs), newest first, and takes the first newer than it
+// whose head has the commit as an ancestor (git merge-base --is-ancestor,
+// after one quiet fetch of the remote when a head is not in the clone); the
+// watch says so and looks at that head's run from then on, under the same
+// deadline. None to follow ends it with 75, outcome cancelled. The outcome is
+// a watched (code, success/failure/cancelled/timeout/error, the run as last
+// seen, the cancelled run's address when a newer one was followed), whose
+// fields are the ci, run and superseded keys both commands' --json add.
 //
 // # Tasks and named tests
 //

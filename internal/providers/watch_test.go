@@ -227,7 +227,7 @@ func TestTheGitHubWatchAsksGitHubAPIURL(t *testing.T) {
 	if !ok || err != nil {
 		t.Fatalf("ok %v, err %v", ok, err)
 	}
-	if _, found, err := watch("abc"); found || err != nil {
+	if _, found, err := watch.Look("abc"); found || err != nil {
 		t.Fatalf("found %v, err %v", found, err)
 	}
 	if len(asked) != 1 || asked[0] != "/api/v3/repos/o/n/actions/workflows/ci.yml/runs" {

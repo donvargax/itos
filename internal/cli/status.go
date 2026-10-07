@@ -457,7 +457,7 @@ func (st *standing) releaseUnread(line string) {
 
 // readCI looks once at the commit's CI run through ci.watch's provider.
 func (st *standing) readCI(cfg *config.Loaded, remote, sha string, o Out) {
-	look, ok, err := watcher(cfg, remote, o)
+	wr, ok, err := watcher(cfg, remote, o)
 	switch {
 	case err != nil:
 		st.unread(fmt.Sprintf("CI cannot be read: %s", err))
@@ -466,7 +466,7 @@ func (st *standing) readCI(cfg *config.Loaded, remote, sha string, o Out) {
 		st.unread("CI is not read: ci.watch.provider is none.")
 		return
 	}
-	run, found, err := look(sha)
+	run, found, err := wr.Look(sha)
 	switch {
 	case err != nil:
 		st.unread(fmt.Sprintf("CI cannot be read: %s", err))

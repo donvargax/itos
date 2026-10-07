@@ -297,8 +297,9 @@ cases:
       checked, and done says so. Refused, nothing written (exit 1): any of those not
       so, a registry that is not sound or has changes no commit holds, an id no item
       has, an idea (work promote it first), an item dropped or deferred, a commit a
-      hook refuses. Exit 75 when the run does not end within ci.watch.timeout or
-      GitHub's API keeps failing, 3 when the run cannot be looked at. An item
+      hook refuses. Exit 75 when the run does not end within ci.watch.timeout, is
+      cancelled with no newer run to follow, or GitHub's API keeps failing, 3 when
+      the run cannot be looked at. An item
       already done changes nothing. An item the registry's queue holds is then
       taken out of it, in a commit of its own, "docs: queue <id>". Under a stealth
       config the registry is written and nothing committed.
@@ -933,8 +934,10 @@ cases:
       finishes and the run's address, and exits with the run's result: 0 when it
       succeeded, 1 when it did not, naming the failed jobs; 75 when the run is
       still going after ci.watch.timeout seconds or GitHub's API keeps failing, 3
-      when it cannot be looked at, naming itos ci watch <sha>. The commits are
-      pushed either way. --no-wait pushes and returns.
+      when it cannot be looked at, naming itos ci watch <sha>. A run a newer push
+      cancelled is followed by that push's run, as itos ci watch follows it, and
+      one with no newer run to follow exits 75. The commits are pushed either way.
+      --no-wait pushes and returns.
 
       Exit: 0 pushed, or nothing to push; 1 refused before the pull, the rebase
       stopped, the remote or the pre-push hook refused the push, or the CI run
@@ -943,14 +946,14 @@ cases:
       repository or that git cannot find, or a
       CI run not to be looked at; 75 a remote that cannot be reached (a connection
       refused or timed out, a host that does not resolve), a CI run not finished,
-      or GitHub's API failing; 70 a fetch or a push that failed for another reason.
+      a CI run cancelled with no newer run to follow, or GitHub's API failing; 70 a fetch or a push that failed for another reason.
       The kind of a failed fetch or push is read from git's message; git's own exit
       code is never itos's.
 
       --json: git's output on stderr; {"schema":1,"ok","outcome","remote"?,"branch"?,"commit"?,"ci"?,"run"?},
               outcome one of pushed, nothing-to-push, uncommitted, rebase-in-progress,
               detached, no-remote, fetch-failed, rebase-stopped, rebase-failed, push-failed;
-              ci and run as itos ci watch's, when it waited
+              ci, run and superseded as itos ci watch's, when it waited
   - name: itos git-shim --help
     argv: [git-shim, --help]
     exit: 0
@@ -1321,14 +1324,19 @@ cases:
       https://api.github.com) for the run of ci.watch.github.workflow, with a token
       from ci.range.github.token_env, else gh auth token, for the repository
       ci.range.github.repository_env names, else the remote's URL. A run not there
-      yet is waited for. Exit 0 when the run succeeded; 1 when it did not, naming the
+      yet is waited for. A run a newer push cancelled is no result: the newest run
+      of the workflow on its branch whose head has the commit is followed in its
+      place, named when it is, its head fetched from the remote when the clone does
+      not have it. Exit 0 when the run succeeded; 1 when it did not, naming the
       failed jobs; 2 ci.watch.provider none, or not a commit; 3 a refusal from
       GitHub's API, or no token, naming both ways to give one; 75 the run still
-      going, or not there, after the timeout, or six looks in a row failing for a
-      server error, a rate limit or no network.
+      going, or not there, after the timeout, six looks in a row failing for a
+      server error, a rate limit or no network, or the run cancelled with no newer
+      run to follow.
 
-      --json: the progress on stderr; {"schema":1,"ok","commit","ci","run"?},
-              ci one of success, failure, timeout, error; run {"url","status","conclusion"?,"jobs"}
+      --json: the progress on stderr; {"schema":1,"ok","commit","ci","run"?,"superseded"?},
+              ci one of success, failure, cancelled, timeout, error; run {"url","status","conclusion"?,"jobs"},
+              the run followed when a newer one was, superseded the cancelled run's url
   - name: itos hook --help
     argv: [hook, --help]
     exit: 0

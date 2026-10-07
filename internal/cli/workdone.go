@@ -254,11 +254,11 @@ func landedCI(cfg *config.Loaded, id string, o Out) (watched, int, error) {
 		remote, _, _ = git.Upstream(branch)
 	}
 	w := watched{code: ExitMissing, outcome: "error"}
-	look, _, err := watcher(cfg, remote, o)
+	wr, _, err := watcher(cfg, remote, o)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s\n", err)
 	} else {
-		w = watchRun(cfg, look, sha, o)
+		w = watchRun(cfg, wr, sha, remote, o)
 	}
 	if w.code == 0 {
 		return w, 0, nil

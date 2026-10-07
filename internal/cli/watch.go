@@ -11,11 +11,21 @@ package cli
 // rate limit or no network giveUp times in a row, exit 75 (slice 86), a
 // failure that may pass when run again; each names itos ci watch <sha> to
 // wait again.
+//
+// A run a newer push cancelled is no verdict (bug 41): with cancel-in-progress
+// on CI's concurrency group, the newer push's run checks the cancelled run's
+// commits too. The watch follows the newest run of the workflow on the
+// cancelled run's branch whose head has the commit as an ancestor, saying
+// which, and exits with its result; the newer head is fetched from the remote
+// when the clone does not have it. A cancelled run with no newer run to follow
+// exits 75, outcome cancelled: a rerun may pass.
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
@@ -28,15 +38,18 @@ import (
 )
 
 // watched is how a watch ended: its exit code, its outcome (success,
-// failure, timeout or error) and the run as last seen, nil when none was.
+// failure, cancelled, timeout or error), the run as last seen, nil when none
+// was, and the address of the commit's cancelled run when a newer run was
+// followed in its place.
 type watched struct {
-	code    int
-	outcome string
-	run     *providers.Run
+	code       int
+	outcome    string
+	run        *providers.Run
+	superseded string
 }
 
-// fields are the watch's keys in a --json object: "ci", its outcome, and
-// "run" when there was one.
+// fields are the watch's keys in a --json object: "ci", its outcome, "run"
+// when there was one, and "superseded" when it was a newer run followed.
 func (w watched) fields() []out.Field {
 	fields := []out.Field{{Key: "ci", Value: w.outcome}}
 	if w.run != nil {
@@ -45,6 +58,9 @@ func (w watched) fields() []out.Field {
 			run.Jobs = []providers.Job{}
 		}
 		fields = append(fields, out.Field{Key: "run", Value: run})
+	}
+	if w.superseded != "" {
+		fields = append(fields, out.Field{Key: "superseded", Value: w.superseded})
 	}
 	return fields
 }
@@ -61,7 +77,7 @@ const giveUp = 6
 // watcher is ci.watch's provider for the config at the folder itos runs in,
 // for a commit pushed to remote: ok is false when the provider is none.
 // With no config there is nothing to watch with, as with none.
-func watcher(cfg *config.Loaded, remote string, o Out) (providers.Watch, bool, error) {
+func watcher(cfg *config.Loaded, remote string, o Out) (providers.Watcher, bool, error) {
 	remoteURL, _ := git.Output("remote", "get-url", remote)
 	return providers.WatchProvider(cfg, providers.WatchSetup{
 		Env:       os.Getenv,
@@ -73,8 +89,11 @@ func watcher(cfg *config.Loaded, remote string, o Out) (providers.Watch, bool, e
 // watchRun looks at the commit's run until it completes or the timeout
 // passes. Each job's result and the run's address go to progress as they
 // come (stdout, or stderr under --json; nowhere under -q but a failure),
-// and the run's end to stdout when it succeeded, else stderr.
-func watchRun(cfg *config.Loaded, look providers.Watch, sha string, o Out) watched {
+// and the run's end to stdout when it succeeded, else stderr. A cancelled
+// run is followed by the newer run that has the commit, found on remote's
+// branch, the commit looked at from then on that run's head; the timeout
+// counts from the start of the watch.
+func watchRun(cfg *config.Loaded, wr providers.Watcher, sha, remote string, o Out) watched {
 	progress, end := o.Stdout, o.Stdout
 	if o.JSON {
 		progress, end = o.Stderr, o.Stderr
@@ -90,19 +109,30 @@ func watchRun(cfg *config.Loaded, look providers.Watch, sha string, o Out) watch
 	shown := "" // the run's address, once printed
 	var last *providers.Run
 	var lastErr error
-	failed := 0 // the looks in a row that failed for a temporary reason
-	for {
-		run, found, err := look(sha)
-		switch {
-		case kind.Of(err) == kind.Temporary:
+	failed := 0      // the looks in a row that failed for a temporary reason
+	target := sha    // the commit whose run is looked at: sha, or the head of a newer run followed
+	superseded := "" // the address of sha's cancelled run, once a newer run is followed
+	// failing is a look that failed: looked past when temporary, until giveUp
+	// in a row; ended otherwise.
+	failing := func(err error) (watched, bool) {
+		if kind.Of(err) == kind.Temporary {
 			lastErr = err
 			if failed++; failed >= giveUp {
 				fmt.Fprintf(o.Stderr, "itos: %d looks in a row at the CI run of %s failed, the last: %s; %s\n", failed, sha, err, again)
-				return watched{code: ExitTemporary, outcome: "error", run: last}
+				return watched{code: ExitTemporary, outcome: "error", run: last, superseded: superseded}, true
 			}
+			return watched{}, false
+		}
+		fmt.Fprintf(o.Stderr, "itos: %s; %s\n", err, again)
+		return watched{code: ExitMissing, outcome: "error", run: last, superseded: superseded}, true
+	}
+	for {
+		run, found, err := wr.Look(target)
+		switch {
 		case err != nil:
-			fmt.Fprintf(o.Stderr, "itos: %s; %s\n", err, again)
-			return watched{code: ExitMissing, outcome: "error", run: last}
+			if w, end := failing(err); end {
+				return w
+			}
 		case !found:
 			failed = 0
 		default:
@@ -118,8 +148,32 @@ func watchRun(cfg *config.Loaded, look providers.Watch, sha string, o Out) watch
 					fmt.Fprintf(progress, "  %s: %s\n", j.Name, j.Conclusion)
 				}
 			}
-			if run.Done() {
-				return ended(run, o, end)
+			if !run.Done() {
+				break
+			}
+			if run.Conclusion != "cancelled" {
+				w := ended(run, o, end)
+				w.superseded = superseded
+				return w
+			}
+			next, ok, err := successor(wr.Runs, run, sha, remote)
+			switch {
+			case err != nil:
+				if w, end := failing(err); end {
+					return w
+				}
+			case !ok:
+				fmt.Fprintf(o.Stderr, "CI cancelled: %s; no newer run on %s has %s, so it has no result: rerun the workflow, and %s\n",
+					run.URL, run.Branch, short(sha), again)
+				return watched{code: ExitTemporary, outcome: "cancelled", run: &run, superseded: superseded}
+			default:
+				if superseded == "" {
+					superseded = run.URL
+				}
+				fmt.Fprintf(progress, "CI run %s was cancelled; following %s, the newer run of %s, which has %s\n",
+					run.URL, next.URL, short(next.HeadSHA), short(sha))
+				target, printed = next.HeadSHA, map[string]bool{}
+				continue
 			}
 		}
 		left := time.Until(deadline)
@@ -137,6 +191,52 @@ func watchRun(cfg *config.Loaded, look providers.Watch, sha string, o Out) watch
 		}
 		sleep(min(interval, left))
 	}
+}
+
+// successor is the run that superseded the cancelled run of sha: the newest
+// of the workflow's runs on the cancelled run's branch, newer than it, whose
+// head has sha as an ancestor; found is false when there is none. A head the
+// clone does not have is fetched from remote once, since the newer push may be
+// someone else's; one still missing after it is passed over.
+func successor(runs providers.Runs, cancelled providers.Run, sha, remote string) (providers.Run, bool, error) {
+	if runs == nil || cancelled.Branch == "" {
+		return providers.Run{}, false, nil
+	}
+	listed, err := runs(cancelled.Branch)
+	if err != nil {
+		return providers.Run{}, false, err
+	}
+	fetched := false
+	for _, r := range listed {
+		if r.ID == cancelled.ID || (r.Created != "" && cancelled.Created != "" && r.Created < cancelled.Created) {
+			break
+		}
+		if r.HeadSHA == "" {
+			continue
+		}
+		if r.HeadSHA != sha && !git.HasCommit(r.HeadSHA) && !fetched {
+			fetched = true
+			fetchQuietly(remote)
+		}
+		if r.HeadSHA == sha || git.Succeeds("merge-base", "--is-ancestor", sha, r.HeadSHA) {
+			return r, true, nil
+		}
+	}
+	return providers.Run{}, false, nil
+}
+
+// fetchQuietly fetches the remote's branches, never prompting for
+// credentials, within lsRemoteTimeout; a fetch that fails leaves the clone as
+// it was.
+func fetchQuietly(remote string) {
+	if remote == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), lsRemoteTimeout)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, git.Bin(), "fetch", "-q", remote)
+	cmd.Env = append(os.Environ(), "GIT_TERMINAL_PROMPT=0")
+	_ = cmd.Run()
 }
 
 // ended is the watch of a run that completed: 0 when it succeeded, else 1,
@@ -189,7 +289,7 @@ func ciWatch(args []string, o Out) (int, error) {
 	if branch := git.Branch(); branch != "" {
 		remote, _, _ = git.Upstream(branch)
 	}
-	look, ok, err := watcher(cfg, remote, o)
+	wr, ok, err := watcher(cfg, remote, o)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s\n", err)
 		return watchReport(o, watched{code: ExitMissing, outcome: "error"}, sha)
@@ -197,7 +297,7 @@ func ciWatch(args []string, o Out) (int, error) {
 	if !ok {
 		return 0, config.Invalid(cfg.Path, "ci.watch.provider is none, so there is no CI run to watch: set ci.watch.provider to github")
 	}
-	return watchReport(o, watchRun(cfg, look, sha, o), sha)
+	return watchReport(o, watchRun(cfg, wr, sha, remote, o), sha)
 }
 
 // watchReport ends a ci watch: under --json its object on stdout.
