@@ -3803,6 +3803,10 @@ items:
       policy; 1 equivalent; 2 unclear. Its kills can come from string tests, and most survivors are
       policy.
 
+      Since 2026-10-07 itos-cc's mutate is itos-cc mutation run (cc3fecb), with --since <ref> and
+      --fail-uncovered (#9 done) and mutation check (#8, sample still to come); read mutate above as
+      that.
+
   - id: p1-guide-work-show-why
     title: itos guide work says where a slice's or task's why is, not work show's why
     phase: 1
