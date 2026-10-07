@@ -5929,3 +5929,18 @@ items:
       files_after and json, so from the first release carrying hook install's new cases it judges
       more than it says: they should name git_config_after too (a ci change to
       tools/bin/previous-release, and its self-test's wording).
+
+  - id: p1-hook-install-refused-command
+    title: hook install --json says which command a refused entry's command names
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-113's agent (2026-10-07): with hook install --json, an entry it refuses reports as
+      command the command itos would have written (tools/bin/itos hook commit-msg), not the one left
+      in the git config (sh tools/own-check.sh), and the help's --json line does not say which is
+      meant. T-113 pinned it as it behaves, so it is now contract: decide before v7 whether refused
+      entries report what is there (likely what a script wants, beside a wanted key for what itos
+      would write), and change it in the v7 bundle if so.
