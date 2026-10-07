@@ -5567,8 +5567,8 @@ items:
   - id: T-113
     title: The hooks.yaml corpus cases pin their --json and the git config entries they write
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
