@@ -159,6 +159,11 @@ ci:
     # static; no range start (FROM empty), a start the clone lacks or a shallow clone stops it
     # (exit 2). In the prose steps too, as the plugin's skill is Markdown. FROM as below.
     - { run: 'go run ./tools/bin/plugin-version -range-from "${FROM-}"', cost: static }
+    # The docs' byte budget (T-110): the files every session or most briefs read held to the caps in
+    # tools/bin/doc-budget/caps.json, a file over its cap failing, named with its size and cap. It
+    # reads the files alone, so static; in the prose steps too, as docs-only pushes are where the
+    # docs grow.
+    - { run: go run ./tools/bin/doc-budget, cost: static }
     # The dependency check (T-067), when the range changes go.mod or go.sum: no module younger
     # than 7 days unless deps-check.json excepts it, then govulncheck. It asks the network, so
     # late; first of the late steps, before the unit tests run a new module's code. FROM is the
@@ -194,6 +199,7 @@ ci:
       - vp check
       - tools/bin/itos config check
       - 'go run ./tools/bin/plugin-version -range-from "${FROM-}"' # the plugin's skill is Markdown
+      - go run ./tools/bin/doc-budget # the docs' byte budget: docs-only pushes are where they grow
   cost:
     # Checks with no `cost:` of their own: static if a pattern matches, else
     # late. Only commands static by what they are: `sh -c` wraps anything, so a
