@@ -477,6 +477,33 @@ Feature: itos init, a repository made ready for itos
     And the file "AGENTS.override.md" does not exist
     And its output says "--agent-rules"
 
+  # Slice 95 (the user's call, 2026-10-06). Every session reads the block,
+  # whatever its role, and nothing in it said which guide is whose, so a
+  # session in a repository that adopted itos found neither itos go nor the
+  # repository's own notes. The block gains one paragraph: the session the
+  # person talks to coordinates and runs itos go, which ends with the
+  # repository's own notes, the file guide.orchestrating resolves to, named
+  # from the repository's top; a session handed an item runs itos guide work.
+  # It points at the guides and holds none of their text (decision 33): how
+  # to work with itos stays in the guides, versioned with the binary. Under
+  # --stealth the notes resolve under the git folder, as the config's other
+  # paths do, and the block names them there.
+  @ID-INIT-38 @slice-95 @wip
+  Scenario: The rules for agents send the coordinator to itos go and an implementing session to itos guide work
+    Given a repository that does not use itos, its one commit "docs: start"
+    When itos runs "init --agent-rules"
+    Then itos exits with code 0
+    And the file "AGENTS.md" says "itos go" between the markers
+    And the file "AGENTS.md" says "itos guide work" between the markers
+    And the file "AGENTS.md" says "docs/ORCHESTRATING.md" between the markers
+
+  @ID-INIT-39 @slice-95 @wip
+  Scenario: Under --stealth the rules for agents name the notes itos go appends where the stealth config puts them
+    Given a repository that does not use itos, its one commit "docs: start"
+    When itos runs "init --stealth --agent-rules"
+    Then itos exits with code 0
+    And the file ".git/itos/AGENTS.md" says ".git/itos/docs/ORCHESTRATING.md" between the markers
+
   @ID-INIT-31 @bug-12
   Scenario: In a repository init set up, a docs commit touching code is refused, so docs cannot skip the Task footer
     Given a repository that does not use itos, its one commit "docs: start"
