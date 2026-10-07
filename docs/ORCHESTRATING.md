@@ -160,7 +160,3 @@ was in this file when the file was reorganized that day.
   commit is the working tree, and its second parent is what was staged.
   Restore paths with `git checkout <wip> -- <paths>`. Exit: permanent.
   Recorded by 2026-10-04.
-- **itos-cc** (on the PATH as an extension) is advice, not a gate, until
-  donvargax/itos-cc#1, #2 and #4 are fixed. Mutate only in a scratch clone,
-  since it annotates source files. Exit: those three issues. Recorded by
-  2026-10-04.
