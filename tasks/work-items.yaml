@@ -5568,3 +5568,24 @@ items:
       --plugin [<scope>] as its one breach. Once --no-plugin exists, --plugin <scope> can require
       its value and drop no, which changes what is accepted: a breaking change, for the next major
       release.
+
+  - id: p1-cli-kong
+    title: "Weigh moving itos flag parsing to kong: struct tags, --no- pairs and environment variables from one declaration"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user wants kong (alecthomas/kong) kept on the table (2026-10-06): struct tags declare
+      commands, flags, enums and defaults; negatable bools give every offer its --no- pair, so the
+      drift behind p1-init-no-plugin cannot recur; env tags give each flag an environment variable,
+      which itos lacks beside ITOS_GIT; and the parser, the flag table (internal/cli/spec.go, slice
+      88, decision 36) and part of the hand-written help are code itos stops keeping. What it costs
+      is the released contract: help cases are outside previous-release, so generated help is free,
+      but parse errors, their wording and exit 2 (docs/CLI.md rules 19 to 25) are in non-help corpus
+      cases. Kong lets both be replaced, so first a spike in a scratch clone: port init and one noun
+      group, run the corpus and the previous-release check, and count what changes. The count says
+      whether it is a v6.x refactor or waits for the next major release. If it goes ahead,
+      p1-init-plugin-rule-22 folds into it. itos-template uses kong from its start, its evidence for
+      this.
