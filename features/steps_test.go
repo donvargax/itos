@@ -411,6 +411,11 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the commit-msg hook checks the message:$`, func(message *godog.DocString) error {
 		return w.commitMsgHook(message.Content + "\n")
 	})
+	// A docstring may not keep a leading blank line, as an editor leaves one
+	// (bug 36).
+	sc.Step(`^the commit-msg hook checks a message whose first line is blank, then "((?:[^"\\]|\\.)*)"$`, func(message string) error {
+		return w.commitMsgHook("\n" + unescapeQuoted(message) + "\n")
+	})
 
 	sc.Step(`^itos exits with code (\d+)$`, w.exitsWith)
 	sc.Step(`^its output says "([^"]*)"$`, w.outputSays)
