@@ -5338,3 +5338,18 @@ items:
     why: >
       Specified in features/guard.feature.
     refs: [features/guard.feature, internal/launch]
+
+  - id: p1-upgrade-updates-plugin
+    title: itos upgrade updates the Claude Code plugin, an update concern beside the pin
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's report, 2026-10-06: after itos moved to v6 the installed plugin still called v5's
+      names until updated and reloaded by hand. itos upgrade could run claude plugin update
+      itos@itos when claude is on the PATH and the plugin is older than the release names, and say
+      to run /reload-plugins; without claude it says nothing (no flow may need the plugin).
+      Update-related: belongs with p1-upgrade-applies-config-steps and p1-upgrade-on-major.
+      Unqueued; slice-94 makes it less urgent.
