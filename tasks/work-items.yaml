@@ -3762,6 +3762,24 @@ items:
       coordinator leans to it). Before removing the step, done tasks' checks are audited for
       invariants no standing step covers, and those become named steps by rule, not an agent's call.
 
+      Where the design stood on 2026-10-07 (the user's session of 2026-10-06, 23:40 to 00:33; open,
+      v7, q-13 unanswered). The user's concern: agents prove a change with string checks (grep,
+      test, or a unit test calling strings.Contains), which prove an edit happened once, not that
+      anything holds; a separate progress list of string checks beside done_when was rejected as
+      abusable, and done_when must never be empty, since models will do anything to complete the
+      job. Direction: a task's proof is computed from its diff and its type, never written by the
+      model. Go code: itos-cc mutate on the functions the task changed, no surviving mutant and
+      uncovered counting as a failure; perf adds a named benchmark. Gates (workflows, itos.yaml,
+      hooks, tools/bin): mutation of the config, each change to what the task added expected to fail
+      a self-test (itos-cc#11), with actionlint for ci. Docs: the standing rules and the user's
+      review. The checks a coordinator writes today become guidance for the agent, never proof. Core
+      itos owns the rule (each type declares its proof in itos.yaml, work done refuses without it,
+      config check refuses a type that changes code or gates with none); a provider measures
+      (itos-cc first, called with a machine contract, version pinned, in check mode, its cache never
+      read by itos, so a forged cache cannot pass). Needs itos-cc #4 (coverage over the module), #8
+      (check and sample modes), #9 (mutate as a gate provider), #10 (equivalent mutants excepted
+      with reasons), #11 (config mutation, the hardest).
+
   - id: p1-guide-work-show-why
     title: itos guide work says where a slice's or task's why is, not work show's why
     phase: 1
