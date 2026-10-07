@@ -1123,3 +1123,18 @@
   done_when:
     - run: grep -q 'module github.com/donvargax/itos/v7' go.mod
     - run: go build ./...
+
+- id: T-121
+  type: test
+  title: The features build the itos under test with -cover when GOCOVERDIR is set, so its coverage reaches itos-cc
+  why: >
+    Decision 42's code proof (2026-10-07): itos's behaviour is tested by features that run the built
+    itos as another process, and Go records no coverage there unless the binary is built with -cover
+    and GOCOVERDIR names where to write it (Go's integration coverage, go.dev/doc/build-cover).
+    itos-cc#14 asks itos-cc to set GOCOVERDIR and merge what it finds; this task is itos's half:
+    when GOCOVERDIR is set, the features harness builds the itos under test (and any other binary it
+    runs that is itos's own code) with go build -cover, and runs it with GOCOVERDIR passed through;
+    when it is not set, nothing changes. Proven by a run with GOCOVERDIR set leaving coverage data
+    that go tool covdata reads, covering a function only a feature reaches.
+  done_when:
+    - run: d=$(mktemp -d) && GOCOVERDIR=$d go test ./features -count=1 -scenarios=^@ID-PIN-01$ && go tool covdata percent -i=$d | grep -q internal/launch
