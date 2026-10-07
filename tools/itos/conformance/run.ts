@@ -37,6 +37,10 @@
 //   stdout, stderr         the exact text; stdout_has, stderr_has: text each
 //                          must contain (one, or a list); json: stdout's JSON
 //   files_after            files as they must be after the run (null: absent)
+//   git_config_after       entries of the case's git config as they must be after
+//                          the run: key → value (`git config --get-all`, a key
+//                          set more than once its values a line each), or null
+//                          for a key unset; keys it does not name are not read
 //
 // With --additive, which tools/bin/previous-release turns on for the last
 // release's corpus (T-076), stdout and stderr are lines that must all appear
@@ -49,7 +53,8 @@
 // (docs/decisions/0040-a-written-file-is-contract-by-its-data-not-its-comment-lines.md):
 // a .yaml or .yml file by what it parses to, comments dropped, held as json is,
 // a key added passing; a .md file by its text less its HTML comments; any other
-// file whole. The exit code, stdout_has and stderr_has are judged as ever.
+// file whole. The exit code, stdout_has, stderr_has and git_config_after (each
+// entry data, and one it does not name never read, T-113) are judged as ever.
 // Without it, as this corpus runs, every output and every file is pinned
 // exactly, comments and all.
 //
@@ -134,6 +139,7 @@ export interface Case {
 	stderr_has?: string | string[];
 	json?: unknown;
 	files_after?: Files;
+	git_config_after?: Record<string, string | null>;
 	github?: FakeGitHub | null;
 }
 interface FakeLook {
@@ -173,6 +179,7 @@ const CASE_KEYS = new Set([
 	"stderr_has",
 	"json",
 	"files_after",
+	"git_config_after",
 	"github",
 ]);
 const STEP_KEYS = new Set(["commit", "stage", "write", "files", "branch", "checkout", "run", "label"]);
@@ -352,6 +359,15 @@ function git(dir: string, env: NodeJS.ProcessEnv, args: string[], input?: string
 	return run.stdout.trim();
 }
 
+// A key's values in a case's git config, a line each; null when it is unset
+// (git config's exit 1).
+function gitConfigValue(dir: string, env: NodeJS.ProcessEnv, key: string): string | null {
+	const run = spawnSync("git", ["config", "--get-all", key], { cwd: dir, env, encoding: "utf8" });
+	if (run.status === 1) return null;
+	if (run.status !== 0) throw new FixtureError(`git config --get-all ${key} failed:\n${run.stderr}`.trimEnd());
+	return run.stdout.replace(/\n$/, "");
+}
+
 function sh(dir: string, env: NodeJS.ProcessEnv, command: string) {
 	const run = spawnSync("sh", ["-c", command], { cwd: dir, env, encoding: "utf8" });
 	if (run.status !== 0)
@@ -521,6 +537,7 @@ export interface Outcome {
 	stdout: string;
 	stderr: string;
 	files: Record<string, { text: string; executable: boolean } | null>;
+	gitConfig: Record<string, string | null>;
 }
 
 function execute(bin: string, argv: string[], options: { cwd: string; env: NodeJS.ProcessEnv; stdin?: string }) {
@@ -542,6 +559,20 @@ function execute(bin: string, argv: string[], options: { cwd: string; env: NodeJ
 		child.stdin.on("error", () => {});
 		child.stdin.end(options.stdin ?? "");
 	});
+}
+
+// The files and the git config entries a case names, as the run left them.
+function after(dir: string, env: NodeJS.ProcessEnv, c: Case): Pick<Outcome, "files" | "gitConfig"> {
+	const files: Outcome["files"] = {};
+	for (const path of Object.keys(c.files_after ?? {})) {
+		const full = join(dir, path);
+		files[path] = existsSync(full)
+			? { text: readFileSync(full, "utf8"), executable: (statSync(full).mode & 0o111) !== 0 }
+			: null;
+	}
+	const gitConfig: Outcome["gitConfig"] = {};
+	for (const key of Object.keys(c.git_config_after ?? {})) gitConfig[key] = gitConfigValue(dir, env, key);
+	return { files, gitConfig };
 }
 
 // One case, run in a folder of its own; its outcome and the substitution its
@@ -577,14 +608,7 @@ export async function runCase(
 			env,
 			stdin: c.stdin === undefined ? undefined : subst(c.stdin),
 		});
-		const files: Outcome["files"] = {};
-		for (const path of Object.keys(c.files_after ?? {})) {
-			const full = join(dir, path);
-			files[path] = existsSync(full)
-				? { text: readFileSync(full, "utf8"), executable: (statSync(full).mode & 0o111) !== 0 }
-				: null;
-		}
-		return { outcome: { ...run, files }, subst, labels };
+		return { outcome: { ...run, ...after(dir, env, c) }, subst, labels };
 	} finally {
 		github?.closeAllConnections();
 		github?.close();
@@ -774,6 +798,12 @@ export function compare(
 		...Object.entries(c.files_after ?? {}).flatMap(([path, value]) =>
 			fileProblems(path, value, outcome.files[path], subst, additive),
 		),
+		...Object.entries(c.git_config_after ?? {}).flatMap(([key, value]) => {
+			const want = value === null ? null : subst(value);
+			const got = outcome.gitConfig[key] ?? null;
+			const entry = (v: string | null) => (v === null ? "it unset" : JSON.stringify(v));
+			return want === got ? [] : [`git config ${key}: expected ${entry(want)}, got ${entry(got)}`];
+		}),
 	];
 }
 

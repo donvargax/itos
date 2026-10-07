@@ -51,8 +51,11 @@ files:
     fi
   tasks/phase-1.yaml: "- { id: T-001, type: build, title: One }\n"
 cases:
+  # hook install's cases pin what a consumer relies on (decision 35, T-113):
+  # its --json and the entries it leaves in the git config (git_config_after),
+  # the runner's stand-ins (`: itos hook <event>`) where it writes nothing.
   - name: hook install declares both hooks in the git config, and leaves the project's hooks and core.hooksPath alone
-    argv: [hook, install]
+    argv: [hook, install, --json]
     git:
       - commit: "docs: start"
         files: { README.md: "scratch\n", .husky/commit-msg: "npx commitlint --edit \"$1\"\n" }
@@ -61,43 +64,125 @@ cases:
       .husky/commit-msg: "npx commitlint --edit \"$1\"\n"
       .husky/pre-push: null
       .git/hooks/commit-msg: null
+    git_config_after:
+      core.hooksPath: .husky
+      hook.itos-commit-msg.event: commit-msg
+      hook.itos-commit-msg.command: tools/bin/itos hook commit-msg
+      hook.itos-pre-push.event: pre-push
+      hook.itos-pre-push.command: tools/bin/itos hook pre-push
     exit: 0
-    stdout: |
+    json:
+      schema: 1
+      hooks:
+        - name: itos-commit-msg
+          event: commit-msg
+          command: tools/bin/itos hook commit-msg
+          action: wrote
+        - name: itos-pre-push
+          event: pre-push
+          command: tools/bin/itos hook pre-push
+          action: wrote
+    stderr: |
       wrote hook.itos-commit-msg
       wrote hook.itos-pre-push
   - name: an entry already as hook install writes it is left unchanged
-    argv: [hook, install]
+    argv: [hook, install, --json]
     git:
       - run: git config hook.itos-commit-msg.command 'tools/bin/itos hook commit-msg' && git config hook.itos-pre-push.command 'tools/bin/itos hook pre-push'
+    git_config_after: &declared
+      hook.itos-commit-msg.event: commit-msg
+      hook.itos-commit-msg.command: tools/bin/itos hook commit-msg
+      hook.itos-pre-push.event: pre-push
+      hook.itos-pre-push.command: tools/bin/itos hook pre-push
     exit: 0
-    stdout: |
+    json:
+      schema: 1
+      hooks:
+        - name: itos-commit-msg
+          event: commit-msg
+          command: tools/bin/itos hook commit-msg
+          action: unchanged
+        - name: itos-pre-push
+          event: pre-push
+          command: tools/bin/itos hook pre-push
+          action: unchanged
+    stderr: |
       unchanged hook.itos-commit-msg
       unchanged hook.itos-pre-push
   - name: --print prints the git config's entries and writes nothing
     argv: [hook, install, --print]
+    git_config_after: &stand-ins
+      hook.itos-commit-msg.event: commit-msg
+      hook.itos-commit-msg.command: ": itos hook commit-msg"
+      hook.itos-pre-push.event: pre-push
+      hook.itos-pre-push.command: ": itos hook pre-push"
     exit: 0
     stdout: "[hook \"itos-commit-msg\"]\n\tevent = commit-msg\n\tcommand = tools/bin/itos hook commit-msg\n[hook \"itos-pre-push\"]\n\tevent = pre-push\n\tcommand = tools/bin/itos hook pre-push\n"
+  - name: --print --json gives the entries as data, and writes nothing
+    argv: [hook, install, --print, --json]
+    git_config_after: *stand-ins
+    exit: 0
+    json:
+      schema: 1
+      hooks:
+        - name: itos-commit-msg
+          event: commit-msg
+          command: tools/bin/itos hook commit-msg
+          action: printed
+        - name: itos-pre-push
+          event: pre-push
+          command: tools/bin/itos hook pre-push
+          action: printed
+    stderr: ""
   - name: an entry under itos's name that does not call itos is never replaced without --force
-    argv: [hook, install]
+    argv: [hook, install, --json]
     git:
       - run: git config hook.itos-commit-msg.command 'sh tools/own-check.sh'
+    git_config_after:
+      hook.itos-commit-msg.event: commit-msg
+      hook.itos-commit-msg.command: sh tools/own-check.sh
+      hook.itos-pre-push.event: pre-push
+      hook.itos-pre-push.command: tools/bin/itos hook pre-push
     exit: 1
-    stdout: |
-      wrote hook.itos-pre-push
+    json:
+      schema: 1
+      hooks:
+        - name: itos-commit-msg
+          event: commit-msg
+          command: tools/bin/itos hook commit-msg
+          action: refused
+        - name: itos-pre-push
+          event: pre-push
+          command: tools/bin/itos hook pre-push
+          action: wrote
     stderr: |
       hook.itos-commit-msg does not call itos; pass --force to replace it
+      wrote hook.itos-pre-push
   - name: --force replaces an entry that does not call itos
-    argv: [hook, install, --force]
+    argv: [hook, install, --force, --json]
     git:
       - run: git config hook.itos-commit-msg.command 'sh tools/own-check.sh'
+    git_config_after: *declared
     exit: 0
-    stdout: |
+    json:
+      schema: 1
+      hooks:
+        - name: itos-commit-msg
+          event: commit-msg
+          command: tools/bin/itos hook commit-msg
+          action: replaced
+        - name: itos-pre-push
+          event: pre-push
+          command: tools/bin/itos hook pre-push
+          action: wrote
+    stderr: |
       replaced hook.itos-commit-msg
       wrote hook.itos-pre-push
   - name: --json of the entries
     argv: [hook, install, --json]
     git:
       - run: git config hook.itos-pre-push.command 'tools/bin/itos hook pre-push'
+    git_config_after: *declared
     exit: 0
     json:
       schema: 1
@@ -118,6 +203,11 @@ cases:
     files:
       itos.yaml: null
       .git/itos/itos.yaml: "version: 1\nhooks: { bin: itos }\n"
+    git_config_after:
+      hook.itos-commit-msg.event: commit-msg
+      hook.itos-commit-msg.command: itos hook commit-msg
+      hook.itos-pre-push.event: pre-push
+      hook.itos-pre-push.command: itos hook pre-push
     exit: 0
     json:
       schema: 1
@@ -152,6 +242,7 @@ cases:
           exec git "$@"
         executable: true
     env: { ITOS_GIT: "{{dir}}/old-git" }
+    git_config_after: *stand-ins
     exit: 3
     stderr: |
       itos: hook install: git 2.30.0 runs no hook its config declares, so it would run none of itos's checks: upgrade git to 2.54.0 or later
