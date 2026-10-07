@@ -5247,11 +5247,9 @@ items:
     title: itos decision holds what waits on the person, and a question for anyone else is itos followup
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Specified in features/ask.feature (q-18's record).
     refs: [features/ask.feature, internal/cli]
 
   - id: p1-followup-state
