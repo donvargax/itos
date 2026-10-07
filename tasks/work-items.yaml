@@ -5770,3 +5770,19 @@ items:
       and a gate can go wrong unseen until it misjudges a push. go-unit-tests and the ci step could
       take ./tools/... too, or a step run go test over the tools/bin packages a range changes.
     refs: [tools/bin/go-unit-tests, itos.yaml]
+
+  - id: p1-devcontainer-actions-logs
+    title: A red CI run's log is readable inside the devcontainer
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found building T-108 (2026-10-07): AGENTS.md has a session read a red run with gh run view
+      --log-failed, but GitHub answers a job's log with a redirect to Azure blob storage
+      (productionresultssa<n>.blob.core.windows.net), which the devcontainer's allowlist leaves out,
+      so an unattended agent in it cannot read why CI failed. Allowing blob.core.windows.net opens
+      all of Azure storage; the choice is between naming the productionresultssa hosts, or itos ci
+      watch printing the failed steps' annotations and log tail through api.github.com, which the
+      allowlist has.
