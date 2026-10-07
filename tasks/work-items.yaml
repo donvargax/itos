@@ -5887,3 +5887,16 @@ items:
       never reading or writing the working tree; promote applies it as today. Then the coordinator's
       guide says: while an agent runs, write specs in the draft's folder, never in the tree or in
       scratch.
+
+  - id: p1-draft-copies-listed
+    title: itos draft names an edit draft's copies
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-99]
+    kind: idea
+    why: >
+      itos draft edit prints where its copies are once; itos draft and its --json list an edit draft
+      as any change, so a later session that wants to go on editing the copies has to know the
+      edits/<id>/ layout from the help. Listing each edit draft's copies folder (and the paths in
+      --json) would let it find them again.
