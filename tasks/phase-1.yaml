@@ -882,3 +882,17 @@
     start on every platform (macOS has no per-argument limit, hence the 5 MB).
   done_when:
     - run: go test ./internal/cli -count=1 -run TestRollbackGitCannotStart -timeout 60s
+
+- id: T-106
+  type: ci
+  title: previous-release excuses an old failure only when a commit names it, breaking or not
+  why: >
+    Found after v6.0.0 (2026-10-06): previous-release accepted all 232 old scenarios and corpus
+    cases that failed against v6, because excuse() accepts any failure once any commit in the range
+    is marked breaking, before it reads a Changes: footer. One breaking commit (slice 91's) so waived
+    failures it did not cause, and a release could change what it never announced. A breaking commit
+    excuses only the old scenarios and cases it names in Changes:, as a fix must; a feat naming one
+    without being breaking still excuses nothing; the message says to name each failure. AGENTS.md
+    and the coordinator's notes say a breaking commit carries both footers.
+  done_when:
+    - run: go test ./tools/bin/previous-release -count=1
