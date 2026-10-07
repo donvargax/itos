@@ -54,6 +54,7 @@ phases:
   3: donvargax
 
 queue:
+  - slice-100
   - T-121
   - slice-101
   - T-120
