@@ -6053,3 +6053,6 @@ items:
       brief line: run itos-cc mutation run --since <base> --fail-uncovered, with the features'
       coverage, before work done. No interim without coverage. Equivalent mutants go in itos-cc.yaml
       with their reasons, for the person to review.
+    deferred: >
+      Waits on itos-cc#14 (integration coverage) in a release, and on T-121. Resume it when both are
+      there.
