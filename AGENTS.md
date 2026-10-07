@@ -384,6 +384,7 @@ CI runs its plan, `itos ci run`, on every push, in this order, stopping at the f
 - `tools/bin/itos tests smoke check scenario`
 - `tools/bin/itos config check`
 - `go run ./tools/bin/plugin-version -range-from "${FROM-}"`
+- `go run ./tools/bin/doc-budget`
 - The static checks of the tasks the push's commits name.
 - `go run ./tools/bin/deps-check -changed-since "${FROM-}"`
 - `go run ./tools/bin/schema-contract -range-from "${FROM-}"`
@@ -395,7 +396,7 @@ CI runs its plan, `itos ci run`, on every push, in this order, stopping at the f
 - The `scenario` tests of the smoke set and those the push's commits name, in one run.
 - The other checks of the tasks the push's commits name.
 
-A push that touches only `**/*.md` and `docs/**` runs only `vp check`, `tools/bin/itos config check` and `go run ./tools/bin/plugin-version -range-from "${FROM-}"`, and the static checks of the tasks its commits name.
+A push that touches only `**/*.md` and `docs/**` runs only `vp check`, `tools/bin/itos config check`, `go run ./tools/bin/plugin-version -range-from "${FROM-}"` and `go run ./tools/bin/doc-budget`, and the static checks of the tasks its commits name.
 
 The nightly, `itos ci run --nightly`, runs these in order:
 

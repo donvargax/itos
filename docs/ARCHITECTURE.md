@@ -398,6 +398,9 @@ module they judge runs inside them, each documented in its `main.go`:
   means the same (a default changed is breaking), unless a commit says it is
   breaking; checked for a range with a `feat` or a `fix`.
 - `plugin-version`: a range that changes the plugin raises its version.
+- `doc-budget`: the docs every session or most briefs read stay within the
+  byte caps in `tools/bin/doc-budget/caps.json`; in the prose plan too, as
+  docs-only pushes are where the docs grow.
 - `previous-release`: the last release's scenarios and corpus run against
   this tree's binary, the corpus judged by machine output alone in the
   runner's `--additive` mode; a failure is accepted only when a commit since

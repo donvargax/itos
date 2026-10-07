@@ -990,6 +990,7 @@
     the ARCHITECTURE cap needs.
   done_when:
     - run: grep -q doc-budget itos.yaml && go run ./tools/bin/doc-budget
+    - run: go test ./tools/bin/doc-budget -count=1
 
 - id: T-111
   type: ci
