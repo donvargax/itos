@@ -5756,3 +5756,19 @@ items:
       lists nothing and exits 0, where docs/CLI.md rule 25 (check each argument before using it,
       refuse a bad one with exit 2) wants a refusal naming work.tags, as work add and work edit
       already refuse it.
+
+  - id: p1-go-comments-without-history
+    title: The Go code's comments say what and why, not which slice or bug made it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-109]
+    kind: idea
+    why: >
+      Found in T-109: the package doc comments dropped their history when docs/ARCHITECTURE.md
+      became a map, but the comments on functions and types in internal/ and cmd/ still name slices
+      and bugs some 263 times (slice 52, bug 16, since T-087), history vp run changelog --
+      --task/--scenario keeps. A comment that says why, without when, reads the same after the next
+      slice; one naming a decision record or a scenario where it is the reason to read further
+      stays.
+    refs: [internal/, cmd/]
