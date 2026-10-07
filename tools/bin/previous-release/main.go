@@ -34,7 +34,10 @@
 // key added passes, since an output that only adds breaks no consumer
 // (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md);
 // one removed or changed fails, so a rule id renamed or a problem dropped is a
-// break, as is an exit code changed or a file written differently. The runner
+// break, as is an exit code changed or a file's data written differently. A
+// written YAML file is judged by its data as json is, and a Markdown file by
+// its text less its HTML comments: a file's comment lines are for people
+// (docs/decisions/0040-a-written-file-is-contract-by-its-data-not-its-comment-lines.md). The runner
 // asks the binary its version for the corpus's {{version}}, so a binary
 // stamped with a version the tag never had is not failed for saying it.
 //

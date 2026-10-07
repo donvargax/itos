@@ -11,9 +11,11 @@
 // tag never had, as T-069's builds will. Three more cases are refusals: two
 // usage errors and a config error; the reworded binary says other words for
 // all three and changes one usage error's exit code. Two more pin a report's
-// lines and a JSON object holding a message and a fix: the adding binary adds
-// keys to the object, rewords its message and fix and rewrites the report,
-// and three more each break one of them by machine output.
+// lines and a JSON object holding a message and a fix, and one more writes a
+// YAML and a Markdown file: the adding binary adds keys to the object,
+// rewords its message and fix, rewrites the report and rewrites the files'
+// comments, reordering the YAML's keys and adding one, and six more each
+// break one of them by machine output, a written file by its data.
 //
 //   - the binary the release was written for passes, its version the
 //     corpus's {{version}} whatever the tag's package.json says, and what is
@@ -27,8 +29,11 @@
 //     alone differ;
 //   - the adding one passes: a key added to the JSON, at the top and deeper,
 //     a message and a fix reworded and a report rewritten (T-076, decision
-//     35); one with a key removed, a value changed or an exit code changed
-//     fails, naming that case alone;
+//     35), and a written file's comment lines changed, its YAML's keys
+//     reordered and one added (T-112, decision 40); one with a key removed, a
+//     value changed or an exit code changed, in the JSON or a written YAML
+//     file, or a written Markdown file's text changed, fails, naming that case
+//     alone;
 //   - the broken one fails with no commit since the tag that says why, naming
 //     the scenario, the case and the remedy, and no help case, its help's
 //     words not judged; a fix and a !
@@ -140,9 +145,10 @@ func TestFeatures(t *testing.T) {
     exit: 0
     stdout: "itos {{version}}\\n"
 `,
-	// A report's lines, which are for people, and a JSON object, to which a new
+	// A report's lines, which are for people, a JSON object, to which a new
 	// binary may add and from which it may take nothing, its message and fix
-	// for people too.
+	// for people too, and a YAML and a Markdown file it writes, whose data is
+	// its contract and whose comments are for people (decision 40).
 	"tools/itos/conformance/report.yaml": `cases:
   - name: reports three lines
     argv: [report]
@@ -152,6 +158,12 @@ func TestFeatures(t *testing.T) {
     argv: [state]
     exit: 0
     json: { state: { ready: true, items: [a, b], message: all ready }, count: 2, fix: nothing to fix }
+  - name: writes its policy and its notes
+    argv: [write]
+    exit: 0
+    files_after:
+      policy.yaml: "# The policy, for people.\\nname: scratch\\nchecks: [a, b] # both of them\\n"
+      NOTES.md: "<!-- Written by itos. -->\\n# Notes\\n\\nready <!-- for now -->\\n"
 `,
 	// Refusals: two usage errors and a config error, judged as every case is,
 	// by their exit codes alone, their words for people.
@@ -198,10 +210,14 @@ interface Says {
 	report?: string;
 	reported?: number;
 	state?: string;
+	policy?: string;
+	notes?: string;
 }
 const lines = "one\\ntwo\\nthree\\n";
 const state =
 	'{"count":2,"fix":"nothing to fix","state":{"ready":true,"items":["a","b"],"message":"all ready"}}';
+const policy = "# The policy, for people.\\nname: scratch\\nchecks: [a, b] # both of them\\n";
+const notes = "<!-- Written by itos. -->\\n# Notes\\n\\nready <!-- for now -->\\n";
 const binary = ({
 	greeting = "hello",
 	greeted = 0,
@@ -212,6 +228,8 @@ const binary = ({
 	report = lines,
 	reported = 0,
 	state: said = state,
+	policy: wrote = policy,
+	notes: noted = notes,
 }: Says) => `#!/bin/sh
 case "$1" in
 --help | help) echo "${help}" ;;
@@ -219,6 +237,9 @@ report)
 	printf '${report}'
 	exit ${reported} ;;
 state) echo '${said}' ;;
+write)
+	printf '${wrote}' >policy.yaml
+	printf '${noted}' >NOTES.md ;;
 greet)
 	if [ $# -gt 1 ]; then
 		echo "itos: greet takes no argument${takes} ($2) (itos --help)" >&2
@@ -253,6 +274,10 @@ writeFileSync(
 		report: "1\\n3\\n2\\n",
 		state:
 			'{"count":2,"since":1,"fix":"none needed","state":{"ready":true,"items":["a","b"],"note":"x","message":"ready, all of it"}}',
+		policy:
+			"# Reworded, as people read it.\\nchecks:\\n  - a\\n  - b\\nname: scratch\\nsince: 1\\n",
+		notes:
+			"# Notes\\n<!-- itos wrote this;\\n  edit it freely. -->\\n\\nready <!-- until it is not -->\\n",
 	}),
 );
 // Each takes something away: a key, a value, an exit code.
@@ -271,6 +296,21 @@ const taking = [
 		says: { state: state.replace("true", "false") },
 	},
 	{ what: "an exit code changed", case: "reports three lines", says: { reported: 1 } },
+	{
+		what: "a written YAML file's value changed",
+		case: "writes its policy and its notes",
+		says: { policy: policy.replace("[a, b]", "[a, c]") },
+	},
+	{
+		what: "a written YAML file's key removed",
+		case: "writes its policy and its notes",
+		says: { policy: policy.replace("name: scratch\\n", "") },
+	},
+	{
+		what: "a written Markdown file's text changed",
+		case: "writes its policy and its notes",
+		says: { notes: notes.replace("ready", "not ready") },
+	},
 ].map((t, i) => ({ ...t, bin: join(tmp, `taking-${i}`) }));
 for (const t of taking) writeFileSync(t.bin, binary(t.says));
 for (const bin of [good, wordy, broken, reworded, adding, ...taking.map((t) => t.bin)])
@@ -351,12 +391,12 @@ try {
 	// corpus's {{version}}; what is left out of every case is said with its count.
 	on("main");
 	let r = run(repo, ["-bin", good]);
-	const machine = "v1.0.0's conformance corpus: its 11 cases judged by itos's machine output alone";
+	const machine = "v1.0.0's conformance corpus: its 12 cases judged by itos's machine output alone";
 	const leftOut = "the plain stdout and stderr of 10 cases and 2 keys named message or fix";
 	expect(
 		r.status === 0 &&
 			r.output.includes("v1.0.0's scenarios: all 2 pass") &&
-			r.output.includes("11/11 conformance cases pass") &&
+			r.output.includes("12/12 conformance cases pass") &&
 			r.output.includes(machine) &&
 			r.output.includes(leftOut) &&
 			r.output.includes("docs/decisions/0035-"),
@@ -369,7 +409,7 @@ try {
 	expect(
 		r.status === 0 &&
 			r.output.includes(leftOut) &&
-			r.output.includes("11/11 conformance cases pass") &&
+			r.output.includes("12/12 conformance cases pass") &&
 			!r.output.includes("help.yaml: itos --help") &&
 			!r.output.includes("fails"),
 		`a binary whose help and usage errors' words alone differ should pass, exited ${r.status}:\n${r.output}`,
@@ -385,22 +425,25 @@ try {
 			r.output.includes("exit: expected 2, got 1") &&
 			!r.output.includes("a config that is not version 1") &&
 			!r.output.includes("an unknown command is a usage error") &&
-			r.output.includes("10/11 conformance cases pass"),
+			r.output.includes("11/12 conformance cases pass"),
 		`a usage error whose exit code changed should be refused, and no case whose words alone differ named, exited ${r.status}:\n${r.output}`,
 	);
 
 	// 1c. One that adds keys to the JSON at the top and deeper, rewords its
-	// message and fix and rewrites the report passes: the old json is judged
-	// additively, less message and fix, and plain output not at all.
+	// message and fix, rewrites the report, and rewrites the comments of the
+	// files it writes, reorders the YAML's keys and adds one, passes: the old
+	// json is judged additively, less message and fix, plain output not at all,
+	// and a written file by its data, its comment lines for people (decision 40).
 	r = run(repo, ["-bin", adding]);
 	expect(
 		r.status === 0 &&
-			r.output.includes("11/11 conformance cases pass") &&
+			r.output.includes("12/12 conformance cases pass") &&
 			!r.output.includes("fails"),
-		`a binary that adds keys to an old case's JSON, rewords its message and fix and rewrites its stdout should pass, exited ${r.status}:\n${r.output}`,
+		`a binary that adds keys to an old case's JSON, rewords its message and fix, rewrites its stdout and changes only the comments and the key order of the files it writes, adding a key, should pass, exited ${r.status}:\n${r.output}`,
 	);
-	// One that takes a key away, changes a value or changes an exit code is
-	// refused, naming that case alone.
+	// One that takes a key away, changes a value or changes an exit code, in
+	// the JSON or in a file it writes, or changes a written Markdown file's
+	// text, is refused, naming that case alone.
 	for (const t of taking) {
 		r = run(repo, ["-bin", t.bin]);
 		const other = taking.find((o) => o.case !== t.case)!.case;
@@ -408,7 +451,7 @@ try {
 			r.status === 1 &&
 				r.output.includes(`v1.0.0's conformance case report.yaml: ${t.case}`) &&
 				!r.output.includes(`report.yaml: ${other}`) &&
-				r.output.includes("10/11 conformance cases pass"),
+				r.output.includes("11/12 conformance cases pass"),
 			`a binary with ${t.what} in an old case's output should be refused, naming that case alone, exited ${r.status}:\n${r.output}`,
 		);
 	}
@@ -429,7 +472,7 @@ try {
 	expect(
 		r.output.includes("1 of 2 fail") &&
 			!r.output.includes("says its name") &&
-			r.output.includes("10/11 conformance cases pass") &&
+			r.output.includes("11/12 conformance cases pass") &&
 			!r.output.includes("help.yaml: itos --help") &&
 			!r.output.includes("help greet"),
 		`only the scenario and the case the binary breaks should be named, no help case, exited ${r.status}:\n${r.output}`,
