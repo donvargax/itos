@@ -36,6 +36,7 @@ stays a map:
 | `.goreleaser.yaml`          | The release build.                                                                                         |
 | `.vite-hooks/pre-commit`    | The project's own pre-commit hook; itos's hooks live in the git config.                                    |
 | `deps-check.json`           | The dependency check's exceptions, each with a reason.                                                     |
+| `.devcontainer/`            | A sandbox for Claude Code on this repository: shim first, egress allowlisted. Its README says how.         |
 
 itos is Go. `go.mod` is the module `github.com/donvargax/itos/v6`: from v2 a
 module path ends in its major version or Go refuses its tag, so the path
