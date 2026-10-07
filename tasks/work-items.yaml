@@ -4185,7 +4185,7 @@ items:
     title: The commit-msg hook reads the type from the message git will store
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
