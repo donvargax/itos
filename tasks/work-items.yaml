@@ -5786,3 +5786,19 @@ items:
       all of Azure storage; the choice is between naming the productionresultssa hosts, or itos ci
       watch printing the failed steps' annotations and log tail through api.github.com, which the
       allowlist has.
+
+  - id: p1-devcontainer-nightly-build
+    title: The nightly builds the devcontainer and proves its sandbox
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found building T-108 (2026-10-07): nothing in CI or the nightly builds .devcontainer, so a
+      change to the Dockerfile, the firewall script or a pinned version (itos, Go, pnpm, the base
+      image's digest, whose git must stay 2.54 or newer) can break the container unseen until
+      someone starts it. T-108 proved it by hand: sudo -n true and iptables -F OUTPUT refused, the
+      allowlist applied after a restart, git the shim, a name outside the list refused and an
+      address outside it rejected, go build and a commit through the hooks. A nightly step could
+      build the image and run those probes, failing the run on any.
