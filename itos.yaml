@@ -107,7 +107,9 @@ commits:
         - "{cmd,internal}/**/*_test.go" # itos's unit tests, the Go packages'
         - "tools/itos/conformance/**"
         - "tools/itos/fixtures/**"
-    build: { only: [$config] }
+    # The devcontainer (T-108): its Dockerfile, firewall script, post-install script and the
+    # LICENSE of the base it came from, which $config's extensions leave out. Not ci's.
+    build: { only: [$config, ".devcontainer/**"] }
     ci: { only: [$config] }
     chore: { never: [$implementation, $gates] }
     docs: { only: ["**/*.md", "docs/**", "tasks/**", "features/**/*.feature"] }
