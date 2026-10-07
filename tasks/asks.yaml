@@ -90,3 +90,6 @@ questions:
   - id: q-23
     item: "bug-42"
     question: "bug-42 (under --stealth, a yes at the terminal writes nothing) shows only on a real terminal; the features have no pseudo-terminal. Recommended: add a pseudo-terminal step to the features (github.com/creack/pty, Unix only, the scenario skipped on Windows), which also lets init's other questions be specified. Or: prove it with a unit test of the branch and land it as a refactor task in place of the bug."
+  - id: q-24
+    item: "p1-nightly-late-done-checks"
+    question: "How is v7 released while its bundle lands one item at a time, given that every green push with a breaking commit cuts a major of its own today?"
