@@ -4783,8 +4783,8 @@ items:
   - id: T-104
     title: The features and unit tests run the real git, never an itos linked as git
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
