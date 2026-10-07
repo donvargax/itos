@@ -50,7 +50,18 @@ type releaseServer struct {
 	// Whether the scenario made it unreachable: itos is then given an address
 	// nothing answers on in its place.
 	unreachable bool
+	// The cache the first download of an archive waits on, when the scenario
+	// holds it (bug 44): it is served once another run has cached the
+	// release there. "" when nothing is held.
+	holdCache string
+	archives  int         // the archives asked for so far, while the hold is set
+	cachedBy  os.FileInfo // the release folder the other run cached, as the held download found it
 }
+
+// How long the held download waits for the other run to cache the release
+// before it is served anyway, so a run that never caches it cannot hang the
+// scenario; otherRunsReleaseKept then says so.
+const holdTimeout = 30 * time.Second
 
 func (r *releaseServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	r.mu.Lock()
@@ -60,12 +71,46 @@ func (r *releaseServer) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		path = releasePath(r.latest, asset)
 	}
 	body, ok := r.files[path]
+	held := false
+	if r.holdCache != "" && ok && !strings.HasSuffix(path, "/checksums.txt") {
+		r.archives++
+		held = r.archives == 1
+	}
 	r.mu.Unlock()
+	if held {
+		r.waitForCache(path)
+	}
 	if !ok {
 		http.NotFound(rw, req)
 		return
 	}
 	_, _ = rw.Write(body)
+}
+
+// waitForCache holds the download of the archive at path until another run
+// has cached its version, <cache>/<version>/ holding its checksums.txt, which
+// a run moves into place with the binary as one folder; it keeps that folder
+// as found, for otherRunsReleaseKept.
+func (r *releaseServer) waitForCache(path string) {
+	version, _, _ := strings.Cut(strings.TrimPrefix(path, "/download/v"), "/")
+	dir := filepath.Join(r.holdCache, version)
+	for deadline := time.Now().Add(holdTimeout); time.Now().Before(deadline); time.Sleep(time.Millisecond) {
+		if _, err := os.Stat(filepath.Join(dir, "checksums.txt")); err != nil {
+			continue
+		}
+		info, err := os.Stat(dir)
+		if err != nil {
+			continue
+		}
+		// On windows os.Stat reads a file's identity only when it is first
+		// compared, from the path: it is read now, while the folder is the
+		// one the other run cached.
+		os.SameFile(info, info)
+		r.mu.Lock()
+		r.cachedBy = info
+		r.mu.Unlock()
+		return
+	}
 }
 
 func (r *releaseServer) set(path string, body []byte) {
@@ -117,6 +162,8 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the release server's checksums\.txt of "([^"]*)" is replaced$`, w.replaceChecksums)
 	sc.Step(`^the release server's archive of "([^"]*)" for this platform is replaced$`, w.replaceArchive)
 	sc.Step(`^the release server cannot be reached$`, w.releaseServerUnreachable)
+	sc.Step(`^the release server holds the first download of a release until the other run has cached it$`, w.holdFirstDownload)
+	sc.Step(`^the release the other run cached is still the one in the cache$`, w.otherRunsReleaseKept)
 	sc.Step(`^the repository has no itos\.yaml$`, w.noConfig)
 	sc.Step(`^([A-Z][A-Z0-9_]*) is "([^"]*)"$`, w.setVariable)
 	sc.Step(`^itos has already run "([^"]*)"$`, w.alreadyRan)
@@ -144,6 +191,15 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the config is unchanged$`, w.configUnchanged)
 	sc.Step(`^the version "([^"]*)" ran with the arguments "([^"]*)"$`, w.versionRanWithArguments)
 	sc.Step(`^the version "([^"]*)" ran with ITOS_VERSION "([^"]*)"$`, w.versionRanWithVersion)
+	sc.Step(`^the version "([^"]*)" ran with the arguments "([^"]*)" twice$`, func(version, args string) error {
+		return w.versionRanTimes(version, args, 2)
+	})
+	// Two runs of the same command line at once (bug 44), started together as
+	// allAtOnce starts them, each its own exit and output.
+	sc.Step(`^two runs of itos "([^"]*)" start at once$`, func(line string) error {
+		return w.allAtOnce([][]string{strings.Fields(line), strings.Fields(line)})
+	})
+	sc.Step(`^both runs exit with code 0$`, w.everyRunExited0)
 	sc.Step(`^no version of the release server ran$`, func() error { return w.noVersionRan(false) })
 	sc.Step(`^no version of the release server ran since the last run$`, func() error { return w.noVersionRan(true) })
 	sc.Step(`^the release server was asked for nothing$`, func() error { return w.askedForNothing(false) })
@@ -162,6 +218,40 @@ func (w *world) startReleaseServer(versions ...string) error {
 		}
 	}
 	r.latest = versions[len(versions)-1]
+	return nil
+}
+
+// The release server holds the first archive asked for until another run has
+// cached the release, so of two runs fetching it at once the held one always
+// finishes its fetch with the release already cached by the other: the race
+// is forced every time, not left to chance (bug 44).
+func (w *world) holdFirstDownload() error {
+	if err := w.needReleases(); err != nil {
+		return err
+	}
+	w.releases.mu.Lock()
+	defer w.releases.mu.Unlock()
+	w.releases.holdCache = w.cacheDir()
+	return nil
+}
+
+// The release folder the other run cached while the held download waited is
+// still the one in the cache: no run removed or replaced it.
+func (w *world) otherRunsReleaseKept() error {
+	w.releases.mu.Lock()
+	cached := w.releases.cachedBy
+	w.releases.mu.Unlock()
+	if cached == nil {
+		return fmt.Errorf("no run cached the release while the held download waited %s", holdTimeout)
+	}
+	dir := filepath.Join(w.releases.holdCache, cached.Name())
+	now, err := os.Stat(dir)
+	if err != nil {
+		return fmt.Errorf("the release the other run cached is gone: %v", err)
+	}
+	if !os.SameFile(cached, now) {
+		return fmt.Errorf("the release the other run cached, %s, was replaced by another folder", dir)
+	}
 	return nil
 }
 
@@ -452,6 +542,25 @@ func (w *world) versionRanWithArguments(version, args string) error {
 		}
 	}
 	return fmt.Errorf("the version %s did not run with the arguments %q; its runs: %v\n%s", version, args, runs, w.report())
+}
+
+// The version ran with the arguments exactly times times in the last run of
+// itos, or the runs started at once.
+func (w *world) versionRanTimes(version, args string, times int) error {
+	runs, err := w.lastRunsOf(version)
+	if err != nil {
+		return err
+	}
+	n := 0
+	for _, r := range runs {
+		if r.args == args {
+			n++
+		}
+	}
+	if n != times {
+		return fmt.Errorf("the version %s ran with the arguments %q %d times, not %d; its runs: %v\n%s", version, args, n, times, runs, w.report())
+	}
+	return nil
 }
 
 func (w *world) versionRanWithVersion(version, itosVersion string) error {

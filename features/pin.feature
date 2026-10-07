@@ -213,12 +213,15 @@ Feature: A global itos runs the version a repository pins
   # with exit 3 (on Windows the removal fails on the running exe). A run that
   # finds the release cached by another while it fetched uses that one; two
   # first runs both run the pin. The fake release server holds the first
-  # archive download until the second run has asked for it, so the two
-  # fetches overlap every time, not by chance.
+  # archive download until the other run has cached the release, so the race
+  # is forced every time, not left to chance, and the scenario judges that
+  # the release cached first is kept, not replaced (the folder itself, not a
+  # copy: a run about to exec the binary in it must find it there).
   @ID-PIN-21 @bug-44 @wip
   Scenario: Two first runs of a newly pinned release both run it, neither undoing the other
     Given the config pins the version "9.1.0" of the release server
-    And the release server holds the first download of a release until a second one is asked for
+    And the release server holds the first download of a release until the other run has cached it
     When two runs of itos "version" start at once
     Then both runs exit with code 0
     And the version "9.1.0" ran with the arguments "version" twice
+    And the release the other run cached is still the one in the cache
