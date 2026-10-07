@@ -527,15 +527,21 @@ try {
 			r.output.includes("it is ambiguous, so it names none of them"),
 		`a fix naming the case by a prefix two cases start with should leave it refused, warning that the entry is ambiguous, exited ${r.status}:\n${r.output}`,
 	);
-	// One naming the scenario alone leaves the case refused.
-	on("fixed-scenario");
-	r = run(repo, ["-bin", broken]);
-	expect(
-		r.status === 1 &&
-			r.output.includes(`${scenario} fails, accepted: the fix`) &&
-			r.output.includes(`${corpusCase} fails against this tree's itos`),
-		`a fix naming only the scenario should leave the case refused, exited ${r.status}:\n${r.output}`,
-	);
+	// One naming the scenario alone leaves the case refused, as does a breaking
+	// change naming it alone (T-106), v6.0.0's shape.
+	for (const [name, by] of [
+		["fixed-scenario", "the fix"],
+		["footer-scenario", "the breaking change"],
+	]) {
+		on(name);
+		r = run(repo, ["-bin", broken]);
+		expect(
+			r.status === 1 &&
+				r.output.includes(`${scenario} fails, accepted: ${by}`) &&
+				r.output.includes(`${corpusCase} fails against this tree's itos`),
+			`${by} naming only the scenario should leave the case refused, exited ${r.status}:\n${r.output}`,
+		);
+	}
 
 	// 4. A feat naming both is refused, naming each: a feat's Changes: excuses
 	// one only on a fix or a breaking change (T-106).
@@ -554,13 +560,16 @@ try {
 	// 5. A breaking change since the tag, by a footer or by a ! in a header,
 	// excuses only what its Changes: names (T-106). Naming nothing, it is
 	// refused, naming the scenario, the case and the remedy.
+	const refusedBoth = (out: string) =>
+		[scenario, corpusCase].every((what) =>
+			out.includes(`v1.0.0's ${what} fails against this tree's itos`),
+		);
 	for (const name of ["footer", "bang"]) {
 		on(name);
 		r = run(repo, ["-bin", broken]);
 		expect(
 			r.status === 1 &&
-				r.output.includes(`v1.0.0's ${scenario} fails against this tree's itos`) &&
-				r.output.includes(`v1.0.0's ${corpusCase} fails against this tree's itos`) &&
+				refusedBoth(r.output) &&
 				r.output.includes("being breaking excuses only what its Changes: names") &&
 				!r.output.includes("accepted") &&
 				!r.output.includes(onlyOn),
@@ -574,20 +583,12 @@ try {
 		const named = `accepted: the breaking change ${git(repo, "rev-parse", "HEAD").slice(0, 7)} "`;
 		expect(
 			r.status === 0 &&
-				r.output.includes(`${scenario} fails, ${named}`) &&
-				r.output.includes(`${corpusCase} fails, ${named}`),
+				[scenario, corpusCase].every((what) => r.output.includes(`${what} fails, ${named}`)),
 			`a breaking change (${name}) naming the scenario and the case in Changes: should accept both, exited ${r.status}:\n${r.output}`,
 		);
 	}
-	// Naming the scenario alone, it leaves the case refused.
-	on("footer-scenario");
-	r = run(repo, ["-bin", broken]);
-	expect(
-		r.status === 1 &&
-			r.output.includes(`${scenario} fails, accepted: the breaking change`) &&
-			r.output.includes(`v1.0.0's ${corpusCase} fails against this tree's itos`),
-		`a breaking change naming only the scenario in Changes: should leave the case refused, exited ${r.status}:\n${r.output}`,
-	);
+	// Naming the scenario alone, it leaves the case refused: checked with the
+	// fix naming it alone, in 3.
 
 	// 6. Changes: entries that name nothing of the release are warnings.
 	on("unknown");
