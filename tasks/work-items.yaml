@@ -5785,8 +5785,8 @@ items:
   - id: T-114
     title: The gates self-test touches a Go source without anchoring on its comment layout
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
