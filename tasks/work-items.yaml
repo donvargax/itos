@@ -6094,3 +6094,22 @@ items:
       (the Go tests through internal/git, the scripts through the git it resolves or ITOS_GIT), not
       a second copy of it. Proven by running them with a link to the built itos first on the PATH as
       git, as T-104's check does.
+
+  - id: T-123
+    title: A module path ahead of the last release's major cuts that major (or its release candidate) for any releasable commit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Found by T-119's agent (2026-10-07): with go.mod at /v7, v6.5.1 the last release and the
+      pre-release marker on, a feat or a fix with no breaking change still computes 6.6.0 or 6.5.2,
+      which T-089's module-path rule refuses, so the release job fails and main goes red; only a
+      breaking commit would cut v7.0.0-rc.1. A module path ahead of the last release's major already
+      promises that major: release-version cuts <major>.0.0 (or <major>.0.0-rc.<n> with the marker
+      on) for any releasable commit when go.mod's major is above the last release's, and refuses as
+      today when it is below. Proven by release-version's tests on scratch histories: a fix after a
+      /v7 move cuts 7.0.0-rc.1 with the marker and 7.0.0 without, a docs-only push still releases
+      nothing. It lands before any feat or fix, so main never goes red waiting for slice-100's
+      breaking change. Was p1-release-major-from-module-path.
