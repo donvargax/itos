@@ -6091,8 +6091,8 @@ items:
   - id: T-123
     title: A module path ahead of the last release's major cuts that major (or its release candidate) for any releasable commit
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
