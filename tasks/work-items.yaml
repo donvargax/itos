@@ -5980,3 +5980,16 @@ items:
       launcher's update notice that 7.0.0 is out, and itos upgrade from an rc to the final release,
       or to a later rc, walks no release and prints nothing it asks. A fix, with a bug scenario,
       before the first rc is pinned anywhere.
+
+  - id: T-119
+    title: itos's module path moves to /v7 and the pre-release marker is on, the first v7 work
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Decision 42 (2026-10-07): v7 ships as pre-releases, so the first v7 commits move the module
+      path to github.com/donvargax/itos/v7 (T-089: no v7 tag from a /v6 go.mod), as T-099 and T-101
+      moved it before, and turn on T-118's pre-release marker in itos.yaml (a ci commit), so the
+      next feat or breaking change cuts v7.0.0-rc.1. After it, main cuts no 6.x patch.

@@ -1111,3 +1111,15 @@
     # work, after this task, so its presence proves nothing here. The rc notes are proven instead,
     # as the rc numbering is above, by running the tools.
     - run: go test ./tools/bin/release-notes -count=1
+
+- id: T-119
+  type: refactor
+  title: itos's module path moves to /v7 and the pre-release marker is on, the first v7 work
+  why: >
+    Decision 42 (2026-10-07): v7 ships as pre-releases, so the first v7 commits move the module path
+    to github.com/donvargax/itos/v7 (T-089: no v7 tag from a /v6 go.mod), as T-099 and T-101 moved
+    it before, and turn on T-118's pre-release marker in itos.yaml (a ci commit), so the next feat
+    or breaking change cuts v7.0.0-rc.1. After it, main cuts no 6.x patch.
+  done_when:
+    - run: grep -q 'module github.com/donvargax/itos/v7' go.mod
+    - run: go build ./...
