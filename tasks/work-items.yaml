@@ -5727,3 +5727,20 @@ items:
       the only kill (tools/selftest/plugin-version.ts, step 7). A lint over the tests and self-tests
       refuses reading the policy files as text; the existing ones are removed or turned into runs of
       the gate (itos ci plan, a hook run).
+
+  - id: p1-corpus-orphan-loop
+    title: A corpus case's fake git never loops with tools/bin/dev-version, and the runner kills a case's whole process group
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found 2026-10-07: two processes spun at 100% CPU for 38 minutes, orphaned. A conformance
+      case's fake old git (case/old-git, a git older than 2.54.0) was on the PATH when
+      tools/bin/dev-version ran git -C <repo> rev-parse, and the fake and git called each other
+      without end; the run that started them had ended, its children left to init. Two fixes: the
+      fake hands any other git call to the real git by an absolute path (or ITOS_GIT, as the
+      features do since T-104), never to a git found on the PATH; and the runner starts each case in
+      a process group of its own and kills the group on timeout or exit, so nothing outlives the
+      run.
