@@ -5486,3 +5486,14 @@ items:
     why: >
       Which items may run side by side is the coordinator judgement today; items carry refs, so itos
       can flag two doing items whose refs overlap. Found discussing parallel work, 2026-10-06.
+
+  - id: p1-pr-items
+    title: A pull request names its item, its merge closes it, and work done reads merged-and-green from GitHub
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-pr-mode]
+    kind: idea
+    why: >
+      The user, 2026-10-06: pr mode can pair with GitHub for itos items, as the inbox already turns
+      issues into items. Kept apart from p1-pr-mode so the switch stays small.
