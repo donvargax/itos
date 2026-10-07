@@ -5877,7 +5877,7 @@ items:
     why: >
       T-115 measured the Windows features (run 37651609008): the time is process starts, not slow
       scenarios. Every scenario's set-up runs git init and four git configs (215 ms on Windows with
-      four at a time), and committing its ledger three gits (349 ms), 50 percent of the suite's time
+      four at a time), and committing its ledger three gits (349 ms), 40 percent of the suite's time
       between them. Writing the hooks' entries into .git/config and the commit's sha from its output
       would cut that, and the job's headroom grows back as the suite grows; worth it only when the
       Windows Features step nears 300 s again.
