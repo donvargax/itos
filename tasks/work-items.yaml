@@ -5786,12 +5786,6 @@ items:
     title: The gates self-test touches a Go source without anchoring on its comment layout
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      T-109 moved each package comment into a doc.go, so internal/version/version.go now starts with
-      its package clause, and tools/selftest/gates.ts, which anchored its docs-commit edit on a
-      newline before that clause, threw and turned the nightly red. The edit only needs a Go source
-      under internal/ that a docs commit may not touch, so it appends a line to the file instead,
-      which no later move of its comments can break.
