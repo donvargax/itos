@@ -880,6 +880,10 @@
     perf bug of itos, fixed in itos with a unit test holding a large message to a time bound; only if
     itos is linear does the test change, and then it must still prove the rollback when git cannot
     start on every platform (macOS has no per-argument limit, hence the 5 MB).
+
+    Likely cause, found by slice-96's agent (2026-10-07, idea p1-wrap-long-body): message.wrapLine
+    joins the rest of the line at every break, so wrapping a body is quadratic, and the test's 5 MB
+    body takes about 300 s. Profile first, as above; if that is it, fold p1-wrap-long-body in.
   done_when:
     - run: go test ./internal/cli -count=1 -run TestRollbackGitCannotStart -timeout 60s
 
