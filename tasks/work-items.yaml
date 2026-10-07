@@ -5864,8 +5864,8 @@ items:
   - id: T-116
     title: Sessions in repositories that use itos report its problems once, after checking the release and searching the issues
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
