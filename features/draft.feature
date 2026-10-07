@@ -162,3 +162,18 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     When itos runs the command line "draft add add-thing -- work add p1-other --title 'Another' --why 'Because.'"
     Then itos exits with code 1
     And its output says "add-thing"
+
+  # A merge or a rebase stopped part way holds the index and the work tree
+  # as much as a change does: a draft's commit there would conclude it. The
+  # draft is a change, since a command's own commit refuses a merge itself.
+  @ID-DRAFT-12 @slice-96 @wip
+  Scenario: draft promote refuses while a rebase or a merge is in progress, and applies nothing
+    Given the committed file "notes.md" holding "Old."
+    And the file "notes.md" is changed to hold "New."
+    And itos has run the command line "draft add say-new -m 'docs: say new' notes.md"
+    And a merge is in progress, with no change to commit
+    When itos runs "draft promote"
+    Then itos exits with code 1
+    And its output says "merge"
+    And the file "notes.md" says "Old."
+    And the last commit's header is not "docs: say new"
