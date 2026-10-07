@@ -5290,3 +5290,14 @@ items:
     why: >
       Specified in features/watch.feature.
     refs: [features/watch.feature, internal/providers]
+
+  - id: slice-93
+    title: work done passes over commits that touch only the work registry, so one push lands many closes
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified in features/work.feature.
+    refs: [features/work.feature, internal/work]
