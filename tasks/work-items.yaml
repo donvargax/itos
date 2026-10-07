@@ -5643,6 +5643,13 @@ items:
       conformance runner (tools/itos/conformance/run.ts) and its fakes do not yet, which is this
       item's first fix.
 
+      Folded in p1-corpus-real-git (T-122's agent, 2026-10-07): the conformance runner
+      (tools/itos/conformance/run.ts) starts the name git and drops every ITOS_ variable, so with an
+      itos linked as git first on the PATH a corpus run printed nothing for ten minutes; with
+      /usr/bin first, 887 cases pass in 22 s. T-122 gave tools/bin/real-git, which prints the git
+      internal/git resolves: the runner and its fakes use it, and pass ITOS_GIT, as
+      tools/selftest/scratch.ts now does.
+
   - id: p1-work-list-unknown-tag
     title: work list --tag refuses a tag the config does not declare, exit 2
     phase: 1
