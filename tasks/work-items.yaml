@@ -5865,14 +5865,6 @@ items:
     title: Sessions in repositories that use itos report its problems once, after checking the release and searching the issues
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      The user's call (2026-10-07): nothing told a session how to report a problem with itos, and
-      with adoption one bug would arrive as many issues (bug-49 was hit by itos-cc and here the same
-      day). The coordinator's guide says: report to itos, never patch around it locally, never send
-      a pull request (fixes go through itos's own specs and gates); only the coordinator reports,
-      once per problem, after checking the newest release and searching open and closed issues,
-      commenting on a match only with something new. The implementing agent's guide says a problem
-      itos causes goes in its report. The consumer-report form asks to confirm the search.
