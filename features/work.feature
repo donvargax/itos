@@ -758,3 +758,46 @@ Feature: The work registry
     Then itos exits with code 2
     And its output says "--why"
     And the registry's item "p1-thing" is not deferred
+
+  # Bug 37 (the code review of 07b0e6d, 2026-10-05): work done wrote the
+  # close without asking whether the registry would stay sound, so it closed
+  # an item that was still todo, or one whose dependency was open, leaving a
+  # registry work check refuses; under a stealth config every later write then
+  # refused. work done refuses, writing nothing, what work check would refuse
+  # after it: an item that is not doing, an item a dependency of which is not
+  # done.
+  @ID-WORK-71 @bug-37 @wip
+  Scenario: work done refuses an item that is not doing, and writes nothing
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "todo"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    When itos runs "work done slice-9"
+    Then itos exits with code 1
+    And its output says "todo"
+    And the registry's item "slice-9" has the status "todo" and the owner "someone"
+    And the last commit's header is not "docs: close slice-9"
+
+  @ID-WORK-72 @bug-37 @wip
+  Scenario: work done refuses an item whose dependency is not done, naming it, and writes nothing
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-8" owned by nobody with the status "todo"
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing", depending on "slice-8"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    When itos runs "work done slice-9"
+    Then itos exits with code 1
+    And its output says "slice-8"
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
+    And the last commit's header is not "docs: close slice-9"
+
+  @ID-WORK-73 @bug-39 @wip
+  Scenario: work check refuses a registry whose alias is inside its own anchor, never crashing
+    Given the committed file "tasks/work-items.yaml" holding the lines:
+      """
+      phases: { 1: null }
+      items: &x [*x]
+      """
+    When itos checks the work registry
+    Then itos exits with code 1
+    And its output says "alias"

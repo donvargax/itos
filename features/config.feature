@@ -349,3 +349,22 @@ Feature: Every key the config accepts is one itos reads
     When itos checks the config
     Then itos exits with code 2
     And its output says "hooks.manager"
+
+  # Bug 39 (the code review of 07b0e6d, 2026-10-05): itos converted YAML
+  # aliases with no record of the anchors it was inside and no limit on how
+  # far they expand, so an alias inside its own anchor (a: &x [*x]) ended in a
+  # fatal stack overflow, in the commit-msg hook too, and nested aliases
+  # expanded exponentially. Every file itos reads as YAML (the config, a
+  # ledger, the registry) refuses an alias cycle, and an expansion past a
+  # bound, as a problem naming the alias, never a crash: the config's as a
+  # config error (exit 2), the registry's as what work check refuses (exit 1).
+  @ID-CONFIG-40 @bug-39 @wip
+  Scenario: config check refuses a config whose alias is inside its own anchor, never crashing
+    Given the committed file "itos.yaml" holding the lines:
+      """
+      version: 1
+      loop: &x [*x]
+      """
+    When itos runs "config check"
+    Then itos exits with code 2
+    And its output says "alias"

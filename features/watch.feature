@@ -206,3 +206,25 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     When itos runs "ci watch"
     Then itos exits with code 75
     And its output says "cancelled"
+
+  # Bug 40 (the code review of 07b0e6d, 2026-10-05): only a 5xx or a 429
+  # counted as a look worth retrying, but GitHub answers its primary rate
+  # limit, and often its secondary one, with 403 (x-ratelimit-remaining: 0,
+  # or a retry-after header, or a message naming the rate limit), so a long
+  # watch, or sessions sharing a token, ended ci watch and itos push with
+  # exit 3, as if the token were refused. A 403 that is a rate limit is a
+  # look worth retrying, waiting as retry-after or x-ratelimit-reset says when
+  # either is given; a 403 that is not one stays 3 (@ID-WATCH-12's comment).
+  @ID-WATCH-18 @bug-40 @wip
+  Scenario: A look GitHub refuses with a rate limit is retried, and the watch ends with the run
+    Given the fake GitHub answers the first look with a 403 rate limit
+    And the watched run's jobs "ci" and "platform" succeed
+    When itos runs "ci watch"
+    Then itos exits with code 0
+    And its output says "ci: success"
+
+  @ID-WATCH-19 @bug-40 @wip
+  Scenario: A watch whose every look is rate limited exits 75, never 3
+    Given the fake GitHub answers every look with a 403 rate limit
+    When itos runs "ci watch"
+    Then itos exits with code 75

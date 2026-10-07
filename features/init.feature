@@ -513,3 +513,22 @@ Feature: itos init, a repository made ready for itos
     When the commit-msg hook checks the message "docs: describe the app"
     Then itos exits with code 1
     And its output says "docs commits may not touch src/app.js"
+
+  # Bug 43 (the code review of 07b0e6d, 2026-10-05): init --stealth in a
+  # repository whose itos.yaml is at its top went ahead, and with
+  # --agent-rules wrote the stealth rules files: a copy of an AGENTS.md
+  # already holding the block, gone stale unreported, naming a stealth config
+  # that does not exist. A stealth config is for a clone that cannot change
+  # the project, so where the project has its own config, --stealth is a
+  # usage error (exit 2) naming itos.yaml, and nothing is written.
+  @ID-INIT-40 @bug-43 @wip
+  Scenario: init --stealth where the project has its own itos.yaml is a usage error, and writes nothing
+    Given a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init"
+    And the files init wrote are committed
+    When itos runs "init --stealth --agent-rules"
+    Then itos exits with code 2
+    And its output says "itos.yaml"
+    And the file "CLAUDE.local.md" does not exist
+    And the file "AGENTS.override.md" does not exist
+    And git status shows nothing to commit

@@ -204,3 +204,21 @@ Feature: A global itos runs the version a repository pins
     When itos runs "pin latest"
     Then itos exits with code 0
     And the config's pin is the version "9.2.0" of the release server, with its checksums
+
+  # Bug 44 (the code review of 07b0e6d, 2026-10-05): the launcher's store
+  # removed the release folder before writing it, without first checking
+  # whether another run had just cached it, so of two first runs of a newly
+  # pinned release (parallel Claude Code tool calls after a pin moves) one
+  # could delete the binary the other was about to run, which then failed
+  # with exit 3 (on Windows the removal fails on the running exe). A run that
+  # finds the release cached by another while it fetched uses that one; two
+  # first runs both run the pin. The fake release server holds the first
+  # archive download until the second run has asked for it, so the two
+  # fetches overlap every time, not by chance.
+  @ID-PIN-21 @bug-44 @wip
+  Scenario: Two first runs of a newly pinned release both run it, neither undoing the other
+    Given the config pins the version "9.1.0" of the release server
+    And the release server holds the first download of a release until a second one is asked for
+    When two runs of itos "version" start at once
+    Then both runs exit with code 0
+    And the version "9.1.0" ran with the arguments "version" twice
