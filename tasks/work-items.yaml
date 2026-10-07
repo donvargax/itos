@@ -5921,3 +5921,18 @@ items:
       (tools/selftest/go-release.ts or its unit tests), by running it on scratch histories. Lands
       after 6.x's last items; the module path's move to /v7 (T-089's rule: no v7 tag from a /v6
       go.mod) comes with the first rc, after which main cuts no 6.x patch.
+
+  - id: p1-previous-release-names-git-config-after
+    title: previous-release says it judges an old case's git_config_after
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-113 gave the corpus runner a git_config_after key, the git config entries a case leaves,
+      which the runner's --additive mode judges and previous-release's corpus script keeps.
+      previous-release's summary line and its doc comment still name only an old case's exit code,
+      files_after and json, so from the first release carrying hook install's new cases it judges
+      more than it says: they should name git_config_after too (a ci change to
+      tools/bin/previous-release, and its self-test's wording).
