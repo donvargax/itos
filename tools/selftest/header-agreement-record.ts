@@ -26,7 +26,7 @@ import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSy
 import { availableParallelism, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { parse } from "yaml";
-import { outsideEnv, spawnOutput } from "./scratch.ts";
+import { outsideEnv, realGit, spawnOutput } from "./scratch.ts";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const FIXTURE = join(ROOT, "tools/selftest/header-agreement.json");
@@ -230,7 +230,7 @@ interface Message {
 }
 
 const git = (...args: string[]) => {
-	const run = spawnSync("git", args, { cwd: ROOT, encoding: "utf8", maxBuffer: 1 << 26 });
+	const run = spawnSync(realGit(), args, { cwd: ROOT, encoding: "utf8", maxBuffer: 1 << 26 });
 	if (run.status !== 0) throw new Error(`git ${args.join(" ")}: ${run.stderr}`);
 	return run.stdout;
 };

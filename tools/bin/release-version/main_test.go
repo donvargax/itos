@@ -7,15 +7,22 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v7/internal/git"
 )
 
 // TestMain drops the variables a git hook exports before any test runs, so
 // release-version's own git, which inherits the environment, reads the
-// scratch repository and not the one whose hook ran the tests.
+// scratch repository and not the one whose hook ran the tests. It exports the
+// real git as ITOS_GIT (git.Export), as an itos run does for what it starts
+// (T-122): release-version runs the name git, and an itos linked as git first
+// on the PATH, which would otherwise take its git commit for itos commit under
+// its own policy, passes straight to that git.
 func TestMain(m *testing.M) {
 	for _, name := range []string{"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_OBJECT_DIRECTORY", "GIT_PREFIX"} {
 		os.Unsetenv(name)
 	}
+	git.Export()
 	os.Exit(m.Run())
 }
 
@@ -48,9 +55,11 @@ func newRepoAt(t *testing.T, mode, module string) repo {
 	return r
 }
 
+// git runs the real git (git.Bin) in the repository, never the name git, which
+// may be an itos linked as git.
 func (r repo) git(args ...string) {
 	r.t.Helper()
-	cmd := exec.Command("git", args...)
+	cmd := exec.Command(git.Bin(), args...)
 	cmd.Dir = r.dir
 	cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@localhost",
 		"GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@localhost", "GIT_CONFIG_GLOBAL=/dev/null",

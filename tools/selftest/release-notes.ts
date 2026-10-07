@@ -60,7 +60,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { outsideEnv } from "./scratch.ts";
+import { outsideEnv, realGit } from "./scratch.ts";
 
 const root = resolve(".");
 const args = process.argv.slice(2);
@@ -96,7 +96,7 @@ function sh(command: string[], cwd = root): string | undefined {
 
 // This version's tag, when it is cut: the release it judges.
 const released =
-	spawnSync("git", ["rev-parse", "--quiet", "--verify", `refs/tags/v${version}^{commit}`], {
+	spawnSync(realGit(), ["rev-parse", "--quiet", "--verify", `refs/tags/v${version}^{commit}`], {
 		cwd: root,
 		env,
 		encoding: "utf8",
@@ -113,7 +113,7 @@ function notes(): string | undefined {
 		if (!existsSync(file)) return void failures.push(`no release notes at ${file}`);
 		return readFileSync(file, "utf8");
 	}
-	const shown = spawnSync("git", ["show", `${released}:${notesPath}`], {
+	const shown = spawnSync(realGit(), ["show", `${released}:${notesPath}`], {
 		cwd: root,
 		env,
 		encoding: "utf8",

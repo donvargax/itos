@@ -25,7 +25,7 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "n
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parse } from "yaml";
-import { ciPlan, featuresStep, itos } from "./scratch.ts";
+import { ciPlan, featuresStep, itos, outsideEnv, shGit } from "./scratch.ts";
 
 // The scenario kind, as itos.yaml states it.
 interface Kind {
@@ -40,14 +40,13 @@ const kind = (parse(readFileSync("itos.yaml", "utf8")) as { tests: { scenario: K
 
 // Hooks export GIT_DIR and friends; the steps' own scratch repositories clean
 // their environment, the commits made here need it clean too.
-const env: NodeJS.ProcessEnv = { ...process.env };
-for (const key of Object.keys(env)) if (key.startsWith("GIT_") || key === "CI") delete env[key];
+const env = outsideEnv();
 const sh = (command: string) => {
 	const run = spawnSync("sh", ["-c", command], { env, encoding: "utf8", maxBuffer: 64 << 20 });
 	return { status: run.status ?? 1, stdout: run.stdout, output: `${run.stdout}${run.stderr}` };
 };
 const git = (command: string) => {
-	const run = sh(`git ${command}`);
+	const run = sh(`${shGit()} ${command}`);
 	assert.equal(run.status, 0, `git ${command} failed:\n${run.output}`);
 	return run.stdout.trim();
 };

@@ -22,7 +22,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { outsideEnv } from "./scratch.ts";
+import { outsideEnv, realGit } from "./scratch.ts";
 
 const DAY = 24 * 60 * 60 * 1000;
 const tmp = mkdtempSync(join(tmpdir(), "deps-check-selftest-"));
@@ -174,7 +174,7 @@ try {
 	// 7. -changed-since: nothing to check when go.mod and go.sum did not change
 	// since the revision, the whole check when they did.
 	setUp([OLD]);
-	const git = (...args: string[]) => run("git", args, app);
+	const git = (...args: string[]) => run(realGit(), args, app);
 	git("init", "-q");
 	git("add", "go.mod", "go.sum");
 	git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q", "-m", "old");

@@ -10,10 +10,39 @@ import { dirname, join, resolve } from "node:path";
 
 // Hooks export GIT_DIR and friends, and CI sets CI; a scratch repository must
 // see neither.
-export const outsideEnv = () =>
+const unhooked = () =>
 	Object.fromEntries(
 		Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_") && k !== "CI"),
 	) as NodeJS.ProcessEnv;
+
+// The real git, as internal/git finds it (git.Bin), asked of
+// tools/bin/real-git once rather than found by a second copy of the rule: the
+// git ITOS_GIT names, else the first git on the PATH that is not an itos. The
+// self-tests run it, never the name git, which may be an itos linked as git
+// whose git commit is itos commit under its own policy (T-122).
+let found = "";
+export function realGit(): string {
+	if (found) return found;
+	const asked = spawnSync("go", ["run", "./tools/bin/real-git"], {
+		cwd: resolve(import.meta.dirname, "../.."),
+		env: unhooked(),
+		encoding: "utf8",
+	});
+	if (asked.status !== 0)
+		throw new Error(
+			`go run ./tools/bin/real-git exited ${asked.status ?? asked.signal}:\n${asked.stdout}${asked.stderr}`,
+		);
+	found = asked.stdout.trim();
+	return found;
+}
+// realGit, quoted for sh.
+export const shGit = () => `'${realGit().replace(/'/g, `'\\''`)}'`;
+
+// The environment the self-tests run everything in: no hook's GIT_ variables
+// and no CI, and ITOS_GIT naming the real git, as an itos run hands its git to
+// what it starts, so a hook, a gate or a script that runs the name git reaches
+// an itos linked as git with ITOS_GIT set and passes straight to that git.
+export const outsideEnv = (): NodeJS.ProcessEnv => ({ ...unhooked(), ITOS_GIT: realGit() });
 
 // A command run asynchronously with its stdin given, so many can run at
 // once: its exit code (null when a signal ended it) and stdout and stderr
@@ -96,7 +125,7 @@ export function scratchRepo(name: string) {
 		};
 	};
 	const git = (command: string, cwd = dir) => {
-		const run = sh(`git ${command}`, undefined, cwd);
+		const run = sh(`${shGit()} ${command}`, undefined, cwd);
 		if (run.status !== 0) throw new Error(`git ${command} failed:\n${run.output}`);
 		return run.output.trim();
 	};
@@ -116,14 +145,14 @@ export function scratchRepo(name: string) {
 	// Builds the copy and returns its base commit.
 	const open = () => {
 		git(`worktree add -q --detach ${dir} HEAD`, root);
-		const diff = sh("git diff HEAD --binary", undefined, root).output;
+		const diff = sh(`${shGit()} diff HEAD --binary`, undefined, root).output;
 		if (diff.trim()) {
-			const applied = sh("git apply --whitespace=nowarn -", diff);
+			const applied = sh(`${shGit()} apply --whitespace=nowarn -`, diff);
 			if (applied.status !== 0)
 				throw new Error(`could not copy the working tree:\n${applied.output}`);
 		}
 		const untracked = sh(
-			"git ls-files --others --exclude-standard -- tools .vite-hooks features",
+			`${shGit()} ls-files --others --exclude-standard -- tools .vite-hooks features`,
 			undefined,
 			root,
 		);
@@ -181,10 +210,10 @@ export function scratchRepo(name: string) {
 			writeFileSync(file, input);
 			stdin = ` --to-stdin=${file}`;
 		}
-		return `git hook run${stdin} ${event} -- ${args.join(" ")}`;
+		return `${shGit()} hook run${stdin} ${event} -- ${args.join(" ")}`;
 	};
 	const remove = () => {
-		sh(`git worktree remove --force ${dir}`, undefined, root);
+		sh(`${shGit()} worktree remove --force ${dir}`, undefined, root);
 		rmSync(dir, { recursive: true, force: true });
 		if (hooks) rmSync(hooks, { recursive: true, force: true });
 	};
@@ -241,7 +270,7 @@ export function releaseRepos(tmp: string, extra: NodeJS.ProcessEnv = {}) {
 		GIT_COMMITTER_EMAIL: "selftest@localhost",
 	};
 	const git = (cwd: string, ...args: string[]) => {
-		const r = spawnSync("git", args, { cwd, env, encoding: "utf8" });
+		const r = spawnSync(realGit(), args, { cwd, env, encoding: "utf8" });
 		if (r.status !== 0) throw new Error(`git ${args.join(" ")}:\n${r.stderr}`);
 		return r.stdout.trim();
 	};

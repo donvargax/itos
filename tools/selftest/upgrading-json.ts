@@ -41,7 +41,7 @@
 // release's itos.schema.json). Exits 1 on any failure.
 import { spawnSync } from "node:child_process";
 import { join, resolve } from "node:path";
-import { finish, outsideEnv } from "./scratch.ts";
+import { finish, outsideEnv, realGit } from "./scratch.ts";
 
 const root = resolve(".");
 const env = outsideEnv();
@@ -78,7 +78,7 @@ const newer = (a: string, b: string) => {
 
 // The newest vX.Y.Z tag end reaches other than own, or "" with none.
 function lastTag(end: string, own: string): string {
-	const tags = (sh("git", ["tag", "--merged", end, "--list", "v*"]) ?? "")
+	const tags = (sh(realGit(), ["tag", "--merged", end, "--list", "v*"]) ?? "")
 		.split("\n")
 		.filter((t) => /^v\d+\.\d+\.\d+$/.test(t) && t !== own)
 		.map((t) => t.slice(1))
@@ -93,7 +93,8 @@ function judged(): { version: string; end: string; last: string } {
 	if (given) {
 		const tag = `v${given}`;
 		expect(
-			run("git", ["rev-parse", "--quiet", "--verify", `refs/tags/${tag}^{commit}`]).status === 0,
+			run(realGit(), ["rev-parse", "--quiet", "--verify", `refs/tags/${tag}^{commit}`]).status ===
+				0,
 			`no tag ${tag} to judge`,
 		);
 		return { version: given, end: tag, last: lastTag(tag, tag) };
@@ -190,7 +191,7 @@ function sameFooters(name: "upgrading" | "changes", footer: string, got: Entry[]
 // The range's breaking commits, oldest first: its marked footer or its ! header.
 function breakingCommits(): { sha: string; header: string }[] {
 	const range = last ? `${last}..${end}` : end;
-	const log = sh("git", ["log", "--reverse", "--format=%H%x1f%B%x1e", range]) ?? "";
+	const log = sh(realGit(), ["log", "--reverse", "--format=%H%x1f%B%x1e", range]) ?? "";
 	const found: { sha: string; header: string }[] = [];
 	for (const record of log.split("\x1e")) {
 		const [sha, message] = record.replace(/^\n+/, "").split("\x1f");

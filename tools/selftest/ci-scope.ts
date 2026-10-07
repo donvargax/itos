@@ -14,13 +14,13 @@ import { spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { itos, outsideEnv } from "./scratch.ts";
+import { itos, outsideEnv, realGit } from "./scratch.ts";
 
 const scratch = mkdtempSync(join(tmpdir(), "ci-scope-selftest-"));
 // A private index, so the checkout's own is never read or written.
 const env = { ...outsideEnv(), GIT_INDEX_FILE: join(scratch, "index") };
 const git = (args: string[], input?: string) => {
-	const run = spawnSync("git", args, { env, input, encoding: "utf8" });
+	const run = spawnSync(realGit(), args, { env, input, encoding: "utf8" });
 	assert.equal(run.status, 0, `git ${args.join(" ")} failed:\n${run.stdout}${run.stderr}`);
 	return run.stdout.trim();
 };

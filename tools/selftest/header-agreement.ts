@@ -28,7 +28,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { outsideEnv, spawnOutput } from "./scratch.ts";
+import { outsideEnv, realGit, spawnOutput } from "./scratch.ts";
 
 const ROOT = resolve(import.meta.dirname, "../..");
 const FIXTURE = join(ROOT, "tools/selftest/header-agreement.json");
@@ -73,7 +73,7 @@ function setUp() {
 		["add", "itos.yaml"],
 		["commit", "-q", "--no-verify", "-m", "chore: start"],
 	]) {
-		const run = spawnSync("git", args, { cwd: dir, env, encoding: "utf8" });
+		const run = spawnSync(realGit(), args, { cwd: dir, env, encoding: "utf8" });
 		if (run.status !== 0) throw new Error(`git ${args.join(" ")}: ${run.stderr}`);
 	}
 }
