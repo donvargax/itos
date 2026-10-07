@@ -5856,3 +5856,19 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-stale-release-replace-race
+    title: Replacing a stale cached release while it runs or twice at once
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Left by bug-44's fix. The launcher's store keeps a release another run cached with the same
+      checksums.txt, but a cached folder checked against another one is still moved aside for the
+      new release. On windows that move fails while the stale itos.exe runs, so the run exits 3
+      until the stale one ends; and two runs replacing the same stale folder at once can still move
+      each other's fresh folder aside, a window of microseconds between one's move and the other's
+      rename. Both need a pin's checksums to change for a version already cached, which a release
+      never does; decide whether either is worth a lock or a retry.
