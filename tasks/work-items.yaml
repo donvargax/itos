@@ -5903,8 +5903,8 @@ items:
   - id: T-118
     title: "Releases can be pre-releases: while itos.yaml says so, a major cuts vN.0.0-rc.N, marked pre-release, not latest"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
