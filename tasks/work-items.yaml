@@ -57,7 +57,6 @@ queue:
   - slice-95
   - bug-38
   - bug-42
-  - bug-44
   - p1-upgrade-applies-config-steps
   - T-111
   - T-112
