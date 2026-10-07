@@ -15,13 +15,17 @@ package providers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"os/exec"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/donvargax/itos/v6/internal/config"
 	"github.com/donvargax/itos/v6/internal/kind"
@@ -189,8 +193,8 @@ func GitHubRepository(remoteURL string) string {
 // RunOf is the workflow's newest run for the commit, with its jobs, read
 // from the GitHub API with the token: found is false while GitHub has none,
 // as just after a push. A server error, a rate limit or no network is
-// kind.Temporary; any other refusal (a bad token, no such workflow) ends the
-// watch.
+// kind.Temporary, a rate limit a RateLimited; any other refusal (a bad token,
+// no such workflow) ends the watch.
 func (g GitHub) RunOf(sha string) (Run, bool, error) {
 	return g.newestOf(fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?head_sha=%s&per_page=20",
 		g.Repository, url.PathEscape(g.Workflow), url.QueryEscape(sha)))
@@ -288,7 +292,11 @@ func (g GitHub) get(path string, into any) error {
 	defer res.Body.Close()
 	if res.StatusCode < 200 || res.StatusCode > 299 {
 		err := fmt.Errorf("GitHub's API answered %s for %s", res.Status, path)
-		if res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests {
+		body, _ := io.ReadAll(io.LimitReader(res.Body, 64<<10))
+		if limited, wait := rateLimit(res.StatusCode, res.Header, body, time.Now()); limited {
+			return kind.Wrap(kind.Temporary, &RateLimited{Wait: wait, Err: fmt.Errorf("%w: its rate limit", err)})
+		}
+		if res.StatusCode >= 500 {
 			return kind.Wrap(kind.Temporary, err)
 		}
 		return err
@@ -297,4 +305,54 @@ func (g GitHub) get(path string, into any) error {
 		return kind.Wrap(kind.Temporary, fmt.Errorf("GitHub's API answered what is not JSON for %s: %w", path, err))
 	}
 	return nil
+}
+
+// RateLimited is a request GitHub refused for its rate limit (bug 40), and
+// Wait, how long it asked to be left before the next: 0 when it said nothing.
+// get wraps it as kind.Temporary.
+type RateLimited struct {
+	Wait time.Duration
+	Err  error
+}
+
+func (e *RateLimited) Error() string { return e.Err.Error() }
+
+func (e *RateLimited) Unwrap() error { return e.Err }
+
+// Wait is how long err asks a watch to wait before it looks again: a rate
+// limit's, else 0.
+func Wait(err error) time.Duration {
+	var limited *RateLimited
+	if errors.As(err, &limited) {
+		return limited.Wait
+	}
+	return 0
+}
+
+// rateLimit is whether an answer refusing a request is GitHub's rate limit,
+// and how long it asks to be left, at now: a 429 always, and a 403 that says
+// so, as GitHub's primary limit and often its secondary one answer, with
+// x-ratelimit-remaining 0, a retry-after header, or a message naming the rate
+// limit. The wait is retry-after's seconds (or its date), else the time to
+// x-ratelimit-reset once x-ratelimit-remaining is 0, the primary limit's
+// window; else 0, never below. Any other 403 is a refusal, not a limit.
+func rateLimit(status int, h http.Header, body []byte, now time.Time) (bool, time.Duration) {
+	retryAfter := strings.TrimSpace(h.Get("Retry-After"))
+	exhausted := strings.TrimSpace(h.Get("X-RateLimit-Remaining")) == "0"
+	switch {
+	case status == http.StatusTooManyRequests:
+	case status == http.StatusForbidden && (exhausted || retryAfter != "" ||
+		strings.Contains(strings.ToLower(string(body)), "rate limit")):
+	default:
+		return false, 0
+	}
+	var wait time.Duration
+	if seconds, err := strconv.ParseInt(retryAfter, 10, 64); err == nil {
+		wait = time.Duration(seconds) * time.Second
+	} else if at, err := http.ParseTime(retryAfter); err == nil {
+		wait = at.Sub(now)
+	} else if reset, err := strconv.ParseInt(strings.TrimSpace(h.Get("X-RateLimit-Reset")), 10, 64); err == nil && exhausted {
+		wait = time.Unix(reset, 0).Sub(now)
+	}
+	return true, max(wait, 0)
 }

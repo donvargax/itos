@@ -175,3 +175,43 @@ func TestTemporaryFailuresInARowGiveUpWith75(t *testing.T) {
 		t.Fatalf("code %d, outcome %s, looks %d\n%s", w.code, w.outcome, looks, stderr.String())
 	}
 }
+
+// A rate limit's wait (bug 40) replaces the interval when longer, but never
+// holds the watch past its timeout: a reset an hour away ends it with 75.
+func TestARateLimitsWaitIsBoundedByTheTimeout(t *testing.T) {
+	var slept []time.Duration
+	was := sleep
+	sleep = func(d time.Duration) { slept = append(slept, d); time.Sleep(d) }
+	t.Cleanup(func() { sleep = was })
+	limited := kind.Wrap(kind.Temporary, &providers.RateLimited{Wait: time.Hour, Err: errors.New("403")})
+	look := func(string) (providers.Run, bool, error) { return providers.Run{}, false, limited }
+	var stdout, stderr strings.Builder
+	start := time.Now()
+	w := watchRun(watchConfig(0, 0.05), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.code != ExitTemporary || w.outcome != "timeout" || time.Since(start) > 10*time.Second ||
+		len(slept) == 0 || slept[0] > 50*time.Millisecond || !strings.Contains(stdout.String(), "rate limit") {
+		t.Fatalf("code %d, outcome %s, slept %v\n%s%s", w.code, w.outcome, slept, stdout.String(), stderr.String())
+	}
+}
+
+func TestARateLimitsWaitReplacesAShorterInterval(t *testing.T) {
+	var slept []time.Duration
+	was := sleep
+	sleep = func(d time.Duration) { slept = append(slept, d) }
+	t.Cleanup(func() { sleep = was })
+	looks := 0
+	look := func(string) (providers.Run, bool, error) {
+		if looks++; looks == 1 {
+			return providers.Run{}, false, kind.Wrap(kind.Temporary, &providers.RateLimited{Wait: 30 * time.Second, Err: errors.New("403")})
+		}
+		if looks == 2 {
+			return providers.Run{}, false, nil
+		}
+		return providers.Run{URL: "u", Status: "completed", Conclusion: "success"}, true, nil
+	}
+	var stdout, stderr strings.Builder
+	w := watchRun(watchConfig(10, 600), providers.Watcher{Look: look}, "abc", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.code != 0 || len(slept) != 2 || slept[0] != 30*time.Second || slept[1] != 10*time.Second {
+		t.Fatalf("code %d, slept %v\n%s%s", w.code, slept, stdout.String(), stderr.String())
+	}
+}

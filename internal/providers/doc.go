@@ -51,8 +51,12 @@
 // GitHubRepository, the remote's URL read as GitHub's (https, ssh or
 // scp-like); with no token it fails before any request, naming both ways to
 // give one. RunOf answers found false while GitHub has no run, and a
-// kind.Temporary error for no network, a 5xx or a 429; any other refusal is
-// an error. NightlyProvider reads ci.watch.github.nightly_workflow's newest
+// kind.Temporary error for no network, a 5xx or a rate limit; any other
+// refusal is an error. A rate limit (bug 40) is a 429, or a 403 with
+// x-ratelimit-remaining 0, a retry-after header or a message naming the rate
+// limit, as GitHub answers its primary limit and often its secondary one: a
+// RateLimited, whose Wait is retry-after's, else the time to
+// x-ratelimit-reset when none remain, else 0; Wait reads it from any error. NightlyProvider reads ci.watch.github.nightly_workflow's newest
 // run on a branch (NewestRun) as RunOf reads a commit's; a provider naming
 // no nightly gives no look. The loop that waits is internal/cli's watchRun.
 //

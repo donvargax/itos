@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/donvargax/itos/v6/internal/config"
 	"github.com/donvargax/itos/v6/internal/kind"
@@ -232,5 +233,57 @@ func TestTheGitHubWatchAsksGitHubAPIURL(t *testing.T) {
 	}
 	if len(asked) != 1 || asked[0] != "/api/v3/repos/o/n/actions/workflows/ci.yml/runs" {
 		t.Fatalf("asked %v", asked)
+	}
+}
+
+// GitHub answers its rate limit 403 or 429 (bug 40); a 403 is one only when
+// a header or its message says so, and the wait is retry-after's, else the
+// reset's once none remain.
+func TestARateLimitIsToldFromARefusal(t *testing.T) {
+	now := time.Unix(1_000_000, 0)
+	header := func(kv ...string) http.Header {
+		h := http.Header{}
+		for i := 0; i < len(kv); i += 2 {
+			h.Set(kv[i], kv[i+1])
+		}
+		return h
+	}
+	for _, c := range []struct {
+		name    string
+		status  int
+		h       http.Header
+		body    string
+		limited bool
+		wait    time.Duration
+	}{
+		{"none remain, reset in 30s", 403, header("X-RateLimit-Remaining", "0", "X-RateLimit-Reset", "1000030"), "", true, 30 * time.Second},
+		{"a reset passed", 403, header("X-RateLimit-Remaining", "0", "X-RateLimit-Reset", "999990"), "", true, 0},
+		{"retry-after wins", 403, header("Retry-After", "7", "X-RateLimit-Remaining", "0", "X-RateLimit-Reset", "1003600"), "", true, 7 * time.Second},
+		{"retry-after as a date", 403, header("Retry-After", now.Add(time.Minute).UTC().Format(http.TimeFormat)), "", true, time.Minute},
+		{"a secondary limit's message", 403, header("X-RateLimit-Remaining", "4000", "X-RateLimit-Reset", "1003600"),
+			`{"message":"You have exceeded a secondary rate limit."}`, true, 0},
+		{"a 429", 429, header(), "", true, 0},
+		{"a refused token", 403, header("X-RateLimit-Remaining", "4999"), `{"message":"Resource not accessible by integration"}`, false, 0},
+		{"a 401", 401, header("X-RateLimit-Remaining", "0"), "", false, 0},
+	} {
+		limited, wait := rateLimit(c.status, c.h, []byte(c.body), now)
+		if limited != c.limited || wait != c.wait {
+			t.Errorf("%s: limited %v, wait %s; want %v, %s", c.name, limited, wait, c.limited, c.wait)
+		}
+	}
+}
+
+func TestARateLimitedLookIsTemporaryAndSaysItsWait(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Retry-After", "5")
+		http.Error(w, `{"message":"API rate limit exceeded"}`, http.StatusForbidden)
+	}))
+	defer server.Close()
+	was := GitHubAPI
+	GitHubAPI = server.URL
+	defer func() { GitHubAPI = was }()
+	_, _, err := GitHub{Repository: "o/n", Token: "t", Workflow: "ci.yml"}.RunOf("abc")
+	if kind.Of(err) != kind.Temporary || Wait(err) != 5*time.Second {
+		t.Fatalf("a rate limit is %v, wait %s", err, Wait(err))
 	}
 }

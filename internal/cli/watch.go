@@ -10,7 +10,9 @@ package cli
 // after ci.watch.timeout seconds, and a look that fails for a server error, a
 // rate limit or no network giveUp times in a row, exit 75 (slice 86), a
 // failure that may pass when run again; each names itos ci watch <sha> to
-// wait again.
+// wait again. A rate limit is GitHub's 403 or 429 (bug 40): the look after
+// it waits as long as GitHub asked, when longer than the interval, though
+// never past ci.watch.timeout.
 //
 // A run a newer push cancelled is no verdict (bug 41): with cancel-in-progress
 // on CI's concurrency group, the newer push's run checks the cancelled run's
@@ -122,14 +124,15 @@ func watchCovered(cfg *config.Loaded, wr providers.Watcher, sha, remote, branch 
 	shown := "" // the run's address, once printed
 	var last *providers.Run
 	var lastErr error
-	failed := 0      // the looks in a row that failed for a temporary reason
-	target := sha    // the commit whose run is looked at: sha, or the head of a newer run followed
-	superseded := "" // the address of sha's cancelled run, once a newer run is followed
+	failed := 0             // the looks in a row that failed for a temporary reason
+	var pause time.Duration // how long the failed look asked to be left: a rate limit's wait
+	target := sha           // the commit whose run is looked at: sha, or the head of a newer run followed
+	superseded := ""        // the address of sha's cancelled run, once a newer run is followed
 	// failing is a look that failed: looked past when temporary, until giveUp
 	// in a row; ended otherwise.
 	failing := func(err error) (watched, bool) {
 		if kind.Of(err) == kind.Temporary {
-			lastErr = err
+			lastErr, pause = err, providers.Wait(err)
 			if failed++; failed >= giveUp {
 				fmt.Fprintf(o.Stderr, "itos: %d looks in a row at the CI run of %s failed, the last: %s; %s\n", failed, sha, err, again)
 				return watched{code: ExitTemporary, outcome: "error", run: last, superseded: superseded}, true
@@ -140,6 +143,7 @@ func watchCovered(cfg *config.Loaded, wr providers.Watcher, sha, remote, branch 
 		return watched{code: ExitMissing, outcome: "error", run: last, superseded: superseded}, true
 	}
 	for {
+		pause = 0
 		run, found, err := wr.Look(target)
 		switch {
 		case err != nil:
@@ -217,7 +221,11 @@ func watchCovered(cfg *config.Loaded, wr providers.Watcher, sha, remote, branch 
 			}
 			return watched{code: ExitTemporary, outcome: "timeout", run: last}
 		}
-		sleep(min(interval, left))
+		wait := min(max(interval, pause), left)
+		if wait > interval {
+			fmt.Fprintf(progress, "GitHub's rate limit: looking again in %s\n", wait.Round(time.Second))
+		}
+		sleep(wait)
 	}
 }
 
