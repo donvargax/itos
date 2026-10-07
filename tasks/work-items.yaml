@@ -73,7 +73,6 @@ queue:
   - bug-43
   - bug-44
   - p1-upgrade-applies-config-steps
-  - slice-94
   - p1-upgrade-on-major
   - p1-problem-fields
   - p1-rule-ids-listed
@@ -5326,11 +5325,9 @@ items:
     title: "The Claude Code plugin's calls are a contract: never renamed, and answered under every pin"
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: slice
-    why: >
-      Specified in features/guard.feature.
     refs: [features/guard.feature, internal/launch]
 
   - id: p1-upgrade-updates-plugin
