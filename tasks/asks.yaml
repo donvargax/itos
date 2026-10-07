@@ -1,4 +1,4 @@
-# The questions to the person the work is for, written by itos question (itos help question).
+# The questions to the person the work is for, written by itos decision (itos help decision).
 questions:
   - id: q-1
     item: "bug-12"
@@ -70,3 +70,6 @@ questions:
     question: "What is the group for the questions waiting on the person the work is for called, after itos question still caught 'what should I ask X?'?"
     answer: "itos decision (the user's call, 2026-10-06): a name should say who answers, not what is asked. The group holds the decisions waiting on the person the work is for, which end as decision records or as --none, so it is decision add, answer, record and show, and itos decision lists them; it lines up with docs/decisions, which it writes. Anything to take up with someone else, a question included, is itos followup. itos ask and itos question exit 2 naming both. asks.yaml, work.asks, the q-<n> ids and the docs: ask q-<n> headers stay. It changes decision 36's ask-to-question line before any release has it."
     decision: 38
+  - id: q-19
+    item: "p1-pr-mode"
+    question: "Relax strict trunk-based work so pull requests join the way of working once work runs in parallel? On what terms?"
