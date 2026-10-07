@@ -28,20 +28,23 @@
 //
 // # Pre-releases
 //
-// While HEAD's itos.yaml says release: { prerelease: rc } (T-118, decision
-// 42), the commits that would cut the next major cut a release candidate of
-// it instead, <major>.0.0-rc.<n>: n is one more than the highest rc tag of
-// that version HEAD reaches (v7.0.0-rc.2 makes the next one rc.3), 1 with
-// none. After an rc, the commits since it decide whether another is cut: a
-// feat, a fix or a breaking change since v7.0.0-rc.2 cuts rc.3, and with none
-// of them nothing is released, though the commits since the last release
+// While HEAD holds tools/bin/release-version/prerelease saying rc (T-118,
+// T-119, decision 42), the commits that would cut the next major cut a release
+// candidate of it instead, <major>.0.0-rc.<n>: n is one more than the highest
+// rc tag of that version HEAD reaches (v7.0.0-rc.2 makes the next one rc.3), 1
+// with none. After an rc, the commits since it decide whether another is cut:
+// a feat, a fix or a breaking change since v7.0.0-rc.2 cuts rc.3, and with
+// none of them nothing is released, though the commits since the last release
 // still hold the breaking change. The last release stays the newest vX.Y.Z,
 // which an rc tag never is, so an rc's notes and upgrading.json run from the
-// last stable release, as the final one's will; and removing the key cuts
+// last stable release, as the final one's will; and removing the file cuts
 // that final <major>.0.0 from the same commits. A minor or a patch is cut as
-// it always is, the mode or not; with no itos.yaml or no release key the mode
-// is off, and a value other than rc stops it with exit 2. The module path
-// rule above holds for an rc as for any version of its major.
+// it always is, the mode or not; with no such file the mode is off, and a
+// file saying anything but rc (blank lines and surrounding space aside) stops
+// it with exit 2. The marker is a file of this tool's own, not a key of
+// itos.yaml, whose schema holds only what itos reads (T-119); itos.yaml is not
+// read. The module path rule above holds for an rc as for any version of its
+// major.
 //
 // It prints key=value lines, which the release workflow appends to
 // $GITHUB_OUTPUT as they are:
@@ -55,15 +58,14 @@
 //
 // and on stderr one line saying why. A commit is read by internal/release
 // (Type and Breaking, T-088), the copy itos status reads it with, and the last
-// release is picked there too (Newest, bug 20); itos.yaml is read by
-// internal/value, the YAML reader itos's config is read with; beside them,
-// release-version imports only the standard library. Its unit tests run it
+// release is picked there too (Newest, bug 20); beside it, release-version
+// imports only the standard library. Its unit tests run it
 // over scratch histories.
 //
 //	go run ./tools/bin/release-version
 //
 // Exit status: 0 computed (next may be empty), 1 the version is refused, 2 it
-// could not read the history, go.mod or itos.yaml.
+// could not read the history, go.mod or the pre-release marker.
 package main
 
 import (
@@ -78,10 +80,13 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v7/internal/release"
-	"github.com/donvargax/itos/v7/internal/value"
 )
 
 const self = "release-version"
+
+// marker is the file, from the repository's root, whose rc switches release
+// candidates on.
+const marker = "tools/bin/release-version/prerelease"
 
 var suffix = regexp.MustCompile(`/v(\d+)$`)
 
@@ -146,13 +151,13 @@ func run(args []string, dir string, stdout, stderr io.Writer) int {
 					}
 					if since.kind == "none" {
 						fmt.Fprintf(stdout, "last=%s\nnext=\nbump=none\nrange=%s\nprerelease=false\n", tag, rng)
-						fmt.Fprintf(stderr, "%s: %d commit(s) since %s, %s, but release.prerelease is %s and none of the %d since %s is a feat, a fix or a breaking change: nothing to release\n",
-							self, b.commits, from, b.why, mode, since.commits, rc)
+						fmt.Fprintf(stderr, "%s: %d commit(s) since %s, %s, but %s says %s and none of the %d since %s is a feat, a fix or a breaking change: nothing to release\n",
+							self, b.commits, from, b.why, marker, mode, since.commits, rc)
 						return 0
 					}
-					b.why += fmt.Sprintf(", and release.prerelease is %s: %s since %s, the next candidate", mode, since.why, rc)
+					b.why += fmt.Sprintf(", and %s says %s: %s since %s, the next candidate", marker, mode, since.why, rc)
 				} else {
-					b.why += fmt.Sprintf(", and release.prerelease is %s: the first candidate", mode)
+					b.why += fmt.Sprintf(", and %s says %s: the first candidate", marker, mode)
 				}
 				next, pre = fmt.Sprintf("%s-%s.%d", next, mode, n+1), true
 			}
@@ -259,33 +264,24 @@ func bumped(tag, kind string) string {
 	return fmt.Sprintf("%d.%d.%d", parts[0], parts[1], parts[2])
 }
 
-// prereleaseMode is the pre-release mode HEAD's itos.yaml switches on,
-// release.prerelease: rc, the one there is; "" when HEAD has no itos.yaml or
-// it sets no release.prerelease.
+// prereleaseMode is the pre-release mode HEAD's marker file switches on, rc,
+// the one there is; "" when HEAD has no such file.
 func prereleaseMode(git func(...string) (string, error)) (string, error) {
-	listed, err := git("ls-tree", "--name-only", "HEAD", "--", "itos.yaml")
+	listed, err := git("ls-tree", "--name-only", "HEAD", "--", marker)
 	if err != nil {
 		return "", err
 	}
 	if strings.TrimSpace(listed) == "" {
 		return "", nil
 	}
-	text, err := git("show", "HEAD:itos.yaml")
+	text, err := git("show", "HEAD:"+marker)
 	if err != nil {
 		return "", err
 	}
-	tree, err := value.Parse(text)
-	if err != nil {
-		return "", fmt.Errorf("HEAD's itos.yaml cannot be read: %v", err)
+	if mode := strings.TrimSpace(text); mode != "rc" {
+		return "", fmt.Errorf("HEAD's %s says %q, and the one pre-release mode is rc: write rc in it, or remove it to release as usual", marker, mode)
 	}
-	switch mode := value.Prop(value.Prop(tree, "release"), "prerelease"); mode {
-	case value.Undefined, nil:
-		return "", nil
-	case "rc":
-		return "rc", nil
-	default:
-		return "", fmt.Errorf("HEAD's itos.yaml sets release.prerelease to %s, and the one pre-release mode is rc: set it to rc, or remove it to release as usual", value.JSON(mode))
-	}
+	return "rc", nil
 }
 
 // lastCandidate is the highest release candidate of version (X.Y.Z) among

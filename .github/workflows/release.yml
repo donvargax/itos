@@ -6,8 +6,8 @@ name: Release
 # change a major, a feat a minor, a fix a patch; with none, nothing is released and the job ends
 # green. Its one gate of its own is that version against go.mod's module path (T-089): a major
 # the path does not end in (/vN from v2, nothing below) fails the version step, before any tag,
-# since Go's module proxy would refuse that tag. While itos.yaml says release: { prerelease: rc }
-# (T-118), the commits that would cut the next major cut a candidate of it, vN.0.0-rc.<n>
+# since Go's module proxy would refuse that tag. While tools/bin/release-version/prerelease says rc
+# (T-118, T-119), the commits that would cut the next major cut a candidate of it, vN.0.0-rc.<n>
 # (release-version says prerelease=true), which is published as a pre-release and never as latest:
 # GitHub's latest release, which the launcher's update notice and a bare itos pin read, stays the
 # newest stable one, as go install @latest does by Go's own rule (a pre-release version is never

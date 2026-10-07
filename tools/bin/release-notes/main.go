@@ -8,7 +8,8 @@
 //	go run ./tools/bin/release-notes -json -version <X.Y.Z> [-from <tag>] [-to <rev>] [-itos <bin>]
 //
 // The version may be a release candidate, X.Y.Z-rc.N (tools/bin/release-version
-// cuts one while itos.yaml's release.prerelease is rc, T-118): its notes then
+// cuts one while its marker, tools/bin/release-version/prerelease, says rc,
+// T-118, T-119): its notes then
 // say, under the title, that it is a pre-release, which the workflow publishes
 // as one and never as latest, and how to pin it.
 //
@@ -493,8 +494,8 @@ func (n notes) render() (string, error) {
 
 const notesTemplate = `# itos {{.Version}}
 
-{{if .Candidate}}**A pre-release**, a candidate for {{.Candidate}}, cut while this repository's ` + "`itos.yaml`" + ` says
-` + "`release: { prerelease: rc }`" + `. It is published as a pre-release and never as latest, so
+{{if .Candidate}}**A pre-release**, a candidate for {{.Candidate}}, cut while this repository's
+` + "`tools/bin/release-version/prerelease`" + ` says ` + "`rc`" + `. It is published as a pre-release and never as latest, so
 ` + "`go install …@latest`" + `, the launcher's update notice and a bare ` + "`itos pin`" + ` still name the newest
 stable release; ` + "`itos pin {{.Version}}`" + ` pins this one. Its notes run from {{since}}, the last
 stable release, as {{.Candidate}}'s will.

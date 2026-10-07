@@ -20,20 +20,21 @@ func TestMain(m *testing.M) {
 }
 
 // repo is a scratch repository with a v6.2.0 release on its first commit,
-// whose go.mod's module path ends in /v7 and whose itos.yaml says what
-// config gives (none when ""), so a v7 version is never refused for its path.
+// whose go.mod's module path ends in /v7, so a v7 version is never refused for
+// its path, and whose pre-release marker, tools/bin/release-version/prerelease,
+// says what mode gives (no file when "").
 type repo struct {
 	t   *testing.T
 	dir string
 }
 
-func newRepo(t *testing.T, config string) repo {
+func newRepo(t *testing.T, mode string) repo {
 	t.Helper()
 	r := repo{t: t, dir: t.TempDir()}
 	r.git("init", "-q", "-b", "main")
 	r.write("go.mod", "module example.com/m/v7\n\ngo 1.25\n")
-	if config != "" {
-		r.write("itos.yaml", config)
+	if mode != "" {
+		r.write(marker, mode)
 	}
 	r.git("add", ".")
 	r.commit("chore: the first")
@@ -55,7 +56,11 @@ func (r repo) git(args ...string) {
 
 func (r repo) write(name, text string) {
 	r.t.Helper()
-	if err := os.WriteFile(filepath.Join(r.dir, name), []byte(text), 0o644); err != nil {
+	path := filepath.Join(r.dir, filepath.FromSlash(name))
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		r.t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
 		r.t.Fatal(err)
 	}
 }
@@ -65,14 +70,15 @@ func (r repo) commit(message string) {
 	r.git("commit", "-q", "--allow-empty", "-m", message)
 }
 
-// configure commits itos.yaml as text, or removes it when text is "".
-func (r repo) configure(text string) {
+// mark commits the pre-release marker saying mode, or removes it when mode is
+// "".
+func (r repo) mark(mode string) {
 	r.t.Helper()
-	if text == "" {
-		r.git("rm", "-q", "itos.yaml")
+	if mode == "" {
+		r.git("rm", "-q", marker)
 	} else {
-		r.write("itos.yaml", text)
-		r.git("add", "itos.yaml")
+		r.write(marker, mode)
+		r.git("add", marker)
 	}
 	r.commit("ci: the release mode")
 }
@@ -101,16 +107,31 @@ func (r repo) wants(next, bump, prerelease string) {
 	}
 }
 
-const rcMode = "version: 1\nrelease:\n  prerelease: rc\n"
+const rcMode = "rc\n"
 
-// With the mode off, nothing changes: a breaking change cuts the major.
+// With no marker, nothing changes: a breaking change cuts the major. itos.yaml
+// is not read, so a release.prerelease key there, where T-118 read it, switches
+// nothing on.
 func TestPrereleaseOff(t *testing.T) {
-	r := newRepo(t, "version: 1\n")
+	r := newRepo(t, "")
 	r.commit("feat!: a key goes")
 	r.wants("7.0.0", "major", "false")
-	bare := newRepo(t, "")
-	bare.commit("feat!: a key goes")
-	bare.wants("7.0.0", "major", "false")
+	config := newRepo(t, "")
+	config.write("itos.yaml", "version: 1\nrelease:\n  prerelease: rc\n")
+	config.git("add", "itos.yaml")
+	config.commit("feat!: a key goes")
+	config.wants("7.0.0", "major", "false")
+}
+
+// The marker is read from HEAD, as go.mod is: written but not committed, it
+// switches nothing on; committed with surrounding space, it does.
+func TestPrereleaseMarkerAtHead(t *testing.T) {
+	r := newRepo(t, "")
+	r.commit("feat!: a key goes")
+	r.write(marker, rcMode)
+	r.wants("7.0.0", "major", "false")
+	r.mark("\n  rc  \n\n")
+	r.wants("7.0.0-rc.1", "major", "true")
 }
 
 // With the mode on, the commits that would cut 7.0.0 cut its candidates, one
@@ -135,7 +156,7 @@ func TestPrereleaseCandidates(t *testing.T) {
 	r.wants("7.0.0-rc.3", "major", "true")
 	r.git("tag", "v7.0.0-rc.3")
 
-	r.configure("version: 1\n")
+	r.mark("")
 	r.wants("7.0.0", "major", "false")
 }
 
@@ -179,12 +200,14 @@ func TestPrereleaseModulePath(t *testing.T) {
 	}
 }
 
-// A mode other than rc stops it, naming the key.
+// A marker saying anything but rc, nothing included, stops it, naming the file.
 func TestPrereleaseUnknownMode(t *testing.T) {
-	r := newRepo(t, "version: 1\nrelease:\n  prerelease: beta\n")
-	r.commit("feat!: a key goes")
-	code, got, stderr := r.cut()
-	if code != 2 || len(got) != 0 || !strings.Contains(stderr, "release.prerelease") {
-		t.Fatalf("exit %d, %v; want exit 2 naming release.prerelease, nothing on stdout\n%s", code, got, stderr)
+	for _, mode := range []string{"beta\n", "rc.1\n", "\n"} {
+		r := newRepo(t, mode)
+		r.commit("feat!: a key goes")
+		code, got, stderr := r.cut()
+		if code != 2 || len(got) != 0 || !strings.Contains(stderr, marker) {
+			t.Fatalf("marker %q: exit %d, %v; want exit 2 naming %s, nothing on stdout\n%s", mode, code, got, marker, stderr)
+		}
 	}
 }

@@ -68,6 +68,7 @@ func TestPrereleaseNotes(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{"# itos 7.0.0-rc.2\n", "**A pre-release**, a candidate for 7.0.0",
+		"`tools/bin/release-version/prerelease` says `rc`",
 		"never as latest", "`itos pin 7.0.0-rc.2` pins this one", "run from v6.5.0, the last\nstable release",
 		"go install github.com/donvargax/itos/v7/cmd/itos@v7.0.0-rc.2"} {
 		if !strings.Contains(text, want) {
