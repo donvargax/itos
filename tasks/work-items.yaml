@@ -4228,7 +4228,7 @@ items:
     title: A YAML alias cycle is refused, not a crash
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
