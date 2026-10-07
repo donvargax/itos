@@ -5555,8 +5555,8 @@ items:
   - id: T-111
     title: CI checks that the built itos answers every command the Claude Code plugin calls
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
