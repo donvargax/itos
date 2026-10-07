@@ -695,3 +695,66 @@ Feature: The work registry
     When itos runs the command line "work add p1-thing --title 'A thing' --why 'Because.' --tags plugin"
     Then itos exits with code 1
     And its output says "work.tags"
+
+  # Slice 98 (the user's call, 2026-10-07; was p1-work-defer, reported by an
+  # agent on 2026-10-05): an item was deferred only by editing the registry's
+  # deferred key by hand, which the working rules forbid for status and owner;
+  # the coordinator did it twice on 2026-10-06. itos work defer sets deferred
+  # to the reason and commits the registry alone, the reason the commit's body,
+  # as work drop does; itos work resume takes it off the same way. Two
+  # commands rather than a --lift flag: docs/CLI.md rule 18, a flag changes an
+  # action and never selects another. A deferred item keeps its status and its
+  # place in the queue, as a hand-written deferred key does; work and status
+  # already list it apart.
+  @ID-WORK-65 @slice-98 @wip
+  Scenario: work defer sets an item deferred with its reason, and commits the registry alone
+    Given the work registry has the idea "p1-thing" owned by nobody
+    When itos runs the command line "work defer p1-thing --why 'Waits for the next major release.'"
+    Then itos exits with code 0
+    And the registry's item "p1-thing" is deferred with the reason "Waits for the next major release."
+    And the registry's item "p1-thing" has the status "todo" and the owner "nobody"
+    And the last commit's header is "docs: defer p1-thing"
+    And the last commit's body says "Waits for the next major release."
+    And the last commit touches only "tasks/work-items.yaml"
+
+  @ID-WORK-66 @slice-98 @wip
+  Scenario: work resume takes the deferral off, and commits the registry alone
+    Given the work registry has the idea "p1-thing" owned by nobody
+    And itos has run the command line "work defer p1-thing --why 'Waits for the next major release.'"
+    When itos runs "work resume p1-thing"
+    Then itos exits with code 0
+    And the registry's item "p1-thing" is not deferred
+    And the last commit's header is "docs: resume p1-thing"
+    And the last commit touches only "tasks/work-items.yaml"
+
+  @ID-WORK-67 @slice-98 @wip
+  Scenario: work defer refuses an item already deferred, naming its reason
+    Given the work registry has the idea "p1-thing" owned by nobody
+    And itos has run the command line "work defer p1-thing --why 'Waits for the next major release.'"
+    When itos runs the command line "work defer p1-thing --why 'Another reason.'"
+    Then itos exits with code 1
+    And its output says "Waits for the next major release."
+    And the registry's item "p1-thing" is deferred with the reason "Waits for the next major release."
+
+  @ID-WORK-68 @slice-98 @wip
+  Scenario: work resume refuses an item that is not deferred
+    Given the work registry has the idea "p1-thing" owned by nobody
+    When itos runs "work resume p1-thing"
+    Then itos exits with code 1
+    And its output says "not deferred"
+
+  @ID-WORK-69 @slice-98 @wip
+  Scenario: work defer refuses a done item
+    Given the work registry has the item "slice-9" owned by nobody with the status "done"
+    When itos runs the command line "work defer slice-9 --why 'Too late.'"
+    Then itos exits with code 1
+    And its output says "done"
+    And the registry's item "slice-9" is not deferred
+
+  @ID-WORK-70 @slice-98 @wip
+  Scenario: work defer needs a reason
+    Given the work registry has the idea "p1-thing" owned by nobody
+    When itos runs "work defer p1-thing"
+    Then itos exits with code 2
+    And its output says "--why"
+    And the registry's item "p1-thing" is not deferred
