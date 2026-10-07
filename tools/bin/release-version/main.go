@@ -14,6 +14,9 @@
 //   - else nothing is released: no feat, no fix and no breaking change is
 //     nothing a consumer can feel.
 //
+// A module path ahead of the version they make raises it to the path's major
+// (T-123, below).
+//
 // With no such tag the last version is 0.0.0, every commit counting. A shallow
 // clone, which may hide the tag or the commits, stops it with exit 2, never a
 // guess.
@@ -26,6 +29,15 @@
 // ending in /v2). The path moves first, in its own commits, and the release
 // follows. A HEAD without a go.mod has no path to contradict.
 //
+// So a path ahead of the last release's major already promises that major
+// (T-123): when HEAD's go.mod ends in /vN and N is above the major the
+// commits would cut, any releasable commit, a feat, a fix or a breaking
+// change, cuts N.0.0 (its candidate with the marker on, below), with bump
+// major. Without that, a feat or a fix after the path moved to /v7 would
+// compute a v6 version the rule above refuses, and the release would fail
+// until a breaking change came along. A path below the last release's major is
+// still refused, and with nothing releasable nothing is cut, whatever the path.
+//
 // # Pre-releases
 //
 // While HEAD holds tools/bin/release-version/prerelease saying rc (T-118,
@@ -35,7 +47,7 @@
 // with none. After an rc, the commits since it decide whether another is cut:
 // a feat, a fix or a breaking change since v7.0.0-rc.2 cuts rc.3, and with
 // none of them nothing is released, though the commits since the last release
-// still hold the breaking change. The last release stays the newest vX.Y.Z,
+// still make the major. The last release stays the newest vX.Y.Z,
 // which an rc tag never is, so an rc's notes and upgrading.json run from the
 // last stable release, as the final one's will; and removing the file cuts
 // that final <major>.0.0 from the same commits. A minor or a patch is cut as
@@ -136,7 +148,15 @@ func run(args []string, dir string, stdout, stderr io.Writer) int {
 	}
 	next, pre := "", false
 	if b.kind != "none" {
+		module, err := headModule(git)
+		if err != nil {
+			return fail("%v", err)
+		}
 		next = bumped(tag, b.kind)
+		if promised := moduleMajor(module); promised > majorOf(next) {
+			b.why += fmt.Sprintf(", and go.mod's module path, %s, is ahead of the last release's major, %d", module, majorOf(bumped(tag, "none")))
+			b.kind, next = "major", fmt.Sprintf("%d.0.0", promised)
+		}
 		if b.kind == "major" {
 			mode, err := prereleaseMode(git)
 			if err != nil {
@@ -161,10 +181,6 @@ func run(args []string, dir string, stdout, stderr io.Writer) int {
 				}
 				next, pre = fmt.Sprintf("%s-%s.%d", next, mode, n+1), true
 			}
-		}
-		module, err := headModule(git)
-		if err != nil {
-			return fail("%v", err)
 		}
 		if problem := mismatch(next, module); problem != "" {
 			fmt.Fprintf(stderr, "%s: %s\n", self, problem)
@@ -331,11 +347,8 @@ func mismatch(next, module string) string {
 	if module == "" {
 		return ""
 	}
-	major, _ := strconv.Atoi(next[:strings.Index(next, ".")])
-	has := 0
-	if m := suffix.FindStringSubmatch(module); m != nil {
-		has, _ = strconv.Atoi(m[1])
-	}
+	major := majorOf(next)
+	has := moduleMajor(module)
 	want := 0
 	if major >= 2 {
 		want = major
@@ -349,4 +362,20 @@ func mismatch(next, module string) string {
 		needs = fmt.Sprintf("%s/v%d", base, want)
 	}
 	return fmt.Sprintf("refusing v%s: its major is %d, but go.mod's module path is %s, and Go's module proxy takes a v%d tag only from %s: move the module path first (go.mod's module line, every import, the -X ldflags that stamp the version, the go install lines), then release", next, major, module, major, needs)
+}
+
+// majorOf is the major of version (X.Y.Z, a pre-release suffix allowed).
+func majorOf(version string) int {
+	n, _ := strconv.Atoi(version[:strings.Index(version, ".")])
+	return n
+}
+
+// moduleMajor is the major a module path promises by its /vN suffix, 0 with
+// none (a v0 or v1 module, or no go.mod).
+func moduleMajor(module string) int {
+	n := 0
+	if m := suffix.FindStringSubmatch(module); m != nil {
+		n, _ = strconv.Atoi(m[1])
+	}
+	return n
 }

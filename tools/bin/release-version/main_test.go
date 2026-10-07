@@ -30,9 +30,15 @@ type repo struct {
 
 func newRepo(t *testing.T, mode string) repo {
 	t.Helper()
+	return newRepoAt(t, mode, "example.com/m/v7")
+}
+
+// newRepoAt is newRepo with go.mod's module path at the release module.
+func newRepoAt(t *testing.T, mode, module string) repo {
+	t.Helper()
 	r := repo{t: t, dir: t.TempDir()}
 	r.git("init", "-q", "-b", "main")
-	r.write("go.mod", "module example.com/m/v7\n\ngo 1.25\n")
+	r.write("go.mod", "module "+module+"\n\ngo 1.25\n")
 	if mode != "" {
 		r.write(marker, mode)
 	}
@@ -68,6 +74,15 @@ func (r repo) write(name, text string) {
 func (r repo) commit(message string) {
 	r.t.Helper()
 	r.git("commit", "-q", "--allow-empty", "-m", message)
+}
+
+// move commits go.mod's module path moved to module, a commit that releases
+// nothing by its type.
+func (r repo) move(module string) {
+	r.t.Helper()
+	r.write("go.mod", "module "+module+"\n\ngo 1.25\n")
+	r.git("add", "go.mod")
+	r.commit("refactor: move the module path")
 }
 
 // mark commits the pre-release marker saying mode, or removes it when mode is
@@ -209,5 +224,73 @@ func TestPrereleaseUnknownMode(t *testing.T) {
 		if code != 2 || len(got) != 0 || !strings.Contains(stderr, marker) {
 			t.Fatalf("marker %q: exit %d, %v; want exit 2 naming %s, nothing on stdout\n%s", mode, code, got, marker, stderr)
 		}
+	}
+}
+
+// A module path moved ahead of the last release's major promises that major:
+// after the move, a fix cuts 7.0.0's first candidate with the marker on and
+// 7.0.0 itself without it, as a feat does, while a push with nothing
+// releasable still cuts nothing.
+func TestModulePathAhead(t *testing.T) {
+	for _, c := range []struct {
+		mode, change, next, prerelease string
+	}{
+		{rcMode, "fix: a bug", "7.0.0-rc.1", "true"},
+		{"", "fix: a bug", "7.0.0", "false"},
+		{rcMode, "feat: a thing", "7.0.0-rc.1", "true"},
+		{"", "feat: a thing", "7.0.0", "false"},
+	} {
+		r := newRepoAt(t, c.mode, "example.com/m/v6")
+		r.move("example.com/m/v7")
+		r.wants("", "none", "false")
+		r.commit("docs: say so")
+		r.wants("", "none", "false")
+		r.commit(c.change)
+		r.wants(c.next, "major", c.prerelease)
+		code, _, stderr := r.cut()
+		if code != 0 || !strings.Contains(stderr, "example.com/m/v7, is ahead of the last release's major, 6") {
+			t.Fatalf("%q: exit %d; want exit 0 saying the module path is ahead of major 6\n%s", c.change, code, stderr)
+		}
+	}
+}
+
+// With the mode on, the candidates of the major the path promises count up
+// as a breaking change's do: a fix after rc.1 cuts rc.2, a docs commit after
+// rc.2 nothing, and removing the marker cuts 7.0.0.
+func TestModulePathAheadCandidates(t *testing.T) {
+	r := newRepoAt(t, rcMode, "example.com/m/v6")
+	r.move("example.com/m/v7")
+	r.commit("feat: a thing")
+	r.wants("7.0.0-rc.1", "major", "true")
+	r.git("tag", "v7.0.0-rc.1")
+
+	r.commit("fix: a bug")
+	r.wants("7.0.0-rc.2", "major", "true")
+	r.git("tag", "v7.0.0-rc.2")
+
+	r.commit("docs: say so")
+	r.wants("", "none", "false")
+
+	r.mark("")
+	r.wants("7.0.0", "major", "false")
+}
+
+// A path ahead by more than one major cuts the path's major, even over a
+// breaking change's.
+func TestModulePathAheadByTwo(t *testing.T) {
+	r := newRepoAt(t, "", "example.com/m/v6")
+	r.move("example.com/m/v8")
+	r.commit("feat!: a key goes")
+	r.wants("8.0.0", "major", "false")
+}
+
+// A path below the last release's major is still refused, a fix's patch as a
+// feat's minor: no v6 version from a /v5 go.mod.
+func TestModulePathBehind(t *testing.T) {
+	r := newRepoAt(t, rcMode, "example.com/m/v5")
+	r.commit("fix: a bug")
+	code, got, stderr := r.cut()
+	if code != 1 || len(got) != 0 || !strings.Contains(stderr, "refusing v6.2.1") || !strings.Contains(stderr, "example.com/m/v6") {
+		t.Fatalf("exit %d, %v; want exit 1 refusing v6.2.1 for example.com/m/v6, nothing on stdout\n%s", code, got, stderr)
 	}
 }
