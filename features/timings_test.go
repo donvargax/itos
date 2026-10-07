@@ -130,8 +130,8 @@ func writeTimings() error {
 	for _, s := range timings.scenarios {
 		inScenarios += s.took
 	}
-	fmt.Fprintf(&b, "%d scenarios in %.1fs, %.1fs of it in the scenarios\n",
-		len(timings.scenarios), time.Since(timings.start).Seconds(), inScenarios.Seconds())
+	fmt.Fprintf(&b, "%d scenarios in %.1fs, %d at a time, %.1fs in the scenarios added up\n",
+		len(timings.scenarios), time.Since(timings.start).Seconds(), max(1, *concurrency), inScenarios.Seconds())
 
 	slowest := slices.Clone(timings.scenarios)
 	slices.SortFunc(slowest, func(a, b scenarioTime) int { return cmp.Compare(b.took, a.took) })

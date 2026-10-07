@@ -51,8 +51,13 @@ go test ./features -count=1                          # every live scenario
 go test ./features -count=1 -scenarios='^@ID-SINCE-' # the live scenarios with a matching tag
 ITOS_BIN=/path/to/itos go test ./features -count=1   # another build, a release's binary say
 go test ./features -count=1 -timings=t.txt           # writes where the run spent its time
+go test ./features -count=1 -concurrency=1           # one scenario at a time
 tools/bin/itos tests smoke run scenario              # exactly the smoke set
 ```
+
+The scenarios run as many at a time as the machine has CPUs (T-115), so a
+step keeps its state in its scenario's world and never changes the process's
+environment or working directory; what scenarios share is guarded.
 
 `-scenarios` takes a regular expression over each tag, `@` included, and
 runs the live scenarios with a tag it matches; one that matches no tag fails

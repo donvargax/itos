@@ -8,6 +8,18 @@
 //	                                                   tag the expression matches
 //	go test ./features -count=1 -timings=<file>        any run, writing where it
 //	                                                   spent its time to the file
+//	go test ./features -count=1 -concurrency=1         one scenario at a time
+//
+// The scenarios run -concurrency at a time, as many as the machine has CPUs
+// unless it says otherwise (T-115). A scenario's time goes to starting
+// processes, git's and itos's, one after another, which windows makes slow
+// (the three gits that commit a scenario's ledger take about 200 ms there,
+// 4 ms on linux), so running several at once is what keeps the windows job
+// well inside go test's ten minutes. Each scenario has its own world,
+// folders and servers; what the steps share across scenarios (the PATH
+// without claude, script-exe, the timings) is guarded, and a step never
+// changes the process's environment or working directory. With
+// -concurrency=1 they run in one goroutine, each failure's stack as it was.
 //
 // godog's own tag filter takes exact tags joined by commas; itos's run
 // templates join the IDs they select with |, as a regular expression
@@ -131,6 +143,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"testing"
@@ -138,7 +151,10 @@ import (
 	"github.com/cucumber/godog"
 )
 
-var scenarios = flag.String("scenarios", "", "run only the live scenarios with a tag this regular expression matches")
+var (
+	scenarios   = flag.String("scenarios", "", "run only the live scenarios with a tag this regular expression matches")
+	concurrency = flag.Int("concurrency", runtime.NumCPU(), "run this many scenarios at a time")
+)
 
 func TestFeatures(t *testing.T) {
 	filter, err := tagFilter(*scenarios, ".")
@@ -151,11 +167,12 @@ func TestFeatures(t *testing.T) {
 		Name:                "itos",
 		ScenarioInitializer: initializeScenario,
 		Options: &godog.Options{
-			Format:   "pretty",
-			Paths:    []string{"."},
-			Tags:     filter,
-			Strict:   true,
-			TestingT: t,
+			Format:      "pretty",
+			Paths:       []string{"."},
+			Tags:        filter,
+			Strict:      true,
+			Concurrency: *concurrency,
+			TestingT:    t,
 		},
 	}
 	failed := suite.Run() != 0
