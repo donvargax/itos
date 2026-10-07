@@ -5451,3 +5451,15 @@ items:
     kind: idea
     why: >
       The user agreed 2026-10-06; the decision record holds the terms.
+
+  - id: p1-parallel-pilot
+    title: Two agents at once, each in its own clone or devcontainer, on items with disjoint refs
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-pr-mode, bug-41]
+    kind: idea
+    why: >
+      The user asked for parallel work (2026-10-06). A pilot of two, the coordinator watching main,
+      before more. Waits on p1-pr-mode (the integration) and bug-41 (a superseded run read as a
+      failure); drafts (slice-96) let the coordinator commit between.
