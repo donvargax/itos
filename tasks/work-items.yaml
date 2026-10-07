@@ -5814,3 +5814,15 @@ items:
       false pass in a preview, not a gate: git stores no leading blank line and the hook now judges
       the cleaned header.
     refs: [internal/message/lint.go, internal/message/footers.go]
+
+  - id: bug-49
+    title: work done judges a commit pushed with later registry-only commits by the run of their head
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified in features/work.feature (@bug-49). Found 2026-10-07: bug-36 could not close; its
+      work done waited 20 minutes for a run of b2bf80f that never came.
+    refs: [features/work.feature, internal/cli]
