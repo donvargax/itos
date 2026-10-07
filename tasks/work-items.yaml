@@ -5414,8 +5414,8 @@ items:
   - id: T-108
     title: "A devcontainer for this repository: Claude Code sandboxed, itos and its git shim first on the PATH, egress allowlisted"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
