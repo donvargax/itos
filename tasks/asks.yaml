@@ -79,3 +79,6 @@ questions:
     question: "Decision 35 makes the files itos writes part of its contract. Are their comment lines part of it too?"
     answer: "No. A written file is contract by its data; its comment lines are for people, like plain output, and may change in any release. This refines decision 35: docs/CLI.md's contract section says the data of the files itos writes, and the conformance runner's --additive mode, which previous-release uses, stops comparing comment lines in written YAML and Markdown. The user's call, 2026-10-07, recorded from that session's transcript."
     decision: 40
+  - id: q-21
+    item: "slice-94"
+    question: "The Claude Code plugin calls itos commands (guard claude-code, and work list --all and task list with --json for the titles): may a release rename or remove them, and does the launcher map them to an older pin's names?"
