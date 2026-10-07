@@ -60,6 +60,7 @@ queue:
   - p1-upgrade-applies-config-steps
   - T-113
   - p1-upgrade-on-major
+  - T-118
   - p1-problem-fields
   - p1-rule-ids-listed
   - p1-nightly-late-done-checks
