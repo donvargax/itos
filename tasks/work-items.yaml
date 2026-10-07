@@ -5568,15 +5568,9 @@ items:
     title: The hooks.yaml corpus cases pin their --json and the git config entries they write
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Found reviewing v6.0.0's waived failures (2026-10-06): seven cases in
-      tools/itos/conformance/hooks.yaml pin only exit 0 and their plain text, which decision 35 says
-      is not contract, so they check almost nothing a release could break. Each pins its --json and
-      the hook entries it leaves in the git config (hook.itos-commit-msg, hook.itos-pre-push), the
-      data a consumer relies on.
 
   - id: p1-tag-this-registry
     title: Declare work.tags in itos.yaml and tag this registry's open items
