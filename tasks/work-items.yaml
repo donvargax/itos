@@ -5317,3 +5317,13 @@ items:
     why: >
       Specified in features/update.feature.
     refs: [features/update.feature, internal/launch]
+
+  - id: T-106
+    title: previous-release excuses an old failure only when a commit names it, breaking or not
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Specified in tasks/phase-1.yaml.
