@@ -8,6 +8,8 @@
 // newer push cancelled, and the newer run, of a commit the clone has or of
 // the head another clone pushed while itos waited. Slice 93's steps say which
 // commit's run work done asked for: the remote's head, never the clone's HEAD.
+// Bug 49's push a fix and a registry commit after it in one push, and give
+// the fake GitHub a run of the pushed head alone.
 package features
 
 import (
@@ -104,6 +106,8 @@ func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^once itos has pushed, another clone pushes the commit "([^"]*)"$`, w.pushedOverWhileWaiting)
 	sc.Step(`^the fake GitHub reports the pushed commit's run cancelled, and the run "([^"]*)" of the remote's head, whose jobs "([^"]*)" and "([^"]*)" succeed$`, w.pushedRunCancelled)
+	sc.Step(`^the remote's head touches only the work registry, pushed in one push with the commit before it$`, w.pushedWithRegistryHead)
+	sc.Step(`^the fake GitHub has a run of the remote's head alone$`, w.runOfRemoteHeadAlone)
 	sc.Step(`^the fake GitHub was asked for the run of the clone's HEAD$`, w.fakeGitHubGivenHead)
 	sc.Step(`^the fake GitHub was asked for the run of the remote's head$`, w.fakeGitHubGivenRemoteHead)
 	sc.Step(`^the fake GitHub was never asked for the run of the clone's HEAD$`, w.fakeGitHubNotGivenHead)
@@ -225,6 +229,62 @@ func (w *world) pushedRunCancelled(url, a, b string) error {
 		g.addRun(newer, url, "success", []watchedJob{job(a, "success"), job(b, "success")})
 		return nil
 	}
+	return nil
+}
+
+// The clone commits a line of NOTES.md with ci.watch.timeout made short,
+// then an item added to the work registry alone, as work add commits it, and
+// pushes both to the remote's main in one push past the hooks (bug 49): a fix
+// pushed with a registry commit after it, which CI runs once, for the head.
+// The short timeout ends in seconds a watch for a run that never comes.
+func (w *world) pushedWithRegistryHead() error {
+	if w.config.watch == nil {
+		return errors.New("no ci.watch: set one up first")
+	}
+	w.config.watch.timeout = 3
+	if err := w.writeConfig(); err != nil {
+		return err
+	}
+	if err := writeLine(w.dir, "NOTES.md", "fix: mend a thing"); err != nil {
+		return err
+	}
+	if err := w.git("add", "--", w.data("itos.yaml"), "NOTES.md"); err != nil {
+		return err
+	}
+	if err := w.git("commit", "-q", "--no-verify", "-m", "fix: mend a thing"); err != nil {
+		return err
+	}
+	w.registryLines = append(w.registryLines, "  - { id: slice-2, title: slice-2, phase: 1, owner: null, status: todo, depends_on: [] }\n")
+	if err := w.writeRegistryLines(); err != nil {
+		return err
+	}
+	registry := w.data(startingRegistry)
+	if err := w.git("add", "--", registry); err != nil {
+		return err
+	}
+	if err := w.git("commit", "-q", "--no-verify", "-m", "docs: add slice-2", "--", registry); err != nil {
+		return err
+	}
+	return w.git("push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main")
+}
+
+// The fake GitHub holds the watched run for the remote's head alone, listed
+// among the branch's runs, and no run for any other commit (bug 49), as CI
+// runs once for a push, for its head.
+func (w *world) runOfRemoteHeadAlone() error {
+	if w.github == nil {
+		return errors.New("no fake GitHub: start one first")
+	}
+	cmd := exec.Command(git.Bin(), "rev-parse", "main")
+	cmd.Dir = w.remote()
+	cmd.Env = w.env()
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("git rev-parse main in the remote: %w", err)
+	}
+	w.github.mu.Lock()
+	w.github.alone = strings.TrimSpace(string(out))
+	w.github.mu.Unlock()
 	return nil
 }
 

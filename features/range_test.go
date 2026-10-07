@@ -65,6 +65,7 @@ type fakeGitHub struct {
 	watched  []watchedRun // the watched run's looks, when ci.watch asks
 	looks    int          // how many looks at the watched run were given
 	given    []string     // the commits a look at the watched run was given
+	alone    string       // the one commit the watched run is of, when a step says so (bug 49)
 	refuses  bool         // whether it answers every request 401
 	failing  bool         // whether it answers every request 500, a server error
 	// What it does when first asked for the watched run, before it answers
@@ -118,7 +119,7 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 				runs = append(runs, r)
 			}
 		}
-		if len(runs) == 0 && g.watched != nil && workflow == watchedWorkflow {
+		if len(runs) == 0 && g.watched != nil && workflow == watchedWorkflow && (g.alone == "" || sha == g.alone) {
 			if g.looks == 0 && g.firstLook != nil {
 				first := g.firstLook
 				g.firstLook = nil
@@ -141,6 +142,9 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		runs = slices.Clone(g.list)
 	} else {
 		runs = of
+		if g.alone != "" && g.watched != nil && workflow == watchedWorkflow {
+			runs = append(runs, g.peek(g.alone))
+		}
 	}
 	if branch := q.Get("branch"); branch != "" {
 		runs = slices.DeleteFunc(runs, func(r gitHubRun) bool { return r.HeadBranch != branch })
@@ -151,9 +155,16 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 // The next look at the watched run, as a run of the commit.
 func (g *fakeGitHub) look(sha string) gitHubRun {
-	n := min(g.looks, len(g.watched)-1)
+	r := g.peek(sha)
 	g.looks++
 	g.given = append(g.given, sha)
+	return r
+}
+
+// The watched run as the next look would give it, as a run of the commit,
+// the look not counted: how a list of the branch's runs names it (bug 49).
+func (g *fakeGitHub) peek(sha string) gitHubRun {
+	n := min(g.looks, len(g.watched)-1)
 	w := g.watched[n]
 	r := gitHubRun{ID: watchedID + n, HeadSHA: sha, HeadBranch: g.branch, Status: w.Status,
 		CreatedAt: "2026-10-05T13:00:00Z", HTMLURL: w.URL, workflow: watchedWorkflow, jobs: w.Jobs}
