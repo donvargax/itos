@@ -355,7 +355,7 @@ The footers each type needs:
 - `refactor` may not touch `features/**/*.feature`, `itos.yaml`, `.github/**`, `.vite-hooks/**`, `tools/bin/**`, `tools/selftest/**` or `deps-check.json`.
 - `perf` may not touch `features/**/*.feature`, `itos.yaml`, `.github/**`, `.vite-hooks/**`, `tools/bin/**`, `tools/selftest/**` or `deps-check.json`.
 - `test` may touch only `features/**`, `**/*.test.ts`, `{cmd,internal}/**/*_test.go`, `tools/itos/conformance/**` and `tools/itos/fixtures/**`; it may not touch `itos.yaml`, `.github/**`, `.vite-hooks/**`, `tools/bin/**`, `tools/selftest/**` or `deps-check.json`.
-- `build` may touch only `*.{json,yaml,yml,ts,toml}`, `go.mod`, `go.sum`, `.gitignore`, `.editorconfig`, `.vite-hooks/**`, `.github/**`, `tools/bin/**`, `tools/selftest/**`, `tools/changelog.ts` and `.claude/settings.json`.
+- `build` may touch only `*.{json,yaml,yml,ts,toml}`, `go.mod`, `go.sum`, `.gitignore`, `.editorconfig`, `.vite-hooks/**`, `.github/**`, `tools/bin/**`, `tools/selftest/**`, `tools/changelog.ts`, `.claude/settings.json` and `.devcontainer/**`.
 - `ci` may touch only `*.{json,yaml,yml,ts,toml}`, `go.mod`, `go.sum`, `.gitignore`, `.editorconfig`, `.vite-hooks/**`, `.github/**`, `tools/bin/**`, `tools/selftest/**`, `tools/changelog.ts` and `.claude/settings.json`.
 - `chore` may not touch `{cmd,internal}/**/*.go`, `itos.yaml`, `.github/**`, `.vite-hooks/**`, `tools/bin/**`, `tools/selftest/**` or `deps-check.json`.
 - `docs` may touch only `**/*.md`, `docs/**`, `tasks/**` and `features/**/*.feature`.
