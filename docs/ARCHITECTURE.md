@@ -1602,8 +1602,9 @@ push` (`internal/cli/watch.go`) over `internal/providers/watch.go`, beside
   stops waiting on its output, and the answer is a problem naming `--as`. A session with no handle is nobody, and one
   the people do not list owns nothing yet; both still see what nobody owns.
   `Propose` keeps each item the mapping as written (`value.Map`, its keys in
-  JavaScript's order, `depends_on` added last when absent), so the `--json`
-  proposal is the TypeScript's byte for byte. The identity providers over
+  JavaScript's order, `depends_on` and `tags` added last when absent), so
+  every `--json` item has both lists, and an item's `tags` are held to
+  those `work.tags` declares, none when it declares none. The identity providers over
   the GitLab and Forgejo APIs wait for `p1-conformance-http`, as the range
   ones do: neither implementation's schema accepts them yet, so a config
   naming one is a config error, not a command that runs half-built.

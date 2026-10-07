@@ -258,10 +258,20 @@ func (p Proposal) Fields() []out.Field {
 	}...)
 }
 
-// line is an item as the proposal prints it: its id, its title and, when it
-// has one, its issue.
+// TaggedID is an item's id as itos work and itos status print it (slice 97):
+// its tags, when it carries any, in brackets beside it.
+func TaggedID(item *value.Map) string {
+	id := value.String(item.At("id"))
+	if tags, _ := item.At("tags").([]any); len(tags) > 0 {
+		id += " [" + join(tags, ", ") + "]"
+	}
+	return id
+}
+
+// line is an item as the proposal prints it: its id and tags (TaggedID),
+// its title and, when it has one, its issue.
 func line(item *value.Map) string {
-	s := "  " + value.String(item.At("id")) + "  " + value.String(item.At("title"))
+	s := "  " + TaggedID(item) + "  " + value.String(item.At("title"))
 	if issue := item.At("issue"); value.Truthy(issue) {
 		s += "  (#" + value.String(issue) + ")"
 	}

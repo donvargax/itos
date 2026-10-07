@@ -58,6 +58,9 @@ func TestLoadProblems(t *testing.T) {
 		"version: 1\nhooks: { bim: x, shims: true }\n": {
 			"unknown key hooks.bim", "unknown key hooks.shims",
 		},
+		"version: 1\nwork: { tags: [a, '', a] }\n": {
+			"work.tags[1] is empty", `work.tags declares "a" twice`,
+		},
 		"version: 1\ncommits: { scopes: { docs: { only: [$prose] } } }\n": {
 			"commits.scopes.docs.only names $prose, which commits.path_sets does not have",
 		},

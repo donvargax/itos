@@ -78,12 +78,14 @@ cases:
           owner: a
           status: doing
           depends_on: []
+          tags: []
       next:
         - id: ready
           title: Ready
           phase: 1
           owner: a
           status: todo
+          tags: []
           depends_on:
             - done
           issue: 12
@@ -93,6 +95,7 @@ cases:
           owner: null
           status: todo
           depends_on: []
+          tags: []
       unowned:
         - id: free
           title: Free
@@ -100,6 +103,7 @@ cases:
           owner: null
           status: todo
           depends_on: []
+          tags: []
       waiting:
         - item:
             id: later
@@ -107,6 +111,7 @@ cases:
             phase: 1
             owner: a
             status: todo
+            tags: []
             depends_on:
               - ready
           on:
@@ -121,6 +126,7 @@ cases:
             kind: idea
             why: a gap a slice left
             depends_on: []
+            tags: []
           on: []
         - item:
             id: idea-later
@@ -129,6 +135,7 @@ cases:
             owner: a
             status: todo
             kind: idea
+            tags: []
             depends_on:
               - ready
           on:
@@ -141,6 +148,7 @@ cases:
             status: todo
             kind: idea
             depends_on: []
+            tags: []
           on: []
       deferred:
         - id: parked
@@ -151,6 +159,7 @@ cases:
           kind: task
           deferred: put off for now
           depends_on: []
+          tags: []
         - id: parked-idea
           title: A parked idea
           phase: 1
@@ -159,6 +168,7 @@ cases:
           kind: idea
           deferred: "  waits on a second runner  "
           depends_on: []
+          tags: []
   - name: another person sees their own and the unowned
     argv: [work, --as, b]
     exit: 0
@@ -756,7 +766,7 @@ cases:
       every_item: true
       doing: []
       next:
-        - { id: x, title: X, phase: 1, owner: q, status: todo, depends_on: [] }
+        - { id: x, title: X, phase: 1, owner: q, status: todo, depends_on: [], tags: [] }
       unowned: []
       waiting: []
       ideas: []
@@ -849,7 +859,7 @@ cases:
       schema: 1
       file: work-items.yaml
       items:
-        - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea, depends_on: [x] }
+        - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea, depends_on: [x], tags: [] }
   - name: work list --all prints every item, done ones too
     argv: [work, list, --all]
     files:
@@ -867,7 +877,34 @@ cases:
       schema: 1
       file: work-items.yaml
       items:
-        - { id: x, title: X, phase: 1, owner: a, status: done, depends_on: [] }
+        - { id: x, title: X, phase: 1, owner: a, status: done, depends_on: [], tags: [] }
+  # Slice 97: an item's tags, from the set work.tags declares; work list --tag
+  # keeps the items carrying one, and work check refuses one not declared.
+  - name: work list --tag --json lists the open items carrying the tag, each with its tags
+    argv: [work, list, --tag, plugin, --json]
+    files:
+      itos.yaml: "version: 1\nwork: { registry: work-items.yaml, tags: [plugin, json], people: { source: yaml, file: people.yaml } }\n"
+      work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo, tags: [plugin, json] }\n  - { id: y, title: Y, phase: 1, owner: a, status: todo, tags: [json] }\n  - { id: z, title: Z, phase: 1, owner: a, status: done, tags: [plugin] }\n"
+    exit: 0
+    json:
+      schema: 1
+      file: work-items.yaml
+      items:
+        - { id: x, title: X, phase: 1, owner: a, status: todo, tags: [plugin, json], depends_on: [] }
+  - name: work check refuses a tag work.tags does not declare, naming it
+    argv: [work, check, --json]
+    files:
+      itos.yaml: "version: 1\nwork: { registry: work-items.yaml, tags: [plugin], people: { source: yaml, file: people.yaml } }\n"
+      work-items.yaml: "phases: { 1: a }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo, tags: [plugin, windows] }\n"
+    exit: 1
+    json:
+      schema: 1
+      file: work-items.yaml
+      sound: false
+      problems:
+        - rule: work-unknown-tag
+          message: 'x: tag "windows" is not in work.tags (plugin)'
+          fix: "declare windows in work.tags, or remove it from x's tags (itos work edit x --tags …)"
   - name: work list judges nothing, so a registry that is not sound still lists
     argv: [work, list, --all]
     files:
@@ -887,7 +924,7 @@ cases:
     argv: [work, list, --as, a]
     exit: 2
     stderr: |
-      itos: work list does not take --as; it takes --all (itos --help)
+      itos: work list does not take --as; it takes --all or --tag (itos --help)
   - name: work list reads a stealth config's registry in the git folder
     argv: [work, list]
     git: []
@@ -922,7 +959,7 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: x, title: "X, quoted", phase: 1, owner: a, status: doing, depends_on: [] }
+      item: { id: x, title: "X, quoted", phase: 1, owner: a, status: doing, depends_on: [], tags: [] }
       commit: null
     files_after:
       .git/itos/work-items.yaml: *taken
@@ -1035,7 +1072,7 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: slice-7, title: A thing, phase: 1, status: todo, kind: slice, why: "Was p1-thing. A gap left behind.\n", depends_on: [] }
+      item: { id: slice-7, title: A thing, phase: 1, status: todo, kind: slice, why: "Was p1-thing. A gap left behind.\n", depends_on: [], tags: [] }
       was: p1-thing
       rewritten: [slice-3, slice-4]
       commit: null
@@ -1052,7 +1089,7 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: slice-7, title: "The thing, specified", phase: 1, status: todo, kind: slice, why: Was p1-thing. a gap, depends_on: [] }
+      item: { id: slice-7, title: "The thing, specified", phase: 1, status: todo, kind: slice, why: Was p1-thing. a gap, depends_on: [], tags: [] }
       was: p1-thing
       rewritten: []
       commit: null
@@ -1147,7 +1184,7 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: done, title: Done, phase: 1, owner: a, status: done, depends_on: [] }
+      item: { id: done, title: Done, phase: 1, owner: a, status: done, depends_on: [], tags: [] }
       commit: null
   - name: work add makes an idea at the end of the items, todo and nobody's, and commits the registry alone
     argv: [work, add, p1-new, --title, "New: a thing", --why, "A gap, found while building."]
@@ -1173,7 +1210,7 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: slice-9, title: Nine, phase: 1, owner: a, status: todo, depends_on: [x, y], kind: slice, why: "Specified.\n", refs: [features/x.feature] }
+      item: { id: slice-9, title: Nine, phase: 1, owner: a, status: todo, depends_on: [x, y], tags: [], kind: slice, why: "Specified.\n", refs: [features/x.feature] }
       commit: null
     files_after:
       .git/itos/work-items.yaml: "phases: { 1: null, 2: null }\nitems:\n  - { id: x, title: X, phase: 1, status: done }\n\n  - { id: y, title: Y, phase: 2, status: todo }\n\n  - id: slice-9\n    title: Nine\n    phase: 1\n    owner: a\n    status: todo\n    depends_on: [x, y]\n    kind: slice\n    why: >\n      Specified.\n    refs: [features/x.feature]\n"
@@ -1246,7 +1283,7 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: b, title: B, phase: 1, status: todo, depends_on: [a], why: "A gap left behind.\nSeen again while building slice 54.\n", refs: [docs/b.md, features/b.feature] }
+      item: { id: b, title: B, phase: 1, status: todo, depends_on: [a], tags: [], why: "A gap left behind.\nSeen again while building slice 54.\n", refs: [docs/b.md, features/b.feature] }
       changed: [depends_on, refs, why]
       commit: null
     files_after:
@@ -1262,7 +1299,7 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [], issue: 12 }
+      item: { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [], tags: [], issue: 12 }
       changed: [depends_on]
       commit: null
   - name: work edit writes a list of any shape whole, one flow list on its key's line
@@ -1276,7 +1313,7 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: b, title: B, phase: 1, status: todo, depends_on: [a], refs: [docs/c.md], why: A gap. }
+      item: { id: b, title: B, phase: 1, status: todo, depends_on: [a], tags: [], refs: [docs/c.md], why: A gap. }
       changed: [depends_on, refs]
       commit: null
     files_after:
@@ -1312,12 +1349,12 @@ cases:
     argv: [work, edit, ready]
     exit: 2
     stderr: |
-      itos: work edit needs --title, --depends-on, --refs or --note (itos --help)
+      itos: work edit needs --title, --depends-on, --refs, --tags or --note (itos --help)
   - name: work edit changes no owner, work take does
     argv: [work, edit, ready, --owner, b]
     exit: 2
     stderr: |
-      itos: work edit does not take --owner; it takes --title, --depends-on, --refs or --note (itos --help)
+      itos: work edit does not take --owner; it takes --title, --depends-on, --refs, --tags or --note (itos --help)
   - name: work show prints the item, what depends on it, its scenarios and its commits, oldest first
     argv: [work, show, x]
     git:
@@ -1379,7 +1416,7 @@ cases:
       schema: 1
       ok: true
       item:
-        { id: x, title: X, phase: 1, owner: a, status: doing, kind: slice, depends_on: [], refs: [features/x.feature], why: Because it is needed. }
+        { id: x, title: X, phase: 1, owner: a, status: doing, kind: slice, depends_on: [], tags: [], refs: [features/x.feature], why: Because it is needed. }
       depended_on_by: [y]
       scenarios: [{ id: "@ID-X-01", file: x.feature, live: true }]
       questions: []
@@ -1422,7 +1459,7 @@ cases:
       schema: 1
       ok: true
       item:
-        { id: x, title: X, phase: 1, owner: a, status: doing, kind: slice, depends_on: [], refs: [features/x.feature], why: Because it is needed. }
+        { id: x, title: X, phase: 1, owner: a, status: doing, kind: slice, depends_on: [], tags: [], refs: [features/x.feature], why: Because it is needed. }
       depended_on_by: [y]
       scenarios: []
       questions:
@@ -1507,7 +1544,7 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: x, title: X, phase: 1, status: todo, depends_on: [] }
+      item: { id: x, title: X, phase: 1, status: todo, depends_on: [], tags: [] }
       queue: [y, z, x]
       commit: null
     files_after:
@@ -1613,7 +1650,7 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea, depends_on: [] }
+      item: { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea, depends_on: [], tags: [] }
       commit: null
     files_after:
       .git/itos/work-items.yaml: "phases: { 1: null }\nqueue:\n  - y\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo }\n"

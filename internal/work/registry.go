@@ -8,6 +8,7 @@ package work
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v6/internal/config"
@@ -36,9 +37,10 @@ func live(item *value.Map) bool {
 
 // Registry is the registry as read: the people's logins, whether there are
 // people to hold owners to, each group's owner (by the key work.groups_key
-// names) and the items, each with its depends_on, a list (none when it gives
-// none). An item is the mapping as written, read with JavaScript's leniency,
-// since the registry's problems are what is wrong with it.
+// names) and the items, each with its depends_on and its tags, lists (none
+// when it gives none). An item is the mapping as written, read with
+// JavaScript's leniency, since the registry's problems are what is wrong
+// with it.
 type Registry struct {
 	Logins []string
 	// People is whether Logins are who may own work: false under a stealth
@@ -101,9 +103,7 @@ func parse(cfg *config.Loaded, text string) (Registry, error) {
 			if !ok {
 				copied = value.NewMap()
 			}
-			if deps := copied.At("depends_on"); deps == nil || deps == value.Undefined {
-				copied.Set("depends_on", []any{})
-			}
+			defaultLists(copied)
 			items = append(items, copied)
 		}
 	}
@@ -141,6 +141,16 @@ func PeopleProblem(cfg *config.Loaded) *out.Problem {
 		}
 	}
 	return nil
+}
+
+// defaultLists gives an item that has no depends_on, or no tags (slice
+// 97), an empty one, so every reader, and every --json item, has both.
+func defaultLists(item *value.Map) {
+	for _, key := range []string{"depends_on", "tags"} {
+		if list := item.At(key); list == nil || list == value.Undefined {
+			item.Set(key, []any{})
+		}
+	}
 }
 
 // groups are the registry's groups and their owners, a mapping; a list reads
@@ -230,6 +240,7 @@ func (c checker) itemIssues(item *value.Map) ([]out.Problem, error) {
 	add(owner != nil && !c.owned(owner), "work-unknown-owner",
 		fmt.Sprintf("%s: owner \"%s\" is not in %s", id, value.String(owner), c.listedIn),
 		fmt.Sprintf("add %s to %s, or set %s's owner to one of its logins", value.String(owner), c.listedIn, id))
+	found = append(found, c.tagIssues(id, item.At("tags"))...)
 	deps, ok := item.At("depends_on").([]any)
 	if !ok {
 		return nil, errors.New("item.depends_on.flatMap is not a function")
@@ -252,6 +263,44 @@ func (c checker) itemIssues(item *value.Map) ([]out.Problem, error) {
 			fmt.Sprintf("remove \"%s\" from %s's depends_on (itos work edit %s --depends-on …), or drop %s too", value.String(dep), id, id, id))
 	}
 	return found, nil
+}
+
+// tagIssues are the problems of an item's tags (slice 97): a list of the
+// tags work.tags declares, each once; a config that declares none accepts
+// none. A tag outside them is refused, naming it and work.tags, so a typo
+// never becomes a tag of its own.
+func (c checker) tagIssues(id string, tags any) []out.Problem {
+	if absent(tags) {
+		return nil
+	}
+	list, ok := tags.([]any)
+	if !ok {
+		return []out.Problem{problem("work-tags-not-list", id+": tags is not a list of tags",
+			"write "+id+"'s tags as a list (itos work edit "+id+" --tags <tag>,…), or remove it")}
+	}
+	declared := c.cfg.Work.Tags
+	var found []out.Problem
+	seen := map[string]bool{}
+	for _, tag := range list {
+		name := value.String(tag)
+		_, isText := tag.(string)
+		switch {
+		case !isText || !slices.Contains(declared, name):
+			message := fmt.Sprintf("%s: tag \"%s\" is not in work.tags", id, name)
+			fix := fmt.Sprintf("declare %s in work.tags, or remove it from %s's tags (itos work edit %s --tags …)", name, id, id)
+			if len(declared) == 0 {
+				message += ", which declares none"
+			} else {
+				message += " (" + strings.Join(declared, ", ") + ")"
+			}
+			found = append(found, problem("work-unknown-tag", message, fix))
+		case seen[name]:
+			found = append(found, problem("work-tag-twice", fmt.Sprintf("%s: tag \"%s\" is given twice", id, name),
+				"remove one of the two "+name+" from "+id+"'s tags"))
+		}
+		seen[name] = true
+	}
+	return found
 }
 
 // cycles is every cycle: an item reached again while walking its own

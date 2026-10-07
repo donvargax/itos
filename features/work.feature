@@ -634,7 +634,7 @@ Feature: The work registry
   # work list --tag filters; itos work and itos status show an item's tags
   # beside its id. A registry with no work.tags in its config accepts no tag. The
   # scenarios that add an item first give the registry one, so it lists a phase.
-  @ID-WORK-58 @slice-97 @wip
+  @ID-WORK-58 @slice-97
   Scenario: work add gives an item tags the config declares
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the config's work.tags is "plugin, stealth"
@@ -642,7 +642,7 @@ Feature: The work registry
     Then itos exits with code 0
     And the registry's item "p1-thing" has the tags "plugin, stealth"
 
-  @ID-WORK-59 @slice-97 @wip
+  @ID-WORK-59 @slice-97
   Scenario: work add refuses a tag the config does not declare, and adds nothing
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     And the config's work.tags is "plugin, stealth"
@@ -651,7 +651,7 @@ Feature: The work registry
     And its output says "plgin"
     And the registry has no item "p1-thing"
 
-  @ID-WORK-60 @slice-97 @wip
+  @ID-WORK-60 @slice-97
   Scenario: work check refuses a registry whose item carries an undeclared tag
     Given the config's work.tags is "plugin"
     And the work registry has the item "slice-9" owned by nobody with the status "todo" and the tags "windows"
@@ -659,7 +659,7 @@ Feature: The work registry
     Then itos exits with code 1
     And its output says "windows"
 
-  @ID-WORK-61 @slice-97 @wip
+  @ID-WORK-61 @slice-97
   Scenario: work edit replaces an item's tags, and an empty --tags empties them
     Given the config's work.tags is "plugin, stealth"
     And the work registry has the idea "p1-thing" owned by nobody
@@ -671,7 +671,7 @@ Feature: The work registry
     Then itos exits with code 0
     And the registry's item "p1-thing" has no tags
 
-  @ID-WORK-62 @slice-97 @wip
+  @ID-WORK-62 @slice-97
   Scenario: work list --tag lists only the open items carrying the tag
     Given the config's work.tags is "plugin, stealth"
     And the work registry has the item "slice-1" owned by nobody with the status "todo" and the tags "plugin"
@@ -681,7 +681,7 @@ Feature: The work registry
     And its output says "slice-1"
     And its output does not say "slice-2"
 
-  @ID-WORK-63 @slice-97 @wip
+  @ID-WORK-63 @slice-97
   Scenario: itos work shows an item's tags beside its id
     Given the config's work.tags is "plugin"
     And the work registry has the item "slice-1" owned by nobody with the status "todo" and the tags "plugin"
@@ -689,7 +689,7 @@ Feature: The work registry
     Then itos exits with code 0
     And its output says "slice-1" before "plugin"
 
-  @ID-WORK-64 @slice-97 @wip
+  @ID-WORK-64 @slice-97
   Scenario: Without work.tags in the config, work add refuses any tag
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs the command line "work add p1-thing --title 'A thing' --why 'Because.' --tags plugin"

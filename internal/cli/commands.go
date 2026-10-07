@@ -109,19 +109,14 @@ func workCommand(args []string, o Out) (int, error) {
 		file, named := first(rest)
 		return workCheck(typed(file), named, o)
 	case "list":
-		var others []string
-		all := false
-		for _, arg := range rest {
-			if arg == "--all" {
-				all = true
-			} else {
-				others = append(others, arg)
-			}
+		others, values, set, err := subArgs("work", "list", rest, []string{"--tag"}, []string{"--all"})
+		if err != nil {
+			return 0, err
 		}
 		if len(others) > 0 {
-			return 0, usage("work list takes only --all: %s", strings.Join(others, " "))
+			return 0, usage("work list takes only --all and --tag <tag>: %s", strings.Join(others, " "))
 		}
-		return workList(all, o)
+		return workList(set["--all"], values["--tag"], o)
 	}
 	as := ""
 	for i := 0; i < len(args); i++ {

@@ -591,7 +591,7 @@ cases:
       ok: true
       task: { id: T-010, type: build, title: Three, why: "A phase of its own.\n", done_when: [{ run: go vet ./..., timeout: 120 }] }
       file: .git/itos/tasks/phase-3.yaml
-      item: { id: T-010, title: Three, phase: 3, owner: null, status: todo, depends_on: [], kind: task, why: "A phase of its own.\n" }
+      item: { id: T-010, title: Three, phase: 3, owner: null, status: todo, depends_on: [], tags: [], kind: task, why: "A phase of its own.\n" }
       commit: null
     files_after:
       .git/itos/tasks/phase-3.yaml: "- id: T-010\n  type: build\n  title: Three\n  why: >\n    A phase of its own.\n  done_when:\n    - run: go vet ./...\n      timeout: 120\n"

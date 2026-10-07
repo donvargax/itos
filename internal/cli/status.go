@@ -619,7 +619,7 @@ func (st *standing) print(w io.Writer) {
 	}
 	itemLine := func(v any) string {
 		item := v.(*value.Map)
-		s := "  " + value.String(item.At("id")) + "  " + value.String(item.At("title"))
+		s := "  " + work.TaggedID(item) + "  " + value.String(item.At("title"))
 		if st.unowned[v] {
 			s += "  (unowned)"
 		}

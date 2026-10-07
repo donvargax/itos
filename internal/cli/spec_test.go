@@ -44,7 +44,7 @@ func TestReadLine(t *testing.T) {
 // and a flag given twice are usage errors naming it.
 func TestReadLineRefuses(t *testing.T) {
 	for line, want := range map[string]string{
-		"work list --bogus":          "work list does not take --bogus; it takes --all",
+		"work list --bogus":          "work list does not take --bogus; it takes --all or --tag",
 		"task list --group --json":   "task list --group needs a value",
 		"task list --group":          "task list --group needs a value",
 		"task list --group -- 1":     "task list --group needs a value",

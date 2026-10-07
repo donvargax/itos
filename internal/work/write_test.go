@@ -136,10 +136,15 @@ func TestDoneDropsWhy(t *testing.T) {
 // A config of the registry at work-items.yaml, with no people, in a folder
 // of its own.
 func addConfig(t *testing.T) *config.Loaded {
+	return addConfigWith(t, "")
+}
+
+// addConfigWith is addConfig with more keys of work, "k: v, " each.
+func addConfigWith(t *testing.T, work string) *config.Loaded {
 	t.Helper()
 	t.Chdir(t.TempDir())
 	t.Setenv("ITOS_CONFIG", "itos.yaml")
-	if err := os.WriteFile("itos.yaml", []byte("version: 1\nwork: { registry: work-items.yaml }\n"), 0o644); err != nil {
+	if err := os.WriteFile("itos.yaml", []byte("version: 1\nwork: { "+work+"registry: work-items.yaml }\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	cfg, err := config.Load("itos.yaml")
@@ -226,5 +231,51 @@ func TestEdit(t *testing.T) {
 		if _, found, _ := Edit(cfg, rs, specs, id, Edits{Title: new("New"), Note: "x"}, regexp.MustCompile(`^T-\d+$`)); len(found) == 0 || found[0].Rule != "work-note-spec" {
 			t.Errorf("a note on %s: %+v", id, found)
 		}
+	}
+}
+
+// An item's tags (slice 97) are written as its refs are, after its why on
+// add and whole on edit, an empty list taking them away; one work.tags does
+// not declare, or any when it declares none, is refused, naming work.tags.
+func TestTags(t *testing.T) {
+	cfg := addConfigWith(t, "tags: [plugin, stealth], ")
+	text := "phases: { 1: null }\nitems:\n" +
+		"  - id: b\n    title: B\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n"
+	r := registryOf(t, text)
+	change, found, err := Add(cfg, r, text, New{ID: "p1-c", Title: "C", Why: "w", Kind: "idea", Tags: []string{"plugin", "stealth"}}, nil)
+	if err != nil || found != nil {
+		t.Fatal(err, found)
+	}
+	if !strings.HasSuffix(change.Text, "    why: >\n      w\n    tags: [plugin, stealth]\n") {
+		t.Errorf("add p1-c with tags:\n%s", change.Text)
+	}
+	tags := []string{"stealth"}
+	change, found, err = Edit(cfg, r, text, "b", Edits{Tags: &tags}, nil)
+	if err != nil || found != nil || !strings.HasSuffix(change.Text, "    tags: [stealth]\n") ||
+		strings.Join(change.Changed, " ") != "tags" {
+		t.Errorf("edit b's tags: %+v, %v, %v", change, found, err)
+	}
+	tagged := text + "    tags: [plugin]\n"
+	change, found, err = Edit(cfg, registryOf(t, tagged), tagged, "b", Edits{Tags: &[]string{}}, nil)
+	if err != nil || found != nil || strings.Contains(change.Text, "plugin") {
+		t.Errorf("empty b's tags: %+v, %v, %v", change, found, err)
+	}
+	for name, c := range map[string]struct {
+		cfg  *config.Loaded
+		tags []string
+		want string
+	}{
+		"undeclared": {cfg, []string{"plgin"}, `p1-c: tag "plgin" is not in work.tags (plugin, stealth)`},
+		"twice":      {cfg, []string{"plugin", "plugin"}, `p1-c: tag "plugin" is given twice`},
+		"none":       {addConfig(t), []string{"plugin"}, `p1-c: tag "plugin" is not in work.tags, which declares none`},
+	} {
+		_, found, err := Add(c.cfg, r, text, New{ID: "p1-c", Title: "C", Why: "w", Kind: "idea", Tags: c.tags}, nil)
+		if err != nil || len(found) != 1 || found[0].Message != c.want {
+			t.Errorf("%s: %+v, %v, not %q", name, found, err, c.want)
+		}
+	}
+	notList := text + "    tags: plugin\n"
+	if found, err := Issues(cfg, registryOf(t, notList), "r"); err != nil || len(found) != 1 || found[0].Rule != "work-tags-not-list" {
+		t.Errorf("tags not a list: %+v, %v", found, err)
 	}
 }

@@ -13,7 +13,8 @@ import (
 // The commands that write the registry (slice 52): work take sets an item
 // in progress for the person, work promote makes an idea a slice or a task,
 // work done (slice 53) marks an item done, and work add and work edit
-// (slice 54) make an item and change its title, dependencies, refs or why.
+// (slice 54) make an item and change its title, dependencies, refs, tags or
+// why.
 // Each judges a sound registry and gives a Change, the registry's text with
 // the edit made in place (value.Doc: every comment, quote and line kept), the
 // item as it is after and the commit message that records it, or the
@@ -337,10 +338,11 @@ func Promote(r Registry, text, id, newID, kind, title string, taskID *regexp.Reg
 
 // New is the item work add makes (slice 54): its id, title and why, its
 // kind (an idea unless said), its group (Phase, "" for the default Add
-// picks), its owner ("" for nobody) and its dependencies and refs.
+// picks), its owner ("" for nobody) and its dependencies, refs and tags
+// (slice 97).
 type New struct {
 	ID, Title, Why, Kind, Phase, Owner string
-	DependsOn, Refs                    []string
+	DependsOn, Refs, Tags              []string
 }
 
 // phaseOf is the group a new item goes in: the one given, else the one its
@@ -391,7 +393,7 @@ func sound(cfg *config.Loaded, r Registry, i int, after *value.Map) ([]out.Probl
 // that ledger.id (taskID) does not match, no group given where the default
 // is not plain (phaseOf), and whatever work check would find in the
 // registry with it (a group not listed, an owner not among the people, a
-// dependency on no item).
+// dependency on no item, a tag work.tags does not declare).
 func Add(cfg *config.Loaded, r Registry, text string, n New, taskID *regexp.Regexp) (Change, []out.Problem, error) {
 	refuse := func(rule, message, fix string) (Change, []out.Problem, error) {
 		return Change{}, []out.Problem{{Rule: rule, Message: message, Fix: fix}}, nil
@@ -423,6 +425,9 @@ func Add(cfg *config.Loaded, r Registry, text string, n New, taskID *regexp.Rege
 	if len(n.Refs) > 0 {
 		item.Set("refs", listOf(n.Refs))
 	}
+	if len(n.Tags) > 0 {
+		item.Set("tags", listOf(n.Tags))
+	}
 	doc, err := value.OpenDoc(text)
 	if err != nil {
 		return Change{}, nil, err
@@ -436,6 +441,7 @@ func Add(cfg *config.Loaded, r Registry, text string, n New, taskID *regexp.Rege
 	}
 	list := value.Prop(doc.Want, "items").([]any)
 	after := value.Copy(list[len(list)-1]).(*value.Map)
+	defaultLists(after)
 	found, err := sound(cfg, r, len(r.Items), after)
 	if err != nil || len(found) > 0 {
 		return Change{}, found, err
@@ -445,12 +451,12 @@ func Add(cfg *config.Loaded, r Registry, text string, n New, taskID *regexp.Rege
 }
 
 // Edits are what work edit changes of an item (slice 54): its title, its
-// depends_on, its refs (each nil when not given), and a paragraph to add to
+// depends_on, its refs, its tags (slice 97; each nil when not given), and a paragraph to add to
 // its why ("" for none).
 type Edits struct {
-	Title           *string
-	DependsOn, Refs *[]string
-	Note            string
+	Title                 *string
+	DependsOn, Refs, Tags *[]string
+	Note                  string
 }
 
 // WhereWhy is where a slice's or a task's why lives (slice 76), the
@@ -460,7 +466,7 @@ var WhereWhy = map[string]string{
 	"task":  "its ledger entry",
 }
 
-// Edit is the registry with the item's title, depends_on or refs replaced
+// Edit is the registry with the item's title, depends_on, refs or tags replaced
 // and a paragraph added to its why (value.Doc's Note: a blank line, then the
 // paragraph, in a folded why). A list given is written whole, one flow list
 // on its key's line, whatever shape the old one had (value.Doc's SetList,
@@ -506,7 +512,7 @@ func Edit(cfg *config.Loaded, r Registry, text, id string, e Edits, taskID *rege
 	for _, l := range []struct {
 		key  string
 		list *[]string
-	}{{"depends_on", e.DependsOn}, {"refs", e.Refs}} {
+	}{{"depends_on", e.DependsOn}, {"refs", e.Refs}, {"tags", e.Tags}} {
 		if l.list == nil {
 			continue
 		}
@@ -535,9 +541,7 @@ func Edit(cfg *config.Loaded, r Registry, text, id string, e Edits, taskID *rege
 		return Change{}, nil, err
 	}
 	after := value.Copy(value.Prop(doc.Want, "items").([]any)[i]).(*value.Map)
-	if deps := after.At("depends_on"); deps == nil || deps == value.Undefined {
-		after.Set("depends_on", []any{})
-	}
+	defaultLists(after)
 	found, err := sound(cfg, r, i, after)
 	if err != nil || len(found) > 0 {
 		return Change{}, found, err

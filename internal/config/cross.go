@@ -16,7 +16,7 @@ func crossProblems(tree *value.Map, c *Config) []out.Problem {
 	var found []out.Problem
 	for _, check := range []func(*value.Map, *Config) []out.Problem{
 		sinceProblems, pinProblems, scopeProblems, footerProblems, stepProblems,
-		patternProblems, providerProblems, hookProblems, rangeCheckProblems, watchProblems,
+		patternProblems, providerProblems, hookProblems, rangeCheckProblems, watchProblems, tagProblems,
 	} {
 		found = append(found, check(tree, c)...)
 	}
@@ -403,6 +403,31 @@ func hookProblems(_ *value.Map, c *Config) []out.Problem {
 		Message: "hooks.commit_msg.check_timeout is a number of seconds above 0, not " + value.Number(*seconds),
 		Fix:     "set hooks.commit_msg.check_timeout to the seconds a check may hold a commit, or set hooks.commit_msg.task_checks to false",
 	}}
+}
+
+// tagProblems: work.tags are names an item's tags are held to (slice 97),
+// so each is text with something in it, and none is declared twice.
+func tagProblems(_ *value.Map, c *Config) []out.Problem {
+	var found []out.Problem
+	seen := map[string]bool{}
+	for i, tag := range c.Work.Tags {
+		switch {
+		case strings.TrimSpace(tag) == "":
+			found = append(found, out.Problem{
+				Rule:    "config-work-tag-empty",
+				Message: fmt.Sprintf("work.tags[%d] is empty", i),
+				Fix:     "give the tag a name, or remove it from work.tags",
+			})
+		case seen[tag]:
+			found = append(found, out.Problem{
+				Rule:    "config-work-tag-twice",
+				Message: fmt.Sprintf("work.tags declares %q twice", tag),
+				Fix:     "remove one of the two " + tag + " from work.tags",
+			})
+		}
+		seen[tag] = true
+	}
+	return found
 }
 
 // watchProblems: a watch looks at its run again after interval seconds, none

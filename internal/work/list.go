@@ -3,6 +3,7 @@ package work
 import (
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -22,6 +23,17 @@ func Open(items []*value.Map) []*value.Map {
 		}
 	}
 	return open
+}
+
+// Tagged are the items that carry the tag (slice 97), in the order given.
+func Tagged(items []*value.Map, tag string) []*value.Map {
+	tagged := []*value.Map{}
+	for _, item := range items {
+		if tags, _ := item.At("tags").([]any); slices.Contains(tags, any(tag)) {
+			tagged = append(tagged, item)
+		}
+	}
+	return tagged
 }
 
 // PrintList writes the items as `work list` prints them (slice 43), one line

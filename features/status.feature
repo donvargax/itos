@@ -194,7 +194,7 @@ Feature: itos status, where the work stands
     And its output says "Last green:"
     And its output says "fix: one"
 
-  @ID-STATUS-15 @slice-97 @wip
+  @ID-STATUS-15 @slice-97
   Scenario: status shows the tags of the items it lists beside their ids
     Given the watched run's jobs "ci" and "platform" succeed
     And the config's work.tags is "plugin"

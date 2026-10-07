@@ -152,6 +152,24 @@ cases:
           message: "itos.yaml: unknown key hooks.shims"
           fix: remove hooks.shims; the keys here are bin, pre_push, commit_msg
           area: config
+  # Slice 97: work.tags, the tags a work item may carry, are distinct names.
+  - name: work.tags declares no empty tag and none twice
+    argv: [config, check, --json]
+    files: { itos.yaml: "version: 1\nwork: { tags: [plugin, '', plugin] }\n" }
+    exit: 2
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: config-work-tag-empty
+          message: "itos.yaml: work.tags[1] is empty"
+          fix: give the tag a name, or remove it from work.tags
+          area: config
+        - rule: config-work-tag-twice
+          message: 'itos.yaml: work.tags declares "plugin" twice'
+          fix: remove one of the two plugin from work.tags
+          area: config
   - name: the keys of features not built yet are unknown, header_lint.use is builtin or command, and hooks.manager, removed in v6, is unknown
     argv: [config, check, --json]
     files:

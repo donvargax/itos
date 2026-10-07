@@ -2,8 +2,8 @@ package cli
 
 // work add and work edit (slice 54, features/work.feature): the rest of the
 // registry written by commands, as take, promote and done write it
-// (workwrite.go). add makes an item, edit changes one's title, dependencies
-// or refs, or adds a paragraph to its why; each judges the result as work
+// (workwrite.go). add makes an item, edit changes one's title, dependencies,
+// refs or tags (slice 97), or adds a paragraph to its why; each judges the result as work
 // check does and commits the registry alone through writeRegistry. An
 // owner changes by work take, a kind by work promote, a status by take and
 // done, so edit has no flag for those. A note on a slice or a task is
@@ -36,10 +36,11 @@ func idList(s string) []string {
 }
 
 // workAdd is `work add <id> --title <t> --why <w> [--kind idea|slice|task]
-// [--phase <p>] [--owner <handle>] [--depends-on <ids>] [--refs <refs>]`:
-// a new item, todo, at the end of the registry, committed (work.Add).
+// [--phase <p>] [--owner <handle>] [--depends-on <ids>] [--refs <refs>]
+// [--tags <tags>]`: a new item, todo, at the end of the registry, committed
+// (work.Add).
 func workAdd(args []string, o Out) (int, error) {
-	id, flags, err := workArgs("add", args, "--title", "--why", "--kind", "--phase", "--owner", "--depends-on", "--refs")
+	id, flags, err := workArgs("add", args, "--title", "--why", "--kind", "--phase", "--owner", "--depends-on", "--refs", "--tags")
 	if err != nil {
 		return 0, err
 	}
@@ -60,7 +61,7 @@ func workAdd(args []string, o Out) (int, error) {
 	}
 	n := work.New{
 		ID: id, Title: flags["--title"], Why: flags["--why"], Kind: kind, Phase: flags["--phase"], Owner: flags["--owner"],
-		DependsOn: idList(flags["--depends-on"]), Refs: idList(flags["--refs"]),
+		DependsOn: idList(flags["--depends-on"]), Refs: idList(flags["--refs"]), Tags: idList(flags["--tags"]),
 	}
 	change, found, err := work.Add(cfg, registry, text, n, ledger.IDPattern(cfg))
 	if err != nil {
@@ -77,16 +78,16 @@ func workAdd(args []string, o Out) (int, error) {
 }
 
 // workEdit is `work edit <id> [--title <t>] [--depends-on <ids>] [--refs
-// <refs>] [--note <paragraph>]`: the item's title, depends_on or refs
-// replaced, a paragraph added to its why, committed (work.Edit). An empty
-// --depends-on or --refs empties the list.
+// <refs>] [--tags <tags>] [--note <paragraph>]`: the item's title,
+// depends_on, refs or tags replaced, a paragraph added to its why, committed
+// (work.Edit). An empty --depends-on, --refs or --tags empties the list.
 func workEdit(args []string, o Out) (int, error) {
-	id, flags, err := workArgsEmpty("edit", args, []string{"--depends-on", "--refs"}, "--title", "--depends-on", "--refs", "--note")
+	id, flags, err := workArgsEmpty("edit", args, []string{"--depends-on", "--refs", "--tags"}, "--title", "--depends-on", "--refs", "--tags", "--note")
 	if err != nil {
 		return 0, err
 	}
 	if len(flags) == 0 {
-		return 0, usage("work edit needs --title, --depends-on, --refs or --note")
+		return 0, usage("work edit needs --title, --depends-on, --refs, --tags or --note")
 	}
 	var e work.Edits
 	if title, ok := flags["--title"]; ok {
@@ -99,6 +100,10 @@ func workEdit(args []string, o Out) (int, error) {
 	if refs, ok := flags["--refs"]; ok {
 		list := idList(refs)
 		e.Refs = &list
+	}
+	if tags, ok := flags["--tags"]; ok {
+		list := idList(tags)
+		e.Tags = &list
 	}
 	e.Note = flags["--note"]
 	cfg, registry, text, release, code, err := soundRegistry(o)

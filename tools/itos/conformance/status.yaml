@@ -377,11 +377,11 @@ cases:
       nightly: null
       release: null
       unreleased: null
-      doing: [{ id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [] }]
+      doing: [{ id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }]
       next:
-        - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [] }
-        - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [] }
-        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [] }
+        - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
       more: 0
       questions: [{ id: q-2, item: ready, question: "Which way?", status: open }]
       drafts: []

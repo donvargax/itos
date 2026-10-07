@@ -301,15 +301,19 @@ type Watch struct {
 }
 
 // Work is the work registry, itos decision's file and decision records'
-// folder, its statuses, the people and the identity.
+// folder, its statuses, the tags its items may carry, the people and the
+// identity.
 type Work struct {
 	Registry  string   `json:"registry"`
 	Asks      string   `json:"asks"`
 	Decisions string   `json:"decisions"`
 	GroupsKey string   `json:"groups_key"`
 	Statuses  []string `json:"statuses"`
-	People    People   `json:"people"`
-	Identity  struct {
+	// Tags are the tags an item may carry (slice 97), none when the config
+	// declares none, so a typo is refused rather than becoming a tag.
+	Tags     []string `json:"tags"`
+	People   People   `json:"people"`
+	Identity struct {
 		Provider string `json:"provider"`
 		Hint     string `json:"hint"`
 	} `json:"identity"`

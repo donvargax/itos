@@ -107,14 +107,15 @@ func workProposal(as string, o Out) (int, error) {
 // workList is `work list` (slice 43), the open items of the registry
 // (every one neither done nor dropped, slice 79 and bug 25) in its order,
 // whatever their kind or owner, a deferred one marked so; with --all (slice 77) every item, done and
-// dropped ones too. Plain work list printed every item until v4.0.0, so a
+// dropped ones too; with --tag <tag> (slice 97) only those carrying the tag.
+// Plain work list printed every item until v4.0.0, so a
 // caller that needs every item (the Claude Code plugin's titles) asks for
 // --all. It judges nothing, as task list does not, so a registry with
 // problems still lists; a registry that is not there is the one problem it
 // reports, on stderr whatever --json says, exit 1. Under --json each item
 // is written as work --json writes it, so the two describe an item alike,
 // and file says where the registry was read.
-func workList(all bool, o Out) (int, error) {
+func workList(all bool, tag string, o Out) (int, error) {
 	cfg, err := config.Load(config.Path())
 	if err != nil {
 		return 0, err
@@ -131,6 +132,9 @@ func workList(all bool, o Out) (int, error) {
 	listed := registry.Items
 	if !all {
 		listed = work.Open(listed)
+	}
+	if tag != "" {
+		listed = work.Tagged(listed, tag)
 	}
 	if o.JSON {
 		items := make([]any, len(listed))

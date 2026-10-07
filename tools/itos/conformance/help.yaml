@@ -21,7 +21,7 @@ cases:
                                          add a task to the ledger and its item, and commit both
         task next-id                     the ledger's next free task ID; reads only
         work [--as <handle>]             what the person can start, and what waits
-        work list [--all]                the open items of the work registry; --all every one
+        work list [--all] [--tag <tag>]  the open items of the work registry; --all every one
         work show <id> [--patch]         an item, its scenarios and its commits; reads only
         work take <id> [--as <handle>]   set an item in progress for the person, and commit it
         work promote <idea> --id <id> --kind slice|task [--title <title>]
@@ -29,7 +29,7 @@ cases:
         work done <id>                   mark an item done once it has landed, and commit it
         work add <id> --title <title> --why <why> […]
                                          add an item to the work registry, and commit it
-        work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--note <text>]
+        work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
                                          change an item, or add a note to its why, and commit it
         work queue <id> --top|--before <id>|--after <id>|--remove
                                          order the work: put an item in the queue, or take it out
@@ -205,19 +205,20 @@ cases:
     exit: 0
     stdout: |
       Usage: itos work [--as <handle>]
-             itos work list [--all]
+             itos work list [--all] [--tag <tag>]
              itos work show <id> [--patch]
              itos work take <id> [--as <handle>]
              itos work promote <idea> --id <id> --kind slice|task [--title <title>]
              itos work done <id>
              itos work add <id> --title <title> --why <why> […]
-             itos work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--note <text>]
+             itos work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
              itos work queue <id> --top|--before <id>|--after <id>|--remove
              itos work drop <id> --why <reason>
              itos work check [<file>]
 
       Who the session works for (--as, else the config's work.identity provider) and
-      their items: in progress, can start now, unowned, waiting, ideas, deferred.
+      their items: in progress, can start now, unowned, waiting, ideas, deferred,
+      each its id, its tags in brackets when it carries any, and its title.
       Each list is in the order of the registry's queue (itos help work queue), the
       items it does not name after, in the registry's order; what another person
       owns is in none, so each person sees their part of the queue.
@@ -228,7 +229,7 @@ cases:
       whatever owner it names (every_item: true in --json).
 
       --json: the proposal {"schema":1,"person","every_item"?,"doing","next","unowned","waiting","ideas","deferred"},
-      each list in the queue's order
+      each list in the queue's order, each item with its tags ([] for none)
 
       work list prints the registry's open items instead, and --all every item
       (itos help work list), work show one item with its scenarios and commits (itos
@@ -305,17 +306,19 @@ cases:
     stdout: |
       Usage: itos work add <id> --title <title> --why <why> [--kind idea|slice|task]
                [--phase <phase>] [--owner <handle>] [--depends-on <id>,…] [--refs <ref>,…]
+               [--tags <tag>,…]
 
-      Adds an item at the end of the work registry, todo: an idea unless --kind
-      says otherwise, in the phase --phase names (else the one a p<n>- id names,
-      else the registry's only one), owned by --owner or nobody, its why a folded
-      text, then commits the registry alone, "docs: add <id>", as work take does
-      (itos help work take). Refused, nothing written (exit 1): a registry that is
-      not sound or has changes no commit holds, an <id> an item already has, a
-      task's <id> that ledger.id does not match, no phase to put it in, what work
-      check would find with the item there (a phase not listed, an owner not among
-      the people, a dependency on no item), a commit a hook refuses. Under a stealth
-      config the registry is written and nothing committed.
+      Adds an item at the end of the work registry, todo: an idea unless --kind says
+      otherwise, in the phase --phase names (else the one a p<n>- id names, else the
+      registry's only one), owned by --owner or nobody, carrying the tags --tags
+      gives, its why a folded text, then commits the registry alone, "docs: add
+      <id>", as work take does (itos help work take). Refused, nothing written (exit
+      1): a registry that is not sound or has changes no commit holds, an <id> an
+      item already has, a task's <id> that ledger.id does not match, no phase to put
+      it in, what work check would find with the item there (a phase not listed, an
+      owner not among the people, a dependency on no item, a tag work.tags does not
+      declare, any tag when it declares none), a commit a hook refuses. Under a
+      stealth config the registry is written and nothing committed.
 
       --json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
       {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
@@ -324,22 +327,23 @@ cases:
     exit: 0
     stdout: |
       Usage: itos work edit <id> [--title <title>] [--depends-on <id>,…] [--refs <ref>,…]
-               [--note <paragraph>]
+               [--tags <tag>,…] [--note <paragraph>]
 
-      Changes an item: its title, its depends_on or its refs, each replaced (an
-      empty --depends-on or --refs empties the list), or adds --note's paragraph to
-      its why, after a blank line in a folded why; then commits the registry alone,
-      "docs: edit <id>", as work take does (itos help work take). An owner changes
-      by work take, a kind by work promote, a status by work take and work done.
-      Refused, nothing written (exit 1): a registry that is not sound or has changes
-      no commit holds, an id no item has, --note on a slice or a task (the registry
-      keeps an idea's why alone: a slice's belongs in its feature file, a task's in
-      its ledger entry), what work check would find with the item so (a dependency
-      on no item, a cycle, an item done waiting on one not done), a commit a hook
-      refuses. An item already as asked changes nothing. Under a
-      stealth config the registry is written and nothing committed.
+      Changes an item: its title, its depends_on, its refs or its tags, each
+      replaced (an empty --depends-on, --refs or --tags empties the list), or adds
+      --note's paragraph to its why, after a blank line in a folded why; then
+      commits the registry alone, "docs: edit <id>", as work take does (itos help
+      work take). An owner changes by work take, a kind by work promote, a status by
+      work take and work done. Refused, nothing written (exit 1): a registry that is
+      not sound or has changes no commit holds, an id no item has, --note on a slice
+      or a task (the registry keeps an idea's why alone: a slice's belongs in its
+      feature file, a task's in its ledger entry), what work check would find with
+      the item so (a dependency on no item, a cycle, an item done waiting on one not
+      done, a tag work.tags does not declare), a commit a hook refuses. An item
+      already as asked changes nothing. Under a stealth config the registry is
+      written and nothing committed.
 
-      --json: {"schema":1,"ok":true,"item":{…},"changed":["title"|"depends_on"|"refs"|"why",…],"commit":"<sha>"|null},
+      --json: {"schema":1,"ok":true,"item":{…},"changed":["title"|"depends_on"|"refs"|"tags"|"why",…],"commit":"<sha>"|null},
       or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
   - name: itos work queue --help
     argv: [work, queue, --help]
@@ -389,7 +393,7 @@ cases:
     argv: [work, list, --help]
     exit: 0
     stdout: |
-      Usage: itos work list [--all]
+      Usage: itos work list [--all] [--tag <tag>]
 
       Prints the open items of the work registry (the config's work.registry, by
       default work-items.yaml in the ledger's folder), every one whose status is
@@ -397,9 +401,9 @@ cases:
       them), in its order, whatever their kind or owner: each one's id, kind, status
       and title, "-" for a kind or status it does not give, and (deferred) after the
       title of one deferred. --all prints every item, done and dropped ones too
-      (until v4.0.0, plain work list printed every item). It judges nothing, so
-      a registry that is not sound still lists; exit 1 when there is no registry
-      where itos looks.
+      (until v4.0.0, plain work list printed every item). --tag <tag> prints only
+      the items carrying the tag. It judges nothing, so a registry that is not sound
+      still lists; exit 1 when there is no registry where itos looks.
 
       --json: {"schema":1,"file","items":[{"id","title",…}]}, the items it would
       print, each with its fields as work --json writes it
@@ -438,10 +442,11 @@ cases:
       Validates the work registry (the config's work.registry, by default
       work-items.yaml in the ledger's folder, or <file>): that it is there,
       duplicate IDs, unknown groups (the owners per group under work.groups_key,
-      phases by default), statuses (those work.statuses lists), kinds, owners and
+      phases by default), statuses (those work.statuses lists), kinds, owners, tags
+      (a list of those work.tags declares, each once; none when it declares none),
       dependencies, cycles, and the queue (a list of item ids, none unknown, none
-      twice). Exit 1 on a problem. The messages call a group by
-      ledger.group.label (phase by default).
+      twice). Exit 1 on a problem. The messages call a group by ledger.group.label
+      (phase by default).
 
       --json: {"schema":1,"file","sound","problems":[{"rule","message","fix"?}]}
   - name: itos decision --help
@@ -1503,7 +1508,8 @@ cases:
       read from the commits as fetched here, with a line saying they may be behind
       when the head is not fetched; the person's items in progress; the next items
       they can start, theirs and the unowned, in the queue's order and the unqueued
-      after, five at most; the open questions (itos decision); and the drafts waiting
+      after, five at most, each its id, its tags in brackets when it carries any, and
+      its title; the open questions (itos decision); and the drafts waiting
       for itos draft promote, when there are any. It reads, never writes
       or fetches. What cannot be reached (no remote, ci.watch.provider none, a
       provider that fails, for the head or the nightly, a ci.range provider that

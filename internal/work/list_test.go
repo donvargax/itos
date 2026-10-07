@@ -50,3 +50,23 @@ func TestOpen(t *testing.T) {
 		t.Errorf("open: %v, want b d e f g", ids)
 	}
 }
+
+// work list --tag keeps the items carrying the tag, in their order, and
+// itos work and itos status print an item's tags beside its id (slice 97).
+func TestTagged(t *testing.T) {
+	items := []*value.Map{
+		value.NewMap("id", "a", "tags", []any{"plugin", "json"}),
+		value.NewMap("id", "b", "tags", []any{}),
+		value.NewMap("id", "c", "tags", []any{"plugin"}),
+	}
+	var ids []string
+	for _, item := range Tagged(items, "plugin") {
+		ids = append(ids, TaggedID(item))
+	}
+	if got := strings.Join(ids, " | "); got != "a [plugin, json] | c [plugin]" {
+		t.Errorf("got %q", got)
+	}
+	if got := TaggedID(items[1]); got != "b" {
+		t.Errorf("an item with no tags: %q", got)
+	}
+}
