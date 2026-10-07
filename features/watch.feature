@@ -157,7 +157,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     When itos runs "ci watch"
     Then itos exits with code 75
 
-  # Bug 47 (issue #17; exit 75 the user's call, 2026-10-06): with
+  # Bug 41 (found 2026-10-03, reported as issue #17; exit 75 the user's call, 2026-10-06): with
   # cancel-in-progress on CI's concurrency group, a newer push to the branch
   # cancels the run still going, and the newer run checks the cancelled run's
   # commits too (ci.range starts at the last green run). ci watch and push
@@ -171,7 +171,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
   # exits 75, decision 35's "may pass if run again unchanged", not 1, which
   # says a check said no. --json: ci gains "cancelled"; a followed run is
   # "run", and the cancelled one's address is "superseded".
-  @ID-WATCH-14 @bug-47 @wip
+  @ID-WATCH-14 @bug-41 @wip
   Scenario: A run cancelled by a newer push is judged by the newer run
     Given the clone has the commit "chore: tidy the readme" touching "README.md"
     And the clone has the commit "chore: tidy the notes" touching "NOTES.md"
@@ -181,7 +181,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     Then itos exits with code 0
     And its output says "https://ci.example/runs/2"
 
-  @ID-WATCH-15 @bug-47 @wip
+  @ID-WATCH-15 @bug-41 @wip
   Scenario: The newer run failing fails the watch of the cancelled one
     Given the clone has the commit "chore: tidy the readme" touching "README.md"
     And the clone has the commit "chore: tidy the notes" touching "NOTES.md"
@@ -191,7 +191,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     Then itos exits with code 1
     And its output says "ci: failure"
 
-  @ID-WATCH-16 @bug-47 @wip
+  @ID-WATCH-16 @bug-41 @wip
   Scenario: A push whose run another push cancelled waits for that push's run
     Given the clone has the commit "chore: tidy the readme" touching "README.md"
     And once itos has pushed, another clone pushes the commit "chore: tidy the notes"
@@ -200,7 +200,7 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     Then itos exits with code 0
     And its output says "https://ci.example/runs/2"
 
-  @ID-WATCH-17 @bug-47 @wip
+  @ID-WATCH-17 @bug-41 @wip
   Scenario: A cancelled run with no newer run exits 75
     Given the fake GitHub reports the run of the clone's HEAD cancelled
     When itos runs "ci watch"
