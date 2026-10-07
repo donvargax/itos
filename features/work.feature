@@ -801,3 +801,36 @@ Feature: The work registry
     When itos checks the work registry
     Then itos exits with code 1
     And its output says "alias"
+
+  # Bug 49 (found 2026-10-07, closing bug-36): a push carrying a fix and a
+  # registry-only commit after it gets one CI run, for its head. Since slice
+  # 93 work done passes over the registry-only head and judges the fix, which
+  # has no run of its own, so it waited for a run that never came until
+  # ci.watch.timeout. The run of a pushed head that has the judged commit as
+  # an ancestor judges it, as for a run a newer push cancelled (bug 41): work
+  # done takes the newest such run on the branch, and names it.
+  @ID-WORK-74 @bug-49 @wip
+  Scenario: work done judges a commit pushed with later registry-only commits by the run of the head they were pushed with
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And the remote's head touches only the work registry, pushed in one push with the commit before it
+    And the fake GitHub has a run of the remote's head alone
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And the registry's item "slice-9" has the status "done" and the owner "someone"
+    And its output says "https://ci.example/runs/1"
+
+  @ID-WORK-75 @bug-49 @wip
+  Scenario: work done refuses when the run of the head that covers the judged commit failed
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's job "ci" fails and its job "platform" succeeds
+    And the remote's head touches only the work registry, pushed in one push with the commit before it
+    And the fake GitHub has a run of the remote's head alone
+    When itos runs "work done slice-9"
+    Then itos exits with code 1
+    And its output says "https://ci.example/runs/1"
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
