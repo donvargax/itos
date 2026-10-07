@@ -36,6 +36,22 @@ cases:
     exit: 2
     stderr: |
       itos: under --stealth, --plugin project would write .claude/settings.json, which the project commits; --plugin local installs it for you alone in this repository, --plugin user for every one of yours (itos --help)
+  - name: init --stealth where the project has its own itos.yaml is a usage error, and writes nothing
+    argv: [init, --stealth, --agent-rules]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files:
+          README.md: "# Scratch\n"
+          itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\" }\n"
+          tasks/work-items.yaml: "phases: {}\nitems: []\n"
+    exit: 2
+    stderr: |
+      itos: --stealth writes a config in the git folder for a clone that cannot change the project, but this one has its own itos.yaml; run init without --stealth (itos --help)
+    files_after:
+      CLAUDE.local.md: null
+      AGENTS.override.md: null
+      .git/itos/itos.yaml: null
   - name: init writes the starter config, its ledger and registry, pins nothing it cannot reach, and installs the hooks
     hide: [claude]
     git:

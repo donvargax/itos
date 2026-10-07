@@ -521,7 +521,7 @@ Feature: itos init, a repository made ready for itos
   # that does not exist. A stealth config is for a clone that cannot change
   # the project, so where the project has its own config, --stealth is a
   # usage error (exit 2) naming itos.yaml, and nothing is written.
-  @ID-INIT-40 @bug-43 @wip
+  @ID-INIT-40 @bug-43
   Scenario: init --stealth where the project has its own itos.yaml is a usage error, and writes nothing
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"

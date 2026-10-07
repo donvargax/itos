@@ -131,7 +131,10 @@
 // footer is required of no type, and says how to tag one. Then hookInstall,
 // as hook install runs, its exit code init's (under --json its object nested
 // as hooks). --stealth puts the config at <git common dir>/itos/itos.yaml and
-// its files beside it; the hooks go into the git config either way.
+// its files beside it; the hooks go into the git config either way. Where
+// the config found is not the stealth one, --stealth is a usage error
+// before anything is written (bug 43): a stealth config is for a clone
+// that cannot change the project, not one with its own itos.yaml.
 // ITOS_CONFIG naming a file that does not exist is a usage error.
 //
 // Then, both ways, init makes three offers

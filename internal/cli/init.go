@@ -10,11 +10,12 @@ package cli
 // set; then pins the newest release as itos pin does, where the release
 // server answers; then declares the hooks in the git config as hook install
 // does. With --stealth all of it goes beside the stealth config in the git
-// folder, so nothing tracked changes. Where a config is there, it writes
-// nothing: it reports what config check finds wrong and each hook of itos's
-// the git config does not declare, or a git that runs no hook its config
-// declares, naming what fixes it, exit 1 when anything is missing and 0 when
-// nothing is.
+// folder, so nothing tracked changes; where the project has its own config,
+// --stealth is a usage error and nothing is written. Where a config is
+// there, it writes nothing: it reports what config check finds wrong and
+// each hook of itos's the git config does not declare, or a git that runs no
+// hook its config declares, naming what fixes it, exit 1 when anything is
+// missing and 0 when nothing is.
 //
 // It is the launcher's own command, as pin is (internal/launch): where there
 // is no config there is no pin to hand the run to, and the newest release
@@ -86,6 +87,13 @@ func initCommand(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	if file := config.Path(); exists(file) {
+		// A stealth config is for a clone that cannot change the project:
+		// where the project has its own, --stealth would only copy what it
+		// commits into files that go stale unreported (bug 43).
+		if stealth && !config.IsStealth(file) {
+			return 0, usage("--stealth writes a config in the git folder for a clone that cannot change the project, "+
+				"but this one has its own %s; run init without --stealth", file)
+		}
 		stealth = stealth || config.IsStealth(file)
 		if stealth && plugin.scope == "project" {
 			return 0, pluginRefused()
