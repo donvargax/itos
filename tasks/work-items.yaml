@@ -54,12 +54,12 @@ phases:
   3: donvargax
 
 queue:
+  - T-118
   - slice-95
   - bug-38
   - bug-42
   - p1-upgrade-applies-config-steps
   - p1-upgrade-on-major
-  - T-118
   - p1-problem-fields
   - p1-rule-ids-listed
   - p1-nightly-late-done-checks
