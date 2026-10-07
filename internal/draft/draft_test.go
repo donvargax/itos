@@ -3,6 +3,7 @@ package draft
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -26,7 +27,9 @@ func TestSaveThenLoadKeepsTheDraftsInOrder(t *testing.T) {
 	if got.Drafts[0].Message != want.Drafts[0].Message || strings.Join(got.Drafts[1].Command, "|") != strings.Join(want.Drafts[1].Command, "|") {
 		t.Fatalf("loaded %+v, not %+v", got, want)
 	}
-	if info, err := os.Stat(path); err != nil || info.Mode().Perm() != 0o600 {
+	// Windows keeps no Unix mode: a file there reads as 0666 whatever it
+	// was made with.
+	if info, err := os.Stat(path); err != nil || runtime.GOOS != "windows" && info.Mode().Perm() != 0o600 {
 		t.Fatalf("the list's mode is %v (%v), not 0600", info.Mode().Perm(), err)
 	}
 }
