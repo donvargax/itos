@@ -2551,7 +2551,6 @@ items:
     status: todo
     depends_on: [p3-debt-role]
     kind: idea
-    deferred: until itos-cc is published, the user's call (2026-10-03)
     why: >
       A work item claims debt entries by ID or glob, pays: ["code-quality:crap:billing/**"], a new
       registry key, so a feat with scenarios. itos refuses, in config check, the commit-msg hook
