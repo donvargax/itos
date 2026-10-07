@@ -55,6 +55,7 @@ phases:
 
 queue:
   - T-104
+  - slice-93
   - bug-36
   - bug-37
   - bug-38
