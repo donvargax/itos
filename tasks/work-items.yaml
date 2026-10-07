@@ -5380,3 +5380,22 @@ items:
     why: >
       Specified in features/init.feature (@slice-95).
     refs: [internal/cli/initrules.go, features/init.feature]
+
+  - id: T-107
+    title: The coordinator's guide carries the brief rules and the lesson format that hold for any repository
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      The user's call (2026-10-06), beside slice 95. docs/ORCHESTRATING.md holds advice that is true
+      of any repository using itos, which every other repository goes without: the brief lines on
+      commit bodies (no body line starting with word:, which git reads as a trailer), scratch files
+      prefixed with the item's id, and naming the neighbouring scenarios to run before a push; and
+      the format a lesson keeps (its exit, an item or permanent; the date recorded and the date last
+      seen; at most ten). They move into internal/guide/coordinate.md, which itos go prints in every
+      repository; ORCHESTRATING.md keeps only what is this repository's (the inbox, the releases,
+      the Upgrading and Changes footers, previous-release, its own lessons). A starter notes file
+      seeded by itos init was dropped already (p3-init-orchestration, decision 33): it would drift
+      in each copy.
