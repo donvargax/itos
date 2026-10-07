@@ -136,3 +136,30 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     When itos runs "version"
     Then itos exits with code 0
     And its output does not say "pins"
+
+  # Bug 48 (the user's report, 2026-10-06): itos go in a repository pinning
+  # 4.3.2 said "itos 5.0.2 is out" while 6.0.0 was out and the itos that said
+  # it was 6.0.0. The notice read only the server's answer, kept for a day,
+  # and eleven releases came out that day. The notice names the newest of
+  # that answer, the releases the cache holds and the itos that runs, as
+  # newest() already does for what runs; and the answer holds an hour, not a
+  # day (the notice is still said at most once a day per repository).
+  # @ID-UPDATE-02's name said once a day: the fix renames it and names it in
+  # Changes.
+  @ID-UPDATE-13 @bug-48 @wip
+  Scenario: The notice names a release the cache holds that is newer than the server's last answer
+    Given a repository whose ledger has the task "T-001"
+    And the config pins the version "9.1.0" of the release server
+    And the launcher's last answer from the release server, a minute old, is "9.1.0"
+    And the cache holds the release "9.2.0"
+    When itos runs "version"
+    Then its output says "itos 9.2.0 is out (this repository pins 9.1.0): "
+    And the release server was asked for nothing since the last run
+
+  @ID-UPDATE-14 @bug-48 @wip
+  Scenario: An answer from the release server older than an hour is asked again
+    Given a repository whose ledger has the task "T-001"
+    And the config pins the version "9.1.0" of the release server
+    And the launcher's last answer from the release server, two hours old, is "9.1.0"
+    When itos runs "version"
+    Then its output says "itos 9.2.0 is out (this repository pins 9.1.0): "
