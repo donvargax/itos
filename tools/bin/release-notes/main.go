@@ -70,7 +70,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/donvargax/itos/v6/internal/release"
+	"github.com/donvargax/itos/v7/internal/release"
 )
 
 const (

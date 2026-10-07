@@ -77,8 +77,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/release"
-	"github.com/donvargax/itos/v6/internal/value"
+	"github.com/donvargax/itos/v7/internal/release"
+	"github.com/donvargax/itos/v7/internal/value"
 )
 
 const self = "release-version"
