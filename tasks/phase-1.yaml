@@ -1162,3 +1162,19 @@
   done_when:
     - run: grep -q "proof:" itos.yaml
     - run: grep -q "mutation sample" itos.yaml
+
+- id: T-122
+  type: ci
+  title: tools/bin's tests and self-tests run the real git, never an itos linked as git
+  why: >
+    Found by bug-50's agent (2026-10-07): with the git shim first on the PATH, six TestPrerelease
+    tests in tools/bin/release-version failed, their git commits running the global itos (6.4.0
+    then) whose policy refused them; with PATH=/usr/bin first they pass, so every brief has carried
+    that prefix. T-104 made the features and internal's unit tests resolve git past an itos linked
+    as git, by internal/git's one rule; tools/bin's Go tests and tools/selftest's scripts do not, so
+    they depend on whatever itos is installed globally. They take the same rule (the Go tests
+    through internal/git, the scripts through the git it resolves or ITOS_GIT), not a second copy of
+    it. Proven by running them with a link to the built itos first on the PATH as git, as T-104's
+    check does.
+  done_when:
+    - run: sh -c 'd=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./tools/bin/... -count=1'
