@@ -5345,7 +5345,7 @@ items:
     title: previous-release excuses an old failure only when a commit names it, breaking or not
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: task
     why: >
