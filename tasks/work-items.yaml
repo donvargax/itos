@@ -5182,6 +5182,11 @@ items:
       the user asks for explicitly (the devcontainer test) overrides it for that run. LeashBench
       counts such slips as broken rules, so a model's pull back to the norm is measured.
 
+      Still wanted after q-19 (2026-10-06), which lets pull requests in behind push.mode pr for
+      parallel work: the two are settings of one choice. A trunk project that works one item at a
+      time sets the gate; a project in pr mode lifts it for agents in their own clones, never for a
+      shared worktree.
+
   - id: slice-96
     title: itos draft keeps the coordinator's pending changes, and promotes them when no work is going on
     phase: 1
