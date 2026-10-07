@@ -57,7 +57,7 @@ queue:
   - T-107
   - slice-95
   - T-108
-  - p1-item-tags
+  - slice-97
   - T-106
   - slice-93
   - T-105
@@ -5347,14 +5347,15 @@ items:
       Update-related: belongs with p1-upgrade-applies-config-steps and p1-upgrade-on-major.
       Unqueued; slice-94 makes it less urgent.
 
-  - id: p1-item-tags
+  - id: slice-97
     title: Work items carry tags from a declared set, and work list filters by them
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-item-tags.
       The user's question, 2026-10-06: about 200 items cluster by area (upgrade, plugin, stealth,
       guard, json, windows) that ids and titles do not always name. A declared set in itos.yaml
       (work.tags), refused outside it by work check; --tag on work add and edit; work list --tag;
