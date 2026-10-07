@@ -54,7 +54,6 @@ phases:
   3: donvargax
 
 queue:
-  - bug-47
   - bug-36
   - bug-37
   - bug-38
@@ -5284,11 +5283,9 @@ items:
     title: ci watch and push judge a run cancelled by a newer push by the newer run (#17)
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: slice
-    why: >
-      Specified in features/watch.feature.
     refs: [features/watch.feature, internal/providers]
 
   - id: slice-93
