@@ -5624,3 +5624,18 @@ items:
       the key the plugin reads (items, tasks); a rename that breaks the plugin goes red on the push
       that makes it, not after a release. The list is read from the scripts, never kept by hand
       beside them.
+
+  - id: T-112
+    title: The conformance runner's --additive mode compares a written file's data, not its comment lines
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Decision 40 (2026-10-07): a written file is contract by its data; its comment lines are for
+      people. previous-release runs the last release's corpus with the runner's --additive mode,
+      which today compares written YAML and Markdown whole, so a reworded comment in a file itos
+      writes reads as a break. --additive compares the data alone; the runner's own run passes, and
+      a case shows a changed comment passing and changed data failing. tools/itos/conformance is
+      test's to touch, so a test task.
