@@ -6108,3 +6108,17 @@ items:
     depends_on: []
     kind: idea
     refs: [tools/itos/conformance/run.ts, tools/bin/real-git/main.go]
+
+  - id: p1-defer-reason-footer
+    title: work defer and work drop never let a reason read as a footer
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found 2026-10-07: work defer writes its reason as the commit body as given, so a reason
+      starting with a word and a colon (Releasable: …) is read by the lint as a footer, and a long
+      one is refused as a footer line over 100 characters; the command failed with only the lint's
+      line to go by. The reason is wrapped and placed so no line of it can open a footer, as itos
+      commit wraps a body.
