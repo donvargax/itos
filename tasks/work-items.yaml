@@ -5562,8 +5562,8 @@ items:
   - id: T-112
     title: The conformance runner's --additive mode compares a written file's data, not its comment lines
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
