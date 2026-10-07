@@ -5528,7 +5528,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [T-109]
     kind: task
     why: >
       The cut holds only if growth costs something (the user's call, 2026-10-06). A ci step, go run
