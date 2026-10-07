@@ -57,12 +57,12 @@ queue:
   - T-104
   - slice-93
   - T-105
+  - bug-41
   - bug-36
   - bug-37
   - bug-38
   - bug-39
   - bug-40
-  - bug-41
   - bug-42
   - bug-43
   - bug-44
