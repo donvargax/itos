@@ -5871,7 +5871,7 @@ items:
     title: itos draft edits a file change off the working tree, so a coordinator drafts specs while an agent holds the checkout
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
