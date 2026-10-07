@@ -5799,3 +5799,18 @@ items:
       slowest, so the suite will cross the limit for good. Find where Windows spends the time
       (process start per step, the binary built per scenario, antivirus on the temp folder), and
       shard or speed it, rather than raising the timeout, which only moves the cliff.
+
+  - id: p1-check-message-cleaned-header
+    title: commit check-message reads the type from the header the lint reads
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found while fixing bug-36. commit check-message - reads the type from the first line of stdin
+      while the header lint trims the blank lines above the header, so "\nchore: tidy the readme"
+      passes without its Task footer, where the same message without the blank line is refused. A
+      false pass in a preview, not a gate: git stores no leading blank line and the hook now judges
+      the cleaned header.
+    refs: [internal/message/lint.go, internal/message/footers.go]
