@@ -54,7 +54,6 @@ phases:
   3: donvargax
 
 queue:
-  - T-103
   - bug-47
   - bug-36
   - bug-37
