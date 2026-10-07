@@ -4,6 +4,7 @@ import (
 	"slices"
 	"strings"
 	"testing"
+	"time"
 )
 
 // The body's long lines broken at a limit of 20, everything else as
@@ -84,6 +85,31 @@ func TestWrapNeverOpensAFooter(t *testing.T) {
 		got := Wrap([]string{"chore: a header\n\n" + c.line}, 20, "#", []string{"Scenarios"})[0]
 		if want := "chore: a header\n\n" + c.want; got != want {
 			t.Errorf("Wrap(%q):\n%s\nwant:\n%s", c.line, got, want)
+		}
+	}
+}
+
+// Wrapping takes time linear in the body's length (T-105): a body of 5 MB
+// on one line, plain or a list item, wraps in a fraction of a second, where
+// building the rest of the line at every break took about five minutes.
+// The bound is generous for a slow runner and far below that.
+func TestWrapLargeBodyInLinearTime(t *testing.T) {
+	const bound = 10 * time.Second
+	for _, marker := range []string{"", "- "} {
+		body := marker + strings.Repeat("word ", 1<<20)
+		start := time.Now()
+		got := Wrap([]string{"chore: a header\n\n" + body}, 100, "#", []string{"Task"})[0]
+		if took := time.Since(start); took > bound {
+			t.Errorf("wrapping %d bytes after %q took %v, over %v", len(body), marker, took, bound)
+		}
+		wrapped, ok := strings.CutPrefix(got, "chore: a header\n\n")
+		if !ok || strings.Join(strings.Fields(wrapped), " ") != strings.Join(strings.Fields(body), " ") {
+			t.Fatalf("the body after %q did not come back as its words", marker)
+		}
+		for _, l := range strings.Split(wrapped, "\n") {
+			if length(l) > 100 {
+				t.Fatalf("a line after %q is %d long", marker, length(l))
+			}
 		}
 	}
 }

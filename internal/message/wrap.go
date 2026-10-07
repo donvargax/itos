@@ -19,9 +19,11 @@ package message
 // limit, for the lint to judge.
 
 import (
+	"io"
 	"regexp"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/donvargax/itos/v6/internal/config"
 )
@@ -67,8 +69,8 @@ func Wrap(parts []string, limit int, commentChar string, keys []string) []string
 			if keep[at] {
 				out = append(out, l)
 			} else {
-				out = append(out, wrapLine(l, limit, func(next string) bool {
-					return opensFooter(next, commentChar, keys)
+				out = append(out, wrapLine(l, limit, func(lead, rest string) bool {
+					return opensFooter(lead, rest, commentChar, keys)
 				})...)
 			}
 			at++
@@ -104,45 +106,94 @@ func keptLines(lines []string, limit int, commentChar string) []bool {
 
 // opensFooter is whether a line starting with a text is read as other than
 // body: a footer token or a breaking-change note, as the parser reads them,
-// a footer key and its colon, as IDs and Texts read them, or a comment.
-func opensFooter(l, commentChar string, keys []string) bool {
-	if footerToken.MatchString(l) || noteLine.MatchString(l) ||
-		commentChar != "" && strings.HasPrefix(l, commentChar) {
+// a footer key and its colon, as IDs and Texts read them, or a comment. The
+// line is lead and then rest, read as one text without being built (see
+// wrapLine): every test is anchored at its start, so it reads only as far as
+// it must.
+func opensFooter(lead, rest, commentChar string, keys []string) bool {
+	if footerToken.MatchReader(&twoParts{lead, rest}) || noteLine.MatchReader(&twoParts{lead, rest}) ||
+		commentChar != "" && startsWith(lead, rest, commentChar) {
 		return true
 	}
-	return slices.ContainsFunc(keys, func(key string) bool { return strings.HasPrefix(l, key+":") })
+	return slices.ContainsFunc(keys, func(key string) bool { return startsWith(lead, rest, key+":") })
+}
+
+// startsWith is strings.HasPrefix(lead+rest, prefix), without building it.
+func startsWith(lead, rest, prefix string) bool {
+	if len(prefix) <= len(lead) {
+		return strings.HasPrefix(lead, prefix)
+	}
+	return strings.HasPrefix(prefix, lead) && strings.HasPrefix(rest, prefix[len(lead):])
+}
+
+// twoParts reads lead and then rest as one text, a character at a time, for a
+// pattern to match. lead ends on a whole character, as an indent does.
+type twoParts struct{ lead, rest string }
+
+func (p *twoParts) ReadRune() (rune, int, error) {
+	s := &p.lead
+	if *s == "" {
+		s = &p.rest
+	}
+	if *s == "" {
+		return 0, 0, io.EOF
+	}
+	r, n := utf8.DecodeRuneInString(*s)
+	*s = (*s)[n:]
+	return r, n, nil
 }
 
 // wrapLine is one line broken at its spaces into lines of at most limit, a
 // list item's continuation lines indented to its text; a word longer than
 // the limit has a line of its own, whole. A break is never made where the
-// line after it would start with a text barred holds to: it moves back a
-// word, and when no break is left before it the line runs over the limit to
-// the next break that is allowed.
-func wrapLine(l string, limit int, barred func(string) bool) []string {
+// line after it would start with a text barred holds to (given as the
+// indent and the rest of the line after it): it moves back a word, and when
+// no break is left before it the line runs over the limit to the next break
+// that is allowed.
+//
+// It takes time linear in the line's length (T-105): the words are joined
+// once, each line written and each rest asked of barred is a slice of that,
+// and a line's length is summed from its words', so no step builds or
+// measures the rest of the line, which made a body of megabytes take minutes.
+func wrapLine(l string, limit int, barred func(lead, rest string) bool) []string {
 	marker := listMarker.FindString(l)
 	words := strings.Fields(l[len(marker):])
 	if len(words) == 0 {
 		return []string{l}
 	}
 	indent := strings.Repeat(" ", length(marker))
-	// text is the line of words[from:to], the marker before the first word.
-	text := func(from, to int) string {
-		lead := indent
+	// joined is the words a space apart; words[i] starts at start[i] in it,
+	// and the words before it are sum[i] long.
+	joined := strings.Join(words, " ")
+	start := make([]int, len(words)+1)
+	sum := make([]int, len(words)+1)
+	for i, w := range words {
+		start[i+1] = start[i] + len(w) + 1
+		sum[i+1] = sum[i] + length(w)
+	}
+	lead := func(from int) string {
 		if from == 0 {
-			lead = marker
+			return marker
 		}
-		return lead + strings.Join(words[from:to], " ")
+		return indent
+	}
+	// text is the line of words[from:to], the marker before the first word,
+	// and width its length.
+	text := func(from, to int) string {
+		return lead(from) + joined[start[from]:start[to]-1]
+	}
+	width := func(from, to int) int {
+		return length(lead(from)) + sum[to] - sum[from] + to - from - 1
 	}
 	var out []string
 	from := 0
 	for to := 1; to < len(words); {
-		if length(text(from, to+1)) <= limit {
+		if width(from, to+1) <= limit {
 			to++
 			continue
 		}
 		at := to
-		for at > from && barred(text(at, len(words))) {
+		for at > from && barred(indent, joined[start[at]:]) {
 			at--
 		}
 		if at == from {
