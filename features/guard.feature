@@ -121,3 +121,29 @@ Feature: itos guard claude-code, Claude Code's guard against git commit and git 
     When itos runs "hook pre-tool-use"
     Then itos exits with code 2
     And its output says "itos guard claude-code"
+
+  # Slice 94 (the user's call, 2026-10-06): v6.0.0 renamed itos hook
+  # pre-tool-use to itos guard claude-code, and a plugin older than the itos
+  # on the PATH called the old name: every Bash command failed until the
+  # plugin was updated by hand. The plugin and itos are updated apart, and the
+  # launcher runs each repository's pin, so either side may be older. The
+  # commands the plugin calls (guard claude-code; work list --all and task
+  # list, with --json, for the titles) are part of decision 35's contract:
+  # never renamed or removed, the one exception to p1-drop-compat-code. Where a
+  # pin predates a name, the launcher runs that version's name for it:
+  # guard claude-code is hook pre-tool-use before 6.0.0.
+  @ID-GUARD-13 @slice-94 @wip
+  Scenario: Under a pin older than 6.0.0 the launcher runs guard claude-code by that version's name
+    Given a release server offering the versions "5.3.0" and "6.0.0"
+    And a repository whose ledger has the task "T-001"
+    And the config pins the version "5.3.0" of the release server
+    When itos runs "guard claude-code"
+    Then the version "5.3.0" ran with the arguments "hook pre-tool-use"
+
+  @ID-GUARD-14 @slice-94 @wip
+  Scenario: Under a pin of 6.0.0 or later the launcher runs guard claude-code as it is
+    Given a release server offering the versions "5.3.0" and "6.0.0"
+    And a repository whose ledger has the task "T-001"
+    And the config pins the version "6.0.0" of the release server
+    When itos runs "guard claude-code"
+    Then the version "6.0.0" ran with the arguments "guard claude-code"
