@@ -5436,3 +5436,15 @@ items:
       host, once the container has written the workspace (the host's hooks would run the checks the
       container wrote). Shim gaps (--no-verify, -c core.hooksPath) are
       p1-shim-refuses-hook-skipping, not this task.
+
+  - id: p1-draft-show
+    title: itos draft show prints a drafted change before it is promoted
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      itos draft lists a change by its header and paths only (slice-96), so a coordinator who
+      drafted a spec in the morning cannot read what it holds, its patch and its whole message,
+      before promoting it between agents, short of opening the patch file in the git folder.
