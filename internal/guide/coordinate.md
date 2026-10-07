@@ -179,6 +179,22 @@ in the spec or in a gate, ask the person; never weaken a gate to get green.
   - Aim the task's checks at what it changes: a grep over whole folders also
     hits fixtures that keep old text on purpose.
 
+## Reporting a problem with itos
+
+A problem itos itself causes is reported to itos, never patched around here
+and never sent as a pull request: its fixes go through its own specs and
+gates. You report it, once per problem, and only after:
+
+1. checking it is not fixed: `itos version` against the newest release,
+   whose notes say what changed (`itos pin` moves to it);
+2. searching the issues, open and closed:
+   `gh issue list -R donvargax/itos --state all --search '<words of the error>'`.
+   A match gets a comment only if you have something new (a version, a
+   command, its output); otherwise leave it.
+
+Then one issue per problem:
+`gh issue create -R donvargax/itos --template consumer-report.yml`.
+
 ## The brief
 
 Fill in the item, its scenarios and its reads; keep the rest. Each rule in it
