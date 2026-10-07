@@ -599,7 +599,7 @@ Feature: The work registry
   # newest commit that touches more; one itos push after the last close lands
   # them all. A commit no remote has that touches anything else still refuses
   # (@ID-WORK-16).
-  @ID-WORK-56 @slice-93 @wip
+  @ID-WORK-56 @slice-93
   Scenario: work done passes over commits no remote has that touch only the work registry
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -613,7 +613,7 @@ Feature: The work registry
     And the fake GitHub was asked for the run of the remote's head
     And the fake GitHub was never asked for the run of the clone's HEAD
 
-  @ID-WORK-57 @slice-93 @wip
+  @ID-WORK-57 @slice-93
   Scenario: work done judges the run of the newest commit that touches more than the registry
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"

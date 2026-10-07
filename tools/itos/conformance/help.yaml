@@ -293,7 +293,10 @@ cases:
       (those tagged @<id>, @slice-<n> for the item slice-<n>) still @wip; no commit
       of HEAD that no remote has (itos push them); a task's static checks passing, as
       the commit-msg hook runs them; and with ci.watch, HEAD's CI run passed, waited
-      for as itos ci watch waits when it is still going. Without ci.watch CI is not
+      for as itos ci watch waits when it is still going. The commits at HEAD that
+      touch only the work registry, pushed or not, are passed over, and the run
+      judged is that of the newest commit that touches more, so several closes land
+      in one itos push after the last. Without ci.watch CI is not
       checked, and done says so. Refused, nothing written (exit 1): any of those not
       so, a registry that is not sound or has changes no commit holds, an id no item
       has, an idea (work promote it first), an item dropped or deferred, a commit a

@@ -416,16 +416,27 @@ func (r *pushRun) wait(remote, onto, pushed string) (int, error) {
 }
 
 // registryOnly is whether the commits the push added to the upstream's
-// branch, onto..pushed, touch the work registry and no other path. A push
-// that makes the branch has no onto, and is never registry-only: what it
-// adds is not known without the remote's other branches. A merge counts
-// what it brought in against its first parent, and a commit that touches
-// no path adds nothing to the answer.
+// branch, onto..pushed, touch the work registry and no other path
+// (touchesOnlyRegistry). A push that makes the branch has no onto, and is
+// never registry-only: what it adds is not known without the remote's other
+// branches.
 func registryOnly(onto, pushed, registry string) bool {
 	if onto == "" {
 		return false
 	}
-	files, err := git.Paths("log", "--format=", "--name-only", "--no-renames", "--diff-merges=first-parent", onto+".."+pushed)
+	return touchesOnlyRegistry(registry, onto+".."+pushed)
+}
+
+// touchesOnlyRegistry is whether the commits git log gives for the revisions
+// touch the work registry and no other path: the one rule by which itos push
+// does not wait for a run (slice 56) and work done passes over a commit
+// (slice 93), since such a commit changes nothing a run judges. A merge counts
+// what it brought in against its first parent, and a commit that touches no
+// path adds nothing to the answer, so commits that touch nothing at all are
+// not registry-only.
+func touchesOnlyRegistry(registry string, revs ...string) bool {
+	args := append([]string{"log", "--format=", "--name-only", "--no-renames", "--diff-merges=first-parent"}, revs...)
+	files, err := git.Paths(args...)
 	if err != nil {
 		return false
 	}

@@ -4,16 +4,20 @@ package cli
 // the agent after its push, then the item marked done and the registry
 // committed alone, as work take commits it (workwrite.go). An item is done
 // when its work has landed: none of its scenarios (those tagged @<id>, so
-// @slice-<n> for the item slice-<n>) still @wip, no commit of HEAD that no
-// remote has, a task's static checks passing as the commit-msg hook runs
-// them, and with ci.watch HEAD's CI run green, waited for as itos ci watch
-// waits when it is still going. The first that is not refuses, naming what
+// @slice-<n> for the item slice-<n>) still @wip, no commit that no remote
+// has, a task's static checks passing as the commit-msg hook runs them, and
+// with ci.watch the CI run green, waited for as itos ci watch waits when it
+// is still going. The commit judged is HEAD, passing over the commits at HEAD
+// that touch only the work registry, pushed or not (slice 93): a take or a
+// close changes nothing a run judges, so closes made one after another land
+// in one push after the last. The first that is not refuses, naming what
 // to do; without ci.watch CI is not checked, and done says so. The registry
 // is then read again and the close made on it as it is after the wait (bug
 // 34). An item the registry's queue holds is then taken out of it, in a
 // commit of its own (slice 66).
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -54,8 +58,9 @@ func workDone(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	landing := judgedCommit(cfg.Work.Registry)
 	if len(found) == 0 {
-		found = unpushed(id, o)
+		found = unpushed(id, landing, o)
 	}
 	if len(found) == 0 {
 		if found, err = failingTask(cfg, id, o); err != nil {
@@ -65,7 +70,7 @@ func workDone(args []string, o Out) (int, error) {
 	if len(found) > 0 {
 		return refuseWork(found, ExitPolicy, o)
 	}
-	ci, code, err := landedCI(cfg, id, o)
+	ci, code, err := landedCI(cfg, id, landing, o)
 	if err != nil || code != 0 {
 		return code, err
 	}
@@ -83,7 +88,7 @@ func workDone(args []string, o Out) (int, error) {
 		return code, err
 	}
 	if ci.run != nil && ci.run.URL != "" {
-		change.Body += " HEAD's CI run passed: " + ci.run.URL + "."
+		change.Body += " " + landing.run + " passed: " + ci.run.URL + "."
 	}
 	sha, code, err := writeRegistry(cfg, text, *change, o)
 	if err != nil || code != 0 {
@@ -175,18 +180,53 @@ func wipScenarios(cfg *config.Loaded, id string) ([]out.Problem, error) {
 	return found, nil
 }
 
-// unpushed is the problem of commits of HEAD that no remote has: work is
-// landed when it is pushed. With no remote at all there is nowhere to push
-// to, and done says so and goes on.
-func unpushed(id string, o Out) []out.Problem {
-	if !git.Succeeds("rev-parse", "--verify", "--quiet", "HEAD") {
+// doneCommit is the commit whose landing work done judges: its SHA, "" when
+// HEAD names no commit, and how work done names its CI run, at the start
+// of a sentence.
+type doneCommit struct {
+	sha string
+	run string
+}
+
+// judgedCommit is HEAD, passing over the commits at HEAD that touch only the
+// work registry (touchesOnlyRegistry, push's rule, slice 93): the newest
+// commit of HEAD's first-parent line that touches more, its run named by
+// the commit's short SHA when it is not HEAD. A history whose every commit touches only the
+// registry has none, and HEAD is judged.
+func judgedCommit(registry string) doneCommit {
+	head, err := git.Output("rev-parse", "--verify", "--quiet", "HEAD")
+	if err != nil {
+		return doneCommit{run: "HEAD's CI run"}
+	}
+	head = strings.TrimSpace(head)
+	for at := head; ; {
+		if !touchesOnlyRegistry(registry, "-1", at) {
+			if at == head {
+				return doneCommit{sha: head, run: "HEAD's CI run"}
+			}
+			return doneCommit{sha: at, run: "The CI run of " + short(at) + ", the newest commit of HEAD that touches more than " + registry}
+		}
+		parent, err := git.Output("rev-parse", "--verify", "--quiet", at+"^")
+		if err != nil {
+			return doneCommit{sha: head, run: "HEAD's CI run"}
+		}
+		at = strings.TrimSpace(parent)
+	}
+}
+
+// unpushed is the problem of commits of the judged commit that no remote
+// has: work is landed when it is pushed. The commits after it touch only the
+// registry, and are not asked about. With no remote at all there is nowhere
+// to push to, and done says so and goes on.
+func unpushed(id string, j doneCommit, o Out) []out.Problem {
+	if j.sha == "" {
 		return nil
 	}
 	if remotes, err := git.Output("remote"); err == nil && strings.TrimSpace(remotes) == "" {
 		fmt.Fprintln(o.Stderr, "itos: the repository has no remote, so whether its commits are pushed was not checked")
 		return nil
 	}
-	commits, err := git.Lines("rev-list", "HEAD", "--not", "--remotes")
+	commits, err := git.Lines("rev-list", j.sha, "--not", "--remotes")
 	if err != nil || len(commits) == 0 {
 		return nil
 	}
@@ -234,21 +274,20 @@ func failingTask(cfg *config.Loaded, id string, o Out) ([]out.Problem, error) {
 	return nil, nil
 }
 
-// landedCI is HEAD's CI run with ci.watch, waited for as itos ci watch
+// landedCI is the judged commit's CI run with ci.watch, waited for as itos ci watch
 // waits: 0 when it passed, else the refusal (1 for a run that did not pass,
 // naming its address, 3 for one that did not end or could not be looked
 // at), reported. Without ci.watch nothing is watched, and done says so on
 // stderr and goes on, its --json ci "unwatched".
-func landedCI(cfg *config.Loaded, id string, o Out) (watched, int, error) {
+func landedCI(cfg *config.Loaded, id string, j doneCommit, o Out) (watched, int, error) {
 	if cfg.CI.Watch.Provider == "none" {
 		fmt.Fprintln(o.Stderr, "itos: ci.watch.provider is none, so CI was not checked")
 		return watched{outcome: "unwatched"}, 0, nil
 	}
-	sha, err := git.Output("rev-parse", "HEAD")
-	if err != nil {
-		return watched{}, 0, err
+	sha := j.sha
+	if sha == "" {
+		return watched{}, 0, errors.New("HEAD names no commit, so it has no CI run")
 	}
-	sha = strings.TrimSpace(sha)
 	remote := "origin"
 	if branch := git.Branch(); branch != "" {
 		remote, _, _ = git.Upstream(branch)
@@ -267,7 +306,7 @@ func landedCI(cfg *config.Loaded, id string, o Out) (watched, int, error) {
 	if w.outcome == "failure" {
 		found = []out.Problem{{
 			Rule:    "work-done-ci",
-			Message: fmt.Sprintf("HEAD's CI run did not pass, so %s is not done: %s", id, w.run.URL),
+			Message: fmt.Sprintf("%s did not pass, so %s is not done: %s", j.run, id, w.run.URL),
 			Fix:     "fix what failed, push the fix with itos push, then run itos work done " + id + " again",
 		}}
 	}

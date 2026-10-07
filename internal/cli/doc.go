@@ -279,9 +279,11 @@
 // none, one that cannot be read, or ci.watch.provider: none it reports as
 // before; else it hands the pushed SHA to watchRun, whose code is push's,
 // and under --json adds its ci and run keys. Before that, registryOnly reads
-// the paths of the commits the push added after the rebase (git log
-// --name-only --no-renames --diff-merges=first-parent): when every one is
-// work.registry, push names itos ci watch <sha> and exits 0 without waiting.
+// the paths of the commits the push added after the rebase
+// (touchesOnlyRegistry, git log --name-only --no-renames
+// --diff-merges=first-parent, the rule work done passes over commits by):
+// when every one is work.registry, push names itos ci watch <sha> and exits 0
+// without waiting.
 //
 // # The hooks
 //
@@ -468,11 +470,15 @@
 //   - work done (workdone.go) is the landing's check, then a registry write:
 //     work.Done judges the registry alone, then the command checks, in cost
 //     order, stopping at the first that refuses (exit 1): the item's
-//     scenarios at HEAD (tests.Tagged), none still @wip; no commit of HEAD
-//     that no remote has (said and skipped with no remote at all); a task's
-//     static checks, by the commit-msg hook's firstFailure, when the id is a
-//     task of the ledger; and with ci.watch, HEAD's run, by watcher and
-//     watchRun, so a run still going is waited for and one that does not end
+//     scenarios at HEAD (tests.Tagged), none still @wip; no commit of the
+//     judged commit that no remote has (said and skipped with no remote at
+//     all); a task's static checks, by the commit-msg hook's firstFailure,
+//     when the id is a task of the ledger; and with ci.watch, the judged
+//     commit's run, by watcher and watchRun. The judged commit
+//     (judgedCommit) is HEAD, passing over the commits of its first-parent
+//     line that touch only work.registry, pushed or not, by push's own rule
+//     (touchesOnlyRegistry, slice 93), so closes made one after another land
+//     in one push. A run still going is waited for and one that does not end
 //     exits 3 (without ci.watch CI is not checked, said on stderr, and
 //     --json's ci is unwatched). Since the checks can take minutes, the
 //     registry is then read again and work.Done judged and made afresh on
