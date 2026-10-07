@@ -23,7 +23,7 @@ Scripts can rely on three things only (D35):
 
 - The exit code.
 - The `--json` output, less every key named `message` or `fix`. These keys hold the same sentences as the plain output.
-- The files that itos writes.
+- The data of the files that itos writes. Their comment lines are for people, like the plain output, and can change in any release (decision 40).
 
 All plain output is for people. It can change in any release. A script reads `--json` and the exit code, never the plain output and never a `message`.
 
@@ -108,7 +108,7 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 
 ### Entry points for other programs
 
-Some commands are not for people. Another program calls them: git calls the hook commands, Claude Code calls the guard, and the shim runs when a program calls `git`.
+Some commands are not for people. Another program calls them: git calls the hook commands, Claude Code calls the guard, and the shim runs when a program calls `git`. The commands the itos plugin for Claude Code calls are part of the contract with the plugin and are never renamed or removed, even in a major release (decision 41): `guard claude-code`, and `work list --all` and `task list` with `--json` for its titles. CI checks that the built itos answers every one of them.
 
 39. An entry point uses the protocol of the program that calls it. It does not use the itos contract when the two do not agree. For example, Claude Code reads exit 2 as "block", so the guard never exits 2.
 40. An entry point for one program does not share a group with entry points for a different program. Name its group for its function and the program that it serves. (CLIG `#subcommands`.) itos follows this rule (slice-89): Claude Code's guard is `itos guard claude-code`, and `itos hook` holds git's two hooks and `hook install`, which declares them in the git config (slice-91).
@@ -117,7 +117,7 @@ Some commands are not for people. Another program calls them: git calls the hook
 ### Changing the interface
 
 42. A rename of a command or a flag, or a change to an exit code, is a breaking change (D35). Put the breaking changes that are ready into one major release together. Do not make one major release for each change.
-43. Do not keep code to stay compatible with an old interface. Only `previous-release` judges compatibility, against the contract above.
+43. Do not keep code to stay compatible with an old interface. Only `previous-release` judges compatibility, against the contract above. The commands the plugin calls are the exception (decision 41): they are never renamed, so no compatibility code is needed for them either.
 
 ## Where itos does not follow these rules yet
 
