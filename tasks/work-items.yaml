@@ -4044,15 +4044,9 @@ items:
     title: itos work defer sets an item deferred with its reason, and itos work resume lifts it, each committing the registry
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-work-defer.
-      Reported by an agent, 2026-10-05: an item is deferred only by editing the registry by hand,
-      which AGENTS.md forbids for status and owner. itos work defer <id> --why '…' could set it, and
-      --lift take it off, each committing the registry alone as work drop does, the reason the
-      commit's body. The user wants it first among the ideas of that report.
 
   - id: p1-text-from-file
     title: The commands that take free text read it from a file or stdin, and their help says to quote it
