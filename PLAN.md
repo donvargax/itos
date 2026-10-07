@@ -13,7 +13,8 @@ This file says what itos is: its goals and non-goals, its name, its model,
 its config and ledger schema, its named tests and its risks. The decisions,
 each with its reasons, are records in `docs/decisions/`, listed in
 [`docs/decisions/README.md`](docs/decisions/README.md). How the code is
-actually put together is `docs/ARCHITECTURE.md`; what has been built, and
+actually put together is `docs/ARCHITECTURE.md`, a map, and each Go
+package's doc comment; what has been built, and
 why, is the history (`vp run changelog`); who works which phase is
 `docs/PHASES.md`, and the open work is `tasks/work-items.yaml`. What each
 command takes is its `--help`.

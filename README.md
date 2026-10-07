@@ -518,7 +518,7 @@ commit, and it says how work is split into commits.
 | ----------------------- | ------------------------------------------------------------------------- |
 | `PLAN.md`               | What itos is for, its model, its schema and its risks.                    |
 | `docs/decisions/`       | The decisions, one record each; its `README.md` lists those that stand.   |
-| `docs/ARCHITECTURE.md`  | How the code is put together as built, the gates included.                |
+| `docs/ARCHITECTURE.md`  | A map of the code as built, the gates included; each package's `doc.go`.  |
 | `AGENTS.md`             | The working rules for a session that implements.                          |
 | `docs/ORCHESTRATING.md` | This repository's own notes for the coordinator, after `itos go`'s guide. |
 | `docs/PHASES.md`        | Who owns which phase, and how work is routed.                             |

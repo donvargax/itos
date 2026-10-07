@@ -42,7 +42,8 @@ is Go (`cmd/itos`, `internal/`; the TypeScript v0 it began as left in T-062),
 history: `vp run changelog` writes it from the commits into
 `docs/changelog/`, and `vp run changelog -- --task <id>` or
 `-- --scenario <id>` prints one task's or one scenario's commits.
-`docs/ARCHITECTURE.md` says how the code is put together.
+`docs/ARCHITECTURE.md` is the map of how the code is put together; what one
+Go package does, and why, is its doc comment (`doc.go`, `go doc ./internal/<pkg>`).
 
 The rules come in two halves. **itos** (`tools/bin/itos`, its policy in
 `itos.yaml`; the Go binary built from `cmd/itos`, rebuilt by that script when
@@ -307,7 +308,8 @@ or a list of its own: the registry is the one list of open work. One you are
 unsure is real goes in your report instead. What is worth keeping beyond a
 commit goes where a reader looks for it — a scenario's reason as a comment
 above its tag line in its feature file, a task's in its `why` in
-`tasks/*.yaml`, how something is put together in `docs/ARCHITECTURE.md`, a
+`tasks/*.yaml`, how a package works in its doc comment (`doc.go`), how the
+pieces meet in `docs/ARCHITECTURE.md`, a
 decision as a record in `docs/decisions/`. What is neither a reason, a mechanism nor a decision
 (the steps you took, the counts a gate checks) stays in the git history.
 
