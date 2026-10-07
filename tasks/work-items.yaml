@@ -5333,11 +5333,9 @@ items:
     title: The update notice names the newest release itos knows, and asks again after an hour
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Specified in features/update.feature.
     refs: [features/update.feature, internal/launch]
 
   - id: T-106
