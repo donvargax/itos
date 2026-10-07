@@ -17,7 +17,7 @@
 // (slice 78); the last commit's body within a line length (bug 22); a
 // registry commit made while work done waits for CI (bug 34); the tags the
 // config declares, an item with tags and the tags an item has after (slice
-// 97).
+// 97); an item deferred with its reason, and one not deferred (slice 98).
 package features
 
 import (
@@ -101,6 +101,8 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 		return w.registryItemList(id, "tags", tags, ", ")
 	})
 	sc.Step(`^the registry's item "([^"]*)" has no tags$`, func(id string) error { return w.registryItemList(id, "tags", "", ", ") })
+	sc.Step(`^the registry's item "([^"]*)" is deferred with the reason "([^"]*)"$`, w.registryItemDeferred)
+	sc.Step(`^the registry's item "([^"]*)" is not deferred$`, func(id string) error { return w.registryItemDeferred(id, "") })
 	sc.Step(`^the registry's queue is "([^"]*)"$`, w.registryQueueIs)
 	sc.Step(`^the registry's queue is empty$`, func() error { return w.registryQueueIs("") })
 	sc.Step(`^the registry's queue does not name "([^"]*)"$`, w.registryQueueLacks)
@@ -654,6 +656,23 @@ func (w *world) registryItemField(id, key, want string) error {
 	}
 	if got := fmt.Sprint(item[key]); got != want {
 		return fmt.Errorf("%s's %s is %q, not %q\n%s", id, key, got, want, w.report())
+	}
+	return nil
+}
+
+// The item is deferred with the reason, its last line break aside (a folded
+// text ends with one); none ("") is no deferred key, null or an empty one.
+func (w *world) registryItemDeferred(id, reason string) error {
+	item, err := w.registryItemOf(id)
+	if err != nil {
+		return err
+	}
+	got := ""
+	if item["deferred"] != nil {
+		got = strings.TrimRight(fmt.Sprint(item["deferred"]), "\n")
+	}
+	if got != reason {
+		return fmt.Errorf("%s's deferred is %q, not %q\n%s", id, got, reason, w.report())
 	}
 	return nil
 }
