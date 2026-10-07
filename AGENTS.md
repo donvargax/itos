@@ -90,9 +90,10 @@ file.
      saying what a consumer of itos must change for it, or `Upgrading: none`.
      A fix that changes what a scenario or corpus case of the last release
      promised, because it held the bug, names each in a `Changes:` footer
-     (`--changes '@ID-…'`); a feat that does is a breaking change
-     (`--breaking '…'`). CI runs the last release's suite against your binary
-     and fails on an old scenario no commit accounts for.
+     (`--changes '@ID-…'`); a feat that does is a breaking change and
+     carries both footers, `BREAKING-CHANGE:` (`--breaking '…'`) and
+     `Changes:` naming each old case it changes. CI runs the last release's
+     suite against your binary and fails on an old scenario no commit names.
 
   **If the behavior you need isn't described, stop and propose the
   scenario; never bend a scenario to fit an implementation.** A scenario is

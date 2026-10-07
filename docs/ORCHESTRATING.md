@@ -61,7 +61,8 @@ also runs:
 - the config schema, held to the last release's (T-070);
 - the last release's scenarios and corpus against the new binary, help cases
   left out (T-071). A fix may change an old one it names in `Changes:`; a feat
-  never may.
+  never may. A breaking commit carries both footers, `BREAKING-CHANGE:` and
+  `Changes:` naming each old case it changes: it excuses only those (T-106).
 
 A change to the Claude Code plugin raises its own version (T-074). That version
 is the plugin's, not itos's.

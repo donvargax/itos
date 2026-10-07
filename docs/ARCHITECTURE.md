@@ -404,8 +404,8 @@ module they judge runs inside them, each documented in its `main.go`:
   docs-only pushes are where the docs grow.
 - `previous-release`: the last release's scenarios and corpus run against
   this tree's binary, the corpus judged by machine output alone in the
-  runner's `--additive` mode; a failure is accepted only when a commit since
-  is breaking, or a `fix` names it in a `Changes:` footer.
+  runner's `--additive` mode; a failure is accepted only when a `fix` or a
+  breaking commit since names it in a `Changes:` footer (T-106).
 
 **The nightly** (`.github/workflows/nightly.yml`, at 11:44 UTC on `main` or
 by hand) runs `itos ci run --nightly`: `ci.nightly.steps` in written order,
