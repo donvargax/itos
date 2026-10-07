@@ -109,12 +109,19 @@ anything).
 
 ## Order
 
-1. Before v7: `p1-previous-release-selftest-red` (red since T-106, unrun), T-113, then the two
-   upgrade items.
-2. v7, each item specified and landed in turn, all held back from release until the last lands,
-   so consumers get one major: the role protocol, the proof rule and `work done`, the CI sample,
-   expiring checks, the standing rules, debt, then the rest of the bundle.
-3. **Open:** how to hold the release. Recommended: each v7 commit lands as it is ready, its
-   breaking footer naming what it changes, and the release cut once, when the last lands; that
-   needs the release job to wait for a marker (a `v7` tag the person pushes) rather than cutting
-   one major per breaking commit.
+1. Finish 6.x: T-117 (the previous-release self-test, red since T-106), T-113, then
+   `p1-upgrade-applies-config-steps` and `p1-upgrade-on-major`, so consumers cross the major
+   cleanly. Once the module path moves to `/v7`, main cuts no 6.x patch (T-089's rule: no v7 tag
+   from a `/v6` go.mod, and no v6 tag from a `/v7` one).
+2. **Pre-releases** (the user's call, 2026-10-07; T-118): `itos.yaml` gains a pre-release marker,
+   and while it is on, the commits that would cut 7.0.0 cut `7.0.0-rc.1`, `rc.2` and so on, marked
+   pre-release and never latest. `go install …@latest`, the update notice and a bare `itos pin`
+   keep naming 6.x; a repository opts in with `itos pin 7.0.0-rc.<n>` (itos-cc and code-quality
+   first).
+3. Turn the marker on, move the module path to `/v7`, and land **the itos-cc integration first**:
+   the role protocol, the proof rule and `work done`, CI's `mutation sample`, expiring checks.
+   That is `v7.0.0-rc.1`.
+4. The rest of the bundle, each item landing as it is ready, each a further rc: the standing rules,
+   debt and claims, exit codes, the hook-skipping refusal, config tightening, slice-95, rule 22,
+   dropping compatibility code.
+5. Remove the marker: the next push cuts `v7.0.0`.
