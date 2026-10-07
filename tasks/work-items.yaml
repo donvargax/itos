@@ -1606,6 +1606,11 @@ items:
       porting each; most Go package comments say which tools/itos/*.ts they port. Both name files
       that no longer exist. Rewritten against the Go packages and functions, the architecture
       would read without the TypeScript, and "The code" could stop reading as a port's map.
+
+      T-109 did the architecture's half and the package doc comments: docs/ARCHITECTURE.md is a map
+      naming Go packages, and each package's doc.go names no TypeScript module. Comments on
+      functions and types still name some 67 (commit-data.ts's stagedDataIssues, ci-plan.ts's
+      ciPlan).
     refs: [docs/ARCHITECTURE.md, internal/]
 
   - id: slice-25
