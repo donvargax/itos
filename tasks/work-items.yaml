@@ -54,7 +54,7 @@ phases:
   3: donvargax
 
 queue:
-  - p1-draft-edit-off-tree
+  - slice-99
   - slice-95
   - bug-38
   - bug-42
@@ -5867,14 +5867,15 @@ items:
       rename. Both need a pin's checksums to change for a version already cached, which a release
       never does; decide whether either is worth a lock or a retry.
 
-  - id: p1-draft-edit-off-tree
+  - id: slice-99
     title: itos draft edits a file change off the working tree, so a coordinator drafts specs while an agent holds the checkout
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-draft-edit-off-tree.
       The user's call (2026-10-07): coordinators still write specs in scratch files while an agent
       runs, though the guide says to draft them. The cause is itos draft: drafting a file change
       means first editing the file in the working tree, which is the agent's checkout (its itos push
