@@ -5211,8 +5211,8 @@ items:
   - id: T-103
     title: go-schema.ts's value-not-allowed case names hooks.manager, which v6 removed
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-91]
     kind: task
     why: >
