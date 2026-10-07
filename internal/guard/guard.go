@@ -11,7 +11,7 @@ import (
 
 	"mvdan.cc/sh/v3/syntax"
 
-	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v7/internal/config"
 )
 
 // Event is the hook event the guard answers.

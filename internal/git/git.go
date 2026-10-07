@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/kind"
+	"github.com/donvargax/itos/v7/internal/kind"
 )
 
 // Output is a git command's stdout, its stderr dropped; the error when git

@@ -3,7 +3,7 @@ package git
 import (
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/kind"
+	"github.com/donvargax/itos/v7/internal/kind"
 )
 
 // A fetch or a push that fails says why only in git's own words on stderr,

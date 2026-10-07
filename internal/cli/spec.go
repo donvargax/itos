@@ -14,9 +14,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/git"
-	"github.com/donvargax/itos/v6/internal/message"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v7/internal/message"
 )
 
 // takes is what a flag takes after its name.

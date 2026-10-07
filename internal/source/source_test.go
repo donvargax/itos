@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/git"
+	"github.com/donvargax/itos/v7/internal/git"
 )
 
 func gitIn(t *testing.T, dir string, args ...string) {

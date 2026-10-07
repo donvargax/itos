@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/donvargax/itos/v6/internal/kind"
+	"github.com/donvargax/itos/v7/internal/kind"
 )
 
 func TestVersionOf(t *testing.T) {

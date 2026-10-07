@@ -1,8 +1,8 @@
 package check
 
 import (
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/ledger"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/ledger"
 )
 
 // The cost rule (cost.ts), one for CI's plan and the commit-msg hook's run of

@@ -15,7 +15,7 @@ import (
 
 	"github.com/cucumber/godog"
 
-	"github.com/donvargax/itos/v6/internal/git"
+	"github.com/donvargax/itos/v7/internal/git"
 )
 
 // Where the stealth mode keeps the config and its data in a repository whose

@@ -14,7 +14,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/donvargax/itos/v6/internal/kind"
+	"github.com/donvargax/itos/v7/internal/kind"
 )
 
 // Folder is the drafts' folder in itos's folder of the git common dir.

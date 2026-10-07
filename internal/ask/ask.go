@@ -12,7 +12,7 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"github.com/donvargax/itos/v6/internal/kind"
+	"github.com/donvargax/itos/v7/internal/kind"
 )
 
 // FileName is the questions' file, beside the work registry by default.

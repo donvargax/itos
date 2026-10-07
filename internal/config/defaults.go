@@ -4,7 +4,7 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/donvargax/itos/v6/internal/value"
+	"github.com/donvargax/itos/v7/internal/value"
 )
 
 // m is a mapping of the pairs key, value, key, value…, and l a list.

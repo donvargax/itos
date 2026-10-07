@@ -1,8 +1,8 @@
 package plan
 
 import (
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/tests"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/tests"
 )
 
 // The range a run is for, as its steps and checks are given it (slice 83,

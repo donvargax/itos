@@ -7,14 +7,14 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/git"
-	"github.com/donvargax/itos/v6/internal/ledger"
-	"github.com/donvargax/itos/v6/internal/out"
-	"github.com/donvargax/itos/v6/internal/source"
-	"github.com/donvargax/itos/v6/internal/tests"
-	"github.com/donvargax/itos/v6/internal/value"
-	"github.com/donvargax/itos/v6/internal/work"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v7/internal/ledger"
+	"github.com/donvargax/itos/v7/internal/out"
+	"github.com/donvargax/itos/v7/internal/source"
+	"github.com/donvargax/itos/v7/internal/tests"
+	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v7/internal/work"
 )
 
 // Reading is where the footer rules read a read_at: commit footer's IDs: At

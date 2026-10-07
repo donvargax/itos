@@ -25,7 +25,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v7/internal/config"
 )
 
 // BodyLimit is the longest a body line may be under the config's header

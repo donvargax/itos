@@ -10,7 +10,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/kind"
+	"github.com/donvargax/itos/v7/internal/kind"
 )
 
 // renamedCommands are the command paths v6.0.0 renamed, each with the line

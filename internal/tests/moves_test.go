@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/git"
+	"github.com/donvargax/itos/v7/internal/git"
 )
 
 var movesOptions = Options{Root: "features", ID: `ID-[A-Z]+-\d+`, TagPrefix: "@", WipTag: "@wip"}

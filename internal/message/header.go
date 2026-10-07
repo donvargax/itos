@@ -18,9 +18,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/git"
-	"github.com/donvargax/itos/v6/internal/value"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v7/internal/value"
 )
 
 // conventionalTypes are config-conventional's type-enum, for a config that

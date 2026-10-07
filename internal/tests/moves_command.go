@@ -14,8 +14,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/git"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/git"
 )
 
 // testList is the kind's listing at a tree: "index", or a commit. A tree

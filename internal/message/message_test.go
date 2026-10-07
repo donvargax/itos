@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v7/internal/config"
 )
 
 // A footer's IDs over several lines, split at whitespace and commas, the

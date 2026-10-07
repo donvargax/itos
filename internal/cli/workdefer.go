@@ -13,7 +13,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/work"
+	"github.com/donvargax/itos/v7/internal/work"
 )
 
 // workDefer is `work defer <id> --why <reason>`: the item deferred and the

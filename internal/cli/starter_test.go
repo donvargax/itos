@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/tests"
-	"github.com/donvargax/itos/v6/internal/value"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/tests"
+	"github.com/donvargax/itos/v7/internal/value"
 )
 
 // Every shape of the starter loads as a config, with what the slice settled:

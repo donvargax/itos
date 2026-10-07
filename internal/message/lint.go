@@ -8,12 +8,12 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/ledger"
-	"github.com/donvargax/itos/v6/internal/out"
-	"github.com/donvargax/itos/v6/internal/shell"
-	"github.com/donvargax/itos/v6/internal/tests"
-	"github.com/donvargax/itos/v6/internal/value"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/ledger"
+	"github.com/donvargax/itos/v7/internal/out"
+	"github.com/donvargax/itos/v7/internal/shell"
+	"github.com/donvargax/itos/v7/internal/tests"
+	"github.com/donvargax/itos/v7/internal/value"
 )
 
 // fixes resolve each rule of @commitlint/config-conventional an agent meets.

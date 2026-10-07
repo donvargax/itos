@@ -6,13 +6,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/check"
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/ledger"
-	"github.com/donvargax/itos/v6/internal/out"
-	"github.com/donvargax/itos/v6/internal/source"
-	"github.com/donvargax/itos/v6/internal/value"
-	"github.com/donvargax/itos/v6/internal/work"
+	"github.com/donvargax/itos/v7/internal/check"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/ledger"
+	"github.com/donvargax/itos/v7/internal/out"
+	"github.com/donvargax/itos/v7/internal/source"
+	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v7/internal/work"
 )
 
 // The task runner (cli.ts): `itos task <id>… | --group <g> [--skip <ids>] |

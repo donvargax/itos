@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/value"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/value"
 )
 
 // registryOf is the registry as Load gives it, from its text, with people

@@ -18,8 +18,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/version"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/version"
 )
 
 // extensionPrefix starts the name of every extension's program.

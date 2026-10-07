@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/value"
+	"github.com/donvargax/itos/v7/internal/value"
 )
 
 // work list's lines keep the registry's order, line up the id, kind and

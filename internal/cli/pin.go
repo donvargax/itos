@@ -16,11 +16,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/kind"
-	"github.com/donvargax/itos/v6/internal/out"
-	"github.com/donvargax/itos/v6/internal/release"
-	"github.com/donvargax/itos/v6/internal/value"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/kind"
+	"github.com/donvargax/itos/v7/internal/out"
+	"github.com/donvargax/itos/v7/internal/release"
+	"github.com/donvargax/itos/v7/internal/value"
 )
 
 // pinTimeout bounds the one question pin asks, for a checksums.txt.

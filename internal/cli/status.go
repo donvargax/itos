@@ -31,14 +31,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/draft"
-	"github.com/donvargax/itos/v6/internal/git"
-	"github.com/donvargax/itos/v6/internal/out"
-	"github.com/donvargax/itos/v6/internal/providers"
-	"github.com/donvargax/itos/v6/internal/release"
-	"github.com/donvargax/itos/v6/internal/value"
-	"github.com/donvargax/itos/v6/internal/work"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/draft"
+	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v7/internal/out"
+	"github.com/donvargax/itos/v7/internal/providers"
+	"github.com/donvargax/itos/v7/internal/release"
+	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v7/internal/work"
 )
 
 // statusHeading is the status's first line, which itos go's reader looks for.

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/git"
+	"github.com/donvargax/itos/v7/internal/git"
 )
 
 // A scratch repository with one commit and no config, as the current

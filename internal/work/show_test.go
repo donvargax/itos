@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/value"
+	"github.com/donvargax/itos/v7/internal/value"
 )
 
 // RegistryHeader reads the headers the registry's writers commit with, so

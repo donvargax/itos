@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/git"
+	"github.com/donvargax/itos/v7/internal/git"
 )
 
 // A scratch repository with a commit of its own past its upstream, a bare

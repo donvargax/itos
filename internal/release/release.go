@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v6/internal/kind"
+	"github.com/donvargax/itos/v7/internal/kind"
 )
 
 // Env is the variable naming the base the releases are fetched from.

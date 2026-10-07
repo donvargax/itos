@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/nextid"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/nextid"
 )
 
 // NextTag is `tests next-id <kind> <stem>` (slice 60): the next free tag of

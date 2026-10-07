@@ -3,7 +3,7 @@ package git
 import (
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/kind"
+	"github.com/donvargax/itos/v7/internal/kind"
 )
 
 // What git 2.56 printed for each failing fetch or push, recorded, and what

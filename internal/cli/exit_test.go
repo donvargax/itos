@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/kind"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/kind"
 )
 
 // Every exit code comes from the kind of the error, never from a default

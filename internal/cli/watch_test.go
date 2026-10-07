@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/kind"
-	"github.com/donvargax/itos/v6/internal/providers"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/kind"
+	"github.com/donvargax/itos/v7/internal/providers"
 )
 
 // watchConfig is a loaded config whose watch has the interval and timeout.

@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/kind"
-	"github.com/donvargax/itos/v6/internal/shell"
-	"github.com/donvargax/itos/v6/internal/value"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/kind"
+	"github.com/donvargax/itos/v7/internal/shell"
+	"github.com/donvargax/itos/v7/internal/value"
 )
 
 // Test is one named test: its ID without the tag prefix, its file relative to

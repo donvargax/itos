@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/providers"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/providers"
 )
 
 // A project whose people file is missing or cannot be read has no people:

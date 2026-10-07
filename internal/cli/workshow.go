@@ -20,15 +20,15 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/donvargax/itos/v6/internal/ask"
-	"github.com/donvargax/itos/v6/internal/config"
-	"github.com/donvargax/itos/v6/internal/git"
-	"github.com/donvargax/itos/v6/internal/ledger"
-	"github.com/donvargax/itos/v6/internal/message"
-	"github.com/donvargax/itos/v6/internal/out"
-	"github.com/donvargax/itos/v6/internal/source"
-	"github.com/donvargax/itos/v6/internal/tests"
-	"github.com/donvargax/itos/v6/internal/work"
+	"github.com/donvargax/itos/v7/internal/ask"
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v7/internal/ledger"
+	"github.com/donvargax/itos/v7/internal/message"
+	"github.com/donvargax/itos/v7/internal/out"
+	"github.com/donvargax/itos/v7/internal/source"
+	"github.com/donvargax/itos/v7/internal/tests"
+	"github.com/donvargax/itos/v7/internal/work"
 )
 
 // showWidth is the width an item's why is wrapped at.
