@@ -850,3 +850,35 @@
     - run: "! git grep -q 'manager' -- tools/selftest/go-schema.ts"
       cost: static
     - run: node tools/selftest/go-schema.ts
+
+- id: T-104
+  type: test
+  title: The features and unit tests run the real git, never an itos linked as git
+  why: >
+    Found by bug-46's agent (2026-10-06): with the itos git shim first on the PATH (a git that is a
+    link to itos, which itos init offers since slice 50), 63 features fail (chore commits need
+    --task) and internal/cli's TestDeclareHooksOldGit hangs, so every brief here carries
+    PATH=/usr/bin:$PATH. T-087 hides claude, itos and itos-* from the features' PATH, not a git that
+    is itos. The features and the unit tests resolve git past any itos shim, as itos itself does
+    since bug 45, by one rule rather than a second copy of it. The check puts a link to the built
+    itos first on the PATH as git and runs every feature and the cli unit test that hung.
+  done_when:
+    - run: >-
+        sh -c 'tools/bin/itos --version >/dev/null && d=$(mktemp -d) &&
+        ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./features -count=1 &&
+        PATH="$d:$PATH" go test ./internal/cli -count=1 -run TestDeclareHooksOldGit'
+
+- id: T-105
+  type: perf
+  title: TestRollbackGitCannotStart takes seconds, not five minutes
+  why: >
+    internal/cli's TestRollbackGitCannotStart takes about 300 seconds locally and internal/cli 200 to
+    290 seconds in CI on every platform, nearly all of it this test; every push and hook run that
+    reaches internal/cli waits on it, and go-hooks.ts runs about 30 minutes (T-102). The test commits
+    a 5 MB message so git cannot start. First find where the time goes with a profile, not a guess:
+    if itos reads a message in more than linear time (header lint, footer parse, wrap), that is a
+    perf bug of itos, fixed in itos with a unit test holding a large message to a time bound; only if
+    itos is linear does the test change, and then it must still prove the rollback when git cannot
+    start on every platform (macOS has no per-argument limit, hence the 5 MB).
+  done_when:
+    - run: go test ./internal/cli -count=1 -run TestRollbackGitCannotStart -timeout 60s
