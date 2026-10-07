@@ -588,3 +588,39 @@ Feature: The work registry
     Then itos exits with code 2
     And its output says "--remove"
     And the registry's queue names "slice-9"
+
+  # Slice 93 (the coordinator's call, 2026-10-06): closing v6.0.0's ten items
+  # took ten pushes and ten full CI runs, over an hour. work done refused
+  # while HEAD had a commit no remote had and judged HEAD's run, so each
+  # close, itself a registry-only commit, made the next one wait on a push and
+  # a run of its own. A commit touching only the work registry changes
+  # nothing a run judges (push does not wait for its run, slice 56). work done
+  # passes over such commits at HEAD, pushed or not, and judges the run of the
+  # newest commit that touches more; one itos push after the last close lands
+  # them all. A commit no remote has that touches anything else still refuses
+  # (@ID-WORK-16).
+  @ID-WORK-56 @slice-93 @wip
+  Scenario: work done passes over commits no remote has that touch only the work registry
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the work registry has the item "slice-2" owned by nobody with the status "todo"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And the clone has a commit no remote has that takes "slice-2" for "other"
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And the registry's item "slice-9" has the status "done" and the owner "someone"
+    And the fake GitHub was asked for the run of the remote's head
+    And the fake GitHub was never asked for the run of the clone's HEAD
+
+  @ID-WORK-57 @slice-93 @wip
+  Scenario: work done judges the run of the newest commit that touches more than the registry
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the work registry has the item "slice-2" owned by nobody with the status "todo"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's job "ci" fails and its job "platform" succeeds
+    And the clone has a commit no remote has that takes "slice-2" for "other"
+    When itos runs "work done slice-9"
+    Then itos exits with code 1
+    And its output says "https://ci.example/runs/1"
