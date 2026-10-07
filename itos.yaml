@@ -242,7 +242,9 @@ ci:
   # Every feature, the gates self-test, the hooks' choice of Go unit tests
   # (T-059: since the TypeScript left, the one proof that the hooks run only
   # the unit tests a change reaches), the Go release build (T-040) and the
-  # config's JSON Schema held to config check over the corpus (T-054), then the
+  # config's JSON Schema held to config check over the corpus (T-054), the
+  # previous-release check held to which commits excuse an old failure (T-106,
+  # T-117: no push ran its self-test, and it went red unseen), then the
   # static checks of every task whose work item is done (T-035), each shared
   # check once: a task's checks otherwise run only when a push names it. Last,
   # so a red one does not keep the features from reporting; its late checks
@@ -255,6 +257,7 @@ ci:
       - node tools/selftest/go-hooks.ts
       - node tools/selftest/go-release.ts
       - node tools/selftest/go-schema.ts
+      - node tools/selftest/previous-release.ts
       - { tasks: done, cost: static }
       # The newest release's linux-amd64 archive passes gh attestation verify (T-069): every release
       # is attested by the workflow that built it. Last, as it asks GitHub.

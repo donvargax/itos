@@ -44,10 +44,12 @@
 //   - it passes with a fix naming the long case by a prefix of its name, short
 //     enough for a footer line (T-081), and fails with one naming it by a
 //     prefix another case starts with too, warning that it is ambiguous;
-//   - it fails with a feat naming both, saying a feat's Changes: never
-//     excuses one;
-//   - it passes with a breaking change: a BREAKING-CHANGE: footer, a ! in a
-//     header;
+//   - it fails with a feat naming both, saying a feat's Changes: excuses one
+//     only on a fix or a breaking change;
+//   - a breaking change, a BREAKING-CHANGE: footer or a ! in a header,
+//     excuses only what its Changes: names (T-106): one naming nothing fails,
+//     naming both; one naming both passes; one naming the scenario alone
+//     leaves the case refused;
 //   - a Changes: entry that names nothing of the release is a warning, not a
 //     failure;
 //   - -range-from checks nothing when the range has no feat or fix; no
@@ -379,6 +381,20 @@ try {
 	);
 	branch("footer", "feat: greet otherwise\n\nBody.\n\nBREAKING-CHANGE: itos greet says bye");
 	branch("bang", "fix!: greet otherwise");
+	// Breaking changes that name what they change: a feat, so that only being
+	// breaking can excuse it.
+	branch(
+		"footer-named",
+		"feat: greet otherwise\n\nBody.\n\nBREAKING-CHANGE: itos greet says bye\nChanges: @ID-GREET-01\nChanges: greet.yaml: greets the world",
+	);
+	branch(
+		"bang-named",
+		"feat!: greet otherwise\n\nBody.\n\nChanges: @ID-GREET-01\nChanges: greet.yaml: greets the world",
+	);
+	branch(
+		"footer-scenario",
+		"feat: greet otherwise\n\nBody.\n\nBREAKING-CHANGE: itos greet says bye\nChanges: @ID-GREET-01",
+	);
 	branch(
 		"unknown",
 		"fix: something else\n\nBody.\n\nChanges: @ID-GREET-09, @ID-GREET-02\nChanges: greet.yaml: waves\nChanges: whatever",
@@ -521,28 +537,57 @@ try {
 		`a fix naming only the scenario should leave the case refused, exited ${r.status}:\n${r.output}`,
 	);
 
-	// 4. A feat naming both is refused: a feat's Changes: never excuses one.
+	// 4. A feat naming both is refused, naming each: a feat's Changes: excuses
+	// one only on a fix or a breaking change (T-106).
 	on("featured");
 	r = run(repo, ["-bin", broken]);
+	const onlyOn = "which excuses one only on a fix or a breaking change";
 	expect(
 		r.status === 1 &&
 			r.output.includes(`${scenario} fails against this tree's itos, and only the feat`) &&
-			r.output.includes("never excuses one") &&
+			r.output.includes(`${corpusCase} fails against this tree's itos, and only the feat`) &&
+			r.output.includes(onlyOn) &&
 			!r.output.includes("accepted"),
-		`a feat naming the scenario in Changes: should be refused, saying a feat never excuses one, exited ${r.status}:\n${r.output}`,
+		`a feat naming the scenario and the case in Changes: should refuse both, saying a feat's Changes: excuses one only on a fix or a breaking change, exited ${r.status}:\n${r.output}`,
 	);
 
-	// 5. A breaking change since the tag passes: a footer, a ! in a header.
+	// 5. A breaking change since the tag, by a footer or by a ! in a header,
+	// excuses only what its Changes: names (T-106). Naming nothing, it is
+	// refused, naming the scenario, the case and the remedy.
 	for (const name of ["footer", "bang"]) {
 		on(name);
 		r = run(repo, ["-bin", broken]);
 		expect(
-			r.status === 0 &&
-				r.output.includes(`${scenario} fails, accepted:`) &&
-				r.output.includes("marks a breaking change"),
-			`a breaking change (${name}) should accept the broken scenario and case, exited ${r.status}:\n${r.output}`,
+			r.status === 1 &&
+				r.output.includes(`v1.0.0's ${scenario} fails against this tree's itos`) &&
+				r.output.includes(`v1.0.0's ${corpusCase} fails against this tree's itos`) &&
+				r.output.includes("being breaking excuses only what its Changes: names") &&
+				!r.output.includes("accepted") &&
+				!r.output.includes(onlyOn),
+			`a breaking change (${name}) whose Changes: names nothing should refuse the broken scenario and case, exited ${r.status}:\n${r.output}`,
 		);
 	}
+	// Naming both in Changes:, it passes, saying the breaking change names each.
+	for (const name of ["footer-named", "bang-named"]) {
+		on(name);
+		r = run(repo, ["-bin", broken]);
+		const named = `accepted: the breaking change ${git(repo, "rev-parse", "HEAD").slice(0, 7)} "`;
+		expect(
+			r.status === 0 &&
+				r.output.includes(`${scenario} fails, ${named}`) &&
+				r.output.includes(`${corpusCase} fails, ${named}`),
+			`a breaking change (${name}) naming the scenario and the case in Changes: should accept both, exited ${r.status}:\n${r.output}`,
+		);
+	}
+	// Naming the scenario alone, it leaves the case refused.
+	on("footer-scenario");
+	r = run(repo, ["-bin", broken]);
+	expect(
+		r.status === 1 &&
+			r.output.includes(`${scenario} fails, accepted: the breaking change`) &&
+			r.output.includes(`v1.0.0's ${corpusCase} fails against this tree's itos`),
+		`a breaking change naming only the scenario in Changes: should leave the case refused, exited ${r.status}:\n${r.output}`,
+	);
 
 	// 6. Changes: entries that name nothing of the release are warnings.
 	on("unknown");
@@ -614,5 +659,5 @@ try {
 finish(
 	problems,
 	"previous-release",
-	"An old scenario or case the new binary breaks is refused, unless a breaking change or a fix's Changes: footer says why, naming a case by its name or a prefix no other case starts with; a feat's never does; an old case is judged by machine output alone, its exit code, files_after and json less message and fix, a key added passing and one removed or changed refused, its plain output never; and a run that cannot check out the release never passes",
+	"An old scenario or case the new binary breaks is refused, unless the Changes: footer of a fix or a breaking commit names it, a case by its name or a prefix no other case starts with; a feat's never does, nor a breaking commit's footer that does not name it; an old case is judged by machine output alone, its exit code, files_after and json less message and fix, a key added passing and one removed or changed refused, its plain output never; and a run that cannot check out the release never passes",
 );
