@@ -62,9 +62,10 @@ func Breaking(message string) bool {
 }
 
 // IsTag says whether the tag names a release: v followed by three
-// dot-separated numbers and nothing else. itos never cuts a prerelease, so a
-// tag with a prerelease or build metadata names none (bug 20); a number with
-// leading zeros counts, as the release cut has always taken it.
+// dot-separated numbers and nothing else. A tag with a prerelease or build
+// metadata names none (bug 20): a release candidate (T-118) is never the last
+// release a cut counts from. A number with leading zeros counts, as the
+// release cut has always taken it.
 func IsTag(tag string) bool { return releaseTag.MatchString(tag) }
 
 // Newest is the highest of the tags that name a release, by their numbers,
