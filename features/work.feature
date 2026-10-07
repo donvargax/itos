@@ -809,7 +809,7 @@ Feature: The work registry
   # ci.watch.timeout. The run of a pushed head that has the judged commit as
   # an ancestor judges it, as for a run a newer push cancelled (bug 41): work
   # done takes the newest such run on the branch, and names it.
-  @ID-WORK-74 @bug-49 @wip
+  @ID-WORK-74 @bug-49
   Scenario: work done judges a commit pushed with later registry-only commits by the run of the head they were pushed with
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -822,7 +822,7 @@ Feature: The work registry
     And the registry's item "slice-9" has the status "done" and the owner "someone"
     And its output says "https://ci.example/runs/1"
 
-  @ID-WORK-75 @bug-49 @wip
+  @ID-WORK-75 @bug-49
   Scenario: work done refuses when the run of the head that covers the judged commit failed
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"

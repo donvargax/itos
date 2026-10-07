@@ -318,8 +318,10 @@ the commit-msg hook runs them; and with ci.watch, HEAD's CI run passed, waited
 for as itos ci watch waits when it is still going. The commits at HEAD that
 touch only the work registry, pushed or not, are passed over, and the run
 judged is that of the newest commit that touches more, so several closes land
-in one itos push after the last. Without ci.watch CI is not
-checked, and done says so. Refused, nothing written (exit 1): any of those not
+in one itos push after the last. Pushed with them, that commit may have no
+run of its own: the newest run on its branch whose head has it judges it, and
+done names that run. Without ci.watch CI is not checked, and done says so.
+Refused, nothing written (exit 1): any of those not
 so, a registry that is not sound or has changes no commit holds, an id no item
 has, an idea (work promote it first), an item dropped or deferred, a commit a
 hook refuses. Exit 75 when the run does not end within ci.watch.timeout, is

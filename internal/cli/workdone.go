@@ -10,7 +10,10 @@ package cli
 // is still going. The commit judged is HEAD, passing over the commits at HEAD
 // that touch only the work registry, pushed or not (slice 93): a take or a
 // close changes nothing a run judges, so closes made one after another land
-// in one push after the last. The first that is not refuses, naming what
+// in one push after the last. The judged commit, pushed with such commits
+// after it, may have no run of its own, CI running once for the push's head:
+// the newest run on the branch whose head has it judges it (bug 49), as for a
+// cancelled run (bug 41). The first that is not refuses, naming what
 // to do; without ci.watch CI is not checked, and done says so. The registry
 // is then read again and the close made on it as it is after the wait (bug
 // 34). An item the registry's queue holds is then taken out of it, in a
@@ -27,6 +30,7 @@ import (
 	"github.com/donvargax/itos/v6/internal/git"
 	"github.com/donvargax/itos/v6/internal/ledger"
 	"github.com/donvargax/itos/v6/internal/out"
+	"github.com/donvargax/itos/v6/internal/providers"
 	"github.com/donvargax/itos/v6/internal/tests"
 	"github.com/donvargax/itos/v6/internal/work"
 )
@@ -88,7 +92,7 @@ func workDone(args []string, o Out) (int, error) {
 		return code, err
 	}
 	if ci.run != nil && ci.run.URL != "" {
-		change.Body += " " + landing.run + " passed: " + ci.run.URL + "."
+		change.Body += " " + landing.runOf(ci.run) + " passed: " + ci.run.URL + "."
 	}
 	sha, code, err := writeRegistry(cfg, text, *change, o)
 	if err != nil || code != 0 {
@@ -181,11 +185,21 @@ func wipScenarios(cfg *config.Loaded, id string) ([]out.Problem, error) {
 }
 
 // doneCommit is the commit whose landing work done judges: its SHA, "" when
-// HEAD names no commit, and how work done names its CI run, at the start
-// of a sentence.
+// HEAD names no commit, how work done names its CI run, at the start of a
+// sentence, and how it names the commit, "HEAD" or its short SHA and why.
 type doneCommit struct {
-	sha string
-	run string
+	sha  string
+	run  string
+	what string
+}
+
+// runOf names the run that judged the commit, at the start of a sentence:
+// its own, or the run of a head that has it (bug 49 and bug 41), naming both.
+func (j doneCommit) runOf(run *providers.Run) string {
+	if run == nil || run.HeadSHA == "" || run.HeadSHA == j.sha || j.what == "" {
+		return j.run
+	}
+	return "The CI run of " + short(run.HeadSHA) + ", which has " + j.what + ","
 }
 
 // judgedCommit is HEAD, passing over the commits at HEAD that touch only the
@@ -202,13 +216,14 @@ func judgedCommit(registry string) doneCommit {
 	for at := head; ; {
 		if !touchesOnlyRegistry(registry, "-1", at) {
 			if at == head {
-				return doneCommit{sha: head, run: "HEAD's CI run"}
+				return doneCommit{sha: head, run: "HEAD's CI run", what: "HEAD"}
 			}
-			return doneCommit{sha: at, run: "The CI run of " + short(at) + ", the newest commit of HEAD that touches more than " + registry}
+			what := short(at) + ", the newest commit of HEAD that touches more than " + registry
+			return doneCommit{sha: at, run: "The CI run of " + what, what: what}
 		}
 		parent, err := git.Output("rev-parse", "--verify", "--quiet", at+"^")
 		if err != nil {
-			return doneCommit{sha: head, run: "HEAD's CI run"}
+			return doneCommit{sha: head, run: "HEAD's CI run", what: "HEAD"}
 		}
 		at = strings.TrimSpace(parent)
 	}
@@ -275,7 +290,8 @@ func failingTask(cfg *config.Loaded, id string, o Out) ([]out.Problem, error) {
 }
 
 // landedCI is the judged commit's CI run with ci.watch, waited for as itos ci watch
-// waits: 0 when it passed, else the refusal (1 for a run that did not pass,
+// waits, or, while it has none, the run on its upstream branch that covers it
+// (watchCovered, bug 49): 0 when it passed, else the refusal (1 for a run that did not pass,
 // naming its address, 3 for one that did not end or could not be looked
 // at), reported. Without ci.watch nothing is watched, and done says so on
 // stderr and goes on, its --json ci "unwatched".
@@ -288,16 +304,18 @@ func landedCI(cfg *config.Loaded, id string, j doneCommit, o Out) (watched, int,
 	if sha == "" {
 		return watched{}, 0, errors.New("HEAD names no commit, so it has no CI run")
 	}
-	remote := "origin"
-	if branch := git.Branch(); branch != "" {
-		remote, _, _ = git.Upstream(branch)
+	remote, branch := "origin", ""
+	if local := git.Branch(); local != "" {
+		var ref string
+		remote, ref, _ = git.Upstream(local)
+		branch = strings.TrimPrefix(ref, "refs/heads/")
 	}
 	w := watched{code: ExitMissing, outcome: "error"}
 	wr, _, err := watcher(cfg, remote, o)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s\n", err)
 	} else {
-		w = watchRun(cfg, wr, sha, remote, o)
+		w = watchCovered(cfg, wr, sha, remote, branch, o)
 	}
 	if w.code == 0 {
 		return w, 0, nil
@@ -306,7 +324,7 @@ func landedCI(cfg *config.Loaded, id string, j doneCommit, o Out) (watched, int,
 	if w.outcome == "failure" {
 		found = []out.Problem{{
 			Rule:    "work-done-ci",
-			Message: fmt.Sprintf("%s did not pass, so %s is not done: %s", j.run, id, w.run.URL),
+			Message: fmt.Sprintf("%s did not pass, so %s is not done: %s", j.runOf(w.run), id, w.run.URL),
 			Fix:     "fix what failed, push the fix with itos push, then run itos work done " + id + " again",
 		}}
 	}

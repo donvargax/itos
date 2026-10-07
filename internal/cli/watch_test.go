@@ -91,6 +91,52 @@ func TestACancelledRunIsFollowedOr75(t *testing.T) {
 	}
 }
 
+// A commit with no run of its own (bug 49), pushed with a commit after it
+// that CI ran for alone, is judged by the newest run on the branch whose head
+// has it, which the watch names; a run of a head that does not have it is no
+// verdict, and without a branch the watch waits for the commit's own run.
+func TestACommitWithNoRunIsJudgedByTheRunThatCoversIt(t *testing.T) {
+	noSleep(t)
+	gitConfigRepo(t, "version: 1\n")
+	t.Setenv("GIT_AUTHOR_NAME", "itos")
+	t.Setenv("GIT_COMMITTER_NAME", "itos")
+	t.Setenv("GIT_AUTHOR_EMAIL", "itos@example.com")
+	t.Setenv("GIT_COMMITTER_EMAIL", "itos@example.com")
+	gitLine(t, "commit", "-q", "--allow-empty", "-m", "chore: base")
+	gitLine(t, "checkout", "-q", "-b", "aside")
+	gitLine(t, "commit", "-q", "--allow-empty", "-m", "chore: aside")
+	aside := gitLine(t, "rev-parse", "HEAD")
+	gitLine(t, "checkout", "-q", "-")
+	gitLine(t, "commit", "-q", "--allow-empty", "-m", "fix: judged")
+	judged := gitLine(t, "rev-parse", "HEAD")
+	gitLine(t, "commit", "-q", "--allow-empty", "-m", "docs: close")
+	head := gitLine(t, "rev-parse", "HEAD")
+
+	headRun := providers.Run{URL: "h", Status: "completed", Conclusion: "success", ID: 2, HeadSHA: head, Branch: "main", Created: "2"}
+	asideRun := providers.Run{URL: "a", Status: "completed", Conclusion: "failure", ID: 3, HeadSHA: aside, Branch: "main", Created: "3"}
+	var asked []string
+	look := func(sha string) (providers.Run, bool, error) {
+		asked = append(asked, sha)
+		if sha == head {
+			return headRun, true, nil
+		}
+		return providers.Run{}, false, nil
+	}
+	runs := func(string) ([]providers.Run, error) { return []providers.Run{asideRun, headRun}, nil }
+	var stdout, stderr strings.Builder
+	w := watchCovered(watchConfig(0, 60), providers.Watcher{Look: look, Runs: runs}, judged, "", "main", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.code != 0 || w.run == nil || w.run.HeadSHA != head || !strings.Contains(stdout.String(), "following h") {
+		t.Fatalf("code %d, asked %v\n%s%s", w.code, asked, stdout.String(), stderr.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	w = watchCovered(watchConfig(0, 0.05), providers.Watcher{Look: look, Runs: runs}, judged, "", "", Out{Stdout: &stdout, Stderr: &stderr})
+	if w.code != ExitTemporary || w.outcome != "timeout" {
+		t.Fatalf("code %d, outcome %s\n%s%s", w.code, w.outcome, stdout.String(), stderr.String())
+	}
+}
+
 func TestAnErrorEndsTheWatch(t *testing.T) {
 	noSleep(t)
 	look := func(string) (providers.Run, bool, error) { return providers.Run{}, false, errors.New("401") }

@@ -19,6 +19,11 @@ package cli
 // which, and exits with its result; the newer head is fetched from the remote
 // when the clone does not have it. A cancelled run with no newer run to follow
 // exits 75, outcome cancelled: a rerun may pass.
+//
+// work done judges a commit that may have no run of its own (bug 49): pushed
+// with registry-only commits after it, CI ran once, for the push's head. By
+// the same rule, the newest run on the branch whose head has the commit as an
+// ancestor judges it, and the watch says which run it follows.
 
 import (
 	"context"
@@ -94,6 +99,14 @@ func watcher(cfg *config.Loaded, remote string, o Out) (providers.Watcher, bool,
 // branch, the commit looked at from then on that run's head; the timeout
 // counts from the start of the watch.
 func watchRun(cfg *config.Loaded, wr providers.Watcher, sha, remote string, o Out) watched {
+	return watchCovered(cfg, wr, sha, remote, "", o)
+}
+
+// watchCovered is watchRun for a commit that may have no run of its own (bug
+// 49): while it has none, the newest run on the branch whose head has it as
+// an ancestor (covering) is followed in its place, as a cancelled run's
+// successor is. With no branch it is watchRun.
+func watchCovered(cfg *config.Loaded, wr providers.Watcher, sha, remote, branch string, o Out) watched {
 	progress, end := o.Stdout, o.Stdout
 	if o.JSON {
 		progress, end = o.Stderr, o.Stderr
@@ -134,6 +147,21 @@ func watchRun(cfg *config.Loaded, wr providers.Watcher, sha, remote string, o Ou
 				return w
 			}
 		case !found:
+			if branch != "" && target == sha {
+				next, ok, err := covering(wr.Runs, branch, sha, remote, nil)
+				if err != nil {
+					if w, end := failing(err); end {
+						return w
+					}
+					break
+				}
+				if ok {
+					fmt.Fprintf(progress, "No CI run of %s; following %s, the run of %s, which has it\n",
+						short(sha), next.URL, short(next.HeadSHA))
+					target, printed = next.HeadSHA, map[string]bool{}
+					continue
+				}
+			}
 			failed = 0
 		default:
 			lastErr, failed = nil, 0
@@ -156,7 +184,7 @@ func watchRun(cfg *config.Loaded, wr providers.Watcher, sha, remote string, o Ou
 				w.superseded = superseded
 				return w
 			}
-			next, ok, err := successor(wr.Runs, run, sha, remote)
+			next, ok, err := covering(wr.Runs, run.Branch, sha, remote, &run)
 			switch {
 			case err != nil:
 				if w, end := failing(err); end {
@@ -193,22 +221,24 @@ func watchRun(cfg *config.Loaded, wr providers.Watcher, sha, remote string, o Ou
 	}
 }
 
-// successor is the run that superseded the cancelled run of sha: the newest
-// of the workflow's runs on the cancelled run's branch, newer than it, whose
-// head has sha as an ancestor; found is false when there is none. A head the
+// covering is the run that covers sha: the newest of the workflow's runs on
+// the branch whose head is sha or has it as an ancestor; found is false when
+// there is none. With cancelled, sha's run that a newer push cancelled (bug
+// 41), only a run newer than it counts, the one that superseded it; without,
+// any run counts, for a commit that has no run of its own (bug 49). A head the
 // clone does not have is fetched from remote once, since the newer push may be
 // someone else's; one still missing after it is passed over.
-func successor(runs providers.Runs, cancelled providers.Run, sha, remote string) (providers.Run, bool, error) {
-	if runs == nil || cancelled.Branch == "" {
+func covering(runs providers.Runs, branch, sha, remote string, cancelled *providers.Run) (providers.Run, bool, error) {
+	if runs == nil || branch == "" {
 		return providers.Run{}, false, nil
 	}
-	listed, err := runs(cancelled.Branch)
+	listed, err := runs(branch)
 	if err != nil {
 		return providers.Run{}, false, err
 	}
 	fetched := false
 	for _, r := range listed {
-		if r.ID == cancelled.ID || (r.Created != "" && cancelled.Created != "" && r.Created < cancelled.Created) {
+		if cancelled != nil && (r.ID == cancelled.ID || (r.Created != "" && cancelled.Created != "" && r.Created < cancelled.Created)) {
 			break
 		}
 		if r.HeadSHA == "" {

@@ -481,7 +481,10 @@
 //     (judgedCommit) is HEAD, passing over the commits of its first-parent
 //     line that touch only work.registry, pushed or not, by push's own rule
 //     (touchesOnlyRegistry, slice 93), so closes made one after another land
-//     in one push. A run still going is waited for and one that does not end
+//     in one push. Pushed with such commits, the judged commit may have no
+//     run of its own: watchCovered then follows the newest run on the
+//     upstream branch whose head has it (covering, bug 41's rule for a
+//     cancelled run's successor; bug 49). A run still going is waited for and one that does not end
 //     exits 3 (without ci.watch CI is not checked, said on stderr, and
 //     --json's ci is unwatched). Since the checks can take minutes, the
 //     registry is then read again and work.Done judged and made afresh on
