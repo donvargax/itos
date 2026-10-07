@@ -5820,7 +5820,7 @@ items:
     title: work done judges a commit pushed with later registry-only commits by the run of their head
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
