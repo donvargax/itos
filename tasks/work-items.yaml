@@ -5380,6 +5380,7 @@ items:
     status: todo
     depends_on: []
     kind: slice
+    deferred: the next major release, since it changes a released corpus case (init.yaml's --agent-rules case pins the block); the user's call, 2026-10-06
     why: >
       Specified in features/init.feature (@slice-95).
     refs: [internal/cli/initrules.go, features/init.feature]
