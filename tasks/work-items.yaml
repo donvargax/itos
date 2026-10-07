@@ -5827,3 +5827,16 @@ items:
       Specified in features/work.feature (@bug-49). Found 2026-10-07: bug-36 could not close; its
       work done waited 20 minutes for a run of b2bf80f that never came.
     refs: [features/work.feature, internal/cli]
+
+  - id: p1-ci-watch-covered-commit
+    title: ci watch of a commit pushed under a later head waits for a run that never comes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Bug 49 taught work done to judge a commit with no run of its own by the newest run on its
+      branch whose head has it (watchCovered). itos ci watch <sha> still waits for that commit's own
+      run, so watching a commit pushed with later commits times out at ci.watch.timeout; itos push
+      watches the head it pushed and is not affected.
