@@ -12,7 +12,8 @@
 // watched run, one look a request, the nth request the nth look and the last
 // look for every request after it, as the run a push started would answer
 // while it goes; a step can have it do something first, when it is first
-// asked for the watched run (bug 34). Anything else it is asked is a 404, everything a 401 once
+// asked for the watched run (bug 34), and a run that something adds for the
+// commit is the answer (bug 41: the run of a push that another push cancels). Anything else it is asked is a 404, everything a 401 once
 // a step makes it refuse the token, and everything a 500 once a step makes it fail (slice 86).
 package features
 
@@ -119,13 +120,22 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 		if len(runs) == 0 && g.watched != nil && workflow == watchedWorkflow {
 			if g.looks == 0 && g.firstLook != nil {
-				if err := g.firstLook(); err != nil {
+				first := g.firstLook
+				g.firstLook = nil
+				if err := first(); err != nil {
 					fmt.Fprintf(os.Stderr, "the fake GitHub's first look failed: %v\n", err)
 					http.Error(rw, err.Error(), http.StatusInternalServerError)
 					return
 				}
+				for _, r := range g.runs {
+					if r.HeadSHA == sha && r.workflow == workflow {
+						runs = append(runs, r)
+					}
+				}
 			}
-			runs = []gitHubRun{g.look(sha)}
+			if len(runs) == 0 {
+				runs = []gitHubRun{g.look(sha)}
+			}
 		}
 	} else if g.list != nil {
 		runs = slices.Clone(g.list)
@@ -191,6 +201,16 @@ func writeRuns(rw http.ResponseWriter, runs []gitHubRun) {
 	}
 	rw.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(rw).Encode(map[string]any{"total_count": len(runs), "workflow_runs": runs})
+}
+
+// A run of the watched workflow for the commit on the configured branch, at
+// the address with the jobs, created after every run before it: completed
+// with the conclusion. The caller holds g.mu.
+func (g *fakeGitHub) addRun(sha, url, conclusion string, jobs []watchedJob) {
+	id := len(g.runs) + 1
+	g.runs = append(g.runs, gitHubRun{ID: id, HeadSHA: sha, HeadBranch: g.branch, Status: "completed",
+		Conclusion: &conclusion, CreatedAt: fmt.Sprintf("2026-10-05T12:%02d:00Z", id), HTMLURL: url,
+		workflow: watchedWorkflow, jobs: jobs})
 }
 
 // A run of the commit on the configured branch, created after every run

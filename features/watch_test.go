@@ -4,16 +4,21 @@
 // asked about, so nothing reaches a network; the config's ci.watch is
 // committed and pushed to the remote, as a project's config would be there
 // already. The command provider these steps once scripted went in v5.0.0
-// (slice 85).
+// (slice 85). Bug 41's steps give the fake GitHub runs of their own: a run a
+// newer push cancelled, and the newer run, of a commit the clone has or of
+// the head another clone pushed while itos waited.
 package features
 
 import (
 	"errors"
 	"fmt"
+	"os/exec"
 	"slices"
 	"strings"
 
 	"github.com/cucumber/godog"
+
+	"github.com/donvargax/itos/v6/internal/git"
 )
 
 // What a scenario sets of the scratch config's ci.watch.
@@ -89,6 +94,15 @@ func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 		w.vars = slices.DeleteFunc(w.vars, func(v string) bool { return strings.HasPrefix(v, "GITHUB_TOKEN=") })
 		return nil
 	})
+	sc.Step(`^the fake GitHub reports the run of the clone's (HEAD(?:~\d+)?) cancelled$`, w.cancelledRunOf)
+	sc.Step(`^the fake GitHub reports the run "([^"]*)" of the clone's HEAD, whose jobs "([^"]*)" and "([^"]*)" succeed$`, func(url, a, b string) error {
+		return w.runOfHead(url, "success", job(a, "success"), job(b, "success"))
+	})
+	sc.Step(`^the fake GitHub reports the run "([^"]*)" of the clone's HEAD, whose job "([^"]*)" fails$`, func(url, name string) error {
+		return w.runOfHead(url, "failure", job(name, "failure"))
+	})
+	sc.Step(`^once itos has pushed, another clone pushes the commit "([^"]*)"$`, w.pushedOverWhileWaiting)
+	sc.Step(`^the fake GitHub reports the pushed commit's run cancelled, and the run "([^"]*)" of the remote's head, whose jobs "([^"]*)" and "([^"]*)" succeed$`, w.pushedRunCancelled)
 	sc.Step(`^the fake GitHub was asked for the run of the clone's HEAD$`, w.fakeGitHubGivenHead)
 	sc.Step(`^the fake GitHub was never asked about a run$`, func() error {
 		if w.github == nil {
@@ -114,6 +128,101 @@ func (w *world) finished(jobs ...watchedJob) watchedRun {
 		}
 	}
 	return watchedRun{URL: w.watchURL, Status: "completed", Conclusion: conclusion, Jobs: jobs}
+}
+
+// The jobs of a run a newer push cancelled, as GitHub reports them.
+func cancelledJobs() []watchedJob {
+	return []watchedJob{job("ci", "cancelled"), job("platform", "cancelled")}
+}
+
+// The fake GitHub holds a run of the clone's commit, by its revision, that
+// was cancelled, as a newer push's run cancels it by CI's concurrency (bug
+// 41), at an address of its own.
+func (w *world) cancelledRunOf(rev string) error {
+	if w.github == nil {
+		return errors.New("no fake GitHub: start one first")
+	}
+	sha, err := w.gitOutput("rev-parse", "--verify", rev+"^{commit}")
+	if err != nil {
+		return err
+	}
+	g := w.github
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.addRun(strings.TrimSpace(sha), "https://ci.example/runs/cancelled", "cancelled", cancelledJobs())
+	return nil
+}
+
+// The fake GitHub holds a completed run of the clone's HEAD at the address,
+// with the conclusion and the jobs, newer than every run before it.
+func (w *world) runOfHead(url, conclusion string, jobs ...watchedJob) error {
+	if w.github == nil {
+		return errors.New("no fake GitHub: start one first")
+	}
+	head, err := w.head()
+	if err != nil {
+		return err
+	}
+	g := w.github
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.addRun(head, url, conclusion, jobs)
+	return nil
+}
+
+// When the fake GitHub is first asked for the watched run, after itos pushed,
+// another clone of the remote pushes the commit to its main past the hooks,
+// touching NOTES.md, as a second push landing close behind the first does.
+func (w *world) pushedOverWhileWaiting(subject string) error {
+	if w.github == nil {
+		return errors.New("no fake GitHub: start one first")
+	}
+	before := w.github.firstLook
+	w.github.firstLook = func() error {
+		if before != nil {
+			if err := before(); err != nil {
+				return err
+			}
+		}
+		return w.remoteGainsCommit(subject, "NOTES.md")
+	}
+	return nil
+}
+
+// Once the other clone has pushed (pushedOverWhileWaiting, which comes
+// first), the fake GitHub holds the pushed commit's run, the clone's HEAD's,
+// cancelled, and a newer run of the remote's head at the address, its jobs
+// succeeding: the newer push's run, which cancelled the first.
+func (w *world) pushedRunCancelled(url, a, b string) error {
+	if w.github == nil || w.github.firstLook == nil {
+		return errors.New("no push by another clone to cancel the pushed commit's run: say one first")
+	}
+	before := w.github.firstLook
+	g := w.github
+	g.firstLook = func() error {
+		if err := before(); err != nil {
+			return err
+		}
+		pushed, err := w.head()
+		if err != nil {
+			return err
+		}
+		cmd := exec.Command(git.Bin(), "rev-parse", "main")
+		cmd.Dir = w.remote()
+		cmd.Env = w.env()
+		out, err := cmd.Output()
+		if err != nil {
+			return fmt.Errorf("git rev-parse main in the remote: %w", err)
+		}
+		newer := strings.TrimSpace(string(out))
+		if newer == pushed {
+			return fmt.Errorf("the remote's head is still the pushed commit %s: no other clone pushed", pushed)
+		}
+		g.addRun(pushed, "https://ci.example/runs/cancelled", "cancelled", cancelledJobs())
+		g.addRun(newer, url, "success", []watchedJob{job(a, "success"), job(b, "success")})
+		return nil
+	}
+	return nil
 }
 
 // ci.watch's provider is github, asking the fake GitHub about ci.yml with no
