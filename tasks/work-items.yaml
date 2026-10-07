@@ -5944,3 +5944,15 @@ items:
       meant. T-113 pinned it as it behaves, so it is now contract: decide before v7 whether refused
       entries report what is there (likely what a script wants, beside a wanted key for what itos
       would write), and change it in the v7 bundle if so.
+
+  - id: p1-work-show-why-once
+    title: itos work show prints an item's why once
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Seen by T-113's agent (2026-10-07): itos work show T-113 printed the why twice, once from the
+      registry item and once from the ledger task, which carry the same text. Show the ledger's for
+      a task and the registry's for an idea, never both.
