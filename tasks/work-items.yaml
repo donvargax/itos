@@ -5879,8 +5879,8 @@ items:
   - id: T-117
     title: The previous-release self-test holds T-106's rule, and the nightly runs it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
