@@ -5503,3 +5503,22 @@ items:
     why: >
       The user, 2026-10-06: pr mode can pair with GitHub for itos items, as the inbox already turns
       issues into items. Kept apart from p1-pr-mode so the switch stays small.
+
+  - id: T-109
+    title: "docs/ARCHITECTURE.md is a map: per-package detail lives in package doc comments, history in the changelog"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Measured 2026-10-06: docs/ARCHITECTURE.md is 181K bytes (some 45K tokens), up 27K in two days
+      and 21 commits, since nearly every slice appends to it; it names slices, bugs and tasks 186
+      times, history the changelog keeps (vp run changelog -- --task/--scenario), and its The code
+      section is 1600 of its 2500 lines. Briefs send agents to it, so every item pays for it. It
+      becomes a map of at most 40K bytes: the layout, how the pieces meet, where to look. What each
+      Go package does and why moves into that package's doc comment (doc.go), read when the package
+      is touched and changed in the same commit as its code; history references go, except where a
+      decision record or a scenario is the reason to read further. The doc comments are refactor
+      commits, the map docs commits. PLAN.md (138K to 33K when its decisions became records) shows
+      the method works. The user's call, 2026-10-06.

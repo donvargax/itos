@@ -952,3 +952,21 @@
     - run: grep -qi 'commit inside' .devcontainer/README.md
     - run: grep -q 'itos git-shim install' .devcontainer/Dockerfile && grep -q 'ITOS_CHECKSUMS_SHA256' .devcontainer/Dockerfile
     - run: "! grep -q '/workspace/.devcontainer' .devcontainer/devcontainer.json"
+
+- id: T-109
+  type: refactor
+  title: "docs/ARCHITECTURE.md is a map: per-package detail lives in package doc comments, history in the changelog"
+  why: >
+    Measured 2026-10-06: docs/ARCHITECTURE.md is 181K bytes (some 45K tokens), up 27K in two days
+    and 21 commits, since nearly every slice appends to it; it names slices, bugs and tasks 186
+    times, history the changelog keeps (vp run changelog -- --task/--scenario), and its The code
+    section is 1600 of its 2500 lines. Briefs send agents to it, so every item pays for it. It
+    becomes a map of at most 40K bytes: the layout, how the pieces meet, where to look. What each Go
+    package does and why moves into that package's doc comment (doc.go), read when the package is
+    touched and changed in the same commit as its code; history references go, except where a
+    decision record or a scenario is the reason to read further. The doc comments are refactor
+    commits, the map docs commits. PLAN.md (138K to 33K when its decisions became records) shows the
+    method works. The user's call, 2026-10-06.
+  done_when:
+    - run: test $(wc -c < docs/ARCHITECTURE.md) -le 40000
+    - run: test $(grep -c -E "slice [0-9]+|bug [0-9]+" docs/ARCHITECTURE.md) -le 10
