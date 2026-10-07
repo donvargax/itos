@@ -5710,3 +5710,18 @@ items:
       Slice 97 shows tags beside the id in itos work and itos status only: work show prints refs but
       not tags, and work list's columns leave them out, so an item's tags are seen there only
       through --json or --tag.
+
+  - id: p1-no-policy-text-tests
+    title: No test or self-test reads a policy file as text; a test of a gate runs the gate
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call, 2026-10-07 (p1-nightly-late-done-checks' direction): a test that parses
+      itos.yaml or a workflow and asserts it contains a string proves an edit happened once, the
+      string check q-13 moves out of standing proof; itos-cc#11's experiment found one passing as
+      the only kill (tools/selftest/plugin-version.ts, step 7). A lint over the tests and self-tests
+      refuses reading the policy files as text; the existing ones are removed or turned into runs of
+      the gate (itos ci plan, a hook run).
