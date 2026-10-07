@@ -5534,8 +5534,8 @@ items:
   - id: T-110
     title: CI holds the always-read docs to a byte budget, on docs-only pushes too
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-109]
     kind: task
     why: >
