@@ -27,7 +27,7 @@
 // change that breaks one, is tools/selftest/go-hooks.ts's (T-059), which the
 // nightly runs beside this: since the TypeScript left (T-062) the unit tests
 // are the Go packages', and tools/bin/go-unit-tests picks them for both hooks.
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { appendFileSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ciPlan, featuresStep, hookGates, scratchRepo } from "./scratch.ts";
@@ -86,8 +86,10 @@ try {
 	// a test commit may not rename a live scenario; the header lint rejects a
 	// header without a type; a docs commit with its footer passes.
 	git(`reset -q --hard ${base}`);
+	// A line appended to a Go source under internal/: anchored on nothing in
+	// the file, so no move of its comments can break it (T-114).
 	const goSource = "internal/version/version.go";
-	edit(goSource, "\npackage version\n", "\n// gates self-test: a docs commit\npackage version\n");
+	appendFileSync(join(dir, goSource), "\n// gates self-test: a docs commit\n");
 	run = commitMsg("a docs commit touching itos", "docs: touch the package\n\nTask: T-007\n");
 	expect(
 		run.status === 1 && run.output.includes(`docs commits may not touch ${goSource}`),
