@@ -7,7 +7,10 @@
 // never a shell), which commits itself. They are the clone's own, never
 // committed: drafts.yaml in the drafts folder of itos's folder in the git
 // common dir, beside one <id>.patch per change, so every linked worktree of
-// the clone reads the same drafts.
+// the clone reads the same drafts. An edit draft (itos draft edit, slice 99)
+// is a change kept as copies of its files instead, in edits/<id>/ beside the
+// list, to be edited there off the working tree, with Base, the commit they
+// were taken from, its patch made from them only when it is promoted.
 //
 // The package reads and writes the list, whole and with typed structs (Load
 // refuses what itos did not write; Save writes beside it and moves it over).

@@ -548,7 +548,14 @@
 // putBack on the files git apply --numstat lists. A draft promoted leaves
 // the list (saved at once) before the next starts; the first that fails is
 // draft-not-applied, exit 1, it and those after it kept. itos status lists
-// the drafts (printDrafts).
+// the drafts (printDrafts). An edit draft (draftEdit, slice 99) never
+// touches the working tree: it writes a copy of each path from HEAD (git
+// cat-file blob, empty for a path HEAD lacks) under edits/<id>/ and records
+// HEAD as its base; promote's editPatch reads the base into a scratch index,
+// puts each copy there (git hash-object -w --no-filters, update-index
+// --cacheinfo with the base's mode; a copy removed is --force-remove, an
+// empty copy of a new file nothing) and diffs it against the base, a patch
+// then applied as any change draft's.
 //
 // decision (ask.go over internal/ask and internal/adr): add and answer write
 // the questions through writeCommitted, the file alone, docs: ask q-<n> and

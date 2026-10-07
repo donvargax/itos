@@ -12,6 +12,7 @@ func TestSaveThenLoadKeepsTheDraftsInOrder(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "itos", Folder, FileName)
 	want := File{Drafts: []Draft{
 		{ID: "say-new", Message: "docs: say new\n\nWhy it is new.", Paths: []string{"notes.md"}},
+		{ID: "say-more", Message: "docs: say more", Paths: []string{"notes.md"}, Base: "0123abc"},
 		{ID: "add-thing", Command: []string{"work", "add", "p1-thing", "--title", "A thing", "--why", "Because."}},
 	}}
 	if err := Save(path, want); err != nil {
@@ -21,10 +22,13 @@ func TestSaveThenLoadKeepsTheDraftsInOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Drafts) != 2 || got.Drafts[0].ID != "say-new" || got.Drafts[1].ID != "add-thing" {
+	if len(got.Drafts) != 3 || got.Drafts[0].ID != "say-new" || got.Drafts[1].ID != "say-more" || got.Drafts[2].ID != "add-thing" {
 		t.Fatalf("loaded %+v", got)
 	}
-	if got.Drafts[0].Message != want.Drafts[0].Message || strings.Join(got.Drafts[1].Command, "|") != strings.Join(want.Drafts[1].Command, "|") {
+	if got.Drafts[0].IsEdit() || !got.Drafts[1].IsEdit() || got.Drafts[1].Base != "0123abc" || got.Drafts[2].IsEdit() {
+		t.Fatalf("loaded %+v: only say-more is an edit draft, from 0123abc", got)
+	}
+	if got.Drafts[0].Message != want.Drafts[0].Message || strings.Join(got.Drafts[2].Command, "|") != strings.Join(want.Drafts[2].Command, "|") {
 		t.Fatalf("loaded %+v, not %+v", got, want)
 	}
 	// Windows keeps no Unix mode: a file there reads as 0666 whatever it
@@ -42,6 +46,7 @@ func TestLoadRefusesAListItosDidNotWrite(t *testing.T) {
 		"no id":           "drafts:\n  - {command: [work]}\n",
 		"both kinds":      "drafts:\n  - {id: a, command: [work], message: m, paths: [x]}\n",
 		"a change half":   "drafts:\n  - {id: a, message: m}\n",
+		"a based command": "drafts:\n  - {id: a, command: [work], base: abc}\n",
 		"two documents":   "drafts: []\n---\ndrafts: []\n",
 		"an id with room": "drafts:\n  - {id: 'a b', command: [work]}\n",
 	} {

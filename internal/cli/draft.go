@@ -16,6 +16,14 @@ package cli
 // no longer applies), and commits it with its message through the hooks,
 // as any commit; a command draft is run by this same itos binary, its
 // arguments as kept, and commits itself.
+//
+// An edit draft (slice 99) never reads or writes the working tree, so it
+// may be made while an agent holds the checkout: draft edit writes a copy
+// of each path as HEAD has it (empty for a file HEAD lacks) under
+// edits/<id>/ beside the list, and records HEAD as the draft's base; the
+// person edits the copies there. promote makes the draft's patch then, the
+// copies against the base through a scratch index, and applies it as any
+// change draft's, so a file that moved since the base stops it.
 
 import (
 	"errors"
@@ -24,6 +32,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v6/internal/config"
@@ -34,14 +43,17 @@ import (
 )
 
 // draftTakes is what draft takes, as a usage error names it.
-const draftTakes = "it takes add, promote or drop, else nothing"
+const draftTakes = "it takes add, edit, promote or drop, else nothing"
 
-// draftCommand is `draft`, `draft add`, `draft promote` and `draft drop`.
+// draftCommand is `draft`, `draft add`, `draft edit`, `draft promote` and
+// `draft drop`.
 func draftCommand(args []string, o Out) (int, error) {
 	sub, rest := split(args)
 	switch sub {
 	case "add":
 		return draftAdd(rest, o)
+	case "edit":
+		return draftEdit(rest, o)
 	case "promote":
 		return draftPromote(rest, o)
 	case "drop":
@@ -208,11 +220,7 @@ func draftAdd(args []string, o Out) (int, error) {
 		return code, err
 	}
 	if had := drafts.Find(id); had != nil {
-		return refuseWork([]out.Problem{{
-			Rule:    "draft-id-taken",
-			Message: fmt.Sprintf("%s is already a draft: %s", id, draftSummary(*had)),
-			Fix:     "another id adds a new one; itos draft drop " + id + " drops the one there",
-		}}, ExitPolicy, o)
+		return idTaken(*had, o)
 	}
 	var names []string
 	if d.IsChange() {
@@ -244,6 +252,215 @@ func draftAdd(args []string, o Out) (int, error) {
 	return 0, nil
 }
 
+// idTaken refuses a new draft the id of the one there, exit 1.
+func idTaken(had draft.Draft, o Out) (int, error) {
+	return refuseWork([]out.Problem{{
+		Rule:    "draft-id-taken",
+		Message: fmt.Sprintf("%s is already a draft: %s", had.ID, draftSummary(had)),
+		Fix:     "another id adds a new one; itos draft drop " + had.ID + " drops the one there",
+	}}, ExitPolicy, o)
+}
+
+// draftEdit is `draft edit <id> -m <message> <path>…`: a change drafted as
+// a copy of each path to edit in the draft's own folder, HEAD's content or
+// empty for a file HEAD lacks, the draft's base HEAD; each copy's path is
+// printed, one per line. The working tree is neither read nor written.
+func draftEdit(args []string, o Out) (int, error) {
+	var pos []string
+	message, messages := "", 0
+	for i := 0; i < len(args); i++ {
+		switch arg := args[i]; arg {
+		case "-m", "--message":
+			if i+1 >= len(args) {
+				return 0, usage("draft edit %s needs a value", arg)
+			}
+			i++
+			message, messages = args[i], messages+1
+		default:
+			pos = append(pos, arg)
+		}
+	}
+	if len(pos) == 0 {
+		return 0, usage("draft edit needs <id> -m <message> <path>…")
+	}
+	id, typedPaths := pos[0], pos[1:]
+	switch {
+	case !draft.ValidID(id):
+		return 0, usage("draft edit: %q is no draft id (letters, digits, '.', '_' and '-', a letter or digit first)", id)
+	case messages > 1:
+		return 0, usage("draft edit takes one -m <message>")
+	case strings.TrimSpace(message) == "" || len(typedPaths) == 0:
+		return 0, usage("draft edit %s needs -m <message> and the paths to edit", id)
+	}
+	file, drafts, release, code, err := heldDrafts(o)
+	defer release()
+	if file == "" || err != nil {
+		return code, err
+	}
+	if had := drafts.Find(id); had != nil {
+		return idTaken(*had, o)
+	}
+	paths, err := topPaths("draft edit", typedPaths)
+	if err != nil {
+		return 0, err
+	}
+	seen := map[string]bool{}
+	paths = slices.DeleteFunc(paths, func(p string) bool {
+		had := seen[p]
+		seen[p] = true
+		return had
+	})
+	base, err := git.Output("rev-parse", "--verify", "--quiet", "HEAD^{commit}")
+	if base = strings.TrimSpace(base); err != nil || base == "" {
+		return refuseWork([]out.Problem{{Rule: "draft-no-head", Message: "the repository has no commit yet, and a copy is taken from HEAD",
+			Fix: "commit something first"}}, ExitPolicy, o)
+	}
+	had, err := treeEntries(base, paths)
+	if err != nil {
+		return 0, err
+	}
+	var folders []string
+	for _, p := range paths {
+		if e, ok := had[p]; p == "." || ok && e.kind != "blob" {
+			folders = append(folders, p)
+		}
+	}
+	if len(folders) > 0 {
+		return refuseWork([]out.Problem{{Rule: "draft-paths",
+			Message: fmt.Sprintf("%s %s no file in HEAD, but a folder or a submodule, and draft edit copies files", and(folders), isAre(len(folders))),
+			Fix:     "name the files in it to edit"}}, ExitPolicy, o)
+	}
+	copies := draft.Copies(file, id)
+	if err := os.RemoveAll(copies); err != nil {
+		return 0, err
+	}
+	written := make([]string, len(paths))
+	for i, p := range paths {
+		var content string
+		if e, ok := had[p]; ok {
+			if content, err = draftGit(draftGitEnv(), "cat-file", "blob", e.object); err != nil {
+				os.RemoveAll(copies)
+				return 0, fmt.Errorf("git cat-file blob HEAD:%s: %w", p, err)
+			}
+		}
+		written[i] = draft.Copy(file, id, p)
+		if err := draft.WriteFile(written[i], []byte(content)); err != nil {
+			os.RemoveAll(copies)
+			return 0, err
+		}
+	}
+	d := draft.Draft{ID: id, Message: message, Paths: paths, Base: base}
+	drafts.Drafts = append(drafts.Drafts, d)
+	if err := draft.Save(file, drafts); err != nil {
+		os.RemoveAll(copies)
+		return 0, err
+	}
+	if o.JSON {
+		return 0, out.Emit(o.Stdout, out.Field{Key: "ok", Value: true}, out.Field{Key: "draft", Value: entryOfDraft(d)},
+			out.Field{Key: "copies", Value: written})
+	}
+	for _, w := range written {
+		fmt.Fprintln(o.Stdout, w)
+	}
+	return 0, nil
+}
+
+func isAre(n int) string {
+	if n == 1 {
+		return "is"
+	}
+	return "are"
+}
+
+// treeEntry is one entry of a tree as git ls-tree lists it.
+type treeEntry struct{ mode, kind, object string }
+
+// treeEntries are the commit's entries at the paths, named from the top: a
+// path it lacks is not among them.
+func treeEntries(commit string, paths []string) (map[string]treeEntry, error) {
+	listed, err := draftGit(draftGitEnv(), append([]string{"ls-tree", "-z", "--full-tree", commit, "--"}, paths...)...)
+	if err != nil {
+		return nil, fmt.Errorf("git ls-tree %s: %w", commit, err)
+	}
+	entries := map[string]treeEntry{}
+	for _, line := range splitNULs(listed) {
+		meta, name, ok := strings.Cut(line, "\t")
+		fields := strings.Fields(meta)
+		if !ok || len(fields) != 3 {
+			continue
+		}
+		entries[name] = treeEntry{mode: fields[0], kind: fields[1], object: fields[2]}
+	}
+	return entries, nil
+}
+
+// editPatch writes an edit draft's change as a patch file beside the list
+// at file, which the caller removes: its copies against its base, through
+// a scratch index. A copy removed takes its file out; an empty copy of a
+// file the base lacks adds nothing. It gives why there is no patch when
+// the base is gone or no copy differs from it.
+func editPatch(file string, d draft.Draft) (patch, why string, err error) {
+	scratch, err := os.MkdirTemp(filepath.Dir(file), ".index-")
+	if err != nil {
+		return "", "", err
+	}
+	defer os.RemoveAll(scratch)
+	env := draftGitEnv("GIT_INDEX_FILE=" + filepath.Join(scratch, "index"))
+	if _, err := draftGit(env, "read-tree", d.Base); err != nil {
+		return "", "the commit its copies were taken from, " + d.Base + ", is gone (" + oneLine(err.Error()) + ")", nil
+	}
+	had, err := treeEntries(d.Base, d.Paths)
+	if err != nil {
+		return "", "", err
+	}
+	for _, p := range d.Paths {
+		e, inBase := had[p]
+		info, err := os.Stat(draft.Copy(file, d.ID, p))
+		switch {
+		case errors.Is(err, fs.ErrNotExist):
+			if inBase {
+				if _, err := draftGit(env, "update-index", "--force-remove", "--", p); err != nil {
+					return "", "", fmt.Errorf("git update-index --force-remove %s: %w", p, err)
+				}
+			}
+			continue
+		case err != nil:
+			return "", "", err
+		case !inBase && info.Size() == 0:
+			continue
+		}
+		object, err := draftGit(env, "hash-object", "-w", "--no-filters", "--", draft.Copy(file, d.ID, p))
+		if err != nil {
+			return "", "", fmt.Errorf("git hash-object %s's copy of %s: %w", d.ID, p, err)
+		}
+		mode := "100644"
+		if inBase {
+			mode = e.mode
+		}
+		if _, err := draftGit(env, "update-index", "--add", "--cacheinfo", mode+","+strings.TrimSpace(object)+","+p); err != nil {
+			return "", "", fmt.Errorf("git update-index --cacheinfo %s: %w", p, err)
+		}
+	}
+	text, err := draftGit(env, append([]string{"diff", "--cached", "--binary", "--full-index", "--no-renames", "--no-color",
+		"--no-ext-diff", d.Base, "--"}, d.Paths...)...)
+	if err != nil {
+		return "", "", fmt.Errorf("git diff --cached --binary: %w", err)
+	}
+	if text == "" {
+		return "", "no copy differs from what it was taken from (" + draft.Copies(file, d.ID) + ")", nil
+	}
+	made, err := os.CreateTemp(filepath.Dir(file), "."+d.ID+".*"+draft.PatchSuffix)
+	if err != nil {
+		return "", "", err
+	}
+	_, werr := made.WriteString(text)
+	if err := errors.Join(werr, made.Close()); err != nil {
+		os.Remove(made.Name())
+		return "", "", err
+	}
+	return made.Name(), "", nil
+}
+
 // draftGitEnv is the environment draft's git commands run in: pathspecs
 // read literally, so a path is the file it names and never a pattern.
 func draftGitEnv(more ...string) []string {
@@ -269,7 +486,7 @@ func draftGit(env []string, args ...string) (string, error) {
 
 // topPaths are the typed paths as the repository's top names them, with
 // itos at the top; a path outside the work tree is a usage error.
-func topPaths(typedPaths []string) ([]string, error) {
+func topPaths(command string, typedPaths []string) ([]string, error) {
 	top, err := git.Output("rev-parse", "--show-toplevel")
 	if err != nil {
 		return nil, fmt.Errorf("the work tree's top cannot be read: %w", err)
@@ -293,7 +510,7 @@ func topPaths(typedPaths []string) ([]string, error) {
 		}
 		rel, err := filepath.Rel(top, full)
 		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
-			return nil, usage("draft add: %s is outside the work tree", p)
+			return nil, usage("%s: %s is outside the work tree", command, p)
 		}
 		paths[i] = filepath.ToSlash(rel)
 	}
@@ -309,7 +526,7 @@ func topPaths(typedPaths []string) ([]string, error) {
 // tree or HEAD, a path git ignores, no change at all and no HEAD are
 // refusals, nothing written.
 func takeChange(file, id string, typedPaths []string) (paths, names []string, refused *out.Problem, err error) {
-	paths, err = topPaths(typedPaths)
+	paths, err = topPaths("draft add", typedPaths)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -424,7 +641,7 @@ func draftDrop(args []string, o Out) (int, error) {
 	if err := draft.Save(file, drafts); err != nil {
 		return 0, err
 	}
-	if err := os.Remove(draft.Patch(file, id)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+	if err := removeDraftFiles(file, id); err != nil {
 		return 0, err
 	}
 	if o.JSON {
@@ -434,6 +651,15 @@ func draftDrop(args []string, o Out) (int, error) {
 		fmt.Fprintf(o.Stdout, "%s dropped: %s\n", id, draftSummary(dropped))
 	}
 	return 0, nil
+}
+
+// removeDraftFiles removes what a draft kept beside the list: a change's
+// patch, an edit draft's copies.
+func removeDraftFiles(file, id string) error {
+	if err := os.Remove(draft.Patch(file, id)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	return os.RemoveAll(draft.Copies(file, id))
 }
 
 // noDraft refuses an id no draft has, exit 1.
@@ -572,14 +798,14 @@ func draftPromote(args []string, o Out) (int, error) {
 			return report([]out.Problem{{
 				Rule:    "draft-not-applied",
 				Message: fmt.Sprintf("%s cannot be promoted: %s; %s, the tree left as HEAD has it", d.ID, why, kept),
-				Fix:     "redo it (itos draft drop " + d.ID + ", then itos draft add) or fix what stopped it, then itos draft promote again",
+				Fix:     redoFix(file, d),
 			}})
 		}
 		drafts.Drafts = drafts.Drafts[1:]
 		if err := draft.Save(file, drafts); err != nil {
 			return 0, fmt.Errorf("%s is promoted, but the list cannot be saved without it, so a promote would apply it again: %w", d.ID, err)
 		}
-		if err := os.Remove(draft.Patch(file, d.ID)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		if err := removeDraftFiles(file, d.ID); err != nil {
 			return 0, err
 		}
 		promoted = append(promoted, d.ID)
@@ -588,6 +814,15 @@ func draftPromote(args []string, o Out) (int, error) {
 		}
 	}
 	return report(nil)
+}
+
+// redoFix is how a draft that cannot be promoted is redone.
+func redoFix(file string, d draft.Draft) string {
+	if d.IsEdit() {
+		return "redo it from HEAD (keep what you need of its copies in " + draft.Copies(file, d.ID) + ", itos draft drop " + d.ID +
+			", then itos draft edit) or fix what stopped it, then itos draft promote again"
+	}
+	return "redo it (itos draft drop " + d.ID + ", then itos draft add) or fix what stopped it, then itos draft promote again"
 }
 
 // promoteOne applies one draft: a change applied to the index and the work
@@ -614,7 +849,14 @@ func promoteOne(file string, d draft.Draft, o Out) (header, why string, err erro
 		return madeSince(before, d.Line()), "", nil
 	}
 	patch := draft.Patch(file, d.ID)
-	if _, err := os.Stat(patch); err != nil {
+	if d.IsEdit() {
+		made, why, err := editPatch(file, d)
+		if err != nil || why != "" {
+			return "", why, err
+		}
+		defer os.Remove(made)
+		patch = made
+	} else if _, err := os.Stat(patch); err != nil {
 		return "", "", fmt.Errorf("%s's patch cannot be read: %w", d.ID, err)
 	}
 	listed, err := draftGit(draftGitEnv(), "apply", "--numstat", "-z", patch)

@@ -195,6 +195,7 @@ var specs = map[string]spec{
 	}},
 	"draft": {subs: map[string]spec{
 		"add":     {flags: []flagSpec{val("-m"), val("--message")}},
+		"edit":    {flags: []flagSpec{val("-m"), val("--message")}},
 		"promote": {},
 		"drop":    {},
 	}},

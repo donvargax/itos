@@ -189,7 +189,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
   # tree. promote applies each copy's change against the HEAD it was taken
   # from, as for any change draft, so a tree that moved under it stops promote
   # at that draft. The working tree is neither read nor written until promote.
-  @ID-DRAFT-13 @slice-99 @wip
+  @ID-DRAFT-13 @slice-99
   Scenario: draft edit gives the draft a copy of the file to edit, and touches nothing in the working tree
     Given the committed file "notes.md" holding "Old."
     And the file "notes.md" is changed to hold "An agent's work."
@@ -199,7 +199,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And its output names the draft "say-new"'s copy of "notes.md"
     And the file "notes.md" says "An agent's work."
 
-  @ID-DRAFT-14 @slice-99 @wip
+  @ID-DRAFT-14 @slice-99
   Scenario: draft promote commits the change made in the draft's copy, with its message
     Given the committed file "notes.md" holding "Old."
     And itos has run the command line "draft edit say-new -m 'docs: say new' notes.md"
@@ -210,7 +210,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And the last commit's header is "docs: say new"
     And git status shows nothing to commit
 
-  @ID-DRAFT-15 @slice-99 @wip
+  @ID-DRAFT-15 @slice-99
   Scenario: draft edit of a file HEAD lacks starts it empty, and promote adds it
     When itos runs the command line "draft edit new-spec -m 'docs: add a spec' specs/new.md"
     Then itos exits with code 0
@@ -221,7 +221,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And the file "specs/new.md" says "A spec."
     And the last commit's header is "docs: add a spec"
 
-  @ID-DRAFT-16 @slice-99 @wip
+  @ID-DRAFT-16 @slice-99
   Scenario: draft promote stops at an edited copy whose file HEAD changed since it was taken, keeping it
     Given the committed file "notes.md" holding "Old."
     And itos has run the command line "draft edit say-new -m 'docs: say new' notes.md"

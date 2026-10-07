@@ -26,19 +26,30 @@ const FileName = "drafts.yaml"
 // PatchSuffix is what a change's patch file adds to its id.
 const PatchSuffix = ".patch"
 
+// Edits is the folder, beside the list, of the edit drafts' copies: one
+// folder per draft, named by its id, holding a copy of each of its paths.
+// No id or patch file can be named edits, so it collides with neither.
+const Edits = "edits"
+
 // Draft is one pending change. A change has Message and Paths, the paths
-// it was drafted from as the repository's top names them, its patch in
-// <id>.patch beside the list; a command has Command, the itos arguments to
-// run, never through a shell.
+// it was drafted from as the repository's top names them, and either its
+// patch in <id>.patch beside the list or, for an edit draft, Base, the
+// commit its copies were taken from, the copies in edits/<id>/; a command
+// has Command, the itos arguments to run, never through a shell.
 type Draft struct {
 	ID      string   `yaml:"id" json:"id"`
 	Message string   `yaml:"message,omitempty" json:"message,omitempty"`
 	Paths   []string `yaml:"paths,omitempty" json:"paths,omitempty"`
+	Base    string   `yaml:"base,omitempty" json:"base,omitempty"`
 	Command []string `yaml:"command,omitempty" json:"command,omitempty"`
 }
 
 // IsChange is whether the draft is a change to files, not a command line.
 func (d Draft) IsChange() bool { return len(d.Command) == 0 }
+
+// IsEdit is whether the draft is a change kept as copies of its files to
+// edit (itos draft edit), not as a patch.
+func (d Draft) IsEdit() bool { return d.IsChange() && d.Base != "" }
 
 // Header is a change's message's first line.
 func (d Draft) Header() string {
@@ -88,6 +99,18 @@ func Patch(path, id string) string {
 	return filepath.Join(filepath.Dir(path), id+PatchSuffix)
 }
 
+// Copies is the folder of an edit draft's copies, in the folder of the list
+// at path: edits/<id>, a copy of each path at the path within it.
+func Copies(path, id string) string {
+	return filepath.Join(filepath.Dir(path), Edits, id)
+}
+
+// Copy is an edit draft's copy of the path, as the repository's top names
+// it, in the folder of the list at path.
+func Copy(path, id, name string) string {
+	return filepath.Join(Copies(path, id), filepath.FromSlash(name))
+}
+
 // Load reads the list at path; one not there is no drafts yet. A list that
 // is not as itos writes it is an error naming it, kind.Usage (exit 2),
 // since saving what was read would drop the rest: an unknown key, a draft
@@ -125,7 +148,7 @@ func parse(path string, text []byte) (File, error) {
 			return File{}, fmt.Errorf("%s: draft %d has no id itos can take: %q", path, i+1, d.ID)
 		case seen[d.ID]:
 			return File{}, fmt.Errorf("%s: two drafts have the id %s", path, d.ID)
-		case len(d.Command) > 0 && (d.Message != "" || len(d.Paths) > 0):
+		case len(d.Command) > 0 && (d.Message != "" || len(d.Paths) > 0 || d.Base != ""):
 			return File{}, fmt.Errorf("%s: %s has a command and a change; a draft is one or the other", path, d.ID)
 		case len(d.Command) == 0 && (strings.TrimSpace(d.Message) == "" || len(d.Paths) == 0):
 			return File{}, fmt.Errorf("%s: %s is neither a command nor a change with its message and paths", path, d.ID)
