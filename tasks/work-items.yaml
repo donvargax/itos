@@ -4255,6 +4255,9 @@ items:
       question writes nothing, against the help (cli/initrulesstealth.go:284). Its @bug-42 scenario
       is written before it is handed out.
     refs: [internal/cli/initrulesstealth.go]
+    deferred: >
+      Any feat or fix now cuts v7.0.0-rc.1 (T-123), and the user wants rc.1 to be the itos-cc
+      integration (decision 42), so this lands after slice-100. Resume it then.
 
   - id: bug-43
     title: init --stealth on a project's config is a usage error
