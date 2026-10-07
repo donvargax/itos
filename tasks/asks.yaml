@@ -87,3 +87,6 @@ questions:
   - id: q-22
     item: "bug-38"
     question: "bug-38 (itos writes its own files atomically) fixes what an interrupt or a full disk does mid-write, which no feature scenario can produce reliably, yet a fix commit must name a scenario. Recommended: prove it with unit tests over one temp-file, fsync and rename helper (as follow.Save since bug 16), and land it as a refactor task in place of the bug, which is dropped naming the task. Or: keep it a fix with a scenario that injects a write failure through a test-only hook in itos."
+  - id: q-23
+    item: "bug-42"
+    question: "bug-42 (under --stealth, a yes at the terminal writes nothing) shows only on a real terminal; the features have no pseudo-terminal. Recommended: add a pseudo-terminal step to the features (github.com/creack/pty, Unix only, the scenario skipped on Windows), which also lets init's other questions be specified. Or: prove it with a unit test of the branch and land it as a refactor task in place of the bug."
