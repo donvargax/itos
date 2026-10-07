@@ -54,6 +54,7 @@ phases:
   3: donvargax
 
 queue:
+  - p1-previous-release-selftest-red
   - slice-95
   - bug-38
   - bug-42
