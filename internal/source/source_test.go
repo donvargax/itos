@@ -9,11 +9,13 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v6/internal/git"
 )
 
 func gitIn(t *testing.T, dir string, args ...string) {
 	t.Helper()
-	cmd := exec.Command("git", append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"}, args...)...)
+	cmd := exec.Command(git.Bin(), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"}, args...)...)
 	cmd.Dir = dir
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("git %s: %s", strings.Join(args, " "), out)
@@ -93,7 +95,7 @@ func TestTextsOfNamesGitQuotes(t *testing.T) {
 	dir := t.TempDir()
 	gitIn(t, dir, "init", "-q")
 	write(t, filepath.Join(dir, "blob"), "text\n")
-	out, err := exec.Command("git", "-C", dir, "hash-object", "-w", "blob").Output()
+	out, err := exec.Command(git.Bin(), "-C", dir, "hash-object", "-w", "blob").Output()
 	if err != nil {
 		t.Fatal(err)
 	}

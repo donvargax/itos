@@ -23,13 +23,20 @@ treat itos as a black box. Each scenario builds a scratch git repository in a
 temporary folder, runs the binary `ITOS_BIN` names in it (`tools/bin/itos` by
 default, the Go binary built from this tree on demand, relative to the
 repository's root) and reads its exit code, its output and the files it
-leaves. A step never imports itos's code, reads its source or calls anything
-but its command line, so the same feature files judge any implementation
-unchanged, which is what they are for: they judged the TypeScript v0 and the
-Go port side by side until the TypeScript left (T-062).
+leaves. A step judges itos by its command line alone: it never reads its
+source or calls its code to decide a result, so the same feature files judge
+any implementation unchanged, which is what they are for: they judged the
+TypeScript v0 and the Go port side by side until the TypeScript left (T-062).
+The steps import one package of itos's, to set the scene and never to judge:
+`internal/git`, whose rule for the real git (bug 45) finds the git the steps
+run, so a git that is an itos (the shim `itos git-shim install` makes) is
+passed over by the steps as by itos itself, one rule rather than a copy of it
+(T-104).
 
 Commands run in a clean environment: no `GIT_*`, `ITOS_*`, `GITHUB_*` or
-`CI` variable of the caller's, no global or system git config, a fixed author.
+`CI` variable of the caller's, no global or system git config, a fixed author,
+and none of the caller's claude, itos, itos extensions or git that is an itos
+on the PATH.
 The header lint, where a scenario needs one, is itos's built-in one
 (`use: builtin` in the scratch config), which needs nothing installed:
 `config-conventional`'s rules and no footer rule, so that footer rules in

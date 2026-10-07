@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v6/internal/git"
 )
 
 // A scratch repository with a commit of its own past its upstream, a bare
@@ -23,6 +25,10 @@ func lateCommitRepo(t *testing.T) string {
 	for _, name := range []string{"GIT_AUTHOR_EMAIL", "GIT_COMMITTER_EMAIL"} {
 		t.Setenv(name, "itos@example.com")
 	}
+	// The real git for every git the scripts and the hooks start, as an itos
+	// run hands it to what it starts (git.Export): an itos linked as git
+	// would run git push here as itos push (T-104).
+	t.Setenv(git.EnvGit, git.Bin())
 	sh := func(script string) {
 		t.Helper()
 		cmd := exec.Command("sh", "-c", script)
@@ -44,7 +50,7 @@ func lateCommitRepo(t *testing.T) string {
 // What git prints for the arguments in the current folder, trimmed.
 func gitLine(t *testing.T, args ...string) string {
 	t.Helper()
-	out, err := exec.Command("git", args...).Output()
+	out, err := exec.Command(git.Bin(), args...).Output()
 	if err != nil {
 		t.Fatalf("git %s: %s", strings.Join(args, " "), err)
 	}
@@ -98,7 +104,7 @@ func TestPushJSONCommitIsTheOnePushed(t *testing.T) {
 // (slice 90) exits 75, not git's 128, and says the remote cannot be reached.
 func TestPushToARemoteOutOfReachExits75(t *testing.T) {
 	lateCommitRepo(t)
-	if out, err := exec.Command("git", "config", "remote.origin.pushurl", "https://127.0.0.1:1/itos.git").CombinedOutput(); err != nil {
+	if out, err := exec.Command(git.Bin(), "config", "remote.origin.pushurl", "https://127.0.0.1:1/itos.git").CombinedOutput(); err != nil {
 		t.Fatalf("%s: %s", err, out)
 	}
 	code, stdout, stderr := run("push", "--no-wait")

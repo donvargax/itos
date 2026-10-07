@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v6/internal/git"
 	"github.com/donvargax/itos/v6/internal/kind"
 	"github.com/donvargax/itos/v6/internal/value"
 )
@@ -44,7 +45,7 @@ func rollbackRepo(t *testing.T) *config.Loaded {
 
 func gitIn(t *testing.T, args ...string) string {
 	t.Helper()
-	out, err := exec.Command("git", args...).CombinedOutput()
+	out, err := exec.Command(git.Bin(), args...).CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
 	}

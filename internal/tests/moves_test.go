@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v6/internal/git"
 )
 
 var movesOptions = Options{Root: "features", ID: `ID-[A-Z]+-\d+`, TagPrefix: "@", WipTag: "@wip"}
@@ -94,9 +96,10 @@ func TestMovesMerge(t *testing.T) {
 		os.Unsetenv(name)
 	}
 	t.Chdir(dir)
+	gitBin := git.Bin()
 	git := func(args ...string) string {
 		t.Helper()
-		out, err := exec.Command("git", append([]string{"-c", "user.name=t", "-c", "user.email=t@t"}, args...)...).CombinedOutput()
+		out, err := exec.Command(gitBin, append([]string{"-c", "user.name=t", "-c", "user.email=t@t"}, args...)...).CombinedOutput()
 		if err != nil {
 			t.Fatalf("git %s: %s", strings.Join(args, " "), out)
 		}

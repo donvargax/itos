@@ -24,7 +24,7 @@ func gitConfigRepo(t *testing.T, config string) string {
 	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
 	t.Setenv("ITOS_CONFIG", "")
 	dir := t.TempDir()
-	if out, err := exec.Command("git", "init", "-q", dir).CombinedOutput(); err != nil {
+	if out, err := exec.Command(git.Bin(), "init", "-q", dir).CombinedOutput(); err != nil {
 		t.Fatalf("git init: %s", out)
 	}
 	if err := os.WriteFile(filepath.Join(dir, "itos.yaml"), []byte(config), 0o644); err != nil {
@@ -42,7 +42,7 @@ func standInHooks(t *testing.T) {
 	t.Helper()
 	for _, event := range hookEvents {
 		for key, value := range map[string]string{"event": event, "command": ": itos hook " + event} {
-			if out, err := exec.Command("git", "config", "--local", "hook."+hookEntry(event)+"."+key, value).CombinedOutput(); err != nil {
+			if out, err := exec.Command(git.Bin(), "config", "--local", "hook."+hookEntry(event)+"."+key, value).CombinedOutput(); err != nil {
 				t.Fatalf("git config: %s", out)
 			}
 		}
@@ -51,7 +51,7 @@ func standInHooks(t *testing.T) {
 
 func localConfig(t *testing.T, key string) string {
 	t.Helper()
-	out, _ := exec.Command("git", "config", "--local", "--get-all", key).Output()
+	out, _ := exec.Command(git.Bin(), "config", "--local", "--get-all", key).Output()
 	return string(out)
 }
 
@@ -89,7 +89,10 @@ func TestDeclareHooksOldGit(t *testing.T) {
 		t.Skip("the fake git is a shell script, which windows does not run as git")
 	}
 	gitConfigRepo(t, "version: 1\n")
-	real, err := exec.LookPath("git")
+	// The real git, past any itos linked as git (T-104): the fake would
+	// otherwise exec a shim, which passes back to the fake as the first git
+	// on the PATH that is not an itos, and the two run each other forever.
+	real, err := git.Real()
 	if err != nil {
 		t.Fatal(err)
 	}

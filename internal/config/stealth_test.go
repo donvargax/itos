@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v6/internal/git"
 	"github.com/donvargax/itos/v6/internal/value"
 )
 
@@ -17,7 +18,7 @@ func gitIn(t *testing.T, dir string, args ...string) {
 		t.Setenv(name, "")
 		os.Unsetenv(name)
 	}
-	cmd := exec.Command("git", append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"}, args...)...)
+	cmd := exec.Command(git.Bin(), append([]string{"-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"}, args...)...)
 	cmd.Dir = dir
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("git %s: %s", strings.Join(args, " "), out)

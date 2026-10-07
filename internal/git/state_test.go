@@ -55,7 +55,7 @@ func TestState(t *testing.T) {
 	if Rebasing() || len(Conflicted()) > 0 {
 		t.Fatal("a rebase is seen before one started")
 	}
-	if exec.Command("git", "-c", "user.name=t", "-c", "user.email=t@t", "rebase", "main").Run() == nil {
+	if exec.Command(Bin(), "-c", "user.name=t", "-c", "user.email=t@t", "rebase", "main").Run() == nil {
 		t.Fatal("the rebase did not stop on its conflict")
 	}
 	if !Rebasing() || !slices.Equal(Conflicted(), []string{"a"}) {

@@ -22,6 +22,8 @@ import (
 	"sync"
 
 	"github.com/cucumber/godog"
+
+	"github.com/donvargax/itos/v6/internal/git"
 )
 
 // One scenario's state.
@@ -548,8 +550,13 @@ var (
 // it, as the corpus's hide does, or left out where links cannot be made.
 func callerPath() string { return pathHiding(hiddenAlways...) }
 
-// pathHiding is the caller's PATH with none of the programs named on it,
-// made once a run for each set of names, as callerPath hides hiddenAlways.
+// pathHiding is the caller's PATH with none of the programs named on it, nor
+// a git that is an itos, made once a run for each set of names, as callerPath
+// hides hiddenAlways. A git shim of the caller's (itos git-shim install, slice
+// 50) ran the global itos for a scenario's git commit and git push, its
+// policy instead of the scratch repository's; it is told from the real git by
+// the rule itos itself goes by (git.IsItos, bug 45), so every git a scenario's
+// commands start is the real one, as the steps' own are (git.Bin, T-104).
 func pathHiding(names ...string) string {
 	hiddenPathsMu.Lock()
 	defer hiddenPathsMu.Unlock()
@@ -557,9 +564,11 @@ func pathHiding(names ...string) string {
 	if text, ok := hiddenPaths[key]; ok {
 		return text
 	}
-	hidden := func(e os.DirEntry) bool { return isOneOf(e, names) }
 	var folders []string
 	for i, folder := range filepath.SplitList(os.Getenv("PATH")) {
+		hidden := func(e os.DirEntry) bool {
+			return isOneOf(e, names) || isOneOf(e, []string{"git"}) && git.IsItos(filepath.Join(folder, e.Name()))
+		}
 		entries, err := os.ReadDir(folder)
 		if err != nil || !slices.ContainsFunc(entries, hidden) {
 			folders = append(folders, folder)
@@ -630,7 +639,7 @@ func (w *world) git(args ...string) error { return w.gitIn(w.dir, args...) }
 
 // git run in the folder dir.
 func (w *world) gitIn(dir string, args ...string) error {
-	cmd := exec.Command("git", args...)
+	cmd := exec.Command(git.Bin(), args...)
 	cmd.Dir = dir
 	cmd.Env = w.env()
 	out, err := cmd.CombinedOutput()
@@ -641,7 +650,7 @@ func (w *world) gitIn(dir string, args ...string) error {
 }
 
 func (w *world) head() (string, error) {
-	cmd := exec.Command("git", "rev-parse", "HEAD")
+	cmd := exec.Command(git.Bin(), "rev-parse", "HEAD")
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.Output()
@@ -1189,7 +1198,7 @@ func (w *world) mergeCommit(message, own string) error {
 	}
 	index := filepath.Join(w.support, "merge-index")
 	plumb := func(args ...string) (string, error) {
-		cmd := exec.Command("git", args...)
+		cmd := exec.Command(git.Bin(), args...)
 		cmd.Dir = w.dir
 		cmd.Env = append(w.env(), "GIT_INDEX_FILE="+index)
 		out, err := cmd.Output()
@@ -1415,7 +1424,7 @@ func (w *world) shallowClone() error {
 // The files the scratch repository has not committed, laid into a clone of
 // it.
 func (w *world) layUncommitted(clone string) error {
-	cmd := exec.Command("git", "ls-files", "-z", "--modified", "--others", "--exclude-standard")
+	cmd := exec.Command(git.Bin(), "ls-files", "-z", "--modified", "--others", "--exclude-standard")
 	cmd.Dir = w.dir
 	cmd.Env = w.env()
 	out, err := cmd.Output()

@@ -18,6 +18,8 @@ import (
 	"sync"
 
 	"github.com/cucumber/godog"
+
+	"github.com/donvargax/itos/v6/internal/git"
 )
 
 func initializeShimSteps(sc *godog.ScenarioContext, w *world) {
@@ -168,7 +170,7 @@ func (w *world) gitExitsWith(code int) error {
 }
 
 func (w *world) plainHeadSays(text string) error {
-	cmd := exec.Command("git", "log", "-1", "--format=%B")
+	cmd := exec.Command(git.Bin(), "log", "-1", "--format=%B")
 	cmd.Dir = w.plain()
 	cmd.Env = w.env()
 	out, err := cmd.Output()
