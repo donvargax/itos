@@ -6001,6 +6001,9 @@ items:
       Specified in features/work.feature and config.feature (@slice-100);
       docs/plans/v7-proof-of-done.md and decision 42. No way to close past a failing proof (the
       user's call, 2026-10-07). Part of v7.0.0-rc.1, the itos-cc integration.
+    deferred: >
+      The user's call (2026-10-07): held while an issue itos-cc found with end-to-end tests and
+      coverage is worked out (after itos-cc#14 closed). Resume it once that is settled.
 
   - id: T-121
     title: The features build the itos under test with -cover when GOCOVERDIR is set, so its coverage reaches itos-cc
