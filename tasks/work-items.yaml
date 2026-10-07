@@ -5369,3 +5369,14 @@ items:
       (work.tags), refused outside it by work check; --tag on work add and edit; work list --tag;
       shown beside the id in work and status. Additive, a v6.x feat. Useful to the cross-repository
       orchestrator too. Unqueued.
+
+  - id: slice-95
+    title: The rules itos init writes for agents send each session to its guide and name the coordinator's notes
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified in features/init.feature (@slice-95).
+    refs: [internal/cli/initrules.go, features/init.feature]
