@@ -4641,14 +4641,15 @@ items:
       Vetting the staged tree (a worktree of the index), or letting one commit carry a module move,
       would make the split honest.
 
-  - id: p1-slow-rollback-test
+  - id: T-105
     title: TestRollbackGitCannotStart takes seconds, not nine minutes
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-slow-rollback-test.
       Found by slice 85's agent (2026-10-05): internal/cli's TestRollbackGitCannotStart took about
       548 seconds locally, which the pre-push hook's unit run waits on whenever internal/cli is
       reached.
