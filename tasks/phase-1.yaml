@@ -915,3 +915,33 @@
     - run: grep -q 'scratch' internal/guide/coordinate.md
     - run: grep -qi 'lesson' internal/guide/coordinate.md
     - run: "! grep -q 'agents prefix their scratch files' docs/ORCHESTRATING.md"
+
+- id: T-108
+  type: build
+  title: "A devcontainer for this repository: Claude Code sandboxed, itos and its git shim first on the PATH, egress allowlisted"
+  why: >
+    The user's call (2026-10-06): the container tested on 2026-10-06 worked, and it lands here for
+    now, a base for the user's devcontainer sandboxing project; an unattended agent runs in it, so
+    auto mode failing no longer stops the work. Its base is trailofbits/claude-code-devcontainer at
+    feea113 (Apache-2.0: its LICENSE and a line saying what was changed go with it), with the
+    additions tested then, kept in this clone's .git/itos/container-test (itos-additions.diff,
+    ws-itos/.devcontainer, and the ct/ scripts that probed it): itos from a pinned release, v6.0.0
+    or newer, its checksums.txt checked against a pinned hash, in /usr/local/lib/itos/bin (the base
+    chowns /opt to vscode), itos git-shim install, and that folder first on the PATH in the image's
+    last ENV. The shim stays: it is the guard against a poisoned model, the container only limits
+    what reaches the host. Beyond what was tested: the Go of go.mod and pnpm/vp, so this
+    repository's hooks and gates run inside; the allowlist on by default, GitHub's meta CIDRs plus
+    Anthropic's API, the Go proxy and sum database, npm and pypi, never a list of addresses resolved
+    once (they rotate within minutes); no passwordless sudo for the container user, which with
+    NET_ADMIN could undo the shim and the firewall, so the firewall is a root-owned script in the
+    image, run through one sudoers rule naming it alone, never a script under /workspace that the
+    container can rewrite; no fixed container name. The base mounts .git/config and .git/hooks
+    read-only, so itos init and hooks install run on the host, and a git worktree cannot be the
+    workspace: the .devcontainer README says so, and to commit inside the container, never on the
+    host, once the container has written the workspace (the host's hooks would run the checks the
+    container wrote). Shim gaps (--no-verify, -c core.hooksPath) are p1-shim-refuses-hook-skipping,
+    not this task.
+  done_when:
+    - run: test -f .devcontainer/devcontainer.json && test -f .devcontainer/LICENSE
+    - run: grep -q 'itos git-shim install' .devcontainer/Dockerfile && grep -q 'ITOS_CHECKSUMS_SHA256' .devcontainer/Dockerfile
+    - run: "! grep -q '/workspace/.devcontainer' .devcontainer/devcontainer.json"
