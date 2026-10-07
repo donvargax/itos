@@ -5563,6 +5563,7 @@ items:
     status: todo
     depends_on: [p1-init-no-plugin]
     kind: idea
+    deferred: the next major release, since it changes what init accepts; the user's call, 2026-10-06
     why: >
       docs/CLI.md rule 22 (POSIX guideline 7) forbids an optional option-argument and names init
       --plugin [<scope>] as its one breach. Once --no-plugin exists, --plugin <scope> can require
