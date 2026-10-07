@@ -7,8 +7,9 @@
 //       given) through <command>; print each failure with its diff; exit 1
 //       if any case fails, 2 if a fixture cannot be read
 //   node tools/itos/conformance/run.ts --bin <command> --additive [--only <file>…]
-//       the same, judging each case's stdout, stderr and json by what they
-//       must still hold, an output that only adds passing (below)
+//       the same, judging each case's stdout, stderr, json and written YAML
+//       and Markdown by what they must still hold, an output that only adds
+//       or changes a comment passing (below)
 //
 // A fixture file is YAML: `files`, `git` and `env` at the top are every case's
 // defaults, and `cases` is a list. A case is:
@@ -43,8 +44,14 @@
 // passing, and json is what the output's JSON must hold: every key it names
 // there with the value it gives, at every depth, an array element by element
 // at the same length, a key added anywhere passing
-// (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md). The exit code, stdout_has, stderr_has and files_after are judged as
-// ever. Without it, as this corpus runs, every output is pinned exactly.
+// (docs/decisions/0021-ci-cuts-a-release-from-a-green-push-judged-against-the-last-release.md).
+// files_after is judged by a written file's data, its comment lines for people
+// (docs/decisions/0040-a-written-file-is-contract-by-its-data-not-its-comment-lines.md):
+// a .yaml or .yml file by what it parses to, comments dropped, held as json is,
+// a key added passing; a .md file by its text less its HTML comments; any other
+// file whole. The exit code, stdout_has and stderr_has are judged as ever.
+// Without it, as this corpus runs, every output and every file is pinned
+// exactly, comments and all.
 //
 // A case's `github` is a fake of GitHub's API for ci.watch, status and ci
 // range's github providers (slice 85, when v5.0.0 removed the command
@@ -695,7 +702,46 @@ function linesProblems(what: string, expected: string, actual: string): string[]
 	];
 }
 
-function fileProblems(path: string, value: FileValue, actual: Outcome["files"][string], subst: Subst): string[] {
+// A YAML text's data, comments dropped; undefined when it is not YAML.
+function yamlData(text: string): { data: unknown } | undefined {
+	try {
+		return { data: parse(text) as unknown };
+	} catch {
+		return undefined;
+	}
+}
+
+// A Markdown text without its HTML comments: a comment standing alone on its
+// lines goes with them, one inside a line leaves the rest of the line.
+const markdownContent = (text: string) =>
+	text.replace(/^[ \t]*<!--[\s\S]*?-->[ \t]*(\n|$)/gm, "").replace(/<!--[\s\S]*?-->/g, "");
+
+// A written file's data against what it held, comment lines aside (decision
+// 40): YAML by what it parses to, judged as json is, a key added passing;
+// Markdown by its text less its HTML comments; any other file whole.
+function dataProblems(path: string, expected: string, actual: string): string[] {
+	if (/\.ya?ml$/.test(path)) {
+		const want = yamlData(expected);
+		if (want) {
+			const got = yamlData(actual);
+			if (!got) return lines(`${path} is not YAML:`, actual);
+			const lacks = jsonLacks(want.data, got.data, "");
+			return lacks.length
+				? [`${path}'s data lacks what it held (a key added or a comment changed is compatible):`, ...lacks.map((l) => `    ${l}`)]
+				: [];
+		}
+	}
+	if (path.endsWith('.md')) return textProblems(`${path}, its HTML comments aside`, markdownContent(expected), markdownContent(actual));
+	return textProblems(path, expected, actual);
+}
+
+function fileProblems(
+	path: string,
+	value: FileValue,
+	actual: Outcome["files"][string],
+	subst: Subst,
+	additive: boolean,
+): string[] {
 	if (value === null) return actual === null ? [] : [`${path}: expected no file, found one`];
 	if (!actual) return [`${path}: expected a file, found none`];
 	const want = typeof value === "string" ? { text: value } : value;
@@ -703,11 +749,12 @@ function fileProblems(path: string, value: FileValue, actual: Outcome["files"][s
 		want.executable === undefined || want.executable === actual.executable
 			? []
 			: [`${path}: expected ${want.executable ? "" : "not "}executable`];
-	return [...textProblems(path, subst(want.text), actual.text), ...mode];
+	return [...(additive ? dataProblems : textProblems)(path, subst(want.text), actual.text), ...mode];
 }
 
 // What differs between a case's expectations and its outcome, as lines to print.
-// With additive, stdout, stderr and json are judged by what they must still hold.
+// With additive, stdout, stderr, json and files_after are judged by what they must
+// still hold, a written file by its data.
 export function compare(
 	c: Case,
 	{ outcome, subst }: { outcome: Outcome; subst: Subst },
@@ -725,7 +772,7 @@ export function compare(
 		...hasProblems("stderr", list(c.stderr_has).map(subst), outcome),
 		...(c.json === undefined ? [] : jsonProblems(deep(c.json, subst), outcome.stdout, additive)),
 		...Object.entries(c.files_after ?? {}).flatMap(([path, value]) =>
-			fileProblems(path, value, outcome.files[path], subst),
+			fileProblems(path, value, outcome.files[path], subst, additive),
 		),
 	];
 }
