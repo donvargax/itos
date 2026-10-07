@@ -5980,3 +5980,18 @@ items:
       reads, while this one only the repository's own release tool reads. Needs the user's call
       before the marker goes on: the key in the schema with a scenario of its own (and the premise
       widened to the release tooling), or another home for the marker.
+
+  - id: p1-version-compare-prerelease
+    title: version.Compare orders a pre-release below its release, as its doc says
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-118]
+    kind: idea
+    why: >
+      internal/version's doc says Compare orders a pre-release below its release, but it reads the
+      first three numbers alone, so 7.0.0-rc.1 compares equal to 7.0.0 (and rc.2 to rc.1). With
+      release candidates (T-118) that matters: a repository pinning 7.0.0-rc.1 is never told by the
+      launcher's update notice that 7.0.0 is out, and itos upgrade from an rc to the final release,
+      or to a later rc, walks no release and prints nothing it asks. A fix, with a bug scenario,
+      before the first rc is pinned anywhere.
