@@ -5441,3 +5441,13 @@ items:
       footer, so wrapping a body is quadratic in its length: TestRollbackGitCannotStart, whose body
       is 5 MB, takes about 300 s of the internal/cli unit tests on a laptop and passed the 600 s go
       test timeout in the pre-commit hook under load (seen in slice-96).
+
+  - id: p1-pr-mode
+    title: "push.mode pr: agents work on item branches merged by rebase-merge, claims stay on main"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user agreed 2026-10-06; the decision record holds the terms.
