@@ -1811,8 +1811,11 @@ add`ed so `--only` can name it, git add's words and the commit's on
   writes `git diff --cached --binary --full-index --no-renames HEAD`; then
   `putBack` checks the touched files out of HEAD, or takes a file HEAD lacks
   out of the index and removes it, so only those paths change. `promote`
-  first refuses while `workGoingOn` finds an item doing in the registry or a
-  tracked change (`git.Changed`), then, from the top, applies each draft in
+  first refuses while `checkoutBusy` finds the checkout unclean, a tracked
+  change (`git.Changed`) or a rebase or a merge in progress (`git.Rebasing`,
+  `MERGE_HEAD`), never reading the registry: an item's status is no gate,
+  since items stay doing for the coordinator's own work and for agents gone;
+  then, from the top, it applies each draft in
   order: a patch with `git apply --index`, which checks every hunk's context
   and a binary file's preimage, by its full object name, against the tree
   before writing anything, so a change that no longer applies leaves the

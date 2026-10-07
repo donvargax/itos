@@ -90,8 +90,9 @@ the briefs, landing and recording.
   taken out of the tree, so the checkout stays the agent's) or
   `itos draft add <id> -- <itos args>…` (a `work add`, a `work queue`, run
   later), never in scratch files. Between agents, `itos draft promote` commits
-  them in order; it refuses while an item is doing or a tracked file is
-  changed, and `itos status` lists what waits.
+  them in order; it refuses an unclean checkout (a tracked file changed, a
+  rebase or a merge in progress), not an item doing, and `itos status` lists
+  what waits.
 - Read-only agents, a reviewer or a researcher, may run beside it.
 
 ## Pushing and waiting
