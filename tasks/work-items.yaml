@@ -5228,17 +5228,9 @@ items:
     title: The gate self-tests reach itos's hooks through .vite-hooks, which T-101 empties of itos
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-91]
     kind: task
-    why: >
-      Was p1-selftests-config-hooks.
-      tools/selftest/gates.ts runs sh .vite-hooks/commit-msg to judge a message, and scratch.ts's
-      hookGates runs sh .vite-hooks/pre-push for gates.ts and go-hooks.ts. Decision 37 has T-101's
-      ci commit take itos's lines out of .vite-hooks, after which those gates run no check of itos's
-      and the nightly's self-tests no longer test what they say. They should run the hooks the git
-      config declares, git hook run commit-msg and git hook run pre-push, or tools/bin/itos hook
-      <event> beside the project's own hook.
 
   - id: slice-92
     title: itos decision holds what waits on the person, and a question for anyone else is itos followup
