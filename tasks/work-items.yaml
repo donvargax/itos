@@ -58,7 +58,6 @@ queue:
   - bug-38
   - bug-42
   - p1-upgrade-applies-config-steps
-  - T-112
   - T-113
   - p1-upgrade-on-major
   - p1-problem-fields
