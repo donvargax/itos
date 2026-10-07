@@ -19,10 +19,13 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
   that cannot be applied, keeping it and those after it. itos status names
   the drafts waiting.
 
+  # The registry lists a phase, so the drafted work add's item has one to
+  # go in (work add refuses an item no phase holds).
   Background:
     Given a repository whose ledger has the task "T-001"
+    And the work registry has the item "slice-1" owned by nobody with the status "done"
 
-  @ID-DRAFT-01 @slice-96 @wip
+  @ID-DRAFT-01 @slice-96
   Scenario: draft add keeps an itos command line to run later, and git sees nothing
     When itos runs the command line "draft add queue-t1 -- work add p1-thing --title 'A thing' --why 'Because.'"
     Then itos exits with code 0
@@ -32,7 +35,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And its output says "queue-t1"
     And its output says "work add p1-thing"
 
-  @ID-DRAFT-02 @slice-96 @wip
+  @ID-DRAFT-02 @slice-96
   Scenario: draft add keeps a change to files with its message, and puts the files back as HEAD has them
     Given the committed file "notes.md" holding "Old."
     And the file "notes.md" is changed to hold "New."
@@ -45,7 +48,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And its output says "say-new"
     And its output says "docs: say new"
 
-  @ID-DRAFT-03 @slice-96 @wip
+  @ID-DRAFT-03 @slice-96
   Scenario: draft promote applies the drafts in the order they were added, each committed, and none is left
     Given the committed file "notes.md" holding "Old."
     And the file "notes.md" is changed to hold "New."
@@ -65,7 +68,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
 
   # The gate the guide's "commit only between agents" lacked: an item doing
   # means an agent may hold the checkout.
-  @ID-DRAFT-04 @slice-96 @wip
+  @ID-DRAFT-04 @slice-96
   Scenario: draft promote refuses while an item is doing, and applies nothing
     Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
     And itos has run the command line "draft add add-thing -- work add p1-thing --title 'A thing' --why 'Because.'"
@@ -77,7 +80,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     Then itos exits with code 0
     And its output says "add-thing"
 
-  @ID-DRAFT-05 @slice-96 @wip
+  @ID-DRAFT-05 @slice-96
   Scenario: draft promote refuses while a tracked file has a change no commit holds, and applies nothing
     Given the committed file "notes.md" holding "Old."
     And itos has run the command line "draft add add-thing -- work add p1-thing --title 'A thing' --why 'Because.'"
@@ -91,7 +94,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
   # The tree moved since the draft was taken: what applied before it stays
   # committed, and it and the drafts after it wait, for the coordinator to
   # redo or drop.
-  @ID-DRAFT-06 @slice-96 @wip
+  @ID-DRAFT-06 @slice-96
   Scenario: draft promote stops at a change that no longer applies, keeping it and the drafts after it
     Given the committed file "notes.md" holding "Old."
     And itos has run the command line "draft add add-thing -- work add p1-thing --title 'A thing' --why 'Because.'"
@@ -110,7 +113,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And its output says "say-new" before "add-other"
     And its output does not say "add-thing"
 
-  @ID-DRAFT-07 @slice-96 @wip
+  @ID-DRAFT-07 @slice-96
   Scenario: draft drop removes a draft without applying it
     Given itos has run the command line "draft add add-thing -- work add p1-thing --title 'A thing' --why 'Because.'"
     When itos runs "draft drop add-thing"
@@ -122,7 +125,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
 
   # Drafts live in the git common dir, so one drafted from an agent's
   # linked worktree is the main checkout's too.
-  @ID-DRAFT-08 @slice-96 @wip
+  @ID-DRAFT-08 @slice-96
   Scenario: A draft added in a linked worktree is listed from the main checkout
     Given a linked worktree of the repository at "../wt"
     And itos has run the command line "draft add add-thing -- work add p1-thing --title 'A thing' --why 'Because.'" in the linked worktree
@@ -132,7 +135,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
 
   # A spec is often a new file, a feature file or a ledger, so a draft takes
   # files git does not track yet as well, and takes them out of the tree.
-  @ID-DRAFT-10 @slice-96 @wip
+  @ID-DRAFT-10 @slice-96
   Scenario: A drafted new file leaves the working tree and comes back committed when promoted
     Given the untracked file "specs/new.md" holding "A new spec."
     When itos runs the command line "draft add new-spec -m 'docs: add a spec' specs/new.md"
@@ -143,7 +146,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And the file "specs/new.md" says "A new spec."
     And the last commit's header is "docs: add a spec"
 
-  @ID-DRAFT-11 @slice-96 @wip
+  @ID-DRAFT-11 @slice-96
   Scenario: itos status names the drafts waiting
     Given a clone of it, where itos runs
     And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
@@ -153,7 +156,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     Then itos exits with code 0
     And its output says "add-thing"
 
-  @ID-DRAFT-09 @slice-96 @wip
+  @ID-DRAFT-09 @slice-96
   Scenario: draft add refuses an id a draft already has
     Given itos has run the command line "draft add add-thing -- work add p1-thing --title 'A thing' --why 'Because.'"
     When itos runs the command line "draft add add-thing -- work add p1-other --title 'Another' --why 'Because.'"

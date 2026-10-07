@@ -384,6 +384,7 @@ cases:
         - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [] }
       more: 0
       questions: [{ id: q-2, item: ready, question: "Which way?", status: open }]
+      drafts: []
       unread: []
   - name: status --json lists what could not be reached
     argv: [status, --json]
@@ -407,6 +408,7 @@ cases:
       next: []
       more: 0
       questions: []
+      drafts: []
       unread: ["No remote origin, so neither its head nor its CI run is read."]
   - name: status --json gives the last nightly's run
     argv: [status, --json]
@@ -458,6 +460,7 @@ cases:
       next: []
       more: 0
       questions: []
+      drafts: []
       unread: []
   - name: status --json gives main's last green commit while the head's run is going
     argv: [status, --json]
@@ -506,6 +509,7 @@ cases:
       next: []
       more: 0
       questions: []
+      drafts: []
       unread: []
   - name: status names the newest release and the feat, fix and breaking commits since it
     argv: [status]
@@ -590,6 +594,7 @@ cases:
       next: []
       more: 0
       questions: []
+      drafts: []
       unread: []
   - name: status takes no arguments
     argv: [status, work]

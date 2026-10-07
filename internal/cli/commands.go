@@ -35,6 +35,7 @@ var commands = map[string]command{
 	"init":     initCommand,
 	"followup": followCommand,
 	"decision": askCommand,
+	"draft":    draftCommand,
 	"go":       goCommand,
 	"guide":    guideCommand,
 	"status":   statusCommand,

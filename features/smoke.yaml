@@ -56,6 +56,10 @@
   scenarios:
     - id: "@ID-COST-01"
       why: a pattern written for itos matching a command that calls hooks.bin, the file's point
+- file: draft.feature
+  scenarios:
+    - id: "@ID-DRAFT-03"
+      why: a change and a command line drafted, then promoted in order, each committed, the file's point in one run
 - file: extensions.feature
   scenarios:
     - id: "@ID-EXT-04"

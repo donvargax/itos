@@ -14,7 +14,8 @@ package cli
 // before it, while the head's run is going or has not passed (slice 73), the
 // commit main last proved, as ci.range's provider names it, read once; then the
 // person's items in progress, the next ones they can start in the queue's
-// order (a handful), and the open questions of itos decision. It reads, never writes. What cannot be reached is
+// order (a handful), the open questions of itos decision, and (slice 96) the
+// drafts waiting for itos draft promote. It reads, never writes. What cannot be reached is
 // one line naming it, and the rest still prints, exit 0; a status that
 // cannot be computed at all (no config, no registry, one with problems) is
 // exit 2 or 1, as itos work's. itos go prints it after the guides
@@ -31,6 +32,7 @@ import (
 	"time"
 
 	"github.com/donvargax/itos/v6/internal/config"
+	"github.com/donvargax/itos/v6/internal/draft"
 	"github.com/donvargax/itos/v6/internal/git"
 	"github.com/donvargax/itos/v6/internal/out"
 	"github.com/donvargax/itos/v6/internal/providers"
@@ -80,15 +82,18 @@ type standing struct {
 	// Unreleased are the headers of the commits since the release the next
 	// one would carry, oldest first; nil when there is no release or they
 	// cannot be listed.
-	Unreleased []string     `json:"unreleased"`
-	Doing      []any        `json:"doing"`
-	Next       []any        `json:"next"`
-	More       int          `json:"more"`
-	Questions  []askEntry   `json:"questions"`
-	Unread     []string     `json:"unread"`
-	unowned    map[any]bool // the next items nobody owns
-	start      []string     // the lines of the head and CI, in order
-	released   []string     // the lines of the release section, in order
+	Unreleased []string   `json:"unreleased"`
+	Doing      []any      `json:"doing"`
+	Next       []any      `json:"next"`
+	More       int        `json:"more"`
+	Questions  []askEntry `json:"questions"`
+	// Drafts are the drafts waiting for itos draft promote, in its order.
+	Drafts   []draftEntry  `json:"drafts"`
+	Unread   []string      `json:"unread"`
+	unowned  map[any]bool  // the next items nobody owns
+	drafts   []draft.Draft // the drafts waiting, as the list prints them
+	start    []string      // the lines of the head and CI, in order
+	released []string      // the lines of the release section, in order
 }
 
 // newest is the newest release: its tag, the commit it names, and whether
@@ -210,6 +215,17 @@ func statusOf(cfg *config.Loaded, as string, o Out) (*standing, []out.Problem, i
 	for _, q := range asks.Questions {
 		if q.Answer == "" {
 			st.Questions = append(st.Questions, entryOf(q))
+		}
+	}
+	st.Drafts = []draftEntry{}
+	if file := draftsFile(); file != "" {
+		drafts, err := draft.Load(file)
+		if err != nil {
+			st.unread(fmt.Sprintf("The drafts cannot be read: %s", err))
+		}
+		st.drafts = drafts.Drafts
+		for _, d := range drafts.Drafts {
+			st.Drafts = append(st.Drafts, entryOfDraft(d))
 		}
 	}
 	return st, nil, 0, nil
@@ -577,6 +593,7 @@ func (st *standing) fields() []out.Field {
 		{Key: "next", Value: st.Next},
 		{Key: "more", Value: st.More},
 		{Key: "questions", Value: st.Questions},
+		{Key: "drafts", Value: st.Drafts},
 		{Key: "unread", Value: st.Unread},
 	}...)
 }
@@ -630,6 +647,7 @@ func (st *standing) print(w io.Writer) {
 			fmt.Fprintf(w, "  and %d more: itos work\n", st.More)
 		}
 	}
+	defer st.printDrafts(w)
 	if len(st.Questions) == 0 {
 		fmt.Fprintln(w, "No open questions.")
 		return
@@ -645,5 +663,17 @@ func (st *standing) print(w io.Writer) {
 			about = "  (" + q.Item + ")"
 		}
 		fmt.Fprintf(w, "  %-*s  %s%s\n", width, q.ID, clipped(oneLine(q.Question), questionWidth), about)
+	}
+}
+
+// printDrafts writes the drafts waiting, when there are any: what itos
+// draft promote would apply, between agents.
+func (st *standing) printDrafts(w io.Writer) {
+	if len(st.drafts) == 0 {
+		return
+	}
+	fmt.Fprintln(w, "Drafts waiting, for itos draft promote once no work is going on:")
+	for _, line := range draftLines(st.drafts) {
+		fmt.Fprintln(w, line)
 	}
 }

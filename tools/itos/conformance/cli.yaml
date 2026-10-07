@@ -304,3 +304,8 @@ cases:
     exit: 3
     stderr: |
       itos: followup keeps its threads in the git folder, and this is no git repository
+  - name: draft needs a git repository
+    argv: [draft]
+    exit: 3
+    stderr: |
+      itos: draft keeps its drafts in the git folder, and this is no git repository

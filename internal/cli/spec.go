@@ -191,6 +191,11 @@ var specs = map[string]spec{
 			sw("--none")}},
 		"show": {},
 	}},
+	"draft": {subs: map[string]spec{
+		"add":     {flags: []flagSpec{val("-m"), val("--message")}},
+		"promote": {},
+		"drop":    {},
+	}},
 	"go":     {},
 	"guide":  {},
 	"status": {flags: []flagSpec{val("--as")}},

@@ -91,6 +91,12 @@ Commands:
   followup show <id>               a thread and all its notes
   followup doc <id> <path> [--force]
                                    write a thread out as Markdown
+  draft                            the drafts waiting, in the order promote applies them
+  draft add <id> -m <message> <path>…
+                                   keep a change to files for later, and put the files back
+  draft add <id> -- <itos args>…   keep an itos command line to run later
+  draft promote                    apply and commit the drafts, once no work is going on
+  draft drop <id>                  drop a draft, applying nothing
   commit [--task <id>] [--item <id>] [--scenarios <ids>] [--<footer> <text>] [<git commit args>…]
                                    git commit, with the footers itos writes
   commit check-message <file|->    header lint and footer rules on one message
@@ -1079,6 +1085,74 @@ is written with a warning on stderr: a git add would commit it. With - for
 --json: as itos followup add's, with "path", the file written, absolute; with
 -, as itos followup add's with "markdown", the text`,
 
+	"draft": `Usage: itos draft
+       itos draft add <id> -m <message> <path>…
+       itos draft add <id> -- <itos args>…
+       itos draft promote
+       itos draft drop <id>
+
+The changes a coordinator writes while an agent holds the checkout, kept
+until no work is going on: a commit there would take the agent's staged
+files with it, and a file left changed would stop the agent's push. A draft
+is a change to files with the message to commit it with, or an itos command
+line to run later (a work add, a work queue, a task add), which commits
+itself. They are the clone's own: drafts.yaml in the drafts folder of
+itos's folder in the git common dir (git rev-parse --git-common-dir), each
+change's patch beside it as <id>.patch, readable by you only, never
+committed, and the same from every linked worktree of the clone. A
+subcommand that changes them holds drafts.yaml.lock from before it reads
+them to after it writes them, as itos followup does; one that finds the lock
+held waits, and gives up after 10 seconds naming it.
+
+itos draft lists the drafts in the order they were added, which is the order
+itos draft promote applies them in: each id with its message's header and
+its paths, or its command line. itos status names them too. Exit 1 for a
+refusal, 2 for a usage error, a lock still held, or a drafts.yaml itos cannot
+read or did not write whole, 3 outside a git repository.
+
+--json: {"schema":1,"drafts":[{"id","kind","header"?,"paths"?,"command"?}]},
+kind change or command; each subcommand's in its help (itos help draft <subcommand>)`,
+
+	"draft add": `Usage: itos draft add <id> -m <message> <path>…
+       itos draft add <id> -- <itos args>…
+
+With -m (--message), keeps the change of the paths against HEAD, as a binary
+git patch, files git does not track yet included, and the message to commit
+it with, footers and all; then puts those paths, and only those, back as HEAD
+has them, in the index and the work tree, a file HEAD lacks removed. With --,
+keeps the itos arguments after it exactly as given, to be run later by the
+same itos binary, never through a shell; a draft cannot run itos draft. An id
+is letters, digits, '.', '_' and '-', a letter or digit first. Refused,
+nothing written (exit 1): an id a draft already has, a path that names
+nothing in the work tree or HEAD, or one git ignores, paths with no change
+against HEAD, a repository with no commit.
+
+--json: {"schema":1,"ok":true,"draft":{"id","kind","header"?,"paths"?,"command"?}},
+or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+
+	"draft promote": `Usage: itos draft promote
+
+Applies the drafts in the order they were added, while no work is going on:
+refused, nothing applied (exit 1), while any item of the work registry is
+doing, naming each, or any tracked file has a change no commit holds, staged
+or not, naming each. A change is applied with git apply --index, which takes
+the whole patch or none of it, and committed with its message through the
+hooks, as any commit; a command line is run by this itos and commits itself,
+its output on stderr. Each draft promoted leaves the list. The first that
+cannot be applied stops it, exit 1 naming it: a change that no longer applies
+to the tree, a command that fails, a commit a hook refuses. The tree is left
+as HEAD has it, that draft and the ones after it are kept, and the ones
+before it stay committed.
+
+--json: {"schema":1,"ok","promoted":["<id>"],"problems"?:[{"rule","message","fix"}]}`,
+
+	"draft drop": `Usage: itos draft drop <id>
+
+Takes the draft out of the list and removes its patch, applying nothing.
+Refused (exit 1): no draft with the id.
+
+--json: as itos draft add's, the draft dropped`,
+
 	"decision": `Usage: itos decision [--all]
        itos decision add <text> [--item <id>]
        itos decision answer <id> <text>
@@ -1236,7 +1310,8 @@ release would carry, the feat, fix and breaking ones, by header, oldest first,
 read from the commits as fetched here, with a line saying they may be behind
 when the head is not fetched; the person's items in progress; the next items
 they can start, theirs and the unowned, in the queue's order and the unqueued
-after, five at most; and the open questions (itos decision). It reads, never writes
+after, five at most; the open questions (itos decision); and the drafts waiting
+for itos draft promote, when there are any. It reads, never writes
 or fetches. What cannot be reached (no remote, ci.watch.provider none, a
 provider that fails, for the head or the nightly, a ci.range provider that
 fails) is one line naming it, and the rest still prints, exit 0.
@@ -1248,7 +1323,7 @@ among the people. itos go prints it last.
 {"commit","header"}|null,"nightly":{"url","status","conclusion"?,"jobs"}|null,
 "release":{"tag","commit","last_fetched"}|null,"unreleased":["<header>"]|null,
 "doing","next","more","questions":[{"id","item"?,"question","status"}],
-"unread"}, result success, failure (or another conclusion), going, or none for
+"drafts":[{"id","kind","header"?,"paths"?,"command"?}],"unread"}, result success, failure (or another conclusion), going, or none for
 no run yet; last_green null when the head's run passed or was not read,
 ci.range's provider is none, it names no commit or it cannot be read, header ""
 when not fetched; nightly null when no nightly is named, it has no run yet or it
