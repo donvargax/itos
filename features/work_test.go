@@ -17,7 +17,8 @@
 // (slice 78); the last commit's body within a line length (bug 22); a
 // registry commit made while work done waits for CI (bug 34); the tags the
 // config declares, an item with tags and the tags an item has after (slice
-// 97); an item deferred with its reason, and one not deferred (slice 98).
+// 97); an item deferred with its reason, and one not deferred (slice 98);
+// an item with an owner that depends on another (bug 37).
 package features
 
 import (
@@ -44,6 +45,9 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^the work registry has the item "([^"]*)" owned by nobody with the status "([^"]*)", depending on "([^"]*)"$`, func(id, status, dep string) error {
 		return w.registryItem(id, "null", status, dep, "")
+	})
+	sc.Step(`^the work registry has the item "([^"]*)" owned by "([^"]*)" with the status "([^"]*)", depending on "([^"]*)"$`, func(id, owner, status, dep string) error {
+		return w.registryItem(id, owner, status, dep, "")
 	})
 	sc.Step(`^the work registry has the item "([^"]*)" owned by "([^"]*)" with the status "([^"]*)" and the why "([^"]*)"$`, func(id, owner, status, why string) error {
 		return w.registryItemWhy(id, owner, status, "", "", why, "")
