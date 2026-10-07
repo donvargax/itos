@@ -5639,3 +5639,17 @@ items:
       writes reads as a break. --additive compares the data alone; the runner's own run passes, and
       a case shows a changed comment passing and changed data failing. tools/itos/conformance is
       test's to touch, so a test task.
+
+  - id: T-113
+    title: The hooks.yaml corpus cases pin their --json and the git config entries they write
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Found reviewing v6.0.0's waived failures (2026-10-06): seven cases in
+      tools/itos/conformance/hooks.yaml pin only exit 0 and their plain text, which decision 35 says
+      is not contract, so they check almost nothing a release could break. Each pins its --json and
+      the hook entries it leaves in the git config (hook.itos-commit-msg, hook.itos-pre-push), the
+      data a consumer relies on.
