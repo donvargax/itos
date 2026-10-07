@@ -55,6 +55,7 @@ phases:
 
 queue:
   - T-107
+  - slice-95
   - T-104
   - T-106
   - slice-93
