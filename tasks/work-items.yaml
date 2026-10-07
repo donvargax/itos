@@ -5353,3 +5353,17 @@ items:
       to run /reload-plugins; without claude it says nothing (no flow may need the plugin).
       Update-related: belongs with p1-upgrade-applies-config-steps and p1-upgrade-on-major.
       Unqueued; slice-94 makes it less urgent.
+
+  - id: p1-item-tags
+    title: Work items carry tags from a declared set, and work list filters by them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's question, 2026-10-06: about 200 items cluster by area (upgrade, plugin, stealth,
+      guard, json, windows) that ids and titles do not always name. A declared set in itos.yaml
+      (work.tags), refused outside it by work check; --tag on work add and edit; work list --tag;
+      shown beside the id in work and status. Additive, a v6.x feat. Useful to the cross-repository
+      orchestrator too. Unqueued.
