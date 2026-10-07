@@ -5674,3 +5674,15 @@ items:
       is not contract, so they check almost nothing a release could break. Each pins its --json and
       the hook entries it leaves in the git config (hook.itos-commit-msg, hook.itos-pre-push), the
       data a consumer relies on.
+
+  - id: p1-tag-this-registry
+    title: Declare work.tags in itos.yaml and tag this registry's open items
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slice 97 built tags on work items, but this repository declares none, so its own registry, the
+      clusters that prompted the slice (upgrade, plugin, stealth, guard, json, windows), carries
+      none yet: work.tags in itos.yaml is a build commit, then work edit --tags on the open items.
