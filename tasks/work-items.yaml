@@ -2529,6 +2529,18 @@ items:
       debt list are itos's; the evidence is itos-cc's, whose cache already hashes each function.
       What itos-cc still needs is donvargax/itos-cc#8: a check mode that runs nothing, the tests'
       hash in the cache, and a sample mode for CI.
+
+      itos-cc's state on 2026-10-07 (its agent's answer): mutate is renamed itos-cc mutation run
+      (cc3fecb). #9 is done: --since <ref> judges the functions changed in <ref>...HEAD, never the
+      working tree (268bbf7); --fail-uncovered fails an uncovered mutant, exit 1 (a010631); --json
+      lists every mutant with file, line, column, function, operator, outcome (killed, survived,
+      timeout, uncovered) and reused, exit codes 0 pass, 1 survivor, uncovered or failing baseline,
+      2 usage, 3 outside git, no 75 (bb2aa2f, 313ea4a). #4, #12, #13, #1, #2 are closed. #8:
+      mutation check (0cbba44) and results going stale when their tests change (d943490) are done;
+      mutation sample is next. #10 (equivalent mutants with reasons) is open. None of it is
+      released: the newest itos-cc release is v0.1.1 (2026-10-03), and itos pins its provider by
+      release, so this item and p3-role-protocol stay deferred until a release carries mutation
+      sample.
     refs: [PLAN.md]
 
   - id: p3-debt-claims
