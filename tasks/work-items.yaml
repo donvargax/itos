@@ -5750,3 +5750,16 @@ items:
       runs in 45 s. T-104 made the features and unit tests pass over an itos linked as git; the
       conformance runner (tools/itos/conformance/run.ts) and its fakes do not yet, which is this
       item's first fix.
+
+  - id: p1-work-list-unknown-tag
+    title: work list --tag refuses a tag the config does not declare, exit 2
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice-97's agent (2026-10-07): work list --tag with a tag work.tags does not declare
+      lists nothing and exits 0, where docs/CLI.md rule 25 (check each argument before using it,
+      refuse a bad one with exit 2) wants a refusal naming work.tags, as work add and work edit
+      already refuse it.
