@@ -5765,3 +5765,19 @@ items:
       slice; one naming a decision record or a scenario where it is the reason to read further
       stays.
     refs: [internal/, cmd/]
+
+  - id: p1-tools-bin-unit-tests-in-ci
+    title: CI runs the unit tests of the tools/bin programs a range changes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found in T-110 (2026-10-07): CI's unit step and tools/bin/go-unit-tests cover ./cmd/... and
+      ./internal/... alone, so the tests beside the gate programs (doc-budget, previous-release,
+      release-notes) run only when a pushed commit names a task whose check runs them. A later
+      change to one of those programs under another task, or a build commit, runs none of its tests,
+      and a gate can go wrong unseen until it misjudges a push. go-unit-tests and the ci step could
+      take ./tools/... too, or a step run go test over the tools/bin packages a range changes.
+    refs: [tools/bin/go-unit-tests, itos.yaml]
