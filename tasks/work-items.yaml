@@ -5345,11 +5345,9 @@ items:
     title: previous-release excuses an old failure only when a commit names it, breaking or not
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Specified in tasks/phase-1.yaml.
 
   - id: slice-94
     title: "The Claude Code plugin's calls are a contract: never renamed, and answered under every pin"
