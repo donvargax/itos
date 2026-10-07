@@ -169,7 +169,7 @@ Feature: The commit-msg hook
   # hook reads the type from the same cleaned header the lint reads. A
   # docstring may not keep a leading blank line, hence the second scenario's
   # own step.
-  @ID-CMSG-14 @bug-36 @wip
+  @ID-CMSG-14 @bug-36
   Scenario: A message whose first line is a comment is held to its type's path rules
     Given the config's chore commits may never touch "src/**" except "src/themes/**"
     And a change to "src/app.js" is staged
@@ -183,7 +183,7 @@ Feature: The commit-msg hook
     Then itos exits with code 1
     And its output says "src/app.js"
 
-  @ID-CMSG-15 @bug-36 @wip
+  @ID-CMSG-15 @bug-36
   Scenario: A message whose first line is blank is held to its type's footers
     When the commit-msg hook checks a message whose first line is blank, then "chore: tidy the readme"
     Then itos exits with code 1

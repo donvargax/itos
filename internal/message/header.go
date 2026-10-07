@@ -133,18 +133,7 @@ func (ps *parser) bodyOrFooter(isBody bool) bool {
 // out when commentChar is given, as commitlint --edit does, and gpg's lines
 // always.
 func parse(raw, commentChar string) parsed {
-	all := lines(trimNewLines(raw))
-	kept := []string{}
-	for _, l := range all {
-		if commentChar != "" && l == commentChar+" "+scissor {
-			break
-		}
-		if commentChar != "" && strings.HasPrefix(l, commentChar) || gpgLine.MatchString(l) {
-			continue
-		}
-		kept = append(kept, l)
-	}
-	ps := &parser{lines: kept, p: parsed{raw: raw}}
+	ps := &parser{lines: kept(raw, commentChar), p: parsed{raw: raw}}
 	if ps.available() {
 		header := ps.lines[0]
 		ps.at++
@@ -175,6 +164,32 @@ func parse(raw, commentChar string) parsed {
 		}
 	}
 	return ps.p
+}
+
+// kept are the lines of a message the parser reads: the line breaks at
+// either end trimmed, then comment lines and everything from git's scissor
+// line down left out when commentChar is given, and gpg's lines always.
+func kept(raw, commentChar string) []string {
+	found := []string{}
+	for _, l := range lines(trimNewLines(raw)) {
+		if commentChar != "" && l == commentChar+" "+scissor {
+			break
+		}
+		if commentChar != "" && strings.HasPrefix(l, commentChar) || gpgLine.MatchString(l) {
+			continue
+		}
+		found = append(found, l)
+	}
+	return found
+}
+
+// Cleaned is the message the commit-msg hook's file holds as the header lint
+// reads it (bug 36): its kept lines, so that its first line is the header the
+// lint judges, whatever blank or comment lines an editor left above it. The
+// hook judges the type, the paths and the footers on it, never on the file's
+// own first line, which would hide a commit's type behind a comment.
+func Cleaned(raw, commentChar string) string {
+	return strings.Join(kept(raw, commentChar), "\n")
 }
 
 // length is a text's length as JavaScript counts it, in UTF-16 code units.

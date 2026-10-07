@@ -288,7 +288,10 @@
 // # The hooks
 //
 // hook commit-msg (hook.go) is four rules, the first to fail deciding, each
-// a call to the judgement its own command makes:
+// a call to the judgement its own command makes, the last three on the
+// message git will store as the header lint reads it (message.Cleaned, bug
+// 36), so a blank or comment first line, as an editor leaves one, does not
+// hide the type from the paths and the footers:
 //
 //  1. itos's data at commit: configFindings under
 //     source.ReadingFrom(source.At("index"), …) when a staged path (git diff

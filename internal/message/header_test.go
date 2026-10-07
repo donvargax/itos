@@ -111,3 +111,24 @@ func TestSubjectCases(t *testing.T) {
 		}
 	}
 }
+
+// The message the hook judges is the lint's reading of its file (bug 36):
+// blank and comment lines above the header, and everything from the scissor
+// line down, are out, so its type is the header's.
+func TestCleaned(t *testing.T) {
+	for _, c := range []struct{ raw, comment, want string }{
+		{"\nchore: tidy\n\nTask: T-1\n", "#", "chore: tidy\n\nTask: T-1"},
+		{"# Please enter\nchore: tidy\n", "#", "chore: tidy"},
+		{"; note\nfix: it\n# kept\n", ";", "fix: it\n# kept"},
+		{"feat: a\n# ------------------------ >8 ------------------------\nTask: T-1\n", "#", "feat: a"},
+		{"# only\n", "#", ""},
+	} {
+		got := Cleaned(c.raw, c.comment)
+		if got != c.want {
+			t.Errorf("Cleaned(%q, %q) = %q, want %q", c.raw, c.comment, got, c.want)
+		}
+		if typ := Type(got); c.want != "" && typ != strings.SplitN(c.want, ":", 2)[0] {
+			t.Errorf("Type(Cleaned(%q)) = %q", c.raw, typ)
+		}
+	}
+}

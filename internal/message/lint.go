@@ -263,22 +263,26 @@ type HookStreams struct {
 // shell word, its report printed as it comes, then the footer rules, always,
 // read where r says. A failing delegate's exit code is the hook's (1 when it
 // did not exit by itself); header or footer problems alone exit 1. Without
-// either, the footer rules alone.
+// either, the footer rules alone. The footer rules read the message
+// Cleaned, so the type that decides the footers it needs is the header's the
+// lint judges (bug 36).
 func LintFile(cfg *config.Loaded, file, message string, r Reading, s HookStreams) (int, error) {
+	commentChar := CommentChar()
+	stored := Cleaned(message, commentChar)
 	if cfg.Commits.HeaderLint.Builtin() {
-		header, err := HeaderProblems(cfg, message+"\n", CommentChar())
+		header, err := HeaderProblems(cfg, message+"\n", commentChar)
 		if err != nil {
 			return 0, err
 		}
-		return builtin(cfg, message, header, r, Streams{Stdout: s.Stdout, Stderr: s.Stderr})
+		return builtin(cfg, stored, header, r, Streams{Stdout: s.Stdout, Stderr: s.Stderr})
 	}
 	delegate := cfg.Commits.HeaderLint.Hook
 	if delegate == nil || *delegate == "" {
-		return footersOnly(cfg, message, r, Streams{Stdout: s.Stdout, Stderr: s.Stderr})
+		return footersOnly(cfg, stored, r, Streams{Stdout: s.Stdout, Stderr: s.Stderr})
 	}
 	command := strings.ReplaceAll(*delegate, "{file}", tests.ShellWord(file))
 	run := shell.Run(cfg, command, shell.Options{Stdin: s.Stdin, Stdout: s.Stdout, Stderr: s.Stderr})
-	found, err := FooterProblems(cfg, message, r)
+	found, err := FooterProblems(cfg, stored, r)
 	if err != nil {
 		return 0, err
 	}

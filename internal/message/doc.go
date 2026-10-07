@@ -42,7 +42,9 @@
 // internal/shell with the message on stdin and ITOS_AT in its environment,
 // its report printed as it comes or read by ParseReport into leveled
 // problems under --json, then the footer rules always. LintFile is the
-// commit-msg hook's, with the hook delegate. Verify reads each commit
+// commit-msg hook's, with the hook delegate, its footer rules reading the
+// message Cleaned: the lines the header lint keeps, so a blank or comment
+// first line does not hide the type (bug 36). Verify reads each commit
 // through FooterProblems with At set to it and Made set.
 //
 // IDsIn reads a range's links for CI's plan (git log --format=%B from..to,

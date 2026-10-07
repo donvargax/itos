@@ -91,11 +91,15 @@ func hookCommitMsg(file string, o Out) (int, error) {
 	if merge != nil && len(merge.files) == 0 {
 		return 0, nil
 	}
-	if code, err := stagedRule(cfg, text, base, merge, o); code != 0 || err != nil {
+	// The message git will store, as the header lint reads it (bug 36): a
+	// blank or comment first line, as an editor leaves one, does not hide
+	// the type from the paths and the footers.
+	stored := message.Cleaned(text, message.CommentChar())
+	if code, err := stagedRule(cfg, stored, base, merge, o); code != 0 || err != nil {
 		return code, err
 	}
 	reading := message.Reading{At: os.Getenv("ITOS_AT"), Warn: o.Stderr}
-	footers := text
+	footers := stored
 	if cfg.Stealth {
 		if reading.Note, err = handedFooters(); err != nil {
 			return 0, err
