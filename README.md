@@ -188,10 +188,12 @@ repository that installs itos its own way keeps it.
 
 Where there is no `itos.yaml` at all (outside a project, or in a repository
 that does not use itos) the launcher runs the newest release: it asks for it
-at most once a day (`<base>/latest/download/checksums.txt`), fetches it into
+at most once an hour (`<base>/latest/download/checksums.txt`), fetches it into
 the cache, checked against that list, and runs the newest of itself and the
 releases the cache holds. In a repository that pins an older release than the
-newest it runs the pin and says so on stderr, once a day per repository:
+newest it knows of (the server's answer, the releases the cache holds or the
+itos that runs) it runs the pin and says so on stderr, once a day per
+repository:
 
 ```
 itos 2.3.0 is out (this repository pins 2.2.0): https://github.com/donvargax/itos/releases/tag/v2.3.0
@@ -200,7 +202,7 @@ itos 2.3.0 is out (this repository pins 2.2.0): https://github.com/donvargax/ito
 It asks nothing where the answer goes unused (a config without `pin`), never
 in CI (the `CI` variable set) and not with `ITOS_NO_UPDATE=1`, and never says
 in CI or with `ITOS_NO_UPDATE_NOTICE=1`. A release server it cannot reach is
-not an error: it waits a few seconds at most, once a day, and carries on with
+not an error: it waits a few seconds at most, once an hour, and carries on with
 what the cache has.
 
 `ITOS_VERSION=<x.y.z>` runs another release for one call (trusting its
