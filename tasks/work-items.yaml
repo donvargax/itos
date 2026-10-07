@@ -4770,14 +4770,15 @@ items:
       it is built properly as an extension, here or in its own repository. It reads status --json
       across versions, so that output becomes a contract (p2-cross-repo-contract).
 
-  - id: p1-tests-hide-git-shim
+  - id: T-104
     title: The features and unit tests run the real git, never an itos linked as git
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-tests-hide-git-shim.
       Found by bug-46's agent (2026-10-06): with the itos git shim first on the PATH (a git that is
       a link to itos), 63 features fail (chore commits need --task) and the cli unit test
       TestDeclareHooksOldGit hangs; with PATH=/usr/bin first all pass. T-087 hides claude, itos and
