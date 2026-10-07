@@ -6065,17 +6065,9 @@ items:
     title: release-version cuts the module path's major for a feat or a fix once go.mod is ahead of the last release
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      T-119 moved go.mod to /v7 with v6.5.1 the last release and the pre-release marker on. Until
-      v7.0.0-rc.1 is cut, a feat or a fix with no breaking change still computes a 6.x version
-      (6.6.0, 6.5.2), which the module path rule (T-089) refuses: the release job fails and the
-      push's CI run is red. The first candidate therefore needs a breaking commit. A module path
-      ahead of the last release's major already promises that major, so release-version could cut it
-      (or its rc) for any releasable commit, instead of refusing; until then, the push that cuts
-      rc.1 must carry a breaking change.
 
   - id: T-122
     title: tools/bin's tests and self-tests run the real git, never an itos linked as git
