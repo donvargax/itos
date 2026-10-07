@@ -412,7 +412,8 @@ func extract(archive []byte, asset string) ([]byte, error) {
 }
 
 // store puts the checked binary and its checksums.txt in dir: written into a
-// folder beside it, then moved into place whole.
+// folder of the run's own beside it, then moved into place whole, keeping the
+// release another run cached there first.
 func store(cache, dir string, binary, sums []byte) error {
 	if err := os.MkdirAll(cache, 0o755); err != nil {
 		return fmt.Errorf("cannot create the cache %s: %w", cache, err)
@@ -428,16 +429,23 @@ func store(cache, dir string, binary, sums []byte) error {
 	if err := os.WriteFile(filepath.Join(tmp, "checksums.txt"), sums, 0o644); err != nil {
 		return fmt.Errorf("cannot write to the cache %s: %w", cache, err)
 	}
-	// What the cache held for the version was checked against another
-	// checksums.txt, or is half of one: the checked release replaces it.
-	if err := os.RemoveAll(dir); err != nil {
+	// The checked release goes into place only where there is none: a run that
+	// finds the version cached by another meanwhile keeps that one, never
+	// removing what the other is about to run (bug 44; on windows a running
+	// itos.exe can be neither removed nor replaced).
+	sum := target{checksums: release.SHA256(sums)}
+	if os.Rename(tmp, dir) == nil || cached(dir, sum) {
+		return nil
+	}
+	// What the cache holds for the version was checked against another
+	// checksums.txt, or is half of one: it is moved aside, out of the way of
+	// the checked release, and removed after.
+	old := tmp + ".old"
+	if err := os.Rename(dir, old); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("cannot replace %s in the cache: %w", dir, err)
 	}
-	if err := os.Rename(tmp, dir); err != nil {
-		// Another run may have put the same release there meanwhile.
-		if cached(dir, target{checksums: release.SHA256(sums)}) {
-			return nil
-		}
+	defer os.RemoveAll(old)
+	if err := os.Rename(tmp, dir); err != nil && !cached(dir, sum) {
 		return fmt.Errorf("cannot write to the cache %s: %w", cache, err)
 	}
 	return nil

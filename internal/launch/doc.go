@@ -42,11 +42,16 @@
 // takes the platform archive's line (itos-<version>-<os>-<arch>.tar.gz, .zip
 // on windows), fetches and checks the archive, extracts the binary at its top
 // and moves it with that checksums.txt into the cache as one folder, written
-// beside it first, so nothing unverified is ever left in the cache. A
-// release server that cannot be reached or fails exits 75, a failure that
-// may pass when run again; anything else that cannot be fetched or does not
-// match exits 3, a missing environment; each with one line naming what
-// failed, and nothing runs in its place. run is syscall.Exec on unix, so the
+// beside it first, so nothing unverified is ever left in the cache. Two
+// first runs of a release fetch it at once (bug 44): the folder goes into
+// place only where there is none, so a run that finds the release cached by
+// another meanwhile runs that one and never removes what the other is about
+// to exec (nor could it on windows, where a running itos.exe can be neither
+// removed nor replaced); only a folder checked against another checksums.txt
+// is moved aside for it. A release server that cannot be reached or fails
+// exits 75, a failure that may pass when run again; anything else that cannot
+// be fetched or does not match exits 3, a missing environment; each with one
+// line naming what failed, and nothing runs in its place. run is syscall.Exec on unix, so the
 // version run owns the process, its signals and its exit code; elsewhere a
 // child whose exit code is passed back.
 //

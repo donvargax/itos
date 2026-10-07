@@ -248,6 +248,43 @@ func TestStoreAndCached(t *testing.T) {
 	}
 }
 
+// A release another run cached first is kept, the very folder (bug 44); one
+// checked against another checksums.txt is replaced, nothing left beside it.
+func TestStoreKeepsWhatAnotherRunCached(t *testing.T) {
+	cache := t.TempDir()
+	dir := filepath.Join(cache, "9.1.0")
+	text := []byte("checksums\n")
+	if err := store(cache, dir, []byte("first"), text); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.Stat(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := store(cache, dir, []byte("second"), text); err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.Stat(dir)
+	if err != nil || !os.SameFile(before, after) {
+		t.Fatalf("the release cached first was replaced (%v)", err)
+	}
+	if got, _ := os.ReadFile(filepath.Join(dir, binaryName())); string(got) != "first" {
+		t.Errorf("the cached binary is %q, not the one cached first", got)
+	}
+
+	other := []byte("other checksums\n")
+	if err := store(cache, dir, []byte("third"), other); err != nil {
+		t.Fatal(err)
+	}
+	if !cached(dir, target{"9.1.0", release.SHA256(other)}) {
+		t.Error("the release checked against another checksums.txt was not replaced")
+	}
+	entries, err := os.ReadDir(cache)
+	if err != nil || len(entries) != 1 {
+		t.Errorf("the cache holds %v, not the release alone", entries)
+	}
+}
+
 func TestBinaryCommand(t *testing.T) {
 	for args, want := range map[string]bool{
 		"pin":                    true,

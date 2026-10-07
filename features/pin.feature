@@ -217,7 +217,7 @@ Feature: A global itos runs the version a repository pins
   # is forced every time, not left to chance, and the scenario judges that
   # the release cached first is kept, not replaced (the folder itself, not a
   # copy: a run about to exec the binary in it must find it there).
-  @ID-PIN-21 @bug-44 @wip
+  @ID-PIN-21 @bug-44
   Scenario: Two first runs of a newly pinned release both run it, neither undoing the other
     Given the config pins the version "9.1.0" of the release server
     And the release server holds the first download of a release until the other run has cached it
