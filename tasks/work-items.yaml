@@ -5744,3 +5744,9 @@ items:
       features do since T-104), never to a git found on the PATH; and the runner starts each case in
       a process group of its own and kills the group on timeout or exit, so nothing outlives the
       run.
+
+      Seen again by slice-97's agent (2026-10-07): with the git shim ahead of /usr/bin/git on the
+      PATH, the corpus's old-git cases hang in git describe; with /usr/bin first the whole corpus
+      runs in 45 s. T-104 made the features and unit tests pass over an itos linked as git; the
+      conformance runner (tools/itos/conformance/run.ts) and its fakes do not yet, which is this
+      item's first fix.
