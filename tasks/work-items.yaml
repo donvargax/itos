@@ -5387,8 +5387,8 @@ items:
   - id: T-107
     title: The coordinator's guide carries the brief rules and the lesson format that hold for any repository
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
