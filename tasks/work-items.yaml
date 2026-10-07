@@ -5995,6 +5995,9 @@ items:
       To specify (docs/plans/v7-proof-of-done.md, the rule: a task's checks are the agent's progress
       while it is open, gate work done, then leave the ledger; git history keeps them). Part of v7,
       after the code proof.
+    deferred: >
+      Any feat or fix now cuts v7.0.0-rc.1 (T-123), and the user wants rc.1 to be the itos-cc
+      integration (decision 42), so this lands after slice-100. Resume it then.
 
   - id: slice-100
     title: "work done requires the code proof: the provider's check over the item's commits, closing only when it passes"
