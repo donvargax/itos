@@ -154,6 +154,9 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^a release server offering the versions "([^"]*)" and "([^"]*)"$`, func(a, b string) error {
 		return w.startReleaseServer(a, b)
 	})
+	// One more release on the scenario's server, not its newest: a release
+	// candidate a repository may pin (bug 50), which GitHub's latest never is.
+	sc.Step(`^the release server also offers the version "([^"]*)"$`, w.alsoOffer)
 	sc.Step(`^the version "([^"]*)" exits with code (\d+)$`, w.versionExitsWith)
 	sc.Step(`^the config pins the version "([^"]*)" of the release server$`, func(version string) error {
 		return w.pinVersion(version, version)
@@ -253,6 +256,14 @@ func (w *world) otherRunsReleaseKept() error {
 		return fmt.Errorf("the release the other run cached, %s, was replaced by another folder", dir)
 	}
 	return nil
+}
+
+// The release server offers the version too, its newest left as it was.
+func (w *world) alsoOffer(version string) error {
+	if err := w.needReleases(); err != nil {
+		return err
+	}
+	return w.offerRelease(version, "")
 }
 
 func (w *world) releaseServerUnreachable() error {
