@@ -1087,3 +1087,24 @@
   done_when:
     - run: node tools/selftest/previous-release.ts
     - run: grep -q selftest/previous-release itos.yaml
+
+- id: T-118
+  type: ci
+  title: "Releases can be pre-releases: while itos.yaml says so, a major cuts vN.0.0-rc.N, marked pre-release, not latest"
+  why: >
+    The user's call (2026-10-07): v7 is released as pre-releases while its bundle lands, the itos-cc
+    integration first, so it can be tried (pinned) before the final v7.0.0, instead of each breaking
+    push cutting a major of its own. tools/bin/release-version learns a pre-release mode, switched
+    on by a key in itos.yaml (for example release: { prerelease: rc }, a gate path only build and ci
+    commits touch): while it is on, the commits that would cut the next major cut
+    <major>.0.0-rc.<n>, n counting up from the last rc tag of that major, and a feat or fix after an
+    rc cuts the next rc; removing the key cuts the final <major>.0.0. The release workflow marks an
+    rc release pre-release and never latest, so go install @latest, the launcher's update notice and
+    itos pin with no version keep naming the newest stable release; itos pin <rc> pins one
+    explicitly. Self-tested as release-version's other rules are (tools/selftest/go-release.ts or
+    its unit tests), by running it on scratch histories. Lands after 6.x's last items; the module
+    path's move to /v7 (T-089's rule: no v7 tag from a /v6 go.mod) comes with the first rc, after
+    which main cuts no 6.x patch.
+  done_when:
+    - run: go test ./tools/bin/release-version -count=1
+    - run: grep -q prerelease itos.yaml
