@@ -29,6 +29,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cucumber/godog"
 	"go.yaml.in/yaml/v3"
@@ -119,6 +120,8 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the repository has no itos\.yaml$`, w.noConfig)
 	sc.Step(`^([A-Z][A-Z0-9_]*) is "([^"]*)"$`, w.setVariable)
 	sc.Step(`^itos has already run "([^"]*)"$`, w.alreadyRan)
+	sc.Step(`^the launcher's last answer from the release server, (a minute|an hour|two hours|a day) old, is "([^"]*)"$`, w.lastAnswer)
+	sc.Step(`^the cache holds the release "([^"]*)"$`, w.cacheHolds)
 
 	sc.Step(`^itos runs "([^"]*)"$`, func(args string) error { return w.itos(strings.Fields(args)...) })
 	// The command line split as a shell splits it, its quotes kept together
@@ -334,6 +337,51 @@ func (w *world) setVariable(name, val string) error {
 	return nil
 }
 
+// The ages a scenario gives the launcher's last answer.
+var answerAges = map[string]time.Duration{
+	"a minute":  time.Minute,
+	"an hour":   time.Hour,
+	"two hours": 2 * time.Hour,
+	"a day":     24 * time.Hour,
+}
+
+// The launcher's last answer from the release server, the newest version it
+// named, written where the launcher keeps it (<cache>/state/latest, "<unix
+// seconds> <version>") as had age ago, so that the run reads it as it would
+// one it had asked for itself.
+func (w *world) lastAnswer(age, version string) error {
+	file := filepath.Join(w.cacheDir(), "state", "latest")
+	if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+		return err
+	}
+	at := time.Now().Add(-answerAges[age]).Unix()
+	return os.WriteFile(file, []byte(fmt.Sprintf("%d %s\n", at, version)), 0o644)
+}
+
+// The cache holds the release server's version, its binary and checksums.txt
+// in <cache>/<version>/, as the launcher leaves a release it fetched, without
+// the server being asked for it.
+func (w *world) cacheHolds(version string) error {
+	if err := w.needReleases(); err != nil {
+		return err
+	}
+	sums := w.releases.get(releasePath(version, "checksums.txt"))
+	if sums == nil {
+		return fmt.Errorf("the release server has no version %s", version)
+	}
+	dir := filepath.Join(w.cacheDir(), version)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	if err := w.writeProgram(filepath.Join(dir, "itos"), w.fakeItos(version, "")); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, "checksums.txt"), sums, 0o644)
+}
+
+// The cache every run of itos is given, ITOS_CACHE.
+func (w *world) cacheDir() string { return filepath.Join(w.support, "cache") }
+
 func (w *world) alreadyRan(args string) error {
 	if err := w.itos(strings.Fields(args)...); err != nil {
 		return err
@@ -447,7 +495,7 @@ func (w *world) askedForNothing(sinceLast bool) error {
 // The environment that keeps a run of itos off the network and off any real
 // cache, then the variables the scenario set.
 func (w *world) launcherEnv() []string {
-	env := []string{"ITOS_CACHE=" + filepath.Join(w.support, "cache")}
+	env := []string{"ITOS_CACHE=" + w.cacheDir()}
 	switch {
 	case w.releases != nil && w.releases.unreachable:
 		env = append(env, "ITOS_RELEASES="+noReleaseServer)
