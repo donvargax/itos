@@ -13,8 +13,9 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
   change is taken out of the working tree when it is drafted, so the
   checkout stays the agent's. itos draft promote applies the drafts in the
   order they were added, each through the hooks as any commit, and only
-  when no item of the registry is doing and no tracked file has a change
-  no commit holds: drafting never touches an agent's work, and the guide's
+  when the checkout is clean: no tracked file has a change no commit holds,
+  staged or not, and no rebase or merge is in progress: drafting never
+  touches an agent's work, and the guide's
   "commit only between agents" becomes a gate. It stops at the first draft
   that cannot be applied, keeping it and those after it. itos status names
   the drafts waiting.
@@ -66,19 +67,18 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And its output does not say "say-new"
     And its output does not say "add-thing"
 
-  # The gate the guide's "commit only between agents" lacked: an item doing
-  # means an agent may hold the checkout.
+  # An item's status is no gate (the user's call, 2026-10-06): items stay
+  # doing for the coordinator's own work and for agents that have gone, so
+  # "no item doing" deadlocked, a draft closing a doing item never promoted.
+  # What collides with an agent is its index and work tree, which the clean
+  # checkout guards.
   @ID-DRAFT-04 @slice-96
-  Scenario: draft promote refuses while an item is doing, and applies nothing
+  Scenario: draft promote applies the drafts while an item is doing, an item's status being no gate
     Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
     And itos has run the command line "draft add add-thing -- work add p1-thing --title 'A thing' --why 'Because.'"
     When itos runs "draft promote"
-    Then itos exits with code 1
-    And its output says "slice-9"
-    And the registry has no item "p1-thing"
-    When itos runs "draft"
     Then itos exits with code 0
-    And its output says "add-thing"
+    And the registry's item "p1-thing" is an idea titled "A thing" with the status "todo"
 
   @ID-DRAFT-05 @slice-96
   Scenario: draft promote refuses while a tracked file has a change no commit holds, and applies nothing
@@ -166,7 +166,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
   # A merge or a rebase stopped part way holds the index and the work tree
   # as much as a change does: a draft's commit there would conclude it. The
   # draft is a change, since a command's own commit refuses a merge itself.
-  @ID-DRAFT-12 @slice-96 @wip
+  @ID-DRAFT-12 @slice-96
   Scenario: draft promote refuses while a rebase or a merge is in progress, and applies nothing
     Given the committed file "notes.md" holding "Old."
     And the file "notes.md" is changed to hold "New."

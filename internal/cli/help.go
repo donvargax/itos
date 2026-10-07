@@ -95,7 +95,7 @@ Commands:
   draft add <id> -m <message> <path>…
                                    keep a change to files for later, and put the files back
   draft add <id> -- <itos args>…   keep an itos command line to run later
-  draft promote                    apply and commit the drafts, once no work is going on
+  draft promote                    apply and commit the drafts, once the checkout is clean
   draft drop <id>                  drop a draft, applying nothing
   commit [--task <id>] [--item <id>] [--scenarios <ids>] [--<footer> <text>] [<git commit args>…]
                                    git commit, with the footers itos writes
@@ -1132,10 +1132,11 @@ or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 	"draft promote": `Usage: itos draft promote
 
-Applies the drafts in the order they were added, while no work is going on:
-refused, nothing applied (exit 1), while any item of the work registry is
-doing, naming each, or any tracked file has a change no commit holds, staged
-or not, naming each. A change is applied with git apply --index, which takes
+Applies the drafts in the order they were added, while the checkout is
+clean: refused, nothing applied (exit 1), while any tracked file has a change
+no commit holds, staged or not, naming each, or a rebase or a merge is in
+progress. An item's status is no gate: items stay doing for the coordinator's
+own work and for agents that have gone. A change is applied with git apply --index, which takes
 the whole patch or none of it, and committed with its message through the
 hooks, as any commit; a command line is run by this itos and commits itself,
 its output on stderr. Each draft promoted leaves the list. The first that

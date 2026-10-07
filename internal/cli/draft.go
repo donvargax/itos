@@ -31,8 +31,6 @@ import (
 	"github.com/donvargax/itos/v6/internal/git"
 	"github.com/donvargax/itos/v6/internal/lock"
 	"github.com/donvargax/itos/v6/internal/out"
-	"github.com/donvargax/itos/v6/internal/value"
-	"github.com/donvargax/itos/v6/internal/work"
 )
 
 // draftTakes is what draft takes, as a usage error names it.
@@ -447,37 +445,15 @@ func noDraft(id string, o Out) (int, error) {
 	}}, ExitPolicy, o)
 }
 
-// workGoingOn are the reasons work may be going on in the checkout, each a
-// problem: an item of the registry doing (an agent may hold the checkout),
+// checkoutBusy are the reasons the checkout is not clean, each a problem:
 // a tracked file with a change no commit holds, staged or not (someone's
-// work in progress).
-func workGoingOn() ([]out.Problem, error) {
-	cfg, err := config.Load(config.Path())
-	if err != nil {
-		return nil, err
-	}
-	registry, err := work.Load(cfg, cfg.Work.Registry)
-	if err != nil {
-		return nil, err
-	}
+// work in progress), and a merge or a rebase stopped part way, which a
+// commit would conclude. An item's status is no reason (the user's call,
+// 2026-10-06): items stay doing for the coordinator's own work and for
+// agents that have gone, and what collides with an agent is its index and
+// work tree.
+func checkoutBusy() []out.Problem {
 	var found []out.Problem
-	var doing []string
-	for _, item := range registry.Items {
-		if item.At("status") == "doing" {
-			who := value.String(item.At("owner"))
-			if who == "" {
-				who = "nobody"
-			}
-			doing = append(doing, value.String(item.At("id"))+" ("+who+")")
-		}
-	}
-	if len(doing) > 0 {
-		found = append(found, out.Problem{
-			Rule:    "draft-work-doing",
-			Message: fmt.Sprintf("work is going on, so no draft is promoted: %s doing, and an agent may hold the checkout", and(doing)),
-			Fix:     "promote once the item is done or dropped",
-		})
-	}
 	var changed []string
 	for _, line := range git.Changed() {
 		if len(line) > 3 {
@@ -491,7 +467,32 @@ func workGoingOn() ([]out.Problem, error) {
 			Fix:     "promote once that work is committed or put back",
 		})
 	}
-	return found, nil
+	var stopped []string
+	if git.Rebasing() {
+		stopped = append(stopped, "a rebase")
+	}
+	if merging() {
+		stopped = append(stopped, "a merge")
+	}
+	if len(stopped) > 0 {
+		found = append(found, out.Problem{
+			Rule:    "draft-checkout-busy",
+			Message: fmt.Sprintf("%s is in progress, which a draft's commit would conclude, so no draft is promoted", and(stopped)),
+			Fix:     "promote once it is finished or aborted",
+		})
+	}
+	return found
+}
+
+// merging is whether a merge is in progress: git keeps MERGE_HEAD in the
+// git folder until it is committed or aborted.
+func merging() bool {
+	path, err := git.Output("rev-parse", "--git-path", "MERGE_HEAD")
+	if err != nil {
+		return false
+	}
+	_, err = os.Stat(strings.TrimSpace(path))
+	return err == nil
 }
 
 func hasHave(n int) string {
@@ -502,8 +503,8 @@ func hasHave(n int) string {
 }
 
 // draftPromote is `draft promote`: every draft applied and committed in the
-// order they were added, while no work is going on (workGoingOn, else exit
-// 1 and nothing applied). Each draft promoted leaves the list at once; the
+// order they were added, while the checkout is clean (checkoutBusy, else
+// exit 1 and nothing applied). Each draft promoted leaves the list at once; the
 // first that cannot be applied stops it, the tree left as HEAD has it, that
 // draft and the ones after it kept, exit 1 naming it.
 func draftPromote(args []string, o Out) (int, error) {
@@ -539,10 +540,6 @@ func draftPromote(args []string, o Out) (int, error) {
 		}
 		return report(nil)
 	}
-	found, err := workGoingOn()
-	if err != nil {
-		return 0, err
-	}
 	// The patches name files from the work tree's top, as git apply reads
 	// them where it runs.
 	if top, err := git.Output("rev-parse", "--show-toplevel"); err == nil {
@@ -550,7 +547,7 @@ func draftPromote(args []string, o Out) (int, error) {
 			return 0, err
 		}
 	}
-	if len(found) > 0 {
+	if found := checkoutBusy(); len(found) > 0 {
 		return report(found)
 	}
 	for _, d := range drafts.Drafts {
