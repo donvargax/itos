@@ -173,7 +173,7 @@ in the spec or in a gate, ask the person; never weaken a gate to get green.
 
 Fill in the item, its scenarios and its reads; keep the rest. Each rule in it
 is there because agents make that mistake without it; add the next one an
-item teaches you to the repository's own notes.
+item teaches you to the repository's own notes, as a lesson (below).
 
 > Implement <item> of <project>, in the repository at <absolute path>:
 > <one line>. The scenarios are <ids> in <feature file>, all `@wip` (or: the
@@ -193,14 +193,30 @@ item teaches you to the repository's own notes.
 > its behaviour, stop and propose the change.
 >
 > Before pushing, run what the change can reach beyond what it names:
-> <the neighbouring scenarios and checks>.
+> <the neighbouring scenarios and checks; for an item that moves a rule from
+> one command to another, the checks of the done tasks that call either>.
 >
 > Others push to main while you work: commit with `itos commit`, push with
 > `itos push`, never force. Do the work yourself; start no agents. Each
-> commit's body says why. Push, wait for CI with `itos push` in the
+> commit's body says why, and no line of it starts with `word:`, which git
+> reads as a footer. Prefix your scratch files with <item>: sessions share
+> the folder. Push, wait for CI with `itos push` in the
 > background, and close the item with `itos work done <item>` once it is
 > green.
 >
 > Report: the commits, the CI run's address, each scenario's failing step
 > before the work, the scenarios turned green, <the item's own questions>,
 > the ideas you added, and any scenario text corrected and why.
+
+## Lessons
+
+A mistake an agent or you made, and that a rule in the repository's own
+notes would prevent, becomes a lesson there:
+
+- **It names its exit:** the item that makes it unnecessary (a check, a
+  gate, a fix), or "permanent" when it needs judgement. When the exit item
+  is done, delete the lesson in the same commit.
+- **It gives two dates:** the day it was recorded and the day the mistake
+  was last seen. Update the second when the mistake comes back.
+- **Keep at most ten.** To add one, turn one into an item or delete it:
+  every lesson is read by every session, so a long list costs each one.

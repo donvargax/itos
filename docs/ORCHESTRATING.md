@@ -88,14 +88,8 @@ work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the
   red there stops the release.
 - **The `Upgrading:` footer** says what a consumer must change, concretely,
   since the notes quote it. Never "none; …" followed by text: it reads as none.
-- **Commit bodies:** never start a body line with `word:`. The lint, and the
-  release notes, read it as a footer.
 - **The neighbours:** "Before pushing, run `go test ./features -count=1
 -scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.
-  If the item moves a rule from one command to another, also run `itos task`
-  on the done tasks whose checks call either.
-- **The scratchpad:** agents prefix their scratch files with the item's id,
-  because sessions share the folder.
 
 ## Parallel agents, if the user asks for them
 
@@ -111,14 +105,9 @@ install`, because a second install can load two copies of a tool;
 
 ## Lessons from this repository
 
-Each lesson fixes a mistake that an agent or the coordinator made. Each lesson
-names its exit: the item that makes the lesson unnecessary, or "permanent"
-when the lesson needs judgement. When the exit item is done, delete the
-lesson in the same commit. Each lesson also gives the date it was recorded
-and the date the mistake was last seen ("by 2026-10-04": it was in this file
-when the file was reorganized that day). Keep at most ten lessons: to add
-one, convert or delete one. `p1-agent-rules-as-data` moves them into itos's
-data.
+They keep the guide's format for lessons. "By 2026-10-04" means the lesson
+was in this file when the file was reorganized that day.
+`p1-agent-rules-as-data` moves them into itos's data.
 
 - **Trace each Given to where itos runs before handing a spec out.** Twice on
   2026-10-04 a scenario asserted what its setup could not produce: `itos go`
