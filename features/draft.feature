@@ -177,3 +177,57 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And its output says "merge"
     And the file "notes.md" says "Old."
     And the last commit's header is not "docs: say new"
+
+  # Slice 99 (the user's call, 2026-10-07; was p1-draft-edit-off-tree):
+  # coordinators kept writing specs in scratch files while an agent ran,
+  # though the guide says to draft them, because drafting a file change meant
+  # first editing the file in the working tree, the agent's checkout, where it
+  # stops the agent's push and can be taken by its commit. itos draft edit
+  # <id> -m <message> <path>... gives the draft a copy of each path, HEAD's
+  # content or empty for a new file, in the draft's own folder under the git
+  # common dir, and prints where; the person edits the copies there, never the
+  # tree. promote applies each copy's change against the HEAD it was taken
+  # from, as for any change draft, so a tree that moved under it stops promote
+  # at that draft. The working tree is neither read nor written until promote.
+  @ID-DRAFT-13 @slice-99 @wip
+  Scenario: draft edit gives the draft a copy of the file to edit, and touches nothing in the working tree
+    Given the committed file "notes.md" holding "Old."
+    And the file "notes.md" is changed to hold "An agent's work."
+    When itos runs the command line "draft edit say-new -m 'docs: say new' notes.md"
+    Then itos exits with code 0
+    And the draft "say-new"'s copy of "notes.md" says "Old."
+    And its output names the draft "say-new"'s copy of "notes.md"
+    And the file "notes.md" says "An agent's work."
+
+  @ID-DRAFT-14 @slice-99 @wip
+  Scenario: draft promote commits the change made in the draft's copy, with its message
+    Given the committed file "notes.md" holding "Old."
+    And itos has run the command line "draft edit say-new -m 'docs: say new' notes.md"
+    And the draft "say-new"'s copy of "notes.md" is changed to hold "New."
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And the file "notes.md" says "New."
+    And the last commit's header is "docs: say new"
+    And git status shows nothing to commit
+
+  @ID-DRAFT-15 @slice-99 @wip
+  Scenario: draft edit of a file HEAD lacks starts it empty, and promote adds it
+    When itos runs the command line "draft edit new-spec -m 'docs: add a spec' specs/new.md"
+    Then itos exits with code 0
+    And the file "specs/new.md" does not exist
+    Given the draft "new-spec"'s copy of "specs/new.md" is changed to hold "A spec."
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And the file "specs/new.md" says "A spec."
+    And the last commit's header is "docs: add a spec"
+
+  @ID-DRAFT-16 @slice-99 @wip
+  Scenario: draft promote stops at an edited copy whose file HEAD changed since it was taken, keeping it
+    Given the committed file "notes.md" holding "Old."
+    And itos has run the command line "draft edit say-new -m 'docs: say new' notes.md"
+    And the draft "say-new"'s copy of "notes.md" is changed to hold "New."
+    And the committed file "notes.md" holding "Rewritten by someone."
+    When itos runs "draft promote"
+    Then itos exits with code 1
+    And its output says "say-new"
+    And the file "notes.md" says "Rewritten by someone."
