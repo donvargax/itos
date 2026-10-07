@@ -4258,7 +4258,7 @@ items:
     title: init --stealth on a project's config is a usage error
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
