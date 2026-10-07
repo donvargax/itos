@@ -1,11 +1,3 @@
-// Package ledger is the ledger: the YAML files of tasks ledger.files names
-// (tasks/phase-{group}.yaml), where they are, and what is wrong with them
-// (config.ts's ledgerLayout, ledgerFiles and ledgerIssues). The schema is
-// strict: duplicate or malformed IDs, unknown types, unknown keys, both or
-// neither of run and fails, and a cost: static written below a late check of
-// the same task, which written order would run late anyway. A check static
-// by a ci.cost.static pattern written there is run late just the same, and
-// is a warning (bug 27).
 package ledger
 
 import (

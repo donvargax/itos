@@ -1,31 +1,3 @@
-// Package adr is the architecture decision records itos decision record writes
-// (features/ask.feature): an answered question written as a record in MADR
-// 4's format (adr/madr 4.0.0, its bare-minimal template), the maintained
-// one under the adr organisation (slice 71, which replaced slice 69's
-// adr-tools records). A record is a Markdown file NNNN-slug.md: YAML
-// frontmatter holding its status and date, which no section repeats; the
-// title as "# Title", with no number; then the sections Context and Problem
-// Statement, Considered Options, Decision Outcome and its Consequences, and
-// More Information when it supersedes another. A record superseded says so
-// in its status, "superseded by ADR-NNNN", as MADR's template spells it.
-// The folder's README.md holds, between itos's markers, the index of the
-// live records: every record but those whose status says superseded,
-// deprecated or rejected, so a record with no frontmatter, which MADR
-// allows, is listed (bug 19).
-//
-// A record is read by its structure, never its bytes: the status is the
-// frontmatter's, parsed as YAML, the title the first "# " heading after it,
-// so a record a person or a formatter rewrote reads the same. Everything
-// written here is in the form a Markdown formatter leaves alone (bug 17).
-//
-// Config check holds the folder to two rules (slice 74), Problems: no two
-// records share a number, and a record superseded names, in its status, a
-// number a record in the folder has. The index is not held to the folder,
-// since itos decision record writes it whole at every record.
-//
-// The functions here are text in, text out, but for List and Next, which
-// read the folder, List through internal/source so that the commit-msg hook
-// reads the records as staged; internal/cli/ask.go writes and commits.
 package adr
 
 import (

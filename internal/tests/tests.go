@@ -1,13 +1,3 @@
-// Package tests is named tests behind an adapter (tools/itos/tests.ts,
-// gherkin.ts, smoke.ts and smoke-rule.ts): which tests a kind has at a tree
-// (the working tree, the index or a commit) and which are live, as the
-// adapter protocol's list, and the kind's smoke set with its rule. The
-// built-in Gherkin adapter is the only reader of a feature file; a command
-// adapter is `<command> list --at <tree>`, held to the protocol.
-//
-// The kind's run templates turn selections into one command (run.go), and
-// its recognize templates read a task check back as a selection
-// (recognize.go), for CI's plan's one merged run.
 package tests
 
 import (

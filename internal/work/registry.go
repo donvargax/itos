@@ -1,8 +1,3 @@
-// Package work is the work registry (tools/itos/work.ts): work.registry,
-// work-items.yaml in the ledger's folder by default, which says who owns each
-// group and each work item, its status and what it waits on. The port has the
-// registry's reading and its problems, which config check and work check
-// report, and the proposal `work` prints (propose.go).
 package work
 
 import (

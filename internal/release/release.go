@@ -1,12 +1,3 @@
-// Package release is where itos's releases are and how one is asked for:
-// the base they are fetched from (ITOS_RELEASES, the GitHub releases of itos
-// by default), a version's assets at <base>/download/v<version>/<asset>, the
-// newest release's at <base>/latest/download/<asset>, as GitHub serves its
-// latest release, and its notes at <base>/tag/v<version>. A release's
-// checksums.txt lists its archives, whose names carry its version, and its
-// SHA-256 is what a pin holds (pin.checksums). The launcher (internal/launch)
-// fetches and runs releases through it, and itos pin (internal/cli) reads one
-// to move a pin, and itos upgrade each release's upgrading.json (slice 75).
 package release
 
 import (

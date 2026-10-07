@@ -1,7 +1,3 @@
-// Package nextid is the next free ID of a series (slice 60): `itos tests
-// next-id`'s tag and `itos task next-id`'s task ID, each one past the highest
-// number the series already holds, as internal/ask's NextID gives a question
-// its id, so that a writer never greps for it.
 package nextid
 
 import (

@@ -1,27 +1,3 @@
-// Package guard is itos guard claude-code (slice 42, features/guard.feature):
-// Claude Code's PreToolUse hook, which the itos plugin wires on Bash, asks
-// before each tool runs, sending the tool's name, its input and the session's
-// folder as JSON on stdin. In a repository itos manages (config.Managed,
-// judged from the input's folder, as the git shim judges git's), a Bash
-// command that runs git commit or git push is denied, the reason naming the
-// itos command to use instead, which Claude Code shows the agent. Everything
-// else gets no answer, so Claude Code's own permission rules decide as if no
-// hook ran: the guard never allows anything, since an allow would skip the
-// person's rules for every command it let through.
-//
-// The command is read as bash reads it (mvdan.cc/sh/v3/syntax), word by word:
-// every simple command in it, whether a list, a pipeline, a subshell, a
-// function's body or a command substitution holds it, its leading variable
-// assignments skipped, and the precommands command, exec, nohup and env
-// (with env's NAME=VALUE words) looked through. A command whose name is git,
-// or a path ending in /git, is git: its global options are skipped (-C <path>
-// moving the folder judged, as git would move, the others' values passed
-// over) and the next word is the subcommand. Text an argument carries
-// (grep 'git commit') is a word, not a command. A guardrail for agents that
-// follow it, not a fortress (the user's call, 2026-10-03): a command in sh -c,
-// eval, a script, a git alias, a word built from a variable, a command that
-// moves with cd first, or one bash cannot parse is not looked into, and the
-// commit-msg hook and CI's verify stay the gates.
 package guard
 
 import (

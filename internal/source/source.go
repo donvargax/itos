@@ -1,21 +1,3 @@
-// Package source is where itos reads its own data (tools/itos/source.ts): the
-// config, the ledger, the work registry, the people and the smoke sets. By
-// default that is the working tree's files; ReadingFrom reads them from a tree
-// git holds instead, the index (the staged tree, which the commit-msg hook
-// judges, since it is what the commit will hold) or a commit, for as long as a
-// function runs. Every reader of them goes through Has, Read and List, so
-// config check and the hook's check of the staged data are one check.
-//
-// Beside the source, Texts reads the files of a tree under a folder at once
-// (repo.ts's treeTexts): the ledger's IDs and the Gherkin adapter's feature
-// files at the tree a footer or `--at` names, whatever the source is.
-//
-// A path in the git folder (the stealth mode's config and its data, in
-// <git common dir>/itos) is in no tree git holds, the index or a commit, so
-// it is read from the file where it is, whatever the source.
-//
-// A working tree's read that fails says so in Node's words (`ENOENT: no such
-// file or directory, open 'people.yaml'`), since what itos prints quotes them.
 package source
 
 import (

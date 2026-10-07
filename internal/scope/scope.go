@@ -1,13 +1,3 @@
-// Package scope is the path rules of commits.scopes (commit-scope.ts's
-// scopeIssues): which paths each commit type may touch. `only`: every
-// touched path must match; `never`: no touched path may match, unless it
-// matches `except`, which takes paths back out of never alone; `must_touch`:
-// at least one must. Its `$sets` are already expanded by the config's loader.
-//
-// It takes a type and its paths and gives the problems, so commit
-// check-paths, the commit-msg hook (on the staged paths) and verify (on each
-// commit's) share one judgement, and none of them goes through the command
-// line to reach it.
 package scope
 
 import (

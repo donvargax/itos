@@ -1,10 +1,3 @@
-// Package providers is what itos asks of the world outside the repository
-// (tools/itos/providers.ts), each a provider chosen in itos.yaml: where a
-// push's range starts (ci.range), who a session works for (work.identity)
-// and who may own work (work.people). The port has the range providers
-// (range.go: none, command and github), which ci range asks, the identity
-// providers (identity.go: command, none and github, the last gh's answer),
-// which work asks, and the people, which the work registry's check reads.
 package providers
 
 import (

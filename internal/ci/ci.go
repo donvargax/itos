@@ -1,28 +1,3 @@
-// Package ci is CI's driver (tools/itos/ci.ts's ciRun): the plan
-// internal/plan made, carried out item by item in the order it gives, so
-// that `ci run` runs what `ci plan` prints and never plans again.
-//
-//   - Before the first item comes the preamble: the tasks a footer names that
-//     no task file has (which end the run, whatever the settings), the tasks
-//     named but not started, and, for a prose-only range, what it leaves out.
-//   - A step runs through the config's shell with itos's streams; a failing
-//     step makes the run exit 1, naming the step's own exit code (slice 86):
-//     passed through, a step's 75 or 3 would read as itos's meaning of it.
-//   - A task check the plan runs goes through a check.Runner, verbose, so its
-//     command line and output keep their place in the log; a failure exits 1,
-//     naming the task and its title. A check merged into the run of named
-//     tests, covered by a step, left out by ci.nightly_only or pending until
-//     after the push (an after: push check) is only logged, and never fails
-//     the run. The
-//     nightly shares one Runner's runs across its done tasks, so a check they
-//     share runs once; a push runs each named task's checks as its own.
-//   - The first failure ends the run, unless ci.stop_at_first_failure is
-//     false: then everything runs, each failure says where, and the first is
-//     the run's.
-//
-// Every step and check sees ci.env, and the range's ends (plan.Ends) as
-// ITOS_FROM and ITOS_TO, which ci.env cannot override. The log goes to stdout, or to stderr
-// under --json, which keeps stdout for its one object.
 package ci
 
 import (

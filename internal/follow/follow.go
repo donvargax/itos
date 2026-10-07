@@ -1,18 +1,3 @@
-// Package follow is itos followup's threads (slice 61, features/follow.feature):
-// following up with a person, kept as a thread rather than a work item. A
-// thread has an id, the person it is with (free text: no people file is
-// read), a title, a status (open or closed) and its notes, each a dated
-// entry appended and never edited. They are the person's own: one file,
-// follow-ups.yaml, in itos's folder of the git common dir, where the stealth
-// mode keeps its data, so git never commits it and every linked worktree of
-// the clone reads the same threads. No config is read: any git repository
-// will do.
-//
-// The package reads and writes the file and gives a thread as Markdown; the
-// command line (internal/cli/follow.go) reads the clock, once a run, and
-// hands each change its time, and holds the file's lock (internal/lock)
-// across a change's load and save, so two itos at once keep both changes
-// (bug 16).
 package follow
 
 import (

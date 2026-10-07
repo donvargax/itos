@@ -1,17 +1,3 @@
-// Package config finds, reads and validates itos.yaml, the one policy file
-// (tools/itos/config.ts): the file --config or ITOS_CONFIG names, else
-// itos.yaml in the folder itos runs in (--root changes that folder first, and
-// so does a run from a subfolder of a repository whose config is at its top,
-// top.go), else the stealth mode's <git common dir>/itos/itos.yaml
-// (stealth.go).
-//
-// Load holds the file to the schema, where an unknown key is an error that
-// names the key it misspells, then to what the schema cannot say (names that
-// must refer to something, patterns that must compile, commits.since a full
-// SHA), and lays it over the one table of defaults (defaults.go), which
-// `config check --print-defaults` prints: a default is applied exactly when it
-// is printed. Every reader of the config goes through Load; none has a
-// fallback of its own.
 package config
 
 import (

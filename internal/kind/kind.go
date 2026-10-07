@@ -1,10 +1,3 @@
-// Package kind is the kind of an error itos meets, which alone gives the
-// exit code it ends with (decision 36, docs/CLI.md rule 31): a usage or
-// config error exits 2, an environment that lacks something 3, a failure that
-// may pass when run again unchanged 75 (sysexits' EX_TEMPFAIL), and an error
-// of no kind 70 (EX_SOFTWARE), which is itos's to fix. An error takes its kind
-// where what failed is known, wrapped with one of these; the command line
-// reads it (cli.ExitCode), through any wrapping added after.
 package kind
 
 import "errors"

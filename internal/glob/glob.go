@@ -1,17 +1,3 @@
-// Package glob is the path globs (config.ts's globToRegExp and matchesAny),
-// ported as written (PLAN.md's risks): `*` does not cross `/`, `**` does, `**/`
-// may match nothing, `{a,b}` is either, a glob matches the whole path, and a
-// glob with no `/` matches at the root only.
-//
-// The TypeScript turns a glob into a regular expression by five replacements
-// in turn, and so does Source, in the same order, so a glob means in Go what
-// it means there, quirks included (`?` stays a regular expression's `?`, and
-// a `*` right after a `.` is left alone, so `a.*` is `a` and any dots). RE2
-// forced two changes of construction, neither of meaning: the last
-// replacement's lookbehind (a `*` not after a `.`) is a scan, since RE2 has
-// no lookbehind; and every `.` the replacements write is JavaScript's dot,
-// any character but a line terminator, written out as a class, since RE2's
-// dot leaves out `\n` alone.
 package glob
 
 import (

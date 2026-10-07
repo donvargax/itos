@@ -1,10 +1,3 @@
-// Package guide holds the guides a session starts from (features/guide.feature,
-// slice 64), embedded in the binary so that one text, versioned with itos,
-// serves every repository it manages: coordinate.md, the coordinator's, which
-// itos go prints, and work.md, the implementer's, which itos guide work
-// prints. They are generic: what one repository learns that holds for no
-// other stays in that repository's own notes, which itos go appends
-// (guide.orchestrating in the config, internal/cli/guide.go).
 package guide
 
 import (

@@ -1,31 +1,3 @@
-// Package shim is itos started as git (slice 41, features/shim.feature): a
-// link named git to the itos binary, in a folder before the real git on the
-// PATH (itos git-shim install), makes every git command pass through itos
-// first. In a repository itos manages (config.Managed, file checks alone),
-// git commit runs as itos commit and git push as itos push, with git's
-// arguments, none of them read as itos's global flags; every other command,
-// every command in any other folder, and every git started under an itos run
-// (ITOS_GIT set, git.EnvGit) runs the real git with its arguments, its
-// streams and its exit code untouched. The pass-through costs a start, the
-// PATH's lookup and a few file checks: no git runs before the real one, and
-// neither the launcher nor the command line is reached.
-//
-// In a repository pinned to an itos older than the shim (cli.GitShimSince),
-// or with ITOS_VERSION naming one, that itos has no git-shim command to hand
-// git commit or git push to, so they run the real git, after one line on
-// stderr saying why (bug 7). The pin is read as the launcher reads it, the pin
-// alone, from the folder the launcher then reads it in.
-//
-// Of git's options before the command, -C <path> and -c <name>=<value> are
-// honoured, since tools write git -C <dir> commit and git -c <key>=<value>
-// commit (an editor's, say) for an ordinary commit: the shim moves to the
-// folder -C names, as git would, before it looks for the config, and hands
-// each -c to every git itos runs in GIT_CONFIG_COUNT, GIT_CONFIG_KEY_<n> and
-// GIT_CONFIG_VALUE_<n>. --no-pager and -P change nothing itos prints. Any other
-// option before the command (--git-dir, --work-tree, --bare, --namespace,
-// --exec-path, …), or GIT_DIR or GIT_WORK_TREE in the environment, names a
-// repository the file checks do not follow, so that command runs the real
-// git as it is.
 package shim
 
 import (

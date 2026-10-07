@@ -1,8 +1,3 @@
-// Package check runs a task's checks (tools/itos/checks.ts) and gives each
-// its cost class (tools/itos/cost.ts). The task runner runs them through a
-// Runner, one per invocation; CI's run of its plan and the commit-msg hook
-// will run theirs through the same Run and read the same cost classes, so a
-// check means one thing wherever it runs.
 package check
 
 import (

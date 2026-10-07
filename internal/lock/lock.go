@@ -1,17 +1,3 @@
-// Package lock is the one lock itos holds while it changes a file that
-// more than one itos may write at once (bug 16): itos followup's threads and,
-// under a stealth config, the registry and the ledger, each in the git
-// common dir, which every linked worktree of the clone shares. A writer reads
-// the whole file, changes it and saves it whole, so two at once lose one's
-// change unless the lock is held across all three.
-//
-// The lock is a file beside the data, the data's name with ".lock" after
-// it, made with O_EXCL: only one process can make it, on Linux, macOS and
-// Windows alike (flock is not on Windows), and git's own index.lock is made
-// the same way. A writer that finds it there waits, a bounded while, for the
-// one holding it to remove it; one that waits too long is refused with an
-// error naming the lock file, and saying to remove it when no itos is
-// running, for an itos killed while it held the lock leaves it behind.
 package lock
 
 import (

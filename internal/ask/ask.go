@@ -1,20 +1,3 @@
-// Package ask is the questions of itos decision (slice 62, features/ask.feature): the
-// questions waiting on the person a repository's work is for, each with an
-// id, q-1, q-2 and so on, never reused, the text asked, the registry item it
-// holds up when it names one, and its answer once given. They are public and
-// committed, unlike itos followup's threads: one file, asks.yaml, beside the
-// work registry (work.asks), written whole by itos, which commits it alone
-// as the registry's commands commit theirs (internal/cli/ask.go).
-//
-// An answered question is a decision, and itos decision record (slice 69) writes
-// it as an architecture decision record (internal/adr), noting the record's
-// number on the question as its decision, or none for an answer that
-// concerned its item alone; one answered with no decision is recorded
-// nowhere yet, and itos decision names it.
-//
-// The file is itos's own, so it is read with typed structs and written whole,
-// each text as a double-quoted scalar, JSON's escapes being YAML's, so what
-// it holds reads back exactly and no formatter has a reason to change it.
 package ask
 
 import (

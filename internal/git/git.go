@@ -1,6 +1,3 @@
-// Package git is how itos asks the repository: it shells out to git, as the
-// TypeScript does, never reading .git itself, and always to the real git
-// (Bin), never a git shim that is itos.
 package git
 
 import (

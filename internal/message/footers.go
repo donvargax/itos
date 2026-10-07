@@ -1,35 +1,3 @@
-// Package message is one commit message through itos's commit rules
-// (tools/itos/footers.ts and commit.ts): the footer rules, the one footer
-// reader, and the header lint beside them, built in (header.go) or a
-// delegate. The footer rules are itos's and run always, after the header
-// lint, whatever it is: the header lint judges the header and body, and one
-// without the footer rules never skips them. Both report before the exit, so
-// a header problem does not hide a footer one.
-//
-// A footer is `<Key>: <id> <id>, …` at the start of a line, and may repeat
-// over several lines to stay within the line length limit. Per key of
-// commits.footers: its source (the ledger, the work registry's items, or a
-// kind's named tests as its adapter lists them), strip_prefix, required_for,
-// validate_for, must_be_live, in_place_of (the footers it stands in for, and
-// for which types: a type that requires one of them is satisfied by this one
-// instead, slice 63), and read_at: `commit` reads the IDs that exist at the commit
-// being checked (the staged tree by default, the commit Reading.At names),
-// so a later commit that sets a test back to wip or drops a task does not
-// fail an older one, but for the stealth config's ledger and registry, in no
-// commit, read in the working tree; `worktree`, or none, the working tree; since, a commit
-// that verify leaves out of required_for with its ancestors (Reading.Made).
-//
-// A footer whose source is text carries no IDs: `<Key>: <text>`, each line
-// one footer, the text whatever a consumer of the project must do, or the
-// word none. Its rule is only that it is there (required_for) and not empty
-// (validate_for); Texts reads it, and a range's are gathered by
-// `itos commit footers`.
-//
-// Under a stealth config a commit's links, its footers of IDs, are not in
-// its message but in its note (notes.go): Reading.Note carries them, the
-// rules read them there, and one typed into the message is refused, since it
-// would show to everyone. A footer of free text is content, not a link, and
-// stays in the message in either mode (slice 36).
 package message
 
 import (

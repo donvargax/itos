@@ -1,15 +1,58 @@
-// Package value is itos's data as the TypeScript reads it: YAML parsed by the
-// YAML 1.2 core schema (the `yaml` package's default) into JavaScript's
-// values, mappings keeping JavaScript's key order, and the renderings the
+// Package value is itos's data as itos has always read it: YAML parsed by
+// the YAML 1.2 core schema into JavaScript's values, mappings keeping
+// JavaScript's key order (array indices first), and the renderings the
 // messages quote: a value in a template literal (String), its typeof as the
 // config's messages name it (TypeOf), JSON.stringify (JSON) and the YAML the
-// `yaml` package writes (YAML).
+// `yaml` package writes (YAML, for config check --print-defaults). itos began
+// as TypeScript, and configs, messages and the corpus were written against
+// those readings, so a problem quoting an odd value reads the same as it
+// always did.
 //
 // A YAML value is one of: nil (null), Undefined (a key that is not there),
 // bool, float64 (every number, as JavaScript has one), string, []any and
 // *Map. go.yaml.in/yaml/v3 parses the text; this package resolves each plain
 // scalar itself, since yaml/v3 also reads YAML 1.1's forms (017 as octal,
-// 1_000, 0b101) where the core schema reads a decimal or a string.
+// 1_000, 0b101) where the core schema reads a decimal or a string. ParseJSON
+// is JSON.parse's reading, keys in JavaScript's order. ToNumber is
+// JavaScript's Number() (--group 01 is group 1), PadEnd pads by UTF-16
+// units, and where itos builds a pattern around whitespace or trims it uses
+// Space and Trim, JavaScript's whitespace, not RE2's ASCII one.
+//
+// # Editing a person's YAML in place
+//
+// itos writes into files people also edit (the config's pin, the registry,
+// the ledger), so it edits the text rather than re-encoding it: yaml/v3's
+// nodes give each value's line and column, and only the bytes that hold the
+// value change, every comment, quote and line kept. Any edit that does not
+// parse back to the document intended is refused, so a file is never written
+// wrong.
+//
+// SetScalars (edit.go), for itos pin and itos upgrade, replaces a section's
+// scalars in the style they are written in (plain kept plain unless the core
+// schema would read the new string as something else); a missing key goes
+// after the section's last one (a line in a block mapping, ", key: value" in
+// a flow one), a missing section after the top-level version line, and an
+// empty one (pin:, ~, null, {}) below its key; a value over several lines, a
+// tag, an anchor or an alias is refused.
+//
+// Doc (doc.go, docedit.go) does the same by paths of keys and indices into
+// the document, for the registry's and the ledger's writers. Set replaces a
+// one-line scalar in its style (quoted in a flow collection when a plain one
+// would hold its indicators) or adds a key after the mapping's last one-line
+// value; Lead puts a sentence before a text (a new first line of a folded or
+// literal block); Append adds a block mapping after a block list's last item
+// (the document's top one too, a ledger file), a blank line before it when
+// one parts the last two and a why folded and wrapped at Width; SetList
+// writes a list whole as one flow list on its key's line (a flow list there
+// replaced where it stands, one a formatter wrapped below its key or a block
+// list cut from past the key's colon to its last line, or the key added);
+// Note adds a paragraph to a text after a blank line (a one-line text in a
+// block mapping becoming a folded block); SetBlockList writes a list whole
+// as a block list below its key, [] when empty, added before a given key
+// above the comments leading into it. Each edit is made in Want too, the
+// document as it should read after, and Text refuses the edits unless the
+// text reads back as Want, keys in any order. Of two edits at one offset
+// the earlier writes first.
 package value
 
 import (

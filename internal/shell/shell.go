@@ -1,10 +1,3 @@
-// Package shell is the one way itos starts a command the config or the
-// ledger gives it (tools/itos/shell.ts): a task check, and later a CI step,
-// a header-lint delegate, a range check, a provider's or a test adapter's
-// command, the pre-push commands and the smoke run. Each goes through the
-// shell the config names, `shell`: the argv prefix the command is appended to
-// as one argument, [sh, -c] by default. itos's own git calls start directly
-// (internal/git).
 package shell
 
 import (
