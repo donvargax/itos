@@ -990,3 +990,17 @@
     the ARCHITECTURE cap needs.
   done_when:
     - run: grep -q doc-budget itos.yaml && go run ./tools/bin/doc-budget
+
+- id: T-111
+  type: ci
+  title: CI checks that the built itos answers every command the Claude Code plugin calls
+  why: >
+    Decision 41 (2026-10-07): the commands the plugin calls (guard claude-code; work list --all and
+    task list with --json, for the titles) are contract, never renamed or removed; without a gate
+    that is only a promise. A step in itos.yaml's CI plan reads the itos commands the plugin's
+    scripts call (integrations/claude-code/hooks: guard.sh, register.ts, titles.ts) and runs each
+    against the built itos, refusing one that exits 2 as unknown or whose --json lacks the key the
+    plugin reads (items, tasks); a rename that breaks the plugin goes red on the push that makes it,
+    not after a release. The list is read from the scripts, never kept by hand beside them.
+  done_when:
+    - run: grep -q plugin-calls itos.yaml && go run ./tools/bin/plugin-calls
