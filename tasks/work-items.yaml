@@ -4206,14 +4206,9 @@ items:
     title: work done checks the registry stays sound and the item's dependencies are done
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). work.Done never calls sound() nor checks
-      waitsOn, so it closes a todo item, or one whose dependency is open, writing a registry work
-      check refuses; in stealth every later write then refuses (work/write.go:142-168). Its @bug-37
-      scenario is written before it is handed out.
     refs: [internal/work/write.go]
 
   - id: bug-38
