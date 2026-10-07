@@ -147,12 +147,12 @@ func unqueueDone(cfg *config.Loaded, id string, o Out) (*work.Change, string, in
 // nil when there is none to make: a refusal, an item already done (reported
 // as such) or an error, with the exit code and error to end with.
 func doneChange(cfg *config.Loaded, registry work.Registry, text, id string, o Out) (*work.Change, int, error) {
-	change, problem, err := work.Done(registry, text, id)
+	change, found, err := work.Done(cfg, registry, text, id)
 	if err != nil {
 		return nil, 0, uneditable(cfg.Work.Registry, err)
 	}
-	if problem != nil {
-		code, err := refuseWork([]out.Problem{*problem}, ExitPolicy, o)
+	if len(found) > 0 {
+		code, err := refuseWork(found, ExitPolicy, o)
 		return nil, code, err
 	}
 	if change.Unchanged {

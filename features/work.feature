@@ -766,7 +766,7 @@ Feature: The work registry
   # refused. work done refuses, writing nothing, what work check would refuse
   # after it: an item that is not doing, an item a dependency of which is not
   # done.
-  @ID-WORK-71 @bug-37 @wip
+  @ID-WORK-71 @bug-37
   Scenario: work done refuses an item that is not doing, and writes nothing
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "todo"
@@ -778,7 +778,7 @@ Feature: The work registry
     And the registry's item "slice-9" has the status "todo" and the owner "someone"
     And the last commit's header is not "docs: close slice-9"
 
-  @ID-WORK-72 @bug-37 @wip
+  @ID-WORK-72 @bug-37
   Scenario: work done refuses an item whose dependency is not done, naming it, and writes nothing
     Given a clone of it, where itos runs
     And the work registry has the item "slice-8" owned by nobody with the status "todo"

@@ -79,8 +79,8 @@ func TestDroppedElsewhere(t *testing.T) {
 	if _, problem, _ := Take(r, text, "x", "p", false); problem == nil || problem.Rule != "work-take-dropped" {
 		t.Errorf("take: %+v", problem)
 	}
-	if _, problem, _ := Done(r, text, "x"); problem == nil || problem.Rule != "work-done-dropped" {
-		t.Errorf("done: %+v", problem)
+	if _, found, _ := Done(cfg, r, text, "x"); len(found) != 1 || found[0].Rule != "work-done-dropped" {
+		t.Errorf("done: %+v", found)
 	}
 	if _, problem, _ := Promote(r, text, "x", "slice-1", "slice", "", nil); problem == nil || problem.Rule != "work-promote-dropped" {
 		t.Errorf("promote: %+v", problem)

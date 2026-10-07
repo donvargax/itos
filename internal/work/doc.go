@@ -52,17 +52,18 @@
 // its id, and gives a Change (the text after, the item as it reads after,
 // the items whose depends_on were renamed, the commit's header and body, or
 // Unchanged) or a problem that refuses, nothing written. The text is edited
-// with value.Doc, every comment and quote kept. Add and Edit run Issues on
-// the registry with the item as it would be (sound) rather than restate the
-// check: an owner not among the people, a dependency on no item, a cycle.
+// with value.Doc, every comment and quote kept. Add, Edit, Done, Drop, Defer
+// and Resume run Issues on the registry with the item as it would be (sound)
+// rather than restate the check: an owner not among the people, a dependency
+// on no item, a cycle, an item done before its dependency.
 //
 //   - Take sets an item doing for a person (the owner left as it is when
 //     nobody is asked); Promote turns an idea into a slice or a task, renames
 //     it in every depends_on and in the queue, and replaces the title when
 //     --title gives one.
-//   - Done closes an item (an idea, a deferred item or a status neither todo
-//     nor doing refused, one already done Unchanged); Unqueue then takes it
-//     out of the queue, a commit of its own.
+//   - Done closes an item (an idea, a deferred item, one not doing and one
+//     whose dependency is not done refused, one already done Unchanged);
+//     Unqueue then takes it out of the queue, a commit of its own.
 //   - Add puts a new item, todo, at the end of the items (value.Doc's Append,
 //     keys in the registry's own order, its why folded); its group is
 //     --phase, else the one a p<n>- id names, else the registry's only one.

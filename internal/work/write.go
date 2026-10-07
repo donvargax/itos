@@ -138,16 +138,19 @@ func Take(r Registry, text, id, person string, every bool) (Change, *out.Problem
 // line's to judge (internal/cli/workdone.go); Done judges the registry
 // alone. Refused, with nothing changed: an id no item has, an idea (not yet
 // specified, so nothing of it can be done: work promote makes it a slice or
-// a task), an item dropped or deferred, and one whose status is neither todo
-// nor doing. An item already done is Unchanged.
-func Done(r Registry, text, id string) (Change, *out.Problem, error) {
+// a task), an item dropped or deferred, one that is not doing (work take
+// starts it, so a todo item is never closed unstarted), and whatever work
+// check would find in the registry with the item done, a dependency not
+// done among it (bug 37: a registry work check refuses would stop every
+// later write under a stealth config). An item already done is Unchanged.
+func Done(cfg *config.Loaded, r Registry, text, id string) (Change, []out.Problem, error) {
 	i := find(r, id)
 	if i < 0 {
-		return Change{}, unknown(id), nil
+		return Change{}, []out.Problem{*unknown(id)}, nil
 	}
 	item := r.Items[i]
-	refuse := func(rule, message, fix string) (Change, *out.Problem, error) {
-		return Change{}, &out.Problem{Rule: rule, Message: message, Fix: fix}, nil
+	refuse := func(rule, message, fix string) (Change, []out.Problem, error) {
+		return Change{}, []out.Problem{{Rule: rule, Message: message, Fix: fix}}, nil
 	}
 	status := item.At("status")
 	switch {
@@ -162,9 +165,15 @@ func Done(r Registry, text, id string) (Change, *out.Problem, error) {
 	case item.At("deferred") != value.Undefined:
 		return refuse("work-done-deferred", fmt.Sprintf("%s is deferred: %s", id, value.Trim(value.String(item.At("deferred")))),
 			"itos work resume "+id+" first")
-	case status != "todo" && status != "doing":
-		return refuse("work-done-status", fmt.Sprintf("%s is %s, neither todo nor doing", id, value.String(status)),
-			"set "+id+"'s status to doing first (itos work take "+id+")")
+	case status != "doing":
+		return refuse("work-done-status", fmt.Sprintf("%s is %s, not doing", id, value.String(status)),
+			"take it first (itos work take "+id+"), then land its work")
+	}
+	after := value.Copy(item).(*value.Map)
+	after.Set("status", "done")
+	after.Delete("why")
+	if found, err := sound(cfg, r, i, after); err != nil || len(found) > 0 {
+		return Change{}, found, err
 	}
 	doc, err := value.OpenDoc(text)
 	if err != nil {
@@ -183,9 +192,6 @@ func Done(r Registry, text, id string) (Change, *out.Problem, error) {
 	if err != nil {
 		return Change{}, nil, err
 	}
-	after := value.Copy(item).(*value.Map)
-	after.Set("status", "done")
-	after.Delete("why")
 	body := fmt.Sprintf("Set %s (%s) to done, with itos work done.", id, value.JSON(value.String(item.At("title"))))
 	if hasWhy {
 		body += " Its why is dropped, the registry being an index: the spec and the commits keep the reasons."

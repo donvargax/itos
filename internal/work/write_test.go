@@ -96,9 +96,12 @@ func TestDone(t *testing.T) {
 		"  - { id: s, title: S, phase: 1, owner: q, status: doing } # landing\n" +
 		"  - { id: d, title: D, phase: 1, owner: q, status: done }\n" +
 		"  - { id: i, title: I, phase: 1, status: todo, kind: idea }\n" +
-		"  - { id: p, title: P, phase: 1, status: todo, deferred: later }\n"
+		"  - { id: p, title: P, phase: 1, status: todo, deferred: later }\n" +
+		"  - { id: t, title: T, phase: 1, owner: q, status: todo }\n" +
+		"  - { id: w, title: W, phase: 1, owner: q, status: doing, depends_on: [t] }\n"
+	cfg := addConfig(t)
 	r := registryOf(t, text)
-	change, problem, err := Done(r, text, "s")
+	change, problem, err := Done(cfg, r, text, "s")
 	if err != nil || problem != nil {
 		t.Fatal(err, problem)
 	}
@@ -107,12 +110,17 @@ func TestDone(t *testing.T) {
 		change.Item.At("owner") != "q" {
 		t.Errorf("done s: %+v", change)
 	}
-	if change, problem, _ := Done(r, text, "d"); problem != nil || !change.Unchanged {
+	if change, problem, _ := Done(cfg, r, text, "d"); problem != nil || !change.Unchanged {
 		t.Errorf("d is done already: %+v %+v", change, problem)
 	}
-	for id, rule := range map[string]string{"i": "work-done-idea", "p": "work-done-deferred", "x": "work-unknown-item"} {
-		if _, problem, _ := Done(r, text, id); problem == nil || problem.Rule != rule {
-			t.Errorf("%s: %+v, not %s", id, problem, rule)
+	// Bug 37: an item not doing, and one whose dependency is not done, as
+	// work check would refuse the registry after, are refused too.
+	for id, rule := range map[string]string{
+		"i": "work-done-idea", "p": "work-done-deferred", "x": "work-unknown-item",
+		"t": "work-done-status", "w": "work-done-before-dependency",
+	} {
+		if _, found, _ := Done(cfg, r, text, id); len(found) != 1 || found[0].Rule != rule {
+			t.Errorf("%s: %+v, not %s", id, found, rule)
 		}
 	}
 }
@@ -122,7 +130,7 @@ func TestDone(t *testing.T) {
 func TestDoneDropsWhy(t *testing.T) {
 	text := "phases: { 1: null }\nitems:\n  - id: s\n    title: S\n    phase: 1\n    status: doing\n    kind: slice\n" +
 		"    why: >\n      Because it\n      was missing.\n    refs: [features/s.feature]\n\n  - { id: t, title: T, phase: 1, status: todo }\n"
-	change, problem, err := Done(registryOf(t, text), text, "s")
+	change, problem, err := Done(addConfig(t), registryOf(t, text), text, "s")
 	if err != nil || problem != nil {
 		t.Fatal(err, problem)
 	}

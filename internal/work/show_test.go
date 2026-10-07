@@ -14,13 +14,14 @@ import (
 func TestRegistryHeaderReadsTheWritersHeaders(t *testing.T) {
 	text := "phases: { 1: null }\nitems:\n" +
 		"  - { id: a, title: A, phase: 1, owner: null, status: todo }\n" +
+		"  - { id: b, title: B, phase: 1, owner: null, status: doing }\n" +
 		"  - { id: i, title: I, phase: 1, owner: null, status: todo, kind: idea }\n"
 	r := registryOf(t, text)
 	take, _, err := Take(r, text, "a", "p", false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	done, _, err := Done(r, text, "a")
+	done, _, err := Done(addConfig(t), r, text, "b")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,7 +34,7 @@ func TestRegistryHeaderReadsTheWritersHeaders(t *testing.T) {
 		t.Fatal(err)
 	}
 	for header, want := range map[string]string{
-		take.Header: "a", done.Header: "a", promote.Header: "slice-1", queue.Header: "a",
+		take.Header: "a", done.Header: "b", promote.Header: "slice-1", queue.Header: "a",
 		"docs: add T-1": "T-1", "docs: edit p1-x": "p1-x", "docs: defer p1-x": "p1-x", "docs: resume p1-x": "p1-x",
 	} {
 		if id, ok := RegistryHeader(header); !ok || id != want {

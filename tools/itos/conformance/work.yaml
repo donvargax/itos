@@ -1130,9 +1130,9 @@ cases:
     git:
       - commit: "docs: start"
         files:
-          work-items.yaml: *takeable
+          work-items.yaml: &closable "# who does what\nphases: { 1: null }\nitems:\n  - id: x # the first\n    title: \"X, quoted\"\n    phase: 1\n    owner: null\n    status: doing\n    depends_on: []\n"
     files:
-      work-items.yaml: *takeable
+      work-items.yaml: *closable
     exit: 0
     stdout_has: "x is done: committed "
     stderr_has:
@@ -1145,7 +1145,7 @@ cases:
     git:
       - commit: "docs: start"
         files:
-          work-items.yaml: *takeable
+          work-items.yaml: *closable
           features/x.feature: "Feature: X\n\n  @ID-X-01 @x @wip\n  Scenario: one\n\n  @ID-X-02 @x\n  Scenario: two\n"
     files:
       itos.yaml: |
@@ -1155,7 +1155,7 @@ cases:
           people: { source: yaml, file: people.yaml }
         tests:
           scenario: { root: features, id: "ID-[A-Z]+-\\d+" }
-      work-items.yaml: *takeable
+      work-items.yaml: *closable
     exit: 1
     json:
       schema: 1
@@ -1165,7 +1165,7 @@ cases:
           message: "x's scenario @ID-X-01 (x.feature) is still @wip at HEAD"
           fix: "implement it and commit it live, then run itos work done x again"
     files_after:
-      work-items.yaml: *takeable
+      work-items.yaml: *closable
   - name: work done refuses an idea, naming work promote
     argv: [work, done, idea]
     exit: 1
@@ -1178,6 +1178,26 @@ cases:
     stderr: |
       parked is deferred: put off for now
         fix: itos work resume parked first
+  # Bug 37: work done refuses, writing nothing, what work check would refuse
+  # after it: an item not doing, and one a dependency of which is not done.
+  - name: work done refuses an item that is not doing, naming work take
+    argv: [work, done, ready]
+    exit: 1
+    stderr: |
+      ready is todo, not doing
+        fix: take it first (itos work take ready), then land its work
+    files_after:
+      work-items.yaml: *registry
+  - name: work done refuses an item whose dependency is not done, naming it
+    argv: [work, done, x]
+    files:
+      work-items.yaml: &waiting "phases: { 1: null }\nitems:\n  - { id: w, title: W, phase: 1, owner: null, status: todo, depends_on: [] }\n  - { id: x, title: X, phase: 1, owner: null, status: doing, depends_on: [w] }\n"
+    exit: 1
+    stderr: |
+      x: done, but "w" is todo
+        fix: finish w first, or set x back to doing
+    files_after:
+      work-items.yaml: *waiting
   - name: work done of an item already done changes nothing
     argv: [work, done, done, --json]
     exit: 0
