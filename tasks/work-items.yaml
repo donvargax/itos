@@ -2466,7 +2466,6 @@ items:
     status: todo
     depends_on: [slice-29]
     kind: idea
-    deferred: until itos-cc is published, the user's call (2026-10-03)
     why: >
       The design agreed with itos-cc's maintainer (2026-10-03), itos-cc being a code-quality tool
       (CRAP, mutation testing, duplication) that will run as the extension itos cc. Three layers:
