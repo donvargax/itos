@@ -3611,6 +3611,9 @@ items:
       at the current release pace, so only a new major is something to act on. itos status shows the
       pin and the newest release, and the guide's rule (upgrade first) fires on a major, asking the
       person through itos ask by default. Low priority, after slice-75.
+    deferred: >
+      The user's call (2026-10-07): deferred so the itos-cc integration ships as soon as it can.
+      When taken up, it names the newest stable major, never a pre-release (decision 42).
 
   - id: p1-release-cut-upgrading-json
     title: tools/selftest/release-cut.ts proves the upgrading.json its snapshot's release would publish
