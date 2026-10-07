@@ -4861,11 +4861,9 @@ items:
     title: The module path is github.com/donvargax/itos/v6
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-100]
     kind: task
-    why: >
-      Specified in tasks/phase-1.yaml; done by slice-86's agent in its push.
 
   - id: slice-86
     title: "v6.0.0: exit 75 for a failure worth retrying, ci run's own exit code, and the machine-output contract announced"
