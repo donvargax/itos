@@ -1107,4 +1107,7 @@
     which main cuts no 6.x patch.
   done_when:
     - run: go test ./tools/bin/release-version -count=1
-    - run: grep -q prerelease itos.yaml
+    # In place of grep -q prerelease itos.yaml: decision 42 turns the marker on with the first v7
+    # work, after this task, so its presence proves nothing here. The rc notes are proven instead,
+    # as the rc numbering is above, by running the tools.
+    - run: go test ./tools/bin/release-notes -count=1

@@ -226,7 +226,10 @@ the version is the tag, held nowhere in the tree.
   `go run ./tools/bin/release-version` computes the version from the
   commits since the newest `vX.Y.Z` tag HEAD reaches (a breaking change a
   major, else a `feat` a minor, else a `fix` a patch, else nothing and the job
-  ends green). With a version the job tags the commit locally, runs
+  ends green). While `itos.yaml` says `release: { prerelease: rc }` (T-118), a
+  major is cut as `<major>.0.0-rc.<n>`, the next candidate after each `feat`,
+  `fix` or breaking change, published as a pre-release and never latest;
+  removing the key cuts `<major>.0.0`. With a version the job tags the commit locally, runs
   GoReleaser (`tools/bin/pinned goreleaser release --clean`), which builds
   the five archives, `itos.schema.json` and `checksums.txt` into
   `dist/goreleaser` and uploads them to a draft release on the commit,
