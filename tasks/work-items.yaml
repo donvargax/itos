@@ -5322,7 +5322,7 @@ items:
     title: work done passes over commits that touch only the work registry, so one push lands many closes
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
