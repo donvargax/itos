@@ -2542,6 +2542,18 @@ items:
       released: the newest itos-cc release is v0.1.1 (2026-10-03), and itos pins its provider by
       release, so this item and p3-role-protocol stay deferred until a release carries mutation
       sample.
+
+      itos-cc after v0.2.0 (2026-10-07; #8 closed by d78ed07 and #10 by 6072800, both after the
+      v0.2.0 tag, so a later release carries them): mutation sample exists and must run with the
+      same flags the results were recorded with (--all-tests for a nightly), else kills made only by
+      end-to-end tests read as false mismatches. Equivalent mutants are excepted in itos-cc.yaml at
+      the project root under mutation.exceptions, each with its reason; writing one keeps the file's
+      other keys and comments but re-indents it to 2 spaces. New problem rules:
+      mutation.exception-stale exits 1 (why: killed, changed or gone); exception.no-survivor exits
+      2, as does config.invalid for a bad itos-cc.yaml, checked before mutation run, check and
+      except do anything. In --json every file has an excepted count, and an excepted mutant keeps
+      outcome survived and gains excepted, holding its reason. itos's gate reads these, never the
+      cache or itos-cc.yaml itself.
     refs: [PLAN.md]
 
   - id: p3-debt-claims
