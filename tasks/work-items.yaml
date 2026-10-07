@@ -75,6 +75,7 @@ queue:
   - p1-upgrade-applies-config-steps
   - T-111
   - T-112
+  - T-113
   - p1-upgrade-on-major
   - p1-problem-fields
   - p1-rule-ids-listed
