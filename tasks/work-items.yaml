@@ -4206,7 +4206,7 @@ items:
     title: work done checks the registry stays sound and the item's dependencies are done
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
