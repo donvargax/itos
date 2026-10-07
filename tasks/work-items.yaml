@@ -4220,6 +4220,9 @@ items:
       and rename helper, as follow.Save does since bug 16. Its @bug-38 scenario is written before it
       is handed out.
     refs: [internal/cli/workwrite.go, internal/cli/pin.go, internal/cli/upgrade.go]
+    deferred: >
+      Any feat or fix now cuts v7.0.0-rc.1 (T-123), and the user wants rc.1 to be the itos-cc
+      integration (decision 42), so this lands after slice-100. Resume it then.
 
   - id: bug-39
     title: A YAML alias cycle is refused, not a crash
