@@ -6,7 +6,8 @@
 // already. The command provider these steps once scripted went in v5.0.0
 // (slice 85). Bug 41's steps give the fake GitHub runs of their own: a run a
 // newer push cancelled, and the newer run, of a commit the clone has or of
-// the head another clone pushed while itos waited.
+// the head another clone pushed while itos waited. Slice 93's steps say which
+// commit's run work done asked for: the remote's head, never the clone's HEAD.
 package features
 
 import (
@@ -104,6 +105,8 @@ func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^once itos has pushed, another clone pushes the commit "([^"]*)"$`, w.pushedOverWhileWaiting)
 	sc.Step(`^the fake GitHub reports the pushed commit's run cancelled, and the run "([^"]*)" of the remote's head, whose jobs "([^"]*)" and "([^"]*)" succeed$`, w.pushedRunCancelled)
 	sc.Step(`^the fake GitHub was asked for the run of the clone's HEAD$`, w.fakeGitHubGivenHead)
+	sc.Step(`^the fake GitHub was asked for the run of the remote's head$`, w.fakeGitHubGivenRemoteHead)
+	sc.Step(`^the fake GitHub was never asked for the run of the clone's HEAD$`, w.fakeGitHubNotGivenHead)
 	sc.Step(`^the fake GitHub was never asked about a run$`, func() error {
 		if w.github == nil {
 			return errors.New("no fake GitHub: start one first")
@@ -277,6 +280,52 @@ func (w *world) fakeGitHubGivenHead() error {
 		if sha != head {
 			return fmt.Errorf("the fake GitHub was asked for the run of %q, not HEAD's %s\n%s", sha, head, w.report())
 		}
+	}
+	return nil
+}
+
+// The fake GitHub gave a look at the watched run of the remote's main, by
+// its full SHA, and every look it gave was of that commit.
+func (w *world) fakeGitHubGivenRemoteHead() error {
+	if w.github == nil {
+		return errors.New("no fake GitHub: start one first")
+	}
+	cmd := exec.Command(git.Bin(), "rev-parse", "main")
+	cmd.Dir = w.remote()
+	cmd.Env = w.env()
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("git rev-parse main in the remote: %w", err)
+	}
+	head := strings.TrimSpace(string(out))
+	w.github.mu.Lock()
+	given := slices.Clone(w.github.given)
+	w.github.mu.Unlock()
+	if len(given) == 0 {
+		return fmt.Errorf("the fake GitHub was never asked for the watched run; it was asked %v\n%s", w.github.requests(), w.report())
+	}
+	for _, sha := range given {
+		if sha != head {
+			return fmt.Errorf("the fake GitHub was asked for the run of %q, not the remote's head %s\n%s", sha, head, w.report())
+		}
+	}
+	return nil
+}
+
+// No look at the watched run the fake GitHub gave was of the clone's HEAD.
+func (w *world) fakeGitHubNotGivenHead() error {
+	if w.github == nil {
+		return errors.New("no fake GitHub: start one first")
+	}
+	head, err := w.head()
+	if err != nil {
+		return err
+	}
+	w.github.mu.Lock()
+	given := slices.Clone(w.github.given)
+	w.github.mu.Unlock()
+	if slices.Contains(given, head) {
+		return fmt.Errorf("the fake GitHub was asked for the run of the clone's HEAD %s\n%s", head, w.report())
 	}
 	return nil
 }

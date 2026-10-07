@@ -8,7 +8,9 @@
 // fetch of the remote into the clone (status.feature, slice 70); ci.range's
 // command printing one of the remote's commits (slice 73), the full SHA of
 // a commit of the remote's main by its header (bug 24's fake GitHub too), and
-// an origin that cannot be reached or is no repository (slice 90).
+// an origin that cannot be reached or is no repository (slice 90); a take
+// of an item in a commit no remote has that touches only the registry
+// (slice 93).
 package features
 
 import (
@@ -57,6 +59,7 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the remote has gained the commit "([^"]*)" making "([^"]*)" the owner of "([^"]*)"$`, w.remoteGainsTake)
 	sc.Step(`^the clone has the commit "([^"]*)" making "([^"]*)" the owner of "([^"]*)"$`, w.cloneTakes)
 	sc.Step(`^the remote's registry gives "([^"]*)" the owner "([^"]*)"$`, w.remoteRegistryOwner)
+	sc.Step(`^the clone has a commit no remote has that takes "([^"]*)" for "([^"]*)"$`, w.cloneTakesUnpushed)
 
 	sc.Step(`^the pre-push hook is installed$`, func() error {
 		return w.hookInstalled("pre-push", `"$@"`)
@@ -309,6 +312,35 @@ func (w *world) cloneTakes(subject, owner, id string) error {
 		return err
 	}
 	return w.git("commit", "-q", "--no-verify", "-m", subject, "--", path)
+}
+
+// A take of the item for the person, as itos work take commits it: the
+// registry alone, in a commit the clone has and no remote has. A person the
+// people file does not list is added first, in a commit of the people file
+// pushed to the remote's main past the hooks, as a project's people would be
+// there already, so the registry stays sound and the take's commit touches
+// nothing but the registry (slice 93).
+func (w *world) cloneTakesUnpushed(id, owner string) error {
+	people := w.data("people.yaml")
+	text, err := os.ReadFile(filepath.Join(w.dir, people))
+	if err != nil {
+		return err
+	}
+	if !slices.Contains(strings.Split(string(text), "\n"), "- "+owner) {
+		if err := os.WriteFile(filepath.Join(w.dir, people), append(text, []byte("- "+owner+"\n")...), 0o644); err != nil {
+			return err
+		}
+		if err := w.git("add", "--", people); err != nil {
+			return err
+		}
+		if err := w.git("commit", "-q", "--no-verify", "-m", "docs: list "+owner, "--", people); err != nil {
+			return err
+		}
+		if err := w.git("push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main"); err != nil {
+			return err
+		}
+	}
+	return w.cloneTakes("docs: take "+id, owner, id)
 }
 
 // The registry of the repository in dir with the item's line, as the work
