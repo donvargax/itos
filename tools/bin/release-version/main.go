@@ -26,6 +26,23 @@
 // ending in /v2). The path moves first, in its own commits, and the release
 // follows. A HEAD without a go.mod has no path to contradict.
 //
+// # Pre-releases
+//
+// While HEAD's itos.yaml says release: { prerelease: rc } (T-118, decision
+// 42), the commits that would cut the next major cut a release candidate of
+// it instead, <major>.0.0-rc.<n>: n is one more than the highest rc tag of
+// that version HEAD reaches (v7.0.0-rc.2 makes the next one rc.3), 1 with
+// none. After an rc, the commits since it decide whether another is cut: a
+// feat, a fix or a breaking change since v7.0.0-rc.2 cuts rc.3, and with none
+// of them nothing is released, though the commits since the last release
+// still hold the breaking change. The last release stays the newest vX.Y.Z,
+// which an rc tag never is, so an rc's notes and upgrading.json run from the
+// last stable release, as the final one's will; and removing the key cuts
+// that final <major>.0.0 from the same commits. A minor or a patch is cut as
+// it always is, the mode or not; with no itos.yaml or no release key the mode
+// is off, and a value other than rc stops it with exit 2. The module path
+// rule above holds for an rc as for any version of its major.
+//
 // It prints key=value lines, which the release workflow appends to
 // $GITHUB_OUTPUT as they are:
 //
@@ -33,22 +50,27 @@
 //	next=2.4.0       the version to release, empty when nothing is releasable
 //	bump=minor       major, minor, patch or none
 //	range=v2.3.0..HEAD
+//	prerelease=false true when next is a release candidate, which the
+//	                 workflow publishes as a pre-release, never latest
 //
 // and on stderr one line saying why. A commit is read by internal/release
 // (Type and Breaking, T-088), the copy itos status reads it with, and the last
-// release is picked there too (Newest, bug 20); beside it, release-version
-// imports only the standard library.
+// release is picked there too (Newest, bug 20); itos.yaml is read by
+// internal/value, the YAML reader itos's config is read with; beside them,
+// release-version imports only the standard library. Its unit tests run it
+// over scratch histories.
 //
 //	go run ./tools/bin/release-version
 //
 // Exit status: 0 computed (next may be empty), 1 the version is refused, 2 it
-// could not read the history or go.mod.
+// could not read the history, go.mod or itos.yaml.
 package main
 
 import (
 	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"regexp"
@@ -56,6 +78,7 @@ import (
 	"strings"
 
 	"github.com/donvargax/itos/v6/internal/release"
+	"github.com/donvargax/itos/v6/internal/value"
 )
 
 const self = "release-version"
@@ -63,64 +86,99 @@ const self = "release-version"
 var suffix = regexp.MustCompile(`/v(\d+)$`)
 
 func main() {
-	os.Exit(run())
+	os.Exit(run(os.Args[1:], "", os.Stdout, os.Stderr))
 }
 
-func run() int {
-	flag.Parse()
-	if flag.NArg() > 0 {
-		fmt.Fprintf(os.Stderr, "%s: unexpected argument %q\n", self, flag.Arg(0))
+// run computes the next release of the repository in dir ("" for the one it
+// runs in), writing the key=value lines to stdout and why to stderr.
+func run(args []string, dir string, stdout, stderr io.Writer) int {
+	flags := flag.NewFlagSet(self, flag.ContinueOnError)
+	flags.SetOutput(stderr)
+	if err := flags.Parse(args); err != nil {
+		return 2
+	}
+	if flags.NArg() > 0 {
+		fmt.Fprintf(stderr, "%s: unexpected argument %q\n", self, flags.Arg(0))
 		return 2
 	}
 	fail := func(format string, a ...any) int {
-		fmt.Fprintf(os.Stderr, self+": "+format+"\n", a...)
+		fmt.Fprintf(stderr, self+": "+format+"\n", a...)
 		return 2
 	}
+	git := func(args ...string) (string, error) { return gitIn(dir, args...) }
 	if shallow, err := git("rev-parse", "--is-shallow-repository"); err != nil {
 		return fail("%v", err)
 	} else if strings.TrimSpace(shallow) == "true" {
 		return fail("this is a shallow clone, which may not have the last release's tag: fetch the whole history (actions/checkout's fetch-depth: 0)")
 	}
-	tag, err := lastRelease()
+	listed, err := git("tag", "--merged", "HEAD")
 	if err != nil {
 		return fail("%v", err)
 	}
+	tags := strings.Split(listed, "\n")
+	tag := release.Newest(tags)
 	rng := "HEAD"
 	if tag != "" {
 		rng = tag + "..HEAD"
 	}
-	out, err := git("log", "--format=%H%x1f%B%x1e", rng)
+	b, err := bumpSince(git, rng)
 	if err != nil {
-		return fail("cannot read the commits of %s: %v", rng, err)
+		return fail("%v", err)
 	}
-	b := bumpOf(messages(out))
-	next := ""
-	if b.kind != "none" {
-		next = bumped(tag, b.kind)
-		module, err := headModule()
-		if err != nil {
-			return fail("%v", err)
-		}
-		if problem := mismatch(next, module); problem != "" {
-			fmt.Fprintf(os.Stderr, "%s: %s\n", self, problem)
-			return 1
-		}
-	}
-	fmt.Printf("last=%s\nnext=%s\nbump=%s\nrange=%s\n", tag, next, b.kind, rng)
 	from := tag
 	if from == "" {
 		from = "no release (0.0.0)"
 	}
+	next, pre := "", false
+	if b.kind != "none" {
+		next = bumped(tag, b.kind)
+		if b.kind == "major" {
+			mode, err := prereleaseMode(git)
+			if err != nil {
+				return fail("%v", err)
+			}
+			if mode != "" {
+				rc, n := lastCandidate(tags, next)
+				if rc != "" {
+					since, err := bumpSince(git, rc+"..HEAD")
+					if err != nil {
+						return fail("%v", err)
+					}
+					if since.kind == "none" {
+						fmt.Fprintf(stdout, "last=%s\nnext=\nbump=none\nrange=%s\nprerelease=false\n", tag, rng)
+						fmt.Fprintf(stderr, "%s: %d commit(s) since %s, %s, but release.prerelease is %s and none of the %d since %s is a feat, a fix or a breaking change: nothing to release\n",
+							self, b.commits, from, b.why, mode, since.commits, rc)
+						return 0
+					}
+					b.why += fmt.Sprintf(", and release.prerelease is %s: %s since %s, the next candidate", mode, since.why, rc)
+				} else {
+					b.why += fmt.Sprintf(", and release.prerelease is %s: the first candidate", mode)
+				}
+				next, pre = fmt.Sprintf("%s-%s.%d", next, mode, n+1), true
+			}
+		}
+		module, err := headModule(git)
+		if err != nil {
+			return fail("%v", err)
+		}
+		if problem := mismatch(next, module); problem != "" {
+			fmt.Fprintf(stderr, "%s: %s\n", self, problem)
+			return 1
+		}
+	}
+	fmt.Fprintf(stdout, "last=%s\nnext=%s\nbump=%s\nrange=%s\nprerelease=%t\n", tag, next, b.kind, rng, pre)
 	if next == "" {
-		fmt.Fprintf(os.Stderr, "%s: %d commit(s) since %s, none a feat, a fix or a breaking change: nothing to release\n", self, b.commits, from)
+		fmt.Fprintf(stderr, "%s: %d commit(s) since %s, none a feat, a fix or a breaking change: nothing to release\n", self, b.commits, from)
 	} else {
-		fmt.Fprintf(os.Stderr, "%s: %d commit(s) since %s, %s: %s\n", self, b.commits, from, b.why, next)
+		fmt.Fprintf(stderr, "%s: %d commit(s) since %s, %s: %s\n", self, b.commits, from, b.why, next)
 	}
 	return 0
 }
 
-func git(args ...string) (string, error) {
+// gitIn runs git in dir ("" for the folder it runs in) and gives its stdout.
+func gitIn(dir string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
+	cmd.Dir = dir
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr
 	out, err := cmd.Output()
@@ -130,14 +188,13 @@ func git(args ...string) (string, error) {
 	return string(out), nil
 }
 
-// lastRelease is the newest release tag reachable from HEAD, by
-// release.Newest's rule, or "" for none.
-func lastRelease() (string, error) {
-	out, err := git("tag", "--merged", "HEAD")
+// bumpSince is what the commits of the range ask for.
+func bumpSince(git func(...string) (string, error), rng string) (bump, error) {
+	out, err := git("log", "--format=%H%x1f%B%x1e", rng)
 	if err != nil {
-		return "", err
+		return bump{}, fmt.Errorf("cannot read the commits of %s: %v", rng, err)
 	}
-	return release.Newest(strings.Split(out, "\n")), nil
+	return bumpOf(messages(out)), nil
 }
 
 // messages splits git log's records into each commit's message, trimmed.
@@ -202,9 +259,56 @@ func bumped(tag, kind string) string {
 	return fmt.Sprintf("%d.%d.%d", parts[0], parts[1], parts[2])
 }
 
+// prereleaseMode is the pre-release mode HEAD's itos.yaml switches on,
+// release.prerelease: rc, the one there is; "" when HEAD has no itos.yaml or
+// it sets no release.prerelease.
+func prereleaseMode(git func(...string) (string, error)) (string, error) {
+	listed, err := git("ls-tree", "--name-only", "HEAD", "--", "itos.yaml")
+	if err != nil {
+		return "", err
+	}
+	if strings.TrimSpace(listed) == "" {
+		return "", nil
+	}
+	text, err := git("show", "HEAD:itos.yaml")
+	if err != nil {
+		return "", err
+	}
+	tree, err := value.Parse(text)
+	if err != nil {
+		return "", fmt.Errorf("HEAD's itos.yaml cannot be read: %v", err)
+	}
+	switch mode := value.Prop(value.Prop(tree, "release"), "prerelease"); mode {
+	case value.Undefined, nil:
+		return "", nil
+	case "rc":
+		return "rc", nil
+	default:
+		return "", fmt.Errorf("HEAD's itos.yaml sets release.prerelease to %s, and the one pre-release mode is rc: set it to rc, or remove it to release as usual", value.JSON(mode))
+	}
+}
+
+// lastCandidate is the highest release candidate of version (X.Y.Z) among
+// the tags, v<version>-rc.<n>, and its n; "" and 0 with none.
+func lastCandidate(tags []string, version string) (string, int) {
+	prefix := "v" + version + "-rc."
+	best, highest := "", 0
+	for _, t := range tags {
+		t = strings.TrimSpace(t)
+		digits, ok := strings.CutPrefix(t, prefix)
+		if !ok || digits == "" || strings.Trim(digits, "0123456789") != "" {
+			continue
+		}
+		if n, err := strconv.Atoi(digits); err == nil && (best == "" || n > highest) {
+			best, highest = t, n
+		}
+	}
+	return best, highest
+}
+
 // headModule is the module path HEAD's go.mod declares, or "" when HEAD has no
 // go.mod.
-func headModule() (string, error) {
+func headModule(git func(...string) (string, error)) (string, error) {
 	listed, err := git("ls-tree", "--name-only", "HEAD", "--", "go.mod")
 	if err != nil {
 		return "", err

@@ -6,9 +6,15 @@ name: Release
 # change a major, a feat a minor, a fix a patch; with none, nothing is released and the job ends
 # green. Its one gate of its own is that version against go.mod's module path (T-089): a major
 # the path does not end in (/vN from v2, nothing below) fails the version step, before any tag,
-# since Go's module proxy would refuse that tag. Otherwise the push's CI, with the schema contract
-# (T-070) and the last release's scenarios and corpus (T-071), is what a release rests on, and a
-# break that slips through is a missing check, fixed forward with the check and a fix release.
+# since Go's module proxy would refuse that tag. While itos.yaml says release: { prerelease: rc }
+# (T-118), the commits that would cut the next major cut a candidate of it, vN.0.0-rc.<n>
+# (release-version says prerelease=true), which is published as a pre-release and never as latest:
+# GitHub's latest release, which the launcher's update notice and a bare itos pin read, stays the
+# newest stable one, as go install @latest does by Go's own rule (a pre-release version is never
+# @latest while a release exists), and itos pin <rc> pins a candidate. Otherwise the push's CI,
+# with the schema contract (T-070) and the last release's scenarios and corpus (T-071), is what a
+# release rests on, and a break that slips through is a missing check, fixed forward with the
+# check and a fix release.
 #
 # What it publishes is what the launcher, a pin, go install and a consumer's install script read
 # (docs/decisions/0022-itos-is-distributed-as-release-archives-with-checksums-installed-pinned.md;
@@ -118,8 +124,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: v${{ steps.version.outputs.next }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
         # The asset is named after the file, upgrading.json; it goes up while the release is a
-        # draft, so the release is never seen without it.
+        # draft, so the release is never seen without it. A candidate is published as a
+        # pre-release and explicitly not latest; any other release as latest.
         run: |
           gh release upload "$TAG" "$RUNNER_TEMP/upgrading.json"
-          gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest
+          if [ "$PRERELEASE" = true ]; then
+            gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --prerelease --latest=false
+          else
+            gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest
+          fi

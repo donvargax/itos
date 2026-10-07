@@ -7,6 +7,11 @@
 //	                                 [-from <tag>] [-to <rev>] [-itos <bin>]
 //	go run ./tools/bin/release-notes -json -version <X.Y.Z> [-from <tag>] [-to <rev>] [-itos <bin>]
 //
+// The version may be a release candidate, X.Y.Z-rc.N (tools/bin/release-version
+// cuts one while itos.yaml's release.prerelease is rc, T-118): its notes then
+// say, under the title, that it is a pre-release, which the workflow publishes
+// as one and never as latest, and how to pin it.
+//
 // The range is <from>..<to>: <from> the last release's tag (default: the
 // newest vX.Y.Z tag reachable from <to> other than v<version>, which the
 // release job has already made locally), <to> HEAD by default. The notes are
@@ -78,8 +83,9 @@ const (
 var platforms = []string{"linux-amd64", "linux-arm64", "darwin-amd64", "darwin-arm64", "windows-amd64"}
 
 var (
-	typed  = regexp.MustCompile(`^([a-zA-Z]+)(\([^)]*\))?(!)?: `)
-	semver = regexp.MustCompile(`^\d+\.\d+\.\d+$`)
+	typed = regexp.MustCompile(`^([a-zA-Z]+)(\([^)]*\))?(!)?: `)
+	// semver is the version released: X.Y.Z, or a candidate of it, X.Y.Z-rc.N.
+	semver = regexp.MustCompile(`^\d+\.\d+\.\d+(-rc\.\d+)?$`)
 )
 
 func main() {
@@ -87,7 +93,7 @@ func main() {
 }
 
 func run() int {
-	ver := flag.String("version", "", "the version released, X.Y.Z")
+	ver := flag.String("version", "", "the version released, X.Y.Z or X.Y.Z-rc.N")
 	sums := flag.String("checksums", "", "the release's checksums.txt")
 	from := flag.String("from", "", "the last release's tag (default: the newest vX.Y.Z reachable from -to but v<version>)")
 	to := flag.String("to", "HEAD", "the range's end")
@@ -99,9 +105,12 @@ func run() int {
 		return 2
 	}
 	if flag.NArg() > 0 || !semver.MatchString(*ver) || (*sums == "") != *asJSON {
-		return fail("usage: go run ./tools/bin/release-notes -version <X.Y.Z> (-checksums <checksums.txt> | -json) [-from <tag>] [-to <rev>] [-itos <bin>]")
+		return fail("usage: go run ./tools/bin/release-notes -version <X.Y.Z[-rc.N]> (-checksums <checksums.txt> | -json) [-from <tag>] [-to <rev>] [-itos <bin>]")
 	}
 	n := notes{Version: *ver, Repository: repository, Module: modulePath(*ver), From: *from}
+	if final, rc, ok := strings.Cut(*ver, "-"); ok && rc != "" {
+		n.Candidate = final
+	}
 	var err error
 	if n.From == "" {
 		if n.From, err = lastRelease(*to, "v"+*ver); err != nil {
@@ -213,10 +222,13 @@ func (n notes) asset() upgrading {
 // notes is everything the template reads.
 type notes struct {
 	Version, Repository, Module, From, Range, Changed, Pin string
-	Hashes                                                 map[string]string // platform → its archive's SHA-256
-	Commits                                                []commit
-	Upgrading, Changes                                     []footer
-	Config                                                 []finding
+	// Candidate is the release Version is a candidate of, X.Y.Z, "" when it
+	// is a release itself.
+	Candidate          string
+	Hashes             map[string]string // platform → its archive's SHA-256
+	Commits            []commit
+	Upgrading, Changes []footer
+	Config             []finding
 }
 
 // modulePath is the Go module a version is go-installed from: the repository's
@@ -481,7 +493,13 @@ func (n notes) render() (string, error) {
 
 const notesTemplate = `# itos {{.Version}}
 
-Cut by CI from the {{plural (len .Commits) "commit" "commits"}} since {{since}}: {{plural (count "feat") "feat" "feats"}}, {{plural (count "fix") "fix" "fixes"}} and {{plural (count "breaking") "breaking change" "breaking changes"}}, where a breaking change makes a major release, a feat a minor one and a fix a patch.{{if .From}} Every change: https://github.com/{{.Repository}}/compare/{{.From}}...v{{.Version}}{{end}}
+{{if .Candidate}}**A pre-release**, a candidate for {{.Candidate}}, cut while this repository's ` + "`itos.yaml`" + ` says
+` + "`release: { prerelease: rc }`" + `. It is published as a pre-release and never as latest, so
+` + "`go install …@latest`" + `, the launcher's update notice and a bare ` + "`itos pin`" + ` still name the newest
+stable release; ` + "`itos pin {{.Version}}`" + ` pins this one. Its notes run from {{since}}, the last
+stable release, as {{.Candidate}}'s will.
+
+{{end}}Cut by CI from the {{plural (len .Commits) "commit" "commits"}} since {{since}}: {{plural (count "feat") "feat" "feats"}}, {{plural (count "fix") "fix" "fixes"}} and {{plural (count "breaking") "breaking change" "breaking changes"}}, where a breaking change makes a major release, a feat a minor one and a fix a patch.{{if .From}} Every change: https://github.com/{{.Repository}}/compare/{{.From}}...v{{.Version}}{{end}}
 
 ## What changed
 

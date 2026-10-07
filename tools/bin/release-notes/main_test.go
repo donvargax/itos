@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -40,5 +41,45 @@ func TestAsset(t *testing.T) {
 	}
 	if want := `{"schema":1,"version":"0.1.0","previous":"","breaking":[],"upgrading":[],"changes":[],"config":[]}`; string(empty) != want {
 		t.Errorf("a first release's asset:\n got %s\nwant %s", empty, want)
+	}
+}
+
+// A release candidate's notes say it is a pre-release, of which release, and
+// how to pin it; a release's say nothing of the kind. The version taken is
+// X.Y.Z or a candidate of it, X.Y.Z-rc.N (T-118).
+func TestPrereleaseNotes(t *testing.T) {
+	for _, v := range []string{"7.0.0", "7.0.0-rc.1", "7.0.0-rc.12"} {
+		if !semver.MatchString(v) {
+			t.Errorf("-version %s is refused", v)
+		}
+	}
+	for _, v := range []string{"7.0.0-beta.1", "7.0.0-rc", "7.0.0-rc.1+b", "v7.0.0"} {
+		if semver.MatchString(v) {
+			t.Errorf("-version %s is taken", v)
+		}
+	}
+	hashes := map[string]string{}
+	for _, p := range platforms {
+		hashes[p] = "00"
+	}
+	rc := notes{Version: "7.0.0-rc.2", Candidate: "7.0.0", From: "v6.5.0", Hashes: hashes, Module: modulePath("7.0.0-rc.2")}
+	text, err := rc.render()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"# itos 7.0.0-rc.2\n", "**A pre-release**, a candidate for 7.0.0",
+		"never as latest", "`itos pin 7.0.0-rc.2` pins this one", "run from v6.5.0, the last\nstable release",
+		"go install github.com/donvargax/itos/v7/cmd/itos@v7.0.0-rc.2"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("an rc's notes lack %q:\n%s", want, text)
+		}
+	}
+	final := notes{Version: "7.0.0", From: "v6.5.0", Hashes: hashes, Module: modulePath("7.0.0")}
+	text, err = final.render()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(text, "pre-release") {
+		t.Errorf("a release's notes say pre-release:\n%s", text)
 	}
 }
