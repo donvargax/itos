@@ -5973,8 +5973,8 @@ items:
   - id: T-119
     title: itos's module path moves to /v7 and the pre-release marker is on, the first v7 work
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
