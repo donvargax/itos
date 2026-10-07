@@ -5686,3 +5686,15 @@ items:
       Slice 97 built tags on work items, but this repository declares none, so its own registry, the
       clusters that prompted the slice (upgrade, plugin, stealth, guard, json, windows), carries
       none yet: work.tags in itos.yaml is a build commit, then work edit --tags on the open items.
+
+  - id: p1-show-item-tags
+    title: work show and work list print an item's tags
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slice 97 shows tags beside the id in itos work and itos status only: work show prints refs but
+      not tags, and work list's columns leave them out, so an item's tags are seen there only
+      through --json or --tag.
