@@ -4228,14 +4228,9 @@ items:
     title: A YAML alias cycle is refused, not a crash
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). value.convert follows AliasNode with no
-      visited set or expansion limit, so a: &x [*x] in the config, a ledger or the registry ends in
-      a fatal stack overflow, in the commit-msg hook too, and nested aliases expand exponentially
-      (value/value.go:192-194). Its @bug-39 scenario is written before it is handed out.
     refs: [internal/value/value.go]
 
   - id: bug-40
