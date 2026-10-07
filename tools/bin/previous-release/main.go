@@ -46,15 +46,19 @@
 // name, so the old corpus's cases that require the binary's own version would
 // fail for the stamp alone; the release a consumer gets says X.Y.Z.
 //
-// An old scenario or case that fails is accepted when a commit since the tag
-// is marked as breaking (a ! before its header's colon, or a BREAKING-CHANGE:
-// or BREAKING CHANGE: footer in its last paragraph, read as
-// tools/bin/schema-contract reads them), or when a fix since the tag names it
-// in a Changes: footer: a fix whose old scenario held the bug stays a patch,
-// said in its commit. A feat's Changes: never excuses one: a feat that changes
-// what an old scenario promised is a breaking change. Changes: is a footer of
-// free text (itos.yaml's commits.footers, written by itos commit --changes),
-// one entry a line:
+// An old scenario or case that fails is accepted only when a commit since the
+// tag names it in a Changes: footer and that commit is a fix or is marked as
+// breaking (a ! before its header's colon, or a BREAKING-CHANGE: or BREAKING
+// CHANGE: footer in its last paragraph, read as tools/bin/schema-contract reads
+// them) (T-106): a fix whose old scenario held the bug stays a patch, and a
+// breaking change says which promises it breaks, said in its commit. Being
+// breaking excuses nothing a commit does not name: one breaking commit once
+// waived every failure of v6.0.0, 232 of them, most of which it did not cause,
+// so a release could change what it never announced. A feat's Changes: never
+// excuses one unless the feat is breaking: a feat that changes what an old
+// scenario promised is a breaking change. Changes: is a footer of free text
+// (itos.yaml's commits.footers, written by itos commit --changes), one entry a
+// line:
 //
 //	Changes: @ID-CMSG-03 @ID-CMSG-04    scenarios, by their IDs
 //	Changes: hooks.yaml: <case name>    a corpus case, by its file and its name,
@@ -643,22 +647,21 @@ func eachScenario(dir string, fn func(name, id string)) error {
 	return nil
 }
 
-// excuse is why a failure is accepted, or "" when nothing excuses it; named
-// is a feat that names it in Changes:, which never excuses one. cases are the
-// release's corpus's case names, by file.
+// excuse is why a failure is accepted, or "" when nothing excuses it: a commit
+// that names it in Changes: and is a fix or marked as breaking (T-106). A
+// breaking commit that does not name it excuses nothing. named is a commit
+// that names it and is neither, a feat say, which never excuses one. cases are
+// the release's corpus's case names, by file.
 func excuse(f failure, commits []commit, cases map[string][]string) (why string, named *commit) {
-	for i := range commits {
-		c := &commits[i]
-		if c.Breaking {
-			return fmt.Sprintf("%.7s %q marks a breaking change", c.SHA, c.Header), nil
-		}
-	}
 	for i := range commits {
 		c := &commits[i]
 		if !names(c.Changes, f.Key, cases) {
 			continue
 		}
-		if c.Type == "fix" {
+		switch {
+		case c.Breaking:
+			return fmt.Sprintf("the breaking change %.7s %q names it in Changes:", c.SHA, c.Header), nil
+		case c.Type == "fix":
 			return fmt.Sprintf("the fix %.7s %q names it in Changes:", c.SHA, c.Header), nil
 		}
 		if named == nil {
@@ -801,7 +804,8 @@ func report(tag string, failures []failure, commits []commit, cases map[string][
 		}
 		line := fmt.Sprintf("%s: %s's %s fails against this tree's itos", self, tag, f.What)
 		if named != nil {
-			line += fmt.Sprintf(", and only the %s %.7s %q names it in Changes:, which never excuses one", named.Type, named.SHA, named.Header)
+			line += fmt.Sprintf(", and only the %s %.7s %q names it in Changes:, which excuses one only on a fix or a breaking change",
+				named.Type, named.SHA, named.Header)
 		}
 		refused = append(refused, line)
 	}
@@ -817,14 +821,16 @@ func report(tag string, failures []failure, commits []commit, cases map[string][
 	for _, line := range refused {
 		fmt.Fprintln(os.Stderr, line)
 	}
-	fmt.Fprintf(os.Stderr, "\n%s: %d of %s's scenarios and cases fail against this tree's itos, and no commit since %s says why:\n"+
-		"  the behaviour each promised has changed, and the release would ship it as a minor or a patch.\n"+
-		"  If a fix changed it and the old scenario or case held the bug, name each in a fix's Changes: footer\n"+
-		"  (itos commit --changes '@ID-…', or --changes '<file>.yaml: <case name>' for a case, its name or a\n"+
-		"  prefix of it no other case of the file starts with), so the release stays a patch; a feat's\n"+
-		"  Changes: never excuses one. Otherwise mark the change as breaking with a BREAKING-CHANGE: footer\n"+
-		"  saying what a consumer must change (itos commit --breaking '<what to change>') or a ! in its\n"+
-		"  header (feat!: …), so the release is a major; or keep the old behaviour.\n",
+	fmt.Fprintf(os.Stderr, "\n%s: %d of %s's scenarios and cases fail against this tree's itos, and no commit since %s names them:\n"+
+		"  the behaviour each promised has changed, and the release would ship it unannounced.\n"+
+		"  Name each failure in a Changes: footer (itos commit --changes '@ID-…', or --changes\n"+
+		"  '<file>.yaml: <case name>' for a case, its name or a prefix of it no other case of the file\n"+
+		"  starts with), on a breaking commit too: being breaking excuses only what its Changes: names.\n"+
+		"  If a fix changed it and the old scenario or case held the bug, name it in the fix's Changes:,\n"+
+		"  so the release stays a patch. Otherwise the change is breaking: a commit with a BREAKING-CHANGE:\n"+
+		"  footer saying what a consumer must change and a Changes: footer naming each failure\n"+
+		"  (itos commit --breaking '<what to change>' --changes '…'), so the release is a major; a feat's\n"+
+		"  Changes: excuses nothing unless the feat is breaking. Or keep the old behaviour.\n",
 		self, len(refused), tag, tag)
 	return 1
 }
@@ -878,20 +884,26 @@ func commitsSince(tag string) ([]commit, error) {
 		if !ok {
 			continue
 		}
-		message = strings.TrimSpace(message)
-		header, _, _ := strings.Cut(message, "\n")
-		c := commit{SHA: sha, Header: header, Breaking: markedBreaking(message)}
-		if m := headerType.FindStringSubmatch(header); m != nil {
-			c.Type = m[1]
-		}
-		for _, line := range strings.Split(lastParagraph(message), "\n") {
-			if text, ok := strings.CutPrefix(line, "Changes:"); ok && strings.TrimSpace(text) != "" {
-				c.Changes = append(c.Changes, strings.TrimSpace(text))
-			}
-		}
-		commits = append(commits, c)
+		commits = append(commits, parseCommit(sha, message))
 	}
 	return commits, nil
+}
+
+// parseCommit reads one commit's message: its header, its type, whether it is
+// marked as breaking, and the Changes: entries of its footers.
+func parseCommit(sha, message string) commit {
+	message = strings.TrimSpace(message)
+	header, _, _ := strings.Cut(message, "\n")
+	c := commit{SHA: sha, Header: header, Breaking: markedBreaking(message)}
+	if m := headerType.FindStringSubmatch(header); m != nil {
+		c.Type = m[1]
+	}
+	for _, line := range strings.Split(lastParagraph(message), "\n") {
+		if text, ok := strings.CutPrefix(line, "Changes:"); ok && strings.TrimSpace(text) != "" {
+			c.Changes = append(c.Changes, strings.TrimSpace(text))
+		}
+	}
+	return c
 }
 
 // markedBreaking: a ! before the header's colon, or a BREAKING-CHANGE: or

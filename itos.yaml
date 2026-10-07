@@ -53,14 +53,15 @@ commits:
       source: text
       required_for: [feat, fix]
       since: "2e522f25cd21dd28eab41e320854ff8beb9856ae"
-    # An old scenario or corpus case a fix changes on purpose, which the last release's suite then
-    # fails (T-071, tools/bin/previous-release): one entry a line, scenarios by their IDs
-    # (Changes: @ID-CMSG-03) or a case by its file and name (Changes: hooks.yaml: <case name>).
-    # A case's name may be cut short to fit the 100-character line (T-081): the entry names the
-    # case whose name is the entry's, or else the one case of the file whose name starts with it;
-    # a prefix two cases start with names neither, and is warned of. Only a fix's excuses a failure; a feat that breaks an old scenario is a breaking change. Free
-    # text, so itos commit --changes writes it, a scenario the fix removed is not refused as
-    # unknown, and a case can be named; the check reads each against the last release instead.
+    # An old scenario or corpus case a fix or a breaking change changes on purpose, which the last
+    # release's suite then fails (T-071, tools/bin/previous-release): one entry a line, scenarios by
+    # their IDs (Changes: @ID-CMSG-03) or a case by its file and name (Changes: hooks.yaml: <case
+    # name>). A case's name may be cut short to fit the 100-character line (T-081): the entry names
+    # the case whose name is the entry's, or else the one case of the file whose name starts with
+    # it; a prefix two cases start with names neither, and is warned of. Only a fix's or a breaking
+    # commit's excuses a failure, and only the failures it names (T-106). Free text, so itos commit
+    # --changes writes it, a scenario the fix removed is not refused as unknown, and a case can be
+    # named; the check reads each against the last release instead.
     Changes:
       source: text
       validate_for: all
@@ -186,9 +187,9 @@ ci:
     # The last release's scenarios and corpus against this tree's itos (T-071), when the range has
     # a feat or a fix: the release's tag checked out into a scratch worktree, its go test ./features
     # run there with ITOS_BIN naming tools/bin/itos, and its corpus with its own runner. An old
-    # scenario or case that fails is accepted only when a commit since the tag is breaking, or a
-    # fix names it in Changes:. A shallow clone or a tag it cannot check out stops it (exit 2), and
-    # no release tag passes it, saying so. After this tree's own corpus, which fails for a cause
+    # scenario or case that fails is accepted only when a fix or a breaking commit since the tag
+    # names it in Changes: (T-106). A shallow clone or a tag it cannot check out stops it (exit 2),
+    # and no release tag passes it, saying so. After this tree's own corpus, which fails for a cause
     # nearer home. FROM as above.
     - { run: 'go run ./tools/bin/previous-release -range-from "${FROM-}"', cost: late }
     - { run: tools/bin/itos task T-007, cost: late } # the commit rules, proven on every push

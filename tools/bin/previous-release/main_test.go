@@ -226,3 +226,149 @@ func TestOldCorpusJudgesMachineOutputAlone(t *testing.T) {
 		t.Errorf("the cases that fail:\n  got  %q\n  want %q\nthe runner said:\n%s", failed, want, s.output)
 	}
 }
+
+// The release's corpus the excuse tests name cases of.
+var excuseCases = map[string][]string{
+	"hooks.yaml": {"pre-push refuses an unpushed task", "pre-push passes a clean range"},
+}
+
+// Commits since a release, as their messages read: parsed as commitsSince
+// parses them.
+var (
+	breakingNamesNothing = parseCommit("1111111aaaa", "feat: say the contract\n\nWhy.\n\nScenarios: @ID-NEW-01\nUpgrading: read the contract\nBREAKING-CHANGE: only machine output is the contract")
+	breakingNamesOne     = parseCommit("2222222bbbb", "feat: rename a rule\n\nWhy.\n\nScenarios: @ID-NEW-02\nUpgrading: read r-two\nBREAKING-CHANGE: r-one is now r-two\nChanges: @ID-CMSG-03")
+	bangNamesCase        = parseCommit("3333333cccc", "feat!: drop a key\n\nWhy.\n\nScenarios: @ID-NEW-03\nUpgrading: stop reading from\nChanges: hooks.yaml: pre-push refuses an")
+	fixNamesOne          = parseCommit("4444444dddd", "fix: refuse what was let through\n\nWhy.\n\nScenarios: @bug-9\nUpgrading: none\nChanges: @ID-CMSG-04")
+	featNamesOne         = parseCommit("5555555eeee", "feat: change an old promise quietly\n\nWhy.\n\nScenarios: @ID-NEW-04\nUpgrading: none\nChanges: @ID-CMSG-05")
+)
+
+// excuse accepts an old failure only when a commit names it in Changes: and
+// is a fix or breaking (T-106); a breaking commit excuses nothing it does not
+// name, and a feat that names one without being breaking excuses nothing.
+func TestExcuseOnlyWhatACommitNames(t *testing.T) {
+	for _, c := range []struct {
+		name    string
+		failure string
+		commits []commit
+		excused bool
+		named   string // the SHA of the commit that names it without excusing it
+	}{
+		{"a breaking commit that names nothing excuses nothing", "@ID-CMSG-01",
+			[]commit{breakingNamesNothing}, false, ""},
+		{"nor a failure another breaking commit names", "@ID-CMSG-01",
+			[]commit{breakingNamesNothing, breakingNamesOne}, false, ""},
+		{"a breaking commit excuses a scenario it names", "@ID-CMSG-03",
+			[]commit{breakingNamesNothing, breakingNamesOne}, true, ""},
+		{"a ! header excuses a case it names by a prefix", "hooks.yaml: pre-push refuses an unpushed task",
+			[]commit{bangNamesCase}, true, ""},
+		{"but not the file's other case", "hooks.yaml: pre-push passes a clean range",
+			[]commit{bangNamesCase}, false, ""},
+		{"a fix excuses a scenario it names", "@ID-CMSG-04",
+			[]commit{breakingNamesNothing, fixNamesOne}, true, ""},
+		{"a feat that is not breaking excuses nothing it names", "@ID-CMSG-05",
+			[]commit{featNamesOne, breakingNamesNothing}, false, featNamesOne.SHA},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			why, named := excuse(failure{Key: c.failure}, c.commits, excuseCases)
+			if (why != "") != c.excused {
+				t.Errorf("excused: got %q, want excused %v", why, c.excused)
+			}
+			got := ""
+			if named != nil {
+				got = named.SHA
+			}
+			if got != c.named {
+				t.Errorf("the commit that names it without excusing it: got %q, want %q", got, c.named)
+			}
+		})
+	}
+}
+
+// The commits parsed as commitsSince reads them: whether each is breaking,
+// and the Changes: entries it gives.
+func TestParseCommit(t *testing.T) {
+	for _, c := range []struct {
+		commit   commit
+		typ      string
+		breaking bool
+		changes  []string
+	}{
+		{breakingNamesNothing, "feat", true, nil},
+		{breakingNamesOne, "feat", true, []string{"@ID-CMSG-03"}},
+		{bangNamesCase, "feat", true, []string{"hooks.yaml: pre-push refuses an"}},
+		{fixNamesOne, "fix", false, []string{"@ID-CMSG-04"}},
+		{featNamesOne, "feat", false, []string{"@ID-CMSG-05"}},
+	} {
+		if c.commit.Type != c.typ || c.commit.Breaking != c.breaking || !reflect.DeepEqual(c.commit.Changes, c.changes) {
+			t.Errorf("%q: got type %q, breaking %v, changes %q; want %q, %v, %q",
+				c.commit.Header, c.commit.Type, c.commit.Breaking, c.commit.Changes, c.typ, c.breaking, c.changes)
+		}
+	}
+}
+
+// report fails a range whose only breaking commit names none of the old
+// failures, as v6.0.0's did, and tells the reader to name each failure in
+// Changes:, on a breaking commit too; it passes once every failure is named
+// by a fix or a breaking commit.
+func TestReportRefusesWhatNoCommitNames(t *testing.T) {
+	failures := []failure{
+		{Key: "@ID-CMSG-01", What: "scenario @ID-CMSG-01"},
+		{Key: "@ID-CMSG-03", What: "scenario @ID-CMSG-03"},
+		{Key: "hooks.yaml: pre-push refuses an unpushed task", What: "conformance case hooks.yaml: pre-push refuses an unpushed task"},
+	}
+	status, stdout, stderr := reported(t, failures, []commit{breakingNamesNothing, breakingNamesOne})
+	if status != 1 {
+		t.Errorf("one breaking commit naming one of three failures: got exit %d, want 1\n%s%s", status, stdout, stderr)
+	}
+	for _, want := range []string{
+		"scenario @ID-CMSG-01 fails against this tree's itos",
+		"case hooks.yaml: pre-push refuses an unpushed task fails against this tree's itos",
+		"2 of v1.0.0's scenarios and cases fail",
+		"Name each failure in a Changes: footer",
+		"on a breaking commit too",
+	} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("what it says of the failures should hold %q; it said:\n%s", want, stderr)
+		}
+	}
+	if !strings.Contains(stdout, "scenario @ID-CMSG-03 fails, accepted: the breaking change 2222222") {
+		t.Errorf("the failure the breaking commit names should be accepted; it said:\n%s", stdout)
+	}
+
+	named := parseCommit("6666666ffff", "fix: name the rest\n\nWhy.\n\nScenarios: @bug-10\nUpgrading: none\nChanges: @ID-CMSG-01")
+	status, stdout, stderr = reported(t, failures, []commit{breakingNamesNothing, breakingNamesOne, bangNamesCase, named})
+	if status != 0 {
+		t.Errorf("every failure named by a fix or a breaking commit: got exit %d, want 0\n%s%s", status, stdout, stderr)
+	}
+}
+
+// reported runs report on failures and commits against a release v1.0.0,
+// and gives its exit status and what it printed.
+func reported(t *testing.T, failures []failure, commits []commit) (status int, stdout, stderr string) {
+	t.Helper()
+	dir := t.TempDir()
+	out, err := os.Create(filepath.Join(dir, "stdout"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	errs, err := os.Create(filepath.Join(dir, "stderr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	keptOut, keptErr := os.Stdout, os.Stderr
+	os.Stdout, os.Stderr = out, errs
+	status = report("v1.0.0", failures, commits, excuseCases,
+		suite{name: "scenarios", failures: failures[:2]}, suite{name: "conformance corpus", failures: failures[2:]})
+	os.Stdout, os.Stderr = keptOut, keptErr
+	_ = out.Close()
+	_ = errs.Close()
+	o, err := os.ReadFile(filepath.Join(dir, "stdout"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	e, err := os.ReadFile(filepath.Join(dir, "stderr"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return status, string(o), string(e)
+}
