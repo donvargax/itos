@@ -175,7 +175,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
   # release, and pre-releases of one release by their identifiers, numbers as
   # numbers (rc.10 above rc.2). It ships before the first v7 rc, so the
   # launcher every repository runs reads rcs right.
-  @ID-UPDATE-15 @bug-50 @wip
+  @ID-UPDATE-15 @bug-50
   Scenario: A repository pinning a release candidate is told when its final release is out
     Given a repository whose ledger has the task "T-001"
     And the release server also offers the version "9.2.0-rc.1"

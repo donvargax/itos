@@ -1,7 +1,8 @@
 // Package version is itos's version, and whether it satisfies a config's
 // requires: a list of comparators, each of >=, >, <=, <, = (or none) and a
-// version, all of which must hold. Compare orders two versions, a
-// pre-release below its release.
+// version, all of which must hold. Compare orders two versions by semver's
+// precedence: a pre-release below its release, and pre-releases of one
+// release by their identifiers, numbers as numbers (rc.10 above rc.2).
 //
 // The version is the release's tag, written nowhere in the tree: a
 // release's GoReleaser stamps it into the binary with -ldflags

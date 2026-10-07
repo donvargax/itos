@@ -168,3 +168,28 @@ func TestNewestRunsTheNewestStableReleaseCached(t *testing.T) {
 		t.Error("newest launched another release than a build without a version")
 	}
 }
+
+// A pin on a release candidate is behind its final release and ahead of the
+// release before it (bug 50): the notice reads the order version.Compare
+// gives, a pre-release below its release.
+func TestNoticeTellsAReleaseCandidatesPinOfItsRelease(t *testing.T) {
+	cache := offline(t)
+	t.Setenv(EnvNoUpdate, "1")
+	at(t, time.Unix(1_800_000_000, 0))
+	if err := writeState(filepath.Join(cache, "state", "latest"), "9.2.0"); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []struct {
+		repo, pin string
+		told      bool
+	}{
+		{"one/itos.yaml", "9.2.0-rc.1", true},
+		{"two/itos.yaml", "9.3.0-rc.1", false},
+	} {
+		var b strings.Builder
+		notice(c.repo, c.pin, "", &b)
+		if told := strings.HasPrefix(b.String(), "itos 9.2.0 is out (this repository pins "+c.pin+"): "); told != c.told {
+			t.Errorf("notice under the pin %s said %q, told %t, want %t", c.pin, b.String(), told, c.told)
+		}
+	}
+}
