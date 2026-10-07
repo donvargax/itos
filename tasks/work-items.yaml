@@ -6072,8 +6072,8 @@ items:
   - id: T-122
     title: tools/bin's tests and self-tests run the real git, never an itos linked as git
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
