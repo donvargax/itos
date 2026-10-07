@@ -29,6 +29,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cucumber/godog"
 )
@@ -68,6 +69,10 @@ type fakeGitHub struct {
 	alone    string       // the one commit the watched run is of, when a step says so (bug 49)
 	refuses  bool         // whether it answers every request 401
 	failing  bool         // whether it answers every request 500, a server error
+	// How many requests, from the next, it answers 403 for its rate limit, as
+	// GitHub does (bug 40), with headers that ask for no wait; -1 answers every
+	// one so.
+	rateLimited int
 	// What it does when first asked for the watched run, before it answers
 	// (bug 34): a change made while the asker waits. An error answers 500.
 	firstLook func() error
@@ -93,6 +98,17 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	if g.failing {
 		http.Error(rw, `{"message":"Server Error"}`, http.StatusInternalServerError)
+		return
+	}
+	if g.rateLimited != 0 {
+		if g.rateLimited > 0 {
+			g.rateLimited--
+		}
+		rw.Header().Set("Retry-After", "0")
+		rw.Header().Set("X-RateLimit-Limit", "5000")
+		rw.Header().Set("X-RateLimit-Remaining", "0")
+		rw.Header().Set("X-RateLimit-Reset", strconv.FormatInt(time.Now().Unix(), 10))
+		http.Error(rw, `{"message":"API rate limit exceeded for user ID 1."}`, http.StatusForbidden)
 		return
 	}
 	if req.Method != http.MethodGet || req.Header.Get("Authorization") != "Bearer "+fakeToken {

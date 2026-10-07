@@ -93,6 +93,8 @@ func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 		w.github.failing = true
 		return nil
 	})
+	sc.Step(`^the fake GitHub answers the first look with a 403 rate limit$`, func() error { return w.rateLimited(1) })
+	sc.Step(`^the fake GitHub answers every look with a 403 rate limit$`, func() error { return w.rateLimited(-1) })
 	sc.Step(`^no GitHub token in the environment$`, func() error {
 		w.vars = slices.DeleteFunc(w.vars, func(v string) bool { return strings.HasPrefix(v, "GITHUB_TOKEN=") })
 		return nil
@@ -318,6 +320,20 @@ func (w *world) nightlyOnFakeGitHub(url, name string) error {
 	g.mu.Unlock()
 	w.config.watch.nightlyWorkflow = "nightly.yml"
 	return w.pushConfig("chore: read the nightly")
+}
+
+// The fake GitHub answers the next n requests, or every one for -1, with a 403
+// for its rate limit, as GitHub's primary limit answers (bug 40):
+// x-ratelimit-remaining 0, a reset now and retry-after 0, so the watch may
+// look again at once.
+func (w *world) rateLimited(n int) error {
+	if w.github == nil {
+		return errors.New("no fake GitHub: start one first")
+	}
+	w.github.mu.Lock()
+	w.github.rateLimited = n
+	w.github.mu.Unlock()
+	return nil
 }
 
 // Every look at the watched run the fake GitHub gave was of the clone's HEAD,
