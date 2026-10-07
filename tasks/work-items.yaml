@@ -6053,16 +6053,9 @@ items:
     title: tools/bin's tests run the real git, never an itos linked as git
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by bug-50's agent (2026-10-07): with the git shim first on the PATH, six TestPrerelease
-      tests in tools/bin/release-version failed, their git commits running the global itos (6.4.0
-      then) whose policy refused them; with PATH=/usr/bin first they pass. T-104 made the features
-      and internal's unit tests resolve git past an itos linked as git (internal/git's rule);
-      tools/bin's tests and self-tests do not yet, so they depend on whatever itos is installed
-      globally. They take the same rule.
 
   - id: p1-release-major-from-module-path
     title: release-version cuts the module path's major for a feat or a fix once go.mod is ahead of the last release
