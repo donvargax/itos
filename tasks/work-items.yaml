@@ -5854,8 +5854,8 @@ items:
   - id: T-115
     title: The Windows platform job's features run well under go test's 10-minute limit
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
