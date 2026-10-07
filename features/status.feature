@@ -193,3 +193,12 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "Last green:"
     And its output says "fix: one"
+
+  @ID-STATUS-15 @slice-97 @wip
+  Scenario: status shows the tags of the items it lists beside their ids
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the config's work.tags is "plugin"
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing" and the tags "plugin"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "slice-9" before "plugin"

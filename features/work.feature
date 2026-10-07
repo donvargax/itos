@@ -624,3 +624,74 @@ Feature: The work registry
     When itos runs "work done slice-9"
     Then itos exits with code 1
     And its output says "https://ci.example/runs/1"
+
+  # Slice 97 (the user's question, 2026-10-06, p1-item-tags): some 200 items
+  # cluster by area (upgrade, plugin, stealth, guard, json, windows) that their
+  # ids and titles do not always name. The config declares the tags a
+  # registry may use (work.tags), so a typo is refused rather than becoming a
+  # tag of its own; an item carries a list of them, given and replaced as its
+  # refs are (--tags on work add and work edit, an empty --tags emptying it);
+  # work list --tag filters; itos work and itos status show an item's tags
+  # beside its id. A registry with no work.tags in its config accepts no tag. The
+  # scenarios that add an item first give the registry one, so it lists a phase.
+  @ID-WORK-58 @slice-97 @wip
+  Scenario: work add gives an item tags the config declares
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the config's work.tags is "plugin, stealth"
+    When itos runs the command line "work add p1-thing --title 'A thing' --why 'Because.' --tags plugin,stealth"
+    Then itos exits with code 0
+    And the registry's item "p1-thing" has the tags "plugin, stealth"
+
+  @ID-WORK-59 @slice-97 @wip
+  Scenario: work add refuses a tag the config does not declare, and adds nothing
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the config's work.tags is "plugin, stealth"
+    When itos runs the command line "work add p1-thing --title 'A thing' --why 'Because.' --tags plgin"
+    Then itos exits with code 1
+    And its output says "plgin"
+    And the registry has no item "p1-thing"
+
+  @ID-WORK-60 @slice-97 @wip
+  Scenario: work check refuses a registry whose item carries an undeclared tag
+    Given the config's work.tags is "plugin"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo" and the tags "windows"
+    When itos checks the work registry
+    Then itos exits with code 1
+    And its output says "windows"
+
+  @ID-WORK-61 @slice-97 @wip
+  Scenario: work edit replaces an item's tags, and an empty --tags empties them
+    Given the config's work.tags is "plugin, stealth"
+    And the work registry has the idea "p1-thing" owned by nobody
+    And itos has run the command line "work edit p1-thing --tags plugin"
+    When itos runs the command line "work edit p1-thing --tags stealth"
+    Then itos exits with code 0
+    And the registry's item "p1-thing" has the tags "stealth"
+    When itos runs the command line "work edit p1-thing --tags ''"
+    Then itos exits with code 0
+    And the registry's item "p1-thing" has no tags
+
+  @ID-WORK-62 @slice-97 @wip
+  Scenario: work list --tag lists only the open items carrying the tag
+    Given the config's work.tags is "plugin, stealth"
+    And the work registry has the item "slice-1" owned by nobody with the status "todo" and the tags "plugin"
+    And the work registry has the item "slice-2" owned by nobody with the status "todo" and the tags "stealth"
+    When itos runs "work list --tag plugin"
+    Then itos exits with code 0
+    And its output says "slice-1"
+    And its output does not say "slice-2"
+
+  @ID-WORK-63 @slice-97 @wip
+  Scenario: itos work shows an item's tags beside its id
+    Given the config's work.tags is "plugin"
+    And the work registry has the item "slice-1" owned by nobody with the status "todo" and the tags "plugin"
+    When itos runs "work --as someone"
+    Then itos exits with code 0
+    And its output says "slice-1" before "plugin"
+
+  @ID-WORK-64 @slice-97 @wip
+  Scenario: Without work.tags in the config, work add refuses any tag
+    Given the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When itos runs the command line "work add p1-thing --title 'A thing' --why 'Because.' --tags plugin"
+    Then itos exits with code 1
+    And its output says "work.tags"
