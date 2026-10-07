@@ -1,6 +1,6 @@
 # v7: proof of done, through itos-cc
 
-A proposal for the user to mark up (2026-10-07). It turns q-13 and the design recorded on
+A proposal for the user to mark up (2026-10-07); settled where it says so. It turns q-13 and the design recorded on
 `p1-nightly-late-done-checks` into what v7 builds. Each **Open** line is a call still to make; the
 recommendation comes first.
 
@@ -39,6 +39,12 @@ run while the task is open and gate `work done`, then `work done` removes them f
 - **At work done:** `mutation check --since <base> --fail-uncovered --json`, which runs nothing
   slow: it refuses missing or stale results (a function or its tests changed since). The agent runs
   `mutation run --since <base>` before; the brief says so.
+- **Coverage from the features** (the user's call, 2026-10-07): itos's behaviour is tested by
+  features that run the built binary as another process, which Go's in-process coverage cannot
+  see, so `--fail-uncovered` would call nearly everything uncovered. The fix is Go's integration
+  coverage: itos-cc sets `GOCOVERDIR` and merges what the binary writes (itos-cc#14), and the
+  features build the itos under test with `-cover` when it is set (T-121). This repository adopts
+  the proof only with both in place (T-120), never through an interim without coverage.
 - **In CI:** `mutation sample --since <range start> --json`, the spot check that a forged or stale
   cache fails, with the flags the results were recorded with (`--all-tests` where they were).
 - **Equivalent mutants** are excepted in `itos-cc.yaml` under `mutation.exceptions`, each with its
@@ -83,10 +89,10 @@ proof:
 
 ## Closing without the proof
 
-**Open.** Recommended: `itos work done <id> --without-proof --why '…'` is allowed, records the
-reason in the close commit, and `itos status` lists every item closed that way until the person
-clears it, so it is visible rather than forbidden. Alternative: refused outright, the only way out
-being an exception in `itos-cc.yaml` with its reason.
+**Settled (the user's call, 2026-10-07): nothing closes an item past a failing proof.** Models
+will do anything to finish, and a bypass any session can type is one they will use. The only way
+past a surviving mutant is an exception in `itos-cc.yaml` with its reason, which the person
+reviews and which fails once stale; otherwise the agent stops and asks.
 
 ## The rest of v7 (breaking, so together)
 
