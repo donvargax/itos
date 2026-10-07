@@ -5522,8 +5522,8 @@ items:
   - id: T-109
     title: "docs/ARCHITECTURE.md is a map: per-package detail lives in package doc comments, history in the changelog"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
