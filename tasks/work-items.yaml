@@ -5322,11 +5322,9 @@ items:
     title: work done passes over commits that touch only the work registry, so one push lands many closes
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Specified in features/work.feature.
     refs: [features/work.feature, internal/work]
 
   - id: bug-48
