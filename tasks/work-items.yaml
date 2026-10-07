@@ -5333,7 +5333,7 @@ items:
     title: The update notice names the newest release itos knows, and asks again after an hour
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
