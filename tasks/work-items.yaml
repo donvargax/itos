@@ -5880,17 +5880,9 @@ items:
     title: The previous-release self-test holds T-106's rule, and the nightly runs it
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Found doing T-112 (2026-10-07): node tools/selftest/previous-release.ts fails three of its
-      checks on main (a feat naming the scenario in Changes:, and a breaking change by footer and by
-      bang), each still expecting the rule before T-106, which made a breaking commit excuse only
-      what its Changes: footer names. No gate runs that self-test, so it went red unseen. Its three
-      expectations are brought to T-106's rule (a feat naming a case excuses nothing; a breaking
-      commit excuses only what Changes: names), never the program bent to the old ones, and
-      itos.yaml's nightly runs it beside the other self-tests. Was p1-previous-release-selftest-red.
 
   - id: p1-selftests-unrun
     title: Every gate self-test runs on some schedule, not only when a push names its task
