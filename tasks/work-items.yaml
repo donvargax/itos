@@ -5871,22 +5871,9 @@ items:
     title: itos draft edits a file change off the working tree, so a coordinator drafts specs while an agent holds the checkout
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-draft-edit-off-tree.
-      The user's call (2026-10-07): coordinators still write specs in scratch files while an agent
-      runs, though the guide says to draft them. The cause is itos draft: drafting a file change
-      means first editing the file in the working tree, which is the agent's checkout (its itos push
-      refuses on an uncommitted tracked change, the pre-commit backup can take it, its own edits to
-      the file conflict), so a careful coordinator falls back to scratch; only command drafts are
-      safe mid-agent. Proposal: itos draft edit <id> <path> copies HEAD's version of the file (or an
-      empty one for a new file) into the draft's own folder under the git common dir, to be edited
-      there, and draft add (or draft edit itself) records the change from that copy against HEAD,
-      never reading or writing the working tree; promote applies it as today. Then the coordinator's
-      guide says: while an agent runs, write specs in the draft's folder, never in the tree or in
-      scratch.
 
   - id: p1-draft-copies-listed
     title: itos draft names an edit draft's copies
