@@ -6,6 +6,8 @@
 //	go test ./features -count=1                        every live scenario
 //	go test ./features -count=1 -scenarios=<regexp>    the live scenarios with a
 //	                                                   tag the expression matches
+//	go test ./features -count=1 -timings=<file>        any run, writing where it
+//	                                                   spent its time to the file
 //
 // godog's own tag filter takes exact tags joined by commas; itos's run
 // templates join the IDs they select with |, as a regular expression
@@ -112,6 +114,10 @@
 //   - guard_test.go: the steps write Claude Code's PreToolUse input as its
 //     documentation shows it and run itos guard claude-code with it on stdin
 //     (runWith); a deny is read as Claude Code reads it, stdout's JSON.
+//   - timings_test.go: -timings, which judges nothing: each scenario's time,
+//     from before its set-up to after its clean-up, and each kind of step's
+//     (its text, quoted strings blanked), written as a report once the run
+//     ends. The platform jobs print it (T-115).
 //
 // The header lint, where a scenario needs one, is itos's built-in one (use:
 // builtin), which needs nothing installed and holds no footer rule, so a
@@ -140,6 +146,7 @@ func TestFeatures(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(removeCallerPath)
+	startTimings()
 	suite := godog.TestSuite{
 		Name:                "itos",
 		ScenarioInitializer: initializeScenario,
@@ -151,7 +158,11 @@ func TestFeatures(t *testing.T) {
 			TestingT: t,
 		},
 	}
-	if suite.Run() != 0 {
+	failed := suite.Run() != 0
+	if err := writeTimings(); err != nil {
+		t.Error(err)
+	}
+	if failed {
 		t.Fatal("a scenario failed")
 	}
 }

@@ -152,16 +152,21 @@ type setting struct{ key, value string }
 
 func initializeScenario(sc *godog.ScenarioContext) {
 	w := &world{}
+	clock := timeScenario(sc)
+	defer clock.end(sc)
 	sc.Before(func(ctx context.Context, _ *godog.Scenario) (context.Context, error) {
-		return ctx, w.setUp()
+		return ctx, timed("(the scenario's set-up)", w.setUp)
 	})
 	sc.After(func(ctx context.Context, _ *godog.Scenario, err error) (context.Context, error) {
-		w.stopReleaseServer()
-		os.RemoveAll(w.dir)
-		os.RemoveAll(w.support)
-		if w.origin != "" {
-			os.RemoveAll(w.origin)
-		}
+		_ = timed("(the scenario's clean-up)", func() error {
+			w.stopReleaseServer()
+			os.RemoveAll(w.dir)
+			os.RemoveAll(w.support)
+			if w.origin != "" {
+				os.RemoveAll(w.origin)
+			}
+			return nil
+		})
 		return ctx, err
 	})
 

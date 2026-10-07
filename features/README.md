@@ -50,6 +50,7 @@ conventional config" writes it too, since commitlint left this repository
 go test ./features -count=1                          # every live scenario
 go test ./features -count=1 -scenarios='^@ID-SINCE-' # the live scenarios with a matching tag
 ITOS_BIN=/path/to/itos go test ./features -count=1   # another build, a release's binary say
+go test ./features -count=1 -timings=t.txt           # writes where the run spent its time
 tools/bin/itos tests smoke run scenario              # exactly the smoke set
 ```
 
