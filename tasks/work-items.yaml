@@ -6095,15 +6095,7 @@ items:
     title: The conformance runner runs the real git, past an itos linked as git
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by T-122's agent (2026-10-07): tools/itos/conformance/run.ts spawns the name git for a
-      case's git steps and git_config_after, and its cleanEnv drops ITOS_, so with a link to the
-      built itos first on the PATH as git (T-122's check) the corpus ran over ten minutes without a
-      line and was killed; with /usr/bin first it passes, 887 cases in 22 s. CI has no shim, so only
-      a run by hand, and previous-release's old corpus run by hand, meet it. It could take the git
-      tools/bin/real-git prints (T-122) or ITOS_GIT, and hand it to the itos under test as ITOS_GIT,
-      rather than a second copy of internal/git's rule.
     refs: [tools/itos/conformance/run.ts, tools/bin/real-git/main.go]
