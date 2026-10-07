@@ -5535,19 +5535,9 @@ items:
     title: CI holds the always-read docs to a byte budget, on docs-only pushes too
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [T-109]
     kind: task
-    why: >
-      The cut holds only if growth costs something (the user's call, 2026-10-06). A ci step, go run
-      ./tools/bin/doc-budget, checks byte caps on the docs every session or most briefs read:
-      AGENTS.md 26000, internal/guide/coordinate.md 14000, internal/guide/work.md 6000,
-      docs/ORCHESTRATING.md 11000, docs/ARCHITECTURE.md 40000 (2026-10-06's sizes plus a little
-      room; the agent may adjust each by a few percent, saying why). Text past a cap means taking
-      some out first, as the cap of ten lessons does. The caps live in one file the step reads, and
-      the step runs in the docs-only plan too (a docs-only push runs only vp check, config check and
-      plugin-version today), since docs-only pushes are where the docs grow. Waits on T-109, whose
-      cut the ARCHITECTURE cap needs.
 
   - id: p1-init-no-plugin
     title: itos init --no-plugin declines the plugin, as --no-git-shim and --no-agent-rules decline theirs
