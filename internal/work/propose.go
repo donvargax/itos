@@ -133,7 +133,6 @@ func propose(r Registry, handle string, every bool) Proposal {
 	}
 	unowned := func(item *value.Map) bool { return !every && ownerOf(item) == nil }
 	idea := func(item *value.Map) bool { return item.At("kind") == "idea" }
-	deferred := func(item *value.Map) bool { return item.At("deferred") != value.Undefined }
 	p := Proposal{Person: handle, Every: every, Doing: []*value.Map{}, Next: []*value.Map{}, Unowned: []*value.Map{},
 		Waiting: []Waiting{}, Ideas: []Waiting{}, Deferred: []*value.Map{}}
 	items := inQueueOrder(r)

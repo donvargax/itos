@@ -1719,6 +1719,20 @@ queue <id> --top|--before|--after|--drop`, `internal/cli/workwrite.go`),
   live item depends on, naming those (`dependants`); `Take`, `Done`,
   `Promote` and `Queue` refuse a dropped item, and `Propose` never lists one,
   its status not being `todo`.
+- **work defer** and **work resume** (slice 98, `internal/work/defer.go`,
+  `internal/cli/workdefer.go`) put an item off and lift that, the deferred
+  key's two writers, which before were hands. `work.Defer` writes the
+  `--why` reason as the item's `deferred` with `value.Doc`'s `Note`, a
+  folded block in a block mapping and a quoted text in a flow one, and puts
+  the reason first in the body of its `docs: defer <id>` commit, as `Drop`
+  does; status, owner, tags and the queue are left as they are, so `Propose`
+  and `PrintList` treat it as they treat a deferred key written by hand. It
+  refuses an item already deferred, naming the reason, one done or dropped,
+  and one of any other status but `todo`, which `itemIssues`
+  (`work-deferred-started`) would refuse after. `work.Resume` drops the key
+  and nothing else, `docs: resume <id>`, and refuses an item not deferred.
+  Two commands rather than a flag on one (docs/CLI.md rule 18); `work show`
+  reads both headers as the item's (`registryVerbs`).
 - **task add** (slice 55, `internal/cli/taskadd.go`) writes two files in one
   commit: the task at the end of its group's ledger file (`ledger.Add`,
   `internal/ledger/add.go`) and its item, a task, todo and nobody's, through

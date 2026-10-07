@@ -76,8 +76,9 @@ var sliceID = regexp.MustCompile(`^slice-\d+$`)
 // registryVerbs are the words after "docs: " of the headers itos's registry
 // commands commit with, each followed by the item's id: work take, work
 // done, work add (and task add), work edit, work queue (and work done's
-// taking the item out of the queue, slice 66) and work drop (slice 78).
-var registryVerbs = []string{"take", "close", "add", "edit", "queue", "drop"}
+// taking the item out of the queue, slice 66), work drop (slice 78), and
+// work defer and work resume (slice 98).
+var registryVerbs = []string{"take", "close", "add", "edit", "queue", "drop", "defer", "resume"}
 
 // RegistryHeader is the item a header of itos's registry commits names
 // (for work promote's, "docs: promote <idea> to <id>", the item it made);

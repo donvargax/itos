@@ -74,6 +74,8 @@ Commands:
   work queue <id> --top|--before <id>|--after <id>|--remove
                                    order the work: put an item in the queue, or take it out
   work drop <id> --why <reason>    take an item out of the open work, and commit the reason
+  work defer <id> --why <reason>   put an item off, and commit the reason
+  work resume <id>                 lift an item's deferral, and commit it
   work check [<file>]              validate the work registry
   decision [--all]                 the open decisions waiting on the person the work is for
   decision add <text> [--item <id>]
@@ -221,6 +223,8 @@ or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
        itos work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
        itos work queue <id> --top|--before <id>|--after <id>|--remove
        itos work drop <id> --why <reason>
+       itos work defer <id> --why <reason>
+       itos work resume <id>
        itos work check [<file>]
 
 Who the session works for (--as, else the config's work.identity provider) and
@@ -241,7 +245,8 @@ each list in the queue's order, each item with its tags ([] for none)
 work list prints the registry's open items instead, and --all every item
 (itos help work list), work show one item with its scenarios and commits (itos
 help work show); work take, work promote, work done, work add, work edit, work
-queue and work drop write it, each committing it (itos help work take).`,
+queue, work drop, work defer and work resume write it, each committing it (itos
+help work take).`,
 
 	"work show": `Usage: itos work show <id> [--patch]
 
@@ -255,7 +260,8 @@ answered, and its text. A commit is the item's when its footers of IDs name the 
 one of its scenarios (Scenarios:), a later fix naming one included, or when it
 is one of itos's registry commits naming it in its header (docs: take <id>,
 docs: promote <idea> to <id>, docs: close <id>, docs: add <id>, docs: edit
-<id>, docs: queue <id>, docs: drop <id>); under a stealth config the footers are read from each commit's note in
+<id>, docs: queue <id>, docs: drop <id>, docs: defer <id>, docs: resume <id>);
+under a stealth config the footers are read from each commit's note in
 refs/notes/itos. --patch adds each commit as git show prints it, message and
 diff: the whole of a review's input. It reads, never writes, and judges
 nothing, as work list. Exit 1 when there is no registry where itos looks, or no
@@ -376,6 +382,35 @@ neither done nor dropped depends on (naming those: edit their depends_on, or
 drop them, first), a commit a hook refuses. An item already dropped changes
 nothing. Exit 2 without --why. Under a stealth config the registry is written
 and nothing committed.
+
+--json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+
+	"work defer": `Usage: itos work defer <id> --why <reason>
+
+Puts an item off: its deferred key the reason, a folded text, then commits the
+registry alone, "docs: defer <id>", as work take does (itos help work take),
+the reason the commit's body. The item keeps its status, owner, tags and place
+in the queue; work and status list it apart, among the deferred, and work take
+and work done refuse it until work resume lifts the deferral. Refused, nothing
+written (exit 1): a registry that is not sound or has changes no commit holds,
+an id no item has, an item already deferred (naming its reason: resume it
+first), an item done or dropped, one of any other status but todo, a commit a
+hook refuses. Exit 2 without --why. Under a stealth config the registry is
+written and nothing committed.
+
+--json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+
+	"work resume": `Usage: itos work resume <id>
+
+Lifts an item's deferral: its deferred key removed, nothing else of it
+changed; then commits the registry alone, "docs: resume <id>", as work take
+does (itos help work take), the reason it was deferred named in the commit's
+body. Refused, nothing written (exit 1): a registry that is not sound or has
+changes no commit holds, an id no item has, an item that is not deferred, a
+commit a hook refuses. Under a stealth config the registry is written and
+nothing committed.
 
 --json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,

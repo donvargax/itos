@@ -85,7 +85,7 @@ func Take(r Registry, text, id, person string, every bool) (Change, *out.Problem
 		return refuse("work-take-done", id+" is done", "take an item not done (itos work)")
 	case item.At("deferred") != value.Undefined:
 		return refuse("work-take-deferred", fmt.Sprintf("%s is deferred: %s", id, value.Trim(value.String(item.At("deferred")))),
-			"remove "+id+"'s deferred: first, or take another item (itos work)")
+			"itos work resume "+id+" first, or take another item (itos work)")
 	case status != "todo" && status != "doing":
 		return refuse("work-take-status", fmt.Sprintf("%s is %s, neither todo nor doing", id, value.String(status)),
 			"take an item that is todo (itos work)")
@@ -161,7 +161,7 @@ func Done(r Registry, text, id string) (Change, *out.Problem, error) {
 			"itos work promote "+id+" --id <id> --kind slice|task, then build it")
 	case item.At("deferred") != value.Undefined:
 		return refuse("work-done-deferred", fmt.Sprintf("%s is deferred: %s", id, value.Trim(value.String(item.At("deferred")))),
-			"remove "+id+"'s deferred: first")
+			"itos work resume "+id+" first")
 	case status != "todo" && status != "doing":
 		return refuse("work-done-status", fmt.Sprintf("%s is %s, neither todo nor doing", id, value.String(status)),
 			"set "+id+"'s status to doing first (itos work take "+id+")")

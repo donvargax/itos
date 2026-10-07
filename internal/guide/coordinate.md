@@ -29,7 +29,9 @@ is not yours: run `itos guide work` and follow that one.
 1. **Pick the next item** among what `itos work` proposes, in the order of
    the registry's queue. An item someone else owns is theirs; one whose
    dependencies are not done waits; one marked deferred waits until the
-   person lifts it. The queue is the order the person wants, kept by
+   person lifts it. An item the person puts off is deferred with
+   `itos work defer <id> --why '…'`, and lifted with `itos work resume <id>`,
+   each committing the registry alone. The queue is the order the person wants, kept by
    `itos work queue <id> --top`, `--before <id>`, `--after <id>` or `--remove`,
    each committing the registry alone; `itos work done` takes a closed item
    out. An item no longer wanted is dropped, once the person agrees, with

@@ -1016,7 +1016,7 @@ cases:
     exit: 1
     stderr: |
       parked is deferred: put off for now
-        fix: remove parked's deferred: first, or take another item (itos work)
+        fix: itos work resume parked first, or take another item (itos work)
   - name: work take refuses an id no item has
     argv: [work, take, nope]
     exit: 1
@@ -1177,7 +1177,7 @@ cases:
     exit: 1
     stderr: |
       parked is deferred: put off for now
-        fix: remove parked's deferred: first
+        fix: itos work resume parked first
   - name: work done of an item already done changes nothing
     argv: [work, done, done, --json]
     exit: 0
@@ -1481,12 +1481,12 @@ cases:
     argv: [work, bogus, --x]
     exit: 2
     stderr: |
-      itos: work has no subcommand bogus: it takes list, show, take, promote, done, add, edit, queue, drop or check, else --as <handle> (itos --help)
+      itos: work has no subcommand bogus: it takes list, show, take, promote, done, add, edit, queue, drop, defer, resume or check, else --as <handle> (itos --help)
   - name: work refuses a flag it does not take
     argv: [work, --as, a, --all]
     exit: 2
     stderr: |
-      itos: work does not take --all; it takes --as, else a subcommand: add, check, done, drop, edit, list, promote, queue, show or take (itos --help)
+      itos: work does not take --all; it takes --as, else a subcommand: add, check, defer, done, drop, edit, list, promote, queue, resume, show or take (itos --help)
   - name: work --as needs a handle
     argv: [work, --as]
     exit: 2
@@ -1681,6 +1681,89 @@ cases:
     exit: 2
     stderr: |
       itos: work drop needs --why <reason>, the commit's record of why the item is dropped (itos --help)
+  # Slice 98: work defer sets an item's deferred key to the reason, and
+  # work resume removes it, each committing the registry alone.
+  - name: work defer sets the item's deferred key to the reason, and commits the registry alone
+    argv: [work, defer, x, --why, Waits for y.]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: &deferrable "phases: { 1: null }\nqueue:\n  - x\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: todo, kind: idea }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo }\n"
+    files:
+      work-items.yaml: *deferrable
+    exit: 0
+    stdout_has: "x is deferred: committed "
+    files_after:
+      work-items.yaml: &deferred "phases: { 1: null }\nqueue:\n  - x\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: todo, kind: idea, deferred: \"Waits for y.\" }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo }\n"
+  - name: under a stealth config work defer writes the registry and commits nothing
+    argv: [work, defer, x, --why, Waits for y., --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *deferrable
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: x, title: X, phase: 1, owner: null, status: todo, kind: idea, depends_on: [], tags: [], deferred: Waits for y. }
+      commit: null
+    files_after:
+      .git/itos/work-items.yaml: *deferred
+  - name: work defer refuses an item already deferred, naming its reason
+    argv: [work, defer, x, --why, Another reason.]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *deferred
+    exit: 1
+    stderr: |
+      x is already deferred: Waits for y.
+        fix: itos work resume x first, then defer it with the new reason
+  - name: work defer refuses an item done
+    argv: [work, defer, z, --why, Too late.]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: z, title: Z, phase: 1, status: done }\n"
+    exit: 1
+    stderr: |
+      z is done, and a done item stays done
+        fix: defer an item still to do (itos work list)
+  - name: work defer needs a reason
+    argv: [work, defer, x]
+    exit: 2
+    stderr: |
+      itos: work defer needs --why <reason>, why the item is put off, which its deferred key holds (itos --help)
+  - name: work resume removes the item's deferred key, and commits the registry alone
+    argv: [work, resume, x]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: *deferred
+    files:
+      work-items.yaml: *deferred
+    exit: 0
+    stdout_has: "x is resumed: committed "
+    files_after:
+      work-items.yaml: *deferrable
+  - name: work resume refuses an item that is not deferred
+    argv: [work, resume, x, --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *deferrable
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: work-resume-not-deferred
+          message: x is not deferred
+          fix: itos work list marks a deferred item (deferred)
   - name: work take refuses an item dropped, naming its status
     argv: [work, take, x, --as, a]
     git: []

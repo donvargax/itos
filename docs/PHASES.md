@@ -54,7 +54,9 @@ it. A gap a slice leaves is added as a `kind: idea` item — a title, a short
 `why`, its owner or null, its `depends_on` — in the slice's last `docs`
 commit. A coordinator who picks an idea up specifies it (`@wip` scenarios or a
 task in `tasks/`) and changes its kind to `slice` or `task`. Work put off
-carries `deferred:` with the reason and stays `todo`; `work check` refuses a
+carries `deferred:` with the reason and stays `todo`, set with
+`tools/bin/itos work defer <id> --why '…'` and lifted with
+`tools/bin/itos work resume <id>`, each committing the registry alone; `work check` refuses a
 deferral without a reason, and an idea that is `doing` or `done` before it is
 specified. The table above is the readable summary; the YAML is what a session
 acts on.

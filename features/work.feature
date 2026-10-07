@@ -706,7 +706,7 @@ Feature: The work registry
   # action and never selects another. A deferred item keeps its status and its
   # place in the queue, as a hand-written deferred key does; work and status
   # already list it apart.
-  @ID-WORK-65 @slice-98 @wip
+  @ID-WORK-65 @slice-98
   Scenario: work defer sets an item deferred with its reason, and commits the registry alone
     Given the work registry has the idea "p1-thing" owned by nobody
     When itos runs the command line "work defer p1-thing --why 'Waits for the next major release.'"
@@ -717,7 +717,7 @@ Feature: The work registry
     And the last commit's body says "Waits for the next major release."
     And the last commit touches only "tasks/work-items.yaml"
 
-  @ID-WORK-66 @slice-98 @wip
+  @ID-WORK-66 @slice-98
   Scenario: work resume takes the deferral off, and commits the registry alone
     Given the work registry has the idea "p1-thing" owned by nobody
     And itos has run the command line "work defer p1-thing --why 'Waits for the next major release.'"
@@ -727,7 +727,7 @@ Feature: The work registry
     And the last commit's header is "docs: resume p1-thing"
     And the last commit touches only "tasks/work-items.yaml"
 
-  @ID-WORK-67 @slice-98 @wip
+  @ID-WORK-67 @slice-98
   Scenario: work defer refuses an item already deferred, naming its reason
     Given the work registry has the idea "p1-thing" owned by nobody
     And itos has run the command line "work defer p1-thing --why 'Waits for the next major release.'"
@@ -736,14 +736,14 @@ Feature: The work registry
     And its output says "Waits for the next major release."
     And the registry's item "p1-thing" is deferred with the reason "Waits for the next major release."
 
-  @ID-WORK-68 @slice-98 @wip
+  @ID-WORK-68 @slice-98
   Scenario: work resume refuses an item that is not deferred
     Given the work registry has the idea "p1-thing" owned by nobody
     When itos runs "work resume p1-thing"
     Then itos exits with code 1
     And its output says "not deferred"
 
-  @ID-WORK-69 @slice-98 @wip
+  @ID-WORK-69 @slice-98
   Scenario: work defer refuses a done item
     Given the work registry has the item "slice-9" owned by nobody with the status "done"
     When itos runs the command line "work defer slice-9 --why 'Too late.'"
@@ -751,7 +751,7 @@ Feature: The work registry
     And its output says "done"
     And the registry's item "slice-9" is not deferred
 
-  @ID-WORK-70 @slice-98 @wip
+  @ID-WORK-70 @slice-98
   Scenario: work defer needs a reason
     Given the work registry has the idea "p1-thing" owned by nobody
     When itos runs "work defer p1-thing"
