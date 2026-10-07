@@ -73,6 +73,7 @@ queue:
   - bug-43
   - bug-44
   - p1-upgrade-applies-config-steps
+  - T-111
   - p1-upgrade-on-major
   - p1-problem-fields
   - p1-rule-ids-listed
