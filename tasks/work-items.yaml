@@ -6005,3 +6005,15 @@ items:
       To specify (docs/plans/v7-proof-of-done.md, the rule: a task's checks are the agent's progress
       while it is open, gate work done, then leave the ledger; git history keeps them). Part of v7,
       after the code proof.
+
+  - id: slice-100
+    title: "work done requires the code proof: the provider's check over the item's commits, closing only when it passes"
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified in features/work.feature and config.feature (@slice-100);
+      docs/plans/v7-proof-of-done.md and decision 42. No way to close past a failing proof (the
+      user's call, 2026-10-07). Part of v7.0.0-rc.1, the itos-cc integration.
