@@ -26,7 +26,7 @@ stays a map:
 | `tools/bin/itos`            | The entry point the hooks, CI and the ledger's checks call: builds `./cmd/itos` from the tree and runs it. |
 | `tools/bin/*/` (Go)         | The gates and the release's programs, each `go run ./tools/bin/<name>`, each documented in its `main.go`.  |
 | `tools/bin/*` (sh, `.ts`)   | `dev-version`, `go-unit-tests`, `pinned`, `install-launcher`, `build-go.ts`, `inbox.ts`.                   |
-| `tools/selftest/`           | The self-tests of the gates and of the release (Node).                                                     |
+| `tools/selftest/`           | The self-tests of the gates and of the release (Node), run with the git `tools/bin/real-git` names.        |
 | `tools/changelog.ts`        | The changelog's filter over git-cliff.                                                                     |
 | `itos.yaml`                 | This repository's policy: every rule a command can decide.                                                 |
 | `tasks/`                    | The ledger (`phase-<n>.yaml`), the work registry (`work-items.yaml`), the questions (`asks.yaml`).         |
