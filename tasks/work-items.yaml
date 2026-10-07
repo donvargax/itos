@@ -6061,3 +6061,15 @@ items:
     deferred: >
       Waits on itos-cc#14 (integration coverage) in a release, and on T-121. Resume it when both are
       there.
+
+  - id: bug-50
+    title: A pre-release sorts below its release, so an rc's pin is told when the final release is out
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      Specified in features/update.feature (@bug-50). Found by T-118's agent; was
+      p1-version-compare-prerelease.
+    refs: [internal/version, features/update.feature]
