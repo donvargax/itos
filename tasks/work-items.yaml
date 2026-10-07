@@ -5772,3 +5772,18 @@ items:
       allowlist applied after a restart, git the shim, a name outside the list refused and an
       address outside it rejected, go build and a commit through the hooks. A nightly step could
       build the image and run those probes, failing the run on any.
+
+  - id: p1-devcontainer-untested-gaps
+    title: "The devcontainer's untested gaps: Docker's embedded resolver, a host uid other than 1000, arm64"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Left open by T-108's agent (2026-10-07): on a Docker network whose resolver is 127.0.0.11 (a
+      user-defined or compose network), a process could query that resolver directly and get past
+      the dnsmasq name allowlist, unless the firewall drops port 53 to everything but dnsmasq's
+      user, which it was not tested to do there; a host uid other than 1000 leaves /commandhistory
+      unowned, since the base's sudo chown is gone; arm64 is built but never run. Each needs a probe
+      like T-108's, best run by p1-devcontainer-nightly-build.
