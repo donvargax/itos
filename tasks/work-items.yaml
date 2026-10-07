@@ -5590,3 +5590,35 @@ items:
       whether it is a v6.x refactor or waits for the next major release. If it goes ahead,
       p1-init-plugin-rule-22 folds into it. itos-template uses kong from its start, its evidence for
       this.
+
+  - id: p1-bot-dependency-prs
+    title: Renovate dependency pull requests pass itos rules and merge themselves when CI is green
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-pr-mode]
+    kind: idea
+    why: >
+      the user wants dependency updates (Renovate, the user's choice, 2026-10-06; Dependabot in the
+      brief) to merge by themselves when, and only when, every required check passes on the PR's
+      exact head, CI being the compatibility gate, not the semver category. Under itos they could
+      never be green: their commits are chore(deps): and chore(deps-dev):, and a chore here needs a
+      Task: or Item: footer the bot never writes, so itos verify refuses them in CI. The config
+      declares the bots (an author such as dependabot[bot]) and what their commits may be (types,
+      the dependency files they may touch: go.mod, go.sum, lockfiles, .github/workflows for pinned
+      actions), and such a commit needs no footer; anything outside that stays refused. deps-check's
+      cooldown (no module younger than 7 days) and the bot's own cooldown must agree, or every fresh
+      update is red: itos init or config check could say so. With Renovate most of the brief's
+      privileged merge workflow is not needed: platformAutomerge turns on GitHub's own auto-merge,
+      which merges only once the required checks pass on the PR's current head (the brief's
+      exact-SHA guard, by construction), with automergeStrategy rebase; rebaseWhen
+      behind-base-branch keeps a PR up to date with main, the gap auto-merge leaves (draft 10);
+      minimumReleaseAge is the cooldown to match deps-check's 7 days; semanticCommits gives
+      chore(deps): titles, and helpers:pinGitHubActionDigests pins actions by SHA. Renovate's
+      commitBody can also write a footer (an Item: line naming a standing item), an alternative to
+      declaring the bot in the config: weigh both, the config rule being the one that does not
+      depend on the bot's settings. Blocking labels map to Renovate's own (stopUpdatingLabel,
+      dependencyDashboardApproval), and itos init could write a renovate.json whose settings agree
+      with itos.yaml (cooldown, commit types, rebase strategy). A Dependabot repository still needs
+      the brief's default-branch workflow_run merge (no PR code checked out, least permissions, gh
+      pr merge --match-head-commit, the latest run of every required workflow green).
