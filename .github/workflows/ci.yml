@@ -135,9 +135,19 @@ jobs:
       - name: Unit tests
         run: go test ./cmd/... ./internal/...
       # After the unit tests whatever they said, so one run shows a platform's every failure.
+      # -timings writes where the run spent its time (features/timings_test.go, T-115), which the
+      # next step prints, so a platform that slows down says what it pays for.
       - name: Features
+        id: features
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: go test ./features -count=1
+        run: go test ./features -count=1 -timings="$RUNNER_TEMP/features-timings.txt"
+      - name: Where the features spent their time
+        if: ${{ !cancelled() && (steps.features.outcome == 'success' || steps.features.outcome == 'failure') }}
+        run: |
+          f="$RUNNER_TEMP/features-timings.txt"
+          [ -f "$f" ] || { echo "The features wrote no timings."; exit 0; }
+          cat "$f"
+          { echo "### Features on ${{ matrix.os }}"; echo '```'; cat "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # The global itos as a consumer's CI gets it, from this repository's own action (T-093),
       # proved on every platform by every push. Last, so the launcher it puts on the PATH cannot
       # stand in for the build the steps above test; this repository pins nothing, so the
