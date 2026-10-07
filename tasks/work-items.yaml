@@ -2488,7 +2488,6 @@ items:
     status: todo
     depends_on: [p3-role-protocol]
     kind: idea
-    deferred: until itos-cc is published, the user's call (2026-10-03)
     why: >
       The second role (p3-role-protocol): a list of things known to be wrong, accepted for now,
       each to be owned: CRAP or mutation debt from itos-cc, later quarantined scenarios, TODOs,
