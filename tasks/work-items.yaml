@@ -3779,6 +3779,26 @@ items:
       (check and sample modes), #9 (mutate as a gate provider), #10 (equivalent mutants excepted
       with reasons), #11 (config mutation, the hardest).
 
+      Direction agreed with the user, 2026-10-07 (q-13 stays open for its parts (a) and (c)). String
+      checks are scaffolding, not proof. Evidence: they catch real things while a task is open,
+      chiefly the nothing-left-behind sweep after a rename or removal (T-101's ! git grep found a
+      stale /v5 module path in a comment that go build missed; T-092's sweep for the plugin skill),
+      and nothing as standing checks after done (the nightly's two reds, T-024's and T-079's, were
+      checks aimed wrong or gone stale). So: (1) a task's checks run while it is open and gate work
+      done, then work done removes them from the ledger, as it drops a closed item's why, git
+      history keeping them; (2) the nightly step that reruns every done task's checks is dropped;
+      (3) a standing rule: no test or self-test reads a policy file (itos.yaml, the workflows) as
+      text, since that is a string check frozen into code (tools/selftest/plugin-version.ts's check
+      that ci.prose.steps includes its command is one); (4) no new test written only to prove a
+      change; gate behaviour stays with the self-tests that run gates, policy with the user's
+      review. Mutation stays the proof for Go code (itos-cc #4, #8-#10). Config mutation as a
+      general tool (itos-cc#11) is parked: itos's experiment of 2026-10-07 mutated 10 items closed
+      ci/build tasks added, judged by a render diff (init --agent-rules, ci plan --json, commit
+      check-message) and by what the self-tests execute: 1 killed, and by the plugin-version.ts
+      string check; 2 holes (the nightly done-checks step, the release's upgrading.json upload); 4
+      policy; 1 equivalent; 2 unclear. Its kills can come from string tests, and most survivors are
+      policy.
+
   - id: p1-guide-work-show-why
     title: itos guide work says where a slice's or task's why is, not work show's why
     phase: 1
