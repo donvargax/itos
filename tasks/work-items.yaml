@@ -4266,7 +4266,7 @@ items:
     title: Two first fetches of a pinned release do not undo each other
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
