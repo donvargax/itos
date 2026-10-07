@@ -54,7 +54,6 @@ phases:
   3: donvargax
 
 queue:
-  - p1-previous-release-selftest-red
   - slice-95
   - bug-38
   - bug-42
@@ -5871,17 +5870,9 @@ items:
     title: previous-release's self-test passes again, and a gate runs it
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found doing T-112 (2026-10-07): node tools/selftest/previous-release.ts fails three of its
-      checks on main before T-112's change: a feat naming the scenario in Changes:, and a breaking
-      change by footer and by bang, each expected to accept or refuse as before T-106 made being
-      breaking excuse only what a Changes: footer names. No gate runs that self-test (the nightly
-      runs gates.ts, go-hooks.ts, go-release.ts and go-schema.ts, and the phase-3 tasks that list it
-      are not static checks), so it went red unseen; its expectations follow T-106 and the nightly
-      runs it.
     refs: [tools/selftest/previous-release.ts, tools/bin/previous-release/main.go]
 
   - id: T-117
