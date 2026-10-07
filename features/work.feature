@@ -834,3 +834,68 @@ Feature: The work registry
     Then itos exits with code 1
     And its output says "https://ci.example/runs/1"
     And the registry's item "slice-9" has the status "doing" and the owner "someone"
+
+  # Slice 100 (decision 42 and docs/plans/v7-proof-of-done.md, the user's
+  # calls, 2026-10-07): a task's proof is computed from its diff, never
+  # written by the model. The config's proof.code names the paths that count
+  # as code and the provider's check, a command with {base}, the parent of the
+  # item's first commit (itos-cc mutation check --since {base} --fail-uncovered
+  # --json here). When the item's commits touch those paths, work done runs the
+  # check and closes only on exit 0; exit 1 refuses, naming the problems the
+  # check's --json lists; a check that cannot run, or answers anything else,
+  # refuses with exit 3, never a pass (an adapter's failure is an error). With
+  # no proof.code, or commits that touch no code, work done is as before.
+  # Nothing closes an item past a failing proof (the user's call, 2026-10-07:
+  # models will do anything to finish): an equivalent mutant is excepted in
+  # itos-cc.yaml with its reason, which the person reviews and which fails
+  # once stale; otherwise the agent stops and asks. The check runs
+  # after the CI judgement, so a red run still refuses first.
+  @ID-WORK-76 @slice-100 @wip
+  Scenario: work done runs the code proof over the item's commits and closes when it passes
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And the config's proof.code covers "src/**" and checks with a provider that passes
+    And the remote has the item "slice-9"'s commit touching "src/app.go"
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And the registry's item "slice-9" has the status "done" and the owner "someone"
+    And the provider was run with the base before the item "slice-9"'s first commit
+
+  @ID-WORK-77 @slice-100 @wip
+  Scenario: work done refuses when the code proof finds a surviving mutant, naming it, and writes nothing
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
+    And the remote has the item "slice-9"'s commit touching "src/app.go"
+    When itos runs "work done slice-9"
+    Then itos exits with code 1
+    And its output says "app.Total"
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
+
+  @ID-WORK-78 @slice-100 @wip
+  Scenario: work done does not run the code proof when the item's commits touch no code
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
+    And the remote has the item "slice-9"'s commit touching "README.md"
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And the provider was not run
+
+  @ID-WORK-79 @slice-100 @wip
+  Scenario: A code proof that cannot run refuses with exit 3, never closing the item
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And the config's proof.code covers "src/**" and checks with a command that does not exist
+    And the remote has the item "slice-9"'s commit touching "src/app.go"
+    When itos runs "work done slice-9"
+    Then itos exits with code 3
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
