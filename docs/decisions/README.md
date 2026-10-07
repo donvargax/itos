@@ -43,5 +43,6 @@ file and leaves this list, which itos ask record writes.
 - [ADR-0037: itos installs its hooks only in the git config, and knows no hook manager](0037-itos-installs-its-hooks-only-in-the-git-config-and-knows-no-hook-manager.md)
 - [ADR-0038: The decisions waiting on the person are itos decision, and a question for anyone else is itos followup](0038-the-decisions-waiting-on-the-person-are-itos-decision-and-a-question-for-anyone-else-is-itos-followup.md)
 - [ADR-0039: Pull requests join trunk-based work behind push.mode pr, merged by rebase-merge, claims staying on main](0039-pull-requests-join-trunk-based-work-behind-push-mode-pr-merged-by-rebase-merge-claims-staying-on-main.md)
+- [ADR-0040: A written file is contract by its data, not its comment lines](0040-a-written-file-is-contract-by-its-data-not-its-comment-lines.md)
 
 <!-- itos:decisions:end -->
