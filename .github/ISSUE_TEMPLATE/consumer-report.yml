@@ -10,6 +10,18 @@ description: Report a problem itos caused in a repository that uses it.
 title: "consumer report: "
 labels: [consumer-report]
 body:
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Not reported already
+      description: >
+        Search the issues first, open and closed:
+        `gh issue list -R donvargax/itos --state all --search '<words of the error>'`. On a
+        match, comment there only if you have something new; and check the newest release does
+        not already fix it.
+      options:
+        - label: I searched open and closed issues, and the newest release, and this is not one of them.
+          required: true
   - type: markdown
     attributes:
       value: >
