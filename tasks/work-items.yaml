@@ -5963,3 +5963,20 @@ items:
       Seen by T-113's agent (2026-10-07): itos work show T-113 printed the why twice, once from the
       registry item and once from the ledger task, which carry the same text. Show the ledger's for
       a task and the registry's for an idea, never both.
+
+  - id: p1-config-release-prerelease
+    title: itos.yaml accepts release.prerelease, the marker that turns release candidates on
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-118]
+    kind: idea
+    why: >
+      T-118 taught tools/bin/release-version to cut vN.0.0-rc.N while HEAD's itos.yaml says release:
+      { prerelease: rc }, but the config's schema refuses a key it does not know, so config check
+      (CI, and the commit-msg hook when itos.yaml is staged) would refuse the marker decision 42
+      turns on with the first v7 work. Adding it is a feat in internal/config/schema.go, which needs
+      a scenario, and config.feature's premise is that every key itos.yaml accepts is one itos
+      reads, while this one only the repository's own release tool reads. Needs the user's call
+      before the marker goes on: the key in the schema with a scenario of its own (and the premise
+      widened to the release tooling), or another home for the marker.
