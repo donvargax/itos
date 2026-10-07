@@ -70,6 +70,7 @@ queue:
   - p1-upgrade-applies-config-steps
   - p1-upgrade-on-major
   - p1-problem-fields
+  - p1-rule-ids-listed
   - p1-nightly-late-done-checks
   - p1-work-show-gaps
   - p1-release-notes-footers
