@@ -940,8 +940,15 @@
     workspace: the .devcontainer README says so, and to commit inside the container, never on the
     host, once the container has written the workspace (the host's hooks would run the checks the
     container wrote). Shim gaps (--no-verify, -c core.hooksPath) are p1-shim-refuses-hook-skipping,
-    not this task.
+    not this task. The container test's report (2026-10-06) named three holes, and the user asked
+    that this version close each: sudo letting the container undo the allowlist and the shim;
+    the host's hooks running checks the container wrote into itos.yaml or the ledger; the
+    read-only git files. Done shows, in a container built from this tree, sudo -n true and
+    iptables -F OUTPUT refused to the container user, the allowlist still applied after a
+    restart, git resolving to the shim, and a host outside the allowlist unreachable; the
+    README's first section says what runs on the host first and that commits are made inside.
   done_when:
     - run: test -f .devcontainer/devcontainer.json && test -f .devcontainer/LICENSE
+    - run: grep -qi 'commit inside' .devcontainer/README.md
     - run: grep -q 'itos git-shim install' .devcontainer/Dockerfile && grep -q 'ITOS_CHECKSUMS_SHA256' .devcontainer/Dockerfile
     - run: "! grep -q '/workspace/.devcontainer' .devcontainer/devcontainer.json"
