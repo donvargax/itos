@@ -77,3 +77,4 @@ questions:
     decision: 39
   - id: q-20
     question: "Decision 35 makes the files itos writes part of its contract. Are their comment lines part of it too?"
+    answer: "No. A written file is contract by its data; its comment lines are for people, like plain output, and may change in any release. This refines decision 35: docs/CLI.md's contract section says the data of the files itos writes, and the conformance runner's --additive mode, which previous-release uses, stops comparing comment lines in written YAML and Markdown. The user's call, 2026-10-07, recorded from that session's transcript."
