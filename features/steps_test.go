@@ -91,6 +91,7 @@ type scratchConfig struct {
 	taskChecks        *bool           // hooks.commit_msg.task_checks
 	checkTimeout      int             // hooks.commit_msg.check_timeout, when above 0
 	statuses          []string        // work.statuses
+	workTags          []string        // work.tags, when set
 	groupsKey         string          // work.groups_key
 	noPeople          bool            // the config names no people file (no work.people)
 	noWork            bool            // the config has no work section, only work's defaults
@@ -853,8 +854,8 @@ func (w *world) writeConfig() error {
 	return w.write(w.data("itos.yaml"), b.String())
 }
 
-// writeWork writes the config's work section: the registry, groups key and
-// statuses the scenario set, a key of work the scenario sets (work.decisions),
+// writeWork writes the config's work section: the registry, groups key,
+// statuses and tags the scenario set, a key of work the scenario sets (work.decisions),
 // and the people file unless it names none. The section is one flow mapping,
 // so a setting under work goes in it rather than in a second work key.
 func (w *world) writeWork(b *strings.Builder) {
@@ -872,6 +873,9 @@ func (w *world) writeWork(b *strings.Builder) {
 	}
 	if w.config.statuses != nil {
 		fmt.Fprintf(b, "statuses: [%s], ", strings.Join(w.config.statuses, ", "))
+	}
+	if w.config.workTags != nil {
+		fmt.Fprintf(b, "tags: [%s], ", strings.Join(w.config.workTags, ", "))
 	}
 	if !w.config.noPeople {
 		b.WriteString("people: { source: yaml, file: people.yaml } ")

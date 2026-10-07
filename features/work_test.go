@@ -15,7 +15,9 @@
 // with none and a ledger task with one, and an item's why gone after (slice
 // 76); a queue that no longer names an item and the last commit's body
 // (slice 78); the last commit's body within a line length (bug 22); a
-// registry commit made while work done waits for CI (bug 34).
+// registry commit made while work done waits for CI (bug 34); the tags the
+// config declares, an item with tags and the tags an item has after (slice
+// 97).
 package features
 
 import (
@@ -44,7 +46,17 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 		return w.registryItem(id, "null", status, dep, "")
 	})
 	sc.Step(`^the work registry has the item "([^"]*)" owned by "([^"]*)" with the status "([^"]*)" and the why "([^"]*)"$`, func(id, owner, status, why string) error {
-		return w.registryItemWhy(id, owner, status, "", "", why)
+		return w.registryItemWhy(id, owner, status, "", "", why, "")
+	})
+	sc.Step(`^the work registry has the item "([^"]*)" owned by nobody with the status "([^"]*)" and the tags "([^"]*)"$`, func(id, status, tags string) error {
+		return w.registryItemWhy(id, "null", status, "", "", "", tags)
+	})
+	sc.Step(`^the work registry has the item "([^"]*)" owned by "([^"]*)" with the status "([^"]*)" and the tags "([^"]*)"$`, func(id, owner, status, tags string) error {
+		return w.registryItemWhy(id, owner, status, "", "", "", tags)
+	})
+	sc.Step(`^the config's work\.tags is "([^"]*)"$`, func(tags string) error {
+		w.config.workTags = strings.Split(tags, ", ")
+		return w.writeConfig()
 	})
 	sc.Step(`^the work registry has the task "([^"]*)" owned by nobody with the status "([^"]*)" and no why$`, func(id, status string) error {
 		return w.registryItem(id, "null", status, "", "task")
@@ -81,8 +93,14 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 		return w.registryItemField(id, "title", title)
 	})
 	sc.Step(`^the registry's item "([^"]*)" has a why ending with "([^"]*)"$`, w.registryWhyEnds)
-	sc.Step(`^the registry's item "([^"]*)" has the refs "([^"]*)"$`, w.registryItemRefs)
-	sc.Step(`^the registry's item "([^"]*)" has no refs$`, func(id string) error { return w.registryItemRefs(id, "") })
+	sc.Step(`^the registry's item "([^"]*)" has the refs "([^"]*)"$`, func(id, refs string) error {
+		return w.registryItemList(id, "refs", refs, ",")
+	})
+	sc.Step(`^the registry's item "([^"]*)" has no refs$`, func(id string) error { return w.registryItemList(id, "refs", "", ",") })
+	sc.Step(`^the registry's item "([^"]*)" has the tags "([^"]*)"$`, func(id, tags string) error {
+		return w.registryItemList(id, "tags", tags, ", ")
+	})
+	sc.Step(`^the registry's item "([^"]*)" has no tags$`, func(id string) error { return w.registryItemList(id, "tags", "", ", ") })
 	sc.Step(`^the registry's queue is "([^"]*)"$`, w.registryQueueIs)
 	sc.Step(`^the registry's queue is empty$`, func() error { return w.registryQueueIs("") })
 	sc.Step(`^the registry's queue does not name "([^"]*)"$`, w.registryQueueLacks)
@@ -144,12 +162,13 @@ func (w *world) nextQuestion() (string, error) {
 // registry commits only its own change; a change already staged stays
 // staged.
 func (w *world) registryItem(id, owner, status, dep, kind string) error {
-	return w.registryItemWhy(id, owner, status, dep, kind, "")
+	return w.registryItemWhy(id, owner, status, dep, kind, "", "")
 }
 
 // registryItemWhy is registryItem with a why ("" for none), one quoted line
-// after the item's dependencies (slice 76).
-func (w *world) registryItemWhy(id, owner, status, dep, kind, why string) error {
+// after the item's dependencies (slice 76), and its tags, a list of the
+// names given as "a, b" ("" for none, no key) after it (slice 97).
+func (w *world) registryItemWhy(id, owner, status, dep, kind, why, tags string) error {
 	deps := "[]"
 	if dep != "" {
 		deps = "[" + dep + "]"
@@ -161,6 +180,9 @@ func (w *world) registryItemWhy(id, owner, status, dep, kind, why string) error 
 	line += ", depends_on: " + deps
 	if why != "" {
 		line += fmt.Sprintf(", why: %q", why)
+	}
+	if tags != "" {
+		line += ", tags: [" + tags + "]"
 	}
 	w.registryLines = append(w.registryLines, line+" }\n")
 	if err := w.writeRegistryLines(); err != nil {
@@ -376,27 +398,27 @@ func (w *world) registryIdeaWithRefs(id, refs string) error {
 	return w.commit("docs: a registry")
 }
 
-// The item's refs are the comma-separated ones, in order; none ("") is no
-// refs key, null or an empty list.
-func (w *world) registryItemRefs(id, refs string) error {
+// The item's list under key (refs, tags) is the names given, split at sep,
+// in order; none ("") is no such key, null or an empty list.
+func (w *world) registryItemList(id, key, names, sep string) error {
 	item, err := w.registryItemOf(id)
 	if err != nil {
 		return err
 	}
 	got := []string{}
-	if list, ok := item["refs"].([]any); ok {
+	if list, ok := item[key].([]any); ok {
 		for _, r := range list {
 			got = append(got, fmt.Sprint(r))
 		}
-	} else if item["refs"] != nil {
-		return fmt.Errorf("%s's refs are %v, not a list\n%s", id, item["refs"], w.report())
+	} else if item[key] != nil {
+		return fmt.Errorf("%s's %s are %v, not a list\n%s", id, key, item[key], w.report())
 	}
 	want := []string{}
-	if refs != "" {
-		want = strings.Split(refs, ",")
+	if names != "" {
+		want = strings.Split(names, sep)
 	}
 	if !slices.Equal(got, want) {
-		return fmt.Errorf("%s's refs are %q, not %q\n%s", id, got, want, w.report())
+		return fmt.Errorf("%s's %s are %q, not %q\n%s", id, key, got, want, w.report())
 	}
 	return nil
 }
