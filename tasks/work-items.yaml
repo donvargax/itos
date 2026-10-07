@@ -5475,3 +5475,14 @@ items:
       Every take, close and queue commits tasks/work-items.yaml, so parallel work conflicts there on
       every rebase or merge. A merge driver for the registry, or a file per item. Found discussing
       parallel work, 2026-10-06.
+
+  - id: p1-refs-overlap
+    title: itos work warns when two doing items have overlapping refs or commit scopes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Which items may run side by side is the coordinator judgement today; items carry refs, so itos
+      can flag two doing items whose refs overlap. Found discussing parallel work, 2026-10-06.
