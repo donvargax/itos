@@ -5369,8 +5369,8 @@ items:
   - id: slice-97
     title: Work items carry tags from a declared set, and work list filters by them
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
