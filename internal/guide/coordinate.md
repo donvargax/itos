@@ -87,14 +87,15 @@ the briefs, landing and recording.
   repository's hooks installed there.
 - **Commit only between agents.** While one runs, do not stage or commit in
   its checkout: a commit takes the whole index, the agent's staged files too.
-- **Draft what you write while an agent runs.** A spec, an idea, a registry
-  edit: keep it as `itos draft add <id> -m <message> <path>…` (the change is
-  taken out of the tree, so the checkout stays the agent's) or
-  `itos draft add <id> -- <itos args>…` (a `work add`, a `work queue`, run
-  later), never in scratch files. Between agents, `itos draft promote` commits
-  them in order; it refuses an unclean checkout (a tracked file changed, a
-  rebase or a merge in progress), not an item doing, and `itos status` lists
-  what waits.
+- **Draft what you write while an agent runs, never in the tree or in
+  scratch files.** A spec or any file: `itos draft edit <id> -m <message> <path>…`
+  prints a copy of each path in the git folder; edit the copies there, and
+  the tree is never touched. A `work add` or a `work queue`:
+  `itos draft add <id> -- <itos args>…`. `itos draft add <id> -m <message> <path>…`
+  takes a change out of the tree, for when no agent holds the checkout.
+  Between agents, `itos draft promote` commits them in order; it refuses an
+  unclean checkout (a tracked change, a rebase or a merge), not an item
+  doing, and `itos status` lists what waits.
 - Read-only agents, a reviewer or a researcher, may run beside it.
 
 ## Pushing and waiting
