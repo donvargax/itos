@@ -166,3 +166,20 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     And the launcher's last answer from the release server, two hours old, is "9.1.0"
     When itos runs "version"
     Then its output says "itos 9.2.0 is out (this repository pins 9.1.0): "
+
+  # Bug 50 (found by T-118's agent, 2026-10-07): version.Compare read the
+  # first three numbers alone, so 9.2.0-rc.1 compared equal to 9.2.0 and to
+  # 9.2.0-rc.2, against internal/version's own doc and semver: a repository
+  # pinning a release candidate was never told the final release was out, and
+  # itos upgrade from an rc walked no release. A pre-release sorts below its
+  # release, and pre-releases of one release by their identifiers, numbers as
+  # numbers (rc.10 above rc.2). It ships before the first v7 rc, so the
+  # launcher every repository runs reads rcs right.
+  @ID-UPDATE-15 @bug-50 @wip
+  Scenario: A repository pinning a release candidate is told when its final release is out
+    Given a repository whose ledger has the task "T-001"
+    And the release server also offers the version "9.2.0-rc.1"
+    And the config pins the version "9.2.0-rc.1" of the release server
+    And the launcher's last answer from the release server, a minute old, is "9.2.0"
+    When itos runs "version"
+    Then its output says "itos 9.2.0 is out (this repository pins 9.2.0-rc.1): "

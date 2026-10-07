@@ -1120,6 +1120,11 @@
     to github.com/donvargax/itos/v7 (T-089: no v7 tag from a /v6 go.mod), as T-099 and T-101 moved
     it before, and turn on T-118's pre-release marker in itos.yaml (a ci commit), so the next feat
     or breaking change cuts v7.0.0-rc.1. After it, main cuts no 6.x patch.
+
+    Where the marker lives (the coordinator's call, 2026-10-07, settling p1-config-release-prerelease):
+    not in itos.yaml, whose schema holds only keys itos reads, but in a file of the release tool's
+    own, tools/bin/release-version/prerelease, holding rc. This task switches release-version (and its
+    tests) from itos.yaml's release.prerelease to that file, then creates it.
   done_when:
     - run: grep -q 'module github.com/donvargax/itos/v7' go.mod
     - run: go build ./...
