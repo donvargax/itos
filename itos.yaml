@@ -167,6 +167,11 @@ ci:
     # reads the files alone, so static; in the prose steps too, as docs-only pushes are where the
     # docs grow.
     - { run: go run ./tools/bin/doc-budget, cost: static }
+    # The plugin's calls (T-111, decision 41): the itos commands the Claude Code plugin's scripts
+    # call, read from the scripts, each run against tools/bin/itos; one that exits 2 (unknown), or
+    # a --json call whose answer lacks the list the plugin reads, fails, named with its script. It
+    # runs the local binary alone, so static.
+    - { run: go run ./tools/bin/plugin-calls, cost: static }
     # The dependency check (T-067), when the range changes go.mod or go.sum: no module younger
     # than 7 days unless deps-check.json excepts it, then govulncheck. It asks the network, so
     # late; first of the late steps, before the unit tests run a new module's code. FROM is the
