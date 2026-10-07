@@ -5448,3 +5448,16 @@ items:
       itos draft lists a change by its header and paths only (slice-96), so a coordinator who
       drafted a spec in the morning cannot read what it holds, its patch and its whole message,
       before promoting it between agents, short of opening the patch file in the git folder.
+
+  - id: p1-wrap-long-body
+    title: Wrap a long commit body in linear time
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      message.wrapLine joins the rest of the line at every break to ask whether it would open a
+      footer, so wrapping a body is quadratic in its length: TestRollbackGitCannotStart, whose body
+      is 5 MB, takes about 300 s of the internal/cli unit tests on a laptop and passed the 600 s go
+      test timeout in the pre-commit hook under load (seen in slice-96).
