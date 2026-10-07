@@ -4198,14 +4198,9 @@ items:
     title: The commit-msg hook reads the type from the message git will store
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). The hook reads the type from the raw message
-      file while the lint parses the cleaned header, so a message starting with a blank line or a
-      comment line hides its type from the path rules and the required footers (cli/hook.go:276).
-      Its @bug-36 scenario is written before it is handed out.
     refs: [internal/cli/hook.go, internal/message/header.go]
 
   - id: bug-37
