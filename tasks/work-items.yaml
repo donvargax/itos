@@ -6035,3 +6035,21 @@ items:
       with GOCOVERDIR passed through; when it is not set, nothing changes. Proven by a run with
       GOCOVERDIR set leaving coverage data that go tool covdata reads, covering a function only a
       feature reaches.
+
+  - id: T-120
+    title: This repository requires the code proof through itos-cc, with the features' coverage, and CI spot-checks it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Decision 42 (2026-10-07), the right way from the start (the user's call): once itos-cc carries
+      #14 (integration coverage through GOCOVERDIR, released) and T-121 has the features build itos
+      with -cover, itos.yaml gains proof.code (paths {cmd,internal}/**/*.go, check: tools/bin/pinned
+      itos-cc mutation check --since {base} --fail-uncovered --json, itos-cc pinned at the release
+      carrying #14, with its checksums), CI's plan a step running itos-cc mutation sample over the
+      pushed range with the flags the results were recorded with, and the coordinator's notes a
+      brief line: run itos-cc mutation run --since <base> --fail-uncovered, with the features'
+      coverage, before work done. No interim without coverage. Equivalent mutants go in itos-cc.yaml
+      with their reasons, for the person to review.

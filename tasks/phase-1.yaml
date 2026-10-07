@@ -1138,3 +1138,20 @@
     that go tool covdata reads, covering a function only a feature reaches.
   done_when:
     - run: d=$(mktemp -d) && GOCOVERDIR=$d go test ./features -count=1 -scenarios=^@ID-PIN-01$ && go tool covdata percent -i=$d | grep -q internal/launch
+
+- id: T-120
+  type: ci
+  title: This repository requires the code proof through itos-cc, with the features' coverage, and CI spot-checks it
+  why: >
+    Decision 42 (2026-10-07), the right way from the start (the user's call): once itos-cc carries
+    #14 (integration coverage through GOCOVERDIR, released) and T-121 has the features build itos
+    with -cover, itos.yaml gains proof.code (paths {cmd,internal}/**/*.go, check: tools/bin/pinned
+    itos-cc mutation check --since {base} --fail-uncovered --json, itos-cc pinned at the release
+    carrying #14, with its checksums), CI's plan a step running itos-cc mutation sample over the
+    pushed range with the flags the results were recorded with, and the coordinator's notes a brief
+    line: run itos-cc mutation run --since <base> --fail-uncovered, with the features' coverage,
+    before work done. No interim without coverage. Equivalent mutants go in itos-cc.yaml with their
+    reasons, for the person to review.
+  done_when:
+    - run: grep -q "proof:" itos.yaml
+    - run: grep -q "mutation sample" itos.yaml
