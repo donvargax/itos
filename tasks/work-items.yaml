@@ -5150,16 +5150,9 @@ items:
     title: itos push exits by the error's kind, not with git's own code
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-86]
     kind: slice
-    why: >
-      Was p1-git-exit-codes.
-      slice-86 takes every exit code from the error's kind (decision 36, docs/CLI.md rule 31), but
-      itos push still exits with git's own code when its fetch or push fails, and itos commit with
-      git commit's: a fetch that cannot reach the remote exits 128, which is none of itos's codes,
-      and a network failure there is not 75. Classify them: a remote that cannot be reached 75, a
-      refusal 1.
 
   - id: p1-cli-readers-from-spec
     title: Commands read their flags from the spec parse, not from readers of their own
