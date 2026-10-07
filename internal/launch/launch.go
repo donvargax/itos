@@ -155,7 +155,7 @@ func choose(args []string, stderr io.Writer) (target, bool) {
 	switch c.state {
 	case pinned:
 		pinLine(args, c.pin.Version, own, stderr)
-		notice(c.file, c.pin.Version, stderr)
+		notice(c.file, c.pin.Version, own, stderr)
 		if c.pin.Version == own {
 			return target{}, false
 		}

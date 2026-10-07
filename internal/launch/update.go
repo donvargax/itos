@@ -16,12 +16,14 @@ import (
 
 // Keeping to the newest release (features/update.feature). The launcher asks
 // the release server for its newest version, <base>/latest/download/
-// checksums.txt, whose archive names carry it, at most once a day, and only
+// checksums.txt, whose archive names carry it, at most once an hour, and only
 // where the answer is used: with no config at all, where it runs the newest
 // release, and under a pin, which may have fallen behind. The answer and
-// when it was had are kept in the cache, <cache>/state/latest, so a day's
+// when it was had are kept in the cache, <cache>/state/latest, so an hour's
 // runs share one question; a question that gets no answer counts as asked,
-// so a machine without the network waits on it once a day at most.
+// so a machine without the network waits on it once an hour at most. The
+// hour is short enough that a day of many releases is not told a morning's
+// newest, and long enough that every hook of a busy hour asks once (bug 48).
 //
 // CI never asks and never says; ITOS_NO_UPDATE stops the asking and
 // ITOS_NO_UPDATE_NOTICE the saying (each when set to anything). A server
@@ -38,11 +40,14 @@ const (
 )
 
 // askTimeout bounds the question, which every hook in a pinned repository
-// passes through once a day: a server that does not answer soon is taken as
+// passes through once an hour: a server that does not answer soon is taken as
 // one that cannot be reached.
 const askTimeout = 3 * time.Second
 
-// day is how long an answer, and a repository's notice, holds.
+// answerHolds is how long the server's answer holds before it is asked again.
+const answerHolds = time.Hour
+
+// day is how long a repository's notice holds: it is said at most once a day.
 const day = 24 * time.Hour
 
 // now is the time the daily state is read and written against.
@@ -109,10 +114,13 @@ func cachedVersions(cache string) []string {
 }
 
 // notice says on stderr that a newer release than the pinned one is out, at
-// most once a day for the repository whose config is file, from the newest
-// version the launcher knows the server announced (asked for first, when
-// that is due and allowed).
-func notice(file, pin string, stderr io.Writer) {
+// most once a day for the repository whose config is file. The release it
+// names is the newest the launcher knows of (bug 48): of the version the
+// server last announced (asked for first, when that is due and allowed), the
+// stable releases the cache holds and own, the itos that runs, when that is
+// a release. The server's answer alone could be hours behind what the cache,
+// or the itos saying it, already shows is out.
+func notice(file, pin, own string, stderr io.Writer) {
 	if set("CI") || set(EnvNoUpdateNotice) {
 		return
 	}
@@ -121,6 +129,15 @@ func notice(file, pin string, stderr io.Writer) {
 		return
 	}
 	latest, _, _ := announced(cache, mayAsk())
+	known := cachedVersions(cache)
+	if stable.MatchString(own) {
+		known = append(known, own)
+	}
+	for _, v := range known {
+		if latest == "" || version.Compare(v, latest) > 0 {
+			latest = v
+		}
+	}
 	if latest == "" || version.Compare(latest, pin) <= 0 {
 		return
 	}
@@ -141,12 +158,12 @@ func notice(file, pin string, stderr io.Writer) {
 
 // announced is the newest version the release server announced, as the
 // cache remembers it, "" when it knows none: asked for first when ask allows
-// it and the last question is a day old, in which case asked is true and
+// it and the last question is an hour old, in which case asked is true and
 // sums is the checksums.txt the server answered with, nil without an answer.
 func announced(cache string, ask bool) (v string, sums []byte, asked bool) {
 	file := filepath.Join(cache, "state", "latest")
 	known, at, ok := readState(file)
-	if !ask || (ok && now().Sub(at) < day) {
+	if !ask || (ok && now().Sub(at) < answerHolds) {
 		return known, nil, false
 	}
 	body, err := release.Get(release.LatestURL("checksums.txt"), askTimeout)

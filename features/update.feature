@@ -1,7 +1,7 @@
 @phase-3
 Feature: A global itos keeps to the newest release, and says when a pin falls behind
   The launcher (pin.feature) asks the release server for its newest version
-  at most once a day, reading <base>/latest/download/checksums.txt, whose
+  at most once an hour, reading <base>/latest/download/checksums.txt, whose
   archive names carry the version, and fetches that release into its cache.
   Where nothing is pinned and there is no itos.yaml (outside a project, a
   repository that does not use itos) it runs the newest release it has; it
@@ -29,7 +29,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     And the version "9.2.0" ran with the arguments "version"
 
   @ID-UPDATE-02 @slice-28
-  Scenario: The release server is asked for its newest version at most once a day
+  Scenario: The release server is asked for its newest version at most once an hour
     Given the repository has no itos.yaml
     And itos has already run "version"
     When itos runs "version"
@@ -146,17 +146,20 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
   # day (the notice is still said at most once a day per repository).
   # @ID-UPDATE-02's name said once a day: the fix renames it and names it in
   # Changes.
-  @ID-UPDATE-13 @bug-48 @wip
+  # The pin is cached too, so the scenario judges only the update question: the
+  # pin's own fetch has nothing to do with it.
+  @ID-UPDATE-13 @bug-48
   Scenario: The notice names a release the cache holds that is newer than the server's last answer
     Given a repository whose ledger has the task "T-001"
     And the config pins the version "9.1.0" of the release server
     And the launcher's last answer from the release server, a minute old, is "9.1.0"
+    And the cache holds the release "9.1.0"
     And the cache holds the release "9.2.0"
     When itos runs "version"
     Then its output says "itos 9.2.0 is out (this repository pins 9.1.0): "
     And the release server was asked for nothing since the last run
 
-  @ID-UPDATE-14 @bug-48 @wip
+  @ID-UPDATE-14 @bug-48
   Scenario: An answer from the release server older than an hour is asked again
     Given a repository whose ledger has the task "T-001"
     And the config pins the version "9.1.0" of the release server

@@ -67,10 +67,13 @@
 // time it was had in <cache>/state/latest ("<unix seconds> <version>"), and
 // asked for again (<base>/latest/download/checksums.txt, its version read
 // from the archive names, within askTimeout, three seconds) only when that
-// is a day old and the run may ask (CI and ITOS_NO_UPDATE both unset). A
-// question with no answer is written as asked, so an offline machine pays
-// the timeout once a day. notice compares the announced version with the pin
-// (version.Compare) and says it once a day per repository, keyed by the
+// is an hour old (answerHolds) and the run may ask (CI and ITOS_NO_UPDATE
+// both unset). A question with no answer is written as asked, so an offline
+// machine pays the timeout once an hour. notice compares with the pin
+// (version.Compare) the newest of the announced version, the stable releases
+// the cache holds and this binary's version when it is a release (bug 48: the
+// answer alone can be behind what the cache already holds), and says it once
+// a day per repository, keyed by the
 // config's absolute path in <cache>/state/notice-<hash>, written before the
 // line is said so a cache it cannot write to stays silent rather than saying
 // it every run. Nothing here is ever an error: every failure falls through

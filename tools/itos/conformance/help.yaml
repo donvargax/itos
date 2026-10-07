@@ -109,7 +109,7 @@ cases:
       Versions: a config's pin (pin.version, pin.checksums) runs that itos release,
       fetched from ITOS_RELEASES into ITOS_CACHE and checked first; ITOS_VERSION
       runs another. A project's config with no pin runs this binary; no config, or a
-      stealth one with no pin, runs the newest release, asked for once a day, never
+      stealth one with no pin, runs the newest release, asked for once an hour, never
       in CI or with ITOS_NO_UPDATE=1; ITOS_NO_UPDATE_NOTICE=1 hides the notice that a
       pin has fallen behind it.
 
@@ -997,7 +997,7 @@ cases:
       Moves the config's pin to a release of itos: <version> (a leading v is taken),
       or with none or latest the newest, asked for as the launcher asks for it
       (<ITOS_RELEASES>/latest/download/checksums.txt) but now, whatever CI,
-      ITOS_NO_UPDATE or the once a day say. It sets pin.version and pin.checksums,
+      ITOS_NO_UPDATE or the once an hour say. It sets pin.version and pin.checksums,
       the SHA-256 of that release's checksums.txt, in the config itos finds (the
       stealth one included), adding the pin when there is none, and changes no other
       byte of it; a layout it cannot edit so (a value over several lines, a tag, an
