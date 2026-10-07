@@ -1005,6 +1005,7 @@
     not after a release. The list is read from the scripts, never kept by hand beside them.
   done_when:
     - run: grep -q plugin-calls itos.yaml && go run ./tools/bin/plugin-calls
+    - run: go test ./tools/bin/plugin-calls -count=1
 
 - id: T-112
   type: test
