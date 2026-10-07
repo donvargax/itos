@@ -5891,3 +5891,19 @@ items:
       expectations are brought to T-106's rule (a feat naming a case excuses nothing; a breaking
       commit excuses only what Changes: names), never the program bent to the old ones, and
       itos.yaml's nightly runs it beside the other self-tests. Was p1-previous-release-selftest-red.
+
+  - id: p1-selftests-unrun
+    title: Every gate self-test runs on some schedule, not only when a push names its task
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found doing T-117 (2026-10-07): eleven of tools/selftest's self-tests (ci-scope, config-gate,
+      deps-check, features-scope, go-dogfood, go-port, plugin-version, release-cut, release-notes,
+      schema-contract, upgrading-json) are in no itos.yaml step. Each runs only as a check of its
+      task, so once the task is done only a push that names that task runs it, and the nightly's
+      done-task checks are the static ones alone: previous-release.ts went red unseen this way after
+      T-106. Either the nightly runs every self-test, or a check refuses a self-test no step names.
+    refs: [tools/selftest, itos.yaml]
