@@ -1,8 +1,8 @@
 # v7: proof of done, through itos-cc
 
-A proposal for the user to mark up (2026-10-07); settled where it says so. It turns q-13 and the design recorded on
-`p1-nightly-late-done-checks` into what v7 builds. Each **Open** line is a call still to make; the
-recommendation comes first.
+The plan for v7 (2026-10-07). It turns q-13 and the design recorded on
+`p1-nightly-late-done-checks` into what v7 builds. Every call it needed is settled, each marked
+with the user's call.
 
 ## The problem
 
@@ -54,26 +54,20 @@ run while the task is open and gate `work done`, then `work done` removes them f
   item cannot close while it claims one. Entries older than a start point are exempt, so adopting
   it costs nothing up front. Opt-in per repository.
 
-## The config (shape to settle in the spec)
+## The config (as slice-100 specifies it)
 
 ```yaml
 proof:
-  provider:
-    itos-cc: { version: "0.3.0", checksums: "<sha256>" }
-  by_type:
-    refactor: [code]
-    perf: [code]
-    test: [code]
-    feat: [scenarios, code]
-    fix: [scenarios, code]
-    build: [gate]
-    ci: [gate]
-    docs: [review]
-    chore: [review]
+  code:
+    paths: ["{cmd,internal}/**/*.go"] # what counts as code
+    check: "tools/bin/pinned itos-cc mutation check --since {base} --fail-uncovered --json"
 ```
 
-`config check` refuses a type that changes code or gates with no proof named. A repository with no
-`proof` key works as today: itos stays usable in a language itos-cc does not measure.
+When an item's commits touch `proof.code.paths`, `work done` runs `proof.code.check` with `{base}`,
+the parent of the item's first commit, after the CI judgement: exit 0 closes, exit 1 refuses naming
+what the check's `--json` lists, anything else refuses with exit 3. `config check` refuses a check
+without `{base}`. With no `proof` key, itos works as today, so it stays usable in a language itos-cc
+does not measure. The other rows of the table (gates, prose) come after rc.1.
 
 ## Standing rules (q-13 part c)
 
@@ -83,9 +77,9 @@ proof:
   when a task names them.
 - **Every command, path, scenario and decision the docs name resolves**: a docs-reference check,
   replacing the doc-mentions-X greps.
-- **Open:** a coverage threshold (q-6). Recommended: none. `--fail-uncovered` on the changed
-  functions already refuses untested new code, and a global threshold only rewards tests that
-  touch lines without checking them. Alternative: a floor that only rises.
+- **Settled (the user's call, 2026-10-07): no coverage threshold, global or as a floor.** Both
+  reward tests that touch lines without checking them; `--fail-uncovered` on the changed functions
+  refuses untested new code, and mutants judge whether a test notices a change (q-6).
 
 ## Closing without the proof
 
@@ -113,24 +107,30 @@ and `p1-upgrade-on-major`.
 **Not in v7:** agent rules as data (its own major), and kong (its spike decides whether it breaks
 anything).
 
-## Order
+## Order, and where it stands (2026-10-07)
 
-1. Finish 6.x: T-117 (the previous-release self-test, red since T-106), T-113, then
-   `p1-upgrade-applies-config-steps` and `p1-upgrade-on-major`, so consumers cross the major
-   cleanly. Once the module path moves to `/v7`, main cuts no 6.x patch (T-089's rule: no v7 tag
-   from a `/v6` go.mod, and no v6 tag from a `/v7` one).
-2. **Pre-releases** (the user's call, 2026-10-07; T-118): a pre-release marker,
-   `tools/bin/release-version/prerelease` (T-119: a file of the release tool's own, since
-   `itos.yaml` holds only keys itos reads), and while it says `rc`, the commits that would cut
-   7.0.0 cut `7.0.0-rc.1`, `rc.2` and so on, marked pre-release and never latest.
-   `go install …@latest`, the update notice and a bare `itos pin` keep naming 6.x; a repository
-   opts in with `itos pin 7.0.0-rc.<n>` (itos-cc and code-quality first).
-3. Turn the marker on, move the module path to `/v7`, and land **the itos-cc integration first**:
-   the role protocol, the proof rule and `work done`, CI's `mutation sample`, expiring checks.
-   That is `v7.0.0-rc.1` (T-119 did the first two). Its push must carry a breaking change: until
-   rc.1 is cut, a feat or a fix without one computes a 6.x version, which the `/v7` path refuses
-   (`p1-release-major-from-module-path`).
-4. The rest of the bundle, each item landing as it is ready, each a further rc: the standing rules,
-   debt and claims, exit codes, the hook-skipping refusal, config tightening, slice-95, rule 22,
-   dropping compatibility code.
-5. Remove the marker: the next push cuts `v7.0.0`.
+1. **6.x is finished:** v6.5.1 is its last release (bug-50 orders release candidates right, so the
+   launcher every repository runs reads them). The two upgrade items are deferred (the user: the
+   itos-cc integration as soon as it can be).
+2. **Pre-releases are built** (T-118, decision 42) and **on** (T-119): go.mod is `…/itos/v7` and
+   `tools/bin/release-version/prerelease` holds `rc` (a file of the release tool's own, so the
+   config schema keeps only keys itos reads). Since T-123, a module path ahead of the last
+   release cuts its major for any releasable commit: **the next feat or fix on main cuts
+   v7.0.0-rc.1.** So nothing releasable lands before slice-100: rc.1 is the itos-cc integration.
+3. **rc.1, the itos-cc integration — on hold (the user, 2026-10-07)** while an issue itos-cc found
+   with end-to-end tests and coverage is worked out:
+   - **slice-100** (deferred): the proof rule and `work done`, as specified in
+     features/work.feature and config.feature. It lands with its help text, a README section on
+     `proof`, docs/ARCHITECTURE.md's line and the package docs.
+   - **T-121**: the features build the itos under test with `-cover` when `GOCOVERDIR` is set, so
+     itos-cc sees what they cover (its half of itos-cc#14).
+   - **T-120** (deferred): this repository turns the proof on. It needs itos-cc **v0.4.0** (the
+     first release carrying #14, cut 2026-10-07) or a later one, pinned through
+     `tools/bin/pinned`, which T-120 teaches itos-cc; `pinned` takes no version younger than 7
+     days (T-067), so **not before 2026-10-14**. CI gains `mutation sample` over the pushed range;
+     the coordinator's notes tell agents to run `itos-cc mutation run --since <base>
+--fail-uncovered` before `work done`.
+4. **Then the rest of the bundle**, each a further rc: slice-101 (a task's checks expire at
+   done), the standing rules, debt and claims, exit codes, the hook-skipping refusal, config
+   tightening, slice-95, rule 22, dropping compatibility code.
+5. **Remove the marker file:** the next push cuts `v7.0.0`.

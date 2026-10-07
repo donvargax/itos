@@ -1159,6 +1159,12 @@
     line: run itos-cc mutation run --since <base> --fail-uncovered, with the features' coverage,
     before work done. No interim without coverage. Equivalent mutants go in itos-cc.yaml with their
     reasons, for the person to review.
+
+    What it takes (found 2026-10-07): itos-cc v0.4.0 is the first release carrying #14 (cut
+    2026-10-07); tools/bin/pinned knows only goreleaser and git-cliff, so this task teaches it
+    itos-cc (its version and per-platform hashes, from the release's checksums.txt), and pinned
+    takes no version younger than 7 days (T-067), so v0.4.0 can be pinned from 2026-10-14. It also
+    waits on T-121 and on slice-100, held by the user for an itos-cc issue with e2e tests and coverage.
   done_when:
     - run: grep -q "proof:" itos.yaml
     - run: grep -q "mutation sample" itos.yaml
