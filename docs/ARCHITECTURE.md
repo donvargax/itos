@@ -226,7 +226,8 @@ the version is the tag, held nowhere in the tree.
   `go run ./tools/bin/release-version` computes the version from the
   commits since the newest `vX.Y.Z` tag HEAD reaches (a breaking change a
   major, else a `feat` a minor, else a `fix` a patch, else nothing and the job
-  ends green). While `tools/bin/release-version/prerelease` says `rc` (T-118, T-119), a
+  ends green); a `go.mod` path ahead of that release's major promises it, so
+  any `feat`, `fix` or breaking change cuts that major (T-123). While `tools/bin/release-version/prerelease` says `rc` (T-118, T-119), a
   major is cut as `<major>.0.0-rc.<n>`, the next candidate after each `feat`,
   `fix` or breaking change, published as a pre-release and never latest;
   removing the file cuts `<major>.0.0`. With a version the job tags the commit locally, runs
