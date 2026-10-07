@@ -386,6 +386,7 @@ CI runs its plan, `itos ci run`, on every push, in this order, stopping at the f
 - `tools/bin/itos config check`
 - `go run ./tools/bin/plugin-version -range-from "${FROM-}"`
 - `go run ./tools/bin/doc-budget`
+- `go run ./tools/bin/plugin-calls`
 - The static checks of the tasks the push's commits name.
 - `go run ./tools/bin/deps-check -changed-since "${FROM-}"`
 - `go run ./tools/bin/schema-contract -range-from "${FROM-}"`
@@ -406,6 +407,7 @@ The nightly, `itos ci run --nightly`, runs these in order:
 - `node tools/selftest/go-hooks.ts`
 - `node tools/selftest/go-release.ts`
 - `node tools/selftest/go-schema.ts`
+- `node tools/selftest/previous-release.ts`
 - The static checks of every task whose work item is `done`.
 - `sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'`
 - `sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'`
