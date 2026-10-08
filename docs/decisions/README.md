@@ -13,7 +13,6 @@ file and leaves this list, which itos ask record writes.
 - [ADR-0006: The conformance corpus is a regression corpus run by a CI step of its own](0006-the-conformance-corpus-is-a-regression-corpus-run-by-a-ci-step-of-its-own.md)
 - [ADR-0007: commits.since names the commit where verification starts](0007-commits-since-names-the-commit-where-verification-starts.md)
 - [ADR-0008: The header lint is built into itos, and the footer rules are always itos's](0008-the-header-lint-is-built-into-itos-and-the-footer-rules-are-always-itos-s.md)
-- [ADR-0009: No coverage is collected](0009-no-coverage-is-collected.md)
 - [ADR-0010: The repository is AGPL-3.0](0010-the-repository-is-agpl-3-0.md)
 - [ADR-0011: The work registry lives beside the ledger by default](0011-the-work-registry-lives-beside-the-ledger-by-default.md)
 - [ADR-0012: The commit-msg hook validates itos's own data from the staged tree](0012-the-commit-msg-hook-validates-itos-s-own-data-from-the-staged-tree.md)
