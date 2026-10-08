@@ -6348,3 +6348,18 @@ items:
       Issue #27: itos init --agent-rules writes a line per CI step into the generated block, so it
       grows with the plan (2987 bytes at 15 steps in itos-template; 8109 to 8149 of an 8192-byte cap
       in a day). The commit rules are what an agent needs; the CI list could be one line
+
+  - id: p1-lint-leading-blank-hash-line
+    title: The footer-leading-blank warning fires on a plain prose line beginning with a hash
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #21 (itos 7.0.0-rc.1 and 6.4.0): itos commit check-message warns footer-leading-blank
+      for a body line reading "with #, which is plain prose", where a blank line does separate the
+      body from the footers; a line starting with a hash or "see #12, fixed." gives no warning. The
+      warning teaches agents to reword correct bodies (one added a rule to its brief to avoid the
+      text). The lint reads the line as a trailer where git does not; a fix names it in Changes,
+      since it changes what a released scenario promised
