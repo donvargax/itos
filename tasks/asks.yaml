@@ -157,6 +157,7 @@ questions:
   - id: q-37
     item: "p3-guard-replacement"
     question: "Which commit entry point should agents use for the guided body-only workflow? Recommended: a new item-aware work commit command, with the shim and implementing guides pointing to it; keep the existing low-level itos commit full-message interface for explicit advanced use without claiming a bypass-proof guard. Alternative: make itos commit itself body-only and intentionally break its current public message/git-argument interface. Exact flags and preview remain undecided. See docs/plans/guided-commits.md."
+    answer: "Add item-aware itos work commit for body-only guided commits and point the shim/implementer guide to it. Preserve the distinct low-level itos commit full-message interface for explicit advanced use."
   - id: q-38
     item: "p3-guard-replacement"
     question: "Should the generated guided-commit message have an optional preview, or a mandatory prepare/confirm cycle? Recommended: optional dry-run showing item, part, approved plan revision, staged paths and assembled header/body/footers; it commits nothing and records no completion. The actual commit revalidates current inputs, so a prior preview is not permission for a changed plan/tree. Alternative: require explicit prepare/confirm each time, without claiming this proves human review. See docs/plans/guided-commits.md."
