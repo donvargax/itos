@@ -36,16 +36,20 @@ run while the task is open and gate `work done`, then `work done` removes them f
   version pinned with its checksums as itos pins its own, read by `--json` and exit code only
   (0 pass, 1 a survivor, an uncovered mutant or a failing baseline, 2 usage, 3 environment).
   itos never reads itos-cc's cache or `itos-cc.yaml`.
-- **At work done:** `mutation check --since <base> --fail-uncovered --json`, which runs nothing
-  slow: it refuses missing or stale results (a function or its tests changed since). The agent runs
-  `mutation run --since <base>` before; the brief says so.
+- **In CI, as the gate** (slice-106, issue #28; it ran at work done in rc.1 and rc.2, after the
+  push and a feat's release, so it gated nothing that ships): `mutation check --since <range start>
+--fail-uncovered --json`, a step of `itos ci run` when the range touches `proof.code.paths`. It
+  runs nothing slow: it refuses missing or stale results (a function or its tests changed since),
+  so a failing proof fails the run and the release job never runs. The agent runs `mutation run`
+  before its push; the brief says so. `work done` no longer runs it: the green run it requires
+  judged it.
 - **Coverage from the features** (the user's call, 2026-10-07): itos's behaviour is tested by
   features that run the built binary as another process, which Go's in-process coverage cannot
   see, so `--fail-uncovered` would call nearly everything uncovered. The fix is Go's integration
   coverage: itos-cc sets `GOCOVERDIR` and merges what the binary writes (itos-cc#14), and the
   features build the itos under test with `-cover` when it is set (T-121). This repository adopts
   the proof only with both in place (T-120), never through an interim without coverage.
-- **In CI:** `mutation sample --since <range start> --json`, the spot check that a forged or stale
+- **And a spot check in CI:** `mutation sample --since <range start> --json`, the spot check that a forged or stale
   cache fails, with the flags the results were recorded with (`--all-tests` where they were).
 - **Equivalent mutants** are excepted in `itos-cc.yaml` under `mutation.exceptions`, each with its
   reason, the person reviewing them; a stale one fails (`mutation.exception-stale`).
@@ -63,10 +67,14 @@ proof:
     check: "tools/bin/pinned itos-cc mutation check --since {base} --fail-uncovered --json"
 ```
 
-When an item's commits touch `proof.code.paths`, `work done` runs `proof.code.check` with `{base}`,
-the parent of the item's first commit, after the CI judgement: exit 0 closes, exit 1 refuses naming
-what the check's `--json` lists, anything else refuses with exit 3. `config check` refuses a check
-without `{base}`. With no `proof` key, itos works as today, so it stays usable in a language itos-cc
+As slice-100 built it, `work done` ran `proof.code.check` when an item's commits touched
+`proof.code.paths`, `{base}` the parent of the item's first commit. Slice-106 (issue #28, the
+user's calls, 2026-10-08) moves it into `itos ci run`: a plan step, added as a named task's checks
+are, whenever the range touches the paths, `{base}` the range's start, so the whole range since the
+last green run is judged, whoever's item it is (which settles #26); any failure, a check that
+cannot run included, fails the run. `config check` refuses a check without `{base}`. Then
+`p1-proof-paths-placeholder` (#24: a `{paths}` placeholder) and `p1-proof-summary` (#25: what a
+passing proof held, and a proof that judged nothing fails). With no `proof` key, itos works as today, so it stays usable in a language itos-cc
 does not measure. The other rows of the table (gates, prose) come after rc.1.
 
 ## Standing rules (q-13 part c)
@@ -138,3 +146,24 @@ anything).
    done), the standing rules, debt and claims, exit codes, the hook-skipping refusal, config
    tightening, slice-95, rule 22, dropping compatibility code.
 5. **Remove the marker file:** the next push cuts `v7.0.0`.
+
+### Since rc.1 (2026-10-08, evening)
+
+- **slice-101 done, v7.0.0-rc.2:** `work done` removes a closed task's checks from the ledger in
+  the close commit, and `itos task` reads a done task with none as done. T-126 was the first task
+  closed so.
+- **T-126 done** (issue #23, a build change, so it ships with the next release): the GitHub action
+  installs the launcher of the release its ref names, a pre-release tag or a release's commit
+  included (`tools/bin/action-version`). Nothing tests that script now (`p1-action-version-tested`).
+- **slice-106, first in the queue:** the code proof in CI (above). T-120 waits on it as well as on
+  its 2026-10-15 date.
+- **T-125, waiting on q-28:** its agent listed every done task's check, keep 21 as 20 standing steps
+  and drop 187; nothing is removed until the person answers. Then phase two builds the answered
+  list (the agent resumed with it).
+- **q-25, open:** whether v7's `config check` refuses `{ tasks: done }` (recommended: refuse, a new
+  slice in the bundle).
+- **Ids, slices 102 to 105** (q-26, q-27): itos mints every id through one counter, the ref
+  `refs/itos/ids` on a shared remote, pushed without hooks by itos's minting code alone, or a file
+  in the git folder under stealth; explicit ids refused, ideas keep their author's names, bugs a
+  kind of their own (slice-104), scenario ids claimed by `tests next-id` (slice-105), and `draft
+add` mints at once (slice-103). Specified in features/ids.feature and beside it; a v7 break.
