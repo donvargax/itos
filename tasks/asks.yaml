@@ -19,6 +19,7 @@ questions:
     item: "slice-59"
     question: "Once itos init --agent-rules lands, does this repository's hand-written AGENTS.md become the generated block (the coordinator recommends yes, a small docs task)?"
     answer: "Yes (the user, 2026-10-05). This repository's AGENTS.md gains the generated block, and its hand-written part keeps only what no command checks; T-096."
+    decision: none
   - id: q-6
     question: "Set a unit coverage threshold? Coverage is collected with none since the template's demo app left; it blocks nothing."
     answer: "No (2026-10-07): no coverage threshold, global or as a floor that only rises. A percentage rewards tests that touch lines without checking them; itos-cc's --fail-uncovered refuses untested new code in the functions an item changes, and mutants judge whether a test notices a change. Coverage stays collected, for itos-cc to read, including the features' through Go's integration coverage (T-121, itos-cc#14)."
