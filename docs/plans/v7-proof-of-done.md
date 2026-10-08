@@ -124,7 +124,7 @@ anything).
      build the itos under test with `-cover` and split its coverage per scenario.
    - **T-124** (done 2026-10-08): the launcher, the shim and extensions write their coverage
      counters before they `syscall.Exec`, which runs no exit hook.
-   - **slice-100**: the proof rule and `work done`, as specified in features/work.feature and
+   - **slice-100** (done 2026-10-08; its feat cut **v7.0.0-rc.1**): the proof rule and `work done`, as specified in features/work.feature and
      config.feature, against itos-cc v0.5.0's machine contract. It lands with its help text, a
      README section on `proof`, docs/ARCHITECTURE.md's line and the package docs. Its feat cuts
      v7.0.0-rc.1.
