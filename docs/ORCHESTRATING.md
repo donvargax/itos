@@ -124,8 +124,11 @@ was in this file when the file was reorganized that day.
   pushed before the task's `done_when` is met is red by design. Likewise an
   `after: push` check waiting on a release or a tag fails every push naming its
   task until then: write it late. A check that reads CI's own result belongs in
-  `ci.nightly_only`. Exit: `p1-nightly-late-done-checks` (q-13). Recorded by
-  2026-10-04.
+  `ci.nightly_only`. A coordinator's own spec commit counts: one carrying
+  `--task` for an open task turned main red (T-121, 2026-10-08), so a spec
+  edit to a task not yet done is committed without the footer. Exit:
+  `p1-nightly-late-done-checks` (q-13). Recorded by 2026-10-04; last seen
+  2026-10-08.
 - **Settle what breaks compatibility before a major release.** List the open
   items that change what is accepted, and ask. Exit: permanent. Recorded by
   2026-10-04; last seen 2026-10-06 (the v6 bundle).

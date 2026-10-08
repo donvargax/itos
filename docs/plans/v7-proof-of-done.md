@@ -107,7 +107,7 @@ and `p1-upgrade-on-major`.
 **Not in v7:** agent rules as data (its own major), and kong (its spike decides whether it breaks
 anything).
 
-## Order, and where it stands (2026-10-07)
+## Order, and where it stands (2026-10-08)
 
 1. **6.x is finished:** v6.5.1 is its last release (bug-50 orders release candidates right, so the
    launcher every repository runs reads them). The two upgrade items are deferred (the user: the
@@ -117,19 +117,23 @@ anything).
    config schema keeps only keys itos reads). Since T-123, a module path ahead of the last
    release cuts its major for any releasable commit: **the next feat or fix on main cuts
    v7.0.0-rc.1.** So nothing releasable lands before slice-100: rc.1 is the itos-cc integration.
-3. **rc.1, the itos-cc integration — on hold (the user, 2026-10-07)** while an issue itos-cc found
-   with end-to-end tests and coverage is worked out:
-   - **slice-100** (deferred): the proof rule and `work done`, as specified in
-     features/work.feature and config.feature. It lands with its help text, a README section on
-     `proof`, docs/ARCHITECTURE.md's line and the package docs.
-   - **T-121**: the features build the itos under test with `-cover` when `GOCOVERDIR` is set, so
-     itos-cc sees what they cover (its half of itos-cc#14).
-   - **T-120** (deferred): this repository turns the proof on. It needs itos-cc **v0.4.0** (the
-     first release carrying #14, cut 2026-10-07) or a later one, pinned through
-     `tools/bin/pinned`, which T-120 teaches itos-cc; `pinned` takes no version younger than 7
-     days (T-067), so **not before 2026-10-14**. CI gains `mutation sample` over the pushed range;
-     the coordinator's notes tell agents to run `itos-cc mutation run --since <base>
---fail-uncovered` before `work done`.
+3. **rc.1, the itos-cc integration.** The hold (the user, 2026-10-07, while itos-cc worked out
+   end-to-end coverage) ended 2026-10-08: itos-cc v0.5.0 closed #14 with listed tests, each mutant
+   running only the scenarios that reach its line.
+   - **T-121** (done 2026-10-08): with `GOCOVERDIR` or `ITOS_CC_TEST_COVERDIR` set, the features
+     build the itos under test with `-cover` and split its coverage per scenario.
+   - **T-124** (done 2026-10-08): the launcher, the shim and extensions write their coverage
+     counters before they `syscall.Exec`, which runs no exit hook.
+   - **slice-100**: the proof rule and `work done`, as specified in features/work.feature and
+     config.feature, against itos-cc v0.5.0's machine contract. It lands with its help text, a
+     README section on `proof`, docs/ARCHITECTURE.md's line and the package docs. Its feat cuts
+     v7.0.0-rc.1.
+   - **T-120**: this repository turns the proof on. It needs itos-cc **v0.5.0** (v0.4.0 has no
+     listed tests, so every mutant would run every feature), pinned through `tools/bin/pinned`,
+     which T-120 teaches itos-cc; `pinned` takes no version younger than 7 days (T-067), so **not
+     before 2026-10-15**. `itos-cc.yaml` lists the scenarios under `mutation.tests`; CI gains
+     `mutation sample` over the pushed range; the coordinator's notes tell agents to run
+     `itos-cc mutation run --since <base> --fail-uncovered` before `work done`.
 4. **Then the rest of the bundle**, each a further rc: slice-101 (a task's checks expire at
    done), the standing rules, debt and claims, exit codes, the hook-skipping refusal, config
    tightening, slice-95, rule 22, dropping compatibility code.

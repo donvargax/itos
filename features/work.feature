@@ -849,7 +849,14 @@ Feature: The work registry
   # models will do anything to finish): an equivalent mutant is excepted in
   # itos-cc.yaml with its reason, which the person reviews and which fails
   # once stale; otherwise the agent stops and asks. The check runs
-  # after the CI judgement, so a red run still refuses first.
+  # after the CI judgement, so a red run still refuses first. The check's
+  # --json is itos-cc's machine contract (its docs/CLI.md, v0.5.0):
+  # {"schema":1,"ok":false,"problems":[{"rule","message","fix",…}]}, rules
+  # such as mutation.survived, mutation.uncovered, mutation.missing and
+  # mutation.stale, the subject in keys like file, line and function; a
+  # fake provider answers in that shape, and work done prints each problem's
+  # rule and message. Its exit 2 (itos-cc's usage or config error), 3, 70
+  # and 75 are all "cannot run" to itos: exit 3.
   @ID-WORK-76 @slice-100 @wip
   Scenario: work done runs the code proof over the item's commits and closes when it passes
     Given a clone of it, where itos runs
