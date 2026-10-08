@@ -6277,12 +6277,9 @@ items:
     title: The code proof runs in itos ci run over the range, and work done no longer runs it
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Specified in features/ci.feature (@ID-CI-20 to 23) and features/work.feature (@ID-WORK-87);
-      issue #28.
 
   - id: p1-proof-paths-placeholder
     title: proof.code.check takes a {paths} placeholder, the range's changed files that proof.code.paths matches
