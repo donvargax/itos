@@ -1,6 +1,6 @@
 {
 	"caps": [
-		{ "file": "AGENTS.md", "bytes": 26000 },
+		{ "file": "AGENTS.md", "bytes": 28000 },
 		{ "file": "internal/guide/coordinate.md", "bytes": 14000 },
 		{ "file": "internal/guide/work.md", "bytes": 6000 },
 		{ "file": "docs/ORCHESTRATING.md", "bytes": 11000 },
