@@ -91,6 +91,20 @@ work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the
   since the notes quote it. Never "none; …" followed by text: it reads as none.
 - **The neighbours:** "Before pushing, run `go test ./features -count=1
 -scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.
+- **The files:** the item's `refs` and the feature files its scenarios are
+  tagged in (`itos work show <id>`), as the places to read first and the scope
+  of the searches, each package's `doc.go` before its code. Where to start, never
+  the only places to look: a change reaches whatever the behaviour turns out to
+  live in. Name a file the item does not touch only when the item's own commits
+  did (p1-work-spec-files would derive most of this; until it lands, the
+  coordinator writes it by hand).
+- **A search tool, if the session has one:** with the semble MCP configured, an
+  agent searches by meaning once and then grows what it found (`find_related`
+  from a file and a line) instead of grepping for the same content again. Anchor
+  a query on a symbol, and read past the first hit: a prose query drifts onto the
+  help text and the doc comments that describe a thing before the thing. Nothing
+  in itos depends on this. Refs and the feature files are what the brief owes an
+  agent; a search tool only saves the walk from there.
 
 ## Parallel agents, if the user asks for them
 
