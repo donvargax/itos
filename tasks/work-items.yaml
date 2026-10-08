@@ -6137,6 +6137,10 @@ items:
       matters once items run in parallel (p1-pr-mode). Narrow the check to the item's commits, by
       passing the files they changed as paths or by a provider option.
 
+      Dissolved by slice-106 (issue #28, the user's call 2026-10-08): the proof moves into CI,
+      judged over the range since the last green run, and work done no longer runs it, so no item's
+      own range is ever judged. Drop this once slice-106 lands.
+
   - id: p1-proof-json-outcome
     title: work done --json says whether the code proof ran, and on which base
     phase: 1
