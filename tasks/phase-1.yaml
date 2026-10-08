@@ -1076,3 +1076,48 @@
     configured with its own identity.
   done_when:
     - run: go test ./features -count=1 -scenarios='^@ID-(TASK-05|WORK-12)$'
+
+- id: T-129
+  type: test
+  title: Conformance Git fixtures cannot loop through the shim, and every case cleans up within a deadline
+  why: >
+    Was p1-corpus-orphan-loop. Confirmed on 2026-10-08 while checking slice-102 against the
+    previous release: the hook-install fixture supplies ITOS_GIT pointing to old-git, whose
+    fallback executes bare git. The runner's git_config_after inspection reuses that environment
+    and bare git selects the installed shim, which delegates back to old-git indefinitely.
+    The helper consumed a core for 98 minutes. A bounded reproduction under /tmp/opencode shows
+    repeated shim/wrapper execve calls; changing only ITOS_GIT to native git makes the same
+    query finish successfully, so scratch-directory permission is not the cause.
+
+    Resolve a native Git executable before introducing fixture overrides, use it with a clean
+    inspection environment for repository setup and post-case inspection, and keep deliberate
+    fake-Git behavior for the command under test. Give fixture wrappers an explicit native
+    fallback rather than resolving bare git through their modified PATH. Preserve the existing
+    hook-install outcomes and git_config_after values, including old-release fixtures; do not
+    globally replace the fake Git the command under test is meant to exercise.
+
+    Bound the whole case lifecycle, including Git helpers and post-checks, not only execute's
+    child command. Timeout cleanup terminates the case's owned process tree and settles output
+    streams, closes fake servers, and removes only its own scratch directory. It must not kill
+    unrelated processes or leave descendants burning CPU. Use a per-case or test-injected short
+    deadline for deterministic regression tests; do not increase the existing default timeout.
+    Keep platform-specific cleanup honest, with Windows covered or a concrete unsupported
+    environment reported rather than a silent no-op.
+
+    Add tools/itos/conformance/run.test.ts at the real runCase/inspection/process seam. First
+    observe the bounded old-git/shim reproduction fail and clean up all of its own processes;
+    then prove it finishes with the expected config values after the fix. Also test a hung
+    post-check and a command with a descendant that holds output open, proving the whole
+    deadline and cleanup. Keep regressions reachable from the standing full-corpus entrypoint
+    after the task's progress checks expire; if that needs gate configuration, stop and propose
+    its separate ci task instead of changing a gate in a test commit.
+
+    This is test-tooling work, not a change to the Go binary's product behavior. The conformance
+    runner, its fixture scripts and its tests are the starting scope; tools/bin/dev-version,
+    internal/git, hooks, policy and workflows are not changed under this task. The user chose
+    to keep scenario-moves and fix forward, so neither a revert exemption nor mutation exclusions
+    are authorized. Main is red from slice-102's independent proof and test-fixture failures;
+    do not publish an incomplete checkpoint or claim this task green while that range still fails.
+  done_when:
+    - run: node --test tools/itos/conformance/run.test.ts
+    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos --only tools/itos/conformance/hooks.yaml
