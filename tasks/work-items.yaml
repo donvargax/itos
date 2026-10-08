@@ -6210,9 +6210,6 @@ items:
       new task hits the same wall. Let a draft refer to an earlier draft's minted id (a placeholder
       resolved at promote), or have draft promote refuse a draft whose id it cannot resolve. Specify
       with the id-minting slice.
-    deferred: >
-      Waits on q-27 with slice-102: reserving a draft's id (the user's preferred direction over
-      {name} placeholders, which cannot reach drafted file edits) depends on how ids are minted.
 
   - id: p1-action-version-tested
     title: tools/bin/action-version's cases run as a standing test, and CI runs the action by a tag ref
