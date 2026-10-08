@@ -126,3 +126,6 @@ questions:
     question: "Does cutting v7.0.0 wait on T-120, which cannot start before 2026-10-15?"
     answer: "The user (2026-10-08): it does not hold the release. T-120 is this repository adopting the proof, not product behaviour: the product side shipped in slice-100 (the proof rule and work done, v7.0.0-rc.1) and slice-106 (the code proof in itos ci run, v7.0.0-rc.3), and the 7-day wait is a supply-chain rule for a dependency the project does not build itself, not for the artifacts we build. Cut v7.0.0 when the bundle lands; T-120 follows without holding it"
     decision: 46
+  - id: q-30
+    item: "p3-guard-replacement"
+    question: "For guided item-aware commits, must every commit select a declared commit-plan part supplying its type, imperative subject and required footer metadata, or may itos infer missing metadata? Recommended: require a lightweight declared part; the agent supplies its body and itos refuses mismatched staged paths or missing semantic metadata instead of guessing. The design draft is docs/plans/guided-commits.md."
