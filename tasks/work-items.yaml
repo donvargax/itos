@@ -6198,7 +6198,7 @@ items:
     kind: task
 
   - id: slice-103
-    title: A drafted command names the id an earlier draft mints
+    title: draft add of a command that mints takes its id at once and prints it
     phase: 1
     owner: null
     status: todo
