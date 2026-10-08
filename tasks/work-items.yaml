@@ -6210,3 +6210,18 @@ items:
       new task hits the same wall. Let a draft refer to an earlier draft's minted id (a placeholder
       resolved at promote), or have draft promote refuse a draft whose id it cannot resolve. Specify
       with the id-minting slice.
+
+  - id: p1-action-version-tested
+    title: tools/bin/action-version's cases run as a standing test, and CI runs the action by a tag ref
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found landing T-126 (2026-10-08): its checks proved action-version's tag, sha, branch and
+      unknown-sha cases, then left the ledger at work done (slice 101), so nothing tests the script
+      now; and CI runs the action only through uses: ./, whose ref is empty, so action.yml's tag and
+      sha paths never run there. Under v7's standing rules (p1-tools-bin-unit-tests-in-ci) the
+      script gets a test CI runs (its cases, a fake git for the annotated and pre-release ones), and
+      a workflow job uses the action by a release tag.
