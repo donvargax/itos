@@ -6506,8 +6506,8 @@ items:
   - id: T-128
     title: Restore green main after slice-102 proof failure
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
