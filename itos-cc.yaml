@@ -1,0 +1,11 @@
+mutation:
+  tests:
+    list: node tools/bin/itos-cc-tests.ts
+    run: "go test ./features -count=1 -scenarios='{pattern}'"
+    ids_pattern: "^@(?:{ids})$"
+    join: { each: "{id}", sep: "|" }
+    whole: go test ./features -count=1
+    support:
+      - features/*_test.go
+      - features/testdata/**
+      - tools/bin/itos-cc-tests.ts

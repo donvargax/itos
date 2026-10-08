@@ -10,15 +10,15 @@
 #                                         publishes a release (.goreleaser.yaml)
 #   tools/bin/pinned git-cliff <args>…    git-cliff, which lists a release's
 #                                         commits by type (tools/bin/release-notes)
+#   tools/bin/pinned itos-cc <args>…      itos-cc, which measures code and tests
 #   tools/bin/pinned --path <tool>        prints the binary's path, fetching it
 #
-# Each version is at least 7 days old when pinned, as tools/bin/deps-check
-# holds a Go module (T-067): a supply-chain attack is usually found within
-# days. To move one, change its version and its four hashes together, each
-# from the release's own checksums (GoReleaser's checksums.txt, git-cliff's
-# .sha512 files, the archive's SHA-256 computed after checking that), in a
-# build commit. Linux and macOS on amd64 and arm64; exit 2 elsewhere, or when
-# a fetch or a check fails.
+# GoReleaser and git-cliff are held to the 7-day module age rule (T-067).
+# itos-cc is our own built tool (ADR-0046), so it has no age wait. To move a
+# pin, change its version and all four platform hashes together, from the
+# release's own checksums (or the archive's SHA-256 after checking an upstream
+# digest), in a build commit. Linux and macOS on amd64 and arm64; exit 2
+# elsewhere, or when a fetch or a check fails.
 set -eu
 root=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
 
@@ -71,7 +71,19 @@ git-cliff)
 	url=https://github.com/orhun/git-cliff/releases/download/v$version/$asset
 	member=git-cliff-$version/git-cliff
 	;;
-*) die "no pinned tool named $tool (goreleaser, git-cliff)" ;;
+itos-cc)
+	# v0.5.0, 2026-10-08; first release with listed-test integration coverage.
+	version=0.5.0
+	case "$platform" in
+	linux-amd64) asset=itos-cc-$version-linux-amd64.tar.gz sum=a94a0d17418dd4ba39e89210468beaa0b34266db317f65ecf0c4bce6a5f4db6d ;;
+	linux-arm64) asset=itos-cc-$version-linux-arm64.tar.gz sum=9fd215a9e637590c354a782d66f86e7edf5a5f1704f364bcc4597e9f7df724af ;;
+	darwin-amd64) asset=itos-cc-$version-darwin-amd64.tar.gz sum=67a5dfc5ce2120f019952f58e21b7800fd28cabd8e65d74aa69d65e381304b0e ;;
+	darwin-arm64) asset=itos-cc-$version-darwin-arm64.tar.gz sum=f4acdd964c9581cc94c61231f2fd39eebfc58c91c70954666bda6c139187540a ;;
+	esac
+	url=https://github.com/donvargax/itos-cc/releases/download/v$version/$asset
+	member=itos-cc
+	;;
+*) die "no pinned tool named $tool (goreleaser, git-cliff, itos-cc)" ;;
 esac
 
 dir=$root/.tools/$tool-$version
