@@ -6116,3 +6116,18 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-proof-item-commits-only
+    title: work done's code proof judges only the item's own commits, not every commit since its base
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found specifying slice-100 (2026-10-08): the proof runs itos-cc mutation check --since {base},
+      which judges git diff {base}...HEAD, so a commit of another item that lands between the item's
+      first commit and work done is judged as the item's too, and the item cannot close for code it
+      never touched. Harmless while work is sequential (only registry commits land between); it
+      matters once items run in parallel (p1-pr-mode). Narrow the check to the item's commits, by
+      passing the files they changed as paths or by a provider option.
