@@ -1,10 +1,15 @@
 # The global itos, the launcher, on a GitHub Actions runner in one step (T-093):
 #
-#   - uses: donvargax/itos@v<x.y.z>
+#   - uses: donvargax/itos@v<x.y.z>          # a release's tag, a pre-release's included
+#   - uses: donvargax/itos@<sha> # v<x.y.z>   # or that release's commit
 #
-# installs that release's itos (the newest for a ref that is not a version, or the `version`
-# input's) into the runner's temporary folder and puts it on the PATH. The repository's pin then
-# chooses the itos that runs, as it does for a person's global install
+# installs the release its ref names into the runner's temporary folder and puts it on the PATH.
+# tools/bin/action-version reads the version from the ref (T-126): a tag vX.Y.Z or
+# vX.Y.Z-<pre-release> is that version, a commit sha the version of the release tag on it (the
+# release over a pre-release when both are). Any other ref (a branch, a sha no release names, the
+# checkout's own uses: ./) installs the newest, with a warning for a sha; the `version` input
+# installs another release whatever the ref. The repository's pin then chooses the itos that runs,
+# as it does for a person's global install
 # (docs/decisions/0024-a-global-itos-is-a-launcher-that-runs-the-version-a-repository-pins.md); a
 # repository with no pin runs the version installed. tools/bin/install-launcher does the work, so
 # other CI runs the same script.
@@ -17,8 +22,9 @@ branding:
 inputs:
   version:
     description: >-
-      The release to install, x.y.z. By default the action's own ref when it is vX.Y.Z, else the
-      newest release.
+      The release to install, x.y.z or x.y.z-<pre-release>, to choose another launcher than the
+      action's ref names. By default the release of the ref: its version for a vX.Y.Z[-<pre-release>]
+      tag, the release tag's on it for a commit sha, else the newest release.
     required: false
     default: ""
 runs:
@@ -29,10 +35,14 @@ runs:
       env:
         VERSION: ${{ inputs.version }}
         REF: ${{ github.action_ref }}
+        REPO: ${{ github.action_repository }}
       run: |
         version=$VERSION
-        if [ -z "$version" ] && [[ $REF =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          version=${REF#v}
+        if [ -z "$version" ] && [ -n "$REF" ]; then
+          version=$(sh "$GITHUB_ACTION_PATH/tools/bin/action-version" "$REF" ${REPO:+"$REPO"})
+          if [ -z "$version" ] && [[ $REF =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::warning::itos: no release tag names the commit $REF; installing the newest release"
+          fi
         fi
         sh "$GITHUB_ACTION_PATH/tools/bin/install-launcher" "$RUNNER_TEMP/itos-bin" ${version:+"$version"}
         echo "$RUNNER_TEMP/itos-bin" >> "$GITHUB_PATH"

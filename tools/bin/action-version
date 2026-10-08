@@ -1,0 +1,77 @@
+#!/bin/sh
+# action-version <ref> [<owner/repo>]: the itos version the GitHub Action (action.yml) installs for
+# the ref it runs at, or nothing for the newest (T-126, issue #23), so the choice can be checked
+# outside a runner.
+#
+# A release tag, vX.Y.Z or vX.Y.Z-<pre-release>, prints X.Y.Z[-<pre-release>]. A 40-hex commit
+# sha prints the version of the release tag that points at it, read with git ls-remote --tags from
+# https://github.com/<owner/repo> (by default donvargax/itos; the action passes
+# github.action_repository): a lightweight tag's line, or an annotated tag's ^{} line. When a
+# commit carries both a pre-release and a release, the release wins. The tags are the one source: a
+# release is cut without a commit, so the tagged tree holds no version file. Anything else (a
+# branch, a sha no release names, a remote that cannot be read) prints nothing, and the action
+# installs the newest. It exits 0 in every one of those cases, 2 on a usage error.
+#
+# POSIX sh, git and awk: what a Linux, macOS or Windows (Git Bash) runner carries.
+set -eu
+
+[ $# -ge 1 ] && [ $# -le 2 ] || {
+	echo "usage: action-version <ref> [<owner/repo>]" >&2
+	exit 2
+}
+ref=$1
+repo=${2:-donvargax/itos}
+[ -n "$repo" ] || repo=donvargax/itos
+
+# A version as install-launcher reads it from a release's archive names.
+semver='[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?'
+
+case "$ref" in
+*"
+"*) exit 0 ;;
+esac
+
+if printf '%s\n' "$ref" | grep -Eq "^v$semver\$"; then
+	printf '%s\n' "${ref#v}"
+	exit 0
+fi
+
+printf '%s\n' "$ref" | grep -Eq '^[0-9a-fA-F]{40}$' || exit 0
+sha=$(printf '%s\n' "$ref" | tr 'A-F' 'a-f')
+
+tags=$(GIT_TERMINAL_PROMPT=0 git ls-remote --tags "https://github.com/$repo" 2>/dev/null) || {
+	echo "action-version: cannot read the tags of https://github.com/$repo" >&2
+	exit 0
+}
+
+# Each tag's commit: an annotated tag's ^{} line, else a lightweight tag's own line. Of the release
+# tags on <sha>, the highest release, else the highest pre-release.
+printf '%s\n' "$tags" | awk -v sha="$sha" '
+	{
+		name = $2
+		sub(/^refs\/tags\//, "", name)
+		if (name ~ /\^\{\}$/) {
+			sub(/\^\{\}$/, "", name)
+			peeled[name] = $1
+		} else {
+			direct[name] = $1
+		}
+	}
+	function newer(a, b,   x, y, i) { # a > b, by X.Y.Z, then the pre-release text
+		split(a, x, /[.-]/)
+		split(b, y, /[.-]/)
+		for (i = 1; i <= 3; i++) if (x[i] + 0 != y[i] + 0) return x[i] + 0 > y[i] + 0
+		return a > b
+	}
+	END {
+		for (name in direct) {
+			commit = (name in peeled) ? peeled[name] : direct[name]
+			if (commit != sha || name !~ /^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$/) continue
+			v = substr(name, 2)
+			if (v ~ /-/) {
+				if (pre == "" || newer(v, pre)) pre = v
+			} else if (rel == "" || newer(v, rel)) rel = v
+		}
+		if (rel != "") print rel
+		else if (pre != "") print pre
+	}'
