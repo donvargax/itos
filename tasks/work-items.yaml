@@ -6191,14 +6191,15 @@ items:
     depends_on: []
     kind: task
 
-  - id: p1-draft-minted-id-ref
-    title: A draft can name the id an earlier draft will mint
+  - id: slice-103
+    title: A drafted command names the id an earlier draft mints
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-draft-minted-id-ref.
       Found 2026-10-08: while an agent held the checkout, the coordinator drafted a decision add,
       then needed to answer it, but the answer's draft must name the question's id, which exists
       only once the first draft is promoted; it was guessed (q-26, safe only because drafts promote
