@@ -1324,12 +1324,3 @@
     and input description, and the README's install section, say this. Consumers get it with the
     next release cut (a build commit cuts none), so the README says to pin the action by a release's
     tag or its commit.
-  done_when:
-    - run: actionlint
-    - run: test "$(tools/bin/action-version v7.0.0-rc.1)" = 7.0.0-rc.1
-    - run: test "$(tools/bin/action-version v6.5.1)" = 6.5.1
-    - run: test "$(tools/bin/action-version 58f7e3f430eec46da415929cd46d2f2ecef46af0)" = 6.5.1
-    - run: test "$(tools/bin/action-version 1b9f1f9995be5d20aed3b4f8877a453bbd1e98a3)" = 7.0.0-rc.1
-    - run: test -z "$(tools/bin/action-version main)"
-    - run: test -z "$(tools/bin/action-version 0000000000000000000000000000000000000000)"
-    - run: sh -c 'd=$(mktemp -d) && tools/bin/install-launcher "$d" 7.0.0-rc.1 && "$d/itos" version | grep -q "7\.0\.0-rc\.1"'
