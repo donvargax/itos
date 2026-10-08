@@ -5704,6 +5704,19 @@ items:
       internal/git resolves: the runner and its fakes use it, and pass ITOS_GIT, as
       tools/selftest/scratch.ts now does.
 
+      Confirmed 2026-10-08 with a bounded disposable reproduction in
+      /tmp/opencode/itos-git-loop-diagnosis-zpo2qilw. The hook-install old-git fixture sets ITOS_GIT
+      to a wrapper whose fallback executes bare git. The conformance runner reuses that environment
+      for git_config_after and invokes bare git, selecting the installed shim; the shim honors the
+      fake inherited path, which selects the shim again. execve.trace proves repeated shim/wrapper
+      execution in one PID. Changing only ITOS_GIT to /usr/bin/git makes the same query finish with
+      commit-msg and exit 0, so scratch-directory permission is not the cause. The post-check
+      spawnSync has no deadline and runs after the timed case command; the command timer kills only
+      its direct child. Fix native post-case inspection and explicit fake delegation, and
+      bound/clean up the full case lifecycle and its owned process tree. Keep the fake-Git hook
+      semantics tested rather than globally bypassing them. Original helper PID 95007 was terminated
+      by user request; that interrupted compatibility run is not passing evidence.
+
   - id: p1-work-list-unknown-tag
     title: work list --tag refuses a tag the config does not declare, exit 2
     phase: 1
