@@ -1065,3 +1065,14 @@
     2.32.1 has no attestation command at all, so never decide this from the local gh). The action
     caches the launcher per release version, so a repeat push fetches nothing. The checks read the
     plan through itos, never a file
+
+- id: T-128
+  type: revert
+  title: Restore green main after slice-102 proof failure
+  why: >
+    Undo the slice-102 implementation that made main red when CI stopped at mutation.missing and
+    remote-counter tests failed without a local Git identity. Preserve the failed attempt as
+    recovery WIP; the slice still needs mutation results committed and the test repository
+    configured with its own identity.
+  done_when:
+    - run: go test ./features -count=1 -scenarios='^@ID-(TASK-05|WORK-12)$'

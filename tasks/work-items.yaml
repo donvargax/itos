@@ -6502,3 +6502,16 @@ items:
       features/config.feature (@ID-CONFIG-42 to 44), ready to hand to an agent. q-25's answer says
       in v7, so if this lands after v7.0.0 the refusal moves to v8 and that answer is amended to say
       so.
+
+  - id: T-128
+    title: Restore green main after slice-102 proof failure
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Undo the slice-102 implementation that made main red when CI stopped at mutation.missing and
+      remote-counter tests failed without a local Git identity. Preserve the failed attempt as
+      recovery WIP; the slice still needs mutation results committed and the test repository
+      configured with its own identity.
