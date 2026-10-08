@@ -141,6 +141,7 @@ questions:
   - id: q-33
     item: "p3-guard-replacement"
     question: "For the first guided-commit version, is coordinator approval a recorded/reviewed workflow rule, or must it be a verifiable technical boundary? Both current sessions share OS/git rights, so an approve command or plan hash alone cannot prove the approving role. Recommended first: enforce declared-part constraints and record approved revisions/amendments honestly; add a hard boundary only with isolated workers or approval credentials unavailable to implementers. Alternative: require that trusted boundary from the start. See docs/plans/guided-commits.md."
+    answer: "Workflow first. Validate parts and record approved revisions and explicit amendments; do not claim a security boundary while sessions share OS/git rights. Stronger isolated or signed approval can come later."
   - id: q-34
     item: "p3-guard-replacement"
     question: "Where should the required commit plan live? Recommended: a separate machine-readable per-item plan file, linked from the work registry and authored/validated by itos commands; private plans stay beside private itos data in stealth mode. ADR-0034 keeps the registry as an index, so an inline registry plan would change that separation. Alternatives: inline metadata in each task/feature specification, or plans inside the registry. Exact path and schema remain undecided. See docs/plans/guided-commits.md."
