@@ -6033,7 +6033,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-106]
     kind: task
     why: >
       Decision 42 (2026-10-07), the right way from the start (the user's call): once itos-cc carries
