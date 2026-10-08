@@ -6297,3 +6297,17 @@ items:
       there), so the two drift apart. A {paths} placeholder filled with the changed files the paths
       match keeps them one; or the README says so beside the example. After slice-106, which moves
       the check into itos ci run.
+
+  - id: p1-proof-summary
+    title: A passing code proof says what it held, and one that judged nothing fails
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-106]
+    kind: idea
+    why: >
+      Issue #25 (itos-template, 2026-10-08): a passing proof prints nothing of what it judged. From
+      the check's --json (itos-cc's files with killed, survived, excepted, uncovered and judged),
+      the CI step prints a line such as 1 function judged, 6 mutants killed, 0 excepted; a check
+      that judged nothing while the range touches proof.code's paths fails the step, since it then
+      proves nothing. After slice-106, whose CI step is where the line goes.
