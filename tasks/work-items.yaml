@@ -6479,3 +6479,30 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: slice-107
+    title: config check refuses a nightly step that runs a done task's checks, and the step is gone from the plan and the driver
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-101]
+    kind: slice
+    why: >
+      q-25 answered by the person (2026-10-08): refuse it in v7, a breaking change in the bundle, so
+      no consumer keeps a nightly rerunning old done tasks' checks without knowing. ADR-0043 decided
+      a task's checks are the agent's progress and leave the ledger when work done closes it, so
+      ADR-0016 is already superseded; slice-101 (work done removes a task's checks when it closes
+      it, and itos task reads a done task with none as done) landed in v7.0.0-rc.2 and T-125 (This
+      repository's nightly reruns no done task's checks, and its done tasks keep none) removed this
+      repository's own step, so nothing reads the step and keeping it is the compatibility
+      p1-drop-compat-code exists to end. What goes: internal/plan's DoneTasks and hasTasksStep and
+      the nightly plan's tasks step, the schema's cost rule (config-step-cost), the help text,
+      PLAN.md's CI step row, internal/plan's doc.go, features/nightly.feature whole (@ID-NIGHTLY-01
+      to 04), the step definition in features/steps_test.go, and the corpus cases in config.yaml,
+      plans.yaml, ci-run.yaml and help.yaml. The step key stays in the schema only to be refused
+      with a problem that says what replaced it (config-step-tasks); deleting the key would refuse
+      it as an unknown key, which is honest and says nothing about the rule that removed it, and the
+      person chose knowing over one line less of schema. Specified in features/config.feature
+      (@ID-CONFIG-42 to 44). The Upgrading footer says in one line what a consumer writes instead: a
+      task's checks are its own progress and leave at work done, so a project that wanted them every
+      night writes the standing step instead.
