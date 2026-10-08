@@ -5674,14 +5674,15 @@ items:
       refuses reading the policy files as text; the existing ones are removed or turned into runs of
       the gate (itos ci plan, a hook run).
 
-  - id: p1-corpus-orphan-loop
-    title: A corpus case's fake git never loops with tools/bin/dev-version, and the runner kills a case's whole process group
+  - id: T-129
+    title: Conformance Git fixtures cannot loop through the shim, and every case cleans up within a deadline
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-corpus-orphan-loop.
       Found 2026-10-07: two processes spun at 100% CPU for 38 minutes, orphaned. A conformance
       case's fake old git (case/old-git, a git older than 2.54.0) was on the PATH when
       tools/bin/dev-version ran git -C <repo> rev-parse, and the fake and git called each other
