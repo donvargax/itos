@@ -5440,7 +5440,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-pr-mode, bug-41, p1-proof-item-commits-only]
+    depends_on: [p1-pr-mode, bug-41, slice-106]
     kind: idea
     why: >
       The user asked for parallel work (2026-10-06). A pilot of two, the coordinator watching main,
