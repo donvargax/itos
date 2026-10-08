@@ -154,8 +154,17 @@ ci:
     - { run: vp check, cost: static }
     - { run: "! gofmt -l features cmd internal | grep .", cost: static } # names each file gofmt would change
     - { run: go vet ./..., cost: static }
+    # The three workflows (T-008's check, kept as a step in T-125): their expressions, the inputs
+    # of the actions they use and the shell of each run: (shellcheck). Nothing else lints them:
+    # gates.ts runs none of them, and a broken release.yml shows only when a release is cut and
+    # nightly.yml only at night. ci.yml installs it for this step.
+    - { run: actionlint, cost: static }
     - { run: tools/bin/itos tests smoke check scenario, cost: static }
     - { run: tools/bin/itos config check, cost: static } # the config, the ledger, the registry, the smoke set
+    # This repository's own ci.prose.paths (T-008's check, kept as a step in T-125): none of them,
+    # which reach the ledger, the registry, a feature, the config or code, takes the prose shortcut
+    # down. The corpus proves the shortcut over its own configurations, never over these paths.
+    - { run: node tools/selftest/ci-scope.ts, cost: static }
     # The plugin's version rule (T-074): a range whose tree changes integrations/claude-code/ must
     # leave its plugin.json's version higher, by semver, than at the range's start, as Claude Code
     # offers an installed plugin an update only when that version changes. It reads git alone, so
@@ -184,6 +193,10 @@ ci:
     # download stops it (exit 2), and no release tag passes it, saying so. FROM as above.
     - { run: 'go run ./tools/bin/schema-contract -range-from "${FROM-}"', cost: late }
     - { run: "go test ./cmd/... ./internal/...", cost: late } # itos's unit tests, the Go packages'
+    # The unit tests of the gate programs under tools/bin (T-091's check, kept as a step in T-125):
+    # the step above and tools/bin/go-unit-tests take ./cmd/... ./internal/... alone, so these ran
+    # only when a push named a task that listed them. It settles idea p1-tools-bin-unit-tests-in-ci.
+    - { run: "go test ./tools/...", cost: late }
     - { run: vp run audit, cost: late }
     # The conformance corpus: what itos did when it was written, as cases run
     # through its command line; a regression corpus, not named tests. Against
@@ -197,7 +210,22 @@ ci:
     # and no release tag passes it, saying so. After this tree's own corpus, which fails for a cause
     # nearer home. FROM as above.
     - { run: 'go run ./tools/bin/previous-release -range-from "${FROM-}"', cost: late }
-    - { run: tools/bin/itos task T-007, cost: late } # the commit rules, proven on every push
+    # The coordinator's inbox trust rule, offline (T-057's check, kept as a step in T-125): an issue
+    # is actionable only from an allow-listed login, or with an itos-accepted label applied by one.
+    # Nothing else runs tools/bin/inbox.ts.
+    - { run: node tools/bin/inbox.ts --self-test, cost: late }
+    # The changelog generator (T-010's check, kept as a step in T-125): tools/changelog.ts still
+    # runs over this history, and every session is sent to it. vp check type-checks it and nothing
+    # ran it; the weakest of the kept checks, as it guards a tool rather than a gate.
+    - { run: vp run changelog, cost: late }
+    # Three gates' own self-tests (T-067's, T-070's and T-074's checks, kept as steps in T-125),
+    # each one the gate's refusals: a young module refused or excepted and a govulncheck finding
+    # failing, a breaking schema change refused unless marked, a plugin version unraised or lowered
+    # refused and a shallow clone stopping it. The steps above judge real modules, a real range and
+    # a real change to the plugin, which never exercise a refusal.
+    - { run: node tools/selftest/deps-check.ts, cost: late }
+    - { run: node tools/selftest/schema-contract.ts, cost: late }
+    - { run: node tools/selftest/plugin-version.ts, cost: late }
     # The one merged run; late, as no pattern matches it. Against the Go
     # binary, tools/bin/itos, the features' default ITOS_BIN.
     - { tests: scenario }
@@ -230,26 +258,20 @@ ci:
       matches: "^node tools/itos/conformance/run\\.ts --bin tools/bin/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*$"
     - by: node tools/itos/conformance/run.ts --bin tools/bin/itos
       matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*'$"
-  # Slow, and it proves the gates rather than the code: left to the nightly. T-069's check that the
-  # newest release is attested passes only once the release job has cut one, and the release job
-  # runs only when a push's CI is green, whose range starts at the last green run: run by pushes, it
-  # would hold every later push red and no release could ever be cut. The nightly runs it, last.
-  # T-072's check reads the newest completed CI run on main: in a push, its own run is still going.
-  nightly_only:
-    - node tools/selftest/gates.ts
-    - sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'
-    - sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'
+  # There is no ci.nightly_only: T-125 removed it with the ledger's checks, whose three commands
+  # (the gates self-test, the newest release's attestation, the newest CI run's platform jobs) are
+  # steps here, and nothing a push names is left out of a push.
   # Every feature, the gates self-test, the hooks' choice of Go unit tests
   # (T-059: since the TypeScript left, the one proof that the hooks run only
   # the unit tests a change reaches), the Go release build (T-040) and the
   # config's JSON Schema held to config check over the corpus (T-054), the
   # previous-release check held to which commits excuse an old failure (T-106,
-  # T-117: no push ran its self-test, and it went red unseen), then the
-  # static checks of every task whose work item is done (T-035), each shared
-  # check once: a task's checks otherwise run only when a push names it. Last,
-  # so a red one does not keep the features from reporting; its late checks
-  # stay with the pushes. The release build is every night's, not every push's:
-  # it builds five platforms, and nothing publishes it until the Go release.
+  # T-117: no push ran its self-test, and it went red unseen). Then what
+  # T-125's answered list keeps from the done tasks' checks, each a step with
+  # a comment saying what it guards that no scenario, unit test or other
+  # self-test does. Last, so a red one does not keep the features from
+  # reporting; the release build is every night's, not every push's: it builds
+  # five platforms, and nothing publishes it until the Go release.
   nightly:
     steps:
       - { tests: scenario, whole: true }
@@ -258,12 +280,72 @@ ci:
       - node tools/selftest/go-release.ts
       - node tools/selftest/go-schema.ts
       - node tools/selftest/previous-release.ts
-      - { tasks: done, cost: static }
+      # What a push's features step selects, read back from go test -json (T-005's and T-016's
+      # checks, kept as a step in T-125): this repository's scenario kind and the harness's
+      # -scenarios selection. The corpus proves the plan's command, never what go test then runs.
+      - node tools/selftest/features-scope.ts
+      # tools/bin/itos, which every hook and every CI step calls (T-060's check, kept as a step in
+      # T-125): it runs with no node, rebuilds when a Go source is added or removed or HEAD's
+      # version changes, and a Go tree that does not build exits 3 without ever running the old
+      # binary. Every job uses the script and nothing else tests its staleness rule.
+      - node tools/selftest/go-dogfood.ts
+      # upgrading.json, the asset `itos upgrade` reads, end to end over this history and
+      # `itos commit footers` (T-091's check, kept as a step in T-125): release-notes' TestAsset
+      # proves its shape on fixtures, never against the footers command. Asks the network.
+      - node tools/selftest/upgrading-json.ts
+      # The features never run the itos on the PATH (T-087's check, kept as a step in T-125): a
+      # fake one exiting 97 there passes only while they hide it. CI's runners have no itos, a
+      # person's machine has one, and nothing else plants one.
+      - run: >-
+          sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\nexit 97\n" > "$d/itos" && chmod +x "$d/itos" && PATH="$d:$PATH" go test ./features -count=1'
+      # The features and the hook declaration still work when `git` is an itos (T-104's check, kept
+      # as a step in T-125): the git shim, as the devcontainer installs it. No runner has it.
+      - run: >-
+          sh -c 'tools/bin/itos --version >/dev/null && d=$(mktemp -d) &&
+          ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./features -count=1 &&
+          PATH="$d:$PATH" go test ./internal/cli -count=1 -run TestDeclareHooksOldGit'
+      # The tools/bin programs' tests use the real git when `git` is an itos (T-122's check, kept
+      # as a step in T-125): tools/bin/real-git. As above, no runner has the shim.
+      - run: >-
+          sh -c 'd=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./tools/bin/... -count=1'
+      # internal/cli's help tests do not depend on what itos-* extensions the PATH holds (T-077's
+      # check, kept as a step in T-125), and neither does the corpus's help listings above all
+      # (T-080's): each with an extension of its own planted on the PATH, as a maintainer's machine
+      # has one and nothing else plants it.
+      - run: >-
+          sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" go test ./internal/cli -count=1'
+      - run: >-
+          sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" node tools/itos/conformance/run.ts --bin tools/bin/itos'
+      # The features build the itos under test with -cover and split its counters per scenario
+      # (T-121's check, kept as a step in T-125): ID-PIN-01 covers launch.fetch, ID-ASK-01 does
+      # not. Nothing reads that coverage until T-120's proof does, which waits for itos-cc v0.5.0
+      # to be pinned (2026-10-15); then itos-cc's own runs make this step redundant.
+      - run: >-
+          d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1 -scenarios='^@ID-(PIN-01|ASK-01)$'
+          && test -z "$(find "$d" -maxdepth 1 -type f)"
+          && go tool covdata func -i="$d/ID-PIN-01" | awk '$1 ~ /launch\/launch\.go/ && $2 == "fetch" && $3 != "0.0%" {f=1} END {exit !f}'
+          && go tool covdata func -i="$d/ID-ASK-01" | awk '$1 ~ /launch\/launch\.go/ && $2 == "fetch" && $3 == "0.0%" {f=1} END {exit !f}'
+      # The launcher, the shim and an extension's call write their counters before syscall.Exec
+      # (T-124's check, kept as a step in T-125). As above, kept until T-120 reads the coverage,
+      # and redundant after that.
+      - run: >-
+          d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1 -scenarios='^@ID-(PIN-01|SHIM-05|EXT-01)$'
+          && go tool covdata func -i="$d/ID-PIN-01" | awk '$1 ~ /launch\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}'
+          && go tool covdata func -i="$d/ID-SHIM-05" | awk '$1 ~ /shim\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}'
+          && go tool covdata func -i="$d/ID-EXT-01" | awk '$1 ~ /cli\/extension_unix\.go/ && $2 == "runProgram" && $3 != "0.0%" {f=1} END {exit !f}'
+      # The marketplace's and the plugin's manifests and hooks against the latest Claude Code's
+      # rules (T-066's and T-073's and T-097's checks, kept as steps in T-125), unpinned on purpose,
+      # since a person runs the latest and it releases several times a day. plugin-calls checks the
+      # commands the scripts call, not the manifest. nightly.yml installs Claude Code for these two.
+      - "claude plugin validate --strict . && claude plugin validate --strict integrations/claude-code"
+      # The plugin's own tests (T-066's, T-073's and T-097's checks, kept as a step in T-125):
+      # hooks/register.test.ts and hooks/titles.test.ts. Nothing else runs them.
+      - claude plugin test integrations/claude-code
       # The newest release's linux-amd64 archive passes gh attestation verify (T-069): every release
       # is attested by the workflow that built it. Last, as it asks GitHub.
       - sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'
       # The newest completed CI run on main passed on Linux, macOS and Windows (T-072): a push's own
-      # run is still going when its task checks run, so the nightly reads it.
+      # run is still going when its plan runs, so the nightly reads the one before it.
       - sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'
   wait_on_status: [todo] # a named task nobody has started waits
   stop_at_first_failure: true

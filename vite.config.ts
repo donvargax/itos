@@ -21,9 +21,9 @@ const lint: NonNullable<UserConfig["lint"]> = {
 		// The Claude Code plugin's hooks module and tests (T-066) are typed by the declarations
 		// Claude Code lays beside a plugin it loads (.claude-plugin/types/, git-ignored), which
 		// no install of this repository has, so the type-aware lint cannot judge them. Claude
-		// Code judges them instead: T-066's checks run claude plugin validate --strict, which
-		// reads the module as the engine will, and claude plugin test. The formatter and the
-		// audit still read them.
+		// Code judges them instead: the nightly's steps run claude plugin validate --strict
+		// (T-125 moved them there from T-066's checks), which reads the module as the engine
+		// will, and claude plugin test. The formatter and the audit still read them.
 		"integrations/claude-code/**",
 	],
 	jsPlugins: [{ name: "vite-plus", specifier: "vite-plus/oxlint-plugin" }],

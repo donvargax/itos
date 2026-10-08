@@ -3,8 +3,9 @@ name: Nightly
 # Every feature. A push's CI runs the smoke set and the scenarios and task
 # subsets its commits name; every scenario runs here, once a night on
 # main, or by hand from the Actions tab, and then the gates self-test, which
-# a push's CI leaves to the nightly, then the static checks of every done
-# task (itos.yaml's `ci.nightly`). A red run
+# a push's CI leaves to the nightly, and the steps ci.nightly holds that a
+# push does not (itos.yaml's `ci.nightly`): the hostile-PATH runs, the two
+# coverage runs, the plugin's own Claude Code checks. A red run
 # opens one issue, "Nightly red", or comments on the open one; a green run
 # closes it. A push's CI opens nothing.
 on:
@@ -15,8 +16,8 @@ on:
 permissions:
   contents: read
   issues: write # the Nightly red issue
-  attestations: read # the newest release's, which T-069's check verifies
-  actions: read # the newest completed CI run's platform jobs, which T-072's check reads
+  attestations: read # the newest release's, which the attestation step verifies
+  actions: read # the newest completed CI run's platform jobs, which the last step reads
 
 # A group of its own: the nightly never cancels a push's run, nor is cancelled
 # by one. A second nightly waits for the first.
@@ -28,8 +29,8 @@ jobs:
   nightly:
     runs-on: ubuntu-latest
     steps:
-      # The whole history, as ci.yml has: the done tasks' checks read it
-      # (itos config check finds the commit commits.since names).
+      # The whole history, as ci.yml has: `itos config check` finds the commit
+      # commits.since names.
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -49,15 +50,20 @@ jobs:
       - name: Build itos
         run: tools/bin/itos version
       - run: vp install
-      # actionlint, which done tasks' checks run (T-008, T-009, T-021), pinned as
-      # in ci.yml.
-      - name: actionlint
+      # Claude Code, for the two plugin steps of ci.nightly (claude plugin validate --strict on the
+      # marketplace and on the plugin, and claude plugin test, which need no login): the latest
+      # release, unpinned, since it releases several times a day and the latest is what a person
+      # runs, from its own native installer. Unconditional, as those steps are in every night's
+      # plan (T-125); ci.yml's push plan no longer names a claude check, so it installs none.
+      # The step is handed no token and the job's permissions stay read-only.
+      - name: Claude Code
         run: |
-          mkdir -p "$RUNNER_TEMP/bin"
-          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP/bin"
-          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-      # The GitHub CLI, for the checks that ask GitHub (T-069's, that the
-      # newest release is attested) and the issue steps below. Pinned, from its
+          curl -fsSL https://claude.ai/install.sh -o "$RUNNER_TEMP/claude-install.sh"
+          bash "$RUNNER_TEMP/claude-install.sh" latest
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          "$HOME/.local/bin/claude" --version
+      # The GitHub CLI, for the step that asks GitHub (that the newest release
+      # is attested, T-069) and the issue steps below. Pinned, from its
       # release tarball, checked against the release's SHA-256, so the runner
       # image's own copy, whatever its version, does not decide what runs.
       - name: GitHub CLI

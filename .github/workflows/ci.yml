@@ -8,7 +8,6 @@ on:
 permissions:
   contents: read
   actions: read # the last green run, where a push's range starts
-  issues: read # the consumer inbox, tools/bin/inbox.ts, which T-057's check runs
 
 # A newer push replaces a run still waiting for the runner; a running one
 # finishes. The newest run checks every commit since the last green one.
@@ -62,29 +61,13 @@ jobs:
           echo "FROM=$from" >> "$GITHUB_ENV"
       # The commit-msg hook's rules again, for commits made without hooks.
       - run: tools/bin/itos verify "$FROM" "$TO"
-      # actionlint, for the task checks that lint the workflows: the runners
-      # don't carry it. Pinned, from its own release script.
+      # actionlint, for the step of the plan that lints the workflows: the
+      # runners don't carry it. Pinned, from its own release script.
       - name: actionlint
         run: |
           mkdir -p "$RUNNER_TEMP/bin"
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP/bin"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-      # Claude Code, for the task checks that run it (T-066's claude plugin validate and claude
-      # plugin test, which need no login): the latest release, unpinned, since it releases several
-      # times a day and the latest is what a person runs, from its own native installer. Only when
-      # the plan will run a claude check, as it is an 86 MB download that most pushes never use.
-      # The step is handed no token and the job's permissions stay read-only.
-      - name: Claude Code
-        run: |
-          if tools/bin/itos ci plan --json "$FROM" "$TO" |
-            jq -e 'any(.order[]; .action == "run" and ((.check.command // "") | startswith("claude ")))' >/dev/null; then
-            curl -fsSL https://claude.ai/install.sh -o "$RUNNER_TEMP/claude-install.sh"
-            bash "$RUNNER_TEMP/claude-install.sh" latest
-            echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-            "$HOME/.local/bin/claude" --version
-          else
-            echo "No check in this run needs Claude Code."
-          fi
       # Every gate lives in one local command. Its features step is one go test
       # run over the smoke set and the scenarios and task subsets the range
       # names; the whole suite runs in nightly.yml. GH_TOKEN is for the task
