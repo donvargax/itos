@@ -427,7 +427,7 @@ The nightly, `itos ci run --nightly`, runs these in order:
 - `d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1 -scenarios='^@ID-(PIN-01|SHIM-05|EXT-01)$' && go tool covdata func -i="$d/ID-PIN-01" | awk '$1 ~ /launch\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}' && go tool covdata func -i="$d/ID-SHIM-05" | awk '$1 ~ /shim\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}' && go tool covdata func -i="$d/ID-EXT-01" | awk '$1 ~ /cli\/extension_unix\.go/ && $2 == "runProgram" && $3 != "0.0%" {f=1} END {exit !f}'`
 - `claude plugin validate --strict . && claude plugin validate --strict integrations/claude-code`
 - `claude plugin test integrations/claude-code`
-- `sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'`
+- `go run ./tools/bin/verify-release -repo donvargax/itos -manifest checksums.txt`
 - `sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'`
 
 <!-- itos:end -->
