@@ -6168,8 +6168,8 @@ items:
   - id: T-125
     title: This repository's nightly reruns no done task's checks, and its done tasks keep none
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-101]
     kind: task
     why: >
