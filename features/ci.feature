@@ -286,3 +286,51 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     When itos runs CI over the commits after the first
     Then itos exits with code 1
     And its output says "75"
+
+  # Slice 106 (issue #28; the user's calls, 2026-10-08): the code proof
+  # gates code before it ships, so it runs in CI, not at work done, where it
+  # came after the push, the green run and a feat's release (itos-template's
+  # slice 8 released v0.10.0 before any proof ran). When the config has
+  # proof.code and the range touches its paths, itos ci run runs
+  # proof.code.check as a step of the plan, added as a named task's checks
+  # are, with {base} the range's start (<from>): every commit since the last
+  # green run is code no green run has proven, whoever's item it is, so the
+  # whole range is judged. It runs among the static steps, before the named
+  # tests, since it reads recorded results and runs none; itos ci plan
+  # lists it. A survivor, an uncovered or missing result fails the run,
+  # naming each problem's rule and message from the check's --json, so the
+  # release job that needs the run never runs; a check that cannot run fails
+  # it too, as any step does (@ID-CI-19), never a pass. Recording results
+  # stays the author's, before the push. With no proof.code, or a range that
+  # touches none of its paths, the plan is as before. work done no longer
+  # runs the proof (@ID-WORK-87): the green run it requires already judged it.
+  @ID-CI-20 @slice-106 @wip
+  Scenario: A range that touches proof.code's paths runs the code proof over it, its base the range's start
+    Given the config's proof.code covers "src/**" and checks with a provider that passes
+    And the commit "chore: change the app" touching only "src/app.go" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And the provider was run with the base the range starts at
+
+  @ID-CI-21 @slice-106 @wip
+  Scenario: A code proof that finds a surviving mutant fails the CI run, naming it
+    Given the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
+    And the commit "chore: change the app" touching only "src/app.go" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 1
+    And its output says "app.Total"
+
+  @ID-CI-22 @slice-106 @wip
+  Scenario: A range that touches none of proof.code's paths does not run the code proof
+    Given the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
+    And the commit "chore: tidy the readme" touching only "README.md" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 0
+    And the provider was not run
+
+  @ID-CI-23 @slice-106 @wip
+  Scenario: A code proof that cannot run fails the CI run
+    Given the config's proof.code covers "src/**" and checks with a command that does not exist
+    And the commit "chore: change the app" touching only "src/app.go" on top of it
+    When itos runs CI over the commits after the first
+    Then itos exits with code 1

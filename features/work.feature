@@ -1001,3 +1001,23 @@ Feature: The work registry
     When itos runs "work done bug-8"
     Then itos exits with code 1
     And its output says "@ID-A-01"
+
+  # Slice 106 (issue #28, the comment above @ID-CI-20 in ci.feature): the
+  # code proof moved into CI, so work done no longer runs proof.code.check:
+  # the green run it requires judged the proof of every commit in its range.
+  # This makes @ID-WORK-76, @ID-WORK-77 and @ID-WORK-79 (slice 100, released
+  # in v7.0.0-rc.1) untrue, and @ID-WORK-78 moot: the feat removes them,
+  # naming each in Changes with a BREAKING-CHANGE footer. It also settles
+  # issue #26, an item's {base} taking in other items' commits, which only
+  # work done's own range had.
+  @ID-WORK-87 @slice-106 @wip
+  Scenario: work done does not run the code proof, which the item's green CI run already judged
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
+    And the remote has the item "slice-9"'s commit touching "src/app.go"
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And the provider was not run
