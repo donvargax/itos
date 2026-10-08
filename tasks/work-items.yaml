@@ -6395,3 +6395,22 @@ items:
       adding the plugins entry beside --plugin and --no-plugin (p1-init-no-plugin), with the T-074
       version check learning the package.json. The titles drawing is held back as
       p3-opencode-titles, which waits on anomalyco/opencode#53019
+
+  - id: p3-opencode-titles
+    title: The itos plugin draws each ID with its title in opencode, as it does in Claude Code
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: [p3-opencode-plugin]
+    kind: idea
+    why: >
+      register.ts annotates a bare itos ID with its title in the drawn reply and nothing else: the
+      stored reply and what the model reads back stay as written (2026-10-08). opencode v2 has no
+      seam for that. anomalyco/opencode#53019 (open, 2026-10-03) asks for exactly it and prefers the
+      display-only form over rewriting before persistence: its option 1 is a hook before assistant
+      text is rendered, in the TUI and the app, with the stored text and the prompt-cache prefix
+      untouched. Today the only markdown seam is registerCodeBlockRenderer for fenced code by
+      language, and the slot map has no per-message slot. v1 had experimental.text.complete (#7287
+      fixed it there), and the v1 display-only request #11864 was closed after 90 days. titles.ts
+      itself is host-agnostic and moves as is; what is missing is the seam, so this waits on #53019
+      and lands with the plugin (p3-opencode-plugin)
