@@ -52,12 +52,24 @@ go test ./features -count=1 -scenarios='^@ID-SINCE-' # the live scenarios with a
 ITOS_BIN=/path/to/itos go test ./features -count=1   # another build, a release's binary say
 go test ./features -count=1 -timings=t.txt           # writes where the run spent its time
 go test ./features -count=1 -concurrency=1           # one scenario at a time
+GOCOVERDIR=$d go test ./features -count=1            # itos built with -cover, its coverage in $d
+ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1 # the same, each scenario's in $d/<its ID>
 tools/bin/itos tests smoke run scenario              # exactly the smoke set
 ```
 
 The scenarios run as many at a time as the machine has CPUs (T-115), so a
 step keeps its state in its scenario's world and never changes the process's
 environment or working directory; what scenarios share is guarded.
+
+With `GOCOVERDIR` or `ITOS_CC_TEST_COVERDIR` set (an existing folder), the
+itos under test is built from the tree with `go build -cover`, stamped as
+`tools/bin/itos` stamps it, into a folder of its own (T-121); a binary
+`ITOS_BIN` names is run as it is. `GOCOVERDIR` reaches every command
+unchanged, so the run's coverage lands in one folder; `ITOS_CC_TEST_COVERDIR`,
+which itos-cc sets, gives every command a scenario starts
+`GOCOVERDIR=<that folder>/<its ID tag without the @>` instead, so one run
+splits the coverage by scenario. `go tool covdata` reads either. With
+neither set, nothing changes.
 
 `-scenarios` takes a regular expression over each tag, `@` included, and
 runs the live scenarios with a tag it matches; one that matches no tag fails

@@ -33,6 +33,7 @@ type world struct {
 	dir           string // the scratch repository, or the clone of it itos runs in
 	origin        string // the scratch repository a clone was made of, if one was
 	support       string // files the scenario needs outside the repository
+	coverDir      string // the GOCOVERDIR of every command, with ITOS_CC_TEST_COVERDIR set (cover_test.go)
 	config        scratchConfig
 	commits       []string          // the scratch repository's commits, oldest first
 	scenarioFiles map[string]string // each scenario ID written, to its feature file
@@ -154,8 +155,8 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	w := &world{}
 	clock := timeScenario(sc)
 	defer clock.end(sc)
-	sc.Before(func(ctx context.Context, _ *godog.Scenario) (context.Context, error) {
-		return ctx, timed("(the scenario's set-up)", w.setUp)
+	sc.Before(func(ctx context.Context, s *godog.Scenario) (context.Context, error) {
+		return ctx, timed("(the scenario's set-up)", func() error { return w.setUp(s) })
 	})
 	sc.After(func(ctx context.Context, _ *godog.Scenario, err error) (context.Context, error) {
 		_ = timed("(the scenario's clean-up)", func() error {
@@ -454,14 +455,24 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	})
 }
 
-func (w *world) setUp() error {
+func (w *world) setUp(s *godog.Scenario) error {
 	root, err := moduleRoot()
 	if err != nil {
 		return err
 	}
 	w.root = root
+	// Made before the scenario's first command, git's included.
+	if w.coverDir, err = scenarioCoverDir(s); err != nil {
+		return err
+	}
 	w.bin = os.Getenv("ITOS_BIN")
-	if w.bin == "" {
+	switch {
+	case w.bin != "":
+	case coverBin != "":
+		// The run measures coverage: the -cover build of this tree
+		// (cover_test.go).
+		w.bin = coverBin
+	default:
 		// The Go binary, built from this tree on demand: what the hooks and CI
 		// run, and since the TypeScript left (T-062) the one implementation.
 		w.bin = "tools/bin/itos"
@@ -505,15 +516,21 @@ func moduleRoot() (string, error) {
 // what keeps the launcher off the network and any real cache (launcherEnv),
 // and the scenario's git link and extensions first on the PATH (pathFirst),
 // the caller's PATH without its claude or its itos (callerPath) after them.
+// With ITOS_CC_TEST_COVERDIR set, GOCOVERDIR is the scenario's coverage
+// folder, whatever the caller's says (cover_test.go).
 func (w *world) env() []string {
 	var env []string
 	for _, kv := range os.Environ() {
 		name, _, _ := strings.Cut(kv, "=")
 		if strings.HasPrefix(name, "GIT_") || strings.HasPrefix(name, "ITOS_") ||
-			strings.HasPrefix(name, "GITHUB_") || strings.HasPrefix(name, "GH_") || name == "CI" {
+			strings.HasPrefix(name, "GITHUB_") || strings.HasPrefix(name, "GH_") || name == "CI" ||
+			name == "GOCOVERDIR" && w.coverDir != "" {
 			continue
 		}
 		env = append(env, kv)
+	}
+	if w.coverDir != "" {
+		env = append(env, "GOCOVERDIR="+w.coverDir)
 	}
 	env = append(env,
 		"GIT_CONFIG_GLOBAL="+os.DevNull,

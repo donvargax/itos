@@ -9,6 +9,11 @@
 //	go test ./features -count=1 -timings=<file>        any run, writing where it
 //	                                                   spent its time to the file
 //	go test ./features -count=1 -concurrency=1         one scenario at a time
+//	GOCOVERDIR=<dir> go test ./features -count=1       any run, the itos under
+//	                                                   test built with -cover,
+//	                                                   its coverage in <dir>
+//	ITOS_CC_TEST_COVERDIR=<dir> go test ./features     the same, each scenario's
+//	                                                   in <dir>/<its ID>
 //
 // The scenarios run -concurrency at a time, as many as the machine has CPUs
 // unless it says otherwise (T-115). A scenario's time goes to starting
@@ -126,6 +131,10 @@
 //   - guard_test.go: the steps write Claude Code's PreToolUse input as its
 //     documentation shows it and run itos guard claude-code with it on stdin
 //     (runWith); a deny is read as Claude Code reads it, stdout's JSON.
+//   - cover_test.go: with GOCOVERDIR or ITOS_CC_TEST_COVERDIR set, the itos
+//     under test is a -cover build of the tree, made once a run (T-121), and
+//     with ITOS_CC_TEST_COVERDIR every command a scenario starts writes its
+//     coverage to a folder named after the scenario's ID, for itos-cc.
 //   - timings_test.go: -timings, which judges nothing: each scenario's time,
 //     from before its set-up to after its clean-up, and each kind of step's
 //     (its text, quoted strings blanked), written as a report once the run
@@ -162,6 +171,11 @@ func TestFeatures(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(removeCallerPath)
+	removeCover, err := buildCover()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(removeCover)
 	startTimings()
 	suite := godog.TestSuite{
 		Name:                "itos",
