@@ -6247,3 +6247,23 @@ items:
     kind: slice
     why: >
       Specified in features/next-id.feature (@ID-NEXTID-06, @ID-NEXTID-07).
+
+  - id: p3-plugin-titles-every-id
+    title: "The plugin's titles cover every id itos writes: questions, decision records, scenarios, bugs in prose and drafted ids, reloaded when they change"
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user, 2026-10-08, after having to ask what q-26 and q-27 were, and seeing this idea's id
+      bare: the plugin's titles (integrations/claude-code/hooks/titles.ts) read only work list --all
+      and task list, so every registry item and task gets its title, but a question (q-<n>) gets
+      none, nor a decision record (decision 42), a scenario id (@ID-IDS-06, its name from itos tests
+      list scenario --json), a bug written as prose (bug 31; only slice 24 is read so), or an id a
+      draft holds (an item drafted with work add is in no registry until promoted, and slice 103
+      mints ids at draft add; itos draft --json). The titles are reloaded only at turn.start
+      (register.ts), so an item made during a turn shows bare until the next one: reload when the
+      registry, the ledger, the questions or the drafts change, before the reply is drawn. The
+      user's call: a question gains a title, itos decision add --title, which itos decision prints
+      and the titles show. Raises the plugin's version (T-074).
