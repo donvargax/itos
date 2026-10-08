@@ -6378,3 +6378,20 @@ items:
       the update notice. A --tsv or --format itos-cc listing live tests only, files from the
       repository root, joins the itos-cc integration v7.0.0-rc.1 begins with proof.code (T-120); an
       improvement, not a fault
+
+  - id: p3-opencode-plugin
+    title: An opencode v2 plugin guards git commit and git push, and init wires it
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The Claude Code plugin maps to opencode v2 almost piece for piece (read 2026-10-08): the
+      PreToolUse guard becomes ctx.tool.hook execute.before throwing to deny, the titles refresh
+      becomes ctx.event.subscribe, AGENTS.md is read natively, and distribution is an npm package
+      listed in plugins rather than a marketplace. Needs itos guard opencode in internal/guard (the
+      deny message and the exit convention are per host), integrations/opencode/, and itos init
+      adding the plugins entry beside --plugin and --no-plugin (p1-init-no-plugin), with the T-074
+      version check learning the package.json. The titles drawing is held back as
+      p3-opencode-titles, which waits on anomalyco/opencode#53019
