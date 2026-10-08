@@ -6122,3 +6122,25 @@ items:
       one is refused as a footer line over 100 characters; the command failed with only the lint's
       line to go by. The reason is wrapped and placed so no line of it can open a footer, as itos
       commit wraps a body.
+
+  - id: T-124
+    title: itos writes its coverage counters before it replaces itself with syscall.Exec
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Found by T-121's agents (2026-10-08): on unix the launcher (internal/launch/run_unix.go), the
+      git shim (internal/shim/run_unix.go) and an extension's call (internal/cli/extension_unix.go)
+      replace the process with syscall.Exec, which runs none of the exit hooks where a binary built
+      with -cover writes its counters, so the coverage of every scenario that runs a pinned version,
+      passes git through the shim or calls an extension loses all it ran before the exec, and
+      itos-cc would call those lines uncovered. Each of the three, when GOCOVERDIR is set, writes
+      its counters there first with runtime/coverage.WriteCountersDir, its error ignored: a binary
+      built without -cover refuses the call and runs as before, so nothing a user sees changes,
+      which is why this is a refactor and not a fix (the user's call, 2026-10-08). WriteCountersDir
+      needs -covermode=atomic, which T-121's cover build uses. Not on windows, where the _other.go
+      files start the program and wait, so the process exits and writes its counters itself. Proven
+      by the coverage of one scenario reaching each site, each site's function covered in its own
+      scenario's folder; it needs T-121's harness, and lands with it.

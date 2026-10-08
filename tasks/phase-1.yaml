@@ -1243,3 +1243,23 @@
     Was p1-release-major-from-module-path.
   done_when:
     - run: go test ./tools/bin/release-version -count=1
+
+- id: T-124
+  type: refactor
+  title: itos writes its coverage counters before it replaces itself with syscall.Exec
+  why: >
+    Found by T-121's agents (2026-10-08): on unix the launcher (internal/launch/run_unix.go), the
+    git shim (internal/shim/run_unix.go) and an extension's call (internal/cli/extension_unix.go)
+    replace the process with syscall.Exec, which runs none of the exit hooks where a binary built
+    with -cover writes its counters, so the coverage of every scenario that runs a pinned version,
+    passes git through the shim or calls an extension loses all it ran before the exec, and itos-cc
+    would call those lines uncovered. Each of the three, when GOCOVERDIR is set, writes its counters
+    there first with runtime/coverage.WriteCountersDir, its error ignored: a binary built without
+    -cover refuses the call and runs as before, so nothing a user sees changes, which is why this is
+    a refactor and not a fix (the user's call, 2026-10-08). WriteCountersDir needs
+    -covermode=atomic, which T-121's cover build uses. Not on windows, where the _other.go files
+    start the program and wait, so the process exits and writes its counters itself. Proven by the
+    coverage of one scenario reaching each site, each site's function covered in its own scenario's
+    folder; it needs T-121's harness, and lands with it.
+  done_when:
+    - run: d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1 -scenarios='^@ID-(PIN-01|SHIM-05|EXT-01)$' && go tool covdata func -i="$d/ID-PIN-01" | awk '$1 ~ /launch\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}' && go tool covdata func -i="$d/ID-SHIM-05" | awk '$1 ~ /shim\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}' && go tool covdata func -i="$d/ID-EXT-01" | awk '$1 ~ /cli\/extension_unix\.go/ && $2 == "runProgram" && $3 != "0.0%" {f=1} END {exit !f}'
