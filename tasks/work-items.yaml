@@ -6126,8 +6126,8 @@ items:
   - id: T-124
     title: itos writes its coverage counters before it replaces itself with syscall.Exec
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
