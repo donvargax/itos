@@ -47,5 +47,6 @@ file and leaves this list, which itos ask record writes.
 - [ADR-0043: A task's proof is computed from its diff and its type, and its own checks are scaffolding](0043-a-task-s-proof-is-computed-from-its-diff-and-its-type-and-its-own-checks-are-scaffolding.md)
 - [ADR-0044: No coverage threshold: mutants judge the tests, and --fail-uncovered refuses untested changed code](0044-no-coverage-threshold-mutants-judge-the-tests-and-fail-uncovered-refuses-untested-changed-code.md)
 - [ADR-0045: Every id itos writes is minted, and the counter is claimed on the remote](0045-every-id-itos-writes-is-minted-and-the-counter-is-claimed-on-the-remote.md)
+- [ADR-0046: A release is not held for a dependency age rule; the 7-day wait is for what the project does not build](0046-a-release-is-not-held-for-a-dependency-age-rule-the-7-day-wait-is-for-what-the-project-does-not-build.md)
 
 <!-- itos:decisions:end -->
