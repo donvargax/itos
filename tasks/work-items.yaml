@@ -1003,7 +1003,7 @@ items:
     title: The id counter, and work add, task add and work promote mint item ids through it
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
