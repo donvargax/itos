@@ -190,6 +190,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the config's shell is the recording shell$`, w.recordingShell)
 	sc.Step(`^the task "([^"]*)" has the check "([^"]*)"$`, w.taskHasCheck)
 	sc.Step(`^the task "([^"]*)" has the check "([^"]*)", then the check "([^"]*)"$`, w.taskHasTwoChecks)
+	sc.Step(`^the task "([^"]*)" has the committed check "([^"]*)"$`, w.taskHasCommittedCheck)
 	sc.Step(`^the CI steps are "([^"]*)"$`, func(step string) error { return w.ciStepsAre(step) })
 	sc.Step(`^the CI steps are "([^"]*)", then "([^"]*)"$`, func(first, second string) error { return w.ciStepsAre(first, second) })
 	sc.Step(`^the config's ci section holds only a github watch of "([^"]*)"$`, func(workflow string) error {
@@ -1523,6 +1524,25 @@ func (w *world) recordingShell() error {
 // reads the working tree, which holds the same.
 func (w *world) taskHasCheck(task, check string) error {
 	return w.stagedChecks(task, fmt.Sprintf("{ run: %q }", check))
+}
+
+// The ledger's task, with one check and no cost: of its own, committed with
+// the ledger alone, what else is staged left staged: a clone made after has
+// it, so work done finds nothing unpushed (slice 101). The stealth mode's
+// ledger, in the git folder, is only written.
+func (w *world) taskHasCommittedCheck(task, check string) error {
+	if err := w.stagedChecks(task, fmt.Sprintf("{ run: %q }", check)); err != nil || w.dataDir != "" {
+		return err
+	}
+	if err := w.git("commit", "-q", "--no-verify", "-m", "docs: a check", "--", w.ledgerPath()); err != nil {
+		return err
+	}
+	sha, err := w.head()
+	if err != nil {
+		return err
+	}
+	w.commits = append(w.commits, sha)
+	return nil
 }
 
 // The ledger's task, with two checks in the order written and no cost: of

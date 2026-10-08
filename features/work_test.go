@@ -66,6 +66,7 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 		return w.registryItem(id, "null", status, "", "task")
 	})
 	sc.Step(`^the ledger's task "([^"]*)" has the why "([^"]*)"$`, w.ledgerTaskWhy)
+	sc.Step(`^the ledger's task "([^"]*)" has no checks and the why "([^"]*)"$`, w.ledgerTaskWithoutChecks)
 	sc.Step(`^the work registry has the idea "([^"]*)" owned by nobody$`, func(id string) error {
 		return w.registryItem(id, "null", "todo", "", "idea")
 	})
@@ -790,6 +791,42 @@ func (w *world) ledgerTaskWhy(task, why string) error {
 		return nil
 	}
 	return w.commitLeavingStaged("docs: a ledger")
+}
+
+// The ledger reads as the steps wrote it with the task's checks gone, its
+// why kept: the rest of its text as it was, in the working tree and, where
+// the ledger is committed, at HEAD (slice 101: work done takes a task's
+// checks out of the ledger in the close commit).
+func (w *world) ledgerTaskWithoutChecks(task, why string) error {
+	i := slices.IndexFunc(w.ledger, func(t ledgerTask) bool { return t.id == task })
+	if i < 0 {
+		return fmt.Errorf("the steps wrote no task %s", task)
+	}
+	if w.ledger[i].why != why {
+		return fmt.Errorf("the steps gave %s the why %q, not %q", task, w.ledger[i].why, why)
+	}
+	without := slices.Clone(w.ledger)
+	without[i].checks = nil
+	want := (&world{ledger: without}).ledgerText()
+	path := w.data(w.ledgerPath())
+	text, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return err
+	}
+	if string(text) != want {
+		return fmt.Errorf("the ledger reads:\n%s\nnot:\n%s\n%s", text, want, w.report())
+	}
+	if w.dataDir != "" {
+		return nil
+	}
+	committed, err := w.gitOutput("show", "HEAD:"+filepath.ToSlash(path))
+	if err != nil {
+		return err
+	}
+	if committed != want {
+		return fmt.Errorf("the ledger at HEAD reads:\n%s\nnot:\n%s\n%s", committed, want, w.report())
+	}
+	return nil
 }
 
 // The item has the status and no why: no why key, or an empty one (slice
