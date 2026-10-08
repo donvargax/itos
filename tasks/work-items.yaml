@@ -997,14 +997,15 @@ items:
     depends_on: []
     kind: slice
 
-  - id: p1-work-promote-next-id
-    title: work promote gives the next free id when --as is left out
+  - id: slice-102
+    title: itos mints the ids work add, task add and work promote write, and a bug is a kind of its own
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-work-promote-next-id.
       Slice 52's work promote needs --as <id>, so the next slice number or T- ID is still found by
       hand. With --as left out it could give the next free one: slice-<n+1> after the registry's
       highest slice, T-<n+1> after the highest of the ledger's IDs and the registry's tasks, kept
