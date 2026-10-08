@@ -16,9 +16,6 @@
     Vitest's. Closes p2-go-unit-tests-in-hooks. tools/selftest/go-hooks.ts
     proves it in a scratch copy of the repository: a staged Go change whose
     unit test fails is refused at commit, and one whose tests pass is not.
-  done_when:
-    - run: node tools/selftest/go-hooks.ts
-      timeout: 900
 
 - id: T-060
   type: build
@@ -32,9 +29,6 @@
     still held to the corpus and every feature, until v2.0.0 removes it.
     tools/selftest/go-dogfood.ts proves tools/bin/itos runs with no Node on
     the PATH (version, config check, task list on this repository).
-  done_when:
-    - run: node tools/selftest/go-dogfood.ts
-      timeout: 600
 
 # Reordered so the built-in header lint is built once: every feature runs
 # against both implementations on every push (T-053), so the TypeScript leaves
@@ -64,11 +58,6 @@
     repository's dev tooling (vp, the corpus runner, the self-tests, the
     builds), never a runtime for a consumer. No release: v2.0.0 (T-061)
     publishes it.
-  done_when:
-    - run: sh -c 'test -z "$(git ls-files "tools/itos/*.ts" | grep -v "^tools/itos/conformance/")"'
-      cost: static
-    - run: node tools/selftest/go-port.ts
-      timeout: 1200
 
 - id: T-063
   type: build
@@ -103,9 +92,6 @@
     by running it, never by a grep of package.json: the gates self-test's
     commit-msg case judges a header in a scratch copy with no commitlint
     installed.
-  done_when:
-    - run: node tools/selftest/header-agreement.ts
-      timeout: 900
 
 - id: T-061
   type: build
@@ -128,13 +114,6 @@
     patterns as v1.1.0 said, anything else since v1.1.0), README's install
     Go only, then the tag, automated: the coordinator tags when CI and the
     release checks are green.
-  done_when:
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/release-notes.ts 2.0.0
-      timeout: 300
-    - run: sh -c 'd=$(mktemp -d) && gh release download v2.0.0 --dir "$d" --pattern "itos-2.0.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
-      after: push
 
 - id: T-064
   type: build
@@ -152,13 +131,6 @@
     nothing here may require a change of them. Automated: the coordinator tags
     when CI and the release checks are green, after reading the notes against
     the range.
-  done_when:
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/release-notes.ts 2.1.0
-      timeout: 300
-    - run: sh -c 'd=$(mktemp -d) && gh release download v2.1.0 --dir "$d" --pattern "itos-2.1.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
-      after: push
 
 - id: T-065
   type: build
@@ -175,13 +147,6 @@
     them. Automated: the coordinator tags when CI, a nightly on the release
     commit and the release checks are green, after reading the notes against
     the range.
-  done_when:
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/release-notes.ts 2.2.0
-      timeout: 300
-    - run: sh -c 'd=$(mktemp -d) && gh release download v2.2.0 --dir "$d" --pattern "itos-2.2.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
-      after: push
 
 # Adoption, toward v2.3.0 (PLAN.md §10, "Adoption"): the plugin is built on
 # slice 42's guard and slice 43's work list, both itos commands, so its hooks
@@ -217,11 +182,6 @@
     installer, in CI's job, whose token stays read-only and which is handed no secret (a ci
     commit). The checks stay late, so the nightly, whose token can write issues, never runs
     Claude Code.
-  done_when:
-    - run: claude plugin validate --strict .
-    - run: claude plugin validate --strict integrations/claude-code
-    - run: claude plugin test integrations/claude-code
-      timeout: 300
 
 - id: T-067
   type: build
@@ -246,9 +206,6 @@
     finding (exit 3); the real one runs at every commit that stages go.mod or go.sum, the first
     being the one that added it. Its first run (2026-10-03): 39 modules, the newest
     golang.org/x/vuln v1.8.0 itself (2026-09-08), no exception needed, no vulnerability found.
-  done_when:
-    - run: node tools/selftest/deps-check.ts
-      timeout: 300
 
 - id: T-068
   type: build
@@ -265,13 +222,6 @@
     check is this repository's own and asks nothing of a consumer. Automated: the coordinator
     tags when CI, a nightly on the release commit and the release checks are green, after
     reading the notes against the range.
-  done_when:
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/release-notes.ts 2.3.0
-      timeout: 300
-    - run: sh -c 'd=$(mktemp -d) && gh release download v2.3.0 --dir "$d" --pattern "itos-2.3.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
-      after: push
 
 - id: T-070
   type: ci
@@ -297,9 +247,6 @@
     keyword it does not compare each stop it (exit 2), and no release tag passes, saying so.
     Its first run, v2.3.0's published schema against this tree, found no change; against
     v2.0.0's it finds two compatible ones, pin added and hooks.manager's git-config.
-  done_when:
-    - run: node tools/selftest/schema-contract.ts
-      timeout: 300
 
 - id: T-071
   type: ci
@@ -345,9 +292,6 @@
     prints the help): 37 of v2.3.0's help.yaml's 38 cases and none outside it, its itos version
     case still judged. The check says how many it left out and why; the self-test proves an old
     help case that differs passes while an old non-help case still fails.
-  done_when:
-    - run: node tools/selftest/previous-release.ts
-      timeout: 900
 
 - id: T-075
   type: ci
@@ -368,9 +312,6 @@
     tree's own corpus still pins every usage message exactly. The self-test proves an old usage
     case whose words differ passes, one whose exit code differs still fails, and an old config
     error whose words differ still fails.
-  done_when:
-    - run: node tools/selftest/previous-release.ts
-      timeout: 900
 
 - id: T-076
   type: ci
@@ -394,9 +335,6 @@
     additively. The self-test proves an old case passes with a key added to its JSON and with a
     line added to its stdout, and fails with a key removed, a value changed, a line changed and
     two lines swapped.
-  done_when:
-    - run: node tools/selftest/previous-release.ts
-      timeout: 900
 
 - id: T-069
   type: ci
@@ -453,11 +391,6 @@
     once the release job has cut a release, which needs a green push, and a push's range starts at
     the last green run, so in pushes it would hold every later one red and no release could ever
     be cut. It stays red there until the first feat or fix after T-069 lands.
-  done_when:
-    - run: node tools/selftest/release-cut.ts
-      timeout: 900
-    - run: sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'
-      after: push
 
 - id: T-072
   type: ci
@@ -494,9 +427,6 @@
     extension's folder read through pwd -W and its links; an ITOS_* path's ending read with
     slashes. The platform jobs take about 30 s on ubuntu, a minute on macos and three on windows,
     which the release now waits for.
-  done_when:
-    - run: sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'
-      after: push
 
 - id: T-073
   type: chore
@@ -519,10 +449,6 @@
     against the top (git rev-parse --show-toplevel) when the session root is a subfolder; an itos
     older than v2.4.0 has no config get and answers with the usage error "unknown command: config
     get", exit 2, the "too old to answer" case.
-  done_when:
-    - run: claude plugin validate --strict integrations/claude-code
-    - run: claude plugin test integrations/claude-code
-      timeout: 300
 
 - id: T-074
   type: ci
@@ -546,9 +472,6 @@
     pre-release below its release, build metadata ignored). Like T-070's check it never passes on
     what it cannot read: the self-test also proves an empty range start, a start the clone lacks
     and a shallow clone each stop it (exit 2), and that both step lists run it.
-  done_when:
-    - run: node tools/selftest/plugin-version.ts
-      timeout: 300
 
 - id: T-077
   type: test
@@ -562,9 +485,6 @@
     say so. Each help test sets a PATH holding only the folders it makes (t.Setenv), as the
     corpus's clean environment does, and still finds what it runs (git, sh) where a test needs
     them. The check runs internal/cli's tests with an extension of its own on the PATH.
-  done_when:
-    - run: 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" go test ./internal/cli -count=1'
-      timeout: 600
 
 - id: T-078
   type: ci
@@ -577,9 +497,6 @@
     agent starts it in the background and monitors it, since a foreground tool call times out
     before CI ends, and the coordinator re-attaches to a run an agent claims with itos ci watch
     <sha>. AGENTS.md's "Finishing" and docs/ORCHESTRATING.md say so in place of gh run watch.
-  done_when:
-    - run: 'test "$(tools/bin/itos config get ci.watch.provider)" = github'
-      timeout: 60
 
 - id: T-079
   type: chore
@@ -593,9 +510,6 @@
     so. The skill is the plugin's, so its version rises to 2.5.0 in the same push (T-074). The
     coordinator's guide took promote from docs/ORCHESTRATING.md, and T-092 dropped the skill, how to
     work with itos being itos's own guides, so the check reads the guide that holds each command.
-  done_when:
-    - run: grep -q 'itos work take' AGENTS.md && grep -q 'itos work promote' internal/guide/coordinate.md && grep -q 'itos work done' internal/guide/work.md
-      timeout: 60
 
 - id: T-080
   type: test
@@ -609,9 +523,6 @@
     PATH, as its hide key and T-077's test PATH do, so a case's verdict no longer depends on the
     machine; a case that wants an extension still puts one there itself. The check runs the corpus
     with an extension of its own on the PATH.
-  done_when:
-    - run: 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" node tools/itos/conformance/run.ts --bin tools/bin/itos'
-      timeout: 900
 
 - id: T-081
   type: ci
@@ -625,9 +536,6 @@
     or starts with it; an entry that starts more than one case names none, and is warned of as an
     entry naming nothing is. The self-test proves a fix naming a long case by a prefix passes, and a
     prefix two cases share does not.
-  done_when:
-    - run: node tools/selftest/previous-release.ts
-      timeout: 900
 
 - id: T-092
   type: chore
@@ -644,12 +552,6 @@
     checks: T-079's and T-082's checks now read the guide that holds each command
     (internal/guide/work.md or coordinate.md), so both stay green. ADR-0032 said how to work with
     itos stayed in the plugin's skill; ADR-0033 supersedes it: the guides hold it.
-  done_when:
-    - run: test ! -e integrations/claude-code/skills
-    - run: "! grep -rn 'skills/[i]tos' README.md docs/ARCHITECTURE.md tasks/phase-1.yaml tasks/phase-3.yaml integrations/claude-code"
-    - run: grep -qE '"version":.*"([3-9]|[1-9][0-9])[0-9]*\.' integrations/claude-code/.claude-plugin/plugin.json
-    - run: tools/bin/itos task T-079 && tools/bin/itos task T-082
-      timeout: 120
 
 - id: T-093
   type: build
@@ -669,10 +571,6 @@
     installed. This repository's platform jobs (Linux, macOS, Windows) run the action from the
     checkout (uses ./) and then itos version, so every push proves it on each platform. The
     README's install section gives the action line and, for other CI, the script's two lines.
-  done_when:
-    - run: actionlint
-    - run: sh -c 'd=$(mktemp -d) && tools/bin/install-launcher "$d" 3.5.0 && "$d/itos" version | grep -q "3\.5\.0"'
-      timeout: 120
 
 - id: T-096
   type: docs
@@ -684,9 +582,6 @@
     hand (the split rules, the gates table), which drifts from the config. It gains the block,
     CLAUDE.md the import, and the hand-written sections the block covers shrink to what no command
     can check: which session you are, the never list, finishing.
-  done_when:
-    - run: grep -qx '<!-- itos:begin -->' AGENTS.md
-    - run: grep -qx '@AGENTS.md' CLAUDE.md
 
 - id: T-097
   type: chore
@@ -701,6 +596,3 @@
     from the official releases, checked against its checksums, so nothing a repository ships runs.
     Removing the resolution is a behaviour change, so the plugin's version rises by a major, in a
     chore commit of the same push (T-074).
-  done_when:
-    - run: claude plugin validate --strict integrations/claude-code
-    - run: claude plugin test integrations/claude-code

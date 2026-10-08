@@ -382,8 +382,10 @@ CI runs its plan, `itos ci run`, on every push, in this order, stopping at the f
 - `vp check`
 - `! gofmt -l features cmd internal | grep .`
 - `go vet ./...`
+- `actionlint`
 - `tools/bin/itos tests smoke check scenario`
 - `tools/bin/itos config check`
+- `node tools/selftest/ci-scope.ts`
 - `go run ./tools/bin/plugin-version -range-from "${FROM-}"`
 - `go run ./tools/bin/doc-budget`
 - `go run ./tools/bin/plugin-calls`
@@ -391,10 +393,15 @@ CI runs its plan, `itos ci run`, on every push, in this order, stopping at the f
 - `go run ./tools/bin/deps-check -changed-since "${FROM-}"`
 - `go run ./tools/bin/schema-contract -range-from "${FROM-}"`
 - `go test ./cmd/... ./internal/...`
+- `go test ./tools/...`
 - `vp run audit`
 - `node tools/itos/conformance/run.ts --bin tools/bin/itos`
 - `go run ./tools/bin/previous-release -range-from "${FROM-}"`
-- `tools/bin/itos task T-007`
+- `node tools/bin/inbox.ts --self-test`
+- `vp run changelog`
+- `node tools/selftest/deps-check.ts`
+- `node tools/selftest/schema-contract.ts`
+- `node tools/selftest/plugin-version.ts`
 - The `scenario` tests of the smoke set and those the push's commits name, in one run.
 - The other checks of the tasks the push's commits name.
 
@@ -408,7 +415,18 @@ The nightly, `itos ci run --nightly`, runs these in order:
 - `node tools/selftest/go-release.ts`
 - `node tools/selftest/go-schema.ts`
 - `node tools/selftest/previous-release.ts`
-- The static checks of every task whose work item is `done`.
+- `node tools/selftest/features-scope.ts`
+- `node tools/selftest/go-dogfood.ts`
+- `node tools/selftest/upgrading-json.ts`
+- `sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\nexit 97\n" > "$d/itos" && chmod +x "$d/itos" && PATH="$d:$PATH" go test ./features -count=1'`
+- `sh -c 'tools/bin/itos --version >/dev/null && d=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./features -count=1 && PATH="$d:$PATH" go test ./internal/cli -count=1 -run TestDeclareHooksOldGit'`
+- `sh -c 'd=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./tools/bin/... -count=1'`
+- `sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" go test ./internal/cli -count=1'`
+- `sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" node tools/itos/conformance/run.ts --bin tools/bin/itos'`
+- `d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1 -scenarios='^@ID-(PIN-01|ASK-01)$' && test -z "$(find "$d" -maxdepth 1 -type f)" && go tool covdata func -i="$d/ID-PIN-01" | awk '$1 ~ /launch\/launch\.go/ && $2 == "fetch" && $3 != "0.0%" {f=1} END {exit !f}' && go tool covdata func -i="$d/ID-ASK-01" | awk '$1 ~ /launch\/launch\.go/ && $2 == "fetch" && $3 == "0.0%" {f=1} END {exit !f}'`
+- `d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1 -scenarios='^@ID-(PIN-01|SHIM-05|EXT-01)$' && go tool covdata func -i="$d/ID-PIN-01" | awk '$1 ~ /launch\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}' && go tool covdata func -i="$d/ID-SHIM-05" | awk '$1 ~ /shim\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}' && go tool covdata func -i="$d/ID-EXT-01" | awk '$1 ~ /cli\/extension_unix\.go/ && $2 == "runProgram" && $3 != "0.0%" {f=1} END {exit !f}'`
+- `claude plugin validate --strict . && claude plugin validate --strict integrations/claude-code`
+- `claude plugin test integrations/claude-code`
 - `sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'`
 - `sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'`
 

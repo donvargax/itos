@@ -16,11 +16,6 @@
     which unit coverage cannot see, so coverage is still collected for the
     audit's scores, without thresholds. The audit fails on a dependency nothing
     uses, so Playwright left behind fails it.
-  done_when:
-    - run: sh -c 'test -z "$(git ls-files index.html playwright.config.ts src e2e)"'
-      cost: static
-    - run: vp check
-    - run: vp run audit
 
 - id: T-015
   type: build
@@ -31,11 +26,6 @@
     line and holds one dependency set, godog's; CI sets Go up from go.mod; gofmt
     and go vet run where vp check does, on the staged files before a commit and
     as static steps in CI.
-  done_when:
-    - run: sh -c '! gofmt -l features cmd internal | grep .'
-      cost: static
-    - run: go mod verify
-    - run: go vet ./...
 
 - id: T-016
   type: test
@@ -51,11 +41,6 @@
     (-scenarios=…) and turns it into godog's filter. The self-test proves that
     the commands the plan builds run exactly the scenarios they claim. The
     conformance YAML stays as a regression corpus, run by a CI step of its own.
-  done_when:
-    - run: tools/bin/itos tests smoke check scenario
-    - run: tools/bin/itos tests smoke run scenario
-    - run: node tools/selftest/features-scope.ts
-    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos
 
 - id: T-017
   type: build
@@ -67,10 +52,6 @@
     commit after the last green run, and there was none, so every push was red.
     commits.since names that commit; verify and the range checks start after
     it.
-  done_when:
-    - run: tools/bin/itos config check
-    - run: tools/bin/itos verify "" HEAD
-      cost: late # sized by the history, not by the change
 
 - id: T-018
   type: chore
@@ -79,9 +60,6 @@
     The template is 0BSD, with the task tool's AGPL-3.0 licence in its folder;
     itos is the tool, so the whole repository is AGPL-3.0 and the folder's own
     licence goes. The check asks GitHub which licence it detects.
-  done_when:
-    - run: gh api 'repos/{owner}/{repo}/license' --jq .license.spdx_id | grep -qx AGPL-3.0
-      after: push
 
 - id: T-019
   type: docs
@@ -115,12 +93,6 @@
     source needed no change. Against a bundle that left yaml out, the self-test
     failed three ways: the installed itos could not say its version, and the
     corpus and the features failed.
-  done_when:
-    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/go-port.ts
-      timeout: 1200
 
 - id: T-021
   type: ci
@@ -137,10 +109,6 @@
     names T-021 runs it, so it is late: the run that lands the workflow proves
     everything else before it fails there, the tag goes on that commit, and
     the run is green when re-run after the release.
-  done_when:
-    - run: actionlint
-    - run: sh -c 'd=$(mktemp -d) && gh release download v0.1.0 --dir "$d" --pattern "itos-0.1.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
-      after: push
 
 - id: T-022
   type: ci
@@ -160,9 +128,6 @@
     rejected (by the commit-msg hook, since T-023), and the CI plan runs the
     check for a range that touches the registry and for a prose-only one that
     touches CONTRIBUTORS.md.
-  done_when:
-    - run: tools/bin/itos config check
-    - run: node tools/selftest/config-gate.ts
 
 - id: T-023
   type: ci
@@ -177,9 +142,6 @@
     registry) or a feature file. The self-test (tools/selftest/config-gate.ts)
     proves the commit is still rejected, now by commit-msg, and that a
     commit staging only docs/** and tasks/** runs no unit tests.
-  done_when:
-    - run: tools/bin/itos config check
-    - run: node tools/selftest/config-gate.ts
 
 - id: T-024
   type: build
@@ -207,14 +169,6 @@
     Against v0.1.0 those keys are work.registry and ci.stop_at_first_failure;
     the check failed on scratch notes that left the second out, that ended
     with another section, and whose pin line named v0.1.0's tarball.
-  done_when:
-    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/release-notes.ts 0.2.0
-      timeout: 300
-    - run: sh -c 'd=$(mktemp -d) && gh release download v0.2.0 --dir "$d" --pattern "itos-0.2.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
-      after: push
 
 - id: T-025
   type: chore
@@ -232,11 +186,6 @@
     proves CI's plan runs config check for it as code, and for a prose-only
     edit of CONTRIBUTORS.md, the people the registry's owners come from) and
     the conformance cases whose scratch projects mirror this layout.
-  done_when:
-    - run: tools/bin/itos work check
-    - run: test ! -e docs/work-items.yaml
-      cost: static
-    - run: node tools/selftest/config-gate.ts
 
 - id: T-026
   type: build
@@ -250,10 +199,6 @@
     message or help text itos prints named the script, so no printed wording
     changed; the gates self-test, which proves pre-push leaves a footer's task
     to CI by the echo it must not print, looks for `$ tools/bin/itos task` now.
-  done_when:
-    - fails: vp run task T-026
-      cost: static
-    - run: tools/bin/itos task list
 
 - id: T-027
   type: build
@@ -278,14 +223,6 @@
     version is bumped the check judges v0.2.0's notes against this tree and
     fails, and pinning it to 0.2.0 would not help: it would compare v0.1.0's
     defaults with this tree's.
-  done_when:
-    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/release-notes.ts 0.3.0
-      timeout: 300
-    - run: sh -c 'd=$(mktemp -d) && gh release download v0.3.0 --dir "$d" --pattern "itos-0.3.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
-      after: push
 
 - id: T-028
   type: ci
@@ -299,10 +236,6 @@
     and after it. The second check says cost: static below the first, which
     names itos as hooks.bin, so config check's written-order rule fails the
     first check unless the new pattern still makes tools/bin/itos static.
-  done_when:
-    - run: tools/bin/itos config check
-    - run: tools/bin/itos ci plan --whole
-      cost: static
 
 - id: T-029
   type: test
@@ -324,11 +257,6 @@
     checkout's node_modules, which move with the lockfile. Its notes are the
     tag's file, the one the release published. The check failed on v0.3.0's
     notes with hooks.commit_msg.check_timeout left out.
-  done_when:
-    - run: node tools/selftest/release-notes.ts 0.2.0
-      timeout: 300
-    - run: node tools/selftest/release-notes.ts 0.3.0
-      timeout: 300
 
 - id: T-030
   type: build
@@ -349,15 +277,6 @@
     is the built-in one, and the first check counts every problem
     check-message finds in that chore: one, the footer's, none the header
     lint's.
-  done_when:
-    - run: >-
-        sh -c 'printf "chore: tidy the readme\n" | tools/bin/itos commit check-message - --json
-        | grep -c "\"rule\":" | grep -qx 1'
-      cost: static
-    - run: >-
-        sh -c 'printf "chore: x\n\nTask: T-999\n" | tools/bin/itos commit check-message - --json
-        | grep -c "\"rule\": \"task-footer\"" | grep -qx 1'
-      cost: static
 
 - id: T-031
   type: refactor
@@ -372,12 +291,6 @@
     config's keys. What itos prints changes in slice 11, not here. The
     default root of scenario-moves (e2e/features) is behaviour, and goes with
     p1-config-names-from-config.
-  done_when:
-    - run: vp check
-    # The code is the Go packages' since T-062; their unit tests name commands "e2e" as fixtures.
-    - fails: git grep -n -i -E "e2e|playwright" -- cmd internal ":!*_test.go"
-      cost: static
-    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos
 
 - id: T-032
   type: build
@@ -395,10 +308,6 @@
     package with a prepare script and fails if npm reports nothing for it.
     Against v0.3.0's way of packing the check fails on the keys, on engines
     and on the install script.
-  done_when:
-    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
 
 - id: T-033
   type: build
@@ -418,14 +327,6 @@
     say that by hand. Until the version is bumped the notes check judges
     0.4.0 as untagged against this tree, which is how it proves the notes
     before the tag.
-  done_when:
-    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/release-notes.ts 0.4.0
-      timeout: 300
-    - run: sh -c 'd=$(mktemp -d) && gh release download v0.4.0 --dir "$d" --pattern "itos-0.4.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
-      after: push
 
 - id: T-034
   type: test
@@ -448,8 +349,6 @@
     The check passes on the cases as they now stand; the corpus has no way to
     fail on a case that is missing, so their review is what proves they are
     there.
-  done_when:
-    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos --only tools/itos/conformance/verify.yaml tools/itos/conformance/hooks.yaml
 
 - id: T-035
   type: ci
@@ -462,10 +361,6 @@
     (the release self-tests, the whole suite) stay with the pushes that name
     their tasks. The check reads the nightly's plan, which lists no task check
     before the step.
-  done_when:
-    - run: >-
-        sh -c 'tools/bin/itos ci plan --nightly --json | grep -q "\"task\": \"T-"'
-      cost: static
 
 - id: T-036
   type: build
@@ -488,14 +383,6 @@
     which the notes say by hand. Until the version is bumped the notes check
     judges 0.5.0 as untagged against this tree, which is how it proves the
     notes before the tag.
-  done_when:
-    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/release-notes.ts 0.5.0
-      timeout: 300
-    - run: sh -c 'd=$(mktemp -d) && gh release download v0.5.0 --dir "$d" --pattern "itos-0.5.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
-      after: push
 
 - id: T-037
   type: build
@@ -509,11 +396,6 @@
     script is gone, a config still naming it would fail every verify, so CI's
     verify of the range proves the switch; the checks run the built-in
     command on this tree and prove the script is gone.
-  done_when:
-    - run: tools/bin/itos tests moves scenario
-      cost: static
-    - run: sh -c 'test ! -e tools/itos/scenario-moves.ts'
-      cost: static
 
 - id: T-038
   type: build
@@ -529,14 +411,6 @@
     docs/releases/v0.6.0.md was written slice by slice; this task finishes
     it. The user waived the review of the notes for this release, so the tag
     follows CI being green but for the after-push download check.
-  done_when:
-    # T-062: the TypeScript and its tarball left; the Go release's proof in its place.
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/release-notes.ts 0.6.0
-      timeout: 300
-    - run: sh -c 'd=$(mktemp -d) && gh release download v0.6.0 --dir "$d" --pattern "itos-0.6.0.tgz" --pattern checksums.txt && cd "$d" && sha256sum -c checksums.txt'
-      after: push
 
 - id: T-082
   type: chore
@@ -549,9 +423,6 @@
     on an item with itos work edit; the plugin's minor version is raised in the chore commit
     T-074's rule asks for. T-092 dropped the skill, how to work with itos being itos's own guides,
     so the checks read the guide that holds each command.
-  done_when:
-    - run: grep -q 'itos work add' internal/guide/work.md
-    - run: grep -q 'itos work edit' internal/guide/coordinate.md
 
 - id: T-083
   type: build
@@ -562,9 +433,6 @@
     docs and chore, so a slice, which has no task, can commit its steps red first in a test commit
     before its feat (docs/ORCHESTRATING.md asks the brief for one), and a spec written in a docs
     commit names its item, which work show then lists.
-  done_when:
-    - run: test "$(tools/bin/itos config get commits.footers.Item.source)" = registry
-    - run: test "$(tools/bin/itos config get commits.footers.Item.in_place_of)" = '{"Task":["test","docs","chore"]}'
 
 - id: T-084
   type: docs
@@ -573,9 +441,6 @@
     Was p1-orchestrating-own-notes. itos go prints the generic coordinator's guide (slice 64), then
     docs/ORCHESTRATING.md, then itos status (slice 67), so the handoff rewritten by hand after
     every landing is gone, and ORCHESTRATING.md holds only what is true of this repository alone.
-  done_when:
-    - run: test ! -e docs/HANDOFF.md
-    - run: grep -q "This repository's own notes" docs/ORCHESTRATING.md
 
 - id: T-085
   type: docs
@@ -594,13 +459,6 @@
     docs/releases/, which stops at v2.3.0 since CI writes the notes. The Go and TypeScript
     comments that cite a PLAN.md section by number cite the record instead, in a refactor commit
     naming this task. What this move teaches feeds p1-adr-adoption-guide.
-  done_when:
-    - run: grep -q 'itos:decisions:begin' docs/decisions/README.md
-    - run: test "$(ls docs/decisions | grep -cE '^[0-9]{4}-.*\.md$')" -ge 15
-    - run: grep -q 'docs/decisions/README.md' PLAN.md
-    - run: "! grep -qE '^## .*(The command line|Phases|Working rules)' PLAN.md"
-    - run: test ! -e docs/releases
-    - run: "! grep -rqE 'PLAN\\.md ?§' --exclude=header-agreement.json cmd internal tools"
 
 - id: T-086
   type: docs
@@ -615,9 +473,6 @@
     checks aimed at what it changes. It lives in the coordinator's guide, since such a move is a
     task a coordinator hands out, and not in a guide of its own: a new guide's name would change
     the list @ID-GUIDE-05 promises, a breaking change for a paragraph.
-  done_when:
-    - run: grep -q '^## Decisions$' internal/guide/coordinate.md
-    - run: grep -q 'question record' internal/guide/coordinate.md
 
 - id: T-087
   type: test
@@ -629,9 +484,6 @@
     steps put the itos under test on the PATH only where a step asks for it (itosOnPath) and hide
     every other. The check runs the features with a failing itos first on the PATH, which only a
     PATH that hides it lets pass.
-  done_when:
-    - run: sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\nexit 97\n" > "$d/itos" && chmod +x "$d/itos" && PATH="$d:$PATH" go test ./features -count=1'
-      cost: late
 
 - id: T-088
   type: refactor
@@ -641,9 +493,6 @@
     internal/release while tools/bin/release-version keeps its own copy, and nothing checks that
     the two agree, so status could list commits the next release does not carry. release-version
     imports internal/release, which needs nothing outside the standard library, and its copy goes.
-  done_when:
-    - run: grep -Eq 'itos/v[0-9]+/internal/release"' tools/bin/release-version/main.go
-    - run: go test ./tools/bin/release-version/... ./internal/release/...
 
 - id: T-089
   type: build
@@ -657,10 +506,6 @@
     that stamp the version, the README, the release notes' go install line), and the release cut
     refuses a version whose major does not match the module path's suffix, so the next major moves
     the path first. go install works from the first release cut after it.
-  done_when:
-    - run: grep -Eqx 'module github.com/donvargax/itos/v([3-9]|[1-9][0-9]+)' go.mod
-    - run: "! git grep -q 'donvargax/itos/v2' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
-    - run: go build ./...
 
 - id: T-090
   type: refactor
@@ -672,10 +517,6 @@
     own vX.Y.Z regex and git's version sort, which orders a number with leading zeros as a
     fraction. They agree on every tag this repository has, but nothing held them to the cut. Each
     lists the tags it reaches as now and picks with release.Newest.
-  done_when:
-    - run: "! grep -l 'v:refname' tools/bin/release-notes/main.go tools/bin/schema-contract/main.go tools/bin/previous-release/main.go"
-    - run: test "$(grep -lE 'itos/v[0-9]+/internal/release"' tools/bin/release-notes/main.go tools/bin/schema-contract/main.go tools/bin/previous-release/main.go | wc -l)" -eq 3
-    - run: go test ./tools/... ./internal/release/...
 
 - id: T-091
   type: build
@@ -696,11 +537,6 @@
     release-notes.ts proves the notes: every Upgrading and Changes footer itos commit footers lists,
     each config key schema-contract names, and previous the last release. docs/ARCHITECTURE.md
     describes the asset beside the notes, in a docs commit.
-  done_when:
-    - run: grep -q 'upgrading.json' .github/workflows/release.yml
-    - run: node tools/selftest/upgrading-json.ts
-    - run: go test ./tools/...
-    - run: grep -q 'upgrading.json' docs/ARCHITECTURE.md
 
 - id: T-094
   type: refactor
@@ -714,9 +550,6 @@
     the go install lines of the README and ARCHITECTURE. The done tasks whose checks named the /v3
     path (T-088, T-089, T-090) are reworded to hold whatever the major, so the nightly's done-task
     checks stay green across this move and the next.
-  done_when:
-    - run: "! git grep -q 'donvargax/itos/v3' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
-    - run: go build ./...
 
 - id: T-095
   type: ci
@@ -730,10 +563,6 @@
     the help cases it leaves out, and a unit test proves it reads such a case as one and leaves it
     out while a config error's case stays judged. This tree's own corpus still pins every usage
     message exactly.
-  done_when:
-    - run: go test ./tools/bin/previous-release
-    - run: go run ./tools/bin/previous-release
-      timeout: 900
 
 - id: T-098
   type: ci
@@ -748,12 +577,6 @@
     footer and could touch anything. Not a fortress: a build or ci commit can still change the
     gates, and the coordinator's review of each agent's commits is what catches that
     (p3-gate-changes-visible).
-  done_when:
-    - run: "! tools/bin/itos commit check-paths --type chore itos.yaml"
-    - run: "! tools/bin/itos commit check-paths --type refactor .github/workflows/ci.yml"
-    - run: "! tools/bin/itos commit check-paths --type test tools/selftest/gates.ts"
-    - run: tools/bin/itos commit check-paths --type ci itos.yaml
-    - run: "! printf 'style: tidy\\n' | tools/bin/itos commit check-message -"
 
 - id: T-099
   type: refactor
@@ -769,10 +592,6 @@
     go-hooks.ts's module prefix. Between them tools/bin does not build, which no hook of the first
     commit runs. This repository's itos.yaml drops ci.range.github.branch, which v5 refuses (slice
     85), in a ci commit of its own before the feat.
-  done_when:
-    - run: "! git grep -q 'donvargax/itos/v4' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
-    - run: go build ./...
-    - run: tools/bin/itos config check
 
 - id: T-100
   type: ci
@@ -790,10 +609,6 @@
     and itos version's, through --json, since plain output is no longer promised. Its unit tests
     show a reworded stderr and a changed message passing, and a changed exit code, rule id, json key
     or files_after failing.
-  done_when:
-    - run: go test ./tools/bin/previous-release/
-    - run: "! grep -q 'range=$(tools/bin/itos ci range --head' .github/workflows/ci.yml"
-    - run: grep -q 'ci range --json' .github/workflows/ci.yml
 
 - id: T-101
   type: refactor
@@ -807,10 +622,6 @@
     commit for what is under tools/bin (its Go programs' imports, the ldflags of tools/bin/itos,
     build-go.ts and previous-release), CI's Build itos step and go-hooks.ts's module prefix. Slice
     86's agent does it in the same push as the feat, as slice 85's did T-099.
-  done_when:
-    - run: "! git grep -q 'donvargax/itos/v5' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
-    - run: go build ./...
-    - run: tools/bin/itos config check
 
 - id: T-102
   type: ci
@@ -829,13 +640,6 @@
     seconds on TestRollbackGitCannotStart (p1-slow-rollback-test), locally and in CI, so go-hooks.ts
     takes about 30 minutes and a push naming this task would be killed at any check's timeout. Both
     passed run directly on the commit that made this change.
-  done_when:
-    - run: test ! -e .vite-hooks/commit-msg
-      cost: static
-    - run: test ! -e .vite-hooks/pre-push
-      cost: static
-    - run: "! git grep -q -e 'vite-hooks/commit-msg' -e 'vite-hooks/pre-push' -- tools/selftest"
-      cost: static
 
 - id: T-103
   type: ci
@@ -846,10 +650,6 @@
     refuses it by additionalProperties at /hooks and the nightly's go-schema self-test fails. The case
     moves to another key with an enum, such as commits.header_lint.use, still expecting the enum
     refusal at that key's path. One ci commit, in the v6.0.0 push.
-  done_when:
-    - run: "! git grep -q 'manager' -- tools/selftest/go-schema.ts"
-      cost: static
-    - run: node tools/selftest/go-schema.ts
 
 - id: T-104
   type: test
@@ -862,11 +662,6 @@
     is itos. The features and the unit tests resolve git past any itos shim, as itos itself does
     since bug 45, by one rule rather than a second copy of it. The check puts a link to the built
     itos first on the PATH as git and runs every feature and the cli unit test that hung.
-  done_when:
-    - run: >-
-        sh -c 'tools/bin/itos --version >/dev/null && d=$(mktemp -d) &&
-        ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./features -count=1 &&
-        PATH="$d:$PATH" go test ./internal/cli -count=1 -run TestDeclareHooksOldGit'
 
 - id: T-105
   type: perf
@@ -884,8 +679,6 @@
     Likely cause, found by slice-96's agent (2026-10-07, idea p1-wrap-long-body): message.wrapLine
     joins the rest of the line at every break, so wrapping a body is quadratic, and the test's 5 MB
     body takes about 300 s. Profile first, as above; if that is it, fold p1-wrap-long-body in.
-  done_when:
-    - run: go test ./internal/cli -count=1 -run TestRollbackGitCannotStart -timeout 60s
 
 - id: T-106
   type: ci
@@ -898,8 +691,6 @@
     excuses only the old scenarios and cases it names in Changes:, as a fix must; a feat naming one
     without being breaking still excuses nothing; the message says to name each failure. AGENTS.md
     and the coordinator's notes say a breaking commit carries both footers.
-  done_when:
-    - run: go test ./tools/bin/previous-release -count=1
 
 - id: T-107
   type: docs
@@ -915,10 +706,6 @@
     Upgrading and Changes footers, previous-release, its own lessons). A starter notes file seeded
     by itos init was dropped already (p3-init-orchestration, decision 33): it would drift in each
     copy.
-  done_when:
-    - run: grep -q 'scratch' internal/guide/coordinate.md
-    - run: grep -qi 'lesson' internal/guide/coordinate.md
-    - run: "! grep -q 'agents prefix their scratch files' docs/ORCHESTRATING.md"
 
 - id: T-108
   type: build
@@ -951,11 +738,6 @@
     iptables -F OUTPUT refused to the container user, the allowlist still applied after a
     restart, git resolving to the shim, and a host outside the allowlist unreachable; the
     README's first section says what runs on the host first and that commits are made inside.
-  done_when:
-    - run: test -f .devcontainer/devcontainer.json && test -f .devcontainer/LICENSE
-    - run: grep -qi 'commit inside' .devcontainer/README.md
-    - run: grep -q 'itos git-shim install' .devcontainer/Dockerfile && grep -q 'ITOS_CHECKSUMS_SHA256' .devcontainer/Dockerfile
-    - run: "! grep -q '/workspace/.devcontainer' .devcontainer/devcontainer.json"
 
 - id: T-109
   type: refactor
@@ -971,9 +753,6 @@
     decision record or a scenario is the reason to read further. The doc comments are refactor
     commits, the map docs commits. PLAN.md (138K to 33K when its decisions became records) shows the
     method works. The user's call, 2026-10-06.
-  done_when:
-    - run: test $(wc -c < docs/ARCHITECTURE.md) -le 40000
-    - run: test $(grep -c -E "slice [0-9]+|bug [0-9]+" docs/ARCHITECTURE.md) -le 10
 
 - id: T-110
   type: ci
@@ -988,9 +767,6 @@
     runs in the docs-only plan too (a docs-only push runs only vp check, config check and
     plugin-version today), since docs-only pushes are where the docs grow. Waits on T-109, whose cut
     the ARCHITECTURE cap needs.
-  done_when:
-    - run: grep -q doc-budget itos.yaml && go run ./tools/bin/doc-budget
-    - run: go test ./tools/bin/doc-budget -count=1
 
 - id: T-111
   type: ci
@@ -1003,9 +779,6 @@
     against the built itos, refusing one that exits 2 as unknown or whose --json lacks the key the
     plugin reads (items, tasks); a rename that breaks the plugin goes red on the push that makes it,
     not after a release. The list is read from the scripts, never kept by hand beside them.
-  done_when:
-    - run: grep -q plugin-calls itos.yaml && go run ./tools/bin/plugin-calls
-    - run: go test ./tools/bin/plugin-calls -count=1
 
 - id: T-112
   type: test
@@ -1017,8 +790,6 @@
     reads as a break. --additive compares the data alone; the runner's own run passes, and a case
     shows a changed comment passing and changed data failing. tools/itos/conformance is test's to
     touch, so a test task.
-  done_when:
-    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos
 
 - id: T-113
   type: test
@@ -1029,8 +800,6 @@
     is not contract, so they check almost nothing a release could break. Each pins its --json and
     the hook entries it leaves in the git config (hook.itos-commit-msg, hook.itos-pre-push), the
     data a consumer relies on.
-  done_when:
-    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos
 
 - id: T-114
   type: ci
@@ -1041,8 +810,6 @@
     newline before that clause, threw and turned the nightly red. The edit only needs a Go source
     under internal/ that a docs commit may not touch, so it appends a line to the file instead,
     which no later move of its comments can break.
-  done_when:
-    - run: node tools/selftest/gates.ts
 
 - id: T-115
   type: test
@@ -1055,8 +822,6 @@
     per scenario, the temp folder), then make those scenarios cheaper or run the suite in shards
     across jobs; never raise the timeout, which only moves the cliff. Was
     p1-windows-features-timeout.
-  done_when:
-    - run: go test ./features -count=1
 
 - id: T-116
   type: docs
@@ -1069,9 +834,6 @@
     problem, after checking the newest release and searching open and closed issues, commenting on a
     match only with something new. The implementing agent's guide says a problem itos causes goes in
     its report. The consumer-report form asks to confirm the search.
-  done_when:
-    - run: grep -q 'state all --search' internal/guide/coordinate.md
-    - run: grep -q 'searched' .github/ISSUE_TEMPLATE/consumer-report.yml
 
 - id: T-117
   type: ci
@@ -1084,9 +846,6 @@
     expectations are brought to T-106's rule (a feat naming a case excuses nothing; a breaking
     commit excuses only what Changes: names), never the program bent to the old ones, and
     itos.yaml's nightly runs it beside the other self-tests. Was p1-previous-release-selftest-red.
-  done_when:
-    - run: node tools/selftest/previous-release.ts
-    - run: grep -q selftest/previous-release itos.yaml
 
 - id: T-118
   type: ci
@@ -1105,12 +864,6 @@
     its unit tests), by running it on scratch histories. Lands after 6.x's last items; the module
     path's move to /v7 (T-089's rule: no v7 tag from a /v6 go.mod) comes with the first rc, after
     which main cuts no 6.x patch.
-  done_when:
-    - run: go test ./tools/bin/release-version -count=1
-    # In place of grep -q prerelease itos.yaml: decision 42 turns the marker on with the first v7
-    # work, after this task, so its presence proves nothing here. The rc notes are proven instead,
-    # as the rc numbering is above, by running the tools.
-    - run: go test ./tools/bin/release-notes -count=1
 
 - id: T-119
   type: refactor
@@ -1125,11 +878,6 @@
     not in itos.yaml, whose schema holds only keys itos reads, but in a file of the release tool's
     own, tools/bin/release-version/prerelease, holding rc. This task switches release-version (and its
     tests) from itos.yaml's release.prerelease to that file, then creates it.
-  done_when:
-    - run: grep -q 'module github.com/donvargax/itos/v7' go.mod
-    - run: "! git grep -q 'donvargax/itos/v6' -- ':!tasks/' ':!docs/decisions/' ':!tools/selftest/header-agreement.json'"
-    - run: go build ./...
-    - run: grep -qx rc tools/bin/release-version/prerelease
 
 - id: T-121
   type: test
@@ -1173,21 +921,6 @@
     T-121's checks pass only with it. The first check grepped covdata percent for internal/launch,
     which lists the package at 0.0% from the meta file alone, so it passed with no counters at
     all; it now asks for the launcher's fetch covered, as the split check does.
-  done_when:
-    - run: >-
-        d=$(mktemp -d) && GOCOVERDIR=$d go test ./features -count=1 -scenarios='^@ID-PIN-01$'
-        && go tool covdata func -i="$d"
-        | awk '$1 ~ /launch\/launch\.go/ && $2 == "fetch" && $3 != "0.0%" {f=1} END {exit !f}'
-    - run: >-
-        d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1
-        -scenarios='^@ID-(PIN-01|ASK-01)$' && test -z "$(find "$d" -maxdepth 1 -type f)"
-        && go tool covdata func -i="$d/ID-PIN-01"
-        | awk '$1 ~ /launch\/launch\.go/ && $2 == "fetch" && $3 != "0.0%" {f=1} END {exit !f}'
-        && go tool covdata func -i="$d/ID-ASK-01"
-        | awk '$1 ~ /launch\/launch\.go/ && $2 == "fetch" && $3 == "0.0%" {f=1} END {exit !f}'
-    - run: >-
-        d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1
-        -scenarios='^@ID-(PIN|UPDATE|SHIM|EXT|BIN|CMSG|PREPUSH|CLI)-[0-9]+$'
 
 - id: T-120
   type: ci
@@ -1234,8 +967,6 @@
     through internal/git, the scripts through the git it resolves or ITOS_GIT), not a second copy of
     it. Proven by running them with a link to the built itos first on the PATH as git, as T-104's
     check does.
-  done_when:
-    - run: sh -c 'd=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./tools/bin/... -count=1'
 
 - id: T-123
   type: ci
@@ -1251,8 +982,6 @@
     cuts 7.0.0-rc.1 with the marker and 7.0.0 without, a docs-only push still releases nothing. It
     lands before any feat or fix, so main never goes red waiting for slice-100's breaking change.
     Was p1-release-major-from-module-path.
-  done_when:
-    - run: go test ./tools/bin/release-version -count=1
 
 - id: T-124
   type: refactor
@@ -1271,8 +1000,6 @@
     start the program and wait, so the process exits and writes its counters itself. Proven by the
     coverage of one scenario reaching each site, each site's function covered in its own scenario's
     folder; it needs T-121's harness, and lands with it.
-  done_when:
-    - run: d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1 -scenarios='^@ID-(PIN-01|SHIM-05|EXT-01)$' && go tool covdata func -i="$d/ID-PIN-01" | awk '$1 ~ /launch\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}' && go tool covdata func -i="$d/ID-SHIM-05" | awk '$1 ~ /shim\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}' && go tool covdata func -i="$d/ID-EXT-01" | awk '$1 ~ /cli\/extension_unix\.go/ && $2 == "runProgram" && $3 != "0.0%" {f=1} END {exit !f}'
 
 - id: T-125
   type: ci

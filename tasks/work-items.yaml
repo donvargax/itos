@@ -1349,6 +1349,42 @@ items:
       fit a TypeScript CLI with no domain layer, whose scenarios and conformance corpus are
       already black-box integration tests.
 
+  - id: p1-fixtures-folder-unused
+    title: tools/itos/fixtures/ is unused, its only readers being checks T-125 dropped
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found doing T-125 (2026-10-08): the eight files under tools/itos/fixtures/ (a config per
+      case: typo, static-after-late, cycle, lax-refactor, command-adapter with its adapter script,
+      range-none, identity-none) were read by T-006's checks alone, each pointing ITOS_CONFIG at
+      one of them, and the corpus now holds those cases over a config of its own (config.yaml,
+      work.yaml, tasks.yaml, scopes.yaml, tests.yaml, range.yaml). Nothing reads the folder: no
+      step, no scenario, no self-test, no script. Either move a case that has no corpus home
+      there and run it, or delete the folder, and drop tools/itos/fixtures/** from commits.scopes
+      .test, which exists for it alone.
+    refs: [tools/itos/fixtures, itos.yaml]
+
+  - id: p1-tampered-fixture-unused
+    title: The tampered corpus fixture, which a dropped check ran and nothing runs now
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found doing T-125 (2026-10-08): tools/itos/conformance/fixtures/tampered.yaml holds six
+      cases copied from the corpus with one expectation changed each, so a runner that compared
+      nothing, or one field only, would pass it. It is outside the folder the runner reads
+      (tools/itos/conformance/*.yaml), so a whole-corpus run never sees it, and T-006's check that
+      ran it by --only and needed it to fail is one of the 187 T-125 dropped. Nothing proves the
+      runner's comparisons now but the cases it judges, so a comparison that stopped judging
+      something would go unseen. It wants a home: a case in the corpus whose fixture file names
+      what must fail, or a self-test beside the runner.
+    refs: [tools/itos/conformance/fixtures/tampered.yaml, tools/itos/conformance/run.ts]
+
   # ---- phase 2 ----------------------------------------------------------------
   - id: T-039
     title: The Go scaffold, held to the command line's corpus on every push
@@ -4818,10 +4854,11 @@ items:
       Found with bug-33 (2026-10-06). With an empty FROM the workflow's own itos verify "" HEAD
       fails: 17 commits after commits.since break path rules tightened since they landed
       (refactors and tests touching tools/bin or tools/selftest, a chore touching the hooks, a build
-      touching plugin.json), and T-017's done check, the same verify, is red at HEAD. The plan's plugin-version step then refuses an empty -range-from
-      (p3-plugin-release-tags). Since bug-33 such a run also plans 92 tasks and 178 task checks,
-      none of which it reaches. A green start within ci range's bound hides this; with none, every
-      run stays red until a person decides: waive the commits (p3-human-waiver), move commits.since,
+      touching plugin.json), which T-125's answer (2026-10-08) dropped with the rest of the done
+      tasks' checks, so nothing runs that verify any more. The plan's plugin-version step then
+      refuses an empty -range-from (p3-plugin-release-tags). A green start within ci range's bound
+      hides this; with none, every run stays red until a person decides: waive the commits
+      (p3-human-waiver), move commits.since,
       or let verify and plugin-version read an empty start differently.
     refs: [.github/workflows/ci.yml, tools/bin/plugin-version/main.go, tasks/phase-1.yaml]
 

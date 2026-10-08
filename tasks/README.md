@@ -113,10 +113,12 @@ One YAML file per phase (`tasks/phase-<n>.yaml`). A task is done when every
 check passes. Its checks are its progress while it is open: `tools/bin/itos
 work done <id>` runs the static ones before it closes the task, and the close
 commit takes its `done_when` out of the ledger, its `why` kept, the commit
-before the close still holding them (slice 101). A check meant to keep running
-once the task is closed belongs in `ci.steps` or `ci.nightly.steps`, not in a
-task. `tools/bin/itos task` reads a task with no checks as `done` when its work
-item is done, `review` otherwise. Add one with `tools/bin/itos task add <id> --group <n> --type
+before the close still holding them (slice 101; T-125 took out the tasks
+closed before it, and the nightly's step that reran them). A check meant to
+keep running once the task is closed belongs in `ci.steps` or
+`ci.nightly.steps`, not in a task. `tools/bin/itos task` reads a task with no
+checks as `done` when its work item is done, `review` otherwise. Add one with
+`tools/bin/itos task add <id> --group <n> --type
 <type> --title … --why … --check '<command>'` (`--check` once per check,
 `--timeout <seconds>` after one), which writes it at the end of its phase's
 file and its item into the work registry, and commits the two alone.
@@ -188,7 +190,7 @@ kind's `recognize` reads as a run of the features (`go test ./features
 `tools/bin/itos tests smoke run scenario`) joins CI's one run of them; a check that
 is one of `ci.steps`, or that `ci.covers` says a step has done (a run of some
 conformance files by `--only`, after the whole corpus), is skipped; and
-a check in `ci.nightly_only` (the gates self-test) is left out of the push; and
+a check in `ci.nightly_only` is left out of the push; and
 an `after: push` check is listed as pending and not run, since it means
 something only once the push has landed: `itos task` and `itos work done` run
 it. Every other check runs as it is, in cost order: the
@@ -199,14 +201,6 @@ run. CI stops at the first failure, a check's included, unless
 failure is the run's. A task named while
 its work item is still `todo` in `tasks/work-items.yaml` waits: nobody has
 started it, so its checks cannot pass yet.
-
-A done task's checks run every night too: the nightly's step
-`{ tasks: done, cost: static }` (`ci.nightly` in `itos.yaml`, T-035) runs the
-static checks of every task whose work item is `done` and still lists checks
-(one closed before slice 101; T-125 settles the step), each shared check once,
-so a change elsewhere that turns one red shows the next morning, naming the
-task. Its late checks still run only when a push names it. A task in progress
-is left out until it is marked `done`.
 
 A prose-only push (only the paths of `ci.prose.paths`) runs `ci.prose.steps`
 and, of the named tasks' checks, only the static ones and those marked

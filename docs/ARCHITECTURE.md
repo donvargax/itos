@@ -361,23 +361,25 @@ request's base, empty meaning run everything, and is written to the job's
 environment once, so the commit re-check and the plan read the same range.
 `itos verify` re-checks every commit of the range after `commits.since`. The
 workflow sets up Node, Vite+ and Go from `go.mod`, and builds itos once
-(`Build itos`) before any step calls it. Claude Code is installed only when
-the plan will run a check that starts with `claude`.
+(`Build itos`) before any step calls it, and installs actionlint, which the
+plan's own step runs. Claude Code is not installed: no step of a push's plan
+runs it, the nightly's plugin steps do.
 
 **The plan** (`itos ci plan <from> <to>` prints it, running nothing;
 `internal/plan`) is one sequence in cost order: the static steps of
 `ci.steps` and every named task check that is static (its `cost: static`,
 else a pattern of `ci.cost.static`); then the late steps (the dependency
-check, the schema contract, the unit suite, the audit, the corpus, the last
-release's suite); then one run of the features over the smoke set, the
-scenarios the `Scenarios:` footers name and the subsets of the tasks the
-`Task:` footers name; then the named tasks' late checks. A check a step has
-done is skipped (`ci.covers`), one in `ci.nightly_only` left out, one marked
-`after: push` listed as pending (`itos task` and `itos work done` run it),
-and a task whose item is still `todo` waits (`ci.wait_on_status`). It stops
-at the first failure unless `ci.stop_at_first_failure: false`. A range of only
-`ci.prose.paths` runs `ci.prose.steps` and the named tasks' static and
-`prose: true` checks, and no features.
+check, the schema contract, the unit suites, the audit, the corpus, the last
+release's suite, the gates' own self-tests); then one run of the features
+over the smoke set, the scenarios the `Scenarios:` footers name and the
+subsets of the tasks the `Task:` footers name; then the named tasks' late
+checks. A check a step has done is skipped (`ci.covers`), one in
+`ci.nightly_only` left out, one marked `after: push` listed as pending
+(`itos task` and `itos work done` run it), and a task whose item is still
+`todo` waits (`ci.wait_on_status`). It stops at the first failure unless
+`ci.stop_at_first_failure: false`. A range of only `ci.prose.paths` runs
+`ci.prose.steps` and the named tasks' static and `prose: true` checks, and no
+features.
 
 **The platform jobs** (`platform (<runner>)` on `ubuntu-latest`,
 `macos-latest` and `windows-latest`) build itos natively, stamped as
@@ -420,13 +422,14 @@ module they judge runs inside them, each documented in its `main.go`:
 **The nightly** (`.github/workflows/nightly.yml`, at 11:44 UTC on `main` or
 by hand) runs `itos ci run --nightly`: `ci.nightly.steps` in written order,
 here every feature, the gates' self-tests, the release build and the
-config's schema, then the static checks of every task whose item is done
-(the step `{ tasks: done, cost: static }`, one run per shared check), then
-the checks `ci.nightly_only` keeps out of pushes: the newest release's
-archive passes `gh attestation verify`, and the newest completed CI run on
-`main` passed its three platform jobs. A red run opens one `nightly-red`
-issue, or comments on the open one with the failing scenarios; a green run
-closes it.
+config's schema, then the steps T-125 kept from the done tasks' checks (what
+a push's features step selects, the build script's staleness rule, the
+upgrade asset, five runs with something hostile first on the PATH, two
+coverage runs and the plugin's Claude Code checks), then the newest release's
+archive passing `gh attestation verify` and the newest completed CI run on
+`main` having passed its three platform jobs. A red run opens one
+`nightly-red` issue, or comments on the open one with the failing scenarios; a
+green run closes it.
 
 **The self-tests** (`tools/selftest/`) prove the gates rather than the code,
 in scratch worktrees whose hooks run as git runs them (`scratch.ts`):

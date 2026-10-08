@@ -32,14 +32,6 @@
     when the set is empty, and each later group adds its part to that one
     list. The first three checks fail before the work: the path rules know no
     Go package yet.
-  done_when:
-    - run: tools/bin/itos commit check-paths --type feat cmd/itos/main.go internal/cli/cli.go
-    - fails: tools/bin/itos commit check-paths --type chore internal/cli/cli.go
-    - run: tools/bin/itos commit check-paths --type test internal/cli/cli_test.go
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/cli.yaml'
-      timeout: 600
-    - run: node tools/selftest/go-port.ts
-      timeout: 600
 
 - id: T-040
   type: build
@@ -62,9 +54,6 @@
     back with tar, unzip and sha256sum, and checks each binary's format and
     architecture from its header, since a wrong GOOS or GOARCH would still
     pack.
-  done_when:
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
 
 - id: T-041
   type: refactor
@@ -76,11 +65,6 @@
     selects whole files. tools/itos/conformance/help.yaml joins the ported
     set. Its first check fails before the work, since the scaffold leaves the
     help out.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/help.yaml'
-      timeout: 600
-    - run: node tools/selftest/go-port.ts
-      timeout: 600
 
 - id: T-042
   type: refactor
@@ -95,13 +79,6 @@
     --print-defaults. The corpus selects whole files, and config.yaml holds
     all of that, so it is one task; every later group reads its config
     through this loader, never a narrower one of its own.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/config.yaml'
-      timeout: 600
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-(CONFIG-1[2346]|LEDGER-0[12]|SINCE-0[4-7])$"'
-      timeout: 600
-    - run: node tools/selftest/go-port.ts
-      timeout: 900
 
 - id: T-043
   type: refactor
@@ -111,13 +88,6 @@
     after: push, timeouts, one run per check), the cost classes and written
     order, --phase/--group/--pending, and task list's statuses from the
     registry.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/tasks.yaml'
-      timeout: 600
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-(TASK-0[1-4]|LEDGER-0[34]|CONFIG-(01|18))$"'
-      timeout: 600
-    - run: node tools/selftest/go-port.ts
-      timeout: 900
 
 - id: T-044
   type: refactor
@@ -126,11 +96,6 @@
     PLAN.md §12: the glob function ported as written, pinned by the corpus's
     glob table; with the scope rules it is commit check-paths (step 3's first
     command), which no scenario runs, so the corpus alone judges it.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/globs.yaml tools/itos/conformance/scopes.yaml'
-      timeout: 600
-    - run: node tools/selftest/go-port.ts
-      timeout: 900
 
 # Steps 3 and 4 split by corpus file, since the runner selects whole files
 # and the files mix commands: moves.yaml runs the commit-msg hook in eight of
@@ -151,11 +116,6 @@
     problems with the footer rules run beside it. Reading the index and a
     commit is p2-go-source-trees, which internal/source lacks, so this task
     closes that item. No scenario runs check-message; the corpus judges it.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/messages.yaml'
-      timeout: 600
-    - run: node tools/selftest/go-port.ts
-      timeout: 900
 
 - id: T-046
   type: refactor
@@ -166,13 +126,6 @@
     JSON and its failures), and the smoke rule, the smoke IDs and the smoke
     run through the kind's run templates. Corpus: tests.yaml and smoke.yaml;
     scenarios: the three that run tests smoke check.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/tests.yaml tools/itos/conformance/smoke.yaml'
-      timeout: 600
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-CONFIG-(09|10|15)$"'
-      timeout: 600
-    - run: node tools/selftest/go-port.ts
-      timeout: 900
 
 - id: T-047
   type: refactor
@@ -185,13 +138,6 @@
     moves rule on HEAD and the index by hand. Corpus: verify.yaml (moves.yaml
     joins with the hook group); scenarios: the ones that run verify or tests
     moves.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/verify.yaml'
-      timeout: 600
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-(SINCE-0[1238]|FOOT-04|CONFIG-04|MOVES-0[56])$"'
-      timeout: 600
-    - run: node tools/selftest/go-port.ts
-      timeout: 900
 
 # Step 5: the plan and its driver, and where a push's range starts.
 
@@ -206,13 +152,6 @@
     shortcut (ci scope), the nightly's plan with its done-tasks step, and a
     missing ledger folder. Corpus: plans.yaml; scenario: the one that runs
     ci plan.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/plans.yaml'
-      timeout: 600
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-LEDGER-05$"'
-      timeout: 600
-    - run: node tools/selftest/go-port.ts
-      timeout: 900
 
 - id: T-049
   type: refactor
@@ -223,13 +162,6 @@
     with its own exit code, the merged run of named tests, the nightly's
     steps and its done-tasks step through T-043's check runner, and --json.
     Corpus: ci-run.yaml; scenarios: every one that runs ci run.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/ci-run.yaml'
-      timeout: 600
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-(BIN-0[1-3]|CI-0[1-7]|CONFIG-0[256]|LEDGER-06|NIGHTLY-0[1-4])$"'
-      timeout: 900
-    - run: node tools/selftest/go-port.ts
-      timeout: 900
 
 - id: T-050
   type: refactor
@@ -242,11 +174,6 @@
     never an error. GitLab and Forgejo, and the identity and people
     providers over HTTP, wait for p1-conformance-http, which gives them cases
     to be judged by. Corpus: range.yaml.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/range.yaml'
-      timeout: 600
-    - run: node tools/selftest/go-port.ts
-      timeout: 900
 
 # Steps 7 and 8: the work routing and the hooks. With the earlier tasks'
 # selections, theirs cover every live scenario, so after T-052 the ported
@@ -260,13 +187,6 @@
     provider, --as) and what they can start, what nobody owns, what waits and
     on what, ideas and deferred items apart; every problem work check finds.
     Corpus: work.yaml; scenarios: the ones that run work check.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/work.yaml'
-      timeout: 600
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-(CONFIG-(07|08|17)|WORK-0[1-4])$"'
-      timeout: 600
-    - run: node tools/selftest/go-port.ts
-      timeout: 900
 
 - id: T-052
   type: refactor
@@ -280,13 +200,6 @@
     hook, and hooks install's shims per manager. Corpus: hooks.yaml and
     moves.yaml; scenarios: every one that runs the commit-msg hook, and
     hooks install's.
-  done_when:
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && node tools/itos/conformance/run.ts --bin dist/go/itos --only tools/itos/conformance/hooks.yaml tools/itos/conformance/moves.yaml'
-      timeout: 600
-    - run: sh -c 'node tools/bin/build-go.ts dist/go && ITOS_BIN="$PWD/dist/go/itos" go test ./features -count=1 -scenarios="^@ID-(CDATA-0[1-5]|CMSG-0[1-4]|CTASK-0[1-5]|COST-0[1-3]|FOOT-0[1-35-6]|MOVES-0[1-4]|CONFIG-(03|11))$"'
-      timeout: 900
-    - run: node tools/selftest/go-port.ts
-      timeout: 900
 
 # The port's close: the ported set grown to everything, then v1.0.0, split so
 # the cheap pieces land apart (the user's calls, 2026-10-02: v1.0.0 publishes
@@ -306,9 +219,6 @@
     check passes before the change too (the whole suite already passes in
     Go); what it closes is the future file, which review of go-port.ts
     confirms.
-  done_when:
-    - run: node tools/selftest/go-port.ts
-      timeout: 1200
 
 - id: T-054
   type: build
@@ -330,9 +240,6 @@
     step with exactly one of run, tests and tasks) it leaves to config check,
     so a config it refuses is one config check refuses, which the check
     proves over the whole corpus. Closes p2-config-json-schema.
-  done_when:
-    - run: node tools/selftest/go-schema.ts
-      timeout: 600
 
 - id: T-055
   type: ci
@@ -343,10 +250,6 @@
     proves only archives it builds itself), and publishes them, checksums.txt
     and the schema beside the TypeScript tarball, which stays until phase 3
     switches the consumers. Closes p2-go-release-proves-its-archives.
-  done_when:
-    - run: actionlint
-    - run: sh -c 'd=$(mktemp -d) && node tools/bin/build-go.ts --release "$d" && node tools/selftest/go-release.ts --dir "$d"'
-      timeout: 900
 
 - id: T-056
   type: build
@@ -360,14 +263,6 @@
     for the user's review of the notes (docs/ORCHESTRATING.md's lesson).
     README.md's install gains the Go binary and the schema line for editors
     (closes p2-readme-go-install).
-  done_when:
-    # T-062: release.ts, the tarball's proof, left with the TypeScript; go-release.ts proves the release.
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/release-notes.ts 1.0.0
-      timeout: 300
-    - run: sh -c 'd=$(mktemp -d) && gh release download v1.0.0 --dir "$d" --pattern "itos-1.0.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
-      after: push
 
 - id: T-057
   type: ci
@@ -389,13 +284,6 @@
     itos-accepted never appears in a form, and no workflow triggered by an issue, comment or pull
     request event labels issues. Any other issue is listed apart, for the user. v1.0.0's
     Upgrading section tells consumers' sessions how to report.
-  done_when:
-    - run: actionlint
-    # inbox.ts judges trust from fixtures too (an issue by another login, a label applied by
-    # another login, a label applied by an allowed login), so the rule is proven offline
-    - run: node tools/bin/inbox.ts --self-test
-    - run: node tools/bin/inbox.ts
-      after: push # asks GitHub for the open issues; exit 0 with the trusted ones and the rest apart
 
 - id: T-058
   type: build
@@ -406,11 +294,3 @@
     pattern RE2 cannot compile. docs/releases/v1.1.0.md was started in slice
     24; this task finishes it, bumps the version and runs the release's
     proofs, and the tag waits for the user's review of the Upgrading section.
-  done_when:
-    # T-062: release.ts, the tarball's proof, left with the TypeScript; go-release.ts proves the release.
-    - run: node tools/selftest/go-release.ts
-      timeout: 900
-    - run: node tools/selftest/release-notes.ts 1.1.0
-      timeout: 300
-    - run: sh -c 'd=$(mktemp -d) && gh release download v1.1.0 --dir "$d" --pattern "itos-1.1.0-linux-amd64.tar.gz" --pattern checksums.txt && cd "$d" && sha256sum --ignore-missing -c checksums.txt'
-      after: push

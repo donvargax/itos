@@ -11,9 +11,6 @@
     below has something real to run. Here the TypeScript is itos itself, and a
     Go module (go.mod) carries the features' steps; the template's page and
     its build went in phase 1 (T-014).
-  done_when:
-    - run: go mod verify
-    - run: vp install
 
 - id: T-002
   type: build
@@ -21,8 +18,6 @@
   why: >
     Formatting, type-aware lint and type checking, repo-wide in CI and on the
     staged files before each commit.
-  done_when:
-    - run: vp check
 
 - id: T-003
   type: build
@@ -37,8 +32,6 @@
     run those a change reaches (tools/bin/go-unit-tests, T-059) and CI the
     whole suite, and with Vitest went the coverage, so the audit scores what
     is left (this repository's own tooling) by complexity alone.
-  done_when:
-    - run: go test ./cmd/... ./internal/...
 
 - id: T-004
   type: build
@@ -47,8 +40,6 @@
     No new dead code, unused exports or dependencies, no new duplication and no
     new complex, uncovered functions (fallow), on the files each commit adds or
     changes and over the whole tree in CI.
-  done_when:
-    - run: vp run audit
 
 - id: T-005
   type: build
@@ -60,10 +51,6 @@
     demo page; here they are the features at features/, run by godog against
     the itos binary (T-016), and the self-test reads go test's own record of
     what ran.
-  done_when:
-    - run: tools/bin/itos tests smoke check scenario
-    - run: tools/bin/itos tests smoke run scenario
-    - run: node tools/selftest/features-scope.ts
 
 - id: T-006
   type: build
@@ -74,19 +61,6 @@
     changes it without forking code. Its conformance suite states what it does
     as cases run through its command line; a tampered copy of the cases must
     fail, so the runner compares what it claims to.
-  done_when:
-    - run: tools/bin/itos config check
-    - fails: tools/bin/itos config check --ledger tools/itos/fixtures/static-after-late.yaml
-    - fails: tools/bin/itos work check tools/itos/fixtures/cycle.yaml
-    - fails: ITOS_CONFIG=tools/itos/fixtures/typo.yaml tools/bin/itos config check
-    - fails: tools/bin/itos task T-000
-    - run: ITOS_CONFIG=tools/itos/fixtures/lax-refactor.yaml tools/bin/itos commit check-paths --type refactor features/since.feature
-    - run: ITOS_CONFIG=tools/itos/fixtures/command-adapter.yaml tools/bin/itos tests list fixture --json
-    - run: sh -c 'test "$(ITOS_CONFIG=tools/itos/fixtures/range-none.yaml tools/bin/itos ci range --head HEAD)" = FROM='
-    - run: sh -c 'ITOS_CONFIG=tools/itos/fixtures/identity-none.yaml tools/bin/itos work --as donvargax | grep -q "Working for donvargax"'
-    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos
-    - fails: node tools/itos/conformance/run.ts --bin tools/bin/itos --only tools/itos/conformance/fixtures/tampered.yaml
-    - run: go test ./cmd/... ./internal/... # its unit tests, the Go packages' since T-062
 
 - id: T-007
   type: build
@@ -108,20 +82,6 @@
     as the hook does: since slice 10 the footer rules are itos's, not a
     commitlint plugin's, so commitlint alone no longer rejects a missing or
     unknown footer.
-  done_when:
-    - fails: "printf 'update things\\n' | tools/bin/itos commit check-message -"
-      cost: static
-    - run: "printf 'build: scaffold\\n\\nTask: T-001\\n' | tools/bin/itos commit check-message -"
-      cost: static
-    - fails: "printf 'build: scaffold\\n' | tools/bin/itos commit check-message -"
-      cost: static
-    - fails: "printf 'feat: x\\n\\nScenarios: @ID-NOPE-01\\n' | tools/bin/itos commit check-message -"
-      cost: static
-    - fails: tools/bin/itos commit check-paths --type refactor features/since.feature
-    - fails: tools/bin/itos commit check-paths --type build cmd/itos/main.go
-    - fails: tools/bin/itos commit check-paths --type chore cmd/itos/main.go
-    - run: tools/bin/itos commit check-paths --type docs README.md tasks/phase-0.yaml
-    - run: go test ./features -count=1 -scenarios='^@ID-CMSG-'
 
 - id: T-008
   type: ci
@@ -133,21 +93,6 @@
     one run of the features over the smoke set and what the range names, a prose-only
     shortcut. It re-checks every pushed commit with the commit-msg rules, so a
     commit made with the hooks bypassed fails CI.
-  done_when:
-    - run: actionlint
-    - run: node tools/selftest/ci-scope.ts
-    # The github provider's choice of run, ci-range.ts's until the TypeScript left (T-062).
-    - run: go test ./internal/providers -run '^TestFirstGreen$'
-      cost: static
-    # Since the release before HEAD, not the whole history: verify judges every
-    # commit by today's rules, and 1435336 (build: version 2.3.0) touched the
-    # plugin's manifest when a build commit still could. Each commit was judged
-    # by the rules of its day when it was pushed; p1-verify-data-per-commit is
-    # the fix that would let this check reach back again.
-    - run: tools/bin/itos verify "$(git describe --tags --abbrev=0 --match 'v*' HEAD^)" HEAD
-      cost: late
-    - fails: tools/bin/itos verify HEAD "$(git -c user.name=itos -c user.email=itos@example.invalid commit-tree 'HEAD^{tree}' -p HEAD -m 'update things')"
-    - run: vp run ci
 
 - id: T-009
   type: ci
@@ -160,11 +105,6 @@
     one), and a green one closes it. Since the TypeScript and its Vitest
     suite left (T-062), that the hooks run only the unit tests a change
     reaches is go-hooks.ts's, which the nightly runs beside gates.ts.
-  done_when:
-    - run: actionlint
-    - run: node tools/selftest/gates.ts
-    - run: node tools/selftest/go-hooks.ts
-      timeout: 900
 
 - id: T-010
   type: build
@@ -174,10 +114,6 @@
     type, each with its footers and its body, written on demand into an
     ignored folder; a filter prints the commits that name one task or one
     scenario.
-  done_when:
-    - run: vp run changelog
-    - run: sh -c 'test -s docs/changelog/CHANGELOG.md'
-    - run: vp run changelog -- --task T-010
 
 - id: T-011
   type: chore
@@ -187,9 +123,6 @@
     tool's AGPL-3.0 licence in its folder. This repository is the tool, so it
     is AGPL-3.0 as a whole (T-018). The check asks GitHub which licence it
     detects for the repository.
-  done_when:
-    - run: gh api 'repos/{owner}/{repo}/license' --jq .license.spdx_id | grep -qx AGPL-3.0
-      after: push
 
 - id: T-012
   type: docs
