@@ -141,3 +141,20 @@ Feature: The task runner runs each check once, and lists task status without run
     Then itos exits with code 0
     And its output lists "T-002" as "review"
     And its output does not say "T-001"
+
+  # Slice 102 (q-26, the comment above @ID-WORK-81 in work.feature): task
+  # add takes no id and mints the ledger's next by ledger.id, as task
+  # next-id prints it; an id given is a usage error, nothing written.
+  @ID-TASK-13 @slice-102 @wip
+  Scenario: task add mints the ledger's next task id and prints it
+    When itos runs the command line "task add --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    Then itos exits with code 0
+    And its output says "T-003"
+    And the ledger file "tasks/phase-1.yaml" has the task "T-003" with the check "true"
+    And the registry's item "T-003" is a task titled "Tidy the readme" with the status "todo"
+
+  @ID-TASK-14 @slice-102 @wip
+  Scenario: task add refuses an id, and writes nothing
+    When itos runs the command line "task add T-003 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    Then itos exits with code 2
+    And the ledger has no task "T-003"
