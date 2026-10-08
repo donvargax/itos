@@ -229,7 +229,7 @@ ci:
     # Re-run a deterministic sample of the mutation results for this range. The proof step below
     # refuses missing, stale, uncovered or surviving results; this independently checks that cached
     # outcomes still hold. Listed scenarios provide the same integration coverage as mutation run.
-    - { run: "tools/bin/pinned itos-cc mutation sample --since {base} --json", cost: late }
+    - { run: "tools/bin/pinned itos-cc mutation sample --since {from} --json", cost: late }
     # The one merged run; late, as no pattern matches it. Against the Go
     # binary, tools/bin/itos, the features' default ITOS_BIN.
     - { tests: scenario }
