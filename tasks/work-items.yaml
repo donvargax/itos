@@ -6141,3 +6141,17 @@ items:
       never touched. Harmless while work is sequential (only registry commits land between); it
       matters once items run in parallel (p1-pr-mode). Narrow the check to the item's commits, by
       passing the files they changed as paths or by a provider option.
+
+  - id: p1-proof-json-outcome
+    title: work done --json says whether the code proof ran, and on which base
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found building slice-100 (2026-10-08): work done's --json gives ci and run but nothing of the
+      code proof, so a script or a coordinator reading it cannot tell a close the proof judged from
+      one it never ran on (no proof.code, or commits that touch no code); only the close commit's
+      body and stderr say so. A key such as proof: passed|not-run with its base, added, would say
+      it.
