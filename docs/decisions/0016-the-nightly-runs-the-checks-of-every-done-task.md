@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by ADR-0043
 date: 2026-10-04
 ---
 
@@ -20,3 +20,7 @@ The options are those the question names.
 ### Consequences
 
 Done is the registry's status, not every status `ci.wait_on_status` lets through: a task in progress may be red until it lands, and `done` is what the commit-msg hook calls a red check a regression by.
+
+## More Information
+
+Superseded by ADR-0043.

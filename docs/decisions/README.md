@@ -19,7 +19,6 @@ file and leaves this list, which itos ask record writes.
 - [ADR-0013: The commit-msg hook runs, last, the checks of the tasks a commit names](0013-the-commit-msg-hook-runs-last-the-checks-of-the-tasks-a-commit-names.md)
 - [ADR-0014: A command pattern reads hooks.bin as itos](0014-a-command-pattern-reads-hooks-bin-as-itos.md)
 - [ADR-0015: itos task runs each distinct check once, and task list runs nothing](0015-itos-task-runs-each-distinct-check-once-and-task-list-runs-nothing.md)
-- [ADR-0016: The nightly runs the checks of every done task](0016-the-nightly-runs-the-checks-of-every-done-task.md)
 - [ADR-0017: The Go port's proof is its tasks' checks, landed as refactor commits](0017-the-go-port-s-proof-is-its-tasks-checks-landed-as-refactor-commits.md)
 - [ADR-0018: itos's version is the release's tag](0018-itos-s-version-is-the-release-s-tag.md)
 - [ADR-0019: v1.0.0 publishes the Go archives, checksums and the config's JSON Schema](0019-v1-0-0-publishes-the-go-archives-checksums-and-the-config-s-json-schema.md)
