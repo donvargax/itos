@@ -13,14 +13,6 @@
 # (docs/decisions/0024-a-global-itos-is-a-launcher-that-runs-the-version-a-repository-pins.md); a
 # repository with no pin runs the version installed. tools/bin/install-launcher does the work, so
 # other CI runs the same script.
-#
-# What the action resolves is cached under the runner's os and arch and that version (T-127), so a
-# push after the one that installed it fetches nothing: the version is resolved first, by the ref's
-# release tag or, for a ref naming none, by install-launcher --version-only reading the newest
-# release's checksums.txt, so a new release's push installs the new launcher rather than the one
-# cached under the old version. The cached directory holds the launcher install-launcher verified
-# against that release's checksums.txt, and the action writes it itself: install-launcher runs
-# only on a miss, so a cache entry is never taken on trust over a checksum.
 name: itos
 description: Install the itos launcher on the PATH; the repository's pin chooses the itos that runs.
 author: donvargax
@@ -38,8 +30,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Resolve the release
-      id: release
+    - name: Install itos
       shell: bash
       env:
         VERSION: ${{ inputs.version }}
@@ -53,39 +44,5 @@ runs:
             echo "::warning::itos: no release tag names the commit $REF; installing the newest release"
           fi
         fi
-        # A ref naming no release installs the newest, which only the newest release's own manifest
-        # says; the cache is keyed on it, so a new release's push fetches the new launcher.
-        if [ -z "$version" ]; then
-          version=$(sh "$GITHUB_ACTION_PATH/tools/bin/install-launcher" --version-only)
-        fi
-        echo "itos: installing itos $version"
-        echo "version=$version" >> "$GITHUB_OUTPUT"
-    - name: The cached launcher
-      id: cache
-      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-      with:
-        path: ${{ runner.temp }}/itos-bin
-        key: itos-launcher-${{ runner.os }}-${{ runner.arch }}-${{ steps.release.outputs.version }}
-    - name: Install itos
-      if: steps.cache.outputs.cache-hit != 'true'
-      shell: bash
-      env:
-        VERSION: ${{ steps.release.outputs.version }}
-      run: sh "$GITHUB_ACTION_PATH/tools/bin/install-launcher" "$RUNNER_TEMP/itos-bin" "$VERSION"
-    - name: Save the launcher
-      if: steps.cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
-      with:
-        path: ${{ runner.temp }}/itos-bin
-        key: itos-launcher-${{ runner.os }}-${{ runner.arch }}-${{ steps.release.outputs.version }}
-    # The launcher on the PATH, and runnable: a cached file's mode is not the one install-launcher
-    # gave it, and itos.exe on Windows runs either way.
-    - name: Put itos on the PATH
-      shell: bash
-      run: |
-        bin="$RUNNER_TEMP/itos-bin/itos"
-        if [ "$RUNNER_OS" = Windows ]; then
-          bin="$RUNNER_TEMP/itos-bin/itos.exe"
-        fi
-        chmod 755 "$bin"
+        sh "$GITHUB_ACTION_PATH/tools/bin/install-launcher" "$RUNNER_TEMP/itos-bin" ${version:+"$version"}
         echo "$RUNNER_TEMP/itos-bin" >> "$GITHUB_PATH"
