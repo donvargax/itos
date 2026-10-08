@@ -6155,3 +6155,16 @@ items:
       one it never ran on (no proof.code, or commits that touch no code); only the close commit's
       body and stderr say so. A key such as proof: passed|not-run with its base, added, would say
       it.
+
+  - id: p1-proof-check-timeout
+    title: proof.code.check runs under a timeout, a hung provider refusing with exit 75
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found building slice-100 (2026-10-08): work done runs proof.code.check with no timeout, so a
+      provider that hangs holds work done until someone kills it. itos-cc's mutation check runs
+      nothing slow, so a bound such as hooks.commit_msg.check_timeout's would cost nothing; past it
+      the check would be a temporary failure, never a pass.
