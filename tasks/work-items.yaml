@@ -6327,3 +6327,16 @@ items:
       that needs a green run runs anyway. Decide which it is and say so in the plan: judge from the
       root commit, fail the run, or list the proof as left out with the reason, the way a task not
       started is listed.
+
+  - id: p1-proof-status
+    title: itos status does not say a repository has a proof, or that a run judged one
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The code proof is a step of ci run now, so the head run itos status reports judged it, but
+      status never names proof.code: a reader cannot tell the repository measures its code at all,
+      nor whether the run it reports carried the proof, until a run is red over a mutant. Say what
+      the config holds and whether the run read it, as status says what it could not read.
