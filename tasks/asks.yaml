@@ -145,6 +145,7 @@ questions:
   - id: q-34
     item: "p3-guard-replacement"
     question: "Where should the required commit plan live? Recommended: a separate machine-readable per-item plan file, linked from the work registry and authored/validated by itos commands; private plans stay beside private itos data in stealth mode. ADR-0034 keeps the registry as an index, so an inline registry plan would change that separation. Alternatives: inline metadata in each task/feature specification, or plans inside the registry. Exact path and schema remain undecided. See docs/plans/guided-commits.md."
+    answer: "Use separate machine-readable per-item plan files linked from the registry and written/validated by itos. Preserve the registry as an index and keep stealth plans with private itos data. Exact schema and filenames remain open."
   - id: q-35
     item: "p3-guard-replacement"
     question: "Should a successful work take also activate the item as the local commit context? Recommended: activate automatically per checkout/worktree, offer explicit selection for resuming an already-taken item without changing registry status/owner, and clear after successful closure. Missing/stale context refuses commits; never infer from doing items. Alternatives: a separate selection after every take, or an explicit item ID on every commit without saved context. See docs/plans/guided-commits.md."
