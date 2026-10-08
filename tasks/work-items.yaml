@@ -6023,8 +6023,8 @@ items:
   - id: T-121
     title: The features build the itos under test with -cover when GOCOVERDIR is set, so its coverage reaches itos-cc
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
