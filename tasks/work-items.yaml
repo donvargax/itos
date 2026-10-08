@@ -6066,8 +6066,8 @@ items:
   - id: T-120
     title: This repository requires the code proof through itos-cc, with the features' coverage, and CI spot-checks it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-106]
     kind: task
     why: >
