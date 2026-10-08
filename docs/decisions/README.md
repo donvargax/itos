@@ -47,5 +47,6 @@ file and leaves this list, which itos ask record writes.
 - [ADR-0042: v7 is released as pre-releases while its bundle lands, the itos-cc integration first](0042-v7-is-released-as-pre-releases-while-its-bundle-lands-the-itos-cc-integration-first.md)
 - [ADR-0043: A task's proof is computed from its diff and its type, and its own checks are scaffolding](0043-a-task-s-proof-is-computed-from-its-diff-and-its-type-and-its-own-checks-are-scaffolding.md)
 - [ADR-0044: No coverage threshold: mutants judge the tests, and --fail-uncovered refuses untested changed code](0044-no-coverage-threshold-mutants-judge-the-tests-and-fail-uncovered-refuses-untested-changed-code.md)
+- [ADR-0045: Every id itos writes is minted, and the counter is claimed on the remote](0045-every-id-itos-writes-is-minted-and-the-counter-is-claimed-on-the-remote.md)
 
 <!-- itos:decisions:end -->
