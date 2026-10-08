@@ -14,9 +14,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: read # the newest release's assets and checksums.txt, which the plan's release step reads
   issues: write # the Nightly red issue
-  attestations: read # the newest release's, which the attestation step verifies
   actions: read # the newest completed CI run's platform jobs, which the last step reads
 
 # A group of its own: the nightly never cancels a push's run, nor is cancelled
@@ -62,8 +61,8 @@ jobs:
           bash "$RUNNER_TEMP/claude-install.sh" latest
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
           "$HOME/.local/bin/claude" --version
-      # The GitHub CLI, for the step that asks GitHub (that the newest release
-      # is attested, T-069) and the issue steps below. Pinned, from its
+      # The GitHub CLI, for the plan's last step, which reads the newest completed
+      # CI run's platform jobs, and the issue steps below. Pinned, from its
       # release tarball, checked against the release's SHA-256, so the runner
       # image's own copy, whatever its version, does not decide what runs.
       - name: GitHub CLI

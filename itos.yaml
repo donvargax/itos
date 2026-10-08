@@ -341,9 +341,14 @@ ci:
       # The plugin's own tests (T-066's, T-073's and T-097's checks, kept as a step in T-125):
       # hooks/register.test.ts and hooks/titles.test.ts. Nothing else runs them.
       - claude plugin test integrations/claude-code
-      # The newest release's linux-amd64 archive passes gh attestation verify (T-069): every release
-      # is attested by the workflow that built it. Last, as it asks GitHub.
-      - sh -c 'd=$(mktemp -d) && t=$(gh release view --json tagName --jq .tagName) && gh release download "$t" --dir "$d" --pattern "itos-*-linux-amd64.tar.gz" && gh attestation verify "$d"/itos-*-linux-amd64.tar.gz -R donvargax/itos'
+      # The newest release is available and intact, with no artifact downloaded (T-127): GitHub
+      # publishes a sha256 digest on every release asset, so one API call for the release's assets
+      # and checksums.txt (564 bytes) prove every asset the manifest names is there, not empty and
+      # on its digest, where before this step fetched the 4.5 MB linux-amd64 archive every night to
+      # verify one attestation. That attestation is verified where the bytes are, in the release
+      # job that uploads them (.github/workflows/release.yml), since gh attestation verify takes the
+      # file and never a digest. Last, as it asks GitHub.
+      - go run ./tools/bin/verify-release -repo donvargax/itos -manifest checksums.txt
       # The newest completed CI run on main passed on Linux, macOS and Windows (T-072): a push's own
       # run is still going when its plan runs, so the nightly reads the one before it.
       - sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'

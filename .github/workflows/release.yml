@@ -28,8 +28,9 @@ name: Release
 #   2. the tag, made locally only;
 #   3. GoReleaser (tools/bin/pinned, at the version pinned there) builds, packs and uploads a draft
 #      release whose target is this commit;
-#   4. the archives and the schema are attested (Sigstore, no keys; `gh attestation verify
-#      <file> -R donvargax/itos` checks one);
+#   4. the archives and the schema are attested (Sigstore, no keys), and the attestation is
+#      verified here on the archive just built, `gh attestation verify <file> -R donvargax/itos`,
+#      which takes a file and never a digest, so it belongs where the bytes are (T-127);
 #   5. the notes are generated (tools/bin/release-notes: git-cliff over the range, every
 #      Upgrading: and Changes: footer, the config's changes, the install lines and the pin filled
 #      from checksums.txt), and upgrading.json beside them (release-notes -json: the same
@@ -109,6 +110,27 @@ jobs:
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-checksums: dist/goreleaser/checksums.txt
+      # The attestation is verified here, where the bytes it signs are, on the archive just built
+      # and not on a copy fetched from GitHub (T-127): `gh attestation verify` takes the file or
+      # an image, never a digest, so the nightly used to download the newest release's 4.5 MB
+      # linux-amd64 archive every night to check the same thing, and the nightly now holds the
+      # release to its digests instead. Retried a few times, as the attestation takes a moment to
+      # be readable after the action writes it.
+      - name: Verify the attestation
+        if: steps.version.outputs.next != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEXT: ${{ steps.version.outputs.next }}
+        run: |
+          archive="dist/goreleaser/itos-$NEXT-linux-amd64.tar.gz"
+          for attempt in 1 2 3 4 5 6; do
+            if gh attestation verify "$archive" -R donvargax/itos; then
+              exit 0
+            fi
+            echo "attempt $attempt: the attestation is not readable yet"
+            sleep 10
+          done
+          exit 1
       - name: Notes
         if: steps.version.outputs.next != ''
         env:

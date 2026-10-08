@@ -11,6 +11,10 @@
 # no version it installs the newest, read from the archive names <base>/latest/download/
 # checksums.txt lists. Anything missing or not matching fails, non-zero, and installs nothing.
 #
+# install-launcher --version-only [<version>] prints the version it would install, the one given
+# or the newest, and installs nothing (T-127): action.yml's cache is keyed on the version, and a
+# ref naming no release installs the newest, which is known only by asking the same checksums.txt.
+#
 # POSIX sh, curl, tar or unzip, and sha256sum or shasum: what a Linux, macOS or Windows (Git
 # Bash) runner carries. action.yml at the repository's top runs it for GitHub Actions.
 set -eu
@@ -20,24 +24,27 @@ die() {
 	exit 1
 }
 
-[ $# -ge 1 ] && [ $# -le 2 ] && [ -n "$1" ] || {
+usage() {
 	echo "usage: install-launcher <dir> [<version>]" >&2
+	echo "       install-launcher --version-only [<version>]" >&2
 	exit 2
 }
-dir=$1
-version=${2:-}
+
+only=
+if [ "${1:-}" = --version-only ]; then
+	[ $# -le 2 ] || usage
+	only=1
+	shift
+	dir=
+else
+	[ $# -ge 1 ] && [ $# -le 2 ] && [ -n "$1" ] || usage
+	dir=$1
+	shift
+fi
+version=${1:-}
 version=${version#v}
 base=${ITOS_RELEASES:-https://github.com/donvargax/itos/releases}
 base=${base%/}
-
-case "$(uname -s)-$(uname -m)" in
-Linux-x86_64 | Linux-amd64) platform=linux-amd64 ;;
-Linux-aarch64 | Linux-arm64) platform=linux-arm64 ;;
-Darwin-x86_64) platform=darwin-amd64 ;;
-Darwin-arm64) platform=darwin-arm64 ;;
-MINGW*-x86_64 | MSYS*-x86_64) platform=windows-amd64 ;;
-*) die "no itos archive for $(uname -s)-$(uname -m)" ;;
-esac
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -65,6 +72,20 @@ if [ -z "$version" ]; then
 	version=$(version_of "$tmp/latest.txt")
 	[ -n "$version" ] || die "$base/latest/download/checksums.txt names no itos archive"
 fi
+
+if [ -n "$only" ]; then
+	printf '%s\n' "$version"
+	exit 0
+fi
+
+case "$(uname -s)-$(uname -m)" in
+Linux-x86_64 | Linux-amd64) platform=linux-amd64 ;;
+Linux-aarch64 | Linux-arm64) platform=linux-arm64 ;;
+Darwin-x86_64) platform=darwin-amd64 ;;
+Darwin-arm64) platform=darwin-arm64 ;;
+MINGW*-x86_64 | MSYS*-x86_64) platform=windows-amd64 ;;
+*) die "no itos archive for $(uname -s)-$(uname -m)" ;;
+esac
 
 case "$platform" in
 windows-*) archive="itos-$version-$platform.zip" bin=itos.exe ;;
