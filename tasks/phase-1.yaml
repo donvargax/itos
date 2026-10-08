@@ -1143,8 +1143,41 @@
     runs that is itos's own code) with go build -cover, and runs it with GOCOVERDIR passed through;
     when it is not set, nothing changes. Proven by a run with GOCOVERDIR set leaving coverage data
     that go tool covdata reads, covering a function only a feature reaches.
+
+    Widened 2026-10-08 for itos-cc v0.5.0, which closed #14 with listed tests: each mutant runs only
+    the scenarios whose coverage reaches its line, so itos-cc needs coverage per scenario. It runs
+    every listed test once with ITOS_CC_TEST_COVERDIR set to a folder of its own (go test passes
+    that variable to the test binary unchanged, as it does not GOCOVERDIR), and a harness that
+    gives every process a scenario starts GOCOVERDIR=<that folder>/<the scenario's ID> splits the
+    coverage in one run; one that does not makes itos-cc run each of about 500 scenarios alone. So
+    when ITOS_CC_TEST_COVERDIR is set, the harness builds the itos under test with -cover too, and
+    each scenario's commands run with GOCOVERDIR at <ITOS_CC_TEST_COVERDIR>/<its @ID tag without
+    the @>, a folder that exists before the first command runs; it wins over a GOCOVERDIR also set.
+    The cover build is stamped and linked as tools/bin/itos builds itos, and lives apart from
+    .tools/bin/itos. Traps: w.env() drops every ITOS_ variable from the commands' environment, so
+    the harness reads ITOS_CC_TEST_COVERDIR itself; a -cover binary whose GOCOVERDIR is missing
+    writes a warning to stderr, which breaks every scenario that reads itos's output, so the
+    variable must reach every itos a scenario starts (git hooks, the git shim, the launcher's
+    child, extensions told $ITOS_BIN). tools/bin/itos is a gate a test commit may not touch.
+
+    The checks: one scenario's coverage with GOCOVERDIR (the original); the split, where the
+    launcher's fetch is covered in the folder of the scenario that fetches a pinned release
+    (ID-PIN-01) and not in that of one that does not (ID-ASK-01), with nothing written at the top;
+    and the scenarios most likely to break under -cover (the launcher, the shim, extensions, the
+    hooks, exact help output) passing with ITOS_CC_TEST_COVERDIR set. The user's call (2026-10-08):
+    a targeted set, not every feature, to keep the check light on the machine running it.
   done_when:
     - run: d=$(mktemp -d) && GOCOVERDIR=$d go test ./features -count=1 -scenarios=^@ID-PIN-01$ && go tool covdata percent -i=$d | grep -q internal/launch
+    - run: >-
+        d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1
+        -scenarios='^@ID-(PIN-01|ASK-01)$' && test -z "$(find "$d" -maxdepth 1 -type f)"
+        && go tool covdata func -i="$d/ID-PIN-01"
+        | awk '$1 ~ /launch\/launch\.go/ && $2 == "fetch" && $3 != "0.0%" {f=1} END {exit !f}'
+        && go tool covdata func -i="$d/ID-ASK-01"
+        | awk '$1 ~ /launch\/launch\.go/ && $2 == "fetch" && $3 == "0.0%" {f=1} END {exit !f}'
+    - run: >-
+        d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1
+        -scenarios='^@ID-(PIN|UPDATE|SHIM|EXT|BIN|CMSG|PREPUSH|CLI)-[0-9]+$'
 
 - id: T-120
   type: ci
@@ -1160,11 +1193,20 @@
     before work done. No interim without coverage. Equivalent mutants go in itos-cc.yaml with their
     reasons, for the person to review.
 
-    What it takes (found 2026-10-07): itos-cc v0.4.0 is the first release carrying #14 (cut
-    2026-10-07); tools/bin/pinned knows only goreleaser and git-cliff, so this task teaches it
-    itos-cc (its version and per-platform hashes, from the release's checksums.txt), and pinned
-    takes no version younger than 7 days (T-067), so v0.4.0 can be pinned from 2026-10-14. It also
-    waits on T-121 and on slice-100, held by the user for an itos-cc issue with e2e tests and coverage.
+    What it takes (found 2026-10-07, corrected 2026-10-08): itos-cc v0.5.0 is the first release
+    carrying all of #14. v0.4.0 has only one GOCOVERDIR for the whole run, so every mutant would
+    run every feature (--all-tests, about 3 minutes each); v0.5.0 adds listed tests, each mutant
+    running only the scenarios that reach its line. tools/bin/pinned knows only goreleaser and
+    git-cliff, so this task teaches it itos-cc (its version and per-platform hashes, from the
+    release's checksums.txt), and pinned takes no version younger than 7 days (T-067), so v0.5.0
+    (published 2026-10-08 00:16 UTC) can be pinned from 2026-10-15. itos-cc.yaml lists the
+    scenarios under mutation.tests: list prints one test a line, its ID, a tab and its file from
+    the root, live scenarios only, which itos tests list scenario does not (two spaces, a file
+    under features/, @wip ones too), so the list command reshapes it (its --json through a small
+    script, or awk); run is go test ./features -count=1 -scenarios='{pattern}', ids_pattern
+    '^@(?:{ids})$', join each '{id}' with '|', whole go test ./features -count=1, and support the
+    harness (features/*_test.go, features/testdata/**). It also waits on T-121 and on slice-100,
+    held by the user for an itos-cc issue with e2e tests and coverage.
   done_when:
     - run: grep -q "proof:" itos.yaml
     - run: grep -q "mutation sample" itos.yaml
