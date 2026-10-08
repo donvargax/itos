@@ -6167,7 +6167,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-101]
     kind: task
     why: >
       Slice 101 makes work done remove a task's checks from the ledger when it closes it
