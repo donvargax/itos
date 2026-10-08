@@ -402,6 +402,7 @@ CI runs its plan, `itos ci run`, on every push, in this order, stopping at the f
 - `node tools/selftest/deps-check.ts`
 - `node tools/selftest/schema-contract.ts`
 - `node tools/selftest/plugin-version.ts`
+- `tools/bin/pinned itos-cc mutation sample --since {base} --json`
 - The `scenario` tests of the smoke set and those the push's commits name, in one run.
 - The other checks of the tasks the push's commits name.
 

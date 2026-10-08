@@ -91,6 +91,9 @@ work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the
   since the notes quote it. Never "none; …" followed by text: it reads as none.
 - **The neighbours:** "Before pushing, run `go test ./features -count=1
 -scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.
+- **For Go code:** before pushing, run `tools/bin/pinned itos-cc mutation run
+--since <base> --fail-uncovered`. The features' integration coverage is
+  collected by the harness; commit the results so CI can check and sample them.
 - **The files:** the item's `refs` and the feature files its scenarios are
   tagged in (`itos work show <id>`), as the places to read first and the scope
   of the searches, each package's `doc.go` before its code. Where to start, never

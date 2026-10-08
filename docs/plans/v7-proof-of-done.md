@@ -136,12 +136,12 @@ anything).
      config.feature, against itos-cc v0.5.0's machine contract. It lands with its help text, a
      README section on `proof`, docs/ARCHITECTURE.md's line and the package docs. Its feat cuts
      v7.0.0-rc.1.
-   - **T-120**: this repository turns the proof on. It needs itos-cc **v0.5.0** (v0.4.0 has no
-     listed tests, so every mutant would run every feature), pinned through `tools/bin/pinned`,
-     which T-120 teaches itos-cc; `pinned` takes no version younger than 7 days (T-067), so **not
-     before 2026-10-15**. `itos-cc.yaml` lists the scenarios under `mutation.tests`; CI gains
-     `mutation sample` over the pushed range; the coordinator's notes tell agents to run
-     `itos-cc mutation run --since <base> --fail-uncovered` before `work done`.
+   - **T-120**: this repository turns the proof on with itos-cc **v0.5.0**, the first release with
+     listed tests, pinned through `tools/bin/pinned` and verified against its release checksums.
+     ADR-0046 exempts this tool we build from the 7-day dependency age rule. `itos-cc.yaml` lists
+     live scenarios under `mutation.tests`; CI samples cached results over the pushed range, and
+     the coordinator's notes tell agents to run `tools/bin/pinned itos-cc mutation run --since
+     <base> --fail-uncovered` before pushing.
 4. **Then the rest of the bundle**, each a further rc: slice-101 (a task's checks expire at
    done), the standing rules, debt and claims, exit codes, the hook-skipping refusal, config
    tightening, slice-95, rule 22, dropping compatibility code.
@@ -155,8 +155,8 @@ anything).
 - **T-126 done** (issue #23, a build change, so it ships with the next release): the GitHub action
   installs the launcher of the release its ref names, a pre-release tag or a release's commit
   included (`tools/bin/action-version`). Nothing tests that script now (`p1-action-version-tested`).
-- **slice-106, first in the queue:** the code proof in CI (above). T-120 waits on it as well as on
-  its 2026-10-15 date.
+- **slice-106, first in the queue:** the code proof in CI (above). T-120 follows it to enable the
+  proof in this repository.
 - **T-125, waiting on q-28:** its agent listed every done task's check, keep 21 as 20 standing steps
   and drop 187; nothing is removed until the person answers. Then phase two builds the answered
   list (the agent resumed with it).
