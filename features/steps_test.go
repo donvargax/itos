@@ -116,6 +116,7 @@ type scratchConfig struct {
 	pin               *[2]string      // pin.version and pin.checksums
 	schemaLine        string          // the config's first line, a yaml-language-server schema line, when set
 	comments          []string        // comment lines written after the pin's line
+	proof             *proofConfig    // proof.code (proof_test.go)
 	settings          []setting
 }
 
@@ -353,6 +354,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeRangeSteps(sc, w)
 	initializeMovesCommandSteps(sc, w)
 	initializeDraftSteps(sc, w)
+	initializeProofSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
@@ -871,6 +873,7 @@ func (w *world) writeConfig() error {
 			fmt.Fprintf(&b, "    check_timeout: %d\n", w.config.checkTimeout)
 		}
 	}
+	b.WriteString(w.proofSection())
 	for _, s := range w.config.settings {
 		path := strings.Split(s.key, ".")
 		if path[0] == "ledger" || path[0] == "commits" || path[0] == "ci" || path[0] == "work" && len(path) >= 2 && !w.config.noWork {
