@@ -118,10 +118,11 @@ closed before it, and the nightly's step that reran them). A check meant to
 keep running once the task is closed belongs in `ci.steps` or
 `ci.nightly.steps`, not in a task. `tools/bin/itos task` reads a task with no
 checks as `done` when its work item is done, `review` otherwise. Add one with
-`tools/bin/itos task add <id> --group <n> --type
+`tools/bin/itos task add --group <n> --type
 <type> --title … --why … --check '<command>'` (`--check` once per check,
-`--timeout <seconds>` after one), which writes it at the end of its phase's
-file and its item into the work registry, and commits the two alone.
+`--timeout <seconds>` after one) mints the ledger's next ID, writes it at the
+end of its phase's file and adds its item to the work registry, committing
+the two alone. A supplied positional ID is a usage error.
 
 ```yaml
 - id: T-008

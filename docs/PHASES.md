@@ -43,11 +43,11 @@ nothing `done` that waits on something open). A session takes an item with
 doing`, committed alone), closes it with `tools/bin/itos work done <id>` once
 it has landed (no `@wip` scenario of it left, its commits pushed, its CI run
 green), and adds the items a slice discovers with their dependencies with
-`tools/bin/itos work add <id> --title … --why …` (an idea unless `--kind`
-says otherwise), changing one's title, dependencies or refs, or adding a note
+`tools/bin/itos work add <idea-id> --title … --why …` adds an idea; `--kind
+slice|task` mints the numbered ID. Change an item's title, dependencies or refs, or add a note
 to its why, with `tools/bin/itos work edit <id>`. A task is added with
-`tools/bin/itos task add <id>`, which writes it into its phase's ledger file
-and its item into the registry in one commit.
+`tools/bin/itos task add`, which mints the ledger's next ID and writes the task
+into its phase's ledger file and its item into the registry in one commit.
 
 The registry is the one list of open work: no TODO or ROADMAP file sits beside
 it. A gap a slice leaves is added as a `kind: idea` item — a title, a short

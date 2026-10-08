@@ -39,7 +39,7 @@ is not yours: run `itos guide work` and follow that one.
    in the registry, never proposed again.
 2. **Specify it** if it is not yet: `@wip` scenarios for a behaviour, or a
    task with checks for anything else. An idea becomes work with
-   `itos work promote <idea> --id <id> --kind slice|task`, and
+   `itos work promote <idea> --kind slice|task` (itos mints the ID), and
    `--title <title>` when what it has become is no longer what its title
    says. Leave it `todo`: the agent takes it with `itos work take`.
 3. **Hand it to one implementing agent** with the brief below.

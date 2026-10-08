@@ -42,8 +42,8 @@ it, and the instructions then point to the check instead of restating it.
   implementer's guide, instead; no file asks an agent to judge which it is.
 - **A ledger of tasks with executable checks** (`tasks/`): `itos task <id>`
   runs a task's `done_when` commands and says done, pending or failing, and
-  `itos task add <id>` writes a new one into its group's file and its item
-  into the work registry, committing the two alone.
+  `itos task add` mints the next ledger ID, writes the task into its group's
+  file and its item into the work registry, committing the two alone.
 - **Commit rules**: Conventional Commits; each `feat` or `fix` names the
   scenarios it turns green (`Scenarios: @ID-…`), every other type the task it
   belongs to (`Task: T-…`), and each type may touch only certain paths.
@@ -85,10 +85,10 @@ list` lists every item with its title, done ones too, and `itos work show
 <id>` one item with its scenarios and the commits that belong to it, by
   their footers, `--patch` adding their diffs. `itos work take <id>`
   sets an item in progress for the person, `itos work promote <idea>` makes
-  an idea a slice or a task, `itos work done <id>` marks an item done once
+  an idea a slice or a task with a minted ID, `itos work done <id>` marks an item done once
   it has landed (its scenarios live, its commits pushed, its CI run green),
-  and `itos work add <id>` and `itos work edit <id>` make an item and change
-  one, each editing the registry in place and committing it alone; closing a
+  and `itos work add <idea-id>` makes an idea (slices and tasks are minted)
+  and `itos work edit <id>` changes one, each editing the registry in place and committing it alone; closing a
   task with checks, `work done` takes them out of its ledger entry in the same
   commit.
 - **Decisions waiting on the person**: `itos decision add <text> [--item <id>]`
