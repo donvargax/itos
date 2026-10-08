@@ -442,9 +442,9 @@ an uncovered or a missing result naming each problem the check's `--json`
 lists (`{"schema":1,"ok":false,"problems":[{"rule","message","fix",…}]}`, the
 contract of [itos-cc](https://github.com/donvargax/itos-cc)) by its rule and
 message, and a check that cannot run failing the run too, so the release job
-that needs a green run never runs. Nothing at the close closes past it: a
-mutant that is truly equivalent is excepted in `itos-cc.yaml` with its
-reason, for the person to review.
+that needs a green run never runs. Nothing passes over that: a mutant that is
+truly equivalent is excepted in `itos-cc.yaml` with its reason, for the
+person to review, and nothing else is.
 
 Recording the results is the author's, before the push: the check reads what
 a run of the provider recorded and runs no tests of its own, so the range's
