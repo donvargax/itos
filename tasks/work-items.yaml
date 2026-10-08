@@ -5999,7 +5999,7 @@ items:
     kind: task
 
   - id: slice-101
-    title: work done removes a task's checks when it closes it, and the nightly reruns no done task's checks
+    title: work done removes a task's checks when it closes it, and itos task reads a done task with none as done
     phase: 1
     owner: donvargax
     status: todo
