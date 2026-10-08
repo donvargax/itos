@@ -119,3 +119,25 @@ Feature: The task runner runs each check once, and lists task status without run
     And the registry has no item "T-003"
     And the ledger has no task "T-003"
     And git reports no change to the working tree or the index
+
+  # Slice 101: work done takes a task's checks out of the ledger when it
+  # closes the task (@ID-WORK-80), so a done task has none, and itos task
+  # reads a task with no checks by its work item: done when the item is
+  # done, review otherwise (no item, or one not done), as before. A done
+  # task that still has checks, closed before slice 101, runs them as
+  # before. --pending leaves out the done ones, as it leaves out every task
+  # it calls done.
+  @ID-TASK-11 @slice-101 @wip
+  Scenario: itos task reads a task with no checks whose work item is done as done
+    Given the work registry has the item "T-001" with the status "done" and the item "T-002" with the status "doing"
+    When itos runs the task "T-001"
+    Then itos exits with code 0
+    And its output lists "T-001" as "done"
+
+  @ID-TASK-12 @slice-101 @wip
+  Scenario: task --pending leaves out a done task with no checks, and lists one in progress with none as review
+    Given the work registry has the item "T-001" with the status "done" and the item "T-002" with the status "doing"
+    When itos runs the pending tasks
+    Then itos exits with code 0
+    And its output lists "T-002" as "review"
+    And its output does not say "T-001"

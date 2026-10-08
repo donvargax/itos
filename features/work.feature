@@ -906,3 +906,29 @@ Feature: The work registry
     When itos runs "work done slice-9"
     Then itos exits with code 3
     And the registry's item "slice-9" has the status "doing" and the owner "someone"
+
+  # Slice 101 (docs/plans/v7-proof-of-done.md, the rule): a task's checks are
+  # the agent's progress while the task is open. work done runs them, as it
+  # does since slice 53, and once it closes the task they leave the ledger,
+  # in the close commit itself: the commit touches the ledger file and the
+  # registry, and its body says the checks were removed and that the commit
+  # before it still holds them. Nothing reruns a done task's checks; git's
+  # history keeps them. The task's why, its spec, stays in its entry. A task
+  # with no checks closes as before, the ledger untouched. Under a stealth
+  # config the ledger is written beside the registry and nothing committed.
+  # The checks are committed before the clone, so the remote has them and
+  # work done finds nothing unpushed.
+  @ID-WORK-80 @slice-101 @wip
+  Scenario: work done removes the checks of the task it closes from the ledger, in the close commit
+    Given the task "T-001" has the committed check "true"
+    And the ledger's task "T-001" has the why "The ledger says why."
+    And a clone of it, where itos runs
+    And the work registry has the item "T-001" owned by "someone" with the status "doing"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    When itos runs "work done T-001"
+    Then itos exits with code 0
+    And the registry's item "T-001" has the status "done" and the owner "someone"
+    And the ledger's task "T-001" has no checks and the why "The ledger says why."
+    And the last commit's header is "docs: close T-001"
+    And the last commit touches only "tasks/phase-1.yaml" and "tasks/work-items.yaml"
