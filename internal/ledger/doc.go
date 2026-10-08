@@ -25,5 +25,8 @@
 // written in the ledger's own order (id, type, title, why, done_when; a
 // check's run, then timeout), appended with value.Doc's Append to the
 // document's top list, its checks a block list below done_when (BlockItem
-// writes a file's first task).
+// writes a file's first task). WithoutChecks is the ledger with a task's
+// done_when cut, in place with value.Doc's Drop, for itos work done (slice
+// 101): a task's checks gate its close, then leave the ledger, its why
+// staying and git's history keeping them.
 package ledger

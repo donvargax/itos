@@ -166,6 +166,9 @@ What a reader needs before touching any package:
 - **The registry is written by commands, never by hand**, each committing its
   own change alone as a `docs` commit with no footer; under a stealth config
   nothing is committed and the lock (`internal/lock`) orders writers instead.
+  `work done` closing a task with checks commits the task's ledger file with
+  the registry, its `done_when` taken out (`ledger.WithoutChecks`): a task's
+  checks gate its close, then leave the ledger, git's history keeping them.
 - **The stealth mode** (one person's itos in a repository that does not use
   it) is known to few places: the config's location and defaults, the source
   (a path in the git folder is read from the file), the footer rules (links

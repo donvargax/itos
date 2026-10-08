@@ -202,7 +202,9 @@ type written struct {
 // a git that cannot start or a commit a hook refuses, puts every file back
 // as it was, file and index, a new one removed (restore); a refusal exits 1,
 // the rest are errors. work's commands write the registry alone
-// (writeRegistry), task add a ledger file and the registry (slice 55),
+// (writeRegistry), but for work done closing a task with checks, which
+// writes the registry and the task's ledger file (slice 101), task add a
+// ledger file and the registry (slice 55),
 // decision the questions alone (slice 62), decision record the questions, a decision
 // record, the one it supersedes and their index (slice 69).
 func writeCommitted(cfg *config.Loaded, files []written, header, body string, o Out) (string, int, error) {

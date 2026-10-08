@@ -1140,6 +1140,42 @@ cases:
       - "itos: ci.watch.provider is none, so CI was not checked"
     files_after:
       work-items.yaml: "# who does what\nphases: { 1: null }\nitems:\n  - id: x # the first\n    title: \"X, quoted\"\n    phase: 1\n    owner: null\n    status: done\n    depends_on: []\n"
+  # Slice 101: closing a task with checks, the close commit takes its
+  # done_when out of its ledger entry, edited in place: its why, every other
+  # line and comment, and the file's CRLF line breaks kept.
+  - name: work done of a task with checks takes them out of its ledger entry in the close commit
+    argv: [work, done, T-1]
+    git:
+      - commit: "docs: start"
+        files:
+          itos.yaml: &ledgered "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\nwork:\n  registry: work-items.yaml\n  people: { source: yaml, file: people.yaml }\n"
+          work-items.yaml: &closableTask "phases: { 1: null }\nitems:\n  - { id: T-1, title: One, phase: 1, owner: null, status: doing, depends_on: [] }\n"
+          tasks/phase-1.yaml: &checked "# phase 1\r\n- id: T-1\r\n  type: docs\r\n  title: One\r\n  why: The ledger says why.\r\n  done_when:\r\n    - run: \"true\" # passes\r\n  # kept\r\n- id: T-2\r\n  type: docs\r\n  title: Two\r\n  done_when:\r\n    - run: \"true\"\r\n"
+    files:
+      itos.yaml: *ledgered
+      work-items.yaml: *closableTask
+      tasks/phase-1.yaml: *checked
+    exit: 0
+    stdout_has: " docs: close T-1; its checks are out of tasks/phase-1.yaml\n"
+    files_after:
+      work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-1, title: One, phase: 1, owner: null, status: done, depends_on: [] }\n"
+      tasks/phase-1.yaml: "# phase 1\r\n- id: T-1\r\n  type: docs\r\n  title: One\r\n  why: The ledger says why.\r\n  # kept\r\n- id: T-2\r\n  type: docs\r\n  title: Two\r\n  done_when:\r\n    - run: \"true\"\r\n"
+  - name: work done of a task with no checks leaves its ledger as it is
+    argv: [work, done, T-1]
+    git:
+      - commit: "docs: start"
+        files:
+          itos.yaml: *ledgered
+          work-items.yaml: *closableTask
+          tasks/phase-1.yaml: &unchecked "- { id: T-1, type: docs, title: One, why: Reviewed. }\n"
+    files:
+      itos.yaml: *ledgered
+      work-items.yaml: *closableTask
+      tasks/phase-1.yaml: *unchecked
+    exit: 0
+    stdout_has: " docs: close T-1\n"
+    files_after:
+      tasks/phase-1.yaml: *unchecked
   - name: work done refuses an item one of whose scenarios at HEAD is still @wip
     argv: [work, done, x, --json]
     git:

@@ -168,9 +168,11 @@ ledger.group.label (phase by default).
 
 Runs each task's done_when checks in written order: verbose (each command and
 its output) for one task, then one status line per task: done, pending (a check
-waits on the push), failing or review (no checks). --pending shows the tasks
-not done. A check that more than one task lists (the same command and timeout)
-runs once, and each task reads its exit status by its own run: or fails:.
+waits on the push), failing or review. A task with no checks is done when its
+work item in the work registry is done (work done takes a closed task's checks
+out of the ledger), review otherwise. --pending shows the tasks not done. A
+check that more than one task lists (the same command and timeout) runs once,
+and each task reads its exit status by its own run: or fails:.
 Exit 1 when a check fails or an ID is not in the ledger, 2 when nothing matches.
 
 --json: {"schema":1,"tasks":[{"id","type","title","group","status","checks":[{"command","fails"?,"result"}]}]}`,
@@ -313,7 +315,11 @@ Marks the item done once its work has landed, its status done, its owner left
 as it is and its why dropped (the registry is an index: a slice's why lives in
 its feature file, a task's in its ledger entry, the text in git's history),
 and commits the registry alone, "docs: close <id>", as work take does (itos
-help work take). Landed is: none of the item's scenarios at HEAD
+help work take). Closing a task with checks, the same commit takes its
+done_when out of its ledger entry, its why kept: the checks were its progress
+while it was open and gate the close, and the commit before it still holds
+them. A check meant to keep running belongs in ci.steps or ci.nightly.steps.
+Landed is: none of the item's scenarios at HEAD
 (those tagged @<id>, @slice-<n> for the item slice-<n>) still @wip; no commit
 of HEAD that no remote has (itos push them); a task's static checks passing, as
 the commit-msg hook runs them; and with ci.watch, HEAD's CI run passed, waited
@@ -329,14 +335,15 @@ proof.code.check, {base} the parent of the item's first commit, and closes
 only when it exits 0. Exit 1 refuses, naming each problem its --json lists by
 its rule and message; any other exit, or a check that cannot start, refuses
 with exit 3. No flag closes past it. Refused, nothing written (exit 1): any of
-those not so, a registry that is not sound or has changes no commit holds, an
-id no item has, an idea (work promote it first), an item dropped or deferred, a
-commit a hook refuses. Exit 75 when the run does not end within
-ci.watch.timeout, is cancelled with no newer run to follow, or GitHub's API
-keeps failing, 3 when the run cannot be looked at or the code proof cannot
-run. An item already done changes nothing. An item the registry's queue holds
-is then taken out of it, in a commit of its own, "docs: queue <id>". Under a
-stealth config the registry is written and nothing committed.
+those not so, a registry, or the ledger file of a task with checks, that is
+not sound or has changes no commit holds, an id no item has, an idea (work
+promote it first), an item dropped or deferred, a commit a hook refuses. Exit
+75 when the run does not end within ci.watch.timeout, is cancelled with no
+newer run to follow, or GitHub's API keeps failing, 3 when the run cannot be
+looked at or the code proof cannot run. An item already done changes nothing.
+An item the registry's queue holds is then taken out of it, in a commit of its
+own, "docs: queue <id>". Under a stealth config the registry and the ledger
+are written and nothing committed.
 
 --json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"queue_commit"?:"<sha>"|null,"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}],"ci"?,"run"?}`,

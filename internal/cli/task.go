@@ -35,10 +35,15 @@ const (
 )
 
 // runTask runs a task's checks in written order, every one of them whatever
-// the one before found: review when it has none, failing when one fails,
-// pending when one waits for the push, else done.
-func runTask(task ledger.Task, runner *check.Runner) (taskStatus, []check.Result) {
+// the one before found: failing when one fails, pending when one waits for
+// the push, else done. A task with none is done when its work item is
+// (closed, work done having taken its checks out of the ledger, slice 101),
+// review otherwise: no item, or one not done.
+func runTask(task ledger.Task, runner *check.Runner, statuses work.Statuses) (taskStatus, []check.Result) {
 	if len(task.DoneWhen) == 0 {
+		if status, _ := statuses.Of(task.ID); status == "done" {
+			return statusDone, nil
+		}
 		return statusReview, nil
 	}
 	if runner.Verbose {
@@ -185,8 +190,10 @@ func task(args []string, o Out) (int, error) {
 }
 
 // runTasks is `task <id>…`: runs the tasks' checks in written order, each
-// distinct check once, verbose for one task, and prints the status table. 1
-// when a check fails or an ID is unknown, 2 when nothing matches.
+// distinct check once, verbose for one task, and prints the status table,
+// reading the work registry's statuses (work.ItemStatuses) for the tasks
+// with no checks. 1 when a check fails or an ID is unknown, 2 when nothing
+// matches.
 func runTasks(args []string, o Out) (int, error) {
 	cfg, err := config.Load(config.Path())
 	if err != nil {
@@ -222,10 +229,11 @@ func runTasks(args []string, o Out) (int, error) {
 			return 0, t.Err
 		}
 	}
+	statuses := work.ItemStatuses(cfg.Work.Registry)
 	rows := make([]taskRow, len(selected))
 	code := 0
 	for i, t := range selected {
-		status, results := runTask(t, runner)
+		status, results := runTask(t, runner, statuses)
 		rows[i] = taskRow{t, status, results}
 		if status == statusFailing {
 			code = ExitPolicy

@@ -127,14 +127,14 @@ Feature: The task runner runs each check once, and lists task status without run
   # task that still has checks, closed before slice 101, runs them as
   # before. --pending leaves out the done ones, as it leaves out every task
   # it calls done.
-  @ID-TASK-11 @slice-101 @wip
+  @ID-TASK-11 @slice-101
   Scenario: itos task reads a task with no checks whose work item is done as done
     Given the work registry has the item "T-001" with the status "done" and the item "T-002" with the status "doing"
     When itos runs the task "T-001"
     Then itos exits with code 0
     And its output lists "T-001" as "done"
 
-  @ID-TASK-12 @slice-101 @wip
+  @ID-TASK-12 @slice-101
   Scenario: task --pending leaves out a done task with no checks, and lists one in progress with none as review
     Given the work registry has the item "T-001" with the status "done" and the item "T-002" with the status "doing"
     When itos runs the pending tasks

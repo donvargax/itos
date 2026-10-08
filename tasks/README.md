@@ -110,7 +110,13 @@ before committing.
 ## Task file format
 
 One YAML file per phase (`tasks/phase-<n>.yaml`). A task is done when every
-check passes. Add one with `tools/bin/itos task add <id> --group <n> --type
+check passes. Its checks are its progress while it is open: `tools/bin/itos
+work done <id>` runs the static ones before it closes the task, and the close
+commit takes its `done_when` out of the ledger, its `why` kept, the commit
+before the close still holding them (slice 101). A check meant to keep running
+once the task is closed belongs in `ci.steps` or `ci.nightly.steps`, not in a
+task. `tools/bin/itos task` reads a task with no checks as `done` when its work
+item is done, `review` otherwise. Add one with `tools/bin/itos task add <id> --group <n> --type
 <type> --title … --why … --check '<command>'` (`--check` once per check,
 `--timeout <seconds>` after one), which writes it at the end of its phase's
 file and its item into the work registry, and commits the two alone.
@@ -196,7 +202,8 @@ started it, so its checks cannot pass yet.
 
 A done task's checks run every night too: the nightly's step
 `{ tasks: done, cost: static }` (`ci.nightly` in `itos.yaml`, T-035) runs the
-static checks of every task whose work item is `done`, each shared check once,
+static checks of every task whose work item is `done` and still lists checks
+(one closed before slice 101; T-125 settles the step), each shared check once,
 so a change elsewhere that turns one red shows the next morning, naming the
 task. Its late checks still run only when a push names it. A task in progress
 is left out until it is marked `done`.

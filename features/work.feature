@@ -918,7 +918,7 @@ Feature: The work registry
   # config the ledger is written beside the registry and nothing committed.
   # The checks are committed before the clone, so the remote has them and
   # work done finds nothing unpushed.
-  @ID-WORK-80 @slice-101 @wip
+  @ID-WORK-80 @slice-101
   Scenario: work done removes the checks of the task it closes from the ledger, in the close commit
     Given the task "T-001" has the committed check "true"
     And the ledger's task "T-001" has the why "The ledger says why."

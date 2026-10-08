@@ -182,6 +182,32 @@ cases:
 
       review   T-003  docs     Reviewed by hand
       pending  T-004  ci       Waits on the push
+  # Slice 101: work done takes a closed task's checks out of the ledger, so a
+  # task with none reads done when its work item is done, review otherwise;
+  # --pending leaves the done one out.
+  - name: a task with no checks is done when its work item is, review when it is not
+    argv: [task, T-003, T-090]
+    files:
+      tasks/work-items.yaml: &reviewed |
+        phases: { 1: null }
+        items:
+          - { id: T-003, title: Three, phase: 1, owner: null, status: done, depends_on: [] }
+      tasks/phase-1.yaml: |
+        - { id: T-003, type: docs, title: Reviewed by hand }
+        - { id: T-090, type: docs, title: No item }
+    exit: 0
+    stdout: |
+
+      done     T-003  docs     Reviewed by hand
+      review   T-090  docs     No item
+  - name: --pending leaves out a task with no checks whose work item is done
+    argv: [task, --pending, --skip, "T-005,T-002"]
+    files:
+      tasks/work-items.yaml: *reviewed
+    exit: 0
+    stdout: |
+
+      pending  T-004  ci       Waits on the push
   - name: an ID the ledger does not have
     argv: [task, T-001, T-099]
     exit: 1

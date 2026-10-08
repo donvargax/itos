@@ -18,8 +18,13 @@ package cli
 // config's proof.code, an item whose commits touch its paths then needs its
 // code proof to pass (workproof.go, slice 100). The registry
 // is then read again and the close made on it as it is after the wait (bug
-// 34). An item the registry's queue holds is then taken out of it, in a
-// commit of its own (slice 66).
+// 34). A task's checks, which gated the close, then leave the ledger in the
+// close commit itself (slice 101): its done_when cut from its entry as the
+// ledger reads after the wait, its why kept, the commit's body naming the
+// commit before it, which still holds them; under a stealth config the
+// ledger is written beside the registry and nothing committed. A task with
+// none leaves the ledger as it is. An item the registry's queue holds is
+// then taken out of it, in a commit of its own (slice 66).
 
 import (
 	"errors"
@@ -101,11 +106,28 @@ func workDone(args []string, o Out) (int, error) {
 		change.Body += " " + landing.runOf(ci.run) + " passed: " + ci.run.URL + "."
 	}
 	change.Body += proved
-	sha, code, err := writeRegistry(cfg, text, *change, o)
+	files := []written{{path: cfg.Work.Registry, old: text, text: change.Text}}
+	checks, err := closedChecks(cfg, id)
+	if err != nil {
+		return 0, err
+	}
+	if checks != nil {
+		files = append(files, written{path: checks.Path, old: checks.Old, text: checks.Text})
+		change.Body += " Its checks are taken out of " + checks.Path + ": they were its progress while it was open, and gated this close."
+		if !cfg.Stealth {
+			if head, err := git.Output("rev-parse", "--short", "HEAD"); err == nil {
+				change.Body += " The commit before this one, " + strings.TrimSpace(head) + ", still holds them."
+			}
+		}
+	}
+	sha, code, err := writeCommitted(cfg, files, change.Header, change.Body, o)
 	if err != nil || code != 0 {
 		return code, err
 	}
 	line := fmt.Sprintf("%s is done: %s", id, committed(sha, change.Header))
+	if checks != nil {
+		line += "; its checks are out of " + checks.Path
+	}
 	fields := ci.fields()
 	unqueued, queueSHA, code, err := unqueueDone(cfg, id, o)
 	if err != nil || code != 0 {
@@ -294,6 +316,22 @@ func failingTask(cfg *config.Loaded, id string, o Out) ([]out.Problem, error) {
 		}}, nil
 	}
 	return nil, nil
+}
+
+// closedChecks is the ledger with the closed task's checks taken out
+// (ledger.WithoutChecks, slice 101), read now, after the wait, as the
+// registry is: nil for an item that is no task of the ledger, a config with
+// no ledger.id, or a task with no checks, whose close leaves the ledger as
+// it is.
+func closedChecks(cfg *config.Loaded, id string) (*ledger.Edited, error) {
+	if cfg.Ledger.ID == nil || !ledger.IDPattern(cfg).MatchString(id) {
+		return nil, nil
+	}
+	edited, ok, err := ledger.WithoutChecks(cfg, id)
+	if err != nil || !ok {
+		return nil, err
+	}
+	return &edited, nil
 }
 
 // landedCI is the judged commit's CI run with ci.watch, waited for as itos ci watch

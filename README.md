@@ -88,7 +88,9 @@ list` lists every item with its title, done ones too, and `itos work show
   an idea a slice or a task, `itos work done <id>` marks an item done once
   it has landed (its scenarios live, its commits pushed, its CI run green),
   and `itos work add <id>` and `itos work edit <id>` make an item and change
-  one, each editing the registry in place and committing it alone.
+  one, each editing the registry in place and committing it alone; closing a
+  task with checks, `work done` takes them out of its ledger entry in the same
+  commit.
 - **Decisions waiting on the person**: `itos decision add <text> [--item <id>]`
   asks the person the work is for a question only they can answer, `q-1`,
   `q-2` and so on, `itos decision answer <id> <text>` keeps the answer beside
@@ -437,6 +439,14 @@ that is truly equivalent is excepted in `itos-cc.yaml` with its reason, for
 the person to review. `config check` refuses a check without `{base}`
 (exit 2). Without `proof`, `work done` closes on the landing alone, as before,
 so itos stays usable in a language no provider measures.
+
+A task's own checks, its `done_when`, are the agent's progress while the task
+is open: `work done` runs the static ones before it closes the task, and the
+close commit takes them out of the task's ledger entry, its `why` kept; the
+commit before the close still holds them, and nothing reruns them. A check
+meant to keep running once its task is closed belongs in `ci.steps` or
+`ci.nightly.steps`. `itos task` reads a task with no checks as done when its
+work item is done.
 
 ## Use itos in a repository that doesn't
 

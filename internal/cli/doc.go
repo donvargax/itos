@@ -418,7 +418,9 @@
 // itos task (task.go) runs a task's checks through one check.Runner per
 // invocation, so a check two tasks list runs once; task list runs nothing,
 // reading each task's item status from the registry (work.ItemStatuses), so
-// it works over a registry with problems. A group flag's value is read by
+// it works over a registry with problems. itos task reads the statuses the
+// same way for a task with no checks: done when its item is done (work done
+// took its checks out, slice 101), review otherwise. A group flag's value is read by
 // value.ToNumber (--group 01 is group 1), the status table padded by UTF-16
 // units, and the runner's ID pattern is ^(?:<ledger.id>)$, T-\d+ without
 // one. An after: push check is pending until a remote branch holds HEAD.
@@ -504,7 +506,11 @@
 //     passes, exit 1 refuses with the problems its --json lists (exit 1),
 //     anything else refuses with exit 3; no flag passes over it. The close
 //     commit is docs: close <id>, its body naming the run that passed and the
-//     proof's base; work.Unqueue follows
+//     proof's base. Closing a task with checks, the same commit holds its
+//     ledger file with its done_when cut (closedChecks, ledger.WithoutChecks,
+//     slice 101), read after the wait as the registry is, its body naming
+//     the commit before it, which still holds them; writeCommitted puts both
+//     files back when the commit is refused. work.Unqueue follows
 //     in a commit of its own, under a stealth config while the lock is still
 //     held.
 //   - work add and work edit (workedit.go), work queue (workwrite.go), work
