@@ -6414,3 +6414,25 @@ items:
       fixed it there), and the v1 display-only request #11864 was closed after 90 days. titles.ts
       itself is host-agnostic and moves as is; what is missing is the seam, so this waits on #53019
       and lands with the plugin (p3-opencode-plugin)
+
+  - id: p1-work-spec-files
+    title: An item's spec names the files it will touch, derived where it can be
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      An agent begins by searching: slice-106 (2026-10-08) had no refs at all, so its agent found
+      internal/proof, the ci plan and work done by hand. The registry has refs on 314 items and work
+      show prints it, but nothing fills it in and nothing checks it. Split the two halves: what
+      cannot be wrong is derived (the feature files an item scenarios are tagged in, the packages
+      behind them from the paths the last items touching those files touched, the deps items refs,
+      the item own commit paths from git as the code proof already computes them for {paths},
+      p1-proof-paths-placeholder), and what only the coordinator knows stays the hand-written refs,
+      which say the intent history cannot: that a slice also changes itos.yaml or a ledger file.
+      work check refuses a ref naming a path that does not exist, as it refuses an unknown owner.
+      Nothing derived is stored where git already holds it, so it cannot go stale; the derived list
+      is labelled likely, never only, so an agent that trusts it still looks. One command (work
+      spec, or a section on work show), composing with p1-tests-next-id-and-steps, which asks the
+      same question of a slice's scenarios
