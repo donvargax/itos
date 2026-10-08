@@ -30,7 +30,8 @@
 // git argument from the global flags, and git-shim run calls itos commit or
 // itos push directly, so git commit check-paths stays a commit. Anything else
 // is run: syscall.Exec of the real git, arguments and environment untouched,
-// on unix; elsewhere a child with the terminal's streams, an interrupt left
+// on unix, after writing the process's coverage counters to GOCOVERDIR when
+// it is set, since an exec runs no exit hook to write them (T-124); elsewhere a child with the terminal's streams, an interrupt left
 // to it and its exit code handed back.
 //
 // Of git's options before the command, -C <path> and -c <name>=<value> are

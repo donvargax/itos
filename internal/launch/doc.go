@@ -52,8 +52,10 @@
 // exits 75, a failure that may pass when run again; anything else that cannot
 // be fetched or does not match exits 3, a missing environment; each with one
 // line naming what failed, and nothing runs in its place. run is syscall.Exec on unix, so the
-// version run owns the process, its signals and its exit code; elsewhere a
-// child whose exit code is passed back.
+// version run owns the process, its signals and its exit code, after writing
+// the process's coverage counters to GOCOVERDIR when it is set, since an exec
+// runs no exit hook to write them (T-124); elsewhere a child whose exit code
+// is passed back.
 //
 // # Keeping to the newest release
 //

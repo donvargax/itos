@@ -60,7 +60,9 @@
 // in extensionEnv: ITOS_CONFIG (config.Path made absolute), ITOS_ROOT (the
 // working folder), ITOS_BIN (os.Executable), ITOS_VERSION (so $ITOS_BIN
 // called back runs itself and never launches another version) and, with
-// --json, ITOS_JSON=1. runProgram is syscall.Exec on unix; a program that
+// --json, ITOS_JSON=1. runProgram is syscall.Exec on unix, after writing the
+// process's coverage counters to GOCOVERDIR when it is set, since an exec
+// runs no exit hook to write them (T-124); a program that
 // cannot start exits 3. The main help lists extensions(): every itos-<name>
 // in the PATH's folders that extensionPath would run, sorted.
 //
