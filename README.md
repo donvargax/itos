@@ -240,11 +240,18 @@ Actions:
 
 ```yaml
 - uses: donvargax/itos@v<x.y.z> # that release's launcher, on the PATH
+- uses: donvargax/itos@<sha> # v<x.y.z>, or pinned by that release's commit
 ```
 
-(`with: { version: <x.y.z> }` installs another release; at a ref that is not a
-version it installs the newest). Other CI runs the script the action runs,
-fetched from a release tag, into a folder on its `PATH`:
+Pin the action by a release's tag or by that release's commit: it installs
+the launcher of the release its ref names, so the version is said once. From
+the first release after v7.0.0-rc.2, a pre-release's tag (`v7.0.0-rc.1`) and a
+release's commit sha name their release too; a commit carrying both a
+pre-release and a release tag installs the release, and a branch, or a commit
+no release tag names, installs the newest (a commit with a warning).
+`with: { version: <x.y.z> }` is only for choosing another launcher than the
+ref's. Other CI runs the script the action runs, fetched from a release tag,
+into a folder on its `PATH`:
 
 ```sh
 curl -fsSL -o install-launcher https://raw.githubusercontent.com/donvargax/itos/v<x.y.z>/tools/bin/install-launcher
