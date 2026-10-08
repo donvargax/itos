@@ -6363,3 +6363,18 @@ items:
       warning teaches agents to reword correct bodies (one added a rule to its brief to avoid the
       text). The lint reads the line as a trailer where git does not; a fix names it in Changes,
       since it changes what a released scenario promised
+
+  - id: p1-tests-list-format
+    title: itos tests list has a form itos-cc mutation.tests.list reads as is
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-120]
+    kind: idea
+    why: >
+      Issue #22: itos-cc v0.5.0 reads mutation.tests.list as one test a line, its ID, a tab and its
+      file from the project root, but itos tests list scenario prints two spaces and the file
+      relative to the kinds root, so every machine running mutation needs jq and 2>/dev/null to hide
+      the update notice. A --tsv or --format itos-cc listing live tests only, files from the
+      repository root, joins the itos-cc integration v7.0.0-rc.1 begins with proof.code (T-120); an
+      improvement, not a fault
