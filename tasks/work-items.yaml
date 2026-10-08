@@ -6473,3 +6473,22 @@ items:
       is labelled likely, never only, so an agent that trusts it still looks. One command (work
       spec, or a section on work show), composing with p1-tests-next-id-and-steps, which asks the
       same question of a slice's scenarios
+
+  - id: p1-titles-beside-ids
+    title: Every id itos prints for a person carries its title beside it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The person reads titles, not codes (2026-10-08): a report naming T-125, p1-parallel-pilot and
+      T-120 says nothing they can act on. Some of itosis output already does this well (work list,
+      work show header, status) and some does not: itos decision ends each question line with a bare
+      (T-125), work show prints depended on by and Questions naming T-125 as ids alone, and a commit
+      body or a brief citing an item gives the reader a lookup. The Claude Code plugin already
+      solves it for a reply (integrations/claude-code/hooks/titles.ts draws the title beside the id,
+      and p3-plugin-titles-every-id widens it to every kind of id), so the rule is written down and
+      only itosis own text lacks it. --json stays exactly as it is (ADR-0035: machine output is the
+      contract), and a footer keeps its id, since that is what a commit names; the rule is for the
+      lines a person reads
