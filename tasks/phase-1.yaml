@@ -1300,3 +1300,36 @@
   done_when:
     - run: tools/bin/itos ci plan --nightly --json | jq -e '.tasks == []'
     - run: tools/bin/itos task list --json | jq -e '[.tasks[] | select(.status == "done" and .checks > 0)] | length == 0'
+
+- id: T-126
+  type: build
+  title: The action installs the launcher of the release its ref names, a pre-release tag or a release's commit included
+  why: >
+    Issue #23 (2026-10-08): action.yml (T-093) installs the launcher of the release its ref names
+    only when the ref matches ^v[0-9]+\.[0-9]+\.[0-9]+$, so uses: donvargax/itos@v7.0.0-rc.1
+    installs the newest stable launcher instead, and a commit-sha pin (what GitHub and Renovate
+    recommend) never matches, so a consumer repeats the version in the version input and the two
+    drift: itos-template's CI ran launcher 6.0.0 through 6.4.0 and rc.1, missing 6.5.1's pre-release
+    ordering. The coordinator's calls, ASAP at the user's request: the ref's version moves into
+    tools/bin/action-version <ref> [<owner/repo>], a POSIX sh script that prints the version to
+    install, or nothing for the newest, so it can be checked outside a runner. A tag ref vX.Y.Z or
+    vX.Y.Z-<pre-release> prints X.Y.Z[-pre-release]. A 40-hex commit sha prints the version of the
+    release tag that points at it, read with git ls-remote --tags from
+    https://github.com/<owner/repo> (default donvargax/itos; the action passes
+    github.action_repository), lightweight or annotated (its ^{} line), the stable one when a commit
+    carries both a pre-release and a release. Anything else (a branch, a sha no release names)
+    prints nothing, and the action then installs the newest as today, with a ::warning:: naming the
+    ref when it was a sha. The tagged commit's tree holds no version file (a release is cut without
+    a commit), so the tags are the one source. The version input still wins. action.yml's comment
+    and input description, and the README's install section, say this. Consumers get it with the
+    next release cut (a build commit cuts none), so the README says to pin the action by a release's
+    tag or its commit.
+  done_when:
+    - run: actionlint
+    - run: test "$(tools/bin/action-version v7.0.0-rc.1)" = 7.0.0-rc.1
+    - run: test "$(tools/bin/action-version v6.5.1)" = 6.5.1
+    - run: test "$(tools/bin/action-version 58f7e3f430eec46da415929cd46d2f2ecef46af0)" = 6.5.1
+    - run: test "$(tools/bin/action-version 1b9f1f9995be5d20aed3b4f8877a453bbd1e98a3)" = 7.0.0-rc.1
+    - run: test -z "$(tools/bin/action-version main)"
+    - run: test -z "$(tools/bin/action-version 0000000000000000000000000000000000000000)"
+    - run: sh -c 'd=$(mktemp -d) && tools/bin/install-launcher "$d" 7.0.0-rc.1 && "$d/itos" version | grep -q "7\.0\.0-rc\.1"'
