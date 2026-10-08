@@ -6082,10 +6082,6 @@ items:
       brief line: run itos-cc mutation run --since <base> --fail-uncovered, with the features'
       coverage, before work done. No interim without coverage. Equivalent mutants go in itos-cc.yaml
       with their reasons, for the person to review.
-    deferred: >
-      Waits only on the pin: itos-cc v0.5.0 (the first release with listed tests, published
-      2026-10-08) can be pinned from 2026-10-15 (T-067's 7 days). T-121 and slice-100 are done.
-      Resume it then.
 
   - id: bug-50
     title: A pre-release sorts below its release, so an rc's pin is told when the final release is out
