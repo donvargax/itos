@@ -127,25 +127,19 @@ They keep the guide's format for lessons. "By 2026-10-04" means the lesson
 was in this file when the file was reorganized that day.
 `p1-agent-rules-as-data` moves them into itos's data.
 
-- **Trace each Given to where itos runs before handing a spec out.** Twice on
-  2026-10-04 a scenario asserted what its setup could not produce: `itos go`
-  prints no status without a config (slice 68), and a step that changes the
-  remote fetches nothing into the clone itos runs in (slice 70), and the
-  remote's head is the commit whose header the head line prints (slice 70
-  again). Red first caught each, at the cost of an agent's round trip. A
-  task's check has the same trap: one grepping whole folders also hits
-  recorded fixtures (`tools/selftest/header-agreement.json` keeps old commit
-  messages verbatim, T-085), so aim a check at what the task changes.
+- **Trace each Given to where itos runs before handing a spec out.** On
+  2026-10-04, scenarios assumed `itos go` prints status without a config
+  (slice 68), a remote-changing step fetches into itos's clone (slice 70), and
+  the printed head is the remote's (slice 70). Red first caught each. Task
+  checks have the same trap: grepping whole folders hits fixtures too
+  (`tools/selftest/header-agreement.json`, T-085); target what the task changes.
   Exit: permanent. Recorded by 2026-10-04; last seen 2026-10-04.
-- **A checkpoint push that names a task runs that task's checks**, so one
-  pushed before the task's `done_when` is met is red by design. Likewise an
-  `after: push` check waiting on a release or a tag fails every push naming its
-  task until then: write it late. A check that reads CI's own result belongs in
-  `ci.nightly_only`. A coordinator's own spec commit counts: one carrying
-  `--task` for an open task turned main red (T-121, 2026-10-08), so a spec
-  edit to a task not yet done is committed without the footer. Exit:
-  `p1-nightly-late-done-checks` (q-13). Recorded by 2026-10-04; last seen
-  2026-10-08.
+- **A checkpoint push naming a task runs its checks**, and is red until its
+  `done_when` passes. Put release- or tag-dependent `after: push` checks late;
+  checks reading CI's result belong in `ci.nightly_only`. A coordinator's spec
+  commit counts too: `--task` for an open task turned main red (T-121,
+  2026-10-08), so omit the footer until done. Exit:
+  `p1-nightly-late-done-checks` (q-13). Recorded 2026-10-04; last seen 2026-10-08.
 - **Settle what breaks compatibility before a major release.** List the open
   items that change what is accepted, and ask. Exit: permanent. Recorded by
   2026-10-04; last seen 2026-10-06 (the v6 bundle).
