@@ -144,3 +144,6 @@ questions:
   - id: q-35
     item: "p3-guard-replacement"
     question: "Should a successful work take also activate the item as the local commit context? Recommended: activate automatically per checkout/worktree, offer explicit selection for resuming an already-taken item without changing registry status/owner, and clear after successful closure. Missing/stale context refuses commits; never infer from doing items. Alternatives: a separate selection after every take, or an explicit item ID on every commit without saved context. See docs/plans/guided-commits.md."
+  - id: q-36
+    item: "p3-guard-replacement"
+    question: "How should an agent declare a reusable commit part complete? Recommended: an explicit flag on its final guided commit records that successful commit as a completion declaration; failed commits record nothing. This does not prove green CI or close the item, and required parts plus existing checks/CI still gate work done. Reopening needs a coordinator-approved amendment. Alternative: a separate part-done command. Passing hooks alone must not infer completion. See docs/plans/guided-commits.md."
