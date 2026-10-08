@@ -6018,13 +6018,9 @@ items:
     title: "work done requires the code proof: the provider's check over the item's commits, closing only when it passes"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Specified in features/work.feature and config.feature (@slice-100);
-      docs/plans/v7-proof-of-done.md and decision 42. No way to close past a failing proof (the
-      user's call, 2026-10-07). Part of v7.0.0-rc.1, the itos-cc integration.
 
   - id: T-121
     title: The features build the itos under test with -cover when GOCOVERDIR is set, so its coverage reaches itos-cc
