@@ -6336,3 +6336,15 @@ items:
       status never names proof.code: a reader cannot tell the repository measures its code at all,
       nor whether the run it reports carried the proof, until a run is red over a mutant. Say what
       the config holds and whether the run read it, as status says what it could not read.
+
+  - id: p1-agent-rules-ci-summary
+    title: The rules block summarises CI steps instead of listing each one
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-agent-rules-as-checks]
+    kind: idea
+    why: >
+      Issue #27: itos init --agent-rules writes a line per CI step into the generated block, so it
+      grows with the plan (2987 bytes at 15 steps in itos-template; 8109 to 8149 of an 8192-byte cap
+      in a day). The commit rules are what an agent needs; the CI list could be one line
