@@ -6283,3 +6283,17 @@ items:
     why: >
       Specified in features/ci.feature (@ID-CI-20 to 23) and features/work.feature (@ID-WORK-87);
       issue #28.
+
+  - id: p1-proof-paths-placeholder
+    title: proof.code.check takes a {paths} placeholder, the range's changed files that proof.code.paths matches
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-106]
+    kind: idea
+    why: >
+      Issue #24 (itos-template, 2026-10-08): proof.code.paths decides whether the check runs, not
+      what it judges, which is whatever the command names (every Go file changed since {base}
+      there), so the two drift apart. A {paths} placeholder filled with the changed files the paths
+      match keeps them one; or the README says so beside the example. After slice-106, which moves
+      the check into itos ci run.
