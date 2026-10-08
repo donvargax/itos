@@ -385,3 +385,60 @@ Feature: Every key the config accepts is one itos reads
     When itos runs "config check"
     Then itos exits with code 2
     And its output says "{base}"
+
+  # Slice 107 (q-25, answered by the person 2026-10-08: refuse it in v7;
+  # ADR-0043, a task's checks leave the ledger when work done closes it; ADR-0016
+  # is already superseded by it; slice-101 removed the checks at the close and
+  # T-125 removed this repository's own step, so nothing reads the step and
+  # keeping it is the compatibility p1-drop-compat-code exists to end).
+  #
+  # The step key stays in the schema only to be refused, so a consumer whose
+  # config still carries it is told what happened and what to write instead.
+  # Deleting the key refuses it as an unknown key, which is honest and one
+  # line less of schema, and says nothing about the rule that removed it.
+  @ID-CONFIG-42 @slice-107 @wip
+  Scenario: config check refuses a nightly step that runs a done task's checks, saying what replaced it
+    Given the committed file "itos.yaml" holding the lines:
+      """
+      version: 1
+      ci:
+        nightly:
+          steps: [{ tasks: done }]
+      """
+    When itos runs "config check"
+    Then itos exits with code 2
+    And its output says "tasks: done"
+    And its output says "work done"
+
+  # One problem, not two: the step's own cost rule (config-step-cost) goes with
+  # the step, so cost: static is refused as the same thing rather than as a cost
+  # on a step that no longer exists.
+  @ID-CONFIG-43 @slice-107 @wip
+  Scenario: The refused step is one problem with or without a cost
+    Given the committed file "itos.yaml" holding the lines:
+      """
+      version: 1
+      ci:
+        nightly:
+          steps: [{ tasks: done, cost: static }]
+      """
+    When itos runs "config check"
+    Then itos exits with code 2
+    And its output says "tasks: done"
+    And its output does not say "config-step-cost"
+
+  # A consumer who never runs config check must still learn: the plan reads the
+  # same config, so it refuses the same step the same way, rather than planning
+  # a step no longer has an implementation.
+  @ID-CONFIG-44 @slice-107 @wip
+  Scenario: ci plan refuses the nightly step too, so a plan of a stale config is never a pass
+    Given the committed file "itos.yaml" holding the lines:
+      """
+      version: 1
+      ci:
+        nightly:
+          steps: [{ tasks: done }]
+      """
+    When itos runs "ci plan --nightly"
+    Then itos exits with code 2
+    And its output says "tasks: done"
