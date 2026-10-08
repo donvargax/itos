@@ -512,10 +512,10 @@ func oneRangeCheckProblems(name string, adapter Adapter, check RangeCheck, at st
 	return found
 }
 
-// proofProblems: proof.code is read before any work done needs it (slice
-// 100), so a code proof that names no paths, a path no glob can be made of,
-// or a check that cannot be given the item's base is refused here rather
-// than at the first close.
+// proofProblems: proof.code is read before any run needs it (slice 100; the
+// run reads it since slice 106), so a code proof that names no paths, a path
+// no glob can be made of, or a check that cannot be given the range's base is
+// refused here rather than at the first run that wants it.
 func proofProblems(_ *value.Map, c *Config) []out.Problem {
 	if c.Proof == nil || c.Proof.Code == nil {
 		return nil
@@ -541,8 +541,8 @@ func proofProblems(_ *value.Map, c *Config) []out.Problem {
 	if !strings.Contains(code.Check, "{base}") {
 		found = append(found, out.Problem{
 			Rule: "config-proof-base",
-			Message: "proof.code.check does not take {base}, the parent of the item's first commit, so it cannot judge the " +
-				"item's commits alone",
+			Message: "proof.code.check does not take {base}, the start of the range to judge, so it cannot judge the " +
+				"range's commits alone",
 			Fix: "write {base} where the check takes the commit to judge from: itos-cc mutation check --since {base} --fail-uncovered --json",
 		})
 	}

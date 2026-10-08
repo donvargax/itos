@@ -61,6 +61,10 @@ type itemJSON struct {
 	Action    Action         `json:"action,omitempty"`
 	Kind      string         `json:"kind,omitempty"`
 	CoveredBy string         `json:"covered_by,omitempty"`
+	// Proof marks the step that is the range's code proof (slice 106,
+	// issue #28), so a consumer of the JSON can tell it from a ci.steps
+	// step: it reads recorded results and is run by internal/proof.
+	Proof bool `json:"proof,omitempty"`
 }
 
 func (c *Check) json() *checkJSON {
@@ -69,7 +73,7 @@ func (c *Check) json() *checkJSON {
 
 func (i Item) json() itemJSON {
 	if i.Step != nil {
-		return itemJSON{Step: &i.Step.Command, Cost: i.Step.Cost, CostFrom: i.Step.From}
+		return itemJSON{Step: &i.Step.Command, Cost: i.Step.Cost, CostFrom: i.Step.From, Proof: i.Step.Proof}
 	}
 	c := i.Check
 	item := itemJSON{Check: c.json(), Cost: c.Cost, CostFrom: c.From, Action: c.Action}

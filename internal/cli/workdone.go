@@ -14,9 +14,10 @@ package cli
 // after it, may have no run of its own, CI running once for the push's head:
 // the newest run on the branch whose head has it judges it (bug 49), as for a
 // cancelled run (bug 41). The first that is not refuses, naming what
-// to do; without ci.watch CI is not checked, and done says so. With the
-// config's proof.code, an item whose commits touch its paths then needs its
-// code proof to pass (workproof.go, slice 100). The registry
+// to do; without ci.watch CI is not checked, and done says so. The code
+// proof of the config's proof.code is no longer among them (slice 106, issue
+// #28): that green run judged it, over the whole range, so running it again
+// here judged nothing that ships. The registry
 // is then read again and the close made on it as it is after the wait (bug
 // 34). A task's checks, which gated the close, then leave the ledger in the
 // close commit itself (slice 101): its done_when cut from its entry as the
@@ -85,10 +86,6 @@ func workDone(args []string, o Out) (int, error) {
 	if err != nil || code != 0 {
 		return code, err
 	}
-	proved, code, err := codeProof(cfg, id, o)
-	if err != nil || code != 0 {
-		return code, err
-	}
 	// The checks can take minutes, and the registry can change meanwhile: a
 	// take or a queue change committed, someone's edit pulled in, another
 	// worktree's write to a stealth registry. The close is made afresh on the
@@ -105,7 +102,6 @@ func workDone(args []string, o Out) (int, error) {
 	if ci.run != nil && ci.run.URL != "" {
 		change.Body += " " + landing.runOf(ci.run) + " passed: " + ci.run.URL + "."
 	}
-	change.Body += proved
 	files := []written{{path: cfg.Work.Registry, old: text, text: change.Text}}
 	checks, err := closedChecks(cfg, id)
 	if err != nil {

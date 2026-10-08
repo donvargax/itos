@@ -34,13 +34,22 @@
 //   - A prose-only range (only ci.prose.paths) runs the prose steps, then
 //     the named tasks' static checks and those that say prose: true, and
 //     lists what it leaves out.
+//   - With the config's proof.code and a range that touches proof.code.paths,
+//     the range's code proof is a step of the plan (slice 106, issue #28):
+//     proof.code.check with {base} the range's start, so every commit since
+//     the last green run is judged, whichever item's it is. It is static (it
+//     reads results, runs no tests) and sits just before the run of named
+//     tests. The driver runs it through internal/proof, not as a step with an
+//     exit code of its own.
 //
 // The Plan is a value the driver (internal/ci) walks: Order is every Item in
 // the order the run takes it, a Step (its command, its cost, and Tests, the
 // kind, when it is the one run of named tests) or a Check (a
 // check.CostedCheck, so its task with the title a failure names, its place
 // in done_when and its cost, plus its Action: run, merged into the kind's
-// run, covered by a step, nightly, or pending); Steps, Tasks, LeftOut,
+// run, covered by a step, nightly, or pending); a Step carries Proof when it
+// is the range's code proof, which --json gives as its item's proof;
+// Steps, Tasks, LeftOut,
 // Unknown and NotStarted sit beside it for the preamble. Make plans an
 // Input; For(cfg, from, to, Data) plans a range, DataAt reading the ledger,
 // the registry and the smoke set from the working tree or, for --data-at,

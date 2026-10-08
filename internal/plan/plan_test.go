@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/donvargax/itos/v7/internal/check"
 	"github.com/donvargax/itos/v7/internal/config"
 	"github.com/donvargax/itos/v7/internal/ledger"
 )
@@ -213,6 +214,87 @@ late  T-1: diff {from} {to}   (covered)
 	if p.Checks[0].CoveredBy != "diff 'a1' 'b2'" || p.Steps[0] != "lint 'a1'" || p.Ends.To != "b2" {
 		t.Errorf("covered by %q, steps %q, ends %+v", p.Checks[0].CoveredBy, p.Steps, p.Ends)
 	}
+}
+
+// The range's code proof (slice 106, issue #28): a step among the static
+// ones, before the run of named tests, its command proof.code.check with
+// {base} the range's start; and none of that with no proof.code, a range
+// touching none of proof.code.paths, or a range with no start to judge
+// from. For reads the paths a range touched, so it is codeProof's callers
+// that pass them.
+func TestMakeProof(t *testing.T) {
+	proofCfg := load(t, scratch+`proof:
+  code:
+    paths: ["{cmd,internal}/**/*.go"]
+    check: "cc mutation check --since {base} --fail-uncovered --json"
+`)
+	p, err := Make(proofCfg, Input{Known: true, Smoke: []string{"ID-S-01"}, Proof: &Step{
+		Command: "cc mutation check --since a1 --fail-uncovered --json", Proof: true,
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `static  lint
+static  cc mutation check --since a1 --fail-uncovered --json
+late  unit
+late  e2e --grep '@(?:ID-S-01)'
+`
+	if got := lines(p); got != want {
+		t.Errorf("plan:\n%s\nwant:\n%s", got, want)
+	}
+	if !p.Order[1].Step.Proof || p.Order[1].Step.Cost != check.Static || p.Order[1].Step.From != check.FromExplicit {
+		t.Errorf("the proof step: %+v", p.Order[1].Step)
+	}
+	// No run of named tests to sit before: written after the other steps, and
+	// still static, so it runs before them.
+	p, err = Make(load(t, "version: 1\nci:\n  steps: [lint]\n"),
+		Input{Known: true, Proof: &Step{Command: "cc", Proof: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := lines(p); got != "static  cc\nlate  lint\n" {
+		t.Errorf("plan:\n%s", got)
+	}
+}
+
+// codeProof is the step a range's code proof is when the config has a
+// proof.code and the range touches its paths, and none of that otherwise:
+// no proof.code, no touched path, or no start to judge from.
+func TestCodeProof(t *testing.T) {
+	withProof := load(t, `version: 1
+proof:
+  code:
+    paths: ["{cmd,internal}/**/*.go"]
+    check: "cc mutation check --since {base} --fail-uncovered --json"
+`)
+	none := load(t, "version: 1\n")
+	ends := Ends{From: "a1", To: "b2"}
+	got, err := codeProof(withProof, []string{"internal/cli/x.go"}, ends)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == nil || got.Command != "cc mutation check --since a1 --fail-uncovered --json" || !got.Proof {
+		t.Errorf("a touched range gives %+v", got)
+	}
+	for _, c := range []struct {
+		name    string
+		cfg     *config.Loaded
+		changed []string
+		ends    Ends
+	}{
+		{"no proof.code", none, []string{"internal/cli/x.go"}, ends},
+		{"no touched path", withProof, []string{"README.md"}, ends},
+		{"an unread range touched nothing", withProof, nil, ends},
+		{"no start to judge from", withProof, []string{"internal/cli/x.go"}, Ends{To: "b2"}},
+	} {
+		got, err := codeProof(c.cfg, c.changed, c.ends)
+		if err != nil || got != nil {
+			t.Errorf("%s: got %+v, %v; want none", c.name, got, err)
+		}
+	}
+	// A glob itos cannot read is config check's finding, before a plan reads
+	// one (proof.Touches is the only other reading of the paths, and its own
+	// error is unit-tested beside it).
 }
 
 // A range that runs everything, an empty or all-zeros start without

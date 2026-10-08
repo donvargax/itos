@@ -23,8 +23,9 @@ type Config struct {
 	CI    CI            `json:"ci"`
 	Work  Work          `json:"work"`
 	Hooks Hooks         `json:"hooks"`
-	// Proof is what work done requires beyond the landing (slice 100), nil
-	// when the file has no proof: work done then closes on the landing alone.
+	// Proof is what a CI run judges beyond its steps (slice 100, moved into
+	// the run by slice 106), nil when the file has no proof: itos then works
+	// as before, and a change closes on what the run already judged.
 	Proof *Proof `json:"proof"`
 }
 
@@ -35,8 +36,9 @@ type Proof struct {
 }
 
 // ProofCode is proof.code: the paths that count as code, and the provider's
-// check that work done runs when an item's commits touch them, {base}
-// standing for the parent of the item's first commit.
+// check that ci run runs when the range touches them, {base} standing for
+// the range's start, every commit since the last green run judged, whoever's
+// item it is (slice 106, issue #28).
 type ProofCode struct {
 	Paths []string `json:"paths"`
 	Check string   `json:"check"`

@@ -70,6 +70,9 @@ git:
   - commit: "build: named in another footer\n\nWork: T-041\n"
     files: { tools/a.sh: "6\n" }
     label: work
+  - commit: "feat: code\n"
+    files: { tools/a.sh: "7\n" }
+    label: code
 files:
   itos.yaml: |
     version: 1
@@ -298,6 +301,71 @@ cases:
       failed_at:
         step: sh -c 'echo tests fail; exit 3'
         code: 3
+  - name: a code proof that finds a survivor fails the run, naming the problem, and --json carries it
+    argv: [ci, run, "{{sha.smoke}}", "{{sha.code}}", --json]
+    files:
+      proof.sh: |
+        printf '%s\n' '{"schema":1,"ok":false,"problems":[{"rule":"mutation.survived","message":"src/a.ts:3:9: a mutant of Total survived","fix":"test it"}]}'
+        exit 1
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps:
+            - { run: echo lint, cost: static }
+            - { run: echo unit, cost: late }
+          cost: { static: ["^echo lint$"] }
+        proof:
+          code:
+            paths: ["tools/**"]
+            check: "sh proof.sh mutation check --since {base} --fail-uncovered --json"
+        work: { registry: tasks/work-items.yaml }
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      failed_at:
+        step: sh proof.sh mutation check --since {{sha.smoke}} --fail-uncovered --json
+        problems:
+          - rule: mutation.survived
+            message: "src/a.ts:3:9: a mutant of Total survived"
+            fix: test it
+        code: 1
+
+  - name: a code proof that cannot run fails the run, never a pass
+    argv: [ci, run, "{{sha.smoke}}", "{{sha.code}}"]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps:
+            - { run: echo lint, cost: static }
+          cost: { static: ["^echo lint$"] }
+        proof:
+          code:
+            paths: ["tools/**"]
+            check: "sh -c 'exit 3' --since {base}"
+        work: { registry: tasks/work-items.yaml }
+    exit: 1
+    stdout: |
+
+      $ echo lint
+      lint
+
+      $ sh -c 'exit 3' --since {{sha.smoke}}
+    stderr: |
+
+      CI failed at the code proof: sh -c 'exit 3' --since {{sha.smoke}}
+      ci-code-proof: the code proof could not run, so the run fails rather than passes it: sh -c 'exit 3' --since {{sha.smoke}} exited 3
+        fix: make proof.code.check run (its command, its tools) and push the range again; nothing is proved until it answers
+
   - name: a CI with no tests step reads no kind of named tests and no smoke set
     argv: [ci, run, "{{sha.unknown}}", "{{sha.waiting}}"]
     files:

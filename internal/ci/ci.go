@@ -11,18 +11,21 @@ import (
 	"github.com/donvargax/itos/v7/internal/ledger"
 	"github.com/donvargax/itos/v7/internal/out"
 	"github.com/donvargax/itos/v7/internal/plan"
+	"github.com/donvargax/itos/v7/internal/proof"
 	"github.com/donvargax/itos/v7/internal/shell"
 )
 
 // Failure is where a run stopped, as --json's failed_at gives it: a step
-// (Code its own exit code), a task check, or the unknown tasks named.
+// (Code its own exit code), a task check, the code proof (Problems, what
+// its check's --json named), or the unknown tasks named.
 type Failure struct {
-	Step    *string  `json:"step,omitempty"`
-	Task    string   `json:"task,omitempty"`
-	Title   string   `json:"title,omitempty"`
-	Command string   `json:"command,omitempty"`
-	Unknown []string `json:"unknown,omitempty"`
-	Code    int      `json:"code"`
+	Step     *string       `json:"step,omitempty"`
+	Task     string        `json:"task,omitempty"`
+	Title    string        `json:"title,omitempty"`
+	Command  string        `json:"command,omitempty"`
+	Problems []out.Problem `json:"problems,omitempty"`
+	Unknown  []string      `json:"unknown,omitempty"`
+	Code     int           `json:"code"`
 }
 
 // Options are how a run reports: under JSON its log goes to Stderr and
@@ -71,10 +74,13 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 			break
 		}
 		var failure *Failure
-		if item.Step != nil {
-			failure = d.step(item.Step.Command)
-		} else {
+		switch {
+		case item.Step == nil:
 			failure = d.check(item.Check)
+		case item.Step.Proof:
+			failure = d.proof(item.Step)
+		default:
+			failure = d.step(item.Step.Command)
 		}
 		if failed == nil {
 			failed = failure
@@ -156,6 +162,57 @@ func (d driver) step(command string) *Failure {
 	}
 	fmt.Fprintf(d.stderr, "\nCI failed at: %s (it exited %d)\n", command, r.Code)
 	return &Failure{Step: &command, Code: r.Code}
+}
+
+// proof runs the range's code proof as a step of the run (slice 106, issue
+// #28): the config's proof.code.check with {base} the range's start, run
+// through internal/proof, so its answer is read as a provider's --json
+// rather than as a step's exit code. A survivor, an uncovered or a missing
+// result fails the run, naming each problem's rule and message, so the
+// release that needs the run never runs; a check that cannot run fails it
+// too, as any step does (@ID-CI-19), never a pass. The run's exit code is 1
+// either way, the code of a step passed through (decision 35).
+func (d driver) proof(s *plan.Step) *Failure {
+	fmt.Fprintf(d.log, "\n$ %s\n", s.Command)
+	v := proof.Run(d.cfg, s.Command, d.stderr)
+	problems := proofProblems(v.Problems)
+	switch {
+	case v.Outcome == proof.Passed:
+		return nil
+	case v.Outcome == proof.CannotRun:
+		problems = append([]out.Problem{{
+			Rule: "ci-code-proof",
+			Message: fmt.Sprintf("the code proof could not run, so the run fails rather than passes it: %s %s",
+				s.Command, v.Why),
+			Fix: "make proof.code.check run (its command, its tools) and push the range again; nothing is proved until it answers",
+		}}, problems...)
+	}
+	fmt.Fprintf(d.stderr, "\nCI failed at the code proof: %s\n", s.Command)
+	if len(problems) == 0 {
+		problems = []out.Problem{{
+			Rule:    "ci-code-proof",
+			Message: "the code proof refused and named no problem",
+			Fix:     "run proof.code.check by hand to see what it found",
+		}}
+	}
+	for _, p := range problems {
+		fmt.Fprintf(d.stderr, "%s: %s\n", p.Rule, p.Message)
+		if p.Fix != "" {
+			fmt.Fprintf(d.stderr, "  fix: %s\n", p.Fix)
+		}
+	}
+	return &Failure{Step: &s.Command, Problems: problems, Code: 1}
+}
+
+// proofProblems are a provider's problems as the run's, each naming the
+// check's own rule and message and keeping its fix: what it found is the
+// provider's to say, and an agent fixes it from the rule.
+func proofProblems(found []proof.Problem) []out.Problem {
+	problems := make([]out.Problem, 0, len(found))
+	for _, p := range found {
+		problems = append(problems, out.Problem{Rule: p.Rule, Message: p.Message, Fix: p.Fix})
+	}
+	return problems
 }
 
 // check is one task check: logged as merged, covered, left out or pending,

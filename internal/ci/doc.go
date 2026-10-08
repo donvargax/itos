@@ -11,6 +11,12 @@
 //     output keeps its place beside itos's lines; a failing step makes the
 //     run exit 1, naming the step's own exit code: passed through, a step's
 //     75 or 3 would read as itos's meaning of it.
+//   - The range's code proof, the plan's proof step, runs through
+//     internal/proof, not shell.Run: the config's proof.code.check answers by
+//     its --json, so a survivor, an uncovered or a missing result fails the
+//     run naming each problem's rule and message, and a check that cannot run
+//     fails it too, never a pass (slice 106, issue #28). The run's exit code
+//     is 1, as for any other failing step.
 //   - A task check the plan runs goes through a verbose check.Runner, so its
 //     command line and output keep their place in the log; a failure exits 1,
 //     naming the task and its title. A check merged into the run of named

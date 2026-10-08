@@ -30,11 +30,16 @@ const (
 
 // Step is one step of a run: its command, its cost, and Tests, the kind when
 // it is the run's one run of named tests (a selection's command in a push,
-// the kind's whole run in the nightly).
+// the kind's whole run in the nightly). Proof is the code proof of the range
+// (slice 106, issue #28): the config's proof.code.check with {base} the
+// range's start, a step the driver runs through internal/proof, so its
+// answer is read as a provider's and its problems named, not as a step's own
+// exit code.
 type Step struct {
 	check.Costed
 	Command string
 	Tests   string
+	Proof   bool
 	// own is the step's own cost:, "" when it gives none.
 	own string
 }
@@ -174,6 +179,12 @@ type Input struct {
 	Nightly bool
 	// Smoke is the kind's smoke set, without the tag prefix.
 	Smoke []string
+	// Proof is the range's code proof as a step, when the config has a
+	// proof.code and the range touches proof.code.paths (For); nil with no
+	// proof.code, a range that touches none of its paths, or a range with no
+	// start to judge from. The run reads recorded results and runs none of
+	// its own, so it is a static step, before the run of named tests.
+	Proof *Step
 }
 
 // checksOf are tasks' checks with their costs, in order; an error for a task
@@ -300,6 +311,24 @@ func inCostOrder(steps []Step, checks []*Check) []Item {
 	return order
 }
 
+// beforeTests is the steps with the one added just before the run of named
+// tests, the last of them when the run has none: the code proof reads
+// results, so it runs before the tests whose recording it may judge, and
+// after the steps that lint what it judges (slice 106).
+func beforeTests(steps []Step, proof Step) []Step {
+	at := len(steps)
+	for i, s := range steps {
+		if s.Tests != "" {
+			at = i
+			break
+		}
+	}
+	out := make([]Step, 0, len(steps)+1)
+	out = append(out, steps[:at]...)
+	out = append(out, proof)
+	return append(out, steps[at:]...)
+}
+
 // asWritten is the steps as written, then the checks in their tasks' order
 // (ci.keep_step_order).
 func asWritten(steps []Step, checks []*Check) []Item {
@@ -409,6 +438,14 @@ func Make(cfg *config.Loaded, in Input) (*Plan, error) {
 	}
 	if in.Prose && haveRun {
 		runs = append(runs, Step{Command: testsRun, Tests: kind})
+	}
+	// The code proof runs among the static steps, before the run of named
+	// tests: it reads the results the author recorded before the push and
+	// runs none of its own (slice 106, issue #28).
+	if in.Proof != nil {
+		proof := *in.Proof
+		proof.own = string(check.Static)
+		runs = beforeTests(runs, proof.costed(cfg))
 	}
 	for i := range runs {
 		runs[i] = runs[i].costed(cfg)

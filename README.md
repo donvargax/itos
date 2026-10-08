@@ -423,8 +423,8 @@ something different.
 ## Proof of done: `proof`
 
 A model that did the work should not be the one to write the check that
-proves it. With `proof.code` in `itos.yaml`, `itos work done` computes the
-proof from the item's commits instead:
+proves it. With `proof.code` in `itos.yaml`, `itos ci run` computes the proof
+from the range's commits instead:
 
 ```yaml
 proof:
@@ -433,19 +433,27 @@ proof:
     check: "itos-cc mutation check --since {base} --fail-uncovered --json"
 ```
 
-When the item's commits (those `itos work show <id>` lists) touch
-`proof.code.paths`, `work done` runs `proof.code.check` once the rest of the
-landing has passed, CI's run included, `{base}` replaced by the parent of the item's first commit, and
-closes the item only when the check exits 0. Exit 1 refuses with exit 1,
-naming each problem the check's `--json` lists
-(`{"schema":1,"ok":false,"problems":[{"rule","message","fix",…}]}`, the
-contract of [itos-cc](https://github.com/donvargax/itos-cc)); any other exit,
-or a check that cannot start, refuses with exit 3. Nothing is written when it
-refuses, and no flag or variable closes an item past it: a surviving mutant
-that is truly equivalent is excepted in `itos-cc.yaml` with its reason, for
-the person to review. `config check` refuses a check without `{base}`
-(exit 2). Without `proof`, `work done` closes on the landing alone, as before,
-so itos stays usable in a language no provider measures.
+When a range touches `proof.code.paths`, `ci run` makes
+`proof.code.check` a step of its plan, among the static ones and before the
+tests, with `{base}` replaced by the range's start: every commit since the
+last green run is judged, whichever item's it belongs to. `ci plan` lists the
+step, and `ci run` fails when the check does not exit 0 — a surviving mutant,
+an uncovered or a missing result naming each problem the check's `--json`
+lists (`{"schema":1,"ok":false,"problems":[{"rule","message","fix",…}]}`, the
+contract of [itos-cc](https://github.com/donvargax/itos-cc)) by its rule and
+message, and a check that cannot run failing the run too, so the release job
+that needs a green run never runs. Nothing at the close closes past it: a
+mutant that is truly equivalent is excepted in `itos-cc.yaml` with its
+reason, for the person to review.
+
+Recording the results is the author's, before the push: the check reads what
+a run of the provider recorded and runs no tests of its own, so the range's
+code has results before the range is judged. `config check` refuses a check
+without `{base}` (exit 2). Without `proof`, `ci run`'s plan is as it was, so
+itos stays usable in a language no provider measures.
+
+`work done` runs no proof of its own: the green run it already requires
+judged the proof of every commit in its range.
 
 A task's own checks, its `done_when`, are the agent's progress while the task
 is open: `work done` runs the static ones before it closes the task, and the

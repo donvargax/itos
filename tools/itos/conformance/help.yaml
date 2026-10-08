@@ -307,18 +307,15 @@ cases:
       in one itos push after the last. Pushed with them, that commit may have no
       run of its own: the newest run on its branch whose head has it judges it, and
       done names that run. Without ci.watch CI is not checked, and done says so.
-      With the config's proof.code, an item whose commits (those itos work show
-      lists) touch proof.code.paths needs its code proof too, after CI: done runs
-      proof.code.check, {base} the parent of the item's first commit, and closes
-      only when it exits 0. Exit 1 refuses, naming each problem its --json lists by
-      its rule and message; any other exit, or a check that cannot start, refuses
-      with exit 3. No flag closes past it. Refused, nothing written (exit 1): any of
-      those not so, a registry, or the ledger file of a task with checks, that is
+      The code proof of the config's proof.code is not run here: CI's run, which
+      done requires green, judges it over the whole range (itos ci run --help).
+      Refused, nothing written (exit 1): any of those not so, a registry, or the
+      ledger file of a task with checks, that is
       not sound or has changes no commit holds, an id no item has, an idea (work
       promote it first), an item dropped or deferred, a commit a hook refuses. Exit
       75 when the run does not end within ci.watch.timeout, is cancelled with no
       newer run to follow, or GitHub's API keeps failing, 3 when the run cannot be
-      looked at or the code proof cannot run. An item already done changes nothing.
+      looked at. An item already done changes nothing.
       An item the registry's queue holds is then taken out of it, in a commit of its
       own, "docs: queue <id>". Under a stealth config the registry and the ledger
       are written and nothing committed.
@@ -1328,6 +1325,12 @@ cases:
       of every task whose work item is done, each shared check once, and a failure
       names the task. With ci.keep_step_order true, a push's run takes ci.steps as
       written, then the named tasks' checks in ledger order.
+      With the config's proof.code, a range that touches proof.code.paths runs the
+      code proof as a step among the static ones, before the tests: proof.code.check
+      with {base} the range's start, which reads the results recorded before the
+      push and runs none of its own. A surviving mutant, an uncovered or a missing
+      result fails the run, naming each problem its --json lists by its rule and
+      message, and a check that cannot run fails it too. Itos ci plan lists it.
 
       --json: the run's log on stderr; {"schema":1,"ok","failed_at"?} on stdout
   - name: itos ci scope --help

@@ -181,6 +181,12 @@ git:
   - commit: "test: the smoke run\n\nTask: T-062\n"
     files: { tools/a.sh: "7\n" }
     label: smoke
+  - commit: "feat: code changes\n"
+    files: { src/a.ts: "export const b = 1;\n" }
+    label: code
+  - commit: "docs: a note\n"
+    files: { docs/b.md: "# B\n" }
+    label: note
 files:
   itos.yaml: |
     version: 1
@@ -985,6 +991,117 @@ cases:
           action: pending
       tasks:
         - T-098
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: a range that touches proof.code's paths plans the code proof, static and before the tests
+    argv: [ci, plan, "{{sha.smoke}}", "{{sha.code}}", --json]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        tests:
+          scenario:
+            root: e2e/features
+            id: "ID-[A-Z]+-\\d+"
+            tag_prefix: "@"
+            run:
+              whole: "vp run e2e"
+              select: "vp run e2e --grep {pattern}"
+              ids_pattern: "@(?:{ids})\\b"
+              join: { each: "(?:{p})", sep: "|" }
+            smoke: { file: e2e/smoke.yaml }
+        ci:
+          steps:
+            - { run: vp check, cost: static }
+            - { tests: scenario }
+          cost: { static: ["^vp check$"] }
+        proof:
+          code:
+            paths: ["src/**"]
+            check: "itos-cc mutation check --since {base} --fail-uncovered --json"
+        work: { registry: tasks/work-items.yaml }
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.smoke}}"
+        to: "{{sha.code}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - itos-cc mutation check --since {{sha.smoke}} --fail-uncovered --json
+        - vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: itos-cc mutation check --since {{sha.smoke}} --fail-uncovered --json
+          cost: static
+          cost_from: explicit
+          proof: true
+        - step: vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+          cost: late
+          cost_from: default
+      tasks: []
+      left_out: []
+      unknown: []
+      not_started: []
+  - name: a range that touches none of proof.code's paths plans no code proof
+    argv: [ci, plan, "{{sha.code}}", "{{sha.note}}", --json]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        tests:
+          scenario:
+            root: e2e/features
+            id: "ID-[A-Z]+-\\d+"
+            tag_prefix: "@"
+            run:
+              whole: "vp run e2e"
+              select: "vp run e2e --grep {pattern}"
+              ids_pattern: "@(?:{ids})\\b"
+              join: { each: "(?:{p})", sep: "|" }
+            smoke: { file: e2e/smoke.yaml }
+        ci:
+          steps:
+            - { run: vp check, cost: static }
+            - { tests: scenario }
+          cost: { static: ["^vp check$"] }
+        proof:
+          code:
+            paths: ["src/**"]
+            check: "itos-cc mutation check --since {base} --fail-uncovered --json"
+        work: { registry: tasks/work-items.yaml }
+    exit: 0
+    json:
+      schema: 1
+      range:
+        from: "{{sha.code}}"
+        to: "{{sha.note}}"
+        readable: true
+        nightly: false
+      prose: false
+      steps:
+        - vp check
+        - vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+      order:
+        - step: vp check
+          cost: static
+          cost_from: explicit
+        - step: vp run e2e --grep '@(?:ID-LIST-01|ID-TWO-02)\b'
+          cost: late
+          cost_from: default
+      tasks: []
       left_out: []
       unknown: []
       not_started: []

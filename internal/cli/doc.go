@@ -498,15 +498,12 @@
 //     --json's ci is unwatched). Since the checks can take minutes, the
 //     registry is then read again and work.Done judged and made afresh on
 //     it, so a registry commit made during the wait is kept, and an item no
-//     longer one work done may close is refused. Between the two, with
-//     the config's proof.code, the code proof (workproof.go, slice 100):
-//     when the item's commits (belonging, work show's rule) touch
-//     proof.code.paths, proof.code.check runs with {base} the parent of the
-//     item's first commit, and internal/proof reads its answer: exit 0
-//     passes, exit 1 refuses with the problems its --json lists (exit 1),
-//     anything else refuses with exit 3; no flag passes over it. The close
-//     commit is docs: close <id>, its body naming the run that passed and the
-//     proof's base. Closing a task with checks, the same commit holds its
+//     longer one work done may close is refused. The close
+//     commit is docs: close <id>, its body naming the run that passed.
+//     The code proof of the config's proof.code is not here any more
+//     (slice 106, issue #28): CI's run, which work done requires green,
+//     judges it over the range, so a second run at the close judged
+//     nothing that ships. Closing a task with checks, the same commit holds its
 //     ledger file with its done_when cut (closedChecks, ledger.WithoutChecks,
 //     slice 101), read after the wait as the registry is, its body naming
 //     the commit before it, which still holds them; writeCommitted puts both

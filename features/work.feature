@@ -837,76 +837,19 @@ Feature: The work registry
 
   # Slice 100 (decision 42 and docs/plans/v7-proof-of-done.md, the user's
   # calls, 2026-10-07): a task's proof is computed from its diff, never
-  # written by the model. The config's proof.code names the paths that count
-  # as code and the provider's check, a command with {base}, the parent of the
-  # item's first commit (itos-cc mutation check --since {base} --fail-uncovered
-  # --json here). When the item's commits touch those paths, work done runs the
-  # check and closes only on exit 0; exit 1 refuses, naming the problems the
-  # check's --json lists; a check that cannot run, or answers anything else,
-  # refuses with exit 3, never a pass (an adapter's failure is an error). With
-  # no proof.code, or commits that touch no code, work done is as before.
-  # Nothing closes an item past a failing proof (the user's call, 2026-10-07:
-  # models will do anything to finish): an equivalent mutant is excepted in
-  # itos-cc.yaml with its reason, which the person reviews and which fails
-  # once stale; otherwise the agent stops and asks. The check runs
-  # after the CI judgement, so a red run still refuses first. The check's
-  # --json is itos-cc's machine contract (its docs/CLI.md, v0.5.0):
+  # written by the model. It ran at work done, over the item's commits; slice
+  # 106 moved it into ci run, over the range (ci.feature's @ID-CI-20 to 23),
+  # and @ID-WORK-87 says so, so the scenarios that held work done's proof
+  # (@ID-WORK-76 to 79, released in v7.0.0-rc.1) are gone. The check's --json
+  # is itos-cc's machine contract (its docs/CLI.md, v0.5.0):
   # {"schema":1,"ok":false,"problems":[{"rule","message","fix",…}]}, rules
   # such as mutation.survived, mutation.uncovered, mutation.missing and
-  # mutation.stale, the subject in keys like file, line and function; a
-  # fake provider answers in that shape, and work done prints each problem's
-  # rule and message. Its exit 2 (itos-cc's usage or config error), 3, 70
-  # and 75 are all "cannot run" to itos: exit 3.
-  @ID-WORK-76 @slice-100
-  Scenario: work done runs the code proof over the item's commits and closes when it passes
-    Given a clone of it, where itos runs
-    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
-    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
-    And the watched run's jobs "ci" and "platform" succeed
-    And the config's proof.code covers "src/**" and checks with a provider that passes
-    And the remote has the item "slice-9"'s commit touching "src/app.go"
-    When itos runs "work done slice-9"
-    Then itos exits with code 0
-    And the registry's item "slice-9" has the status "done" and the owner "someone"
-    And the provider was run with the base before the item "slice-9"'s first commit
-
-  @ID-WORK-77 @slice-100
-  Scenario: work done refuses when the code proof finds a surviving mutant, naming it, and writes nothing
-    Given a clone of it, where itos runs
-    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
-    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
-    And the watched run's jobs "ci" and "platform" succeed
-    And the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
-    And the remote has the item "slice-9"'s commit touching "src/app.go"
-    When itos runs "work done slice-9"
-    Then itos exits with code 1
-    And its output says "app.Total"
-    And the registry's item "slice-9" has the status "doing" and the owner "someone"
-
-  @ID-WORK-78 @slice-100
-  Scenario: work done does not run the code proof when the item's commits touch no code
-    Given a clone of it, where itos runs
-    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
-    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
-    And the watched run's jobs "ci" and "platform" succeed
-    And the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
-    And the remote has the item "slice-9"'s commit touching "README.md"
-    When itos runs "work done slice-9"
-    Then itos exits with code 0
-    And the provider was not run
-
-  @ID-WORK-79 @slice-100
-  Scenario: A code proof that cannot run refuses with exit 3, never closing the item
-    Given a clone of it, where itos runs
-    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
-    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
-    And the watched run's jobs "ci" and "platform" succeed
-    And the config's proof.code covers "src/**" and checks with a command that does not exist
-    And the remote has the item "slice-9"'s commit touching "src/app.go"
-    When itos runs "work done slice-9"
-    Then itos exits with code 3
-    And the registry's item "slice-9" has the status "doing" and the owner "someone"
-
+  # mutation.stale, the subject in keys like file, line and function; a fake
+  # provider answers in that shape (features/proof_test.go), and the run
+  # prints each problem's rule and message. Its exit 2 (itos-cc's usage or
+  # config error), 3, 70 and 75 are all "cannot run" to itos, which fails the
+  # run as any other step that cannot.
+  #
   # Slice 101 (docs/plans/v7-proof-of-done.md, the rule): a task's checks are
   # the agent's progress while the task is open. work done runs them, as it
   # does since slice 53, and once it closes the task they leave the ledger,
@@ -1010,7 +953,7 @@ Feature: The work registry
   # naming each in Changes with a BREAKING-CHANGE footer. It also settles
   # issue #26, an item's {base} taking in other items' commits, which only
   # work done's own range had.
-  @ID-WORK-87 @slice-106 @wip
+  @ID-WORK-87 @slice-106
   Scenario: work done does not run the code proof, which the item's green CI run already judged
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"

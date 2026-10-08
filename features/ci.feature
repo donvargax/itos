@@ -304,7 +304,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # stays the author's, before the push. With no proof.code, or a range that
   # touches none of its paths, the plan is as before. work done no longer
   # runs the proof (@ID-WORK-87): the green run it requires already judged it.
-  @ID-CI-20 @slice-106 @wip
+  @ID-CI-20 @slice-106
   Scenario: A range that touches proof.code's paths runs the code proof over it, its base the range's start
     Given the config's proof.code covers "src/**" and checks with a provider that passes
     And the commit "chore: change the app" touching only "src/app.go" on top of it
@@ -312,7 +312,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And the provider was run with the base the range starts at
 
-  @ID-CI-21 @slice-106 @wip
+  @ID-CI-21 @slice-106
   Scenario: A code proof that finds a surviving mutant fails the CI run, naming it
     Given the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
     And the commit "chore: change the app" touching only "src/app.go" on top of it
@@ -320,7 +320,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 1
     And its output says "app.Total"
 
-  @ID-CI-22 @slice-106 @wip
+  @ID-CI-22 @slice-106
   Scenario: A range that touches none of proof.code's paths does not run the code proof
     Given the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
     And the commit "chore: tidy the readme" touching only "README.md" on top of it
@@ -328,7 +328,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And the provider was not run
 
-  @ID-CI-23 @slice-106 @wip
+  @ID-CI-23 @slice-106
   Scenario: A code proof that cannot run fails the CI run
     Given the config's proof.code covers "src/**" and checks with a command that does not exist
     And the commit "chore: change the app" touching only "src/app.go" on top of it

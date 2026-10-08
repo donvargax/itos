@@ -3,6 +3,7 @@ package plan
 import (
 	"github.com/donvargax/itos/v7/internal/config"
 	"github.com/donvargax/itos/v7/internal/ledger"
+	"github.com/donvargax/itos/v7/internal/proof"
 	"github.com/donvargax/itos/v7/internal/source"
 	"github.com/donvargax/itos/v7/internal/value"
 	"github.com/donvargax/itos/v7/internal/work"
@@ -58,10 +59,13 @@ func waiting(cfg *config.Loaded, d Data, id string) bool {
 // read from git, the rest from d. The tasks its ledger footers name run in
 // ledger order, less the ones not started; a named ID no task has is
 // Unknown, and a task not started is NotStarted, both in the footers' order.
-// The range's ends are filled into its steps (EndsOf).
+// The range's ends are filled into its steps (EndsOf), and its code proof,
+// when the config has one and the range touches its paths (codeProof), runs
+// with {base} that start.
 func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 	ids := TasksIn(cfg, from, to)
-	prose, err := DocsOnly(cfg, Changed(from, to))
+	changed := Changed(from, to)
+	prose, err := DocsOnly(cfg, changed)
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +75,10 @@ func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 		return nil, err
 	}
 	in := Input{Prose: prose, Known: known, Scenarios: TestsNamedIn(cfg, from, to, kind), Smoke: d.Smoke}
+	ends := EndsOf(cfg, from, to)
+	if in.Proof, err = codeProof(cfg, changed, ends); err != nil {
+		return nil, err
+	}
 	has := map[string]bool{}
 	for _, t := range d.Tasks {
 		has[t.ID] = true
@@ -90,6 +98,24 @@ func For(cfg *config.Loaded, from, to string, d Data) (*Plan, error) {
 			p.NotStarted = append(p.NotStarted, id)
 		}
 	}
-	p.fill(EndsOf(cfg, from, to))
+	p.fill(ends)
 	return p, nil
+}
+
+// codeProof is the range's code proof as a step of its plan: with the
+// config's proof.code and the range touching proof.code.paths, its check
+// with {base} the range's start (ends.From), so every commit since the last
+// green run is judged, whoever's item it is (slice 106, issue #28, which
+// settles #26). None with no proof.code, a range that touches none of its
+// paths (a range that cannot be read touched nothing, so the shortcut is
+// never taken on a guess), or a range with no start to judge from.
+func codeProof(cfg *config.Loaded, changed []string, ends Ends) (*Step, error) {
+	if cfg.Proof == nil || cfg.Proof.Code == nil || ends.From == "" {
+		return nil, nil
+	}
+	touched, err := proof.Touches(cfg.Proof.Code.Paths, changed)
+	if err != nil || !touched {
+		return nil, err
+	}
+	return &Step{Command: proof.Command(cfg.Proof.Code.Check, ends.From), Proof: true}, nil
 }
