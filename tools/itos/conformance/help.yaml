@@ -17,17 +17,17 @@ cases:
         status [--as <handle>]           where things stand: head, CI, release, work, questions
         task <id>…                       run the tasks' checks; the status table
         task list [--group <g>]          the tasks and their work items' status; runs nothing
-        task add <id> --group <g> --type <type> --title <title> --why <why> --check <command> […]
+        task add --group <g> --type <type> --title <title> --why <why> --check <command> […]
                                          add a task to the ledger and its item, and commit both
         task next-id                     the ledger's next free task ID; reads only
         work [--as <handle>]             what the person can start, and what waits
         work list [--all] [--tag <tag>]  the open items of the work registry; --all every one
         work show <id> [--patch]         an item, its scenarios and its commits; reads only
         work take <id> [--as <handle>]   set an item in progress for the person, and commit it
-        work promote <idea> --id <id> --kind slice|task [--title <title>]
+        work promote <idea> --kind slice|task [--title <title>]
                                          make an idea a slice or a task, and commit it
         work done <id>                   mark an item done once it has landed, and commit it
-        work add <id> --title <title> --why <why> […]
+        work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task] […]
                                          add an item to the work registry, and commit it
         work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
                                          change an item, or add a note to its why, and commit it
@@ -141,7 +141,7 @@ cases:
              itos task --group <g> [--skip <ids>]
              itos task --pending
              itos task list [--group <g>]
-             itos task add <id> --group <g> --type <type> --title <title> --why <why> --check <command> […]
+              itos task add --group <g> --type <type> --title <title> --why <why> --check <command> […]
              itos task next-id
 
       --phase <g> and --<label> <g> are --group <g>, the label being the config's
@@ -172,10 +172,10 @@ cases:
     argv: [task, add, --help]
     exit: 0
     stdout: |
-      Usage: itos task add <id> --group <g> --type <type> --title <title> --why <why>
+      Usage: itos task add --group <g> --type <type> --title <title> --why <why>
                --check <command> [--timeout <seconds>] [--check <command> [--timeout <seconds>]]…
 
-      Adds a task at the end of its group's ledger file (ledger.files with {group}
+      Mints a task ID from the shared counter, then adds it at the end of its group's ledger file (ledger.files with {group}
       filled in, made when the group has none yet): its id, type, title, why (a
       folded text) and done_when, one run: check per --check in order, a --timeout
       after a --check giving that check its own seconds. Adds its item to the work
@@ -183,10 +183,10 @@ cases:
       file and the registry alone, "docs: add <id>", as work take commits the
       registry (itos help work take); a commit a hook refuses puts both back.
       --phase <g> and --<label> <g> are --group <g>. Refused, nothing written (exit
-      1): an <id> ledger.id does not match or the ledger already has, a <type>
+      2): an explicit id. Refused, nothing written (exit 1): a <type>
       commits.types does not list, a group ledger.group.pattern does not match, a
       ledger with problems (itos config check), a registry that is not sound, what
-      work add refuses (an <id> an item has, a group the registry does not list),
+      work add refuses (a group the registry does not list),
       either file with changes no commit holds. Under a stealth config both are
       written and nothing committed.
 
@@ -214,9 +214,9 @@ cases:
              itos work list [--all] [--tag <tag>]
              itos work show <id> [--patch]
              itos work take <id> [--as <handle>]
-             itos work promote <idea> --id <id> --kind slice|task [--title <title>]
+              itos work promote <idea> --kind slice|task [--title <title>]
              itos work done <id>
-             itos work add <id> --title <title> --why <why> […]
+              itos work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task] […]
              itos work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
              itos work queue <id> --top|--before <id>|--after <id>|--remove
              itos work drop <id> --why <reason>
@@ -269,17 +269,17 @@ cases:
     argv: [work, promote, --help]
     exit: 0
     stdout: |
-      Usage: itos work promote <idea> --id <id> --kind slice|task [--title <title>]
+      Usage: itos work promote <idea> --kind slice|task [--title <title>]
 
-      Makes an idea a slice or a task: renames it <id>, sets its kind, puts
+      Makes an idea a slice or a task: mints an ID from the shared counter, renames it, sets its kind, puts
       "Was <idea>." before its why and renames it in every depends_on that names it,
       then commits the registry alone, "docs: promote <idea> to <id>", as work take
       does (itos help work take). --title gives it a new title in the same commit,
       whose body says so; without it the idea's title is kept. Refused, nothing
-      written (exit 1): a registry that is not sound or has changes no commit holds,
-      an id no item has, an item that is not an idea, an idea dropped, an <id> an
-      item already has, a task's <id> that ledger.id does not match, a commit a hook
-      refuses. Under a stealth config the registry is written and nothing committed.
+      written (exit 2): a caller-supplied ID. Refused, nothing written (exit 1): a
+      registry that is not sound or has changes no commit holds, an id no item has,
+      an item that is not an idea, an idea dropped, a commit a hook refuses. Under
+      a stealth config the registry is written and nothing committed.
 
       --json: {"schema":1,"ok":true,"item":{…},"was","rewritten":[…],"commit":"<sha>"|null},
       or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}
@@ -326,18 +326,20 @@ cases:
     argv: [work, add, --help]
     exit: 0
     stdout: |
-      Usage: itos work add <id> --title <title> --why <why> [--kind idea|slice|task]
+      Usage: itos work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task]
                [--phase <phase>] [--owner <handle>] [--depends-on <id>,…] [--refs <ref>,…]
                [--tags <tag>,…]
 
       Adds an item at the end of the work registry, todo: an idea unless --kind says
-      otherwise, in the phase --phase names (else the one a p<n>- id names, else the
-      registry's only one), owned by --owner or nobody, carrying the tags --tags
-      gives, its why a folded text, then commits the registry alone, "docs: add
-      <id>", as work take does (itos help work take). Refused, nothing written (exit
-      1): a registry that is not sound or has changes no commit holds, an <id> an
-      item already has, a task's <id> that ledger.id does not match, no phase to put
-      it in, what work check would find with the item there (a phase not listed, an
+      otherwise. An idea keeps its required <idea-id>; a slice or task takes a minted
+      ID from the shared counter. It is in the phase --phase names (else the one a
+      p<n>- idea id names, else the registry's only one), owned by --owner or nobody,
+      carrying the tags --tags gives, its why a folded text, then commits the registry
+      alone, "docs: add <id>", as work take does (itos help work take). Refused,
+      nothing written (exit 2): an ID given for a slice or task, or none for an idea.
+      Refused, nothing written (exit 1): a registry that is not sound or has changes
+      no commit holds, an <id> an item already has, no phase to put it in, what work
+      check would find with the item there (a phase not listed, an
       owner not among the people, a dependency on no item, a tag work.tags does not
       declare, any tag when it declares none), a commit a hook refuses. Under a
       stealth config the registry is written and nothing committed.

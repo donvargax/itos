@@ -998,7 +998,7 @@ cases:
       problems:
         - rule: work-take-idea
           message: "idea is an idea, not yet specified: make it a slice or a task first"
-          fix: "itos work promote idea --id <id> --kind slice|task"
+          fix: "itos work promote idea --kind slice|task"
   - name: work take refuses an item that waits on one not done
     argv: [work, take, later]
     exit: 1
@@ -1062,7 +1062,7 @@ cases:
     stderr: |
       itos: work take does not take --kind; it takes --as (itos --help)
   - name: work promote makes an idea a slice, its why led by its old id, and renames it where items depend on it
-    argv: [work, promote, p1-thing, --id, slice-7, --kind, slice, --json]
+    argv: [work, promote, p1-thing, --kind, slice, --json]
     git: []
     files:
       itos.yaml: null
@@ -1072,14 +1072,14 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: slice-7, title: A thing, phase: 1, status: todo, kind: slice, why: "Was p1-thing. A gap left behind.\n", depends_on: [], tags: [] }
+      item: { id: slice-5, title: A thing, phase: 1, status: todo, kind: slice, why: "Was p1-thing. A gap left behind.\n", depends_on: [], tags: [] }
       was: p1-thing
       rewritten: [slice-3, slice-4]
       commit: null
     files_after:
-      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - id: slice-7 # the idea\n    title: A thing\n    phase: 1\n    status: todo\n    kind: slice\n    why: >\n      Was p1-thing.\n      A gap\n      left behind.\n  - id: slice-3\n    title: Three\n    phase: 1\n    status: todo\n    depends_on:\n      - slice-7\n  - { id: slice-4, title: Four, phase: 1, status: todo, depends_on: [slice-3, slice-7] }\n"
+      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - id: slice-5 # the idea\n    title: A thing\n    phase: 1\n    status: todo\n    kind: slice\n    why: >\n      Was p1-thing.\n      A gap\n      left behind.\n  - id: slice-3\n    title: Three\n    phase: 1\n    status: todo\n    depends_on:\n      - slice-5\n  - { id: slice-4, title: Four, phase: 1, status: todo, depends_on: [slice-3, slice-5] }\n"
   - name: work promote --title gives the promoted item a new title, written in place
-    argv: [work, promote, p1-thing, --id, slice-7, --kind, slice, --title, "The thing, specified", --json]
+    argv: [work, promote, p1-thing, --kind, slice, --title, "The thing, specified", --json]
     git: []
     files:
       itos.yaml: null
@@ -1089,42 +1089,41 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: slice-7, title: "The thing, specified", phase: 1, status: todo, kind: slice, why: Was p1-thing. a gap, depends_on: [], tags: [] }
+      item: { id: slice-1, title: "The thing, specified", phase: 1, status: todo, kind: slice, why: Was p1-thing. a gap, depends_on: [], tags: [] }
       was: p1-thing
       rewritten: []
       commit: null
     files_after:
-      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - id: slice-7\n    title: The thing, specified # the plan replaced\n    phase: 1\n    status: todo\n    kind: slice\n    why: Was p1-thing. a gap\n"
+      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - id: slice-1\n    title: The thing, specified # the plan replaced\n    phase: 1\n    status: todo\n    kind: slice\n    why: Was p1-thing. a gap\n"
   - name: work promote refuses an item that is not an idea
-    argv: [work, promote, ready, --id, slice-1, --kind, slice]
+    argv: [work, promote, ready, --kind, slice]
+    git: []
     exit: 1
     stderr: |
       ready has no kind, not an idea: only an idea is promoted
         fix: promote an item of kind idea
   - name: work promote refuses an id an item already has
     argv: [work, promote, idea, --id, ready, --kind, slice]
-    exit: 1
+    exit: 2
     stderr: |
-      ready is already an item: Ready
-        fix: give the slice an id no item has
+      itos: work promote mints the slice id; do not pass --id (itos --help)
   - name: work promote refuses a task id ledger.id does not match
     argv: [work, promote, idea, --id, task-1, --kind, task]
     files:
       itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\nwork:\n  registry: work-items.yaml\n  people: { source: yaml, file: people.yaml }\n"
-    exit: 1
+    exit: 2
     stderr: |
-      task-1 is not a task ID by ledger.id (^T-\d+$)
-        fix: give the task an ID ledger.id matches, so a Task footer can name it
+      itos: work promote mints the task id; do not pass --id (itos --help)
   - name: work promote needs --kind slice or task
     argv: [work, promote, idea, --id, slice-1, --kind, idea]
     exit: 2
     stderr: |
       itos: work promote needs --kind slice|task (itos --help)
-  - name: work promote needs --id
-    argv: [work, promote, idea, --kind, slice]
+  - name: work promote needs --kind
+    argv: [work, promote, idea]
     exit: 2
     stderr: |
-      itos: work promote needs --id <id>, the slice's or the task's id (itos --help)
+      itos: work promote needs --kind slice|task (itos --help)
   - name: work done marks an item done and commits the registry alone, saying what it could not check
     argv: [work, done, x]
     git:
@@ -1207,7 +1206,7 @@ cases:
     exit: 1
     stderr: |
       idea is an idea, not yet specified, so there is nothing of it to be done
-        fix: itos work promote idea --id <id> --kind slice|task, then build it
+        fix: itos work promote idea --kind slice|task, then build it
   - name: work done refuses a deferred item
     argv: [work, done, parked]
     exit: 1
@@ -1256,7 +1255,7 @@ cases:
     files_after:
       work-items.yaml: "# who does what\nphases: { 1: null }\nitems:\n  - id: x # the first\n    title: \"X, quoted\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n  - id: p1-new\n    title: \"New: a thing\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    kind: idea\n    why: >\n      A gap, found while building.\n"
   - name: under a stealth config work add writes a slice with its group, owner, dependencies and refs, and commits nothing
-    argv: [work, add, slice-9, --kind, slice, --phase, "1", --owner, a, --depends-on, "x, y", --refs, features/x.feature, --title, Nine, --why, Specified., --json]
+    argv: [work, add, --kind, slice, --phase, "1", --owner, a, --depends-on, "x, y", --refs, features/x.feature, --title, Nine, --why, Specified., --json]
     git: []
     files:
       itos.yaml: null
@@ -1266,10 +1265,10 @@ cases:
     json:
       schema: 1
       ok: true
-      item: { id: slice-9, title: Nine, phase: 1, owner: a, status: todo, depends_on: [x, y], tags: [], kind: slice, why: "Specified.\n", refs: [features/x.feature] }
+      item: { id: slice-1, title: Nine, phase: 1, owner: a, status: todo, depends_on: [x, y], tags: [], kind: slice, why: "Specified.\n", refs: [features/x.feature] }
       commit: null
     files_after:
-      .git/itos/work-items.yaml: "phases: { 1: null, 2: null }\nitems:\n  - { id: x, title: X, phase: 1, status: done }\n\n  - { id: y, title: Y, phase: 2, status: todo }\n\n  - id: slice-9\n    title: Nine\n    phase: 1\n    owner: a\n    status: todo\n    depends_on: [x, y]\n    kind: slice\n    why: >\n      Specified.\n    refs: [features/x.feature]\n"
+      .git/itos/work-items.yaml: "phases: { 1: null, 2: null }\nitems:\n  - { id: x, title: X, phase: 1, status: done }\n\n  - { id: y, title: Y, phase: 2, status: todo }\n\n  - id: slice-1\n    title: Nine\n    phase: 1\n    owner: a\n    status: todo\n    depends_on: [x, y]\n    kind: slice\n    why: >\n      Specified.\n    refs: [features/x.feature]\n"
   - name: work add refuses an id an item has
     argv: [work, add, ready, --title, Again, --why, A second one.]
     exit: 1
@@ -1293,19 +1292,17 @@ cases:
       p1-new: owner "zed" is not in people.yaml
         fix: add zed to people.yaml, or set p1-new's owner to one of its logins
   - name: work add needs a phase where the registry lists more than one and the id names none
-    argv: [work, add, slice-9, --kind, slice, --title, Nine, --why, Because.]
+    argv: [work, add, --kind, slice, --title, Nine, --why, Because.]
+    git: []
     exit: 1
     stderr: |
-      which phase slice-9 is in is not said: the registry lists 1, 2
+      which phase slice-1 is in is not said: the registry lists 1, 2
         fix: pass --phase <phase>
   - name: work add refuses a task id ledger.id does not match
     argv: [work, add, task-1, --kind, task, --phase, "1", --title, T, --why, Because.]
-    files:
-      itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\nwork:\n  registry: work-items.yaml\n  people: { source: yaml, file: people.yaml }\n"
-    exit: 1
+    exit: 2
     stderr: |
-      task-1 is not a task ID by ledger.id (^T-\d+$)
-        fix: give the task an ID ledger.id matches, so a Task footer can name it
+      itos: work add mints the task id; do not pass one (itos --help)
   - name: work add needs a title and a why
     argv: [work, add, p1-new, --title, New]
     exit: 2
