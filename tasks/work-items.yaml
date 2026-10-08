@@ -5677,8 +5677,8 @@ items:
   - id: T-129
     title: Conformance Git fixtures cannot loop through the shim, and every case cleans up within a deadline
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
