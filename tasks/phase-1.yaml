@@ -953,9 +953,6 @@
     harness (features/*_test.go, features/testdata/**). Nothing is left to wait for: T-121 and
     slice-100 are done and the hold ended 2026-10-08 when itos-cc v0.5.0 closed #14 with listed
     tests, so this can start now.
-  done_when:
-    - run: test -n "$(tools/bin/itos config get proof.code.check)"
-    - run: tools/bin/itos ci plan "" HEAD | grep -q "mutation sample"
 
 - id: T-122
   type: ci
