@@ -135,3 +135,6 @@ questions:
   - id: q-32
     item: "p3-guard-replacement"
     question: "Is an approved commit-plan part reusable for several commits, or consumed by one commit? Recommended: reusable until explicitly completed, with each commit satisfying the same approved type, subject, footer metadata, path rules and normal gates; further commits after completion need coordinator approval. Alternative: one commit per part, with each checkpoint or correction requiring a new approved part. Completion declaration and proof remain to be designed. See docs/plans/guided-commits.md."
+  - id: q-33
+    item: "p3-guard-replacement"
+    question: "For the first guided-commit version, is coordinator approval a recorded/reviewed workflow rule, or must it be a verifiable technical boundary? Both current sessions share OS/git rights, so an approve command or plan hash alone cannot prove the approving role. Recommended first: enforce declared-part constraints and record approved revisions/amendments honestly; add a hard boundary only with isolated workers or approval credentials unavailable to implementers. Alternative: require that trusted boundary from the start. See docs/plans/guided-commits.md."
