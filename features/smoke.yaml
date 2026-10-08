@@ -88,6 +88,10 @@
   scenarios:
     - id: "@ID-INIT-01"
       why: init in a repository with a commit writes a config the checks accept and installs the hooks, the file's point
+- file: ids.feature
+  scenarios:
+    - id: "@ID-IDS-01"
+      why: one remote counter reservation and its minted item, the shared allocator's central path
 - file: ledger.feature
   scenarios:
     - id: "@ID-LEDGER-01"

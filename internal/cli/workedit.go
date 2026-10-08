@@ -35,12 +35,12 @@ func idList(s string) []string {
 	return list
 }
 
-// workAdd is `work add <id> --title <t> --why <w> [--kind idea|slice|task]
-// [--phase <p>] [--owner <handle>] [--depends-on <ids>] [--refs <refs>]
-// [--tags <tags>]`: a new item, todo, at the end of the registry, committed
-// (work.Add).
+// workAdd is `work add [<idea-id>] --title <t> --why <w>
+// [--kind idea|slice|task] [--phase <p>] [--owner <handle>]
+// [--depends-on <ids>] [--refs <refs>] [--tags <tags>]`: ideas keep their
+// author's id; slices and tasks mint theirs from the shared counter.
 func workAdd(args []string, o Out) (int, error) {
-	id, flags, err := workArgs("add", args, "--title", "--why", "--kind", "--phase", "--owner", "--depends-on", "--refs", "--tags")
+	id, hasID, flags, err := workArgsOptionalID("add", args, "--title", "--why", "--kind", "--phase", "--owner", "--depends-on", "--refs", "--tags")
 	if err != nil {
 		return 0, err
 	}
@@ -54,10 +54,28 @@ func workAdd(args []string, o Out) (int, error) {
 	if !slices.Contains(addKinds, kind) {
 		return 0, usage("work add takes --kind %s", strings.Join(addKinds, "|"))
 	}
+	if kind == "idea" && !hasID {
+		return 0, usage("work add needs <idea-id> when --kind is idea")
+	}
+	if kind != "idea" && hasID {
+		return 0, usage("work add mints the %s id; do not pass one", kind)
+	}
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
 	if cfg == nil {
 		return code, err
+	}
+	if kind != "idea" {
+		ids := make([]string, 0, len(registry.Items))
+		for _, item := range registry.Items {
+			if itemID, ok := item.At("id").(string); ok {
+				ids = append(ids, itemID)
+			}
+		}
+		id, err = mintItemID(cfg, kind, ids)
+		if err != nil {
+			return 0, err
+		}
 	}
 	n := work.New{
 		ID: id, Title: flags["--title"], Why: flags["--why"], Kind: kind, Phase: flags["--phase"], Owner: flags["--owner"],

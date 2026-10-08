@@ -297,7 +297,7 @@ Feature: itos init, a repository made ready for itos
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"
     And the files init wrote are committed
-    When itos runs the command line "task add T-2 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    When itos runs the command line "task add --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
     Then itos exits with code 0
     And the ledger file "tasks/phase-1.yaml" has the task "T-2" with the check "true"
     And the registry's item "T-2" is a task titled "Tidy the readme" with the status "todo"
@@ -307,7 +307,7 @@ Feature: itos init, a repository made ready for itos
   Scenario: Under a stealth config init wrote, task add writes the first task into the empty ledger
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init --stealth"
-    When itos runs the command line "task add T-1 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    When itos runs the command line "task add --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
     Then itos exits with code 0
     And the ledger file "tasks/phase-1.yaml" has the task "T-1" with the check "true"
     And the registry's item "T-1" is a task titled "Tidy the readme" with the status "todo"

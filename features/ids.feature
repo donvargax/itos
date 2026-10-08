@@ -26,7 +26,7 @@ Feature: The id counter, so an id itos mints is minted once
   # Each scenario makes its own repository: one shared through a remote,
   # one kept in its git folder (a stealth config).
 
-  @ID-IDS-01 @slice-102 @wip
+  @ID-IDS-01 @slice-102
   Scenario: Minting with a remote claims the number in the remote's counter
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
@@ -39,7 +39,7 @@ Feature: The id counter, so an id itos mints is minted once
   # Another machine's mint is made in a second clone of the remote, by the
   # itos under test, before this clone mints: this clone's registry still
   # tops out at slice-9.
-  @ID-IDS-02 @slice-102 @wip
+  @ID-IDS-02 @slice-102
   Scenario: A number another clone claimed is not minted again
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
@@ -50,7 +50,7 @@ Feature: The id counter, so an id itos mints is minted once
     And its output says "slice-11"
     And the remote's id counter for "slice" is 11
 
-  @ID-IDS-03 @slice-102 @wip
+  @ID-IDS-03 @slice-102
   Scenario: A counter behind what the repository holds mints past the repository's highest
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
@@ -60,7 +60,7 @@ Feature: The id counter, so an id itos mints is minted once
     Then itos exits with code 0
     And its output says "slice-13"
 
-  @ID-IDS-04 @slice-102 @wip
+  @ID-IDS-04 @slice-102
   Scenario: A remote that cannot be reached refuses the mint with exit 3, and writes nothing
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs
@@ -70,7 +70,7 @@ Feature: The id counter, so an id itos mints is minted once
     Then itos exits with code 3
     And the registry has no item "slice-10"
 
-  @ID-IDS-05 @slice-102 @wip
+  @ID-IDS-05 @slice-102
   Scenario: Under a stealth config the counter stays in the git folder, and no ref is made or pushed
     Given a repository whose ledger has the task "T-001", kept in its git folder
     And the stealth registry has the item "slice-9" owned by nobody with the status "todo"
@@ -94,7 +94,7 @@ Feature: The id counter, so an id itos mints is minted once
   # commit the counter commit it has just built, and no itos command takes a
   # refspec, a ref or a flag that reaches that push. itos runs git itself, so
   # the plugin's guard still refuses git push --no-verify typed anywhere.
-  @ID-IDS-06 @slice-102 @wip
+  @ID-IDS-06 @slice-102
   Scenario: The counter's push runs no pre-push hook, none of hooks.pre_push's commands running
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs

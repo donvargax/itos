@@ -20,9 +20,9 @@ import (
 )
 
 // taskAddUsage is what task add needs, as a usage error says it.
-const taskAddUsage = "task add needs <id>, --group <g>, --type <type>, --title <title>, --why <why> and a --check <command>"
+const taskAddUsage = "task add needs --group <g>, --type <type>, --title <title>, --why <why> and a --check <command>"
 
-// taskAddArgs reads task add's arguments: one id; --group (or --phase, or
+// taskAddArgs reads task add's arguments: --group (or --phase, or
 // --<ledger.group.label>), --type, --title and --why, each once; --check,
 // once per check, in order, and --timeout after a --check, that check's
 // seconds. "--flag value" or "--flag=value". Anything else is a usage
@@ -73,14 +73,16 @@ func taskAddArgs(cfg *config.Loaded, args []string) (ledger.NewTask, error) {
 			n.Checks[len(n.Checks)-1].Timeout, timed = &seconds, true
 		}
 	}
-	if len(ids) != 1 || n.Group == "" || n.Type == "" || n.Title == "" || n.Why == "" || len(n.Checks) == 0 {
+	if len(ids) > 0 {
+		return n, usage("task add mints the task id; do not pass one")
+	}
+	if n.Group == "" || n.Type == "" || n.Title == "" || n.Why == "" || len(n.Checks) == 0 {
 		return n, usage(taskAddUsage)
 	}
-	n.ID = ids[0]
 	return n, nil
 }
 
-// taskAdd is `task add <id> --group <g> --type <type> --title <title> --why
+// taskAdd is `task add --group <g> --type <type> --title <title> --why
 // <why> --check <command> [--timeout <seconds>] [--check …]`: the task at the
 // end of its group's ledger file, its item in the registry, committed.
 func taskAdd(args []string, o Out) (int, error) {
@@ -96,6 +98,14 @@ func taskAdd(args []string, o Out) (int, error) {
 	defer release()
 	if cfg == nil {
 		return code, err
+	}
+	ids, err := registryIDs(cfg)
+	if err != nil {
+		return 0, err
+	}
+	n.ID, err = mintItemID(cfg, "task", ids)
+	if err != nil {
+		return 0, err
 	}
 	added, found, err := ledger.Add(cfg, n)
 	if err != nil {

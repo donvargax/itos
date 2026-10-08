@@ -112,11 +112,11 @@ Feature: The work registry
   Scenario: work promote renames an idea, makes it a slice, rewrites what depends on it, and commits
     Given the work registry has the idea "p1-thing" owned by nobody
     And the work registry has the item "slice-3" owned by nobody with the status "todo", depending on "p1-thing"
-    When itos runs "work promote p1-thing --id slice-7 --kind slice"
+    When itos runs "work promote p1-thing --kind slice"
     Then itos exits with code 0
     And the registry has no item "p1-thing"
-    And the registry's item "slice-7" is a slice whose why starts with "Was p1-thing."
-    And the registry's item "slice-3" depends on "slice-7"
+    And the registry's item "slice-4" is a slice whose why starts with "Was p1-thing."
+    And the registry's item "slice-3" depends on "slice-4"
     And the last commit touches only "tasks/work-items.yaml"
 
   # A file the person staged for their own commit stays staged, and out of
@@ -284,9 +284,9 @@ Feature: The work registry
   @ID-WORK-29 @slice-65
   Scenario: work promote --title gives the promoted item a new title
     Given the work registry has the idea "p1-thing" owned by nobody
-    When itos runs the command line "work promote p1-thing --id slice-7 --kind slice --title 'The thing, specified'"
+    When itos runs the command line "work promote p1-thing --kind slice --title 'The thing, specified'"
     Then itos exits with code 0
-    And the registry's item "slice-7" is titled "The thing, specified"
+    And the registry's item "slice-1" is titled "The thing, specified"
 
   # Slice 66 (the user's calls, 2026-10-04, p1-work-queue-order): the order
   # of the work lived in the handoff's prose, rewritten by hand. The registry
@@ -562,15 +562,15 @@ Feature: The work registry
   # Slice 89 (decision of q-16): --as named a person in work, status and
   # work take but a new ID in work promote, and work queue --drop chose
   # another action than work queue. They are work promote --id and work
-  # queue --remove; the old flags exit 2 naming the new ones. The feat
-  # rewrites the live scenarios that use them, marked breaking.
+  # queue --remove. Slice 102 replaces the caller-chosen --id with a minted
+  # one; the old scenario now proves promotion needs no numbered ID.
   @ID-WORK-52 @slice-89
-  Scenario: work promote --id renames an idea and makes it a slice
+  Scenario: work promote mints an id, renames an idea and makes it a slice
     Given the work registry has the idea "p1-thing" owned by nobody
-    When itos runs "work promote p1-thing --id slice-7 --kind slice"
+    When itos runs "work promote p1-thing --kind slice"
     Then itos exits with code 0
     And the registry has no item "p1-thing"
-    And the registry's item "slice-7" is a slice whose why starts with "Was p1-thing."
+    And the registry's item "slice-1" is a slice whose why starts with "Was p1-thing."
 
   @ID-WORK-53 @slice-89
   Scenario: work promote --as exits 2, naming --id
@@ -895,7 +895,7 @@ Feature: The work registry
   # past the registry's bugs and the @bug tags, which work done treats as a
   # slice: its scenarios are those tagged @bug-<n>. Items named bug-<n> of
   # kind slice, made before this, stay valid.
-  @ID-WORK-81 @slice-102 @wip
+  @ID-WORK-81 @slice-102
   Scenario: work add --kind slice mints the next slice id, past the registry's highest
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs the command line "work add --kind slice --title 'Do the thing' --why 'Because it is missing.'"
@@ -912,14 +912,14 @@ Feature: The work registry
     Then itos exits with code 0
     And the registry's item "bug-8" is a bug titled "It breaks" with the status "todo"
 
-  @ID-WORK-83 @slice-102 @wip
+  @ID-WORK-83 @slice-102
   Scenario: work add refuses an id for a slice or a task, and writes nothing
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs the command line "work add slice-10 --kind slice --title 'Do the thing' --why 'Because.'"
     Then itos exits with code 2
     And the registry has no item "slice-10"
 
-  @ID-WORK-84 @slice-102 @wip
+  @ID-WORK-84 @slice-102
   Scenario: work promote mints the new id and renames the idea everywhere it is named
     Given the work registry has the idea "p1-thing" owned by nobody
     And the work registry has the item "slice-9" owned by nobody with the status "todo", depending on "p1-thing"
@@ -930,12 +930,20 @@ Feature: The work registry
     And the registry's item "slice-10" is a slice whose why starts with "Was p1-thing."
     And the registry's item "slice-9" depends on "slice-10"
 
-  @ID-WORK-85 @slice-102 @wip
+  @ID-WORK-85 @slice-102
   Scenario: work promote refuses an id, and writes nothing
     Given the work registry has the idea "p1-thing" owned by nobody
     When itos runs "work promote p1-thing --id slice-7 --kind slice"
     Then itos exits with code 2
     And the registry has no item "slice-7"
+
+  @ID-WORK-88 @slice-102
+  Scenario: work add --kind task mints the ledger's next task id
+    Given the work registry has the item "T-001" owned by nobody with the status "done"
+    When itos runs the command line "work add --kind task --phase 1 --title 'Do the thing' --why 'Because.'"
+    Then itos exits with code 0
+    And its output says "T-002"
+    And the registry's item "T-002" is a task titled "Do the thing" with the status "todo"
 
   @ID-WORK-86 @slice-104 @wip
   Scenario: work done refuses a bug one of whose scenarios is still @wip, as it refuses a slice

@@ -48,6 +48,34 @@ func workArgs(sub string, args []string, flags ...string) (string, map[string]st
 // workArgsEmpty is workArgs whose flags in empty may be given an empty
 // value ("--depends-on ”", no dependencies).
 func workArgsEmpty(sub string, args []string, empty []string, flags ...string) (string, map[string]string, error) {
+	ids, values, err := workArgsParsed(sub, args, empty, flags...)
+	if err != nil {
+		return "", nil, err
+	}
+	if len(ids) != 1 {
+		return "", nil, usage("work %s needs one <id>", sub)
+	}
+	return ids[0], values, nil
+}
+
+// workArgsOptionalID is workArgsEmpty for a writer whose item ID is minted
+// from its kind: it leaves zero or one positional ID for the command to
+// accept (ideas) or refuse (numbered kinds).
+func workArgsOptionalID(sub string, args []string, flags ...string) (string, bool, map[string]string, error) {
+	ids, values, err := workArgsParsed(sub, args, nil, flags...)
+	if err != nil {
+		return "", false, nil, err
+	}
+	if len(ids) > 1 {
+		return "", false, nil, usage("work %s takes at most one <id>", sub)
+	}
+	if len(ids) == 0 {
+		return "", false, values, nil
+	}
+	return ids[0], true, values, nil
+}
+
+func workArgsParsed(sub string, args []string, empty []string, flags ...string) ([]string, map[string]string, error) {
 	values := map[string]string{}
 	var ids []string
 	for i := 0; i < len(args); i++ {
@@ -62,24 +90,21 @@ func workArgsEmpty(sub string, args []string, empty []string, flags ...string) (
 			known = known || f == name
 		}
 		if !known {
-			return "", nil, usage("work %s does not take %s", sub, name)
+			return nil, nil, usage("work %s does not take %s", sub, name)
 		}
 		if !joined {
 			if i+1 >= len(args) {
-				return "", nil, usage("work %s %s needs a value", sub, name)
+				return nil, nil, usage("work %s %s needs a value", sub, name)
 			}
 			i++
 			value = args[i]
 		}
 		if _, twice := values[name]; twice || (value == "" && !slices.Contains(empty, name)) {
-			return "", nil, usage("work %s takes one %s with a value", sub, name)
+			return nil, nil, usage("work %s takes one %s with a value", sub, name)
 		}
 		values[name] = value
 	}
-	if len(ids) != 1 {
-		return "", nil, usage("work %s needs one <id>", sub)
-	}
-	return ids[0], values, nil
+	return ids, values, nil
 }
 
 // refuseWork reports a registry command's problems and exits with code: on
@@ -482,8 +507,8 @@ func workTake(args []string, o Out) (int, error) {
 // promoteKinds are what work promote makes of an idea.
 var promoteKinds = []string{"slice", "task"}
 
-// workPromote is `work promote <idea> --id <id> --kind slice|task [--title
-// <title>]`: the idea renamed, given the kind (and the title, when given),
+// workPromote is `work promote <idea> --kind slice|task [--title <title>]`:
+// the idea renamed, given a minted ID and the kind (and the title, when given),
 // "Was <idea>." before its why, every depends_on naming it renamed too, and
 // the registry committed (work.Promote). A task's id must match the ledger's
 // ledger.id.
@@ -493,16 +518,26 @@ func workPromote(args []string, o Out) (int, error) {
 		return 0, err
 	}
 	newID, kind := flags["--id"], flags["--kind"]
-	if newID == "" {
-		return 0, usage("work promote needs --id <id>, the slice's or the task's id")
-	}
 	if kind != "slice" && kind != "task" {
 		return 0, usage("work promote needs --kind %s", strings.Join(promoteKinds, "|"))
+	}
+	if newID != "" {
+		return 0, usage("work promote mints the %s id; do not pass --id", kind)
 	}
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
 	if cfg == nil {
 		return code, err
+	}
+	ids := make([]string, 0, len(registry.Items))
+	for _, item := range registry.Items {
+		if itemID, ok := item.At("id").(string); ok {
+			ids = append(ids, itemID)
+		}
+	}
+	newID, err = mintItemID(cfg, kind, ids)
+	if err != nil {
+		return 0, err
 	}
 	change, problem, err := work.Promote(registry, text, id, newID, kind, flags["--title"], ledger.IDPattern(cfg))
 	if err != nil {

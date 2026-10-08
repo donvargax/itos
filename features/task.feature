@@ -57,13 +57,13 @@ Feature: The task runner runs each check once, and lists task status without run
   # registry items are (slice 54). task add writes the task into the ledger
   # file of its group (ledger.files with {group} filled in), with its type,
   # title, why and checks (--check, one per check), and the registry item of
-  # kind task beside it, todo; it refuses an id ledger.id does not match, an
-  # id the ledger has, and a type commits.types does not list; and it commits
-  # the ledger file and the registry alone.
+  # kind task beside it, todo; it refuses a caller-supplied ID and a type
+  # commits.types does not list; and it commits the ledger file and registry
+  # alone.
   @ID-TASK-05 @slice-55
   Scenario: task add writes the task into its group's ledger file and its item into the registry, and commits both
     Given the work registry has the item "T-001" owned by nobody with the status "done"
-    When itos runs the command line "task add T-003 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    When itos runs the command line "task add --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
     Then itos exits with code 0
     And the ledger file "tasks/phase-1.yaml" has the task "T-003" with the check "true"
     And the registry's item "T-003" is a task titled "Tidy the readme" with the status "todo"
@@ -71,23 +71,23 @@ Feature: The task runner runs each check once, and lists task status without run
     And the last commit touches only "tasks/phase-1.yaml" and "tasks/work-items.yaml"
 
   @ID-TASK-06 @slice-55
-  Scenario: task add refuses an id the ledger already has
+  Scenario: task add refuses an explicit id even when the ledger already has it
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     When itos runs the command line "task add T-002 --group 1 --type chore --title 'Again' --why 'A second one.' --check 'true'"
-    Then itos exits with code 1
-    And its output says "T-002"
+    Then itos exits with code 2
+    And its output says "mints the task id"
 
   @ID-TASK-07 @slice-55
-  Scenario: task add refuses an id that ledger.id does not match
+  Scenario: task add refuses an explicit id that does not match ledger.id
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     When itos runs the command line "task add task-3 --group 1 --type chore --title 'Tidy' --why 'Because.' --check 'true'"
-    Then itos exits with code 1
-    And its output says "ledger.id"
+    Then itos exits with code 2
+    And its output says "mints the task id"
 
   @ID-TASK-08 @slice-55
   Scenario: task add refuses a type the config's commits.types does not list
     Given the work registry has the item "T-001" owned by nobody with the status "done"
-    When itos runs the command line "task add T-003 --group 1 --type tidy --title 'Tidy' --why 'Because.' --check 'true'"
+    When itos runs the command line "task add --group 1 --type tidy --title 'Tidy' --why 'Because.' --check 'true'"
     Then itos exits with code 1
     And its output says "tidy"
 
@@ -104,7 +104,7 @@ Feature: The task runner runs each check once, and lists task status without run
   Scenario: task add refuses a ledger file whose deletion no commit holds, and writes nothing
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     And the ledger file "tasks/phase-1.yaml" is deleted and the deletion not committed
-    When itos runs the command line "task add T-003 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    When itos runs the command line "task add --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
     Then itos exits with code 1
     And its output says "tasks/phase-1.yaml"
     And the file "tasks/phase-1.yaml" does not exist
@@ -114,7 +114,7 @@ Feature: The task runner runs each check once, and lists task status without run
   Scenario: task add whose commit a hook refuses leaves the ledger and the registry as they were, and nothing staged
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     And a commit-msg hook that refuses every commit
-    When itos runs the command line "task add T-003 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    When itos runs the command line "task add --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
     Then itos exits with code 1
     And the registry has no item "T-003"
     And the ledger has no task "T-003"
@@ -147,7 +147,7 @@ Feature: The task runner runs each check once, and lists task status without run
   # next-id prints it; an id given is a usage error, nothing written.
   # A registry item also seeds phase 1, as the existing task-add scenarios do;
   # the ledger-only Background has no phase for registry validation to read.
-  @ID-TASK-13 @slice-102 @wip
+  @ID-TASK-13 @slice-102
   Scenario: task add mints the ledger's next task id and prints it
     Given the work registry has the item "T-001" owned by nobody with the status "done"
     When itos runs the command line "task add --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
@@ -156,8 +156,9 @@ Feature: The task runner runs each check once, and lists task status without run
     And the ledger file "tasks/phase-1.yaml" has the task "T-003" with the check "true"
     And the registry's item "T-003" is a task titled "Tidy the readme" with the status "todo"
 
-  @ID-TASK-14 @slice-102 @wip
+  @ID-TASK-14 @slice-102
   Scenario: task add refuses an id, and writes nothing
     When itos runs the command line "task add T-003 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
     Then itos exits with code 2
     And the ledger has no task "T-003"
+    And the registry has no item "T-003"

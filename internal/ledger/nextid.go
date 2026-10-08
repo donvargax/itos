@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 
@@ -19,6 +20,13 @@ var trailing = regexp.MustCompile(`^(.*\D)(\d+)$`)
 // ledger.id asks. The prefix is ledger.id's literal one (T- for T-\d+), or,
 // for a pattern that starts otherwise, the highest ID's own.
 func NextID(cfg *config.Loaded, others []string) (string, error) {
+	return NextIDAfter(cfg, others, 0)
+}
+
+// NextIDAfter is NextID with an already-claimed counter floor. The floor is
+// fed through the same ledger.id prefix, padding and matching rules as the
+// ledger and registry IDs, rather than inventing a second task-ID format.
+func NextIDAfter(cfg *config.Loaded, others []string, floor int) (string, error) {
 	tasks, err := Tasks(cfg)
 	if err != nil {
 		return "", err
@@ -51,6 +59,9 @@ func NextID(cfg *config.Loaded, others []string) (string, error) {
 	}
 	if prefix == "" {
 		return "", errors.New("ledger.id has no fixed start and the ledger no numbered task: there is no series to continue")
+	}
+	if floor > 0 && prefix != "" {
+		ids = append(ids, fmt.Sprintf("%s%d", prefix, floor))
 	}
 	return nextid.Next(prefix, ids, 1, pattern.MatchString), nil
 }

@@ -80,7 +80,7 @@ func Take(r Registry, text, id, person string, every bool) (Change, *out.Problem
 			"take an item that is todo (itos work)")
 	case item.At("kind") == "idea":
 		return refuse("work-take-idea", id+" is an idea, not yet specified: make it a slice or a task first",
-			"itos work promote "+id+" --id <id> --kind slice|task")
+			"itos work promote "+id+" --kind slice|task")
 	case status == "done":
 		return refuse("work-take-done", id+" is done", "take an item not done (itos work)")
 	case item.At("deferred") != value.Undefined:
@@ -162,7 +162,7 @@ func Done(cfg *config.Loaded, r Registry, text, id string) (Change, []out.Proble
 			"close an item that is in progress")
 	case item.At("kind") == "idea":
 		return refuse("work-done-idea", id+" is an idea, not yet specified, so there is nothing of it to be done",
-			"itos work promote "+id+" --id <id> --kind slice|task, then build it")
+			"itos work promote "+id+" --kind slice|task, then build it")
 	case item.At("deferred") != value.Undefined:
 		return refuse("work-done-deferred", fmt.Sprintf("%s is deferred: %s", id, value.Trim(value.String(item.At("deferred")))),
 			"itos work resume "+id+" first")
