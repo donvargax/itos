@@ -1166,8 +1166,18 @@
     and the scenarios most likely to break under -cover (the launcher, the shim, extensions, the
     hooks, exact help output) passing with ITOS_CC_TEST_COVERDIR set. The user's call (2026-10-08):
     a targeted set, not every feature, to keep the check light on the machine running it.
+
+    Corrected 2026-10-08, after three agents (Haiku, Sonnet and Opus 5.5) built it side by side:
+    the launcher, the shim and extensions syscall.Exec on unix and so never write their counters,
+    which no harness change can fix faithfully; T-124 makes them write the counters first, and
+    T-121's checks pass only with it. The first check grepped covdata percent for internal/launch,
+    which lists the package at 0.0% from the meta file alone, so it passed with no counters at
+    all; it now asks for the launcher's fetch covered, as the split check does.
   done_when:
-    - run: d=$(mktemp -d) && GOCOVERDIR=$d go test ./features -count=1 -scenarios=^@ID-PIN-01$ && go tool covdata percent -i=$d | grep -q internal/launch
+    - run: >-
+        d=$(mktemp -d) && GOCOVERDIR=$d go test ./features -count=1 -scenarios='^@ID-PIN-01$'
+        && go tool covdata func -i="$d"
+        | awk '$1 ~ /launch\/launch\.go/ && $2 == "fetch" && $3 != "0.0%" {f=1} END {exit !f}'
     - run: >-
         d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1
         -scenarios='^@ID-(PIN-01|ASK-01)$' && test -z "$(find "$d" -maxdepth 1 -type f)"
