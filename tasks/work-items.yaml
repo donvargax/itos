@@ -6242,3 +6242,13 @@ items:
     kind: slice
     why: >
       Specified in features/work.feature (@ID-WORK-82, @ID-WORK-86).
+
+  - id: slice-105
+    title: tests next-id claims scenario ids through the id counter, --count for several
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-102]
+    kind: slice
+    why: >
+      Specified in features/next-id.feature (@ID-NEXTID-06, @ID-NEXTID-07).
