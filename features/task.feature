@@ -145,8 +145,11 @@ Feature: The task runner runs each check once, and lists task status without run
   # Slice 102 (q-26, the comment above @ID-WORK-81 in work.feature): task
   # add takes no id and mints the ledger's next by ledger.id, as task
   # next-id prints it; an id given is a usage error, nothing written.
+  # A registry item also seeds phase 1, as the existing task-add scenarios do;
+  # the ledger-only Background has no phase for registry validation to read.
   @ID-TASK-13 @slice-102 @wip
   Scenario: task add mints the ledger's next task id and prints it
+    Given the work registry has the item "T-001" owned by nobody with the status "done"
     When itos runs the command line "task add --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
     Then itos exits with code 0
     And its output says "T-003"
