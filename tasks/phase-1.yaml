@@ -936,23 +936,26 @@
     before work done. No interim without coverage. Equivalent mutants go in itos-cc.yaml with their
     reasons, for the person to review.
 
-    What it takes (found 2026-10-07, corrected 2026-10-08): itos-cc v0.5.0 is the first release
+    What it takes (found 2026-10-07, corrected 2026-10-08, and again 2026-10-08): itos-cc v0.5.0 is the first release
     carrying all of #14. v0.4.0 has only one GOCOVERDIR for the whole run, so every mutant would
     run every feature (--all-tests, about 3 minutes each); v0.5.0 adds listed tests, each mutant
     running only the scenarios that reach its line. tools/bin/pinned knows only goreleaser and
     git-cliff, so this task teaches it itos-cc (its version and per-platform hashes, from the
-    release's checksums.txt), and pinned takes no version younger than 7 days (T-067), so v0.5.0
-    (published 2026-10-08 00:16 UTC) can be pinned from 2026-10-15. itos-cc.yaml lists the
+    release's checksums.txt). No age gate on that pin: itos-cc is our own tool, so the 7-day wait
+    T-067 holds a dependency to does not apply to it (ADR-0046), and waiting to try a new itos-cc
+    feature is not a trade worth making. The rest of the rule is untouched: pinned fetches the tool
+    with its checksums and govulncheck still runs. itos-cc.yaml lists the
     scenarios under mutation.tests: list prints one test a line, its ID, a tab and its file from
     the root, live scenarios only, which itos tests list scenario does not (two spaces, a file
     under features/, @wip ones too), so the list command reshapes it (its --json through a small
     script, or awk); run is go test ./features -count=1 -scenarios='{pattern}', ids_pattern
     '^@(?:{ids})$', join each '{id}' with '|', whole go test ./features -count=1, and support the
-    harness (features/*_test.go, features/testdata/**). It also waits on T-121 and on slice-100,
-    held by the user for an itos-cc issue with e2e tests and coverage.
+    harness (features/*_test.go, features/testdata/**). Nothing is left to wait for: T-121 and
+    slice-100 are done and the hold ended 2026-10-08 when itos-cc v0.5.0 closed #14 with listed
+    tests, so this can start now.
   done_when:
-    - run: grep -q "proof:" itos.yaml
-    - run: grep -q "mutation sample" itos.yaml
+    - run: test -n "$(tools/bin/itos config get proof.code.check)"
+    - run: tools/bin/itos ci plan "" HEAD | grep -q "mutation sample"
 
 - id: T-122
   type: ci
