@@ -1273,3 +1273,26 @@
     folder; it needs T-121's harness, and lands with it.
   done_when:
     - run: d=$(mktemp -d) && ITOS_CC_TEST_COVERDIR=$d go test ./features -count=1 -scenarios='^@ID-(PIN-01|SHIM-05|EXT-01)$' && go tool covdata func -i="$d/ID-PIN-01" | awk '$1 ~ /launch\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}' && go tool covdata func -i="$d/ID-SHIM-05" | awk '$1 ~ /shim\/run_unix\.go/ && $2 == "run" && $3 != "0.0%" {f=1} END {exit !f}' && go tool covdata func -i="$d/ID-EXT-01" | awk '$1 ~ /cli\/extension_unix\.go/ && $2 == "runProgram" && $3 != "0.0%" {f=1} END {exit !f}'
+
+- id: T-125
+  type: ci
+  title: This repository's nightly reruns no done task's checks, and its done tasks keep none
+  why: >
+    Slice 101 makes work done remove a task's checks from the ledger when it closes it
+    (docs/plans/v7-proof-of-done.md: a task's checks are the agent's progress, then leave; git
+    history keeps them). This repository still has the checks of every task closed before it, and
+    the nightly's { tasks: done, cost: static } step reruns them each night, which the plan drops:
+    they cost every night and caught nothing real (the evidence is on p1-nightly-late-done-checks).
+    This task removes that step from ci.nightly.steps (regenerating AGENTS.md's rules block with
+    itos init --agent-rules) and removes done_when from every done task's ledger entry. A done
+    task's check that guards something no scenario, unit test or gate self-test does, and that runs
+    the thing rather than grepping a file, becomes a ci.steps or ci.nightly.steps step of its own
+    instead, with a comment saying what it guards; the rest go, git keeping them. The CI step that
+    runs tools/bin/itos task T-007 goes with T-007's checks, its guards kept as steps where they are
+    not already the @ID-CMSG scenarios. The change to itos.yaml is a ci commit, the ledger's a docs
+    commit; the ci commit first, so the nightly never runs a stripped ledger's step. The checks
+    below read the result through itos, not the files: the nightly's plan names no task, and no done
+    task keeps a check.
+  done_when:
+    - run: tools/bin/itos ci plan --nightly --json | jq -e '.tasks == []'
+    - run: tools/bin/itos task list --json | jq -e '[.tasks[] | select(.status == "done" and .checks > 0)] | length == 0'
