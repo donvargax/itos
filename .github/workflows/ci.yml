@@ -132,9 +132,10 @@ jobs:
           cat "$f"
           { echo "### Features on ${{ matrix.os }}"; echo '```'; cat "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
       # The global itos as a consumer's CI gets it, from this repository's own action (T-093),
-      # proved on every platform by every push. Last, so the launcher it puts on the PATH cannot
-      # stand in for the build the steps above test; this repository pins nothing, so the
-      # launcher runs as itself and says its own version.
+      # proved on every platform by every push, and cached per release by it (T-127), so a push
+      # after the one that installed that release fetches no launcher archive at all. Last, so the
+      # launcher it puts on the PATH cannot stand in for the build the steps above test; this
+      # repository pins nothing, so the launcher runs as itself and says its own version.
       - name: Install the launcher
         id: launcher
         if: ${{ !cancelled() }}

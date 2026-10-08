@@ -6,6 +6,7 @@
 // (decision 37, scratch.ts's hookRun):
 //
 //   - CI runs the whole unit suite and the features, which the hooks leave to it;
+//   - pre-commit formats a root .yml file, as it must format action.yml (T-127);
 //   - pre-push passes a prose-only push;
 //   - pre-push runs neither the scenarios a commit's `Scenarios:` footer names
 //     nor the checks of the tasks its `Task:` footer names; CI reads those
@@ -27,7 +28,14 @@
 // change that breaks one, is tools/selftest/go-hooks.ts's (T-059), which the
 // nightly runs beside this: since the TypeScript left (T-062) the unit tests
 // are the Go packages', and tools/bin/go-unit-tests picks them for both hooks.
-import { appendFileSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+	appendFileSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	symlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ciPlan, featuresStep, hookGates, scratchRepo } from "./scratch.ts";
@@ -56,6 +64,18 @@ try {
 	const steps = ciPlan(["--whole"], dir).steps;
 	for (const step of [features, "go test ./cmd/... ./internal/..."])
 		expect(steps.includes(step), `CI no longer runs \`${step}\`, which the hooks leave to it`);
+
+	// A root .yml file is formatted by the actual staged hook, not left for CI to reject (T-127).
+	// A scratch fixture, not a policy file read as text: its missing final newline is the failure
+	// action.yml reached CI with, since the staged root glob accepted .yaml but not .yml.
+	const yaml = join(dir, "launcher-format.yml");
+	writeFileSync(yaml, "name: itos");
+	const formatRun = preCommit("a root .yml file without its final newline");
+	expect(formatRun.status === 0, `pre-commit failed on a root .yml file:\n${formatRun.output}`);
+	expect(
+		readFileSync(yaml, "utf8") === "name: itos\n",
+		"pre-commit left a root .yml file unformatted",
+	);
 
 	// A push that touches only prose passes pre-push.
 	git(`reset -q --hard ${base}`);

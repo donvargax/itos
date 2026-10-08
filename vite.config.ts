@@ -3,7 +3,7 @@ import { defineConfig, type UserConfig } from "vite-plus";
 // What the pre-commit hook's `vp staged` formats and lints, by path.
 const staged = {
 	"tools/**/*.{ts,js,json}": "vp check --fix",
-	"*.{md,json,yaml,ts,toml}": "vp check --fix",
+	"*.{md,json,yml,yaml,ts,toml}": "vp check --fix",
 	"{docs,tasks,features,.github}/**/*.{md,yml,yaml}": "vp check --fix",
 	// The Claude Code plugin and the marketplace that names it (T-066).
 	".claude-plugin/*.json": "vp check --fix",
