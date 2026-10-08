@@ -135,6 +135,10 @@ was in this file when the file was reorganized that day.
 - **Name the checks a new gate adds in the next briefs.** A gate landed hours
   earlier turned `main` red on the next agent's change. Exit: permanent.
   Recorded by 2026-10-04.
+- **The `Upgrading:` footer is one line, under 100 characters.** `itos commit` wraps a long one
+  into several footers, and the release notes quote each as an entry of its own (rc.1, rc.2). Say
+  so in a feat's or a fix's brief. Exit: `p3-commit-long-text-footer`. Recorded 2026-10-08; last
+  seen 2026-10-08.
 - **Windows is a platform job.** It has caught `go:embed` reading CRLF
   checkouts, a test asserting Unix file modes, and a test hashing a blob with
   `git hash-object`, whose CRLF warning joined the hash (bug 31: use
