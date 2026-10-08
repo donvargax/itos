@@ -152,7 +152,7 @@ in the spec or in a gate, ask the person; never weaken a gate to get green.
 - **Say why each proposed item matters**: what it fixes or saves, and what it
   waits on. Mention the cost when proposing many more agents.
 - **Be wary of scope creep.** A fix that grows is a new item. Record a gap as
-  an idea (`itos work add <id> --title '…' --why '…'`), not as work folded
+  an idea (`itos work add <idea-id> --title '…' --why '…'`), not as work folded
   into the current one. The person's review is final.
 
 ## Decisions
