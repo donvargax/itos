@@ -6506,3 +6506,10 @@ items:
       (@ID-CONFIG-42 to 44). The Upgrading footer says in one line what a consumer writes instead: a
       task's checks are its own progress and leave at work done, so a project that wanted them every
       night writes the standing step instead.
+    deferred: >
+      Deferred by the person (2026-10-08): the step only ever ran in a nightly (config check refused
+      it in a push with config-step-tasks since slice 16), so nothing else in the bundle depends on
+      it, and it is the most self-contained item here. It stays specified, three scenarios in
+      features/config.feature (@ID-CONFIG-42 to 44), ready to hand to an agent. q-25's answer says
+      in v7, so if this lands after v7.0.0 the refusal moves to v8 and that answer is amended to say
+      so.
