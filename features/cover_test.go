@@ -12,8 +12,9 @@
 // its counters itself (runtime/coverage.WriteCountersDir) before it ends
 // without exiting: on unix the launcher, an extension's call and the git
 // shim replace themselves with syscall.Exec, which runs none of the exit
-// hooks that write a -cover binary's counters, so what such a process ran is
-// recorded only if it writes them before it execs.
+// hooks that write a -cover binary's counters, so each writes them to
+// GOCOVERDIR just before it execs (T-124), which a build in another mode
+// refuses.
 //
 // GOCOVERDIR is the caller's environment and reaches every command as it is,
 // so the whole run's coverage lands in that one folder. ITOS_CC_TEST_COVERDIR
@@ -27,9 +28,12 @@
 // would break any scenario reading itos's output: w.env() sets it, every
 // command the steps start runs in w.env(), and itos hands its own environment
 // on to what it starts. w.env() drops every ITOS_ variable from the commands'
-// environment, so the harness reads ITOS_CC_TEST_COVERDIR itself, here. The
-// harness starts no itos outside a scenario; the cover build and script-exe's
-// are go builds, which write no coverage.
+// environment, so the harness reads ITOS_CC_TEST_COVERDIR itself, here. One
+// itos the harness starts belongs to no scenario: the probe that asks the
+// itos under test for its binary, once a run (itosBinary, shim_test.go),
+// which writes its coverage to a folder of its own, removed after it, so the
+// scenario that happens to ask first does not gain it. The cover build and
+// script-exe's are go builds, which write no coverage.
 package features
 
 import (

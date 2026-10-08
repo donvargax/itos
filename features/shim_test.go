@@ -64,7 +64,10 @@ var (
 	itosBinaryErr  error
 )
 
-// The binary the itos under test runs, as an extension is told it.
+// The binary the itos under test runs, as an extension is told it. The probe
+// runs once a run, for whichever scenario asks first, so when the run
+// measures coverage it writes its own to a folder of the probe's, removed
+// with it, and no scenario's coverage gains it (cover_test.go).
 func (w *world) itosBinary() (string, error) {
 	itosBinaryOnce.Do(func() {
 		probe, err := os.MkdirTemp("", "itos-features-probe-")
@@ -81,6 +84,14 @@ func (w *world) itosBinary() (string, error) {
 		cmd := exec.Command(w.bin, "binary")
 		cmd.Dir = w.dir
 		cmd.Env = append(w.env(), "PATH="+probe+string(os.PathListSeparator)+callerPath())
+		if w.coverDir != "" || os.Getenv("GOCOVERDIR") != "" {
+			cover := filepath.Join(probe, "cover")
+			if err := os.Mkdir(cover, 0o755); err != nil {
+				itosBinaryErr = err
+				return
+			}
+			cmd.Env = append(cmd.Env, "GOCOVERDIR="+cover)
+		}
 		out, err := cmd.Output()
 		itosBinary = strings.TrimSpace(string(out))
 		if err != nil || !filepath.IsAbs(itosBinary) {
