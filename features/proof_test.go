@@ -1,15 +1,17 @@
-// The steps of work done's code proof (work.feature, slice 100): the
-// config's proof.code, its paths and a check run through a fake provider, a
-// script in the scenario's support folder that records the words it was run
-// with and answers as itos-cc's mutation check answers by its machine
-// contract, exit 0 with {"schema":1,"ok":true}, or exit 1 with
+// The steps of the code proof (work.feature, slice 100; ci.feature, slice
+// 106): the config's proof.code, its paths and a check run through a fake
+// provider, a script in the scenario's support folder that records the words
+// it was run with and answers as itos-cc's mutation check answers by its
+// machine contract, exit 0 with {"schema":1,"ok":true}, or exit 1 with
 // {"schema":1,"ok":false,"problems":[…]}, one mutation.survived problem whose
 // subject is the function; or a check whose command does not exist. The
-// item's commit is the clone's, linked to the item by an Item: footer (the
-// config's registry footer, turned on for it) and pushed to the remote past
-// the hooks, so it has landed. What the provider was run with is read back
-// from its record: its --since the parent of the item's first commit, or no
-// run at all.
+// config is the working tree's, so a scenario in a clone commits and pushes
+// it (the remote has to hold it) and one that runs in the scratch repository
+// writes it and goes on. The item's commit is the clone's, linked to the
+// item by an Item: footer (the config's registry footer, turned on for it)
+// and pushed to the remote past the hooks, so it has landed. What the
+// provider was run with is read back from its record: CI's run, its --since
+// the range's start, or no run at all.
 package features
 
 import (
@@ -48,20 +50,32 @@ func initializeProofSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^the config's proof\.code covers "([^"]*)" and checks with a command that does not exist$`, func(paths string) error {
 		w.config.proof = &proofConfig{paths: []string{paths}, check: "itos-no-such-provider mutation check --since {base} --fail-uncovered --json"}
-		return w.pushConfig("chore: prove the code")
+		return w.proveCode()
 	})
 	sc.Step(`^the remote has the item "([^"]*)"'s commit touching "([^"]*)"$`, w.itemCommitPushed)
-	sc.Step(`^the provider was run with the base before the item "([^"]*)"'s first commit$`, w.providerRanWithBase)
+	sc.Step(`^the provider was run with the base the range starts at$`, w.providerRanWithRangeStart)
 	sc.Step(`^the provider was not run$`, w.providerNotRun)
 }
 
 // The file the fake provider records each run's words in, a line a run.
 func (w *world) providerLog() string { return filepath.Join(w.support, "provider-log") }
 
+// proveCode commits the config with the proof.code a scenario set and pushes
+// it, the config's commit naming the ledger's first task, when the scenario
+// has a remote to push to (work done's scenarios, in a clone); with none, a
+// run in the scratch repository reads the working tree's config, so the
+// config is written and left there (ci run's scenarios).
+func (w *world) proveCode() error {
+	if w.origin == "" {
+		return w.writeConfig()
+	}
+	return w.pushConfig("chore: prove the code")
+}
+
 // proof.code covers the paths, its check the fake provider, run as itos-cc's
 // mutation check is run (mutation check --since {base} --fail-uncovered
 // --json), which records its words and prints the object on stdout and
-// exits with the code; the config committed and pushed.
+// exits with the code; the config written (proveCode).
 func (w *world) proofProvider(paths string, code int, answer map[string]any) error {
 	text, err := json.Marshal(answer)
 	if err != nil {
@@ -77,7 +91,7 @@ func (w *world) proofProvider(paths string, code int, answer map[string]any) err
 		paths: []string{paths},
 		check: "sh " + quote(filepath.ToSlash(script)) + " mutation check --since {base} --fail-uncovered --json",
 	}
-	return w.pushConfig("chore: prove the code")
+	return w.proveCode()
 }
 
 // The scratch config's proof section, when the scenario sets one.
@@ -128,23 +142,23 @@ func (w *world) providerRuns() ([]string, error) {
 	return strings.Split(strings.TrimRight(string(text), "\n"), "\n"), nil
 }
 
-// The fake provider ran once, its --since the full SHA of the parent of the
-// item's first commit: the oldest commit of the clone's HEAD whose Item:
-// footer names it.
-func (w *world) providerRanWithBase(id string) error {
-	first, err := w.gitOutput("log", "--reverse", "--format=%H", "--grep", "^Item: "+id+"$", "HEAD")
+// The fake provider ran once over the range CI judged: its --since the
+// range's start, the commit the scenario's run names as <from> (`itos ci
+// run <the first commit> HEAD`), as the full SHA.
+func (w *world) providerRanWithRangeStart() error {
+	if len(w.commits) == 0 {
+		return errors.New("the repository has no commit yet")
+	}
+	base, err := w.gitOutput("rev-parse", w.commits[0]+"^{commit}")
 	if err != nil {
 		return err
 	}
-	shas := strings.Fields(first)
-	if len(shas) == 0 {
-		return fmt.Errorf("HEAD has no commit whose Item: footer names %s", id)
-	}
-	base, err := w.gitOutput("rev-parse", shas[0]+"^")
-	if err != nil {
-		return err
-	}
-	base = strings.TrimSpace(base)
+	return w.providerRanOnce("--since " + strings.TrimSpace(base))
+}
+
+// providerRanOnce is the fake provider's one run, its words the ones given:
+// it ran once and no more, or the step fails saying how it was run.
+func (w *world) providerRanOnce(since string) error {
 	runs, err := w.providerRuns()
 	if err != nil {
 		return err
@@ -152,7 +166,7 @@ func (w *world) providerRanWithBase(id string) error {
 	if len(runs) != 1 {
 		return fmt.Errorf("the provider ran %d times, not once: %q\n%s", len(runs), runs, w.report())
 	}
-	want := "mutation check --since " + base + " --fail-uncovered --json"
+	want := "mutation check " + since + " --fail-uncovered --json"
 	if runs[0] != want {
 		return fmt.Errorf("the provider was run with %q, not %q\n%s", runs[0], want, w.report())
 	}
