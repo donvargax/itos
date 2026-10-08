@@ -132,3 +132,6 @@ questions:
   - id: q-31
     item: "p3-guard-replacement"
     question: "Who may author or amend a required commit plan? Recommended: the coordinator specifies and approves its parts; the implementing agent proposes amendments and waits for approval rather than changing its own constraints. Alternatives: the implementer may append parts within current path/type rules, or edit the plan freely. This is a workflow ownership rule; the mechanism proving approval is not yet designed. See docs/plans/guided-commits.md."
+  - id: q-32
+    item: "p3-guard-replacement"
+    question: "Is an approved commit-plan part reusable for several commits, or consumed by one commit? Recommended: reusable until explicitly completed, with each commit satisfying the same approved type, subject, footer metadata, path rules and normal gates; further commits after completion need coordinator approval. Alternative: one commit per part, with each checkpoint or correction requiring a new approved part. Completion declaration and proof remain to be designed. See docs/plans/guided-commits.md."
