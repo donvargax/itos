@@ -153,6 +153,7 @@ questions:
   - id: q-36
     item: "p3-guard-replacement"
     question: "How should an agent declare a reusable commit part complete? Recommended: an explicit flag on its final guided commit records that successful commit as a completion declaration; failed commits record nothing. This does not prove green CI or close the item, and required parts plus existing checks/CI still gate work done. Reopening needs a coordinator-approved amendment. Alternative: a separate part-done command. Passing hooks alone must not infer completion. See docs/plans/guided-commits.md."
+    answer: "Use an explicit completion flag on the final guided commit, recording the declaration only after commit success. It does not prove green CI or close the item; recovery and completion-record details remain open."
   - id: q-37
     item: "p3-guard-replacement"
     question: "Which commit entry point should agents use for the guided body-only workflow? Recommended: a new item-aware work commit command, with the shim and implementing guides pointing to it; keep the existing low-level itos commit full-message interface for explicit advanced use without claiming a bypass-proof guard. Alternative: make itos commit itself body-only and intentionally break its current public message/git-argument interface. Exact flags and preview remain undecided. See docs/plans/guided-commits.md."
