@@ -6507,11 +6507,6 @@ items:
     title: Restore green main after slice-102 proof failure
     phase: 1
     owner: donvargax
-    status: doing
+    status: dropped
     depends_on: []
     kind: task
-    why: >
-      Undo the slice-102 implementation that made main red when CI stopped at mutation.missing and
-      remote-counter tests failed without a local Git identity. Preserve the failed attempt as
-      recovery WIP; the slice still needs mutation results committed and the test repository
-      configured with its own identity.
