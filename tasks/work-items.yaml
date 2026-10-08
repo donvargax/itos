@@ -1000,7 +1000,7 @@ items:
     kind: slice
 
   - id: slice-102
-    title: itos mints the ids work add, task add and work promote write, and a bug is a kind of its own
+    title: The id counter, and work add, task add and work promote mint item ids through it
     phase: 1
     owner: donvargax
     status: todo
