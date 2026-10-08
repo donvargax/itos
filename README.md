@@ -411,6 +411,33 @@ release the project pins:
 `itos config check` stays the judge: the schema says less than it, never
 something different.
 
+## Proof of done: `proof`
+
+A model that did the work should not be the one to write the check that
+proves it. With `proof.code` in `itos.yaml`, `itos work done` computes the
+proof from the item's commits instead:
+
+```yaml
+proof:
+  code:
+    paths: ["{cmd,internal}/**/*.go"] # what counts as code
+    check: "itos-cc mutation check --since {base} --fail-uncovered --json"
+```
+
+When the item's commits (those `itos work show <id>` lists) touch
+`proof.code.paths`, `work done` runs `proof.code.check` once the rest of the
+landing has passed, CI's run included, `{base}` replaced by the parent of the item's first commit, and
+closes the item only when the check exits 0. Exit 1 refuses with exit 1,
+naming each problem the check's `--json` lists
+(`{"schema":1,"ok":false,"problems":[{"rule","message","fix",…}]}`, the
+contract of [itos-cc](https://github.com/donvargax/itos-cc)); any other exit,
+or a check that cannot start, refuses with exit 3. Nothing is written when it
+refuses, and no flag or variable closes an item past it: a surviving mutant
+that is truly equivalent is excepted in `itos-cc.yaml` with its reason, for
+the person to review. `config check` refuses a check without `{base}`
+(exit 2). Without `proof`, `work done` closes on the landing alone, as before,
+so itos stays usable in a language no provider measures.
+
 ## Use itos in a repository that doesn't
 
 You can hold your own commits to itos in a repository whose team does not use

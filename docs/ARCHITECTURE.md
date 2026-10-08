@@ -120,6 +120,7 @@ How the gates use them: the git hooks call `itos hook commit-msg` and
 | Named tests, adapters, run templates, smoke set, the moves rule          | `internal/tests`                                       |
 | CI's plan, and its driver                                                | `internal/plan`, `internal/ci`                         |
 | The work registry: reading, proposing, every writer                      | `internal/work` (judging), `internal/cli` (writing)    |
+| `work done`'s proof of done: a provider's check, read by its contract    | `internal/proof`, `internal/cli` (`workproof.go`)      |
 | Questions and decision records                                           | `internal/ask`, `internal/adr`                         |
 | Follow-up threads, the coordinator's drafts                              | `internal/follow`, `internal/draft`                    |
 | The guides `itos go` and `itos guide` print                              | `internal/guide`                                       |
