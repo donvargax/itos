@@ -6232,3 +6232,13 @@ items:
       sha paths never run there. Under v7's standing rules (p1-tools-bin-unit-tests-in-ci) the
       script gets a test CI runs (its cases, a fake git for the annotated and pre-release ones), and
       a workflow job uses the action by a release tag.
+
+  - id: slice-104
+    title: A bug is a kind of its own, minted bug-<n> by work add --kind bug
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-102]
+    kind: slice
+    why: >
+      Specified in features/work.feature (@ID-WORK-82, @ID-WORK-86).
