@@ -1012,6 +1012,10 @@ items:
       hand. With --as left out it could give the next free one: slice-<n+1> after the registry's
       highest slice, T-<n+1> after the highest of the ledger's IDs and the registry's tasks, kept
       to ledger.id; the spec (@ID-WORK-12) names the id, so this needs its own scenario.
+    deferred: >
+      How a minted id stays unique across sessions on different machines is open (q-27): a
+      sequential number minted locally can be minted twice, and its spec, drafts and brief already
+      name it by then. Specified for one machine; the spec changes with the answer.
 
   - id: T-079
     title: The rules and the plugin's skill name itos work take and promote
