@@ -2,8 +2,9 @@
 // the ledger's layout (ledger), the commit types, footers, path sets and
 // scopes (commits), the named tests and their adapters (tests), CI's steps,
 // costs, prose shortcut, nightly and range (ci), the work registry and the
-// people (work), the hooks (hooks), the pin (pin) and where verification
-// starts (commits.since). A project changes its policy here, not in the
+// people (work), the hooks (hooks), the pin (pin), the proof of done work
+// done requires (proof, slice 100) and where verification starts
+// (commits.since). A project changes its policy here, not in the
 // code, and every reader of the config goes through Load; none has a
 // fallback of its own.
 //
@@ -60,7 +61,8 @@
 // what to write instead, since config check prints the message alone;
 // config get names such a key as removed too (RemovedKey). Then the
 // cross-checks (cross.go) hold what the schema cannot say: names that must
-// refer to something, patterns that must compile, commits.since a full SHA.
+// refer to something, patterns that must compile, commits.since a full SHA,
+// a proof.code with paths and a check that takes {base}.
 // The five pattern keys (ledger.id, ledger.group.pattern, tests.<kind>.id,
 // ci.cost.static, ci.covers[].matches) are RE2, the binary's dialect, and
 // config check refuses one RE2 cannot compile (config-regexp).

@@ -268,6 +268,16 @@ var schema = about("itos's policy: the ledger, the commit rules, the named tests
 			"check_timeout", about("The seconds a check may hold a commit, above 0.", num),
 		)),
 	)),
+	"proof", about("What itos work done requires beyond the landing: the proof of done, computed from the item's commits, never "+
+		"written by the agent; left out, work done closes on the landing alone.", obj(nil,
+		"code", about("The code proof: when the item's commits touch paths, work done runs check and closes only when it exits 0.",
+			obj([]string{"paths", "check"},
+				"paths", about("The globs of the paths that count as code, one at least.", strs),
+				"check", about("The provider's check, run through shell, {base} standing for the parent of the item's first commit "+
+					"(itos-cc mutation check --since {base} --fail-uncovered --json); exit 0 passes, 1 refuses naming the problems "+
+					"its --json lists, anything else is a check that cannot run.", str),
+			)),
+	)),
 	"guide", about("What itos go prints beside the guide shipped in itos.", obj(nil,
 		"orchestrating", about("The repository's own notes for the session that coordinates its work, which itos go appends to "+
 			"the coordinator's guide when the file exists; in the git folder's itos/ for a stealth config.", str),

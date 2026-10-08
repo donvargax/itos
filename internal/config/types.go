@@ -23,6 +23,23 @@ type Config struct {
 	CI    CI            `json:"ci"`
 	Work  Work          `json:"work"`
 	Hooks Hooks         `json:"hooks"`
+	// Proof is what work done requires beyond the landing (slice 100), nil
+	// when the file has no proof: work done then closes on the landing alone.
+	Proof *Proof `json:"proof"`
+}
+
+// Proof is the proof of done a change of each kind needs (slice 100; decision
+// 43): today the code's alone.
+type Proof struct {
+	Code *ProofCode `json:"code"`
+}
+
+// ProofCode is proof.code: the paths that count as code, and the provider's
+// check that work done runs when an item's commits touch them, {base}
+// standing for the parent of the item's first commit.
+type ProofCode struct {
+	Paths []string `json:"paths"`
+	Check string   `json:"check"`
 }
 
 // Pin is the one release a repository runs: its version and the SHA-256 of

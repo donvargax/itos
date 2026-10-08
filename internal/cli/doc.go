@@ -496,8 +496,15 @@
 //     --json's ci is unwatched). Since the checks can take minutes, the
 //     registry is then read again and work.Done judged and made afresh on
 //     it, so a registry commit made during the wait is kept, and an item no
-//     longer one work done may close is refused. The close commit is docs:
-//     close <id>, its body naming the run that passed; work.Unqueue follows
+//     longer one work done may close is refused. Between the two, with
+//     the config's proof.code, the code proof (workproof.go, slice 100):
+//     when the item's commits (belonging, work show's rule) touch
+//     proof.code.paths, proof.code.check runs with {base} the parent of the
+//     item's first commit, and internal/proof reads its answer: exit 0
+//     passes, exit 1 refuses with the problems its --json lists (exit 1),
+//     anything else refuses with exit 3; no flag passes over it. The close
+//     commit is docs: close <id>, its body naming the run that passed and the
+//     proof's base; work.Unqueue follows
 //     in a commit of its own, under a stealth config while the lock is still
 //     held.
 //   - work add and work edit (workedit.go), work queue (workwrite.go), work

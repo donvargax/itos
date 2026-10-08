@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/donvargax/itos/v7/internal/glob"
 	"github.com/donvargax/itos/v7/internal/out"
 	"github.com/donvargax/itos/v7/internal/value"
 )
@@ -16,7 +17,7 @@ func crossProblems(tree *value.Map, c *Config) []out.Problem {
 	var found []out.Problem
 	for _, check := range []func(*value.Map, *Config) []out.Problem{
 		sinceProblems, pinProblems, scopeProblems, footerProblems, stepProblems,
-		patternProblems, providerProblems, hookProblems, rangeCheckProblems, watchProblems, tagProblems,
+		patternProblems, providerProblems, hookProblems, rangeCheckProblems, watchProblems, tagProblems, proofProblems,
 	} {
 		found = append(found, check(tree, c)...)
 	}
@@ -507,6 +508,43 @@ func oneRangeCheckProblems(name string, adapter Adapter, check RangeCheck, at st
 			"is builtin: "+*check.Builtin+", which reads feature files, and tests."+name+".adapter is not gherkin",
 			"remove "+at+", or give it staged and range commands that judge the kind's tests",
 		))
+	}
+	return found
+}
+
+// proofProblems: proof.code is read before any work done needs it (slice
+// 100), so a code proof that names no paths, a path no glob can be made of,
+// or a check that cannot be given the item's base is refused here rather
+// than at the first close.
+func proofProblems(_ *value.Map, c *Config) []out.Problem {
+	if c.Proof == nil || c.Proof.Code == nil {
+		return nil
+	}
+	code := c.Proof.Code
+	var found []out.Problem
+	if len(code.Paths) == 0 {
+		found = append(found, out.Problem{
+			Rule:    "config-proof-paths",
+			Message: "proof.code.paths names no path, so no commit would ever need the code proof",
+			Fix:     `list the globs of the paths that count as code under proof.code.paths ("{cmd,internal}/**/*.go"), or remove proof.code`,
+		})
+	}
+	for i, path := range code.Paths {
+		if _, err := glob.Compile(path); err != nil {
+			found = append(found, out.Problem{
+				Rule:    "config-proof-glob",
+				Message: fmt.Sprintf("proof.code.paths[%d] is no glob itos can read: %s", i, err),
+				Fix:     fmt.Sprintf("correct proof.code.paths[%d]", i),
+			})
+		}
+	}
+	if !strings.Contains(code.Check, "{base}") {
+		found = append(found, out.Problem{
+			Rule: "config-proof-base",
+			Message: "proof.code.check does not take {base}, the parent of the item's first commit, so it cannot judge the " +
+				"item's commits alone",
+			Fix: "write {base} where the check takes the commit to judge from: itos-cc mutation check --since {base} --fail-uncovered --json",
+		})
 	}
 	return found
 }

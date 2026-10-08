@@ -301,15 +301,20 @@ cases:
       in one itos push after the last. Pushed with them, that commit may have no
       run of its own: the newest run on its branch whose head has it judges it, and
       done names that run. Without ci.watch CI is not checked, and done says so.
-      Refused, nothing written (exit 1): any of those not
-      so, a registry that is not sound or has changes no commit holds, an id no item
-      has, an idea (work promote it first), an item dropped or deferred, a commit a
-      hook refuses. Exit 75 when the run does not end within ci.watch.timeout, is
-      cancelled with no newer run to follow, or GitHub's API keeps failing, 3 when
-      the run cannot be looked at. An item
-      already done changes nothing. An item the registry's queue holds is then
-      taken out of it, in a commit of its own, "docs: queue <id>". Under a stealth
-      config the registry is written and nothing committed.
+      With the config's proof.code, an item whose commits (those itos work show
+      lists) touch proof.code.paths needs its code proof too, after CI: done runs
+      proof.code.check, {base} the parent of the item's first commit, and closes
+      only when it exits 0. Exit 1 refuses, naming each problem its --json lists by
+      its rule and message; any other exit, or a check that cannot start, refuses
+      with exit 3. No flag closes past it. Refused, nothing written (exit 1): any of
+      those not so, a registry that is not sound or has changes no commit holds, an
+      id no item has, an idea (work promote it first), an item dropped or deferred, a
+      commit a hook refuses. Exit 75 when the run does not end within
+      ci.watch.timeout, is cancelled with no newer run to follow, or GitHub's API
+      keeps failing, 3 when the run cannot be looked at or the code proof cannot
+      run. An item already done changes nothing. An item the registry's queue holds
+      is then taken out of it, in a commit of its own, "docs: queue <id>". Under a
+      stealth config the registry is written and nothing committed.
 
       --json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"queue_commit"?:"<sha>"|null,"commit":"<sha>"|null},
       or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}],"ci"?,"run"?}
@@ -1479,11 +1484,12 @@ cases:
       Validates the config, then the ledger (or one ledger file), the work registry,
       each kind's smoke set and the decision records in the folder work.decisions
       names: no two share a number, and a record whose status is "superseded by
-      ADR-NNNN" names a number a record there has. Exit 2 when the config is invalid,
-      1 for any other problem. A warning (WARN) never fails it: a check static by a
-      ci.cost.static pattern written below a late check of its task, which
-      ci.cost.keep_written_order runs late, and a project's people file missing or
-      unreadable (a stealth config reads none). --print-defaults prints the
+      ADR-NNNN" names a number a record there has. Exit 2 when the config is invalid
+      (among the rest, a proof.code that names no paths or whose check does not take
+      {base}), 1 for any other problem. A warning (WARN) never fails it: a check
+      static by a ci.cost.static pattern written below a late check of its task,
+      which ci.cost.keep_written_order runs late, and a project's people file missing
+      or unreadable (a stealth config reads none). --print-defaults prints the
       values the tools take when a key is left out (work.registry's in this config's
       ledger folder; a stealth config's hooks.bin, itos, and no work.people), and
       checks nothing.

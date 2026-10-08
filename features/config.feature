@@ -372,7 +372,7 @@ Feature: Every key the config accepts is one itos reads
   # Slice 100: proof.code is read before any work done needs it, so a
   # config that names no paths, or a check that cannot be given the item's
   # base, is refused by config check rather than at the first close.
-  @ID-CONFIG-41 @slice-100 @wip
+  @ID-CONFIG-41 @slice-100
   Scenario: config check refuses a proof.code whose check does not take {base}
     Given the committed file "itos.yaml" holding the lines:
       """

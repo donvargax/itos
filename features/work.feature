@@ -857,7 +857,7 @@ Feature: The work registry
   # fake provider answers in that shape, and work done prints each problem's
   # rule and message. Its exit 2 (itos-cc's usage or config error), 3, 70
   # and 75 are all "cannot run" to itos: exit 3.
-  @ID-WORK-76 @slice-100 @wip
+  @ID-WORK-76 @slice-100
   Scenario: work done runs the code proof over the item's commits and closes when it passes
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -870,7 +870,7 @@ Feature: The work registry
     And the registry's item "slice-9" has the status "done" and the owner "someone"
     And the provider was run with the base before the item "slice-9"'s first commit
 
-  @ID-WORK-77 @slice-100 @wip
+  @ID-WORK-77 @slice-100
   Scenario: work done refuses when the code proof finds a surviving mutant, naming it, and writes nothing
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -883,7 +883,7 @@ Feature: The work registry
     And its output says "app.Total"
     And the registry's item "slice-9" has the status "doing" and the owner "someone"
 
-  @ID-WORK-78 @slice-100 @wip
+  @ID-WORK-78 @slice-100
   Scenario: work done does not run the code proof when the item's commits touch no code
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -895,7 +895,7 @@ Feature: The work registry
     Then itos exits with code 0
     And the provider was not run
 
-  @ID-WORK-79 @slice-100 @wip
+  @ID-WORK-79 @slice-100
   Scenario: A code proof that cannot run refuses with exit 3, never closing the item
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"

@@ -14,7 +14,9 @@ package cli
 // after it, may have no run of its own, CI running once for the push's head:
 // the newest run on the branch whose head has it judges it (bug 49), as for a
 // cancelled run (bug 41). The first that is not refuses, naming what
-// to do; without ci.watch CI is not checked, and done says so. The registry
+// to do; without ci.watch CI is not checked, and done says so. With the
+// config's proof.code, an item whose commits touch its paths then needs its
+// code proof to pass (workproof.go, slice 100). The registry
 // is then read again and the close made on it as it is after the wait (bug
 // 34). An item the registry's queue holds is then taken out of it, in a
 // commit of its own (slice 66).
@@ -78,6 +80,10 @@ func workDone(args []string, o Out) (int, error) {
 	if err != nil || code != 0 {
 		return code, err
 	}
+	proved, code, err := codeProof(cfg, id, o)
+	if err != nil || code != 0 {
+		return code, err
+	}
 	// The checks can take minutes, and the registry can change meanwhile: a
 	// take or a queue change committed, someone's edit pulled in, another
 	// worktree's write to a stealth registry. The close is made afresh on the
@@ -94,6 +100,7 @@ func workDone(args []string, o Out) (int, error) {
 	if ci.run != nil && ci.run.URL != "" {
 		change.Body += " " + landing.runOf(ci.run) + " passed: " + ci.run.URL + "."
 	}
+	change.Body += proved
 	sha, code, err := writeRegistry(cfg, text, *change, o)
 	if err != nil || code != 0 {
 		return code, err
