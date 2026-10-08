@@ -1289,7 +1289,11 @@
     the thing rather than grepping a file, becomes a ci.steps or ci.nightly.steps step of its own
     instead, with a comment saying what it guards; the rest go, git keeping them. The CI step that
     runs tools/bin/itos task T-007 goes with T-007's checks, its guards kept as steps where they are
-    not already the @ID-CMSG scenarios. The change to itos.yaml is a ci commit, the ledger's a docs
+    not already the @ID-CMSG scenarios. Which guards survive is the person's call, not the agent's
+    (raised in review, 2026-10-08): the agent first lists every done task's check, each marked keep (as
+    which step, and what it guards that nothing else does) or drop (and why), puts the list to the
+    person through itos decision add, and stops; it removes nothing until the person has answered,
+    and then builds the answered list. The change to itos.yaml is a ci commit, the ledger's a docs
     commit; the ci commit first, so the nightly never runs a stripped ledger's step. The checks
     below read the result through itos, not the files: the nightly's plan names no task, and no done
     task keeps a check.
