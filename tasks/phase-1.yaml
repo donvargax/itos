@@ -1027,9 +1027,6 @@
     commit; the ci commit first, so the nightly never runs a stripped ledger's step. The checks
     below read the result through itos, not the files: the nightly's plan names no task, and no done
     task keeps a check.
-  done_when:
-    - run: tools/bin/itos ci plan --nightly --json | jq -e '.tasks == []'
-    - run: tools/bin/itos task list --json | jq -e '[.tasks[] | select(.status == "done" and .checks > 0)] | length == 0'
 
 - id: T-126
   type: build

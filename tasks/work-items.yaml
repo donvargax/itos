@@ -6205,25 +6205,9 @@ items:
     title: This repository's nightly reruns no done task's checks, and its done tasks keep none
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-101]
     kind: task
-    why: >
-      Slice 101 makes work done remove a task's checks from the ledger when it closes it
-      (docs/plans/v7-proof-of-done.md: a task's checks are the agent's progress, then leave; git
-      history keeps them). This repository still has the checks of every task closed before it, and
-      the nightly's { tasks: done, cost: static } step reruns them each night, which the plan drops:
-      they cost every night and caught nothing real (the evidence is on
-      p1-nightly-late-done-checks). This task removes that step from ci.nightly.steps (regenerating
-      AGENTS.md's rules block with itos init --agent-rules) and removes done_when from every done
-      task's ledger entry. A done task's check that guards something no scenario, unit test or gate
-      self-test does, and that runs the thing rather than grepping a file, becomes a ci.steps or
-      ci.nightly.steps step of its own instead, with a comment saying what it guards; the rest go,
-      git keeping them. The CI step that runs tools/bin/itos task T-007 goes with T-007's checks,
-      its guards kept as steps where they are not already the @ID-CMSG scenarios. The change to
-      itos.yaml is a ci commit, the ledger's a docs commit; the ci commit first, so the nightly
-      never runs a stripped ledger's step. The checks below read the result through itos, not the
-      files: the nightly's plan names no task, and no done task keeps a check.
 
   - id: T-126
     title: The action installs the launcher of the release its ref names, a pre-release tag or a release's commit included
