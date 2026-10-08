@@ -6003,7 +6003,7 @@ items:
     title: work done removes a task's checks when it closes it, and itos task reads a done task with none as done
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
