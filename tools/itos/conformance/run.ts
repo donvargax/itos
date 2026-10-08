@@ -78,7 +78,9 @@
 // run's jobs, the token required; anything else is a 404.
 //
 // In every string, `{{dir}}` is the case's folder, `{{PATH}}` the runner's
-// PATH without the caller's extensions, `{{sha.<label>}}` and `{{short.<label>}}` a labelled commit (40 and 7
+// PATH without the caller's extensions, `{{PATH_SEP}}` its platform separator,
+// `{{git}}` the native Git executable,
+// `{{sha.<label>}}` and `{{short.<label>}}` a labelled commit (40 and 7
 // characters), `{{version}}` the version the binary says it is (`<command>
 // version`'s last word, asked once before any case), so a build stamped with
 // any version passes, and `{{release}}` that version's X.Y.Z, the version a
@@ -93,7 +95,7 @@
 // run, by a folder of links to everything else in it, so the other programs
 // there stay reachable. A case that wants an extension writes one itself and
 // puts its folder on the PATH (`env: { PATH: "{{dir}}/bin:{{PATH}}" }`).
-import { spawn, spawnSync } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import {
 	chmodSync,
 	existsSync,
@@ -108,7 +110,7 @@ import {
 } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { availableParallelism, tmpdir } from "node:os";
-import { basename, delimiter, dirname, join, relative, resolve } from "node:path";
+import { basename, delimiter, dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { parse } from "yaml";
 
 type FileValue = string | null | { text: string; executable?: boolean };
@@ -271,9 +273,33 @@ function cleanEnv(home: string): NodeJS.ProcessEnv {
 
 type Subst = (s: string) => string;
 
+export const HERE = dirname(new URL(import.meta.url).pathname);
+const ROOT = resolve(HERE, "../../..");
+
 // The PATH every case starts from, and {{PATH}}: the caller's, without its
 // itos extensions once hideExtensions has run.
 let RUN_PATH = process.env.PATH ?? "";
+let NATIVE_GIT = "";
+
+// Resolve Git with the same real-git helper used by the repository's self-tests,
+// before a fixture can put an old or fake executable in its environment.
+export function resolveNativeGit(): string {
+	if (NATIVE_GIT) return NATIVE_GIT;
+	const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(GIT_|ITOS_)/.test(key)));
+	const asked = spawnSync("go", ["run", "./tools/bin/real-git"], {
+		cwd: ROOT,
+		env,
+		encoding: "utf8",
+		timeout: 30_000,
+	});
+	if (asked.status !== 0 || !asked.stdout.trim())
+		throw new FixtureError(
+			`go run ./tools/bin/real-git exited ${asked.status ?? asked.signal}:\n${asked.stdout}${asked.stderr}${asked.error?.message ?? ""}`,
+		);
+	NATIVE_GIT = asked.stdout.trim();
+	if (!isAbsolute(NATIVE_GIT)) throw new FixtureError(`real-git returned a non-absolute path: ${NATIVE_GIT}`);
+	return NATIVE_GIT;
+}
 
 const isExtension = (name: string) => name.startsWith("itos-");
 
@@ -312,11 +338,13 @@ function askVersion(bin: string): string {
 	}
 }
 
-function substituter(dir: string, labels: Map<string, string>): Subst {
+function substituter(dir: string, labels: Map<string, string>, nativeGit = resolveNativeGit()): Subst {
 	return (s) =>
-		s.replace(/\{\{(dir|PATH|version|release|sha\.[\w-]+|short\.[\w-]+)\}\}/g, (whole, name: string) => {
+		s.replace(/\{\{(dir|PATH|PATH_SEP|git|version|release|sha\.[\w-]+|short\.[\w-]+)\}\}/g, (whole, name: string) => {
 			if (name === "dir") return dir;
 			if (name === "PATH") return RUN_PATH;
+			if (name === "PATH_SEP") return delimiter;
+			if (name === "git") return nativeGit;
 			if (name === "version") return VERSION;
 			if (name === "release") return RELEASE;
 			const [form, label] = name.split(".") as [string, string];
@@ -352,40 +380,223 @@ function writeFiles(dir: string, files: Files, subst: Subst): string[] {
 	return written;
 }
 
-function git(dir: string, env: NodeJS.ProcessEnv, args: string[], input?: string): string {
-	const run = spawnSync("git", args, { cwd: dir, env, input, encoding: "utf8" });
+interface ProcessResult {
+	status: number | null;
+	signal: NodeJS.Signals | null;
+	stdout: string;
+	stderr: string;
+}
+
+interface ProcessEntry {
+	pid: number;
+	child: ChildProcess;
+	closed: Promise<void>;
+	terminating?: Promise<void>;
+}
+
+export class CaseTimeoutError extends Error {
+	readonly deadlineMs: number;
+
+	constructor(deadlineMs: number) {
+		super(`conformance case exceeded its ${deadlineMs}ms deadline`);
+		this.name = "CaseTimeoutError";
+		this.deadlineMs = deadlineMs;
+	}
+}
+
+// One case owns every process group started for setup, execution and inspection.
+// The same deadline covers all of them; on Windows taskkill owns the process tree.
+class CaseProcesses {
+	private readonly active = new Set<ProcessEntry>();
+	private readonly terminations = new Set<Promise<void>>();
+	private readonly timeout: Promise<never>;
+	private rejectTimeout!: (error: Error) => void;
+	private timer: NodeJS.Timeout;
+	private expired?: CaseTimeoutError;
+	private readonly cleanupErrors: Error[] = [];
+
+	constructor(deadlineMs: number) {
+		this.timeout = new Promise((_, reject) => (this.rejectTimeout = reject));
+		this.timeout.catch(() => {});
+		this.timer = setTimeout(() => {
+			this.expired = new CaseTimeoutError(deadlineMs);
+			this.rejectTimeout(this.expired);
+			void this.terminateAll();
+		}, deadlineMs);
+	}
+
+	get deadline(): Promise<never> {
+		return this.timeout;
+	}
+
+	private assertActive() {
+		if (this.expired) throw this.expired;
+	}
+
+	private terminate(entry: ProcessEntry): Promise<void> {
+		if (!entry.terminating) {
+			entry.terminating = terminateProcessTree(entry.pid).catch((error: unknown) => {
+				const message = error instanceof Error ? error.message : String(error);
+				this.cleanupErrors.push(new Error(`could not terminate conformance process ${entry.pid}: ${message}`));
+			});
+			this.terminations.add(entry.terminating);
+			void entry.terminating.then(() => this.terminations.delete(entry.terminating!));
+		}
+		return entry.terminating;
+	}
+
+	private async terminateAll() {
+		await Promise.all([...this.active].map((entry) => this.terminate(entry)));
+	}
+
+	run(
+		command: string,
+		args: string[],
+		options: { cwd: string; env: NodeJS.ProcessEnv; input?: string },
+	): Promise<ProcessResult> {
+		this.assertActive();
+		return new Promise((resolveResult, rejectResult) => {
+			const child = spawn(command, args, {
+				cwd: options.cwd,
+				env: options.env,
+				detached: true,
+				windowsHide: true,
+			});
+			let stdout = "";
+			let stderr = "";
+			let spawnError: Error | undefined;
+			let closedResolve!: () => void;
+			const closed = new Promise<void>((done) => (closedResolve = done));
+			const entry = child.pid === undefined ? undefined : { pid: child.pid, child, closed };
+			if (entry) this.active.add(entry);
+			child.stdout?.setEncoding("utf8").on("data", (data: string) => (stdout += data));
+			child.stderr?.setEncoding("utf8").on("data", (data: string) => (stderr += data));
+			child.on("error", (error) => (spawnError = error));
+			child.once("exit", () => {
+				if (entry) void this.terminate(entry);
+			});
+			child.once("close", (status, signal) => {
+				if (entry) this.active.delete(entry);
+				closedResolve();
+				if (spawnError) rejectResult(spawnError);
+				else resolveResult({ status, signal, stdout, stderr });
+			});
+			child.stdin?.on("error", () => {});
+			child.stdin?.end(options.input ?? "");
+		});
+	}
+
+	async close() {
+		clearTimeout(this.timer);
+		const entries = [...this.active];
+		await this.terminateAll();
+		await Promise.all(this.terminations);
+		let closeTimer: NodeJS.Timeout | undefined;
+		try {
+			await Promise.race([
+				Promise.all(entries.map((entry) => entry.closed)),
+				new Promise<never>((_, reject) => {
+					closeTimer = setTimeout(
+						() => reject(new FixtureError("owned conformance processes did not close after termination")),
+						3_000,
+					);
+				}),
+			]);
+		} finally {
+			if (closeTimer) clearTimeout(closeTimer);
+		}
+		if (this.cleanupErrors.length) throw new FixtureError(this.cleanupErrors.map((error) => error.message).join("\n"));
+	}
+}
+
+async function terminateProcessTree(pid: number): Promise<void> {
+	if (process.platform !== "win32") {
+		try {
+			process.kill(-pid, "SIGKILL");
+		} catch (error) {
+			if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error;
+		}
+		return;
+	}
+	await new Promise<void>((resolveTask, rejectTask) => {
+		const killer = spawn("taskkill", ["/PID", String(pid), "/T", "/F"], {
+			windowsHide: true,
+			stdio: "ignore",
+		});
+		const timer = setTimeout(() => killer.kill("SIGKILL"), 2_000);
+		const hardTimer = setTimeout(() => rejectTask(new Error("taskkill did not finish terminating the process tree")), 3_000);
+		killer.once("error", (error) => {
+			clearTimeout(timer);
+			clearTimeout(hardTimer);
+			rejectTask(error);
+		});
+		killer.once("close", () => {
+			clearTimeout(timer);
+			clearTimeout(hardTimer);
+			resolveTask();
+		});
+	});
+}
+
+async function git(
+	processes: CaseProcesses,
+	nativeGit: string,
+	nativeGitArgs: string[],
+	dir: string,
+	env: NodeJS.ProcessEnv,
+	args: string[],
+	input?: string,
+): Promise<string> {
+	const run = await processes.run(nativeGit, [...nativeGitArgs, ...args], { cwd: dir, env, input });
 	if (run.status !== 0)
 		throw new FixtureError(`git ${args.join(" ")} failed:\n${run.stderr}${run.stdout}`.trimEnd());
 	return run.stdout.trim();
 }
 
-// A key's values in a case's git config, a line each; null when it is unset
-// (git config's exit 1).
-function gitConfigValue(dir: string, env: NodeJS.ProcessEnv, key: string): string | null {
-	const run = spawnSync("git", ["config", "--get-all", key], { cwd: dir, env, encoding: "utf8" });
+// A key's values in the scratch repository's native Git config, not the fake
+// Git environment deliberately given to the program under test.
+async function gitConfigValue(
+	processes: CaseProcesses,
+	nativeGit: string,
+	nativeGitArgs: string[],
+	dir: string,
+	env: NodeJS.ProcessEnv,
+	key: string,
+): Promise<string | null> {
+	const run = await processes.run(nativeGit, [...nativeGitArgs, "config", "--get-all", key], { cwd: dir, env });
 	if (run.status === 1) return null;
-	if (run.status !== 0) throw new FixtureError(`git config --get-all ${key} failed:\n${run.stderr}`.trimEnd());
+	if (run.status !== 0)
+		throw new FixtureError(`git config --get-all ${key} failed:\n${run.stderr}`.trimEnd());
 	return run.stdout.replace(/\n$/, "");
 }
 
-function sh(dir: string, env: NodeJS.ProcessEnv, command: string) {
-	const run = spawnSync("sh", ["-c", command], { cwd: dir, env, encoding: "utf8" });
+async function sh(processes: CaseProcesses, dir: string, env: NodeJS.ProcessEnv, command: string) {
+	const run = await processes.run("sh", ["-c", command], { cwd: dir, env });
 	if (run.status !== 0)
 		throw new FixtureError(`\`${command}\` failed:\n${run.stderr}${run.stdout}`.trimEnd());
 }
 
 // One step of a scratch repository, in the order its keys are read.
-function applyStep(dir: string, step: GitStep, env: NodeJS.ProcessEnv, subst: Subst) {
+async function applyStep(
+	processes: CaseProcesses,
+	nativeGit: string,
+	nativeGitArgs: string[],
+	dir: string,
+	step: GitStep,
+	env: NodeJS.ProcessEnv,
+	subst: Subst,
+) {
 	if (step.write) writeFiles(dir, step.write, subst);
-	if (step.stage) git(dir, env, ["add", "-A", "--", ...writeFiles(dir, step.stage, subst)]);
+	if (step.stage)
+		await git(processes, nativeGit, nativeGitArgs, dir, env, ["add", "-A", "--", ...writeFiles(dir, step.stage, subst)]);
 	if (step.commit !== undefined) {
 		const paths = writeFiles(dir, step.files ?? {}, subst);
-		if (paths.length) git(dir, env, ["add", "-A", "--", ...paths]);
-		git(dir, env, ["commit", "-q", "--allow-empty", "-F", "-"], subst(step.commit));
+		if (paths.length) await git(processes, nativeGit, nativeGitArgs, dir, env, ["add", "-A", "--", ...paths]);
+		await git(processes, nativeGit, nativeGitArgs, dir, env, ["commit", "-q", "--allow-empty", "-F", "-"], subst(step.commit));
 	}
-	if (step.branch) git(dir, env, ["checkout", "-q", "-b", step.branch]);
-	if (step.checkout) git(dir, env, ["checkout", "-q", subst(step.checkout)]);
-	if (step.run) sh(dir, env, subst(step.run));
+	if (step.branch) await git(processes, nativeGit, nativeGitArgs, dir, env, ["checkout", "-q", "-b", step.branch]);
+	if (step.checkout) await git(processes, nativeGit, nativeGitArgs, dir, env, ["checkout", "-q", subst(step.checkout)]);
+	if (step.run) await sh(processes, dir, env, subst(step.run));
 }
 
 // itos's two hooks, declared in a scratch repository's git config under the
@@ -400,14 +611,24 @@ const standInHooks: [string, string][] = ["commit-msg", "pre-push"].flatMap((eve
 ]);
 
 // The scratch repository a case's `git` steps describe.
-function buildRepo(dir: string, steps: GitStep[], env: NodeJS.ProcessEnv, labels: Map<string, string>) {
-	const subst = substituter(dir, labels);
-	git(dir, env, ["init", "-q", "-b", "main"]);
-	git(dir, env, ["config", "commit.gpgsign", "false"]);
-	for (const [key, value] of standInHooks) git(dir, env, ["config", key, value]);
+async function buildRepo(
+	processes: CaseProcesses,
+	nativeGit: string,
+	nativeGitArgs: string[],
+	dir: string,
+	steps: GitStep[],
+	env: NodeJS.ProcessEnv,
+	labels: Map<string, string>,
+) {
+	const subst = substituter(dir, labels, nativeGit);
+	await git(processes, nativeGit, nativeGitArgs, dir, env, ["init", "-q", "-b", "main"]);
+	await git(processes, nativeGit, nativeGitArgs, dir, env, ["config", "commit.gpgsign", "false"]);
+	for (const [key, value] of standInHooks)
+		await git(processes, nativeGit, nativeGitArgs, dir, env, ["config", key, value]);
 	for (const step of steps) {
-		applyStep(dir, step, env, subst);
-		if (step.label) labels.set(step.label, git(dir, env, ["rev-parse", "HEAD"]));
+		await applyStep(processes, nativeGit, nativeGitArgs, dir, step, env, subst);
+		if (step.label)
+			labels.set(step.label, await git(processes, nativeGit, nativeGitArgs, dir, env, ["rev-parse", "HEAD"]));
 	}
 }
 
@@ -540,29 +761,30 @@ export interface Outcome {
 	gitConfig: Record<string, string | null>;
 }
 
-function execute(bin: string, argv: string[], options: { cwd: string; env: NodeJS.ProcessEnv; stdin?: string }) {
-	return new Promise<{ exit: number | null; stdout: string; stderr: string }>((done) => {
-		const child = spawn(bin, argv, { cwd: options.cwd, env: options.env });
-		let stdout = "";
-		let stderr = "";
-		child.stdout.setEncoding("utf8").on("data", (d: string) => (stdout += d));
-		child.stderr.setEncoding("utf8").on("data", (d: string) => (stderr += d));
-		const timer = setTimeout(() => child.kill("SIGKILL"), 60_000);
-		child.on("error", (error) => {
-			clearTimeout(timer);
-			done({ exit: null, stdout, stderr: `${stderr}${error.message}\n` });
-		});
-		child.on("close", (code) => {
-			clearTimeout(timer);
-			done({ exit: code, stdout, stderr });
-		});
-		child.stdin.on("error", () => {});
-		child.stdin.end(options.stdin ?? "");
-	});
+async function execute(
+	processes: CaseProcesses,
+	bin: string,
+	argv: string[],
+	options: { cwd: string; env: NodeJS.ProcessEnv; stdin?: string },
+): Promise<Pick<Outcome, "exit" | "stdout" | "stderr">> {
+	try {
+		const run = await processes.run(bin, argv, { cwd: options.cwd, env: options.env, input: options.stdin });
+		return { exit: run.status, stdout: run.stdout, stderr: run.stderr };
+	} catch (error) {
+		if (error instanceof CaseTimeoutError) throw error;
+		return { exit: null, stdout: "", stderr: `${(error as Error).message}\n` };
+	}
 }
 
 // The files and the git config entries a case names, as the run left them.
-function after(dir: string, env: NodeJS.ProcessEnv, c: Case): Pick<Outcome, "files" | "gitConfig"> {
+async function after(
+	processes: CaseProcesses,
+	nativeGit: string,
+	nativeGitArgs: string[],
+	dir: string,
+	env: NodeJS.ProcessEnv,
+	c: Case,
+): Promise<Pick<Outcome, "files" | "gitConfig">> {
 	const files: Outcome["files"] = {};
 	for (const path of Object.keys(c.files_after ?? {})) {
 		const full = join(dir, path);
@@ -571,8 +793,18 @@ function after(dir: string, env: NodeJS.ProcessEnv, c: Case): Pick<Outcome, "fil
 			: null;
 	}
 	const gitConfig: Outcome["gitConfig"] = {};
-	for (const key of Object.keys(c.git_config_after ?? {})) gitConfig[key] = gitConfigValue(dir, env, key);
+	for (const key of Object.keys(c.git_config_after ?? {}))
+		gitConfig[key] = await gitConfigValue(processes, nativeGit, nativeGitArgs, dir, env, key);
 	return { files, gitConfig };
+}
+
+export interface RunCaseOptions {
+	deadlineMs?: number;
+	nativeGit?: string;
+	// Prefix arguments let the regression tests inject a Git-shaped process
+	// portably while still exercising the real runCase process scope.
+	nativeGitArgs?: string[];
+	tempRoot?: string;
 }
 
 // One case, run in a folder of its own; its outcome and the substitution its
@@ -580,39 +812,66 @@ function after(dir: string, env: NodeJS.ProcessEnv, c: Case): Pick<Outcome, "fil
 export async function runCase(
 	bin: string,
 	c: Case,
+	options: RunCaseOptions = {},
 ): Promise<{ outcome: Outcome; subst: Subst; labels: Map<string, string> }> {
-	const scratch = mkdtempSync(join(tmpdir(), "itos-conformance-"));
+	const nativeGit = options.nativeGit ?? resolveNativeGit();
+	const nativeGitArgs = options.nativeGitArgs ?? [];
+	const processes = new CaseProcesses(options.deadlineMs ?? 60_000);
+	const scratch = mkdtempSync(join(options.tempRoot ?? tmpdir(), "itos-conformance-"));
 	const dir = join(scratch, "case");
 	const home = join(scratch, "home");
 	mkdirSync(dir);
 	mkdirSync(home);
 	let github: Server | undefined;
 	try {
-		const env = cleanEnv(home);
-		const labels = new Map<string, string>();
-		if (c.git) buildRepo(dir, c.git, env, labels);
-		const subst = substituter(dir, labels);
-		writeFiles(dir, c.files ?? {}, subst);
-		if (c.github) {
-			const fake = await serveGitHub(deep(c.github, subst) as FakeGitHub);
-			github = fake.server;
-			env.GITHUB_API_URL = fake.url;
-			env.GITHUB_REPOSITORY = FAKE_REPOSITORY;
-			env.GITHUB_TOKEN = FAKE_TOKEN;
-		}
-		for (const [key, value] of Object.entries(c.env ?? {})) env[key] = subst(value);
-		const hide = c.hide ?? [];
-		if (hide.length) env.PATH = hiddenPath(env.PATH ?? "", (name) => hide.includes(name), scratch);
-		const run = await execute(bin, c.argv.map(subst), {
-			cwd: c.cwd ? join(dir, c.cwd) : dir,
-			env,
-			stdin: c.stdin === undefined ? undefined : subst(c.stdin),
-		});
-		return { outcome: { ...run, ...after(dir, env, c) }, subst, labels };
+		const result = await Promise.race([
+			(async () => {
+				const inspectionEnv = cleanEnv(home);
+				inspectionEnv.ITOS_GIT = nativeGit;
+				const labels = new Map<string, string>();
+				if (c.git)
+					await buildRepo(processes, nativeGit, nativeGitArgs, dir, c.git, inspectionEnv, labels);
+				const subst = substituter(dir, labels, nativeGit);
+				writeFiles(dir, c.files ?? {}, subst);
+				const commandEnv = cleanEnv(home);
+				if (c.github) {
+					const fake = await serveGitHub(deep(c.github, subst) as FakeGitHub);
+					github = fake.server;
+					commandEnv.GITHUB_API_URL = fake.url;
+					commandEnv.GITHUB_REPOSITORY = FAKE_REPOSITORY;
+					commandEnv.GITHUB_TOKEN = FAKE_TOKEN;
+				}
+				for (const [key, value] of Object.entries(c.env ?? {})) commandEnv[key] = subst(value);
+				const hide = c.hide ?? [];
+				if (hide.length)
+					commandEnv.PATH = hiddenPath(commandEnv.PATH ?? "", (name) => hide.includes(name), scratch);
+				const run = await execute(processes, bin, c.argv.map(subst), {
+					cwd: c.cwd ? join(dir, c.cwd) : dir,
+					env: commandEnv,
+					stdin: c.stdin === undefined ? undefined : subst(c.stdin),
+				});
+				return {
+					outcome: { ...run, ...(await after(processes, nativeGit, nativeGitArgs, dir, inspectionEnv, c)) },
+					subst,
+					labels,
+				};
+			})(),
+			processes.deadline,
+		]);
+		return result;
 	} finally {
-		github?.closeAllConnections();
-		github?.close();
-		rmSync(scratch, { recursive: true, force: true });
+		try {
+			await processes.close();
+		} finally {
+			try {
+				if (github) {
+					github.closeAllConnections();
+					await new Promise<void>((done) => github!.close(() => done()));
+				}
+			} finally {
+				rmSync(scratch, { recursive: true, force: true });
+			}
+		}
 	}
 }
 
@@ -821,14 +1080,34 @@ async function pool<T, R>(items: T[], jobs: number, work: (item: T) => Promise<R
 	return results;
 }
 
-export const HERE = dirname(new URL(import.meta.url).pathname);
-
 // Every fixture file of the folder, sorted.
 export const fixtureFiles = () =>
 	readdirSync(HERE)
 		.filter((f) => f.endsWith(".yaml"))
 		.sort()
 		.map((f) => join(HERE, f));
+
+// Run the checked-in runner regressions before a standing full-corpus run.
+// A child test process avoids importing a module that imports this runner
+// while its command-line entry point is awaiting the full run.
+async function runRunnerSelfTests(paths: string) {
+	const home = join(paths, "runner-selftest-home");
+	mkdirSync(home);
+	const processes = new CaseProcesses(15_000);
+	try {
+		const run = await Promise.race([
+			processes.run(process.execPath, ["--test", join(HERE, "run.test.ts")], {
+				cwd: ROOT,
+				env: cleanEnv(home),
+			}),
+			processes.deadline,
+		]);
+		if (run.status !== 0)
+			throw new FixtureError(`conformance runner regressions failed (exit ${run.status ?? run.signal}):\n${run.stdout}${run.stderr}`);
+	} finally {
+		await processes.close();
+	}
+}
 
 // The command to run: a path if it has a slash, else a name on the PATH.
 const binary = (bin: string) => (bin.includes("/") ? resolve(bin) : bin);
@@ -861,19 +1140,22 @@ async function main(args: string[]): Promise<number> {
 async function runAll(bin: string, only: string[], additive: boolean, paths: string): Promise<number> {
 	const started = performance.now();
 	let fixtures: Fixture[];
+	let nativeGit: string;
 	try {
 		fixtures = (only.length ? only : fixtureFiles()).map(readFixture);
 		hideExtensions(paths);
+		nativeGit = resolveNativeGit();
 		learnVersion(bin);
+		if (only.length === 0) await runRunnerSelfTests(paths);
 	} catch (error) {
-		console.error(`FAIL ${(error as Error).message}`);
+		console.error(`FAIL conformance runner setup: ${(error as Error).message}`);
 		return 2;
 	}
 	const cases = fixtures.flatMap((f) => f.cases.map((c) => ({ file: f.file, c })));
 	const jobs = Math.max(1, Math.min(4, availableParallelism() - 1));
 	const results = await pool(cases, jobs, async ({ file, c }) => {
 		try {
-			return { file, c, problems: compare(c, await runCase(bin, c), additive) };
+			return { file, c, problems: compare(c, await runCase(bin, c, { nativeGit }), additive) };
 		} catch (error) {
 			return { file, c, problems: [`could not run: ${(error as Error).message}`] };
 		}

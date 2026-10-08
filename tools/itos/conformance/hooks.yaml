@@ -239,7 +239,7 @@ cases:
             previous=$word
           done
           if [ "$1" = --version ]; then echo "git version 2.30.0"; exit 0; fi
-          exec git "$@"
+          exec {{git}} "$@"
         executable: true
     env: { ITOS_GIT: "{{dir}}/old-git" }
     git_config_after: *stand-ins
