@@ -1051,3 +1051,23 @@
     and input description, and the README's install section, say this. Consumers get it with the
     next release cut (a build commit cuts none), so the README says to pin the action by a release's
     tag or its commit.
+
+- id: T-127
+  type: ci
+  title: CI confirms a release without downloading one, and caches the launcher
+  why: >
+    The nightly downloaded the newest release linux-amd64 tarball (4.5 MB) every night only to
+    verify its attestation, and every push downloads a launcher tarball on three platform jobs,
+    which is most of what this repository asks of GitHub (the person, 2026-10-08: only confirming a
+    release is available should be enough, and be conscious of GitHub servers). GitHub publishes a
+    sha256 digest on every release asset, so one API call plus checksums.txt (564 bytes) confirms
+    availability and integrity with no artifact downloaded: every expected asset present, non-empty,
+    with a digest matching checksums.txt. The attestation stays where the bytes are, in the release
+    job that uploads them; the nightly keeps it only if the runner gh can verify by digest without
+    the file, which the agent must check on the runner (gh attestation verify --help: the local gh
+    2.32.1 has no attestation command at all, so never decide this from the local gh). The action
+    caches the launcher per release version, so a repeat push fetches nothing. The checks read the
+    plan through itos, never a file
+  done_when:
+    - run: '! tools/bin/itos ci plan --nightly | grep -q "gh release download"'
+    - run: tools/bin/itos ci plan --nightly | grep -q "checksums.txt"
