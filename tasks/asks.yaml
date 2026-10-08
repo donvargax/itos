@@ -153,3 +153,6 @@ questions:
   - id: q-38
     item: "p3-guard-replacement"
     question: "Should the generated guided-commit message have an optional preview, or a mandatory prepare/confirm cycle? Recommended: optional dry-run showing item, part, approved plan revision, staged paths and assembled header/body/footers; it commits nothing and records no completion. The actual commit revalidates current inputs, so a prior preview is not permission for a changed plan/tree. Alternative: require explicit prepare/confirm each time, without claiming this proves human review. See docs/plans/guided-commits.md."
+  - id: q-39
+    item: "p3-guard-replacement"
+    question: "Should guided git-shim refusal initially be opt-in at setup, or replace transparent forwarding by default when released? Recommended: an explicit initial setup choice, enabled only with a compatible pinned itos; existing editor/script behavior does not silently change while the workflow is being tried. A later default replacement is an intentional breaking release, not a hidden compatibility fallback. Alternative: make guided refusal the default immediately with a breaking-change spec and migration. No version or implementation schedule is decided here. See docs/plans/guided-commits.md."
