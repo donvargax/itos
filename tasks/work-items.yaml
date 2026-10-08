@@ -6276,8 +6276,8 @@ items:
   - id: slice-106
     title: The code proof runs in itos ci run over the range, and work done no longer runs it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
