@@ -232,30 +232,29 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And its output says "say-new"
     And the file "notes.md" says "Rewritten by someone."
 
-  # Slice 103 (the user's call, 2026-10-08, after q-26): itos mints the ids
-  # it writes (slice 102), so a drafted command that creates an item or a
-  # question cannot be followed by a drafted one naming it: its id exists
-  # only once the first is promoted. A drafted command line may write
-  # {<name>}, the name of a draft added before it, and draft promote puts
-  # there the id that draft's command reported it created (an item of work
-  # add, task add or work promote, a question of decision add). The draft
-  # names are the coordinator's own and short-lived, never cited anywhere,
-  # so they need no numbering of their own. draft add refuses a {<name>} no
-  # waiting draft before it has, and one naming a change to files, which
-  # creates nothing; promote stops, keeping that draft and those after it,
-  # when the named one created no id.
+  # Slice 103 (the user's calls, 2026-10-08, q-26 and q-27): itos mints
+  # the ids it writes (slice 102), and a drafted command that creates an
+  # item would otherwise get its id only at promote, while the coordinator
+  # needs it now, for the spec, the brief and the drafts after it. So draft
+  # add of a command that mints (work add --kind slice|task, task add, work
+  # promote) mints its id at once, through the id counter
+  # (features/ids.feature), prints it, and keeps it in the draft: promote
+  # runs the command with that id. The id is real from the start: a later
+  # draft, a drafted spec's tags and a brief simply write it, so no
+  # placeholder is needed anywhere. A dropped draft gives its id back to no
+  # one: it leaves a gap, as the counter never hands a number out twice.
   @ID-DRAFT-17 @slice-103 @wip
-  Scenario: A drafted command names the id an earlier draft mints, filled in at promote
-    Given itos has run the command line "draft add thing -- work add --kind slice --title 'A thing' --why 'Because.'"
-    And itos has run the command line "draft add queue-thing -- work queue {thing} --top"
+  Scenario: draft add of a command that mints prints the id at once, and promote creates the item under it
+    When itos runs the command line "draft add thing -- work add --kind slice --title 'A thing' --why 'Because.'"
+    Then itos exits with code 0
+    And its output says "slice-2"
     When itos runs "draft promote"
     Then itos exits with code 0
-    And the registry's queue is "slice-2"
+    And the registry's item "slice-2" is a slice titled "A thing" with the status "todo"
 
   @ID-DRAFT-18 @slice-103 @wip
-  Scenario: draft add refuses a name no earlier draft has, and keeps nothing
-    When itos runs the command line "draft add queue-it -- work queue {nothing} --top"
-    Then itos exits with code 1
-    And its output says "{nothing}"
-    When itos runs "draft"
-    Then its output does not say "queue-it"
+  Scenario: A mint while a draft holds an id skips it
+    Given itos has run the command line "draft add thing -- work add --kind slice --title 'A thing' --why 'Because.'"
+    When itos runs the command line "work add --kind slice --title 'Another' --why 'Because.'"
+    Then itos exits with code 0
+    And its output says "slice-3"

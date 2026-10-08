@@ -51,3 +51,31 @@ Feature: The next free ID, for a spec writer
     When itos runs "tests next-id unit ID-A"
     Then itos exits with code 2
     And its output says "unit"
+
+  # Slice 105 (the user's calls, 2026-10-08, q-27): a scenario id is minted
+  # too, so two machines writing specs in one area never take the same
+  # number. tests next-id of an area (a stem the kind's ID pattern names,
+  # ID-<AREA>) claims the number through the id counter
+  # (features/ids.feature), one past the higher of the area's counter and
+  # the highest the kind's files hold, and --count <n> claims n in a row,
+  # printing each. It no longer only reads: a number it printed is never
+  # printed again, used or not. A stem the registry's items use (slice,
+  # bug) still only reads, since those ids are minted by the commands that
+  # create the items (slice 102). The README's rule against reusing a
+  # removed scenario's number becomes the counter's.
+  @ID-NEXTID-06 @slice-105 @wip
+  Scenario: tests next-id claims the number it prints, so the next run gives the one after
+    Given a feature file "a.feature" with the live scenario "@ID-A-01"
+    When itos runs "tests next-id scenario ID-A"
+    Then its output says "@ID-A-02"
+    When itos runs "tests next-id scenario ID-A"
+    Then itos exits with code 0
+    And its output says "@ID-A-03"
+
+  @ID-NEXTID-07 @slice-105 @wip
+  Scenario: tests next-id --count claims several numbers in a row
+    Given a feature file "a.feature" with the live scenario "@ID-A-01"
+    When itos runs "tests next-id scenario ID-A --count 3"
+    Then itos exits with code 0
+    And its output says "@ID-A-02"
+    And its output says "@ID-A-04"

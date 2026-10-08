@@ -933,21 +933,25 @@ Feature: The work registry
     And the last commit's header is "docs: close T-001"
     And the last commit touches only "tasks/phase-1.yaml" and "tasks/work-items.yaml"
 
-  # Slice 102 (the user's calls, 2026-10-08, q-26): itos mints every id it
-  # writes, so no spec writer reads the next number off the files. work add
-  # --kind slice|task|bug, task add and work promote take no id: they give
-  # the next free one by the rules tests next-id and task next-id already
-  # follow (slice 60): a slice or a bug one past the highest the registry's
-  # items and the kind's tags hold, a task by ledger.id past the ledger's and
-  # the registry's. Each prints the id it minted, and its --json carries it
-  # as item.id. An id given is refused as a usage error (exit 2), nothing
-  # written: no caller picks a number, so none picks a taken one. An idea
-  # keeps the name its author gives (work add <name>), never cited in a
-  # footer; work promote mints its new id. A bug is a kind of its own,
-  # minted bug-<n>, which work done treats as a slice: its scenarios are
-  # those tagged @bug-<n>. Items named bug-<n> of kind slice, made before
-  # this, stay valid. This changes what work add, task add and work promote
-  # accept: a v7 break, its old scenarios and corpus cases named in Changes.
+  # Slice 102 (the user's calls, 2026-10-08, q-26 and q-27): itos mints
+  # every id it writes, so no spec writer reads the next number off the
+  # files. work add --kind slice|task, task add and work promote take no id
+  # and mint one through the id counter (features/ids.feature): one past the
+  # higher of the counter and the highest the repository holds (the
+  # registry's items and the kind's tags for a slice, ledger.id over the
+  # ledger and the registry for a task). Each prints the id it minted, and
+  # its --json carries it as item.id. An id given is refused as a usage
+  # error (exit 2), nothing written: no caller picks a number, so none picks
+  # a taken one. An idea keeps the name its author gives (work add <name>),
+  # never cited in a footer; work promote mints its new id. This changes
+  # what work add, task add and work promote accept: a v7 break, its old
+  # scenarios and corpus cases named in Changes. A repository with no remote
+  # keeps its counter in itos's git folder, so these scenarios mint locally.
+  #
+  # Slice 104 (q-26): a bug is a kind of its own, --kind bug minting bug-<n>
+  # past the registry's bugs and the @bug tags, which work done treats as a
+  # slice: its scenarios are those tagged @bug-<n>. Items named bug-<n> of
+  # kind slice, made before this, stay valid.
   @ID-WORK-81 @slice-102 @wip
   Scenario: work add --kind slice mints the next slice id, past the registry's highest
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
@@ -957,7 +961,7 @@ Feature: The work registry
     And the registry's item "slice-10" is a slice titled "Do the thing" with the status "todo"
     And the last commit's header is "docs: add slice-10"
 
-  @ID-WORK-82 @slice-102 @wip
+  @ID-WORK-82 @slice-104 @wip
   Scenario: work add --kind bug mints a bug, past the highest bug id the registry and the @bug tags hold
     Given the committed feature file "features/a.feature" with the live scenario "@ID-A-01" tagged "@bug-7"
     And the work registry has the item "bug-5" owned by nobody with the status "done"
@@ -966,7 +970,7 @@ Feature: The work registry
     And the registry's item "bug-8" is a bug titled "It breaks" with the status "todo"
 
   @ID-WORK-83 @slice-102 @wip
-  Scenario: work add refuses an id for a slice, a task or a bug, and writes nothing
+  Scenario: work add refuses an id for a slice or a task, and writes nothing
     Given the work registry has the item "slice-9" owned by nobody with the status "todo"
     When itos runs the command line "work add slice-10 --kind slice --title 'Do the thing' --why 'Because.'"
     Then itos exits with code 2
@@ -990,7 +994,7 @@ Feature: The work registry
     Then itos exits with code 2
     And the registry has no item "slice-7"
 
-  @ID-WORK-86 @slice-102 @wip
+  @ID-WORK-86 @slice-104 @wip
   Scenario: work done refuses a bug one of whose scenarios is still @wip, as it refuses a slice
     Given the work registry has the bug "bug-8" owned by "someone" with the status "doing"
     And a feature file with the scenario "@ID-A-01" tagged "@bug-8 @wip"
