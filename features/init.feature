@@ -117,6 +117,320 @@ Feature: itos init, a repository made ready for itos
     When itos checks the config
     Then itos exits with code 0
 
+  # Slice 108, issue #33: a template supplies reviewed policy, not its work
+  # history. --policy names an ordinary config to materialize into a fresh
+  # project; it is neither --config nor configuration inheritance. Plain init
+  # and its existing-config diagnostic behavior remain unchanged. The source
+  # is read from the caller's directory, even when init moves to the git top.
+  # Configuration paths in that policy mean the target project's root (or the
+  # stealth data folder for itos-owned data), never the source's directory.
+  #
+  # Preflight the complete operation before creating git metadata, files or
+  # hooks: validate the policy, its fresh data layout and every write target.
+  # Refuse an existing effective config, any file matching the target ledger
+  # pattern, or the target registry or smoke file, including empty files. No merge, --force, overwrite
+  # or automatic retry/adoption recovery belongs in this slice. Destinations
+  # must remain inside the target data root, not traverse symlinks out of it.
+  # --config/ITOS_CONFIG cannot select a different target with --policy.
+  #
+  # Retain the source's applicable schema, commit/test/CI/proof policy, requires,
+  # hook settings, data-path settings and well-formed pin. With no source pin,
+  # use init's usual latest-release attempt and offline fallback. Never run the
+  # pin's binary, a CI step, code proof or source task check during adoption.
+  # Reset commits.since to the target HEAD, absent in an unborn repository;
+  # remove every source footer since. Never import source ledger/registry,
+  # questions, decisions, smoke selections, proof results or mutation caches.
+  # In project mode create only the adoption task T-1; in stealth mode the
+  # ledger stays empty, as for plain init. Create an unowned group 1 with no
+  # work items, using configured paths and groups_key. If the source omits the
+  # ledger section, supply the starter's tasks/phase-{group}.yaml layout alone,
+  # not its generic commit/test/CI policy. A policy whose task ID, commit types
+  # or ledger group layout cannot represent that bootstrap is refused before
+  # writing; never weaken it or guess a string that satisfies an arbitrary RE2.
+  # For a configured built-in Gherkin kind, derive a fresh smoke set from its
+  # actual target tests without changing the source's test policy. A command
+  # adapter that needs a missing generated smoke set is unsupported in this
+  # first slice: refuse before writing rather than execute it or invent proof.
+  # Preserve current explicit plugin/shim/agent-rules offers; those setup
+  # integrations are not policy-quality commands. Report normal initialized
+  # JSON and concrete written paths. Preflight refusals leave everything alone;
+  # an I/O/setup failure reports failure and only this call's partial work,
+  # never claims initialization succeeded or removes preexisting user files.
+  @ID-INIT-41 @slice-108 @wip
+  Scenario: Explicit policy initialization retains quality policy and creates fresh work data at the selected paths
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "template/policy.yaml" holding the lines:
+      """
+      version: 1
+      ledger:
+        files: work/phase-{group}.yaml
+        id: 'T-\d+'
+      commits:
+        header_lint: { use: builtin }
+        footers:
+          Task:
+            source: ledger
+            required_for: [chore]
+            validate_for: all
+            read_at: commit
+        scopes:
+          docs: { only: ['**/*.md', 'work/**'] }
+      work:
+        registry: work/items.yaml
+        groups_key: groups
+      ci:
+        steps:
+          - run: "printf 'ci' > ci-ran"
+      proof:
+        code:
+          paths: ['**/*.go']
+          check: "printf 'proof {base}' > proof-ran"
+      """
+    When itos runs "init --policy template/policy.yaml --plugin no --no-git-shim --no-agent-rules --json"
+    Then itos exits with code 0
+    And the output's JSON field "action" is "initialized"
+    And the config value "ci.steps" equals the YAML:
+      """
+      - run: "printf 'ci' > ci-ran"
+      """
+    And the config value "proof.code" equals the YAML:
+      """
+      paths: ['**/*.go']
+      check: "printf 'proof {base}' > proof-ran"
+      """
+    And the config value "commits.footers.Task.required_for" equals the YAML:
+      """
+      [chore]
+      """
+    And the config value "commits.scopes.docs.only" equals the YAML:
+      """
+      ['**/*.md', 'work/**']
+      """
+    And the ledger file "work/phase-1.yaml" contains only the adoption task "T-1"
+    And the registry file "work/items.yaml" has no items and its group "1" under "groups" is unowned
+    And the file "template/policy.yaml" has the same contents as its committed version
+    And the file "ci-ran" does not exist
+    And the file "proof-ran" does not exist
+    And the file "tasks/phase-1.yaml" does not exist
+    And the git config declares a "commit-msg" hook that runs itos
+    And the git config declares a "pre-push" hook that runs itos
+    When itos checks the config
+    Then itos exits with code 0
+
+  @ID-INIT-42 @slice-108 @wip
+  Scenario: Policy initialization resets history boundaries without importing the source's work history
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "template/policy.yaml" holding the lines:
+      """
+      version: 1
+      commits:
+        since: ffffffffffffffffffffffffffffffffffffffff
+        footers:
+          Task:
+            source: ledger
+            required_for: [chore]
+            since: ffffffffffffffffffffffffffffffffffffffff
+      """
+    And the committed file "template/tasks/phase-9.yaml" holding the lines:
+      """
+      - id: T-999
+        type: chore
+        title: Template history
+        done_when:
+          - run: "printf 'task' > template-task-ran"
+      """
+    And the committed file "template/tasks/work-items.yaml" holding the lines:
+      """
+      phases: { 9: template-owner }
+      items:
+        - id: T-999
+          title: Template history
+          phase: 9
+          owner: template-owner
+          status: done
+          kind: task
+          depends_on: []
+      """
+    And the committed file "template/tasks/asks.yaml" holding "questions: [{id: q-999, question: old, status: open}]"
+    And the committed file "template/.metrics/proof.json" holding "template proof"
+    When itos runs "init --policy template/policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 0
+    And the config's commits.since is HEAD's full SHA
+    And the config has no value at "commits.footers.Task.since"
+    And the ledger file "tasks/phase-1.yaml" contains only the adoption task "T-1"
+    And the registry file "tasks/work-items.yaml" has no items and its group "1" under "phases" is unowned
+    And the file "tasks/phase-9.yaml" does not exist
+    And the file "tasks/asks.yaml" does not exist
+    And the file ".metrics/proof.json" does not exist
+    And the file "template-task-ran" does not exist
+    And the file "template/policy.yaml" has the same contents as its committed version
+
+  @ID-INIT-43 @slice-108 @wip
+  Scenario: Policy initialization preserves a supplied pin instead of moving it to the newest release
+    Given a release server offering the versions "9.1.0" and "9.2.0"
+    And a repository that does not use itos, its one commit "docs: start"
+    And the committed file "policy.yaml" holding the lines:
+      """
+      version: 1
+      pin:
+        version: 9.1.0
+        checksums: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      """
+    When itos runs "init --policy policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 0
+    And the config value "pin.version" equals the YAML:
+      """
+      9.1.0
+      """
+    And the config value "pin.checksums" equals the YAML:
+      """
+      aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      """
+    And no version of the release server ran
+    And the file "policy.yaml" has the same contents as its committed version
+
+  @ID-INIT-44 @slice-108 @wip
+  Scenario: Policy initialization with no supplied pin uses init's usual newest-release pinning
+    Given a release server offering the versions "9.1.0" and "9.2.0"
+    And a repository that does not use itos, its one commit "docs: start"
+    And the committed file "policy.yaml" holding "version: 1"
+    When itos runs "init --policy policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 0
+    And the config's pin is the version "9.2.0" of the release server, with its checksums
+    And no version of the release server ran
+
+  @ID-INIT-45 @slice-108 @wip
+  Scenario: Explicit policy initialization refuses an existing project configuration without changing it
+    Given a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init"
+    And the files init wrote are committed
+    And the committed file "policy.yaml" holding "version: 1"
+    When itos runs "init --policy policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 1
+    And its output says "itos.yaml"
+    And no file changed since the last run
+
+  @ID-INIT-46 @slice-108 @wip
+  Scenario: Policy initialization refuses a preexisting registry before creating any project files or hooks
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "policy.yaml" holding "version: 1"
+    And the committed file "tasks/work-items.yaml" holding "someone else's registry"
+    When itos runs "init --policy policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 1
+    And its output says "tasks/work-items.yaml"
+    And no file changed since the last run
+    And the file "itos.yaml" does not exist
+    And the file "tasks/phase-1.yaml" does not exist
+    And the git config declares no "commit-msg" hook
+    And the git config declares no "pre-push" hook
+
+  @ID-INIT-47 @slice-108 @wip
+  Scenario: Policy initialization refuses a preexisting ledger rather than retaining or importing its tasks
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "policy.yaml" holding "version: 1"
+    And the committed file "tasks/phase-9.yaml" holding "someone else's tasks"
+    When itos runs "init --policy policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 1
+    And its output says "tasks/phase-9.yaml"
+    And no file changed since the last run
+    And the file "itos.yaml" does not exist
+    And the file "tasks/phase-1.yaml" does not exist
+    And the file "tasks/work-items.yaml" does not exist
+    And the git config declares no "commit-msg" hook
+
+  @ID-INIT-48 @slice-108 @wip
+  Scenario: An invalid source policy is refused before even initializing git in an unmanaged folder
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "policy.yaml" holding the lines:
+      """
+      version: 1
+      imaginary_policy: true
+      """
+    And a folder that is not a git repository
+    When itos runs "init --policy policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 2
+    And its output says "imaginary_policy"
+    And the folder is still not a git repository
+    And no file changed since the last run
+
+  @ID-INIT-49 @slice-108 @wip
+  Scenario: Policy initialization under stealth keeps fresh configured work data in the git folder
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "policy.yaml" holding the lines:
+      """
+      version: 1
+      ledger:
+        files: work/phase-{group}.yaml
+      work:
+        registry: work/items.yaml
+      """
+    When itos runs "init --policy policy.yaml --stealth --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 0
+    And the config's commits.since is HEAD's full SHA
+    And the ledger file ".git/itos/work/phase-1.yaml" contains no tasks
+    And the registry file ".git/itos/work/items.yaml" has no items and its group "1" under "phases" is unowned
+    And the file "itos.yaml" does not exist
+    And the file "work/items.yaml" does not exist
+    And the file "policy.yaml" has the same contents as its committed version
+    And git status shows nothing to commit
+    And the git config declares a "commit-msg" hook that runs itos
+    When itos checks the config
+    Then itos exits with code 0
+
+  @ID-INIT-50 @slice-108 @wip
+  Scenario: Policy initialization derives Gherkin smoke selections from the target tests rather than source data
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the feature file "specs/pages.feature" with the scenario "@ID-PAGE-01"
+    And the committed file "template/policy.yaml" holding the lines:
+      """
+      version: 1
+      tests:
+        scenario:
+          root: specs
+          id: 'ID-[A-Z]+-\d+'
+          smoke: { file: work/smoke.yaml }
+      """
+    And the committed file "template/work/smoke.yaml" holding "template selections must not be copied"
+    When itos runs "init --policy template/policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 0
+    And the file "work/smoke.yaml" names "@ID-PAGE-01"
+    And the file "features/smoke.yaml" does not exist
+    When itos runs "tests smoke check scenario"
+    Then itos exits with code 0
+
+  @ID-INIT-51 @slice-108 @wip
+  Scenario: Policy initialization refuses a generated data path outside the target root before writing
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "policy.yaml" holding the lines:
+      """
+      version: 1
+      ledger:
+        files: ../outside/phase-{group}.yaml
+      """
+    When itos runs "init --policy policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 2
+    And its output says "ledger.files"
+    And no file changed since the last run
+    And the file "../outside/phase-1.yaml" does not exist
+    And the git config declares no "commit-msg" hook
+
+  @ID-INIT-52 @slice-108 @wip
+  Scenario: Policy initialization refuses a task ID policy that cannot represent the adoption task without weakening it
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "policy.yaml" holding the lines:
+      """
+      version: 1
+      ledger:
+        files: tasks/phase-{group}.yaml
+        id: 'TASK-[0-9]+'
+      """
+    When itos runs "init --policy policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 2
+    And its output says "ledger.id"
+    And no file changed since the last run
+    And the file "itos.yaml" does not exist
+    And the git config declares no "commit-msg" hook
+
   # Slice 49: the Claude Code plugin
   # (docs/decisions/0031-itos-init-offers-the-plugin-and-the-git-shim-opt-in-everywhere.md) is offered,
   # through Claude Code's own CLI: claude plugin list --json to see whether
