@@ -6763,3 +6763,18 @@ items:
       of the harness and of CI while a second implementation of refs, fast-forward pushes and auth
       sits under the code that most needs to match git. Worth revisiting only if git absence ever
       blocks a platform itos must run on.
+
+  - id: p1-line-endings-for-the-mutation-cache
+    title: A .gitattributes keeps the bytes the mutation cache hashes, whatever core.autocrlf says
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Each .metrics/mutate entry records a sha256 of every test and support file it ran, so the
+      cache is valid only where the checkout has the same bytes. This clone has core.autocrlf=false
+      in the user global config, no .gitattributes, LF throughout, and its features/steps_test.go
+      hashes exactly what the cache holds. A clone with Git for Windows default core.autocrlf=true
+      checks CRLF out, every hash mismatches, the whole cache reads stale, and a cache refreshed
+      there is stale in CI. Nothing in the repository enforces the line endings the cache assumes.
