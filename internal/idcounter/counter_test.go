@@ -14,6 +14,44 @@ import (
 	"github.com/donvargax/itos/v7/internal/git"
 )
 
+func TestMain(m *testing.M) {
+	clearGitEnvironment()
+	os.Exit(m.Run())
+}
+
+func clearGitEnvironment() {
+	for _, entry := range os.Environ() {
+		name, _, _ := strings.Cut(entry, "=")
+		if strings.HasPrefix(name, "GIT_") {
+			_ = os.Unsetenv(name)
+		}
+	}
+}
+
+func TestClearGitEnvironmentRemovesRepositoryAndConfigOverrides(t *testing.T) {
+	for name, value := range map[string]string{
+		"GIT_DIR":               "/wrong/repository",
+		"GIT_WORK_TREE":         "/wrong/worktree",
+		"GIT_COMMON_DIR":        "/wrong/common-dir",
+		"GIT_INDEX_FILE":        "/wrong/index",
+		"GIT_CONFIG_COUNT":      "1",
+		"GIT_CONFIG_KEY_0":      "core.bare",
+		"GIT_CONFIG_VALUE_0":    "true",
+		"GIT_CONFIG_PARAMETERS": "'core.bare=true'",
+	} {
+		t.Setenv(name, value)
+	}
+	clearGitEnvironment()
+	for _, name := range []string{
+		"GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_INDEX_FILE",
+		"GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0", "GIT_CONFIG_VALUE_0", "GIT_CONFIG_PARAMETERS",
+	} {
+		if value, ok := os.LookupEnv(name); ok {
+			t.Errorf("%s = %q, still set after clearing inherited Git environment", name, value)
+		}
+	}
+}
+
 func TestMintLocalSerializesLinkedWorktrees(t *testing.T) {
 	common := t.TempDir()
 	rootA, rootB := t.TempDir(), t.TempDir()
