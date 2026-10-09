@@ -6620,6 +6620,18 @@ items:
       --no-wait and report the exact SHA; the coordinator owns watching, red repairs and closure,
       and no item closes on red. This exception is only for finishing and preserving the existing
       job, not a return to local mutant execution.
+
+      Provider evidence request filed separately as https://github.com/donvargax/itos-cc/issues/28.
+      Pinned v0.5.0 crap reports missing coverage as a warning unless a score threshold is chosen,
+      and scrap recommendations are advisory; neither help exposes a report-freshness check or
+      committed-range selector. Loose version-1 crap/scrap reports carry measurements without
+      source/test/config/tool fingerprints; the inspected CRAP report names an obsolete /v2 package
+      while the module is /v7. Hooks and the standing CI plan currently enforce mutation evidence,
+      not fresh CRAP/Scrap measurement. Do not stage those unrelated loose reports or treat their
+      presence as proof. Request explicit evidence completeness/freshness and valid reuse, with
+      measurement-required behavior independent of metric thresholds. No coverage-percentage or
+      Scrap failure policy was added, and no new coverage/mutation execution was run for this
+      investigation.
     refs:
       [
         itos.yaml,
