@@ -6793,3 +6793,18 @@ items:
       at all. The features own programs now find sh beside git.exe (features/testdata/script-exe);
       the product does not, and init doctor says nothing about it. 39 scenarios fail on such a
       clone, which is the whole suite of checks.
+
+  - id: p1-follow-note-time-zone-on-windows
+    title: A note time honours TZ on windows, as the scenario says it does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Go takes the local zone from the OS on windows and ignores TZ altogether, measured here with
+      TZ unset, UTC and Asia/Tokyo, all giving -07:00. So followup show printed 2026-10-03 22:02
+      where @ID-FOLLOW-10 expects 05:02 under TZ=UTC; the GitHub windows runner is UTC and passes,
+      and every windows machine west of it fails the scenario. Reading TZ needs a zone database Go
+      does not have on windows (time/tzdata embedded, or ZONEINFO), so this is a call about the
+      binary size and not a small fix.
