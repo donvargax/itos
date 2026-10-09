@@ -6778,3 +6778,18 @@ items:
       hashes exactly what the cache holds. A clone with Git for Windows default core.autocrlf=true
       checks CRLF out, every hash mismatches, the whole cache reads stale, and a cache refreshed
       there is stale in CI. Nothing in the repository enforces the line endings the cache assumes.
+
+  - id: p1-windows-shell-on-the-path
+    title: A windows clone without sh on the PATH runs neither a check nor a hook, and says so
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The features found this while a windows failure was traced: itos runs each check through the
+      config shell, sh -c, and hooks.bin is a #!/bin/sh script, so a Windows PATH holding only the
+      folder git.exe is in, where Git for Windows keeps no sh, fails every check with no exit code
+      at all. The features own programs now find sh beside git.exe (features/testdata/script-exe);
+      the product does not, and init doctor says nothing about it. 39 scenarios fail on such a
+      clone, which is the whole suite of checks.
