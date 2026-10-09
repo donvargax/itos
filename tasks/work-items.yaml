@@ -6608,6 +6608,17 @@ items:
       and 20 nightly, explicit sampled/incomplete evidence and reproducible seeds. No code or
       dependency repository outside this directory was inspected or edited; the request was filed
       through GitHub only.
+
+      Transition exception accepted by the person on 2026-10-08: the already-running local mutation
+      job that could not be stopped may finish. Preserve and push its provider-generated mutation
+      snapshots as they stand, even when the run or current CI fails; survivor/uncovered results are
+      useful diagnostic evidence, not passing proof. Do not launch another local run, add unreviewed
+      exceptions, doctor outcomes, claim partial data complete, or weaken CI/release gates. Stage
+      only actual snapshots and owned work, not raw coverage runs or scratch data. Source/test
+      changes can invalidate cached outcomes, so freshness remains the provider check. Agents push
+      --no-wait and report the exact SHA; the coordinator owns watching, red repairs and closure,
+      and no item closes on red. This exception is only for finishing and preserving the existing
+      job, not a return to local mutant execution.
     refs:
       [
         itos.yaml,
