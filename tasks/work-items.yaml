@@ -6545,3 +6545,34 @@ items:
       reports or duplicate jobs; stop and explain an unavoidable full coverage refresh before
       running it.
     refs: [itos-cc.yaml, tools/bin/itos-cc-tests.ts, docs/ORCHESTRATING.md]
+
+  - id: p1-targeted-quality-evidence
+    title: CI requires fresh coverage, CRAP, Scrap and mutation evidence for changed code
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-targeted-coverage-reuse]
+    kind: idea
+    why: >
+      The user asked on 2026-10-08 for enforcement that coverage, CRAP and Scrap were executed, as
+      mutation is checked now, with coverage and mutation targeted to changed code. A separate
+      repository CI task can call a composite provider without waiting for generalized roles. Derive
+      subjects from the committed CI range, not --changed alone, which selects working-tree files.
+      Require applicable source/test/config/tool inputs and complete measured subjects; reject
+      missing, stale, malformed or empty proof instead of checking report-file presence. Distinguish
+      an analysis executed for these inputs from valid cached evidence; reuse should avoid duplicate
+      measurement. Keep CRAP and Scrap fast and reports visible, with Scrap recommendations advisory
+      unless the person chooses a failure policy. ADR-0044 still forbids a coverage-percentage
+      threshold; changed-function --fail-uncovered remains the rule. CRAP/Scrap v0.5.0 lack --since,
+      so explicit changed paths provide file targeting until the provider supports changed
+      functions. Mutation check/sample remain targeted; no full coverage or mutation fallback.
+      Extend existing p3-role-protocol, p1-proof-paths-placeholder and p1-proof-summary for reusable
+      enforcement rather than creating competing protocols. Nothing here is added to slice-102 or
+      T-129.
+    refs:
+      [
+        itos.yaml,
+        itos-cc.yaml,
+        internal/proof/proof.go,
+        docs/decisions/0044-no-coverage-threshold-mutants-judge-the-tests-and-fail-uncovered-refuses-untested-changed-code.md,
+      ]
