@@ -1,0 +1,61 @@
+{
+	"version": 1,
+	"file": "internal/idcounter/counter_file.go",
+	"language": "go",
+	"tests": {
+		"internal/cli/cli_test.go": "c84ca8a4c0cc43b5eb5406ceb85384d5bd180fde8d32287cae3699508a8cc403",
+		"internal/cli/draft_test.go": "4948d21ab430e166515f26bb298d8b33ef724016cb590d4320dcb334581569c9",
+		"internal/cli/exit_test.go": "b84637d725a7bf3c1c36a645bc1d64c1c34e765047040c81235120c7ffbcefd5",
+		"internal/cli/gitcommit_test.go": "ad60c398e7b7134d59d975d991c74faf9b8857d3c05ff58a713229faaa79ae3c",
+		"internal/cli/gitconfig_test.go": "5b58101dc9b33212d89db0df715422abda4f9772be9152d5812cc2a16a35bfe0",
+		"internal/cli/guide_test.go": "8c32c797a8536e9c3e664e2ffb18d26424a962951082508e5d31e1f2fafdabd8",
+		"internal/cli/hook_test.go": "e645429173de352050972e80b6ae0d3ec80dd16f2f0d190d54f5f881fb34dba1",
+		"internal/cli/idmint_test.go": "867ef388db71cad34384d24532aefdc547cbb9a9fe7e926aef6a504e25bf4ff4",
+		"internal/cli/initplugin_test.go": "de92cf84c74682a4bd3904d4f29d1f3ff35f28e8b2376ad235aa846871102004",
+		"internal/cli/initrules_test.go": "7242c5d6dd5d9938f1e0d5feb9193ba187b8ad39bcdb4c6183a3373051c46578",
+		"internal/cli/initrulesstealth_test.go": "b1de095e3d0b2baffad45828fac1c426910e5f60e50e78a2e87c9508f07a738a",
+		"internal/cli/push_test.go": "73edc19d9b581048d3c09099d9ae9d9f017b9a721574a5c2772ebf89c9283ebe",
+		"internal/cli/spec_test.go": "7f6fc3b306a314cf2c7c1ee9064362402a05d6d25c9d2d965fb3859edaf0fa6f",
+		"internal/cli/starter_test.go": "7a450a4b7b868c5e888a47d7a70dfc32b70156cf1ca9f00765ff7f704861b4be",
+		"internal/cli/taskadd_test.go": "42b4bde36846d3921ace06a9b0afe996e9f983739151209500e41b979fd09549",
+		"internal/cli/upgrade_test.go": "ba654fae27660c06f5c2aa7873736a1648d8db84b8aac3d2235c4ea0aba9ee59",
+		"internal/cli/watch_test.go": "4fe4037f94285e1ec2496aa6d3ddbc6e2585a4f6ddd89c451784c42cc9065e52",
+		"internal/cli/workdone_test.go": "9f6f69d9c81f52550524c7cad9e8e8bf888d02df03724b0aa303e16c5d1c96b6",
+		"internal/cli/workmint_test.go": "7013ab18f6bd7c5de6765f76cb1ed28c7407a34c65bb0a49ac8291532703e9e1",
+		"internal/cli/workwrite_test.go": "2236c1e90943f3374e07bc232df536c7e7a4e34b1e73c53795ae01b327f842a5",
+		"internal/idcounter/counter_file_test.go": "a73f0b3b32d1a0c9074e76b4300b10202d81168978e231a78e718a8fad3840f5",
+		"internal/idcounter/counter_file_windows_test.go": "c44d7e4f6a3bdccad0a15445c2160413131422d9d585e1e48833644dadb50b5d",
+		"internal/idcounter/counter_test.go": "9abcf4434063bcc4cef01dd9a046e8fa2a5b8bfa50dae28077e7eb0c7b179ac4"
+	},
+	"units": [
+		{
+			"namespace": "github.com/donvargax/itos/v7/internal/idcounter",
+			"name": "replaceFileWith",
+			"hash": "28b6932fd7c9c8b5",
+			"start_line": 5,
+			"end_line": 15,
+			"killed": 2,
+			"survived": 0,
+			"uncovered": 0,
+			"sites": 2,
+			"mutants": [
+				{
+					"line": 7,
+					"column": 9,
+					"offset": 180,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 11,
+					"column": 9,
+					"offset": 246,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				}
+			]
+		}
+	]
+}
