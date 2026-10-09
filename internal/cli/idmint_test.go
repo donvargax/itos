@@ -2,13 +2,27 @@ package cli
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/git"
 )
+
+func gitAt(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command(git.Bin(), args...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %s in %s: %v\n%s", strings.Join(args, " "), dir, err, out)
+	}
+	return string(out)
+}
 
 func idMintTestConfig(t *testing.T, ledger string) (*config.Loaded, string) {
 	t.Helper()
@@ -76,6 +90,67 @@ func TestSliceIDsReadsFeatureTagsAndIgnoresOtherFiles(t *testing.T) {
 	}
 }
 
+func TestSliceIDsUsesDefaultRootWhenConfiguredRootIsEmpty(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	if err := os.MkdirAll("features", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile("features/one.feature", []byte("Feature: One\n  @slice-006\n  Scenario: One\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	root := ""
+	cfg := &config.Loaded{}
+	cfg.Tests.Values = map[string]config.Kind{"scenario": {Root: &root}}
+	ids, err := sliceIDs(cfg, nil)
+	if err != nil || !slices.Contains(ids, "slice-006") {
+		t.Fatalf("sliceIDs = %v, %v, want the default features root", ids, err)
+	}
+}
+
+func TestSliceIDsUsesDefaultRootWhenScenarioRootIsNil(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+	if err := os.MkdirAll("features", 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile("features/one.feature", []byte("Feature: One\n  @slice-006\n  Scenario: One\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg := &config.Loaded{}
+	cfg.Tests.Values = map[string]config.Kind{"scenario": {}}
+	ids, err := sliceIDs(cfg, nil)
+	if err != nil || !slices.Contains(ids, "slice-006") {
+		t.Fatalf("sliceIDs = %v, %v, want the default features root", ids, err)
+	}
+}
+
+func TestMintItemIDSliceWidthUsesOnlyValidNumericSeriesIDs(t *testing.T) {
+	t.Run("keeps zero padding of the series", func(t *testing.T) {
+		cfg, _ := idMintTestConfig(t, "[]\n")
+		got, err := mintItemID(cfg, "slice", []string{"slice-009"})
+		if err != nil || got != "slice-010" {
+			t.Fatalf("mintItemID = %q, %v, want slice-010", got, err)
+		}
+	})
+	t.Run("ignores non-series digits and malformed suffixes", func(t *testing.T) {
+		cfg, _ := idMintTestConfig(t, "[]\n")
+		got, err := mintItemID(cfg, "slice", []string{"slice-1", "slice-000x", "123"})
+		if err != nil || got != "slice-2" {
+			t.Fatalf("mintItemID = %q, %v, want slice-2", got, err)
+		}
+	})
+	for _, malformed := range []string{"slice-0/", "slice-0:"} {
+		t.Run(malformed, func(t *testing.T) {
+			cfg, _ := idMintTestConfig(t, "[]\n")
+			got, err := mintItemID(cfg, "slice", []string{"slice-1", malformed})
+			if err != nil || got != "slice-2" {
+				t.Fatalf("mintItemID = %q, %v, want slice-2", got, err)
+			}
+		})
+	}
+}
+
 func TestReserveItemNumberUsesLocalFallbackAndPropagatesGitErrors(t *testing.T) {
 	t.Run("no remote uses common-dir counter", func(t *testing.T) {
 		cfg, dir := idMintTestConfig(t, "[]\n")
@@ -89,11 +164,55 @@ func TestReserveItemNumberUsesLocalFallbackAndPropagatesGitErrors(t *testing.T) 
 			t.Fatalf("local counter = %q (%v), want slice 10", text, err)
 		}
 	})
+	t.Run("configured upstream is the counter remote", func(t *testing.T) {
+		_, dir := idMintTestConfig(t, "[]\n")
+		bare := filepath.Join(t.TempDir(), "upstream.git")
+		gitIn(t, "init", "-q", "--bare", bare)
+		branch := strings.TrimSpace(gitIn(t, "branch", "--show-current"))
+		gitIn(t, "remote", "add", "upstream", bare)
+		gitIn(t, "config", "branch."+branch+".remote", "upstream")
+		gitIn(t, "config", "branch."+branch+".merge", "refs/heads/main")
+		n, err := reserveItemNumber(&config.Loaded{}, "slice", 0)
+		if err != nil || n != 1 {
+			t.Fatalf("reserveItemNumber = (%d, %v), want (1, nil)", n, err)
+		}
+		ref := gitAt(t, bare, "rev-parse", "refs/itos/ids")
+		if strings.TrimSpace(ref) == "" {
+			t.Fatalf("upstream counter ref was not created (repo %s)", dir)
+		}
+	})
 	t.Run("git discovery error is returned", func(t *testing.T) {
 		gitConfigRepo(t, "version: 1\n")
 		t.Chdir(t.TempDir())
 		if n, err := reserveItemNumber(&config.Loaded{}, "slice", 0); err == nil || n != 0 {
 			t.Fatalf("reserveItemNumber outside a repository = (%d, %v), want (0, error)", n, err)
+		}
+	})
+	t.Run("working-directory failures are returned", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			t.Skip("removing the current directory is a Unix-specific test")
+		}
+		for _, test := range []struct {
+			name, reported string
+		}{
+			{name: "relative common-dir path", reported: ".git"},
+			{name: "absolute common-dir path", reported: t.TempDir()},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				repo := t.TempDir()
+				fakeGit := filepath.Join(t.TempDir(), "fake-git")
+				script := "#!/bin/sh\nprintf '%s\\n' \"$T129_COMMON_DIR\"\nrm -rf \"$T129_REPO_DIR\" >/dev/null 2>&1 || true\n"
+				if err := os.WriteFile(fakeGit, []byte(script), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				t.Setenv("ITOS_GIT", fakeGit)
+				t.Setenv("T129_COMMON_DIR", test.reported)
+				t.Setenv("T129_REPO_DIR", repo)
+				t.Chdir(repo)
+				if n, err := reserveItemNumber(&config.Loaded{}, "slice", 0); err == nil || n != 0 {
+					t.Fatalf("reserveItemNumber = (%d, %v), want (0, error)", n, err)
+				}
+			})
 		}
 	})
 }
@@ -105,12 +224,13 @@ func TestTrailingNumberRejectsMissingAndOverflowingSuffixes(t *testing.T) {
 	}{
 		{id: "slice-009", want: 9},
 		{id: "T-000", want: 0},
+		{id: "9", want: 9},
 	} {
 		if got, err := trailingNumber(test.id); err != nil || got != test.want {
 			t.Errorf("trailingNumber(%q) = (%d, %v), want %d", test.id, got, err, test.want)
 		}
 	}
-	for _, id := range []string{"slice", "T-"} {
+	for _, id := range []string{"", "slice", "T-"} {
 		if n, err := trailingNumber(id); err == nil || n != 0 {
 			t.Errorf("trailingNumber(%q) = (%d, %v), want (0, error)", id, n, err)
 		}

@@ -108,7 +108,7 @@ Feature: The id counter, so an id itos mints is minted once
 
   # The same parent, category and number must produce distinct counter commits:
   # concurrent clones can both read the old ref before either push is accepted.
-  @ID-IDS-07 @bug-102
+  @ID-IDS-07 @bug-102 @slice-102
   Scenario: Concurrent clones claim distinct numbers from the same remote counter
     Given a repository whose ledger has the task "T-001"
     And a clone of it, where itos runs

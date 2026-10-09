@@ -57,15 +57,12 @@ func workAdd(args []string, o Out) (int, error) {
 	if kind == "idea" && !hasID {
 		return 0, usage("work add needs <idea-id> when --kind is idea")
 	}
-	if kind != "idea" && hasID {
-		return 0, usage("work add mints the %s id; do not pass one", kind)
-	}
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
 	if cfg == nil {
 		return code, err
 	}
-	if kind != "idea" {
+	if kind != "idea" && !hasID {
 		ids := make([]string, 0, len(registry.Items))
 		for _, item := range registry.Items {
 			if itemID, ok := item.At("id").(string); ok {
@@ -86,7 +83,13 @@ func workAdd(args []string, o Out) (int, error) {
 		return 0, uneditable(cfg.Work.Registry, err)
 	}
 	if len(found) > 0 {
+		if kind != "idea" && hasID && (found[0].Rule == "work-add-taken" || found[0].Rule == "work-add-not-task-id") {
+			return 0, usage("work add mints the %s id; do not pass one", kind)
+		}
 		return refuseWork(found, ExitPolicy, o)
+	}
+	if kind != "idea" && hasID {
+		return 0, usage("work add mints the %s id; do not pass one", kind)
 	}
 	sha, code, err := writeRegistry(cfg, text, change, o)
 	if err != nil || code != 0 {

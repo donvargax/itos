@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -54,17 +55,17 @@ func TestMintLocalSerializesLinkedWorktrees(t *testing.T) {
 }
 
 func TestMintValidatesCategoriesAndKeepsFutureCategoriesOpen(t *testing.T) {
-	for _, category := range []string{"slice", "future-2", "X9"} {
+	for _, category := range []string{"slice", "future-2", "X9", "-", "a", "z", "A", "Z", "0", "9"} {
 		if !validCategory(category) {
 			t.Errorf("validCategory(%q) = false", category)
 		}
 	}
-	for _, category := range []string{"", ".", "..", "../slice", `a\\b`, "a b", "a_b", "nul\x00byte", "é"} {
+	for _, category := range []string{"", ".", "..", "../slice", "a/b", `a\b`, "a b", "a_b", "nul\x00byte", "`", "@", "é"} {
 		if validCategory(category) {
 			t.Errorf("validCategory(%q) = true", category)
 		}
 	}
-	for _, category := range []string{"", ".", "..", "../slice", `a\\b`, "a b", "a_b", "nul\x00byte", "é"} {
+	for _, category := range []string{"", ".", "..", "../slice", "a/b", `a\b`, "a b", "a_b", "nul\x00byte", "`", "@", "é"} {
 		n, err := Mint(Store{LocalOnly: true, CommonDir: t.TempDir()}, category, 0)
 		if err == nil || n != 0 {
 			t.Errorf("Mint category %q = (%d, %v), want (0, error)", category, n, err)
@@ -148,6 +149,100 @@ func TestMintRemoteRejectsMissingRepositoryAndRemoteErrors(t *testing.T) {
 	}
 }
 
+func TestMintRemoteReadsOnlyNonNegativeIntegerCounters(t *testing.T) {
+	for _, data := range []string{"not-an-integer\n", "-1\n"} {
+		t.Run(strings.TrimSpace(data), func(t *testing.T) {
+			root, remote := counterRemote(t, data)
+			n, err := Mint(Store{Root: root, Remote: "origin"}, "slice", 0)
+			if n != 0 || err == nil || !strings.Contains(err.Error(), "not a non-negative integer") {
+				t.Fatalf("Mint = (%d, %v), want invalid-counter error", n, err)
+			}
+			if gitAt(t, remote, "show", "refs/itos/ids:counters/slice") != data {
+				t.Fatal("invalid remote counter was changed")
+			}
+		})
+	}
+}
+
+func TestMintRemoteTreatsMissingCategoryAsZero(t *testing.T) {
+	root, remote := counterRemote(t, "")
+	n, err := Mint(Store{Root: root, Remote: "origin"}, "slice", 0)
+	if err != nil || n != 1 {
+		t.Fatalf("Mint = (%d, %v), want (1, nil)", n, err)
+	}
+	if got := strings.TrimSpace(gitAt(t, remote, "show", "refs/itos/ids:counters/slice")); got != "1" {
+		t.Fatalf("remote slice counter = %q, want 1", got)
+	}
+}
+
+func TestMintRemoteStopsAfterSixteenNonFastForwardPushes(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the Git command wrapper is a POSIX shell script")
+	}
+	root, remote := counterRemote(t, "")
+	base := filepath.Dir(remote)
+	pushes := filepath.Join(base, "pushes")
+	native, err := git.Real()
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrapper := filepath.Join(base, "git-wrapper")
+	script := "#!/bin/sh\nif [ \"$1\" = push ]; then printf x >> \"$ITOS_COUNTER_TEST_PUSHES\"; echo 'stale info' >&2; exit 1; fi\nexec \"" + native + "\" \"$@\"\n"
+	if err := os.WriteFile(wrapper, []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("ITOS_GIT", wrapper)
+	t.Setenv("ITOS_COUNTER_TEST_PUSHES", pushes)
+	n, err := Mint(Store{Root: root, Remote: "origin"}, "slice", 0)
+	if n != 0 || err == nil || !strings.Contains(err.Error(), "kept advancing") {
+		t.Fatalf("Mint = (%d, %v), want retry-exhaustion error", n, err)
+	}
+	data, err := os.ReadFile(pushes)
+	if err != nil || len(data) != 16 {
+		t.Fatalf("counter push attempts = %d (%v), want exactly 16", len(data), err)
+	}
+}
+
+func counterRemote(t *testing.T, sliceValue string) (root, remote string) {
+	t.Helper()
+	base := t.TempDir()
+	remote = filepath.Join(base, "remote.git")
+	root = filepath.Join(base, "repo")
+	gitRun(t, base, "init", "-q", "--bare", remote)
+	gitRun(t, base, "init", "-q", "-b", "main", root)
+	gitIdentity(t, root)
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("base\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitRun(t, root, "add", "--", "README.md")
+	if sliceValue != "" {
+		if err := os.MkdirAll(filepath.Join(root, "counters"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(root, "counters", "slice"), []byte(sliceValue), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		gitRun(t, root, "add", "--", "counters/slice")
+	}
+	gitRun(t, root, "commit", "-q", "-m", "base")
+	gitRun(t, root, "remote", "add", "origin", remote)
+	gitRun(t, root, "push", "-q", "origin", "HEAD:refs/itos/ids")
+	return root, remote
+}
+
+func gitAt(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command(git.Bin(), args...)
+	cmd.Dir = dir
+	cmd.Env = withoutGitIdentity(os.Environ())
+	cmd.Env = append(cmd.Env, "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %s in %s: %v\n%s", strings.Join(args, " "), dir, err, out)
+	}
+	return string(out)
+}
+
 func TestCounterErrorClassifiers(t *testing.T) {
 	for _, message := range []string{"object does not exist in tree", "path 'counters/slice' is missing"} {
 		if !missingPath(errors.New(message)) {
@@ -224,7 +319,7 @@ func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
 	if !seen[1] || !seen[2] {
 		t.Fatalf("concurrent reservations = %v, want 1 and 2", seen)
 	}
-	cmd := exec.Command("git", "show", "refs/itos/ids:counters/slice")
+	cmd := exec.Command(git.Bin(), "show", "refs/itos/ids:counters/slice")
 	cmd.Dir = remote
 	data, err := cmd.Output()
 	if err != nil {

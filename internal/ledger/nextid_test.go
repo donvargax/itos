@@ -12,6 +12,14 @@ func TestNextIDAfterUsesCounterFloorAndPreservesSeriesWidth(t *testing.T) {
 	}
 }
 
+func TestNextIDAfterTreatsOneAsAnAlreadyClaimedFloor(t *testing.T) {
+	cfg := scratchLedger(t, map[string]string{"tasks/phase-1.yaml": "[]\n"})
+	got, err := NextIDAfter(cfg, nil, 1)
+	if err != nil || got != "T-2" {
+		t.Fatalf("NextIDAfter = %q, %v, want T-2", got, err)
+	}
+}
+
 func TestNextIDAfterInfersPrefixAndWidthFromHighestMatchingID(t *testing.T) {
 	cfg := scratchLedger(t, map[string]string{
 		"tasks/phase-1.yaml": "- { id: TEAM-004, type: chore, title: Four }\n",
@@ -21,6 +29,18 @@ func TestNextIDAfterInfersPrefixAndWidthFromHighestMatchingID(t *testing.T) {
 	got, err := NextIDAfter(cfg, []string{"OPS-009", "TEAM-010", "not-numbered"}, 0)
 	if err != nil || got != "TEAM-011" {
 		t.Fatalf("NextIDAfter = %q, %v, want TEAM-011", got, err)
+	}
+}
+
+func TestNextIDAfterInfersPrefixWhenTheOnlyNumberIsZero(t *testing.T) {
+	cfg := scratchLedger(t, map[string]string{
+		"tasks/phase-1.yaml": "- { id: TEAM-000, type: chore, title: Zero }\n",
+	})
+	pattern := `.*-\d+`
+	cfg.Ledger.ID = &pattern
+	got, err := NextIDAfter(cfg, nil, 0)
+	if err != nil || got != "TEAM-001" {
+		t.Fatalf("NextIDAfter = %q, %v, want TEAM-001", got, err)
 	}
 }
 
