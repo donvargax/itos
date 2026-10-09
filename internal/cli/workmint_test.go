@@ -139,6 +139,25 @@ func TestWorkAddValidatesRequiredPhaseBeforeRefusingCallerID(t *testing.T) {
 	}
 }
 
+func TestWorkAddRefusesCallerIDsWhenTheyAreInvalidOrAlreadyTaken(t *testing.T) {
+	cases := []struct {
+		name, registry, id, kind string
+	}{
+		{name: "invalid task id", registry: "phases: { 1: null }\nitems: []\n", id: "not-a-task-id", kind: "task"},
+		{name: "duplicate slice id", registry: "phases: { 1: null }\nitems:\n  - { id: slice-9, title: Nine, phase: 1, owner: null, status: todo, depends_on: [] }\n", id: "slice-9", kind: "slice"},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			registryWriterRepo(t, test.registry)
+			args := []string{test.id, "--kind", test.kind, "--phase", "1", "--title", "Numbered", "--why", "Its ID is not caller-controlled."}
+			_, err := workAdd(args, Out{})
+			if err == nil || !strings.Contains(err.Error(), "mints the "+test.kind+" id") {
+				t.Fatalf("workAdd error = %v, want supplied-ID usage error", err)
+			}
+		})
+	}
+}
+
 func TestWorkAddMintsFirstSliceWithAnEmptyRegistry(t *testing.T) {
 	registryWriterRepo(t, "phases: { 1: null }\nitems: []\n")
 	var stdout, stderr strings.Builder
@@ -158,6 +177,14 @@ func TestWorkAddPropagatesIDReservationFailures(t *testing.T) {
 	_, err := workAdd([]string{"--kind", "slice", "--phase", "1", "--title", "Slice", "--why", "Because."}, Out{})
 	if err == nil || !strings.Contains(err.Error(), "exit status 1") {
 		t.Fatalf("workAdd reservation error = %v, want injected Git command failure", err)
+	}
+}
+
+func TestWorkAddPropagatesRegistryEditErrors(t *testing.T) {
+	registryWriterRepo(t, "{phases: {1: null}, items: []}\n")
+	_, err := workAdd([]string{"--kind", "slice", "--phase", "1", "--title", "Slice", "--why", "Because."}, Out{})
+	if err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
+		t.Fatalf("workAdd registry edit error = %v, want uneditable-registry error", err)
 	}
 }
 
@@ -204,6 +231,9 @@ func TestWorkPromoteMintsTaskIDFromTheLedger(t *testing.T) {
 	if err != nil || code != 0 || !strings.Contains(stdout.String(), "T-002") {
 		t.Fatalf("workPromote task = (%d, %v), stdout=%q stderr=%q, want T-002", code, err, stdout.String(), stderr.String())
 	}
+	if strings.Contains(stdout.String(), "named now by") {
+		t.Fatalf("workPromote without dependents named any: %q", stdout.String())
+	}
 	registry, err := os.ReadFile(filepath.Join(dir, "registry.yaml"))
 	if err != nil || !strings.Contains(string(registry), "id: T-002") || !strings.Contains(string(registry), "kind: task") {
 		t.Fatalf("registry after task promotion = %q (%v), want task T-002", registry, err)
@@ -214,6 +244,38 @@ func TestWorkPromoteRejectsAnUnknownKind(t *testing.T) {
 	_, err := workPromote([]string{"idea", "--kind", "bug"}, Out{})
 	if err == nil || !strings.Contains(err.Error(), "needs --kind") {
 		t.Fatalf("workPromote error = %v, want invalid-kind usage error", err)
+	}
+}
+
+func TestWorkPromoteRejectsMalformedArguments(t *testing.T) {
+	for _, args := range [][]string{
+		{"idea", "--unknown", "value"},
+		{"idea", "--kind"},
+	} {
+		if _, err := workPromote(args, Out{}); err == nil {
+			t.Errorf("workPromote(%q) succeeded, want argument error", args)
+		}
+	}
+}
+
+func TestWorkPromotePropagatesReservationFailures(t *testing.T) {
+	registryWriterRepo(t, "phases: { 1: null }\nitems:\n  - { id: p1-idea, title: Idea, phase: 1, owner: null, status: todo, kind: idea, why: Specified }\n")
+	fakeGit := filepath.Join(t.TempDir(), "fake-git")
+	if err := os.WriteFile(fakeGit, []byte("#!/bin/sh\necho injected git failure >&2\nexit 1\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("ITOS_GIT", fakeGit)
+	_, err := workPromote([]string{"p1-idea", "--kind", "slice"}, Out{})
+	if err == nil || !strings.Contains(err.Error(), "exit status 1") {
+		t.Fatalf("workPromote reservation error = %v, want injected Git command failure", err)
+	}
+}
+
+func TestWorkPromotePropagatesRegistryEditErrors(t *testing.T) {
+	registryWriterRepo(t, "{phases: {1: null}, items: [{id: p1-idea, title: Idea, phase: 1, owner: null, status: todo, kind: idea, why: Specified}]}\n")
+	_, err := workPromote([]string{"p1-idea", "--kind", "slice"}, Out{})
+	if err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
+		t.Fatalf("workPromote registry edit error = %v, want uneditable-registry error", err)
 	}
 }
 
