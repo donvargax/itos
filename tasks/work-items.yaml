@@ -6811,3 +6811,30 @@ items:
       and every windows machine west of it fails the scenario. Reading TZ needs a zone database Go
       does not have on windows (time/tzdata embedded, or ZONEINFO), so this is a call about the
       binary size and not a small fix.
+
+  - id: T-135
+    title: Every program in tools/ starts this repository's shell programs, windows included
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Windows starts no script by its #! line, so every program under tools/ that spawns one of this
+      repository's shell programs (tools/bin/itos, dev-version, pinned) gets a null exit code there
+      and fails, while linux and macos run the same file by its kernel: measured on a native windows
+      clone, tools/bin/itos-cc-tests.ts printed "tools/bin/itos tests list scenario exited null" and
+      itos-cc mutation run refused with tests.list-failed, having judged no mutant. One resolver in
+      tools/bin gives the command and its arguments, sh and the script first on windows and the
+      script alone elsewhere, and every such spawn goes through it: the direct spawnSyncs in
+      build-go.ts, itos-cc-tests.ts, ci-mutation-budget.ts, go-dogfood.ts, go-schema.ts and
+      scratch.ts, and scratch.ts's spawnOutput, whose callers (header-agreement.ts,
+      header-agreement-record.ts, schema-contract.ts) hand it tools/bin/itos. A .ps1 or a second
+      script per platform is not the shape to take: the repository holds no .ps1, .cmd or .bat at
+      all, and its platform differences live in branches and in Go's _<goos>.go files. Where the
+      script is spawned unchanged on linux and macOS, so no gate behaves differently where it
+      already works, and the fix adds no gate and weakens none: tools/bin/pinned still ships no
+      windows asset and the ci job is still ubuntu-latest, so what this buys is a developer running
+      the gates and itos-cc locally on windows, and nothing here claims more than that. A self-test
+      runs the real programs through the resolver, so the claim is checked by running the gates
+      rather than by reading them.
