@@ -115,6 +115,10 @@ itos takes extensions as git does: `docs/extensions.md` says how to write one.
 
 ## Status
 
+Scripts that consume `--json` can branch on a problem's stable `rule` ID, not
+its `message` or `fix`. See the [JSON problem rule ID catalogue](docs/rule-ids.md)
+for built-in rules and configured or delegated IDs.
+
 **v2, Go only.** itos is the Go binary (`cmd/itos`, `internal/`), one file
 with no runtime. The TypeScript v0 it began as has left the repository, and
 from v2.0.0 no release carries its tarball. This repository governs itself
