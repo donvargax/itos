@@ -6670,3 +6670,33 @@ items:
       changes in this docs task. The completed mutation run exception is one-off, not permission for
       another local run. Review is the prose proof and the existing document-budget command checks
       the kept instructions fit their caps.
+
+  - id: p1-windows-id-validation
+    title: Validate the ID counter repairs on a native Windows machine
+    phase: 1
+    owner: donvargax
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Deferred by the person in this session: continue independent development without waiting for
+      Windows validation, but keep this follow-up near the top of the queue. Validate the repairs
+      pushed at b4c19b3e3c703d9f48e6526c40a398d89bd4ff89 or a descendant on a native Windows machine
+      (a covering Windows CI job can provide this evidence). Exercise
+      TestTaskAddPropagatesReservationFailures, TestWorkAddPropagatesIDReservationFailures,
+      TestWorkPromotePropagatesReservationFailures and @ID-IDS-07 concurrent remote reservations.
+      Confirm the copied executable fixtures run, explicit fetched-counter refs resolve, and
+      concurrent clones still mint distinct IDs with fast-forward-only remote claims. Record the
+      exact tested SHA, commands and Windows results; Linux passes are not Windows proof. This
+      postpones validation, not the existing Windows release gate, and does not declare slice-102
+      done or permit stale/missing mutation evidence. The implementing repair also isolated
+      inherited GIT_* fixture routing after it corrupted the shared Git config and linked worktree
+      HEAD; preserve that isolation.
+    refs:
+      [
+        features/ids.feature,
+        internal/cli/fakegit_test.go,
+        internal/idcounter/counter.go,
+        internal/idcounter/counter_test.go,
+        .github/workflows/ci.yml,
+      ]
