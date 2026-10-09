@@ -58,6 +58,58 @@ func TestTake(t *testing.T) {
 	}
 }
 
+func TestTakeRefusesUnavailableItemsWithoutChangingTheRegistry(t *testing.T) {
+	base := "phases: { 1: null }\nitems:\n"
+	cases := []struct {
+		name, text, id, rule string
+	}{
+		{"unknown", base + "  - { id: a, title: A, phase: 1, owner: null, status: todo }\n", "missing", "work-unknown-item"},
+		{"dropped", base + "  - { id: a, title: A, phase: 1, owner: null, status: dropped }\n", "a", "work-take-dropped"},
+		{"idea", base + "  - { id: a, title: A, phase: 1, owner: null, status: todo, kind: idea }\n", "a", "work-take-idea"},
+		{"done", base + "  - { id: a, title: A, phase: 1, owner: null, status: done }\n", "a", "work-take-done"},
+		{"deferred", base + "  - { id: a, title: A, phase: 1, owner: null, status: todo, deferred: later }\n", "a", "work-take-deferred"},
+		{"invalid status", base + "  - { id: a, title: A, phase: 1, owner: null, status: blocked }\n", "a", "work-take-status"},
+		{"owned by another person", base + "  - { id: a, title: A, phase: 1, owner: q, status: todo }\n", "a", "work-take-owned"},
+		{"waiting on unfinished dependency", base + "  - { id: a, title: A, phase: 1, owner: null, status: todo }\n  - { id: b, title: B, phase: 1, owner: null, status: todo, depends_on: [a] }\n", "b", "work-take-waiting"},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			change, problem, err := Take(registryOf(t, test.text), test.text, test.id, "p", false)
+			if err != nil || problem == nil || problem.Rule != test.rule {
+				t.Fatalf("Take = (%+v, %+v, %v), want refusal %s", change, problem, err, test.rule)
+			}
+			if change.Text != "" || change.Item != nil || change.Header != "" || change.Body != "" {
+				t.Fatalf("refused Take changed the registry: %+v", change)
+			}
+		})
+	}
+}
+
+func TestTakeLeavesOrAssignsOwnersForInProgressAndEverySessions(t *testing.T) {
+	cases := []struct {
+		name, item, person string
+		every              bool
+		unchanged          bool
+		wantOwner          any
+	}{
+		{"same person already doing", "{ id: a, title: A, phase: 1, owner: p, status: doing }", "p", false, true, "p"},
+		{"every session leaves owner", "{ id: a, title: A, phase: 1, owner: q, status: todo }", "", true, false, "q"},
+		{"unowned in-progress item is assigned", "{ id: a, title: A, phase: 1, owner: null, status: doing }", "p", false, false, "p"},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			text := "phases: { 1: null }\nitems:\n  - " + test.item + "\n"
+			change, problem, err := Take(registryOf(t, text), text, "a", test.person, test.every)
+			if err != nil || problem != nil {
+				t.Fatalf("Take = (%+v, %+v, %v), want success", change, problem, err)
+			}
+			if change.Unchanged != test.unchanged || change.Item.At("status") != "doing" || change.Item.At("owner") != test.wantOwner {
+				t.Fatalf("Take = %+v, want unchanged=%t doing owner=%v", change, test.unchanged, test.wantOwner)
+			}
+		})
+	}
+}
+
 func TestPromote(t *testing.T) {
 	text := "phases: { 1: null }\nitems:\n" +
 		"  - { id: i, title: I, phase: 1, status: todo, kind: idea, why: 'a gap' }\n" +
