@@ -6524,3 +6524,24 @@ items:
     status: dropped
     depends_on: []
     kind: task
+
+  - id: p1-targeted-coverage-reuse
+    title: Reuse valid targeted coverage without losing mutation test selection
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user asked on 2026-10-08 to keep coverage and mutation testing limited to changed code,
+      after duplicate slice-102 mutation jobs repeated coverage discovery. Reuse coverage only when
+      its source, test, support and tool/config inputs still match; otherwise collect only the
+      relevant packages and scenarios. Existing unchanged tests may reach changed functions and must
+      stay eligible. Pinned itos-cc v0.5.0 limits mutation with --since and explicit paths, but
+      --use-existing-coverage and custom coverage flags disable automatic mutation.tests listed-test
+      selection. Investigate the smallest provider capability that reuses or refreshes a
+      per-scenario test map without a full feature discovery run or silently dropping integration
+      tests. This is separate from slice-102 and T-129. No --all-tests, full mutation sweep, stale
+      reports or duplicate jobs; stop and explain an unavoidable full coverage refresh before
+      running it.
+    refs: [itos-cc.yaml, tools/bin/itos-cc-tests.ts, docs/ORCHESTRATING.md]
