@@ -20,7 +20,9 @@ import (
 
 const (
 	remoteRef = "refs/itos/ids"
-	localFile = "ids.yaml"
+	// fetchedCounter names the locally fetched commit without relying on FETCH_HEAD.
+	fetchedCounter = "refs/itos/fetched-ids"
+	localFile      = "ids.yaml"
 )
 
 // Store says where a reservation is made. Remote is the configured git
@@ -178,10 +180,11 @@ func fetchCounter(store Store) (string, error) {
 	if line == "" {
 		return "", nil
 	}
-	if _, err := run(store.Root, nil, "fetch", "--quiet", "--no-tags", store.Remote, remoteRef); err != nil {
+	refspec := "+" + remoteRef + ":" + fetchedCounter
+	if _, err := run(store.Root, nil, "fetch", "--quiet", "--no-tags", store.Remote, refspec); err != nil {
 		return "", err
 	}
-	fetched, err := run(store.Root, nil, "rev-parse", "--verify", "--quiet", "FETCH_HEAD^{commit}")
+	fetched, err := run(store.Root, nil, "rev-parse", "--verify", "--quiet", fetchedCounter+"^{commit}")
 	if err != nil {
 		return "", err
 	}
