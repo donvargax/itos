@@ -65,7 +65,7 @@ queue:
   - p1-upgrade-applies-config-steps
   - p1-upgrade-on-major
   - p1-problem-fields
-  - p1-rule-ids-listed
+  - T-133
   - p1-nightly-late-done-checks
   - p1-work-show-gaps
   - p1-release-notes-footers
@@ -4950,14 +4950,15 @@ items:
       fix). Each rule documents its keys; added after v6 they are additive (T-076).
     refs: [internal/out/out.go]
 
-  - id: p1-rule-ids-listed
-    title: The rule ids of --json problems are listed where a script's author finds them
+  - id: T-133
+    title: Document built-in and delegated JSON problem rule IDs
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-86]
-    kind: idea
+    kind: task
     why: >
+      Was p1-rule-ids-listed.
       Decision 35 (2026-10-06): a rule id is contract, so renaming one is a breaking change, yet
       nothing lists them (73 in the corpus).
 
