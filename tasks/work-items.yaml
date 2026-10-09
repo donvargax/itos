@@ -3014,8 +3014,8 @@ items:
   - id: T-132
     title: Add behavioural Go tests for the schema compatibility gate
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
