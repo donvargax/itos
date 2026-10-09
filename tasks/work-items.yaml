@@ -6576,3 +6576,24 @@ items:
         internal/proof/proof.go,
         docs/decisions/0044-no-coverage-threshold-mutants-judge-the-tests-and-fail-uncovered-refuses-untested-changed-code.md,
       ]
+
+  - id: p1-mutation-fail-fast
+    title: Adopt opt-in changed-function mutation fail-fast when the provider supports it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user asked on 2026-10-08 whether mutation testing should fail fast, clarifying this
+      belongs to itos-cc. Requested in donvargax/itos-cc#26:
+      https://github.com/donvargax/itos-cc/issues/26. An opt-in mutation run --fail-fast stops
+      scheduling after the first actionable failure, only after relevant listed integration tests
+      have had a chance to kill the mutant. Killed and valid excepted mutants do not trigger it.
+      Workers and owned descendants must clean up, completed valid outcomes remain reusable, and
+      incomplete or cancelled judgments never become passing proof. Itos already stops its CI plan
+      when proof fails, so the slow measurement change belongs to the provider. Once released,
+      consider adopting the flag in local changed-function briefs; keep aggregate diagnosis
+      available and preserve targeted coverage, --since, explicit paths and freshness checks. No
+      provider upgrade or new flag is assumed for the current slice.
+    refs: [docs/ORCHESTRATING.md, itos-cc.yaml]
