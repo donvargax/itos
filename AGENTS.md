@@ -422,6 +422,7 @@ The nightly, `itos ci run --nightly`, runs these in order:
 - `node tools/selftest/go-dogfood.ts`
 - `node tools/selftest/upgrading-json.ts`
 - `node tools/selftest/ci-mutation-budget.ts`
+- `node tools/selftest/tools-bin-programs.ts`
 - `tools/bin/pinned itos-cc mutation sample --count 20 --json cmd internal`
 - `sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\nexit 97\n" > "$d/itos" && chmod +x "$d/itos" && PATH="$d:$PATH" go test ./features -count=1'`
 - `sh -c 'tools/bin/itos --version >/dev/null && d=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./features -count=1 && PATH="$d:$PATH" go test ./internal/cli -count=1 -run TestDeclareHooksOldGit'`
