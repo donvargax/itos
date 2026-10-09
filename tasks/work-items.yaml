@@ -6705,6 +6705,16 @@ items:
       done or permit stale/missing mutation evidence. The implementing repair also isolated
       inherited GIT_* fixture routing after it corrupted the shared Git config and linked worktree
       HEAD; preserve that isolation.
+
+      Native Windows CI on the repaired SHA b4c19b3e3c703d9f48e6526c40a398d89bd4ff89 still failed:
+      https://github.com/donvargax/itos/actions/runs/37888237910. The portable reservation-failure
+      unit fixtures no longer failed, but @ID-IDS-07 still fails resolving
+      refs/itos/fetched-ids^{commit}. Therefore the explicit-ref change is not a confirmed Windows
+      fix; diagnose the native Windows Git/wrapper argument path before further product changes. A
+      wrapper/caret-escaping hypothesis remains unproven. The person deferred Windows work rather
+      than removing its gate; keep this first-priority follow-up open while independent CI
+      configuration work continues. Logs are preserved locally in
+      .git/itos/ci-37888237910-windows.log.
     refs:
       [
         features/ids.feature,
