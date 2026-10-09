@@ -6717,8 +6717,8 @@ items:
   - id: T-131
     title: Bound CI mutation rechecks and align proof commands with Go code paths
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
