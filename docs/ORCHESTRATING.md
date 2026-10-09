@@ -92,8 +92,11 @@ work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the
 - **The neighbours:** "Before pushing, run `go test ./features -count=1
 -scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.
 - **Proof and handoff (q-41):** no local mutant execution. The approved CI budget
-  is one mutant per push and 20 nightly; it waits on fresh bounded sampling
-  (itos-cc#27). The current gate still checks complete cached results.
+  is one cached outcome rechecked per push and 20 nightly. The complete-cache
+  proof still rejects missing, stale, uncovered and surviving results; these
+  samples do not freshly sample uncached code. Fresh bounded sampling remains
+  blocked on itos-cc#27. The nightly seed remains HEAD-deterministic until that
+  provider migration is supported.
   Push with `tools/bin/itos push --no-wait`, then report the exact pushed SHA,
   commits, checks and remaining work from a clean checkout. Do not watch CI or
   close the item: the coordinator watches and closes only on green.

@@ -264,10 +264,11 @@ Run these yourself when they apply:
 push to `main` too, so expect the remote to have moved while you worked.
 
 No new local mutation runs (q-41). The approved budget is one mutant total
-per push and 20 nightly, measured in CI with valid coverage. That gate is
-not configured yet: fresh bounded execution waits on itos-cc#27, and the
-current gate still checks complete cached results. Do not hide missing,
-stale or failing proof. Normal hook checks and required neighbour tests stay.
+per push and 20 nightly, measured in CI with valid coverage. CI now rechecks
+those budgets against cached mutation outcomes only; fresh bounded sampling
+waits on itos-cc#27. The complete-cache proof still rejects missing, stale,
+uncovered and surviving results. Do not hide failing proof. Normal hook checks
+and required neighbour tests stay.
 
 1. **Push with `tools/bin/itos push --no-wait`, every time:** commit your work first,
    then run it and read what it says. It is the whole
@@ -402,7 +403,8 @@ CI runs its plan, `itos ci run`, on every push, in this order, stopping at the f
 - `node tools/selftest/deps-check.ts`
 - `node tools/selftest/schema-contract.ts`
 - `node tools/selftest/plugin-version.ts`
-- `tools/bin/pinned itos-cc mutation sample --since {from} --json`
+- `tools/bin/pinned itos-cc mutation sample --since {from} --count 1 --json cmd internal`
+- `node tools/selftest/ci-mutation-budget.ts`
 - The `scenario` tests of the smoke set and those the push's commits name, in one run.
 - The other checks of the tasks the push's commits name.
 
@@ -419,6 +421,8 @@ The nightly, `itos ci run --nightly`, runs these in order:
 - `node tools/selftest/features-scope.ts`
 - `node tools/selftest/go-dogfood.ts`
 - `node tools/selftest/upgrading-json.ts`
+- `node tools/selftest/ci-mutation-budget.ts`
+- `tools/bin/pinned itos-cc mutation sample --count 20 --json cmd internal`
 - `sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\nexit 97\n" > "$d/itos" && chmod +x "$d/itos" && PATH="$d:$PATH" go test ./features -count=1'`
 - `sh -c 'tools/bin/itos --version >/dev/null && d=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./features -count=1 && PATH="$d:$PATH" go test ./internal/cli -count=1 -run TestDeclareHooksOldGit'`
 - `sh -c 'd=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./tools/bin/... -count=1'`
