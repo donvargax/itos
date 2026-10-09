@@ -1121,3 +1121,23 @@
   done_when:
     - run: node --test tools/itos/conformance/run.test.ts
     - run: node tools/itos/conformance/run.ts --bin tools/bin/itos --only tools/itos/conformance/hooks.yaml
+
+- id: T-130
+  type: docs
+  title: Hand CI watching and item closure to the coordinator
+  why: >
+    The person accepted q-41: implementing agents stop after tools/bin/itos push --no-wait and
+    report the exact pushed SHA plus a clean handoff; the coordinator watches asynchronously, can
+    start independent work while a run is pending, assigns red repairs in isolated worktrees within
+    this directory, and closes items only after the covering run is green. Update this repository
+    AGENTS.md and docs/ORCHESTRATING.md so their old local mutation-generation, mandatory agent
+    watching and agent closure instructions no longer contradict that decision. State the approved
+    mutation budget of one total in push CI and 20 total nightly, and no new local mutant execution.
+    Keep the transition honest: current CI still verifies complete cached results and fresh bounded
+    provider support is pending itos-cc#27, so these docs do not claim the new gate is configured or
+    permit skipping failed proof. Preserve hooks, test checks, release blocking, cache freshness and
+    staging safety; no workflow/config or product-code changes in this docs task. The completed
+    mutation run exception is one-off, not permission for another local run. Review is the prose
+    proof and the existing document-budget command checks the kept instructions fit their caps.
+  done_when:
+    - run: go run ./tools/bin/doc-budget
