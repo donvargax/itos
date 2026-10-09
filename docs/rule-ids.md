@@ -1,65 +1,188 @@
 # JSON problem rule IDs
 
-When `--json` reports a problem, its `rule` value identifies the rule that
-found it. Decision 35 makes that value part of itos's machine contract. A
-script can branch on `rule`; it must not branch on `message` or `fix`, which
-are prose for people and may change. Renaming a rule ID is a breaking change.
+When `--json` reports a problem, `rule` identifies the rule that found it. Scripts may branch on `rule`, but not on `message` or `fix`: those are prose and may change. Renaming a rule ID is a breaking change.
 
-The problem object currently contains `rule`, `message`, and, when there is a
-suggested action, `fix`. It does not promise structured subject fields.
+A problem contains `rule`, `message` and, when it suggests an action, `fix`. It does not promise structured subject fields.
 
 ## Built-in IDs
 
-The command or check named for each group is where its problems are emitted.
-One invocation may reach more than one group, and stops or reports according to
-that command's existing behavior.
+The headings name the command or check that emits each rule. One invocation can reach more than one group.
 
-| Command or check                                               | Rule IDs and meaning                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `config check` and config loading                              | `config-invalid` (the config cannot be read as valid YAML); `config-missing-section` (a required section is absent); `config-unreadable` (the file cannot be read); `config-version` (unsupported config version); `config-path-set` (a path-set reference is invalid); `config-removed` (a removed config key is still used); `config-type` (a value has the wrong type); `config-enum` (a value is outside its allowed choices); `config-unknown-key` (an unrecognized key); `config-missing-key` (a required key is absent); `config-ledger-files` (ledger file pattern is invalid); `config-scope-except` and `config-scope-type` (commit scope exception or type is invalid); `config-since` and `config-since-commit` (a commit range marker is invalid or unavailable); `config-pin` (release pin data is invalid); `config-footer-source`, `config-footer-text`, `config-footer-in-place-of`, and `config-footer-types` (footer source, content, overlap, or type rules conflict); `config-step-tasks`, `config-step`, `config-step-cost`, and `config-step-tests` (CI step shape, selection, or cost is invalid); `config-regexp` (a configured regular expression cannot be used); `config-login-from` (the configured identity source is invalid); `config-check-timeout` (the commit-message check timeout is invalid); `config-work-tag-empty` and `config-work-tag-twice` (work tags are empty or duplicated); `config-watch-interval` and `config-watch-timeout` (watch timing is invalid); `config-range-check-builtin` (a built-in range check is unsupported for the configured test adapter); `config-proof-paths`, `config-proof-glob`, and `config-proof-base` (code-proof paths or command are invalid). |
-| Ledger validation used by `task`, `work`, and related commands | `ledger-folder-missing` (the ledger folder is missing); `ledger-add-type` (a new task type is not an allowed commit type); `ledger-duplicate-id` (an ID is repeated); `ledger-unknown-key` (an entry has an unknown key); `ledger-id-pattern` (an ID does not match the configured pattern); `ledger-type` (a task type is invalid); `ledger-no-id` and `ledger-no-title` (a required task field is missing); `ledger-why` (the task's reason is not valid prose); `ledger-done-when` (the checks field is invalid); `ledger-check-run-or-fails`, `ledger-check-command`, `ledger-check-unknown-key`, `ledger-check-value`, and `ledger-check-shape` (a check is malformed); `ledger-pattern-static-after-late` (a static check follows a late check).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `commit` message checks and commit hooks                       | `subject-empty`, `type-empty`, `body-max-line-length`, `body-leading-blank`, `footer-leading-blank`, `footer-max-line-length`, `header-max-length`, `header-trim`, `subject-case`, `subject-full-stop`, `type-case`, and `type-enum` identify the corresponding built-in header-lint failures. `named-type` means a `!`-marked header does not begin with a configured commit type. `header-lint` is the fallback when a configured lint delegate reports a problem without an individual rule ID. `footer-source-missing` means the configured footer source is unavailable.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| Commit path and named-test range checks                        | `scope-only`, `scope-never`, and `scope-must-touch` report commit-path scope violations. `moves` reports a changed scenario or test set under the built-in moves check; `moves-not-gherkin` reports using that check with an incompatible adapter.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| Smoke-set validation and smoke checks                          | `smoke-unreadable` (the smoke file cannot be read); `smoke-not-a-file` (a named test file is missing); `smoke-not-live` (a smoke entry is not live); `smoke-no-why` and `smoke-more-no-why` (a smoke entry lacks its reason); `smoke-missing` (a live test file has no smoke entry).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `task` and `work` ledger operations                            | `work-registry-missing` (the registry is absent); `work-people-missing` and `work-people-unreadable` (people data is absent or unreadable); `work-unknown-item` (the requested item does not exist); `work-no-person` (the session has no usable identity); `work-done-wip`, `work-done-unpushed`, `work-done-task-check`, and `work-done-ci` (work cannot be closed because a scenario is still work in progress, a commit is unpushed, a task check fails, or CI is not green); `work-commit-failed` (the registry commit failed); `work-note-spec` (the requested edit conflicts with the item's specification); `work-resume-not-deferred` (the item is not deferred).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `work` registry validation and queue commands                  | `work-cycle` (dependencies form a cycle); `work-duplicate-id` (an item ID is repeated); `work-unknown-phase`, `work-unknown-phase-owner`, `work-unknown-owner`, `work-unknown-dependency`, and `work-unknown-tag` (a referenced phase, owner, dependency, or tag is invalid); `work-done-before-dependency` and `work-dropped-dependency` (a dependency is not complete or was dropped); `work-unknown-kind`, `work-unknown-status`, and `work-idea-started` (kind, status, or idea state is invalid); `work-deferred-no-reason` and `work-deferred-started` (a deferred item has no reason or has already started); `work-why-not-text` and `work-no-title` (required text is missing or malformed); `work-take-idea` (an idea cannot be taken as implementation work); `work-queue-done`, `work-queue-unknown-item`, and `work-queue-twice` (a queue operation names a completed or unknown item, or repeats it).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| `decision` commands                                            | `ask-no-question` (no question was supplied); `ask-unknown-item` (the linked work item does not exist); `ask-answered` (the decision already has an answer); `ask-unanswered` (the requested answer is missing); `ask-recorded` (the decision is already recorded); `ask-no-decision` (the referenced decision does not exist); `decisions-number-twice` (a decision number is duplicated); `decisions-superseded-by-missing` (a superseding decision does not exist).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `followup` commands                                            | `follow-no-thread` (the thread does not exist); `follow-id-taken` (the requested thread ID is already used); `follow-closed` (the thread is closed); `follow-doc-exists` (the output document already exists).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `draft` commands                                               | `draft-id-taken` (the draft ID is already used); `draft-no-head` (there is no commit to draft against); `draft-paths` (the selected paths cannot be drafted); `draft-no-change` (there is no change to save); `draft-none` (there is no draft to apply); `draft-tree-changed` (the worktree no longer matches the draft); `draft-checkout-busy` (Git cannot switch to the draft); `draft-not-applied` (the draft could not be applied).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `hook`, `init`, `pin`, and `verify`                            | `data-unreadable` (hook data cannot be read); `hook-missing` (a required Git hook is not installed or runnable); `pin-behind` (the repository's pin is behind the required release); `config-unreadable` (the config cannot be read); `merge-type` (a merge contains an invalid commit type).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| `ci run`                                                       | `ci-code-proof` reports a code-proof provider failure. When the configured provider returns problem objects, itos forwards their rule IDs; those provider rules are not a fixed list of itos IDs.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+### Config loading and `config check`
 
-The IDs in this table are the built-in constructors and named rules in the Go
-implementation. A command can also report IDs supplied by configured checks,
-adapters, or providers; those are described below rather than treated as a
-closed built-in list.
+- `config-invalid`: the config is not valid YAML.
+- `config-missing-section`: a required top-level config section is absent.
+- `config-unreadable`: the config file cannot be read.
+- `config-version`: the config declares an unsupported version.
+- `config-path-set`: a commit scope refers to a path set that does not exist.
+- `config-removed`: the config still uses a key removed from the schema.
+- `config-type`: a config value has the wrong data type.
+- `config-enum`: a config value is not one of the choices allowed for that key.
+- `config-unknown-key`: a config object contains an unrecognized key.
+- `config-missing-key`: a required config key is absent.
+- `config-ledger-files`: `ledger.files` does not contain the `{group}` placeholder.
+- `config-scope-except`: a commit-scope exception is invalid.
+- `config-scope-type`: a commit scope names an invalid commit type.
+- `config-since`: the configured verification start is invalid.
+- `config-since-commit`: the configured start commit cannot be found or resolved.
+- `config-pin`: release pin information is incomplete or invalid.
+- `config-footer-source`: a footer source is missing or conflicts with another source.
+- `config-footer-text`: a free-text footer rule is not valid for its source.
+- `config-footer-in-place-of`: footer source replacement rules conflict.
+- `config-footer-types`: footer requirements name invalid or conflicting commit types.
+- `config-step-tasks`: a CI step names a task that cannot be selected there.
+- `config-step`: a CI step has an invalid shape or kind.
+- `config-step-cost`: a CI step has an invalid cost class or order.
+- `config-step-tests`: a CI step has an invalid named-test selection.
+- `config-regexp`: a configured regular expression is invalid or unsupported.
+- `config-login-from`: `work.people.login_from` is used with a people source that cannot read it, or its template does not contain exactly one `{login}`.
+- `config-check-timeout`: `hooks.commit_msg.check_timeout` is not greater than zero.
+- `config-work-tag-empty`: a configured work tag is empty.
+- `config-work-tag-twice`: `work.tags` declares the same tag more than once.
+- `config-watch-interval`: `ci.watch.interval` is negative.
+- `config-watch-timeout`: `ci.watch.timeout` is not greater than zero.
+- `config-range-check-builtin`: a built-in range check has incompatible commands, adapter, or rename settings.
+- `config-proof-paths`: `proof.code.paths` is empty, so no commit can select the code proof.
+- `config-proof-glob`: a `proof.code.paths` entry is not a glob itos can parse.
+- `config-proof-base`: `proof.code.check` does not use `{base}` to limit the check to the commit range.
+
+### Ledger validation by `task`, `work`, and related commands
+
+- `ledger-folder-missing`: the configured ledger directory is absent.
+- `ledger-add-type`: the requested task type is not an allowed commit type.
+- `ledger-duplicate-id`: two ledger entries use the same task ID.
+- `ledger-unknown-key`: a task entry contains an unrecognized key.
+- `ledger-id-pattern`: a task ID does not match the configured pattern.
+- `ledger-type`: a task entry has an invalid commit type.
+- `ledger-no-id`: a task entry has no ID.
+- `ledger-no-title`: a task entry has no title.
+- `ledger-why`: a task's `why` is not valid prose.
+- `ledger-done-when`: the task's checks field is not a valid list.
+- `ledger-check-run-or-fails`: a check must specify exactly one of `run` or `fails`.
+- `ledger-check-command`: a check's command is empty or invalid.
+- `ledger-check-unknown-key`: a check contains an unrecognized key.
+- `ledger-check-value`: a check option has an invalid value.
+- `ledger-check-shape`: a check entry is not an object of the expected shape.
+- `ledger-pattern-static-after-late`: a static check appears after a late check.
+
+### Commit message checks and hooks
+
+The built-in header linter emits these individual rules. Their names come from the header-lint rule table.
+
+- `subject-empty`: the commit subject is empty.
+- `type-empty`: the commit type is empty.
+- `body-max-line-length`: a body line exceeds the configured maximum.
+- `body-leading-blank`: the body starts with a blank line.
+- `footer-leading-blank`: the footer is not separated from the preceding text by a blank line.
+- `footer-max-line-length`: a footer line exceeds the configured maximum.
+- `header-max-length`: the commit header exceeds the configured maximum.
+- `header-trim`: the header has leading or trailing whitespace.
+- `subject-case`: the subject begins with a disallowed case.
+- `subject-full-stop`: the subject ends with a full stop.
+- `type-case`: the commit type uses disallowed capitalization.
+- `type-enum`: the commit type is not in the configured list.
+- `named-type`: a `!`-marked header does not begin with a configured commit type.
+- `header-lint`: a delegated linter reports a problem without a usable rule ID.
+- `footer-source-missing`: a footer names a configured source that cannot be read.
+
+### Commit path and named-test range checks
+
+- `scope-only`: a commit changes a path outside the paths allowed for its type.
+- `scope-never`: a commit changes a path forbidden for its type.
+- `scope-must-touch`: a commit does not change a path required for its type.
+- `moves`: a commit changes a named-test set where the built-in moves rule requires unchanged tests.
+- `moves-not-gherkin`: the built-in moves rule is used with an adapter that is not Gherkin-compatible.
+
+### Smoke-set validation and smoke checks
+
+- `smoke-unreadable`: the smoke-set file cannot be read.
+- `smoke-not-a-file`: a smoke entry names a file that does not exist.
+- `smoke-not-live`: a smoke entry names a test that is not live.
+- `smoke-no-why`: a smoke entry has no reason.
+- `smoke-more-no-why`: a `more` smoke entry has no reason.
+- `smoke-missing`: a file containing a live test has no smoke entry.
+
+### `task` and `work` operations
+
+- `work-registry-missing`: the configured work registry is absent.
+- `work-people-missing`: the configured people source is absent.
+- `work-people-unreadable`: the configured people source cannot be read.
+- `work-unknown-item`: the requested work item is not in the registry.
+- `work-no-person`: itos cannot determine a usable session identity.
+- `work-done-wip`: work cannot close while one of its slice scenarios is still marked work in progress.
+- `work-done-unpushed`: work cannot close while a commit naming it is unpushed.
+- `work-done-task-check`: work cannot close because a required task check failed.
+- `work-done-ci`: work cannot close because CI has not passed.
+- `work-commit-failed`: itos could not commit a work-registry change.
+- `work-note-spec`: a requested work-item edit conflicts with that item's specification.
+- `work-resume-not-deferred`: the requested item is not deferred.
+- `work-cycle`: work-item dependencies contain a cycle.
+- `work-duplicate-id`: the registry repeats a work-item ID.
+- `work-unknown-phase`: an item names a phase that is not in the ledger.
+- `work-unknown-phase-owner`: a phase owner is not a known contributor.
+- `work-unknown-owner`: an item owner is not a known contributor.
+- `work-unknown-dependency`: an item depends on an ID absent from the registry.
+- `work-unknown-tag`: an item uses a tag not declared in config.
+- `work-done-before-dependency`: an item is marked done before one of its dependencies.
+- `work-dropped-dependency`: an active item depends on an item that was dropped.
+- `work-unknown-kind`: an item has a kind outside the configured choices.
+- `work-unknown-status`: an item has a status outside the configured choices.
+- `work-idea-started`: an idea was started before it was specified as a task or slice.
+- `work-deferred-no-reason`: an item's `deferred` field has no reason.
+- `work-deferred-started`: a deferred item has already started.
+- `work-why-not-text`: an item's `why` field is not non-empty text.
+- `work-no-title`: an item has no title.
+- `work-take-idea`: an idea cannot be taken as implementation work.
+- `work-queue-done`: a queue operation names an item that is already complete.
+- `work-queue-unknown-item`: a queue operation names an item not in the registry.
+- `work-queue-twice`: a queue operation names the same item more than once.
+
+### `decision` commands
+
+- `ask-no-question`: no question was supplied.
+- `ask-unknown-item`: the decision refers to a work item that does not exist.
+- `ask-answered`: the decision already has an answer.
+- `ask-unanswered`: the requested answer has not been supplied.
+- `ask-recorded`: the decision has already been recorded.
+- `ask-no-decision`: the referenced decision does not exist.
+- `decisions-number-twice`: two decision records use the same number.
+- `decisions-superseded-by-missing`: a decision names a superseding decision that does not exist.
+
+### `followup` commands
+
+- `follow-no-thread`: the requested thread does not exist.
+- `follow-id-taken`: the requested thread ID is already in use.
+- `follow-closed`: the thread is already closed.
+- `follow-doc-exists`: the output document already exists.
+
+### `draft` commands
+
+- `draft-id-taken`: the requested draft ID is already in use.
+- `draft-no-head`: there is no commit at `HEAD` to draft against.
+- `draft-paths`: the selected paths cannot be drafted.
+- `draft-no-change`: the selected paths have no changes against `HEAD` to save.
+- `draft-none`: there is no draft to apply.
+- `draft-tree-changed`: the worktree no longer matches the draft's saved tree.
+- `draft-checkout-busy`: Git cannot switch to the draft's checkout.
+- `draft-not-applied`: applying the draft failed.
+
+### `hook`, `init`, `pin`, and `verify`
+
+- `data-unreadable`: hook data cannot be read.
+- `hook-missing`: a required Git hook is not installed or cannot run.
+- `pin-behind`: the repository's pinned itos release is older than the required release.
+- `config-unreadable`: a command cannot read its config file.
+- `merge-type`: a merge commit contains an invalid commit type.
+
+### `ci run`
+
+- `ci-code-proof`: the configured code-proof provider reports failure or cannot provide a usable result. Provider-supplied problem IDs are passed through unchanged and are not built-in itos IDs.
 
 ## Configured and delegated IDs
 
-- **Footer checks:** for a configured footer key, itos forms the rule ID by
-  lowercasing the key and appending `-footer`. For example, a missing `Task:`
-  footer is `task-footer`. A project can configure other keys, so these IDs
-  depend on its `commits.footers` configuration.
-- **Named-test range checks:** the configured range-check name is the problem
-  ID when its command reports a failure. `config-range-check-builtin` is the
-  built-in config-validation rule for an unsupported built-in range-check
-  setup; `moves` is the built-in moves check's ID.
-- **Lint delegates:** when `commits.header_lint` delegates to another linter,
-  itos preserves the rule ID reported by that tool. The delegate controls that
-  ID set and may change it independently of itos. A report without a usable
-  ID is labeled `header-lint`.
-- **Configured checks and adapters:** a named-test range-check problem can use
-  the configured check's name as the rule ID. The configuration, not a global
-  itos catalogue, defines those names.
-- **Code-proof providers:** `ci-code-proof` identifies the itos-side code-proof
-  failure. Provider problem IDs, such as mutation result rules, are passed
-  through from the configured provider and are not a list of built-in itos
-  IDs.
+- **Footer checks:** itos lowercases each configured footer key and appends `-footer`. A missing `Task:` footer is `task-footer`; projects can configure other keys, so the set is open.
+- **Named-test range checks:** a configured range-check name is used as the rule ID when that check reports a failure. `config-range-check-builtin` is the separate config-validation rule for an unsupported built-in check setup; `moves` is the built-in moves check.
+- **Lint delegates:** itos preserves rule IDs reported by the configured header-lint delegate. That tool controls the IDs and may change them independently. If the report has no usable ID, itos emits `header-lint`.
+- **Code-proof providers:** `ci-code-proof` is the itos-side rule. Provider problems, such as `mutation.survived`, retain the provider's IDs; they are not a fixed list of itos rules.
 
-The conformance corpus is a set of expected examples, not the catalogue: it
-contains fixture-only delegated and provider IDs, and does not exercise every
-built-in problem. For example, `local-rule` and `mutation.survived` occur in
-fixtures, while built-in rules such as `draft-none`, `ask-unanswered`,
-`hook-missing`, `ci-code-proof`, and `header-max-length` are not all represented
-there. Review the constructors and the corpus together when changing this
-contract.
+The conformance corpus contains examples, not the full catalogue. It includes fixture-only delegate and provider IDs, while some built-in IDs are not represented. Review the implementation's problem constructors and the corpus together when changing this contract.
