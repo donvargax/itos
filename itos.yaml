@@ -226,10 +226,14 @@ ci:
     - { run: node tools/selftest/deps-check.ts, cost: late }
     - { run: node tools/selftest/schema-contract.ts, cost: late }
     - { run: node tools/selftest/plugin-version.ts, cost: late }
-    # Re-run a deterministic sample of the mutation results for this range. The proof step below
-    # refuses missing, stale, uncovered or surviving results; this independently checks that cached
-    # outcomes still hold. Listed scenarios provide the same integration coverage as mutation run.
-    - { run: "tools/bin/pinned itos-cc mutation sample --since {from} --json", cost: late }
+    # Recheck at most one cached mutation outcome in the changed Go paths. This does not freshly
+    # sample uncached code; proof.code.check remains the complete-cache gate for missing, stale,
+    # uncovered and surviving results. Fresh bounded sampling remains blocked on itos-cc#27.
+    - {
+        run: "tools/bin/pinned itos-cc mutation sample --since {from} --count 1 --json cmd internal",
+        cost: late,
+      }
+    - { run: node tools/selftest/ci-mutation-budget.ts, cost: late }
     # The one merged run; late, as no pattern matches it. Against the Go
     # binary, tools/bin/itos, the features' default ITOS_BIN.
     - { tests: scenario }
@@ -297,6 +301,14 @@ ci:
       # `itos commit footers` (T-091's check, kept as a step in T-125): release-notes' TestAsset
       # proves its shape on fixtures, never against the footers command. Asks the network.
       - node tools/selftest/upgrading-json.ts
+      # Exercise the push and nightly mutation-sample commands through ci run with a fake shell.
+      - node tools/selftest/ci-mutation-budget.ts
+      # A nightly rechecks at most 20 cached outcomes in the changed Go paths. Its seed remains
+      # HEAD-deterministic; fresh bounded sampling/seed migration remains blocked on itos-cc#27.
+      - {
+          run: "tools/bin/pinned itos-cc mutation sample --count 20 --json cmd internal",
+          cost: late,
+        }
       # The features never run the itos on the PATH (T-087's check, kept as a step in T-125): a
       # fake one exiting 97 there passes only while they hide it. CI's runners have no itos, a
       # person's machine has one, and nothing else plants one.
