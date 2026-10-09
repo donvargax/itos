@@ -1,6 +1,7 @@
 package idcounter
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -8,6 +9,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/donvargax/itos/v7/internal/git"
 )
 
 func TestMintLocalSerializesLinkedWorktrees(t *testing.T) {
@@ -50,13 +53,136 @@ func TestMintLocalSerializesLinkedWorktrees(t *testing.T) {
 	}
 }
 
+func TestMintValidatesCategoriesAndKeepsFutureCategoriesOpen(t *testing.T) {
+	for _, category := range []string{"slice", "future-2", "X9"} {
+		if !validCategory(category) {
+			t.Errorf("validCategory(%q) = false", category)
+		}
+	}
+	for _, category := range []string{"", ".", "..", "../slice", `a\\b`, "a b", "a_b", "nul\x00byte", "é"} {
+		if validCategory(category) {
+			t.Errorf("validCategory(%q) = true", category)
+		}
+	}
+	for _, category := range []string{"", ".", "..", "../slice", `a\\b`, "a b", "a_b", "nul\x00byte", "é"} {
+		n, err := Mint(Store{LocalOnly: true, CommonDir: t.TempDir()}, category, 0)
+		if err == nil || n != 0 {
+			t.Errorf("Mint category %q = (%d, %v), want (0, error)", category, n, err)
+		}
+	}
+}
+
+func TestMintLocalHandlesNegativeRepositoryFloorAndStorageErrors(t *testing.T) {
+	t.Run("negative floor", func(t *testing.T) {
+		n, err := Mint(Store{CommonDir: t.TempDir(), LocalOnly: true}, "slice", -3)
+		if err != nil || n != 1 {
+			t.Fatalf("Mint = (%d, %v), want (1, nil)", n, err)
+		}
+	})
+	t.Run("missing common directory", func(t *testing.T) {
+		if n, err := Mint(Store{LocalOnly: true}, "slice", 0); err == nil || n != 0 {
+			t.Fatalf("Mint = (%d, %v), want (0, error)", n, err)
+		}
+	})
+	t.Run("unwritable counter folder", func(t *testing.T) {
+		common := filepath.Join(t.TempDir(), "not-a-directory")
+		if err := os.WriteFile(common, []byte("file"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if n, err := Mint(Store{CommonDir: common, LocalOnly: true}, "slice", 0); err == nil || n != 0 {
+			t.Fatalf("Mint = (%d, %v), want (0, error)", n, err)
+		}
+	})
+	t.Run("invalid counter yaml", func(t *testing.T) {
+		common := t.TempDir()
+		dir := filepath.Join(common, "itos")
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, localFile), []byte("counters: ["), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if n, err := Mint(Store{CommonDir: common, LocalOnly: true}, "slice", 0); err == nil || n != 0 {
+			t.Fatalf("Mint = (%d, %v), want (0, error)", n, err)
+		}
+	})
+}
+
+func TestWriteCountersReturnsAtomicReplacementErrors(t *testing.T) {
+	parent := t.TempDir()
+	destination := filepath.Join(parent, localFile)
+	if err := os.Mkdir(destination, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeCounters(destination, map[string]int{"slice": 1}); err == nil {
+		t.Fatal("writeCounters succeeded replacing a directory")
+	}
+}
+
+func TestCounterCommitIsUniqueForConcurrentSameNumberClaims(t *testing.T) {
+	root := t.TempDir()
+	gitRun(t, root, "init", "-q")
+	t.Setenv("GIT_AUTHOR_DATE", "2000-01-01T00:00:00Z")
+	t.Setenv("GIT_COMMITTER_DATE", "2000-01-01T00:00:00Z")
+	first, err := counterCommit(root, "", "slice", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := counterCommit(root, "", "slice", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first == second {
+		t.Fatalf("identical concurrent reservations share commit %s", first)
+	}
+}
+
+func TestMintRemoteRejectsMissingRepositoryAndRemoteErrors(t *testing.T) {
+	if n, err := mintRemote(Store{Remote: "origin"}, "slice", 0); err == nil || n != 0 {
+		t.Fatalf("mintRemote without root = (%d, %v), want (0, error)", n, err)
+	}
+	root := t.TempDir()
+	gitRun(t, root, "init", "-q")
+	if n, err := mintRemote(Store{Root: root, Remote: "missing"}, "slice", 0); err == nil || n != 0 {
+		t.Fatalf("mintRemote without remote = (%d, %v), want (0, error)", n, err)
+	}
+}
+
+func TestCounterErrorClassifiers(t *testing.T) {
+	for _, message := range []string{"object does not exist in tree", "path 'counters/slice' is missing"} {
+		if !missingPath(errors.New(message)) {
+			t.Errorf("missingPath(%q) = false", message)
+		}
+	}
+	if missingPath(errors.New("permission denied")) {
+		t.Error("missingPath classified permission denied as a missing path")
+	}
+	for _, message := range []string{"non-fast-forward", "fetch first", "stale info", "reference already exists"} {
+		if !nonFastForward(errors.New(message)) {
+			t.Errorf("nonFastForward(%q) = false", message)
+		}
+	}
+	if nonFastForward(errors.New("permission denied")) {
+		t.Error("nonFastForward classified permission denied as a race")
+	}
+}
+
 func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+	t.Setenv("GIT_CONFIG_NOSYSTEM", "1")
+	t.Setenv("GIT_AUTHOR_NAME", "")
+	t.Setenv("GIT_AUTHOR_EMAIL", "")
+	t.Setenv("GIT_COMMITTER_NAME", "")
+	t.Setenv("GIT_COMMITTER_EMAIL", "")
+	t.Setenv("GIT_AUTHOR_DATE", "2000-01-01T00:00:00Z")
+	t.Setenv("GIT_COMMITTER_DATE", "2000-01-01T00:00:00Z")
 	base := t.TempDir()
 	remote := filepath.Join(base, "origin.git")
 	gitRun(t, base, "init", "-q", "--bare", remote)
 	gitRun(t, remote, "symbolic-ref", "HEAD", "refs/heads/main")
 	seed := filepath.Join(base, "seed")
 	gitRun(t, base, "init", "-q", "-b", "main", seed)
+	gitIdentity(t, seed)
 	if err := os.WriteFile(filepath.Join(seed, "README.md"), []byte("base\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -68,6 +194,7 @@ func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
 	for i := range stores {
 		root := filepath.Join(base, "clone-"+strconv.Itoa(i))
 		gitRun(t, base, "clone", "-q", remote, root)
+		gitIdentity(t, root)
 		stores[i] = Store{Root: root, CommonDir: filepath.Join(root, ".git"), Remote: "origin"}
 	}
 	var wg sync.WaitGroup
@@ -110,12 +237,32 @@ func TestMintRemoteRetriesConcurrentFastForward(t *testing.T) {
 
 func gitRun(t *testing.T, dir string, args ...string) {
 	t.Helper()
-	cmd := exec.Command("git", args...)
+	cmd := exec.Command(git.Bin(), args...)
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1",
-		"GIT_AUTHOR_NAME=itos test", "GIT_AUTHOR_EMAIL=test@localhost",
-		"GIT_COMMITTER_NAME=itos test", "GIT_COMMITTER_EMAIL=test@localhost")
+	cmd.Env = withoutGitIdentity(os.Environ())
+	cmd.Env = append(cmd.Env, "GIT_CONFIG_GLOBAL="+os.DevNull, "GIT_CONFIG_NOSYSTEM=1")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
 	}
+}
+
+func gitIdentity(t *testing.T, dir string) {
+	t.Helper()
+	gitRun(t, dir, "config", "--local", "user.name", "itos test")
+	gitRun(t, dir, "config", "--local", "user.email", "test@localhost")
+}
+
+func withoutGitIdentity(env []string) []string {
+	keys := map[string]bool{
+		"GIT_AUTHOR_NAME": true, "GIT_AUTHOR_EMAIL": true,
+		"GIT_COMMITTER_NAME": true, "GIT_COMMITTER_EMAIL": true,
+	}
+	filtered := make([]string, 0, len(env))
+	for _, pair := range env {
+		key, _, _ := strings.Cut(pair, "=")
+		if !keys[key] {
+			filtered = append(filtered, pair)
+		}
+	}
+	return filtered
 }

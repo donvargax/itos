@@ -2,6 +2,8 @@ package idcounter
 
 import (
 	"bytes"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -35,9 +37,6 @@ type Store struct {
 func Mint(store Store, category string, repositoryHighest int) (int, error) {
 	if !validCategory(category) {
 		return 0, fmt.Errorf("invalid id counter category %q", category)
-	}
-	if repositoryHighest < 0 {
-		repositoryHighest = 0
 	}
 	if store.LocalOnly || store.Remote == "" {
 		return mintLocal(store, category, repositoryHighest)
@@ -191,7 +190,14 @@ func fetchCounter(store Store) (string, error) {
 	return strings.TrimSpace(string(fetched)), nil
 }
 
+// counterCommit gives otherwise identical attempts a random message nonce:
+// two clones racing from the same parent must not push the same commit object
+// and both believe they reserved the number.
 func counterCommit(root, parent, category string, n int) (string, error) {
+	var nonce [16]byte
+	if _, err := rand.Read(nonce[:]); err != nil {
+		return "", fmt.Errorf("create unique id counter commit identity: %w", err)
+	}
 	index, err := os.CreateTemp("", "itos-id-index-")
 	if err != nil {
 		return "", err
@@ -231,8 +237,14 @@ func counterCommit(root, parent, category string, n int) (string, error) {
 	if parent != "" {
 		args = append(args, "-p", parent)
 	}
-	args = append(args, "-m", fmt.Sprintf("itos: reserve %s %d", category, n))
-	commit, err := runWithInput(root, nil, nil, args...)
+	args = append(args, "-m", fmt.Sprintf("itos: reserve %s %d (%s)", category, n, hex.EncodeToString(nonce[:])))
+	identity := []string{
+		"GIT_AUTHOR_NAME=itos id counter",
+		"GIT_AUTHOR_EMAIL=itos-id-counter@localhost",
+		"GIT_COMMITTER_NAME=itos id counter",
+		"GIT_COMMITTER_EMAIL=itos-id-counter@localhost",
+	}
+	commit, err := runWithInput(root, identity, nil, args...)
 	if err != nil {
 		return "", err
 	}
