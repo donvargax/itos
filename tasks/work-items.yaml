@@ -6569,6 +6569,20 @@ items:
       Extend existing p3-role-protocol, p1-proof-paths-placeholder and p1-proof-summary for reusable
       enforcement rather than creating competing protocols. Nothing here is added to slice-102 or
       T-129.
+
+      Accepted by the person on 2026-10-08: move mutant execution out of the local agent loop and
+      into CI. Agents use tools/bin/itos push --no-wait, report the exact pushed SHA, leave a clean
+      checkout and hand off without watching CI or closing the item. The coordinator watches
+      asynchronously, can start independent work while CI is pending, owns closure once the covering
+      run is green, and assigns red-run fixes in isolated worktrees with hooks installed. Red main
+      takes priority before further landings; releases remain blocked until all required proof is
+      green. CI measurements and reused evidence must cover changed committed functions, relevant
+      unit and integration tests, and valid source/test/config/tool inputs. No automatic full
+      mutation sweep, stale-cache pass, proof bypass, force-push or rewrite of published history.
+      Make the CI/gate migration a separate task before resuming the blocked slice; do not push
+      deliberately incomplete proof under the old check-only policy. Targeted coverage reuse is
+      still a provider capability to establish, not permission to drop integration tests. Fail-fast
+      remains opt-in when released by itos-cc, usable in CI rather than only local briefs.
     refs:
       [
         itos.yaml,
