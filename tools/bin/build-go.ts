@@ -32,13 +32,15 @@
 import { spawnSync } from "node:child_process";
 import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { repoProgram } from "./repo-program.ts";
 
 export const ROOT = resolve(import.meta.dirname, "../..");
 const MODULE = "github.com/donvargax/itos/v7";
 
 // The version this checkout's builds say they are (tools/bin/dev-version).
 function devVersion(): string {
-	const said = spawnSync(join(ROOT, "tools/bin/dev-version"), [ROOT], { encoding: "utf8" });
+	const [devVersion, devArgs] = repoProgram(join(ROOT, "tools/bin/dev-version"), [ROOT]);
+	const said = spawnSync(devVersion, devArgs, { encoding: "utf8" });
 	const version = said.stdout?.trim();
 	if (said.status !== 0 || !version)
 		throw new Error(`tools/bin/dev-version says no version: ${said.stderr ?? said.error?.message}`);
@@ -99,7 +101,8 @@ function buildRelease(dir: string): string[] {
 	const out = resolve(dir);
 	mkdirSync(out, { recursive: true });
 	const args = ["goreleaser", "release", "--snapshot", "--clean"];
-	const result = spawnSync(join(ROOT, "tools/bin/pinned"), args, {
+	const [goreleaser, goreleaserArgs] = repoProgram(join(ROOT, "tools/bin/pinned"), args);
+	const result = spawnSync(goreleaser, goreleaserArgs, {
 		cwd: ROOT,
 		env: { ...process.env, ITOS_SNAPSHOT_VERSION: version },
 		stdio: ["ignore", 2, 2], // GoReleaser's log, off this command's stdout

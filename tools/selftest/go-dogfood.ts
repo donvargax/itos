@@ -29,6 +29,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
+import { repoProgram } from "../bin/repo-program.ts";
 import { scratchRepo } from "./scratch.ts";
 
 const repo = scratchRepo("go-dogfood-selftest");
@@ -60,7 +61,8 @@ const found = (command: string) =>
 	spawnSync("/bin/sh", ["-c", `command -v ${command}`], { env: runEnv }).status === 0;
 
 const itos = (...args: string[]) => {
-	const run = spawnSync(join(dir, "tools/bin/itos"), args, {
+	const [program, argv] = repoProgram(join(dir, "tools/bin/itos"), args);
+	const run = spawnSync(program, argv, {
 		cwd: dir,
 		env: runEnv,
 		encoding: "utf8",
@@ -81,11 +83,13 @@ const age = () => {
 };
 
 // What the scratch checkout's builds must say (tools/bin/dev-version).
-const version = () =>
-	spawnSync(join(dir, "tools/bin/dev-version"), [dir], {
+const version = () => {
+	const [program, argv] = repoProgram(join(dir, "tools/bin/dev-version"), [dir]);
+	return spawnSync(program, argv, {
 		env: runEnv,
 		encoding: "utf8",
 	}).stdout.trim();
+};
 
 try {
 	repo.open();

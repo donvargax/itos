@@ -303,6 +303,11 @@ ci:
       - node tools/selftest/upgrading-json.ts
       # Exercise the push and nightly mutation-sample commands through ci run with a fake shell.
       - node tools/selftest/ci-mutation-budget.ts
+      # The programs in tools/bin are shell scripts, which windows cannot start at all: every
+      # program under tools/ starts one of them through one resolver, and this runs two of them
+      # here to keep that true (T-135). Cheap and offline, so it can also run by hand on windows,
+      # where it is the check that says a spawn lost its exit code.
+      - node tools/selftest/tools-bin-programs.ts
       # A nightly rechecks at most 20 cached outcomes in the changed Go paths. Its seed remains
       # HEAD-deterministic; fresh bounded sampling/seed migration remains blocked on itos-cc#27.
       - {

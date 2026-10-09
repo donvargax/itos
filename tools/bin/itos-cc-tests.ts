@@ -2,8 +2,10 @@
 // from the repository root. `itos tests list --json` is the source of truth;
 // only this adapter reshapes its JSON for the provider.
 import { spawnSync } from "node:child_process";
+import { repoProgram } from "./repo-program.ts";
 
-const listed = spawnSync("tools/bin/itos", ["tests", "list", "scenario", "--json"], {
+const [itos, args] = repoProgram("tools/bin/itos", ["tests", "list", "scenario", "--json"]);
+const listed = spawnSync(itos, args, {
 	cwd: process.cwd(),
 	encoding: "utf8",
 });

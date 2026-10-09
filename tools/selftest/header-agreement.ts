@@ -28,6 +28,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { repoProgram } from "../bin/repo-program.ts";
 import { outsideEnv, realGit, spawnOutput } from "./scratch.ts";
 
 const ROOT = resolve(import.meta.dirname, "../..");
@@ -83,7 +84,8 @@ async function itos(text: string, reading: Name, i: number): Promise<Reading> {
 	const file = join(dir, ".git", `MSG-${i}`);
 	if (reading === "edit") writeFileSync(file, text);
 	const args = reading === "edit" ? ["hook", "commit-msg", file] : ["commit", "check-message", "-"];
-	const run = await spawnOutput(ITOS, args, {
+	const [program, argv] = repoProgram(ITOS, args);
+	const run = await spawnOutput(program, argv, {
 		cwd: dir,
 		env,
 		input: reading === "stdin" ? text : "",

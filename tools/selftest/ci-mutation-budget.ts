@@ -7,6 +7,7 @@ import { spawnSync } from "node:child_process";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parse, stringify } from "yaml";
+import { repoProgram } from "../bin/repo-program.ts";
 import { outsideEnv, realGit } from "./scratch.ts";
 
 const root = resolve(".");
@@ -59,7 +60,8 @@ const invocation = (args: string[], configPath: string, failSample = false) => {
 		CI_MUTATION_COMMANDS: log,
 		...(failSample ? { CI_MUTATION_FAIL: "41" } : {}),
 	};
-	const run = spawnSync(join(root, "tools/bin/itos"), args, {
+	const [program, argv] = repoProgram(join(root, "tools/bin/itos"), args);
+	const run = spawnSync(program, argv, {
 		cwd: root,
 		env: childEnv,
 		encoding: "utf8",

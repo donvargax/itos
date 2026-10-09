@@ -7,6 +7,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import { repoProgram } from "../bin/repo-program.ts";
 
 // Hooks export GIT_DIR and friends, and CI sets CI; a scratch repository must
 // see neither.
@@ -66,7 +67,8 @@ export function spawnOutput(
 // tools/bin/itos, the Go binary, run in cwd (the checkout by default): its
 // stdout, or an error naming the command and what it printed.
 export function itos(args: string[], cwd = resolve(".")): string {
-	const result = spawnSync(join(cwd, "tools/bin/itos"), args, {
+	const [program, argv] = repoProgram(join(cwd, "tools/bin/itos"), args);
+	const result = spawnSync(program, argv, {
 		cwd,
 		env: outsideEnv(),
 		encoding: "utf8",

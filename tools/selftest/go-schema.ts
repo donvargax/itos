@@ -32,6 +32,7 @@ import { join } from "node:path";
 import Ajv2020, { type ErrorObject } from "ajv/dist/2020.js";
 import { parse } from "yaml";
 import { buildSchema, ROOT, SCHEMA } from "../bin/build-go.ts";
+import { repoProgram } from "../bin/repo-program.ts";
 import { outsideEnv } from "./scratch.ts";
 
 const DRAFT = "https://json-schema.org/draft/2020-12/schema";
@@ -164,7 +165,14 @@ try {
 			);
 		const file = join(scratch, `wrong-${i}.yaml`);
 		writeFileSync(file, JSON.stringify(w.config));
-		const check = spawnSync("tools/bin/itos", ["config", "check", "-q", "--config", file], {
+		const [program, argv] = repoProgram("tools/bin/itos", [
+			"config",
+			"check",
+			"-q",
+			"--config",
+			file,
+		]);
+		const check = spawnSync(program, argv, {
 			cwd: ROOT,
 			env,
 			encoding: "utf8",
