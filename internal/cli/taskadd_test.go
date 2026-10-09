@@ -203,6 +203,53 @@ func TestTaskAddReturnsLedgerErrorsBeforeRefusingCallerID(t *testing.T) {
 	})
 }
 
+func TestTaskAddPropagatesLedgerEditErrors(t *testing.T) {
+	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
+	for _, test := range []struct {
+		name, ledger string
+		callerID     bool
+	}{
+		{name: "before reservation", ledger: "[{id: T-001, type: chore, title: Existing}]\n", callerID: true},
+		{name: "after reservation", ledger: "[{id: T-001, type: chore, title: Existing}]\n"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			taskAddRepo(t, configText, test.ledger, "phases: { 1: null }\nitems: []\n")
+			args := []string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}
+			if test.callerID {
+				args = append([]string{"T-002"}, args...)
+			}
+			_, err := taskAdd(args, Out{})
+			if err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
+				t.Fatalf("taskAdd error = %v, want ledger edit error", err)
+			}
+		})
+	}
+}
+
+func TestTaskAddPropagatesRegistryEditErrors(t *testing.T) {
+	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
+	registry := "{phases: {1: null}, items: []}\n"
+	for _, test := range []struct {
+		name     string
+		callerID bool
+	}{
+		{name: "before reservation", callerID: true},
+		{name: "after reservation"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			taskAddRepo(t, configText, "- { id: T-001, type: chore, title: Existing }\n", registry)
+			args := []string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}
+			if test.callerID {
+				args = append([]string{"T-002"}, args...)
+			}
+			_, err := taskAdd(args, Out{})
+			if err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
+				t.Fatalf("taskAdd error = %v, want registry edit error", err)
+			}
+		})
+	}
+}
+
 func TestTaskAddCreatesANewGroupLedgerFile(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n  group: { pattern: \"\\\\d+\" }\n"
 	dir := taskAddRepo(t, configText, "- { id: T-001, type: docs, title: Existing }\n", "phases: { 1: null, 2: null }\nitems:\n  - { id: T-001, title: Existing, phase: 1, owner: null, status: done, depends_on: [] }\n")
