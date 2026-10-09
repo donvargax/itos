@@ -1165,3 +1165,62 @@
     - run: node tools/selftest/ci-mutation-budget.ts
     - run: tools/bin/itos config check
     - run: go run ./tools/bin/doc-budget
+
+- id: T-132
+  type: ci
+  title: Add behavioural Go tests for the schema compatibility gate
+  why: >
+    Was p1-schema-contract-tests. The user approved focused tests for the schema gate's compareSame,
+    compare and validate functions. Its directory currently has main.go alone; the TypeScript
+    self-test already runs in CI and nightly, so these tests add direct boundary coverage rather
+    than replace an absent integration check. Add tools/bin/schema-contract/main_test.go only.
+    Use parsed JSON fixtures with the same map, slice and json.Number shapes as production.
+    Compare exact finding paths, changes and breaking flags for compatible and breaking enum,
+    required-key, array-item, object/additionalProperties, default, type and anyOf changes.
+    Exercise accepted validator shapes and malformed or unsupported nested shapes with their
+    reported paths. Test the implemented schema dialect, not arbitrary JSON Schema semantics:
+    enum and required list-member typing is not currently validated. Do not change production
+    code, policy or workflows. If a test demonstrates an unexpected gate defect, report it before
+    changing the gate's behavior or weakening its expectation. Go tests under tools/bin are gate
+    self-tests and therefore a ci commit. The standing go test ./tools/... already runs them after
+    task closure. No coverage or mutation run, snapshot edit, provider upgrade or new threshold.
+  done_when:
+    - run: "go test ./tools/bin/schema-contract -count=1 -run '^(TestCompareSame|TestCompare|TestValidate)$'"
+
+- id: T-133
+  type: docs
+  title: Document built-in and delegated JSON problem rule IDs
+  why: >
+    Was p1-rule-ids-listed. Decision 35 makes problem rule IDs stable contracts, but docs/CLI.md
+    explains only the envelope. The user approved a catalogue in docs/rule-ids.md, linked from
+    docs/CLI.md's machine-output contract and README.md. Reconcile production problem constructors,
+    helper arguments and tables with expected corpus problems; the corpus alone misses built-in
+    IDs and also contains fixture delegate/provider IDs. Catalogue each built-in rule's meaning
+    and emitting command/check, and explain dynamic footer and range-check names, delegate lint
+    rules and code-proof provider rules separately. Do not count those external or configurable
+    IDs as a fixed built-in list, or promise structured subject fields the current Problem type
+    does not expose. Renaming a built-in rule is breaking; message and fix text are not identifiers.
+    This is documentation of existing behavior, not a command, JSON-field or rule change. Do not
+    modify Go doc comments, code, policy, plugin files or corpus expectations. Completeness is a
+    reviewed source/corpus reconciliation, not a string-presence test or a new automatic gate.
+    Existing prose hooks and document budgets remain in force; prose review is the acceptance.
+  done_when: []
+
+- id: T-134
+  type: test
+  title: Cover zero digits and extra core components in version parsing
+  why: >
+    Was p1-version-mutation-gaps. The user approved the missing boundary tests in
+    internal/version/version_test.go without another mutation measurement. TestLeadingInt lacks
+    zero-containing numeric inputs; add cases such as 101 that require zero to remain a digit.
+    TestCompare already checks 1.10.0 against 1.9.0, so keep it rather than duplicate it. Add
+    TestParts for actual fourth and further core components, such as 1.2.3.4 and 1.2.3.4.5,
+    which the existing parser ignores after its first three integers. Exercise the exported
+    Compare path with an extra component too, proving the current permissive behavior without
+    panic. A prerelease's rc.1 suffix is split off before parts and is not the fourth-core-component
+    case. Change tests only; do not introduce strict SemVer rejection or change production code.
+    If an unexpected behavior defect emerges, stop and report it for specification. The standing
+    internal unit suite keeps these tests after task closure. No local mutation or coverage run,
+    cache/hash editing, equivalent-mutant exceptions or gate changes.
+  done_when:
+    - run: "go test ./internal/version -count=1 -run '^(TestLeadingInt|TestParts|TestCompare|TestSatisfies)$'"
