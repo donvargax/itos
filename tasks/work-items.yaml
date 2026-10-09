@@ -6747,3 +6747,19 @@ items:
       commits; regenerated AGENTS.md and explanatory docs are separate docs commits. Distinguish
       configured cached-recheck budgets from the blocked fresh-sampling migration. No product Go or
       scenario changes: propose a slice if needed.
+
+  - id: p1-go-git-instead-of-the-real-git
+    title: Run the git itos needs through go-git, so no git has to be installed
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Raised while a windows failure in the id counter turned out to be the harness sh wrapper
+      eating a caret, not git itself. go-git could carry the counter ref work in process, but it is
+      not the git itos is: the shim forwards arbitrary commands to the real one, hooks run the
+      project own git, and the features build their repositories with it, so git stays a dependency
+      of the harness and of CI while a second implementation of refs, fast-forward pushes and auth
+      sits under the code that most needs to match git. Worth revisiting only if git absence ever
+      blocks a platform itos must run on.
