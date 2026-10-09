@@ -399,4 +399,4 @@ hooks:
 proof:
   code:
     paths: ["{cmd,internal}/**/*.go"]
-    check: "tools/bin/pinned itos-cc mutation check --since {base} --fail-uncovered --json"
+    check: "tools/bin/pinned itos-cc mutation check --since {base} --fail-uncovered --json cmd internal"

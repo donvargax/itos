@@ -113,7 +113,7 @@ try {
 		pushCommands.some(
 			(command) =>
 				command ===
-				`tools/bin/pinned itos-cc mutation check --since ${from} --fail-uncovered --json`,
+				`tools/bin/pinned itos-cc mutation check --since ${from} --fail-uncovered --json cmd internal`,
 		),
 		`the complete-cache proof was not dispatched for the code range:\n${pushCommands.join("\n")}`,
 	);
