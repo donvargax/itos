@@ -6838,3 +6838,18 @@ items:
       the gates and itos-cc locally on windows, and nothing here claims more than that. A self-test
       runs the real programs through the resolver, so the claim is checked by running the gates
       rather than by reading them.
+
+  - id: p1-selftest-cleanup-on-windows
+    title: A self-test that rmSyncs its scratch tree can finish on windows
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      header-agreement.ts runs its checks and then dies in its own teardown with EPERM, Permission
+      denied, on the temp directory it built, because windows refuses to remove a directory a handle
+      is still open on; the tree is left behind in TEMP. Nothing to do with what the self-test
+      judges, and every self-test that removes a scratch tree this way meets it on a windows clone,
+      which the ci job never runs and the platform matrix does not either. Retrying, closing handles
+      first, or leaving the tree are the ways out; which one is a call for whoever specifies it.
