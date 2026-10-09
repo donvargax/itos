@@ -3001,8 +3001,8 @@ items:
   - id: T-134
     title: Cover zero digits and extra core components in version parsing
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
