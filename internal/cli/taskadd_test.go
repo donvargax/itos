@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -53,5 +55,46 @@ func TestTaskAddArgsRejectsInvalidCheckAndTimeoutOptions(t *testing.T) {
 				t.Fatalf("taskAddArgs error = %v, want it to contain %q", err, test.want)
 			}
 		})
+	}
+}
+
+func TestTaskAddWritesAndReportsMintedTask(t *testing.T) {
+	dir := gitConfigRepo(t, "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n")
+	standInHooks(t)
+	gitIn(t, "config", "user.name", "itos test")
+	gitIn(t, "config", "user.email", "test@localhost")
+	files := map[string]string{
+		"tasks/phase-1.yaml":    "- { id: T-001, type: chore, title: Existing }\n",
+		"tasks/work-items.yaml": "phases: { 1: null }\nitems:\n  - { id: T-001, title: Existing, phase: 1, owner: null, status: done, depends_on: [] }\n",
+	}
+	for path, text := range files {
+		full := filepath.Join(dir, path)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	gitIn(t, "add", "--", "itos.yaml", "tasks/phase-1.yaml", "tasks/work-items.yaml")
+	gitIn(t, "commit", "-q", "-m", "docs: start")
+
+	var stdout, stderr strings.Builder
+	code, err := taskAdd([]string{
+		"--group", "1", "--type", "chore", "--title", "New task", "--why", "Because.", "--check", "true",
+	}, Out{Stdout: &stdout, Stderr: &stderr})
+	if err != nil || code != 0 {
+		t.Fatalf("taskAdd = (%d, %v), stdout=%q stderr=%q", code, err, stdout.String(), stderr.String())
+	}
+	if !strings.Contains(stdout.String(), "T-002") {
+		t.Fatalf("taskAdd stdout = %q, want minted ID T-002", stdout.String())
+	}
+	ledgerText, err := os.ReadFile(filepath.Join(dir, "tasks/phase-1.yaml"))
+	if err != nil || !strings.Contains(string(ledgerText), "id: T-002") {
+		t.Fatalf("ledger after taskAdd = %q (%v), want T-002", ledgerText, err)
+	}
+	registryText, err := os.ReadFile(filepath.Join(dir, "tasks/work-items.yaml"))
+	if err != nil || !strings.Contains(string(registryText), "id: T-002") {
+		t.Fatalf("registry after taskAdd = %q (%v), want T-002", registryText, err)
 	}
 }
