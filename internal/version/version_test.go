@@ -46,6 +46,7 @@ func TestCompare(t *testing.T) {
 		{"9.2.0", "9.2.0", 0},
 		{"9.2.0", "9.1.9", 1}, // with no pre-release, the three numbers as before
 		{"1.10.0", "1.9.0", 1},
+		{"1.2.3.4", "1.2.3", 0},               // core components after the third are ignored
 		{"1.2", "1.2.0", 0},                   // a missing part is 0
 		{"9.2.0-rc.1", "9.2.0-rc", 1},         // more identifiers above fewer
 		{"9.2.0-1", "9.2.0-rc", -1},           // a number below a word
@@ -84,9 +85,20 @@ func TestFromModule(t *testing.T) {
 }
 
 func TestLeadingInt(t *testing.T) {
-	for in, want := range map[string]int{"12": 12, "3-rc": 3, "x": 0, "": 0, "-4": -4, " 7": 7} {
+	for in, want := range map[string]int{"12": 12, "101": 101, "1000": 1000, "3-rc": 3, "x": 0, "": 0, "-4": -4, " 7": 7} {
 		if got := leadingInt(in); got != want {
 			t.Errorf("leadingInt(%q) = %d, want %d", in, got, want)
+		}
+	}
+}
+
+func TestParts(t *testing.T) {
+	for in, want := range map[string][3]int{
+		"1.2.3.4":   {1, 2, 3},
+		"1.2.3.4.5": {1, 2, 3},
+	} {
+		if got := parts(in); got != want {
+			t.Errorf("parts(%q) = %v, want %v", in, got, want)
 		}
 	}
 }
