@@ -181,3 +181,4 @@ questions:
   - id: q-43
     item: "p1-agent-rules-as-data"
     question: "How should an agent know when to load deferred procedures? Recommended: the bootstrap maps concrete workflow transitions (specify or brief work, implement an item, review or land a result, handle a failure, record a decision) to an explicit guide command to read before that action. Guide commands remain usable without a plugin; exact command syntax is not settled here. Alternative: give the agent a topic index and let it decide which instructions to retrieve without prescribed before-action reads."
+    answer: "Use explicit before-action reads: the bootstrap maps concrete workflow transitions to the guide command an agent must read before that action. The procedures remain available without a plugin. Exact command names and syntax will be decided separately."
