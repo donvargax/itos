@@ -6865,14 +6865,15 @@ items:
       which the ci job never runs and the platform matrix does not either. Retrying, closing handles
       first, or leaving the tree are the ways out; which one is a call for whoever specifies it.
 
-  - id: p1-init-from-policy
+  - id: slice-108
     title: Initialize a fresh project from reusable itos policy without importing template work data
     phase: 1
     owner: donvargax
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-init-from-policy.
       Issue #33 (https://github.com/donvargax/itos/issues/33). A made project needs the templates
       reviewed commit, CI, test and proof policy, but must not inherit template tasks, owners,
       statuses, historical SHAs, proof results or mutation caches. Plain init currently creates only
