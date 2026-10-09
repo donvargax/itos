@@ -29,6 +29,10 @@ All plain output is for people. It can change in any release. A script reads `--
 
 The `previous-release` check holds each release to this contract (T-100). It runs the scenarios and the corpus cases of the last release against the new binary. A change to the contract is a breaking change, and a breaking change makes a major release.
 
+The stable `rule` values in JSON problems, their meaning, and which command
+emits them are listed in [JSON problem rule IDs](rule-ids.md). Rule IDs are
+contract; `message` and `fix` remain prose.
+
 ### Exit codes
 
 | Code | Meaning                                                                                                                   |
