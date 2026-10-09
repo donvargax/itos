@@ -6598,6 +6598,16 @@ items:
       with genuinely no sites may be explicitly not applicable. All exploration, edits, scratch
       files and any worktrees stay within this repository directory; do not inspect sibling or
       dependency repositories.
+
+      Fresh bounded mutation execution requested in donvargax/itos-cc#27:
+      https://github.com/donvargax/itos-cc/issues/27. This is separate from #26 fail-fast, which
+      cannot bound a successful run. Current pinned v0.5.0 can recheck cached samples but cannot
+      generate an N-mutant fresh judgment for changed code with no complete cache. Do not migrate to
+      sample --count 1 alone and let new functions disappear, or run a hidden full mutation prepass.
+      The CI migration waits for an honest provider capability, then uses one mutant total per push
+      and 20 nightly, explicit sampled/incomplete evidence and reproducible seeds. No code or
+      dependency repository outside this directory was inspected or edited; the request was filed
+      through GitHub only.
     refs:
       [
         itos.yaml,
