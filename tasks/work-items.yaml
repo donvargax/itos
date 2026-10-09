@@ -6651,8 +6651,8 @@ items:
   - id: T-130
     title: Hand CI watching and item closure to the coordinator
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
