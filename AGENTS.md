@@ -73,7 +73,7 @@ to see what the person you work for (the account `gh` is signed in as, or
 else owns, or one whose dependencies are not done**: two sessions building
 the same thing waste both. Take one with `tools/bin/itos work take <id>`,
 which makes you its owner, sets it `doing` and commits the registry alone,
-and push that commit before your work. Close it with
+and push that commit before your work. The coordinator closes it with
 `tools/bin/itos work done <id>` once its work is pushed and CI is green: it
 refuses while a `@slice-<n>` scenario is still `@wip`, a commit is
 unpushed or the run is red, and commits the change itself. Never edit an
@@ -204,17 +204,13 @@ What that means in practice:
 - When a gate fails, read its output and fix **that cause**. Don't re-run the
   whole suite around it to see the failure again.
 - The hooks are slow on purpose. Let them run; don't work around the wait.
-- **Never sit blocked on a push or a CI run, and never poll one.** CI takes
-  minutes, more when the range names many scenarios, and a push runs the
-  unit tests it reaches first, then, with `ci.watch` on (it is here), waits
-  for the CI run of the commit it pushed. Start it in the background and
-  watch it with the **`Monitor` tool** — that mechanism, not `sleep` loops, not
-  re-running the command to see whether the last one finished, not waiting on
-  it in any other way. One monitor per thing you are waiting for, with a
-  filter that matches failure as well as success, so silence never reads as
-  progress. A commit needs none of this: its hook returns on its own. (This
-  rule exists because a push outlives the harness's foreground limit; its exit
-  is `p1-push-fits-foreground`.)
+- **Never sit blocked on CI, and never poll it.** Run
+  `tools/bin/itos push --no-wait` in the background and use the harness's
+  completion notification or a Monitor for the push's result. Do not hand
+  back before the push succeeds. Then the coordinator watches the exact
+  pushed SHA in the background, with one watcher per run and notifications
+  for failure as well as success. No sleep loops or repeated status commands.
+  A commit's hook returns normally. (`p1-push-fits-foreground`.)
 
 ## What no gate does for you
 
@@ -267,8 +263,14 @@ Run these yourself when they apply:
 **You are not alone on this repository.** Other people and other sessions
 push to `main` too, so expect the remote to have moved while you worked.
 
-1. **Push with `tools/bin/itos push`, every time:** commit your work first,
-   then run it, with no arguments, and read what it says. It is the whole
+No new local mutation runs (q-41). The approved budget is one mutant total
+per push and 20 nightly, measured in CI with valid coverage. That gate is
+not configured yet: fresh bounded execution waits on itos-cc#27, and the
+current gate still checks complete cached results. Do not hide missing,
+stale or failing proof. Normal hook checks and required neighbour tests stay.
+
+1. **Push with `tools/bin/itos push --no-wait`, every time:** commit your work first,
+   then run it and read what it says. It is the whole
    routine: it rebases onto `main` with `--no-autostash`, so a rebase cannot
    pocket uncommitted work that is not yours (it refuses to start with
    uncommitted changes to tracked files), checks that no rebase stopped and
@@ -276,25 +278,23 @@ push to `main` too, so expect the remote to have moved while you worked.
    requests) in a separate step, so a stale push never costs a second
    pre-push hook run. If the rebase stops on a conflict, nothing is pushed:
    resolve it, check that `git rebase --continue` succeeded, then
-   `tools/bin/itos push` again. It never forces, and **neither do you**,
+   `tools/bin/itos push --no-wait` again. It never forces, and **neither do you**,
    whatever a rejection says. Read a rejection before diagnosing it (its
    exit code and outcome are in `tools/bin/itos push --help`): the pre-push
    hook failing is as likely as the remote having moved.
-2. `tools/bin/itos push` waits for the CI run of the commit it pushed
-   (`ci.watch`, T-078): it prints the run's address, each job's result as it
-   finishes, and exits 0 when the run passed, 1 when it failed, naming the
-   failed jobs. Run it in the background and watch its output with a
-   `Monitor`, since CI outlasts a foreground call, and carry on with
-   something else meanwhile. `tools/bin/itos ci watch [<sha>]` waits for any
-   commit's run the same way. If it's red, read the log with
-   `gh run view <id> --log-failed` (the id is in the printed address), fix
-   the cause with a commit of the right type, and push again until it's
-   green.
-3. Report the green run's URL with your results. **Done is that run green**,
-   and don't hand back while it runs. CI is the fast feedback; the nightly is
-   the slow one (every feature, the gates' self-tests, every done task's
-   checks), and a red nightly on what your change reaches is the next
-   session's first item, before new work.
+2. After a successful push, report its exact SHA, your commits, the checks
+   that ran and any remaining work. Leave no tracked edits or staged files.
+   Hand back without watching CI or closing the item. An isolated repair
+   worktree hands its commits to the coordinator to land; it does not push
+   its branch. No unrequested background jobs may outlive the handoff.
+3. The coordinator runs `tools/bin/itos ci watch <sha>` in the background
+   and records its result. Independent work may start while CI is pending,
+   but pending is not done. Red CI takes priority: read
+   `gh run view <id> --log-failed`, assign a targeted repair in a worktree
+   inside this directory with hooks installed, and land no further work
+   until repaired. Only a green covering run permits item closure or a
+   release. The coordinator reports that run's URL; a red nightly is still
+   the next session's first item.
 
 There is no changelog to write and no release to cut: the changelog is
 generated from the commits, so each commit's body is its entry, what changed

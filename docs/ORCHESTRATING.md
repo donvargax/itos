@@ -91,28 +91,27 @@ work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the
   since the notes quote it. Never "none; …" followed by text: it reads as none.
 - **The neighbours:** "Before pushing, run `go test ./features -count=1
 -scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.
-- **For Go code:** before pushing, run `tools/bin/pinned itos-cc mutation run
---since <base> --fail-uncovered`. The features' integration coverage is
-  collected by the harness; commit the results so CI can check and sample them.
-- **The files:** the item's `refs` and the feature files its scenarios are
-  tagged in (`itos work show <id>`), as the places to read first and the scope
-  of the searches, each package's `doc.go` before its code. Where to start, never
-  the only places to look: a change reaches whatever the behaviour turns out to
-  live in. Name a file the item does not touch only when the item's own commits
-  did (p1-work-spec-files would derive most of this; until it lands, the
-  coordinator writes it by hand).
-- **A search tool, if the session has one:** with the semble MCP configured, an
-  agent searches by meaning once and then grows what it found (`find_related`
-  from a file and a line) instead of grepping for the same content again. Anchor
-  a query on a symbol, and read past the first hit: a prose query drifts onto the
-  help text and the doc comments that describe a thing before the thing. Nothing
-  in itos depends on this. Refs and the feature files are what the brief owes an
-  agent; a search tool only saves the walk from there.
+- **Proof and handoff (q-41):** no local mutant execution. The approved CI budget
+  is one mutant per push and 20 nightly; it waits on fresh bounded sampling
+  (itos-cc#27). The current gate still checks complete cached results.
+  Push with `tools/bin/itos push --no-wait`, then report the exact pushed SHA,
+  commits, checks and remaining work from a clean checkout. Do not watch CI or
+  close the item: the coordinator watches and closes only on green.
+- **The files:** brief the item's `refs` and its tagged feature files from
+  `itos work show <id>`. Read each package's `doc.go` first. These are starting
+  points, not a search boundary. Name other files only when the item's own
+  commits touched them; `p1-work-spec-files` would derive this.
+- **A search tool is optional:** with semble, anchor a query on a symbol, read
+  beyond the first hit, then grow it with `find_related` rather than grepping
+  again. Refs and feature files remain the brief's responsibility.
 
-## Parallel agents, if the user asks for them
+## Independent work and red repairs
 
-Each agent gets a worktree of its own (`isolation: "worktree"`, under
-`.claude/worktrees/`). In each one:
+q-41 permits independent work while CI is pending; red repairs take priority
+before further landings. Repair agents hand back commits for the coordinator
+to land, without pushing their branches. Keep worktrees and scratch files
+inside this directory. Each isolated agent has a worktree under
+`.claude/worktrees/`. In each one:
 
 - symlink `node_modules` to the main checkout's instead of running `vp
 install`, because a second install can load two copies of a tool;
@@ -169,7 +168,7 @@ was in this file when the file was reorganized that day.
 - **Agents write their own wait loops** when `itos push` outlives the
   harness's foreground limit: one built on `pgrep` matched its own command
   line and never ended (bug 35), another slept (slice 83). The brief says:
-  run `itos push` in the background and watch it with a Monitor. Exit:
+  push `--no-wait` in the background; use completion notifications. Exit:
   `p1-push-fits-foreground`. Recorded 2026-10-06; last seen 2026-10-06.
 - **`vp staged`'s backup uses git's stash**, shared by every worktree. A commit
   hook failing with "lint-staged failed due to a git error" is transient: run
