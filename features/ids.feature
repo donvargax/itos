@@ -105,3 +105,15 @@ Feature: The id counter, so an id itos mints is minted once
     Then itos exits with code 0
     And the remote's id counter for "slice" is 10
     And none of hooks.pre_push's commands ran
+
+  # The same parent, category and number must produce distinct counter commits:
+  # concurrent clones can both read the old ref before either push is accepted.
+  @ID-IDS-07 @bug-102 @wip
+  Scenario: Concurrent clones claim distinct numbers from the same remote counter
+    Given a repository whose ledger has the task "T-001"
+    And a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    When the clones concurrently add a slice
+    Then every run exited 0
+    And the concurrent clones minted "slice-10" and "slice-11"
+    And the remote's id counter for "slice" is 11
