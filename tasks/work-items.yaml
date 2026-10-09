@@ -6718,6 +6718,17 @@ items:
       than removing its gate; keep this first-priority follow-up open while independent CI
       configuration work continues. Logs are preserved locally in
       .git/itos/ci-37888237910-windows.log.
+
+      Native Windows validation is now available at exact SHA
+      6ca8bb2411d9eded582851e6a47efde05c09c27c:
+      https://github.com/donvargax/itos/actions/runs/37895603788 reports platform (windows-latest)
+      success, with Ubuntu and macOS also successful. This covering job runs native unit tests and
+      every feature, including @ID-IDS-07, after the other session repaired scenario program
+      argument forwarding. The earlier explicit-ref change alone was not sufficient. Windows
+      validation no longer needs to block independent development or a Windows repair assignment.
+      Overall CI still fails the scoped complete-cache mutation proof, so the item remains open
+      until a green covering run permits closure; preserve this success evidence rather than
+      repeating speculative Linux-only Windows fixes.
     refs:
       [
         features/ids.feature,
