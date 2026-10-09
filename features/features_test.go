@@ -75,8 +75,10 @@
 //     Linux and macOS run by their #! line. Windows runs no script, so there
 //     writeProgram writes <name>.exe instead: script-exe
 //     (features/testdata/script-exe, built once a run) with the script after a
-//     marker line, which runs it with Git for Windows' sh, handing on its
-//     arguments, streams, environment and exit code.
+//     marker line, which writes the script with the program's arguments quoted
+//     into it, runs that with Git for Windows' sh (the one on the PATH, else
+//     the one beside git.exe), and hands on its streams, environment and exit
+//     code.
 //   - extensions_test.go: each extension is a shell script itos-<name> in a
 //     folder of the scenario's put first on the PATH, which records its
 //     arguments, its folder and the ITOS_* variables it saw, then exits with

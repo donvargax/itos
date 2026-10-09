@@ -3,8 +3,12 @@
 // scripts, which Linux and macOS run by their #! line and windows does not:
 // there a program is found by its extension (PATHEXT) and must be one windows
 // can start. So on windows a step writes <name>.exe instead, script-exe
-// (testdata/script-exe) with the script after it, which runs the script with
-// Git for Windows' sh; elsewhere it writes the script itself.
+// (testdata/script-exe) with the script after it, which writes the script with
+// the program's arguments quoted into it and runs that with Git for Windows'
+// sh, the one on the PATH or, failing that, the one beside git.exe; elsewhere
+// it writes the script itself, whose #! line runs it with the arguments as they
+// came. Either way the script's "$@" is what the program was run with, which
+// the two tests at the end of this file hold it to.
 package features
 
 import (
@@ -21,11 +25,21 @@ import (
 	"github.com/donvargax/itos/v7/internal/git"
 )
 
-// echoArgs writes its arguments one per line, which is what the tests below
-// read: a program's script, given what the program was run with, unchanged.
+// echoArgs writes each argument to a file of its own in the folder
+// echoArgsDir names, and the number of them beside it: a line apiece could not
+// carry an argument holding a newline, which is what git passes for a commit
+// message. The tests below read the files back.
 const echoArgs = `#!/bin/sh
-for a in "$@"; do printf '%s\n' "$a"; done
+i=0
+for a in "$@"; do
+  i=$((i + 1))
+  printf '%s' "$a" > "$ITOS_FEATURES_ECHO_ARGS/arg$i"
+done
+printf '%s\n' "$i" > "$ITOS_FEATURES_ECHO_ARGS/count"
 `
+
+// echoArgsDir names the folder echoArgs writes its arguments to.
+const echoArgsDir = "ITOS_FEATURES_ECHO_ARGS"
 
 // scriptMarker is the line between script-exe and its script (marker in
 // testdata/script-exe).
@@ -89,6 +103,36 @@ func (w *world) writeProgram(path, script string) error {
 	return os.WriteFile(programPath(path), text, 0o755)
 }
 
+// runEchoArgs runs a program built from the echoArgs script with args, and
+// gives back what its script was given, each argument read whole.
+func runEchoArgs(t *testing.T, program string, env []string, args ...string) []string {
+	t.Helper()
+	dir := t.TempDir()
+	cmd := exec.Command(programPath(program), args...)
+	cmd.Env = append(os.Environ(), env...)
+	cmd.Env = append(cmd.Env, echoArgsDir+"="+filepath.ToSlash(dir))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("running the program with %q: %v\n%s", args, err, out)
+	}
+	count, err := os.ReadFile(filepath.Join(dir, "count"))
+	if err != nil {
+		t.Fatalf("reading how many arguments the script was given: %v\n%s", err, out)
+	}
+	got := make([]string, 0, len(args))
+	for i := 1; i <= len(args); i++ {
+		arg, err := os.ReadFile(filepath.Join(dir, fmt.Sprintf("arg%d", i)))
+		if err != nil {
+			t.Fatalf("reading argument %d: %v\nthe script was given %s arguments\n%s", i, err, count, out)
+		}
+		got = append(got, string(arg))
+	}
+	if n := strings.TrimSpace(string(count)); n != fmt.Sprint(len(args)) {
+		t.Fatalf("the script was given %s arguments, want %d", n, len(args))
+	}
+	return got
+}
+
 // A program's script is given the arguments the program was run with, as they
 // came. The id counter asks git for refs/itos/fetched-ids^{commit}
 // (internal/idcounter), and a windows program ran its script through sh, whose
@@ -96,17 +140,12 @@ func (w *world) writeProgram(path, script string) error {
 // reached the script as ^commit, git resolved nothing, and @ID-IDS-07 failed
 // on windows alone, linux and macos running the script by its #! line.
 func TestProgramForwardsItsArguments(t *testing.T) {
-	program := echoProgram(t)
 	args := []string{
 		"rev-parse", "--verify", "--quiet",
 		"refs/itos/fetched-ids^{commit}",
-		"two words", "", `back\slash`, "it's", "$HOME", "*", "last",
+		"two words", "", `back\slash`, "it's", "$HOME", "*", "a\nnewline", "last",
 	}
-	out, err := exec.Command(programPath(program), args...).CombinedOutput()
-	if err != nil {
-		t.Fatalf("running the program with %q: %v\n%s", args, err, out)
-	}
-	got := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
+	got := runEchoArgs(t, echoProgram(t), nil, args...)
 	if !slices.Equal(got, args) {
 		t.Errorf("the script was given %q, want %q", got, args)
 	}
@@ -120,14 +159,10 @@ func TestProgramFindsShBesideGit(t *testing.T) {
 		t.Skip("elsewhere sh is on the PATH")
 	}
 	gitDir, sh := gitLayout(t)
-	cmd := exec.Command(programPath(echoProgram(t)), "refs/itos/fetched-ids^{commit}")
-	cmd.Env = append(os.Environ(), "PATH="+gitDir, "ITOS_GIT=")
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Fatalf("running the program with only %s on the PATH, where sh is %s: %v\n%s", gitDir, sh, err, out)
-	}
-	if got, want := strings.TrimSpace(string(out)), "refs/itos/fetched-ids^{commit}"; got != want {
-		t.Errorf("the script was given %q, want %q", got, want)
+	want := []string{"refs/itos/fetched-ids^{commit}", "two words"}
+	got := runEchoArgs(t, echoProgram(t), []string{"PATH=" + gitDir, "ITOS_GIT="}, want...)
+	if !slices.Equal(got, want) {
+		t.Errorf("with only %s on the PATH, where sh is %s, the script was given %q, want %q", gitDir, sh, got, want)
 	}
 }
 
