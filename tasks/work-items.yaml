@@ -72,7 +72,7 @@ queue:
   - p1-commit-wrap-review
   - p1-work-as-empty
   - p3-guard-cd
-  - p1-version-mutation-gaps
+  - T-134
   - T-132
   - p1-tools-bin-shared
 
@@ -2998,14 +2998,15 @@ items:
       places; value.Width carrying the registry's convention into the generic YAML editor; a
       typographic quote in a comment; @ID-WORK-19 not checking the owner it names. One refactor.
 
-  - id: p1-version-mutation-gaps
-    title: internal/version's tests cover numbers with a zero digit and a fourth part
+  - id: T-134
+    title: Cover zero digits and extra core components in version parsing
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-version-mutation-gaps.
       Found by itos-cc mutate on internal/version (2026-10-03): leadingInt survives < to <= (no test
       has a 0 inside a number, such as 1.10.0 against 1.9.0) and parts survives i < 3 to <= (which
       would panic on a fourth dot part, no test has one, such as 1.2.3-rc.1). Two test cases.
