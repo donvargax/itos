@@ -4954,8 +4954,8 @@ items:
   - id: T-133
     title: Document built-in and delegated JSON problem rule IDs
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-86]
     kind: task
     why: >
