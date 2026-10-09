@@ -73,7 +73,7 @@ queue:
   - p1-work-as-empty
   - p3-guard-cd
   - p1-version-mutation-gaps
-  - p1-schema-contract-tests
+  - T-132
   - p1-tools-bin-shared
 
 items:
@@ -3010,14 +3010,15 @@ items:
       has a 0 inside a number, such as 1.10.0 against 1.9.0) and parts survives i < 3 to <= (which
       would panic on a fourth dot part, no test has one, such as 1.2.3-rc.1). Two test cases.
 
-  - id: p1-schema-contract-tests
-    title: tools/bin/schema-contract has Go unit tests
+  - id: T-132
+    title: Add behavioural Go tests for the schema compatibility gate
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-schema-contract-tests.
       Found by itos-cc crap (2026-10-03): compareSame (complexity 36), validate and compare are the
       schema-contract gate's core (T-070) and only the nightly's TypeScript self-test reaches them,
       so a bug there would quietly let a breaking config change through.
