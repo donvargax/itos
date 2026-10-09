@@ -169,11 +169,7 @@ func TestWorkAddMintsFirstSliceWithAnEmptyRegistry(t *testing.T) {
 
 func TestWorkAddPropagatesIDReservationFailures(t *testing.T) {
 	registryWriterRepo(t, "phases: { 1: null }\nitems: []\n")
-	fakeGit := filepath.Join(t.TempDir(), "fake-git")
-	if err := os.WriteFile(fakeGit, []byte("#!/bin/sh\necho injected git failure >&2\nexit 1\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("ITOS_GIT", fakeGit)
+	useFailingGit(t)
 	_, err := workAdd([]string{"--kind", "slice", "--phase", "1", "--title", "Slice", "--why", "Because."}, Out{})
 	if err == nil || !strings.Contains(err.Error(), "exit status 1") {
 		t.Fatalf("workAdd reservation error = %v, want injected Git command failure", err)
@@ -260,11 +256,7 @@ func TestWorkPromoteRejectsMalformedArguments(t *testing.T) {
 
 func TestWorkPromotePropagatesReservationFailures(t *testing.T) {
 	registryWriterRepo(t, "phases: { 1: null }\nitems:\n  - { id: p1-idea, title: Idea, phase: 1, owner: null, status: todo, kind: idea, why: Specified }\n")
-	fakeGit := filepath.Join(t.TempDir(), "fake-git")
-	if err := os.WriteFile(fakeGit, []byte("#!/bin/sh\necho injected git failure >&2\nexit 1\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("ITOS_GIT", fakeGit)
+	useFailingGit(t)
 	_, err := workPromote([]string{"p1-idea", "--kind", "slice"}, Out{})
 	if err == nil || !strings.Contains(err.Error(), "exit status 1") {
 		t.Fatalf("workPromote reservation error = %v, want injected Git command failure", err)

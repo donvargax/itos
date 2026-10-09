@@ -267,11 +267,7 @@ func TestTaskAddCreatesANewGroupLedgerFile(t *testing.T) {
 func TestTaskAddPropagatesReservationFailures(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
 	taskAddRepo(t, configText, "- { id: T-001, type: chore, title: Existing }\n", "phases: { 1: null }\nitems:\n  - { id: T-001, title: Existing, phase: 1, owner: null, status: done, depends_on: [] }\n")
-	fakeGit := filepath.Join(t.TempDir(), "fake-git")
-	if err := os.WriteFile(fakeGit, []byte("#!/bin/sh\necho injected git failure >&2\nexit 1\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("ITOS_GIT", fakeGit)
+	useFailingGit(t)
 	_, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
 	if err == nil || !strings.Contains(err.Error(), "exit status 1") {
 		t.Fatalf("taskAdd reservation error = %v, want injected Git command failure", err)
