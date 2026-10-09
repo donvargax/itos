@@ -78,8 +78,8 @@
 // run's jobs, the token required; anything else is a 404.
 //
 // In every string, `{{dir}}` is the case's folder, `{{PATH}}` the runner's
-// PATH without the caller's extensions, `{{PATH_SEP}}` its platform separator,
-// `{{git}}` the native Git executable,
+// PATH with the caller's extensions hidden and a private native Git folder first,
+// `{{PATH_SEP}}` its platform separator, `{{git}}` the native Git executable,
 // `{{sha.<label>}}` and `{{short.<label>}}` a labelled commit (40 and 7
 // characters), `{{version}}` the version the binary says it is (`<command>
 // version`'s last word, asked once before any case), so a build stamped with
@@ -93,11 +93,13 @@
 // and lists every extension it finds there, so one installed on the machine
 // would change what a case sees. Each folder holding one is replaced, once a
 // run, by a folder of links to everything else in it, so the other programs
-// there stay reachable. A case that wants an extension writes one itself and
-// puts its folder on the PATH (`env: { PATH: "{{dir}}/bin:{{PATH}}" }`).
+// there stay reachable. A private folder with only native git goes first, so
+// an old fixture wrapper's bare-git fallback cannot select the caller's shim;
+// a case can still put its own shim first (`PATH: "{{dir}}/bin{{PATH_SEP}}{{PATH}}"`).
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import {
 	chmodSync,
+	copyFileSync,
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
@@ -247,14 +249,14 @@ export function readFixture(file: string): Fixture {
 // in the case's HOME, a release server nothing answers on, and no asking for the newest
 // release. A case's config pins nothing, or the binary's own version, so it runs the
 // binary itself.
-function cleanEnv(home: string): NodeJS.ProcessEnv {
+function cleanEnv(home: string, path = RUN_PATH): NodeJS.ProcessEnv {
 	const env: NodeJS.ProcessEnv = {};
 	for (const [key, value] of Object.entries(process.env))
 		if (!/^(GIT_|ITOS_|GITHUB_|RUNNER_|PRE_COMMIT_|GH_)|^(CI|NO_COLOR|FORCE_COLOR)$/.test(key))
 			env[key] = value;
 	return {
 		...env,
-		PATH: RUN_PATH,
+		PATH: path,
 		HOME: home,
 		GIT_CONFIG_NOSYSTEM: "1",
 		GIT_CONFIG_GLOBAL: join(home, ".gitconfig"),
@@ -280,6 +282,26 @@ const ROOT = resolve(HERE, "../../..");
 // itos extensions once hideExtensions has run.
 let RUN_PATH = process.env.PATH ?? "";
 let NATIVE_GIT = "";
+let NATIVE_GIT_PATH = "";
+
+function nativeGitDirectory(nativeGit: string, into: string): string {
+	const folder = join(into, "native-git");
+	mkdirSync(folder, { recursive: true });
+	const link = join(folder, basename(nativeGit));
+	if (!existsSync(link)) {
+		try {
+			symlinkSync(nativeGit, link, process.platform === "win32" ? "file" : undefined);
+		} catch {
+			copyFileSync(nativeGit, link);
+			if (process.platform !== "win32") chmodSync(link, statSync(nativeGit).mode & 0o777);
+		}
+	}
+	return folder;
+}
+
+function nativeGitFirst(path: string, folder: string): string {
+	return [folder, ...path.split(delimiter).filter((entry) => entry !== folder)].join(delimiter);
+}
 
 // Resolve Git with the same real-git helper used by the repository's self-tests,
 // before a fixture can put an old or fake executable in its environment.
@@ -338,11 +360,16 @@ function askVersion(bin: string): string {
 	}
 }
 
-function substituter(dir: string, labels: Map<string, string>, nativeGit = resolveNativeGit()): Subst {
+function substituter(
+	dir: string,
+	labels: Map<string, string>,
+	nativeGit = resolveNativeGit(),
+	path = RUN_PATH,
+): Subst {
 	return (s) =>
 		s.replace(/\{\{(dir|PATH|PATH_SEP|git|version|release|sha\.[\w-]+|short\.[\w-]+)\}\}/g, (whole, name: string) => {
 			if (name === "dir") return dir;
-			if (name === "PATH") return RUN_PATH;
+			if (name === "PATH") return path;
 			if (name === "PATH_SEP") return delimiter;
 			if (name === "git") return nativeGit;
 			if (name === "version") return VERSION;
@@ -615,12 +642,13 @@ async function buildRepo(
 	processes: CaseProcesses,
 	nativeGit: string,
 	nativeGitArgs: string[],
+	path: string,
 	dir: string,
 	steps: GitStep[],
 	env: NodeJS.ProcessEnv,
 	labels: Map<string, string>,
 ) {
-	const subst = substituter(dir, labels, nativeGit);
+	const subst = substituter(dir, labels, nativeGit, path);
 	await git(processes, nativeGit, nativeGitArgs, dir, env, ["init", "-q", "-b", "main"]);
 	await git(processes, nativeGit, nativeGitArgs, dir, env, ["config", "commit.gpgsign", "false"]);
 	for (const [key, value] of standInHooks)
@@ -822,18 +850,20 @@ export async function runCase(
 	const home = join(scratch, "home");
 	mkdirSync(dir);
 	mkdirSync(home);
+	let casePath = "";
 	let github: Server | undefined;
 	try {
+		casePath = nativeGitFirst(RUN_PATH, NATIVE_GIT_PATH || nativeGitDirectory(nativeGit, scratch));
 		const result = await Promise.race([
 			(async () => {
-				const inspectionEnv = cleanEnv(home);
+				const inspectionEnv = cleanEnv(home, casePath);
 				inspectionEnv.ITOS_GIT = nativeGit;
 				const labels = new Map<string, string>();
 				if (c.git)
-					await buildRepo(processes, nativeGit, nativeGitArgs, dir, c.git, inspectionEnv, labels);
-				const subst = substituter(dir, labels, nativeGit);
+					await buildRepo(processes, nativeGit, nativeGitArgs, casePath, dir, c.git, inspectionEnv, labels);
+				const subst = substituter(dir, labels, nativeGit, casePath);
 				writeFiles(dir, c.files ?? {}, subst);
-				const commandEnv = cleanEnv(home);
+				const commandEnv = cleanEnv(home, casePath);
 				if (c.github) {
 					const fake = await serveGitHub(deep(c.github, subst) as FakeGitHub);
 					github = fake.server;
@@ -1145,6 +1175,8 @@ async function runAll(bin: string, only: string[], additive: boolean, paths: str
 		fixtures = (only.length ? only : fixtureFiles()).map(readFixture);
 		hideExtensions(paths);
 		nativeGit = resolveNativeGit();
+		NATIVE_GIT_PATH = nativeGitDirectory(nativeGit, paths);
+		RUN_PATH = nativeGitFirst(RUN_PATH, NATIVE_GIT_PATH);
 		learnVersion(bin);
 		if (only.length === 0) await runRunnerSelfTests(paths);
 	} catch (error) {
