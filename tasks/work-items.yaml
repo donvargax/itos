@@ -6583,6 +6583,21 @@ items:
       deliberately incomplete proof under the old check-only policy. Targeted coverage reuse is
       still a provider capability to establish, not permission to drop integration tests. Fail-fast
       remains opt-in when released by itos-cc, usable in CI rather than only local briefs.
+
+      The person refined the accepted policy on 2026-10-08: push CI executes one mutant total over
+      changed committed code; nightly executes 20 total, with explicit counts rather than relying on
+      defaults. This is sampled mutation assurance, not proof that every changed function has all
+      mutant outcomes. Coverage of changed code still needs honest current evidence. Current
+      itos.yaml runs mutation sample with its default count of 20 in push CI, not nightly; move that
+      budget to nightly. Pinned mutation sample only draws fresh cached outcomes and does not
+      generate a mutation inventory for unmeasured changed functions, so new code must never get a
+      vacuous pass from an empty cache. Establish fresh bounded mutation execution first; do not
+      secretly generate all mutant outcomes to enable a one-mutant sample, run mutants locally, or
+      keep the old complete-cache check while claiming the new workflow works. A source range with
+      mutation sites but none judged must fail with a clear capability or execution problem; a range
+      with genuinely no sites may be explicitly not applicable. All exploration, edits, scratch
+      files and any worktrees stay within this repository directory; do not inspect sibling or
+      dependency repositories.
     refs:
       [
         itos.yaml,
