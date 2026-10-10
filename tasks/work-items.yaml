@@ -6980,3 +6980,18 @@ items:
       itos's data, never edited by hand, so vp fmt ignores tasks/*.yaml; tasks/README.md is still
       formatted. Whether itos's output should pass a consumer's formatter is
       p1-written-yaml-formatter-stable.
+
+  - id: T-138
+    title: Tests kill slice-102's survivors, and itos-cc.yaml excepts none of them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      q-51 (2026-10-09): slice-102's surviving mutants were excepted in itos-cc.yaml, each reason
+      naming this task, so slice-102 could release while main had been red on its proof since
+      2026-10-08. Once slice-102 is released, add unit tests that kill each one and delete its
+      entry. A survivor that is truly equivalent (no behaviour can tell it) keeps an entry whose
+      reason says why, rather than this task's. itos-cc fails an entry as mutation.exception-stale
+      once a test kills its mutant, so each test and its entry's removal land in the same commit.
