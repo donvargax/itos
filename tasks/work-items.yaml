@@ -4485,14 +4485,9 @@ items:
     title: A scenario for init's doctor reading an absolute hooks folder
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Bug 35's fix made init's doctor read the shims where hooks install now writes them (hookFile),
-      so in a linked worktree or with an absolute core.hooksPath it no longer calls an installed
-      shim missing. No scenario pins that: one where init runs in a linked worktree after hooks
-      install, and reports no hook missing, would.
     refs: [internal/cli/init.go]
 
   - id: p1-tests-moves-command-kind
