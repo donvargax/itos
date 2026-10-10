@@ -6899,18 +6899,9 @@ items:
     title: Verification starts at the last green commit, so main's CI can be green again
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      On 2026-10-09 the last green CI run (32fc9144, 2026-10-08) fell more than 100 first parents
-      behind the head (providers.FirstParentsAsked), mostly ask/answer docs commits pushed while
-      main was red on the mutation proof. ci range then gave no start, so itos verify re-checked
-      every commit since commits.since, the template's initial commit, and commits written before
-      today's path rules fail them (03bd68c's chore touches .vite-hooks/pre-commit): every run red
-      from 39b35907 on, whatever it carried. Every commit up to 32fc9144 passed verify when it was
-      pushed, so commits.since moves there. Why running out of first parents re-verifies all history
-      is a bug of its own, briefed separately.
 
   - id: p1-drop-mutation-exception
     title: Remove q-50's local mutation exception once itos-cc#27 lands
