@@ -972,3 +972,66 @@ Feature: The work registry
     When itos runs "work done slice-9"
     Then itos exits with code 0
     And the provider was not run
+
+  # Slice 118 (p1-work-edit-several-ids, 2026-10-10): grooming a backlog is
+  # one change applied to many items, and one command per item made one
+  # commit each, every one running the hooks (tagging about 110 items would
+  # have been 110 commits). work edit, drop, defer, resume and queue take
+  # several ids: the same change for each, all checked before anything is
+  # written, refused whole (exit 1, naming every id refused and why) if any
+  # one would be, and committed once, the registry alone. One id behaves as
+  # today. The header names the ids, "docs: drop p1-a, p1-b", when that fits
+  # the header's 100 characters, else "docs: drop 12 items"; the body lists
+  # every id. A change that is the item's own is refused with several ids,
+  # exit 2: work edit --title. work queue places the ids in the order given:
+  # --top puts them first, --before and --after put them together at that
+  # place, --remove takes each out. --json gives "items":[…] for each.
+  @ID-WORK-89 @slice-118 @wip
+  Scenario: work edit with several ids gives each the same tags, in one commit
+    Given the config's work.tags is "plugin, stealth"
+    And the work registry has the idea "p1-a" owned by nobody
+    And the work registry has the idea "p1-b" owned by nobody
+    When itos runs the command line "work edit p1-a p1-b --tags plugin"
+    Then itos exits with code 0
+    And the registry's item "p1-a" has the tags "plugin"
+    And the registry's item "p1-b" has the tags "plugin"
+    And the last commit's header is "docs: edit p1-a, p1-b"
+    And the last commit touches only "tasks/work-items.yaml"
+
+  @ID-WORK-90 @slice-118 @wip
+  Scenario: One id that would be refused refuses them all, naming it, and nothing is written
+    Given the config's work.tags is "plugin, stealth"
+    And the work registry has the idea "p1-a" owned by nobody
+    When itos runs the command line "work edit p1-a p1-nope --tags plugin"
+    Then itos exits with code 1
+    And its output says "p1-nope"
+    And the registry's item "p1-a" has no tags
+
+  @ID-WORK-91 @slice-118 @wip
+  Scenario: work drop with several ids drops each with the one reason, in one commit
+    Given the work registry has the idea "p1-a" owned by nobody
+    And the work registry has the idea "p1-b" owned by nobody
+    When itos runs the command line "work drop p1-a p1-b --why 'Merged into slice 9.'"
+    Then itos exits with code 0
+    And the registry's item "p1-a" has the status "dropped" and no why
+    And the registry's item "p1-b" has the status "dropped" and no why
+    And the last commit's header is "docs: drop p1-a, p1-b"
+    And the last commit's body says "Merged into slice 9."
+
+  @ID-WORK-92 @slice-118 @wip
+  Scenario: work queue with several ids puts them first in the order given
+    Given the work registry has the item "slice-7" owned by nobody with the status "todo"
+    And the work registry has the item "slice-8" owned by nobody with the status "todo"
+    And the work registry has the item "slice-9" owned by nobody with the status "todo"
+    And the registry's queue names "slice-7"
+    When itos runs "work queue slice-9 slice-8 --top"
+    Then itos exits with code 0
+    And the registry's queue is "slice-9, slice-8, slice-7"
+
+  @ID-WORK-93 @slice-118 @wip
+  Scenario: work edit --title with several ids exits 2, naming --title
+    Given the work registry has the idea "p1-a" owned by nobody
+    And the work registry has the idea "p1-b" owned by nobody
+    When itos runs the command line "work edit p1-a p1-b --title 'One title'"
+    Then itos exits with code 2
+    And its output says "--title"
