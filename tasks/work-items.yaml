@@ -6886,7 +6886,13 @@ items:
       independent work while the itos-cc implementation is pending (2026-10-09). Interface,
       source-state sanitization, rerun behavior and failure handling need specification before
       implementation.
-    refs: [internal/cli/init.go, internal/cli/starter.go, features/init.feature, tools/itos/conformance/init.yaml]
+    refs:
+      [
+        internal/cli/init.go,
+        internal/cli/starter.go,
+        features/init.feature,
+        tools/itos/conformance/init.yaml,
+      ]
 
   - id: T-136
     title: Verification starts at the last green commit, so main's CI can be green again
