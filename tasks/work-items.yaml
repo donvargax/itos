@@ -7139,3 +7139,17 @@ items:
       whether their checks pass would replace all of it. Items with no dates show their age as
       unknown and are counted. Every coordinator does this review across many itos-driven
       repositories, so each script costs again.
+
+  - id: p1-next-id-names-the-stem
+    title: tests next-id names the stem it wanted when given an area without its prefix
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      On 2026-10-10, itos tests next-id scenario UPGRADECMD --count 7 was refused with 'UPGRADECMD
+      is no area of tests.scenario's id: its next id is only read', when the stem it claims for is
+      ID-UPGRADECMD. The refusal should name the stem it would accept (did you mean ID-UPGRADECMD),
+      or take the area without the configured prefix. A wrong guess costs a round trip on the
+      correct path, in every repository whose scenario ids carry a prefix.
