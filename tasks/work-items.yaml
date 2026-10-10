@@ -6924,8 +6924,8 @@ items:
   - id: T-138
     title: Tests kill slice-102's survivors, and itos-cc.yaml excepts none of them
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
