@@ -1768,7 +1768,7 @@ items:
     phase: 2
     owner: donvargax
     status: todo
-    depends_on: [T-056, p1-conformance-http]
+    depends_on: [T-056]
     kind: idea
     why: >
       PLAN.md, phase 2: every command group is ported (T-039 to T-052) and the port closes with
