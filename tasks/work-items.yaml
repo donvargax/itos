@@ -55,7 +55,6 @@ phases:
 
 queue:
   - p1-windows-id-validation
-  - slice-102
   - slice-103
   - slice-105
   - slice-104
