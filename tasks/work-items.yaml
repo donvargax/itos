@@ -6907,16 +6907,9 @@ items:
     title: Remove q-50's local mutation exception once itos-cc#27 lands
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      q-50 lets a local itos-cc mutation run fill the results the complete-cache proof reports
-      missing or stale on main, only until fresh bounded sampling in CI works (itos-cc#27). The
-      user: remove it the moment #27 lands. Delete the exception from AGENTS.md and
-      docs/ORCHESTRATING.md, and the lesson that names this item as its exit.
-
-      No lesson names it: the exception sits in the q-41 passages of the two refs.
     refs: [AGENTS.md, docs/ORCHESTRATING.md]
 
   - id: p1-verify-past-the-window
