@@ -8,7 +8,8 @@ package cli
 //
 // hook commit-msg runs four rules in the TypeScript's order, and the first to
 // fail decides: itos's own data as staged, when the commit stages any, since
-// the other rules read the config; the staged files' rules (the path rules,
+// the other rules read the config, or else the smoke rule of each kind whose
+// test files it stages; the staged files' rules (the path rules,
 // each kind's staged range commands and the built-in moves rule); the header
 // lint beside the footer rules; then the static checks of the tasks the
 // message names, the slowest last, run only for a commit every other rule
@@ -232,8 +233,9 @@ func stagesData(staged []string) bool {
 // stagedDataIssues are the staged data's problems, read from the index
 // (commit-data.ts's stagedDataIssues): config check's findings when the
 // commit stages any of itos's data, data that cannot be read one problem
-// saying so; and the rejection's first line, commits.reject_message as
-// staged, if it loads. The staged paths are against base, as stagedFiles.
+// saying so, else the smoke rule's for each kind whose test files it stages
+// (stagedSmokeIssues); and the rejection's first line, commits.reject_message
+// as staged, if it loads. The staged paths are against base, as stagedFiles.
 func stagedDataIssues(base string) ([]out.Problem, string, error) {
 	staged, err := stagedFiles(base)
 	if err != nil {
@@ -247,14 +249,18 @@ func stagedDataIssues(base string) ([]out.Problem, string, error) {
 	header := ""
 	err = source.ReadingFrom(index, func() error {
 		if !stagesData(staged) {
+			found = stagedSmokeIssues(staged, base)
+		} else {
+			_, findings, _, _, err := configFindings("")
+			if err != nil {
+				found = []out.Problem{{Rule: "data-unreadable", Message: err.Error()}}
+			}
+			for _, f := range findings {
+				found = append(found, f.Problem)
+			}
+		}
+		if len(found) == 0 {
 			return nil
-		}
-		_, findings, _, _, err := configFindings("")
-		if err != nil {
-			found = []out.Problem{{Rule: "data-unreadable", Message: err.Error()}}
-		}
-		for _, f := range findings {
-			found = append(found, f.Problem)
 		}
 		header = "Commit rejected:"
 		if cfg, err := config.Load(config.Path()); err == nil {
@@ -263,6 +269,32 @@ func stagedDataIssues(base string) ([]out.Problem, string, error) {
 		return nil
 	})
 	return found, header, err
+}
+
+// stagedSmokeIssues are the smoke rule's problems, as itos tests smoke check
+// finds them and config check reports them, for each kind whose smoke set
+// the current source (the index) holds and whose test files a staged path is
+// (tests.StagesTestFile, a deletion's against base, HEAD when ""): slice 117,
+// since a feat that makes a file's tests live stages no smoke set, and CI's
+// smoke step was the first to see it. A kind whose set the index lacks is
+// config check's to report, and a config that does not load the hook's
+// other rules'.
+func stagedSmokeIssues(staged []string, base string) []out.Problem {
+	cfg, err := config.Load(config.Path())
+	if err != nil {
+		return nil
+	}
+	if base == "" {
+		base = "HEAD"
+	}
+	found, _, _ := judgedSmokeFindings(cfg, func(name, file string) bool {
+		return source.Has(file) && tests.StagesTestFile(cfg, name, staged, base)
+	})
+	var problems []out.Problem
+	for _, f := range found {
+		problems = append(problems, f.Problem)
+	}
+	return problems
 }
 
 // stagedDataRule is the hook's first rule (commit-data.ts's hook): 0 when the

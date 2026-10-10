@@ -337,9 +337,13 @@
 //     registry, a smoke set or a decision record or index, as
 //     the staged config names them (stagesData); data that cannot be read is
 //     one data-unreadable problem, the rejection's first line the staged
-//     commits.reject_message. It comes first because the other rules read
-//     the config, and from the index because the working tree may hold what
-//     the commit does not.
+//     commits.reject_message. Else, for each kind one of whose test files is
+//     staged (tests.StagesTestFile) and whose smoke set the index holds, the
+//     smoke rule, through config check's judgedSmokeFindings
+//     (stagedSmokeIssues, slice 117): it reads the test files as well as the
+//     set, so a feat that makes a file's tests live stages no data. It comes
+//     first because the other rules read the config, and from the index
+//     because the working tree may hold what the commit does not.
 //  2. The staged paths through scope.Of(cfg).Issues and each kind's staged
 //     range command (both only for a type Ruled), then the moves rule
 //     (tests.Moves.Between). judgedBase is HEAD's parent when amending takes

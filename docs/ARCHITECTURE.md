@@ -84,7 +84,8 @@ The pieces every command meets:
   smoke sets, the questions and the decision records are read through one
   source, the working tree by default, or the index or a commit while a
   function runs. So the commit-msg hook's check of staged data is
-  `config check` run over the index.
+  `config check` run over the index, and its smoke rule, run when a commit
+  stages a kind's test file, is the one `tests smoke check` runs.
 - **The providers** (`internal/providers`): the world outside the
   repository. Where a push's range starts (`ci.range`), a commit's CI run and
   the nightly (`ci.watch`), who a session works for (`work.identity`), who

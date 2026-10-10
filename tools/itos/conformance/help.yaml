@@ -1462,7 +1462,9 @@ cases:
 
       The commit-msg hook. When the commit stages itos.yaml, a ledger file, the work
       registry, a smoke set, or a decision record or the index in work.decisions,
-      itos config check's problems, read from the staged tree; then the staged files
+      itos config check's problems, read from the staged tree; else, for each kind
+      one of whose test files it stages, the kind's smoke rule as itos tests smoke
+      check judges it, read from the staged tree too; then the staged files
       against the message's type (the path rules, then
       each kind's staged range checks: the built-in moves rule here, for a type its
       except_types does not name), then the header lint (commits.header_lint: the

@@ -33,6 +33,13 @@ func tagged(area string, problems []out.Problem) []Found {
 // smokeFindings are each kind's smoke set against its tests, and the line
 // each sound one prints; a set that cannot be read is one problem.
 func smokeFindings(cfg *config.Loaded) ([]Found, []string, error) {
+	return judgedSmokeFindings(cfg, nil)
+}
+
+// judgedSmokeFindings are smokeFindings for the kinds judged picks by name
+// and smoke file (the commit-msg hook's, slice 117), or for every kind with a
+// smoke set when judged is nil.
+func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool) ([]Found, []string, error) {
 	var found []Found
 	var lines []string
 	for _, name := range cfg.Tests.Keys {
@@ -41,6 +48,9 @@ func smokeFindings(cfg *config.Loaded) ([]Found, []string, error) {
 			continue
 		}
 		file := *k.Smoke.File
+		if judged != nil && !judged(name, file) {
+			continue
+		}
 		smoke, err := tests.LoadSmoke(cfg, name)
 		var own []out.Problem
 		if err == nil {

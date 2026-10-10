@@ -415,6 +415,44 @@ cases:
       - stage: { README.md: "more\n" }
     files: { msg: "docs: write the readme\n" }
     exit: 0
+  # A staged test file runs its kind's smoke rule over the index (slice
+  # 117): the working tree's smoke set lists the new file and the staged one
+  # does not, so the rejection shows the index was read.
+  - name: commit-msg rejects a staged feature file with no smoke scenario, read from the index
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: &smoked
+          README.md: "scratch\n"
+          itos.yaml: &smokeConfig |
+            version: 1
+            commits: { types: [feat, docs] }
+            tests:
+              scenario: { root: features, id: "ID-[A-Z]+-\\d+", smoke: { file: features/smoke.yaml } }
+          features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: One\n    When it runs\n"
+          features/smoke.yaml: "- file: a.feature\n  scenarios: [{ id: \"@ID-A-01\", why: the one listed }]\n"
+      - stage: { features/b.feature: "Feature: B\n\n  @ID-B-01\n  Scenario: One\n    When it runs\n" }
+    files:
+      msg: "feat: add b\n"
+      itos.yaml: *smokeConfig
+      features/smoke.yaml: "- file: a.feature\n  scenarios: [{ id: \"@ID-A-01\", why: listed }]\n- file: b.feature\n  scenarios: [{ id: \"@ID-B-01\", why: listed }]\n"
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - b.feature has no smoke scenario (add one to features/smoke.yaml)
+  # A file without a smoke scenario, committed: no smoke rule ran for a
+  # commit that stages no test file, or it would be refused.
+  - name: a commit that stages no test file runs no smoke rule
+    argv: [hook, commit-msg, msg]
+    git:
+      - commit: "docs: start"
+        files: *smoked
+      - commit: "feat: add b"
+        files: { features/b.feature: "Feature: B\n\n  @ID-B-01\n  Scenario: One\n    When it runs\n" }
+      - stage: { README.md: "more\n" }
+    files: { msg: "docs: write the readme\n", itos.yaml: *smokeConfig }
+    exit: 0
+    stderr: ""
   # The static checks of the tasks the Task: footer names, last: the ledger
   # and the registry as staged (the working tree's ledger, written after the
   # repository, has no checks), each check's output under its task and command.

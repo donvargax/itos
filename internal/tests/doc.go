@@ -45,7 +45,10 @@
 //
 // A kind's smoke set (tests.<kind>.smoke.file) has one loader (LoadSmoke,
 // LoadSmokeAt) and one rule (SmokeIssues), which itos tests smoke check runs
-// and CI runs as a step.
+// and CI runs as a step, and the commit-msg hook runs over the index when a
+// commit stages one of the kind's test files (StagesTestFile: on a Gherkin
+// kind a .feature file under its root, on a command kind a file its adapter
+// lists at the index, or at the commit before for a deletion).
 //
 // # Range checks and the moves rule
 //
