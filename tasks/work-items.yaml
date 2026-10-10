@@ -4312,6 +4312,10 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). A ledger.group.pattern written with its own
       anchors never matches and config check reports 0 ledger files as valid; {group} as a folder in
       ledger.files passes and later fails as a missing folder (ledger.go:49, cross.go:358-372).
+
+      Backlog review of 2026-10-10, batch 1: folds in p1-ledger-matches-registry: refuse a
+      ledger.files that matches work.registry, naming both keys (tasks/{group}.yaml today fails as
+      tasks/work-items.yaml is not a list of tasks, naming neither).
     refs: [internal/ledger/ledger.go, internal/config/cross.go]
 
   - id: p3-ledger-numeric-sort
