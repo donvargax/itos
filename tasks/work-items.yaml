@@ -2339,22 +2339,9 @@ items:
     title: One adapter protocol for every role a command fills, the test kinds' own
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-29]
     kind: idea
-    why: >
-      The design agreed with itos-cc's maintainer (2026-10-03), itos-cc being a code-quality tool
-      (CRAP, mutation testing, duplication) that will run as the extension itos cc. Three layers:
-      commands (itos <ext>, exists), checks (any command in ci.steps or a task, exists) and roles,
-      a protocol itos defines and enforces rules over, filled by any command; extensions fill
-      roles, they do not invent them. Test kinds are the one role today. Every role shares the
-      test kinds' adapter protocol as it stands (PLAN.md §6): <command> list --at <tree>
-      (worktree, index or a SHA) printing one JSON object with "protocol": 1, and range checks
-      with staged and range commands ({from}, {to}), so a later role costs no new protocol.
-      Where the brief that proposed this differs, itos's protocol wins: the key is "protocol",
-      not "schema", which stays the key of every command's own --json output. Exit codes stay
-      0/1/2/3 (pass, policy, usage, environment), read from a source as from an extension; detail
-      goes in each problem's rule ID, prefixed by its source (cc/mutant-survived).
     refs: [PLAN.md, docs/extensions.md]
 
   - id: p3-debt-role
