@@ -4291,15 +4291,9 @@ items:
     title: status's last green line keeps a case for a commit not fetched here, which only a command could name
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Since v5.0.0 (slice 85) the last green commit comes from the github walk over the branch's
-      first parents as fetched, so it is always fetched here; readLastGreen's git.HasCommit check,
-      the SHA-alone line, the JSON's empty header and the help's words for them only served
-      ci.range.command, and the corpus case that pinned them went with it. Drop them, or keep them
-      for a provider to come (p3-command-providers-back).
 
   - id: p1-vet-staged-tree
     title: The pre-commit hook vets the staged tree, so a module move can split by type
