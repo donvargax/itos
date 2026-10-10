@@ -7095,3 +7095,16 @@ items:
       Slice 104 made bug a kind minted by work add --kind bug, but work promote still takes --kind
       slice|task only, and no spec says whether an idea found to be a bug should be promoted to one.
       If it should, promote needs a scenario minting bug-<n> as it mints slice-<n>.
+
+  - id: p1-work-note-bug-spec
+    title: Refuse a note on a bug as on a slice, its why being its feature file
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-104]
+    kind: idea
+    why: >
+      work edit --note refuses a note on a slice or a task, whose why lives in its spec
+      (work.SpecKind, rule work-note-spec), and the registry's header says a bug's why lives in its
+      feature file. Since slice 104 an item of kind bug is neither to SpecKind, so a note on one
+      lands in the registry. A scenario should say whether bug joins SpecKind's kinds.
