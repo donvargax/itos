@@ -7157,3 +7157,19 @@ items:
       change can land unjudged. Either the whole run judges proof.code.paths entire ({base} the root
       commit or the empty tree), or itos says plainly that this run judged no proof, so a green
       whole run does not read as a proved one.
+
+  - id: p1-plan-names-code-proof
+    title: The text plan labels the code proof, and the rules block lists it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #36 (itos-template and go-template-itos, 7.0.0-rc.3 and rc.4): ci plan prints the code
+      proof as one more unlabelled static step, only --json marks it proof, and init --agent-rules
+      leaves it out of What the gates run. Agents reading AGENTS.md are never told the proof gates
+      their push; a task check written from the text plan looked for the word proof and could not
+      pass. Label the step in the text plan, say why when it is left out (no range start, no
+      proof.code.paths touched), and list it in the rules block at its place. Same block as
+      p1-agent-rules-ci-summary.
