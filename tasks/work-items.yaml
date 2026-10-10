@@ -7257,3 +7257,18 @@ items:
       planning branches with different contents, is to be discussed with the person before it
       becomes an item (p1-plan-per-branch); go-template-itos's per-branch-ledgers idea would be its
       first consumer.
+
+  - id: T-141
+    title: The repository ignores local notes in .tmp/ and the metrics reports beside .metrics/mutate/
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      vp check reads the repository's .gitignore, not a person's global git ignore, so local files
+      git skips still fail it: .tmp/ notes and the crap, dry and scrap reports written to .metrics/
+      on 2026-10-03 kept T-137's check, vp check, red in this clone while CI's clean checkout
+      passed. Ignoring .tmp/ and the JSON reports directly under .metrics/ keeps a working tree's vp
+      check judging the repository's own files; .metrics/mutate/ stays tracked, since itos-cc's
+      cached results are committed.

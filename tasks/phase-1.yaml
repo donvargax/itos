@@ -1320,3 +1320,16 @@
     go.mod's toolchain line picks the Go that CI, the nightly and the release build with
     (go-version-file), and a local go under GOTOOLCHAIN=auto, so raising it clears the finding
     everywhere and builds v7.0.0 with the fixed library.
+
+- id: T-141
+  type: build
+  title: The repository ignores local notes in .tmp/ and the metrics reports beside .metrics/mutate/
+  why: >
+    vp check reads the repository's .gitignore, not a person's global git ignore, so local files git
+    skips still fail it: .tmp/ notes and the crap, dry and scrap reports written to .metrics/ on
+    2026-10-03 kept T-137's check, vp check, red in this clone while CI's clean checkout passed.
+    Ignoring .tmp/ and the JSON reports directly under .metrics/ keeps a working tree's vp check
+    judging the repository's own files; .metrics/mutate/ stays tracked, since itos-cc's cached
+    results are committed.
+  done_when:
+    - run: git check-ignore -q .tmp/notes.md && git check-ignore -q .metrics/crap.json && ! git check-ignore -q .metrics/mutate/internal/cli/idmint.go.json
