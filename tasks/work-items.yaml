@@ -5735,6 +5735,13 @@ items:
       line to go by. The reason is wrapped and placed so no line of it can open a footer, as itos
       commit wraps a body.
 
+      Backlog review of 2026-10-10, batch 3: folds in p1-reason-read-as-footer: first seen
+      2026-10-05 dropping ideas with a why starting Superseded:. selfBody leaves a first body line
+      starting Word: unwrapped as a footer, so the hook refuses it after the command wrote its
+      files. The fix covers every command that commits a given text as its body: work drop, defer,
+      edit and add, task add, decision add, answer and record. Queued: grooming writes such reasons
+      by the dozen.
+
   - id: T-124
     title: itos writes its coverage counters before it replaces itself with syscall.Exec
     phase: 1
