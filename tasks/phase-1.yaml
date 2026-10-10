@@ -1144,23 +1144,29 @@
 
 - id: T-131
   type: ci
-  title: Bound CI mutation rechecks and align proof commands with Go code paths
+  title: The code proof samples fresh mutants, one a push and twenty a night (itos-cc v0.7.0)
   why: >
     q-41 approves no local mutant execution, one mutant total per push CI and 20 total nightly.
-    Implement only the safe cached-recheck configuration now: explicit mutation sample --count 1
-    --since {from} --json cmd internal in push CI, and mutation sample --count 20 --json cmd
-    internal nightly without a fabricated range start. These recheck fresh cached outcomes; they do
-    not freshly sample uncached code. Fresh bounded execution remains blocked on itos-cc#27.
-    Preserve proof.code.check as complete-cache integrity until the provider migration is supported,
-    but pass cmd internal explicitly to match proof.code.paths and avoid judging unrelated
-    TypeScript conformance tooling (red run 37886915099). Do not suppress stale, missing, surviving
-    or uncovered outcomes, edit snapshots or run local mutations. Prove actual push/nightly plan
-    execution and global count/path arguments through a fast behavioral driver self-test; provider
-    failure must still block. Keep that self-test as a standing CI/nightly step after task closure,
-    not policy text matching. Config/helper/selftest changes are ci commits; regenerated AGENTS.md
-    and explanatory docs are separate docs commits. Distinguish configured cached-recheck budgets
-    from the blocked fresh-sampling migration. No product Go or scenario changes: propose a slice if
-    needed.
+    itos-cc v0.7.0 closed itos-cc#27 with mutation run --count N: at most N mutation sites judged
+    freshly, drawn across the whole selection, needing no complete result cache and writing none.
+    q-52 (2026-10-09, the user) chose it for both gates. Pin itos-cc 0.7.0 in tools/bin/pinned,
+    its four checksums from the release's checksums.txt. proof.code.check becomes
+    tools/bin/pinned itos-cc mutation run --count 1 --since {base} --fail-uncovered --json cmd
+    internal; the push plan's cached-recheck mutation sample step goes, as the proof now draws the
+    push's one mutant. The nightly's mutation sample --count 20 becomes mutation run --count 20
+    --fail-uncovered --json cmd internal with a seed of the night's own (--seed), not HEAD's, so
+    reruns of one commit draw differently. The complete-cache mutation check is gone from every
+    gate, and with it q-50's local-run exception: remove it from AGENTS.md and
+    docs/ORCHESTRATING.md and say what the gates now prove. Earlier commits on work/T-131 predate
+    v0.7.0 and are not reused. --count runs on Linux only, as the ci job does; v0.7.0's strict
+    --fail-uncovered also judges every changed Go function's statement coverage, and a range with
+    no eligible site is reported as not applicable, which must not fail the gate. Do not suppress
+    surviving or uncovered outcomes; itos-cc.yaml's exceptions stay and still apply. Prove the
+    push and nightly plans' commands and their count and path arguments through the behavioural
+    self-test tools/selftest/ci-mutation-budget.ts, kept as a standing step; provider failure must
+    still block. Config, pin and self-test changes are ci commits; the regenerated AGENTS.md rules
+    block and the explanatory docs are separate docs commits. No product Go or scenario changes:
+    propose a slice if needed.
   done_when:
     - run: node tools/selftest/ci-mutation-budget.ts
     - run: tools/bin/itos config check
