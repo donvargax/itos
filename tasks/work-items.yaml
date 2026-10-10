@@ -69,7 +69,6 @@ queue:
   - p1-release-notes-footers
   - p1-commit-wrap-review
   - p1-work-as-empty
-  - p3-guard-cd
   - p1-tools-bin-shared
 
 items:
@@ -2831,19 +2830,9 @@ items:
     title: The guard judges a git command by the folder a cd in the command moves to
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found 2026-10-03: itos's guard denied cd /tmp/repro && git init && git commit in a scratch
-      repository, judging it by the session's folder, which itos manages; the agent's next command,
-      without its cd, then ran in the coordinator's worktree. The guard should follow a leading cd
-      (and git -C, already handled) to the folder the git command runs in.
-
-      Seen again 2026-10-04 (T-090's agent): the guard refused a plain git commit in a throwaway
-      repository outside this one, and the agent made its test commit with git commit-tree instead,
-      which the guard does not judge. A guard that pushes agents to plumbing commands outside the
-      repository it guards is worse than one that follows the cd.
 
   - id: bug-41
     title: itos push and itos ci watch follow a run that a newer push superseded
