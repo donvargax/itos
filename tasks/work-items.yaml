@@ -3499,14 +3499,9 @@ items:
     title: itos guide work says where a slice's or task's why is, not work show's why
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-76]
     kind: idea
-    why: >
-      Found by slice 76's agent: internal/guide/work.md says work show gives an item's why (the
-      decisions behind it), which after slice 76 holds for ideas and a task's ledger why alone; a
-      slice's decisions are in its scenarios' comments. A guide is Go-embedded, so the fix is a fix
-      commit.
 
   - id: p1-v4-work-list-wording
     title: When work list prints the open items alone, say so wherever it is said to print every item
