@@ -137,6 +137,12 @@
 //     under test is a -cover build of the tree, made once a run (T-121), and
 //     with ITOS_CC_TEST_COVERDIR every command a scenario starts writes its
 //     coverage to a folder named after the scenario's ID, for itos-cc.
+//   - stamp_test.go: a scenario that pins the itos under test runs this
+//     tree's itos built stamped with the pinned version, once a run (a -cover
+//     build when the run measures coverage), since the launcher runs the
+//     binary called only when the pin is its own version; the release
+//     server's fake of that version exits 97, so a fake run in its place
+//     fails the scenario.
 //   - timings_test.go: -timings, which judges nothing: each scenario's time,
 //     from before its set-up to after its clean-up, and each kind of step's
 //     (its text, quoted strings blanked), written as a report once the run
@@ -178,6 +184,7 @@ func TestFeatures(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(removeCover)
+	t.Cleanup(removeStamped)
 	startTimings()
 	suite := godog.TestSuite{
 		Name:                "itos",

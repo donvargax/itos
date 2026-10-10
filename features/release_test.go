@@ -162,6 +162,9 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 		return w.pinVersion(version, version)
 	})
 	sc.Step(`^the config pins the version "([^"]*)" with the checksums of "([^"]*)"$`, w.pinVersion)
+	// The itos under test itself pinned, stamped as the version (stamp_test.go).
+	sc.Step(`^the config pins the itos under test, as the version "([^"]*)" of a release server that also offers "([^"]*)"$`,
+		w.pinItosUnderTest)
 	sc.Step(`^the release server's checksums\.txt of "([^"]*)" is replaced$`, w.replaceChecksums)
 	sc.Step(`^the release server's archive of "([^"]*)" for this platform is replaced$`, w.replaceArchive)
 	sc.Step(`^the release server cannot be reached$`, w.releaseServerUnreachable)
