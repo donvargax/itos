@@ -6606,6 +6606,11 @@ items:
       and is named in the help, as sh -c and aliases are. The second case matters more, since a
       session started outside a managed repository commits in one past the guard where no git shim
       is installed.
+
+      Backlog review of 2026-10-10, batch 2: folds in p3-guard-cd and takes its queue place: on
+      2026-10-03 and 10-04 the guard denied git commit in scratch repositories under /tmp, judged by
+      the session's folder, and an agent fell back to git commit-tree; a guard that pushes agents to
+      plumbing is worse than one that follows the cd.
     refs: [internal/guard/guard.go, internal/guard/doc.go, features/guard.feature]
 
   - id: slice-109
