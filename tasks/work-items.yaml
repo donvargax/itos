@@ -6995,3 +6995,24 @@ items:
       entry. A survivor that is truly equivalent (no behaviour can tell it) keeps an entry whose
       reason says why, rather than this task's. itos-cc fails an entry as mutation.exception-stale
       once a test kills its mutant, so each test and its entry's removal land in the same commit.
+
+  - id: p1-guard-follows-cd
+    title: The guard judges a git command in the folder a literal cd before it in the same list moved to
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #34 (https://github.com/donvargax/itos/issues/34). itos guard claude-code judges every
+      git call by the hook input's cwd, so cd S && git commit, run from a managed repository, is
+      denied though it commits in S, and cd R && git commit, run from outside, is never seen though
+      it commits in the managed R. The guard already follows git -C. internal/guard/doc.go lists a
+      command that moves with cd first among what it does not look into (the user's call,
+      2026-10-03: a guardrail, not a fortress), so this widens a documented limit rather than fixing
+      a contradiction. Proposed: a cd or pushd with a literal path, earlier in the same && or ;
+      list, moves the folder judged; one built from a variable or a substitution keeps today's cwd
+      and is named in the help, as sh -c and aliases are. The second case matters more, since a
+      session started outside a managed repository commits in one past the guard where no git shim
+      is installed.
+    refs: [internal/guard/guard.go, internal/guard/doc.go, features/guard.feature]
