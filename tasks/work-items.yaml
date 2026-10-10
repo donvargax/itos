@@ -59,6 +59,7 @@ queue:
   - p1-upgrade-notices
   - p1-upgrade-on-major
   - p1-smoke-rule-at-commit
+  - p1-guard-follows-cd
   - p3-commit-long-text-footer
   - p1-nightly-past-first-failure
   - p1-windows-id-validation
