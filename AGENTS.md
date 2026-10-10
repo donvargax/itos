@@ -268,7 +268,10 @@ per push and 20 nightly, measured in CI with valid coverage. CI now rechecks
 those budgets against cached mutation outcomes only; fresh bounded sampling
 waits on itos-cc#27. The complete-cache proof still rejects missing, stale,
 uncovered and surviving results. Do not hide failing proof. Normal hook checks
-and required neighbour tests stay.
+and required neighbour tests stay. Until itos-cc#27 lands, one exception
+(q-50): a local `itos-cc mutation run` may fill only the results that proof
+reports missing or stale on `main`. It goes when #27 lands
+(`p1-drop-mutation-exception`).
 
 1. **Push with `tools/bin/itos push --no-wait`, every time:** commit your work first,
    then run it and read what it says. It is the whole

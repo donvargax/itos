@@ -96,7 +96,9 @@ work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the
   proof still rejects missing, stale, uncovered and surviving results; these
   samples do not freshly sample uncached code. Fresh bounded sampling remains
   blocked on itos-cc#27. The nightly seed remains HEAD-deterministic until that
-  provider migration is supported.
+  provider migration is supported. Until #27 lands, q-50 lets a local
+  `itos-cc mutation run` fill only the results the proof reports missing or
+  stale on main; `p1-drop-mutation-exception` removes it.
   Push with `tools/bin/itos push --no-wait`, then report the exact pushed SHA,
   commits, checks and remaining work from a clean checkout. Do not watch CI or
   close the item: the coordinator watches and closes only on green.
