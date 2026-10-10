@@ -1349,3 +1349,16 @@
     programs they test, run by the same CI and nightly steps.
   done_when:
     - run: "! ls tools/selftest/*.ts >/dev/null 2>&1"
+
+- id: T-144
+  type: test
+  title: The conformance corpus is run by a Go program
+  why: >
+    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
+    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
+    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
+    changes what itos does for consumers, whose repositories never carried vp.
+    tools/itos/conformance/run.ts, which runs the corpus against a binary in CI and the nightly,
+    becomes a Go program with the same cases, fakes (the GitHub API on 127.0.0.1) and output.
+  done_when:
+    - run: "! test -e tools/itos/conformance/run.ts"
