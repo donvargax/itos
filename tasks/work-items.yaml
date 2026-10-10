@@ -4597,6 +4597,10 @@ items:
       hides this; with none, every run stays red until a person decides: waive the commits
       (p3-human-waiver), move commits.since,
       or let verify and plugin-version read an empty start differently.
+
+      Backlog review of 2026-10-10, batch 2: folds in p3-plugin-release-tags: plugin-version could
+      start from the plugin's newest {name}--v{version} tag when FROM is empty, which also shows
+      which plugin version holds which change.
     refs: [.github/workflows/ci.yml, tools/bin/plugin-version/main.go, tasks/phase-1.yaml]
 
   - id: p1-registry-writers-race
