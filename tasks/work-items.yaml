@@ -6945,3 +6945,20 @@ items:
       commit already; or start the range at the last release's tag when no green run is in reach;
       raising the 100 only delays it.
     refs: [internal/providers/range.go, internal/cli/verify.go]
+
+  - id: p1-written-yaml-formatter-stable
+    title: The YAML itos writes passes this repository's formatter
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      CI run 38010025480 went red at vp check on two files itos wrote and committed alone:
+      tasks/asks.yaml, q-28's question double-quoted though it holds double quotes (the formatter
+      single-quotes it), and tasks/work-items.yaml, slice-108's refs as one line past the width
+      (work edit --refs). The pre-commit hook ran but lint-staged found no staged files, so neither
+      was formatted in its commit; 612acdbf fixed them by hand. Decided 2026-10-04
+      (p1-written-files-format-command): what itos writes is formatter-stable under default settings
+      and a formatting hook styles it in the same commit; neither held here.
+    refs: [internal/cli/workwrite.go]
