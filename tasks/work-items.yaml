@@ -2435,15 +2435,9 @@ items:
     title: "@ID-CONFIG-21 sets a hooks.bin the default does not contain"
     phase: 3
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: [slice-45]
     kind: idea
-    why: >
-      Found by slice 45's agent: @ID-CONFIG-21 sets hooks.bin to bin/itos and reads its output for
-      bin/itos, which the default tools/bin/itos also contains, so an itos printing only defaults
-      would pass it. Its Given should name a value the default lacks (bin/own-itos). It is live,
-      so the change is a feat's or a fix's: fold it into the next one that touches
-      features/config.feature rather than cut a release for a scenario alone.
     refs: [features/config.feature]
 
   - id: T-077
