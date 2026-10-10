@@ -6995,14 +6995,15 @@ items:
       except it in itos-cc.yaml only when it is truly equivalent, with the reason.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
 
-  - id: p1-init-policy-command-smoke
+  - id: slice-110
     title: init --policy derives a command adapter's smoke set
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-108]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-init-policy-command-smoke.
       Slice 108's init --policy refuses a policy whose test kind has a command adapter and a smoke
       file, since deriving that smoke set means running the adapter's list command, which the first
       slice left out (the comment above @ID-INIT-41). A template whose named tests come from a
