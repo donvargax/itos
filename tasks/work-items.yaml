@@ -7089,3 +7089,18 @@ items:
       vp. tools/itos/conformance/run.ts, which runs the corpus against a binary in CI and the
       nightly, becomes a Go program with the same cases, fakes (the GitHub API on 127.0.0.1) and
       output.
+
+  - id: T-145
+    title: The changelog is written without tools/changelog.ts
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and
+      Markdown, YAML, JSON and TOML are formatted by dprint, pinned by checksum through
+      tools/bin/pinned with each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth
+      adopting). None of it changes what itos does for consumers, whose repositories never carried
+      vp. tools/changelog.ts wraps git-cliff; the changelog becomes git-cliff called directly
+      (pinned like dprint) or a Go program, with the same --task and --scenario views.
