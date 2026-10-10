@@ -93,7 +93,10 @@ scenario: `go test -v` lists them, and a failure reads
 **IDs.** `<AREA>` is one word in capitals for the area of behaviour, and one
 feature file holds one area: `SINCE` is `since.feature` (where verification
 starts), `CMSG` is `commit-msg.feature` (the commit-msg hook). `<nn>` counts
-up within the area from `01`; a removed scenario's number is not given again.
+up within the area from `01`. Take it with `itos tests next-id scenario
+ID-<AREA>` (`--count <n>` for several), which claims it through the id
+counter, so a number printed, used or not, or held by a removed scenario, is
+not given again.
 A new area gets a new word and a new file.
 
 `go test ./features -count=1 -scenarios='^@slice-<n>$'` shows a slice's

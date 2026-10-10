@@ -142,7 +142,7 @@ var specs = map[string]spec{
 	"tests": {subs: map[string]spec{
 		"list":    {flags: []flagSpec{val("--at")}},
 		"moves":   {},
-		"next-id": {},
+		"next-id": {flags: []flagSpec{val("--count")}},
 		"smoke": {subs: map[string]spec{
 			"check": {flags: []flagSpec{val("--features")}},
 			"ids":   {},

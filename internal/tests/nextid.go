@@ -55,6 +55,19 @@ func NextTag(cfg *config.Loaded, name, stem string, others []string) (string, er
 	return k.TagPrefix + nextid.Next(stem+"-", ids, width, nil), nil
 }
 
+// Area is whether stem is an area of the kind's ID pattern, ID-<AREA>: the
+// pattern is an ID- one and takes <stem>-01. itos tests next-id claims an
+// area's numbers through the id counter (slice 105); any other stem it only
+// reads, slice and bug among them, whose numbers the commands that create
+// the registry's items mint.
+func Area(k config.Kind, stem string) bool {
+	if k.ID == nil || !strings.HasPrefix(strings.TrimPrefix(*k.ID, "^"), "ID-") {
+		return false
+	}
+	id, err := regexp.Compile("^(?:" + *k.ID + ")$")
+	return err == nil && id.MatchString(stem+"-01")
+}
+
 // tags are the tags of a feature file's tag lines, without the tag prefix;
 // a word without it is no tag of the kind's.
 func tags(text, prefix string) []string {

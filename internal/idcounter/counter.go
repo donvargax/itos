@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -37,13 +38,26 @@ type Store struct {
 // counter already stored. The reservation happens before returning and is
 // never rolled back.
 func Mint(store Store, category string, repositoryHighest int) (int, error) {
+	return Claim(store, category, repositoryHighest, 1)
+}
+
+// Claim reserves count numbers in a row, the first greater than both
+// repositoryHighest and the counter already stored, and gives the first. The
+// counter is raised past the last in one reservation (one write, or one
+// counter commit pushed), so no other claim lands inside the run. A count
+// below 1 is refused before anything is read, and a run whose last number
+// would pass the largest int before anything is written.
+func Claim(store Store, category string, repositoryHighest, count int) (int, error) {
 	if !validCategory(category) {
 		return 0, fmt.Errorf("invalid id counter category %q", category)
 	}
-	if store.LocalOnly || store.Remote == "" {
-		return mintLocal(store, category, repositoryHighest)
+	if count < 1 {
+		return 0, fmt.Errorf("cannot claim %d id numbers", count)
 	}
-	return mintRemote(store, category, repositoryHighest)
+	if store.LocalOnly || store.Remote == "" {
+		return mintLocal(store, category, repositoryHighest, count)
+	}
+	return mintRemote(store, category, repositoryHighest, count)
 }
 
 func validCategory(s string) bool {
@@ -58,7 +72,7 @@ func validCategory(s string) bool {
 	return true
 }
 
-func mintLocal(store Store, category string, highest int) (int, error) {
+func mintLocal(store Store, category string, highest, count int) (int, error) {
 	if store.CommonDir == "" {
 		return 0, kind.Wrap(kind.Missing, errors.New("cannot locate the git common directory for the id counter"))
 	}
@@ -73,12 +87,15 @@ func mintLocal(store Store, category string, highest int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	n := max(highest, counters[category]) + 1
-	counters[category] = n
+	first, err := firstAfter(category, max(highest, counters[category]), count)
+	if err != nil {
+		return 0, err
+	}
+	counters[category] = first + count - 1
 	if err := writeCounters(file, counters); err != nil {
 		return 0, err
 	}
-	return n, nil
+	return first, nil
 }
 
 func readCounters(file string) (map[string]int, error) {
@@ -134,7 +151,7 @@ func writeCounters(file string, counters map[string]int) error {
 	return nil
 }
 
-func mintRemote(store Store, category string, highest int) (int, error) {
+func mintRemote(store Store, category string, highest, count int) (int, error) {
 	if store.Root == "" {
 		return 0, kind.Wrap(kind.Missing, errors.New("cannot locate the repository for the id counter"))
 	}
@@ -155,20 +172,32 @@ func mintRemote(store Store, category string, highest int) (int, error) {
 				return 0, remoteError("reading", err)
 			}
 		}
-		n := max(highest, current) + 1
-		commit, err := counterCommit(store.Root, parent, category, n)
+		first, err := firstAfter(category, max(highest, current), count)
+		if err != nil {
+			return 0, err
+		}
+		commit, err := counterCommit(store.Root, parent, category, first+count-1)
 		if err != nil {
 			return 0, fmt.Errorf("build id counter commit: %w", err)
 		}
 		_, err = run(store.Root, nil, "push", "--no-verify", store.Remote, commit+":"+remoteRef)
 		if err == nil {
-			return n, nil
+			return first, nil
 		}
 		if !nonFastForward(err) {
 			return 0, remoteError("pushing", err)
 		}
 	}
 	return 0, kind.Wrap(kind.Temporary, errors.New("the remote id counter kept advancing; run the command again"))
+}
+
+// firstAfter is the first of count numbers past floor, refused when the
+// last would pass the largest int.
+func firstAfter(category string, floor, count int) (int, error) {
+	if floor > math.MaxInt-count {
+		return 0, fmt.Errorf("id counter %s cannot claim %d past %d: the largest number is %d", category, count, floor, math.MaxInt)
+	}
+	return floor + 1, nil
 }
 
 func fetchCounter(store Store) (string, error) {

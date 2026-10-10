@@ -466,7 +466,10 @@
 //
 // tests list, tests smoke check and run, tests moves (tests.go) and tests
 // next-id and task next-id (nextid.go) are calls into internal/tests,
-// internal/ledger and internal/nextid; next-id reads only the working tree.
+// internal/ledger and internal/nextid, reading only the working tree; tests
+// next-id of an area (tests.Area) then claims what it prints through
+// idcounter.Claim, at the store item ids are minted in (counterStore,
+// idmint.go), the area's stem its counter.
 // commit check-paths and commit footers (commit.go) are calls into
 // internal/scope and message.Gathered.
 //

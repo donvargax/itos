@@ -294,3 +294,61 @@ cases:
       ids:
         - F-001
         - F-003
+  - name: tests next-id claims an area's next tag through the id counter, kept in the git folder with no remote
+    argv: [tests, next-id, scenario, ID-ONE]
+    exit: 0
+    stdout: |
+      @ID-ONE-04
+    files_after:
+      .git/itos/ids.yaml: "counters:\n    ID-ONE: 4\n"
+  - name: tests next-id claims past an area's counter when the counter is ahead of the files
+    argv: [tests, next-id, scenario, ID-ONE, --json]
+    files: { .git/itos/ids.yaml: "counters:\n    ID-ONE: 7\n    slice: 2\n" }
+    exit: 0
+    json:
+      schema: 1
+      kind: scenario
+      stem: ID-ONE
+      id: "@ID-ONE-08"
+      ids: ["@ID-ONE-08"]
+      claimed: true
+    files_after:
+      .git/itos/ids.yaml: "counters:\n    ID-ONE: 8\n    slice: 2\n"
+  - name: tests next-id --count claims several of an area's tags in a row, one a line
+    argv: [tests, next-id, scenario, ID-ONE, --count, "3"]
+    exit: 0
+    stdout: |
+      @ID-ONE-04
+      @ID-ONE-05
+      @ID-ONE-06
+    files_after:
+      .git/itos/ids.yaml: "counters:\n    ID-ONE: 6\n"
+  - name: tests next-id of a stem the registry's items use only reads, claiming nothing
+    argv: [tests, next-id, scenario, slice, --json]
+    exit: 0
+    json:
+      schema: 1
+      kind: scenario
+      stem: slice
+      id: "@slice-1"
+      ids: ["@slice-1"]
+      claimed: false
+    files_after:
+      .git/itos/ids.yaml: null
+  - name: tests next-id refuses a --count that is no number from 1 up, claiming nothing
+    argv: [tests, next-id, scenario, ID-ONE, --count, "0"]
+    exit: 2
+    stderr: |
+      itos: tests next-id --count takes how many ids to claim, a number from 1 up, not "0" (itos --help)
+    files_after:
+      .git/itos/ids.yaml: null
+  - name: tests next-id refuses a --count that is not a number
+    argv: [tests, next-id, scenario, ID-ONE, --count, three]
+    exit: 2
+    stderr: |
+      itos: tests next-id --count takes how many ids to claim, a number from 1 up, not "three" (itos --help)
+  - name: tests next-id refuses --count for a stem that only reads
+    argv: [tests, next-id, scenario, slice, --count, "2"]
+    exit: 2
+    stderr: |
+      itos: tests next-id --count claims an area's ids, and slice is no area of tests.scenario's id: its next id is only read (itos --help)

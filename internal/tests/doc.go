@@ -85,5 +85,7 @@
 // and Index(kind) for itos tests moves. Between and Merge go through one
 // judge, which picks the comparison by the kind's adapter.
 //
-// NextTag (nextid.go) is itos tests next-id's tag (internal/nextid).
+// NextTag (nextid.go) is itos tests next-id's tag (internal/nextid), and
+// Area whether a stem is an area of a kind's ID- pattern, whose tags tests
+// next-id claims through the id counter.
 package tests

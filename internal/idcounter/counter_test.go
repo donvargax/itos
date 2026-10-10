@@ -180,12 +180,12 @@ func TestCounterCommitIsUniqueForConcurrentSameNumberClaims(t *testing.T) {
 }
 
 func TestMintRemoteRejectsMissingRepositoryAndRemoteErrors(t *testing.T) {
-	if n, err := mintRemote(Store{Remote: "origin"}, "slice", 0); err == nil || n != 0 {
+	if n, err := mintRemote(Store{Remote: "origin"}, "slice", 0, 1); err == nil || n != 0 {
 		t.Fatalf("mintRemote without root = (%d, %v), want (0, error)", n, err)
 	}
 	root := t.TempDir()
 	gitRun(t, root, "init", "-q")
-	if n, err := mintRemote(Store{Root: root, Remote: "missing"}, "slice", 0); err == nil || n != 0 {
+	if n, err := mintRemote(Store{Root: root, Remote: "missing"}, "slice", 0, 1); err == nil || n != 0 {
 		t.Fatalf("mintRemote without remote = (%d, %v), want (0, error)", n, err)
 	}
 }

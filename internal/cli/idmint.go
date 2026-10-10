@@ -94,31 +94,38 @@ func mintItemID(cfg *config.Loaded, category string, registryIDs []string) (stri
 }
 
 func reserveItemNumber(cfg *config.Loaded, category string, highest int) (int, error) {
-	common, err := git.Output("rev-parse", "--git-common-dir")
+	store, err := counterStore(cfg)
 	if err != nil {
 		return 0, err
+	}
+	return idcounter.Mint(store, category, highest)
+}
+
+// counterStore is where this repository's id counter is: the remote itos
+// push pushes to (the branch's upstream, else origin, as git.Upstream gives
+// it) when there is one, else, and always under a stealth config, the file
+// in the git common dir.
+func counterStore(cfg *config.Loaded) (idcounter.Store, error) {
+	common, err := git.Output("rev-parse", "--git-common-dir")
+	if err != nil {
+		return idcounter.Store{}, err
 	}
 	common, err = filepath.Abs(strings.TrimSpace(common))
 	if err != nil {
-		return 0, err
+		return idcounter.Store{}, err
 	}
 	root, err := os.Getwd()
 	if err != nil {
-		return 0, err
+		return idcounter.Store{}, err
 	}
 	remote := ""
 	if !cfg.Stealth {
 		remote, _, _ = git.Upstream(git.Branch())
-		if remote == "" {
-			remote = "origin"
-		}
 		if !git.Succeeds("remote", "get-url", remote) {
 			remote = ""
 		}
 	}
-	return idcounter.Mint(idcounter.Store{
-		Root: root, CommonDir: common, Remote: remote, LocalOnly: cfg.Stealth,
-	}, category, highest)
+	return idcounter.Store{Root: root, CommonDir: common, Remote: remote, LocalOnly: cfg.Stealth}, nil
 }
 
 // taggedIDs are the ids given and the <kind>-<n> every @<kind>-<n> tag of

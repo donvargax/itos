@@ -10,9 +10,11 @@ Feature: The next free ID, for a spec writer
   scenarios are written; a stem nothing uses yet starts at 1, padded to two
   digits where the kind's ID pattern is an ID- one, as the README's IDs are.
   itos task next-id prints the ledger's next task ID the same way, by
-  ledger.id. Help only: it reads, never writes, and judges nothing. A
-  number a removed scenario held is not seen, since only the tree is read;
-  the README's rule against reusing one stays the writer's.
+  ledger.id. Both judge nothing. task next-id only reads, as tests next-id
+  did until slice 105: of an area it now claims the number it prints
+  through the id counter (below), so a number a removed scenario held is
+  not given again, and the README's rule against reusing one is the
+  counter's.
 
   Background:
     Given a repository whose ledger has the tasks "T-001" and "T-002"
@@ -63,7 +65,7 @@ Feature: The next free ID, for a spec writer
   # bug) still only reads, since those ids are minted by the commands that
   # create the items (slice 102). The README's rule against reusing a
   # removed scenario's number becomes the counter's.
-  @ID-NEXTID-06 @slice-105 @wip
+  @ID-NEXTID-06 @slice-105
   Scenario: tests next-id claims the number it prints, so the next run gives the one after
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     When itos runs "tests next-id scenario ID-A"
@@ -72,7 +74,7 @@ Feature: The next free ID, for a spec writer
     Then itos exits with code 0
     And its output says "@ID-A-03"
 
-  @ID-NEXTID-07 @slice-105 @wip
+  @ID-NEXTID-07 @slice-105
   Scenario: tests next-id --count claims several numbers in a row
     Given a feature file "a.feature" with the live scenario "@ID-A-01"
     When itos runs "tests next-id scenario ID-A --count 3"

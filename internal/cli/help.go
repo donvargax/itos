@@ -121,7 +121,8 @@ Commands:
   tests list <kind> [--at <tree>]  the kind's named tests
   tests smoke check|ids|run <kind> the smoke rule, the smoke IDs, the smoke run
   tests moves <kind>               the staged feature files by the moves rule
-  tests next-id <kind> <stem>      the kind's next free tag of the stem; reads only
+  tests next-id <kind> <stem> [--count <n>]
+                                   the kind's next free tag of the stem, claimed for an area
   ci plan <from> <to> | --nightly | --whole
                                    print the CI plan; runs nothing
   ci run [<from> <to>] | --nightly run the CI plan
@@ -646,7 +647,7 @@ commits.since or a footer's since is not a commit of the repository.
 	"tests": `Usage: itos tests list <kind> [--at <tree>]
        itos tests smoke check|ids|run <kind>
        itos tests moves <kind>
-       itos tests next-id <kind> <stem>`,
+       itos tests next-id <kind> <stem> [--count <n>]`,
 
 	"tests list": `Usage: itos tests list <kind> [--at <tree>]
 
@@ -670,7 +671,7 @@ runner's.
 --json (check): {"schema":1,"kind","ok","ids","problems":[{"rule","message","fix"}]}
 --json (ids):   {"schema":1,"kind","ids"}`,
 
-	"tests next-id": `Usage: itos tests next-id <kind> <stem>
+	"tests next-id": `Usage: itos tests next-id <kind> <stem> [--count <n>]
 
 Prints the next free tag of the kind with the stem, <tag_prefix><stem>-<n>
 (@ID-A-04, @slice-10): n is one past the highest that any tag
@@ -680,11 +681,18 @@ named before its scenarios are written). A kind behind a command adapter
 counts its listing's IDs instead of tags. The number keeps the width the stem
 already has; a stem nothing uses starts at 1, padded to two digits where the
 kind's ID pattern is an ID- one and the tag is one of its IDs (@ID-NEW-01).
-Help for writing a spec: it reads, writes nothing and judges nothing, and a
-number only a removed scenario held is not seen. A <kind> the config does not
-have is a usage error (exit 2).
 
---json: {"schema":1,"kind","stem","id"}`,
+A stem that is an area of that ID pattern (ID-<AREA>) is claimed through the
+id counter that work add mints item ids through: n is one past the higher of
+the area's counter and the highest the files hold, and the counter is raised
+to it, so a number printed is never printed again, used or not, and one a
+removed scenario held is not given again. --count <n> claims n numbers in a
+row and prints each, one a line. Any other stem (slice, bug) only reads: the
+commands that create those items mint their ids. A <kind> the config does not
+have, a --count that is no number from 1 up and a --count for a stem that only
+reads are usage errors (exit 2); a counter that cannot be reached is exit 3.
+
+--json: {"schema":1,"kind","stem","id","ids","claimed"}`,
 
 	"tests moves": `Usage: itos tests moves <kind>
 
