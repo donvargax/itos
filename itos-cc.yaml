@@ -250,3 +250,11 @@ mutation:
       original: "&&"
       replacement: "||"
       reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/idcounter/counter.go
+      function: github.com/donvargax/itos/v7/internal/idcounter#validCategory
+      hash: d301a27826cda753
+      line_in_function: 2
+      column: 50
+      original: "||"
+      replacement: "&&"
+      reason: 'Equivalent: the source edit binds as s == "" || (strings.ContainsAny(s, "/\\\x00") && s == ".") || s == "..", and "." holds none of those characters, so it rejects only "" and ".."; every string the original also rejects (".", or one holding a slash, backslash or NUL) has a character outside [A-Za-z0-9-], which the loop below rejects anyway, so validCategory returns the same for every input.'

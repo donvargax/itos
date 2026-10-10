@@ -24,9 +24,11 @@
 		"internal/cli/workdone_test.go": "9f6f69d9c81f52550524c7cad9e8e8bf888d02df03724b0aa303e16c5d1c96b6",
 		"internal/cli/workmint_test.go": "a6e633c28c69e0def80752fb37f1a8cec123f0895b46854f317b82be951380fb",
 		"internal/cli/workwrite_test.go": "2236c1e90943f3374e07bc232df536c7e7a4e34b1e73c53795ae01b327f842a5",
+		"internal/idcounter/counter_errors_test.go": "4da71e0416685a283162e9ba6cf3d5a369f9bc9d0ad9f4fc04c1ec022df82606",
 		"internal/idcounter/counter_file_test.go": "a73f0b3b32d1a0c9074e76b4300b10202d81168978e231a78e718a8fad3840f5",
 		"internal/idcounter/counter_file_windows_test.go": "c44d7e4f6a3bdccad0a15445c2160413131422d9d585e1e48833644dadb50b5d",
-		"internal/idcounter/counter_test.go": "64aa0fd8175aaa12cd52c8c05eef3cb91f3650c6ac809f4b123d06a65c7390b3"
+		"internal/idcounter/counter_local_unix_test.go": "3884c979ce268b1befceb5ffb785aae5401eef9c7343b3b20593f4e6c9d3fcda",
+		"internal/idcounter/counter_test.go": "dcea5002c1e8684646d1f966ef7621b8178c929631092390edec39634ff40dc6"
 	},
 	"units": [
 		{
@@ -80,8 +82,8 @@
 			"hash": "d301a27826cda753",
 			"start_line": 49,
 			"end_line": 59,
-			"killed": 23,
-			"survived": 0,
+			"killed": 22,
+			"survived": 1,
 			"uncovered": 0,
 			"sites": 23,
 			"mutants": [
@@ -107,7 +109,30 @@
 					"offset": 85,
 					"original": "||",
 					"replacement": "&&",
-					"outcome": "timeout"
+					"outcome": "survived",
+					"scope": "listed",
+					"tests": [
+						"ID-IDS-01",
+						"ID-IDS-02",
+						"ID-IDS-03",
+						"ID-IDS-04",
+						"ID-IDS-05",
+						"ID-IDS-06",
+						"ID-IDS-07",
+						"ID-INIT-24",
+						"ID-INIT-25",
+						"ID-TASK-05",
+						"ID-TASK-08",
+						"ID-TASK-09",
+						"ID-TASK-10",
+						"ID-TASK-13",
+						"ID-WORK-12",
+						"ID-WORK-29",
+						"ID-WORK-52",
+						"ID-WORK-81",
+						"ID-WORK-84",
+						"ID-WORK-88"
+					]
 				},
 				{
 					"line": 50,
@@ -277,9 +302,9 @@
 			"hash": "6875d1bbd39034f0",
 			"start_line": 61,
 			"end_line": 82,
-			"killed": 9,
+			"killed": 10,
 			"survived": 0,
-			"uncovered": 1,
+			"uncovered": 0,
 			"sites": 10,
 			"mutants": [
 				{
@@ -288,7 +313,7 @@
 					"offset": 93,
 					"original": "==",
 					"replacement": "!=",
-					"outcome": "killed"
+					"outcome": "timeout"
 				},
 				{
 					"line": 63,
@@ -360,7 +385,7 @@
 					"offset": 612,
 					"original": "0",
 					"replacement": "1",
-					"outcome": "uncovered"
+					"outcome": "killed"
 				}
 			]
 		},
@@ -476,9 +501,9 @@
 			"hash": "cf4a30b1a948925b",
 			"start_line": 137,
 			"end_line": 172,
-			"killed": 23,
-			"survived": 2,
-			"uncovered": 3,
+			"killed": 28,
+			"survived": 0,
+			"uncovered": 0,
 			"sites": 28,
 			"mutants": [
 				{
@@ -591,9 +616,7 @@
 					"offset": 568,
 					"original": "<",
 					"replacement": "<=",
-					"outcome": "survived",
-					"scope": "listed",
-					"tests": ["ID-IDS-02", "ID-IDS-03", "ID-IDS-07"]
+					"outcome": "killed"
 				},
 				{
 					"line": 151,
@@ -601,9 +624,7 @@
 					"offset": 570,
 					"original": "0",
 					"replacement": "1",
-					"outcome": "survived",
-					"scope": "listed",
-					"tests": ["ID-IDS-02", "ID-IDS-03", "ID-IDS-07"]
+					"outcome": "killed"
 				},
 				{
 					"line": 152,
@@ -627,7 +648,7 @@
 					"offset": 714,
 					"original": "0",
 					"replacement": "1",
-					"outcome": "uncovered"
+					"outcome": "killed"
 				},
 				{
 					"line": 158,
@@ -659,7 +680,7 @@
 					"offset": 879,
 					"original": "0",
 					"replacement": "1",
-					"outcome": "uncovered"
+					"outcome": "killed"
 				},
 				{
 					"line": 163,
@@ -699,7 +720,7 @@
 					"offset": 1101,
 					"original": "0",
 					"replacement": "1",
-					"outcome": "uncovered"
+					"outcome": "killed"
 				},
 				{
 					"line": 171,
@@ -1058,12 +1079,32 @@
 		}
 	],
 	"listed": {
+		"ID-IDS-01": "features/ids.feature",
 		"ID-IDS-02": "features/ids.feature",
 		"ID-IDS-03": "features/ids.feature",
-		"ID-IDS-07": "features/ids.feature"
+		"ID-IDS-04": "features/ids.feature",
+		"ID-IDS-05": "features/ids.feature",
+		"ID-IDS-06": "features/ids.feature",
+		"ID-IDS-07": "features/ids.feature",
+		"ID-INIT-24": "features/init.feature",
+		"ID-INIT-25": "features/init.feature",
+		"ID-TASK-05": "features/task.feature",
+		"ID-TASK-08": "features/task.feature",
+		"ID-TASK-09": "features/task.feature",
+		"ID-TASK-10": "features/task.feature",
+		"ID-TASK-13": "features/task.feature",
+		"ID-WORK-12": "features/work.feature",
+		"ID-WORK-29": "features/work.feature",
+		"ID-WORK-52": "features/work.feature",
+		"ID-WORK-81": "features/work.feature",
+		"ID-WORK-84": "features/work.feature",
+		"ID-WORK-88": "features/work.feature"
 	},
 	"listed_files": {
-		"features/ids.feature": "f2efb59a06bb1b48995844ba4adade1d691d0c6a62d8875401fbd09c2dbfb06a"
+		"features/ids.feature": "f2efb59a06bb1b48995844ba4adade1d691d0c6a62d8875401fbd09c2dbfb06a",
+		"features/init.feature": "1d5f7c5eba408badaa1531287e69b4f888218b77be553be213338cb2e73cc5a7",
+		"features/task.feature": "68781b4253be67a5030012658a88ecddece4361ba615ae1405017045e8c2b7db",
+		"features/work.feature": "96887efe67df3aa9d2a60d2f038273d30b54103db118a63b88599e082812da47"
 	},
 	"support": {
 		"features/commit_test.go": "14329108148618b898bb0cd3c1dbdf1b21626361fbae11a309b408d6373fa489",
