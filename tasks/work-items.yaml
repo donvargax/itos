@@ -6854,24 +6854,9 @@ items:
     title: Initialize a fresh project from reusable itos policy without importing template work data
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-init-from-policy.
-      Issue #33 (https://github.com/donvargax/itos/issues/33). A made project needs the templates
-      reviewed commit, CI, test and proof policy, but must not inherit template tasks, owners,
-      statuses, historical SHAs, proof results or mutation caches. Plain init currently creates only
-      the generic starter; supplying itos.yaml instead selects the diagnostic branch and leaves
-      missing work data missing. Add an explicitly selected initialization path that retains
-      applicable policy and supported pins, creates fresh project-local adoption/work data at the
-      selected paths, sets the projects history boundary, and installs hooks or generates agent
-      rules only as requested. Do not silently overwrite existing project data, add config
-      inheritance, or make itos-template understand itos. The user selected this issue for
-      independent work while the itos-cc implementation is pending (2026-10-09). q-49 settled the
-      interface (itos init --policy <file>), and @ID-INIT-41 to 52 in features/init.feature, with
-      the comment above them, specify source-state sanitization, rerun behavior and failure
-      handling.
     refs:
       [
         internal/cli/init.go,
