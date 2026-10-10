@@ -391,16 +391,9 @@ items:
     title: A ledger.files pattern that matches the registry
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The registry's default home is tasks/, where ledgers live. This repository's ledger.files,
-      tasks/phase-{group}.yaml, does not match tasks/work-items.yaml, but tasks/{group}.yaml with the
-      default group pattern [^/]+ does: config check then fails with "tasks/work-items.yaml is not a
-      list of tasks", and task list with a TypeError. config check could reject a ledger.files whose
-      pattern matches work.registry (naming both), or the ledger could leave the registry's file out.
-      Needs a scenario either way.
 
   - id: p1-people-checked-at-commit
     title: A staged people file runs the registry's check at commit
