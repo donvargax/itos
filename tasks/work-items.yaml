@@ -7142,3 +7142,18 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-whole-run-proof
+    title: A whole CI run judges the code proof, or says it judged none
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #35 (itos-template, 7.0.0-rc.3): ci plan --whole holds no code proof, since {base} has
+      nothing to name when the range has no start. A whole run is CI's strongest (a first push, a
+      new branch, a run after rewritten history) and the only one that proves no code, so a code
+      change can land unjudged. Either the whole run judges proof.code.paths entire ({base} the root
+      commit or the empty tree), or itos says plainly that this run judged no proof, so a green
+      whole run does not read as a proved one.
