@@ -1695,15 +1695,9 @@ items:
     title: The Go port, one command group at a time
     phase: 2
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: [T-056]
     kind: idea
-    why: >
-      PLAN.md, phase 2: every command group is ported (T-039 to T-052) and the port closes with
-      T-053 to T-056 (the whole suite on every push, the JSON Schema, the release workflow,
-      v1.0.0). What this item still holds is step 6's HTTP providers, GitLab and Forgejo ranges
-      and the HTTP identity and people providers, which wait for p1-conformance-http to give them
-      cases to be judged by.
     refs: [PLAN.md, tasks/phase-2.yaml]
 
   - id: slice-30
