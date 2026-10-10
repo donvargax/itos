@@ -5737,6 +5737,11 @@ items:
       edit and add, task add, decision add, answer and record. Queued: grooming writes such reasons
       by the dozen.
 
+      Backlog review of 2026-10-10, batch 3: folds in p1-self-commit-long-word: a word longer than
+      the line (a path in a why, a long item id, a deep ledger path) also gets the commit refused
+      after the command wrote its files; one answer in selfBody covers every registry, task and
+      decision commit.
+
   - id: T-124
     title: itos writes its coverage counters before it replaces itself with syscall.Exec
     phase: 1
