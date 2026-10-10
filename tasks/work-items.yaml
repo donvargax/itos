@@ -64,6 +64,7 @@ queue:
   - p1-push-fits-foreground
   - p3-commit-long-text-footer
   - p1-nightly-past-first-failure
+  - T-142
   - p1-windows-id-validation
   - bug-38
   - bug-42
