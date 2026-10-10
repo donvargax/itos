@@ -285,19 +285,9 @@ items:
     title: CI verifies with the last released itos too
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: [T-021, T-056]
     kind: idea
-    why: >
-      The hooks and CI run the working tree's itos, so a commit that breaks a gate can approve
-      itself. CI also running verify and the conformance corpus with the last released itos closes
-      that; a release that changes a rule on purpose says so in its notes.
-      Deferred by the user: the last release's itos fails on every config key added since it and
-      on every intentional change the corpus records, so it would be red between releases. Once
-      the Go port exists, the released TypeScript itos and the Go one can judge each other on the
-      same corpus and features, which answers the same worry. The user lifted the deferral
-      (2026-10-02), to come after v1.0.0: since T-053 the two implementations judge each other on
-      every push, so what is left to decide is whether CI also runs the last released binary.
 
   - id: T-032
     title: The released package's manifest holds only what a consumer needs
