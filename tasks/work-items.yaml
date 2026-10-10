@@ -7078,3 +7078,19 @@ items:
       feature file stays out, since a feature file is test code. The user agreed 2026-10-10; ranked
       before p1-decision-add-answer.
     refs: [internal/cli/workwrite.go]
+
+  - id: p1-decision-add-answer
+    title: itos decision add --answer records a question already answered in one commit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Most decisions of 2026-10-09 (q-50 to q-55) were answered in chat before the coordinator
+      recorded them, so each took docs: ask q-N then docs: answer q-N, the first commit there only
+      to give the second something to name. --answer writes the question and its answer together as
+      one docs: decide q-N commit, the question text kept, so itos decision and decision records
+      read the same. Halves those commits and their pushes; slice-109's fallback to commits.since
+      already covers the first-parent window they once overflowed. The user agreed 2026-10-10.
+    refs: [internal/cli, internal/ask]
