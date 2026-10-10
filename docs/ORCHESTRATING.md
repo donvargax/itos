@@ -95,7 +95,8 @@ work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the
   of a push's changed Go functions, with their statement coverage, and 20 a
   night, seeded by the run, without strict coverage. A pass is sampled
   assurance; a survivor, or an uncovered statement in a changed function, is
-  real and needs a test. No local mutation runs.
+  real and needs a test. Agents run CI's push proof once before pushing Go
+  (q-55); no other local mutation runs.
   Push with `tools/bin/itos push --no-wait`, then report the exact pushed SHA,
   commits, checks and remaining work from a clean checkout. Do not watch CI or
   close the item: the coordinator watches and closes only on green.

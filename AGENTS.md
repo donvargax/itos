@@ -263,7 +263,10 @@ Run these yourself when they apply:
 **You are not alone on this repository.** Other people and other sessions
 push to `main` too, so expect the remote to have moved while you worked.
 
-No local mutation runs (q-41). CI judges fresh mutants at the approved budget
+No local mutation runs (q-41), but one: before pushing a Go change, run CI's
+push proof once (q-55), `tools/bin/pinned itos-cc mutation run --count 1
+--since $(git rev-parse origin/main) --fail-uncovered --json cmd internal`.
+CI judges fresh mutants at the approved budget
 with itos-cc's `mutation run --count` (q-52). A push whose range changes Go
 code judges one mutation site of its changed functions and the statement
 coverage of every one of them, as the code proof; a range with no site is not
