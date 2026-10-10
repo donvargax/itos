@@ -241,6 +241,10 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And its output says "ci.watch.timeout"
     And the config is unchanged
 
+  # Slice 114 (2026-10-10): this scenario passed before slice 113's work,
+  # since an upgrade that edits nothing keeps every comment. The fix adds
+  # And the config's "ci.watch.wait" is "600" after its comment check, so it
+  # fails unless the rename happened and the comment survived it.
   @ID-UPGRADECMD-19 @slice-113
   Scenario: A rename keeps the config's comments and every other line as they were
     Given the config pins the version "9.1.0" of the release server
