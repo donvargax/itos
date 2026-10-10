@@ -4027,12 +4027,9 @@ items:
     title: ledger.group.numeric sorts the files as numbers
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). Files always sort byte-wise, so phase-10
-      comes before phase-2, against the key's own description (ledger.go:77).
     refs: [internal/ledger/ledger.go]
 
   - id: p1-since-from-base
