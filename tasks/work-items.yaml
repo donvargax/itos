@@ -3083,14 +3083,15 @@ items:
       an --item naming no item) lands unnoticed until an ask command or work show stops on it with
       exit 2.
 
-  - id: p1-stealth-24-checks-file
-    title: "@ID-STEALTH-24 checks the questions file is written"
+  - id: slice-114
+    title: "Three live scenarios check and say what their behaviour is: @ID-STEALTH-24, @ID-CONFIG-21 and guide.feature's description"
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-62]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-stealth-24-checks-file.
       Found by slice 62's agent: @ID-STEALTH-24's name says ask add writes the question in the git
       folder, but its steps check only exit 0 and that git sees nothing, so a command that did
       nothing would pass (a corpus case pins the file meanwhile). Add And the file
