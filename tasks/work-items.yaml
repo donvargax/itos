@@ -65,7 +65,6 @@ queue:
   - bug-42
   - p1-upgrade-on-major
   - p1-problem-fields
-  - p1-nightly-late-done-checks
   - p1-work-show-gaps
   - p1-release-notes-footers
   - p1-commit-wrap-review
@@ -3625,75 +3624,9 @@ items:
     title: done_when holds acceptance only, and guarantees come from standing rules, not tasks
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by T-092's agent, 2026-10-04: T-079's grep check failed from eb408eb (2026-10-04) until
-      T-092 retargeted it, while every nightly stayed green, since the nightly runs { tasks: done,
-      cost: static } and a grep matches no ci.cost.static pattern, so it is late and never runs
-      again once its task is done. ADR-0016 says the nightly runs the checks of every done task.
-      Either the nightly runs the late ones too, or grep and test join ci.cost.static (they are
-      fast), which also runs them in the commit-msg hook.
-
-      Design discussion with the user, 2026-10-05, undecided (the user is thinking it over; see
-      q-13). Found: the nightly's { tasks: done, cost: static } step skips every check matching no
-      ci.cost.static pattern, a grep included; and both incidents it was made for or caught (T-024,
-      fixed by T-029; T-079, fixed by T-092) were checks aimed wrong or gone stale, never a product
-      regression. Agreed: re-running done tasks' checks buys upkeep, not protection (unless they are
-      features); the inverted static/late default is out of v4. The coordinator's proposal: (1)
-      done_when is acceptance only, run while the task is open and never after, so it cannot break
-      later; supersede ADR-0016 and drop the nightly's done-task step. (2) Guarantees come from
-      generic standing rules itos enforces, never from a task: a Go coverage threshold (q-6); every
-      tools/bin program and gate has a self-test a standing CI or nightly step runs, config check
-      refusing one none exercises; a docs reference check (every command, path, scenario ID and ADR
-      the docs name exists), replacing doc-mentions-X greps. (3) Optionally, a done_when check must
-      run a test artifact (go test -run, a self-test, scenarios, the corpus, an itos gate), never a
-      raw grep or test; prose tasks have no check and are accepted by the user's review (the
-      coordinator leans to it). Before removing the step, done tasks' checks are audited for
-      invariants no standing step covers, and those become named steps by rule, not an agent's call.
-
-      Where the design stood on 2026-10-07 (the user's session of 2026-10-06, 23:40 to 00:33; open,
-      v7, q-13 unanswered). The user's concern: agents prove a change with string checks (grep,
-      test, or a unit test calling strings.Contains), which prove an edit happened once, not that
-      anything holds; a separate progress list of string checks beside done_when was rejected as
-      abusable, and done_when must never be empty, since models will do anything to complete the
-      job. Direction: a task's proof is computed from its diff and its type, never written by the
-      model. Go code: itos-cc mutate on the functions the task changed, no surviving mutant and
-      uncovered counting as a failure; perf adds a named benchmark. Gates (workflows, itos.yaml,
-      hooks, tools/bin): mutation of the config, each change to what the task added expected to fail
-      a self-test (itos-cc#11), with actionlint for ci. Docs: the standing rules and the user's
-      review. The checks a coordinator writes today become guidance for the agent, never proof. Core
-      itos owns the rule (each type declares its proof in itos.yaml, work done refuses without it,
-      config check refuses a type that changes code or gates with none); a provider measures
-      (itos-cc first, called with a machine contract, version pinned, in check mode, its cache never
-      read by itos, so a forged cache cannot pass). Needs itos-cc #4 (coverage over the module), #8
-      (check and sample modes), #9 (mutate as a gate provider), #10 (equivalent mutants excepted
-      with reasons), #11 (config mutation, the hardest).
-
-      Direction agreed with the user, 2026-10-07 (q-13 stays open for its parts (a) and (c)). String
-      checks are scaffolding, not proof. Evidence: they catch real things while a task is open,
-      chiefly the nothing-left-behind sweep after a rename or removal (T-101's ! git grep found a
-      stale /v5 module path in a comment that go build missed; T-092's sweep for the plugin skill),
-      and nothing as standing checks after done (the nightly's two reds, T-024's and T-079's, were
-      checks aimed wrong or gone stale). So: (1) a task's checks run while it is open and gate work
-      done, then work done removes them from the ledger, as it drops a closed item's why, git
-      history keeping them; (2) the nightly step that reruns every done task's checks is dropped;
-      (3) a standing rule: no test or self-test reads a policy file (itos.yaml, the workflows) as
-      text, since that is a string check frozen into code (tools/selftest/plugin-version.ts's check
-      that ci.prose.steps includes its command is one); (4) no new test written only to prove a
-      change; gate behaviour stays with the self-tests that run gates, policy with the user's
-      review. Mutation stays the proof for Go code (itos-cc #4, #8-#10). Config mutation as a
-      general tool (itos-cc#11) is parked: itos's experiment of 2026-10-07 mutated 10 items closed
-      ci/build tasks added, judged by a render diff (init --agent-rules, ci plan --json, commit
-      check-message) and by what the self-tests execute: 1 killed, and by the plugin-version.ts
-      string check; 2 holes (the nightly done-checks step, the release's upgrading.json upload); 4
-      policy; 1 equivalent; 2 unclear. Its kills can come from string tests, and most survivors are
-      policy.
-
-      Since 2026-10-07 itos-cc's mutate is itos-cc mutation run (cc3fecb), with --since <ref> and
-      --fail-uncovered (#9 done) and mutation check (#8, sample still to come); read mutate above as
-      that.
 
   - id: p1-guide-work-show-why
     title: itos guide work says where a slice's or task's why is, not work show's why
