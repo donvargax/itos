@@ -7083,3 +7083,15 @@ items:
       read the same. Halves those commits and their pushes; slice-109's fallback to commits.since
       already covers the first-parent window they once overflowed. The user agreed 2026-10-10.
     refs: [internal/cli, internal/ask]
+
+  - id: p1-work-promote-kind-bug
+    title: Decide whether work promote --kind takes bug
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-104]
+    kind: idea
+    why: >
+      Slice 104 made bug a kind minted by work add --kind bug, but work promote still takes --kind
+      slice|task only, and no spec says whether an idea found to be a bug should be promoted to one.
+      If it should, promote needs a scenario minting bug-<n> as it mints slice-<n>.
