@@ -4195,12 +4195,9 @@ items:
     title: itos ci watch knows the run it is part of
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Issue #14's other half: inside push CI ci watch on HEAD waits on its own run; it could read
-      GITHUB_RUN_ID and refuse or pass.
     refs: [internal/cli/watch.go]
 
   - id: p3-command-providers-back
