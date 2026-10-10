@@ -4734,6 +4734,10 @@ items:
       removals: providers.FirstGreen and its test, unused since bug 24's first-parent walk and since
       T-008's checks left the ledger (4f9b0bfd).
 
+      Backlog review of 2026-10-10, batch 3: folds in p1-status-last-green-unfetched:
+      readLastGreen's not-fetched branch and last_green's empty header in internal/cli/status.go,
+      which served ci.range.command, removed in v5 (slice 85).
+
   - id: p1-model-baseline
     title: "LeashBench: itos work replayed with the guidance on, gates only and off, across models and harnesses"
     phase: 1
