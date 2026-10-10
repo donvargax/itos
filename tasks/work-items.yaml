@@ -3426,16 +3426,9 @@ items:
     title: The notice of a pin fallen behind, and itos init's note of it, name itos upgrade instead of itos pin
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-75]
     kind: slice
-    why: >
-      Was p1-upgrade-notices.
-      Found working slice 75: the launcher's notice of a pin behind the newest release ("itos X is
-      out (this repository pins Y)", internal/launch/update.go) names the release's notes, and itos
-      init's note of the same says "itos pin moves it there; read the notes of the releases between
-      them". itos upgrade now does both in one run, so they could name it instead; the words are
-      held by update.feature, init.feature and the corpus, so the change is a slice of its own.
 
   - id: slice-77
     title: work list --all lists every item, before v4.0.0 makes the open ones the default
