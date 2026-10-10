@@ -6958,8 +6958,8 @@ items:
   - id: T-137
     title: The formatter leaves the files itos writes under tasks/ to itos
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
