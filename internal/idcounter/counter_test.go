@@ -15,6 +15,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	if failing := os.Getenv(failingGitEnv); failing != "" {
+		os.Exit(runFailingGit(failing))
+	}
 	clearGitEnvironment()
 	os.Exit(m.Run())
 }
