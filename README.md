@@ -289,13 +289,15 @@ same for one person in a repository whose team does not use itos (below).
 A template that ships its reviewed policy hands it to `itos init --policy
 <file>`: that file, an ordinary complete `itos.yaml`, becomes the new project's
 config, comments and all, never followed afterwards, with `commits.since` at
-the project's HEAD and no footer's `since`, its pin kept. The ledger, the
-registry and the smoke sets are made fresh at the paths it names, the ledger
-holding only `T-1`, so no task, owner, status or proof result of the
-template's comes along; a command adapter's smoke set comes from its list, run
-once in the project, and nothing else the policy names runs. Where any itos
-config or data is there already, or the policy's data could not be made as it
-says, it refuses and writes nothing.
+the project's HEAD and no footer's `since`, its pin kept. The ledger and the
+registry are made fresh at the paths it names, the ledger holding only `T-1`,
+so no task, owner, status or proof result of the template's comes along. A
+smoke set the project has is its own, kept when `itos tests smoke check`
+passes over it; where there is none, one is made of the project's own tests,
+a command adapter's from its list, run once in the project, and nothing else
+the policy names runs. Where any itos config, ledger or registry is there
+already, a smoke set there fails the check, or the policy's data could not be
+made as it says, it refuses and writes nothing.
 It also offers the Claude Code plugin (below), through the `claude` on your
 `PATH`, and never unasked: `--plugin` installs it for the project (in the
 committed `.claude/settings.json`), `--plugin user` for every repository of

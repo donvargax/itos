@@ -492,7 +492,7 @@ Feature: itos init, a repository made ready for itos
   # says so; it derives a set only when there is none. A smoke file that fails
   # the check is refused with the check's problems, before anything is
   # written. The registry and the ledger stay refused: those are work data.
-  @ID-INIT-55 @slice-112 @wip
+  @ID-INIT-55 @slice-112
   Scenario: Policy initialization keeps a smoke set the project already has when the smoke check passes over it
     Given a repository that does not use itos, its one commit "docs: start"
     And the feature file "specs/pages.feature" with the scenario "@ID-PAGE-01"
@@ -519,7 +519,7 @@ Feature: itos init, a repository made ready for itos
     When itos runs "tests smoke check scenario"
     Then itos exits with code 0
 
-  @ID-INIT-56 @slice-112 @wip
+  @ID-INIT-56 @slice-112
   Scenario: Policy initialization refuses a smoke set the project already has when the smoke check fails over it, writing nothing
     Given a repository that does not use itos, its one commit "docs: start"
     And the feature file "specs/pages.feature" with the scenario "@ID-PAGE-01"

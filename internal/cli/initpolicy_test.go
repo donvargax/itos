@@ -222,6 +222,64 @@ func TestPolicyInitRunsACommandAdaptersList(t *testing.T) {
 	}
 }
 
+// A smoke set the project has is kept as it is when the smoke check passes
+// over it, a command kind's through its list, and named in what to commit;
+// one the check refuses, one it cannot read and one whose list fails are
+// refused with their problems, exit 1, before anything is written.
+func TestPolicyInitKeepsTheProjectsSmokeSet(t *testing.T) {
+	policy := func(script string) string {
+		return "version: 1\ntests:\n  scenario: { root: specs, id: 'ID-[A-Z]+-\\d+', smoke: { file: specs/smoke.yaml } }\n" +
+			"  unit: { adapter: { command: sh " + script + " }, smoke: { file: unit.yaml } }\n"
+	}
+	set := func(file, id string) string {
+		return "- file: " + file + "\n  scenarios:\n    - id: \"" + id + "\"\n      why: reviewed with the template\n"
+	}
+	initScratch(t, "commit", map[string]string{
+		"specs/pages.feature": "Feature: Pages\n\n  @ID-PAGE-01\n  Scenario: A page\n    Given a page\n",
+		"specs/smoke.yaml":    set("pages.feature", "@ID-PAGE-01"), "unit.yaml": set("a_test.go", "@U-1"),
+		"lists.sh":   `printf '%s\n' '{"protocol":1,"tests":[{"id":"U-1","file":"a_test.go","live":true}],"files":["a_test.go"]}'` + "\n",
+		"fails.sh":   "echo 'no test binary yet' >&2\nexit 3\n",
+		"keeps.yaml": policy("lists.sh"), "fails.yaml": policy("fails.sh"),
+	})
+	code, _, stderr, err := initRun(t, false, "--policy", "fails.yaml")
+	if code != ExitPolicy || err != nil || !strings.Contains(stderr, "the list of tests.unit failed") {
+		t.Errorf("fails.yaml: exit %d, %v:\n%s", code, err, stderr)
+	}
+	for text, want := range map[string]string{
+		set("pages.feature", "@ID-PAGE-09"): "FAIL the smoke list names @ID-PAGE-09, which is not a live scenario of pages.feature\n",
+		"{}\n":                              "FAIL specs/smoke.yaml: is not a list of files\n",
+	} {
+		putFile(t, "specs/smoke.yaml", text)
+		code, _, stderr, err := initRun(t, false, "--policy", "keeps.yaml")
+		if code != ExitPolicy || err != nil || !strings.Contains(stderr, "; specs/smoke.yaml fails it:\n  "+want) {
+			t.Errorf("%q: exit %d, %v:\n%s", text, code, err, stderr)
+		}
+	}
+	putFile(t, "specs/smoke.yaml", "{}\n")
+	code, stdout, _, err := initRun(t, true, "--policy", "keeps.yaml")
+	var got struct {
+		Action   string
+		Problems []struct{ Rule, Fix string }
+	}
+	if code != ExitPolicy || err != nil || json.Unmarshal([]byte(stdout), &got) != nil || got.Action != "refused" ||
+		len(got.Problems) != 1 || got.Problems[0].Rule != "init-policy-smoke" ||
+		got.Problems[0].Fix != "correct specs/smoke.yaml, or remove it for init --policy to derive one" {
+		t.Errorf("--json: exit %d, %v:\n%s", code, err, stdout)
+	}
+	if _, err := os.Stat("itos.yaml"); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("itos.yaml was written: %v", err)
+	}
+	putFile(t, "specs/smoke.yaml", set("pages.feature", "@ID-PAGE-01"))
+	code, stdout, _, err = initRun(t, false, "--policy", "keeps.yaml")
+	if code != 0 || err != nil || !strings.Contains(stdout, "kept specs/smoke.yaml\nkept unit.yaml\n") ||
+		!strings.Contains(stdout, "git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml specs/smoke.yaml unit.yaml,") {
+		t.Errorf("keeps.yaml: exit %d, %v:\n%s", code, err, stdout)
+	}
+	if text, _ := os.ReadFile("unit.yaml"); string(text) != set("a_test.go", "@U-1") {
+		t.Errorf("unit.yaml:\n%s", text)
+	}
+}
+
 // Under --json a project's data there already is refused as its own object,
 // exit 1.
 func TestPolicyInitRefusesUnderJSON(t *testing.T) {

@@ -780,6 +780,160 @@ cases:
     files_after:
       .git/HEAD: null
       itos.yaml: null
+  # Slice 112 (issue #39): a smoke set the project has is its own, kept as
+  # it is when tests smoke check passes over it, refused with the check's
+  # problems when it does not; only where there is none is one derived.
+  - name: init --policy keeps a smoke set the project has when the smoke check passes over it, and names it in what to commit
+    argv: [init, --policy, template/policy.yaml, --no-git-shim, --no-agent-rules]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files:
+          README.md: "# Scratch\n"
+          specs/pages.feature: |
+            Feature: Pages
+
+              @ID-PAGE-01
+              Scenario: A page renders
+                Given a page
+          specs/smoke.yaml: |
+            # Reviewed with the template.
+            - file: pages.feature
+              scenarios:
+                - id: "@ID-PAGE-01"
+                  why: the page renders, reviewed with the template
+    files:
+      template/policy.yaml: |
+        version: 1
+        tests:
+          scenario:
+            root: specs
+            id: 'ID-[A-Z]+-\d+'
+            smoke: { file: specs/smoke.yaml }
+    exit: 0
+    stdout_has:
+      - "wrote itos.yaml\nwrote tasks/phase-1.yaml\nwrote tasks/work-items.yaml\nkept specs/smoke.yaml\n"
+      - "git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml specs/smoke.yaml, then itos commit --task T-1"
+    files_after:
+      specs/smoke.yaml: |
+        # Reviewed with the template.
+        - file: pages.feature
+          scenarios:
+            - id: "@ID-PAGE-01"
+              why: the page renders, reviewed with the template
+  - name: init --policy refuses a smoke set the project has that the smoke check refuses, with its problems, and writes nothing
+    argv: [init, --policy, policy.yaml, --no-git-shim]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files:
+          README.md: "# Scratch\n"
+          specs/pages.feature: |
+            Feature: Pages
+
+              @ID-PAGE-01
+              Scenario: A page renders
+                Given a page
+          specs/smoke.yaml: |
+            - file: pages.feature
+              scenarios:
+                - id: "@ID-PAGE-09"
+    files:
+      policy.yaml: |
+        version: 1
+        tests:
+          scenario:
+            root: specs
+            id: 'ID-[A-Z]+-\d+'
+            smoke: { file: specs/smoke.yaml }
+    exit: 1
+    stderr: |
+      itos: init --policy keeps the smoke set a project has only when tests smoke check passes over it, so it wrote nothing; specs/smoke.yaml fails it:
+        FAIL the smoke list names @ID-PAGE-09, which is not a live scenario of pages.feature
+        FAIL a smoke scenario of pages.feature does not say why it is there
+      Correct specs/smoke.yaml, or remove it for init --policy to derive one, then run init --policy again.
+    files_after:
+      itos.yaml: null
+      tasks/phase-1.yaml: null
+      tasks/work-items.yaml: null
+  - name: under --json init --policy refuses a smoke set the project has that is no list, writing nothing
+    argv: [--json, init, --policy, policy.yaml, --no-git-shim]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n", tests/smoke.yaml: "{}\n" }
+    files:
+      policy.yaml: |
+        version: 1
+        tests:
+          scenario:
+            root: features
+            id: 'ID-[A-Z]+-\d+'
+            smoke: { file: tests/smoke.yaml }
+    exit: 1
+    json:
+      schema: 1
+      config: itos.yaml
+      action: refused
+      problems:
+        - rule: init-policy-smoke
+          message: "tests/smoke.yaml: is not a list of files"
+          fix: correct tests/smoke.yaml, or remove it for init --policy to derive one
+    files_after:
+      itos.yaml: null
+  - name: under --json init --policy keeps a command kind's smoke set the project has, its list run once for the check
+    argv: [--json, init, --policy, policy.yaml, --no-git-shim, --no-agent-rules]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files:
+          README.md: "# Scratch\n"
+          tests/smoke.yaml: |
+            - file: a_test.go
+              scenarios:
+                - id: "@U-2"
+                  why: the fastest of a_test.go
+        label: start
+    files:
+      policy.yaml: |
+        version: 1
+        pin: { version: 9.1.0, checksums: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa }
+        tests:
+          unit:
+            adapter: { command: sh list.sh }
+            smoke: { file: tests/smoke.yaml }
+      list.sh: |
+        echo "$*" >> ran
+        printf '%s\n' '{"protocol":1,"tests":[{"id":"U-1","file":"a_test.go","live":true},{"id":"U-2","file":"a_test.go","live":true}],"files":["a_test.go"]}'
+    exit: 0
+    json:
+      schema: 1
+      config: itos.yaml
+      action: initialized
+      policy: policy.yaml
+      git_init: false
+      since: "{{sha.start}}"
+      files:
+        - { path: itos.yaml, action: wrote }
+        - { path: tasks/phase-1.yaml, action: wrote }
+        - { path: tasks/work-items.yaml, action: wrote }
+        - { path: tests/smoke.yaml, action: kept }
+      pin: { version: 9.1.0, checksums: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa }
+      hooks:
+        hooks:
+          - { name: itos-commit-msg, event: commit-msg, command: itos hook commit-msg, action: wrote }
+          - { name: itos-pre-push, event: pre-push, command: itos hook pre-push, action: wrote }
+      plugin: { action: no_claude, scope: null, excluded: false }
+      git_shim: { action: declined, link: null, on_path: false, before_git: false }
+      agent_rules: { action: declined, files: [] }
+    files_after:
+      ran: |
+        list --at worktree
+      tests/smoke.yaml: |
+        - file: a_test.go
+          scenarios:
+            - id: "@U-2"
+              why: the fastest of a_test.go
   - name: init --policy refuses a project's data that is there already, an empty registry too, and writes nothing
     argv: [init, --policy, policy.yaml, --no-git-shim]
     hide: [claude]

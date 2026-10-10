@@ -151,12 +151,16 @@
 // and smoke sets at the config's paths and refuses an adoption task T-1 the
 // ledger cannot hold, policyPaths a file outside the project or the stealth
 // folder once its existing part's symbolic links are followed (resolved),
-// both exit 2; policyThere refuses any config or data of a project already
-// there, and policySmokeSets a command adapter's list that fails or that the
-// protocol refuses (slice 110: the list runs once, through tests.ListTests,
-// as tests list runs it), both exit 1 (policyRefused). writeNew never
-// writes over a file, and a failure once writing began names what this run
-// did (partial). The hooks and the offers follow as for the starter, and
+// both exit 2; policyThere refuses any config, ledger file or registry
+// already there, and policySmokeSets a command adapter's list that fails or
+// that the protocol refuses (slice 110: the list runs once, through
+// tests.ListTests, as tests list runs it), both exit 1 (policyRefused). A
+// smoke file already there is the project's own (slice 112, issue #39):
+// policySmokeCheck judges it as tests smoke check does (tests.LoadSmoke,
+// tests.SmokeIssues), and it is kept, listed as kept, when the rule holds,
+// else refused with the rule's problems, exit 1; a set is derived only where
+// there is none. writeNew never writes over a file, and a failure once
+// writing began names what this run did (partial). The hooks and the offers follow as for the starter, and
 // policyNext names what to commit.
 //
 // Then, both ways, init makes three offers

@@ -1141,19 +1141,21 @@ cases:
       starter's tasks/phase-{group}.yaml is added. Then fresh data at the config's
       paths: its ledger's group 1 with the adoption task T-1 (no task under
       --stealth), a registry with no item and the group 1 owned by nobody under
-      work.groups_key, and for each kind with a smoke file a smoke set of the
-      project's own tests, a command adapter's from its list, run once in the
-      project. Nothing else comes from the template: no task, owner, status,
-      question, smoke selection or proof result, and nothing else the policy names
-      runs. Before anything is written, git init included, it refuses (exit 2) a
-      policy config check refuses, an ID pattern, type list or ledger layout that
-      cannot hold T-1 in group 1, and a file it would write outside the project (or
-      the stealth folder) once symbolic links are followed; and (exit 1) a config
-      already there, any file the ledger's pattern names, the registry or a smoke
-      set, an empty one too, and a command adapter's list that fails or prints
-      what the protocol refuses. It never writes over a file, and --config or
-      ITOS_CONFIG is a usage error with it. A failure once writing began says what
-      this run wrote, and removes nothing.
+      work.groups_key. For each kind with a smoke file, a smoke set there already
+      is the project's own, kept as it is when itos tests smoke check passes over
+      it; where there is none, one is made of the project's own tests, a command
+      adapter's from its list, run once in the project. Nothing else comes from the
+      template: no task, owner, status, question, smoke selection or proof result,
+      and nothing else the policy names runs. Before anything is written, git init
+      included, it refuses (exit 2) a policy config check refuses, an ID pattern,
+      type list or ledger layout that cannot hold T-1 in group 1, and a file it
+      would write outside the project (or the stealth folder) once symbolic links
+      are followed; and (exit 1) a config already there, any file the ledger's
+      pattern names or the registry, an empty one too, a smoke set there that the
+      smoke check refuses, with its problems, and a command adapter's list that
+      fails or prints what the protocol refuses. It never writes over a file, and
+      --config or ITOS_CONFIG is a usage error with it. A failure once writing
+      began says what this run did, and removes nothing.
 
       It offers the itos plugin for Claude Code, through the claude on the PATH:
       claude plugin list --json says whether itos@itos is installed, and claude
