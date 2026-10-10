@@ -65,6 +65,7 @@ queue:
   - p3-commit-long-text-footer
   - p1-nightly-past-first-failure
   - T-142
+  - T-143
   - p1-windows-id-validation
   - bug-38
   - bug-42
