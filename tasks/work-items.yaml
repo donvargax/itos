@@ -6240,8 +6240,8 @@ items:
   - id: slice-104
     title: A bug is a kind of its own, minted bug-<n> by work add --kind bug
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-102]
     kind: slice
     why: >
