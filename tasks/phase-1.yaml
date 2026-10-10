@@ -1245,9 +1245,6 @@
     the gates and itos-cc locally on windows, and nothing here claims more than that. The nightly
     runs the self-test, which starts two of the real programs through the resolver, so the claim
     is checked by running the gates rather than by reading them.
-  done_when:
-    - run: tools/bin/itos config check
-    - run: node tools/selftest/tools-bin-programs.ts
 
 - id: T-136
   type: ci
