@@ -150,7 +150,12 @@ type ledgerTask struct {
 // One key the scenario sets by its dotted path, to a string. A key under
 // ledger or commits goes into that section; any other starts a section of its
 // own, so it may not be one the config already writes.
-type setting struct{ key, value string }
+// setting is a key path the scenario sets; flow writes its section's key
+// below the config's section as one flow mapping.
+type setting struct {
+	key, value string
+	flow       bool
+}
 
 func initializeScenario(sc *godog.ScenarioContext) {
 	w := &world{}
@@ -881,6 +886,10 @@ func (w *world) writeConfig() error {
 		if path[0] == "ledger" || path[0] == "commits" || path[0] == "ci" || path[0] == "work" && len(path) >= 2 && !w.config.noWork {
 			continue
 		}
+		if s.flow {
+			b.WriteString(flowSetting(path, s.value) + "\n")
+			continue
+		}
 		b.WriteString(nested(path, s.value, 0))
 	}
 	return w.write(w.data("itos.yaml"), b.String())
@@ -1013,6 +1022,10 @@ func (w *world) settingsUnder(section string) string {
 	var b strings.Builder
 	for _, s := range w.config.settings {
 		if path := strings.Split(s.key, "."); path[0] == section && len(path) > 1 {
+			if s.flow {
+				b.WriteString("  " + flowSetting(path[1:], s.value) + "\n")
+				continue
+			}
 			b.WriteString(nested(path[1:], s.value, 1))
 		}
 	}
@@ -1896,7 +1909,7 @@ func (w *world) nightlyOnlyIs(command string) error {
 }
 
 func (w *world) configSets(key, value string) error {
-	w.config.settings = append(w.config.settings, setting{key, value})
+	w.config.settings = append(w.config.settings, setting{key: key, value: value})
 	return w.writeConfig()
 }
 

@@ -68,12 +68,19 @@ func initializeUpgradeSteps(sc *godog.ScenarioContext, w *world) {
 		})
 	})
 	sc.Step(`^the release "([^"]*)" has no upgrading\.json$`, w.noUpgrading)
+	sc.Step(`^the release "([^"]*)"'s schema declares "([^"]*)" renamed from "([^"]*)"$`, w.schemaDeclaresRenamed)
+	sc.Step(`^the release "([^"]*)"'s schema declares "([^"]*)" removed$`, w.schemaDeclaresRemoved)
+	sc.Step(`^the config holds "([^"]*)" as "([^"]*)" in a flow mapping$`, func(key, value string) error {
+		w.config.settings = append(w.config.settings, setting{key: key, value: value, flow: true})
+		return w.writeConfig()
+	})
 	sc.Step(`^the config's first line is the schema line of the version "([^"]*)" of the release server$`, w.schemaLineIs)
 	sc.Step(`^the repository has the install script of the version "([^"]*)" of the release server$`, w.hasInstallScript)
 
 	sc.Step(`^the config's first line is now the schema line of the version "([^"]*)" of the release server$`, w.configStartsWithSchemaLine)
 	sc.Step(`^the install script is the one of the version "([^"]*)" of the release server$`, w.installScriptIs)
 	sc.Step(`^nothing was committed$`, w.noCommitMade)
+	sc.Step(`^the config's "([^"]*)" is "([^"]*)"$`, w.configValueIsText)
 }
 
 // The release server with each version's release, the last the newest, and
@@ -231,6 +238,72 @@ func (w *world) installScriptIs(version string) error {
 	}
 	if string(text) != want {
 		return fmt.Errorf("the install script is not the one of %s; it is:\n%s\nnot:\n%s\n%s", version, text, want, w.report())
+	}
+	return nil
+}
+
+// The version's itos.schema.json, as the server serves it: the schema of
+// itos.yaml with no key but those the scenario's declarations give, read
+// from the server (or started), changed and served again.
+func (w *world) editSchema(version string, change func(schema map[string]any)) error {
+	if err := w.needReleases(); err != nil {
+		return err
+	}
+	schema := map[string]any{"$schema": "https://json-schema.org/draft/2020-12/schema", "title": "itos.yaml",
+		"type": "object", "properties": map[string]any{}}
+	if body := w.releases.get(releasePath(version, "itos.schema.json")); body != nil {
+		if err := json.Unmarshal(body, &schema); err != nil {
+			return err
+		}
+	}
+	change(schema)
+	body, err := json.MarshalIndent(schema, "", "  ")
+	if err != nil {
+		return err
+	}
+	w.releases.set(releasePath(version, "itos.schema.json"), append(body, '\n'))
+	return nil
+}
+
+// The release's schema has the key path, each key an object's property, and
+// the last declares x-itos-renamed-from the old path.
+func (w *world) schemaDeclaresRenamed(version, key, from string) error {
+	return w.editSchema(version, func(schema map[string]any) {
+		property := schema
+		for _, k := range strings.Split(key, ".") {
+			properties, _ := property["properties"].(map[string]any)
+			if properties == nil {
+				properties = map[string]any{}
+				property["type"], property["properties"] = "object", properties
+			}
+			next, _ := properties[k].(map[string]any)
+			if next == nil {
+				next = map[string]any{}
+				properties[k] = next
+			}
+			property = next
+		}
+		property["x-itos-renamed-from"] = from
+	})
+}
+
+// The release's schema lists the key path in its top-level x-itos-removed.
+func (w *world) schemaDeclaresRemoved(version, key string) error {
+	return w.editSchema(version, func(schema map[string]any) {
+		removed, _ := schema["x-itos-removed"].([]any)
+		schema["x-itos-removed"] = append(removed, key)
+	})
+}
+
+// The config's value at a dotted key path, read as text, is want.
+func (w *world) configValueIsText(path, want string) error {
+	config, text, err := w.foundConfig()
+	if err != nil {
+		return err
+	}
+	got, ok := at(config, strings.Split(path, ".")...)
+	if !ok || fmt.Sprint(got) != want {
+		return fmt.Errorf("the config's %s is %v, not %q:\n%s\n%s", path, got, want, text, w.report())
 	}
 	return nil
 }
