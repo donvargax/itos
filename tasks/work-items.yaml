@@ -2418,6 +2418,11 @@ items:
       except do anything. In --json every file has an excepted count, and an excepted mutant keeps
       outcome survived and gains excepted, holding its reason. itos's gate reads these, never the
       cache or itos-cc.yaml itself.
+
+      Backlog review of 2026-10-10, batch 2: folds in p3-role-protocol: a role uses the test kinds'
+      adapter protocol (PLAN.md section 6), <command> list --at <tree> printing one JSON object with
+      protocol 1, staged and range commands with {from} and {to}, exit 0, 1, 2, 3 and 75 (ADR-0036),
+      and problem rule ids prefixed by their source (cc/mutant-survived).
     refs: [PLAN.md]
 
   - id: p3-debt-claims
