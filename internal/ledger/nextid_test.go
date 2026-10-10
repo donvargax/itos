@@ -44,6 +44,42 @@ func TestNextIDAfterInfersPrefixWhenTheOnlyNumberIsZero(t *testing.T) {
 	}
 }
 
+// With no fixed start, the series is the one whose number is highest: the
+// first of them on a tie, and a number too large to read counts for none.
+func TestNextIDAfterInfersPrefixFromTheFirstHighestReadableNumber(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		others []string
+		want   string
+	}{
+		{name: "tie", others: []string{"B-5"}, want: "A-6"},
+		{name: "unreadable number", others: []string{"B-99999999999999999999"}, want: "A-6"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			cfg := scratchLedger(t, map[string]string{
+				"tasks/phase-1.yaml": "- { id: A-5, type: chore, title: Five }\n",
+			})
+			pattern := `.*-\d+`
+			cfg.Ledger.ID = &pattern
+			got, err := NextIDAfter(cfg, test.others, 0)
+			if err != nil || got != test.want {
+				t.Fatalf("NextIDAfter = %q, %v, want %s", got, err, test.want)
+			}
+		})
+	}
+}
+
+// A fresh series is written as wide as ledger.id asks, up to nine digits.
+func TestNextIDAfterStartsAFreshSeriesNineDigitsWide(t *testing.T) {
+	cfg := scratchLedger(t, map[string]string{"tasks/phase-1.yaml": "[]\n"})
+	pattern := `T-\d{9}`
+	cfg.Ledger.ID = &pattern
+	got, err := NextIDAfter(cfg, nil, 0)
+	if err != nil || got != "T-000000001" {
+		t.Fatalf("NextIDAfter = %q, %v, want T-000000001", got, err)
+	}
+}
+
 func TestNextIDAfterStartsKnownSeriesAndRejectsUnknownSeries(t *testing.T) {
 	t.Run("known prefix starts at one", func(t *testing.T) {
 		cfg := scratchLedger(t, map[string]string{"tasks/phase-1.yaml": "[]\n"})

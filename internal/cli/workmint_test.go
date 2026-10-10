@@ -36,6 +36,28 @@ func TestWorkArgsOptionalIDDistinguishesMissingAndExplicitIDs(t *testing.T) {
 	}
 }
 
+// A refused command line names no ID: beside its error, workArgsOptionalID
+// gives no ID, no flags and hasID false, whether a flag or a second ID
+// refused it.
+func TestWorkArgsOptionalIDGivesNoIDBesideItsError(t *testing.T) {
+	flags := []string{"--kind", "--title"}
+	for _, test := range []struct {
+		name string
+		args []string
+		want string
+	}{
+		{name: "unknown flag", args: []string{"p1-idea", "--unknown", "value"}, want: "does not take --unknown"},
+		{name: "two IDs", args: []string{"p1-idea", "p1-other", "--kind", "idea"}, want: "takes at most one <id>"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			id, hasID, values, err := workArgsOptionalID("add", test.args, flags...)
+			if err == nil || !strings.Contains(err.Error(), test.want) || id != "" || hasID || values != nil {
+				t.Fatalf("workArgsOptionalID = (%q, %t, %v, %v), want no ID beside the error %q", id, hasID, values, err, test.want)
+			}
+		})
+	}
+}
+
 func TestWorkArgsParsedRejectsMalformedFlagsAndAllowsDeclaredEmptyValues(t *testing.T) {
 	for _, test := range []struct {
 		name string

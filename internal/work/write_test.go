@@ -110,6 +110,16 @@ func TestTakeLeavesOrAssignsOwnersForInProgressAndEverySessions(t *testing.T) {
 	}
 }
 
+// An owner written as an empty string is no one: the commit body names no
+// one it was taken for.
+func TestTakeBodyNamesNoOneForAnEmptyOwner(t *testing.T) {
+	text := "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, owner: '', status: todo }\n"
+	change, problem, err := Take(registryOf(t, text), text, "a", "", true)
+	if err != nil || problem != nil || change.Body != `Set a ("A") to doing, with itos work take.` {
+		t.Fatalf("Take = (%+v, %+v, %v), want a body naming no owner", change, problem, err)
+	}
+}
+
 func TestPromote(t *testing.T) {
 	text := "phases: { 1: null }\nitems:\n" +
 		"  - { id: i, title: I, phase: 1, status: todo, kind: idea, why: 'a gap' }\n" +
