@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-116
   - p1-smoke-rule-at-commit
   - p1-guard-follows-cd
   - p1-task-add-promoted
