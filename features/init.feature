@@ -128,7 +128,9 @@ Feature: itos init, a repository made ready for itos
   # Preflight the complete operation before creating git metadata, files or
   # hooks: validate the policy, its fresh data layout and every write target.
   # Refuse an existing effective config, any file matching the target ledger
-  # pattern, or the target registry or smoke file, including empty files. No merge, --force, overwrite
+  # pattern, or the target registry, including empty files. A smoke file there
+  # already is the project's own (slice 112): kept when the smoke check passes
+  # over it, refused otherwise (@ID-INIT-55, 56). No merge, --force, overwrite
   # or automatic retry/adoption recovery belongs in this slice. Destinations
   # must remain inside the target data root, not traverse symlinks out of it.
   # --config/ITOS_CONFIG cannot select a different target with --policy.
@@ -477,6 +479,69 @@ Feature: itos init, a repository made ready for itos
     When itos runs "init --policy policy.yaml --plugin no --no-git-shim --no-agent-rules"
     Then itos exits with code 1
     And its output says "no test binary yet"
+    And no file changed since the last run
+    And the file "itos.yaml" does not exist
+    And the git config declares no "commit-msg" hook
+
+  # Slice 112 (issue #39, 2026-10-10). A project made from a template ships
+  # the template's smoke set: its selections and the reason for each are
+  # reviewed like code, and they hold for the made project, whose tests are
+  # the template's. So a smoke file already at the configured path is not the
+  # source's work data but the project's own: init --policy keeps it, as it
+  # is, when tests smoke check passes over it against the target's tests, and
+  # says so; it derives a set only when there is none. A smoke file that fails
+  # the check is refused with the check's problems, before anything is
+  # written. The registry and the ledger stay refused: those are work data.
+  @ID-INIT-55 @slice-112 @wip
+  Scenario: Policy initialization keeps a smoke set the project already has when the smoke check passes over it
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the feature file "specs/pages.feature" with the scenario "@ID-PAGE-01"
+    And the committed file "work/smoke.yaml" holding the lines:
+      """
+      - file: pages.feature
+        scenarios:
+          - id: "@ID-PAGE-01"
+            why: the page renders, reviewed with the template
+      """
+    And the committed file "template/policy.yaml" holding the lines:
+      """
+      version: 1
+      tests:
+        scenario:
+          root: specs
+          id: 'ID-[A-Z]+-\d+'
+          smoke: { file: work/smoke.yaml }
+      """
+    When itos runs "init --policy template/policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 0
+    And its output says "kept work/smoke.yaml"
+    And the file "work/smoke.yaml" has the same contents as its committed version
+    When itos runs "tests smoke check scenario"
+    Then itos exits with code 0
+
+  @ID-INIT-56 @slice-112 @wip
+  Scenario: Policy initialization refuses a smoke set the project already has when the smoke check fails over it, writing nothing
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the feature file "specs/pages.feature" with the scenario "@ID-PAGE-01"
+    And the committed file "work/smoke.yaml" holding the lines:
+      """
+      - file: pages.feature
+        scenarios:
+          - id: "@ID-PAGE-09"
+            why: a scenario the project no longer has
+      """
+    And the committed file "template/policy.yaml" holding the lines:
+      """
+      version: 1
+      tests:
+        scenario:
+          root: specs
+          id: 'ID-[A-Z]+-\d+'
+          smoke: { file: work/smoke.yaml }
+      """
+    When itos runs "init --policy template/policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 1
+    And its output says "@ID-PAGE-09"
     And no file changed since the last run
     And the file "itos.yaml" does not exist
     And the git config declares no "commit-msg" hook
