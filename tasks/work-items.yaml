@@ -7129,16 +7129,9 @@ items:
     title: "Cut v7.0.0: remove the pre-release marker"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      q-53 (2026-10-09) trimmed v7.0.0 to proof of done and minted ids: T-131 and slices 102 to 105
-      and 108 to 112 have landed, released as v7.0.0-rc.1 to rc.9 and the one slice-105 cuts. While
-      tools/bin/release-version/prerelease says rc (T-118, T-119) a major is cut as a release
-      candidate; removing it makes the next green push cut v7.0.0 itself from the same commits since
-      v6.5.1, its notes running from v6.5.1 as the candidates' did. The rest of the old bundle waits
-      for the next major (docs/plans/v7-proof-of-done.md). The user confirms before the push.
 
   - id: T-140
     title: Build itos with Go 1.27.2, past the net/http vulnerabilities of 1.27.1

@@ -1309,8 +1309,6 @@
     candidate; removing it makes the next green push cut v7.0.0 itself from the same commits since
     v6.5.1, its notes running from v6.5.1 as the candidates' did. The rest of the old bundle waits
     for the next major (docs/plans/v7-proof-of-done.md). The user confirms before the push.
-  done_when:
-    - run: "! test -e tools/bin/release-version/prerelease"
 
 - id: T-140
   type: build
