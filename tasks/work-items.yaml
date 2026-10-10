@@ -71,6 +71,7 @@ queue:
   - T-146
   - T-147
   - T-148
+  - T-149
   - p1-windows-id-validation
   - bug-38
   - bug-42
