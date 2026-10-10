@@ -7013,3 +7013,18 @@ items:
       letting a test-only commit keep the last judged site, would let an agent fix what the proof
       found and pass, the rule's intent. CI still judges fresh at push. Each extra local proof costs
       minutes and tokens in every itos-driven repository.
+
+  - id: p1-work-edit-several-ids
+    title: work edit takes several ids, applying the same change to each in one commit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      On 2026-10-10 the backlog review gave every kept item an area tag, and landing them
+      (p1-tag-this-registry) would take one work edit --tags per item, about 110 commits each
+      running the hooks. work edit, drop, defer and queue taking several ids (the same --tags,
+      --note or --why for all, refused whole if one id would be) turns a grooming pass into one
+      commit per change, a cost every coordinator of an itos-driven repository pays on each backlog
+      review.
