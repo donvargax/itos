@@ -4341,6 +4341,10 @@ items:
       file, is refused as a git that is not a link to itos by install, uninstall and init. Bug 45
       gave git.IsItos the build information check that tells such a git; the shim commands could use
       it to replace or remove one.
+
+      Backlog review of 2026-10-10, batch 3: folds in p3-windows-hardlink-shim: seen first in the
+      code review of 07b0e6d (gitshim.go linksItos and os.Link): after an upgrade replaces itos.exe,
+      install and uninstall both refuse their own stale shim.
     refs: [internal/cli/gitshim.go]
 
   - id: p1-untyped-ignored-headers
