@@ -1049,15 +1049,9 @@ items:
     title: The Nightly red issue names a failing done task's check
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-16]
     kind: idea
-    why: >
-      Slice 16's nightly step runs the done tasks' checks, and a red one fails the run with "CI
-      failed at T-… (<title>), its check: <command>". The nightly workflow's issue lists only go
-      test's "--- FAIL: TestFeatures/" lines, so a red task check is reported as "no failing
-      scenario", sending the reader to the log. Gathering the "CI failed at" lines (or ci run
-      --json's failed_at) into the issue would name the task.
 
   - id: p1-nightly-past-first-failure
     title: The nightly goes on past its first failure, so a red step does not hide the done tasks
