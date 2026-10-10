@@ -1001,16 +1001,9 @@ items:
     title: Each plugin version is tagged, so a range start need not be CI's
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: [T-074]
     kind: idea
-    why: >
-      T-074 left it: tools/bin/plugin-version reads its range from CI's FROM and refuses to pass
-      without one, so a repository with no green run on main yet (the plugin's own, if it moves)
-      would hold every run red until one is green. claude plugin tag writes a {name}--v{version}
-      tag for a plugin release, checking plugin.json against the marketplace entry; tagged as each
-      bump lands, the plugin's newest tag could be the check's start when FROM is empty, and a
-      person could see which plugin version holds which change.
     refs: [tools/bin/plugin-version/main.go, integrations/claude-code/.claude-plugin/plugin.json]
 
   - id: p3-release-notes-bodies
