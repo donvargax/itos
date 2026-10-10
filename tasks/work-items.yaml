@@ -70,7 +70,6 @@ queue:
   - p1-work-as-empty
   - p3-guard-cd
   - T-134
-  - T-132
   - p1-tools-bin-shared
 
 items:
