@@ -208,3 +208,4 @@ questions:
   - id: q-50
     item: "slice-102"
     question: "Main is red because the complete-cache mutation proof reports missing and stale results for slice-102's code, and q-41 forbids local mutation runs while fresh sampling in CI waits on itos-cc#27. May a local itos-cc mutation run fill only the results the proof reports missing or stale on main, until itos-cc#27 lands? Recommended: yes, as a temporary exception to q-41, removed the moment itos-cc#27 lands. Alternative: main stays red until itos-cc#27 lands."
+    answer: "Yes, add the exception, and remove it the moment itos-cc#27 lands. A local itos-cc mutation run may fill only the results the complete-cache proof reports missing or stale on main; it never hides a surviving or uncovered result. The user, 2026-10-09."
