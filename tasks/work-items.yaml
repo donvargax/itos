@@ -5229,7 +5229,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-work-edit-several-ids]
     kind: idea
     why: >
       Slice 97 built tags on work items, but this repository declares none, so its own registry, the
