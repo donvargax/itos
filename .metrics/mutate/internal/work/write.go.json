@@ -3,6 +3,7 @@
 	"file": "internal/work/write.go",
 	"language": "go",
 	"tests": {
+		"internal/cli/cirange_test.go": "6aa0678fca5ca7a2c2daa657a488b28978bc7a3f2994d7c1a66ec98d2c5707c6",
 		"internal/cli/cli_test.go": "c84ca8a4c0cc43b5eb5406ceb85384d5bd180fde8d32287cae3699508a8cc403",
 		"internal/cli/draft_test.go": "4948d21ab430e166515f26bb298d8b33ef724016cb590d4320dcb334581569c9",
 		"internal/cli/exit_test.go": "b84637d725a7bf3c1c36a645bc1d64c1c34e765047040c81235120c7ffbcefd5",
@@ -90,7 +91,8 @@
 					"replacement": "0",
 					"outcome": "killed"
 				}
-			]
+			],
+			"stale": true
 		},
 		{
 			"namespace": "github.com/donvargax/itos/v7/internal/work",
@@ -102,7 +104,8 @@
 			"survived": 0,
 			"uncovered": 0,
 			"sites": 0,
-			"mutants": []
+			"mutants": [],
+			"stale": true
 		},
 		{
 			"namespace": "github.com/donvargax/itos/v7/internal/work",
@@ -705,7 +708,8 @@
 					"scope": "listed",
 					"tests": ["ID-WORK-08", "ID-WORK-10", "ID-WORK-13", "ID-WORK-47", "ID-WORK-49"]
 				}
-			]
+			],
+			"stale": true
 		},
 		{
 			"namespace": "github.com/donvargax/itos/v7/internal/work",
@@ -742,7 +746,8 @@
 					"replacement": "!=",
 					"outcome": "killed"
 				}
-			]
+			],
+			"stale": true
 		},
 		{
 			"namespace": "github.com/donvargax/itos/v7/internal/work",
@@ -1115,7 +1120,8 @@
 					"replacement": "-",
 					"outcome": "killed"
 				}
-			]
+			],
+			"stale": true
 		},
 		{
 			"namespace": "github.com/donvargax/itos/v7/internal/work",
@@ -1212,7 +1218,8 @@
 						"ID-WORK-83"
 					]
 				}
-			]
+			],
+			"stale": true
 		},
 		{
 			"namespace": "github.com/donvargax/itos/v7/internal/work",
@@ -1224,7 +1231,8 @@
 			"survived": 0,
 			"uncovered": 0,
 			"sites": 0,
-			"mutants": []
+			"mutants": [],
+			"stale": true
 		},
 		{
 			"namespace": "github.com/donvargax/itos/v7/internal/work",
@@ -1245,7 +1253,8 @@
 					"replacement": "<=",
 					"outcome": "killed"
 				}
-			]
+			],
+			"stale": true
 		},
 		{
 			"namespace": "github.com/donvargax/itos/v7/internal/work",
@@ -1544,7 +1553,8 @@
 					"replacement": "-",
 					"outcome": "killed"
 				}
-			]
+			],
+			"stale": true
 		},
 		{
 			"namespace": "github.com/donvargax/itos/v7/internal/work",
@@ -1841,7 +1851,8 @@
 					"replacement": "-",
 					"outcome": "killed"
 				}
-			]
+			],
+			"stale": true
 		}
 	],
 	"listed": {
