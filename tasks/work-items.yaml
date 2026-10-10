@@ -7016,3 +7016,19 @@ items:
       session started outside a managed repository commits in one past the guard where no git shim
       is installed.
     refs: [internal/guard/guard.go, internal/guard/doc.go, features/guard.feature]
+
+  - id: p1-range-falls-back-to-since
+    title: ci range starts at commits.since when no green run gives a start
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Main's CI could not turn green on 2026-10-09: the last green run fell past the 100 first
+      parents ci range asks about, so every run's range start was empty, and plugin-version,
+      previous-release, deps-check, schema-contract and the mutation sample need one (run
+      38014916168 stopped at plugin-version). With no green run there is no start, and with no start
+      no run can be green. T-136 moved commits.since to the last green commit; the range falls back
+      to it. Specified in features/ci.feature above its scenario.
+    refs: [internal/providers/range.go, internal/cli/ci.go, features/ci.feature, features/range_test.go]
