@@ -3425,8 +3425,8 @@ items:
   - id: slice-115
     title: The notice of a pin fallen behind, and itos init's note of it, name itos upgrade instead of itos pin
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-75]
     kind: slice
     why: >
