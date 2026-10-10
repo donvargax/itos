@@ -2872,14 +2872,9 @@ items:
     title: task add turns an idea into its task
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found making T-082 (2026-10-04): task add refuses an id the registry has, and work promote
-      renames an idea without writing a ledger entry, so an idea that becomes a task still needs its
-      ledger entry written by hand before the promote. task add --from <idea> could write the ledger
-      entry and promote the idea in one commit, its why kept.
 
   - id: p1-push-json-not-waited
     title: itos push --json says why it did not wait for CI
