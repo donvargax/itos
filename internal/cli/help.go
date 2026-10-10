@@ -67,7 +67,7 @@ Commands:
   work promote <idea> --kind slice|task [--title <title>]
                                    make an idea a slice or a task, and commit it
   work done <id>                   mark an item done once it has landed, and commit it
-  work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task] […]
+  work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task|bug] […]
                                    add an item to the work registry, and commit it
   work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
                                    change an item, or add a note to its why, and commit it
@@ -224,7 +224,7 @@ or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
        itos work take <id> [--as <handle>]
         itos work promote <idea> --kind slice|task [--title <title>]
        itos work done <id>
-        itos work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task] […]
+        itos work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task|bug] […]
        itos work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
        itos work queue <id> --top|--before <id>|--after <id>|--remove
        itos work drop <id> --why <reason>
@@ -321,7 +321,8 @@ done_when out of its ledger entry, its why kept: the checks were its progress
 while it was open and gate the close, and the commit before it still holds
 them. A check meant to keep running belongs in ci.steps or ci.nightly.steps.
 Landed is: none of the item's scenarios at HEAD
-(those tagged @<id>, @slice-<n> for the item slice-<n>) still @wip; no commit
+(those tagged @<id>, @slice-<n> for the item slice-<n>, @bug-<n> for bug-<n>)
+still @wip; no commit
 of HEAD that no remote has (itos push them); a task's static checks passing, as
 the commit-msg hook runs them; and with ci.watch, HEAD's CI run passed, waited
 for as itos ci watch waits when it is still going. The commits at HEAD that
@@ -346,17 +347,19 @@ are written and nothing committed.
 --json: {"schema":1,"ok":true,"item":{…},"ci":"success"|"unwatched","run"?,"queue_commit"?:"<sha>"|null,"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}],"ci"?,"run"?}`,
 
-	"work add": `Usage: itos work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task]
+	"work add": `Usage: itos work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task|bug]
          [--phase <phase>] [--owner <handle>] [--depends-on <id>,…] [--refs <ref>,…]
          [--tags <tag>,…]
 
 Adds an item at the end of the work registry, todo: an idea unless --kind says
-otherwise. An idea keeps its required <idea-id>; a slice or task takes a minted
-ID from the shared counter. It is in the phase --phase names (else the one a
-p<n>- idea id names, else the registry's only one), owned by --owner or nobody,
-carrying the tags --tags gives, its why a folded text, then commits the registry
-alone, "docs: add <id>", as work take does (itos help work take). Refused,
-nothing written (exit 2): an ID given for a slice or task, or none for an idea.
+otherwise. An idea keeps its required <idea-id>; a slice, task or bug takes a
+minted ID from the shared counter, a bug's bug-<n> past the registry's bugs and
+the feature files' @bug-<n> tags. It is in the phase --phase names (else the
+one a p<n>- idea id names, else the registry's only one), owned by --owner or
+nobody, carrying the tags --tags gives, its why a folded text, then commits the
+registry alone, "docs: add <id>", as work take does (itos help work take).
+Refused, nothing written (exit 2): an ID given for a slice, task or bug, or none
+for an idea.
 Refused, nothing written (exit 1): a registry that is not sound or has changes
 no commit holds, an <id> an item already has, no phase to put it in, what work
 check would find with the item there (a phase not listed, an
@@ -1226,7 +1229,7 @@ it with, footers and all; then puts those paths, and only those, back as HEAD
 has them, in the index and the work tree, a file HEAD lacks removed. With --,
 keeps the itos arguments after it exactly as given, to be run later by the
 same itos binary, never through a shell; a draft cannot run itos draft. A
-command that mints an item's id (work add --kind slice|task, task add, work
+command that mints an item's id (work add --kind slice|task|bug, task add, work
 promote) has it minted now, through the id counter, as the command would mint
 it: the draft keeps it, the line printed ends "(makes <id>)", and promote
 creates the item under it, so a later draft, a spec or a brief can name it at

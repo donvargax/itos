@@ -14,8 +14,9 @@ import (
 	"github.com/donvargax/itos/v7/internal/value"
 )
 
-// kinds are the kinds an item may have.
-var kinds = []string{"slice", "task", "idea"}
+// kinds are the kinds an item may have: a bug (slice 104) is minted bug-<n>
+// and closed as a slice is, its scenarios those tagged @bug-<n>.
+var kinds = []string{"slice", "task", "idea", "bug"}
 
 // Dropped is the status work drop gives an item taken out of the open work
 // (slice 78): a status itos knows whatever work.statuses lists, since itos

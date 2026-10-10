@@ -1,7 +1,7 @@
 // Package work is the work registry: work.registry, work-items.yaml in the
 // ledger's folder by default (in the git folder under a stealth config),
 // which says who owns each group and each work item, its kind (slice, task,
-// idea), its status, what it waits on (depends_on), its tags, and the queue.
+// idea, bug), its status, what it waits on (depends_on), its tags, and the queue.
 // The registry is written by commands, never by hand; this package judges
 // and edits its text, and internal/cli writes and commits it.
 //

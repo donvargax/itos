@@ -390,7 +390,7 @@ cases:
           fix: finish z first, or set y back to doing
         - rule: work-unknown-kind
           message: 'e: unknown kind "epic"'
-          fix: set e's kind to one of slice, task, idea
+          fix: set e's kind to one of slice, task, idea, bug
         - rule: work-idea-started
           message: "i: an idea is doing; specify it first (kind slice or task)"
           fix: "specify i (kind: slice or task, with its scenarios or ledger entry), or set it back to todo"
@@ -1141,6 +1141,18 @@ cases:
       .git/itos/work-items.yaml: *four
       .git/itos/ids.yaml: "counters:\n    slice: 5\n"
       .git/itos/drafts/drafts.yaml: "# itos draft's pending changes: this clone's own, never committed (itos help draft).\ndrafts:\n  - id: thing\n    command:\n      - work\n      - add\n      - --kind\n      - slice\n      - --title\n      - A thing\n      - --why\n      - Because.\n    minted: slice-5\n"
+  - name: draft add of a work add --kind bug reserves the bug id at once
+    argv: [draft, add, a-bug, --, work, add, --kind, bug, --title, It breaks, --why, Found today.]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - { id: bug-5, title: Five, phase: 1, status: done, kind: bug }\n"
+    exit: 0
+    stdout: |
+      a-bug drafted: itos work add --kind bug --title 'It breaks' --why 'Found today.'  (makes bug-6)
+    files_after:
+      .git/itos/ids.yaml: "counters:\n    bug: 6\n"
   - name: draft add of a task add says the task id it reserved, under --json
     argv: [draft, add, a-task, --json, --, task, add, --group, "1", --type, docs, --title, A task, --why, Because., --check, "true"]
     git: []
@@ -1374,7 +1386,31 @@ cases:
     argv: [work, add, p1-new, --title, New, --why, Because., --kind, epic]
     exit: 2
     stderr: |
-      itos: work add takes --kind idea|slice|task (itos --help)
+      itos: work add takes --kind idea|slice|task|bug (itos --help)
+  # Slice 104: a bug is a kind of its own, minted bug-<n> past the
+  # registry's bugs and the feature files' @bug tags, a slice's tags and an
+  # older bug item of kind slice counted as what they are named.
+  - name: under a stealth config work add --kind bug mints the next bug past the registry's and the @bug tags
+    argv: [work, add, --kind, bug, --title, It breaks, --why, Found today., --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: &bugs "phases:\n  1: null\nitems:\n  - { id: bug-5, title: Five, phase: 1, status: done, kind: slice }\n  - { id: slice-20, title: Twenty, phase: 1, status: todo }\n"
+      features/a.feature: "Feature: A\n  @ID-A-01 @bug-7 @slice-30\n  Scenario: A\n    Given it\n"
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: bug-8, title: It breaks, phase: 1, owner: null, status: todo, depends_on: [], tags: [], kind: bug, why: "Found today.\n" }
+      commit: null
+    files_after:
+      .git/itos/ids.yaml: "counters:\n    bug: 8\n"
+  - name: work add refuses an id for a bug, and writes nothing
+    argv: [work, add, bug-9, --kind, bug, --title, It breaks, --why, Found today.]
+    exit: 2
+    stderr: |
+      itos: work add mints the bug id; do not pass one (itos --help)
   - name: work edit changes a title in its quoting and gives an item with no why the note, committing the registry alone
     argv: [work, edit, x, --title, "X, renamed", --note, A note.]
     git:

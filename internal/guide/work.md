@@ -19,7 +19,7 @@ start no other agents. The repository's own instructions (`AGENTS.md`,
   refuses until then. Never edit an item's owner or status by hand.
 - A gap you find is recorded, not fixed on the side:
   `itos work add <idea-id> --title '…' --why '…'` adds an idea; `--kind
-slice|task` mints a numbered item instead.
+slice|task|bug` mints a numbered item instead.
 
 ## What drives a change
 

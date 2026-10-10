@@ -904,7 +904,7 @@ Feature: The work registry
     And the registry's item "slice-10" is a slice titled "Do the thing" with the status "todo"
     And the last commit's header is "docs: add slice-10"
 
-  @ID-WORK-82 @slice-104 @wip
+  @ID-WORK-82 @slice-104
   Scenario: work add --kind bug mints a bug, past the highest bug id the registry and the @bug tags hold
     Given the committed feature file "features/a.feature" with the live scenario "@ID-A-01" tagged "@bug-7"
     And the work registry has the item "bug-5" owned by nobody with the status "done"
@@ -945,7 +945,7 @@ Feature: The work registry
     And its output says "T-002"
     And the registry's item "T-002" is a task titled "Do the thing" with the status "todo"
 
-  @ID-WORK-86 @slice-104 @wip
+  @ID-WORK-86 @slice-104
   Scenario: work done refuses a bug one of whose scenarios is still @wip, as it refuses a slice
     Given the work registry has the bug "bug-8" owned by "someone" with the status "doing"
     And a feature file with the scenario "@ID-A-01" tagged "@bug-8 @wip"

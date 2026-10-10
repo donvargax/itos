@@ -70,7 +70,7 @@ func TestWorkAddRejectsInvalidKindMissingIdeaIDAndBlankFields(t *testing.T) {
 		{name: "empty title", args: []string{"--kind", "slice", "--title", "", "--why", "Because."}, want: "takes one --title"},
 		{name: "empty why", args: []string{"--kind", "slice", "--title", "Slice", "--why", ""}, want: "takes one --why"},
 		{name: "whitespace why", args: []string{"--kind", "slice", "--title", "Slice", "--why", " "}, want: "needs --title"},
-		{name: "unknown kind", args: []string{"--kind", "bug", "--title", "Bug", "--why", "Because."}, want: "takes --kind"},
+		{name: "unknown kind", args: []string{"--kind", "bogus", "--title", "Bogus", "--why", "Because."}, want: "takes --kind"},
 		{name: "idea without an author id", args: []string{"--kind", "idea", "--title", "Idea", "--why", "Because."}, want: "needs <idea-id>"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -127,6 +127,25 @@ func TestWorkAddMintsSliceAndRefusesCallerID(t *testing.T) {
 	after, readErr = os.ReadFile(filepath.Join(dir, "registry.yaml"))
 	if readErr != nil || string(after) != before || gitIn(t, "rev-parse", "HEAD") != head {
 		t.Fatalf("refused workAdd changed registry or HEAD: registry=%q err=%v", after, readErr)
+	}
+}
+
+// A bug is minted as a slice is (slice 104), past the registry's bugs, an
+// item of kind bug; an id given for one is refused as for a slice.
+func TestWorkAddMintsABugAndRefusesCallerID(t *testing.T) {
+	dir := registryWriterRepo(t, "phases: { 1: null }\nitems:\n  - { id: bug-5, title: Five, phase: 1, owner: null, status: done, kind: bug, depends_on: [] }\n")
+	var stdout, stderr strings.Builder
+	code, err := workAdd([]string{"--kind", "bug", "--title", "Six", "--why", "A bug."}, Out{Stdout: &stdout, Stderr: &stderr})
+	if err != nil || code != 0 || !strings.Contains(stdout.String(), "bug-6 is a new bug") {
+		t.Fatalf("workAdd = (%d, %v), stdout=%q stderr=%q", code, err, stdout.String(), stderr.String())
+	}
+	text, err := os.ReadFile(filepath.Join(dir, "registry.yaml"))
+	if err != nil || !strings.Contains(string(text), "id: bug-6") || !strings.Contains(string(text), "kind: bug") {
+		t.Fatalf("registry after workAdd = %q (%v), want the bug bug-6", text, err)
+	}
+	code, err = workAdd([]string{"bug-7", "--kind", "bug", "--title", "Seven", "--why", "Not caller named."}, Out{Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the bug id") {
+		t.Fatalf("explicit-ID workAdd = (%d, %v), want usage error", code, err)
 	}
 }
 

@@ -1,11 +1,13 @@
 package cli
 
 import (
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -72,21 +74,71 @@ func TestSliceIDsReadsFeatureTagsAndIgnoresOtherFiles(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(features, "notes.txt"), []byte("@slice-999\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	ids, err := sliceIDs(cfg, []string{"slice-009"})
+	ids, err := taggedIDs(cfg, "slice", []string{"slice-009"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, want := range []string{"slice-007", "slice-bad", "slice-010", "slice-009"} {
 		if !slices.Contains(ids, want) {
-			t.Errorf("sliceIDs = %v, missing %q", ids, want)
+			t.Errorf("taggedIDs = %v, missing %q", ids, want)
 		}
 	}
 	if slices.Contains(ids, "slice-999") {
-		t.Fatalf("sliceIDs read a non-feature file: %v", ids)
+		t.Fatalf("taggedIDs read a non-feature file: %v", ids)
 	}
 	got, err := mintItemID(cfg, "slice", []string{"slice-009"})
 	if err != nil || got != "slice-011" {
 		t.Fatalf("slice mint = %q, %v, want slice-011", got, err)
+	}
+}
+
+// A bug is minted as a slice is (slice 104), past the registry's bugs and
+// the feature files' @bug tags, its own series: no slice counts.
+func TestMintItemIDMintsABugPastTheRegistrysBugsAndTheBugTags(t *testing.T) {
+	cfg, dir := idMintTestConfig(t, "[]\n")
+	features := filepath.Join(dir, "features")
+	if err := os.MkdirAll(features, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(features, "one.feature"), []byte("Feature: One\n  @ID-ONE-01 @bug-07 @slice-30\n  Scenario: One\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got, err := mintItemID(cfg, "bug", []string{"bug-5", "slice-40"})
+	if err != nil || got != "bug-08" {
+		t.Fatalf("bug mint = %q, %v, want bug-08", got, err)
+	}
+	ids, err := taggedIDs(cfg, "bug", nil)
+	if err != nil || !slices.Equal(ids, []string{"bug-07"}) {
+		t.Fatalf("taggedIDs(bug) = %v, %v, want [bug-07]", ids, err)
+	}
+}
+
+// A feature file that cannot be read stops the mint before anything is
+// reserved: here a link to itself, which no read resolves.
+func TestMintItemIDRefusesAFeatureFileItCannotRead(t *testing.T) {
+	cfg, dir := idMintTestConfig(t, "[]\n")
+	features := filepath.Join(dir, "features")
+	if err := os.MkdirAll(features, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	loop := filepath.Join(features, "loop.feature")
+	if err := os.Symlink(loop, loop); err != nil {
+		t.Skipf("cannot make a symbolic link here: %v", err)
+	}
+	if _, err := os.ReadFile(loop); err == nil || os.IsNotExist(err) {
+		t.Skipf("a link to itself reads here as %v, not as a failed read", err)
+	}
+	if got, err := mintItemID(cfg, "bug", nil); err == nil {
+		t.Fatalf("mintItemID = %q, want the unreadable feature file's error", got)
+	}
+}
+
+// A number past the largest int cannot be read back, and nothing is minted.
+func TestMintItemIDRefusesANumberPastTheLargestInt(t *testing.T) {
+	cfg, _ := idMintTestConfig(t, "[]\n")
+	got, err := mintItemID(cfg, "bug", []string{"bug-" + strconv.Itoa(math.MaxInt)})
+	if err == nil || !strings.Contains(err.Error(), "cannot read the number from next bug id") {
+		t.Fatalf("mintItemID = %q, %v, want the number refused", got, err)
 	}
 }
 
@@ -102,9 +154,9 @@ func TestSliceIDsUsesDefaultRootWhenConfiguredRootIsEmpty(t *testing.T) {
 	root := ""
 	cfg := &config.Loaded{}
 	cfg.Tests.Values = map[string]config.Kind{"scenario": {Root: &root}}
-	ids, err := sliceIDs(cfg, nil)
+	ids, err := taggedIDs(cfg, "slice", nil)
 	if err != nil || !slices.Contains(ids, "slice-006") {
-		t.Fatalf("sliceIDs = %v, %v, want the default features root", ids, err)
+		t.Fatalf("taggedIDs = %v, %v, want the default features root", ids, err)
 	}
 }
 
@@ -119,9 +171,9 @@ func TestSliceIDsUsesDefaultRootWhenScenarioRootIsNil(t *testing.T) {
 	}
 	cfg := &config.Loaded{}
 	cfg.Tests.Values = map[string]config.Kind{"scenario": {}}
-	ids, err := sliceIDs(cfg, nil)
+	ids, err := taggedIDs(cfg, "slice", nil)
 	if err != nil || !slices.Contains(ids, "slice-006") {
-		t.Fatalf("sliceIDs = %v, %v, want the default features root", ids, err)
+		t.Fatalf("taggedIDs = %v, %v, want the default features root", ids, err)
 	}
 }
 

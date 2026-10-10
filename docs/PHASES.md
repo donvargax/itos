@@ -44,7 +44,7 @@ doing`, committed alone), closes it with `tools/bin/itos work done <id>` once
 it has landed (no `@wip` scenario of it left, its commits pushed, its CI run
 green), and adds the items a slice discovers with their dependencies with
 `tools/bin/itos work add <idea-id> --title … --why …` adds an idea; `--kind
-slice|task` mints the numbered ID. Change an item's title, dependencies or refs, or add a note
+slice|task|bug` mints the numbered ID. Change an item's title, dependencies or refs, or add a note
 to its why, with `tools/bin/itos work edit <id>`. A task is added with
 `tools/bin/itos task add`, which mints the ledger's next ID and writes the task
 into its phase's ledger file and its item into the registry in one commit.

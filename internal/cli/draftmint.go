@@ -1,7 +1,7 @@
 package cli
 
 // A drafted command that mints an item's id (slice 103,
-// features/draft.feature): work add --kind slice|task, task add and work
+// features/draft.feature): work add --kind slice|task|bug, task add and work
 // promote. itos draft add mints its id at once, through the id counter
 // (idmint.go), prints it and keeps it in the draft (draft.Draft.Minted), so a
 // later draft, a spec's tags and a brief can write it before the item exists.
@@ -26,7 +26,7 @@ import (
 var mintingLines = [][2]string{{"work", "add"}, {"work", "promote"}, {"task", "add"}}
 
 // mintedKind is the kind of item whose id the itos arguments mint when they
-// run, slice or task; "" when they mint none, or when the command refuses
+// run, slice, bug or task; "" when they mint none, or when the command refuses
 // the line, which mints nothing either and is kept to fail at promote, as
 // any drafted line is.
 func mintedKind(command []string) string {

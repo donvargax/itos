@@ -21,7 +21,7 @@ import (
 )
 
 // addKinds are the kinds work add makes.
-var addKinds = []string{"idea", "slice", "task"}
+var addKinds = []string{"idea", "slice", "task", "bug"}
 
 // idList is a flag's comma-separated ids, each trimmed, the empty ones left
 // out: "" is none.
@@ -36,9 +36,9 @@ func idList(s string) []string {
 }
 
 // workAdd is `work add [<idea-id>] --title <t> --why <w>
-// [--kind idea|slice|task] [--phase <p>] [--owner <handle>]
+// [--kind idea|slice|task|bug] [--phase <p>] [--owner <handle>]
 // [--depends-on <ids>] [--refs <refs>] [--tags <tags>]`: ideas keep their
-// author's id; slices and tasks mint theirs from the shared counter.
+// author's id; slices, tasks and bugs mint theirs from the shared counter.
 func workAdd(args []string, o Out) (int, error) {
 	id, kind, flags, err := workAddLine(args)
 	if err != nil {

@@ -44,9 +44,12 @@ func itemIDs(registry work.Registry) []string {
 
 // mintItemID reserves an item number before the registry or ledger is
 // written. Task IDs use ledger.NextIDAfter, so ledger.id remains the one
-// authority for their prefix, padding and accepted width.
+// authority for their prefix, padding and accepted width. A slice's or a
+// bug's (slice 104) is <kind>-<n>, past the registry's and the feature
+// files' tags of its kind (taggedIDs).
 func mintItemID(cfg *config.Loaded, category string, registryIDs []string) (string, error) {
 	var next string
+	var ids []string
 	switch category {
 	case "task":
 		var err error
@@ -54,12 +57,13 @@ func mintItemID(cfg *config.Loaded, category string, registryIDs []string) (stri
 		if err != nil {
 			return "", err
 		}
-	case "slice":
-		ids, err := sliceIDs(cfg, registryIDs)
+	case "slice", "bug":
+		var err error
+		ids, err = taggedIDs(cfg, category, registryIDs)
 		if err != nil {
 			return "", err
 		}
-		next = nextid.Next("slice-", ids, 1, nil)
+		next = nextid.Next(category+"-", ids, 1, nil)
 	default:
 		return "", fmt.Errorf("cannot mint an item of kind %q", category)
 	}
@@ -74,13 +78,9 @@ func mintItemID(cfg *config.Loaded, category string, registryIDs []string) (stri
 	if category == "task" {
 		return ledger.NextIDAfter(cfg, registryIDs, number-1)
 	}
-	ids, err := sliceIDs(cfg, registryIDs)
-	if err != nil {
-		return "", err
-	}
 	width := 1
 	for _, id := range ids {
-		if digits, ok := strings.CutPrefix(id, "slice-"); ok && digits != "" {
+		if digits, ok := strings.CutPrefix(id, category+"-"); ok && digits != "" {
 			allDigits := true
 			for _, digit := range digits {
 				allDigits = allDigits && digit >= '0' && digit <= '9'
@@ -90,7 +90,7 @@ func mintItemID(cfg *config.Loaded, category string, registryIDs []string) (stri
 			}
 		}
 	}
-	return fmt.Sprintf("slice-%0*d", width, number), nil
+	return fmt.Sprintf("%s-%0*d", category, width, number), nil
 }
 
 func reserveItemNumber(cfg *config.Loaded, category string, highest int) (int, error) {
@@ -121,7 +121,9 @@ func reserveItemNumber(cfg *config.Loaded, category string, highest int) (int, e
 	}, category, highest)
 }
 
-func sliceIDs(cfg *config.Loaded, ids []string) ([]string, error) {
+// taggedIDs are the ids given and the <kind>-<n> every @<kind>-<n> tag of
+// the feature files names: slice or bug.
+func taggedIDs(cfg *config.Loaded, kind string, ids []string) ([]string, error) {
 	root := "features"
 	if scenario, ok := cfg.Tests.Get("scenario"); ok && scenario.Root != nil && *scenario.Root != "" {
 		root = *scenario.Root
@@ -143,8 +145,8 @@ func sliceIDs(cfg *config.Loaded, ids []string) ([]string, error) {
 				continue
 			}
 			for _, word := range strings.Fields(line) {
-				if tag, ok := strings.CutPrefix(word, "@slice-"); ok {
-					found = append(found, "slice-"+tag)
+				if tag, ok := strings.CutPrefix(word, "@"+kind+"-"); ok {
+					found = append(found, kind+"-"+tag)
 				}
 			}
 		}
