@@ -57,8 +57,8 @@ queue:
   - slice-108
   - slice-103
   - slice-104
-  - p1-windows-id-validation
   - slice-105
+  - p1-windows-id-validation
   - slice-95
   - bug-38
   - bug-42
