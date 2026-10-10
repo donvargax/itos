@@ -6546,6 +6546,10 @@ items:
       was formatted in its commit; 612acdbf fixed them by hand. Decided 2026-10-04
       (p1-written-files-format-command): what itos writes is formatter-stable under default settings
       and a formatting hook styles it in the same commit; neither held here.
+
+      Backlog review of 2026-10-10, batch 2: folds in p1-written-files-format-command: the escape
+      hatch, built only when a consumer needs it, is an optional config command itos runs on the
+      files it wrote, {files} filled in, before committing them.
     refs: [internal/cli/workwrite.go]
 
   - id: T-137
