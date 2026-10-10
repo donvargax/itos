@@ -55,7 +55,7 @@ phases:
   3: donvargax
 
 queue:
-  - p1-work-edit-several-ids
+  - slice-118
   - p1-tag-this-registry
   - p1-guard-follows-cd
   - p1-task-add-promoted
@@ -5226,7 +5226,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-work-edit-several-ids]
+    depends_on: [slice-118]
     kind: idea
     why: >
       Slice 97 built tags on work items, but this repository declares none, so its own registry, the
@@ -7011,14 +7011,15 @@ items:
       found and pass, the rule's intent. CI still judges fresh at push. Each extra local proof costs
       minutes and tokens in every itos-driven repository.
 
-  - id: p1-work-edit-several-ids
-    title: work edit takes several ids, applying the same change to each in one commit
+  - id: slice-118
+    title: work edit, drop, defer, resume and queue take several ids, one change for all in one commit
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-work-edit-several-ids.
       On 2026-10-10 the backlog review gave every kept item an area tag, and landing them
       (p1-tag-this-registry) would take one work edit --tags per item, about 110 commits each
       running the hooks. work edit, drop, defer and queue taking several ids (the same --tags,
