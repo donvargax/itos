@@ -6,6 +6,7 @@
 		"internal/cli/cli_test.go": "c84ca8a4c0cc43b5eb5406ceb85384d5bd180fde8d32287cae3699508a8cc403",
 		"internal/cli/draft_test.go": "4948d21ab430e166515f26bb298d8b33ef724016cb590d4320dcb334581569c9",
 		"internal/cli/exit_test.go": "b84637d725a7bf3c1c36a645bc1d64c1c34e765047040c81235120c7ffbcefd5",
+		"internal/cli/fakegit_test.go": "8ceaacef629775db36736c97cf0b15da2c07b04c7e64673fac670ed828a309c5",
 		"internal/cli/gitcommit_test.go": "ad60c398e7b7134d59d975d991c74faf9b8857d3c05ff58a713229faaa79ae3c",
 		"internal/cli/gitconfig_test.go": "5b58101dc9b33212d89db0df715422abda4f9772be9152d5812cc2a16a35bfe0",
 		"internal/cli/guide_test.go": "8c32c797a8536e9c3e664e2ffb18d26424a962951082508e5d31e1f2fafdabd8",
@@ -17,11 +18,11 @@
 		"internal/cli/push_test.go": "73edc19d9b581048d3c09099d9ae9d9f017b9a721574a5c2772ebf89c9283ebe",
 		"internal/cli/spec_test.go": "7f6fc3b306a314cf2c7c1ee9064362402a05d6d25c9d2d965fb3859edaf0fa6f",
 		"internal/cli/starter_test.go": "7a450a4b7b868c5e888a47d7a70dfc32b70156cf1ca9f00765ff7f704861b4be",
-		"internal/cli/taskadd_test.go": "d81fee4308495280bacb5d2d17df610def755399749bbcce20fc219df8a270db",
+		"internal/cli/taskadd_test.go": "edeac895d76498d13245fcb500d421220528c9e8161dcef7e5a32f6efd35d2f7",
 		"internal/cli/upgrade_test.go": "ba654fae27660c06f5c2aa7873736a1648d8db84b8aac3d2235c4ea0aba9ee59",
 		"internal/cli/watch_test.go": "4fe4037f94285e1ec2496aa6d3ddbc6e2585a4f6ddd89c451784c42cc9065e52",
 		"internal/cli/workdone_test.go": "9f6f69d9c81f52550524c7cad9e8e8bf888d02df03724b0aa303e16c5d1c96b6",
-		"internal/cli/workmint_test.go": "eb2057b7b25dc45205d3ad1a135bafa55a366703781ef6560f2edda510ed25fc",
+		"internal/cli/workmint_test.go": "a6e633c28c69e0def80752fb37f1a8cec123f0895b46854f317b82be951380fb",
 		"internal/cli/workwrite_test.go": "2236c1e90943f3374e07bc232df536c7e7a4e34b1e73c53795ae01b327f842a5",
 		"internal/message/header_test.go": "3e1823cc28a9ab97707400d6abc07f8f3902caad06dc51e2d3ade2c0a4d1d015",
 		"internal/message/message_test.go": "382572629c60717e850c0580f23ade6743bd836c50b1e53d235c4e5f6400a21c",
@@ -38,6 +39,71 @@
 		"internal/work/write_test.go": "1fe5db6b12d6419bbc6a0f1d82f45d0d3b31abaef950deaebf65400d22f8a190"
 	},
 	"units": [
+		{
+			"namespace": "github.com/donvargax/itos/v7/internal/work",
+			"name": "find",
+			"hash": "02bf31bbdbd79e3a",
+			"start_line": 44,
+			"end_line": 51,
+			"killed": 5,
+			"survived": 0,
+			"uncovered": 0,
+			"sites": 5,
+			"mutants": [
+				{
+					"line": 46,
+					"column": 27,
+					"offset": 97,
+					"original": "!",
+					"replacement": "",
+					"outcome": "timeout"
+				},
+				{
+					"line": 46,
+					"column": 39,
+					"offset": 109,
+					"original": "&&",
+					"replacement": "||",
+					"outcome": "killed"
+				},
+				{
+					"line": 46,
+					"column": 59,
+					"offset": 129,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "killed"
+				},
+				{
+					"line": 50,
+					"column": 9,
+					"offset": 164,
+					"original": "-",
+					"replacement": "",
+					"outcome": "killed"
+				},
+				{
+					"line": 50,
+					"column": 10,
+					"offset": 165,
+					"original": "1",
+					"replacement": "0",
+					"outcome": "killed"
+				}
+			]
+		},
+		{
+			"namespace": "github.com/donvargax/itos/v7/internal/work",
+			"name": "unknown",
+			"hash": "cc9a7cd0636f8c1f",
+			"start_line": 54,
+			"end_line": 57,
+			"killed": 0,
+			"survived": 0,
+			"uncovered": 0,
+			"sites": 0,
+			"mutants": []
+		},
 		{
 			"namespace": "github.com/donvargax/itos/v7/internal/work",
 			"name": "Take",
@@ -609,16 +675,1227 @@
 					"outcome": "killed"
 				}
 			]
+		},
+		{
+			"namespace": "github.com/donvargax/itos/v7/internal/work",
+			"name": "ownerOf",
+			"hash": "31b92c2a64d99fa2",
+			"start_line": 204,
+			"end_line": 212,
+			"killed": 1,
+			"survived": 1,
+			"uncovered": 0,
+			"sites": 2,
+			"mutants": [
+				{
+					"line": 205,
+					"column": 32,
+					"offset": 79,
+					"original": "!",
+					"replacement": "",
+					"outcome": "killed"
+				},
+				{
+					"line": 208,
+					"column": 59,
+					"offset": 172,
+					"original": "!",
+					"replacement": "",
+					"outcome": "survived",
+					"scope": "listed",
+					"tests": ["ID-WORK-08", "ID-WORK-10", "ID-WORK-13", "ID-WORK-47", "ID-WORK-49"]
+				}
+			]
+		},
+		{
+			"namespace": "github.com/donvargax/itos/v7/internal/work",
+			"name": "waitsOn",
+			"hash": "a6f0372a8f1eb3cd",
+			"start_line": 215,
+			"end_line": 229,
+			"killed": 3,
+			"survived": 0,
+			"uncovered": 0,
+			"sites": 3,
+			"mutants": [
+				{
+					"line": 220,
+					"column": 41,
+					"offset": 206,
+					"original": ">=",
+					"replacement": ">",
+					"outcome": "killed"
+				},
+				{
+					"line": 220,
+					"column": 44,
+					"offset": 209,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "killed"
+				},
+				{
+					"line": 221,
+					"column": 31,
+					"offset": 243,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "killed"
+				}
+			]
+		},
+		{
+			"namespace": "github.com/donvargax/itos/v7/internal/work",
+			"name": "Promote",
+			"hash": "067b20bb6c377da9",
+			"start_line": 240,
+			"end_line": 344,
+			"killed": 37,
+			"survived": 5,
+			"uncovered": 2,
+			"sites": 44,
+			"mutants": [
+				{
+					"line": 242,
+					"column": 7,
+					"offset": 141,
+					"original": "<",
+					"replacement": "<=",
+					"outcome": "killed"
+				},
+				{
+					"line": 242,
+					"column": 9,
+					"offset": 143,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "killed"
+				},
+				{
+					"line": 249,
+					"column": 23,
+					"offset": 383,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "killed"
+				},
+				{
+					"line": 250,
+					"column": 43,
+					"offset": 438,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 253,
+					"column": 21,
+					"offset": 573,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 255,
+					"column": 31,
+					"offset": 639,
+					"original": "!",
+					"replacement": "",
+					"outcome": "uncovered"
+				},
+				{
+					"line": 256,
+					"column": 19,
+					"offset": 673,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "uncovered"
+				},
+				{
+					"line": 261,
+					"column": 28,
+					"offset": 875,
+					"original": ">=",
+					"replacement": ">",
+					"outcome": "survived",
+					"scope": "listed",
+					"tests": ["ID-WORK-12", "ID-WORK-29", "ID-WORK-52", "ID-WORK-84", "ID-WORK-85"]
+				},
+				{
+					"line": 261,
+					"column": 31,
+					"offset": 878,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "survived",
+					"scope": "listed",
+					"tests": ["ID-WORK-12", "ID-WORK-29", "ID-WORK-52", "ID-WORK-84", "ID-WORK-85"]
+				},
+				{
+					"line": 263,
+					"column": 15,
+					"offset": 1021,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 263,
+					"column": 20,
+					"offset": 1026,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 265,
+					"column": 10,
+					"offset": 1061,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "killed"
+				},
+				{
+					"line": 265,
+					"column": 20,
+					"offset": 1071,
+					"original": "&&",
+					"replacement": "||",
+					"outcome": "killed"
+				},
+				{
+					"line": 265,
+					"column": 30,
+					"offset": 1081,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "timeout"
+				},
+				{
+					"line": 265,
+					"column": 37,
+					"offset": 1088,
+					"original": "&&",
+					"replacement": "||",
+					"outcome": "timeout"
+				},
+				{
+					"line": 265,
+					"column": 40,
+					"offset": 1091,
+					"original": "!",
+					"replacement": "",
+					"outcome": "timeout"
+				},
+				{
+					"line": 270,
+					"column": 9,
+					"offset": 1360,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "timeout"
+				},
+				{
+					"line": 274,
+					"column": 17,
+					"offset": 1456,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 274,
+					"column": 22,
+					"offset": 1461,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 280,
+					"column": 25,
+					"offset": 1737,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 286,
+					"column": 20,
+					"offset": 1850,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 286,
+					"column": 26,
+					"offset": 1856,
+					"original": "&&",
+					"replacement": "||",
+					"outcome": "killed"
+				},
+				{
+					"line": 286,
+					"column": 46,
+					"offset": 1876,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 288,
+					"column": 61,
+					"offset": 1960,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 293,
+					"column": 77,
+					"offset": 2109,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "survived",
+					"scope": "listed",
+					"tests": ["ID-WORK-12", "ID-WORK-29", "ID-WORK-52", "ID-WORK-84", "ID-WORK-85"]
+				},
+				{
+					"line": 299,
+					"column": 12,
+					"offset": 2270,
+					"original": "false",
+					"replacement": "true",
+					"outcome": "killed"
+				},
+				{
+					"line": 301,
+					"column": 11,
+					"offset": 2315,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 304,
+					"column": 70,
+					"offset": 2410,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 307,
+					"column": 12,
+					"offset": 2465,
+					"original": "true",
+					"replacement": "false",
+					"outcome": "killed"
+				},
+				{
+					"line": 313,
+					"column": 12,
+					"offset": 2568,
+					"original": "false",
+					"replacement": "true",
+					"outcome": "killed"
+				},
+				{
+					"line": 315,
+					"column": 8,
+					"offset": 2612,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 318,
+					"column": 52,
+					"offset": 2687,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 321,
+					"column": 12,
+					"offset": 2740,
+					"original": "true",
+					"replacement": "false",
+					"outcome": "survived"
+				},
+				{
+					"line": 324,
+					"column": 9,
+					"offset": 2783,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 329,
+					"column": 30,
+					"offset": 2984,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 332,
+					"column": 20,
+					"offset": 3062,
+					"original": ">",
+					"replacement": ">=",
+					"outcome": "survived",
+					"scope": "listed",
+					"tests": ["ID-WORK-12", "ID-WORK-29", "ID-WORK-52", "ID-WORK-84", "ID-WORK-85"]
+				},
+				{
+					"line": 332,
+					"column": 22,
+					"offset": 3064,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "killed"
+				},
+				{
+					"line": 333,
+					"column": 36,
+					"offset": 3103,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 333,
+					"column": 68,
+					"offset": 3135,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 334,
+					"column": 21,
+					"offset": 3167,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "killed"
+				},
+				{
+					"line": 334,
+					"column": 24,
+					"offset": 3170,
+					"original": "1",
+					"replacement": "0",
+					"outcome": "killed"
+				},
+				{
+					"line": 343,
+					"column": 90,
+					"offset": 3378,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 343,
+					"column": 95,
+					"offset": 3383,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 343,
+					"column": 104,
+					"offset": 3392,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				}
+			]
+		},
+		{
+			"namespace": "github.com/donvargax/itos/v7/internal/work",
+			"name": "phaseOf",
+			"hash": "4eff05eee8ec979b",
+			"start_line": 358,
+			"end_line": 369,
+			"killed": 8,
+			"survived": 0,
+			"uncovered": 0,
+			"sites": 8,
+			"mutants": [
+				{
+					"line": 359,
+					"column": 13,
+					"offset": 53,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 362,
+					"column": 48,
+					"offset": 128,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 362,
+					"column": 55,
+					"offset": 135,
+					"original": "&&",
+					"replacement": "||",
+					"outcome": "killed"
+				},
+				{
+					"line": 362,
+					"column": 73,
+					"offset": 153,
+					"original": "1",
+					"replacement": "0",
+					"outcome": "killed"
+				},
+				{
+					"line": 363,
+					"column": 12,
+					"offset": 170,
+					"original": "1",
+					"replacement": "0",
+					"outcome": "killed"
+				},
+				{
+					"line": 365,
+					"column": 40,
+					"offset": 215,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "killed"
+				},
+				{
+					"line": 365,
+					"column": 43,
+					"offset": 218,
+					"original": "1",
+					"replacement": "0",
+					"outcome": "killed",
+					"scope": "listed",
+					"tests": [
+						"ID-IDS-01",
+						"ID-IDS-02",
+						"ID-IDS-03",
+						"ID-IDS-05",
+						"ID-IDS-06",
+						"ID-WORK-81",
+						"ID-WORK-83"
+					]
+				},
+				{
+					"line": 366,
+					"column": 15,
+					"offset": 236,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "killed",
+					"scope": "listed",
+					"tests": [
+						"ID-IDS-01",
+						"ID-IDS-02",
+						"ID-IDS-03",
+						"ID-IDS-05",
+						"ID-IDS-06",
+						"ID-WORK-81",
+						"ID-WORK-83"
+					]
+				}
+			]
+		},
+		{
+			"namespace": "github.com/donvargax/itos/v7/internal/work",
+			"name": "listOf",
+			"hash": "0c9ecb3907d8f944",
+			"start_line": 375,
+			"end_line": 381,
+			"killed": 0,
+			"survived": 0,
+			"uncovered": 0,
+			"sites": 0,
+			"mutants": []
+		},
+		{
+			"namespace": "github.com/donvargax/itos/v7/internal/work",
+			"name": "sound",
+			"hash": "69b92641c89c5b38",
+			"start_line": 386,
+			"end_line": 395,
+			"killed": 1,
+			"survived": 0,
+			"uncovered": 0,
+			"sites": 1,
+			"mutants": [
+				{
+					"line": 388,
+					"column": 7,
+					"offset": 144,
+					"original": "<",
+					"replacement": "<=",
+					"outcome": "killed"
+				}
+			]
+		},
+		{
+			"namespace": "github.com/donvargax/itos/v7/internal/work",
+			"name": "Add",
+			"hash": "888212576711d313",
+			"start_line": 404,
+			"end_line": 458,
+			"killed": 26,
+			"survived": 2,
+			"uncovered": 0,
+			"sites": 28,
+			"mutants": [
+				{
+					"line": 408,
+					"column": 27,
+					"offset": 302,
+					"original": ">=",
+					"replacement": ">",
+					"outcome": "survived",
+					"scope": "listed",
+					"tests": [
+						"ID-DRAFT-03",
+						"ID-DRAFT-04",
+						"ID-DRAFT-06",
+						"ID-IDS-01",
+						"ID-IDS-02",
+						"ID-IDS-03",
+						"ID-IDS-05",
+						"ID-IDS-06",
+						"ID-IDS-07",
+						"ID-INIT-23",
+						"ID-INIT-24",
+						"ID-INIT-25",
+						"ID-STEALTH-23",
+						"ID-TASK-05",
+						"ID-TASK-06",
+						"ID-TASK-07",
+						"ID-TASK-09",
+						"ID-TASK-10",
+						"ID-TASK-13",
+						"ID-WORK-19",
+						"ID-WORK-20",
+						"ID-WORK-21",
+						"ID-WORK-58",
+						"ID-WORK-59",
+						"ID-WORK-64",
+						"ID-WORK-81",
+						"ID-WORK-83",
+						"ID-WORK-88"
+					]
+				},
+				{
+					"line": 408,
+					"column": 30,
+					"offset": 305,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "survived",
+					"scope": "listed",
+					"tests": [
+						"ID-DRAFT-03",
+						"ID-DRAFT-04",
+						"ID-DRAFT-06",
+						"ID-IDS-01",
+						"ID-IDS-02",
+						"ID-IDS-03",
+						"ID-IDS-05",
+						"ID-IDS-06",
+						"ID-IDS-07",
+						"ID-INIT-23",
+						"ID-INIT-24",
+						"ID-INIT-25",
+						"ID-STEALTH-23",
+						"ID-TASK-05",
+						"ID-TASK-06",
+						"ID-TASK-07",
+						"ID-TASK-09",
+						"ID-TASK-10",
+						"ID-TASK-13",
+						"ID-WORK-19",
+						"ID-WORK-20",
+						"ID-WORK-21",
+						"ID-WORK-58",
+						"ID-WORK-59",
+						"ID-WORK-64",
+						"ID-WORK-81",
+						"ID-WORK-83",
+						"ID-WORK-88"
+					]
+				},
+				{
+					"line": 410,
+					"column": 53,
+					"offset": 481,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 410,
+					"column": 58,
+					"offset": 486,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 412,
+					"column": 12,
+					"offset": 525,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "timeout"
+				},
+				{
+					"line": 412,
+					"column": 22,
+					"offset": 535,
+					"original": "&&",
+					"replacement": "||",
+					"outcome": "timeout"
+				},
+				{
+					"line": 412,
+					"column": 32,
+					"offset": 545,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "timeout"
+				},
+				{
+					"line": 412,
+					"column": 39,
+					"offset": 552,
+					"original": "&&",
+					"replacement": "||",
+					"outcome": "killed"
+				},
+				{
+					"line": 412,
+					"column": 42,
+					"offset": 555,
+					"original": "!",
+					"replacement": "",
+					"outcome": "killed"
+				},
+				{
+					"line": 418,
+					"column": 11,
+					"offset": 844,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "killed"
+				},
+				{
+					"line": 420,
+					"column": 71,
+					"offset": 1027,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 420,
+					"column": 77,
+					"offset": 1033,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 423,
+					"column": 13,
+					"offset": 1069,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 427,
+					"column": 37,
+					"offset": 1165,
+					"original": "!",
+					"replacement": "",
+					"outcome": "killed"
+				},
+				{
+					"line": 432,
+					"column": 17,
+					"offset": 1381,
+					"original": ">",
+					"replacement": ">=",
+					"outcome": "killed"
+				},
+				{
+					"line": 432,
+					"column": 19,
+					"offset": 1383,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "killed"
+				},
+				{
+					"line": 435,
+					"column": 17,
+					"offset": 1441,
+					"original": ">",
+					"replacement": ">=",
+					"outcome": "killed"
+				},
+				{
+					"line": 435,
+					"column": 19,
+					"offset": 1443,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "killed"
+				},
+				{
+					"line": 439,
+					"column": 9,
+					"offset": 1526,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 442,
+					"column": 57,
+					"offset": 1622,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 446,
+					"column": 9,
+					"offset": 1697,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 450,
+					"column": 36,
+					"offset": 1819,
+					"original": "-",
+					"replacement": "+",
+					"outcome": "killed"
+				},
+				{
+					"line": 450,
+					"column": 37,
+					"offset": 1820,
+					"original": "1",
+					"replacement": "0",
+					"outcome": "killed"
+				},
+				{
+					"line": 453,
+					"column": 9,
+					"offset": 1916,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 453,
+					"column": 16,
+					"offset": 1923,
+					"original": "||",
+					"replacement": "&&",
+					"outcome": "killed"
+				},
+				{
+					"line": 453,
+					"column": 30,
+					"offset": 1937,
+					"original": ">",
+					"replacement": ">=",
+					"outcome": "killed"
+				},
+				{
+					"line": 453,
+					"column": 32,
+					"offset": 1939,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "killed"
+				},
+				{
+					"line": 457,
+					"column": 64,
+					"offset": 2161,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				}
+			]
+		},
+		{
+			"namespace": "github.com/donvargax/itos/v7/internal/work",
+			"name": "Edit",
+			"hash": "f412fe54cc15dfa4",
+			"start_line": 487,
+			"end_line": 569,
+			"killed": 33,
+			"survived": 2,
+			"uncovered": 0,
+			"sites": 35,
+			"mutants": [
+				{
+					"line": 489,
+					"column": 7,
+					"offset": 148,
+					"original": "<",
+					"replacement": "<=",
+					"outcome": "killed"
+				},
+				{
+					"line": 489,
+					"column": 9,
+					"offset": 150,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "killed"
+				},
+				{
+					"line": 493,
+					"column": 44,
+					"offset": 272,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 493,
+					"column": 50,
+					"offset": 278,
+					"original": "&&",
+					"replacement": "||",
+					"outcome": "killed"
+				},
+				{
+					"line": 493,
+					"column": 68,
+					"offset": 296,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 501,
+					"column": 9,
+					"offset": 666,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 507,
+					"column": 12,
+					"offset": 893,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 508,
+					"column": 61,
+					"offset": 961,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 513,
+					"column": 13,
+					"offset": 1040,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 513,
+					"column": 20,
+					"offset": 1047,
+					"original": "&&",
+					"replacement": "||",
+					"outcome": "killed"
+				},
+				{
+					"line": 513,
+					"column": 40,
+					"offset": 1067,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 514,
+					"column": 64,
+					"offset": 1144,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 523,
+					"column": 13,
+					"offset": 1369,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "killed"
+				},
+				{
+					"line": 532,
+					"column": 22,
+					"offset": 1606,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "killed"
+				},
+				{
+					"line": 535,
+					"column": 65,
+					"offset": 1719,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 540,
+					"column": 12,
+					"offset": 1810,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 543,
+					"column": 18,
+					"offset": 1873,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "killed"
+				},
+				{
+					"line": 543,
+					"column": 21,
+					"offset": 1876,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "killed"
+				},
+				{
+					"line": 544,
+					"column": 61,
+					"offset": 1940,
+					"original": "true",
+					"replacement": "false",
+					"outcome": "killed"
+				},
+				{
+					"line": 547,
+					"column": 9,
+					"offset": 1994,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 553,
+					"column": 9,
+					"offset": 2178,
+					"original": "!=",
+					"replacement": "==",
+					"outcome": "killed"
+				},
+				{
+					"line": 553,
+					"column": 16,
+					"offset": 2185,
+					"original": "||",
+					"replacement": "&&",
+					"outcome": "killed"
+				},
+				{
+					"line": 553,
+					"column": 30,
+					"offset": 2199,
+					"original": ">",
+					"replacement": ">=",
+					"outcome": "killed"
+				},
+				{
+					"line": 553,
+					"column": 32,
+					"offset": 2201,
+					"original": "0",
+					"replacement": "1",
+					"outcome": "killed"
+				},
+				{
+					"line": 558,
+					"column": 20,
+					"offset": 2326,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 559,
+					"column": 10,
+					"offset": 2341,
+					"original": "==",
+					"replacement": "!=",
+					"outcome": "killed"
+				},
+				{
+					"line": 564,
+					"column": 15,
+					"offset": 2442,
+					"original": ">",
+					"replacement": ">=",
+					"outcome": "survived",
+					"scope": "listed",
+					"tests": ["ID-WORK-22", "ID-WORK-23", "ID-WORK-26", "ID-WORK-27", "ID-WORK-61"]
+				},
+				{
+					"line": 564,
+					"column": 17,
+					"offset": 2444,
+					"original": "1",
+					"replacement": "0",
+					"outcome": "survived",
+					"scope": "listed",
+					"tests": ["ID-WORK-22", "ID-WORK-23", "ID-WORK-26", "ID-WORK-27", "ID-WORK-61"]
+				},
+				{
+					"line": 565,
+					"column": 40,
+					"offset": 2487,
+					"original": "-",
+					"replacement": "+",
+					"outcome": "killed"
+				},
+				{
+					"line": 565,
+					"column": 41,
+					"offset": 2488,
+					"original": "1",
+					"replacement": "0",
+					"outcome": "killed"
+				},
+				{
+					"line": 565,
+					"column": 51,
+					"offset": 2498,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 565,
+					"column": 61,
+					"offset": 2508,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				},
+				{
+					"line": 565,
+					"column": 77,
+					"offset": 2524,
+					"original": "-",
+					"replacement": "+",
+					"outcome": "killed"
+				},
+				{
+					"line": 565,
+					"column": 78,
+					"offset": 2525,
+					"original": "1",
+					"replacement": "0",
+					"outcome": "timeout"
+				},
+				{
+					"line": 568,
+					"column": 83,
+					"offset": 2735,
+					"original": "+",
+					"replacement": "-",
+					"outcome": "killed"
+				}
+			]
 		}
 	],
 	"listed": {
+		"ID-DRAFT-03": "features/draft.feature",
+		"ID-DRAFT-04": "features/draft.feature",
+		"ID-DRAFT-06": "features/draft.feature",
+		"ID-IDS-01": "features/ids.feature",
+		"ID-IDS-02": "features/ids.feature",
+		"ID-IDS-03": "features/ids.feature",
+		"ID-IDS-05": "features/ids.feature",
+		"ID-IDS-06": "features/ids.feature",
+		"ID-IDS-07": "features/ids.feature",
+		"ID-INIT-23": "features/init.feature",
+		"ID-INIT-24": "features/init.feature",
+		"ID-INIT-25": "features/init.feature",
+		"ID-STEALTH-23": "features/stealth.feature",
+		"ID-TASK-05": "features/task.feature",
+		"ID-TASK-06": "features/task.feature",
+		"ID-TASK-07": "features/task.feature",
+		"ID-TASK-09": "features/task.feature",
+		"ID-TASK-10": "features/task.feature",
+		"ID-TASK-13": "features/task.feature",
 		"ID-WORK-08": "features/work.feature",
+		"ID-WORK-10": "features/work.feature",
+		"ID-WORK-12": "features/work.feature",
 		"ID-WORK-13": "features/work.feature",
 		"ID-WORK-14": "features/work.feature",
+		"ID-WORK-19": "features/work.feature",
+		"ID-WORK-20": "features/work.feature",
+		"ID-WORK-21": "features/work.feature",
+		"ID-WORK-22": "features/work.feature",
+		"ID-WORK-23": "features/work.feature",
+		"ID-WORK-26": "features/work.feature",
+		"ID-WORK-27": "features/work.feature",
+		"ID-WORK-29": "features/work.feature",
 		"ID-WORK-47": "features/work.feature",
-		"ID-WORK-49": "features/work.feature"
+		"ID-WORK-49": "features/work.feature",
+		"ID-WORK-52": "features/work.feature",
+		"ID-WORK-58": "features/work.feature",
+		"ID-WORK-59": "features/work.feature",
+		"ID-WORK-61": "features/work.feature",
+		"ID-WORK-64": "features/work.feature",
+		"ID-WORK-81": "features/work.feature",
+		"ID-WORK-83": "features/work.feature",
+		"ID-WORK-84": "features/work.feature",
+		"ID-WORK-85": "features/work.feature",
+		"ID-WORK-88": "features/work.feature"
 	},
 	"listed_files": {
+		"features/draft.feature": "a498d9f8617bb2d1f4b50f77fb00977a9cc081634aa5a5425f2cec53d11e8dc9",
+		"features/ids.feature": "f2efb59a06bb1b48995844ba4adade1d691d0c6a62d8875401fbd09c2dbfb06a",
+		"features/init.feature": "1d5f7c5eba408badaa1531287e69b4f888218b77be553be213338cb2e73cc5a7",
+		"features/stealth.feature": "667cea510b3b2b1ced7c9d2d6c42556a01be123172ac2400e9b5a60c03f42666",
+		"features/task.feature": "68781b4253be67a5030012658a88ecddece4361ba615ae1405017045e8c2b7db",
 		"features/work.feature": "96887efe67df3aa9d2a60d2f038273d30b54103db118a63b88599e082812da47"
 	},
 	"support": {
@@ -626,14 +1903,14 @@
 		"features/cover_test.go": "287d7b313321d36ede6c0e9bd0623f7280189a7fdc9992bff77e5f5495d619ea",
 		"features/draft_test.go": "f99a5031c8794b57bb9e75cae3001c94c60eb694a8674539b65a92d0790b4c37",
 		"features/extensions_test.go": "f31cc2ca701d2489ace539171e59f909bfeb762605e4052503d64823e7ceff2d",
-		"features/features_test.go": "8dc4d76cd6bc93453084b29c4894f79eca2b7a03dcc0608d9cf1478919ed8616",
+		"features/features_test.go": "a8c7e2482c7797edf76850ff9d4d95d9914a736f806ff83783b4df091d57b6fc",
 		"features/follow_test.go": "c83bebeebf982430d3e0f924af120987ce32740435fbdeee1d92b333abb61e50",
 		"features/guard_test.go": "6272b41272d6d4ede6c20bd2ce197a81839a47b5693bd5d9cb7a0c69f66d4f2d",
 		"features/guide_test.go": "2224dd0a2737436807e17173968d0b340e2ff2fa55959b6da141b698ee8c7cf4",
 		"features/ids_test.go": "b6fdd83a7a39390be5ee11e6df63c60181c9f4f9c944297e89e8f8b69e6c6423",
 		"features/init_test.go": "a5f9cd2a668849701da7fb22c82f3c5188fe874d9a283ba92dbd51a70e374d47",
 		"features/moves_command_test.go": "6e92db478e503eb6062fdc0d5c74b86cbad959cca20ff05755466347bffd856f",
-		"features/program_test.go": "1ca7d4f92e76741c921a588a93a465bece9a50525d766b2819a1bf8ee0bc1b1c",
+		"features/program_test.go": "4bf77892543007bb3572773ff5eb29ef73559081d28866136463a36033ec2924",
 		"features/proof_test.go": "feb732a2856be47fafd874ae651e3b6285c5f8cc273a680b5db46a5967efcae2",
 		"features/push_test.go": "c57664dcf76b5315fdc08d600dddafafbc0c7079c637e769b5e986c1cd4fc50d",
 		"features/range_test.go": "e48d9a8b5658385a9e83638236397d0e90453fd61c1a5e335569f6e0aedb3302",
@@ -646,6 +1923,6 @@
 		"features/upgrade_test.go": "241c1441fbd301cbff0f4ce9662d40a7c07959f5a985c576a2554414fb3d15a5",
 		"features/watch_test.go": "01a3b31ec613db5b23157cf12f578729272cf3154603ab740398d37c1adcdb93",
 		"features/work_test.go": "146a4c7bf8a006882495409e72104314316dd3a755ec5b8c0568b6c8e13683e1",
-		"tools/bin/itos-cc-tests.ts": "4704d41906cd07f2112e0e53aef34a867807cf70b6c8606711729f78975533da"
+		"tools/bin/itos-cc-tests.ts": "740745587f332742d404f5c9a046dfc9816951bb5cf61a3d96528ff7474b0354"
 	}
 }

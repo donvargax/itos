@@ -9,3 +9,244 @@ mutation:
       - features/*_test.go
       - features/testdata/**
       - tools/bin/itos-cc-tests.ts
+  exceptions:
+    - file: internal/cli/idmint.go
+      function: github.com/donvargax/itos/v7/internal/cli#mintItemID
+      hash: 1ac7d5e92b20cd02
+      line_in_function: 15
+      column: 37
+      original: "1"
+      replacement: "0"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/idmint.go
+      function: github.com/donvargax/itos/v7/internal/cli#mintItemID
+      hash: 1ac7d5e92b20cd02
+      line_in_function: 34
+      column: 11
+      original: "1"
+      replacement: "0"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/taskadd.go
+      function: github.com/donvargax/itos/v7/internal/cli#taskAddArgs
+      hash: e648134ddd68c155
+      line_in_function: 9
+      column: 11
+      original: "false"
+      replacement: "true"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/taskadd.go
+      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
+      hash: 6ebd2c7875043bcd
+      line_in_function: 4
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/taskadd.go
+      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
+      hash: 6ebd2c7875043bcd
+      line_in_function: 8
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/taskadd.go
+      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
+      hash: 6ebd2c7875043bcd
+      line_in_function: 18
+      column: 11
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/taskadd.go
+      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
+      hash: 6ebd2c7875043bcd
+      line_in_function: 27
+      column: 12
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/taskadd.go
+      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
+      hash: 6ebd2c7875043bcd
+      line_in_function: 43
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/taskadd.go
+      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
+      hash: 6ebd2c7875043bcd
+      line_in_function: 47
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/taskadd.go
+      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
+      hash: 6ebd2c7875043bcd
+      line_in_function: 55
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workedit.go
+      function: github.com/donvargax/itos/v7/internal/cli#workAdd
+      hash: 30047573f96d6c75
+      line_in_function: 4
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workedit.go
+      function: github.com/donvargax/itos/v7/internal/cli#workAdd
+      hash: 30047573f96d6c75
+      line_in_function: 7
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workedit.go
+      function: github.com/donvargax/itos/v7/internal/cli#workAdd
+      hash: 30047573f96d6c75
+      line_in_function: 14
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workedit.go
+      function: github.com/donvargax/itos/v7/internal/cli#workAdd
+      hash: 30047573f96d6c75
+      line_in_function: 17
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workedit.go
+      function: github.com/donvargax/itos/v7/internal/cli#workAdd
+      hash: 30047573f96d6c75
+      line_in_function: 33
+      column: 11
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workedit.go
+      function: github.com/donvargax/itos/v7/internal/cli#workAdd
+      hash: 30047573f96d6c75
+      line_in_function: 42
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workedit.go
+      function: github.com/donvargax/itos/v7/internal/cli#workAdd
+      hash: 30047573f96d6c75
+      line_in_function: 46
+      column: 11
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workwrite.go
+      function: github.com/donvargax/itos/v7/internal/cli#workArgsOptionalID
+      hash: 10a794417f317cc2
+      line_in_function: 4
+      column: 14
+      original: "false"
+      replacement: "true"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workwrite.go
+      function: github.com/donvargax/itos/v7/internal/cli#workArgsOptionalID
+      hash: 10a794417f317cc2
+      line_in_function: 7
+      column: 14
+      original: "false"
+      replacement: "true"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workwrite.go
+      function: github.com/donvargax/itos/v7/internal/cli#workPromote
+      hash: d0a012f5bdf5190f
+      line_in_function: 4
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workwrite.go
+      function: github.com/donvargax/itos/v7/internal/cli#workPromote
+      hash: d0a012f5bdf5190f
+      line_in_function: 8
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workwrite.go
+      function: github.com/donvargax/itos/v7/internal/cli#workPromote
+      hash: d0a012f5bdf5190f
+      line_in_function: 24
+      column: 11
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workwrite.go
+      function: github.com/donvargax/itos/v7/internal/cli#workPromote
+      hash: d0a012f5bdf5190f
+      line_in_function: 29
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/cli/workwrite.go
+      function: github.com/donvargax/itos/v7/internal/cli#workPromote
+      hash: d0a012f5bdf5190f
+      line_in_function: 38
+      column: 10
+      original: "0"
+      replacement: "1"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/ledger/nextid.go
+      function: github.com/donvargax/itos/v7/internal/ledger#NextIDAfter
+      hash: aa4a7f149c20977d
+      line_in_function: 26
+      column: 49
+      original: "&&"
+      replacement: "||"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/ledger/nextid.go
+      function: github.com/donvargax/itos/v7/internal/ledger#NextIDAfter
+      hash: aa4a7f149c20977d
+      line_in_function: 26
+      column: 54
+      original: ">"
+      replacement: ">="
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/ledger/nextid.go
+      function: github.com/donvargax/itos/v7/internal/ledger#NextIDAfter
+      hash: aa4a7f149c20977d
+      line_in_function: 35
+      column: 11
+      original: ">"
+      replacement: ">="
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/ledger/nextid.go
+      function: github.com/donvargax/itos/v7/internal/ledger#NextIDAfter
+      hash: aa4a7f149c20977d
+      line_in_function: 35
+      column: 15
+      original: "&&"
+      replacement: "||"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/ledger/nextid.go
+      function: github.com/donvargax/itos/v7/internal/ledger#NextIDAfter
+      hash: aa4a7f149c20977d
+      line_in_function: 38
+      column: 34
+      original: "1"
+      replacement: "0"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+    - file: internal/work/write.go
+      function: github.com/donvargax/itos/v7/internal/work#Take
+      hash: 2ccb048ce16706d3
+      line_in_function: 59
+      column: 47
+      original: "&&"
+      replacement: "||"
+      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."

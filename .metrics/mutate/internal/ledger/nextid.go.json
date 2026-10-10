@@ -8,6 +8,7 @@
 		"internal/cli/cli_test.go": "c84ca8a4c0cc43b5eb5406ceb85384d5bd180fde8d32287cae3699508a8cc403",
 		"internal/cli/draft_test.go": "4948d21ab430e166515f26bb298d8b33ef724016cb590d4320dcb334581569c9",
 		"internal/cli/exit_test.go": "b84637d725a7bf3c1c36a645bc1d64c1c34e765047040c81235120c7ffbcefd5",
+		"internal/cli/fakegit_test.go": "8ceaacef629775db36736c97cf0b15da2c07b04c7e64673fac670ed828a309c5",
 		"internal/cli/gitcommit_test.go": "ad60c398e7b7134d59d975d991c74faf9b8857d3c05ff58a713229faaa79ae3c",
 		"internal/cli/gitconfig_test.go": "5b58101dc9b33212d89db0df715422abda4f9772be9152d5812cc2a16a35bfe0",
 		"internal/cli/guide_test.go": "8c32c797a8536e9c3e664e2ffb18d26424a962951082508e5d31e1f2fafdabd8",
@@ -19,11 +20,11 @@
 		"internal/cli/push_test.go": "73edc19d9b581048d3c09099d9ae9d9f017b9a721574a5c2772ebf89c9283ebe",
 		"internal/cli/spec_test.go": "7f6fc3b306a314cf2c7c1ee9064362402a05d6d25c9d2d965fb3859edaf0fa6f",
 		"internal/cli/starter_test.go": "7a450a4b7b868c5e888a47d7a70dfc32b70156cf1ca9f00765ff7f704861b4be",
-		"internal/cli/taskadd_test.go": "d81fee4308495280bacb5d2d17df610def755399749bbcce20fc219df8a270db",
+		"internal/cli/taskadd_test.go": "edeac895d76498d13245fcb500d421220528c9e8161dcef7e5a32f6efd35d2f7",
 		"internal/cli/upgrade_test.go": "ba654fae27660c06f5c2aa7873736a1648d8db84b8aac3d2235c4ea0aba9ee59",
 		"internal/cli/watch_test.go": "4fe4037f94285e1ec2496aa6d3ddbc6e2585a4f6ddd89c451784c42cc9065e52",
 		"internal/cli/workdone_test.go": "9f6f69d9c81f52550524c7cad9e8e8bf888d02df03724b0aa303e16c5d1c96b6",
-		"internal/cli/workmint_test.go": "eb2057b7b25dc45205d3ad1a135bafa55a366703781ef6560f2edda510ed25fc",
+		"internal/cli/workmint_test.go": "a6e633c28c69e0def80752fb37f1a8cec123f0895b46854f317b82be951380fb",
 		"internal/cli/workwrite_test.go": "2236c1e90943f3374e07bc232df536c7e7a4e34b1e73c53795ae01b327f842a5",
 		"internal/ledger/close_test.go": "a67cc283031849493e8021fe729d26471509a0ca2488a4cad05cb9126251936f",
 		"internal/ledger/nextid_test.go": "2298684d0cdac924e3e489d89617a72c918b73d2ce5bf0871e922a9e1e476af8",
@@ -264,7 +265,7 @@
 		"ID-WORK-88": "features/work.feature"
 	},
 	"listed_files": {
-		"features/init.feature": "f4ade7eac8752ad6a448e40e7b8fea29c6781a6d66a617c321ee712a3480f818",
+		"features/init.feature": "1d5f7c5eba408badaa1531287e69b4f888218b77be553be213338cb2e73cc5a7",
 		"features/next-id.feature": "23b76b87549c3649a081ee4250390de64ac0063f61b9df20db2cb05c1865c6e7",
 		"features/task.feature": "68781b4253be67a5030012658a88ecddece4361ba615ae1405017045e8c2b7db",
 		"features/work.feature": "96887efe67df3aa9d2a60d2f038273d30b54103db118a63b88599e082812da47"
@@ -274,14 +275,14 @@
 		"features/cover_test.go": "287d7b313321d36ede6c0e9bd0623f7280189a7fdc9992bff77e5f5495d619ea",
 		"features/draft_test.go": "f99a5031c8794b57bb9e75cae3001c94c60eb694a8674539b65a92d0790b4c37",
 		"features/extensions_test.go": "f31cc2ca701d2489ace539171e59f909bfeb762605e4052503d64823e7ceff2d",
-		"features/features_test.go": "8dc4d76cd6bc93453084b29c4894f79eca2b7a03dcc0608d9cf1478919ed8616",
+		"features/features_test.go": "a8c7e2482c7797edf76850ff9d4d95d9914a736f806ff83783b4df091d57b6fc",
 		"features/follow_test.go": "c83bebeebf982430d3e0f924af120987ce32740435fbdeee1d92b333abb61e50",
 		"features/guard_test.go": "6272b41272d6d4ede6c20bd2ce197a81839a47b5693bd5d9cb7a0c69f66d4f2d",
 		"features/guide_test.go": "2224dd0a2737436807e17173968d0b340e2ff2fa55959b6da141b698ee8c7cf4",
 		"features/ids_test.go": "b6fdd83a7a39390be5ee11e6df63c60181c9f4f9c944297e89e8f8b69e6c6423",
 		"features/init_test.go": "a5f9cd2a668849701da7fb22c82f3c5188fe874d9a283ba92dbd51a70e374d47",
 		"features/moves_command_test.go": "6e92db478e503eb6062fdc0d5c74b86cbad959cca20ff05755466347bffd856f",
-		"features/program_test.go": "1ca7d4f92e76741c921a588a93a465bece9a50525d766b2819a1bf8ee0bc1b1c",
+		"features/program_test.go": "4bf77892543007bb3572773ff5eb29ef73559081d28866136463a36033ec2924",
 		"features/proof_test.go": "feb732a2856be47fafd874ae651e3b6285c5f8cc273a680b5db46a5967efcae2",
 		"features/push_test.go": "c57664dcf76b5315fdc08d600dddafafbc0c7079c637e769b5e986c1cd4fc50d",
 		"features/range_test.go": "e48d9a8b5658385a9e83638236397d0e90453fd61c1a5e335569f6e0aedb3302",
@@ -294,6 +295,6 @@
 		"features/upgrade_test.go": "241c1441fbd301cbff0f4ce9662d40a7c07959f5a985c576a2554414fb3d15a5",
 		"features/watch_test.go": "01a3b31ec613db5b23157cf12f578729272cf3154603ab740398d37c1adcdb93",
 		"features/work_test.go": "146a4c7bf8a006882495409e72104314316dd3a755ec5b8c0568b6c8e13683e1",
-		"tools/bin/itos-cc-tests.ts": "4704d41906cd07f2112e0e53aef34a867807cf70b6c8606711729f78975533da"
+		"tools/bin/itos-cc-tests.ts": "740745587f332742d404f5c9a046dfc9816951bb5cf61a3d96528ff7474b0354"
 	}
 }
