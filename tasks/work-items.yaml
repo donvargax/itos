@@ -4940,13 +4940,9 @@ items:
     title: Document built-in and delegated JSON problem rule IDs
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-86]
     kind: task
-    why: >
-      Was p1-rule-ids-listed.
-      Decision 35 (2026-10-06): a rule id is contract, so renaming one is a breaking change, yet
-      nothing lists them (73 in the corpus).
 
   - id: p1-json-cases-pin-json
     title: The corpus's --json cases pin their output with json:, which a later release judges
