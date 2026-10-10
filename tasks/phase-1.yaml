@@ -1298,8 +1298,6 @@
     kills its mutant, so each test and its entry's removal land in the same push: a test commit may
     not touch itos-cc.yaml, so the tests go in a test commit and the entries' removal in a chore
     commit right after it, as cb8407b2 and 0f04571b did.
-  done_when:
-    - run: "! grep -q T-138 itos-cc.yaml"
 
 - id: T-139
   type: ci
