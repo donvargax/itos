@@ -6218,8 +6218,8 @@ items:
   - id: slice-103
     title: draft add of a command that mints takes its id at once and prints it
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-102]
     kind: slice
     why: >
