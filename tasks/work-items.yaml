@@ -65,7 +65,6 @@ queue:
   - p3-commit-long-text-footer
   - p1-nightly-past-first-failure
   - p1-windows-id-validation
-  - slice-95
   - bug-38
   - bug-42
   - p1-problem-fields
@@ -4991,12 +4990,10 @@ items:
     title: The rules itos init writes for agents send each session to its guide and name the coordinator's notes
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: slice
     deferred: the next major release, since it changes a released corpus case (init.yaml's --agent-rules case pins the block); the user's call, 2026-10-06
-    why: >
-      Specified in features/init.feature (@slice-95).
     refs: [internal/cli/initrules.go, features/init.feature]
 
   - id: T-107
