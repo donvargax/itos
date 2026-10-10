@@ -6421,6 +6421,13 @@ items:
       judge each commit by the scopes of the config at that commit, as footers are read at the
       commit already; or start the range at the last release's tag when no green run is in reach;
       raising the 100 only delays it.
+
+      Backlog review of 2026-10-10, batch 4: folds in p1-empty-start-ci-red: slice-109 gives ci
+      range commits.since as its fallback start; where the range still has no start (no
+      commits.since, or one off the head's ancestry), plugin-version refuses an empty -range-from
+      and could start from the plugin's newest {name}--v{version} tag instead
+      (p3-plugin-release-tags). Worth queueing: with no green run in reach, every run is red until a
+      person acts.
     refs: [internal/providers/range.go, internal/cli/verify.go]
 
   - id: p1-written-yaml-formatter-stable
