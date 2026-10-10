@@ -7025,3 +7025,18 @@ items:
       the agent's reading list missed what the slice changes. work show could also list scenarios
       whose spec comment or the slice's commits name the slice, or a slice could tag the scenarios
       it changes as well.
+
+  - id: p1-push-proof-stable-site
+    title: The push proof judges the same site until the range's code changes, so fixing it does not draw a new one
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-115 (2026-10-10): run the push proof once (q-55) became four runs, because --count 1
+      seeded by HEAD judged a different mutation site after each test commit, each finding a new
+      gap. Seeding the sample by the range's start and its changed functions rather than HEAD, or
+      letting a test-only commit keep the last judged site, would let an agent fix what the proof
+      found and pass, the rule's intent. CI still judges fresh at push. Each extra local proof costs
+      minutes and tokens in every itos-driven repository.
