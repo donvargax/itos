@@ -7261,8 +7261,8 @@ items:
   - id: T-141
     title: The repository ignores local notes in .tmp/ and the metrics reports beside .metrics/mutate/
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
