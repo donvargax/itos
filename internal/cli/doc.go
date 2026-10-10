@@ -661,7 +661,13 @@
 // picks it, and the unreleased commits are git log <release>..<head> in this
 // clone kept where release.Releasable holds; a head not fetched here lists
 // to the remote branch as last fetched, with a line saying the list may be
-// behind. status never fetches. The person is work.Whoami's and the items
+// behind. status never fetches. The itos the repository runs (itosRuns: the
+// pin, else the install script's version= line, as upgrade reads the version
+// it moves from) is set against the newest stable release (newestItos),
+// asked of the release server once as a bare pin asks, within 5 s, and not
+// at all where the launcher asks nothing (CI, ITOS_NO_UPDATE); with no
+// version run, no answer or a pre-release, there is no itos line and the key
+// is null. Only a newer major names itos upgrade. The person is work.Whoami's and the items
 // work.Propose's: in progress, then work.Startable, cut to five; the
 // questions are loadAsks' open ones. Each part that cannot be reached adds a
 // line to standing.Unread and to what is printed, and the rest goes on.

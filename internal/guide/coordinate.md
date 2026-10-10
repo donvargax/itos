@@ -18,6 +18,8 @@ is not yours: run `itos guide work` and follow that one.
   repository has one (the status reads only the first), is the first item: a
   fix, handed to an agent before any new work, not left for whoever looks
   next.
+- When the status names a new major of itos, offer the person
+  `itos upgrade` before new work.
 - The repository's own notes, printed after this guide when it keeps them,
   say what else to read first.
 - Notes true only of this machine or clone (a stale binary on the PATH, a
@@ -189,7 +191,7 @@ and never sent as a pull request: its fixes go through its own specs and
 gates. You report it, once per problem, and only after:
 
 1. checking it is not fixed: `itos version` against the newest release,
-   whose notes say what changed (`itos pin` moves to it);
+   whose notes say what changed (`itos upgrade` moves to it);
 2. searching the issues, open and closed:
    `gh issue list -R donvargax/itos --state all --search '<words of the error>'`.
    A match gets a comment only if you have something new (a version, a

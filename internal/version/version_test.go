@@ -102,3 +102,12 @@ func TestParts(t *testing.T) {
 		}
 	}
 }
+
+// Major is the first number, a pre-release's included (slice 116).
+func TestMajor(t *testing.T) {
+	for v, want := range map[string]int{"9.1.0": 9, "10.0.0": 10, "10.0.0-rc.1": 10, "0.6.0": 0, "12.3.4+build.1": 12} {
+		if got := Major(v); got != want {
+			t.Errorf("Major(%q) = %d, want %d", v, got, want)
+		}
+	}
+}

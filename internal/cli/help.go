@@ -1465,8 +1465,14 @@ v<semver> on the remote (a prerelease below its release), asked of it as the
 head is, or as last fetched, or no release yet; the commits since it the next
 release would carry, the feat, fix and breaking ones, by header, oldest first,
 read from the commits as fetched here, with a line saying they may be behind
-when the head is not fetched; the person's items in progress; the next items
-they can start, theirs and the unowned, in the queue's order and the unqueued
+when the head is not fetched; the version of itos the repository runs (its pin,
+else tools/bin/install-itos's version= line, as itos upgrade reads it) and the
+newest stable release of itos, asked of ITOS_RELEASES once within 5 seconds as
+itos pin asks, naming itos upgrade only when that is a newer major, and left
+out with neither a pin nor an install script, when the server does not answer,
+and in CI or with ITOS_NO_UPDATE=1, as the launcher asks nothing there
+(ITOS_NO_UPDATE_NOTICE=1 does not leave it out); the person's items in
+progress; the next items they can start, theirs and the unowned, in the queue's order and the unqueued
 after, five at most, each its id, its tags in brackets when it carries any, and
 its title; the open questions (itos decision); and the drafts waiting
 for itos draft promote, when there are any. It reads, never writes
@@ -1480,13 +1486,14 @@ among the people. itos go prints it last.
 "header","last_fetched"}|null,"ci":{"result","run"?}|null,"last_green":
 {"commit","header"}|null,"nightly":{"url","status","conclusion"?,"jobs"}|null,
 "release":{"tag","commit","last_fetched"}|null,"unreleased":["<header>"]|null,
-"doing","next","more","questions":[{"id","item"?,"question","status"}],
+"itos":{"runs","newest","new_major"}|null,"doing","next","more","questions":
+[{"id","item"?,"question","status"}],
 "drafts":[{"id","kind","header"?,"paths"?,"command"?}],"unread"}, result success, failure (or another conclusion), going, or none for
 no run yet; last_green null when the head's run passed or was not read,
 ci.range's provider is none, it names no commit or it cannot be read, header ""
 when not fetched; nightly null when no nightly is named, it has no run yet or it
 cannot be read; unreleased null with no release or when they cannot be listed;
-unread the lines of what could not be reached`,
+itos null when its line is left out; unread the lines of what could not be reached`,
 
 	"guide": `Usage: itos guide coordinate|work
 

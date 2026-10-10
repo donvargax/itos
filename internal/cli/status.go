@@ -15,7 +15,11 @@ package cli
 // commit main last proved, as ci.range's provider names it, read once; then the
 // person's items in progress, the next ones they can start in the queue's
 // order (a handful), the open questions of itos decision, and (slice 96) the
-// drafts waiting for itos draft promote. It reads, never writes. What cannot be reached is
+// drafts waiting for itos draft promote. After the release (slice 116), the
+// version of itos the repository runs, its pin else its install script's as
+// itos upgrade reads it, and the newest stable release of itos, asked of the
+// release server once, naming itos upgrade only for a newer major: only a new
+// major is something to act on. It reads, never writes. What cannot be reached is
 // one line naming it, and the rest still prints, exit 0; a status that
 // cannot be computed at all (no config, no registry, one with problems) is
 // exit 2 or 1, as itos work's. itos go prints it after the guides
@@ -38,6 +42,7 @@ import (
 	"github.com/donvargax/itos/v7/internal/providers"
 	"github.com/donvargax/itos/v7/internal/release"
 	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v7/internal/version"
 	"github.com/donvargax/itos/v7/internal/work"
 )
 
@@ -61,6 +66,10 @@ func clipped(text string, n int) string {
 // them all.
 const handful = 5
 
+// newestItosTimeout is how long the status waits for the release server to
+// name the newest itos, before leaving the itos line out.
+var newestItosTimeout = 5 * time.Second
+
 // lsRemoteTimeout is how long the status waits for the remote to say its
 // head, before reading it as last fetched.
 var lsRemoteTimeout = 20 * time.Second
@@ -82,11 +91,15 @@ type standing struct {
 	// Unreleased are the headers of the commits since the release the next
 	// one would carry, oldest first; nil when there is no release or they
 	// cannot be listed.
-	Unreleased []string   `json:"unreleased"`
-	Doing      []any      `json:"doing"`
-	Next       []any      `json:"next"`
-	More       int        `json:"more"`
-	Questions  []askEntry `json:"questions"`
+	Unreleased []string `json:"unreleased"`
+	// Itos is the itos the repository runs against the newest release; nil
+	// when it runs none it names, the release server is not asked or does
+	// not answer.
+	Itos      *itosStanding `json:"itos"`
+	Doing     []any         `json:"doing"`
+	Next      []any         `json:"next"`
+	More      int           `json:"more"`
+	Questions []askEntry    `json:"questions"`
 	// Drafts are the drafts waiting for itos draft promote, in its order.
 	Drafts   []draftEntry  `json:"drafts"`
 	Unread   []string      `json:"unread"`
@@ -102,6 +115,14 @@ type newest struct {
 	Tag         string `json:"tag"`
 	Commit      string `json:"commit"`
 	LastFetched bool   `json:"last_fetched"`
+}
+
+// itosStanding is the version of itos the repository runs, the newest stable
+// release of itos, and whether that is a newer major than the one run.
+type itosStanding struct {
+	Runs     string `json:"runs"`
+	Newest   string `json:"newest"`
+	NewMajor bool   `json:"new_major"`
 }
 
 // remoteHead is the remote branch's head: its commit and header ("" when
@@ -197,6 +218,7 @@ func statusOf(cfg *config.Loaded, as string, o Out) (*standing, []out.Problem, i
 		st.Person = proposal.Person
 	}
 	st.readHead(cfg, o)
+	st.Itos = newestItos(itosRuns(cfg))
 	for _, item := range proposal.Doing {
 		st.Doing = append(st.Doing, item)
 	}
@@ -448,6 +470,53 @@ func (st *standing) readRelease(remote, branch string, head *remoteHead) {
 	}
 }
 
+// itosRuns is the version of itos the repository runs, as itos upgrade reads
+// the one it moves from: the config's pin, else the version= line of the
+// install script; "" with neither, or one that names no version.
+func itosRuns(cfg *config.Loaded) string {
+	if cfg.Pin != nil && config.PinVersion.MatchString(cfg.Pin.Version) {
+		return cfg.Pin.Version
+	}
+	script, found, err := readInstallScript()
+	if err != nil || !found {
+		return ""
+	}
+	v, _ := scriptVersion(script)
+	return v
+}
+
+// newestItos is the itos the repository runs, runs, against the newest
+// stable release, asked of the release server once, as a bare itos pin asks
+// (<ITOS_RELEASES>/latest/download/checksums.txt), within newestItosTimeout
+// and never again; nil when runs is "", where the launcher asks nothing (CI
+// or ITOS_NO_UPDATE set, as its notice reads them), and when the server does
+// not answer or names no release, or a pre-release, which is never the
+// newest.
+func newestItos(runs string) *itosStanding {
+	if runs == "" || os.Getenv("CI") != "" || os.Getenv("ITOS_NO_UPDATE") != "" {
+		return nil
+	}
+	sums, err := release.Get(release.LatestURL("checksums.txt"), newestItosTimeout)
+	if err != nil {
+		return nil
+	}
+	newest := release.VersionOf(sums)
+	if !release.IsTag("v" + newest) {
+		return nil
+	}
+	return &itosStanding{Runs: runs, Newest: newest, NewMajor: version.Major(newest) > version.Major(runs)}
+}
+
+// line is the itos line of the status: both versions, and itos upgrade with
+// the release's notes only for a newer major.
+func (s *itosStanding) line() string {
+	if s.NewMajor {
+		return fmt.Sprintf("itos: this repository runs %s; the newest release is %s, a new major: "+
+			"itos upgrade moves it there (notes: %s)", s.Runs, s.Newest, release.NotesURL(s.Newest))
+	}
+	return fmt.Sprintf("itos: this repository runs %s; the newest release is %s.", s.Runs, s.Newest)
+}
+
 // releaseUnread records what of the release could not be read, as a line
 // of the release section.
 func (st *standing) releaseUnread(line string) {
@@ -589,6 +658,7 @@ func (st *standing) fields() []out.Field {
 		{Key: "nightly", Value: st.Nightly},
 		{Key: "release", Value: st.Release},
 		{Key: "unreleased", Value: st.Unreleased},
+		{Key: "itos", Value: st.Itos},
 		{Key: "doing", Value: st.Doing},
 		{Key: "next", Value: st.Next},
 		{Key: "more", Value: st.More},
@@ -600,7 +670,7 @@ func (st *standing) fields() []out.Field {
 
 // print writes the status as text: the heading, the head and its CI run
 // (or what could not be reached), the newest release and the commits since
-// it, the items in progress, the next ones and the open questions, each a
+// it, the itos the repository runs against the newest itos, the items in progress, the next ones and the open questions, each a
 // short section.
 func (st *standing) print(w io.Writer) {
 	fmt.Fprintf(w, "%s\n\n", statusHeading)
@@ -612,6 +682,9 @@ func (st *standing) print(w io.Writer) {
 		for _, line := range st.released {
 			fmt.Fprintln(w, line)
 		}
+	}
+	if st.Itos != nil {
+		fmt.Fprintf(w, "\n%s\n", st.Itos.line())
 	}
 	whose := ""
 	if p, ok := st.Person.(string); ok {

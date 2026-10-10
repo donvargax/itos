@@ -222,8 +222,10 @@ Feature: itos status, where the work stands
   # version, so a scenario's pin must be the itos under test's own version
   # (choose runs this binary when the pin is its own), and the release server
   # offers that version and the newer ones; a fake pinned version would run in
-  # its place and prove nothing.
-  @ID-STATUS-16 @slice-116 @wip
+  # its place and prove nothing. The Given silences the launcher's own notice
+  # of a newer release (update.feature, ITOS_NO_UPDATE_NOTICE), which names it
+  # and itos upgrade by itself, so the lines read are status's.
+  @ID-STATUS-16 @slice-116
   Scenario: Within the pinned major, status names the pinned itos and the newest release and asks nothing
     Given the config pins the itos under test, as the version "9.1.0" of a release server that also offers "9.2.0"
     When itos runs "status --as someone"
@@ -232,7 +234,7 @@ Feature: itos status, where the work stands
     And its output says "9.2.0"
     And its output does not say "itos upgrade"
 
-  @ID-STATUS-17 @slice-116 @wip
+  @ID-STATUS-17 @slice-116
   Scenario: A newer major is named, with itos upgrade
     Given the config pins the itos under test, as the version "9.1.0" of a release server that also offers "10.0.0"
     When itos runs "status --as someone"
@@ -240,7 +242,7 @@ Feature: itos status, where the work stands
     And its output says "10.0.0"
     And its output says "itos upgrade"
 
-  @ID-STATUS-18 @slice-116 @wip
+  @ID-STATUS-18 @slice-116
   Scenario: A pre-release of a newer major is never named
     Given the config pins the itos under test, as the version "9.1.0" of a release server that also offers "10.0.0-rc.1"
     When itos runs "status --as someone"
@@ -248,7 +250,7 @@ Feature: itos status, where the work stands
     And its output does not say "10.0.0"
     And its output does not say "itos upgrade"
 
-  @ID-STATUS-19 @slice-116 @wip
+  @ID-STATUS-19 @slice-116
   Scenario: Where the release server cannot be reached, status names no release of itos and prints the rest
     Given the config pins the itos under test, as the version "9.1.0" of a release server that also offers "10.0.0"
     And the release server cannot be reached

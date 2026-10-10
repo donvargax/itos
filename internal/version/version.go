@@ -78,6 +78,12 @@ func split(v string) ([3]int, string) {
 	return parts(v), ""
 }
 
+// Major is the version's first number, its major release (10 for 10.0.0-rc.1).
+func Major(v string) int {
+	p, _ := split(v)
+	return p[0]
+}
+
 // Compare is negative, zero or positive, as a is older than, the same as or
 // newer than b, by semver's precedence: their first three parts, a missing
 // part being 0, then a pre-release below its release (9.2.0-rc.1 below
