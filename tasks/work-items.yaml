@@ -7011,3 +7011,17 @@ items:
       instead; one reading only the guide would split it wrong and be refused. The guide should say
       that for a fix to live scenarios, red first means running the changed scenarios before the
       code change and seeing each fail at its new step, all in the one fix commit.
+
+  - id: p1-show-slice-changed-scenarios
+    title: work show lists the live scenarios a slice changes, not only those tagged with it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-115 (2026-10-10) changed @ID-UPDATE-06 and @ID-INIT-20, which keep their older @slice-28
+      and @slice-50 tags, so itos work show slice-115 printed Scenarios: none tagged @slice-115 and
+      the agent's reading list missed what the slice changes. work show could also list scenarios
+      whose spec comment or the slice's commits name the slice, or a slice could tag the scenarios
+      it changes as well.
