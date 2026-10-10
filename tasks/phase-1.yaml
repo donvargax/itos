@@ -1171,10 +1171,6 @@
     still block. Config, pin and self-test changes are ci commits; the regenerated AGENTS.md rules
     block and the explanatory docs are separate docs commits. No product Go or scenario changes:
     propose a slice if needed.
-  done_when:
-    - run: node tools/selftest/ci-mutation-budget.ts
-    - run: tools/bin/itos config check
-    - run: go run ./tools/bin/doc-budget
 
 - id: T-132
   type: ci

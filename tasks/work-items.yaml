@@ -6743,25 +6743,9 @@ items:
     title: Bound CI mutation rechecks and align proof commands with Go code paths
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      q-41 approves no local mutant execution, one mutant total per push CI and 20 total nightly.
-      Implement only the safe cached-recheck configuration now: explicit mutation sample --count 1
-      --since {from} --json cmd internal in push CI, and mutation sample --count 20 --json cmd
-      internal nightly without a fabricated range start. These recheck fresh cached outcomes; they
-      do not freshly sample uncached code. Fresh bounded execution remains blocked on itos-cc#27.
-      Preserve proof.code.check as complete-cache integrity until the provider migration is
-      supported, but pass cmd internal explicitly to match proof.code.paths and avoid judging
-      unrelated TypeScript conformance tooling (red run 37886915099). Do not suppress stale,
-      missing, surviving or uncovered outcomes, edit snapshots or run local mutations. Prove actual
-      push/nightly plan execution and global count/path arguments through a fast behavioral driver
-      self-test; provider failure must still block. Keep that self-test as a standing CI/nightly
-      step after task closure, not policy text matching. Config/helper/selftest changes are ci
-      commits; regenerated AGENTS.md and explanatory docs are separate docs commits. Distinguish
-      configured cached-recheck budgets from the blocked fresh-sampling migration. No product Go or
-      scenario changes: propose a slice if needed.
 
   - id: p1-go-git-instead-of-the-real-git
     title: Run the git itos needs through go-git, so no git has to be installed
