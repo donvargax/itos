@@ -60,6 +60,7 @@ queue:
   - p1-guard-follows-cd
   - p1-task-add-promoted
   - p1-text-from-file
+  - p1-defer-reason-footer
   - p3-commit-long-text-footer
   - p1-nightly-past-first-failure
   - p1-windows-id-validation
