@@ -4691,36 +4691,9 @@ items:
     title: itos upgrade applies the renames and removals each release's schema declares, and ends with what is left by hand
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-86]
     kind: slice
-    why: >
-      Was p1-upgrade-applies-config-steps.
-      The user's calls (2026-10-06), designed with the coordinator. A migrate command would
-      duplicate upgrade's walk from the pin, and the pin is the config's schema version. Automatic
-      steps come only from each release's published itos.schema.json, never from commit text. A new
-      key that declares x-itos-renamed-from: <old path> takes the old key's value. A key listed in
-      the schema's top-level x-itos-removed is deleted, and upgrade prints the value it held. A
-      changed default is reported. schema-contract (T-070) refuses a key that the last release's
-      schema has and this one lacks unless the schema declares it renamed or removed, so a forgotten
-      declaration fails CI instead of losing a value. The Upgrading: and BREAKING-CHANGE: footers
-      mean only what a consumer must still do by hand after itos upgrade (Upgrading: none when it is
-      all automatic); no rule reads them. upgrade prints each edit as it makes it, release by
-      release, and ends with By hand: and the footers of every release it crossed, or that nothing
-      is left; --json lists edited and manual. The release notes split the same way. The config
-      editor learns to delete and rename a key, and refuses with exit 2 a layout it cannot edit byte
-      for byte. A declaration left after its release matches nothing in the next comparison and is
-      harmless. Releases before the first with these declarations are walked as today.
-
-      The same principle for itos's committed data files (asks.yaml, the registry, the ledger): a
-      format number, and migration steps that itos upgrade applies, so no reader for an old format
-      stays in the code (the user's call, 2026-10-06, while designing p1-followup-state).
-
-      2026-10-10: once p1-work-item-dates lands, upgrade's automatic steps reach data too: crossing
-      that release, it fills each work item's added and since, and each question's asked and
-      answered, from git history where they are missing, and commits the registry alone. The person
-      ruled out a one-time command for it: until v10 a command kept for one migration is only cost,
-      and removing it later is breaking.
 
   - id: p1-push-fits-foreground
     title: itos push never outlives a harness's foreground command
