@@ -6242,11 +6242,9 @@ items:
     title: A bug is a kind of its own, minted bug-<n> by work add --kind bug
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-102]
     kind: slice
-    why: >
-      Specified in features/work.feature (@ID-WORK-82, @ID-WORK-86).
 
   - id: slice-105
     title: tests next-id claims scenario ids through the id counter, --count for several
