@@ -5382,6 +5382,10 @@ items:
       refuses reading the policy files as text; the existing ones are removed or turned into runs of
       the gate (itos ci plan, a hook run).
 
+      Backlog review of 2026-10-10, batch 2: folds in p3-plugin-version-prose-reason: when
+      plugin-version.ts's string check goes, reword itos.yaml's comments that say the plugin's skill
+      is Markdown; the plugin holds none since T-092.
+
   - id: T-129
     title: Conformance Git fixtures cannot loop through the shim, and every case cleans up within a deadline
     phase: 1
