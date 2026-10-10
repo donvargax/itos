@@ -325,6 +325,14 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the scenario "([^"]*)" is staged moved to "([^"]*)"$`, w.stageScenarioMove)
 	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" and changing the steps of the scenario "([^"]*)" on top of it$`, w.commitChangingSteps)
 	sc.Step(`^the smoke set lists only "([^"]*)"$`, w.smokeSetLists)
+	sc.Step(`^a feature file "([^"]*)" with the live scenario "([^"]*)" is staged$`, w.featureFile)
+	sc.Step(`^the committed smoke set lists only "([^"]*)"$`, w.committedSmokeSet)
+	sc.Step(`^the smoke set listing "([^"]*)" and "([^"]*)" is staged$`, func(a, b string) error {
+		return w.smokeSetListing(true, a, b)
+	})
+	sc.Step(`^the working tree's smoke set lists "([^"]*)" and "([^"]*)", unstaged$`, func(a, b string) error {
+		return w.smokeSetListing(false, a, b)
+	})
 	sc.Step(`^smoke\.every_file is (true|false)$`, w.smokeEveryFileIs)
 	sc.Step(`^the kind leaves out tag_prefix$`, w.noTagPrefix)
 	sc.Step(`^a "([^"]*)" folder$`, w.folder)
@@ -1863,6 +1871,39 @@ func (w *world) smokeSetLists(id string) error {
 	}
 	return w.write("features/smoke.yaml", fmt.Sprintf(
 		"- file: %s\n  scenarios: [{ id: %q, why: the one listed }]\n", file, id))
+}
+
+// The smoke set holds the one scenario, and the config a scenario kind that
+// reads it; both committed, so the index holds them as HEAD does.
+func (w *world) committedSmokeSet(id string) error {
+	if err := w.smokeSetLists(id); err != nil {
+		return err
+	}
+	w.config.smoke = true
+	if err := w.writeConfig(); err != nil {
+		return err
+	}
+	return w.commit("test: list the smoke set")
+}
+
+// The smoke set lists each scenario under the feature file it is in, written
+// to the working tree and, when staged is true, staged.
+func (w *world) smokeSetListing(staged bool, ids ...string) error {
+	var b strings.Builder
+	for _, id := range ids {
+		file, ok := w.scenarioFiles[id]
+		if !ok {
+			return fmt.Errorf("no feature file has the scenario %s", id)
+		}
+		fmt.Fprintf(&b, "- file: %s\n  scenarios: [{ id: %q, why: the one listed }]\n", file, id)
+	}
+	if err := w.write("features/smoke.yaml", b.String()); err != nil {
+		return err
+	}
+	if !staged {
+		return nil
+	}
+	return w.git("add", "--", "features/smoke.yaml")
 }
 
 func (w *world) smokeEveryFileIs(value string) error {

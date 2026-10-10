@@ -81,9 +81,9 @@ Feature: The commit-msg hook validates itos's own data
   # for it.
   @ID-CDATA-07 @slice-117 @wip
   Scenario: A staged feature file whose live scenarios have no smoke entry is rejected, naming the file
-    Given the committed feature file "features/a.feature" with the live scenario "@ID-A-01"
-    And the smoke set lists only "@ID-A-01"
-    And a feature file "features/b.feature" with the live scenario "@ID-B-01" is staged
+    Given the committed feature file "a.feature" with the live scenario "@ID-A-01"
+    And the committed smoke set lists only "@ID-A-01"
+    And a feature file "b.feature" with the live scenario "@ID-B-01" is staged
     When the commit-msg hook checks the message:
       """
       feat: add b
@@ -92,13 +92,13 @@ Feature: The commit-msg hook validates itos's own data
       Upgrading: none
       """
     Then itos exits with code 1
-    And its output says "features/b.feature"
+    And its output says "b.feature"
 
   @ID-CDATA-08 @slice-117 @wip
   Scenario: The same commit staging the smoke entry for the new file passes
-    Given the committed feature file "features/a.feature" with the live scenario "@ID-A-01"
-    And the smoke set lists only "@ID-A-01"
-    And a feature file "features/b.feature" with the live scenario "@ID-B-01" is staged
+    Given the committed feature file "a.feature" with the live scenario "@ID-A-01"
+    And the committed smoke set lists only "@ID-A-01"
+    And a feature file "b.feature" with the live scenario "@ID-B-01" is staged
     And the smoke set listing "@ID-A-01" and "@ID-B-01" is staged
     When the commit-msg hook checks the message:
       """
@@ -113,9 +113,9 @@ Feature: The commit-msg hook validates itos's own data
   # is not part of the commit.
   @ID-CDATA-09 @slice-117 @wip
   Scenario: The smoke rule is judged on the staged tree, not on disk
-    Given the committed feature file "features/a.feature" with the live scenario "@ID-A-01"
-    And the smoke set lists only "@ID-A-01"
-    And a feature file "features/b.feature" with the live scenario "@ID-B-01" is staged
+    Given the committed feature file "a.feature" with the live scenario "@ID-A-01"
+    And the committed smoke set lists only "@ID-A-01"
+    And a feature file "b.feature" with the live scenario "@ID-B-01" is staged
     And the working tree's smoke set lists "@ID-A-01" and "@ID-B-01", unstaged
     When the commit-msg hook checks the message:
       """
@@ -125,15 +125,15 @@ Feature: The commit-msg hook validates itos's own data
       Upgrading: none
       """
     Then itos exits with code 1
-    And its output says "features/b.feature"
+    And its output says "b.feature"
 
   # A committed break shows no smoke check ran: it would have rejected the
   # commit.
   @ID-CDATA-10 @slice-117 @wip
   Scenario: A commit that stages no test file of a kind runs no smoke check for it
-    Given the committed feature file "features/a.feature" with the live scenario "@ID-A-01"
-    And the committed feature file "features/b.feature" with the live scenario "@ID-B-01"
-    And the smoke set lists only "@ID-A-01"
+    Given the committed feature file "a.feature" with the live scenario "@ID-A-01"
+    And the committed feature file "b.feature" with the live scenario "@ID-B-01"
+    And the committed smoke set lists only "@ID-A-01"
     And a change to "README.md" is staged
     When the commit-msg hook checks the message "docs: write the readme"
     Then itos exits with code 0
