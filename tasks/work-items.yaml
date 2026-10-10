@@ -3495,15 +3495,9 @@ items:
     title: The plugin version rule's prose step gives a reason that holds after the skill left
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by T-092's agent: itos.yaml runs the plugin's version rule among ci.prose.steps
-      "as the plugin's skill is Markdown", and tools/selftest/plugin-version.ts says the same and
-      uses a skills/itos/SKILL.md as its Markdown fixture. T-092 dropped the skill, so the plugin
-      holds no Markdown; the step still guards a future one, but the comments' reason is stale. A ci
-      commit could reword both (a Markdown change in the plugin's folder), keeping the step.
     refs: [itos.yaml, tools/selftest/plugin-version.ts]
 
   - id: p1-upgrade-lists-go-install
