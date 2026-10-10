@@ -306,11 +306,13 @@ ci:
       # where it is the check that says a spawn lost its exit code.
       - node tools/selftest/tools-bin-programs.ts
       # Twenty mutation sites of the Go code judged freshly (q-41's nightly budget, q-52), drawn
-      # across cmd and internal with no cache, strict Go coverage included. The seed is the run's
-      # own, GitHub's run id (the time, run by hand), not HEAD's, so two nights on one commit draw
-      # differently; the report names it, to reproduce a draw. Linux only, as the job is.
+      # across cmd and internal with no cache; a survivor fails the night. Not --fail-uncovered
+      # (q-54): with no range, strict coverage judges every function, and that backlog is the
+      # debt baseline's (p3-debt-role). The seed is the run's own, GitHub's run id (the time, run
+      # by hand), not HEAD's, so two nights on one commit draw differently; the report names it,
+      # to reproduce a draw. Linux only, as the job is.
       - {
-          run: 'tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered --json cmd internal',
+          run: 'tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal',
           cost: late,
         }
       # The features never run the itos on the PATH (T-087's check, kept as a step in T-125): a

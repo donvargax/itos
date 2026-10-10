@@ -1,10 +1,11 @@
 // The mutation budget of q-41 and q-52 (T-131), proved through the real CI planner and driver:
 // a push's code range runs proof.code.check, one freshly judged mutation site of its changed Go
-// functions, and a nightly runs twenty over cmd and internal with a seed of its own, and neither
-// plan runs any other mutation command. Each plan is this repository's own, whole, with only the
-// configured shell replaced in a scratch config, so the driver dispatches every planned command
-// to a fake that logs it, and nothing it names (itos-cc, the features, CI's other steps) runs.
-// A provider's refusal, and a provider that cannot run, must still fail the run.
+// functions, and a nightly runs twenty over cmd and internal with a seed of its own and without
+// strict coverage (q-54), and neither plan runs any other mutation command. Each plan is this
+// repository's own, whole, with only the configured shell replaced in a scratch config, so the
+// driver dispatches every planned command to a fake that logs it, and nothing it names (itos-cc,
+// the features, CI's other steps) runs. A provider's refusal, and a provider that cannot run,
+// must still fail the run.
 import { strict as assert } from "node:assert";
 import { spawnSync } from "node:child_process";
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -116,7 +117,8 @@ try {
 	);
 
 	// A nightly: twenty fresh mutants over cmd and internal, seeded by the run, not HEAD, with
-	// no range, and no other mutation command.
+	// no range, no strict coverage (q-54: with no range it judges every function), and no other
+	// mutation command.
 	const nightly = invocation(["ci", "run", "--nightly", "--json"]);
 	assert.equal(
 		nightly.status,
@@ -125,7 +127,7 @@ try {
 	);
 	assert.equal(nightly.json.ok, true);
 	const expectedNightly =
-		'tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered --json cmd internal';
+		'tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal';
 	assert.deepEqual(
 		mutations(nightly.commands),
 		[expectedNightly],
