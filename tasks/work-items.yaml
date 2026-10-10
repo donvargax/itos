@@ -6908,18 +6908,9 @@ items:
     title: The formatter leaves the files itos writes under tasks/ to itos
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      itos writes and commits tasks/asks.yaml, tasks/work-items.yaml and the phase ledgers itself
-      (decision add and answer, task add, work add, edit, take and done), and its commits reach no
-      staged formatter: lint-staged finds no staged files. When its layout differs from the
-      formatter's (q-28's question double-quoted, slice-108's refs past the line width), vp check
-      turns CI red on a routine ask or answer, as run 38010025480 did on 2026-10-09. The files are
-      itos's data, never edited by hand, so vp fmt ignores tasks/*.yaml; tasks/README.md is still
-      formatted. Whether itos's output should pass a consumer's formatter is
-      p1-written-yaml-formatter-stable.
 
   - id: T-138
     title: Tests kill slice-102's survivors, and itos-cc.yaml excepts none of them

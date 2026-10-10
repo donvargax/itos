@@ -1283,8 +1283,6 @@
     itos's data, never edited by hand, so vp fmt ignores tasks/*.yaml; tasks/README.md is still
     formatted. Whether itos's output should pass a consumer's formatter is
     p1-written-yaml-formatter-stable.
-  done_when:
-    - run: vp check
 
 - id: T-138
   type: test
