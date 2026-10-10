@@ -263,15 +263,17 @@ Run these yourself when they apply:
 **You are not alone on this repository.** Other people and other sessions
 push to `main` too, so expect the remote to have moved while you worked.
 
-No new local mutation runs (q-41). The approved budget is one mutant total
-per push and 20 nightly, measured in CI with valid coverage. CI now rechecks
-those budgets against cached mutation outcomes only; fresh bounded sampling
-waits on itos-cc#27. The complete-cache proof still rejects missing, stale,
-uncovered and surviving results. Do not hide failing proof. Normal hook checks
-and required neighbour tests stay. Until itos-cc#27 lands, one exception
-(q-50): a local `itos-cc mutation run` may fill only the results that proof
-reports missing or stale on `main`. It goes when #27 lands
-(`p1-drop-mutation-exception`).
+No local mutation runs (q-41). CI judges fresh mutants at the approved budget
+with itos-cc's `mutation run --count` (q-52). A push whose range changes Go
+code judges one mutation site of its changed functions and the statement
+coverage of every one of them, as the code proof; a range with no site is not
+applicable and passes. The nightly judges 20 sites across `cmd` and
+`internal`, seeded by its run, not by HEAD, without strict coverage (q-54:
+the whole tree's uncovered statements are the debt baseline's, `p3-debt-role`).
+A pass is sampled assurance about the mutants judged, not a complete result.
+A survivor, or an uncovered statement in a changed function, is real: kill
+it with a test. Do not hide failing proof. Normal hook checks and required
+neighbour tests stay.
 
 1. **Push with `tools/bin/itos push --no-wait`, every time:** commit your work first,
    then run it and read what it says. It is the whole
@@ -406,7 +408,6 @@ CI runs its plan, `itos ci run`, on every push, in this order, stopping at the f
 - `node tools/selftest/deps-check.ts`
 - `node tools/selftest/schema-contract.ts`
 - `node tools/selftest/plugin-version.ts`
-- `tools/bin/pinned itos-cc mutation sample --since {from} --count 1 --json cmd internal`
 - `node tools/selftest/ci-mutation-budget.ts`
 - The `scenario` tests of the smoke set and those the push's commits name, in one run.
 - The other checks of the tasks the push's commits name.
@@ -426,7 +427,7 @@ The nightly, `itos ci run --nightly`, runs these in order:
 - `node tools/selftest/upgrading-json.ts`
 - `node tools/selftest/ci-mutation-budget.ts`
 - `node tools/selftest/tools-bin-programs.ts`
-- `tools/bin/pinned itos-cc mutation sample --count 20 --json cmd internal`
+- `tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal`
 - `sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\nexit 97\n" > "$d/itos" && chmod +x "$d/itos" && PATH="$d:$PATH" go test ./features -count=1'`
 - `sh -c 'tools/bin/itos --version >/dev/null && d=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./features -count=1 && PATH="$d:$PATH" go test ./internal/cli -count=1 -run TestDeclareHooksOldGit'`
 - `sh -c 'd=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./tools/bin/... -count=1'`
