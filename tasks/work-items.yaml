@@ -5117,6 +5117,10 @@ items:
       --no-agent-rules. --no-plugin as a second spelling of --plugin no, refused beside --plugin, is
       additive, a v6.x feat.
 
+      Backlog review of 2026-10-10, batch 4: folds in p1-init-plugin-rule-22: in the same breaking
+      change, --plugin <scope> requires its value and no longer takes no (docs/CLI.md rule 22, POSIX
+      guideline 7), so --no-plugin is the one way to decline, with no second spelling kept.
+
   - id: p1-init-plugin-rule-22
     title: init --plugin takes its scope always (docs/CLI.md rule 22), --no-plugin being the way to decline
     phase: 1
