@@ -914,14 +914,9 @@ items:
     title: "hooks install writes lefthook's and pre-commit's config"
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      hooks install writes shim files for Vite+, husky and plain git, but for lefthook, pre-commit
-      and prek, whose hooks live in their YAML config, it only prints the snippet to add. Merging it into
-      the file, keeping the other hooks and comments, would make install one step for them too, for
-      a manager detected or named by hooks.manager (which overrides detection since slice 4).
 
   - id: p1-identity-map
     title: "An identity command's answer mapped to a login"
