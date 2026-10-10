@@ -6996,3 +6996,18 @@ items:
       reader for an old format stays in the code. Its first use: crossing the release of
       p1-work-item-dates, fill each work item added and since and each question asked and answered
       from git history where missing, and commit the registry alone. No one-time command for it.
+
+  - id: p1-guide-red-first-live-fix
+    title: itos guide work says how a fix to live scenarios goes red first
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-115 (2026-10-10), a fix changing two live scenarios: the guide says to commit the steps
+      alone in a test commit with the scenarios still @wip, then build, but a live scenario may
+      change only in the feat or fix commit itself. The agent followed the brief and AGENTS.md
+      instead; one reading only the guide would split it wrong and be refused. The guide should say
+      that for a fix to live scenarios, red first means running the changed scenarios before the
+      code change and seeing each fail at its new step, all in the one fix commit.
