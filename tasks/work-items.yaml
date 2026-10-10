@@ -1004,15 +1004,9 @@ items:
     title: The id counter, and work add, task add and work promote mint item ids through it
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-work-promote-next-id.
-      Slice 52's work promote needs --as <id>, so the next slice number or T- ID is still found by
-      hand. With --as left out it could give the next free one: slice-<n+1> after the registry's
-      highest slice, T-<n+1> after the highest of the ledger's IDs and the registry's tasks, kept
-      to ledger.id; the spec (@ID-WORK-12) names the id, so this needs its own scenario.
 
   - id: T-079
     title: The rules and the plugin's skill name itos work take and promote
