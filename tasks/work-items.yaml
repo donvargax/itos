@@ -5597,6 +5597,10 @@ items:
       --task/--scenario keeps. A comment that says why, without when, reads the same after the next
       slice; one naming a decision record or a scenario where it is the reason to read further
       stays.
+
+      Backlog review of 2026-10-10, batch 1: folds in p3-architecture-go-names: 67 comment lines in
+      internal/ and cmd/ still name TypeScript modules (commit-data.ts's stagedDataIssues at
+      hook.go:233, say); the same pass removes them.
     refs: [internal/, cmd/]
 
   - id: p1-tools-bin-unit-tests-in-ci
