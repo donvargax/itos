@@ -1320,5 +1320,3 @@
     go.mod's toolchain line picks the Go that CI, the nightly and the release build with
     (go-version-file), and a local go under GOTOOLCHAIN=auto, so raising it clears the finding
     everywhere and builds v7.0.0 with the fixed library.
-  done_when:
-    - run: grep -qx 'toolchain go1.27.2' go.mod

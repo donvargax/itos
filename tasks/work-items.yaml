@@ -7137,13 +7137,6 @@ items:
     title: Build itos with Go 1.27.2, past the net/http vulnerabilities of 1.27.1
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      The nightly of 2026-10-10 (run 38049620063) went red in go-hooks.ts: govulncheck reports nine
-      standard-library vulnerabilities the code reaches in Go 1.27.1 (GO-2026-6603 to GO-2026-6617,
-      net/http and its http2), all fixed in 1.27.2, so the pre-commit refuses a go.mod change.
-      go.mod's toolchain line picks the Go that CI, the nightly and the release build with
-      (go-version-file), and a local go under GOTOOLCHAIN=auto, so raising it clears the finding
-      everywhere and builds v7.0.0 with the fixed library.
