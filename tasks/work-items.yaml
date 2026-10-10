@@ -6854,7 +6854,7 @@ items:
     title: Initialize a fresh project from reusable itos policy without importing template work data
     phase: 1
     owner: donvargax
-    status: todo
+    status: doing
     depends_on: []
     kind: slice
     why: >
