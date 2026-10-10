@@ -10,13 +10,14 @@
 # and `status: doing` before starting it, mark it `done` in the commit that
 # lands it (or the next `docs` one), and add the items a slice discovers.
 #
-# Keys of an item: `id` (a slice as `slice-<n>`, a task by its T- ID, anything
-# not yet numbered as `p<phase>-<name>`), `title`, `phase`, `owner` (a GitHub
+# Keys of an item: `id` (a slice as `slice-<n>`, a bug as `bug-<n>`, a task by
+# its T- ID, anything not yet numbered as `p<phase>-<name>`), `title`, `phase`, `owner` (a GitHub
 # login that CONTRIBUTORS.md lists, or null), `status` (todo, doing, done,
 # blocked, or dropped, which `itos work drop` alone sets), `depends_on` (item IDs), optional `issue` (a GitHub issue number),
 # `refs` (where it is specified), `kind` (slice: needs scenarios and a feat;
 # task: a tasks/ entry with checks, its T- ID given when it is written; idea:
-# a gap with neither yet), optional `why` (an idea's short reason),
+# a gap with neither yet; bug: a fix, its scenarios tagged `@bug-<n>`, closed as
+# a slice is), optional `why` (an idea's short reason),
 # `deferred` (why it is put off; the item stays `todo`, is listed apart and
 # is never proposed as startable) and `blocked_by` (why, when blocked on
 # something outside this file).
