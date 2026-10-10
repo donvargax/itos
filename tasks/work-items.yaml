@@ -6926,3 +6926,22 @@ items:
 
       No lesson names it: the exception sits in the q-41 passages of the two refs.
     refs: [AGENTS.md, docs/ORCHESTRATING.md]
+
+  - id: p1-verify-past-the-window
+    title: CI's range with no green run in reach re-judges all history by today's path rules
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      On 2026-10-09 the last green run fell past FirstParentsAsked (100 first parents,
+      internal/providers/range.go), so ci range gave no start and itos verify judged every commit
+      since commits.since by today's commits.scopes: commits written before a rule changed fail it
+      (03bd68c's chore touches .vite-hooks/pre-commit), so every later run was red whatever it
+      carried, and no push could turn it green. T-136 moved commits.since to the last green commit
+      to get out. q-28's answer had already seen this fallback red over 17 old commits. Options:
+      judge each commit by the scopes of the config at that commit, as footers are read at the
+      commit already; or start the range at the last release's tag when no green run is in reach;
+      raising the 100 only delays it.
+    refs: [internal/providers/range.go, internal/cli/verify.go]
