@@ -202,3 +202,58 @@ Feature: itos status, where the work stands
     When itos runs "status --as someone"
     Then itos exits with code 0
     And its output says "slice-9" before "plugin"
+
+  # Slice 116 (p1-upgrade-on-major, the user's calls of 2026-10-04 and
+  # 2026-10-10). Upgrading on every release makes no sense at itos's pace, so
+  # only a new major is something to act on. status gains a line naming the
+  # itos version the repository runs (its pin, else the install script's, as
+  # itos upgrade reads it) and the newest stable release, asked of the release
+  # server once and never waited for; a pre-release is never the newest
+  # (as the update notice and a bare itos pin read it). When the newest is a
+  # newer major, the line names it and itos upgrade; within the pin's major it
+  # asks nothing. No decision is opened for it: the coordinator's guide says
+  # to offer the person itos upgrade when status names a new major, before new
+  # work, and its "Reporting a problem" step says itos upgrade, not itos pin,
+  # moves to the newest release (slice 115 missed it). A server that cannot be
+  # reached, or a repository with neither a pin nor an install script, prints
+  # no such line, and the rest of status prints as before, exit 0. --json
+  # gains "itos":{"runs","newest","new_major"} or null.
+  # Trace the Given: in a pinned repository the launcher runs the pinned
+  # version, so a scenario's pin must be the itos under test's own version
+  # (choose runs this binary when the pin is its own), and the release server
+  # offers that version and the newer ones; a fake pinned version would run in
+  # its place and prove nothing.
+  @ID-STATUS-16 @slice-116 @wip
+  Scenario: Within the pinned major, status names the pinned itos and the newest release and asks nothing
+    Given the config pins the itos under test, as the version "9.1.0" of a release server that also offers "9.2.0"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "9.1.0"
+    And its output says "9.2.0"
+    And its output does not say "itos upgrade"
+
+  @ID-STATUS-17 @slice-116 @wip
+  Scenario: A newer major is named, with itos upgrade
+    Given the config pins the itos under test, as the version "9.1.0" of a release server that also offers "10.0.0"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "10.0.0"
+    And its output says "itos upgrade"
+
+  @ID-STATUS-18 @slice-116 @wip
+  Scenario: A pre-release of a newer major is never named
+    Given the config pins the itos under test, as the version "9.1.0" of a release server that also offers "10.0.0-rc.1"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output does not say "10.0.0"
+    And its output does not say "itos upgrade"
+
+  @ID-STATUS-19 @slice-116 @wip
+  Scenario: Where the release server cannot be reached, status names no release of itos and prints the rest
+    Given the config pins the itos under test, as the version "9.1.0" of a release server that also offers "10.0.0"
+    And the release server cannot be reached
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "slice-9"
+    And its output does not say "10.0.0"
