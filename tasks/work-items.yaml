@@ -664,15 +664,9 @@ items:
     title: The commit-msg hook knows a merge by git's state, not by its message
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-23]
     kind: idea
-    why: >
-      Found in slice 23: the hook's moves rule leaves a merge alone because "Merge" is not one of
-      commits.types, so a config that lists no commits.types judges a merge commit, whose index
-      holds every scenario a merged feat made live, and rejects it. The path rules dodge it the
-      same way (a type with no scope). The hook could read MERGE_HEAD (or the commit being a
-      merge) and leave every staged-file rule to verify, which skips merges.
 
   - id: slice-21
     title: ledger.group.label read, or dropped
