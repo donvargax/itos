@@ -695,15 +695,9 @@ items:
     title: CI's plan runs a check two named tasks list once
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-9]
     kind: idea
-    why: >
-      Slice 9 runs a check once per itos task invocation, but CI's plan (ci-plan.ts) still runs a
-      check once for every named task that lists it, unless a step covers it: a push naming two
-      tasks that share a late check runs it twice. Planning it once, each task reading the one exit
-      status by its run: or fails:, changes ci plan's output and its corpus cases; it needs a
-      scenario in ci.feature or task.feature.
 
   - id: p1-hook-checks-once
     title: The commit-msg hook runs a static check two named tasks list once
