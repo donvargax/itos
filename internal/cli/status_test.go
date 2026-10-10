@@ -42,12 +42,19 @@ func items(ids ...string) string {
 	return text
 }
 
-// A registry that cannot be read is an error, and --as not among the
-// people is exit 3, said on stderr.
+// A registry that cannot be read is an error, with no exit code of its own,
+// and --as not among the people is exit 3, said on stderr.
 func TestStatusRefuses(t *testing.T) {
 	statusRepo(t, map[string]string{"work-items.yaml": "items: [\n", "people.yaml": "- a\n"})
 	if code, stdout, stderr := run("status", "--as", "a"); code != ExitUsage {
 		t.Errorf("a registry that cannot be read: exit %d\n%s%s", code, stdout, stderr)
+	}
+	cfg, err := config.Load(config.Path())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st, found, code, err := statusOf(cfg, "a", Out{}); err == nil || st != nil || found != nil || code != 0 {
+		t.Errorf("a registry that cannot be read: %v %v exit %d, %v", st, found, code, err)
 	}
 	if err := os.WriteFile("work-items.yaml", []byte(items("one")), 0o644); err != nil {
 		t.Fatal(err)
@@ -82,21 +89,26 @@ func TestStatusRegistryChanged(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var o Out
+	var code int
 	err = source.ReadingFrom(&secondReadFails{Source: source.Worktree}, func() error {
-		_, _, _, err := statusOf(cfg, "a", o)
+		_, _, c, err := statusOf(cfg, "a", Out{})
+		code = c
 		return err
 	})
-	if err == nil || !strings.Contains(err.Error(), "changed while read") {
-		t.Errorf("the second read's failure is not the error: %v", err)
+	if err == nil || !strings.Contains(err.Error(), "changed while read") || code != 0 {
+		t.Errorf("the second read's failure is not the error: exit %d, %v", code, err)
 	}
 }
 
 // Under a stealth config with no --as the session owns every item, which
 // --json says; with nobody among the people only the unowned are listed,
-// five of them and how many more.
+// five of them and how many more, and a question names its item.
 func TestStatusEveryAndNobody(t *testing.T) {
-	statusRepo(t, map[string]string{"work-items.yaml": items("i1", "i2", "i3", "i4", "i5", "i6"), "people.yaml": "[]\n"})
+	statusRepo(t, map[string]string{
+		"work-items.yaml": items("i1", "i2", "i3", "i4", "i5", "i6"),
+		"people.yaml":     "[]\n",
+		"asks.yaml":       "questions:\n  - id: q-1\n    item: i1\n    question: Which way?\n",
+	})
 	cfg, err := config.Load(config.Path())
 	if err != nil {
 		t.Fatal(err)
@@ -117,7 +129,7 @@ func TestStatusEveryAndNobody(t *testing.T) {
 		t.Fatal(err)
 	}
 	st.print(&stdout)
-	for _, want := range []string{"Working for nobody", "and 1 more: itos work"} {
+	for _, want := range []string{"Working for nobody", "and 1 more: itos work", "q-1  Which way?  (i1)"} {
 		if !strings.Contains(stdout.String(), want) {
 			t.Errorf("the status does not say %q:\n%s", want, stdout.String())
 		}
