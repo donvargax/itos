@@ -1162,23 +1162,9 @@ items:
     title: "A lease on the checkout, so a second session cannot commit over an agent's work"
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      ORCHESTRATING.md asks the coordinator not to commit while an agent works in the same checkout:
-      the index is shared, and two vp staged runs at once break its backup. itos work take <id> could
-      write a lease into the git directory (per worktree, never committed): the item, the boot ID and
-      a timestamp each holder commit refreshes. With work.lease on, the commit-msg hook refuses a
-      commit whose footer does not belong to the leased item, naming it and how to release it, unless
-      every staged path is in work.lease.free_paths (default docs/** and tasks/**), so the
-      coordinator's docs commits pass but never sweep the agent's staged files. A reboot (boot ID
-      changed), work.lease.stale_after of no activity, itos work done or itos work release <id> ends
-      it, so a dead machine never wedges the checkout; the shared claim stays status: doing in the
-      registry. Left open: two vp staged backups racing in the same instant.
-
-      Reported again by an agent, 2026-10-05: nothing stops two sessions committing in one checkout;
-      the coordinator's guide says not to, an honour system.
 
   - id: slice-75
     title: "itos upgrade moves the pin and walks each release's Upgrading section since the old one"
