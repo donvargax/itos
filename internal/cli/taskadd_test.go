@@ -158,8 +158,8 @@ func TestTaskAddReturnsConfigAndArgumentErrors(t *testing.T) {
 		if err := os.WriteFile("itos.yaml", []byte("version: [\n"), 0o644); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := taskAdd(nil, Out{}); err == nil {
-			t.Fatal("taskAdd succeeded with invalid config")
+		if code, err := taskAdd(nil, Out{}); code != 0 || err == nil {
+			t.Fatalf("taskAdd with invalid config = (%d, %v), want exit code 0 and the config error", code, err)
 		}
 	})
 	t.Run("invalid arguments", func(t *testing.T) {
@@ -204,9 +204,9 @@ func TestTaskAddReturnsLedgerErrors(t *testing.T) {
 func TestTaskAddPropagatesLedgerEditErrors(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
 	taskAddRepo(t, configText, "[{id: T-001, type: chore, title: Existing}]\n", "phases: { 1: null }\nitems: []\n")
-	_, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
-	if err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
-		t.Fatalf("taskAdd error = %v, want ledger edit error", err)
+	code, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
+	if code != 0 || err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
+		t.Fatalf("taskAdd = (%d, %v), want exit code 0 and the ledger edit error", code, err)
 	}
 }
 
@@ -214,9 +214,9 @@ func TestTaskAddPropagatesRegistryEditErrors(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
 	registry := "{phases: {1: null}, items: []}\n"
 	taskAddRepo(t, configText, "- { id: T-001, type: chore, title: Existing }\n", registry)
-	_, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
-	if err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
-		t.Fatalf("taskAdd error = %v, want registry edit error", err)
+	code, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
+	if code != 0 || err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
+		t.Fatalf("taskAdd = (%d, %v), want exit code 0 and the registry edit error", code, err)
 	}
 }
 
