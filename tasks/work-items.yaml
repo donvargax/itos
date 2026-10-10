@@ -4253,6 +4253,11 @@ items:
       by a hardware key that needs a touch, checked by a GitHub ruleset or a workflow outside the
       repository. Today the coordinator's review of each agent's commits is the layer.
 
+      Backlog review of 2026-10-10, batch 3: folds in p1-since-from-base: commits.since is a gate
+      too: a push moving it forward skips the commits it passes over in its own verify, as RangeArgs
+      reads the head's config; reading it from the range's base would cost T-136-style escapes an
+      extra push, so showing such a change is the lighter answer.
+
   - id: p3-marketplace-description
     title: The marketplace's plugin description says what the plugin does now
     phase: 3
