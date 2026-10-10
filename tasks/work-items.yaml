@@ -6883,9 +6883,10 @@ items:
       selected paths, sets the projects history boundary, and installs hooks or generates agent
       rules only as requested. Do not silently overwrite existing project data, add config
       inheritance, or make itos-template understand itos. The user selected this issue for
-      independent work while the itos-cc implementation is pending (2026-10-09). Interface,
-      source-state sanitization, rerun behavior and failure handling need specification before
-      implementation.
+      independent work while the itos-cc implementation is pending (2026-10-09). q-49 settled the
+      interface (itos init --policy <file>), and @ID-INIT-41 to 52 in features/init.feature, with
+      the comment above them, specify source-state sanitization, rerun behavior and failure
+      handling.
     refs:
       [
         internal/cli/init.go,
