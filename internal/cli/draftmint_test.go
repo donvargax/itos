@@ -142,8 +142,18 @@ func TestInPlaceGivesBackWhatFailed(t *testing.T) {
 	if err := inPlace(func() error { return nil }); err == nil {
 		t.Error("inPlace gave no error outside any folder")
 	}
+	// Where the process stands in a folder removed, Linux cannot read the
+	// folder at all, and inPlace stops before the command; macOS still can,
+	// so the command runs (and fails, finding no config) before inPlace
+	// cannot move back. Either way runReserved reports the folder's failure
+	// as itos's own, exit 70.
 	var out strings.Builder
-	if code := runReserved(draft.Draft{ID: "thing", Command: sliceLine, Minted: "slice-9"}, &out); code != ExitSoftware || !strings.HasPrefix(out.String(), "itos: ") {
+	code := runReserved(draft.Draft{ID: "thing", Command: sliceLine, Minted: "slice-9"}, &out)
+	reported := false
+	for _, line := range strings.Split(out.String(), "\n") {
+		reported = reported || strings.HasPrefix(line, "itos: getwd") || strings.HasPrefix(line, "itos: chdir")
+	}
+	if code != ExitSoftware || !reported {
 		t.Errorf("runReserved outside any folder: exit %d, output %q", code, out.String())
 	}
 	t.Chdir(t.TempDir())
