@@ -227,13 +227,9 @@ ci:
     - { run: node tools/selftest/deps-check.ts, cost: late }
     - { run: node tools/selftest/schema-contract.ts, cost: late }
     - { run: node tools/selftest/plugin-version.ts, cost: late }
-    # Recheck at most one cached mutation outcome in the changed Go paths. This does not freshly
-    # sample uncached code; proof.code.check remains the complete-cache gate for missing, stale,
-    # uncovered and surviving results. Fresh bounded sampling remains blocked on itos-cc#27.
-    - {
-        run: "tools/bin/pinned itos-cc mutation sample --since {from} --count 1 --json cmd internal",
-        cost: late,
-      }
+    # The push and nightly mutation commands (proof.code.check below, the nightly's mutation run),
+    # dispatched through ci run with a fake shell: their counts and paths, and that a failing
+    # provider blocks (T-131).
     - { run: node tools/selftest/ci-mutation-budget.ts, cost: late }
     # The one merged run; late, as no pattern matches it. Against the Go
     # binary, tools/bin/itos, the features' default ITOS_BIN.
@@ -302,17 +298,19 @@ ci:
       # `itos commit footers` (T-091's check, kept as a step in T-125): release-notes' TestAsset
       # proves its shape on fixtures, never against the footers command. Asks the network.
       - node tools/selftest/upgrading-json.ts
-      # Exercise the push and nightly mutation-sample commands through ci run with a fake shell.
+      # The push and nightly mutation commands through ci run with a fake shell (T-131).
       - node tools/selftest/ci-mutation-budget.ts
       # The programs in tools/bin are shell scripts, which windows cannot start at all: every
       # program under tools/ starts one of them through one resolver, and this runs two of them
       # here to keep that true (T-135). Cheap and offline, so it can also run by hand on windows,
       # where it is the check that says a spawn lost its exit code.
       - node tools/selftest/tools-bin-programs.ts
-      # A nightly rechecks at most 20 cached outcomes in the changed Go paths. Its seed remains
-      # HEAD-deterministic; fresh bounded sampling/seed migration remains blocked on itos-cc#27.
+      # Twenty mutation sites of the Go code judged freshly (q-41's nightly budget, q-52), drawn
+      # across cmd and internal with no cache, strict Go coverage included. The seed is the run's
+      # own, GitHub's run id (the time, run by hand), not HEAD's, so two nights on one commit draw
+      # differently; the report names it, to reproduce a draw. Linux only, as the job is.
       - {
-          run: "tools/bin/pinned itos-cc mutation sample --count 20 --json cmd internal",
+          run: 'tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered --json cmd internal',
           cost: late,
         }
       # The features never run the itos on the PATH (T-087's check, kept as a step in T-125): a
@@ -405,4 +403,7 @@ hooks:
 proof:
   code:
     paths: ["{cmd,internal}/**/*.go"]
-    check: "tools/bin/pinned itos-cc mutation check --since {base} --fail-uncovered --json cmd internal"
+    # One mutation site of the range's changed Go functions judged freshly, with no cache (q-41's
+    # push budget, q-52), and strict coverage of every changed function. A range with no site is
+    # not applicable and passes. Linux only, as CI's ci job is.
+    check: "tools/bin/pinned itos-cc mutation run --count 1 --since {base} --fail-uncovered --json cmd internal"
