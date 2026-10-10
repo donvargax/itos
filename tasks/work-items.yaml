@@ -2166,6 +2166,10 @@ items:
       so a folded trailer would lose the rest. itos commit could refuse it up front naming the
       limit, or fold it as git folds a trailer, with Texts and commit footers reading the
       continuation lines.
+
+      Backlog review of 2026-10-10, batch 1: folds in p3-text-footer-lines (message.Texts reads one
+      line per Key:). Queued: a plain Upgrading: line over 100 characters is refused by the
+      commit-msg hook only after pre-commit's slow checks, and every feat or fix carries one.
     refs: [internal/cli/gitcommit.go, internal/message/footers.go]
 
   - id: p3-stealth-amend-keeps-links
