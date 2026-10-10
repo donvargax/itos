@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - p1-nightly-past-first-failure
   - p1-windows-id-validation
   - slice-95
   - bug-38
