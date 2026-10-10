@@ -416,8 +416,8 @@ items:
   - id: slice-117
     title: The commit-msg hook runs the smoke rule over the index when a kind's test file is staged
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-6]
     kind: slice
     why: >
