@@ -4068,13 +4068,9 @@ items:
     title: Rules markers inside a code fence are not the block
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). blockSpan matches marker lines anywhere, so
-      an AGENTS.md showing the markers in an example fence has the example replaced
-      (initrules.go:271).
     refs: [internal/cli/initrules.go]
 
   - id: p1-rules-line-endings-bom
