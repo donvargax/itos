@@ -64,6 +64,7 @@ func initializeInitSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^the untracked file "([^"]*)" holding "([^"]*)"$`, w.untrackedFileHolding)
 	sc.Step(`^the file "([^"]*)" names "([^"]*)"$`, w.fileNames)
+	initializePolicyInitSteps(sc, w)
 }
 
 // The file at the path, from the repository's top, holding the text as one
