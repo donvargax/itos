@@ -1336,3 +1336,16 @@
     lives in the tracked hook.
   done_when:
     - run: test -f dprint.json && ! test -e vite.config.ts && ! test -d .vite-hooks && ! grep -qE 'vite-plus|"vite"|vitest' package.json && ! grep -q 'vp check' itos.yaml
+
+- id: T-143
+  type: ci
+  title: The gates' self-tests are Go tests, and tools/selftest holds no TypeScript
+  why: >
+    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
+    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
+    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
+    changes what itos does for consumers, whose repositories never carried vp. The 21 self-tests in
+    tools/selftest/*.ts (the gates', hooks', release's and schema's) become Go tests beside the
+    programs they test, run by the same CI and nightly steps.
+  done_when:
+    - run: "! ls tools/selftest/*.ts >/dev/null 2>&1"
