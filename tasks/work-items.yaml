@@ -3103,6 +3103,12 @@ items:
       ".git/itos/asks.yaml" exists (the step exists); a live scenario changes only in a feat or fix,
       so fold it into the next one touching stealth.feature.
 
+      Backlog review of 2026-10-10, batch 2: folds in p3-config-21-own-value (@ID-CONFIG-21 should
+      set a hooks.bin the default lacks, bin/own-itos, since the default tools/bin/itos also
+      contains bin/itos) and p3-guide-feature-plugin-line (guide.feature's description should say
+      the plugin wraps neither guide, as T-092 made it). Three live scenarios' texts, one small fix,
+      rather than waiting for a feat that touches each file.
+
   - id: p1-footer-source-message
     title: config check's message for an unknown footer source names registry
     phase: 1
