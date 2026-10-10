@@ -6927,6 +6927,11 @@ items:
       dependents' depends_on in the same commit, or an idea found built is closed as done rather
       than dropped. Grooming a large backlog meets this often.
 
+      Backlog review of 2026-10-10, batch 3: folds in p1-work-drop-check-scenarios: its scenarios
+      should also cover what slice 78 left to unit tests: dropped is a known status whatever
+      work.statuses lists, work check refuses an open item that depends on a dropped one, and work
+      drop removes an existing why.
+
   - id: p1-schema-contract-needs-declarations
     title: schema-contract refuses a config key dropped without a rename or removal declared
     phase: 1
