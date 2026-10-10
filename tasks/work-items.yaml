@@ -7199,3 +7199,25 @@ items:
       had to be corrected first. The exceptions and the cached results are the tests' own data;
       letting test commits touch them removes a commit and a briefing trap from every survivor fix,
       here and in each repository that copies this policy.
+
+  - id: p1-work-item-dates
+    title: Work items carry added and since, and questions asked and answered, as RFC 3339 UTC datetimes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      No itos data stores a date: an item's age, how long it has been doing, or when it closed lives
+      only in git history, and git cannot give it reliably (a stealth registry is never committed, a
+      shallow CI clone blames every line to one commit, a moved or re-indented item takes its edit's
+      date). Decided with the person on 2026-10-10: optional fields, so every existing registry
+      stays valid and the change is additive. added is when the item was made; since is when its
+      current status began, which answers how long an item has been doing, when it was done or
+      dropped and since when it is deferred. Questions get asked and answered. RFC 3339 in UTC
+      (2026-10-10T14:36:06Z), the same string in the YAML and in --json: people and agents read it
+      as it is, and it sorts as text; follow threads already stamp time.RFC3339. The commands that
+      make an item or change its status write them. No backfill command: existing items get their
+      dates from git history as an automatic step of itos upgrade (p1-upgrade-applies-config-steps),
+      never a one-time command, since until v10 a command kept only for one migration is cost with
+      no need.
