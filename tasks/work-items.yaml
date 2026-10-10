@@ -2204,13 +2204,9 @@ items:
     title: The plugin's titles read the registry file at the repository's top
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: [T-073]
     kind: idea
-    why: >
-      T-073 left it: with no itos that answers, the titles read tasks/work-items.yaml under the
-      session's root, so a session started in a subfolder gets no titles, though the resolution
-      now knows the repository's top (git rev-parse --show-toplevel) and could read it there.
     refs: [integrations/claude-code/hooks/register.ts]
 
   - id: p3-plugin-type-check
