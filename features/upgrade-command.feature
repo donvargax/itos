@@ -149,3 +149,100 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     When itos runs "upgrade latest"
     Then itos exits with code 0
     And the config's pin is the version "9.3.0" of the release server, with its checksums
+
+  # Slice 113 (p1-upgrade-applies-config-steps, the user's calls of 2026-10-06,
+  # resumed 2026-10-10). upgrade applies the config changes each crossed
+  # release's published itos.schema.json declares, never anything read from
+  # commit text: a key whose schema property declares x-itos-renamed-from
+  # (<old path>) takes the old key's value and the old key goes; a key the
+  # schema's top-level x-itos-removed lists is deleted, and upgrade prints the
+  # value it held. It walks oldest release first, so a key renamed twice ends
+  # under its newest name. It prints each edit as it makes it, release by
+  # release, then ends with "By hand:" and every crossed release's Upgrading
+  # and breaking text, or "By hand: nothing". The Upgrading: and
+  # BREAKING-CHANGE: footers now mean only what is left by hand. A release
+  # that publishes no schema, or one with no declarations, is walked as
+  # today. The config editor learns to delete and rename a key; a layout it
+  # cannot edit byte for byte (a flow mapping, an anchor) exits 2 with every
+  # file untouched, the pin included, since it fetches and plans every edit
+  # before it writes. --json adds "applied":[{"version","kind":"renamed"|
+  # "removed","key","from"?,"value"?}] and "manual":[{"version","text"}].
+  # The feat updates this feature's description, which still says the
+  # config's key changes are never edited. Out of this slice: schema-contract
+  # refusing a key dropped without a declaration (a ci task), the release
+  # notes split by hand and automatic, and data steps for itos's committed
+  # files, such as backfilling p1-work-item-dates (their own items).
+  @ID-UPGRADECMD-13 @slice-113 @wip
+  Scenario: A key the new release's schema declares renamed takes the old key's value
+    Given the config pins the version "9.1.0" of the release server
+    And the config sets "ci.watch.timeout" to "600"
+    And the release "9.3.0"'s schema declares "ci.watch.wait" renamed from "ci.watch.timeout"
+    When itos runs "upgrade"
+    Then itos exits with code 0
+    And the config's "ci.watch.wait" is "600"
+    And the config has no value at "ci.watch.timeout"
+    And its output says "ci.watch.wait"
+    And nothing was committed
+
+  @ID-UPGRADECMD-14 @slice-113 @wip
+  Scenario: A key the new release's schema declares removed is deleted, and upgrade prints the value it held
+    Given the config pins the version "9.1.0" of the release server
+    And the config sets "ci.watch.timeout" to "600"
+    And the release "9.3.0"'s schema declares "ci.watch.timeout" removed
+    When itos runs "upgrade"
+    Then itos exits with code 0
+    And the config has no value at "ci.watch.timeout"
+    And its output says "ci.watch.timeout"
+    And its output says "600"
+
+  @ID-UPGRADECMD-15 @slice-113 @wip
+  Scenario: A key renamed by two releases ends under the newer name, the releases applied oldest first
+    Given the config pins the version "9.1.0" of the release server
+    And the config sets "ci.watch.timeout" to "600"
+    And the release "9.2.0"'s schema declares "ci.watch.limit" renamed from "ci.watch.timeout"
+    And the release "9.3.0"'s schema declares "ci.watch.wait" renamed from "ci.watch.limit"
+    When itos runs "upgrade"
+    Then itos exits with code 0
+    And the config's "ci.watch.wait" is "600"
+    And the config has no value at "ci.watch.timeout"
+    And the config has no value at "ci.watch.limit"
+
+  @ID-UPGRADECMD-16 @slice-113 @wip
+  Scenario: upgrade prints its edits first, then By hand and what each crossed release still asks
+    Given the config pins the version "9.1.0" of the release server
+    And the config sets "ci.watch.timeout" to "600"
+    And the release "9.2.0" asks "Move the records to docs/decisions."
+    And the release "9.3.0"'s schema declares "ci.watch.wait" renamed from "ci.watch.timeout"
+    When itos runs "upgrade"
+    Then itos exits with code 0
+    And its output says "ci.watch.wait" before "By hand:"
+    And its output says "By hand:" before "Move the records to docs/decisions."
+
+  @ID-UPGRADECMD-17 @slice-113 @wip
+  Scenario: When every change was applied, upgrade says nothing is left by hand
+    Given the config pins the version "9.1.0" of the release server
+    And the config sets "ci.watch.timeout" to "600"
+    And the release "9.3.0"'s schema declares "ci.watch.wait" renamed from "ci.watch.timeout"
+    When itos runs "upgrade"
+    Then itos exits with code 0
+    And its output says "By hand: nothing"
+
+  @ID-UPGRADECMD-18 @slice-113 @wip
+  Scenario: A key in a layout the editor cannot change byte for byte is refused with exit 2, and no file is changed
+    Given the config pins the version "9.1.0" of the release server
+    And the config holds "ci.watch.timeout" as "600" in a flow mapping
+    And the release "9.3.0"'s schema declares "ci.watch.wait" renamed from "ci.watch.timeout"
+    When itos runs "upgrade"
+    Then itos exits with code 2
+    And its output says "ci.watch.timeout"
+    And the config is unchanged
+
+  @ID-UPGRADECMD-19 @slice-113 @wip
+  Scenario: A rename keeps the config's comments and every other line as they were
+    Given the config pins the version "9.1.0" of the release server
+    And the config has the comment "# Wait ten minutes for CI."
+    And the config sets "ci.watch.timeout" to "600"
+    And the release "9.3.0"'s schema declares "ci.watch.wait" renamed from "ci.watch.timeout"
+    When itos runs "upgrade"
+    Then itos exits with code 0
+    And the config still has the comment "# Wait ten minutes for CI."
