@@ -118,6 +118,25 @@ func TestNoticeOnceADayPerRepository(t *testing.T) {
 	}
 }
 
+// The once-a-day silence rests on the record of the last notice, never on
+// the clock alone: a repository with no record is told, however early the
+// clock reads, and then not again that day.
+func TestNoticeUntoldIsToldWhateverTheClockReads(t *testing.T) {
+	offline(t)
+	t.Setenv(EnvNoUpdate, "1")
+	at(t, time.Time{})
+	var b strings.Builder
+	notice("one/itos.yaml", "9.1.0", "9.2.0", &b)
+	if !strings.HasPrefix(b.String(), "itos 9.2.0 is out (this repository pins 9.1.0): ") {
+		t.Fatalf("a repository never told was not told, at the zero time: %q", b.String())
+	}
+	b.Reset()
+	notice("one/itos.yaml", "9.1.0", "9.2.0", &b)
+	if b.Len() != 0 {
+		t.Errorf("notice said %q again within the day", b.String())
+	}
+}
+
 // The notice names the newest release the launcher knows of, not only the
 // server's last answer (bug 48): a release the cache holds, or the itos that
 // runs, newer than that answer is the one told; a pre-release or a build
