@@ -1,6 +1,9 @@
 node_modules
 dist
 coverage/
+# Local notes, and the metrics reports written beside the tracked .metrics/mutate/ (T-141).
+.tmp/
+.metrics/*.json
 *.log
 *.local
 .fallow/
