@@ -790,14 +790,9 @@ items:
     title: work check names a registry it finds at tasks/work-items.yaml when it looks elsewhere
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-22]
     kind: idea
-    why: >
-      Found in slice 22: a project whose ledger is outside tasks/ and whose registry stayed at
-      tasks/work-items.yaml reads "no work registry at work/work-items.yaml" after v0.6.0. The fix
-      says to move it or set work.registry, but not that one is at tasks/work-items.yaml; naming
-      it would tell that project which of the two it is in one line.
   - id: slice-10
     title: The footer rules run by itos beside the header lint
     phase: 1
