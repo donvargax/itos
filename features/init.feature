@@ -655,6 +655,12 @@ Feature: itos init, a repository made ready for itos
     Then itos exits with code 0
     And its output says "--git-shim"
 
+  # Slice 115 (p1-upgrade-notices, 2026-10-10): init's pin-behind note names
+  # itos upgrade, which moves the pin and applies what each release changes,
+  # instead of itos pin and reading the notes by hand. The fix renames the
+  # scenario to "... and names itos upgrade" and checks its output says
+  # "itos upgrade" and does not say "itos pin"; its commit names this
+  # scenario in Changes, since v7.1.0's text promised itos pin.
   @ID-INIT-20 @slice-50
   Scenario: Run again where the pin is behind the newest release, init says so and names itos pin
     Given a release server offering the versions "9.1.0" and "9.2.0"

@@ -65,6 +65,13 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     Then itos exits with code 0
     And no version of the release server ran since the last run
 
+  # Slice 115 (p1-upgrade-notices, 2026-10-10): since slice 113, itos upgrade
+  # applies each crossed release's declared config renames and removals and
+  # lists what is left by hand, while itos pin only moves the pin. The notice
+  # keeps its words up to the notes' address and adds that itos upgrade moves
+  # the repository to it; the fix adds And its output says "itos upgrade" here,
+  # and updates the description's quoted notice to match. A fix, as following
+  # the old pointer leaves a config with keys a release removed.
   @ID-UPDATE-06 @slice-28
   Scenario: A repository pinning an older version runs its pin, and says the newer one is out
     Given a repository whose ledger has the task "T-001"
