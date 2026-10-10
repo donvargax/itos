@@ -1415,3 +1415,17 @@
     task starts).
   done_when:
     - run: "! grep -rq fallow itos.yaml package.json"
+
+- id: T-149
+  type: build
+  title: This repository has no package.json and no node_modules
+  why: >
+    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
+    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
+    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
+    changes what itos does for consumers, whose repositories never carried vp. The last step: once
+    the formatting, the self-tests, the conformance runner, the changelog, the inbox, the plugin's
+    hooks and the audit need no Node, package.json, its lockfile and the devcontainer's and CI's
+    Node setup go.
+  done_when:
+    - run: "! test -e package.json && ! grep -rqE 'setup-node|setup-vp' .github/workflows"
