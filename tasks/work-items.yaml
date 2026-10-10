@@ -783,15 +783,9 @@ items:
     title: The release-notes self-test compares the defaults that depend on the config
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-22]
     kind: idea
-    why: >
-      Found in slice 22: tools/selftest/release-notes.ts compares config check --print-defaults
-      between releases in a scratch folder with no config, so a default that depends on the config
-      (work.registry, beside the ledger since slice 22) changes unseen for a ledger outside tasks/,
-      and the v0.6.0 notes had to name it by hand. Comparing the defaults under a config whose
-      ledger is in another folder as well would catch it.
   - id: p1-registry-old-default-hint
     title: work check names a registry it finds at tasks/work-items.yaml when it looks elsewhere
     phase: 1
