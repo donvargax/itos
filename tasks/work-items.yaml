@@ -55,7 +55,7 @@ phases:
   3: donvargax
 
 queue:
-  - p1-upgrade-on-major
+  - slice-116
   - p1-smoke-rule-at-commit
   - p1-guard-follows-cd
   - p1-task-add-promoted
@@ -3377,14 +3377,15 @@ items:
     depends_on: []
     kind: task
 
-  - id: p1-upgrade-on-major
-    title: itos status shows the pin against the newest release, and a new major asks to upgrade
+  - id: slice-116
+    title: itos status shows the pinned itos against the newest release, and names a new major with itos upgrade
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-75]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-upgrade-on-major.
       Split from p1-itos-upgrade (the user's calls, 2026-10-04): upgrading constantly makes no sense
       at the current release pace, so only a new major is something to act on. itos status shows the
       pin and the newest release, and the guide's rule (upgrade first) fires on a major, asking the
