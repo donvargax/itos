@@ -1185,8 +1185,6 @@
     changing the gate's behavior or weakening its expectation. Go tests under tools/bin are gate
     self-tests and therefore a ci commit. The standing go test ./tools/... already runs them after
     task closure. No coverage or mutation run, snapshot edit, provider upgrade or new threshold.
-  done_when:
-    - run: "go test ./tools/bin/schema-contract -count=1 -run '^(TestCompareSame|TestCompare|TestValidate)$'"
 
 - id: T-133
   type: docs
