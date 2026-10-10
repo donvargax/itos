@@ -6249,11 +6249,9 @@ items:
     title: tests next-id claims scenario ids through the id counter, --count for several
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-102]
     kind: slice
-    why: >
-      Specified in features/next-id.feature (@ID-NEXTID-06, @ID-NEXTID-07).
 
   - id: p3-plugin-titles-every-id
     title: "The plugin's titles cover every id itos writes: questions, decision records, scenarios, bugs in prose and drafted ids, reloaded when they change"
