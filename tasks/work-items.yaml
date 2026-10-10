@@ -4654,6 +4654,17 @@ items:
       prove themselves as data, the built-in guide and the brief template become rules too,
       versioned with itos, each with its exit and dates, and each project's rules layered on top
       (q-42 and q-43 already reshape the built-in guide).
+
+      2026-10-10, with the user: q-45 to q-48 replace part (1) of the scope above. AGENTS.md routes
+      no role at all (q-46) and drops the generated gates block's enumeration (q-45): it keeps
+      universal safety boundaries and one line saying the gates enforce the repository's policy, and
+      each before-action procedure loads the commit, footer, path and CI policy it needs from the
+      config. itos status stays a snapshot with no notes (q-48); the coordinator's rules mention
+      that the notes exist, with the reason to read them (q-47). Folds in p1-agent-rules-ci-summary
+      (issue #27), moot once the CI list leaves AGENTS.md. Still to decide: the before-action guide
+      commands' names and syntax (q-43), the rules file's path and schema, and the per-role cap.
+      Breaking (init --agent-rules writes another block): part of the v8 release-candidate bundle,
+      split before specifying, the AGENTS.md reduction first.
     refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
 
   - id: p1-agent-rules-suspend
