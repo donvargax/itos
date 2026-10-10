@@ -961,15 +961,9 @@ items:
     title: Conformance cases for the providers that ask an HTTP API
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The corpus runs every provider that needs no network, but not which run the github range
-      provider takes from the API's answer (the newest success, whatever the list's order), which
-      stays in tools/selftest/ci-range.ts. A case serving a canned response, with the provider taking
-      its API's base URL from the environment as GITHUB_API_URL gives it in Actions, would cover it, and
-      GitLab and Forgejo after it.
 
   - id: p1-agent-rules-as-checks
     title: Agent rules a command can decide, moved into itos
