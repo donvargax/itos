@@ -585,7 +585,13 @@
 // puts each copy there (git hash-object -w --no-filters, update-index
 // --cacheinfo with the base's mode; a copy removed is --force-remove, an
 // empty copy of a new file nothing) and diffs it against the base, a patch
-// then applied as any change draft's.
+// then applied as any change draft's. A command draft that mints an item's
+// id (draftmint.go, slice 103) has it minted by draftAdd through draftMint,
+// as the command would mint it under its own global flags, and kept as the
+// draft's Minted; promote runs it in this process (runReserved, Main), the
+// id in the package's reserved, which newItemID hands the command instead of
+// minting another, since no command line may give work add, task add or
+// work promote an id.
 //
 // decision (ask.go over internal/ask and internal/adr): add and answer write
 // the questions through writeCommitted, the file alone, docs: ask q-<n> and

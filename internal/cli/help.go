@@ -1211,7 +1211,7 @@ its paths, or its command line. itos status names them too. Exit 1 for a
 refusal, 2 for a usage error, a lock still held, or a drafts.yaml itos cannot
 read or did not write whole, 3 outside a git repository.
 
---json: {"schema":1,"drafts":[{"id","kind","header"?,"paths"?,"command"?}]},
+--json: {"schema":1,"drafts":[{"id","kind","header"?,"paths"?,"command"?,"minted"?}]},
 kind change or command; each subcommand's in its help (itos help draft <subcommand>)`,
 
 	"draft add": `Usage: itos draft add <id> -m <message> <path>…
@@ -1222,13 +1222,19 @@ git patch, files git does not track yet included, and the message to commit
 it with, footers and all; then puts those paths, and only those, back as HEAD
 has them, in the index and the work tree, a file HEAD lacks removed. With --,
 keeps the itos arguments after it exactly as given, to be run later by the
-same itos binary, never through a shell; a draft cannot run itos draft. An id
-is letters, digits, '.', '_' and '-', a letter or digit first. Refused,
-nothing written (exit 1): an id a draft already has, a path that names
-nothing in the work tree or HEAD, or one git ignores, paths with no change
-against HEAD, a repository with no commit.
+same itos binary, never through a shell; a draft cannot run itos draft. A
+command that mints an item's id (work add --kind slice|task, task add, work
+promote) has it minted now, through the id counter, as the command would mint
+it: the draft keeps it, the line printed ends "(makes <id>)", and promote
+creates the item under it, so a later draft, a spec or a brief can name it at
+once. The number is never given back: a mint meanwhile takes the next, and a
+draft dropped leaves a gap. An id is letters, digits, '.', '_' and '-', a
+letter or digit first. Refused, nothing written (exit 1): an id a draft
+already has, a path that names nothing in the work tree or HEAD, or one git
+ignores, paths with no change against HEAD, a repository with no commit, a
+registry the command would refuse; a counter that cannot be reached, exit 3.
 
---json: {"schema":1,"ok":true,"draft":{"id","kind","header"?,"paths"?,"command"?}},
+--json: {"schema":1,"ok":true,"draft":{"id","kind","header"?,"paths"?,"command"?,"minted"?}},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 	"draft edit": `Usage: itos draft edit <id> -m <message> <path>…
@@ -1257,7 +1263,8 @@ progress. An item's status is no gate: items stay doing for the coordinator's
 own work and for agents that have gone. A change is applied with git apply --index, which takes
 the whole patch or none of it, and committed with its message through the
 hooks, as any commit; an edit draft's patch is made from its copies first; a
-command line is run by this itos and commits itself, its output on stderr.
+command line is run by this itos and commits itself, its output on stderr, one
+that minted its item's id when drafted writing the item under that id.
 Each draft promoted leaves the list. The first that cannot be applied stops
 it, exit 1 naming it: a change that no longer applies to the tree, an edit
 draft whose copies changed nothing, a command that fails, a commit a hook
@@ -1269,7 +1276,7 @@ are kept, and the ones before it stay committed.
 	"draft drop": `Usage: itos draft drop <id>
 
 Takes the draft out of the list and removes its patch or its copies,
-applying nothing.
+applying nothing. An id the draft minted is not given back: it leaves a gap.
 Refused (exit 1): no draft with the id.
 
 --json: as itos draft add's, the draft dropped`,

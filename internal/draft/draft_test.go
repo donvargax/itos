@@ -14,6 +14,7 @@ func TestSaveThenLoadKeepsTheDraftsInOrder(t *testing.T) {
 		{ID: "say-new", Message: "docs: say new\n\nWhy it is new.", Paths: []string{"notes.md"}},
 		{ID: "say-more", Message: "docs: say more", Paths: []string{"notes.md"}, Base: "0123abc"},
 		{ID: "add-thing", Command: []string{"work", "add", "p1-thing", "--title", "A thing", "--why", "Because."}},
+		{ID: "add-slice", Command: []string{"work", "add", "--kind", "slice", "--title", "A slice", "--why", "Because."}, Minted: "slice-2"},
 	}}
 	if err := Save(path, want); err != nil {
 		t.Fatal(err)
@@ -22,7 +23,8 @@ func TestSaveThenLoadKeepsTheDraftsInOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Drafts) != 3 || got.Drafts[0].ID != "say-new" || got.Drafts[1].ID != "say-more" || got.Drafts[2].ID != "add-thing" {
+	if len(got.Drafts) != 4 || got.Drafts[0].ID != "say-new" || got.Drafts[1].ID != "say-more" || got.Drafts[2].ID != "add-thing" ||
+		got.Drafts[2].Minted != "" || got.Drafts[3].Minted != "slice-2" {
 		t.Fatalf("loaded %+v", got)
 	}
 	if got.Drafts[0].IsEdit() || !got.Drafts[1].IsEdit() || got.Drafts[1].Base != "0123abc" || got.Drafts[2].IsEdit() {
@@ -47,6 +49,7 @@ func TestLoadRefusesAListItosDidNotWrite(t *testing.T) {
 		"both kinds":      "drafts:\n  - {id: a, command: [work], message: m, paths: [x]}\n",
 		"a change half":   "drafts:\n  - {id: a, message: m}\n",
 		"a based command": "drafts:\n  - {id: a, command: [work], base: abc}\n",
+		"a minted change": "drafts:\n  - {id: a, message: m, paths: [x], minted: slice-2}\n",
 		"two documents":   "drafts: []\n---\ndrafts: []\n",
 		"an id with room": "drafts:\n  - {id: 'a b', command: [work]}\n",
 	} {

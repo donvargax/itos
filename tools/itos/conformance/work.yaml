@@ -1124,6 +1124,68 @@ cases:
     exit: 2
     stderr: |
       itos: work promote needs --kind slice|task (itos --help)
+  # Slice 103: a drafted command that mints an item's id mints it when it is
+  # drafted, prints it and keeps it in the draft; promote runs the command
+  # with that id, minting no other.
+  - name: draft add of a work add that mints reserves the id at once, prints it and keeps it in the draft
+    argv: [draft, add, thing, --, work, add, --kind, slice, --title, A thing, --why, Because.]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: &four "phases:\n  1: null\nitems:\n  - { id: slice-4, title: Four, phase: 1, status: todo }\n"
+    exit: 0
+    stdout: |
+      thing drafted: itos work add --kind slice --title 'A thing' --why Because.  (makes slice-5)
+    files_after:
+      .git/itos/work-items.yaml: *four
+      .git/itos/ids.yaml: "counters:\n    slice: 5\n"
+      .git/itos/drafts/drafts.yaml: "# itos draft's pending changes: this clone's own, never committed (itos help draft).\ndrafts:\n  - id: thing\n    command:\n      - work\n      - add\n      - --kind\n      - slice\n      - --title\n      - A thing\n      - --why\n      - Because.\n    minted: slice-5\n"
+  - name: draft add of a task add says the task id it reserved, under --json
+    argv: [draft, add, a-task, --json, --, task, add, --group, "1", --type, docs, --title, A task, --why, Because., --check, "true"]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\" }\nwork: { registry: tasks/work-items.yaml }\n"
+      .git/itos/tasks/phase-1.yaml: "- { id: T-002, type: docs, title: Two }\n"
+      .git/itos/tasks/work-items.yaml: "phases:\n  1: null\nitems:\n  - { id: T-002, title: Two, phase: 1, status: todo }\n"
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      draft: { id: a-task, kind: command, command: [task, add, --group, "1", --type, docs, --title, A task, --why, Because., --check, "true"], minted: T-003 }
+  - name: draft add of an idea's work add mints nothing
+    argv: [draft, add, an-idea, --json, --, work, add, p1-thing, --title, A thing, --why, Because.]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *four
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      draft: { id: an-idea, kind: command, command: [work, add, p1-thing, --title, A thing, --why, Because.] }
+    files_after:
+      .git/itos/ids.yaml: null
+  - name: draft promote runs a minting draft with the id it reserved, and mints no other
+    argv: [draft, promote]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *four
+      .git/itos/ids.yaml: "counters:\n    slice: 7\n"
+      .git/itos/drafts/drafts.yaml: "drafts:\n  - { id: thing, command: [work, add, --kind, slice, --title, A thing, --why, Because.], minted: slice-6 }\n"
+    exit: 0
+    stdout: |
+      thing promoted: itos work add --kind slice --title 'A thing' --why Because. (no commit)
+    stderr: |
+      slice-6 is a new slice: the registry is the stealth config's, so nothing is committed
+    files_after:
+      .git/itos/ids.yaml: "counters:\n    slice: 7\n"
+      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - { id: slice-4, title: Four, phase: 1, status: todo }\n  - id: slice-6\n    title: A thing\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    kind: slice\n    why: >\n      Because.\n"
+      .git/itos/drafts/drafts.yaml: "# itos draft's pending changes: this clone's own, never committed (itos help draft).\ndrafts: []\n"
   - name: work done marks an item done and commits the registry alone, saying what it could not check
     argv: [work, done, x]
     git:

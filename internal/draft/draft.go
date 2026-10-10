@@ -35,13 +35,16 @@ const Edits = "edits"
 // it was drafted from as the repository's top names them, and either its
 // patch in <id>.patch beside the list or, for an edit draft, Base, the
 // commit its copies were taken from, the copies in edits/<id>/; a command
-// has Command, the itos arguments to run, never through a shell.
+// has Command, the itos arguments to run, never through a shell, and, for a
+// command that mints an item's id, Minted, the id reserved for it when it
+// was drafted, which the command writes when it is promoted.
 type Draft struct {
 	ID      string   `yaml:"id" json:"id"`
 	Message string   `yaml:"message,omitempty" json:"message,omitempty"`
 	Paths   []string `yaml:"paths,omitempty" json:"paths,omitempty"`
 	Base    string   `yaml:"base,omitempty" json:"base,omitempty"`
 	Command []string `yaml:"command,omitempty" json:"command,omitempty"`
+	Minted  string   `yaml:"minted,omitempty" json:"minted,omitempty"`
 }
 
 // IsChange is whether the draft is a change to files, not a command line.
@@ -150,6 +153,8 @@ func parse(path string, text []byte) (File, error) {
 			return File{}, fmt.Errorf("%s: two drafts have the id %s", path, d.ID)
 		case len(d.Command) > 0 && (d.Message != "" || len(d.Paths) > 0 || d.Base != ""):
 			return File{}, fmt.Errorf("%s: %s has a command and a change; a draft is one or the other", path, d.ID)
+		case len(d.Command) == 0 && d.Minted != "":
+			return File{}, fmt.Errorf("%s: %s has a minted id and no command; only a command mints one", path, d.ID)
 		case len(d.Command) == 0 && (strings.TrimSpace(d.Message) == "" || len(d.Paths) == 0):
 			return File{}, fmt.Errorf("%s: %s is neither a command nor a change with its message and paths", path, d.ID)
 		}

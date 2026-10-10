@@ -4,7 +4,10 @@
 // were added. A draft is one of two things: a change to files, its patch
 // against HEAD and the message to commit it with, or an itos command line to
 // run later, its arguments kept exactly as a list (run by os.Executable,
-// never a shell), which commits itself. They are the clone's own, never
+// never a shell), which commits itself. A command that mints an item's id
+// (work add --kind slice|task, task add, work promote, slice 103) has it
+// minted when it is drafted, through the id counter, and kept as the draft's
+// Minted, so the id is real from the start; promote runs it with that id. They are the clone's own, never
 // committed: drafts.yaml in the drafts folder of itos's folder in the git
 // common dir, beside one <id>.patch per change, so every linked worktree of
 // the clone reads the same drafts. An edit draft (itos draft edit, slice 99)

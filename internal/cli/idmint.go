@@ -12,7 +12,35 @@ import (
 	"github.com/donvargax/itos/v7/internal/idcounter"
 	"github.com/donvargax/itos/v7/internal/ledger"
 	"github.com/donvargax/itos/v7/internal/nextid"
+	"github.com/donvargax/itos/v7/internal/work"
 )
+
+// reserved is the item id a draft reserved for the command itos draft
+// promote runs in this process (runReserved), which the command writes
+// instead of minting one; "" otherwise. Only promote sets it, for the one
+// command it runs: no command line can, so a person passing an id is still
+// refused.
+var reserved string
+
+// newItemID is the item id a command that mints one writes: the id a draft
+// reserved for it, else one minted now.
+func newItemID(cfg *config.Loaded, category string, registryIDs []string) (string, error) {
+	if reserved != "" {
+		return reserved, nil
+	}
+	return mintItemID(cfg, category, registryIDs)
+}
+
+// itemIDs are the ids of the registry's items.
+func itemIDs(registry work.Registry) []string {
+	ids := make([]string, 0, len(registry.Items))
+	for _, item := range registry.Items {
+		if id, ok := item.At("id").(string); ok {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
 
 // mintItemID reserves an item number before the registry or ledger is
 // written. Task IDs use ledger.NextIDAfter, so ledger.id remains the one

@@ -40,25 +40,9 @@ func idList(s string) []string {
 // [--depends-on <ids>] [--refs <refs>] [--tags <tags>]`: ideas keep their
 // author's id; slices and tasks mint theirs from the shared counter.
 func workAdd(args []string, o Out) (int, error) {
-	id, hasID, flags, err := workArgsOptionalID("add", args, "--title", "--why", "--kind", "--phase", "--owner", "--depends-on", "--refs", "--tags")
+	id, kind, flags, err := workAddLine(args)
 	if err != nil {
 		return 0, err
-	}
-	if flags["--title"] == "" || strings.TrimSpace(flags["--why"]) == "" {
-		return 0, usage("work add needs --title <title> and --why <why>")
-	}
-	kind := flags["--kind"]
-	if kind == "" {
-		kind = "idea"
-	}
-	if !slices.Contains(addKinds, kind) {
-		return 0, usage("work add takes --kind %s", strings.Join(addKinds, "|"))
-	}
-	if kind == "idea" && !hasID {
-		return 0, usage("work add needs <idea-id> when --kind is idea")
-	}
-	if kind != "idea" && hasID {
-		return 0, usage("work add mints the %s id; do not pass one", kind)
 	}
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
@@ -66,13 +50,7 @@ func workAdd(args []string, o Out) (int, error) {
 		return code, err
 	}
 	if kind != "idea" {
-		ids := make([]string, 0, len(registry.Items))
-		for _, item := range registry.Items {
-			if itemID, ok := item.At("id").(string); ok {
-				ids = append(ids, itemID)
-			}
-		}
-		id, err = mintItemID(cfg, kind, ids)
+		id, err = newItemID(cfg, kind, itemIDs(registry))
 		if err != nil {
 			return 0, err
 		}
@@ -93,6 +71,32 @@ func workAdd(args []string, o Out) (int, error) {
 		return code, err
 	}
 	return reportWork(fmt.Sprintf("%s is a new %s: %s", id, kind, committed(sha, change.Header)), change, sha, nil, o)
+}
+
+// workAddLine reads work add's arguments: the idea's id, "" for a kind
+// whose id is minted, the kind and the flags. A line the command refuses is
+// a usage error, a caller's id for a minted kind among them.
+func workAddLine(args []string) (id, kind string, flags map[string]string, err error) {
+	id, hasID, flags, err := workArgsOptionalID("add", args, "--title", "--why", "--kind", "--phase", "--owner", "--depends-on", "--refs", "--tags")
+	if err != nil {
+		return "", "", nil, err
+	}
+	if flags["--title"] == "" || strings.TrimSpace(flags["--why"]) == "" {
+		return "", "", nil, usage("work add needs --title <title> and --why <why>")
+	}
+	kind = flags["--kind"]
+	if kind == "" {
+		kind = "idea"
+	}
+	switch {
+	case !slices.Contains(addKinds, kind):
+		return "", "", nil, usage("work add takes --kind %s", strings.Join(addKinds, "|"))
+	case kind == "idea" && !hasID:
+		return "", "", nil, usage("work add needs <idea-id> when --kind is idea")
+	case kind != "idea" && hasID:
+		return "", "", nil, usage("work add mints the %s id; do not pass one", kind)
+	}
+	return id, kind, flags, nil
 }
 
 // workEdit is `work edit <id> [--title <t>] [--depends-on <ids>] [--refs

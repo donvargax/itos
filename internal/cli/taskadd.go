@@ -99,13 +99,7 @@ func taskAdd(args []string, o Out) (int, error) {
 	if cfg == nil {
 		return code, err
 	}
-	ids := make([]string, 0, len(registry.Items))
-	for _, item := range registry.Items {
-		if id, ok := item.At("id").(string); ok {
-			ids = append(ids, id)
-		}
-	}
-	n.ID, err = mintItemID(cfg, "task", ids)
+	n.ID, err = newItemID(cfg, "task", itemIDs(registry))
 	if err != nil {
 		return 0, err
 	}

@@ -513,29 +513,16 @@ var promoteKinds = []string{"slice", "task"}
 // the registry committed (work.Promote). A task's id must match the ledger's
 // ledger.id.
 func workPromote(args []string, o Out) (int, error) {
-	id, flags, err := workArgs("promote", args, "--id", "--kind", "--title")
+	id, kind, flags, err := workPromoteLine(args)
 	if err != nil {
 		return 0, err
-	}
-	newID, kind := flags["--id"], flags["--kind"]
-	if kind != "slice" && kind != "task" {
-		return 0, usage("work promote needs --kind %s", strings.Join(promoteKinds, "|"))
-	}
-	if newID != "" {
-		return 0, usage("work promote mints the %s id; do not pass --id", kind)
 	}
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
 	if cfg == nil {
 		return code, err
 	}
-	ids := make([]string, 0, len(registry.Items))
-	for _, item := range registry.Items {
-		if itemID, ok := item.At("id").(string); ok {
-			ids = append(ids, itemID)
-		}
-	}
-	newID, err = mintItemID(cfg, kind, ids)
+	newID, err := newItemID(cfg, kind, itemIDs(registry))
 	if err != nil {
 		return 0, err
 	}
@@ -560,6 +547,24 @@ func workPromote(args []string, o Out) (int, error) {
 	}
 	extra := []out.Field{{Key: "was", Value: id}, {Key: "rewritten", Value: rewritten}}
 	return reportWork(line+": "+committed(sha, change.Header), change, sha, extra, o)
+}
+
+// workPromoteLine reads work promote's arguments: the idea, the kind it
+// becomes and the flags. A line the command refuses is a usage error, an
+// --id among them, since the id is minted.
+func workPromoteLine(args []string) (id, kind string, flags map[string]string, err error) {
+	id, flags, err = workArgs("promote", args, "--id", "--kind", "--title")
+	if err != nil {
+		return "", "", nil, err
+	}
+	kind = flags["--kind"]
+	if kind != "slice" && kind != "task" {
+		return "", "", nil, usage("work promote needs --kind %s", strings.Join(promoteKinds, "|"))
+	}
+	if flags["--id"] != "" {
+		return "", "", nil, usage("work promote mints the %s id; do not pass --id", kind)
+	}
+	return id, kind, flags, nil
 }
 
 // workQueue is `work queue <id> --top | --before <id> | --after <id> |

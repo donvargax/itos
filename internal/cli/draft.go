@@ -15,7 +15,9 @@ package cli
 // whole patch when any of it does not match the tree as it is (the change
 // no longer applies), and commits it with its message through the hooks,
 // as any commit; a command draft is run by this same itos binary, its
-// arguments as kept, and commits itself.
+// arguments as kept, and commits itself. One whose item's id was minted when
+// it was drafted (slice 103, draftmint.go) is run in this process instead,
+// handed that id.
 //
 // An edit draft (slice 99) never reads or writes the working tree, so it
 // may be made while an agent holds the checkout: draft edit writes a copy
@@ -109,20 +111,24 @@ type draftEntry struct {
 	Header  string   `json:"header,omitempty"`
 	Paths   []string `json:"paths,omitempty"`
 	Command []string `json:"command,omitempty"`
+	Minted  string   `json:"minted,omitempty"`
 }
 
 func entryOfDraft(d draft.Draft) draftEntry {
 	if d.IsChange() {
 		return draftEntry{ID: d.ID, Kind: "change", Header: d.Header(), Paths: d.Paths}
 	}
-	return draftEntry{ID: d.ID, Kind: "command", Command: d.Command}
+	return draftEntry{ID: d.ID, Kind: "command", Command: d.Command, Minted: d.Minted}
 }
 
 // draftSummary is what a list says of a draft: a change's header and its
-// paths, or a command's line.
+// paths, or a command's line, and the id it makes when it mints one.
 func draftSummary(d draft.Draft) string {
-	if d.IsChange() {
+	switch {
+	case d.IsChange():
 		return d.Header() + "  (" + strings.Join(d.Paths, ", ") + ")"
+	case d.Minted != "":
+		return d.Line() + "  (makes " + d.Minted + ")"
 	}
 	return d.Line()
 }
@@ -170,7 +176,8 @@ func draftList(o Out) (int, error) {
 }
 
 // draftAdd is `draft add <id> -m <message> <path>…`, a change, or
-// `draft add <id> -- <itos args>…`, a command line.
+// `draft add <id> -- <itos args>…`, a command line, whose item's id is
+// minted now when it mints one (draftmint.go).
 func draftAdd(args []string, o Out) (int, error) {
 	var pos, command []string
 	message, messages := "", 0
@@ -221,6 +228,11 @@ func draftAdd(args []string, o Out) (int, error) {
 	}
 	if had := drafts.Find(id); had != nil {
 		return idTaken(*had, o)
+	}
+	if !d.IsChange() {
+		if d.Minted, code, err = draftMint(d.Command, o); code != 0 || err != nil {
+			return code, err
+		}
 	}
 	var names []string
 	if d.IsChange() {
@@ -816,6 +828,10 @@ func draftPromote(args []string, o Out) (int, error) {
 	return report(nil)
 }
 
+// executable is this itos's binary, which runs a command draft: os.Executable,
+// another in a test.
+var executable = os.Executable
+
 // redoFix is how a draft that cannot be promoted is redone.
 func redoFix(file string, d draft.Draft) string {
 	if d.IsEdit() {
@@ -832,8 +848,14 @@ func redoFix(file string, d draft.Draft) string {
 // try.
 func promoteOne(file string, d draft.Draft, o Out) (header, why string, err error) {
 	before, _ := git.Output("rev-parse", "HEAD")
+	if d.Minted != "" {
+		if code := runReserved(d, o.Stderr); code != 0 {
+			return "", fmt.Sprintf("%s exited %d", d.Line(), code), nil
+		}
+		return madeSince(before, d.Line()), "", nil
+	}
 	if !d.IsChange() {
-		self, err := os.Executable()
+		self, err := executable()
 		if err != nil {
 			return "", "", fmt.Errorf("this itos cannot find its own binary to run %s: %w", d.ID, err)
 		}

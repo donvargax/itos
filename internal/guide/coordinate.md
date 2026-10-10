@@ -90,8 +90,10 @@ the briefs, landing and recording.
 - **Draft what you write while an agent runs, never in the tree or in
   scratch files.** A spec or any file: `itos draft edit <id> -m <message> <path>…`
   prints a copy of each path in the git folder; edit the copies there, and
-  the tree is never touched. A `work add` or a `work queue`:
-  `itos draft add <id> -- <itos args>…`. `itos draft add <id> -m <message> <path>…`
+  the tree is never touched. A `work add`, `task add`, `work promote` or
+  `work queue`: `itos draft add <id> -- <itos args>…`; one that mints an id
+  prints it at once, to name in specs and later drafts.
+  `itos draft add <id> -m <message> <path>…`
   takes a change out of the tree, for when no agent holds the checkout.
   Between agents, `itos draft promote` commits them in order; it refuses an
   unclean checkout (a tracked change, a rebase or a merge), not an item

@@ -243,7 +243,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
   # draft, a drafted spec's tags and a brief simply write it, so no
   # placeholder is needed anywhere. A dropped draft gives its id back to no
   # one: it leaves a gap, as the counter never hands a number out twice.
-  @ID-DRAFT-17 @slice-103 @wip
+  @ID-DRAFT-17 @slice-103
   Scenario: draft add of a command that mints prints the id at once, and promote creates the item under it
     When itos runs the command line "draft add thing -- work add --kind slice --title 'A thing' --why 'Because.'"
     Then itos exits with code 0
@@ -252,7 +252,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     Then itos exits with code 0
     And the registry's item "slice-2" is a slice titled "A thing" with the status "todo"
 
-  @ID-DRAFT-18 @slice-103 @wip
+  @ID-DRAFT-18 @slice-103
   Scenario: A mint while a draft holds an id skips it
     Given itos has run the command line "draft add thing -- work add --kind slice --title 'A thing' --why 'Because.'"
     When itos runs the command line "work add --kind slice --title 'Another' --why 'Because.'"
