@@ -59,7 +59,7 @@ queue:
   - slice-95
   - bug-38
   - bug-42
-  - p1-upgrade-applies-config-steps
+  - slice-113
   - p1-upgrade-on-major
   - p1-problem-fields
   - p1-nightly-late-done-checks
@@ -4979,14 +4979,15 @@ items:
       these. Full-path git stays a known gap (a guardrail, not a fortress).
     refs: [internal/cli/gitcommit.go, internal/cli/push.go, internal/cli/gitshim.go]
 
-  - id: p1-upgrade-applies-config-steps
-    title: itos upgrade applies each release's config changes that need no judgement, and ends with what is left by hand
+  - id: slice-113
+    title: itos upgrade applies the renames and removals each release's schema declares, and ends with what is left by hand
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-86]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-upgrade-applies-config-steps.
       The user's calls (2026-10-06), designed with the coordinator. A migrate command would
       duplicate upgrade's walk from the pin, and the pin is the config's schema version. Automatic
       steps come only from each release's published itos.schema.json, never from commit text. A new
