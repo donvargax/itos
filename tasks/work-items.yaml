@@ -4642,6 +4642,11 @@ items:
       match, so briefs shrink to the item; (3) a defined moment for sightings: the coordinator's
       check of a result marks the rules it saw broken (itos rule seen <id>), and the brief's report
       asks the agent which rules it needed or broke.
+
+      Backlog review of 2026-10-10, batch 4: folds in p1-guide-as-rule-data: once project rules
+      prove themselves as data, the built-in guide and the brief template become rules too,
+      versioned with itos, each with its exit and dates, and each project's rules layered on top
+      (q-42 and q-43 already reshape the built-in guide).
     refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
 
   - id: p1-agent-rules-suspend
