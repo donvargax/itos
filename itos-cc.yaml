@@ -10,54 +10,6 @@ mutation:
       - features/testdata/**
       - tools/bin/itos-cc-tests.ts
   exceptions:
-    - file: internal/cli/idmint.go
-      function: github.com/donvargax/itos/v7/internal/cli#mintItemID
-      hash: 1ac7d5e92b20cd02
-      line_in_function: 15
-      column: 37
-      original: "1"
-      replacement: "0"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/idmint.go
-      function: github.com/donvargax/itos/v7/internal/cli#mintItemID
-      hash: 1ac7d5e92b20cd02
-      line_in_function: 34
-      column: 11
-      original: "1"
-      replacement: "0"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workwrite.go
-      function: github.com/donvargax/itos/v7/internal/cli#workArgsOptionalID
-      hash: 10a794417f317cc2
-      line_in_function: 4
-      column: 14
-      original: "false"
-      replacement: "true"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workwrite.go
-      function: github.com/donvargax/itos/v7/internal/cli#workArgsOptionalID
-      hash: 10a794417f317cc2
-      line_in_function: 7
-      column: 14
-      original: "false"
-      replacement: "true"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/ledger/nextid.go
-      function: github.com/donvargax/itos/v7/internal/ledger#NextIDAfter
-      hash: aa4a7f149c20977d
-      line_in_function: 26
-      column: 49
-      original: "&&"
-      replacement: "||"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/ledger/nextid.go
-      function: github.com/donvargax/itos/v7/internal/ledger#NextIDAfter
-      hash: aa4a7f149c20977d
-      line_in_function: 26
-      column: 54
-      original: ">"
-      replacement: ">="
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
     - file: internal/ledger/nextid.go
       function: github.com/donvargax/itos/v7/internal/ledger#NextIDAfter
       hash: aa4a7f149c20977d
@@ -65,7 +17,7 @@ mutation:
       column: 11
       original: ">"
       replacement: ">="
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+      reason: "Equivalent: floor >= 0 differs from floor > 0 only for a floor of 0, which adds the series' number 0 to the IDs; nextid.Next takes the highest number and the widest width, and 0, one digit wide, raises neither, so the ID is the same."
     - file: internal/ledger/nextid.go
       function: github.com/donvargax/itos/v7/internal/ledger#NextIDAfter
       hash: aa4a7f149c20977d
@@ -73,23 +25,7 @@ mutation:
       column: 15
       original: "&&"
       replacement: "||"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/ledger/nextid.go
-      function: github.com/donvargax/itos/v7/internal/ledger#NextIDAfter
-      hash: aa4a7f149c20977d
-      line_in_function: 38
-      column: 34
-      original: "1"
-      replacement: "0"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/work/write.go
-      function: github.com/donvargax/itos/v7/internal/work#Take
-      hash: 2ccb048ce16706d3
-      line_in_function: 59
-      column: 47
-      original: "&&"
-      replacement: "||"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
+      reason: 'Equivalent: the prefix was refused above when empty, so prefix != "" always holds here and || adds an ID only for a floor of 0 or less: 0 raises neither the highest number nor the width nextid.Next takes, and a negative floor is written with a minus sign after the prefix, which is no number of the series, so the ID is the same.'
     - file: internal/idcounter/counter.go
       function: github.com/donvargax/itos/v7/internal/idcounter#validCategory
       hash: d301a27826cda753
@@ -106,3 +42,19 @@ mutation:
       original: "false"
       replacement: "true"
       reason: "Equivalent: timed is read only beside len(n.Checks) == 0, which refuses with no check, and every --check sets it false before any later read, so its first value is never seen."
+    - file: internal/cli/idmint.go
+      function: github.com/donvargax/itos/v7/internal/cli#mintItemID
+      hash: 0717bed008338f9e
+      line_in_function: 17
+      column: 41
+      original: "1"
+      replacement: "0"
+      reason: "Equivalent: mintItemID reads only the number of the ID nextid.Next returns (trailingNumber), and the width changes only how that number is padded, never its value, so the minted ID is the same."
+    - file: internal/cli/idmint.go
+      function: github.com/donvargax/itos/v7/internal/cli#mintItemID
+      hash: 0717bed008338f9e
+      line_in_function: 32
+      column: 11
+      original: "1"
+      replacement: "0"
+      reason: "Equivalent: %0*d writes every number at least one digit wide, so a width of 0 and a width of 1 write the same ID, and every wider ID of the series raises width past both alike."
