@@ -137,6 +137,54 @@ func TestNoticeUntoldIsToldWhateverTheClockReads(t *testing.T) {
 	}
 }
 
+// A notice is never an error: with no cache folder, no absolute path for the
+// config or a record it cannot write, it says nothing, rather than saying it
+// on every run.
+func TestNoticeFailsSilent(t *testing.T) {
+	cache := offline(t)
+	t.Run("no cache folder", func(t *testing.T) {
+		for _, name := range []string{EnvCache, "XDG_CACHE_HOME", "HOME", "home", "LocalAppData"} {
+			t.Setenv(name, "")
+		}
+		if _, err := cacheDir(); err == nil {
+			t.Fatal("cacheDir found a folder with no variable naming one")
+		}
+		var b strings.Builder
+		notice("one/itos.yaml", "9.1.0", "9.2.0", &b)
+		if b.Len() != 0 {
+			t.Errorf("notice said %q with no cache folder", b.String())
+		}
+	})
+	t.Run("no working directory", func(t *testing.T) {
+		gone := filepath.Join(t.TempDir(), "gone")
+		if err := os.Mkdir(gone, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		t.Chdir(gone)
+		if err := os.Remove(gone); err != nil {
+			t.Skipf("the working directory cannot be removed here: %v", err)
+		}
+		if _, err := filepath.Abs("itos.yaml"); err == nil {
+			t.Skip("a removed working directory still has an absolute path here")
+		}
+		var b strings.Builder
+		notice("itos.yaml", "9.1.0", "9.2.0", &b)
+		if b.Len() != 0 {
+			t.Errorf("notice said %q with no absolute path for the config", b.String())
+		}
+	})
+	t.Run("an unwritable record", func(t *testing.T) {
+		if err := os.WriteFile(filepath.Join(cache, "state"), nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var b strings.Builder
+		notice("one/itos.yaml", "9.1.0", "9.2.0", &b)
+		if b.Len() != 0 {
+			t.Errorf("notice said %q though it could not remember saying it", b.String())
+		}
+	})
+}
+
 // The notice names the newest release the launcher knows of, not only the
 // server's last answer (bug 48): a release the cache holds, or the itos that
 // runs, newer than that answer is the one told; a pre-release or a build
