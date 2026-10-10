@@ -7203,3 +7203,18 @@ items:
       applies, or why a task closed by hand keeps its checks and one closed by work done loses them.
       What changed repeats its headings per release (still so in v7.0.0's notes). Point 2, the
       nightly's tasks: done step, is slice-107.
+
+  - id: p1-decision-record-unbuilt
+    title: A decision record can say its answer has never been built
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #32 (itos-template, 7.0.0-rc.1): decision record turns an answer into a record that
+      reads as settled and is indexed live, whether or not anyone has built it. Two records in one
+      session rested on a premise only argued, and the agent building from them found out on its
+      first probe. Wanted: a reader meeting a record can tell whether it has been tried, and a
+      session about to build from one learns it before writing anything (a record proposed until
+      something proves it, a warning, or an answered-but-unproven state).
