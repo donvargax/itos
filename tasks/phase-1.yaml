@@ -1388,3 +1388,16 @@
     self-test, becomes a Go program under tools/bin, its rules unchanged.
   done_when:
     - run: "! test -e tools/bin/inbox.ts"
+
+- id: T-147
+  type: refactor
+  title: The Claude Code plugin's hooks hold no TypeScript
+  why: >
+    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
+    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
+    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
+    changes what itos does for consumers, whose repositories never carried vp. The plugin's hooks in
+    integrations/claude-code/hooks/*.ts become shell scripts calling itos, as guard.sh already is;
+    the plugin's version is raised in the same push (T-074).
+  done_when:
+    - run: "! ls integrations/claude-code/hooks/*.ts >/dev/null 2>&1"
