@@ -4088,6 +4088,10 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). A file with any CRLF is rewritten all-CRLF,
       and a BOM before a line-1 marker makes every run refuse with a misleading message
       (initrules.go:225-234).
+
+      Backlog review of 2026-10-10, batch 3: folds in p1-markers-outside-fences: code fences:
+      blockSpan in initrules.go matches marker lines inside a fenced example, so an AGENTS.md
+      showing the markers has its example replaced, or is refused as two blocks.
     refs: [internal/cli/initrules.go]
 
   - id: p1-unknown-flags-refused
