@@ -7218,3 +7218,17 @@ items:
       first probe. Wanted: a reader meeting a record can tell whether it has been tried, and a
       session about to build from one learns it before writing anything (a record proposed until
       something proves it, a warning, or an answered-but-unproven state).
+
+  - id: p1-flag-defaults-policy
+    title: Each command's plain invocation is the recommended one, starting with itos init --agent-rules
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #30 (itos-template, 7.0.0-rc.1): a plain itos init writes the git shim and the launcher
+      but no agent rules, then asks for a second run with --agent-rules. A template points people at
+      the plain command, so it should be the one to run. Settle a policy for defaults once rather
+      than command by command, beginning with init's; a flipped default is breaking, so it waits for
+      the next major.
