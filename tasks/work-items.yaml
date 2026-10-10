@@ -7248,3 +7248,21 @@ items:
       that shape (q-52, q-54). What itos lacks: guidance in the coordinator's guide, a nightly
       workflow template beside ci.steps, and platform jobs that run the smoke set and named
       scenarios (with #18).
+
+  - id: p1-itos-config-all-or-nothing
+    title: ITOS_CONFIG resolves the ledger, the registry and the smoke sets beside the config it names
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #31 (go-template-itos, 7.0.0-rc.1): ITOS_CONFIG reads the config file from wherever it
+      points but resolves the data paths against the working tree, so a config outside it seems to
+      work and then fails on the first data path (FAIL …/data/itos.yaml: the ledger's folder tasks
+      does not exist), with --root and ITOS_ROOT alike. The half-working middle is the worst choice:
+      resolve data beside the config, as the stealth config in <git common dir>/itos/ already does,
+      or refuse a config outside the working tree and say so. The issue's other half, one config
+      planning branches with different contents, is to be discussed with the person before it
+      becomes an item (p1-plan-per-branch); go-template-itos's per-branch-ledgers idea would be its
+      first consumer.
