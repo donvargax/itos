@@ -3613,7 +3613,7 @@ items:
     refs: [features/work.feature]
 
   - id: p3-guard-replacement
-    title: The plugin's guard replaced, or kept for its messages
+    title: "Guided commits: the item-aware commit design in docs/plans/guided-commits.md"
     phase: 3
     owner: donvargax
     status: todo
@@ -3627,6 +3627,11 @@ items:
       writing per repository. The git hooks and CI's verify are the gates either way. The
       coordinator recommended the plugin stop calling the guard, the README suggest the deny rules,
       and the command go in the next major; the user is looking for another solution first.
+
+      Backlog review of 2026-10-10, batch 3: the guard was kept and renamed in v6 (guard
+      claude-code, slice-89) and p1-guard-follows-cd extends it, so replacing it with deny rules is
+      overtaken. What this item tracks is the user's other solution, the guided item-aware commits
+      of docs/plans/guided-commits.md, which the answers to q-30 to q-39 name.
     refs: [internal/guard/guard.go, integrations/claude-code/hooks/hooks.json]
 
   - id: p3-init-agent-rules-import-check
