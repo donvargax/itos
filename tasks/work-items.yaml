@@ -575,14 +575,9 @@ items:
     title: "ci run --json lists every failure when it goes on past the first"
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-3]
     kind: idea
-    why: >
-      With ci.stop_at_first_failure false, ci run prints "CI failed at" for each failure but its
-      --json verdict names only the first (failed_at), so an agent reading the JSON learns of one
-      failure where the log shows several. A `failures` list beside failed_at, keys only added,
-      would carry them.
 
   - id: p1-changelog-unconventional
     title: The changelog renders a release holding an unconventional commit
