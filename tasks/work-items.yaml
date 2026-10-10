@@ -7232,3 +7232,19 @@ items:
       the plain command, so it should be the one to run. Settle a policy for defaults once rather
       than command by command, beginning with init's; a flipped default is breaking, so it waits for
       the next major.
+
+  - id: p1-testing-tiers-guide
+    title: "The guide says which tier each gate belongs to: fast local, judging CI, thorough nightly"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-ci-e2e-workflow]
+    kind: idea
+    why: >
+      Issue #41 (itos-template, 7.0.0-rc.3): a proposal to place each gate by the cost it can
+      afford: locally per item, mutation over a file's own unit tests and scenarios only for a
+      survivor; per push, the code proof, a sample of 1 or 2 and the smoke set plus named scenarios;
+      nightly, a sample of 20 and every scenario on three platforms. This repository already runs
+      that shape (q-52, q-54). What itos lacks: guidance in the coordinator's guide, a nightly
+      workflow template beside ci.steps, and platform jobs that run the smoke set and named
+      scenarios (with #18).
