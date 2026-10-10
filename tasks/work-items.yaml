@@ -56,7 +56,7 @@ phases:
 
 queue:
   - p1-tag-this-registry
-  - p1-smoke-rule-at-commit
+  - slice-117
   - p1-guard-follows-cd
   - p1-task-add-promoted
   - p1-text-from-file
@@ -412,14 +412,15 @@ items:
       either; only CI's prose steps catch it, after the push. The commit-msg hook could run the
       registry's check when work.people's file is staged too.
 
-  - id: p1-smoke-rule-at-commit
-    title: A staged feature file runs the smoke rule at commit
+  - id: slice-117
+    title: The commit-msg hook runs the smoke rule over the index when a kind's test file is staged
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-6]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-smoke-rule-at-commit.
       The smoke rule reads the feature files as well as the smoke set: a feat that makes a file's
       scenarios live without a smoke entry breaks it while staging no smoke file, so the commit-msg
       hook's data check does not run (slice 6's own feat did this, and config check caught it only
