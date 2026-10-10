@@ -3755,14 +3755,9 @@ items:
     title: itos commit with nothing staged names --allow-empty
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Reported by an agent, 2026-10-05: closing a task whose done_when passes with no change left to
-      make, itos commit --task <id> fails as git does (nothing to commit) until one finds
-      --allow-empty. The error could name the flag. It should not apply it on its own: an empty
-      commit is deliberate.
 
   - id: p3-full-code-review
     title: A full review of the codebase, area by area, with /code-review ultra
