@@ -7010,3 +7010,19 @@ items:
     depends_on: []
     kind: slice
     refs: [internal/providers/range.go, internal/cli/ci.go, features/ci.feature, features/range_test.go]
+
+  - id: p1-nightly-survivors
+    title: Tests kill the old-code survivors the fresh nightly draws
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-131's nightly (q-54) judges 20 fresh mutants a night over cmd and internal, and a survivor
+      fails it. Two draws by hand on 2026-10-09 found three in code older than v7:
+      internal/cli/gitshim.go:184:34 pathStanding && to ||, internal/cli/push.go:66:36
+      refusePushArgs ! deleted, and internal/work/propose.go:105 propose true to false (possibly
+      equivalent, unchecked). Each red nightly adds its survivors here; kill each with a test, or
+      except it in itos-cc.yaml only when it is truly equivalent, with the reason.
+    refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
