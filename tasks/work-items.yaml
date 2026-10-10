@@ -2119,17 +2119,9 @@ items:
     title: itos init offers to make the repository's pull requests rebase-and-merge
     phase: 3
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: [slice-48]
     kind: idea
-    why: >
-      The user's call (2026-10-03), low priority, for when the first pull request comes: an itos
-      repository splits one piece of work into commits by type, each held to its paths, so a squash
-      would fold them into one commit verify rejects and jumble their footers; rebase-and-merge
-      keeps history linear and every commit as written. itos init asks to set it (gh api
-      repos/<owner>/<repo> -X PATCH -F allow_rebase_merge=true -F allow_squash_merge=false
-      -F allow_merge_commit=false) and, refused or without gh, prints that command. Merge commits
-      are not refused outright: verify keeps skipping them.
     refs: [PLAN.md]
 
   - id: slice-38
