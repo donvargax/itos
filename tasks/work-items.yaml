@@ -3090,22 +3090,9 @@ items:
     title: "Three live scenarios check and say what their behaviour is: @ID-STEALTH-24, @ID-CONFIG-21 and guide.feature's description"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-62]
     kind: slice
-    why: >
-      Was p1-stealth-24-checks-file.
-      Found by slice 62's agent: @ID-STEALTH-24's name says ask add writes the question in the git
-      folder, but its steps check only exit 0 and that git sees nothing, so a command that did
-      nothing would pass (a corpus case pins the file meanwhile). Add And the file
-      ".git/itos/asks.yaml" exists (the step exists); a live scenario changes only in a feat or fix,
-      so fold it into the next one touching stealth.feature.
-
-      Backlog review of 2026-10-10, batch 2: folds in p3-config-21-own-value (@ID-CONFIG-21 should
-      set a hooks.bin the default lacks, bin/own-itos, since the default tools/bin/itos also
-      contains bin/itos) and p3-guide-feature-plugin-line (guide.feature's description should say
-      the plugin wraps neither guide, as T-092 made it). Three live scenarios' texts, one small fix,
-      rather than waiting for a feat that touches each file.
 
   - id: p1-footer-source-message
     title: config check's message for an unknown footer source names registry
