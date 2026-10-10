@@ -4128,6 +4128,10 @@ items:
       promotions to tasks so far, each followed by a ledger entry written by hand (c7097eb5
       promoting to T-134, then 4fc5148f writing it); task add --from <idea>, or promote writing the
       entry, turns two commits and a hand edit into one.
+
+      Backlog review of 2026-10-10, batch 3: folds in p1-promote-moves-asks: while promote is
+      reworked, have it also rename the item in the questions file, so work show of the new id keeps
+      its questions (code review of 07b0e6d).
     refs: [internal/work/write.go]
 
   - id: p1-supersede-standing-only
