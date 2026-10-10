@@ -417,20 +417,9 @@ items:
     title: The commit-msg hook runs the smoke rule over the index when a kind's test file is staged
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-6]
     kind: slice
-    why: >
-      Was p1-smoke-rule-at-commit.
-      The smoke rule reads the feature files as well as the smoke set: a feat that makes a file's
-      scenarios live without a smoke entry breaks it while staging no smoke file, so the commit-msg
-      hook's data check does not run (slice 6's own feat did this, and config check caught it only
-      by hand). CI's smoke step catches it after the push. The hook could run the smoke part of the
-      check, over the index, when a kind's test file is staged.
-
-      Backlog review of 2026-10-10, batch 1: queued: the smoke rule is first judged in CI, which
-      turned slice 82's feat red (e5fce6ae); judging it when a kind's feature file is staged saves
-      that red round trip.
 
   - id: p1-verify-data-per-commit
     title: verify checks each commit's data at that commit, as the commit-msg hook does
