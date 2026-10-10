@@ -7108,3 +7108,22 @@ items:
       (work.SpecKind, rule work-note-spec), and the registry's header says a bug's why lives in its
       feature file. Since slice 104 an item of kind bug is neither to SpecKind, so a note on one
       lands in the registry. A scenario should say whether bug joins SpecKind's kinds.
+
+  - id: p1-unit-tests-never-mint-for-real
+    title: No unit test can move the real id counter
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice-104's agent (2026-10-10):
+      TestWorkAddRejectsInvalidKindMissingIdeaIDAndBlankFields ran workAdd inside the checkout with
+      --kind bug as its unknown kind, and once bug became a kind it minted on this repository's
+      remote counter (refs/itos/ids d10850a6, reserve bug 103), a permanent gap. The test now uses
+      bogus, but any unit test that runs work add, task add, work promote or draft add in the
+      checkout can still push a reservation to the real remote. Make the minting path unable to
+      reach a real remote from a test: tests that mint build their own repository
+      (draftmint_test.go's mintingRepo does), and a guard refuses to mint when the process is a go
+      test binary whose working folder is a real clone, or the counter's remote is injected.
+    refs: [internal/cli/idmint.go, internal/cli/workmint_test.go, internal/cli/taskadd_test.go, internal/cli/draftmint_test.go]
