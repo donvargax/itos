@@ -3987,6 +3987,10 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). Non-finite numbers pass the schema and
       decode to nil, so ci.watch.interval: .nan panics itos push and a nan check_timeout leaves the
       hook uncapped (config.go:117, watch.go:78-79).
+
+      Backlog review of 2026-10-10, batch 3: folds in p1-check-timeout-positive: and above 0: a
+      ledger.check.timeout or a check's own timeout of 0 or less passes config check today, and
+      min(own, cap) in check/captured.go then lifts the commit-msg hook's cap.
     refs: [internal/config/config.go]
 
   - id: p1-check-timeout-positive
