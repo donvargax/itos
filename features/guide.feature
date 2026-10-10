@@ -1,3 +1,6 @@
+# Slice 114 (backlog review, 2026-10-10): the description's last sentence, "The
+# plugin's skills wrapping them is a later step", is untrue since T-092 dropped
+# the plugin's skill; the fix says the plugin wraps neither guide.
 @phase-1
 Feature: itos go and itos guide, the guides a session starts from
   A session that coordinates a repository's work followed a guide kept in

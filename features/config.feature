@@ -187,6 +187,9 @@ Feature: Every key the config accepts is one itos reads
   # contains "bin/itos" too, so printing the default would pass. The corpus
   # case "config get prints the hooks.bin the config sets, not its default"
   # pins the exact output; p3-config-21-own-value tightens this one.
+  # Slice 114 (backlog review, 2026-10-10): the fix sets hooks.bin to
+  # "bin/own-itos" and checks the output says it, a value the default
+  # tools/bin/itos does not contain, so printing the default fails.
   @ID-CONFIG-21 @slice-45
   Scenario: config get prints a key's value as the config sets it
     Given hooks.bin is "bin/itos"
