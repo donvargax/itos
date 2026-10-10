@@ -1948,15 +1948,9 @@ items:
     title: git push with a remote or a branch through the git shim
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-41]
     kind: idea
-    why: >
-      Through the shim, git push in an itos repository is itos push, which takes no arguments, so
-      the habits git push -u origin <branch>, git push origin HEAD and git push --help are usage
-      errors there, and a tool that pushes a named branch fails. itos push could take a remote and
-      a branch (still never a forcing refspec), or the shim could hand git push the arguments
-      itos push cannot take, saying so.
     refs: [features/shim.feature, internal/cli/push.go]
 
   - id: T-093
