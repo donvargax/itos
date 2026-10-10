@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - slice-113
   - p1-smoke-rule-at-commit
   - p3-commit-long-text-footer
   - p1-nightly-past-first-failure
@@ -62,7 +63,6 @@ queue:
   - slice-95
   - bug-38
   - bug-42
-  - slice-113
   - p1-upgrade-on-major
   - p1-problem-fields
   - p1-nightly-late-done-checks
