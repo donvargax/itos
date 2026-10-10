@@ -6898,8 +6898,8 @@ items:
   - id: T-136
     title: Verification starts at the last green commit, so main's CI can be green again
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
