@@ -66,6 +66,7 @@ queue:
   - p1-nightly-past-first-failure
   - T-142
   - T-143
+  - T-144
   - p1-windows-id-validation
   - bug-38
   - bug-42
