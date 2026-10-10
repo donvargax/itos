@@ -7221,3 +7221,22 @@ items:
       dates from git history as an automatic step of itos upgrade (p1-upgrade-applies-config-steps),
       never a one-time command, since until v10 a command kept only for one migration is cost with
       no need.
+
+  - id: p1-work-backlog-summary
+    title: "itos work summary shows the backlog's shape: counts, age, the queue's state and stale doing items"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-work-item-dates]
+    kind: idea
+    why: >
+      On 2026-10-10 the coordinator summarised the backlog for the person and itos gave none of it
+      directly: an item's age came from git blame over tasks/work-items.yaml, the counts by status,
+      kind, phase and owner from a Python script over work list --all --json, the queue's entries
+      (deferred and doing among them) from reading the queue section of the YAML, and whether a
+      doing item was stale or finished from itos work show and itos task, one item at a time. One
+      command (with --json) giving the counts, the open items by age, the queue with each entry's
+      kind and status, and the doing items with how long they have been doing, their last commit and
+      whether their checks pass would replace all of it. Items with no dates show their age as
+      unknown and are counted. Every coordinator does this review across many itos-driven
+      repositories, so each script costs again.
