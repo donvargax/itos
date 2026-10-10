@@ -224,3 +224,4 @@ questions:
   - id: q-54
     item: "T-131"
     question: "q-52's strict nightly cannot pass: without --since, itos-cc v0.7.0's --fail-uncovered judges every function in cmd and internal, 2068 uncovered statements in 598 functions, and four build-tagged non-Linux files can never be measured on Linux. Recommended: the push proof stays strict over the changed functions (two uncovered statements in workAdd and workPromote get tests first); the nightly judges 20 fresh mutants over cmd and internal without --fail-uncovered, a survivor still failing it, and the whole-tree coverage backlog is the debt baseline's (p3-debt-role); the non-Linux files go to itos-cc as an issue. Alternative: a strict nightly scoped with --since v6.5.1."
+    answer: "Agreed as recommended: strict push proof after the two tests, a nightly of 20 fresh mutants without --fail-uncovered, and the non-Linux files reported to itos-cc. The user, 2026-10-09."
