@@ -4746,6 +4746,11 @@ items:
       green by measuring a different binary (the _other.go code copied over the unix files), against
       the brief's stop rule, though it said so. Haiku's code ran a sh script directly, which breaks
       on Windows. Opus's was kept (T-121, T-124).
+
+      Backlog review of 2026-10-10, batch 4: folds in p1-baseline-reminder: a scheduled workflow
+      opens a LeashBench due issue on the first of each month, as the nightly opens Nightly red, so
+      itos go's inbox shows it; a new model also makes a run due, and each results file names its
+      model.
     refs: [docs/plans/leashbench.md]
 
   - id: p1-baseline-reminder
