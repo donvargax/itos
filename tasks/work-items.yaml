@@ -6695,7 +6695,7 @@ items:
       whole run does not read as a proved one.
 
   - id: p1-plan-names-code-proof
-    title: The text plan labels the code proof, and the rules block lists it
+    title: The text plan labels the code proof, and says why when it is left out
     phase: 1
     owner: null
     status: todo
@@ -6709,6 +6709,10 @@ items:
       pass. Label the step in the text plan, say why when it is left out (no range start, no
       proof.code.paths touched), and list it in the rules block at its place. Same block as
       p1-agent-rules-ci-summary.
+
+      2026-10-10: the rules-block half is moot under q-45, which takes the CI list out of AGENTS.md
+      (p1-agent-rules-as-data); what stays is ci plan's text output labelling the code proof step
+      and saying why it is left out (no range start, no proof.code.paths touched).
 
   - id: p1-push-tag-and-ref
     title: itos push --tag and --ref push a tag or another branch, never forced, and tags only when asked
