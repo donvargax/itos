@@ -1079,6 +1079,11 @@ items:
       always going on) would report everything red in one night; with p1-ci-run-every-failure-json
       its JSON would list them.
 
+      Backlog review of 2026-10-10, batch 1: folds in p1-ci-run-every-failure-json (ci run --json
+      gains a failures list beside failed_at, keys added only) and p1-nightly-issue-names-tasks (the
+      Nightly red issue names each failed step from that list, not only TestFeatures lines). Queued:
+      one red scenario hides the self-tests and the mutation run, a day per hidden failure.
+
   - id: slice-17
     title: config check says a commits.since it cannot find may be outside a shallow clone
     phase: 1
