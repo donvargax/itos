@@ -331,3 +331,43 @@ func TestWorkPromoteRollsBackWhenTheCommitHookRefuses(t *testing.T) {
 		t.Fatalf("refused workPromote changed registry or HEAD: registry=%q err=%v", after, readErr)
 	}
 }
+
+// registryRefusal is a registryWriterRepo whose registry is gone, so
+// soundRegistry refuses before anything is read or minted; run, the
+// command, is held to that refusal, exit ExitPolicy with no error, and
+// to HEAD and the registry left as they were.
+func registryRefusal(t *testing.T, run func(Out) (int, error)) {
+	t.Helper()
+	registryWriterRepo(t, "phases: { 1: null }\nitems:\n  - { id: p1-idea, title: Idea, phase: 1, owner: null, status: todo, kind: idea, why: Specified }\n")
+	if err := os.Remove("registry.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	head := gitIn(t, "rev-parse", "HEAD")
+	var stdout, stderr strings.Builder
+	code, err := run(Out{Stdout: &stdout, Stderr: &stderr})
+	if code != ExitPolicy || err != nil || stdout.Len() != 0 || !strings.Contains(stderr.String(), "no work registry at registry.yaml") {
+		t.Fatalf("= (%d, %v), stdout=%q stderr=%q, want the registry's refusal", code, err, stdout.String(), stderr.String())
+	}
+	if _, err := os.Stat("registry.yaml"); !os.IsNotExist(err) {
+		t.Fatalf("the refused command wrote a registry: %v", err)
+	}
+	if gitIn(t, "rev-parse", "HEAD") != head {
+		t.Fatal("the refused command moved HEAD")
+	}
+}
+
+// With no registry to read, work add returns soundRegistry's refusal and
+// mints nothing.
+func TestWorkAddReturnsTheRegistrysRefusal(t *testing.T) {
+	registryRefusal(t, func(o Out) (int, error) {
+		return workAdd([]string{"--kind", "slice", "--phase", "1", "--title", "Slice", "--why", "Because."}, o)
+	})
+}
+
+// As work add's: work promote returns soundRegistry's refusal and promotes
+// nothing.
+func TestWorkPromoteReturnsTheRegistrysRefusal(t *testing.T) {
+	registryRefusal(t, func(o Out) (int, error) {
+		return workPromote([]string{"p1-idea", "--kind", "slice"}, o)
+	})
+}
