@@ -6988,15 +6988,9 @@ items:
     title: init --policy derives a command adapter's smoke set
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-108]
     kind: slice
-    why: >
-      Was p1-init-policy-command-smoke.
-      Slice 108's init --policy refuses a policy whose test kind has a command adapter and a smoke
-      file, since deriving that smoke set means running the adapter's list command, which the first
-      slice left out (the comment above @ID-INIT-41). A template whose named tests come from a
-      command adapter cannot adopt its policy until it can.
     refs: [internal/cli/initpolicy.go, features/init.feature]
 
   - id: p1-init-policy-names-source
