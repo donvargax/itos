@@ -57,8 +57,8 @@ func TestStarterLoads(t *testing.T) {
 	}
 }
 
-// The smoke set names each file's first live test, and is an empty list when
-// no file has one.
+// The smoke set names each file's first live test after the tag prefix, and
+// is an empty list when no file has one.
 func TestStarterSmokeSet(t *testing.T) {
 	text, n := starterSmokeSet(listing(
 		[3]string{"ID-A-01", "a.feature", "wip"},
@@ -73,6 +73,9 @@ func TestStarterSmokeSet(t *testing.T) {
 	}
 	if text, n := starterSmokeSet(listing([3]string{"ID-A-01", "a.feature", "wip"})); n != 0 || !strings.HasSuffix(text, "[]\n") {
 		t.Errorf("%d scenarios:\n%s", n, text)
+	}
+	if text, _ := smokeSetOf(listing([3]string{"U-1", "a_test.go", ""}), ""); !strings.Contains(text, `- id: "U-1"`) {
+		t.Errorf("with no tag prefix:\n%s", text)
 	}
 }
 

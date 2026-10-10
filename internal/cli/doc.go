@@ -148,14 +148,16 @@
 // none, the newest release pinned where it pins none); then, before
 // anything is written, git init included (toTop moves to the top without
 // it, gitInit runs it after), policyData plans the fresh ledger, registry
-// and Gherkin smoke sets at the config's paths and refuses an adoption task
-// T-1 the ledger cannot hold, policyPaths a file outside the project or the
-// stealth folder once its existing part's symbolic links are followed
-// (resolved), both exit 2, and policyThere any config or data of a project
-// already there, exit 1 (policyRefused). writeNew never writes over a file,
-// and a failure once writing began names what this run did (partial). The
-// hooks and the offers follow as for the starter, and policyNext names what
-// to commit.
+// and smoke sets at the config's paths and refuses an adoption task T-1 the
+// ledger cannot hold, policyPaths a file outside the project or the stealth
+// folder once its existing part's symbolic links are followed (resolved),
+// both exit 2; policyThere refuses any config or data of a project already
+// there, and policySmokeSets a command adapter's list that fails or that the
+// protocol refuses (slice 110: the list runs once, through tests.ListTests,
+// as tests list runs it), both exit 1 (policyRefused). writeNew never
+// writes over a file, and a failure once writing began names what this run
+// did (partial). The hooks and the offers follow as for the starter, and
+// policyNext names what to commit.
 //
 // Then, both ways, init makes three offers
 // (docs/decisions/0031-itos-init-offers-the-plugin-and-the-git-shim-opt-in-everywhere.md,

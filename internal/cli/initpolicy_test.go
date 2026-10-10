@@ -155,21 +155,18 @@ func TestPolicyInitRefusesAPolicyItCannotUse(t *testing.T) {
 	}
 }
 
-// A policy whose ledger cannot name group 1's file nor hold T-1, a kind whose
-// smoke set only a command could give, a stealth ledger outside the stealth
-// folder and a smoke set of a kind with no root are refused before anything
-// is written.
+// A policy whose ledger cannot name group 1's file nor hold T-1, a stealth
+// ledger outside the stealth folder and a smoke set of a kind with no root
+// are refused before anything is written.
 func TestPolicyInitRefusesDataItCannotMake(t *testing.T) {
 	initScratch(t, "commit", map[string]string{
 		"layout.yaml": "version: 1\nledger: { files: \"t/phase-{group}.yaml\", group: { pattern: '[a-z]+' } }\n" +
 			"commits: { types: [feat] }\n",
-		"command.yaml": "version: 1\ntests: { unit: { adapter: { command: ./list }, smoke: { file: smoke.yaml } } }\n",
 		"stealth.yaml": "version: 1\nledger: { files: \"../../t/phase-{group}.yaml\" }\n",
 		"noroot.yaml":  "version: 1\ntests: { scenario: { smoke: { file: smoke.yaml } } }\n",
 	})
 	for args, want := range map[string]string{
 		"--policy layout.yaml":            "cannot name the file of the group 1",
-		"--policy command.yaml":           "tests.unit.smoke.file names a smoke set of a kind whose adapter is a command",
 		"--policy stealth.yaml --stealth": "ledger.files puts t/phase-1.yaml outside .git/itos",
 		"--policy noroot.yaml":            "tests.scenario.root is missing",
 	} {
@@ -182,6 +179,46 @@ func TestPolicyInitRefusesDataItCannotMake(t *testing.T) {
 	var c *config.Error
 	if !errors.As(err, &c) || len(c.Problems) != 2 || !strings.Contains(c.Problems[1].Message, "commits.types does not list chore") {
 		t.Errorf("layout.yaml's problems: %v", err)
+	}
+}
+
+// A command adapter's list that fails, or prints what the protocol refuses,
+// refuses init --policy with its error, exit 1, before anything is written,
+// and under --json as its own object; one that lists the project's tests
+// gives the smoke set, each ID after the kind's tag prefix.
+func TestPolicyInitRunsACommandAdaptersList(t *testing.T) {
+	policy := func(script string) string {
+		return "version: 1\ntests: { unit: { adapter: { command: sh " + script + " }, tag_prefix: '', smoke: { file: smoke.yaml } } }\n"
+	}
+	initScratch(t, "commit", map[string]string{
+		"fails.sh": "echo 'no test binary yet' >&2\nexit 3\n", "fails.yaml": policy("fails.sh"),
+		"text.sh": "echo 'not json'\n", "text.yaml": policy("text.sh"),
+		"lists.sh":   `printf '%s\n' '{"protocol":1,"tests":[{"id":"U-1","file":"a_test.go","live":true}],"files":["a_test.go"]}'` + "\n",
+		"lists.yaml": policy("lists.sh"),
+	})
+	for p, want := range map[string]string{"fails.yaml": "exited 3\n  no test binary yet\n", "text.yaml": "did not print JSON"} {
+		code, _, stderr, err := initRun(t, false, "--policy", p)
+		if code != ExitPolicy || err != nil || !strings.Contains(stderr, "the list of tests.unit failed") || !strings.Contains(stderr, want) {
+			t.Errorf("%s: exit %d, %v:\n%s", p, code, err, stderr)
+		}
+	}
+	code, stdout, _, err := initRun(t, true, "--policy", "fails.yaml")
+	var got struct {
+		Action   string
+		Problems []struct{ Rule, Message string }
+	}
+	if code != ExitPolicy || err != nil || json.Unmarshal([]byte(stdout), &got) != nil || got.Action != "refused" ||
+		len(got.Problems) != 1 || got.Problems[0].Rule != "init-policy-list" {
+		t.Errorf("--json: exit %d, %v:\n%s", code, err, stdout)
+	}
+	if _, err := os.Stat("itos.yaml"); !errors.Is(err, os.ErrNotExist) {
+		t.Errorf("itos.yaml was written: %v", err)
+	}
+	if code, _, stderr, err := initRun(t, false, "--policy", "lists.yaml"); code != 0 || err != nil {
+		t.Fatalf("lists.yaml: exit %d, %v:\n%s", code, err, stderr)
+	}
+	if text, _ := os.ReadFile("smoke.yaml"); !strings.Contains(string(text), `- id: "U-1"`) {
+		t.Errorf("the smoke set:\n%s", text)
 	}
 }
 

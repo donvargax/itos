@@ -375,7 +375,11 @@ func hasFeatureFiles(dir string) bool {
 
 // starterSmokeSet is a smoke set naming each feature file's first live test, and
 // how many it names.
-func starterSmokeSet(list tests.List) (string, int) {
+func starterSmokeSet(list tests.List) (string, int) { return smokeSetOf(list, "@") }
+
+// smokeSetOf is a smoke set naming each file's first live test, its ID
+// written after the kind's tag prefix, and how many it names.
+func smokeSetOf(list tests.List, prefix string) (string, int) {
 	var b strings.Builder
 	b.WriteString(starterSmokeHeader)
 	seen := map[string]bool{}
@@ -386,8 +390,8 @@ func starterSmokeSet(list tests.List) (string, int) {
 		}
 		seen[t.File] = true
 		n++
-		fmt.Fprintf(&b, "- file: %s\n  scenarios:\n    - id: \"@%s\"\n      why: picked by itos init, the file's first live scenario\n",
-			t.File, t.ID)
+		fmt.Fprintf(&b, "- file: %s\n  scenarios:\n    - id: %s\n      why: picked by itos init, the file's first live scenario\n",
+			t.File, value.Quote(prefix+t.ID))
 	}
 	if n == 0 {
 		b.WriteString("[]\n")

@@ -663,7 +663,7 @@ cases:
     files_after:
       itos.yaml: null
       tasks/work-items.yaml: null
-  - name: init --policy refuses data written outside the project, and a smoke set only a command could give
+  - name: init --policy refuses data written outside the project before it runs a command adapter's list
     argv: [--json, init, --policy, policy.yaml, --no-git-shim]
     hide: [claude]
     git:
@@ -676,21 +676,109 @@ cases:
         work: { registry: tasks/work-items.yaml }
         tests:
           unit:
-            adapter: { command: ./list-tests }
+            adapter: { command: sh list.sh }
             smoke: { file: tests/smoke.yaml }
+      list.sh: |
+        echo listed >> ran
     exit: 2
     json:
       schema: 1
       config: policy.yaml
       valid: false
       problems:
-        - rule: init-policy-smoke
-          message: "policy.yaml: tests.unit.smoke.file names a smoke set of a kind whose adapter is a command, which init --policy does not run"
-          fix: leave tests.unit.smoke.file out of the policy, then add it with its smoke set once the project is initialized
         - rule: init-policy-path
           message: "policy.yaml: ledger.files puts ../outside/phase-1.yaml outside the project"
           fix: point ledger.files at a path inside it
     files_after:
+      itos.yaml: null
+      ran: null
+  # Slice 110: a command adapter's smoke set comes from its list, run once
+  # in the project as itos tests list runs it, before anything is written.
+  - name: init --policy derives a command adapter's smoke set from its list, run once in the project
+    argv: [init, --policy, policy.yaml, --no-git-shim, --no-agent-rules]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      policy.yaml: |
+        version: 1
+        tests:
+          unit:
+            adapter: { command: sh list.sh }
+            id: 'U-\d+'
+            smoke: { file: tests/smoke.yaml }
+      list.sh: |
+        echo "$*" >> ran
+        printf '%s\n' '{"protocol":1,"tests":[{"id":"U-1","file":"a_test.go","live":false},{"id":"U-2","file":"a_test.go","live":true},{"id":"U-3","file":"b_test.go","live":true}],"files":["a_test.go","b_test.go","c_test.go"]}'
+    exit: 0
+    stdout_has:
+      - "wrote itos.yaml\nwrote tasks/phase-1.yaml\nwrote tasks/work-items.yaml\nwrote tests/smoke.yaml\n"
+    files_after:
+      ran: |
+        list --at worktree
+      tests/smoke.yaml: |
+        # The smoke set: one live scenario of each feature file, which a push's CI can
+        # run in place of every one; itos tests smoke check scenario holds it to that.
+        # itos init picked each file's first: pick a fast one, central to its file.
+        - file: a_test.go
+          scenarios:
+            - id: "@U-2"
+              why: picked by itos init, the file's first live scenario
+        - file: b_test.go
+          scenarios:
+            - id: "@U-3"
+              why: picked by itos init, the file's first live scenario
+  - name: init --policy refuses a command adapter's list that fails, with its error, and writes nothing
+    argv: [init, --policy, policy.yaml, --no-git-shim]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      policy.yaml: |
+        version: 1
+        tests:
+          unit:
+            adapter: { command: sh list.sh }
+            smoke: { file: tests/smoke.yaml }
+      list.sh: |
+        echo 'no test binary yet' >&2
+        exit 3
+    exit: 1
+    stderr: |
+      itos: init --policy wrote nothing: the list of tests.unit failed, so it cannot derive its smoke set:
+        tests.unit: `sh list.sh list --at worktree` exited 3
+        no test binary yet
+      Make tests.unit's adapter list the project's tests, then run init --policy again.
+    files_after:
+      itos.yaml: null
+      tasks/phase-1.yaml: null
+      tasks/work-items.yaml: null
+      tests/smoke.yaml: null
+  - name: under --json init --policy refuses a list whose output the protocol refuses
+    argv: [--json, init, --policy, policy.yaml, --no-git-shim]
+    hide: [claude]
+    files:
+      policy.yaml: |
+        version: 1
+        tests:
+          unit:
+            adapter: { command: sh list.sh }
+            smoke: { file: tests/smoke.yaml }
+      list.sh: |
+        printf '%s\n' '{"protocol":2,"tests":[],"files":[]}'
+    exit: 1
+    json:
+      schema: 1
+      config: itos.yaml
+      action: refused
+      problems:
+        - rule: init-policy-list
+          message: "tests.unit: `sh list.sh list --at worktree` speaks protocol 2, not 1"
+          fix: make tests.unit's adapter list the project's tests, then run init --policy again
+    files_after:
+      .git/HEAD: null
       itos.yaml: null
   - name: init --policy refuses a project's data that is there already, an empty registry too, and writes nothing
     argv: [init, --policy, policy.yaml, --no-git-shim]

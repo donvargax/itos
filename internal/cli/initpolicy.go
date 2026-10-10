@@ -11,10 +11,10 @@ package cli
 // the fresh data can be written (the adoption task T-1 that ledger.id,
 // commits.types and the ledger's group layout must be able to hold, every
 // file inside the project's root, or the stealth folder, once symbolic links
-// are followed, and no smoke set a command adapter would have to give); and
-// that nothing of a project is there already (a config, a file of the
-// ledger, the registry or a smoke set, even an empty one). A refusal writes
-// nothing; there is no merge and no --force.
+// are followed); that nothing of a project is there already (a config, a
+// file of the ledger, the registry or a smoke set, even an empty one); and
+// each smoke set, derived from the list of the project's own tests. A
+// refusal writes nothing; there is no merge and no --force.
 //
 // The config is the policy's text with its comments, edited in place
 // (value.Doc): commits.since set to the project's HEAD, or dropped where it
@@ -25,10 +25,13 @@ package cli
 // starter's. Then the fresh data at the paths the config names: the ledger's
 // group 1 holding the adoption task (none under --stealth, as for the
 // starter), a registry with no item and that group owned by nobody under
-// work.groups_key, and for each Gherkin kind with a smoke set one naming
-// each file's first live scenario of the project's own tests. Nothing else
-// of the template's (its tasks, registry, questions, decisions, smoke sets,
-// proof results or mutation caches) is read, and nothing it names runs.
+// work.groups_key, and for each kind with a smoke set one naming each
+// file's first live test of the project's own tests. A command adapter's
+// list (slice 110) runs once for that, as itos tests list runs it in the
+// project, before anything is written; a list that fails, or whose output
+// the protocol refuses, refuses init with its error. Nothing else of the
+// template's (its tasks, registry, questions, decisions, smoke sets, proof
+// results or mutation caches) is read, and nothing else it names runs.
 // Then the hooks and the offers, as init's starter has them. A failure
 // after the first write reports what this run wrote, and removes nothing.
 
@@ -89,12 +92,12 @@ func policyInit(policy string, stealth bool, offer pluginOffer, shimOffer shimOf
 		return 0, usage("init --policy writes the project's own config, itos.yaml at its top or with --stealth in "+
 			"the git folder, not the %s that --config or ITOS_CONFIG names", named)
 	}
-	plan, there, err := policyPlanned(policy, stealth)
+	plan, refusal, err := policyPlanned(policy, stealth)
 	if err != nil {
 		return 0, err
 	}
-	if len(there) > 0 {
-		return policyRefused(plan.file, there, o)
+	if refusal != nil {
+		return policyRefused(plan.file, refusal, o)
 	}
 	initialized := !plan.inRepo
 	if initialized {
@@ -154,8 +157,9 @@ func policyInit(policy string, stealth bool, offer pluginOffer, shimOffer shimOf
 
 // policyPlanned reads and judges the policy, from where the person stood,
 // and plans what init would write of it, then finds what of a project is
-// there already: a refusal with nothing written, git init included.
-func policyPlanned(policy string, stealth bool) (policyPlan, []out.Problem, error) {
+// there already and derives the smoke sets: a refusal with nothing written,
+// git init included.
+func policyPlanned(policy string, stealth bool) (policyPlan, *policyRefusal, error) {
 	plan := policyPlan{file: "itos.yaml", stealth: stealth}
 	text, err := os.ReadFile(typed(policy))
 	if err != nil {
@@ -198,11 +202,12 @@ func policyPlanned(policy string, stealth bool) (policyPlan, []out.Problem, erro
 	if len(problems) > 0 {
 		return plan, nil, &config.Error{File: policy, Problems: problems}
 	}
-	if there := policyThere(cfg, plan.file, found, files); len(there) > 0 {
+	if there := policyThere(cfg, plan.file, found, files); there != nil {
 		return plan, there, nil
 	}
 	plan.files = append([]policyFile{{path: plan.file, text: made}}, files...)
-	return plan, nil, policySmokeSets(cfg, plan.files)
+	refusal, err := policySmokeSets(cfg, plan.files)
+	return plan, refusal, err
 }
 
 // policySaid is what init --policy wrote, from where, from when and pinning
@@ -354,18 +359,9 @@ func policyData(cfg *config.Loaded, stealth bool) ([]policyFile, []out.Problem) 
 		{key: "work.registry", path: cfg.Work.Registry, text: freshRegistry(cfg.Work.GroupsKey)},
 	}
 	for _, name := range cfg.Tests.Keys {
-		kind := cfg.Tests.Values[name]
-		if kind.Smoke.File == nil {
-			continue
+		if file := cfg.Tests.Values[name].Smoke.File; file != nil {
+			data = append(data, policyFile{key: "tests." + name + ".smoke.file", path: *file})
 		}
-		key := "tests." + name + ".smoke.file"
-		if kind.Adapter.Command != "" {
-			problems = append(problems, out.Problem{Rule: "init-policy-smoke",
-				Message: key + " names a smoke set of a kind whose adapter is a command, which init --policy does not run",
-				Fix:     "leave " + key + " out of the policy, then add it with its smoke set once the project is initialized"})
-			continue
-		}
-		data = append(data, policyFile{key: key, path: *kind.Smoke.File})
 	}
 	return data, problems
 }
@@ -429,9 +425,8 @@ func resolved(p string) (string, error) {
 
 // policyThere is what of a project is there already: the config found (or
 // the one init would write), every file of the ledger's folder its pattern
-// names, and the registry and the Gherkin smoke sets, an empty file as much
-// as any.
-func policyThere(cfg *config.Loaded, file, found string, files []policyFile) []out.Problem {
+// names, and the registry and the smoke sets, an empty file as much as any.
+func policyThere(cfg *config.Loaded, file, found string, files []policyFile) *policyRefusal {
 	var there []string
 	seen := map[string]bool{}
 	add := func(p string) {
@@ -459,18 +454,20 @@ func policyThere(cfg *config.Loaded, file, found string, files []policyFile) []o
 			add(f.path)
 		}
 	}
-	problems := make([]out.Problem, len(there))
-	for i, p := range there {
-		problems[i] = out.Problem{Rule: "init-policy-exists",
-			Message: p + thereAlready,
-			Fix:     "run init --policy where no itos config or data is, or init without --policy to check this project"}
+	if len(there) == 0 {
+		return nil
 	}
-	return problems
+	refusal := &policyRefusal{lines: there,
+		head: "itos: init --policy makes a fresh project and never writes over one, so it wrote nothing; " +
+			"these are there already:",
+		tail: "Run init --policy where no itos config or data is, or init without --policy to check this project."}
+	for _, p := range there {
+		refusal.problems = append(refusal.problems, out.Problem{Rule: "init-policy-exists",
+			Message: p + " is there already: init --policy makes a fresh project, never over one",
+			Fix:     "run init --policy where no itos config or data is, or init without --policy to check this project"})
+	}
+	return refusal
 }
-
-// thereAlready ends the message of a file init --policy would write that is
-// there already.
-const thereAlready = " is there already: init --policy makes a fresh project, never over one"
 
 // lexists is whether there is a file, a folder or a symbolic link at p.
 func lexists(p string) bool {
@@ -478,37 +475,62 @@ func lexists(p string) bool {
 	return err == nil || !errors.Is(err, fs.ErrNotExist)
 }
 
-// policyRefused reports what is there already and writes nothing: exit 1.
-func policyRefused(file string, there []out.Problem, o Out) (int, error) {
+// policyRefusal is why init --policy writes nothing of a policy it can use:
+// the line that says why, its problems, each as the text lists it, and what
+// to do. Exit 1, a policy failure.
+type policyRefusal struct {
+	head, tail string
+	problems   []out.Problem
+	lines      []string
+}
+
+// policyRefused reports the refusal and writes nothing: exit 1.
+func policyRefused(file string, refusal *policyRefusal, o Out) (int, error) {
 	if o.JSON {
 		return ExitPolicy, out.Emit(o.Stdout, out.Field{Key: "config", Value: filepath.ToSlash(file)},
-			out.Field{Key: "action", Value: "refused"}, out.Field{Key: "problems", Value: there})
+			out.Field{Key: "action", Value: "refused"}, out.Field{Key: "problems", Value: refusal.problems})
 	}
-	fmt.Fprintln(o.Stderr, "itos: init --policy makes a fresh project and never writes over one, so it wrote nothing; "+
-		"these are there already:")
-	for _, p := range there {
-		fmt.Fprintf(o.Stderr, "  %s\n", strings.TrimSuffix(p.Message, thereAlready))
+	fmt.Fprintln(o.Stderr, refusal.head)
+	for _, line := range refusal.lines {
+		fmt.Fprintf(o.Stderr, "  %s\n", strings.ReplaceAll(line, "\n", "\n  "))
 	}
-	fmt.Fprintln(o.Stderr, "Run init --policy where no itos config or data is, or init without --policy to check this project.")
+	fmt.Fprintln(o.Stderr, refusal.tail)
 	return ExitPolicy, nil
 }
 
-// policySmokeSets gives each smoke set its text: one live scenario of each
-// file of the project's own tests, as the starter's names, never the
-// policy's selections.
-func policySmokeSets(cfg *config.Loaded, files []policyFile) error {
+// policySmokeSets gives each smoke set its text: the first live test of
+// each file of the project's own tests, as the starter's names, never the
+// policy's selections. A command adapter's list that fails, or whose output
+// the protocol refuses, is a refusal with its error.
+func policySmokeSets(cfg *config.Loaded, files []policyFile) (*policyRefusal, error) {
 	for i, f := range files {
 		name, isSmoke := strings.CutPrefix(f.key, "tests.")
 		if !isSmoke {
 			continue
 		}
-		list, err := tests.ListTests(cfg, strings.TrimSuffix(name, ".smoke.file"), "worktree")
-		if err != nil {
-			return err
+		name = strings.TrimSuffix(name, ".smoke.file")
+		k := cfg.Tests.Values[name]
+		list, err := tests.ListTests(cfg, name, "worktree")
+		switch {
+		case err != nil && k.Adapter.Command != "":
+			return policyListRefused(name, err), nil
+		case err != nil:
+			return nil, err
 		}
-		files[i].text, _ = starterSmokeSet(list)
+		files[i].text, _ = smokeSetOf(list, k.TagPrefix)
 	}
-	return nil
+	return nil, nil
+}
+
+// policyListRefused is the refusal of a command adapter's list that failed,
+// so the kind's smoke set cannot be derived.
+func policyListRefused(name string, err error) *policyRefusal {
+	return &policyRefusal{
+		head: "itos: init --policy wrote nothing: the list of tests." + name + " failed, so it cannot derive its smoke set:",
+		problems: []out.Problem{{Rule: "init-policy-list", Message: err.Error(),
+			Fix: "make tests." + name + "'s adapter list the project's tests, then run init --policy again"}},
+		lines: []string{err.Error()},
+		tail:  "Make tests." + name + "'s adapter list the project's tests, then run init --policy again."}
 }
 
 // writeNew writes a file that is not there, its folder made first, and

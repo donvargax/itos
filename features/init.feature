@@ -436,7 +436,7 @@ Feature: itos init, a repository made ready for itos
     And the file "itos.yaml" does not exist
     And the git config declares no "commit-msg" hook
 
-  @ID-INIT-53 @slice-110 @wip
+  @ID-INIT-53 @slice-110
   Scenario: Policy initialization derives a command adapter's smoke set by running its list once
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "list.sh" holding the lines:
@@ -459,7 +459,7 @@ Feature: itos init, a repository made ready for itos
     When itos runs "tests smoke check unit"
     Then itos exits with code 0
 
-  @ID-INIT-54 @slice-110 @wip
+  @ID-INIT-54 @slice-110
   Scenario: Policy initialization refuses before writing when a command adapter's list fails
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "list.sh" holding the lines:

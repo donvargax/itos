@@ -292,7 +292,8 @@ config, comments and all, never followed afterwards, with `commits.since` at
 the project's HEAD and no footer's `since`, its pin kept. The ledger, the
 registry and the smoke sets are made fresh at the paths it names, the ledger
 holding only `T-1`, so no task, owner, status or proof result of the
-template's comes along, and nothing the policy names runs. Where any itos
+template's comes along; a command adapter's smoke set comes from its list, run
+once in the project, and nothing else the policy names runs. Where any itos
 config or data is there already, or the policy's data could not be made as it
 says, it refuses and writes nothing.
 It also offers the Claude Code plugin (below), through the `claude` on your
