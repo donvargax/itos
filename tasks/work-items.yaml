@@ -7164,3 +7164,17 @@ items:
       would. Either work drop takes an option saying the item is built, which clears it from
       dependents' depends_on in the same commit, or an idea found built is closed as done rather
       than dropped. Grooming a large backlog meets this often.
+
+  - id: p1-schema-contract-needs-declarations
+    title: schema-contract refuses a config key dropped without a rename or removal declared
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-113]
+    kind: idea
+    why: >
+      Left out of slice-113 by the user (2026-10-06): itos upgrade applies only the renames and
+      removals a release schema declares (x-itos-renamed-from, x-itos-removed), so a key the last
+      release has and this one lacks with no declaration would leave the value where no itos reads
+      it. schema-contract (T-070) should refuse that range unless the schema declares it, so a
+      forgotten declaration fails CI. A ci task.
