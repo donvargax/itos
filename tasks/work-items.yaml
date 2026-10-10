@@ -3480,15 +3480,9 @@ items:
     title: guide.feature's description stops saying the plugin's skills will wrap the guides
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by T-092's agent: features/guide.feature's description ends "The plugin's skills
-      wrapping them is a later step", which T-092 made untrue (the plugin dropped its skill and
-      wraps neither guide). A docs commit may not change a feature's header or Background, so the
-      line waits for the next feat or fix that touches guide.feature to say the plugin wraps
-      neither.
     refs: [features/guide.feature]
 
   - id: p3-plugin-version-prose-reason
