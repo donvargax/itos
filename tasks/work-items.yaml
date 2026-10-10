@@ -2731,6 +2731,10 @@ items:
       of slice 55 found the only undo code in itos untested, with holes (p1-commit-rollback-tested).
       Worth making a standing step.
 
+      Backlog review of 2026-10-10, batch 2: folds in p3-specialist-agents: specialist agents (a
+      spec writer, a reviewer) are built only with a clear design and evidence they pay off, and
+      this standing review is the evidence to gather first.
+
   - id: slice-64
     title: itos go and itos guide work, the generic guides in the binary
     phase: 3
