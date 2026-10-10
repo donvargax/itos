@@ -423,6 +423,10 @@ items:
       by hand). CI's smoke step catches it after the push. The hook could run the smoke part of the
       check, over the index, when a kind's test file is staged.
 
+      Backlog review of 2026-10-10, batch 1: queued: the smoke rule is first judged in CI, which
+      turned slice 82's feat red (e5fce6ae); judging it when a kind's feature file is staged saves
+      that red round trip.
+
   - id: p1-verify-data-per-commit
     title: verify checks each commit's data at that commit, as the commit-msg hook does
     phase: 1
