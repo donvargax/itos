@@ -1,6 +1,3 @@
-# Slice 114 (backlog review, 2026-10-10): the description's last sentence, "The
-# plugin's skills wrapping them is a later step", is untrue since T-092 dropped
-# the plugin's skill; the fix says the plugin wraps neither guide.
 @phase-1
 Feature: itos go and itos guide, the guides a session starts from
   A session that coordinates a repository's work followed a guide kept in
@@ -15,7 +12,8 @@ Feature: itos go and itos guide, the guides a session starts from
   generic guide when the repository has one (guide.orchestrating in the
   config names another file, under the git folder for a stealth config).
   They read and print, never write, and need no config: any git repository
-  will do. The plugin's skills wrapping them is a later step.
+  will do. The Claude Code plugin wraps neither guide (T-092 dropped its
+  skill): a session runs them as commands.
 
   @ID-GUIDE-01 @slice-64
   Scenario: itos go prints the coordinator's guide

@@ -256,15 +256,13 @@ Feature: A stealth mode, itos kept in the git folder of a repository that does n
 
   # Slice 62: under a stealth config itos decision writes the questions beside the
   # stealth registry and commits nothing, as the registry's commands do.
-  # Slice 114 (backlog review, 2026-10-10): the name says decision add writes the
-  # question in the git folder, but the steps check only exit 0 and a clean git
-  # status, so a command that wrote nothing would pass. The fix adds
-  # And the file ".git/itos/asks.yaml" says "Labels or Projects?"; the corpus
-  # case in ask.yaml already pins the file's text.
+  # Slice 114: the file beside the stealth registry is checked, so a decision add
+  # that wrote nothing fails.
   @ID-STEALTH-24 @slice-62
   Scenario: Under a stealth config decision add writes the question in the git folder, and git sees nothing
     When itos runs the command line "decision add 'Labels or Projects?'"
     Then itos exits with code 0
+    And the file ".git/itos/tasks/asks.yaml" says "Labels or Projects?"
     And git status shows nothing to commit
 
   # Slice 79, v4.0.0 (was v3-stealth-pre-push): since slice 46 the pre-push
