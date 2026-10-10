@@ -521,35 +521,30 @@ func workPromote(args []string, o Out) (int, error) {
 	if kind != "slice" && kind != "task" {
 		return 0, usage("work promote needs --kind %s", strings.Join(promoteKinds, "|"))
 	}
+	if newID != "" {
+		return 0, usage("work promote mints the %s id; do not pass --id", kind)
+	}
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
 	if cfg == nil {
 		return code, err
 	}
-	if newID == "" {
-		ids := make([]string, 0, len(registry.Items))
-		for _, item := range registry.Items {
-			if itemID, ok := item.At("id").(string); ok {
-				ids = append(ids, itemID)
-			}
+	ids := make([]string, 0, len(registry.Items))
+	for _, item := range registry.Items {
+		if itemID, ok := item.At("id").(string); ok {
+			ids = append(ids, itemID)
 		}
-		newID, err = mintItemID(cfg, kind, ids)
-		if err != nil {
-			return 0, err
-		}
+	}
+	newID, err = mintItemID(cfg, kind, ids)
+	if err != nil {
+		return 0, err
 	}
 	change, problem, err := work.Promote(registry, text, id, newID, kind, flags["--title"], ledger.IDPattern(cfg))
 	if err != nil {
 		return 0, uneditable(cfg.Work.Registry, err)
 	}
 	if problem != nil {
-		if flags["--id"] != "" && (problem.Rule == "work-promote-taken" || problem.Rule == "work-promote-not-task-id") {
-			return 0, usage("work promote mints the %s id; do not pass --id", kind)
-		}
 		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
-	}
-	if flags["--id"] != "" {
-		return 0, usage("work promote mints the %s id; do not pass --id", kind)
 	}
 	sha, code, err := writeRegistry(cfg, text, change, o)
 	if err != nil || code != 0 {

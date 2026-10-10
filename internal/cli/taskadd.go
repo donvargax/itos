@@ -73,11 +73,8 @@ func taskAddArgs(cfg *config.Loaded, args []string) (ledger.NewTask, error) {
 			n.Checks[len(n.Checks)-1].Timeout, timed = &seconds, true
 		}
 	}
-	if len(ids) > 1 {
-		return n, usage("task add takes at most one caller-supplied id")
-	}
-	if len(ids) == 1 {
-		n.ID = ids[0]
+	if len(ids) > 0 {
+		return n, usage("task add mints the task id; do not pass one")
 	}
 	if n.Group == "" || n.Type == "" || n.Title == "" || n.Why == "" || len(n.Checks) == 0 {
 		return n, usage(taskAddUsage)
@@ -101,26 +98,6 @@ func taskAdd(args []string, o Out) (int, error) {
 	defer release()
 	if cfg == nil {
 		return code, err
-	}
-	if n.ID != "" {
-		_, found, err := ledger.Add(cfg, n)
-		if err != nil {
-			return 0, err
-		}
-		if len(found) > 0 && found[0].Rule != "ledger-add-not-task-id" && found[0].Rule != "ledger-add-taken" {
-			return refuseWork(found, ExitPolicy, o)
-		}
-		if len(registry.Phases.Keys()) > 0 {
-			item := work.New{ID: n.ID, Title: n.Title, Why: n.Why, Kind: "task", Phase: n.Group, DependsOn: []string{}}
-			_, found, err = work.Add(cfg, registry, text, item, ledger.IDPattern(cfg))
-			if err != nil {
-				return 0, uneditable(cfg.Work.Registry, err)
-			}
-			if len(found) > 0 && found[0].Rule != "work-add-not-task-id" && found[0].Rule != "work-add-taken" {
-				return refuseWork(found, ExitPolicy, o)
-			}
-		}
-		return 0, usage("task add mints the task id; do not pass one")
 	}
 	ids := make([]string, 0, len(registry.Items))
 	for _, item := range registry.Items {

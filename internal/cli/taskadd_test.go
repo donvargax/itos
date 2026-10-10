@@ -89,68 +89,66 @@ func TestTaskAddArgsRejectsInvalidCheckAndTimeoutOptions(t *testing.T) {
 	}
 }
 
-func TestTaskAddArgsRetainsCallerIDForCommandValidation(t *testing.T) {
-	args := []string{"T-004", "--group", "1", "--type", "chore", "--title", "Title", "--why", "Reason", "--check", "true"}
-	n, err := taskAddArgs(taskAddTestConfig(), args)
-	if err != nil || n.ID != "T-004" {
-		t.Fatalf("taskAddArgs ID = %q, %v, want T-004 for later command validation", n.ID, err)
+func TestTaskAddArgsRefusesCallerIDs(t *testing.T) {
+	base := []string{"--group", "1", "--type", "chore", "--title", "Title", "--why", "Reason", "--check", "true"}
+	for _, ids := range [][]string{{"T-004"}, {"T-004", "T-005"}} {
+		_, err := taskAddArgs(taskAddTestConfig(), append(append([]string{}, ids...), base...))
+		if err == nil || !strings.Contains(err.Error(), "task add mints the task id; do not pass one") {
+			t.Fatalf("taskAddArgs with %v = %v, want the caller-ID usage error", ids, err)
+		}
 	}
 }
 
-func TestTaskAddPreservesLedgerPolicyBeforeRefusingCallerID(t *testing.T) {
+// A caller-supplied id is a usage error, refused before the registry or the
+// ledger is read, whatever they would refuse (tasks.yaml's corpus case, with
+// no registry at all).
+func TestTaskAddRefusesACallerIDBeforeJudgingLedgerPolicy(t *testing.T) {
 	for _, test := range []struct {
 		name, config, registry, group, kind, want string
-		callerID                                  bool
 	}{
 		{
 			name: "type", config: "commits: { types: [docs] }\n", registry: "phases: { 1: null }\nitems: []\n",
-			group: "1", kind: "chore", want: "is not a commit type", callerID: true,
+			group: "1", kind: "chore", want: "is not a commit type",
 		},
 		{
 			name: "registry group", registry: "phases: { 1: null }\nitems: []\n",
-			group: "4", kind: "docs", want: "is not listed", callerID: true,
+			group: "4", kind: "docs", want: "is not listed",
 		},
 		{
 			name: "ledger group pattern", registry: "phases: { 1: null }\nitems: []\n",
-			group: "two", kind: "docs", want: "ledger.group.pattern", callerID: true,
-		},
-		{
-			name: "registry group after automatic mint", registry: "phases: { 1: null }\nitems: []\n",
-			group: "4", kind: "docs", want: "is not listed",
+			group: "two", kind: "docs", want: "ledger.group.pattern",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			cfgText := "version: 1\n" + test.config + "ledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n  group: { pattern: \"\\\\d+\" }\nwork: { registry: tasks/work-items.yaml }\n"
-			dir := gitConfigRepo(t, cfgText)
-			standInHooks(t)
-			gitIn(t, "config", "user.name", "itos test")
-			gitIn(t, "config", "user.email", "test@localhost")
-			for path, text := range map[string]string{
-				"tasks/phase-1.yaml":    "- { id: T-001, type: docs, title: Existing }\n",
-				"tasks/work-items.yaml": test.registry,
-			} {
-				full := filepath.Join(dir, path)
-				if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-					t.Fatal(err)
-				}
-				if err := os.WriteFile(full, []byte(text), 0o644); err != nil {
-					t.Fatal(err)
-				}
-			}
-			gitIn(t, "add", "--", "itos.yaml", "tasks/phase-1.yaml", "tasks/work-items.yaml")
-			gitIn(t, "commit", "-q", "-m", "docs: start")
+			taskAddRepo(t, cfgText, "- { id: T-001, type: docs, title: Existing }\n", test.registry)
+			head := gitIn(t, "rev-parse", "HEAD")
 
 			var stdout, stderr strings.Builder
 			args := []string{"--group", test.group, "--type", test.kind, "--title", "New task", "--why", "Because.", "--check", "true"}
-			if test.callerID {
-				args = append([]string{"T-002"}, args...)
+			code, err := taskAdd(append([]string{"T-002"}, args...), Out{Stdout: &stdout, Stderr: &stderr})
+			if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the task id") || stdout.Len() != 0 || stderr.Len() != 0 {
+				t.Fatalf("taskAdd with invalid %s and caller ID = (%d, %v), stdout=%q stderr=%q, want the caller-ID usage error", test.name, code, err, stdout.String(), stderr.String())
 			}
-			code, err := taskAdd(args, Out{Stdout: &stdout, Stderr: &stderr})
+			if gitIn(t, "rev-parse", "HEAD") != head || gitIn(t, "status", "--porcelain") != "" {
+				t.Fatal("taskAdd with a caller ID changed the repository")
+			}
+			stdout.Reset()
+			stderr.Reset()
+			code, err = taskAdd(args, Out{Stdout: &stdout, Stderr: &stderr})
 			if code != ExitPolicy || err != nil || !strings.Contains(stderr.String(), test.want) {
-				t.Fatalf("taskAdd with invalid %s and caller ID = (%d, %v), stdout=%q stderr=%q, want policy refusal containing %q", test.name, code, err, stdout.String(), stderr.String(), test.want)
+				t.Fatalf("taskAdd with invalid %s = (%d, %v), stdout=%q stderr=%q, want policy refusal containing %q", test.name, code, err, stdout.String(), stderr.String(), test.want)
 			}
 		})
 	}
+	t.Run("no registry", func(t *testing.T) {
+		gitConfigRepo(t, "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n")
+		var stdout, stderr strings.Builder
+		code, err := taskAdd([]string{"T-004", "--group", "1", "--type", "docs", "--title", "Again", "--why", "A second one.", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
+		if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the task id") || stderr.Len() != 0 {
+			t.Fatalf("taskAdd with a caller ID and no registry = (%d, %v), stderr=%q, want the caller-ID usage error", code, err, stderr.String())
+		}
+	})
 }
 
 func TestTaskAddReturnsConfigAndArgumentErrors(t *testing.T) {
@@ -172,11 +170,11 @@ func TestTaskAddReturnsConfigAndArgumentErrors(t *testing.T) {
 	})
 }
 
-func TestTaskAddReturnsLedgerErrorsBeforeRefusingCallerID(t *testing.T) {
+func TestTaskAddReturnsLedgerErrors(t *testing.T) {
 	t.Run("missing ledger section", func(t *testing.T) {
 		taskAddRepo(t, "version: 1\n", "[]\n", "phases: { 1: null }\nitems: []\n")
 		var stdout, stderr strings.Builder
-		_, err := taskAdd([]string{"T-002", "--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
+		_, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
 		if err == nil || !strings.Contains(err.Error(), "ledger is missing") {
 			t.Fatalf("taskAdd with no ledger section = %v, stderr=%q, want missing-ledger error", err, stderr.String())
 		}
@@ -184,15 +182,15 @@ func TestTaskAddReturnsLedgerErrorsBeforeRefusingCallerID(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
 	taskAddRepo(t, configText, "- { id: T-001, type: chore\n", "phases: { 1: null }\nitems: []\n")
 	var stdout, stderr strings.Builder
-	code, err := taskAdd([]string{"T-002", "--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
-	if code != ExitPolicy || err != nil || !strings.Contains(stderr.String(), "tasks/phase-1.yaml") {
-		t.Fatalf("taskAdd with a malformed ledger and caller ID = (%d, %v), stdout=%q stderr=%q", code, err, stdout.String(), stderr.String())
+	code, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || err == nil || !strings.Contains(err.Error(), "yaml:") {
+		t.Fatalf("taskAdd with a malformed ledger = (%d, %v), stdout=%q stderr=%q, want the ledger's YAML error", code, err, stdout.String(), stderr.String())
 	}
 	t.Run("missing ledger folder", func(t *testing.T) {
 		configText := "version: 1\nledger:\n  files: \"missing/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
 		taskAddRepo(t, configText, "[]\n", "phases: { 1: null }\nitems: []\n")
 		var stdout, stderr strings.Builder
-		code, err := taskAdd([]string{"T-002", "--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
+		code, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{Stdout: &stdout, Stderr: &stderr})
 		problem := stderr.String()
 		if err != nil {
 			problem = err.Error()
@@ -205,48 +203,20 @@ func TestTaskAddReturnsLedgerErrorsBeforeRefusingCallerID(t *testing.T) {
 
 func TestTaskAddPropagatesLedgerEditErrors(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
-	for _, test := range []struct {
-		name, ledger string
-		callerID     bool
-	}{
-		{name: "before reservation", ledger: "[{id: T-001, type: chore, title: Existing}]\n", callerID: true},
-		{name: "after reservation", ledger: "[{id: T-001, type: chore, title: Existing}]\n"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			taskAddRepo(t, configText, test.ledger, "phases: { 1: null }\nitems: []\n")
-			args := []string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}
-			if test.callerID {
-				args = append([]string{"T-002"}, args...)
-			}
-			_, err := taskAdd(args, Out{})
-			if err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
-				t.Fatalf("taskAdd error = %v, want ledger edit error", err)
-			}
-		})
+	taskAddRepo(t, configText, "[{id: T-001, type: chore, title: Existing}]\n", "phases: { 1: null }\nitems: []\n")
+	_, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
+	if err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
+		t.Fatalf("taskAdd error = %v, want ledger edit error", err)
 	}
 }
 
 func TestTaskAddPropagatesRegistryEditErrors(t *testing.T) {
 	configText := "version: 1\nledger:\n  files: \"tasks/phase-{group}.yaml\"\n  id: \"T-\\\\d+\"\n"
 	registry := "{phases: {1: null}, items: []}\n"
-	for _, test := range []struct {
-		name     string
-		callerID bool
-	}{
-		{name: "before reservation", callerID: true},
-		{name: "after reservation"},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			taskAddRepo(t, configText, "- { id: T-001, type: chore, title: Existing }\n", registry)
-			args := []string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}
-			if test.callerID {
-				args = append([]string{"T-002"}, args...)
-			}
-			_, err := taskAdd(args, Out{})
-			if err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
-				t.Fatalf("taskAdd error = %v, want registry edit error", err)
-			}
-		})
+	taskAddRepo(t, configText, "- { id: T-001, type: chore, title: Existing }\n", registry)
+	_, err := taskAdd([]string{"--group", "1", "--type", "chore", "--title", "Task", "--why", "Reason", "--check", "true"}, Out{})
+	if err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
+		t.Fatalf("taskAdd error = %v, want registry edit error", err)
 	}
 }
 

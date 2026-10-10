@@ -130,12 +130,22 @@ func TestWorkAddMintsSliceAndRefusesCallerID(t *testing.T) {
 	}
 }
 
-func TestWorkAddValidatesRequiredPhaseBeforeRefusingCallerID(t *testing.T) {
+// A caller-supplied id is a usage error, refused before the registry is
+// read, whatever the registry would refuse: here a phase it needs and,
+// with no registry at all, the registry itself.
+func TestWorkAddRefusesACallerIDBeforeReadingTheRegistry(t *testing.T) {
 	registryWriterRepo(t, "phases: { 1: null, 2: null }\nitems: []\n")
 	var stdout, stderr strings.Builder
 	code, err := workAdd([]string{"slice-9", "--kind", "slice", "--title", "Nine", "--why", "A slice."}, Out{Stdout: &stdout, Stderr: &stderr})
-	if code != ExitPolicy || err != nil || !strings.Contains(stderr.String(), "which phase slice-9 is in is not said") {
-		t.Fatalf("workAdd without required phase and with caller ID = (%d, %v), stdout=%q stderr=%q, want phase policy refusal", code, err, stdout.String(), stderr.String())
+	if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the slice id") || stderr.Len() != 0 {
+		t.Fatalf("workAdd without required phase and with caller ID = (%d, %v), stdout=%q stderr=%q, want the caller-ID usage error", code, err, stdout.String(), stderr.String())
+	}
+	if err := os.Remove("registry.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	code, err = workAdd([]string{"T-9", "--kind", "task", "--phase", "1", "--title", "Nine", "--why", "A task."}, Out{Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the task id") || stderr.Len() != 0 {
+		t.Fatalf("workAdd with no registry and a caller ID = (%d, %v), stderr=%q, want the caller-ID usage error", code, err, stderr.String())
 	}
 }
 
@@ -184,12 +194,26 @@ func TestWorkAddPropagatesRegistryEditErrors(t *testing.T) {
 	}
 }
 
-func TestWorkPromoteValidatesTargetBeforeRefusingCallerID(t *testing.T) {
+// As work add's: a caller-supplied id is refused before the registry is
+// read, whatever the registry would refuse.
+func TestWorkPromoteRefusesACallerIDBeforeReadingTheRegistry(t *testing.T) {
 	registryWriterRepo(t, "phases: { 1: null }\nitems:\n  - { id: ready, title: Ready, phase: 1, owner: null, status: todo, kind: task, depends_on: [] }\n")
 	var stdout, stderr strings.Builder
 	code, err := workPromote([]string{"ready", "--id", "slice-1", "--kind", "slice"}, Out{Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the slice id") || stderr.Len() != 0 {
+		t.Fatalf("workPromote non-idea target with caller ID = (%d, %v), stdout=%q stderr=%q, want the caller-ID usage error", code, err, stdout.String(), stderr.String())
+	}
+	code, err = workPromote([]string{"ready", "--kind", "slice"}, Out{Stdout: &stdout, Stderr: &stderr})
 	if code != ExitPolicy || err != nil || !strings.Contains(stderr.String(), "not an idea") {
-		t.Fatalf("workPromote non-idea target with caller ID = (%d, %v), stdout=%q stderr=%q, want target policy refusal", code, err, stdout.String(), stderr.String())
+		t.Fatalf("workPromote non-idea target = (%d, %v), stderr=%q, want target policy refusal", code, err, stderr.String())
+	}
+	if err := os.Remove("registry.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	stderr.Reset()
+	code, err = workPromote([]string{"idea", "--id", "T-9", "--kind", "task"}, Out{Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || err == nil || !strings.Contains(err.Error(), "mints the task id") || stderr.Len() != 0 {
+		t.Fatalf("workPromote with no registry and a caller ID = (%d, %v), stderr=%q, want the caller-ID usage error", code, err, stderr.String())
 	}
 }
 
