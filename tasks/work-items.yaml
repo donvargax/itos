@@ -4736,6 +4736,10 @@ items:
       (GuardSince), fallbacks for removed keys or commands, and anything a feature flag keeps for
       backward compatibility. Breaking changes ship together in a major instead.
 
+      Backlog review of 2026-10-10, batch 3: folds in p1-t008-check-the-walk: dead code left by
+      removals: providers.FirstGreen and its test, unused since bug 24's first-parent walk and since
+      T-008's checks left the ledger (4f9b0bfd).
+
   - id: p1-model-baseline
     title: "LeashBench: itos work replayed with the guidance on, gates only and off, across models and harnesses"
     phase: 1
