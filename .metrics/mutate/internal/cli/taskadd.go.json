@@ -636,7 +636,7 @@
 	},
 	"listed_files": {
 		"features/init.feature": "1d5f7c5eba408badaa1531287e69b4f888218b77be553be213338cb2e73cc5a7",
-		"features/task.feature": "68781b4253be67a5030012658a88ecddece4361ba615ae1405017045e8c2b7db"
+		"features/task.feature": "f49ff0cb53c6c511a711e548245df7d66321c0ca48fc517a074869f6dd54ba8f"
 	},
 	"support": {
 		"features/commit_test.go": "14329108148618b898bb0cd3c1dbdf1b21626361fbae11a309b408d6373fa489",
