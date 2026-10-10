@@ -1154,8 +1154,12 @@
     tools/bin/pinned itos-cc mutation run --count 1 --since {base} --fail-uncovered --json cmd
     internal; the push plan's cached-recheck mutation sample step goes, as the proof now draws the
     push's one mutant. The nightly's mutation sample --count 20 becomes mutation run --count 20
-    --fail-uncovered --json cmd internal with a seed of the night's own (--seed), not HEAD's, so
-    reruns of one commit draw differently. The complete-cache mutation check is gone from every
+    --json cmd internal with a seed of the night's own (--seed), not HEAD's, so reruns of one
+    commit draw differently; without --fail-uncovered (q-54), since strict coverage with no --since
+    judges every function, 2068 uncovered statements on 2026-10-09, a backlog for the debt baseline
+    (p3-debt-role), not a nightly gate. A sampled survivor still fails the night. Before the push
+    proof turns on, workAdd's and workPromote's uncovered soundRegistry error returns
+    (internal/cli/workedit.go:66, workwrite.go:530) get tests. The complete-cache mutation check is gone from every
     gate, and with it q-50's local-run exception: remove it from AGENTS.md and
     docs/ORCHESTRATING.md and say what the gates now prove. Earlier commits on work/T-131 predate
     v0.7.0 and are not reused. --count runs on Linux only, as the ci job does; v0.7.0's strict
