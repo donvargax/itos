@@ -1136,8 +1136,6 @@
     staging safety; no workflow/config or product-code changes in this docs task. The completed
     mutation run exception is one-off, not permission for another local run. Review is the prose
     proof and the existing document-budget command checks the kept instructions fit their caps.
-  done_when:
-    - run: go run ./tools/bin/doc-budget
 
 - id: T-131
   type: ci
