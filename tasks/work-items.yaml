@@ -7178,3 +7178,16 @@ items:
       release has and this one lacks with no declaration would leave the value where no itos reads
       it. schema-contract (T-070) should refuse that range unless the schema declares it, so a
       forgotten declaration fails CI. A ci task.
+
+  - id: p1-notes-split-automatic-by-hand
+    title: The release notes split what itos upgrade applies from what is left by hand
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-113]
+    kind: idea
+    why: >
+      Left out of slice-113 by the user (2026-10-06): itos upgrade now prints the config edits each
+      release schema declares, then By hand with the breaking changes and Upgrading footers. The
+      release notes Upgrading section should split the same way, the declared renames and removals
+      listed as applied by itos upgrade and the footers as what is left by hand.
