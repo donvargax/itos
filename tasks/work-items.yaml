@@ -6917,3 +6917,6 @@ items:
       missing or stale on main, only until fresh bounded sampling in CI works (itos-cc#27). The
       user: remove it the moment #27 lands. Delete the exception from AGENTS.md and
       docs/ORCHESTRATING.md, and the lesson that names this item as its exit.
+
+      No lesson names it: the exception sits in the q-41 passages of the two refs.
+    refs: [AGENTS.md, docs/ORCHESTRATING.md]
