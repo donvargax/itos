@@ -7188,3 +7188,18 @@ items:
       annotated tag stays local, and push.followtags decides silently whether the next unrelated
       push publishes it. A sanctioned form (itos push --tag <tag>, --ref <branch>, never forced)
       keeps these pushes inside itos, and tags go only when asked.
+
+  - id: p1-v7-upgrading-gaps
+    title: The 7.0.0 Upgrading notes say what minting, closed tasks' checks and next-id change
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #40 (a consumer moving 6.4.2 to 7.0.0-rc.4): minting (task add, work promote, a numbered
+      work add) pushes refs/itos/ids itself with --no-verify and exits 3 offline, and the notes
+      never say so; nothing covers a check that should outlive its task, whether task next-id still
+      applies, or why a task closed by hand keeps its checks and one closed by work done loses them.
+      What changed repeats its headings per release (still so in v7.0.0's notes). Point 2, the
+      nightly's tasks: done step, is slice-107.
