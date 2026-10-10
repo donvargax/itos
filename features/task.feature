@@ -156,6 +156,11 @@ Feature: The task runner runs each check once, and lists task status without run
     And the ledger file "tasks/phase-1.yaml" has the task "T-003" with the check "true"
     And the registry's item "T-003" is a task titled "Tidy the readme" with the status "todo"
 
+  # An id given is a usage error, refused before itos reads the config's data
+  # or the registry (15628765, 2026-10-09), as work add and work promote refuse
+  # theirs. a1b8d6b had put the refusal after the type, group and item checks
+  # so v6.5.1's cases that pass an id kept their errors; under minting those
+  # cases test a call v7 no longer takes, so the fix names them in Changes.
   @ID-TASK-14 @slice-102
   Scenario: task add refuses an id, and writes nothing
     When itos runs the command line "task add T-003 --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
