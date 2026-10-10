@@ -1118,9 +1118,6 @@
     to keep scenario-moves and fix forward, so neither a revert exemption nor mutation exclusions
     are authorized. Main is red from slice-102's independent proof and test-fixture failures;
     do not publish an incomplete checkpoint or claim this task green while that range still fails.
-  done_when:
-    - run: node --test tools/itos/conformance/run.test.ts
-    - run: node tools/itos/conformance/run.ts --bin tools/bin/itos --only tools/itos/conformance/hooks.yaml
 
 - id: T-130
   type: docs

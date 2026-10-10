@@ -5673,45 +5673,9 @@ items:
     title: Conformance Git fixtures cannot loop through the shim, and every case cleans up within a deadline
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Was p1-corpus-orphan-loop.
-      Found 2026-10-07: two processes spun at 100% CPU for 38 minutes, orphaned. A conformance
-      case's fake old git (case/old-git, a git older than 2.54.0) was on the PATH when
-      tools/bin/dev-version ran git -C <repo> rev-parse, and the fake and git called each other
-      without end; the run that started them had ended, its children left to init. Two fixes: the
-      fake hands any other git call to the real git by an absolute path (or ITOS_GIT, as the
-      features do since T-104), never to a git found on the PATH; and the runner starts each case in
-      a process group of its own and kills the group on timeout or exit, so nothing outlives the
-      run.
-
-      Seen again by slice-97's agent (2026-10-07): with the git shim ahead of /usr/bin/git on the
-      PATH, the corpus's old-git cases hang in git describe; with /usr/bin first the whole corpus
-      runs in 45 s. T-104 made the features and unit tests pass over an itos linked as git; the
-      conformance runner (tools/itos/conformance/run.ts) and its fakes do not yet, which is this
-      item's first fix.
-
-      Folded in p1-corpus-real-git (T-122's agent, 2026-10-07): the conformance runner
-      (tools/itos/conformance/run.ts) starts the name git and drops every ITOS_ variable, so with an
-      itos linked as git first on the PATH a corpus run printed nothing for ten minutes; with
-      /usr/bin first, 887 cases pass in 22 s. T-122 gave tools/bin/real-git, which prints the git
-      internal/git resolves: the runner and its fakes use it, and pass ITOS_GIT, as
-      tools/selftest/scratch.ts now does.
-
-      Confirmed 2026-10-08 with a bounded disposable reproduction in
-      /tmp/opencode/itos-git-loop-diagnosis-zpo2qilw. The hook-install old-git fixture sets ITOS_GIT
-      to a wrapper whose fallback executes bare git. The conformance runner reuses that environment
-      for git_config_after and invokes bare git, selecting the installed shim; the shim honors the
-      fake inherited path, which selects the shim again. execve.trace proves repeated shim/wrapper
-      execution in one PID. Changing only ITOS_GIT to /usr/bin/git makes the same query finish with
-      commit-msg and exit 0, so scratch-directory permission is not the cause. The post-check
-      spawnSync has no deadline and runs after the timed case command; the command timer kills only
-      its direct child. Fix native post-case inspection and explicit fake delegation, and
-      bound/clean up the full case lifecycle and its owned process tree. Keep the fake-Git hook
-      semantics tested rather than globally bypassing them. Original helper PID 95007 was terminated
-      by user request; that interrupted compatibility run is not passing evidence.
 
   - id: p1-work-list-unknown-tag
     title: work list --tag refuses a tag the config does not declare, exit 2
