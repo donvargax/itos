@@ -7153,3 +7153,18 @@ items:
       ID-UPGRADECMD. The refusal should name the stem it would accept (did you mean ID-UPGRADECMD),
       or take the area without the configured prefix. A wrong guess costs a round trip on the
       correct path, in every repository whose scenario ids carry a prefix.
+
+  - id: p1-drop-done-dependency
+    title: Dropping an idea already built frees the items that wait on it, as work done does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      On 2026-10-10 the backlog review dropped p1-conformance-http as already built, and work drop
+      refused it (work-drop-depended-on) because two ideas listed it in depends_on; each had to be
+      edited first. A drop whose reason is that the thing exists satisfies its dependents as done
+      would. Either work drop takes an option saying the item is built, which clears it from
+      dependents' depends_on in the same commit, or an idea found built is closed as done rather
+      than dropped. Grooming a large backlog meets this often.
