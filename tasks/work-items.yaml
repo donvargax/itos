@@ -2137,6 +2137,11 @@ items:
       Backlog review of 2026-10-10, batch 1: folds in p3-text-footer-lines (message.Texts reads one
       line per Key:). Queued: a plain Upgrading: line over 100 characters is refused by the
       commit-msg hook only after pre-commit's slow checks, and every feat or fix carries one.
+
+      Backlog review of 2026-10-10, batch 2: also folds in p1-release-notes-footers: Texts reads
+      footers from the trailer paragraph only (a wrapped body line starting Changes: was listed as
+      one, b79c767, v2.15.1), and the notes quote a multi-line footer with every line in the
+      blockquote (63d7046, v2.21.1).
     refs: [internal/cli/gitcommit.go, internal/message/footers.go]
 
   - id: p3-stealth-amend-keeps-links
