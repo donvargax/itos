@@ -5149,6 +5149,10 @@ items:
       time sets the gate; a project in pr mode lifts it for agents in their own clones, never for a
       shared worktree.
 
+      Backlog review of 2026-10-10, batch 1: folds in p1-checkout-lease: itos draft (slice-96)
+      solved the coordinator's case; carry the enforcement half, a commit-msg refusal of a commit
+      whose footer is not the doing item's, with free paths and a stale expiry.
+
   - id: slice-96
     title: itos draft keeps the coordinator's pending changes, and promotes them when no work is going on
     phase: 1
