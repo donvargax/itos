@@ -1033,7 +1033,7 @@ declares, naming what puts it right; exit 1 when anything is
 missing, 0 when nothing is. It runs the binary called, whatever a pin says.
 Then it notes, never counting them as missing: a people file the config names
 that the repository lacks or cannot read, as itos config check warns, and a
-pin behind the newest release, naming itos pin, where the release server
+pin behind the newest release, naming itos upgrade, where the release server
 answers.
 
 --policy <file> makes a fresh project of a template's policy: the file, an

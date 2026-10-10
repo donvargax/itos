@@ -79,9 +79,10 @@
 // machine pays the timeout once an hour. notice compares with the pin
 // (version.Compare) the newest of the announced version, the stable releases
 // the cache holds and this binary's version when it is a release (bug 48: the
-// answer alone can be behind what the cache already holds), and says it once
-// a day per repository, keyed by the
-// config's absolute path in <cache>/state/notice-<hash>, written before the
+// answer alone can be behind what the cache already holds), and says it,
+// with the release's notes and itos upgrade, which moves the pin and applies
+// the config changes each release between them declares (slice 115), once a
+// day per repository, keyed by the config's absolute path in <cache>/state/notice-<hash>, written before the
 // line is said so a cache it cannot write to stays silent rather than saying
 // it every run. Nothing here is ever an error: every failure falls through
 // to what the cache has. A binary built without a version

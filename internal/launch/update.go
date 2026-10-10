@@ -114,7 +114,9 @@ func cachedVersions(cache string) []string {
 }
 
 // notice says on stderr that a newer release than the pinned one is out, at
-// most once a day for the repository whose config is file. The release it
+// most once a day for the repository whose config is file, naming its notes
+// and itos upgrade, which moves the pin and applies the config changes each
+// release between them declares (slice 115), where itos pin only moves it. The release it
 // names is the newest the launcher knows of (bug 48): of the version the
 // server last announced (asked for first, when that is due and allowed), the
 // stable releases the cache holds and own, the itos that runs, when that is
@@ -153,7 +155,7 @@ func notice(file, pin, own string, stderr io.Writer) {
 		// A notice that cannot be remembered would be said on every run.
 		return
 	}
-	fmt.Fprintf(stderr, "itos %s is out (this repository pins %s): %s\n", latest, pin, release.NotesURL(latest))
+	fmt.Fprintf(stderr, "itos %s is out (this repository pins %s): %s (itos upgrade moves this repository to it)\n", latest, pin, release.NotesURL(latest))
 }
 
 // announced is the newest version the release server announced, as the

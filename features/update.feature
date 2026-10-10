@@ -11,8 +11,9 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
 
   Where a repository pins an older version than the newest, the launcher runs
   the pin and says so on stderr, at most once a day per repository:
-  "itos 9.2.0 is out (this repository pins 9.1.0): <base>/tag/v9.2.0", the
-  release's notes. Nothing more: no notice in --json's object, none aimed at
+  "itos 9.2.0 is out (this repository pins 9.1.0): <base>/tag/v9.2.0 (itos
+  upgrade moves this repository to it)", the release's notes and the command
+  that moves the pin and applies each release's config changes. Nothing more: no notice in --json's object, none aimed at
   agents, no config key to silence a team. CI (the CI variable set) never
   asks and never says; ITOS_NO_UPDATE=1 stops the asking and
   ITOS_NO_UPDATE_NOTICE=1 the saying. A release server that cannot be reached
@@ -65,13 +66,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     Then itos exits with code 0
     And no version of the release server ran since the last run
 
-  # Slice 115 (p1-upgrade-notices, 2026-10-10): since slice 113, itos upgrade
-  # applies each crossed release's declared config renames and removals and
-  # lists what is left by hand, while itos pin only moves the pin. The notice
-  # keeps its words up to the notes' address and adds that itos upgrade moves
-  # the repository to it; the fix adds And its output says "itos upgrade" here,
-  # and updates the description's quoted notice to match. A fix, as following
-  # the old pointer leaves a config with keys a release removed.
+  # Slice 115: itos upgrade, not itos pin, applies each release's config changes.
   @ID-UPDATE-06 @slice-28
   Scenario: A repository pinning an older version runs its pin, and says the newer one is out
     Given a repository whose ledger has the task "T-001"
@@ -81,6 +76,7 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     And the version "9.1.0" ran with the arguments "version"
     And its output says "itos 9.2.0 is out (this repository pins 9.1.0): "
     And its output says "/tag/v9.2.0"
+    And its output says "itos upgrade"
 
   @ID-UPDATE-07 @slice-28
   Scenario: The notice is said at most once a day in a repository

@@ -480,7 +480,7 @@ func pinBehind(cfg *config.Loaded) *out.Problem {
 	return &out.Problem{
 		Rule:    "pin-behind",
 		Message: fmt.Sprintf("the pin, itos %s, is behind the newest release, itos %s", cfg.Pin.Version, newest),
-		Fix:     "itos pin moves it there; read the notes of the releases between them before you commit it",
+		Fix:     "itos upgrade moves it there, applying the config changes each release between them declares and naming what is left by hand",
 	}
 }
 

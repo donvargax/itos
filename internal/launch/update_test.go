@@ -92,7 +92,7 @@ func TestNoticeOnceADayPerRepository(t *testing.T) {
 	at(t, start)
 	var b strings.Builder
 	notice("one/itos.yaml", "9.1.0", "", &b)
-	want := "itos 9.2.0 is out (this repository pins 9.1.0): " + s.URL + "/tag/v9.2.0\n"
+	want := "itos 9.2.0 is out (this repository pins 9.1.0): " + s.URL + "/tag/v9.2.0 (itos upgrade moves this repository to it)\n"
 	if b.String() != want {
 		t.Fatalf("notice said %q, want %q", b.String(), want)
 	}

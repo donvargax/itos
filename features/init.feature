@@ -639,7 +639,7 @@ Feature: itos init, a repository made ready for itos
   # --dir), --no-git-shim declines, a terminal is asked, anywhere else
   # nothing is installed and the report says how. The report also says, never
   # counting them as missing, a pin behind the newest release (naming itos
-  # pin) and a people file the config names but the repository lacks.
+  # upgrade) and a people file the config names but the repository lacks.
   @ID-INIT-18 @slice-50
   Scenario: With --git-shim init links itos as git in the folder given
     Given a repository that does not use itos, its one commit "docs: start"
@@ -655,14 +655,9 @@ Feature: itos init, a repository made ready for itos
     Then itos exits with code 0
     And its output says "--git-shim"
 
-  # Slice 115 (p1-upgrade-notices, 2026-10-10): init's pin-behind note names
-  # itos upgrade, which moves the pin and applies what each release changes,
-  # instead of itos pin and reading the notes by hand. The fix renames the
-  # scenario to "... and names itos upgrade" and checks its output says
-  # "itos upgrade" and does not say "itos pin"; its commit names this
-  # scenario in Changes, since v7.1.0's text promised itos pin.
+  # Slice 115: itos upgrade, not itos pin, applies each release's config changes.
   @ID-INIT-20 @slice-50
-  Scenario: Run again where the pin is behind the newest release, init says so and names itos pin
+  Scenario: Run again where the pin is behind the newest release, init says so and names itos upgrade
     Given a release server offering the versions "9.1.0" and "9.2.0"
     And a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"
@@ -670,7 +665,8 @@ Feature: itos init, a repository made ready for itos
     When itos runs "init"
     Then itos exits with code 0
     And its output says "9.2.0"
-    And its output says "itos pin"
+    And its output says "itos upgrade"
+    And its output does not say "itos pin"
 
   # The starter names no work section, so the people file is the default,
   # CONTRIBUTORS.md, which init does not write; config check only warns.

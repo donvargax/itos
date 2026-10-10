@@ -130,7 +130,8 @@
 // declare, declared), exit 1 when there is any; then its notes, never
 // counted as missing, under their own heading and in the checked object's
 // notes: configFindings' warnings and pinBehind, a pin older than the newest
-// release, left out when the release server does not answer. Else initWrite
+// release, naming itos upgrade (slice 115), left out when the release server
+// does not answer. Else initWrite
 // asks pinned("") for the newest release, renders the starter
 // (starter.config, a template of commented YAML, not value.YAML, so it reads
 // as a person's file), writes it, the ledger and the registry, never over a

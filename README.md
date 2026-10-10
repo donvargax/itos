@@ -202,7 +202,7 @@ itos that runs) it runs the pin and says so on stderr, once a day per
 repository:
 
 ```
-itos 2.3.0 is out (this repository pins 2.2.0): https://github.com/donvargax/itos/releases/tag/v2.3.0
+itos 2.3.0 is out (this repository pins 2.2.0): https://github.com/donvargax/itos/releases/tag/v2.3.0 (itos upgrade moves this repository to it)
 ```
 
 It asks nothing where the answer goes unused (a config without `pin`), never
