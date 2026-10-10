@@ -5602,6 +5602,10 @@ items:
       registry item and once from the ledger task, which carry the same text. Show the ledger's for
       a task and the registry's for an idea, never both.
 
+      Backlog review of 2026-10-10, batch 3: folds in p1-guide-work-show-why: internal/guide/work.md
+      says work show gives every item's why, but a slice's why lives in its scenarios' comments
+      (ADR-0034); the guide, or work show itself, should say where to read it for each kind.
+
   - id: p1-config-release-prerelease
     title: itos.yaml accepts release.prerelease, the marker that turns release candidates on
     phase: 1
