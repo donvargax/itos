@@ -54,7 +54,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-103
   - slice-104
   - slice-105
   - p1-windows-id-validation
