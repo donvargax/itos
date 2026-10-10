@@ -96,7 +96,14 @@ will do anything to finish, and a bypass any session can type is one they will u
 past a surviving mutant is an exception in `itos-cc.yaml` with its reason, which the person
 reviews and which fails once stale; otherwise the agent stops and asks.
 
-## The rest of v7 (breaking, so together)
+## Trimmed (2026-10-09, the user)
+
+v7.0.0 is proof of done and minted ids: it is cut once T-131 (the code proof samples fresh mutants
+with itos-cc v0.7.0, q-52) and the id slices 103 to 105 land. Most of the bundle below was still
+ideas with no spec, and holding the pre-release open for it was weeks; it moves whole to the next
+major, still one breaking bundle, as does debt and claims (`p3-debt-role`, `p3-debt-claims`).
+
+## The next major (breaking, so together)
 
 - Exit codes: `p1-failure-exit-codes`, `p1-commit-exit-codes`.
 - `p1-shim-refuses-hook-skipping`: `itos commit`, `itos push` and the shim refuse `--no-verify`,
@@ -105,14 +112,13 @@ reviews and which fails once stale; otherwise the agent stops and asks.
   `p1-wip-tag-command-kind`, `p1-group-label-flag-word`, `p1-config-finite-numbers`,
   `p1-check-timeout-positive`, `p1-ledger-layout-checks`, `p1-ledger-id-grouping`,
   `p1-ledger-id-default`, `p1-asks-check`, and `p3-changes-at-commit`.
-- Already deferred to v7: slice-95 (AGENTS.md's block sends each session to its guide) and
-  `p1-init-plugin-rule-22`.
+- slice-95 (AGENTS.md's block sends each session to its guide) and `p1-init-plugin-rule-22`.
 - `p1-drop-compat-code`.
 
-**Before v7, not in it**, so consumers cross the major cleanly: `p1-upgrade-applies-config-steps`
-and `p1-upgrade-on-major`.
+**Before that major, not in it**, so consumers cross it cleanly: `p1-upgrade-applies-config-steps`
+and `p1-upgrade-on-major`. v7.0.0 ships without them.
 
-**Not in v7:** agent rules as data (its own major), and kong (its spike decides whether it breaks
+**In neither:** agent rules as data (its own major), and kong (its spike decides whether it breaks
 anything).
 
 ## Order, and where it stands (2026-10-08)
@@ -142,10 +148,10 @@ anything).
      live scenarios under `mutation.tests`; CI samples cached results over the pushed range, and
      the coordinator's notes tell agents to run `tools/bin/pinned itos-cc mutation run --since
      <base> --fail-uncovered` before pushing.
-4. **Then the rest of the bundle**, each a further rc: slice-101 (a task's checks expire at
-   done), the standing rules, debt and claims, exit codes, the hook-skipping refusal, config
-   tightening, slice-95, rule 22, dropping compatibility code.
-5. **Remove the marker file:** the next push cuts `v7.0.0`.
+4. **Then, each a further rc:** slice-101 (done, rc.2), the ids (slice-102 and slice-109 done,
+   rc.4; slices 103 to 105 to come) and T-131. The rest moved to the next major (above).
+5. **Remove the marker file** `tools/bin/release-version/prerelease` once T-131 and slices 103 to
+   105 are done and green: the next push cuts `v7.0.0`.
 
 ### Since rc.1 (2026-10-08, evening)
 
