@@ -7017,14 +7017,15 @@ items:
       is installed.
     refs: [internal/guard/guard.go, internal/guard/doc.go, features/guard.feature]
 
-  - id: p1-range-falls-back-to-since
+  - id: slice-109
     title: ci range starts at commits.since when no green run gives a start
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-range-falls-back-to-since.
       Main's CI could not turn green on 2026-10-09: the last green run fell past the 100 first
       parents ci range asks about, so every run's range start was empty, and plugin-version,
       previous-release, deps-check, schema-contract and the mutation sample need one (run
