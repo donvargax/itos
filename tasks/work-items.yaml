@@ -2012,20 +2012,9 @@ items:
     title: A free-text footer longer than one line stays one footer
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-26]
     kind: idea
-    why: >
-      Slice 27 met the same with a Scenarios: footer: wrapped onto a second line, only its first
-      line was read, and a scenario dropped out of CI's selection without a word.
-      Found in slice 26: a free-text footer is one line, `<Key>: <text>`, and a footer line may not
-      pass 100 characters (footer-max-line-length), so an Upgrading step longer than that is split
-      over several Upgrading: lines, which itos commit footers gathers as separate entries. git's
-      trailers continue a value on indented lines; reading those as part of the footer above would
-      keep a long step whole in the notes. Only if real steps turn out that long. They do: this
-      repository's commits wrap an Upgrading: footer onto unindented lines below it, which itos
-      commit footers drops, so T-069's tools/bin/release-notes reads those lines from the message
-      itself (up to the next capitalised footer); itos, and the notes check, still see the first.
     refs: [features/upgrading.feature]
 
   - id: p3-header-lint-unread-keys
