@@ -7191,3 +7191,17 @@ items:
       release schema declares, then By hand with the breaking changes and Upgrading footers. The
       release notes Upgrading section should split the same way, the declared renames and removals
       listed as applied by itos upgrade and the footers as what is left by hand.
+
+  - id: p1-upgrade-data-steps
+    title: itos upgrade applies data steps to the committed files itos writes, such as the work-item dates backfill
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-113]
+    kind: idea
+    why: >
+      Left out of slice-113 by the user (2026-10-06, 2026-10-10): the same principle for asks.yaml,
+      the registry and the ledger, a format number and migration steps itos upgrade applies, so no
+      reader for an old format stays in the code. Its first use: crossing the release of
+      p1-work-item-dates, fill each work item added and since and each question asked and answered
+      from git history where missing, and commit the registry alone. No one-time command for it.
