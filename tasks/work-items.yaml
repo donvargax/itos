@@ -7035,8 +7035,8 @@ items:
   - id: slice-112
     title: init --policy keeps a smoke set the project already has when it passes the smoke check
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
