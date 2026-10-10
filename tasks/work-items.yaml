@@ -724,6 +724,10 @@ items:
       footers start rejecting other IDs) or itos task finds its IDs another way, and the key stays
       without a default. Needs a scenario in ledger.feature or task.feature.
 
+      Backlog review of 2026-10-10, batch 3: folds in p1-ledger-id-grouping: the anchoring:
+      ledger.IDPattern compiles ^id$ with no group, so an alternation in ledger.id anchors only its
+      first and last branches; one reader of ledger.id wraps it as ^(?:id)$.
+
   - id: p1-wip-tag-command-kind
     title: config check refuses wip_tag on a kind whose adapter is a command
     phase: 1
