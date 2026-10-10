@@ -7061,3 +7061,20 @@ items:
       derived set so points at the wrong check command. Comment lines only, so the data and the
       smoke rule are right.
     refs: [internal/cli/init.go, internal/cli/starter.go]
+
+  - id: p1-work-done-past-data-commits
+    title: work done looks past commits that change only itos's own data
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-93 lets work done pass over registry-only commits, but a close commit also changes the
+      ledger and a decision changes tasks/asks.yaml, so on 2026-10-09 T-137 and slice-103 could not
+      close until those coordinator commits were pushed, each push one more CI run. Widen
+      registry-only to commits that change only the registry, the ledger files and the questions
+      file: none can change what an item's code does. A spec commit adding @wip scenarios to a
+      feature file stays out, since a feature file is test code. The user agreed 2026-10-10; ranked
+      before p1-decision-add-answer.
+    refs: [internal/cli/workwrite.go]
