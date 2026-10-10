@@ -2,7 +2,7 @@ module github.com/donvargax/itos/v7
 
 go 1.27
 
-toolchain go1.27.1
+toolchain go1.27.2
 
 require (
 	github.com/cucumber/godog v0.16.0
