@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-115
   - p1-upgrade-on-major
   - p1-smoke-rule-at-commit
   - p1-guard-follows-cd
