@@ -4611,6 +4611,12 @@ items:
       should be its own step: for example push returns once pushed and prints the itos ci watch line
       to run in the background, or waits only on a terminal. The exit of ORCHESTRATING.md's
       wait-loop lesson.
+
+      Backlog review of 2026-10-10, batch 4: queued, for the v8 release-candidate bundle (the user's
+      call: breaking changes ship as v8 rcs, as v7 did): the guide every project gets says to let
+      itos push wait for CI (internal/guide/work.md), and only this repository's AGENTS.md works
+      around it with --no-wait in the background, so every itos repository pays the foreground limit
+      and agents write their own wait loops.
     refs: [internal/cli/push.go, internal/cli/watch.go]
 
   - id: p1-agent-rules-as-data
