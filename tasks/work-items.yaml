@@ -3340,20 +3340,9 @@ items:
     title: itos ask record honours adr-tools' default folder, doc/adr
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-69]
     kind: idea
-    why: >
-      Found building slice-69. adr init with no folder keeps its records in doc/adr and writes no
-      .adr-dir, and adr-tools' _adr_dir uses doc/adr whenever that folder is there. itos ask record
-      looks for a .adr-dir and else writes docs/adr, so in a repository adr-tools set up with its
-      defaults it starts a second log of decisions beside the first, numbered from 1 again. Settled
-      for slice-69 as docs/adr or the .adr-dir's folder, so whether an existing doc/adr wins is the
-      user's call; a scenario beside @ID-ASK-11 would say it.
-
-      The user's call (2026-10-04, q-8): no. docs/adr stays the default and another folder is
-      configured with .adr-dir; defaults follow the most common convention, configuration is the
-      escape hatch. Nothing to build.
     refs: [internal/adr, features/ask.feature]
 
   - id: T-088
