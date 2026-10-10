@@ -4491,6 +4491,11 @@ items:
       for other hosts (gitlab, forgejo, command) come back behind itos trust: a local record of the
       config's hash, never in the repository, without which every implicit run of a repository's
       commands is refused or skipped.
+
+      Backlog review of 2026-10-10, batch 1: folds in p1-identity-map: an identity's answer (git
+      config user.email, say) mapped to a login through the people file, possibly as a built-in
+      provider that runs no repository command and so needs no trust gate. Also p2-go-port, whose
+      port is done; what it still held (GitLab, Forgejo, HTTP identity and people) is this item.
     refs: [internal/providers, PLAN.md]
 
   - id: p3-itos-search
