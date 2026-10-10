@@ -6219,19 +6219,9 @@ items:
     title: draft add of a command that mints takes its id at once and prints it
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-102]
     kind: slice
-    why: >
-      Was p1-draft-minted-id-ref.
-      Found 2026-10-08: while an agent held the checkout, the coordinator drafted a decision add,
-      then needed to answer it, but the answer's draft must name the question's id, which exists
-      only once the first draft is promoted; it was guessed (q-26, safe only because drafts promote
-      in order and nothing else asks meanwhile), and the coordinator first misfiled the answer in
-      the clone's notes. Once itos mints every id (q-26's answer), task add then work queue of the
-      new task hits the same wall. Let a draft refer to an earlier draft's minted id (a placeholder
-      resolved at promote), or have draft promote refuse a draft whose id it cannot resolve. Specify
-      with the id-minting slice.
 
   - id: p1-action-version-tested
     title: tools/bin/action-version's cases run as a standing test, and CI runs the action by a tag ref
