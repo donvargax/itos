@@ -3380,8 +3380,8 @@ items:
   - id: slice-116
     title: itos status shows the pinned itos against the newest release, and names a new major with itos upgrade
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-75]
     kind: slice
     why: >
