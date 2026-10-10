@@ -1032,15 +1032,9 @@ items:
     title: itos compares a pre-release below its release, and requires can name one
     phase: 3
     owner: null
-    status: todo
+    status: dropped
     depends_on: [T-069]
     kind: idea
-    why: >
-      T-069 left it: a build between releases says 2.3.1-dev.5.g1234abc, and internal/version
-      compares X.Y.Z alone, so it equals 2.3.1 (a launcher holding a cached 2.3.1 would keep
-      running the dev build) and a config's requires cannot name it (its comparators read X.Y.Z,
-      so the corpus's cases use {{release}}). Semver's rule, a pre-release below its release and
-      dev.N by N, would make both exact; a feat with its scenario, since requires is behaviour.
     refs: [internal/version/version.go, tools/itos/conformance/cli.yaml]
 
   - id: slice-16
