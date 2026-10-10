@@ -7106,7 +7106,7 @@ items:
       (pinned like dprint) or a Go program, with the same --task and --scenario views.
 
   - id: T-146
-    title: The inbox is a Go program
+    title: "tools/bin's TypeScript programs (the inbox, build-go, itos-cc-tests, repo-program) are Go programs"
     phase: 1
     owner: null
     status: todo

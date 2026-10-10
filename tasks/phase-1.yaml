@@ -1337,9 +1337,10 @@
     the staged files, gofmt, go vet and tools/bin/go-unit-tests, so .vite-hooks, vp staged,
     vite.config.ts, Oxlint and the Vite+ block of AGENTS.md go. vp run scripts become the commands
     they ran. p1-hook-env-unset-tracked is settled here: whatever the new hook needs to keep a
-    hook's git environment from the unit tests lives in the tracked hook.
+    hook's git environment from the unit tests lives in the tracked hook. Its check also requires
+    the chosen formatter to be a step of CI's plan, so dropping formatting cannot close it.
   done_when:
-    - run: '! test -e vite.config.ts && ! test -d .vite-hooks && ! grep -qE ''vite-plus|"vite"|vitest'' package.json && ! grep -q ''vp check'' itos.yaml'
+    - run: '! test -e vite.config.ts && ! test -d .vite-hooks && ! grep -qE ''vite-plus|"vite"|vitest'' package.json && ! grep -q ''vp check'' itos.yaml && tools/bin/itos ci plan --whole | grep -qE ''yamlfmt|markdownfmt|dprint'''
 
 - id: T-143
   type: ci
@@ -1352,9 +1353,20 @@
     checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
     of it changes what itos does for consumers, whose repositories never carried vp. The 21
     self-tests in tools/selftest/*.ts (the gates', hooks', release's and schema's) become Go tests
-    beside the programs they test, run by the same CI and nightly steps.
+    beside the programs they test, run by the same CI and nightly steps. Parity (the user's call,
+    2026-10-10): before deleting a TypeScript tool, the task's first commit records what it says,
+    case names and verdicts or the outputs of fixed inputs, under tools/parity/<tool>/, and the done
+    check runs go run ./tools/bin/parity <tool>, which compares the replacement's output with that
+    record, so a port that drops a case fails. tools/bin/parity is built by the first of T-143 to
+    T-147 to land; T-149 deletes it and tools/parity/. Recorded: the 14 self-tests a plan step runs
+    (ci-scope, deps-check, schema-contract, plugin-version, ci-mutation-budget, gates, go-hooks,
+    go-release, go-schema, previous-release, features-scope, go-dogfood, upgrading-json,
+    tools-bin-programs), by case name and verdict; each Go test has one subtest per case, the same
+    name. The 7 no step runs since T-125 (config-gate, go-port, header-agreement,
+    header-agreement-record, release-cut, release-notes, scratch) are deleted, the commit body
+    saying why each is not ported.
   done_when:
-    - run: "! ls tools/selftest/*.ts >/dev/null 2>&1"
+    - run: '! ls tools/selftest/*.ts >/dev/null 2>&1 && ! grep -q ''node tools/selftest'' itos.yaml && go run ./tools/bin/parity selftest'
 
 - id: T-144
   type: test
@@ -1367,9 +1379,15 @@
     checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
     of it changes what itos does for consumers, whose repositories never carried vp.
     tools/itos/conformance/run.ts, which runs the corpus against a binary in CI and the nightly,
-    becomes a Go program with the same cases, fakes (the GitHub API on 127.0.0.1) and output.
+    becomes a Go program with the same cases, fakes (the GitHub API on 127.0.0.1) and output. Parity
+    (the user's call, 2026-10-10): before deleting a TypeScript tool, the task's first commit
+    records what it says, case names and verdicts or the outputs of fixed inputs, under
+    tools/parity/<tool>/, and the done check runs go run ./tools/bin/parity <tool>, which compares
+    the replacement's output with that record, so a port that drops a case fails. tools/bin/parity
+    is built by the first of T-143 to T-147 to land; T-149 deletes it and tools/parity/. Recorded:
+    every corpus case's name and verdict over the whole corpus.
   done_when:
-    - run: "! test -e tools/itos/conformance/run.ts"
+    - run: '! test -e tools/itos/conformance/run.ts && ! grep -q ''conformance/run.ts'' itos.yaml && go run ./tools/bin/parity conformance'
 
 - id: T-145
   type: build
@@ -1382,13 +1400,19 @@
     checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
     of it changes what itos does for consumers, whose repositories never carried vp.
     tools/changelog.ts wraps git-cliff; the changelog becomes git-cliff called directly (pinned like
-    dprint) or a Go program, with the same --task and --scenario views.
+    dprint) or a Go program, with the same --task and --scenario views. Parity (the user's call,
+    2026-10-10): before deleting a TypeScript tool, the task's first commit records what it says,
+    case names and verdicts or the outputs of fixed inputs, under tools/parity/<tool>/, and the done
+    check runs go run ./tools/bin/parity <tool>, which compares the replacement's output with that
+    record, so a port that drops a case fails. tools/bin/parity is built by the first of T-143 to
+    T-147 to land; T-149 deletes it and tools/parity/. Recorded: the changelog's output at a pinned
+    commit for the whole history, --task T-001 and --scenario ID-STATUS-01, compared byte for byte.
   done_when:
-    - run: "! test -e tools/changelog.ts"
+    - run: '! test -e tools/changelog.ts && ! grep -q ''vp run changelog'' itos.yaml && go run ./tools/bin/parity changelog'
 
 - id: T-146
   type: ci
-  title: The inbox is a Go program
+  title: tools/bin's TypeScript programs (the inbox, build-go, itos-cc-tests, repo-program) are Go programs
   why: >
     The user's call (2026-10-10): this repository drops vp and Node, and every tool is Go where Go
     can do it. Markdown and YAML formatting survive: google/yamlfmt for YAML, and for Markdown T-142
@@ -1397,9 +1421,17 @@
     checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
     of it changes what itos does for consumers, whose repositories never carried vp.
     tools/bin/inbox.ts, which lists the open issues by the allow-list and the itos-accepted label's
-    timeline, with its self-test, becomes a Go program under tools/bin, its rules unchanged.
+    timeline, with its self-test, becomes a Go program under tools/bin, its rules unchanged. Widened
+    (2026-10-10) to every TypeScript program in tools/bin: build-go.ts, itos-cc-tests.ts and
+    repo-program.ts besides the inbox. Parity (the user's call, 2026-10-10): before deleting a
+    TypeScript tool, the task's first commit records what it says, case names and verdicts or the
+    outputs of fixed inputs, under tools/parity/<tool>/, and the done check runs go run
+    ./tools/bin/parity <tool>, which compares the replacement's output with that record, so a port
+    that drops a case fails. tools/bin/parity is built by the first of T-143 to T-147 to land; T-149
+    deletes it and tools/parity/. Recorded: the inbox's self-test case names and its listing of a
+    fixed fake issue set, and each other program's output and exit code on representative calls.
   done_when:
-    - run: "! test -e tools/bin/inbox.ts"
+    - run: '! ls tools/bin/*.ts >/dev/null 2>&1 && ! grep -qE ''node tools/bin/'' itos.yaml && go run ./tools/bin/parity tools-bin'
 
 - id: T-147
   type: refactor
@@ -1412,9 +1444,15 @@
     checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
     of it changes what itos does for consumers, whose repositories never carried vp. The plugin's
     hooks in integrations/claude-code/hooks/*.ts become shell scripts calling itos, as guard.sh
-    already is; the plugin's version is raised in the same push (T-074).
+    already is; the plugin's version is raised in the same push (T-074). Parity (the user's call,
+    2026-10-10): before deleting a TypeScript tool, the task's first commit records what it says,
+    case names and verdicts or the outputs of fixed inputs, under tools/parity/<tool>/, and the done
+    check runs go run ./tools/bin/parity <tool>, which compares the replacement's output with that
+    record, so a port that drops a case fails. tools/bin/parity is built by the first of T-143 to
+    T-147 to land; T-149 deletes it and tools/parity/. Recorded: register.ts's and titles.ts's
+    outputs for the inputs of their .test.ts cases, which the shell versions must give.
   done_when:
-    - run: "! ls integrations/claude-code/hooks/*.ts >/dev/null 2>&1"
+    - run: '! ls integrations/claude-code/hooks/*.ts >/dev/null 2>&1 && go run ./tools/bin/parity plugin-hooks'
 
 - id: T-148
   type: ci
@@ -1428,9 +1466,10 @@
     of it changes what itos does for consumers, whose repositories never carried vp. fallow audits
     TypeScript for dead code and duplication and says nothing of the Go that is itos; its pre-commit
     and CI steps give way to Go's (go vet, staticcheck or deadcode, chosen with the user when the
-    task starts).
+    task starts). Its check also requires the Go checks to be a step of CI's plan, so dropping the
+    audit cannot close it.
   done_when:
-    - run: "! grep -rq fallow itos.yaml package.json"
+    - run: '! grep -rq fallow itos.yaml package.json && tools/bin/itos ci plan --whole | grep -qE ''staticcheck|deadcode'''
 
 - id: T-149
   type: build
@@ -1444,6 +1483,8 @@
     of it changes what itos does for consumers, whose repositories never carried vp. The last step:
     once the formatting, the self-tests, the conformance runner, the changelog, the inbox, the
     plugin's hooks and the audit need no Node, package.json, its lockfile and the devcontainer's and
-    CI's Node setup go.
+    CI's Node setup go. It also deletes pnpm-lock.yaml and the parity records and program
+    (tools/parity/, tools/bin/parity), whose work ends when nothing can run the old tools, and its
+    check requires no plan step to call node or vp.
   done_when:
-    - run: "! test -e package.json && ! grep -rqE 'setup-node|setup-vp' .github/workflows"
+    - run: '! test -e package.json && ! test -e pnpm-lock.yaml && ! test -d tools/parity && ! test -d tools/bin/parity && ! grep -rqE ''setup-node|setup-vp'' .github/workflows && ! grep -qE ''(^|[ "(])(node|vp) '' itos.yaml'
