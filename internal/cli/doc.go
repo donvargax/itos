@@ -107,10 +107,18 @@
 // yaml-language-server schema line naming a release's itos.schema.json (only
 // its version changes), and the script's version= value and each
 // platform=<os-arch> sum=<hash> hash, looked up in the new checksums.txt by
-// release.Listed; a layout it cannot edit so exits 2. Only then are the
-// files written, so a failed fetch or edit leaves every file as it was. It
-// prints each release's lists oldest first, or under --json returns them as
-// upgrading.json holds them, and commits nothing.
+// release.Listed; a layout it cannot edit so exits 2. Each release's
+// itos.schema.json is fetched in the walk too (schemaSteps; none, a 404, is
+// no edit), and the renames (a property's x-itos-renamed-from) and removals
+// (its top-level x-itos-removed) it declares are made in the config's text,
+// release by release, oldest first, by value.Doc's Rename and Remove
+// (applySteps), each on the text the one before left; one the editor cannot
+// make byte for byte exits 2 naming the key. Only then are the files
+// written, so a failed fetch or edit leaves every file as it was. It prints
+// each release's edits and lists oldest first, then By hand: the breaking
+// changes and Upgrading footers, all that a commit's text asks, or under
+// --json returns the releases as upgrading.json holds them with applied and
+// manual beside them, and commits nothing.
 //
 // itos init (init.go, starter.go;
 // docs/decisions/0030-itos-init-readies-a-repository-and-doubles-as-a-doctor.md)

@@ -1,8 +1,16 @@
 package cli
 
 import (
+	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v7/internal/kind"
+	"github.com/donvargax/itos/v7/internal/release"
 )
 
 const (
@@ -86,5 +94,208 @@ func TestVersionArg(t *testing.T) {
 		if _, err := versionArg("pin", strings.Fields(args)); err == nil {
 			t.Errorf("versionArg(%s) took it", args)
 		}
+	}
+}
+
+// releaseServer serves each path's body, 404 for any other, and 500 for
+// a body of "fail".
+func releaseServer(t *testing.T, files map[string]string) {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, ok := files[r.URL.Path]
+		switch {
+		case !ok:
+			http.NotFound(w, r)
+		case body == "fail":
+			http.Error(w, "down", http.StatusInternalServerError)
+		default:
+			_, _ = w.Write([]byte(body))
+		}
+	}))
+	t.Cleanup(server.Close)
+	t.Setenv(release.Env, server.URL)
+}
+
+// A release's schema declares renames on its properties, in the order they
+// are written and at any depth, then its removals (slice 113).
+func TestSchemaSteps(t *testing.T) {
+	releaseServer(t, map[string]string{
+		"/download/v9.3.0/itos.schema.json": `{"type": "object", "properties": {
+			"ci": {"properties": {"watch": {"properties": {"wait": {"x-itos-renamed-from": "ci.watch.timeout"}}}}},
+			"aim": {"x-itos-renamed-from": "goal"}},
+			"x-itos-removed": ["work.adr", "hooks.old"]}`,
+		"/download/v9.4.0/itos.schema.json": `{"properties": {"version": {"type": "number"}}}`,
+		"/download/v9.5.0/itos.schema.json": "fail",
+		"/download/v1.0.0/itos.schema.json": `[]`,
+		"/download/v1.0.1/itos.schema.json": `{"properties": {"a": {"x-itos-renamed-from": 1}}}`,
+		"/download/v1.0.2/itos.schema.json": `{"properties": {"a": {"x-itos-renamed-from": "b..c"}}}`,
+		"/download/v1.0.3/itos.schema.json": `{"x-itos-removed": "a"}`,
+		"/download/v1.0.4/itos.schema.json": `{"x-itos-removed": ["a", 2]}`,
+		"/download/v1.0.5/itos.schema.json": `{"properties": {"a": {"properties": {"b": {"x-itos-renamed-from": ""}}}}}`,
+	})
+	steps, err := schemaSteps("9.3.0")
+	want := []configStep{{"renamed", "ci.watch.wait", "ci.watch.timeout"}, {"renamed", "aim", "goal"},
+		{"removed", "work.adr", ""}, {"removed", "hooks.old", ""}}
+	if err != nil || !slices.Equal(steps, want) {
+		t.Errorf("schemaSteps = %v, %v; want %v", steps, err, want)
+	}
+	for _, v := range []string{"9.4.0", "9.2.0"} {
+		if steps, err := schemaSteps(v); err != nil || len(steps) != 0 {
+			t.Errorf("%s: %v, %v", v, steps, err)
+		}
+	}
+	if _, err := schemaSteps("9.5.0"); kind.Of(err) != kind.Temporary {
+		t.Errorf("a server that fails: %v", err)
+	}
+	for _, v := range []string{"1.0.0", "1.0.1", "1.0.2", "1.0.3", "1.0.4", "1.0.5"} {
+		if _, err := schemaSteps(v); kind.Of(err) != kind.Missing || !strings.Contains(err.Error(), "itos.schema.json of itos "+v) {
+			t.Errorf("%s: %v", v, err)
+		}
+	}
+}
+
+// The walk fetches each release's schema too, and a schema it cannot fetch
+// stops it.
+func TestWalkReleasesFetchesSchemas(t *testing.T) {
+	asks := func(v, previous string) string {
+		return `{"schema": 1, "version": "` + v + `", "previous": "` + previous + `"}`
+	}
+	releaseServer(t, map[string]string{
+		"/download/v9.2.0/upgrading.json":   asks("9.2.0", "9.1.0"),
+		"/download/v9.3.0/upgrading.json":   asks("9.3.0", "9.2.0"),
+		"/download/v9.3.0/itos.schema.json": `{"x-itos-removed": ["a"]}`,
+	})
+	found, err := walkReleases("9.1.0", "9.3.0")
+	if err != nil || len(found) != 2 {
+		t.Fatalf("walkReleases = %v, %v", found, err)
+	}
+	if r := found[1].(releaseAsks); r.Version != "9.3.0" || len(r.steps) != 1 || len(found[0].(releaseAsks).steps) != 0 {
+		t.Errorf("walkReleases = %+v", found)
+	}
+
+	releaseServer(t, map[string]string{
+		"/download/v9.3.0/upgrading.json":   asks("9.3.0", "9.2.0"),
+		"/download/v9.3.0/itos.schema.json": "fail",
+	})
+	if _, err := walkReleases("9.2.0", "9.3.0"); kind.Of(err) != kind.Temporary {
+		t.Errorf("a schema that cannot be fetched: %v", err)
+	}
+
+	// A release with no upgrading.json, or one this itos cannot read, is
+	// named by its notes and ends the walk, as does a previous not older
+	// than its release; an upgrading.json that cannot be fetched stops it.
+	releaseServer(t, map[string]string{
+		"/download/v9.3.0/upgrading.json": asks("9.3.0", "9.3.0"),
+		"/download/v9.2.0/upgrading.json": "{",
+		"/download/v9.1.0/upgrading.json": "fail",
+	})
+	for to, want := range map[string]string{"9.3.0": "9.3.0", "9.2.0": "notes", "9.0.1": "notes"} {
+		found, err := walkReleases("9.0.0", to)
+		if err != nil || len(found) != 1 {
+			t.Errorf("walkReleases to %s = %v, %v", to, found, err)
+			continue
+		}
+		if _, isNotes := found[0].(releaseNotes); isNotes != (want == "notes") {
+			t.Errorf("walkReleases to %s = %+v", to, found)
+		}
+	}
+	if _, err := walkReleases("9.0.0", "9.1.0"); kind.Of(err) != kind.Temporary {
+		t.Errorf("an upgrading.json that cannot be fetched: %v", err)
+	}
+}
+
+// Each release's steps are made oldest first, each on the text the one
+// before left; a key that is not there is no edit, and a layout the editor
+// cannot change is a usage error naming the key and the release.
+func TestApplySteps(t *testing.T) {
+	text := "version: 1\n# ten minutes\nci:\n  watch:\n    timeout: 600\nwork:\n  adr: docs\n  registry: r\n"
+	releases := []any{
+		releaseNotes{Version: "9.1.0", Notes: "notes"},
+		releaseAsks{Version: "9.2.0", steps: []configStep{{kind: "renamed", key: "ci.watch.limit", from: "ci.watch.timeout"}}},
+		releaseAsks{Version: "9.3.0", steps: []configStep{{kind: "renamed", key: "ci.watch.wait", from: "ci.watch.limit"},
+			{kind: "removed", key: "work.adr"}, {kind: "removed", key: "hooks.gone"}}},
+	}
+	got, applied, err := applySteps("itos.yaml", text, releases)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "version: 1\n# ten minutes\nci:\n  watch:\n    wait: 600\nwork:\n  registry: r\n"; got != want {
+		t.Errorf("applySteps:\n got %q\nwant %q", got, want)
+	}
+	want := []appliedStep{{"9.2.0", configStep{"renamed", "ci.watch.limit", "ci.watch.timeout"}, nil},
+		{"9.3.0", configStep{"renamed", "ci.watch.wait", "ci.watch.limit"}, nil},
+		{"9.3.0", configStep{"removed", "work.adr", ""}, "docs"}}
+	if !slices.Equal(applied, want) {
+		t.Errorf("applied %v, want %v", applied, want)
+	}
+
+	cases := map[string]struct{ text, says string }{
+		"a flow mapping":       {"ci:\n  watch: { timeout: 600 }\n", "cannot rename ci.watch.timeout to ci.watch.limit in itos.yaml, as itos 9.2.0's"},
+		"an unreadable config": {"ci: [\n", "cannot rename ci.watch.timeout"},
+		"an anchor":            {"work: &w\n  adr: docs\n", "cannot remove work.adr in itos.yaml, as itos 9.3.0's"},
+	}
+	for name, c := range cases {
+		_, _, err := applySteps("itos.yaml", c.text, releases)
+		if kind.Of(err) != kind.Usage || !strings.Contains(err.Error(), c.says) {
+			t.Errorf("%s: %v", name, err)
+		}
+	}
+}
+
+// The report: each release's edits and what it changes, then By hand and
+// what the releases still ask, or that nothing is left.
+func TestUpgradePrint(t *testing.T) {
+	var stdout strings.Builder
+	u := upgrade{o: Out{Stdout: &stdout}, from: "9.0.0", to: "9.3.0", edited: []string{"itos.yaml"}, releases: []any{
+		releaseNotes{Version: "9.1.0", Notes: "https://example.test/tag/v9.1.0"},
+		releaseAsks{Version: "9.2.0", Upgrading: []upgradingEntry{{Commit: "0123456789", Header: "feat: a", Text: "Move the records.\nThen check."}},
+			Changes: []upgradingEntry{{Commit: "abc", Header: "fix: b", Text: "@ID-ASK-12"}}},
+		releaseAsks{Version: "9.3.0", Breaking: []upgradingEntry{{Commit: "def", Header: "feat!: c", Text: "Records are MADR 4."}},
+			Config: []upgradingKey{{Key: "work.adr", Change: "key removed"}}},
+	}, applied: []appliedStep{{"9.3.0", configStep{"renamed", "ci.watch.wait", "ci.watch.timeout"}, nil},
+		{"9.3.0", configStep{"removed", "work.adr", ""}, float64(600)}}}
+	u.print()
+	got := stdout.String()
+	order := []string{"Upgraded itos from 9.0.0 to 9.3.0: edited itos.yaml", "itos 9.2.0", "Changes on purpose (abc fix: b)",
+		"@ID-ASK-12", "itos 9.3.0", "Renamed ci.watch.timeout to ci.watch.wait.", "Removed work.adr, which held 600.",
+		"Config key work.adr: key removed", "By hand:", "itos 9.1.0 publishes no upgrading.json", "Upgrading (0123456 feat: a)",
+		"    Then check.", "Breaking (def feat!: c)", "Records are MADR 4.", "Do what they ask"}
+	at := 0
+	for _, s := range order {
+		i := strings.Index(got[at:], s)
+		if i < 0 {
+			t.Fatalf("the report does not say %q after %q:\n%s", s, got[:at], got)
+		}
+		at += i + len(s)
+	}
+	manual := u.manual()
+	if len(manual) != 3 || manual[1] != (manualStep{"9.2.0", "Move the records.\nThen check."}) || manual[2].Text != "Records are MADR 4." {
+		t.Errorf("manual = %v", manual)
+	}
+
+	stdout.Reset()
+	u = upgrade{o: Out{Stdout: &stdout}, from: "9.2.0", to: "9.3.0", releases: []any{releaseAsks{Version: "9.3.0"}}}
+	u.print()
+	for _, s := range []string{"nothing needed editing", "  nothing to edit.", "By hand: nothing.", "Check: itos version prints itos 9.3.0"} {
+		if !strings.Contains(stdout.String(), s) {
+			t.Errorf("the report does not say %q:\n%s", s, stdout.String())
+		}
+	}
+}
+
+// --json lists the edits made and what is left by hand.
+func TestUpgradeEmit(t *testing.T) {
+	var stdout strings.Builder
+	u := upgrade{o: Out{Stdout: &stdout, JSON: true}, from: "9.2.0", to: "9.3.0", edited: []string{}, releases: []any{
+		releaseAsks{Version: "9.3.0", Upgrading: []upgradingEntry{{Text: "Do it."}}},
+	}, applied: []appliedStep{{"9.3.0", configStep{"renamed", "b", "a"}, nil}, {"9.3.0", configStep{"removed", "c", ""}, nil}}}
+	if err := u.emit("upgraded"); err != nil {
+		t.Fatal(err)
+	}
+	want := `"applied":[{"version":"9.3.0","kind":"renamed","key":"b","from":"a"},` +
+		`{"version":"9.3.0","kind":"removed","key":"c","value":null}],"manual":[{"version":"9.3.0","text":"Do it."}]}`
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, []byte(stdout.String())); err != nil || !strings.HasSuffix(compact.String(), want) {
+		t.Errorf("emit (%v):\n%s\nwant it to end\n%s", err, compact.String(), want)
 	}
 }

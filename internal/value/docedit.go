@@ -774,7 +774,7 @@ func (d *Doc) Drop(path []any) error {
 	if flow {
 		err = d.dropPair(v, start)
 	} else {
-		err = d.dropLines(k, start)
+		err = d.cutKey(k)
 	}
 	if err != nil {
 		return fmt.Errorf("%s: %w", where(path), err)
@@ -783,15 +783,17 @@ func (d *Doc) Drop(path []any) error {
 	return nil
 }
 
-// dropLines cuts a block mapping's key that starts at start, its line and
-// the lines below it its value holds.
-func (d *Doc) dropLines(k *yaml.Node, start int) error {
-	from, err := d.e.offset(k.Line, 1)
+// keyLines is where a block mapping's key and its value are in the text:
+// from the start of the key's line, which the key must start, to just past
+// the last line below it, indented past the key, that is not blank.
+func (d *Doc) keyLines(k *yaml.Node) (int, int, error) {
+	start, err := d.e.offset(k.Line, k.Column)
 	if err != nil {
-		return err
+		return 0, 0, err
 	}
+	from := strings.LastIndexByte(d.e.text[:start], '\n') + 1
 	if strings.TrimLeft(d.e.text[from:start], " ") != "" {
-		return fmt.Errorf("the key does not start its line")
+		return 0, 0, fmt.Errorf("the key does not start its line")
 	}
 	column := k.Column - 1
 	end, _ := d.e.afterLine(start)
@@ -806,8 +808,7 @@ func (d *Doc) dropLines(k *yaml.Node, start int) error {
 		}
 		next = after
 	}
-	d.e.edits = append(d.e.edits, edit{at: from, cut: end - from})
-	return nil
+	return from, end, nil
 }
 
 // dropPair cuts a flow mapping's pair whose key starts at start, and the

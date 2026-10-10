@@ -23,6 +23,9 @@ type spec struct {
 	list     *spec
 	either   []*spec
 	desc     string
+	// renamedFrom is the dotted path of the key this one was called before
+	// a release renamed it (renamed).
+	renamedFrom string
 }
 
 type field struct {
@@ -49,6 +52,26 @@ func about(desc string, s *spec) *spec {
 	described.desc = desc
 	return &described
 }
+
+// renamed is a spec declaring its key renamed from the key the dotted path
+// from names (slice 113): the config's JSON Schema writes it as the
+// property's x-itos-renamed-from, and itos upgrade, crossing the release
+// that publishes it, moves the old key's value to the new key and drops the
+// old one. A key renamed keeps its declaration; once its release is behind
+// every config, it matches nothing and is harmless.
+func renamed(from string, s *spec) *spec {
+	declared := *s
+	declared.renamedFrom = from
+	return &declared
+}
+
+// removedHere are the dotted paths of the keys this release removes (slice
+// 113), none yet: the config's JSON Schema lists them as its top-level
+// x-itos-removed, and itos upgrade, crossing the release that publishes
+// them, deletes each from the config and prints the value it held. Unlike
+// removedKeys, config check does not know them: a key removed here is
+// unknown to it like any other.
+var removedHere []string
 
 // obj is an object of the keys given as key, spec, key, spec…, with the
 // required ones.
@@ -334,6 +357,8 @@ type Node struct {
 	Required    []string // an object's keys it cannot lack
 	Of          *Node    // a map's values, a list's items
 	Either      []*Node  // the shapes a value may take
+	RenamedFrom string   // the dotted path of the key this one was called before (renamed)
+	Removed     []string // the top's alone: the dotted paths of the keys the release removes (removedHere)
 }
 
 // Field is one key of an object Node.
@@ -343,10 +368,14 @@ type Field struct {
 }
 
 // Schema is the schema config check holds a file to, as data.
-func Schema() *Node { return node(schema) }
+func Schema() *Node {
+	root := node(schema)
+	root.Removed = removedHere
+	return root
+}
 
 func node(s *spec) *Node {
-	n := &Node{Description: s.desc}
+	n := &Node{Description: s.desc, RenamedFrom: s.renamedFrom}
 	switch {
 	case s.scalar != "":
 		n.Kind = s.scalar

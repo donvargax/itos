@@ -3,23 +3,26 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
   A project moves to a newer itos by moving its pin (itos pin) and doing
   what each release's Upgrading section asks since the version it left.
   itos upgrade [<version>] does both: it moves the pin to <version>, or with
-  none to the newest, as itos pin does, and prints, oldest release first,
-  what every release after the old version up to the new one asks: its
-  breaking changes, its Upgrading footers, the old scenarios and corpus
-  cases it changes on purpose (Changes) and the config keys it adds, removes
-  or gives another default. It reads them from each release's upgrading.json
-  (T-091), whose previous names the release before it, so it walks back from
-  the new release to the old one without listing releases through an API.
+  none to the newest, as itos pin does, and walks, oldest release first,
+  every release after the old version up to the new one: its breaking
+  changes, its Upgrading footers, the old scenarios and corpus cases it
+  changes on purpose (Changes) and the config keys it adds, removes or gives
+  another default. It reads them from each release's upgrading.json (T-091),
+  whose previous names the release before it, so it walks back from the new
+  release to the old one without listing releases through an API.
 
-  It applies only the text a release fixes exactly (the user's calls,
-  2026-10-04): the pin, the config's yaml-language-server schema line when
-  it names a release's itos.schema.json, and the install script,
+  It applies only what a release fixes exactly (the user's calls, 2026-10-04
+  and 2026-10-06): the pin, the config's yaml-language-server schema line
+  when it names a release's itos.schema.json, the install script,
   tools/bin/install-itos (v2.0.0's Upgrading), its version= line and each
-  platform's sum= hash, from the new release's checksums.txt. What the
-  commits ask and the config's key changes are listed for the person to do,
-  never edited. It fetches everything before it writes anything, so a fetch
-  that fails leaves every file as it was, and it commits nothing: the move is
-  the project's own commit, as itos pin's is. Like itos pin, it is the
+  platform's sum= hash, from the new release's checksums.txt, and the config
+  keys each release's published itos.schema.json declares renamed or
+  removed, every comment and other line of the config kept (slice 113).
+  Nothing a commit's text says is edited: the breaking changes and the
+  Upgrading footers are what is left by hand, which it prints last, under
+  By hand. It fetches everything before it writes anything, so a fetch that
+  fails leaves every file as it was, and it commits nothing: the move is the
+  project's own commit, as itos pin's is. Like itos pin, it is the
   launcher's own command and never runs the pinned version, which may
   predate it, and it edits the config itos finds, the stealth one included.
 
@@ -29,7 +32,9 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
 
   --json: {"schema":1,"action":"upgraded"|"already"|"refused","from","to",
   "releases":[{"version","breaking","upgrading","changes","config"} or
-  {"version","notes"} for a release with no upgrading.json],"edited":[paths]}
+  {"version","notes"} for a release with no upgrading.json],"edited":[paths],
+  "applied":[{"version","kind":"renamed"|"removed","key","from"?,"value"?}],
+  "manual":[{"version","text"}]}
 
   Background:
     Given a release server offering the versions "9.1.0", "9.2.0" and "9.3.0", each with an upgrading.json naming the one before it
@@ -167,12 +172,11 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
   # file untouched, the pin included, since it fetches and plans every edit
   # before it writes. --json adds "applied":[{"version","kind":"renamed"|
   # "removed","key","from"?,"value"?}] and "manual":[{"version","text"}].
-  # The feat updates this feature's description, which still says the
-  # config's key changes are never edited. Out of this slice: schema-contract
-  # refusing a key dropped without a declaration (a ci task), the release
-  # notes split by hand and automatic, and data steps for itos's committed
-  # files, such as backfilling p1-work-item-dates (their own items).
-  @ID-UPGRADECMD-13 @slice-113 @wip
+  # Out of this slice: schema-contract refusing a key dropped without a
+  # declaration (a ci task), the release notes split by hand and automatic,
+  # and data steps for itos's committed files, such as backfilling
+  # p1-work-item-dates (their own items).
+  @ID-UPGRADECMD-13 @slice-113
   Scenario: A key the new release's schema declares renamed takes the old key's value
     Given the config pins the version "9.1.0" of the release server
     And the config sets "ci.watch.timeout" to "600"
@@ -184,7 +188,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And its output says "ci.watch.wait"
     And nothing was committed
 
-  @ID-UPGRADECMD-14 @slice-113 @wip
+  @ID-UPGRADECMD-14 @slice-113
   Scenario: A key the new release's schema declares removed is deleted, and upgrade prints the value it held
     Given the config pins the version "9.1.0" of the release server
     And the config sets "ci.watch.timeout" to "600"
@@ -195,7 +199,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And its output says "ci.watch.timeout"
     And its output says "600"
 
-  @ID-UPGRADECMD-15 @slice-113 @wip
+  @ID-UPGRADECMD-15 @slice-113
   Scenario: A key renamed by two releases ends under the newer name, the releases applied oldest first
     Given the config pins the version "9.1.0" of the release server
     And the config sets "ci.watch.timeout" to "600"
@@ -207,7 +211,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And the config has no value at "ci.watch.timeout"
     And the config has no value at "ci.watch.limit"
 
-  @ID-UPGRADECMD-16 @slice-113 @wip
+  @ID-UPGRADECMD-16 @slice-113
   Scenario: upgrade prints its edits first, then By hand and what each crossed release still asks
     Given the config pins the version "9.1.0" of the release server
     And the config sets "ci.watch.timeout" to "600"
@@ -218,7 +222,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And its output says "ci.watch.wait" before "By hand:"
     And its output says "By hand:" before "Move the records to docs/decisions."
 
-  @ID-UPGRADECMD-17 @slice-113 @wip
+  @ID-UPGRADECMD-17 @slice-113
   Scenario: When every change was applied, upgrade says nothing is left by hand
     Given the config pins the version "9.1.0" of the release server
     And the config sets "ci.watch.timeout" to "600"
@@ -227,7 +231,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     Then itos exits with code 0
     And its output says "By hand: nothing"
 
-  @ID-UPGRADECMD-18 @slice-113 @wip
+  @ID-UPGRADECMD-18 @slice-113
   Scenario: A key in a layout the editor cannot change byte for byte is refused with exit 2, and no file is changed
     Given the config pins the version "9.1.0" of the release server
     And the config holds "ci.watch.timeout" as "600" in a flow mapping
@@ -237,7 +241,7 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     And its output says "ci.watch.timeout"
     And the config is unchanged
 
-  @ID-UPGRADECMD-19 @slice-113 @wip
+  @ID-UPGRADECMD-19 @slice-113
   Scenario: A rename keeps the config's comments and every other line as they were
     Given the config pins the version "9.1.0" of the release server
     And the config has the comment "# Wait ten minutes for CI."

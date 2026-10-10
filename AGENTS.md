@@ -87,7 +87,8 @@ file.
      `@bug-<n>` scenario for a fix.
   2. Implement until they pass. Add unit tests beneath them as needed.
   3. Commit with a `Scenarios: @ID-…` footer, and an `Upgrading:` footer
-     saying what a consumer of itos must change for it, or `Upgrading: none`.
+     saying what a consumer of itos must still change by hand after
+     `itos upgrade`, or `Upgrading: none`.
      A fix that changes what a scenario or corpus case of the last release
      promised, because it held the bug, names each in a `Changes:` footer
      (`--changes '@ID-…'`); a feat that does is a breaking change and
@@ -310,7 +311,7 @@ generated from the commits, so each commit's body is its entry, what changed
 and why; and a push whose CI is green and carries a `feat` or a `fix`
 publishes the next version itself (T-069), its notes generated from the
 commits, each `Upgrading:` and `BREAKING-CHANGE:` footer quoted to the
-consumers as written. A gap the work leaves
+consumers as written, as what is left by hand after `itos upgrade`. A gap the work leaves
 (what the next slice will find missing) goes into `tasks/work-items.yaml` as a
 `kind: idea` item (`status: todo`, a title, a short `why`, its owner or null,
 its `depends_on`) in the slice's last `docs` commit, never in a commit body

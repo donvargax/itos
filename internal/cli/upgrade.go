@@ -10,11 +10,18 @@ package cli
 //
 // It edits only what a release fixes exactly: the pin (pin.go's code), the
 // config's first line when it is the yaml-language-server schema line naming
-// a release's itos.schema.json, and the install script, tools/bin/install-itos
+// a release's itos.schema.json, the install script, tools/bin/install-itos
 // (v2.0.0's Upgrading), its version= line and each platform's sum= hash from
-// the new release's checksums.txt. Everything is fetched and every edit made
-// in memory before a file is written, so a failure leaves every file as it
-// was, and nothing is committed. Like pin it is the launcher's own command
+// the new release's checksums.txt, and the config's keys each crossed
+// release's published itos.schema.json declares renamed (a property's
+// x-itos-renamed-from) or removed (its top-level x-itos-removed), oldest
+// release first, so a key renamed twice ends under its newest name (slice
+// 113). Never anything read from a commit's text: the breaking changes and the
+// Upgrading footers are what is left by hand, which it prints last.
+// Everything is fetched and every edit made in memory before a file is
+// written, so a failure, or a key in a layout the config editor cannot change
+// byte for byte (value.Doc's Rename and Remove), leaves every file as it was,
+// and nothing is committed. Like pin it is the launcher's own command
 // (internal/launch): the version pinned may predate it.
 
 import (
@@ -30,6 +37,7 @@ import (
 	"github.com/donvargax/itos/v7/internal/kind"
 	"github.com/donvargax/itos/v7/internal/out"
 	"github.com/donvargax/itos/v7/internal/release"
+	"github.com/donvargax/itos/v7/internal/value"
 	"github.com/donvargax/itos/v7/internal/version"
 )
 
@@ -75,13 +83,48 @@ type upgradingKey struct {
 	Change string `json:"change"`
 }
 
-// releaseAsks is what one release asks, as --json prints it.
+// releaseAsks is what one release asks, as --json prints it, and the config
+// edits its schema declares.
 type releaseAsks struct {
 	Version   string           `json:"version"`
 	Breaking  []upgradingEntry `json:"breaking"`
 	Upgrading []upgradingEntry `json:"upgrading"`
 	Changes   []upgradingEntry `json:"changes"`
 	Config    []upgradingKey   `json:"config"`
+	steps     []configStep
+}
+
+// configStep is a config edit a release's itos.schema.json declares: the key
+// renamed from the key from, or removed.
+type configStep struct {
+	kind, key, from string
+}
+
+// appliedStep is a config edit upgrade made: the release that declared it,
+// the step, and the value a removed key held.
+type appliedStep struct {
+	version string
+	configStep
+	value any
+}
+
+// json is the edit as --json prints it.
+func (a appliedStep) json() *value.Map {
+	m := value.NewMap("version", a.version, "kind", a.kind, "key", a.key)
+	if a.kind == "renamed" {
+		m.Set("from", a.from)
+	} else {
+		m.Set("value", a.value)
+	}
+	return m
+}
+
+// manualStep is what a release leaves the person to do: a breaking change's
+// or an Upgrading footer's text, or the notes of a release with no
+// upgrading.json.
+type manualStep struct {
+	Version string `json:"version"`
+	Text    string `json:"text"`
 }
 
 // releaseNotes is a release with no upgrading.json, named by its notes.
@@ -104,7 +147,7 @@ func upgradeCommand(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	u := upgrade{o: o, to: want, releases: []any{}, edited: []string{}}
+	u := upgrade{o: o, to: want, releases: []any{}, edited: []string{}, applied: []appliedStep{}}
 	hasPin := config.PinVersion.MatchString(c.version)
 	switch {
 	case hasPin:
@@ -148,7 +191,11 @@ func upgradeCommand(args []string, o Out) (int, error) {
 		return ExitCode(err), nil
 	}
 
-	text := c.text
+	text, applied, err := applySteps(c.file, c.text, u.releases)
+	if err != nil {
+		return 0, err
+	}
+	u.applied = applied
 	if hasPin {
 		if text, err = c.moved(text, v, sum); err != nil {
 			return 0, err
@@ -187,12 +234,37 @@ type upgrade struct {
 	from, to string
 	releases []any
 	edited   []string
+	applied  []appliedStep
 }
 
 func (u upgrade) emit(action string) error {
+	applied := make([]any, len(u.applied))
+	for i, a := range u.applied {
+		applied[i] = a.json()
+	}
 	return out.Emit(u.o.Stdout, out.Field{Key: "action", Value: action}, out.Field{Key: "from", Value: u.from},
 		out.Field{Key: "to", Value: u.to}, out.Field{Key: "releases", Value: u.releases},
-		out.Field{Key: "edited", Value: u.edited})
+		out.Field{Key: "edited", Value: u.edited}, out.Field{Key: "applied", Value: applied},
+		out.Field{Key: "manual", Value: u.manual()})
+}
+
+// manual is what every release crossed leaves the person to do, oldest
+// first: its breaking changes and its Upgrading footers, or for a release
+// with no upgrading.json the notes to read.
+func (u upgrade) manual() []manualStep {
+	steps := []manualStep{}
+	for _, r := range u.releases {
+		switch r := r.(type) {
+		case releaseNotes:
+			steps = append(steps, manualStep{r.Version, fmt.Sprintf("itos %s publishes no upgrading.json: read the "+
+				"Upgrading section of its notes, and of each release before it since %s: %s", r.Version, u.from, r.Notes)})
+		case releaseAsks:
+			for _, e := range append(slices.Clone(r.Breaking), r.Upgrading...) {
+				steps = append(steps, manualStep{r.Version, e.Text})
+			}
+		}
+	}
+	return steps
 }
 
 // refuse says why nothing is upgraded, exit 1.
@@ -204,8 +276,9 @@ func (u upgrade) refuse(format string, a ...any) (int, error) {
 	return ExitPolicy, nil
 }
 
-// print is the report for a person: the move, then each release's asks,
-// oldest first, then the checks the notes end with.
+// print is the report for a person: the move, then each release, oldest
+// first, with the config edits made for it and what it changes, then By
+// hand: what is left to do, and the checks the notes end with.
 func (u upgrade) print() {
 	w := u.o.Stdout
 	edited := "nothing needed editing"
@@ -213,39 +286,71 @@ func (u upgrade) print() {
 		edited = "edited " + strings.Join(u.edited, " and ")
 	}
 	fmt.Fprintf(w, "Upgraded itos from %s to %s: %s, and committed nothing.\n", u.from, u.to, edited)
-	fmt.Fprintf(w, "Each release since %s asks, oldest first:\n", u.from)
+	fmt.Fprintf(w, "Each release since %s, oldest first:\n", u.from)
+	for _, r := range u.releases {
+		if r, ok := r.(releaseAsks); ok {
+			u.printRelease(w, r)
+		}
+	}
+	manual := u.manual()
+	if len(manual) == 0 {
+		fmt.Fprintln(w, "\nBy hand: nothing.")
+		fmt.Fprintf(w, "\nCheck: itos version prints itos %s, itos version --check exits 0 and itos config check "+
+			"passes. Commit the move as the project's own commit.\n", u.to)
+		return
+	}
+	fmt.Fprintln(w, "\nBy hand:")
 	for _, r := range u.releases {
 		switch r := r.(type) {
 		case releaseNotes:
 			fmt.Fprintf(w, "\nitos %s publishes no upgrading.json: read the Upgrading section of its notes, "+
 				"and of each release before it since %s, by hand: %s\n", r.Version, u.from, r.Notes)
 		case releaseAsks:
-			printAsks(w, r)
+			if len(r.Breaking)+len(r.Upgrading) > 0 {
+				fmt.Fprintf(w, "\nitos %s (%s):\n", r.Version, release.NotesURL(r.Version))
+				entries(w, "Breaking", r.Breaking)
+				entries(w, "Upgrading", r.Upgrading)
+			}
 		}
 	}
 	fmt.Fprintf(w, "\nDo what they ask, then check: itos version prints itos %s, itos version --check exits 0 "+
 		"and itos config check passes. Commit the move as the project's own commit.\n", u.to)
 }
 
-func printAsks(w io.Writer, r releaseAsks) {
+// printRelease is a release's config edits, as made, and what it changes
+// that asks nothing of the person: the cases it changes on purpose and its
+// config keys.
+func (u upgrade) printRelease(w io.Writer, r releaseAsks) {
 	fmt.Fprintf(w, "\nitos %s (%s):\n", r.Version, release.NotesURL(r.Version))
-	if len(r.Breaking)+len(r.Upgrading)+len(r.Changes)+len(r.Config) == 0 {
-		fmt.Fprintln(w, "  nothing to do.")
-		return
-	}
-	entries := func(kind string, list []upgradingEntry) {
-		for _, e := range list {
-			fmt.Fprintf(w, "  %s (%s %s):\n", kind, shortSHA(e.Commit), e.Header)
-			for _, line := range strings.Split(strings.TrimRight(e.Text, "\n"), "\n") {
-				fmt.Fprintf(w, "    %s\n", line)
-			}
+	edits := 0
+	for _, a := range u.applied {
+		if a.version != r.Version {
+			continue
+		}
+		edits++
+		if a.kind == "renamed" {
+			fmt.Fprintf(w, "  Renamed %s to %s.\n", a.from, a.key)
+		} else {
+			fmt.Fprintf(w, "  Removed %s, which held %s.\n", a.key, value.JSON(a.value))
 		}
 	}
-	entries("Breaking", r.Breaking)
-	entries("Upgrading", r.Upgrading)
-	entries("Changes on purpose", r.Changes)
+	if edits+len(r.Changes)+len(r.Config) == 0 {
+		fmt.Fprintln(w, "  nothing to edit.")
+		return
+	}
+	entries(w, "Changes on purpose", r.Changes)
 	for _, k := range r.Config {
 		fmt.Fprintf(w, "  Config key %s: %s\n", k.Key, k.Change)
+	}
+}
+
+// entries is what commits ask, each under its kind, commit and header.
+func entries(w io.Writer, kind string, list []upgradingEntry) {
+	for _, e := range list {
+		fmt.Fprintf(w, "  %s (%s %s):\n", kind, shortSHA(e.Commit), e.Header)
+		for _, line := range strings.Split(strings.TrimRight(e.Text, "\n"), "\n") {
+			fmt.Fprintf(w, "    %s\n", line)
+		}
 	}
 }
 
@@ -257,7 +362,8 @@ func shortSHA(sha string) string {
 }
 
 // walkReleases is what each release after from up to to asks, oldest first:
-// to's upgrading.json, then its previous's, back to from. A release with no
+// to's upgrading.json, then its previous's, back to from, each with the
+// config edits its itos.schema.json declares. A release with no
 // upgrading.json, or one this itos cannot read, is named by its notes and
 // ends the walk, as does a previous that is not older than its release.
 func walkReleases(from, to string) ([]any, error) {
@@ -276,8 +382,12 @@ func walkReleases(from, to string) ([]any, error) {
 			found = append(found, releaseNotes{Version: v, Notes: release.NotesURL(v)})
 			break
 		}
+		steps, err := schemaSteps(v)
+		if err != nil {
+			return nil, err
+		}
 		found = append(found, releaseAsks{Version: v, Breaking: orEmpty(a.Breaking), Upgrading: orEmpty(a.Upgrading),
-			Changes: orEmpty(a.Changes), Config: orEmpty(a.Config)})
+			Changes: orEmpty(a.Changes), Config: orEmpty(a.Config), steps: steps})
 		if !config.PinVersion.MatchString(a.Previous) || version.Compare(a.Previous, v) >= 0 {
 			break
 		}
@@ -285,6 +395,125 @@ func walkReleases(from, to string) ([]any, error) {
 	}
 	slices.Reverse(found)
 	return found, nil
+}
+
+// dottedPath is a config key's path as a schema declares it: keys parted by
+// dots.
+var dottedPath = regexp.MustCompile(`^[^.\s]+(\.[^.\s]+)*$`)
+
+// schemaSteps is the config edits the itos.schema.json of the release v
+// declares, renames first, in the order its properties are written, then
+// removals: none when it publishes no schema. One it publishes that declares
+// them in a shape this itos cannot read is kind.Missing, since applying
+// some of a release's edits and not others could leave a value nowhere.
+func schemaSteps(v string) ([]configStep, error) {
+	url := release.URL(v, "itos.schema.json")
+	body, err := release.Get(url, pinTimeout)
+	if release.NotFound(err) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("cannot fetch the schema of itos %s: %w", v, err)
+	}
+	unreadable := func(what string) error {
+		return kind.Wrap(kind.Missing, fmt.Errorf("the itos.schema.json of itos %s (%s) %s", v, url, what))
+	}
+	doc, err := value.ParseJSON(string(body))
+	if err != nil || !value.IsMapping(doc) {
+		return nil, unreadable("is not a JSON object")
+	}
+	var steps []configStep
+	var walk func(schema any, path string) error
+	walk = func(schema any, path string) error {
+		properties, ok := value.Prop(schema, "properties").(*value.Map)
+		if !ok {
+			return nil
+		}
+		for _, k := range properties.Keys() {
+			property, at := properties.At(k), strings.TrimPrefix(path+"."+k, ".")
+			if from := value.Prop(property, "x-itos-renamed-from"); from != value.Undefined {
+				old, ok := from.(string)
+				if !ok || !dottedPath.MatchString(old) {
+					return unreadable("declares " + at + " renamed from " + value.JSON(from) + ", not a key's dotted path")
+				}
+				steps = append(steps, configStep{kind: "renamed", key: at, from: old})
+			}
+			if err := walk(property, at); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if err := walk(doc, ""); err != nil {
+		return nil, err
+	}
+	if removed := value.Prop(doc, "x-itos-removed"); removed != value.Undefined {
+		list, ok := removed.([]any)
+		if !ok {
+			return nil, unreadable("lists x-itos-removed as " + value.JSON(removed) + ", not a list")
+		}
+		for _, key := range list {
+			path, ok := key.(string)
+			if !ok || !dottedPath.MatchString(path) {
+				return nil, unreadable("lists " + value.JSON(key) + " in x-itos-removed, not a key's dotted path")
+			}
+			steps = append(steps, configStep{kind: "removed", key: path})
+		}
+	}
+	return steps, nil
+}
+
+// applySteps is the config's text with the edits each release's schema
+// declares made, release by release, oldest first, each on the text the one
+// before left, and the edits made: a key that is not there is no edit. One
+// the config editor cannot make byte for byte (a flow mapping, an anchor or
+// an alias, a new key set already) is a usage error naming the key, exit 2,
+// before any file is written.
+func applySteps(file, text string, releases []any) (string, []appliedStep, error) {
+	applied := []appliedStep{}
+	for _, r := range releases {
+		asks, ok := r.(releaseAsks)
+		if !ok {
+			continue
+		}
+		for _, step := range asks.steps {
+			made := appliedStep{version: asks.Version, configStep: step}
+			edited, had, err := applyStep(text, &made)
+			if err != nil {
+				what := "remove " + step.key
+				if step.kind == "renamed" {
+					what = "rename " + step.from + " to " + step.key
+				}
+				return "", nil, kind.Wrap(kind.Usage, fmt.Errorf("cannot %s in %s, as itos %s's schema declares (%s): "+
+					"edit it by hand, then run itos upgrade again; every file is left as it was", what, file, asks.Version, err))
+			}
+			if had {
+				text = edited
+				applied = append(applied, made)
+			}
+		}
+	}
+	return text, applied, nil
+}
+
+// applyStep is the text with the step made, whether its key was there, and
+// for a removal the value it held.
+func applyStep(text string, made *appliedStep) (string, bool, error) {
+	d, err := value.OpenDoc(text)
+	if err != nil {
+		return "", false, err
+	}
+	var had bool
+	if made.kind == "renamed" {
+		had, err = d.Rename(strings.Split(made.from, "."), strings.Split(made.key, "."))
+	} else {
+		made.value, had, err = d.Remove(strings.Split(made.key, "."))
+	}
+	if err != nil || !had {
+		return "", false, err
+	}
+	edited, err := d.Text()
+	return edited, err == nil, err
 }
 
 func orEmpty[T any](list []T) []T {

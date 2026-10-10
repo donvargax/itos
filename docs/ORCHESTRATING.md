@@ -87,7 +87,8 @@ work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the
   alters on purpose. A case can be named by a unique prefix of its name, so
   each footer line stays within 100 characters. It judges only in CI, and a
   red there stops the release.
-- **The `Upgrading:` footer** says what a consumer must change, concretely,
+- **The `Upgrading:` footer** says what a consumer must still change by hand
+  after `itos upgrade` (which applies the schema's renames), concretely,
   since the notes quote it. Never "none; …" followed by text: it reads as none.
 - **The neighbours:** "Before pushing, run `go test ./features -count=1
 -scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.

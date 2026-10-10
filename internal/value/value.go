@@ -55,7 +55,12 @@
 // Note adds a paragraph to a text after a blank line (a one-line text in a
 // block mapping becoming a folded block); SetBlockList writes a list whole
 // as a block list below its key, [] when empty, added before a given key
-// above the comments leading into it. Each edit is made in Want too, the
+// above the comments leading into it; Rename (rename.go, for itos upgrade,
+// slice 113) moves a key's value to another key, its name alone rewritten
+// within one mapping, its lines moved and reindented into another, and
+// Remove deletes a key, each dropping a mapping it leaves empty and refusing
+// a path through a flow collection, an anchor, an alias or a tag. Each edit
+// is made in Want too, the
 // document as it should read after, and Text refuses the edits unless the
 // text reads back as Want, keys in any order. Of two edits at one offset
 // the earlier writes first.

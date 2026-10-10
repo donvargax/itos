@@ -16,6 +16,11 @@
 // with exactly one of run, tests and tasks) and required_for's word, all. So
 // a config the schema refuses config check refuses too, and not the reverse.
 //
+// A key a release renames declares the key it was, a dotted path, as its
+// property's x-itos-renamed-from, and the keys a release removes are the
+// schema's top-level x-itos-removed list (slice 113): itos upgrade, crossing
+// the release, applies them to the config it moves. Editors ignore them.
+//
 // A release's GoReleaser (.goreleaser.yaml's before hook) writes it as
 // itos.schema.json, published beside the archives and listed in checksums.txt,
 // and tools/selftest/go-schema.ts proves it.
@@ -56,7 +61,11 @@ func main() {
 // generate is the schema as indented JSON, its keys in the order the table
 // writes them.
 func generate() ([]byte, error) {
-	root := config.Schema()
+	return generateFrom(config.Schema())
+}
+
+// generateFrom is the schema of the root node as indented JSON.
+func generateFrom(root *config.Node) ([]byte, error) {
 	defaults := config.DefaultsFor(nil, false)
 	described, err := convert(root, defaults, "")
 	if err != nil {
@@ -65,6 +74,9 @@ func generate() ([]byte, error) {
 	doc := value.NewMap("$schema", Draft, "title", "itos.yaml")
 	for _, k := range described.Keys() {
 		doc.Set(k, described.At(k))
+	}
+	if len(root.Removed) > 0 {
+		doc.Set("x-itos-removed", strings2any(root.Removed))
 	}
 	var out bytes.Buffer
 	if err := json.Indent(&out, []byte(value.JSON(doc)), "", "  "); err != nil {
@@ -81,6 +93,9 @@ func convert(n *config.Node, defaults any, path string) (*value.Map, error) {
 	s := value.NewMap()
 	if n.Description != "" {
 		s.Set("description", n.Description)
+	}
+	if n.RenamedFrom != "" {
+		s.Set("x-itos-renamed-from", n.RenamedFrom)
 	}
 	at := func(k string) string { return strings.TrimPrefix(path+"."+k, ".") }
 	switch n.Kind {

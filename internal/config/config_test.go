@@ -109,6 +109,25 @@ func TestRemovedInV5(t *testing.T) {
 	}
 }
 
+// A key declared renamed carries the key it was into its Node, the spec it
+// copies left as it was, and the top's Node carries the keys removed
+// (slice 113).
+func TestSchemaDeclarations(t *testing.T) {
+	declared := renamed("ci.watch.timeout", about("How long to wait.", num))
+	if n := node(declared); n.RenamedFrom != "ci.watch.timeout" || n.Kind != "number" || n.Description != "How long to wait." {
+		t.Errorf("got %+v", n)
+	}
+	if num.renamedFrom != "" {
+		t.Error("the spec renamed copies was changed")
+	}
+	was := removedHere
+	defer func() { removedHere = was }()
+	removedHere = []string{"ci.watch.timeout"}
+	if got := Schema().Removed; !slices.Equal(got, removedHere) {
+		t.Errorf("the top's removed keys are %v", got)
+	}
+}
+
 // The file is laid over the one table: what it leaves out is the table's,
 // work.registry beside its ledger, each kind over the per-kind defaults.
 func TestLoadLaysTheFileOverTheDefaults(t *testing.T) {
