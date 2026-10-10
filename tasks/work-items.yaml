@@ -1847,7 +1847,7 @@ items:
     phase: 2
     owner: donvargax
     status: todo
-    depends_on: [T-057, p1-conformance-http]
+    depends_on: [T-057]
     kind: idea
     why: >
       The user's idea (2026-10-02): itos work reads the YAML registry and the issues under a label
