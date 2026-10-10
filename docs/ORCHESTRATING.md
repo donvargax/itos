@@ -91,14 +91,11 @@ work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the
   since the notes quote it. Never "none; …" followed by text: it reads as none.
 - **The neighbours:** "Before pushing, run `go test ./features -count=1
 -scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.
-- **Proof and handoff (q-41):** no local mutant execution. The approved CI budget
-  is one cached outcome rechecked per push and 20 nightly. The complete-cache
-  proof still rejects missing, stale, uncovered and surviving results; these
-  samples do not freshly sample uncached code. Fresh bounded sampling remains
-  blocked on itos-cc#27. The nightly seed remains HEAD-deterministic until that
-  provider migration is supported. Until #27 lands, q-50 lets a local
-  `itos-cc mutation run` fill only the results the proof reports missing or
-  stale on main; `p1-drop-mutation-exception` removes it.
+- **Proof and handoff (q-41):** CI rechecks one cached outcome per push and 20
+  nightly; the complete-cache proof rejects missing, stale, uncovered and
+  surviving results. Fresh sampling waits on itos-cc#27. Until it lands, q-50
+  allows a local `itos-cc mutation run` only to fill results the proof reports
+  missing or stale; `p1-drop-mutation-exception` removes that.
   Push with `tools/bin/itos push --no-wait`, then report the exact pushed SHA,
   commits, checks and remaining work from a clean checkout. Do not watch CI or
   close the item: the coordinator watches and closes only on green.
