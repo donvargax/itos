@@ -67,6 +67,9 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	})
 	sc.Step(`^the ledger's task "([^"]*)" has the why "([^"]*)"$`, w.ledgerTaskWhy)
 	sc.Step(`^the ledger's task "([^"]*)" has no checks and the why "([^"]*)"$`, w.ledgerTaskWithoutChecks)
+	sc.Step(`^the work registry has the bug "([^"]*)" owned by "([^"]*)" with the status "([^"]*)"$`, func(id, owner, status string) error {
+		return w.registryItem(id, owner, status, "", "bug")
+	})
 	sc.Step(`^the work registry has the idea "([^"]*)" owned by nobody$`, func(id string) error {
 		return w.registryItem(id, "null", "todo", "", "idea")
 	})
@@ -93,7 +96,7 @@ func initializeWorkSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the registry is unchanged$`, w.registryUnchanged)
 	sc.Step(`^the registry's item "([^"]*)" is a (slice|task) whose why starts with "([^"]*)"$`, w.registryItemKind)
 	sc.Step(`^the registry's item "([^"]*)" depends on "([^"]*)"$`, w.registryItemDependsOn)
-	sc.Step(`^the registry's item "([^"]*)" is an? (idea|slice|task) titled "([^"]*)" with the status "([^"]*)"$`, w.registryItemMade)
+	sc.Step(`^the registry's item "([^"]*)" is an? (idea|slice|task|bug) titled "([^"]*)" with the status "([^"]*)"$`, w.registryItemMade)
 	sc.Step(`^the registry's item "([^"]*)" is titled "([^"]*)"$`, func(id, title string) error {
 		return w.registryItemField(id, "title", title)
 	})
