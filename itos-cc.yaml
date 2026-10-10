@@ -26,126 +26,6 @@ mutation:
       original: "1"
       replacement: "0"
       reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/taskadd.go
-      function: github.com/donvargax/itos/v7/internal/cli#taskAddArgs
-      hash: e648134ddd68c155
-      line_in_function: 9
-      column: 11
-      original: "false"
-      replacement: "true"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/taskadd.go
-      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
-      hash: 6ebd2c7875043bcd
-      line_in_function: 4
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/taskadd.go
-      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
-      hash: 6ebd2c7875043bcd
-      line_in_function: 8
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/taskadd.go
-      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
-      hash: 6ebd2c7875043bcd
-      line_in_function: 18
-      column: 11
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/taskadd.go
-      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
-      hash: 6ebd2c7875043bcd
-      line_in_function: 27
-      column: 12
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/taskadd.go
-      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
-      hash: 6ebd2c7875043bcd
-      line_in_function: 43
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/taskadd.go
-      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
-      hash: 6ebd2c7875043bcd
-      line_in_function: 47
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/taskadd.go
-      function: github.com/donvargax/itos/v7/internal/cli#taskAdd
-      hash: 6ebd2c7875043bcd
-      line_in_function: 55
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workedit.go
-      function: github.com/donvargax/itos/v7/internal/cli#workAdd
-      hash: 30047573f96d6c75
-      line_in_function: 4
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workedit.go
-      function: github.com/donvargax/itos/v7/internal/cli#workAdd
-      hash: 30047573f96d6c75
-      line_in_function: 7
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workedit.go
-      function: github.com/donvargax/itos/v7/internal/cli#workAdd
-      hash: 30047573f96d6c75
-      line_in_function: 14
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workedit.go
-      function: github.com/donvargax/itos/v7/internal/cli#workAdd
-      hash: 30047573f96d6c75
-      line_in_function: 17
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workedit.go
-      function: github.com/donvargax/itos/v7/internal/cli#workAdd
-      hash: 30047573f96d6c75
-      line_in_function: 33
-      column: 11
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workedit.go
-      function: github.com/donvargax/itos/v7/internal/cli#workAdd
-      hash: 30047573f96d6c75
-      line_in_function: 42
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workedit.go
-      function: github.com/donvargax/itos/v7/internal/cli#workAdd
-      hash: 30047573f96d6c75
-      line_in_function: 46
-      column: 11
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
     - file: internal/cli/workwrite.go
       function: github.com/donvargax/itos/v7/internal/cli#workArgsOptionalID
       hash: 10a794417f317cc2
@@ -161,46 +41,6 @@ mutation:
       column: 14
       original: "false"
       replacement: "true"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workwrite.go
-      function: github.com/donvargax/itos/v7/internal/cli#workPromote
-      hash: d0a012f5bdf5190f
-      line_in_function: 4
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workwrite.go
-      function: github.com/donvargax/itos/v7/internal/cli#workPromote
-      hash: d0a012f5bdf5190f
-      line_in_function: 8
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workwrite.go
-      function: github.com/donvargax/itos/v7/internal/cli#workPromote
-      hash: d0a012f5bdf5190f
-      line_in_function: 24
-      column: 11
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workwrite.go
-      function: github.com/donvargax/itos/v7/internal/cli#workPromote
-      hash: d0a012f5bdf5190f
-      line_in_function: 29
-      column: 10
-      original: "0"
-      replacement: "1"
-      reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
-    - file: internal/cli/workwrite.go
-      function: github.com/donvargax/itos/v7/internal/cli#workPromote
-      hash: d0a012f5bdf5190f
-      line_in_function: 38
-      column: 10
-      original: "0"
-      replacement: "1"
       reason: "Not equivalent: excepted under q-51 so slice-102 can release; T-138 adds the test that kills it and removes this entry."
     - file: internal/ledger/nextid.go
       function: github.com/donvargax/itos/v7/internal/ledger#NextIDAfter
@@ -258,3 +98,11 @@ mutation:
       original: "||"
       replacement: "&&"
       reason: 'Equivalent: the source edit binds as s == "" || (strings.ContainsAny(s, "/\\\x00") && s == ".") || s == "..", and "." holds none of those characters, so it rejects only "" and ".."; every string the original also rejects (".", or one holding a slash, backslash or NUL) has a character outside [A-Za-z0-9-], which the loop below rejects anyway, so validCategory returns the same for every input.'
+    - file: internal/cli/taskadd.go
+      function: github.com/donvargax/itos/v7/internal/cli#taskAddArgs
+      hash: a8c37f54b25bc2fd
+      line_in_function: 9
+      column: 11
+      original: "false"
+      replacement: "true"
+      reason: "Equivalent: timed is read only beside len(n.Checks) == 0, which refuses with no check, and every --check sets it false before any later read, so its first value is never seen."
