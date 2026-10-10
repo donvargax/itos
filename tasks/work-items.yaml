@@ -3997,12 +3997,9 @@ items:
     title: A check's timeout must be positive
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). timeout: 0 or a negative one makes min(own,
-      cap) remove the hook's cap (check/captured.go:39).
     refs: [internal/check/captured.go]
 
   - id: p1-ledger-layout-checks
