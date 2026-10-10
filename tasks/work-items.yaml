@@ -6402,6 +6402,13 @@ items:
       repository root, joins the itos-cc integration v7.0.0-rc.1 begins with proof.code (T-120); an
       improvement, not a fault
 
+      itos-cc#30 (2026-10-09): itos-cc dates a listed kill by its test's whole feature file, so any
+      edit there (a comment, a new @wip scenario beside implemented ones) stales every kill that
+      file's scenarios made. Proposed there: tests.list prints a third column, a fingerprint of the
+      test's own text, and a kill stays fresh while it holds. This list's form should carry it: a
+      scenario's steps, tables, doc strings, Examples, the Background before it and its tags, hashed
+      without comments, descriptions or other scenarios.
+
   - id: p3-opencode-plugin
     title: An opencode v2 plugin guards git commit and git push, and init wires it
     phase: 3
