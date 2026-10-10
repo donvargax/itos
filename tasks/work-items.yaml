@@ -7030,15 +7030,9 @@ items:
     title: init --policy keeps a smoke set the project already has when it passes the smoke check
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Issue #39 (https://github.com/donvargax/itos/issues/39). A project made from a template ships
-      the template's features/smoke.yaml, its selections and reasons reviewed like code, and init
-      --policy refuses it as existing work data, so the project can adopt the policy only by moving
-      the file aside or losing its reasons to a derived set. Specified in features/init.feature,
-      above @ID-INIT-55.
     refs: [internal/cli/initpolicy.go, features/init.feature, tools/itos/conformance/init.yaml]
 
   - id: p1-init-smoke-header-per-kind
