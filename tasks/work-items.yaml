@@ -2362,7 +2362,7 @@ items:
     phase: 3
     owner: null
     status: todo
-    depends_on: [p3-role-protocol]
+    depends_on: []
     kind: idea
     why: >
       The second role (p3-role-protocol): a list of things known to be wrong, accepted for now,
