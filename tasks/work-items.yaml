@@ -7273,3 +7273,19 @@ items:
       pass over them too, so work done A, work done B, then one itos push. The person runs many
       agents across itos-driven repositories, so a step like this is paid many times over in tokens,
       CI and time.
+
+  - id: p1-test-commits-own-mutation-exceptions
+    title: A test commit may touch itos-cc.yaml and .metrics/mutate/, so a killed mutant and its exception land together
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      itos-cc fails an exception as mutation.exception-stale once a test kills its mutant, so the
+      test and the entry's removal are one change. commits.scopes lets a test commit touch neither
+      itos-cc.yaml nor the cached results under .metrics/mutate/, so T-138 (2026-10-10) had to split
+      them into a test commit and a chore commit, as cb8407b2 and 0f04571b did before, and the spec
+      had to be corrected first. The exceptions and the cached results are the tests' own data;
+      letting test commits touch them removes a commit and a briefing trap from every survivor fix,
+      here and in each repository that copies this policy.
