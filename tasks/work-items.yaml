@@ -2991,14 +2991,9 @@ items:
     title: Cover zero digits and extra core components in version parsing
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Was p1-version-mutation-gaps.
-      Found by itos-cc mutate on internal/version (2026-10-03): leadingInt survives < to <= (no test
-      has a 0 inside a number, such as 1.10.0 against 1.9.0) and parts survives i < 3 to <= (which
-      would panic on a fourth dot part, no test has one, such as 1.2.3-rc.1). Two test cases.
 
   - id: T-132
     title: Add behavioural Go tests for the schema compatibility gate

@@ -1221,8 +1221,6 @@
     If an unexpected behavior defect emerges, stop and report it for specification. The standing
     internal unit suite keeps these tests after task closure. No local mutation or coverage run,
     cache/hash editing, equivalent-mutant exceptions or gate changes.
-  done_when:
-    - run: "go test ./internal/version -count=1 -run '^(TestLeadingInt|TestParts|TestCompare|TestSatisfies)$'"
 
 - id: T-135
   type: ci
