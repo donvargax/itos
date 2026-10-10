@@ -220,3 +220,4 @@ questions:
   - id: q-53
     item: "T-131"
     question: "What does v7.0.0 hold? Its plan (docs/plans/v7-proof-of-done.md) bundled about twenty breaking items after the itos-cc integration, most of them unspecified ideas. Recommended: trim it. v7.0.0 is cut once T-131 (fresh mutation gates) and the id slices 103 to 105 land, so v7 is proof of done and minted ids; exit codes, the hook-skipping refusal, config tightening, slice-95, rule 22 and dropping compatibility code move to the next major, still one breaking bundle. Alternative: keep the bundle and the pre-release open until all of it lands."
+    answer: "Agreed: trim v7. v7.0.0 is proof of done and minted ids, cut once T-131 and slices 103 to 105 land; the rest moves to the next major as one breaking bundle. The user, 2026-10-09."
