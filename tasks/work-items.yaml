@@ -899,13 +899,9 @@ items:
     title: "An identity command's answer mapped to a login"
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      A command identity takes the command's output as the handle, so the command must print the
-      login itself. Asking git config user.email and mapping it through a people file that pairs a
-      login with an email needs a map: key and that file; it fits the people sources in the Go port.
 
   - id: p1-conformance-http
     title: Conformance cases for the providers that ask an HTTP API
