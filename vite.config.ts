@@ -40,6 +40,9 @@ const fmt = {
 		// formatter would reflow it.
 		"tools/itos/conformance/**",
 		".claude/**",
+		// The questions, the work registry and the ledgers: itos writes and commits them
+		// itself, past the staged formatter, so their layout is itos's (T-137).
+		"tasks/*.yaml",
 	],
 };
 
