@@ -4892,10 +4892,6 @@ items:
       answered, from git history where they are missing, and commits the registry alone. The person
       ruled out a one-time command for it: until v10 a command kept for one migration is only cost,
       and removing it later is breaking.
-    deferred: >
-      The user's call (2026-10-07): deferred so the itos-cc integration ships as soon as it can; v7
-      renames and removes no config key, so nothing needs automating across it. Taken up when a
-      release first renames or removes one.
 
   - id: p1-push-fits-foreground
     title: itos push never outlives a harness's foreground command
