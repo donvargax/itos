@@ -7256,3 +7256,20 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-work-done-passes-own-closes
+    title: work done passes over unpushed registry-only commits, so several closes land in one push
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      On 2026-10-10 the coordinator closed T-139 then T-140, and T-141 then T-137, each pair
+      finished and green on main. The second work done refused each time (HEAD has a commit no
+      remote has) because of the first one's own close commit, docs: close <id>, which touches only
+      the registry. Each pair cost an extra push and CI run. work done already passes over
+      registry-only commits when it picks the commit to judge (slice-93); its unpushed check should
+      pass over them too, so work done A, work done B, then one itos push. The person runs many
+      agents across itos-driven repositories, so a step like this is paid many times over in tokens,
+      CI and time.
