@@ -4707,6 +4707,10 @@ items:
       contract decision 35 names. work.yaml's "with no registry where itos looks" runs work list
       --json and pins a plain stderr line, no JSON on stdout, which a script reading --json cannot
       use either.
+
+      Backlog review of 2026-10-10, batch 2: folds in p3-corpus-asserts-json: a case about behaviour
+      that asserts only through text gives previous-release nothing but its exit code since T-100;
+      move such cases to json:, exit codes and files_after as they are touched.
     refs: [tools/itos/conformance/guide.yaml, tools/itos/conformance/status.yaml]
 
   - id: slice-87
