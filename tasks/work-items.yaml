@@ -7008,3 +7008,17 @@ items:
       slice left out (the comment above @ID-INIT-41). A template whose named tests come from a
       command adapter cannot adopt its policy until it can.
     refs: [internal/cli/initpolicy.go, features/init.feature]
+
+  - id: p1-init-policy-names-source
+    title: init --policy names the policy file in a refusal about the policy's own keys
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice-108's agent (2026-10-09): a policy whose Gherkin test kind has a smoke file but
+      no root is refused with "tests.scenario.root is missing" naming the target itos.yaml, which
+      does not exist yet, rather than the policy file the person passed, so the message points at
+      the wrong file to fix. Every refusal about the source's content should name the source.
+    refs: [internal/cli/initpolicy.go]
