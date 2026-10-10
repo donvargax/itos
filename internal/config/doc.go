@@ -65,7 +65,10 @@
 // a proof.code with paths and a check that takes {base}.
 // The five pattern keys (ledger.id, ledger.group.pattern, tests.<kind>.id,
 // ci.cost.static, ci.covers[].matches) are RE2, the binary's dialect, and
-// config check refuses one RE2 cannot compile (config-regexp).
+// config check refuses one RE2 cannot compile (config-regexp). FromText
+// does all of it to a text not read from its file, the stealth one's or not
+// as it is told: itos init --policy judges a policy, and the config it makes
+// of it, before it writes either (slice 108).
 //
 // # The one table of defaults
 //

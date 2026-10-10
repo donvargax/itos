@@ -139,6 +139,24 @@
 // that cannot change the project, not one with its own itos.yaml.
 // ITOS_CONFIG naming a file that does not exist is a usage error.
 //
+// init --policy <file> (initpolicy.go, policyInit; slice 108, q-49) takes
+// the place of the starter and of the doctor alike. policyPlanned reads the
+// file from where the person stood (typed), judges it with
+// config.FromText, and makes it the project's own (policyConfig, the
+// policy's text edited in place by value.Doc: commits.since HEAD or none,
+// each footer's since dropped, the starter's ledger layout where it has
+// none, the newest release pinned where it pins none); then, before
+// anything is written, git init included (toTop moves to the top without
+// it, gitInit runs it after), policyData plans the fresh ledger, registry
+// and Gherkin smoke sets at the config's paths and refuses an adoption task
+// T-1 the ledger cannot hold, policyPaths a file outside the project or the
+// stealth folder once its existing part's symbolic links are followed
+// (resolved), both exit 2, and policyThere any config or data of a project
+// already there, exit 1 (policyRefused). writeNew never writes over a file,
+// and a failure once writing began names what this run did (partial). The
+// hooks and the offers follow as for the starter, and policyNext names what
+// to commit.
+//
 // Then, both ways, init makes three offers
 // (docs/decisions/0031-itos-init-offers-the-plugin-and-the-git-shim-opt-in-everywhere.md,
 // docs/decisions/0032-itos-init-generates-the-config-s-rules-into-a-marked-block-of-agents-md.md).

@@ -113,9 +113,10 @@ Commands:
                                    link itos as git, for itos's commit and push
   pin [<version>|latest]           move the config's pin to a release, the newest by default
   upgrade [<version>|latest]       move to a newer itos, listing what each release since asks
-  init [--stealth] [--plugin [<scope>]] [--git-shim [--git-shim-dir <folder>] | --no-git-shim]
-       [--agent-rules | --no-agent-rules]
-                                   ready a repository for itos; run again, what is missing
+  init [--stealth] [--policy <file>] [--plugin [<scope>]]
+       [--git-shim [--git-shim-dir <folder>] | --no-git-shim] [--agent-rules | --no-agent-rules]
+                                   ready a repository for itos, from a policy or the starter;
+                                   run again, what is missing
   verify <from> <to>               re-check every commit of a range
   tests list <kind> [--at <tree>]  the kind's named tests
   tests smoke check|ids|run <kind> the smoke rule, the smoke IDs, the smoke run
@@ -978,7 +979,7 @@ pinned. It commits nothing, and runs the binary called, whatever the pin says.
         {"version","breaking","upgrading","changes","config"}, or
         {"version","notes"} for one with no upgrading.json`,
 
-	"init": `Usage: itos init [--stealth] [--plugin [project|user|local|no]]
+	"init": `Usage: itos init [--stealth] [--policy <file>] [--plugin [project|user|local|no]]
                  [--git-shim [--git-shim-dir <folder>] | --no-git-shim]
                  [--agent-rules | --no-agent-rules]
 
@@ -1008,6 +1009,28 @@ Then it notes, never counting them as missing: a people file the config names
 that the repository lacks or cannot read, as itos config check warns, and a
 pin behind the newest release, naming itos pin, where the release server
 answers.
+
+--policy <file> makes a fresh project of a template's policy: the file, an
+ordinary complete itos config read from where you stand, is checked as itos
+config check checks one and copied as the project's own config, comments and
+all, never followed afterwards. commits.since becomes HEAD (none in a
+repository with no commit) and no footer keeps a since; the policy's pin is
+kept, or with none the newest release pinned as above; with no ledger the
+starter's tasks/phase-{group}.yaml is added. Then fresh data at the config's
+paths: its ledger's group 1 with the adoption task T-1 (no task under
+--stealth), a registry with no item and the group 1 owned by nobody under
+work.groups_key, and for each Gherkin kind with a smoke file a smoke set of
+the project's own scenarios. Nothing else comes from the template: no task,
+owner, status, question, smoke selection or proof result, and nothing the
+policy names runs. Before anything is written, git init included, it refuses
+(exit 2) a policy config check refuses, an ID pattern, type list or ledger
+layout that cannot hold T-1 in group 1, a file it would write outside the
+project (or the stealth folder) once symbolic links are followed, and a smoke
+file of a kind whose adapter is a command; and (exit 1) a config already
+there, any file the ledger's pattern names, the registry or a smoke set, an
+empty one too. It never writes over a file, and --config or ITOS_CONFIG is a
+usage error with it. A failure once writing began says what this run wrote,
+and removes nothing.
 
 It offers the itos plugin for Claude Code, through the claude on the PATH:
 claude plugin list --json says whether itos@itos is installed, and claude
@@ -1059,10 +1082,12 @@ AGENTS.override.md already there is yours: it gains only the block, at its end.
 Run again, a copy that no longer matches AGENTS.md is reported as well, and
 --agent-rules rewrites it.
 
---json: {"schema":1,"config","action":"initialized","git_init","since","files":[{"path","action"}],
-        "pin","pin_problem"?,"hooks","plugin","git_shim","agent_rules"} (hooks as itos hook install
-        --json prints it), or {"schema":1,"config","action":"checked","missing":[{"rule","message",
-        "fix"?,"area"}],"plugin","notes":[{"rule","message","fix"?,"area"}],"git_shim","agent_rules"};
+--json: {"schema":1,"config","action":"initialized","policy"?,"git_init","since","files":[{"path",
+        "action"}],"pin","pin_problem"?,"hooks","plugin","git_shim","agent_rules"} (hooks as itos hook
+        install --json prints it), or {"schema":1,"config","action":"checked","missing":[{"rule",
+        "message","fix"?,"area"}],"plugin","notes":[{"rule","message","fix"?,"area"}],"git_shim",
+        "agent_rules"}, or for --policy {"schema":1,"config","action":"refused","problems":[{"rule",
+        "message","fix"}]};
         plugin {"action","scope","excluded","problem"?}, action one of installed, already,
         offered, declined, no_claude, unknown (claude plugin list failed) or failed;
         git_shim {"action","link","on_path","before_git","problem"?}, action one of linked,

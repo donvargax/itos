@@ -177,7 +177,7 @@ var specs = map[string]spec{
 	}},
 	"pin":     {},
 	"upgrade": {},
-	"init": {flags: []flagSpec{sw("--stealth"), {name: "--plugin", takes: may}, sw("--git-shim"), sw("--no-git-shim"),
+	"init": {flags: []flagSpec{sw("--stealth"), val("--policy"), {name: "--plugin", takes: may}, sw("--git-shim"), sw("--no-git-shim"),
 		val("--git-shim-dir"), sw("--agent-rules"), sw("--no-agent-rules")}},
 	"followup": {flags: []flagSpec{sw("--all")}, subs: map[string]spec{
 		"add":   {flags: []flagSpec{val("--with"), val("--title"), val("--note")}},

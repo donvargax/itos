@@ -95,8 +95,9 @@ func (l *Loaded) Section(key string) error {
 	}}}
 }
 
-// decode reads a tree into the typed config.
-func decode(tree *value.Map, into *Config) error {
+// decode reads a tree into the typed config; a variable, so a test can make
+// it fail, as no tree the schema accepts does.
+var decode = func(tree *value.Map, into *Config) error {
 	return json.Unmarshal([]byte(value.JSON(tree)), into)
 }
 
@@ -113,16 +114,34 @@ func configText(file string) (string, error) {
 // Load reads, validates and lays over the defaults the config at file.
 func Load(file string) (*Loaded, error) {
 	text, err := configText(file)
-	var raw any
-	if err == nil {
-		raw, err = value.Parse(text)
-	}
 	if err != nil {
-		return nil, &Error{File: file, Problems: []out.Problem{{
-			Rule:    "config-unreadable",
-			Message: "cannot be read: " + err.Error(),
-			Fix:     "create " + file + ", or correct its YAML",
-		}}}
+		return nil, unreadable(file, err)
+	}
+	return fromText(file, text, IsStealth)
+}
+
+// FromText is Load of a config's text, not read from file but named by it,
+// the stealth one or not as stealth says: itos init --policy (slice 108)
+// validates a policy, and the config it makes of it, before it writes any.
+func FromText(file, text string, stealth bool) (*Loaded, error) {
+	return fromText(file, text, func(string) bool { return stealth })
+}
+
+// unreadable is a config that cannot be read, or is not YAML.
+func unreadable(file string, err error) *Error {
+	return &Error{File: file, Problems: []out.Problem{{
+		Rule:    "config-unreadable",
+		Message: "cannot be read: " + err.Error(),
+		Fix:     "create " + file + ", or correct its YAML",
+	}}}
+}
+
+// fromText validates the config's text and lays it over the defaults,
+// asking isStealth only of a config that is valid.
+func fromText(file, text string, isStealth func(string) bool) (*Loaded, error) {
+	raw, err := value.Parse(text)
+	if err != nil {
+		return nil, unreadable(file, err)
 	}
 	if found := problems(raw, schema, ""); len(found) > 0 {
 		return nil, &Error{File: file, Problems: found}
@@ -144,7 +163,7 @@ func Load(file string) (*Loaded, error) {
 	if len(found) > 0 {
 		return nil, &Error{File: file, Problems: found}
 	}
-	loaded := &Loaded{Path: file, file: tree, Stealth: IsStealth(file)}
+	loaded := &Loaded{Path: file, file: tree, Stealth: isStealth(file)}
 	loaded.tree = withDefaults(tree, loaded.Stealth)
 	if loaded.Stealth {
 		beside(loaded.tree, file)

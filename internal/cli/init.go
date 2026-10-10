@@ -15,7 +15,9 @@ package cli
 // there, it writes nothing: it reports what config check finds wrong and
 // each hook of itos's the git config does not declare, or a git that runs no
 // hook its config declares, naming what fixes it, exit 1 when anything is
-// missing and 0 when nothing is.
+// missing and 0 when nothing is. With --policy <file> it makes the project
+// of a template's policy instead, fresh data and all, and refuses where a
+// config or data is there (initpolicy.go).
 //
 // It is the launcher's own command, as pin is (internal/launch): where there
 // is no config there is no pin to hand the run to, and the newest release
@@ -44,11 +46,11 @@ import (
 	"github.com/donvargax/itos/v7/internal/version"
 )
 
-// initCommand is `init [--stealth] [--plugin [<scope>]] [--git-shim
-// [--git-shim-dir <folder>] | --no-git-shim] [--agent-rules |
-// --no-agent-rules]`.
+// initCommand is `init [--stealth] [--policy <file>] [--plugin [<scope>]]
+// [--git-shim [--git-shim-dir <folder>] | --no-git-shim] [--agent-rules |
+// --no-agent-rules]`; with --policy, policyInit (initpolicy.go).
 func initCommand(args []string, o Out) (int, error) {
-	stealth := false
+	stealth, policy := false, ""
 	var plugin pluginFlag
 	var shim shimFlag
 	var rules rulesFlag
@@ -67,9 +69,12 @@ func initCommand(args []string, o Out) (int, error) {
 			i += n - 1
 		case args[i] == "--stealth":
 			stealth = true
+		case args[i] == "--policy" && i+1 < len(args):
+			policy = args[i+1]
+			i++
 		default:
-			return 0, usage("init takes only --stealth, --plugin [<scope>], --git-shim, --git-shim-dir <folder>, "+
-				"--no-git-shim, --agent-rules and --no-agent-rules (%s)", args[i])
+			return 0, usage("init takes only --stealth, --policy <file>, --plugin [<scope>], --git-shim, "+
+				"--git-shim-dir <folder>, --no-git-shim, --agent-rules and --no-agent-rules (%s)", args[i])
 		}
 	}
 	if shim.given && !shim.install && shim.dir != "" {
@@ -81,6 +86,12 @@ func initCommand(args []string, o Out) (int, error) {
 	log := o.Stdout
 	if o.JSON {
 		log = o.Stderr
+	}
+	if policy != "" {
+		ask, answers := !o.JSON && onTerminal(), bufio.NewReader(os.Stdin)
+		return policyInit(policy, stealth, pluginOffer{flag: plugin, stealth: stealth, ask: ask, answers: answers},
+			shimOffer{flag: shim, ask: ask, answers: answers}, rulesOffer{flag: rules, stealth: stealth, ask: ask, answers: answers},
+			log, o)
 	}
 	initialized, err := atTop(log)
 	if err != nil {
@@ -116,20 +127,35 @@ func initCommand(args []string, o Out) (int, error) {
 // atTop moves to the top of the repository the folder is in, after git init
 // when it is in none, and says whether it ran git init.
 func atTop(log io.Writer) (bool, error) {
+	inRepo, err := toTop()
+	if err != nil || inRepo {
+		return false, err
+	}
+	return true, gitInit(log)
+}
+
+// toTop moves to the top of the repository the folder is in, and says
+// whether it is in one; in a git folder it is a usage error.
+func toTop() (bool, error) {
 	if _, err := git.Output("rev-parse", "--git-dir"); err != nil {
-		cmd := exec.Command(git.Bin(), "init", "-q")
-		if text, err := cmd.CombinedOutput(); err != nil {
-			return false, fmt.Errorf("git init: %s", value.Trim(string(text)))
-		}
-		here, _ := os.Getwd()
-		fmt.Fprintf(log, "Ran git init: %s is a git repository now.\n", here)
-		return true, nil
+		return false, nil
 	}
 	top, err := git.Output("rev-parse", "--show-toplevel")
 	if top = value.Trim(top); err != nil || top == "" {
 		return false, kind.Wrap(kind.Usage, errors.New("init runs in a repository's working tree, not in its git folder"))
 	}
-	return false, os.Chdir(top)
+	return true, os.Chdir(top)
+}
+
+// gitInit makes the folder a git repository, and says so.
+func gitInit(log io.Writer) error {
+	cmd := exec.Command(git.Bin(), "init", "-q")
+	if text, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("git init: %s", value.Trim(string(text)))
+	}
+	here, _ := os.Getwd()
+	fmt.Fprintf(log, "Ran git init: %s is a git repository now.\n", here)
+	return nil
 }
 
 // writtenFile is a file init wrote, or found there and kept.

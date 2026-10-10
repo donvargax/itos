@@ -44,7 +44,8 @@
 // the document, for the registry's and the ledger's writers. Set replaces a
 // one-line scalar in its style (quoted in a flow collection when a plain one
 // would hold its indicators) or adds a key after the mapping's last one-line
-// value; Lead puts a sentence before a text (a new first line of a folded or
+// value; Add adds a key after the mapping's last key whatever its value holds
+// (itos init --policy's commits.since); Lead puts a sentence before a text (a new first line of a folded or
 // literal block); Append adds a block mapping after a block list's last item
 // (the document's top one too, a ledger file), a blank line before it when
 // one parts the last two and a why folded and wrapped at Width; SetList

@@ -270,3 +270,38 @@ func TestDocDrop(t *testing.T) {
 		t.Error("a key on its item's dash line is not dropped")
 	}
 }
+
+func TestDocAdd(t *testing.T) {
+	add := func(path []any, s string) func(d *Doc) error { return func(d *Doc) error { return d.Add(path, s) } }
+	// A block mapping whose keys all hold collections: after the last one's
+	// lines, at its keys' column, before what follows it.
+	block := "commits:\n  footers:\n    Task: { source: ledger }\n  scopes:\n    docs:\n      only: [a]\n\nhooks: { bin: itos }\n"
+	got, d := edited(t, block, add([]any{"commits", "since"}, "abc123"))
+	want := "commits:\n  footers:\n    Task: { source: ledger }\n  scopes:\n    docs:\n      only: [a]\n  since: abc123\n\nhooks: { bin: itos }\n"
+	if got != want || Prop(Prop(d.Want, "commits"), "since") != "abc123" {
+		t.Errorf("a block mapping:\n got %q\nwant %q", got, want)
+	}
+	// A flow mapping, its line breaks CRLF: before the closing brace.
+	got, _ = edited(t, "hooks: { bin: itos }\r\ncommits: { types: [a] }\r\n", add([]any{"commits", "since"}, "123"))
+	if want := "hooks: { bin: itos }\r\ncommits: { types: [a], since: \"123\" }\r\n"; got != want {
+		t.Errorf("a flow mapping:\n got %q\nwant %q", got, want)
+	}
+	// A key there already, an empty mapping and a path that is no mapping's
+	// key are refused.
+	for _, c := range []struct {
+		text string
+		path []any
+	}{
+		{"commits:\n  since: x\n", []any{"commits", "since"}},
+		{"commits: {}\n", []any{"commits", "since"}},
+		{"commits: [a]\n", []any{"commits", "since"}},
+	} {
+		d, err := OpenDoc(c.text)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := d.Add(c.path, "y"); err == nil {
+			t.Errorf("%q: Add was not refused", c.text)
+		}
+	}
+}

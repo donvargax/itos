@@ -287,3 +287,39 @@ func TestSectionReadsADottedKey(t *testing.T) {
 		t.Fatalf("ci.steps written: %v", err)
 	}
 }
+
+// FromText judges a config's text as Load judges its file, the stealth one's
+// data beside it as it says, and a text that is no YAML is unreadable.
+func TestFromText(t *testing.T) {
+	text := "version: 1\nledger: { files: \"work/phase-{group}.yaml\" }\n"
+	loaded, err := FromText(filepath.Join("g", "itos", "itos.yaml"), text, true)
+	if err != nil || !loaded.Stealth || loaded.Ledger.Files != filepath.Join("g", "itos", "work", "phase-{group}.yaml") {
+		t.Fatalf("stealth: %v, %+v", err, loaded)
+	}
+	if loaded, err = FromText("itos.yaml", text, false); err != nil || loaded.Stealth || loaded.Ledger.Files != "work/phase-{group}.yaml" {
+		t.Fatalf("not stealth: %v, %+v", err, loaded)
+	}
+	var e *Error
+	if _, err := FromText("p.yaml", "version: [1", false); !errors.As(err, &e) || e.Problems[0].Rule != "config-unreadable" {
+		t.Errorf("no YAML: %v", err)
+	}
+}
+
+// A tree the typed config cannot be read from fails the load, the file's or
+// the one laid over the defaults; none the schema accepts does.
+func TestLoadFailsWhereTheTypedConfigCannotBeRead(t *testing.T) {
+	was := decode
+	t.Cleanup(func() { decode = was })
+	for failing := 1; failing <= 2; failing++ {
+		calls := 0
+		decode = func(tree *value.Map, into *Config) error {
+			if calls++; calls == failing {
+				return errors.New("unreadable")
+			}
+			return was(tree, into)
+		}
+		if _, err := FromText("itos.yaml", "version: 1\n", false); err == nil || err.Error() != "unreadable" {
+			t.Errorf("decode %d failing: %v", failing, err)
+		}
+	}
+}

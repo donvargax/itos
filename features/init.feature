@@ -156,7 +156,7 @@ Feature: itos init, a repository made ready for itos
   # JSON and concrete written paths. Preflight refusals leave everything alone;
   # an I/O/setup failure reports failure and only this call's partial work,
   # never claims initialization succeeded or removes preexisting user files.
-  @ID-INIT-41 @slice-108 @wip
+  @ID-INIT-41 @slice-108
   Scenario: Explicit policy initialization retains quality policy and creates fresh work data at the selected paths
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "template/policy.yaml" holding the lines:
@@ -217,7 +217,7 @@ Feature: itos init, a repository made ready for itos
     When itos checks the config
     Then itos exits with code 0
 
-  @ID-INIT-42 @slice-108 @wip
+  @ID-INIT-42 @slice-108
   Scenario: Policy initialization resets history boundaries without importing the source's work history
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "template/policy.yaml" holding the lines:
@@ -265,7 +265,7 @@ Feature: itos init, a repository made ready for itos
     And the file "template-task-ran" does not exist
     And the file "template/policy.yaml" has the same contents as its committed version
 
-  @ID-INIT-43 @slice-108 @wip
+  @ID-INIT-43 @slice-108
   Scenario: Policy initialization preserves a supplied pin instead of moving it to the newest release
     Given a release server offering the versions "9.1.0" and "9.2.0"
     And a repository that does not use itos, its one commit "docs: start"
@@ -289,7 +289,7 @@ Feature: itos init, a repository made ready for itos
     And no version of the release server ran
     And the file "policy.yaml" has the same contents as its committed version
 
-  @ID-INIT-44 @slice-108 @wip
+  @ID-INIT-44 @slice-108
   Scenario: Policy initialization with no supplied pin uses init's usual newest-release pinning
     Given a release server offering the versions "9.1.0" and "9.2.0"
     And a repository that does not use itos, its one commit "docs: start"
@@ -299,7 +299,7 @@ Feature: itos init, a repository made ready for itos
     And the config's pin is the version "9.2.0" of the release server, with its checksums
     And no version of the release server ran
 
-  @ID-INIT-45 @slice-108 @wip
+  @ID-INIT-45 @slice-108
   Scenario: Explicit policy initialization refuses an existing project configuration without changing it
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init"
@@ -310,7 +310,7 @@ Feature: itos init, a repository made ready for itos
     And its output says "itos.yaml"
     And no file changed since the last run
 
-  @ID-INIT-46 @slice-108 @wip
+  @ID-INIT-46 @slice-108
   Scenario: Policy initialization refuses a preexisting registry before creating any project files or hooks
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "policy.yaml" holding "version: 1"
@@ -324,7 +324,7 @@ Feature: itos init, a repository made ready for itos
     And the git config declares no "commit-msg" hook
     And the git config declares no "pre-push" hook
 
-  @ID-INIT-47 @slice-108 @wip
+  @ID-INIT-47 @slice-108
   Scenario: Policy initialization refuses a preexisting ledger rather than retaining or importing its tasks
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "policy.yaml" holding "version: 1"
@@ -338,7 +338,7 @@ Feature: itos init, a repository made ready for itos
     And the file "tasks/work-items.yaml" does not exist
     And the git config declares no "commit-msg" hook
 
-  @ID-INIT-48 @slice-108 @wip
+  @ID-INIT-48 @slice-108
   Scenario: An invalid source policy is refused before even initializing git in an unmanaged folder
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "policy.yaml" holding the lines:
@@ -353,7 +353,7 @@ Feature: itos init, a repository made ready for itos
     And the folder is still not a git repository
     And no file changed since the last run
 
-  @ID-INIT-49 @slice-108 @wip
+  @ID-INIT-49 @slice-108
   Scenario: Policy initialization under stealth keeps fresh configured work data in the git folder
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "policy.yaml" holding the lines:
@@ -377,7 +377,7 @@ Feature: itos init, a repository made ready for itos
     When itos checks the config
     Then itos exits with code 0
 
-  @ID-INIT-50 @slice-108 @wip
+  @ID-INIT-50 @slice-108
   Scenario: Policy initialization derives Gherkin smoke selections from the target tests rather than source data
     Given a repository that does not use itos, its one commit "docs: start"
     And the feature file "specs/pages.feature" with the scenario "@ID-PAGE-01"
@@ -398,7 +398,7 @@ Feature: itos init, a repository made ready for itos
     When itos runs "tests smoke check scenario"
     Then itos exits with code 0
 
-  @ID-INIT-51 @slice-108 @wip
+  @ID-INIT-51 @slice-108
   Scenario: Policy initialization refuses a generated data path outside the target root before writing
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "policy.yaml" holding the lines:
@@ -414,7 +414,7 @@ Feature: itos init, a repository made ready for itos
     And the file "../outside/phase-1.yaml" does not exist
     And the git config declares no "commit-msg" hook
 
-  @ID-INIT-52 @slice-108 @wip
+  @ID-INIT-52 @slice-108
   Scenario: Policy initialization refuses a task ID policy that cannot represent the adoption task without weakening it
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "policy.yaml" holding the lines:

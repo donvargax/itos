@@ -725,6 +725,28 @@ func (d *Doc) SetBlockList(path []any, list []string, before string) error {
 	return nil
 }
 
+// Add gives the mapping the path leads to the key its last step names, its
+// value the string s, written as Set writes one: after the mapping's last
+// key and every line its value holds, in a block mapping a line of its own
+// at its keys' column, in a flow one before the closing brace. It is Set for
+// a mapping whose keys may all hold collections (itos init --policy writes
+// commits.since into a policy's commits, slice 108); a key the mapping has
+// already is refused, and so is an empty mapping.
+func (d *Doc) Add(path []any, s string) error {
+	parent, m, key, flow, err := d.mapAt(path)
+	if err != nil {
+		return err
+	}
+	if k, _ := lookup(parent, key); k != nil {
+		return fmt.Errorf("%s is there already", where(path))
+	}
+	if err := d.addLast(parent, flow, key, " "+token(s, 0)+d.e.nl, Quote(s)); err != nil {
+		return fmt.Errorf("%s: %w", where(path), err)
+	}
+	m.Set(key, s)
+	return nil
+}
+
 // Drop removes the key the path names from its mapping, with its value
 // (slice 76: work done drops the why of the item it closes). In a block
 // mapping the key's line goes, with every line below it that its value

@@ -10,7 +10,7 @@ cases:
     argv: [init, --force]
     exit: 2
     stderr: |
-      itos: init does not take --force; it takes --stealth, --plugin, --git-shim, --no-git-shim, --git-shim-dir, --agent-rules or --no-agent-rules (itos --help)
+      itos: init does not take --force; it takes --stealth, --policy, --plugin, --git-shim, --no-git-shim, --git-shim-dir, --agent-rules or --no-agent-rules (itos --help)
   - name: init's --git-shim-dir needs a folder
     argv: [init, --git-shim, --git-shim-dir]
     exit: 2
@@ -616,3 +616,227 @@ cases:
         # run in place of every one; itos tests smoke check scenario holds it to that.
         # itos init picked each file's first: pick a fast one, central to its file.
         []
+  # init --policy (slice 108, issue #33): a template's policy made the
+  # project's own config, with fresh data, refused before anything is written
+  # where it cannot be made as it says or a project is there already.
+  - name: init's --policy needs a file
+    argv: [init, --policy]
+    exit: 2
+    stderr: |
+      itos: init --policy needs a value (itos --help)
+  - name: init --policy writes the project's own config, never one --config names
+    argv: [--config, other.yaml, init, --policy, policy.yaml]
+    files: { policy.yaml: "version: 1\n" }
+    exit: 2
+    stderr: |
+      itos: init --policy writes the project's own config, itos.yaml at its top or with --stealth in the git folder, not the other.yaml that --config or ITOS_CONFIG names (itos --help)
+  - name: init --policy refuses a policy config check refuses before it runs git init
+    argv: [init, --policy, policy.yaml, --no-git-shim]
+    hide: [claude]
+    files: { policy.yaml: "version: 1\nimaginary_policy: true\n" }
+    exit: 2
+    stderr: |
+      FAIL policy.yaml: unknown key imaginary_policy
+    files_after:
+      .git/HEAD: null
+      itos.yaml: null
+  - name: init --policy refuses a policy that cannot name the file of group 1, nor hold T-1, writing nothing
+    argv: [init, --policy, policy.yaml, --no-git-shim]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      policy.yaml: |
+        version: 1
+        ledger:
+          files: "tasks/phase-{group}.yaml"
+          id: 'TASK-\d+'
+          group: { pattern: '[a-z]+' }
+        commits:
+          types: [feat, fix, docs]
+    exit: 2
+    stderr: |
+      FAIL policy.yaml: ledger.files (tasks/phase-{group}.yaml) and ledger.group.pattern ([a-z]+) cannot name the file of the group 1, the fresh ledger's
+      FAIL policy.yaml: ledger.id (TASK-\d+) does not match T-1, the task the project's adoption commit names
+      FAIL policy.yaml: commits.types does not list chore, the type of T-1, the adoption task
+    files_after:
+      itos.yaml: null
+      tasks/work-items.yaml: null
+  - name: init --policy refuses data written outside the project, and a smoke set only a command could give
+    argv: [--json, init, --policy, policy.yaml, --no-git-shim]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+    files:
+      policy.yaml: |
+        version: 1
+        ledger: { files: "../outside/phase-{group}.yaml" }
+        work: { registry: tasks/work-items.yaml }
+        tests:
+          unit:
+            adapter: { command: ./list-tests }
+            smoke: { file: tests/smoke.yaml }
+    exit: 2
+    json:
+      schema: 1
+      config: policy.yaml
+      valid: false
+      problems:
+        - rule: init-policy-smoke
+          message: "policy.yaml: tests.unit.smoke.file names a smoke set of a kind whose adapter is a command, which init --policy does not run"
+          fix: leave tests.unit.smoke.file out of the policy, then add it with its smoke set once the project is initialized
+        - rule: init-policy-path
+          message: "policy.yaml: ledger.files puts ../outside/phase-1.yaml outside the project"
+          fix: point ledger.files at a path inside it
+    files_after:
+      itos.yaml: null
+  - name: init --policy refuses a project's data that is there already, an empty registry too, and writes nothing
+    argv: [init, --policy, policy.yaml, --no-git-shim]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n", tasks/phase-7.yaml: "[]\n", tasks/work-items.yaml: "" }
+    files: { policy.yaml: "version: 1\n" }
+    exit: 1
+    stderr: |
+      itos: init --policy makes a fresh project and never writes over one, so it wrote nothing; these are there already:
+        tasks/phase-7.yaml
+        tasks/work-items.yaml
+      Run init --policy where no itos config or data is, or init without --policy to check this project.
+    files_after:
+      itos.yaml: null
+      tasks/phase-1.yaml: null
+  - name: under --json init --policy lists the config there already as refused
+    argv: [--json, init, --policy, policy.yaml, --no-git-shim]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n", itos.yaml: "version: 1\n" }
+    files: { policy.yaml: "version: 1\n" }
+    exit: 1
+    json:
+      schema: 1
+      config: itos.yaml
+      action: refused
+      problems:
+        - rule: init-policy-exists
+          message: "itos.yaml is there already: init --policy makes a fresh project, never over one"
+          fix: run init --policy where no itos config or data is, or init without --policy to check this project
+  - name: init --policy makes the policy, read from where it ran, the project's config at its top, with fresh data and HEAD as commits.since
+    argv: [init, --policy, policy.yaml, --no-git-shim, --no-agent-rules]
+    hide: [claude]
+    cwd: template
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+        label: start
+    files:
+      template/policy.yaml: |
+        # The template's reviewed policy.
+        version: 1
+        ledger:
+          files: work/phase-{group}.yaml # one file a phase
+        commits:
+          footers:
+            Task: { source: ledger, required_for: [chore], since: ffffffffffffffffffffffffffffffffffffffff }
+          scopes:
+            docs: { only: ["**/*.md", "work/**"] }
+
+        work:
+          registry: work/items.yaml
+          groups_key: groups
+    exit: 0
+    stdout_has:
+      - "wrote itos.yaml\nwrote work/phase-1.yaml\nwrote work/items.yaml\nitos.yaml holds the policy of policy.yaml, made fresh for this project: no task, owner, status, commit or result of the policy's own came with it.\ncommits.since is HEAD, {{short.start}}: no commit before it is judged.\nPinned no itos: cannot ask for the newest itos: "
+      - "Commit what init wrote with the task that adopts itos: git add itos.yaml work/phase-1.yaml work/items.yaml, then itos commit --task T-1 -m 'chore: adopt itos'\n"
+    files_after:
+      template/policy.yaml: |
+        # The template's reviewed policy.
+        version: 1
+        ledger:
+          files: work/phase-{group}.yaml # one file a phase
+        commits:
+          footers:
+            Task: { source: ledger, required_for: [chore], since: ffffffffffffffffffffffffffffffffffffffff }
+          scopes:
+            docs: { only: ["**/*.md", "work/**"] }
+
+        work:
+          registry: work/items.yaml
+          groups_key: groups
+      itos.yaml: |
+        # The template's reviewed policy.
+        version: 1
+        ledger:
+          files: work/phase-{group}.yaml # one file a phase
+        commits:
+          footers:
+            Task: { source: ledger, required_for: [chore] }
+          scopes:
+            docs: { only: ["**/*.md", "work/**"] }
+          since: {{sha.start}}
+
+        work:
+          registry: work/items.yaml
+          groups_key: groups
+      work/items.yaml: |
+        # The work registry: who owns each phase and each piece of work, and what
+        # waits on what. itos work shows what can start; itos work check validates it.
+        # An item:
+        #
+        #   - id: T-2 # a task's ID, or a name of its own
+        #     title: What it is
+        #     phase: 1
+        #     owner: null # a handle, or null
+        #     status: todo # todo, doing, done or blocked
+        #     depends_on: []
+        groups:
+          1: null # the ledger's phase 1, owned by nobody: a handle, or null
+        items: []
+      tasks/phase-1.yaml: null
+  - name: under --json and --stealth init --policy keeps the policy's pin, adds the starter's ledger and writes it all in the git folder
+    argv: [--json, init, --policy, policy.yaml, --stealth, --no-git-shim, --no-agent-rules]
+    hide: [claude]
+    git:
+      - commit: "docs: start"
+        files: { README.md: "# Scratch\n" }
+        label: start
+    files:
+      policy.yaml: |
+        version: 1
+        pin: { version: 9.1.0, checksums: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa }
+        commits:
+          since: ffffffffffffffffffffffffffffffffffffffff
+    exit: 0
+    json:
+      schema: 1
+      config: .git/itos/itos.yaml
+      action: initialized
+      policy: policy.yaml
+      git_init: false
+      since: "{{sha.start}}"
+      files:
+        - { path: .git/itos/itos.yaml, action: wrote }
+        - { path: .git/itos/tasks/phase-1.yaml, action: wrote }
+        - { path: .git/itos/tasks/work-items.yaml, action: wrote }
+      pin: { version: 9.1.0, checksums: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa }
+      hooks:
+        hooks:
+          - { name: itos-commit-msg, event: commit-msg, command: itos hook commit-msg, action: wrote }
+          - { name: itos-pre-push, event: pre-push, command: itos hook pre-push, action: wrote }
+      plugin: { action: no_claude, scope: null, excluded: false }
+      git_shim: { action: declined, link: null, on_path: false, before_git: false }
+      agent_rules: { action: declined, files: [] }
+    files_after:
+      .git/itos/itos.yaml: |
+        version: 1
+        pin: { version: 9.1.0, checksums: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa }
+        commits:
+          since: {{sha.start}}
+
+        # The tasks, as itos init lays them out: one file per phase.
+        ledger:
+          files: "tasks/phase-{group}.yaml"
+          id: "T-\\d+"
