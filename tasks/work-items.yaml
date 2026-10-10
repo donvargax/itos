@@ -7017,3 +7017,23 @@ items:
       --note or --why for all, refused whole if one id would be) turns a grooming pass into one
       commit per change, a cost every coordinator of an itos-driven repository pays on each backlog
       review.
+
+  - id: p1-hook-env-unset-tracked
+    title: The hooks' git environment is cleared in a tracked script, or proven unneeded
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      On 2026-10-10 the user saw .hook-git-env change on every commit: .vite-hooks/_/h, the
+      dispatcher vp generates (git-ignored, local to each clone), had been edited by hand on
+      2026-10-09 with an env dump (debugging, now removed in this clone) and an unset of GIT_DIR,
+      GIT_WORK_TREE, GIT_INDEX_FILE, GIT_PREFIX, GIT_COMMON_DIR, the object directories,
+      GIT_CONFIG_* and ITOS_GIT before the hook runs. The unset looks protective: pre-commit runs
+      the Go unit tests, which make scratch repositories, and a leaked GIT_INDEX_FILE or GIT_DIR
+      would point their git at this repository. But it lives in a generated file, so vp config
+      --hooks or a new worktree drops it silently, and no other clone has it. Find whether a hook's
+      environment reaches the unit tests (tools/bin/go-unit-tests, the features' harness); if it
+      does, clear it in a tracked place (the pre-commit script or go-unit-tests, a build task) with
+      a test that fails without it; if not, say so here and drop the line.
