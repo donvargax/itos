@@ -67,6 +67,10 @@ Feature: A global itos keeps to the newest release, and says when a pin falls be
     And no version of the release server ran since the last run
 
   # Slice 115: itos upgrade, not itos pin, applies each release's config changes.
+  # The user's call (2026-10-10): the notice names itos upgrade for any newer
+  # release, a patch included, since a patch may fix a security issue and
+  # should be taken soon; itos status names only a new major as something to
+  # act on (slice 116).
   @ID-UPDATE-06 @slice-28
   Scenario: A repository pinning an older version runs its pin, and says the newer one is out
     Given a repository whose ledger has the task "T-001"
