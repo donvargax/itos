@@ -56,6 +56,7 @@ phases:
 
 queue:
   - slice-113
+  - slice-114
   - p1-upgrade-notices
   - p1-upgrade-on-major
   - p1-smoke-rule-at-commit
