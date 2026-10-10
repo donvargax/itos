@@ -149,8 +149,11 @@ Feature: itos init, a repository made ready for itos
   # writing; never weaken it or guess a string that satisfies an arbitrary RE2.
   # For a configured built-in Gherkin kind, derive a fresh smoke set from its
   # actual target tests without changing the source's test policy. A command
-  # adapter that needs a missing generated smoke set is unsupported in this
-  # first slice: refuse before writing rather than execute it or invent proof.
+  # adapter's smoke set is derived the same way from its list, run once in the
+  # target before anything is written (slice 110, the user's call 2026-10-10:
+  # the project's own configured command, which tests smoke check would run
+  # anyway); a list that fails, or whose output the protocol refuses, refuses
+  # init with its error and writes nothing.
   # Preserve current explicit plugin/shim/agent-rules offers; those setup
   # integrations are not policy-quality commands. Report normal initialized
   # JSON and concrete written paths. Preflight refusals leave everything alone;
@@ -427,6 +430,53 @@ Feature: itos init, a repository made ready for itos
     When itos runs "init --policy policy.yaml --plugin no --no-git-shim --no-agent-rules"
     Then itos exits with code 2
     And its output says "ledger.id"
+    And no file changed since the last run
+    And the file "itos.yaml" does not exist
+    And the git config declares no "commit-msg" hook
+
+  @ID-INIT-53 @slice-110 @wip
+  Scenario: Policy initialization derives a command adapter's smoke set by running its list once
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "list.sh" holding the lines:
+      """
+      printf '%s\n' '{"protocol":1,"tests":[{"id":"U-1","file":"a_test.go","live":true},{"id":"U-2","file":"b_test.go","live":true}],"files":["a_test.go","b_test.go"]}'
+      """
+    And the committed file "template/policy.yaml" holding the lines:
+      """
+      version: 1
+      tests:
+        unit:
+          adapter: { command: "sh list.sh" }
+          id: 'U-\d+'
+          smoke: { file: tests/smoke.yaml }
+      """
+    When itos runs "init --policy template/policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 0
+    And the file "tests/smoke.yaml" names "U-1"
+    And the file "tests/smoke.yaml" names "U-2"
+    When itos runs "tests smoke check unit"
+    Then itos exits with code 0
+
+  @ID-INIT-54 @slice-110 @wip
+  Scenario: Policy initialization refuses before writing when a command adapter's list fails
+    Given a repository that does not use itos, its one commit "docs: start"
+    And the committed file "list.sh" holding the lines:
+      """
+      echo 'no test binary yet' >&2
+      exit 3
+      """
+    And the committed file "policy.yaml" holding the lines:
+      """
+      version: 1
+      tests:
+        unit:
+          adapter: { command: "sh list.sh" }
+          id: 'U-\d+'
+          smoke: { file: tests/smoke.yaml }
+      """
+    When itos runs "init --policy policy.yaml --plugin no --no-git-shim --no-agent-rules"
+    Then itos exits with code 1
+    And its output says "no test binary yet"
     And no file changed since the last run
     And the file "itos.yaml" does not exist
     And the git config declares no "commit-msg" hook
