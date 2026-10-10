@@ -6248,8 +6248,8 @@ items:
   - id: slice-105
     title: tests next-id claims scenario ids through the id counter, --count for several
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-102]
     kind: slice
     why: >
