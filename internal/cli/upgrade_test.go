@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -297,5 +299,159 @@ func TestUpgradeEmit(t *testing.T) {
 	var compact bytes.Buffer
 	if err := json.Compact(&compact, []byte(stdout.String())); err != nil || !strings.HasSuffix(compact.String(), want) {
 		t.Errorf("emit (%v):\n%s\nwant it to end\n%s", err, compact.String(), want)
+	}
+}
+
+// sumsOf is a checksums.txt of the version, for linux-amd64 and
+// windows-amd64.
+func sumsOf(v string) string {
+	return linuxSum + "  itos-" + v + "-linux-amd64.tar.gz\n" + winSum + "  itos-" + v + "-windows-amd64.zip\n"
+}
+
+// upgradeIn is a project folder, the folder the test runs in, its config
+// the text, and a release server whose newest is latest, offering 9.1.0,
+// 9.2.0 and 9.3.0 and each one's upgrading.json, the files given laid over
+// them.
+func upgradeIn(t *testing.T, latest, config string, files map[string]string) string {
+	t.Helper()
+	served := map[string]string{"/latest/download/checksums.txt": sumsOf(latest)}
+	for i, v := range []string{"9.1.0", "9.2.0", "9.3.0"} {
+		served["/download/v"+v+"/checksums.txt"] = sumsOf(v)
+		previous := ""
+		if i > 0 {
+			previous = []string{"9.1.0", "9.2.0"}[i-1]
+		}
+		served["/download/v"+v+"/upgrading.json"] = `{"schema": 1, "version": "` + v + `", "previous": "` + previous + `"}`
+	}
+	for path, body := range files {
+		served[path] = body
+	}
+	releaseServer(t, served)
+	dir := t.TempDir()
+	t.Chdir(dir)
+	file := filepath.Join(dir, "itos.yaml")
+	t.Setenv("ITOS_CONFIG", file)
+	if config != "" {
+		if err := os.WriteFile(file, []byte(config), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return file
+}
+
+// pinOf is a config pinning the version, with its checksums.
+func pinOf(v string) string {
+	return "version: 1\npin: { version: " + v + ", checksums: " + release.SHA256([]byte(sumsOf(v))) + " }\n"
+}
+
+// upgradeRun is upgradeCommand's exit code and error, and what it printed.
+func upgradeRun(json bool, args ...string) (int, error, string) {
+	var stdout, stderr strings.Builder
+	code, err := upgradeCommand(args, Out{JSON: json, Stdout: &stdout, Stderr: &stderr})
+	return code, err, stdout.String() + stderr.String()
+}
+
+// What upgrade refuses, and how, each with every file left as it was.
+func TestUpgradeCommandRefuses(t *testing.T) {
+	expect := func(name string, wantCode int, wantErr bool, says string, code int, err error, printed string) {
+		t.Helper()
+		got := printed
+		if err != nil {
+			got += err.Error()
+		}
+		if code != wantCode || (err != nil) != wantErr || !strings.Contains(got, says) {
+			t.Errorf("%s: %d, %v, %q; want %d, an error %t, saying %q", name, code, err, printed, wantCode, wantErr, says)
+		}
+	}
+	upgradeIn(t, "9.3.0", pinOf("9.1.0"), nil)
+	code, err, printed := upgradeRun(false, "--force")
+	expect("a flag", 0, true, "upgrade takes only a <version>", code, err, printed)
+
+	upgradeIn(t, "9.3.0", "", nil)
+	code, err, printed = upgradeRun(false)
+	expect("no config", 0, true, "cannot be read", code, err, printed)
+
+	upgradeIn(t, "9.3.0", pinOf("9.1.0"), nil)
+	if err := os.MkdirAll(installScriptPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	code, err, printed = upgradeRun(false)
+	expect("an install script that cannot be read", 0, true, "cannot read "+installScriptPath, code, err, printed)
+
+	upgradeIn(t, "9.3.0", "version: 1\n", nil)
+	writeScript(t, "#!/bin/sh\n")
+	code, err, printed = upgradeRun(false)
+	expect("a script with no version", 0, true, "it has 0 version= lines", code, err, printed)
+
+	upgradeIn(t, "9.2.0", pinOf("9.3.0"), nil)
+	code, err, printed = upgradeRun(false)
+	expect("a newest older than the pin", 1, false, "the newest itos, 9.2.0, is older than 9.3.0", code, err, printed)
+
+	upgradeIn(t, "9.3.0", "version: 1\npin: { version: 9.3.0, checksums: \""+oldSum+"\" }\n", nil)
+	code, err, printed = upgradeRun(false)
+	expect("a release changed after it was pinned", 1, false, "the release changed after it was pinned", code, err, printed)
+
+	upgradeIn(t, "9.3.0", pinOf("9.1.0"), map[string]string{"/download/v9.3.0/upgrading.json": "fail"})
+	code, err, printed = upgradeRun(false)
+	expect("an upgrading.json that cannot be fetched", ExitTemporary, false, "cannot fetch what itos 9.3.0 asks", code, err, printed)
+
+	upgradeIn(t, "9.3.0", "version: 1\npin: &p { version: 9.1.0, checksums: "+release.SHA256([]byte(sumsOf("9.1.0")))+" }\n", nil)
+	code, err, printed = upgradeRun(false)
+	expect("a pin it cannot edit", 0, true, "cannot edit the pin", code, err, printed)
+
+	upgradeIn(t, "9.3.0", pinOf("9.1.0"), nil)
+	writeScript(t, script("9.1.0", oldSum, oldSum)+"Darwin-arm64) platform=darwin-arm64 sum="+oldSum+" ;;\n")
+	code, err, printed = upgradeRun(false)
+	expect("a script it cannot edit", 0, true, "cannot edit "+installScriptPath, code, err, printed)
+}
+
+func writeScript(t *testing.T, text string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(installScriptPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(installScriptPath, []byte(text), 0o755); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// A file it cannot write is its error, the config's and the install
+// script's alike. Skipped where a read-only file can be written anyway (as
+// root).
+func TestUpgradeCommandCannotWrite(t *testing.T) {
+	file := upgradeIn(t, "9.3.0", pinOf("9.1.0"), nil)
+	if err := os.Chmod(file, 0o444); err != nil {
+		t.Fatal(err)
+	}
+	if f, err := os.OpenFile(file, os.O_WRONLY, 0); err == nil {
+		f.Close()
+		t.Skip("a read-only file can be written here")
+	}
+	if code, err, printed := upgradeRun(false); code != 0 || err == nil {
+		t.Errorf("a config it cannot write: %d, %v, %s", code, err, printed)
+	}
+
+	upgradeIn(t, "9.3.0", "version: 1\n", nil)
+	writeScript(t, script("9.1.0", oldSum, oldSum))
+	if err := os.Chmod(installScriptPath, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	if code, err, printed := upgradeRun(false); code != 0 || err == nil {
+		t.Errorf("a script it cannot write: %d, %v, %s", code, err, printed)
+	}
+}
+
+// --json, already on the version and upgraded.
+func TestUpgradeCommandJSON(t *testing.T) {
+	upgradeIn(t, "9.3.0", pinOf("9.3.0"), nil)
+	if code, err, printed := upgradeRun(true); code != 0 || err != nil || !strings.Contains(printed, `"action": "already"`) {
+		t.Errorf("already: %d, %v, %s", code, err, printed)
+	}
+	upgradeIn(t, "9.3.0", pinOf("9.1.0")+"ci:\n  watch:\n    timeout: 600\n", map[string]string{
+		"/download/v9.3.0/itos.schema.json": `{"x-itos-removed": ["ci.watch.timeout"]}`,
+	})
+	code, err, printed := upgradeRun(true)
+	if code != 0 || err != nil || !strings.Contains(printed, `"action": "upgraded"`) || !strings.Contains(printed, `"value": 600`) {
+		t.Errorf("upgraded: %d, %v, %s", code, err, printed)
 	}
 }
