@@ -7173,3 +7173,18 @@ items:
       pass. Label the step in the text plan, say why when it is left out (no range start, no
       proof.code.paths touched), and list it in the rules block at its place. Same block as
       p1-agent-rules-ci-summary.
+
+  - id: p1-push-tag-and-ref
+    title: itos push --tag and --ref push a tag or another branch, never forced, and tags only when asked
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #37 (itos-cc releases, 7.0.0-rc.3): the guard, the git shim and itos push all refuse a
+      ref push, so a release tag or a draft branch for another OS's CI needs a hard-coded
+      /usr/bin/git, which skips the shim's checks. itos push reports Nothing to push while an
+      annotated tag stays local, and push.followtags decides silently whether the next unrelated
+      push publishes it. A sanctioned form (itos push --tag <tag>, --ref <branch>, never forced)
+      keeps these pushes inside itos, and tags go only when asked.
