@@ -7014,8 +7014,8 @@ items:
   - id: slice-118
     title: work edit, drop, defer, resume and queue take several ids, one change for all in one commit
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
