@@ -5006,6 +5006,12 @@ items:
       The same principle for itos's committed data files (asks.yaml, the registry, the ledger): a
       format number, and migration steps that itos upgrade applies, so no reader for an old format
       stays in the code (the user's call, 2026-10-06, while designing p1-followup-state).
+
+      2026-10-10: once p1-work-item-dates lands, upgrade's automatic steps reach data too: crossing
+      that release, it fills each work item's added and since, and each question's asked and
+      answered, from git history where they are missing, and commits the registry alone. The person
+      ruled out a one-time command for it: until v10 a command kept for one migration is only cost,
+      and removing it later is breaking.
     deferred: >
       The user's call (2026-10-07): deferred so the itos-cc integration ships as soon as it can; v7
       renames and removes no config key, so nothing needs automating across it. Taken up when a
