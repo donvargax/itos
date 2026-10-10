@@ -154,6 +154,29 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And the range is empty
 
+  # Slice 109 (2026-10-09, the user agreeing). Main's last green run fell past
+  # the 100 first parents ci range asks about, so every run's start was empty:
+  # verify judged all history by today's rules, and plugin-version,
+  # previous-release, deps-check, schema-contract and the mutation sample,
+  # which need a start, failed (run 38014916168 stopped at plugin-version).
+  # With no green run there was no start, and with no start no run could be
+  # green. T-136 moved commits.since to the last green commit to get out. The
+  # call: when the provider gives no start (none green within reach, a provider
+  # that fails, or provider none), the range starts at the commit commits.since
+  # names, when that commit is in the head's history; verification starts
+  # there already. With no commits.since, or one not in the head's history, the
+  # start stays empty and everything runs, as @ID-CI-11 says. A pull request
+  # keeps its base. Raising the 100 was turned down: it only postpones this.
+  @ID-CI-24 @slice-109 @wip
+  Scenario: ci range starts at commits.since when no ancestor has a green run
+    Given ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
+    And three commits on top of the first
+    And commits.since names the first commit
+    And the fake GitHub has a failed run of the head's parent
+    When itos prints where the range of the head starts
+    Then itos exits with code 0
+    And the range starts at the first commit
+
   # Bug 28 (issue #14; was p1-ci-after-push-checks; the user's call,
   # 2026-10-05). Push CI ran a named task's after: push checks, though such
   # a check means something only once the push has landed: one waiting on a
