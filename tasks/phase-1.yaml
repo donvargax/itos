@@ -1320,33 +1320,39 @@
 
 - id: T-142
   type: build
-  title: dprint formats Markdown, YAML, JSON and TOML, and itos declares the pre-commit hook in place of vp staged
+  title: Markdown and YAML are formatted without vp, Go first, and itos declares the pre-commit hook in place of vp staged
   why: >
-    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
-    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
-    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
-    changes what itos does for consumers, whose repositories never carried vp. First step: dprint
-    replaces vp check's formatting and Oxfmt, with Markdown at textWrap maintain so prose is not
-    rewrapped, T-137's exclusion of itos's own tasks/*.yaml kept, and one reformat commit for what
-    dprint's output changes. The pre-commit hook moves to the git config beside commit-msg and
-    pre-push (decision 37), running dprint on the staged files, gofmt, go vet and
-    tools/bin/go-unit-tests, so .vite-hooks, vp staged, vite.config.ts, Oxlint and the Vite+ block
-    of AGENTS.md go. vp run scripts become the commands they ran. p1-hook-env-unset-tracked is
-    settled here: whatever the new hook needs to keep a hook's git environment from the unit tests
-    lives in the tracked hook.
+    The user's call (2026-10-10): this repository drops vp and Node, and every tool is Go where Go
+    can do it. Markdown and YAML formatting survive: google/yamlfmt for YAML, and for Markdown T-142
+    spikes Kunde21/markdownfmt (last tagged January 2023, no front matter support, so behind a
+    wrapper that sets front matter aside) against dprint (maintained, one non-Go binary pinned by
+    checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
+    of it changes what itos does for consumers, whose repositories never carried vp. First step: a
+    spike in a scratch copy runs markdownfmt and yamlfmt over every tracked Markdown and YAML file;
+    a small faithful diff with only front matter to set aside means pure Go, damage to tables, lists
+    or fences means dprint. The chosen formatter replaces vp check's formatting and Oxfmt, keeping
+    paragraphs' line breaks so prose is not rewrapped, T-137's exclusion of itos's own tasks/*.yaml
+    kept, and one reformat commit for what the formatter's output changes. The pre-commit hook moves
+    to the git config beside commit-msg and pre-push (decision 37), running the chosen formatter on
+    the staged files, gofmt, go vet and tools/bin/go-unit-tests, so .vite-hooks, vp staged,
+    vite.config.ts, Oxlint and the Vite+ block of AGENTS.md go. vp run scripts become the commands
+    they ran. p1-hook-env-unset-tracked is settled here: whatever the new hook needs to keep a
+    hook's git environment from the unit tests lives in the tracked hook.
   done_when:
-    - run: test -f dprint.json && ! test -e vite.config.ts && ! test -d .vite-hooks && ! grep -qE 'vite-plus|"vite"|vitest' package.json && ! grep -q 'vp check' itos.yaml
+    - run: '! test -e vite.config.ts && ! test -d .vite-hooks && ! grep -qE ''vite-plus|"vite"|vitest'' package.json && ! grep -q ''vp check'' itos.yaml'
 
 - id: T-143
   type: ci
   title: The gates' self-tests are Go tests, and tools/selftest holds no TypeScript
   why: >
-    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
-    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
-    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
-    changes what itos does for consumers, whose repositories never carried vp. The 21 self-tests in
-    tools/selftest/*.ts (the gates', hooks', release's and schema's) become Go tests beside the
-    programs they test, run by the same CI and nightly steps.
+    The user's call (2026-10-10): this repository drops vp and Node, and every tool is Go where Go
+    can do it. Markdown and YAML formatting survive: google/yamlfmt for YAML, and for Markdown T-142
+    spikes Kunde21/markdownfmt (last tagged January 2023, no front matter support, so behind a
+    wrapper that sets front matter aside) against dprint (maintained, one non-Go binary pinned by
+    checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
+    of it changes what itos does for consumers, whose repositories never carried vp. The 21
+    self-tests in tools/selftest/*.ts (the gates', hooks', release's and schema's) become Go tests
+    beside the programs they test, run by the same CI and nightly steps.
   done_when:
     - run: "! ls tools/selftest/*.ts >/dev/null 2>&1"
 
@@ -1354,10 +1360,12 @@
   type: test
   title: The conformance corpus is run by a Go program
   why: >
-    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
-    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
-    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
-    changes what itos does for consumers, whose repositories never carried vp.
+    The user's call (2026-10-10): this repository drops vp and Node, and every tool is Go where Go
+    can do it. Markdown and YAML formatting survive: google/yamlfmt for YAML, and for Markdown T-142
+    spikes Kunde21/markdownfmt (last tagged January 2023, no front matter support, so behind a
+    wrapper that sets front matter aside) against dprint (maintained, one non-Go binary pinned by
+    checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
+    of it changes what itos does for consumers, whose repositories never carried vp.
     tools/itos/conformance/run.ts, which runs the corpus against a binary in CI and the nightly,
     becomes a Go program with the same cases, fakes (the GitHub API on 127.0.0.1) and output.
   done_when:
@@ -1367,12 +1375,14 @@
   type: build
   title: The changelog is written without tools/changelog.ts
   why: >
-    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
-    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
-    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
-    changes what itos does for consumers, whose repositories never carried vp. tools/changelog.ts
-    wraps git-cliff; the changelog becomes git-cliff called directly (pinned like dprint) or a Go
-    program, with the same --task and --scenario views.
+    The user's call (2026-10-10): this repository drops vp and Node, and every tool is Go where Go
+    can do it. Markdown and YAML formatting survive: google/yamlfmt for YAML, and for Markdown T-142
+    spikes Kunde21/markdownfmt (last tagged January 2023, no front matter support, so behind a
+    wrapper that sets front matter aside) against dprint (maintained, one non-Go binary pinned by
+    checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
+    of it changes what itos does for consumers, whose repositories never carried vp.
+    tools/changelog.ts wraps git-cliff; the changelog becomes git-cliff called directly (pinned like
+    dprint) or a Go program, with the same --task and --scenario views.
   done_when:
     - run: "! test -e tools/changelog.ts"
 
@@ -1380,12 +1390,14 @@
   type: ci
   title: The inbox is a Go program
   why: >
-    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
-    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
-    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
-    changes what itos does for consumers, whose repositories never carried vp. tools/bin/inbox.ts,
-    which lists the open issues by the allow-list and the itos-accepted label's timeline, with its
-    self-test, becomes a Go program under tools/bin, its rules unchanged.
+    The user's call (2026-10-10): this repository drops vp and Node, and every tool is Go where Go
+    can do it. Markdown and YAML formatting survive: google/yamlfmt for YAML, and for Markdown T-142
+    spikes Kunde21/markdownfmt (last tagged January 2023, no front matter support, so behind a
+    wrapper that sets front matter aside) against dprint (maintained, one non-Go binary pinned by
+    checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
+    of it changes what itos does for consumers, whose repositories never carried vp.
+    tools/bin/inbox.ts, which lists the open issues by the allow-list and the itos-accepted label's
+    timeline, with its self-test, becomes a Go program under tools/bin, its rules unchanged.
   done_when:
     - run: "! test -e tools/bin/inbox.ts"
 
@@ -1393,12 +1405,14 @@
   type: refactor
   title: The Claude Code plugin's hooks hold no TypeScript
   why: >
-    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
-    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
-    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
-    changes what itos does for consumers, whose repositories never carried vp. The plugin's hooks in
-    integrations/claude-code/hooks/*.ts become shell scripts calling itos, as guard.sh already is;
-    the plugin's version is raised in the same push (T-074).
+    The user's call (2026-10-10): this repository drops vp and Node, and every tool is Go where Go
+    can do it. Markdown and YAML formatting survive: google/yamlfmt for YAML, and for Markdown T-142
+    spikes Kunde21/markdownfmt (last tagged January 2023, no front matter support, so behind a
+    wrapper that sets front matter aside) against dprint (maintained, one non-Go binary pinned by
+    checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
+    of it changes what itos does for consumers, whose repositories never carried vp. The plugin's
+    hooks in integrations/claude-code/hooks/*.ts become shell scripts calling itos, as guard.sh
+    already is; the plugin's version is raised in the same push (T-074).
   done_when:
     - run: "! ls integrations/claude-code/hooks/*.ts >/dev/null 2>&1"
 
@@ -1406,10 +1420,12 @@
   type: ci
   title: Go's own static checks replace fallow's audit
   why: >
-    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
-    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
-    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
-    changes what itos does for consumers, whose repositories never carried vp. fallow audits
+    The user's call (2026-10-10): this repository drops vp and Node, and every tool is Go where Go
+    can do it. Markdown and YAML formatting survive: google/yamlfmt for YAML, and for Markdown T-142
+    spikes Kunde21/markdownfmt (last tagged January 2023, no front matter support, so behind a
+    wrapper that sets front matter aside) against dprint (maintained, one non-Go binary pinned by
+    checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
+    of it changes what itos does for consumers, whose repositories never carried vp. fallow audits
     TypeScript for dead code and duplication and says nothing of the Go that is itos; its pre-commit
     and CI steps give way to Go's (go vet, staticcheck or deadcode, chosen with the user when the
     task starts).
@@ -1420,12 +1436,14 @@
   type: build
   title: This repository has no package.json and no node_modules
   why: >
-    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
-    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
-    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
-    changes what itos does for consumers, whose repositories never carried vp. The last step: once
-    the formatting, the self-tests, the conformance runner, the changelog, the inbox, the plugin's
-    hooks and the audit need no Node, package.json, its lockfile and the devcontainer's and CI's
-    Node setup go.
+    The user's call (2026-10-10): this repository drops vp and Node, and every tool is Go where Go
+    can do it. Markdown and YAML formatting survive: google/yamlfmt for YAML, and for Markdown T-142
+    spikes Kunde21/markdownfmt (last tagged January 2023, no front matter support, so behind a
+    wrapper that sets front matter aside) against dprint (maintained, one non-Go binary pinned by
+    checksum through tools/bin/pinned) and picks by the diff each makes over the tracked files. None
+    of it changes what itos does for consumers, whose repositories never carried vp. The last step:
+    once the formatting, the self-tests, the conformance runner, the changelog, the inbox, the
+    plugin's hooks and the audit need no Node, package.json, its lockfile and the devcontainer's and
+    CI's Node setup go.
   done_when:
     - run: "! test -e package.json && ! grep -rqE 'setup-node|setup-vp' .github/workflows"

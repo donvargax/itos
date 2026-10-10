@@ -7039,7 +7039,7 @@ items:
       a test that fails without it; if not, say so here and drop the line.
 
   - id: T-142
-    title: dprint formats Markdown, YAML, JSON and TOML, and itos declares the pre-commit hook in place of vp staged
+    title: Markdown and YAML are formatted without vp, Go first, and itos declares the pre-commit hook in place of vp staged
     phase: 1
     owner: null
     status: todo

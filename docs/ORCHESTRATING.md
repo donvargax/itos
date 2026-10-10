@@ -130,13 +130,11 @@ They keep the guide's format for lessons. "By 2026-10-04" means the lesson
 was in this file when the file was reorganized that day.
 `p1-agent-rules-as-data` moves them into itos's data.
 
-- **Trace each Given to where itos runs before handing a spec out.** On
-  2026-10-04, scenarios assumed `itos go` prints status without a config
-  (slice 68), a remote-changing step fetches into itos's clone (slice 70), and
-  the printed head is the remote's (slice 70). Red first caught each. Task
-  checks have the same trap: grepping whole folders hits fixtures too
-  (`tools/selftest/header-agreement.json`, T-085); target what the task changes.
-  Exit: permanent. Recorded by 2026-10-04; last seen 2026-10-04.
+- **Trace each Given to where itos runs before handing a spec out:** the
+  config, clone, folder and launcher the step sets up (slices 68, 70, 114, 116,
+  117 assumed wrong ones; red first caught each). Task checks have the same
+  trap: grepping whole folders hits fixtures too (T-085); target what the task
+  changes. Exit: permanent. Recorded by 2026-10-04; last seen 2026-10-10.
 - **A checkpoint push naming a task runs its checks**, and is red until its
   `done_when` passes. Put release- or tag-dependent `after: push` checks late;
   checks reading CI's result belong in `ci.nightly_only`. A coordinator's spec
@@ -149,10 +147,10 @@ was in this file when the file was reorganized that day.
 - **Name the checks a new gate adds in the next briefs.** A gate landed hours
   earlier turned `main` red on the next agent's change. Exit: permanent.
   Recorded by 2026-10-04.
-- **The `Upgrading:` footer is one line, under 100 characters.** `itos commit` wraps a long one
-  into several footers, and the release notes quote each as an entry of its own (rc.1, rc.2). Say
-  so in a feat's or a fix's brief. Exit: `p3-commit-long-text-footer`. Recorded 2026-10-08; last
-  seen 2026-10-08.
+- **The `Upgrading:` footer is one line of at most 100 characters, the key included,** so 89 for
+  the text: a longer one is refused or split into entries of its own (rc.1, rc.2). Say so in a
+  feat's or a fix's brief. Exit: `p3-commit-long-text-footer`. Recorded 2026-10-08; last seen
+  2026-10-10.
 - **Windows is a platform job.** It has caught `go:embed` reading CRLF
   checkouts, a test asserting Unix file modes, and a test hashing a blob with
   `git hash-object`, whose CRLF warning joined the hash (bug 31: use
