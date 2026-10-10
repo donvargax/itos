@@ -1401,3 +1401,17 @@
     the plugin's version is raised in the same push (T-074).
   done_when:
     - run: "! ls integrations/claude-code/hooks/*.ts >/dev/null 2>&1"
+
+- id: T-148
+  type: ci
+  title: Go's own static checks replace fallow's audit
+  why: >
+    The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and Markdown,
+    YAML, JSON and TOML are formatted by dprint, pinned by checksum through tools/bin/pinned with
+    each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth adopting). None of it
+    changes what itos does for consumers, whose repositories never carried vp. fallow audits
+    TypeScript for dead code and duplication and says nothing of the Go that is itos; its pre-commit
+    and CI steps give way to Go's (go vet, staticcheck or deadcode, chosen with the user when the
+    task starts).
+  done_when:
+    - run: "! grep -rq fallow itos.yaml package.json"
