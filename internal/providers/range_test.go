@@ -158,6 +158,46 @@ func TestNearestGreenWalksTheFirstParents(t *testing.T) {
 	}
 }
 
+// RangeStart: a pull request's base, asking no provider; else the
+// provider's start when it is an ancestor of the head; else commits.since's
+// commit when it is one (slice 109); else empty, which runs everything.
+func TestRangeStartFallsBackToSince(t *testing.T) {
+	shas := walkRepository(t)
+	head := shas["c3"]
+	asked := 0
+	gives := func(sha string) Range {
+		return func(h string) string {
+			asked++
+			if h != head {
+				t.Errorf("the provider was asked about %q, want the head %q", h, head)
+			}
+			return sha
+		}
+	}
+	cases := []struct {
+		name, base, green, since, want string
+	}{
+		{"a pull request keeps its base", shas["s1"], shas["c2"], shas["c0"], shas["s1"]},
+		{"the provider's start", "", shas["c2"], shas["c0"], shas["c2"]},
+		{"no start falls back to commits.since", "", "", shas["c1"], shas["c1"]},
+		{"a start off the head's history falls back to commits.since", "", "0123456789abcdef0123456789abcdef01234567", shas["c0"], shas["c0"]},
+		{"no start and no commits.since", "", "", "", ""},
+		{"commits.since off the head's history", "", "", "0123456789abcdef0123456789abcdef01234567", ""},
+	}
+	for _, c := range cases {
+		asked = 0
+		if got := RangeStart(head, c.base, gives(c.green), c.since); got != c.want {
+			t.Errorf("%s: RangeStart = %q, want %q", c.name, got, c.want)
+		}
+		if want := map[bool]int{true: 0, false: 1}[c.base != ""]; asked != want {
+			t.Errorf("%s: the provider was asked %d times, want %d", c.name, asked, want)
+		}
+	}
+	if got := RangeStart("", "", func(string) string { return shas["c1"] }, shas["c0"]); got != "" {
+		t.Errorf("no head: RangeStart = %q, want empty", got)
+	}
+}
+
 // Past FirstParentsAsked first parents the provider gives up, which runs
 // everything.
 func TestNearestGreenAsksABoundedNumberOfFirstParents(t *testing.T) {

@@ -107,7 +107,8 @@
 // lists a range's commits less that commit and its ancestors (RangeArgs,
 // ^<commits.since> put first, since --not turns round what follows), and a
 // range command's {from} is that commit when the range's own start is empty
-// or older (RangeStart). config check and verify fail with exit 2 when the
+// or older (RangeStart); ci range starts there when its provider gives no
+// start (providers.RangeStart, slice 109). config check and verify fail with exit 2 when the
 // repository does not have it (SinceIssues); in a shallow clone the same
 // problem says the commit may lie beyond the clone's history, with git fetch
 // --unshallow or fetch-depth: 0 as its fix. The commit-msg hook never reads

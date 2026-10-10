@@ -389,7 +389,7 @@
 // ci plan and ci scope (ci.go) print internal/plan's plan; ci run makes the
 // same plan and hands it to internal/ci. ci range reads the config first, so
 // a broken ci.range is a config error even with --base, then asks
-// providers.RangeStart. ci watch and the end of itos push (watch.go) wait
+// providers.RangeStart, giving it commits.since's commit to fall back on. ci watch and the end of itos push (watch.go) wait
 // for a commit's run: watcher builds the providers.Watch from ci.watch, and
 // watchRun looks, then sleeps min(interval, time left) (sleep, a variable a
 // unit test makes instant), or after a rate limit (bug 40) as long as GitHub

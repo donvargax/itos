@@ -1,6 +1,7 @@
 # Where a CI run's range starts (`ci range`): a pull request's
 # base; else the start the `ci.range` provider proposes, when it is an
-# ancestor of the head; else empty, which runs everything. The github
+# ancestor of the head; else the commit commits.since names, when it is one
+# (slice 109); else empty, which runs everything. The github
 # provider proposes the nearest of the head's first parents with a green run
 # of ci.range.github.workflow, on any branch (bug 29); finding none, or an API
 # that refuses, is not an error. The command provider went in v5.0.0 (slice
@@ -106,6 +107,56 @@ cases:
     exit: 0
     stdout: |
       FROM=
+  - name: with no green run the range starts at commits.since
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files:
+      itos.yaml: "version: 1\ncommits: { since: \"{{sha.root}}\" }\nci: { steps: [vp check], range: { provider: github } }\n"
+    github:
+      runs:
+        - { head_sha: "{{sha.one}}", status: completed, conclusion: failure }
+    exit: 0
+    stdout: |
+      FROM={{sha.root}}
+  - name: a green run nearer than commits.since starts the range
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files:
+      itos.yaml: "version: 1\ncommits: { since: \"{{sha.root}}\" }\nci: { steps: [vp check], range: { provider: github } }\n"
+    github:
+      runs:
+        - { head_sha: "{{sha.one}}", status: completed, conclusion: success }
+    exit: 0
+    stdout: |
+      FROM={{sha.one}}
+  - name: an API that refuses starts the range at commits.since
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files:
+      itos.yaml: "version: 1\ncommits: { since: \"{{sha.one}}\" }\nci: { steps: [vp check], range: { provider: github } }\n"
+    github: { refuse: true }
+    exit: 0
+    stdout: |
+      FROM={{sha.one}}
+    stderr: ""
+  - name: provider none starts the range at commits.since
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files:
+      itos.yaml: "version: 1\ncommits: { since: \"{{sha.root}}\" }\nci: { steps: [vp check], range: { provider: none } }\n"
+    exit: 0
+    stdout: |
+      FROM={{sha.root}}
+  - name: commits.since off the head's history starts nothing, which runs everything
+    argv: [ci, range, --head, "{{sha.two}}"]
+    files:
+      itos.yaml: "version: 1\ncommits: { since: \"{{sha.divergent}}\" }\nci: { steps: [vp check], range: { provider: none } }\n"
+    exit: 0
+    stdout: |
+      FROM=
+  - name: a pull request keeps its base over commits.since
+    argv: [ci, range, --head, "{{sha.two}}", --base, "{{sha.one}}"]
+    files:
+      itos.yaml: "version: 1\ncommits: { since: \"{{sha.root}}\" }\nci: { steps: [vp check], range: { provider: none } }\n"
+    exit: 0
+    stdout: |
+      FROM={{sha.one}}
   - name: the command provider was removed in v5
     argv: [ci, range, --head, "{{sha.two}}"]
     files:

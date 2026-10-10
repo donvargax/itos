@@ -29,9 +29,11 @@
 // parent (git rev-list --first-parent, FirstParentsAsked of them, 100) and
 // asks the API for each commit's runs (GreenRunOf), starting at the first
 // with a successful run of that commit, on whatever branch it ran. Any
-// failure of the walk reads as no green run, and runs everything. RangeStart
-// keeps a pull request's base without asking the provider, else holds the
-// provider's start to the head with git merge-base --is-ancestor.
+// failure of the walk reads as no green run. RangeStart keeps a pull
+// request's base without asking the provider, else holds the provider's start
+// to the head with git merge-base --is-ancestor; with no start that holds, it
+// takes commits.since's commit, held the same way (slice 109), and with none
+// of those either the start is empty, which runs everything.
 // LastGreenProvider gives itos status the same walk from a branch's head as
 // fetched (LastGreenFrom: one walk, greenFirstParent, the head itself
 // included there and its parent first for a range), saying what went wrong

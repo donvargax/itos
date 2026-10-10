@@ -81,16 +81,17 @@ func ciScope(from, to string, o Out) (int, error) {
 }
 
 // ciRange is `ci range --head <sha> [--base <sha>]` (ci.ts's ciRange): where
-// the range starts, `FROM=<sha>`, empty to run everything. The config is
-// read first, so a broken ci.range is a config error even for a pull
-// request, whose base is kept without asking the provider; a provider that
-// fails is not an error.
+// the range starts, `FROM=<sha>`, commits.since's commit when the provider
+// gives no start (slice 109), empty to run everything. The config is read
+// first, so a broken ci.range is a config error even for a pull request,
+// whose base is kept without asking the provider; a provider that fails is
+// not an error.
 func ciRange(head, base string, o Out) (int, error) {
 	cfg, err := config.Load(config.Path())
 	if err != nil {
 		return 0, err
 	}
-	from := providers.RangeStart(head, base, providers.RangeProvider(cfg, os.Getenv))
+	from := providers.RangeStart(head, base, providers.RangeProvider(cfg, os.Getenv), cfg.Since())
 	if o.JSON {
 		return 0, out.Emit(o.Stdout, out.Field{Key: "from", Value: from})
 	}

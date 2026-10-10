@@ -13,8 +13,9 @@ import (
 
 // Range is a ci.range provider: the start commit it proposes for a push's
 // range to the head, before RangeStart holds it to the head's ancestry. ""
-// means "run everything", and so does every way a lookup can fail: a provider
-// never errors, since a range that cannot be found is the whole history.
+// means it proposes none, and so does every way a lookup can fail: a provider
+// never errors, since a range that cannot be found falls back to commits.since,
+// else to the whole history.
 type Range func(head string) string
 
 // Env is how a provider reads the environment (os.Getenv in the binary).
@@ -54,19 +55,25 @@ func firstSet(env Env, names []string) string {
 // newer push cancels a waiting run, so a push to main is checked from the
 // head of the last green run, not from the push before it: the newest run
 // covers every cancelled one's commits. A pull request keeps its base, and
-// the provider is not asked. With no start, or one that is not an ancestor
-// of the head (a rewritten history, a commit the repository does not have),
-// the start is empty, and empty runs everything.
-func RangeStart(head, base string, provider Range) string {
+// the provider is not asked. A start the provider gives counts only when it
+// is an ancestor of the head (not a rewritten history, nor a commit the
+// repository does not have). With none that counts, the range starts at
+// since, commits.since's commit, held to the head's ancestry the same way
+// (slice 109): a last green run past FirstParentsAsked first parents, a
+// provider that fails or provider none would otherwise leave every run with
+// no start, and the steps that need one red. With neither, the start is
+// empty, and empty runs everything.
+func RangeStart(head, base string, provider Range, since string) string {
 	if base != "" {
 		return base
 	}
-	green := provider(head)
-	if green == "" || head == "" {
+	if head == "" {
 		return ""
 	}
-	if git.Succeeds("merge-base", "--is-ancestor", green, head) {
-		return green
+	for _, start := range []string{provider(head), since} {
+		if start != "" && git.Succeeds("merge-base", "--is-ancestor", start, head) {
+			return start
+		}
 	}
 	return ""
 }
@@ -81,13 +88,13 @@ var GitHubAPI = "https://api.github.com"
 const APIEnv = "GITHUB_API_URL"
 
 // FirstParentsAsked is how many of the head's first parents the github range
-// provider asks about, nearest first, before it gives up and runs everything;
-// a test lowers it.
+// provider asks about, nearest first, before it gives up and proposes no
+// start; a test lowers it.
 var FirstParentsAsked = 100
 
 // Timeout is how long the github provider waits for the API. Node's fetch
-// waits however long it takes; past this the lookup fails, which runs
-// everything, rather than holding the CI run until its job's own timeout.
+// waits however long it takes; past this the lookup fails, which proposes no
+// start, rather than holding the CI run until its job's own timeout.
 var Timeout = time.Minute
 
 // GitHub is the github provider's question: the workflow's runs of a
@@ -118,8 +125,8 @@ func (g GitHub) api() string {
 // at main's green ancestor, re-checking what that branch had proved (v5.0.0
 // removed the key, slice 85). Past
 // FirstParentsAsked first parents with none green, and on anything that goes
-// wrong, there is no start, which runs everything; with no repository nobody
-// is asked.
+// wrong, there is no start (RangeStart then falls back to commits.since); with
+// no repository nobody is asked.
 func (g GitHub) NearestGreen(head string) string {
 	if g.Repository == "" || head == "" {
 		return ""

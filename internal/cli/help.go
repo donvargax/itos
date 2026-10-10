@@ -748,8 +748,9 @@ Prints docs_only=true when the range touches only prose (ci.prose.paths).
 	"ci range": `Usage: itos ci range --head <sha> [--base <sha>]
 
 Prints FROM=<sha>, where a push's range starts: the pull request's base, else
-what the ci.range provider says if it is an ancestor of the head, else empty
-(run everything). A provider that fails is not an error. github says the
+what the ci.range provider says if it is an ancestor of the head, else the
+commit commits.since names if it is one, else empty (run everything). A
+provider that fails is not an error. github says the
 nearest of the head's first parents, from its parent, with a green run of
 ci.range.github.workflow on any branch, asking GitHub's API at GITHUB_API_URL,
 else https://api.github.com, about each commit's runs, 100 at most.

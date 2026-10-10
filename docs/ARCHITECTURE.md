@@ -358,7 +358,8 @@ git runs them beside whatever `core.hooksPath` holds. `hooks.bin` is
 everything it does runs locally too. A newer push replaces a run still
 waiting for a runner; a running one finishes. The range starts at the last
 green run on `main` (`itos ci range`, the `ci.range` provider) or a pull
-request's base, empty meaning run everything, and is written to the job's
+request's base, else at `commits.since` when no green run is found, empty
+meaning run everything, and is written to the job's
 environment once, so the commit re-check and the plan read the same range.
 `itos verify` re-checks every commit of the range after `commits.since`. The
 workflow sets up Node, Vite+ and Go from `go.mod`, and builds itos once

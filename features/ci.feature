@@ -167,7 +167,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # there already. With no commits.since, or one not in the head's history, the
   # start stays empty and everything runs, as @ID-CI-11 says. A pull request
   # keeps its base. Raising the 100 was turned down: it only postpones this.
-  @ID-CI-24 @slice-109 @wip
+  @ID-CI-24 @slice-109
   Scenario: ci range starts at commits.since when no ancestor has a green run
     Given ci.range asks a fake GitHub for the runs of "ci.yml" on "main"
     And three commits on top of the first
