@@ -229,3 +229,6 @@ questions:
   - id: q-55
     question: "q-41 says no local mutation runs, but the coordinator's briefs since slice-108 have an implementing agent run CI's push proof (mutation run --count 1 --since <origin/main> --fail-uncovered --json cmd internal) once before pushing: one fresh mutant and the coverage of the changed functions, about a minute, writing nothing. Recommended (a): allow exactly that, once before a push that changes Go, as a pre-push check, since it catches an uncovered statement or a survivor before main goes red; any other local mutation run stays out. Alternative (b): stop it, and CI alone runs mutants."
     answer: "(a): an implementing agent runs CI's push proof once before pushing a Go change, writing nothing; no other local mutation runs. The user, 2026-10-10."
+  - id: q-56
+    item: "T-142"
+    question: "Should this repository drop vp and Node, with every tool in Go where Go can do it and Markdown and YAML formatting kept? Recommended: yes; the gates' self-tests, the conformance runner, the changelog, the inbox, the plugin's hooks and the audit move to Go or shell, and the formatter is chosen by a spike (Kunde21/markdownfmt and google/yamlfmt in Go, else dprint pinned by checksum). Alternative: keep vp for formatting and move only the Node programs."
