@@ -2235,6 +2235,7 @@ items:
       -p --plugin-dir run writes them, but needs a login; if Claude Code gains a way to write them
       without a session, T-066's checks could run tsc over the plugin with them.
     refs: [integrations/claude-code/tsconfig.json, vite.config.ts]
+    tags: [plugin]
 
   - id: T-067
     title: A dependency check refuses Go modules younger than a week, and known vulnerabilities
@@ -4314,6 +4315,7 @@ items:
       Found by T-097's agent (2026-10-05): .claude-plugin/marketplace.json still says the plugin
       says how to find work, commit and push through itos, out of date since T-092 dropped the
       skill, and unlike plugin.json.
+    tags: [plugin]
 
   - id: p3-path-refusal-once
     title: Name a refused path once when a scope's only and never both refuse it
