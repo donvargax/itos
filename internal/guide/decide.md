@@ -19,13 +19,14 @@ or add a lesson.
   into the current one. The person's review is final.
 - **The queue is the order the person wants.** An item the person puts off is
   deferred with `itos work defer <id> --why '…'`, and lifted with
-  `itos work resume <id>`, each committing the registry alone. The order is
+  `itos work resume <id>`, each committing the registry alone; one already in
+  progress is given back first, `itos work give-back <id> --why '…'`. The order is
   kept by `itos work queue <id> --top`, `--before <id>`, `--after <id>` or
   `--remove`, each committing the registry alone; `itos work done` takes a
   closed item out. An item no longer wanted is dropped, once the person
   agrees, with `itos work drop <id> --why '…'`, the reason its commit's body;
-  it stays in the registry, never proposed again. Defer, resume, queue, drop
-  and edit take several ids: one change for each, one commit.
+  it stays in the registry, never proposed again. Defer, resume, give-back,
+  queue, drop and edit take several ids: one change for each, one commit.
 
 ## Decisions
 

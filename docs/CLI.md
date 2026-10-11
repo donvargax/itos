@@ -72,7 +72,7 @@ These codes follow grep and diff (0 yes, 1 no, 2 trouble) and the BSD `sysexits.
 
 15. Give each flag a long form. Give a one-letter form only to the most common flags. (CLIG `#arguments-and-flags`; GNU-CLI.) itos follows this rule: `-h` and `-q` are its only short flags.
 16. Use the standard name when a standard name exists: `--json`, `-q`/`--quiet`, `-h`/`--help`, `--force`, `--version`. (CLIG `#arguments-and-flags`.)
-17. Let a flag mean the same thing in every command. (CLIG `#subcommands`.) itos follows this rule: `--as` names a person in `work`, `status` and `work take`, and `work promote` takes the new ID as `--id` (slice-89).
+17. Let a flag mean the same thing in every command. (CLIG `#subcommands`.) itos follows this rule: `--as` names a person in `work`, `status`, `work take` and `work give-back`, and `work promote` takes the new ID as `--id` (slice-89).
 18. Use a flag to change an action, never to select a different action. (COBRA `#concepts`.) `config check --print-defaults` does not follow this rule yet; `work queue --drop` became `--remove` in v6.0.0 (slice-89).
 19. Accept `--flag=value` and `--flag value`. (CLIG `#arguments-and-flags`; GNU-CLI, as `getopt_long` reads them.) itos follows this rule (slice-88): every built-in command reads its flags by one spec, `internal/cli/spec.go`.
 20. Refuse an unknown flag, and a flag with no value, with exit 2. (CLIG `#robustness-guidelines`.) itos follows this rule (slice-88), and also refuses a switch given a value and a once-only flag given twice.

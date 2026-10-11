@@ -1049,7 +1049,7 @@ Feature: The work registry
   # coordinator's call (2026-10-11): a command of its own rather than work
   # defer taking doing, so a given-back item can be taken again as well as
   # deferred, and repair names the command.
-  @ID-WORK-94 @slice-122 @wip
+  @ID-WORK-94 @slice-122
   Scenario: work give-back puts an item in progress back to todo, keeping its owner, and commits the reason
     Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
     When itos runs the command line "work give-back slice-9 --why 'Blocked on another project.' --as someone"
@@ -1059,14 +1059,14 @@ Feature: The work registry
     And the last commit's body says "Blocked on another project."
     And the last commit touches only "tasks/work-items.yaml"
 
-  @ID-WORK-95 @slice-122 @wip
+  @ID-WORK-95 @slice-122
   Scenario: work give-back refuses an item that is not in progress, naming its status
     Given the work registry has the item "slice-9" owned by "someone" with the status "todo"
     When itos runs the command line "work give-back slice-9 --why 'Blocked.' --as someone"
     Then itos exits with code 1
     And its output says "todo"
 
-  @ID-WORK-96 @slice-122 @wip
+  @ID-WORK-96 @slice-122
   Scenario: work give-back refuses an item someone else has in progress
     Given the work registry has the item "slice-9" owned by "another" with the status "doing"
     When itos runs the command line "work give-back slice-9 --why 'Blocked.' --as someone"
@@ -1074,7 +1074,7 @@ Feature: The work registry
     And its output says "another"
     And the registry's item "slice-9" has the status "doing" and the owner "another"
 
-  @ID-WORK-97 @slice-122 @wip
+  @ID-WORK-97 @slice-122
   Scenario: An item given back can be deferred
     Given the work registry has the item "slice-9" owned by "someone" with the status "doing"
     And itos has run the command line "work give-back slice-9 --why 'Blocked on another project.' --as someone"

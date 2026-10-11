@@ -76,6 +76,8 @@ Commands:
   work drop <id>… --why <reason>   take an item out of the open work, and commit the reason
   work defer <id>… --why <reason>  put an item off, and commit the reason
   work resume <id>…                lift an item's deferral, and commit it
+  work give-back <id>… --why <reason> [--as <handle>]
+                                   put an item in progress back to todo, and commit the reason
   work check [<file>]              validate the work registry
   decision [--all]                 the open decisions waiting on the person the work is for
   decision add <text> [--item <id>]
@@ -231,6 +233,7 @@ or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
        itos work drop <id>… --why <reason>
        itos work defer <id>… --why <reason>
        itos work resume <id>…
+       itos work give-back <id>… --why <reason> [--as <handle>]
        itos work check [<file>]
 
 Who the session works for (--as, else the config's work.identity provider) and
@@ -251,8 +254,8 @@ each list in the queue's order, each item with its tags ([] for none)
 work list prints the registry's open items instead, and --all every item
 (itos help work list), work show one item with its scenarios and commits (itos
 help work show); work take, work promote, work done, work add, work edit, work
-queue, work drop, work defer and work resume write it, each committing it (itos
-help work take).`,
+queue, work drop, work defer, work resume and work give-back write it, each
+committing it (itos help work take).`,
 
 	"work show": `Usage: itos work show <id> [--patch]
 
@@ -266,7 +269,8 @@ answered, and its text. A commit is the item's when its footers of IDs name the 
 one of its scenarios (Scenarios:), a later fix naming one included, or when it
 is one of itos's registry commits naming it in its header (docs: take <id>,
 docs: promote <idea> to <id>, docs: close <id>, docs: add <id>, docs: edit
-<id>, docs: queue <id>, docs: drop <id>, docs: defer <id>, docs: resume <id>);
+<id>, docs: queue <id>, docs: drop <id>, docs: defer <id>, docs: resume <id>,
+docs: give back <id>);
 under a stealth config the footers are read from each commit's note in
 refs/notes/itos. --patch adds each commit as git show prints it, message and
 diff: the whole of a review's input. It reads, never writes, and judges
@@ -470,6 +474,32 @@ when any one would be refused, nothing is written and each id refused is
 named (exit 1). Then one commit holds them all, "docs: resume <id>, <id>…",
 or "docs: resume <n> items" when the ids do not fit the header, its body
 naming every item and the reason it was deferred. An id named twice exits 2.
+
+--json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}; for several
+ids {"schema":1,"ok":true,"items":[{…},…],"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"refused":[<id>,…],"problems":[…]}`,
+
+	"work give-back": `Usage: itos work give-back <id>… --why <reason> [--as <handle>]
+
+Gives back an item in progress, undoing work take: its status todo again,
+its owner kept and nothing else of it changed; then commits the registry
+alone, "docs: give back <id>", as work take does (itos help work take), the
+reason the commit's body. The item can then be taken again, or deferred (itos
+help work defer). The person is work take's (--as, else the config's
+work.identity provider). Refused, nothing written (exit 1): a registry that
+is not sound or has changes no commit holds, an id no item has, an item not
+in progress (naming its status), one whose owner, or its group's, is someone
+else (naming them), a commit a hook refuses. Exit 2 without --why, 3 when the
+person is nobody or not among the people. Under a stealth config the registry
+is written and nothing committed; with no --as every item is the session's.
+
+Several ids are each given back for the one reason, every one judged before
+anything is written: when any one would be refused, nothing is written and
+each id refused is named (exit 1). Then one commit holds them all, "docs:
+give back <id>, <id>…", or "docs: give back <n> items" when the ids do not
+fit the header, its body naming every item, then the reason. An id named
+twice exits 2.
 
 --json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}; for several

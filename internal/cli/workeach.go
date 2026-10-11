@@ -9,6 +9,7 @@ package cli
 // usage error with several ids, as is an id named twice.
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -44,7 +45,8 @@ type eachWrite func(cfg *config.Loaded, r work.Registry, text string) (work.Seve
 
 // writeEach makes a change of several ids and reports it: the registry
 // sound, the change judged for every id, refused whole when any id is, then
-// written and committed once (writeRegistry). says gives a line for each
+// written and committed once (writeRegistry); a writer's refusal error ends
+// it with that refusal's code. says gives a line for each
 // item, the report's last line the commit; under --json, ok, the items in
 // the order given, the extra fields and the commit.
 func writeEach(o Out, sub string, write eachWrite, says func(work.Several) []string, extra func(work.Several) []out.Field) (int, error) {
@@ -54,6 +56,10 @@ func writeEach(o Out, sub string, write eachWrite, says func(work.Several) []str
 		return code, err
 	}
 	s, refused, found, err := write(cfg, registry, text)
+	var whole refusal
+	if errors.As(err, &whole) {
+		return refuseWork(whole.found, whole.code, o)
+	}
 	if err != nil {
 		return 0, uneditable(cfg.Work.Registry, err)
 	}
@@ -94,6 +100,16 @@ func writeEach(o Out, sub string, write eachWrite, says func(work.Several) []str
 	fmt.Fprintln(o.Stdout, strings.Join(lines, "\n"))
 	return 0, nil
 }
+
+// refusal is a change of several ids refused whole before any id is judged,
+// with its own exit code: work give-back's person who is nobody or not among
+// the people (exit 3), as for one id.
+type refusal struct {
+	code  int
+	found []out.Problem
+}
+
+func (r refusal) Error() string { return r.found[0].Message }
 
 // refuseEach reports a change of several ids refused, exit 1: a line naming
 // every id refused, then each problem, as refuseWork reports them; under

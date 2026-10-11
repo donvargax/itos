@@ -52,8 +52,8 @@
 // its id, and gives a Change (the text after, the item as it reads after,
 // the items whose depends_on were renamed, the commit's header and body, or
 // Unchanged) or a problem that refuses, nothing written. The text is edited
-// with value.Doc, every comment and quote kept. Add, Edit, Done, Drop, Defer
-// and Resume run Issues on the registry with the item as it would be (sound)
+// with value.Doc, every comment and quote kept. Add, Edit, Done, Drop, Defer,
+// Resume and GiveBack run Issues on the registry with the item as it would be (sound)
 // rather than restate the check: an owner not among the people, a dependency
 // on no item, a cycle, an item done before its dependency.
 //
@@ -86,7 +86,11 @@
 //     tags and the queue as they are; it refuses an item already deferred,
 //     one done or dropped, and one of any status but todo. Resume drops the
 //     key and nothing else.
-//   - EditEach, DropEach, DeferEach and ResumeEach (several.go, slice 118)
+//   - GiveBack (giveback.go, slice 122) undoes a take: an item doing set
+//     back to todo, its owner kept, the reason first in its body; it refuses
+//     an item not doing and one someone else owns, judged as Take judges it.
+//   - EditEach, DropEach, DeferEach, ResumeEach and GiveBackEach (several.go,
+//     slice 118; giveback.go)
 //     make one writer's change to several ids, each on the registry the ids
 //     before it left (each, which reads the text again after every change),
 //     so what work check would find is judged with them changed; every id

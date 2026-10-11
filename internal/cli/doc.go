@@ -550,11 +550,14 @@
 //     in a commit of its own, under a stealth config while the lock is still
 //     held.
 //   - work add and work edit (workedit.go), work queue (workwrite.go), work
-//     drop (workdrop.go), work defer and work resume (workdefer.go) call
-//     their writers in internal/work; drop and defer put the --why reason
-//     first in their commit's body. Defer and resume are two commands rather
-//     than a flag on one (docs/CLI.md rule 18). Edit, drop, defer, resume and
-//     queue take one id or more (workIDs, an id named twice exit 2): one runs
+//     drop (workdrop.go), work defer and work resume (workdefer.go) and work
+//     give-back (workgiveback.go) call their writers in internal/work; drop,
+//     defer and give-back put the --why reason first in their commit's body.
+//     Give-back judges the owner against work take's person (workPerson), and
+//     with several ids a person it cannot name ends writeEach with exit 3
+//     (refusal). Defer and resume are two commands rather
+//     than a flag on one (docs/CLI.md rule 18). Edit, drop, defer, resume,
+//     give-back and queue take one id or more (workIDs, an id named twice exit 2): one runs
 //     as before, several go through writeEach (workeach.go, slice 118) and
 //     work's *Each writers, refused whole by refuseEach (exit 1, naming every
 //     id refused, --json's refused) or committed once, --json's items in the

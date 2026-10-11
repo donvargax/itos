@@ -1632,12 +1632,12 @@ cases:
     argv: [work, bogus, --x]
     exit: 2
     stderr: |
-      itos: work has no subcommand bogus: it takes list, show, take, promote, done, add, edit, queue, drop, defer, resume or check, else --as <handle> (itos --help)
+      itos: work has no subcommand bogus: it takes list, show, take, promote, done, add, edit, queue, drop, defer, resume, give-back or check, else --as <handle> (itos --help)
   - name: work refuses a flag it does not take
     argv: [work, --as, a, --all]
     exit: 2
     stderr: |
-      itos: work does not take --all; it takes --as, else a subcommand: add, check, defer, done, drop, edit, list, promote, queue, resume, show or take (itos --help)
+      itos: work does not take --all; it takes --as, else a subcommand: add, check, defer, done, drop, edit, give-back, list, promote, queue, resume, show or take (itos --help)
   - name: work --as needs a handle
     argv: [work, --as]
     exit: 2
@@ -1991,6 +1991,74 @@ cases:
         - rule: work-resume-not-deferred
           message: x is not deferred
           fix: itos work list marks a deferred item (deferred)
+  # Slice 122: work give-back undoes a take, the status todo again and the
+  # owner kept, the reason the commit's body, the registry committed alone.
+  - name: work give-back puts an item in progress back to todo, keeping its owner, and commits the registry alone
+    argv: [work, give-back, x, --why, Blocked on y., --as, a]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: &givable "phases: { 1: null }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: doing }\n  - { id: y, title: Y, phase: 1, owner: b, status: doing }\n"
+    files:
+      work-items.yaml: *givable
+    exit: 0
+    stdout_has: ["x is given back, todo again for a: committed ", " docs: give back x\n"]
+    files_after:
+      work-items.yaml: &givenBack "phases: { 1: null }\nitems:\n  - { id: x, title: X, phase: 1, owner: a, status: todo }\n  - { id: y, title: Y, phase: 1, owner: b, status: doing }\n"
+  - name: under a stealth config work give-back writes the registry and commits nothing, every item the session's
+    argv: [work, give-back, x, --why, Blocked on y., --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *givable
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: x, title: X, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
+      commit: null
+    files_after:
+      .git/itos/work-items.yaml: *givenBack
+  - name: work give-back refuses an item not in progress, naming its status
+    argv: [work, give-back, x, --why, Blocked., --as, a]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *givenBack
+    exit: 1
+    stderr: |
+      x is todo, not in progress: only an item doing is given back
+        fix: give back an item in progress (itos work)
+  - name: work give-back refuses an item someone else has in progress, naming them
+    argv: [work, give-back, y, --why, Blocked., --as, a, --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *givable
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      problems:
+        - rule: work-give-back-owned
+          message: y is b's, not a's
+          fix: give back one of yours, or agree with b that they give it back
+  - name: work give-back exits 3 for a person not among the people
+    argv: [work, give-back, x, --why, Blocked., --as, c]
+    files:
+      work-items.yaml: *givable
+    exit: 3
+    stderr: |
+      "c" is not in people.yaml
+        fix: pass --as <handle>
+  - name: work give-back needs a reason
+    argv: [work, give-back, x]
+    exit: 2
+    stderr: |
+      itos: work give-back needs --why <reason>, the commit's record of why the item is given back (itos --help)
   - name: work take refuses an item dropped, naming its status
     argv: [work, take, x, --as, a]
     git: []

@@ -9,7 +9,8 @@ who pushes after it. One `revert` commit naming the item; if a live scenario
 then cannot pass, set it `@wip` with its reason as a comment above it. Then
 record the attempt in its spec (a comment above the slice's scenarios, or the
 task's ledger why: the commits, what was found, what is left) and give the
-item back as `todo`. A red run outside any item goes to a
+item back as `todo` with `itos work give-back <id> --why '…'`, which keeps its
+owner and commits the reason. A red run outside any item goes to a
 temporary agent with the run's address and the same rule: fix the cause in
 the product, not the check. If the failure is in the spec or in a gate, ask
 the person.

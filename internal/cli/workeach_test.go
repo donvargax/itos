@@ -13,13 +13,16 @@ import (
 )
 
 // eachRegistry is a registry every several-id command can change: a and b
-// ideas to do, c and e deferred, d done, the queue holding a.
+// ideas to do, c and e deferred, d done, f and g in progress, the queue
+// holding a.
 const eachRegistry = "phases: { 1: null }\nqueue:\n  - a\nitems:\n" +
 	"  - { id: a, title: A, phase: 1, owner: null, status: todo, kind: idea }\n" +
 	"  - { id: b, title: B, phase: 1, owner: null, status: todo, kind: idea }\n" +
 	"  - { id: c, title: C, phase: 1, owner: null, status: todo, kind: idea, deferred: later }\n" +
 	"  - { id: d, title: D, phase: 1, owner: null, status: done }\n" +
-	"  - { id: e, title: E, phase: 1, owner: null, status: todo, kind: idea, deferred: later }\n"
+	"  - { id: e, title: E, phase: 1, owner: null, status: todo, kind: idea, deferred: later }\n" +
+	"  - { id: f, title: F, phase: 1, owner: null, status: doing }\n" +
+	"  - { id: g, title: G, phase: 1, owner: null, status: doing }\n"
 
 // eachRun runs a registry command in a fresh repository whose registry is
 // the text, and gives its exit code, error, stdout and stderr.
@@ -54,6 +57,9 @@ func TestSeveralIDCommands(t *testing.T) {
 			[][]string{{"a", "--bogus", "x"}, {"a"}}},
 		{"resume", workResume, []string{"c"}, []string{"c", "e"}, []string{"a"}, []string{"c", "a"}, nil, "c is resumed\ne is resumed\n",
 			[][]string{{"c", "--bogus", "x"}}},
+		{"give-back", workGiveBack, []string{"f", "--why", "Blocked."}, []string{"f", "g", "--why", "Blocked."},
+			[]string{"a", "--why", "Blocked."}, []string{"f", "a", "--why", "Blocked."}, nil, "f is given back\ng is given back\n",
+			[][]string{{"f", "--bogus", "x"}, {"f"}, {"f", "--why", " "}, {"--why", "Blocked."}, {"f", "f", "--why", "Blocked."}}},
 		{"queue", workQueue, []string{"b", "--before", "a"}, []string{"b", "c", "--top"}, []string{"d", "--top"}, []string{"b", "d", "--top"},
 			[]string{"a", "--top"}, "b and c are first in the queue, in that order\n",
 			[][]string{{"a", "--bogus", "x"}, {"a", "--top", "--remove"}}},
@@ -97,7 +103,7 @@ func TestSeveralIDCommands(t *testing.T) {
 				}
 			}
 			code, err, stdout, _ := eachRun(t, eachRegistry, c.run, false, c.several...)
-			if code != 0 || err != nil || !strings.HasPrefix(stdout, c.says) || !strings.Contains(stdout, "docs: "+c.name+" ") {
+			if code != 0 || err != nil || !strings.HasPrefix(stdout, c.says) || !strings.Contains(stdout, "docs: "+strings.ReplaceAll(c.name, "-", " ")+" ") {
 				t.Errorf("%q: %q", c.several, stdout)
 			}
 		})

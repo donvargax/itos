@@ -77,7 +77,8 @@ var sliceID = regexp.MustCompile(`^slice-\d+$`)
 // commands commit with, each followed by the item's id: work take, work
 // done, work add (and task add), work edit, work queue (and work done's
 // taking the item out of the queue, slice 66), work drop (slice 78), and
-// work defer and work resume (slice 98).
+// work defer and work resume (slice 98); work give-back's, "docs: give back
+// <id>" (slice 122), is two words, read apart.
 var registryVerbs = []string{"take", "close", "add", "edit", "queue", "drop", "defer", "resume"}
 
 // RegistryHeader is the item a header of itos's registry commits names
@@ -93,6 +94,12 @@ func RegistryHeader(header string) (id string, ok bool) {
 	if verb == "promote" {
 		if len(fields) == 3 && fields[1] == "to" {
 			return fields[2], true
+		}
+		return "", false
+	}
+	if verb == "give" {
+		if len(fields) == 2 && fields[0] == "back" {
+			return fields[1], true
 		}
 		return "", false
 	}

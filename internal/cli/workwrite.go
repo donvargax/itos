@@ -465,23 +465,9 @@ func workTake(args []string, o Out) (int, error) {
 	if cfg == nil {
 		return code, err
 	}
-	as := flags["--as"]
-	every := as == "" && (cfg.Stealth || registry.Nobody())
-	person := ""
-	if !every {
-		listedIn := cfg.Work.People.File
-		who := work.Whoami(registry, listedIn, as, providers.IdentityProvider(cfg))
-		switch {
-		case who.Problem != "":
-			return refuseWork([]out.Problem{{Rule: "work-no-person", Message: who.Problem, Fix: "pass --as <handle>"}}, ExitMissing, o)
-		case !who.Listed:
-			return refuseWork([]out.Problem{{
-				Rule:    "work-no-person",
-				Message: fmt.Sprintf("%s is not in %s, so cannot own an item", who.Handle, listedIn),
-				Fix:     "add " + who.Handle + " to " + listedIn + ", or pass --as <handle>",
-			}}, ExitMissing, o)
-		}
-		person = who.Handle
+	person, every, problem := workPerson(cfg, registry, flags["--as"], providers.IdentityProvider(cfg))
+	if problem != nil {
+		return refuseWork([]out.Problem{*problem}, ExitMissing, o)
 	}
 	change, problem, err := work.Take(registry, text, id, person, every)
 	if err != nil {
@@ -502,6 +488,31 @@ func workTake(args []string, o Out) (int, error) {
 		return code, err
 	}
 	return reportWork(fmt.Sprintf("%s is in progress%s: %s", id, forWhom, committed(sha, change.Header)), change, sha, nil, o)
+}
+
+// workPerson is who a command that judges an item's owner acts for, work
+// take and work give-back: --as (as), else who the identity provider says,
+// as for work (identify, the config's work.identity provider). every is a session that owns every item, asked of nobody: a
+// stealth config, or no one in the people (Registry.Nobody: a people file
+// missing or listing nobody), with no --as (bug 46). The problem, exit 3, is
+// a person who is nobody or not among the people.
+func workPerson(cfg *config.Loaded, registry work.Registry, as string, identify providers.Identity) (person string, every bool, problem *out.Problem) {
+	if as == "" && (cfg.Stealth || registry.Nobody()) {
+		return "", true, nil
+	}
+	listedIn := cfg.Work.People.File
+	who := work.Whoami(registry, listedIn, as, identify)
+	switch {
+	case who.Problem != "":
+		return "", false, &out.Problem{Rule: "work-no-person", Message: who.Problem, Fix: "pass --as <handle>"}
+	case !who.Listed:
+		return "", false, &out.Problem{
+			Rule:    "work-no-person",
+			Message: fmt.Sprintf("%s is not in %s, so cannot own an item", who.Handle, listedIn),
+			Fix:     "add " + who.Handle + " to " + listedIn + ", or pass --as <handle>",
+		}
+	}
+	return who.Handle, false, nil
 }
 
 // promoteKinds are what work promote makes of an idea.
