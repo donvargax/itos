@@ -8006,3 +8006,18 @@ items:
       the features hide them (T-087).
     refs: [tools/itos/conformance/help.yaml, internal/cli/help.go]
     tags: [tests, docs]
+
+  - id: p1-corpus-dev-binary-version
+    title: The corpus's pin case passes with a plain go build binary, or says it needs a stamped one
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-128's agent (2026-10-11): run with a binary from plain go build, the corpus fails a
+      config.yaml pin case only because the binary's version string is not a release's, which reads
+      as a real failure. Stamp the version the case needs, or have the runner say the case needs
+      tools/bin/itos's stamped build.
+    refs: [tools/itos/conformance/config.yaml, tools/itos/conformance/run.ts]
+    tags: [tests]
