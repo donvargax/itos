@@ -244,3 +244,4 @@ questions:
     decision: 47
   - id: q-59
     question: "Does itos take go-template-itos's decision 0008: an interrupted command exits 130, says so once, and a second interrupt ends it at once? Today itos lets git act on the interrupt (internal/cli/gitcommit.go) and has no rule of its own."
+    answer: "Yes, after v8 and as part of bug-38's work rather than a rule of its own (the user, 2026-10-11). The exit code alone adds little, since a shell already reports 130 for a process Ctrl-C kills; the worth is the first interrupt letting itos finish or undo what it was doing (the drafts lock, a half-written registry or ledger, git's own operation), saying so once, and a second interrupt ending it at once. That is the interruption-safety bug-38 (atomic writes, q-22) is about, so they are built together."
