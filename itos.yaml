@@ -388,6 +388,36 @@ ci:
 work: # internal/work; the registry is at its default, tasks/work-items.yaml
   groups_key: phases
   statuses: [todo, doing, done, blocked]
+  # The area tags of the backlog review of 2026-10-10 (T-150): one per item, what part of itos it
+  # touches; itos work list --tag <tag> lists an area's items.
+  tags:
+    [
+      ask,
+      ci,
+      cli,
+      commit,
+      config,
+      docs,
+      extensions,
+      followup,
+      guard,
+      hooks,
+      init,
+      launcher,
+      message,
+      plugin,
+      providers,
+      push,
+      release,
+      review,
+      status,
+      stealth,
+      tests,
+      upgrade,
+      verify,
+      windows,
+      work,
+    ]
   # or all-contributorsrc (contributors[].login) or yaml (a list of logins)
   people:
     { source: all-contributors-md, file: CONTRIBUTORS.md, login_from: "https://github.com/{login}" }
