@@ -499,3 +499,109 @@ Feature: Every key the config accepts is one itos reads
     When itos checks the config
     Then itos exits with code 1
     And its output says "ledger.check.timeout"
+
+  # Slice 130 (p1-ledger-layout-checks, with p1-load-refuses-unusable-values,
+  # p1-asks-check and p1-ledger-id-default; the v8 plan and the user's calls of
+  # 2026-10-11). Four gaps of the same family, each found only when a later
+  # command failed with no word of the key:
+  #
+  # - Values that make a command misbehave when it reads them are refused when
+  #   the config loads, exit 2, by every command, as ci.watch.timeout of 0 or
+  #   less already is: a .nan or .inf number (a .nan ci.watch.interval panicked
+  #   itos push; a .nan hooks.commit_msg.check_timeout left the hook uncapped),
+  #   a timeout of 0 or less, an empty shell. Slice 129 made config check name
+  #   them with exit 1 (@ID-CONFIG-45, 49 and 50); they move to the loader, so
+  #   config check exits 2 for them too, and the feat names those three in
+  #   Changes. What is only unread or inconsistent (except_types, wip_tag on a
+  #   command kind, a group label that cannot be a flag) stays config check's,
+  #   exit 1.
+  # - Ledger layouts that read nothing: a ledger.group.pattern written with its
+  #   own anchors, which never matches inside the file name; {group} as a
+  #   folder in ledger.files, which passes and later fails as a missing folder;
+  #   a ledger.files that matches work.registry, naming both keys. And
+  #   ledger.group.numeric now sorts the files by number (phase-2 before
+  #   phase-10), as its description says; they were sorted byte-wise.
+  # - The questions file (work.asks, tasks/asks.yaml) is judged by config check
+  #   and by the commit-msg hook's data check, as the ledger and the registry
+  #   are: an unknown key, an id given twice, an item naming no item.
+  # - ledger.id has one reader (ledger.IDPattern, anchored as ^(?:id)$, so an
+  #   alternation anchors every branch; itos task, work show's task items and
+  #   minting all use it), and with no ledger.id an ID is whatever the ledger
+  #   holds: itos task reads a word as a task ID when the ledger has that task,
+  #   not when it matches T-\d+ (@ID-TASK-15).
+  @ID-CONFIG-51 @slice-130 @wip
+  Scenario: Any command refuses a config holding a number that is not finite, exit 2 naming the key
+    Given the config sets "ci.watch.interval" to the YAML ".nan"
+    When itos runs "work list"
+    Then itos exits with code 2
+    And its output says "ci.watch.interval"
+
+  @ID-CONFIG-52 @slice-130 @wip
+  Scenario: config check refuses a ledger.group.pattern written with its own anchors
+    Given the config sets "ledger.group.pattern" to "^\d+$"
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "ledger.group.pattern"
+
+  @ID-CONFIG-53 @slice-130 @wip
+  Scenario: config check refuses {group} as a folder in ledger.files
+    Given the config sets "ledger.files" to "tasks/{group}/tasks.yaml"
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "ledger.files"
+
+  @ID-CONFIG-54 @slice-130 @wip
+  Scenario: config check refuses a ledger.files that matches the work registry, naming both keys
+    Given the config sets "ledger.files" to "tasks/{group}.yaml"
+    And the config sets "ledger.group.pattern" to "[a-z-]+"
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "ledger.files"
+    And its output says "work.registry"
+
+  @ID-CONFIG-55 @slice-130 @wip
+  Scenario: A numeric ledger group reads phase-2 before phase-10
+    Given the config's ledger groups are numeric
+    And the ledger file "tasks/phase-10.yaml" has the task "T-010" with the check "true"
+    And the ledger file "tasks/phase-2.yaml" has the task "T-002" with the check "true"
+    When itos runs "task list"
+    Then itos exits with code 0
+    And its output says "T-002" before "T-010"
+
+  @ID-CONFIG-56 @slice-130 @wip
+  Scenario: config check refuses a questions file that gives an id twice
+    Given the committed file "tasks/asks.yaml" holding the lines:
+      """
+      questions:
+        - id: q-1
+          question: "Which way?"
+        - id: q-1
+          question: "Which other way?"
+      """
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "q-1"
+
+  @ID-CONFIG-57 @slice-130 @wip
+  Scenario: The commit-msg hook refuses a commit that stages a questions file giving an id twice
+    Given the hooks are installed
+    And the staged file "tasks/asks.yaml" holding the lines:
+      """
+      questions:
+        - id: q-1
+          question: "Which way?"
+        - id: q-1
+          question: "Which other way?"
+      """
+    When itos runs "commit -m 'docs: ask twice'"
+    Then itos exits with code 1
+    And its output says "q-1"
+    And no commit was made
+
+  @ID-CONFIG-58 @slice-130 @wip
+  Scenario: A ledger.id alternation anchors every branch, so a task id with trailing text is refused
+    Given the config sets "ledger.id" to "T-\d+|OPS-\d+"
+    And the ledger file "tasks/phase-1.yaml" has the task "T-1x" with the check "true"
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "T-1x"
