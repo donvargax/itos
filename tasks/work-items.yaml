@@ -7351,8 +7351,8 @@ items:
   - id: T-152
     title: The push proof judges changed lines, covered by units, features or the corpus
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
