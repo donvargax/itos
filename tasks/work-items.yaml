@@ -6775,14 +6775,15 @@ items:
       (p1-agent-rules-as-data); what stays is ci plan's text output labelling the code proof step
       and saying why it is left out (no range start, no proof.code.paths touched).
 
-  - id: p1-push-tag-and-ref
+  - id: slice-131
     title: itos push --tag and --ref push a tag or another branch, never forced, and tags only when asked
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-push-tag-and-ref.
       Issue #37 (itos-cc releases, 7.0.0-rc.3): the guard, the git shim and itos push all refuse a
       ref push, so a release tag or a draft branch for another OS's CI needs a hard-coded
       /usr/bin/git, which skips the shim's checks. itos push reports Nothing to push while an
