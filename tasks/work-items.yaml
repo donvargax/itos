@@ -7835,3 +7835,18 @@ items:
       (filepath.Join), as the display path beside it stays slashed. The test compares OS paths with
       slashed literals; the code is right. Blocks slice-126's release and every close until main is
       green.
+
+  - id: p1-check-paths-missing-path
+    title: commit check-paths refuses a path that does not exist and is not deleted in the index
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The template dry run's agent (2026-10-11): itos commit check-paths exited 0 on
+      nonexistent/zzz.txt, and when zsh passed a newline-joined file list as one argument, chore and
+      refactor passed silently over 79 paths. A path neither in the tree nor staged as deleted is a
+      mistake in the call; say so (exit 2) rather than judge it.
+    refs: [internal/cli/checkpaths.go]
+    tags: [commit]
