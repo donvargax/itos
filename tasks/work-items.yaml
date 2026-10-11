@@ -2510,6 +2510,7 @@ items:
       gates until someone writes one. init could write ci.steps (itos config check, the smoke
       check) and a workflow beside them, so CI runs the same gates from the first push.
     refs: [internal/cli/starter.go, features/init.feature]
+    tags: [init]
 
   - id: p3-notice-names-pin
     title: The update notice names itos pin as the way to move the pin
@@ -3594,6 +3595,7 @@ items:
       teaching every new repository a key it should not need. Dropping the two lines changes init's
       output and its corpus cases (init.yaml), so it is a behaviour change of its own, not slice
       79's.
+    tags: [init]
 
   - id: p1-git-config-pre-push-always
     title: The git-config hook manager declares the pre-push hook whatever hooks.pre_push says
@@ -3675,6 +3677,7 @@ items:
       where the block is there could report a CLAUDE.md lacking the import, naming itos init
       --agent-rules, never counted as missing.
     refs: [features/init.feature, internal/cli/initrules.go]
+    tags: [init]
 
   - id: p1-t008-check-the-walk
     title: T-008's check runs the walk's test, not FirstGreen's
@@ -3714,6 +3717,7 @@ items:
       post-merge hook under the stealth config) could report the drift, or refresh the copy, which
       is itos's own text between its markers.
     refs: [internal/cli/initrulesstealth.go, features/init.feature]
+    tags: [init]
 
   - id: slice-81
     title: A scope's except list takes paths back out of its never
@@ -4097,6 +4101,7 @@ items:
       staged range checks are listed for every type though the hook runs them only for types with a
       scope entry (initrules.go:511,521,580).
     refs: [internal/cli/initrules.go]
+    tags: [init]
 
   - id: p1-markers-outside-fences
     title: Rules markers inside a code fence are not the block
@@ -4123,6 +4128,7 @@ items:
       blockSpan in initrules.go matches marker lines inside a fenced example, so an AGENTS.md
       showing the markers has its example replaced, or is refused as two blocks.
     refs: [internal/cli/initrules.go]
+    tags: [init]
 
   - id: p1-unknown-flags-refused
     title: Every command refuses an unknown flag
@@ -4269,6 +4275,7 @@ items:
       The user's call (2026-10-05): with formatters run on every commit, style is never the right
       type. This repository dropped it in T-098; the starter still lists it
       (internal/cli/starter.go), though there it needs a Task.
+    tags: [init]
 
   - id: p3-gate-changes-visible
     title: Gate changes made hard to miss, and a human's signature if ever cheap
@@ -5182,6 +5189,7 @@ items:
       Backlog review of 2026-10-10, batch 4: folds in p1-init-plugin-rule-22: in the same breaking
       change, --plugin <scope> requires its value and no longer takes no (docs/CLI.md rule 22, POSIX
       guideline 7), so --no-plugin is the one way to decline, with no second spelling kept.
+    tags: [init]
 
   - id: p1-init-plugin-rule-22
     title: init --plugin takes its scope always (docs/CLI.md rule 22), --no-plugin being the way to decline
