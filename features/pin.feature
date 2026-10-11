@@ -225,3 +225,18 @@ Feature: A global itos runs the version a repository pins
     Then both runs exit with code 0
     And the version "9.1.0" ran with the arguments "version" twice
     And the release the other run cached is still the one in the cache
+
+  # Bug 104 (issue #47, 2026-10-11): init was the launcher's own command, run
+  # by the itos that was called whatever the pin said, because it readies a
+  # repository where no config pins a version yet (slice 48). Where the config
+  # does pin one, that is the version that runs it, as every other command,
+  # so a newer itos on the PATH never writes its own agent rules block over
+  # the pin's: the block and the hooks are the pinned release's. With no pin,
+  # init still runs as the itos that was called, never the newest release.
+  # launch.go's binaryCommand comment changes with it.
+  @ID-PIN-22 @bug-104 @wip
+  Scenario: itos init in a repository that pins a version runs the pinned version
+    Given the config pins the version "9.1.0" of the release server
+    When itos runs "init --agent-rules"
+    Then itos exits with code 0
+    And the version "9.1.0" ran with the arguments "init --agent-rules"
