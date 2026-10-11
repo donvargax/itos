@@ -7715,3 +7715,21 @@ items:
       against v7.5.0, which has real-git, so pushes stay green. The fix gives the runner the native
       git without the scratch tree needing this repository's packages; how is the implementer's
       call.
+
+  - id: p1-init-agent-rules-runs-pin
+    title: itos init run in a pinned repository runs the pinned itos, so the agent block is the pin's
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #47 (itos-cc, 2026-10-11): with 8.0.0-rc.5 on the PATH and 7.5.0 pinned, itos init
+      --agent-rules rewrote AGENTS.md's block with 8.x's text, because init is the launcher's own
+      command (internal/launch, with pin and upgrade) and never delegates; the pinned binary reports
+      the block already matches. A block from another release describes hooks and CI the pin does
+      not run. With a pin, init runs as the pinned itos does; without one it stays the launcher's. A
+      bug for v8: slice-126 makes the block the target's on upgrade, and this keeps it the pin's
+      between upgrades. After slice-126, which touches the same launcher code.
+    refs: [internal/launch/launch.go, internal/cli/initrules.go]
+    tags: [init, launcher]
