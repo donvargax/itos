@@ -5050,6 +5050,8 @@ items:
       and E2E-cost task checks), a ci.range per workflow (the E2E workflow starts at its own last
       green run), and status and ci watch for a third workflow while push waits on the first. Design
       the stage split first. Unqueued until the user wants it (2026-10-06).
+
+      In the v8 plan (the user, 2026-10-11), before p1-testing-tiers-guide, which needs it.
     tags: [ci]
 
   - id: bug-47
