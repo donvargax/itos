@@ -61,6 +61,20 @@ Not all breaking, but gaps go-template-itos hit, so they ship with the bundle (t
 - **`p1-moves-feature-description`** (issue #43): a `test` or `docs` commit may reword a feature's
   description, which no scenario checks.
 
+### The testing tiers, for speed
+
+Not breaking, but every push after them is faster (the user, 2026-10-11). Issue #41's shape, which
+this repository reached by q-41, q-52, q-54 and q-55 but for one tier:
+
+- **`p1-ci-e2e-workflow`** (issue #18): a push's end-to-end step runs in a workflow of its own,
+  so the platform jobs can run part of the plan.
+- **`p1-testing-tiers-guide`** (issue #41): per push, the platform jobs run the smoke set and the
+  named scenarios, every feature on three platforms moving to the nightly (here they run every
+  feature on every push since T-072, the slowest part of a run); consumers get a nightly workflow
+  beside `ci.steps`, as this repository's `nightly.yml` (`itos ci run --nightly`, the Nightly red
+  issue opened, commented and closed); the guides say which tier each gate belongs to, beyond what
+  `itos guide push` and `land` already say.
+
 ## Not in v8
 
 - **Agent rules as data** (`p1-agent-rules-as-data`): it only adds (a rules file, `itos rule`),
