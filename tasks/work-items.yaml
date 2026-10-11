@@ -59,7 +59,6 @@ queue:
   - p1-task-add-promoted
   - p1-text-from-file
   - p1-defer-reason-footer
-  - p1-push-fits-foreground
   - p3-commit-long-text-footer
   - p1-nightly-past-first-failure
   - T-142
@@ -4695,23 +4694,9 @@ items:
     title: itos push never outlives a harness's foreground command
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      The user's call (2026-10-06). With ci.watch on, itos push waits for CI, often longer than an
-      agent harness lets a foreground command run (Claude Code: 10 minutes), so agents wrote their
-      own wait loops, one on pgrep that matched itself and never ended (bug 35), another sleeping
-      (slice 83), and the coordinator's own push was moved to the background mid-wait. Waiting
-      should be its own step: for example push returns once pushed and prints the itos ci watch line
-      to run in the background, or waits only on a terminal. The exit of ORCHESTRATING.md's
-      wait-loop lesson.
-
-      Backlog review of 2026-10-10, batch 4: queued, for the v8 release-candidate bundle (the user's
-      call: breaking changes ship as v8 rcs, as v7 did): the guide every project gets says to let
-      itos push wait for CI (internal/guide/work.md), and only this repository's AGENTS.md works
-      around it with --no-wait in the background, so every itos repository pays the foreground limit
-      and agents write their own wait loops.
     refs: [internal/cli/push.go, internal/cli/watch.go]
     tags: [push]
 
@@ -7537,15 +7522,9 @@ items:
     title: The brief template hands CI and closing to the coordinator, as itos guide land says
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by slice-119 (2026-10-10): the generic brief template tells the agent to wait for CI and
-      close the item with itos work done, while itos guide land has the coordinator watch the pushed
-      head and close on green. This repository's notes override the template's line; every other
-      repository's coordinator gets two contradicting rules. The template's last steps become: push
-      in the background, report the pushed SHA, leave CI and the close to the coordinator.
     refs: [internal/guide/brief.md, internal/guide/land.md]
 
   - id: p1-corpus-stdout-lacks
