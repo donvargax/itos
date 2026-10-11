@@ -6916,6 +6916,11 @@ items:
       shrank with slice-119: itos guide push and land already say what CI and the nightly run; what
       is left is which tier each gate belongs to.
 
+      The user (2026-10-11): once the test strategy is final (this item, p1-ci-e2e-workflow,
+      p1-nightly-judges-changed-sites, p1-push-proof-stable-site), comment it on issue #41 as the
+      strategy other projects can take: what runs locally, what each push's CI judges, what the
+      nightly judges, and why each sits where it does.
+
   - id: p1-itos-config-all-or-nothing
     title: ITOS_CONFIG resolves the ledger, the registry and the smoke sets beside the config it names
     phase: 1
