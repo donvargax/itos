@@ -649,7 +649,10 @@
 // is the file guide.orchestrating resolved to prints once (os.SameFile).
 // Then goStatus prints the status after a second ---, or under --json as the
 // status key; a config not there or not read, or a registry with problems,
-// is one line on stderr instead. They write nothing.
+// is one line on stderr instead. guide also prints a procedure (slice 119),
+// as written, and the commit procedure then the commit policy the config
+// sets, from initrules.go's commitPolicy, the generator of AGENTS.md's block,
+// so the two never differ. They write nothing.
 //
 // status (status.go) is where the work stands, built from what already
 // records it and never written. The remote branch's head is asked of the

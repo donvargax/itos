@@ -105,7 +105,7 @@ Feature: itos go and itos guide, the guides a session starts from
   # and itos guide coordinate stays, the coordinator's essentials without the
   # status, so nothing released breaks (p1-v8-deprecation-sweep decides its
   # fate).
-  @ID-GUIDE-09 @slice-119 @wip
+  @ID-GUIDE-09 @slice-119
   Scenario: itos go names each of the coordinator's procedures
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "go"
@@ -115,7 +115,7 @@ Feature: itos go and itos guide, the guides a session starts from
     And its output says "itos guide repair"
     And its output says "itos guide decide"
 
-  @ID-GUIDE-10 @slice-119 @wip
+  @ID-GUIDE-10 @slice-119
   Scenario: itos go leaves each procedure's sections to its command
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "go"
@@ -125,21 +125,21 @@ Feature: itos go and itos guide, the guides a session starts from
     And its output does not say "## When main is red"
     And its output does not say "## Decisions"
 
-  @ID-GUIDE-11 @slice-119 @wip
+  @ID-GUIDE-11 @slice-119
   Scenario: itos guide brief prints how to specify an item, then the brief's template
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "guide brief"
     Then itos exits with code 0
     And its output says "## Specifying" before "Implement <item> of <project>"
 
-  @ID-GUIDE-12 @slice-119 @wip
+  @ID-GUIDE-12 @slice-119
   Scenario: itos guide land prints how to check and land a result
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "guide land"
     Then itos exits with code 0
     And its output says "## Checking a result"
 
-  @ID-GUIDE-13 @slice-119 @wip
+  @ID-GUIDE-13 @slice-119
   Scenario: itos guide repair prints what to do when main is red
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "guide repair"
@@ -147,7 +147,7 @@ Feature: itos go and itos guide, the guides a session starts from
     And its output says "## When main is red"
     And its output says "## Reporting a problem with itos"
 
-  @ID-GUIDE-14 @slice-119 @wip
+  @ID-GUIDE-14 @slice-119
   Scenario: itos guide decide prints how to ask the person and record decisions
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "guide decide"
@@ -155,7 +155,7 @@ Feature: itos go and itos guide, the guides a session starts from
     And its output says "## Decisions"
     And its output says "## Lessons"
 
-  @ID-GUIDE-15 @slice-119 @wip
+  @ID-GUIDE-15 @slice-119
   Scenario: itos guide work names the implementer's procedures and leaves their sections to them
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "guide work"
@@ -165,7 +165,7 @@ Feature: itos go and itos guide, the guides a session starts from
     And its output does not say "itos commit check-paths"
     And its output does not say "## Push"
 
-  @ID-GUIDE-16 @slice-119 @wip
+  @ID-GUIDE-16 @slice-119
   Scenario: itos guide commit prints how to commit, then the commit types the config sets
     Given a repository whose ledger has the task "T-001"
     And the config's commits.types gains "deps"
@@ -175,7 +175,7 @@ Feature: itos go and itos guide, the guides a session starts from
 
   # A repository without a config still learns how to commit; there is no
   # policy of its own to print.
-  @ID-GUIDE-17 @slice-119 @wip
+  @ID-GUIDE-17 @slice-119
   Scenario: itos guide commit outside a repository using itos prints how to commit alone
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "guide commit"
@@ -183,7 +183,7 @@ Feature: itos go and itos guide, the guides a session starts from
     And its output says "itos commit check-paths"
     And its output does not say "A commit's type is one of"
 
-  @ID-GUIDE-18 @slice-119 @wip
+  @ID-GUIDE-18 @slice-119
   Scenario: itos guide push prints how to push and what the gates do
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "guide push"
@@ -193,14 +193,14 @@ Feature: itos go and itos guide, the guides a session starts from
 
   # GUIDE-05's "coordinate, work" holds too: the refusal names the guides,
   # then the procedures.
-  @ID-GUIDE-19 @slice-119 @wip
+  @ID-GUIDE-19 @slice-119
   Scenario: itos guide refuses a name it has no guide or procedure by, naming the procedures
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "guide review"
     Then itos exits with code 2
     And its output says "brief, commit, decide, land, push, repair"
 
-  @ID-GUIDE-20 @slice-119 @wip
+  @ID-GUIDE-20 @slice-119
   Scenario: itos guide coordinate prints the coordinator's essentials without the status
     Given a repository whose ledger has the task "T-001"
     When itos runs "guide coordinate"

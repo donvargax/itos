@@ -16,7 +16,9 @@ import (
 )
 
 // itos go and itos guide (features/guide.feature, slice 64) print the guides
-// embedded in the binary (internal/guide) as written. itos go, the same as
+// embedded in the binary (internal/guide) as written, and itos guide the
+// procedures a guide's map names (slice 119), the commit procedure followed
+// by the commit policy the config sets, as itos init --agent-rules writes it. itos go, the same as
 // itos guide coordinate, prints the coordinator's guide and then, after a
 // separating line, the repository's own notes: the file guide.orchestrating
 // names (docs/ORCHESTRATING.md by default; under the git folder for a stealth
@@ -72,20 +74,65 @@ func goStatus(o Out) *standing {
 	return st
 }
 
-// guideCommand is itos guide <name>.
+// guideCommand is itos guide <name>: a guide, or a procedure (slice 119).
 func guideCommand(args []string, o Out) (int, error) {
-	names := strings.Join(guide.Names(), ", ")
+	known := "the guides are " + strings.Join(guide.Names(), ", ") +
+		"; the procedures are " + strings.Join(guide.Procedures(), ", ")
 	name, rest := split(args)
+	_, ok := guide.Text(name)
 	switch {
 	case name == "":
-		return 0, usage("guide needs a name: %s", names)
+		return 0, usage("guide needs a name: %s", known)
+	case !ok:
+		return 0, usage("no guide or procedure %s: %s", name, known)
+	case len(rest) > 0 && guide.IsProcedure(name):
+		return 0, usage("guide %s takes no argument: %s", name, strings.Join(rest, " "))
 	case len(rest) > 0:
 		return 0, usage("guide takes one name: %s", strings.Join(args, " "))
-	}
-	if _, ok := guide.Text(name); !ok {
-		return 0, usage("no guide %s: the guides are %s", name, names)
+	case guide.IsProcedure(name):
+		return printProcedure(name, o)
 	}
 	return printGuide(name, o)
+}
+
+// printProcedure prints the procedure by its name, as written; the commit
+// procedure then prints the commit policy the config sets, when there is
+// one.
+func printProcedure(name string, o Out) (int, error) {
+	text, _ := guide.Text(name)
+	if name == guide.Commit {
+		if policy := configCommitPolicy(o); policy != "" {
+			text = strings.TrimRight(text, "\n") + "\n\n" + policy
+		}
+	}
+	if o.JSON {
+		return 0, out.Emit(o.Stdout, out.Field{Key: "guide", Value: name}, out.Field{Key: "text", Value: text})
+	}
+	_, err := fmt.Fprint(o.Stdout, text)
+	return 0, err
+}
+
+// configCommitPolicy is the commit types, footers and paths the config sets,
+// as itos init --agent-rules writes them into AGENTS.md (commitPolicy), under
+// a heading of their own; "" with no config. A config that cannot be read is
+// a warning, and the procedure prints without them.
+func configCommitPolicy(o Out) string {
+	file := config.Path()
+	if _, err := os.Stat(file); err != nil {
+		return ""
+	}
+	cfg, err := config.Load(file)
+	if err != nil {
+		fmt.Fprintf(o.Stderr, "itos: %s cannot be read, so the commit rules it sets are not printed: %s\n",
+			file, strings.ReplaceAll(strings.TrimSpace(err.Error()), "\n", "; "))
+		return ""
+	}
+	paras := append([]string{
+		"## The rules the config sets",
+		"As " + code("itos init --agent-rules") + " writes them from " + code(filepath.ToSlash(file)) +
+			"; the hooks and CI hold every commit to them.",
+	}, commitPolicy(cfg, code)...)
+	return strings.Join(paras, "\n\n") + "\n"
 }
 
 // printGuide prints the guide by its name, the coordinator's followed by

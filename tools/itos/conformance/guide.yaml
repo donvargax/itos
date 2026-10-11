@@ -3,7 +3,8 @@
 # appended notes, docs/ORCHESTRATING.md from the repository's top (from a
 # subfolder too) or the file guide.orchestrating names, beside a stealth
 # config in the git folder; this clone's own notes, .git/itos/notes.md
-# (slice 68), which go alone prints; the usage errors.
+# (slice 68), which go alone prints; the procedures a guide's map names
+# (slice 119), commit with the commit policy a config sets; the usage errors.
 cases:
   - name: guide work prints the implementer's guide outside a repository
     argv: [guide, work]
@@ -64,12 +65,38 @@ cases:
     argv: [guide, review]
     exit: 2
     stderr: |
-      itos: no guide review: the guides are coordinate, work (itos --help)
+      itos: no guide or procedure review: the guides are coordinate, work; the procedures are brief, commit, decide, land, push, repair (itos --help)
   - name: guide needs a name
     argv: [guide]
     exit: 2
     stderr: |
-      itos: guide needs a name: coordinate, work (itos --help)
+      itos: guide needs a name: the guides are coordinate, work; the procedures are brief, commit, decide, land, push, repair (itos --help)
+  - name: a procedure prints alone outside a repository
+    argv: [guide, brief]
+    exit: 0
+    stdout_has: ["# Specifying and briefing an item\n", "## Specifying\n", "## The brief\n"]
+  - name: guide commit outside a repository prints how to commit alone
+    argv: [guide, commit]
+    exit: 0
+    stdout_has: "# Committing with itos\n"
+  - name: guide commit appends the commit policy the config sets
+    argv: [guide, commit]
+    git: []
+    files:
+      itos.yaml: "version: 1\ncommits: { types: [feat, deps] }\n"
+    exit: 0
+    stdout_has:
+      - "# Committing with itos\n"
+      - "\n\n## The rules the config sets\n\nAs `itos init --agent-rules` writes them from `itos.yaml`; the hooks and CI hold every commit to them.\n\n### Commit types\n\nA commit's type is one of `feat` or `deps`."
+  - name: a procedure takes no argument
+    argv: [guide, brief, slice-1]
+    exit: 2
+    stderr: |
+      itos: guide brief takes no argument: slice-1 (itos --help)
+  - name: a procedure as --json
+    argv: [guide, land, --json]
+    exit: 0
+    stdout_has: ['"schema": 1', '"guide": "land"', '"text": "# Landing a result\n']
   - name: go takes no arguments
     argv: [go, work]
     exit: 2

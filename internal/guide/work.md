@@ -8,6 +8,10 @@ commit it through itos, and read what the gates say. Do the work yourself:
 start no other agents. The repository's own instructions (`AGENTS.md`,
 `CLAUDE.md`) say more; where they differ from this guide, they win.
 
+This guide holds what you need before any action. Each step's procedure is a
+command of its own: **read it before that step**, every time (the map at the
+end).
+
 ## The item
 
 - `itos work show <id>` is its reading list: its why (the decisions behind
@@ -38,46 +42,11 @@ slice|task|bug` mints a numbered item instead.
   behaviour, not at an undefined step. Then build, and report each failing
   step.
 
-## Commit
-
-- **Stage your own files by explicit path**, and read `git status --short`
-  before you commit. Never `git add -A`, `git add .` or a folder: untracked
-  files you did not make are someone else's work in progress.
-- Write a Conventional Commits message: `type: subject` in the imperative,
-  then a body saying what changed and why. The body is the changelog.
-- **Commit with `itos commit`, never `git commit`**: `--task <id>`,
-  `--item <id>`, or `--scenarios '<ids>'` for a `feat` or `fix`, and a flag for
-  any other footer the config requires (`--upgrading none`, for example).
-  Write the message to a file and pass it with `-F <file>`.
-- Each type may touch only certain paths, so one piece of work is often two
-  or three commits. Decide the split before you edit;
-  `itos commit check-paths --type <type> <path>…` says what would be
-  rejected. Split the work; never relabel a commit to get past a rule.
-
-## The gates run themselves
-
-- The hooks run the checks when you commit and push, and CI runs them again.
-  Don't run them by hand first: commit, then read what they report.
-- When one fails, read its output and fix that cause. Don't rerun the whole
-  suite to see the failure a second time.
-- Run yourself only what no gate runs: the tests your change reaches beyond
-  what its commits name, and whatever the repository's instructions list.
-
-## Push
-
-- Push with `itos push`, every time. It rebases onto the upstream first, then
-  pushes in a separate step, and it never forces. If the rebase stops,
-  resolve it, check that `git rebase --continue` succeeded, then `itos push`
-  again.
-- Where the config watches CI, `itos push` waits for the run of the commit it
-  pushed and exits 0 when it passed, 1 when it failed. Run it in the
-  background and watch its output; don't poll it. `itos ci watch [<sha>]`
-  waits for any commit's run.
-- A red run: read its log, fix the cause with a commit of the right type, and
-  push again until it is green.
-
 ## Never
 
+- Stage what is not yours, or by anything but an explicit path (`git add -A`,
+  `git add .`, a folder): untracked files you did not make are someone else's
+  work in progress. Read `git status --short` before you commit.
 - Bypass a hook (`--no-verify` or anything that turns hooks off). CI
   re-checks every pushed commit anyway.
 - Force-push, in any form, or rewrite what is already on the remote.
@@ -97,3 +66,9 @@ slice|task|bug` mints a numbered item instead.
 Done is the CI run green, not the push. Report the commits, the CI run's
 address, each scenario's failing step before the work, the scenarios turned
 green, the ideas you added, and any scenario text you corrected and why.
+
+## The procedures
+
+- `itos guide commit`, before your first commit: how to commit through itos,
+  and the commit types, footers and paths the repository's config sets.
+- `itos guide push`, before you push: the push routine and what the gates do.
