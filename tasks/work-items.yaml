@@ -8122,11 +8122,9 @@ items:
     title: An answered question naming a renamed item is a warning, and work promote renames question links
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      See features/config.feature, the comment above the bug's first scenario.
     refs: [internal/cli/configcheck.go, internal/cli/workwrite.go]
     tags: [work, config]
 
