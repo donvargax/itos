@@ -418,6 +418,7 @@ items:
       registry is staged, and T-023 drops the pre-commit check, which never watched the people file
       either; only CI's prose steps catch it, after the push. The commit-msg hook could run the
       registry's check when work.people's file is staged too.
+    tags: [hooks]
 
   - id: slice-117
     title: The commit-msg hook runs the smoke rule over the index when a kind's test file is staged
@@ -455,6 +456,7 @@ items:
       with work.registry or ledger.files leaves its hook skipping the wrong files, silently. An itos
       command could answer from the config whether every staged file is prose or itos's data, so the
       hook's exit is one line that follows the config.
+    tags: [hooks]
 
   - id: T-023
     title: The pre-commit hook leaves itos's data to the commit-msg hook
@@ -926,6 +928,7 @@ items:
       candidates: pre-push refusing a non-fast-forward push (AGENTS.md, "Force-push, in any form"),
       and a commit refusing paths the config marks as someone's work in progress (AGENTS.md, "Stage
       your own work"). The instructions then point to the check.
+    tags: [hooks]
 
   # What the coordinator and the agents did by hand, the same way each time, in the session that
   # released v0.3.0 and v0.4.0: each could be a command. Asked for by the user.
@@ -4344,6 +4347,7 @@ items:
       imports the old path; the agent committed the refactor with tools/bin edited but unstaged.
       Vetting the staged tree (a worktree of the index), or letting one commit carry a module move,
       would make the split honest.
+    tags: [hooks]
 
   - id: T-105
     title: TestRollbackGitCannotStart takes seconds, not nine minutes
