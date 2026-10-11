@@ -7854,8 +7854,8 @@ items:
   - id: T-155
     title: The push proof passes over launch.Main's not-handed return, an equivalent mutant
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
