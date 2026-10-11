@@ -7919,3 +7919,19 @@ items:
       the template's slices: decision 0036), not the sample app's layout; mind p1-trim-agents-md and
       doc-budget's cap.
     tags: [docs]
+
+  - id: p2-harvest-lint
+    title: golangci-lint and gitleaks gate itos's Go code, configured for its packages
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Harvest of go-template-itos (q-58, after v8.0.0): itos lints nothing beyond go vet. The
+      template's .golangci.yml reports 678 issues on itos's packages (errcheck 350, depguard 236
+      from its slice rule, gosec 65, staticcheck 18), so take the linter set (gosec, errcheck,
+      revive, gochecksumtype, staticcheck), not the config; pin golangci-lint and gitleaks in
+      tools/bin/pinned with checksums as the template does; burn down or baseline the findings
+      before the gate turns on.
+    tags: [ci]
