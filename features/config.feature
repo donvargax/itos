@@ -529,6 +529,13 @@ Feature: Every key the config accepts is one itos reads
   #   minting all use it), and with no ledger.id an ID is whatever the ledger
   #   holds: itos task reads a word as a task ID when the ledger has that task,
   #   not when it matches T-\d+ (@ID-TASK-15).
+  #
+  # The steps (fixed 2026-10-11 after the implementing agent traced them):
+  # "the ledger file … holds the task …" writes a task, where "has the task"
+  # asserts one; "the config sets" a key the Background's config already
+  # writes (ledger.files, ledger.id) replaces that value rather than adding a
+  # second key, which value.Parse refuses; "the config has no ledger.id"
+  # writes the config without it.
   @ID-CONFIG-51 @slice-130 @wip
   Scenario: Any command refuses a config holding a number that is not finite, exit 2 naming the key
     Given the config sets "ci.watch.interval" to the YAML ".nan"
@@ -562,8 +569,8 @@ Feature: Every key the config accepts is one itos reads
   @ID-CONFIG-55 @slice-130 @wip
   Scenario: A numeric ledger group reads phase-2 before phase-10
     Given the config's ledger groups are numeric
-    And the ledger file "tasks/phase-10.yaml" has the task "T-010" with the check "true"
-    And the ledger file "tasks/phase-2.yaml" has the task "T-002" with the check "true"
+    And the ledger file "tasks/phase-10.yaml" holds the task "T-010" with the check "true"
+    And the ledger file "tasks/phase-2.yaml" holds the task "T-002" with the check "true"
     When itos runs "task list"
     Then itos exits with code 0
     And its output says "T-002" before "T-010"
@@ -584,7 +591,7 @@ Feature: Every key the config accepts is one itos reads
 
   @ID-CONFIG-57 @slice-130 @wip
   Scenario: The commit-msg hook refuses a commit that stages a questions file giving an id twice
-    Given the hooks are installed
+    Given itos has installed the hooks
     And the staged file "tasks/asks.yaml" holding the lines:
       """
       questions:
@@ -593,7 +600,7 @@ Feature: Every key the config accepts is one itos reads
         - id: q-1
           question: "Which other way?"
       """
-    When itos runs "commit -m 'docs: ask twice'"
+    When itos runs the command line "commit -m 'docs: ask twice'"
     Then itos exits with code 1
     And its output says "q-1"
     And no commit was made
@@ -601,7 +608,7 @@ Feature: Every key the config accepts is one itos reads
   @ID-CONFIG-58 @slice-130 @wip
   Scenario: A ledger.id alternation anchors every branch, so a task id with trailing text is refused
     Given the config sets "ledger.id" to "T-\d+|OPS-\d+"
-    And the ledger file "tasks/phase-1.yaml" has the task "T-1x" with the check "true"
+    And the ledger file "tasks/phase-1.yaml" holds the task "T-1x" with the check "true"
     When itos checks the config
     Then itos exits with code 1
     And its output says "T-1x"

@@ -168,14 +168,14 @@ Feature: The task runner runs each check once, and lists task status without run
     And the ledger has no task "T-003"
     And the registry has no item "T-003"
 
-  # Slice 130 (p1-ledger-id-default): with no ledger.id an ID is whatever the
-  # ledger holds, so itos task runs a task whose id is not T-<n>, where it
-  # read only words matching T-\d+ as IDs. See config.feature's comment above
-  # @ID-CONFIG-51.
+  # Slice 130 (p1-ledger-id-default): with no ledger.id, every word itos task
+  # is given that is not a flag's value is a task ID (itos task <id>…), where
+  # only words matching T-\d+ were: so an ID the ledger lacks is named,
+  # exit 1, as with a ledger.id, rather than leaving no task matched (exit 2).
+  # See config.feature's comment above @ID-CONFIG-51.
   @ID-TASK-15 @slice-130 @wip
-  Scenario: With no ledger.id, itos task runs a task the ledger holds whatever its id's shape
-    Given the config has no value at "ledger.id"
-    And the ledger file "tasks/phase-1.yaml" has the task "OPS-7" with the check "true"
-    When itos runs "task OPS-7"
-    Then itos exits with code 0
-    And its output says "OPS-7"
+  Scenario: With no ledger.id, itos task names an ID the ledger does not have, whatever its shape
+    Given the config has no ledger.id
+    When itos runs "task OPS-8"
+    Then itos exits with code 1
+    And its output says "OPS-8"
