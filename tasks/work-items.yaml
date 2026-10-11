@@ -7965,3 +7965,24 @@ items:
       user-level itos setting (the tools, each one's repository and report form) that itos go prints
       for that user alone would make it harness-neutral. After v8.
     tags: [cli, docs]
+
+  - id: p1-nightly-judges-changed-sites
+    title: The nightly judges every mutation site of the functions changed since the last green nightly, with strict coverage
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-push-proof-stable-site]
+    kind: idea
+    why: >
+      The user's call (2026-10-11): a push samples one site (q-52, q-55), so a slice's survivors
+      wait for a later push to draw them; on 2026-10-11 slice-126 left four in upgrade.go and one
+      equivalent in launch.go, found one red push at a time (T-155, T-156), the last by a test-only
+      repair that never touched that code. Judging every site on each push costs every push (locally
+      ~12 minutes a site, p1-push-proof-local-cost; in CI, the wait the testing tiers shrink), so
+      the nightly does it: every site of the functions changed since the last green nightly,
+      strictly covered, beside or in place of its 20 random sites (q-54), complete and off the
+      push's path. The push keeps one site, seeded by the range (p1-push-proof-stable-site), so a
+      repair push never re-draws onto other code. Local all-sites runs stay optional, for a big
+      slice. Part of the testing tiers (issue #41, p1-testing-tiers-guide).
+    refs: [itos.yaml, .github/workflows/nightly.yml]
+    tags: [ci, tests]
