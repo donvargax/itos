@@ -7961,3 +7961,20 @@ items:
       to itos guide work, commit and push for the rest rather than restating them. Vp's generated
       block stays until the move off Node (T-142 on). Lower doc-budget's AGENTS.md cap from 28000 to
       what the trimmed file needs, with a little room.
+
+  - id: p2-user-feedback-targets
+    title: A per-user itos setting names the tools whose friction a session reports, and where, and itos go prints it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user (2026-10-11): sessions in every project should report friction and improvements with
+      the user's own tools (itos, itos-cc, itos-template, go-template-itos, the anti-* tools) as
+      issues on each tool's repository, so the tools get feedback on what works and what is rough;
+      but not from external users' sessions, so not in itos's generic guide. Today the rule lives in
+      the user's ~/.claude/CLAUDE.md and ~/.agents/AGENTS.md, which only some harnesses read. A
+      user-level itos setting (the tools, each one's repository and report form) that itos go prints
+      for that user alone would make it harness-neutral. After v8.
+    tags: [cli, docs]
