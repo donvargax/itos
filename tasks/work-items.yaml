@@ -1110,6 +1110,13 @@ items:
       code that makes them pass. Not enforced: whether an agent followed red, green, refactor cannot
       be verified yet. A proof must tell a scenario that fails at a step from one with an undefined
       step, and allow a guard scenario meant to pass before the work.
+
+      2026-10-11: the user names it the missing red of red, green, refactor: green and refactor are
+      gated (the named scenarios, CI, the mutation proof, previous-release), red rests on the
+      agent's report. Guard-aware: that day SHIM-12 and 15, WORK-99 and 101 and UPGRADEHAND-02 and
+      05 passed before the work on purpose, as guards of what already held; a guard is declared (a
+      tag such as @guard, or a list in the spec commit) and runs green, every other @wip scenario
+      must fail, printing its failing step. Queue it soon after v8.
     tags: [tests]
 
   - id: p1-commit-message-file
