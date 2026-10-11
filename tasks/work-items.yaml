@@ -4668,7 +4668,7 @@ items:
       [features/pin.feature, features/update.feature, features/upgrade-command.feature, cmd/itos]
 
   - id: p1-shim-refuses-hook-skipping
-    title: itos commit and itos push refuse --no-verify, -n and a -c that moves core.hooksPath
+    title: "The shim, itos commit and itos push refuse what agents must not do: skipping hooks, sweeping stages, rewriting the remote"
     phase: 1
     owner: null
     status: todo
@@ -4680,6 +4680,16 @@ items:
       core.hooksPath=/nonexistent commit and push skipped the hooks, putting a junk commit on the
       remote. The shim exists so a misbehaving model cannot skip the gates; only CI's verify caught
       these. Full-path git stays a known gap (a guardrail, not a fortress).
+
+      Merged with p1-agent-rules-as-checks (the user, 2026-10-11), one v8 slice: besides
+      --no-verify, -n and a -c that moves core.hooksPath, the git shim refuses sweeping stages in an
+      itos repository (git add -A, git add ., git add -u, git add of a folder) naming the
+      explicit-path form, itos commit refuses -a and --all, and the pre-push hook refuses a push
+      whose remote commit is not an ancestor of the one pushed (a force-push past itos push). Then
+      the staging line slice-120 keeps in AGENTS.md's block is gated too, and the block can shrink
+      to the entry line. A person at a terminal is refused the same; no config switch until someone
+      needs one. Neither the hook nor the shim stops /usr/bin/git with --no-verify: the server-side
+      guarantee is the branch protection.
     refs: [internal/cli/gitcommit.go, internal/cli/push.go, internal/cli/gitshim.go]
     tags: [guard]
 
