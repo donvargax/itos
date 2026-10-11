@@ -2628,6 +2628,13 @@ items:
       github provider could read a failed job's steps (the jobs API lists them, with their
       conclusions) and print the failed step's name, and, when a release job succeeds, the tag it
       published. The command provider's object would gain optional keys for both.
+
+      2026-10-11: reading the red nightly took four commands: gh run view --log-failed came back
+      empty, so the job id from the jobs API, its log through api.github.com, then a grep for CI
+      failed at and FAIL lines. Beside the failed step's name, print its failing lines (the CI
+      failed at line and the FAIL lines before it, a bounded tail) through api.github.com, for ci
+      watch and for itos status's red Nightly line. Merges p1-devcontainer-actions-logs' second
+      option.
     refs: [internal/providers/watch.go, internal/cli/watch.go]
     tags: [ci]
 
