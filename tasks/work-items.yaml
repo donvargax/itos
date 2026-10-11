@@ -7637,3 +7637,19 @@ items:
       upgrade's edited list and its commit stays the project's. In the v8 plan.
     refs: [internal/cli/upgrade.go, internal/cli/initrules.go]
     tags: [upgrade]
+
+  - id: p1-trim-agents-md
+    title: This repository's AGENTS.md keeps only what is its own, beside the two-line block
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-120]
+    kind: idea
+    why: >
+      The user's call (2026-10-11): after slice-120, a docs task cuts AGENTS.md's handwritten text
+      (about 20 KB) to what holds only here: what itos guide work, commit and push now say goes, the
+      repository-specific implementer rules (vp staged and the pre-commit hook, the push proof, the
+      commit split, the --no-wait handoff of q-41) stay until p1-agent-rules-as-data can hold them,
+      and vp's generated block goes with the move off Node. In the v8 plan.
+    refs: [AGENTS.md]
+    tags: [docs]
