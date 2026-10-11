@@ -360,7 +360,7 @@ func (w *world) registryQueueLacks(id string) error {
 	return nil
 }
 
-// The registry's queue is the comma-separated ids, in order; none ("") is no
+// The registry's queue is the comma-separated ids ("a, b"), in order; none ("") is no
 // queue key, null or an empty list.
 func (w *world) registryQueueIs(ids string) error {
 	text, err := os.ReadFile(filepath.Join(w.dir, w.data(startingRegistry)))
@@ -383,7 +383,9 @@ func (w *world) registryQueueIs(ids string) error {
 	}
 	want := []string{}
 	if ids != "" {
-		want = strings.Split(ids, ",")
+		for _, id := range strings.Split(ids, ",") {
+			want = append(want, strings.TrimSpace(id))
+		}
 	}
 	if !slices.Equal(got, want) {
 		return fmt.Errorf("the registry's queue is %q, not %q\n%s\n%s", got, want, text, w.report())
