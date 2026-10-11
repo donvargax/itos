@@ -6068,6 +6068,11 @@ items:
       text). The lint reads the line as a trailer where git does not; a fix names it in Changes,
       since it changes what a released scenario promised
 
+      Same class, 2026-10-11 (slice-127's feat): a wrapped body line beginning 'Item:, Task:, or …'
+      was read as an Item: footer and the commit refused (unknown items: a, Task:, or…), though the
+      trailer paragraph is the last one, after a blank line. Footers are read from the last
+      paragraph alone, as git reads trailers; a body line that starts with a footer key is prose.
+
   - id: p1-tests-list-format
     title: itos tests list has a form itos-cc mutation.tests.list reads as is
     phase: 1
