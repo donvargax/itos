@@ -8177,3 +8177,19 @@ items:
       go-template-itos as an issue.
     refs: [tools/bin/pinned]
     tags: [ci, release]
+
+  - id: p1-prepush-new-ref-base
+    title: The pre-push hook judges a new tag or branch from the nearest commit the remote has, not as all new
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-131's agent (2026-10-11): a new ref has no remote commit it replaces, so the hook runs
+      hooks.pre_push's whole command set (go-unit-tests --all here) even when the ref names a commit
+      already on the remote's main, as a release tag does. Judge a new ref's commits from the
+      nearest commit the remote already has (its commits on no remote-tracking branch are none), and
+      run the pre-push commands only when it adds commits.
+    refs: [internal/cli/hook.go]
+    tags: [push, hooks]
