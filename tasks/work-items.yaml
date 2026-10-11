@@ -5381,6 +5381,10 @@ items:
       Slice 97 shows tags beside the id in itos work and itos status only: work show prints refs but
       not tags, and work list's columns leave them out, so an item's tags are seen there only
       through --json or --tag.
+
+      T-150 (2026-10-10) also found no command prints the declared tags: its check read them with
+      config get work.tags and stripped the JSON. work list could name them, e.g. when --tag is
+      given one work.tags does not declare.
     tags: [work]
 
   - id: p1-no-policy-text-tests
