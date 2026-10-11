@@ -55,7 +55,7 @@ item teaches you to the repository's own notes, as a lesson
 >
 > Before pushing, run what the change can reach beyond what it names:
 > <the neighbouring scenarios and checks; for an item that moves a rule from
-> one command to another, the checks of the done tasks that call either>.
+> one command to another, the scenarios of both commands>.
 >
 > Others push to main while you work: commit with `itos commit`, push with
 > `itos push`, never force. Do the work yourself; start no agents. Each
