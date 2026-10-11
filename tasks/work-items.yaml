@@ -2919,6 +2919,7 @@ items:
       without waiting, and under --json its object is the one --no-wait or ci.watch.provider none
       prints, with no ci key, so a script cannot tell a run skipped on purpose from no watch set up.
       A ci value such as "not-waited", added beside success, failure, timeout and error, would say it.
+    tags: [push]
 
   - id: slice-80
     title: Under --stealth, init writes the rules for agents where git never sees them
@@ -3211,6 +3212,7 @@ items:
       registry or the items both sides changed, so an agent reading the JSON cannot tell a lost take
       from any conflict.
     refs: [internal/cli/push.go]
+    tags: [push]
 
   - id: p1-show-queue-place
     title: itos work show says where the item is in the queue
@@ -4674,6 +4676,7 @@ items:
       around it with --no-wait in the background, so every itos repository pays the foreground limit
       and agents write their own wait loops.
     refs: [internal/cli/push.go, internal/cli/watch.go]
+    tags: [push]
 
   - id: p1-agent-rules-as-data
     title: The coordinator's and the implementing agent's rules are itos data, each with its exit and dates
@@ -5120,6 +5123,7 @@ items:
       settings (ADR-0039) with gh api repos/<o>/<r> -X PATCH -F allow_rebase_merge=true -F
       allow_squash_merge=false -F allow_merge_commit=false, printing the command when gh is missing
       or refused.
+    tags: [push]
 
   - id: p1-parallel-pilot
     title: Two agents at once, each in its own clone or devcontainer, on items with disjoint refs
