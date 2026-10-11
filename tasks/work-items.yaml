@@ -7878,8 +7878,8 @@ items:
   - id: T-156
     title: Kill the four mutants of internal/cli/upgrade.go that survive the push proof's range
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
