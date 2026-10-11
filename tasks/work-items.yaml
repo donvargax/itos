@@ -7989,3 +7989,20 @@ items:
       file.
     refs: [internal/shim/add.go]
     tags: [commit, guard]
+
+  - id: p1-help-cases-regenerate
+    title: A command regenerates the corpus's help cases from the binary, with no extension on the PATH
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-128's agent (2026-10-11): every change to a --help text means editing
+      tools/itos/conformance/help.yaml's cases by hand; it wrote a throwaway script, whose output
+      picked up the itos-cc and itos-template extensions on its PATH in the main help, removed by
+      hand. Help cases are outside previous-release, so regenerating them is safe: a tools/bin
+      program (or a corpus runner flag) writes them from the binary with the extensions hidden, as
+      the features hide them (T-087).
+    refs: [tools/itos/conformance/help.yaml, internal/cli/help.go]
+    tags: [tests, docs]
