@@ -7939,8 +7939,8 @@ items:
   - id: T-157
     title: This repository's AGENTS.md keeps only what is its own, and doc-budget holds it there
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
