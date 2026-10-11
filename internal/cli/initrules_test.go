@@ -137,3 +137,51 @@ commits:
 		t.Errorf("the block does not say %q:\n%s", want, block)
 	}
 }
+
+// The commit policy, AGENTS.md's block and itos guide commit alike (slice
+// 119), says each header lint, footer source and scope rule the config sets.
+func TestCommitPolicy(t *testing.T) {
+	for _, c := range []struct{ config, want string }{
+		{`commits:
+  types: [feat, docs]
+  header_lint: { hook: "lint {file}" }
+  footers:
+    Task: { source: ledger, required_for: [docs], validate_for: all }
+    Item: { source: registry, validate_for: all, in_place_of: { Task: [docs] } }
+    Scenarios: { source: { tests: scenario }, strip_prefix: "@", required_for: [feat], validate_for: [feat], must_be_live: true }
+  scopes:
+    feat: { must_touch: ["src/**"] }
+    docs: {}
+tests:
+  scenario: { root: features, id: "ID-\\d+", tag_prefix: "@", wip_tag: "@draft" }
+`, "### Commit types\n\n" +
+			"A commit's type is one of `feat` or `docs`. The header is linted by `lint {file}`.\n\n" +
+			"### Footers\n\n" +
+			"- `Task:` names tasks of the ledger, `tasks/phase-{group}.yaml`.\n" +
+			"- `Item:` names items of the work registry, `tasks/work-items.yaml`.\n" +
+			"- `Scenarios:` names `scenario` tests by their IDs, live ones only (not `@draft`).\n\n" +
+			"The footers each type needs:\n\n" +
+			"- `feat`: `Scenarios:`.\n" +
+			"- `docs`: `Task:` or `Item:`.\n\n" +
+			"### The paths each type may touch\n\n" +
+			"- `feat` must touch at least one of `src/**`.\n" +
+			"- `docs` may touch anything."},
+		{`commits:
+  types: []
+  header_lint: { stdin: "sh lint.sh" }
+`, "### Commit types\n\nThe header is linted by `sh lint.sh`.\n\n### The paths each type may touch"},
+	} {
+		file := filepath.Join(t.TempDir(), "itos.yaml")
+		if err := os.WriteFile(file, []byte("version: 1\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\" }\n"+c.config), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := config.Load(file)
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := strings.Join(commitPolicy(cfg, code), "\n\n")
+		if !strings.HasPrefix(got, c.want) {
+			t.Errorf("the policy is\n%s\nnot\n%s", got, c.want)
+		}
+	}
+}
