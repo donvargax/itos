@@ -1502,3 +1502,22 @@
     the remaining review batches tag them; an item dropped, done or merged away since the review is
     skipped. The check needs work.tags declared, the registry sound, every declared tag carried by
     some item, and at least the 121 items the review tagged carrying one.
+
+- id: T-151
+  type: refactor
+  title: itos's module path moves to /v8 and the pre-release marker is on, the first v8 work
+  why: >
+    The v8 plan (docs/plans/v8-lean-agent-context.md, the user, 2026-10-10): v8 ships as release
+    candidates, as v7 did by T-119. The module path becomes github.com/donvargax/itos/v8 in go.mod
+    and every import (no v8 tag from a /v7 go.mod), and tools/bin/release-version/prerelease holds
+    rc, so the next feat or fix, breaking or not, cuts v8.0.0-rc.1 (T-123) and main cuts no more
+    7.x. The Go files move in a refactor commit; the gates' files (the marker, tools/bin, the
+    workflows, itos-cc.yaml's exception keys, .goreleaser.yaml) in a ci commit, the marker last.
+    README.md's install line keeps /v7 until v8.0.0, since go install @latest skips pre-releases;
+    .metrics/mutate holds itos-cc's cached results keyed by the old path, regenerated or left to go
+    stale as itos-cc's cache rules allow. Its feat-free commits release nothing; rc.1 is
+    p1-agents-md-reduced.
+  done_when:
+    - run: grep -qx 'module github.com/donvargax/itos/v8' go.mod
+    - run: test "$(cat tools/bin/release-version/prerelease)" = rc
+    - run: "! git grep -q 'donvargax/itos/v7' -- '*.go' go.mod itos-cc.yaml .goreleaser.yaml .github tools/bin"
