@@ -1612,3 +1612,23 @@
     2026-10-11). While tools/bin/release-version/prerelease says rc (T-151) a major is cut as a
     release candidate; removing it makes the next green push cut v8.0.0 itself, its notes running
     from v7.5.0 as the candidates' did, as T-139 cut v7.0.0. The user confirms before the push.
+
+- id: T-159
+  type: ci
+  title: The push proof seeds its one site by the range's start, so a repair push re-judges it
+  why: >
+    Was p1-push-proof-stable-site (the user, 2026-10-11, the testing tiers, first in v8.x). itos-cc
+    ranks a --count run's sites by SHA-256 over --seed and each site's identity, the seed HEAD's id
+    unless given, so every push and every local run drew a different site of the same range: on
+    2026-10-11 slice-126's local proof passed, CI drew another site, and the Windows repair push
+    (T-154) drew a third in code it never touched (T-155, T-156). itos.yaml's proof.code.check
+    gains --seed {base}, the range's start, so the same site leads while the range stands and a
+    repair push re-judges what failed; the local run in AGENTS.md and docs/ORCHESTRATING.md's brief
+    line gain --seed $(git rev-parse origin/main), which is the same base whenever main is green.
+    The nightly keeps its run-seeded 20 sites (q-54). ADR-0049 says a push samples one site; this
+    makes that sample deterministic, as the seed rule of the testing tiers asks (gates fixed,
+    the nightly fresh).
+  done_when:
+    - run: grep -q -- "--seed {base}" itos.yaml
+    - run: grep -q -- "--seed \$(git rev-parse origin/main)" AGENTS.md
+    - run: tools/bin/itos config check
