@@ -78,6 +78,12 @@ this repository reached by q-41, q-52, q-54 and q-55 but for one tier:
   issue opened, commented and closed); the guides say which tier each gate belongs to, beyond what
   `itos guide push` and `land` already say.
 
+- **`p1-nightly-judges-changed-sites`** (ADR-0049): the nightly judges every mutation site of the
+  functions changed since the last green nightly, strictly covered; until it does, briefs ask the
+  implementing session for that run locally (the user, 2026-10-11).
+- **`p1-push-proof-stable-site`**: a push's one sampled site is seeded by the range, so a repair
+  push never re-draws onto code it did not touch (T-155 and T-156 on 2026-10-11).
+
 ## Not in v8
 
 - **Agent rules as data** (`p1-agent-rules-as-data`): it only adds (a rules file, `itos rule`),
