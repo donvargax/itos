@@ -3,8 +3,8 @@
 `itos go` prints the generic coordinator's guide, then this file, then
 `itos status`. This file holds only what is true of this repository and of no
 other: what to read beyond the status, how this repository's gates and
-releases work, and the lessons it taught. The generic rules (the loop, one
-agent at a time, red first, never poll, a report is a claim) are the guide's;
+releases work, and the lessons it taught. The generic rules are the guide's
+essentials and its procedures (`itos guide brief`, `land`, `repair`, `decide`);
 don't repeat them here. Start a session with `! tools/bin/itos go`: this
 repository pins no release and runs its own build (`hooks.bin`), so the
 `itos` on a PATH runs whatever version was installed there, and may lack
@@ -77,7 +77,8 @@ so those footers are for the consumer who upgrades.
 
 ## What a brief adds here
 
-Add these lines to the guide's brief template:
+Add these lines to the brief template `itos guide brief` prints; the
+handoff line below replaces the template's "wait for CI … close the item":
 
 - **Reads:** `AGENTS.md` (this repository's rules, which add to `itos guide
 work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the item rests on, and the earlier items'
@@ -126,7 +127,7 @@ install`, because a second install can load two copies of a tool;
 
 ## Lessons from this repository
 
-They keep the guide's format for lessons. "By 2026-10-04" means the lesson
+They keep the format `itos guide decide` gives lessons. "By 2026-10-04" means the lesson
 was in this file when the file was reorganized that day.
 `p1-agent-rules-as-data` moves them into itos's data.
 
@@ -139,8 +140,8 @@ was in this file when the file was reorganized that day.
   `done_when` passes. Put release- or tag-dependent `after: push` checks late;
   checks reading CI's result belong in `ci.nightly_only`. A coordinator's spec
   commit counts too: `--task` for an open task turned main red (T-121,
-  2026-10-08), so omit the footer until done. Exit:
-  `p1-nightly-late-done-checks` (q-13). Recorded 2026-10-04; last seen 2026-10-08.
+  2026-10-08), so omit the footer until done. Exit: permanent (ADR-0043 keeps
+  done_when for acceptance). Recorded 2026-10-04; last seen 2026-10-08.
 - **Settle what breaks compatibility before a major release.** List the open
   items that change what is accepted, and ask. Exit: permanent. Recorded by
   2026-10-04; last seen 2026-10-06 (the v6 bundle).
@@ -161,12 +162,8 @@ was in this file when the file was reorganized that day.
   (T-087): a scenario runs the itos under test only where a step asks
   (`itosOnPath`). A task's check that should prove a fix can pass before it
   too (T-087's did): ask the agent how it showed the change matters. A git
-  that is itos is not hidden yet. Exit: permanent, with
-  `p1-tests-hide-git-shim` for the git. Recorded by 2026-10-04.
-- **A feature file's first live scenarios need a smoke entry** in
-  `features/smoke.yaml`: CI's `tests smoke check` turned slice 82's feat red
-  for one push. Say so in the brief of a slice whose feature file is new.
-  Exit: `p1-smoke-rule-at-commit`. Recorded 2026-10-06; last seen 2026-10-06.
+  linked as itos is passed over for the real git since T-104. Exit: permanent.
+  Recorded by 2026-10-04.
 - **Agents write their own wait loops** when `itos push` outlives the
   harness's foreground limit: one built on `pgrep` matched its own command
   line and never ended (bug 35), another slept (slice 83). The brief says:
