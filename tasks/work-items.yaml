@@ -574,6 +574,7 @@ items:
       then runs `sh <command>`, which reads the command as a script's path, so every check, step and
       delegate fails with a message about a missing file. config check could require at least one
       word, as it requires a list of strings.
+    tags: [config]
 
   - id: p1-ci-run-every-failure-json
     title: "ci run --json lists every failure when it goes on past the first"
@@ -641,6 +642,7 @@ items:
       for the command checks. A misspelt type (fead) leaves feat judged by the rule, and every
       feat that turns a scenario live is rejected with no hint of why. The footers' required_for
       and validate_for are already held to commits.types; except_types could be too.
+    tags: [config]
 
   - id: p1-moves-merge-by-git
     title: The commit-msg hook knows a merge by git's state, not by its message
@@ -682,6 +684,7 @@ items:
       Writing it for itos makes the worked example show what a consumer may now write; the plan
       is the same either way (ci plan --whole and --nightly unchanged), so it is a build commit
       with a task whose check compares the plan before and after.
+    tags: [config]
 
   - id: p1-ci-checks-once
     title: CI's plan runs a check two named tasks list once
@@ -726,6 +729,7 @@ items:
       Backlog review of 2026-10-10, batch 3: folds in p1-ledger-id-grouping: the anchoring:
       ledger.IDPattern compiles ^id$ with no group, so an alternation in ledger.id anchors only its
       first and last branches; one reader of ledger.id wraps it as ^(?:id)$.
+    tags: [config]
 
   - id: p1-wip-tag-command-kind
     title: config check refuses wip_tag on a kind whose adapter is a command
@@ -739,6 +743,7 @@ items:
       kind whose adapter is a command reads its wip_tag nowhere (the adapter says which tests are
       live), yet config check accepts the key there, against "every key it accepts is one a tool
       reads" (config.feature). It could refuse it on such a kind, as slice 4 refused unread keys.
+    tags: [config]
 
   - id: p1-group-label-flag-word
     title: config check refuses a ledger.group.label that cannot be itos task's flag
@@ -753,6 +758,7 @@ items:
       of the task runner's flags (skip, pending) makes that flag read as a group, so --skip T-005
       selects nothing. The v0.6.0 notes ask for one word that is no other flag; config check could
       refuse the rest, naming the key.
+    tags: [config]
 
   - id: slice-22
     title: work.registry's default follows the ledger's folder, as PLAN says
@@ -2023,6 +2029,7 @@ items:
       and a refusal in a v2.x would break a config v2.0 accepted (docs/ORCHESTRATING.md's lesson on
       compatibility), the coordinator's call (2026-10-03).
     refs: [PLAN.md]
+    tags: [config]
 
   - id: p3-commit-editor-template
     title: itos commit through the editor puts the footers right below the subject
@@ -2256,6 +2263,7 @@ items:
       pinning and installing it would make bearable; and a role-level check command, so config
       check can validate a source's own files (itos-cc's itos-cc-debt.yaml).
     refs: [features/extensions.feature, features/pin.feature, PLAN.md]
+    tags: [config]
 
   - id: p3-nightly-govulncheck
     title: The nightly runs govulncheck, so a vulnerability disclosed later is found
@@ -2419,6 +2427,7 @@ items:
       protocol 1, staged and range commands with {from} and {to}, exit 0, 1, 2, 3 and 75 (ADR-0036),
       and problem rule ids prefixed by their source (cc/mutant-survived).
     refs: [PLAN.md]
+    tags: [config]
 
   - id: p3-debt-claims
     title: Work items claim debt entries, and itos refuses debt nobody owns
@@ -2635,6 +2644,7 @@ items:
       stealth configs under <git common dir>/itos/, each with a scope, the hooks choosing by the
       staged paths and refusing a commit spanning two.
     refs: [internal/config/stealth.go, features/stealth.feature]
+    tags: [config]
 
   - id: p3-stealth-branch-push
     title: A scenario for itos push of a feature branch under a stealth config
@@ -3098,6 +3108,7 @@ items:
       the registry and the smoke set. A hand edit that breaks it (an unknown key, an id given twice,
       an --item naming no item) lands unnoticed until an ask command or work show stops on it with
       exit 2.
+    tags: [config]
 
   - id: slice-114
     title: "Three live scenarios check and say what their behaviour is: @ID-STEALTH-24, @ID-CONFIG-21 and guide.feature's description"
@@ -3124,6 +3135,7 @@ items:
 
       Decision 35 (2026-10-06): once T-100 lands a config error's words are no longer judged, so a
       fix rewords this message with no Changes footer.
+    tags: [config]
 
   - id: T-083
     title: Declare the Item footer in this repository, standing in for Task for test, docs and chore
@@ -4004,6 +4016,7 @@ items:
       ledger.check.timeout or a check's own timeout of 0 or less passes config check today, and
       min(own, cap) in check/captured.go then lifts the commit-msg hook's cap.
     refs: [internal/config/config.go]
+    tags: [config]
 
   - id: p1-check-timeout-positive
     title: A check's timeout must be positive
@@ -4034,6 +4047,7 @@ items:
       the files still sort byte-wise (ledger.go sort.Strings), so phase-10 is read before phase-2,
       against the key's description.
     refs: [internal/ledger/ledger.go, internal/config/cross.go]
+    tags: [config]
 
   - id: p3-ledger-numeric-sort
     title: ledger.group.numeric sorts the files as numbers
@@ -4750,6 +4764,7 @@ items:
       Backlog review of 2026-10-10, batch 3: folds in p1-status-last-green-unfetched:
       readLastGreen's not-fetched branch and last_green's empty header in internal/cli/status.go,
       which served ci.range.command, removed in v5 (slice 85).
+    tags: [config]
 
   - id: p1-model-baseline
     title: "LeashBench: itos work replayed with the guidance on, gates only and off, across models and harnesses"
@@ -4819,6 +4834,7 @@ items:
       command the parse (values by name, the positional words) would leave one reader.
       readCommitFlags stays, since git commit reaches it through the shim unparsed.
     refs: [internal/cli/spec.go]
+    tags: [config]
 
   - id: p1-unknown-command-help
     title: itos <command> --help of no command exits 2, as itos help <command> does
@@ -5184,6 +5200,7 @@ items:
       whether it is a v6.x refactor or waits for the next major release. If it goes ahead,
       p1-init-plugin-rule-22 folds into it. itos-template uses kong from its start, its evidence for
       this.
+    tags: [config]
 
   - id: p1-bot-dependency-prs
     title: Renovate dependency pull requests pass itos rules and merge themselves when CI is green
