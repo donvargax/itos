@@ -7405,20 +7405,9 @@ items:
     title: itos guide prints the procedure an agent reads before an action, and itos go is the coordinator's start
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-guide-before-action.
-      Split from p1-agent-rules-as-data with the user (2026-10-10), settling q-43's syntax: itos
-      guide <procedure> [<item>] prints what an agent reads before an action, from the built-in text
-      until rules are data. work <item>: the implementer's essentials and the procedure map; commit:
-      commit types, footers and path scopes generated from the config (what AGENTS.md's generated
-      block holds today); push: the push routine, the proof and the handoff; brief <item>, land
-      <sha>, repair and decide: the coordinator's. itos go prints the coordinator's essentials, the
-      procedure map and status; itos guide coordinate goes, since itos go is it. First of the split:
-      AGENTS.md cannot drop the commit policy before guide commit serves it. Breaking (guide
-      coordinate removed): part of the v8 release-candidate bundle.
     refs: [internal/guide, AGENTS.md, docs/ORCHESTRATING.md]
 
   - id: p1-agents-md-reduced
