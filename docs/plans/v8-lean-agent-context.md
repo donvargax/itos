@@ -21,13 +21,22 @@ the breaking checks the v7 plan already set aside for the next major.
   the one boundary no gate holds yet, staging only your own files (the user, 2026-10-11: the gates
   and the guides cover the rest). Text outside the markers is never touched (q-45). Folds in
   `p1-agent-rules-ci-summary`.
-- **`p1-upgrade-refreshes-agent-block`**: `itos upgrade` has the new version rewrite a present
-  block, on every upgrade, so consumers get the two lines without a step by hand.
+- **`p1-upgrade-refreshes-agent-block`**: the launcher hands `itos upgrade` to the target version
+  when it is newer, so each release applies its own steps, a present block's rewrite among them.
+  A 7.x launcher has no handoff, so the v7 to v8 crossing stays explicit: slice-120's
+  `Upgrading:` footer, and **`p1-stale-agent-block-reported`**, `itos go` and `itos status` saying
+  when the block is one another itos wrote.
 - **`p1-trim-agents-md`**: this repository's own handwritten AGENTS.md text keeps only what is
   its own.
 - **`p1-commit-exit-codes`**: `itos commit` exits by the error's kind, not with git commit's code.
-- **`p1-shim-refuses-hook-skipping`**: `itos commit`, `itos push` and the shim refuse
-  `--no-verify`, `-n` and a `-c` that moves `core.hooksPath`.
+- **`p1-shim-refuses-hook-skipping`**, merged with `p1-agent-rules-as-checks` (the user,
+  2026-10-11): the shim, `itos commit` and `itos push` refuse `--no-verify`, `-n` and a `-c` that
+  moves `core.hooksPath`; the shim refuses sweeping stages (`git add -A`, `.`, `-u`, a folder) and
+  `itos commit` refuses `-a`; the pre-push hook refuses a push whose remote commit is not an
+  ancestor. Then the block's staging line is gated too and the block can keep the entry line
+  alone. The server-side guarantee against a force-push past all of these is GitHub's ruleset on
+  main, on since 2026-10-11 (`p1-init-recommends-branch-protection` recommends it to every
+  project, in any release).
 - **Config tightening, one slice**: config check refuses an empty `shell`
   (`p1-shell-not-empty`), an `except_types` type not in `commits.types`
   (`p1-moves-except-types-checked`), `wip_tag` on a command kind (`p1-wip-tag-command-kind`), a
