@@ -6939,8 +6939,8 @@ items:
   - id: slice-127
     title: work done passes over unpushed registry-only commits, so several closes land in one push
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
