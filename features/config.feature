@@ -454,12 +454,13 @@ Feature: Every key the config accepts is one itos reads
   # flags such as skip or pending); a number that is .nan or .inf anywhere in
   # the config; and a timeout of 0 or less (ledger.check.timeout, a check's own
   # timeout, ci.watch's interval and timeout), which lifts the hook's cap. The
-  # value in "the config sets" is written as YAML, so [] is an empty list and
-  # .nan a non-finite number: trace it before relying on it. Refusing what was
-  # accepted is breaking, so the feat says so.
+  # config sets writes its value as a quoted string, which the schema would
+  # refuse as the wrong type whatever these rules said, so a value meant as
+  # YAML ([] an empty list, .nan and 0 numbers) is set "to the YAML". Refusing
+  # what was accepted is breaking, so the feat says so.
   @ID-CONFIG-45 @slice-129 @wip
   Scenario: config check refuses an empty shell
-    Given the config sets "shell" to "[]"
+    Given the config sets "shell" to the YAML "[]"
     When itos checks the config
     Then itos exits with code 1
     And its output says "shell"
@@ -487,14 +488,14 @@ Feature: Every key the config accepts is one itos reads
 
   @ID-CONFIG-49 @slice-129 @wip
   Scenario: config check refuses a number that is not finite
-    Given the config sets "ci.watch.interval" to ".nan"
+    Given the config sets "ci.watch.interval" to the YAML ".nan"
     When itos checks the config
     Then itos exits with code 1
     And its output says "ci.watch.interval"
 
   @ID-CONFIG-50 @slice-129 @wip
   Scenario: config check refuses a timeout of 0 or less
-    Given the config sets "ledger.check.timeout" to "0"
+    Given the config sets "ledger.check.timeout" to the YAML "0"
     When itos checks the config
     Then itos exits with code 1
     And its output says "ledger.check.timeout"

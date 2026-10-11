@@ -75,6 +75,7 @@ type scratchConfig struct {
 	rangeCheck        bool            // a range check that records where its range starts
 	moves             *moves          // the kind's range check is the built-in moves rule
 	adapter           *commandAdapter // the kind's adapter is a command (moves_command_test.go)
+	commandKind       *commandKind    // a second kind of tests, behind a command adapter
 	recordingShell    bool            // shell is the recording shell
 	ciSteps           []string        // ci.steps
 	ciWatchOnly       string          // the workflow of a github ci.watch, the ci section's one key, when set
@@ -119,12 +120,18 @@ type scratchConfig struct {
 	settings          []setting
 }
 
-// The built-in moves rule as the kind's range check: the types it leaves
-// alone, and the renames it allows, each an ID and its new name.
+// The built-in moves rule as the kind's range check: its name (moves when
+// empty), the types it leaves alone, and the renames it allows, each an ID
+// and its new name.
 type moves struct {
+	name        string
 	exceptTypes []string
 	renames     [][2]string
 }
+
+// A kind of tests beside the scenario kind, behind a command adapter: its
+// name, and the wip_tag written on it.
+type commandKind struct{ name, wipTag string }
 
 // A footer of free text (source: text): its key, the types it is required
 // for, and the commit after which it is required (its since), when one.
@@ -150,10 +157,19 @@ type ledgerTask struct {
 // ledger or commits goes into that section; any other starts a section of its
 // own, so it may not be one the config already writes.
 // setting is a key path the scenario sets; flow writes its section's key
-// below the config's section as one flow mapping.
+// below the config's section as one flow mapping, and yaml writes the value
+// as YAML ([] an empty list, .nan a number) rather than as a quoted string.
 type setting struct {
 	key, value string
-	flow       bool
+	flow, yaml bool
+}
+
+// written is the setting's value as the config's text holds it.
+func (s setting) written() string {
+	if s.yaml {
+		return s.value
+	}
+	return fmt.Sprintf("%q", s.value)
 }
 
 func initializeScenario(sc *godog.ScenarioContext) {
@@ -356,6 +372,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^"([^"]*)" is a script that records its arguments$`, w.argumentsScript)
 	sc.Step(`^the kind "([^"]*)" runs a selection as "([^"]*)"$`, w.kindRunsSelection)
 	sc.Step(`^the config sets "([^"]*)" to "([^"]*)"$`, w.configSets)
+	sc.Step(`^the config sets "([^"]*)" to the YAML "([^"]*)"$`, w.configSetsYAML)
+	sc.Step(`^the config's scenario kind has the range check "([^"]*)", builtin "([^"]*)", except_types "([^"]*)"$`,
+		w.builtinRangeCheck)
+	sc.Step(`^the config has the test kind "([^"]*)" with a command adapter and the wip_tag "([^"]*)"$`, w.commandKindWipTag)
 
 	initializeReleaseSteps(sc, w)
 	initializeExtensionSteps(sc, w)
@@ -857,14 +877,24 @@ func (w *world) writeConfig() error {
 		fmt.Fprintf(&b, "      - name: record\n        range: %q\n", record)
 	}
 	if m := w.config.moves; m != nil {
-		fmt.Fprintf(&b, "      - name: moves\n        builtin: moves\n        except_types: [%s]\n",
-			strings.Join(m.exceptTypes, ", "))
+		name := m.name
+		if name == "" {
+			name = "moves"
+		}
+		fmt.Fprintf(&b, "      - name: %s\n        builtin: moves\n        except_types: [%s]\n",
+			name, strings.Join(m.exceptTypes, ", "))
 		if len(m.renames) > 0 {
 			b.WriteString("        allowed_renames:\n")
 			for _, r := range m.renames {
 				fmt.Fprintf(&b, "          %q: %q\n", r[0], r[1])
 			}
 		}
+	}
+	if k := w.config.commandKind; k != nil {
+		if w.testsKind() == "" {
+			b.WriteString("tests:\n")
+		}
+		fmt.Fprintf(&b, "  %s:\n    adapter: { command: \"true\" }\n    wip_tag: %q\n", k.name, k.wipTag)
 	}
 	b.WriteString(w.ciSection())
 	if !w.config.noWork {
@@ -900,10 +930,10 @@ func (w *world) writeConfig() error {
 			continue
 		}
 		if s.flow {
-			b.WriteString(flowSetting(path, s.value) + "\n")
+			b.WriteString(flowSetting(path, s.written()) + "\n")
 			continue
 		}
-		b.WriteString(nested(path, s.value, 0))
+		b.WriteString(nested(path, s.written(), 0))
 	}
 	return w.write(w.data("itos.yaml"), b.String())
 }
@@ -919,7 +949,7 @@ func (w *world) writeWork(b *strings.Builder) {
 	}
 	for _, s := range w.config.settings {
 		if path := strings.Split(s.key, "."); path[0] == "work" && len(path) >= 2 {
-			fmt.Fprintf(b, "%s, ", flowSetting(path[1:], s.value))
+			fmt.Fprintf(b, "%s, ", flowSetting(path[1:], s.written()))
 		}
 	}
 	if w.config.groupsKey != "" {
@@ -1015,11 +1045,11 @@ func (w *world) ciSection() string {
 	return b.String()
 }
 
-// A key path set to value in a flow mapping: key: "value", or key: { … }
-// for a longer path.
+// A key path set to a value, as written, in a flow mapping: key: "value",
+// or key: { … } for a longer path.
 func flowSetting(path []string, value string) string {
 	if len(path) == 1 {
-		return fmt.Sprintf("%s: %q", path[0], value)
+		return path[0] + ": " + value
 	}
 	return path[0] + ": { " + flowSetting(path[1:], value) + " }"
 }
@@ -1030,17 +1060,17 @@ func (w *world) settingsUnder(section string) string {
 	for _, s := range w.config.settings {
 		if path := strings.Split(s.key, "."); path[0] == section && len(path) > 1 {
 			if s.flow {
-				b.WriteString("  " + flowSetting(path[1:], s.value) + "\n")
+				b.WriteString("  " + flowSetting(path[1:], s.written()) + "\n")
 				continue
 			}
-			b.WriteString(nested(path[1:], s.value, 1))
+			b.WriteString(nested(path[1:], s.written(), 1))
 		}
 	}
 	return b.String()
 }
 
-// The YAML lines that set the key path to value, the first key at the given
-// depth.
+// The YAML lines that set the key path to a value, as written, the first key
+// at the given depth.
 func nested(path []string, value string, depth int) string {
 	var b strings.Builder
 	for i, key := range path {
@@ -1049,7 +1079,7 @@ func nested(path []string, value string, depth int) string {
 			b.WriteString("\n")
 		}
 	}
-	fmt.Fprintf(&b, " %q\n", value)
+	b.WriteString(" " + value + "\n")
 	return b.String()
 }
 
@@ -1780,6 +1810,26 @@ func (w *world) movesRule(types string) error {
 	return w.writeConfig()
 }
 
+// The scenario kind's one range check, a built-in one by name, leaving alone
+// the types the comma-separated list names.
+func (w *world) builtinRangeCheck(name, builtin, types string) error {
+	if builtin != "moves" {
+		return fmt.Errorf("itos has no built-in range check %q, only moves", builtin)
+	}
+	if err := w.movesRule(types); err != nil {
+		return err
+	}
+	w.config.moves.name = name
+	return w.writeConfig()
+}
+
+// A second kind of tests, whose adapter is a command, with a wip_tag written
+// on it; nothing runs the command.
+func (w *world) commandKindWipTag(name, tag string) error {
+	w.config.commandKind = &commandKind{name, tag}
+	return w.writeConfig()
+}
+
 func (w *world) movesAllowRename(id, name string) error {
 	if w.config.moves == nil {
 		return errors.New("the kind's range check is not the moves rule")
@@ -1986,6 +2036,13 @@ func (w *world) nightlyOnlyIs(command string) error {
 
 func (w *world) configSets(key, value string) error {
 	w.config.settings = append(w.config.settings, setting{key: key, value: value})
+	return w.writeConfig()
+}
+
+// The value is written as YAML, not quoted: [] is an empty list, .nan and 0
+// numbers, where the config sets would write the strings "[]", ".nan" and "0".
+func (w *world) configSetsYAML(key, value string) error {
+	w.config.settings = append(w.config.settings, setting{key: key, value: value, yaml: true})
 	return w.writeConfig()
 }
 
