@@ -8118,3 +8118,18 @@ items:
       the check never trips on what itos itself wrote. A fix with a @bug scenario.
     refs: [internal/cli/workwrite.go, internal/work]
     tags: [work]
+
+  - id: p1-steps-config-sets-nested
+    title: The config sets step writes two keys under one parent as one mapping
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      slice-130's agent (2026-10-11): two 'the config sets' steps sharing a parent
+      (ledger.group.pattern and ledger.group.numeric) write the parent twice, which the YAML reader
+      refuses, so a scenario cannot set both; none needs it yet. Merge settings into one tree before
+      writing, as the step now does for a key the base config already holds.
+    refs: [features/steps_test.go]
+    tags: [tests]
