@@ -7571,8 +7571,8 @@ items:
   - id: slice-126
     title: The launcher hands itos upgrade to the target version when it is newer, so each release applies its own steps
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-120]
     kind: slice
     why: >
