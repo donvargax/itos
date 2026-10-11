@@ -8066,3 +8066,27 @@ items:
       hook and poteto-mode off, and judge whether slices come back better. Beside
       p3-evaluate-cupcake.
     tags: [docs]
+
+  - id: p2-adopt-go-template-itos
+    title: itos adopts go-template-itos (go/cli) as a linked project, its conflicts resolved and template-shaped improvements sent back as issues
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user (2026-10-11), superseding ADR-0047's harvest: adopt, do not harvest. After v8.0.0.
+      Run itos-template adopt --merge (v0.30.0 or later, for --decline; the PATH's 0.28.0 is too
+      old) against the newest go-template-itos release, stack go, feature cli, answers name=itos
+      owner=donvargax module=github.com/donvargax/itos/v8. Resolve each conflict on its merits: the
+      dry run of 2026-10-11 (scratch clone .claude/worktrees/adopt-scratch, its report in the
+      coordinator's notes) found 30 conflicts and that the template's files added into internal/cli,
+      internal/version, internal/release, cmd and features break the build, so decline what itos's
+      own code holds and take what fits (.gitattributes, SHA-pinned actions, the engineering and
+      code-boundary rules, golangci-lint and gitleaks configured for itos, rapid for
+      p2-stateful-pbt-registry). The template's records 0001 and 0006 to 0008 take numbers after
+      itos's highest (itos-template#6); AGENTS.md and the docs caps stay itos's. An improvement that
+      is template-shaped, found while resolving, goes to go-template-itos as an issue (no PRs yet).
+      Upgrading itos-template on this machine is the first step.
+    refs: [docs/decisions, itos.yaml, go.mod]
+    tags: [release, docs]
