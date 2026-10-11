@@ -7478,3 +7478,19 @@ items:
       add p1-x, itos work edit p1-y --depends-on …) with long values elided; --json keeps the whole
       command.
     refs: [internal/cli]
+
+  - id: p1-work-edit-tag-many
+    title: work edit adds or removes one tag across items, and tags several items differently in one commit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-150 (2026-10-10): tagging 121 reviewed items took 24 registry commits, one per tag,
+      because --tags replaces an item's tags with one value per call. Two gaps: an item that should
+      gain a second tag needs its old one restated (no --add-tag/--remove-tag), and a mapping of tag
+      to ids cannot land as one commit. Every backlog review that tags its batch pays it, in every
+      itos-driven repository.
+    refs: [internal/cli]
+    tags: [work]
