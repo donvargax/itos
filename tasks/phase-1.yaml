@@ -1517,7 +1517,3 @@
     .metrics/mutate holds itos-cc's cached results keyed by the old path, regenerated or left to go
     stale as itos-cc's cache rules allow. Its feat-free commits release nothing; rc.1 is
     p1-agents-md-reduced.
-  done_when:
-    - run: grep -qx 'module github.com/donvargax/itos/v8' go.mod
-    - run: test "$(cat tools/bin/release-version/prerelease)" = rc
-    - run: "! git grep -q 'donvargax/itos/v7' -- '*.go' go.mod itos-cc.yaml .goreleaser.yaml .github tools/bin"

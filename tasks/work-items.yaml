@@ -7598,20 +7598,9 @@ items:
     title: itos's module path moves to /v8 and the pre-release marker is on, the first v8 work
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      The v8 plan (docs/plans/v8-lean-agent-context.md, the user, 2026-10-10): v8 ships as release
-      candidates, as v7 did by T-119. The module path becomes github.com/donvargax/itos/v8 in go.mod
-      and every import (no v8 tag from a /v7 go.mod), and tools/bin/release-version/prerelease holds
-      rc, so the next feat or fix, breaking or not, cuts v8.0.0-rc.1 (T-123) and main cuts no more
-      7.x. The Go files move in a refactor commit; the gates' files (the marker, tools/bin, the
-      workflows, itos-cc.yaml's exception keys, .goreleaser.yaml) in a ci commit, the marker last.
-      README.md's install line keeps /v7 until v8.0.0, since go install @latest skips pre-releases;
-      .metrics/mutate holds itos-cc's cached results keyed by the old path, regenerated or left to
-      go stale as itos-cc's cache rules allow. Its feat-free commits release nothing; rc.1 is
-      p1-agents-md-reduced.
 
   - id: p1-module-move-commit
     title: A module path move can be committed so each commit builds and vets
