@@ -49,5 +49,7 @@ file and leaves this list, which itos ask record writes.
 - [ADR-0045: Every id itos writes is minted, and the counter is claimed on the remote](0045-every-id-itos-writes-is-minted-and-the-counter-is-claimed-on-the-remote.md)
 - [ADR-0046: A release is not held for a dependency age rule; the 7-day wait is for what the project does not build](0046-a-release-is-not-held-for-a-dependency-age-rule-the-7-day-wait-is-for-what-the-project-does-not-build.md)
 - [ADR-0047: itos harvests go-template-itos once rather than linking to it](0047-itos-harvests-go-template-itos-once-rather-than-linking-to-it.md)
+- [ADR-0048: The template's interrupt rule is taken with bug-38, after v8](0048-the-template-s-interrupt-rule-is-taken-with-bug-38-after-v8.md)
+- [ADR-0049: Every mutation site a change touches is judged by the nightly; a push samples one](0049-every-mutation-site-a-change-touches-is-judged-by-the-nightly-a-push-samples-one.md)
 
 <!-- itos:decisions:end -->
