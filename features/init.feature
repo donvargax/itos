@@ -936,3 +936,62 @@ Feature: itos init, a repository made ready for itos
     And the file "CLAUDE.local.md" does not exist
     And the file "AGENTS.override.md" does not exist
     And git status shows nothing to commit
+
+  # v8's rc.1 (slice-120; q-45, q-46, the user's calls, 2026-10-10 and
+  # 2026-10-11): the block is read by every session for every task, and what
+  # it held, the config's commit policy, is printed by itos guide commit
+  # since slice-119. It keeps two lines under a heading: the entry line
+  # ("Start with `itos go` unless your brief names another guide") and the
+  # one boundary no gate holds yet ("Stage only your own files, by explicit
+  # path: untracked files you did not make are someone else's work in
+  # progress"), until p1-agent-rules-as-checks gates it. The block no longer
+  # follows the config: it is stale when an itos wrote other text, so a
+  # config change reports nothing, and a block an older itos wrote is
+  # reported and rewritten by --agent-rules as before, only between the
+  # markers. The same block goes where --stealth writes it. The feat changes
+  # the live scenarios that read the config's rules between the markers
+  # (@ID-INIT-26, 29 and 30, and the stealth ones from @ID-INIT-32 that read
+  # "Task:" or "deps" there) and the corpus cases that pin the old block,
+  # naming each in its Changes footer, with BREAKING-CHANGE. itos upgrade
+  # rewriting a present block is p1-upgrade-refreshes-agent-block.
+  @ID-INIT-57 @slice-120 @wip
+  Scenario: With --agent-rules init writes the entry line and the staging boundary, and none of the config's rules
+    Given a repository that does not use itos, its one commit "docs: start"
+    When itos runs "init --agent-rules"
+    Then itos exits with code 0
+    And the file "AGENTS.md" says "Start with `itos go` unless your brief names another guide." between the markers
+    And the file "AGENTS.md" says "Stage only your own files, by explicit path" between the markers
+    And the file "AGENTS.md" does not say "Task:" between the markers
+    And the file "CLAUDE.md" has the line "@AGENTS.md"
+
+  @ID-INIT-58 @slice-120 @wip
+  Scenario: Run again after the config changed, init finds the block current
+    Given a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init --agent-rules"
+    And the config's commits.types gains "deps"
+    When itos runs "init"
+    Then itos exits with code 0
+    And its output does not say "itos init --agent-rules"
+
+  @ID-INIT-59 @slice-120 @wip
+  Scenario: A block an older itos wrote is reported, then rewritten by --agent-rules, the text outside the markers kept
+    Given a repository that does not use itos, its one commit "docs: start"
+    And itos has already run "init --agent-rules"
+    And the committed file "AGENTS.md" holds the project's line "Be kind to the build." and a block an older itos wrote, saying "Task:" between the markers
+    When itos runs "init"
+    Then its output says "itos init --agent-rules"
+    And the file "AGENTS.md" says "Task:" between the markers
+    When itos runs "init --agent-rules"
+    Then the file "AGENTS.md" does not say "Task:" between the markers
+    And the file "AGENTS.md" says "Start with `itos go`" between the markers
+    And the file "AGENTS.md" has the line "Be kind to the build."
+
+  @ID-INIT-60 @slice-120 @wip
+  Scenario: With --stealth --agent-rules the same two lines go where agents read them, git status left clean
+    Given a repository that does not use itos, its one commit "docs: start"
+    When itos runs "init --stealth --agent-rules"
+    Then itos exits with code 0
+    And the file ".git/itos/AGENTS.md" says "Start with `itos go`" between the markers
+    And the file "AGENTS.override.md" says "Stage only your own files, by explicit path" between the markers
+    And the file "AGENTS.override.md" does not say "Task:" between the markers
+    And git status shows nothing to commit
