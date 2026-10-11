@@ -567,15 +567,9 @@ items:
     title: config check refuses values no tool can use
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-3]
     kind: slice
-    why: >
-      Was p1-shell-not-empty.
-      Every command now starts through shell, read as its argv prefix; `shell: []` is accepted and
-      then runs `sh <command>`, which reads the command as a script's path, so every check, step and
-      delegate fails with a message about a missing file. config check could require at least one
-      word, as it requires a list of strings.
     tags: [config]
 
   - id: p1-ci-run-every-failure-json
