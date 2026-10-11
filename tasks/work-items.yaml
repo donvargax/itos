@@ -2754,6 +2754,7 @@ items:
       Backlog review of 2026-10-10, batch 2: folds in p3-specialist-agents: specialist agents (a
       spec writer, a reviewer) are built only with a clear design and evidence they pay off, and
       this standing review is the evidence to gather first.
+    tags: [docs]
 
   - id: slice-64
     title: itos go and itos guide work, the generic guides in the binary
@@ -4695,6 +4696,7 @@ items:
       Breaking (init --agent-rules writes another block): part of the v8 release-candidate bundle,
       split before specifying, the AGENTS.md reduction first.
     refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
+    tags: [docs]
 
   - id: p1-agent-rules-suspend
     title: A permanent rule can be suspended, printed nowhere but kept, and restored if its mistake comes back
@@ -4708,6 +4710,7 @@ items:
       permanent one only stops being needed when models stop making the mistake, and nothing shows
       that. A suspended rule is printed nowhere; a sighting of its mistake restores it; one that
       stays suspended through a model release is deleted. The vanilla baseline, one rule at a time.
+    tags: [docs]
 
   - id: p1-guide-as-rule-data
     title: itos's built-in guide and brief template are rule data, versioned with itos, with each project's rules layered on top
