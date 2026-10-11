@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -174,6 +175,11 @@ func TestPushNamedFailures(t *testing.T) {
 			t.Errorf("push %s %s out of reach: exit %d\n%s", flag, name, code, stderr)
 		}
 	}
+	// Reading the remote's tags is what failed, before any push.
+	code, stdout, stderr := run("push", "--json", "--tag", "v1")
+	if code != ExitTemporary || !strings.Contains(stdout, `"outcome": "fetch-failed"`) {
+		t.Errorf("push --json --tag v1 out of reach: exit %d\n%s%s", code, stdout, stderr)
+	}
 }
 
 // The remote is the current branch's upstream's, origin on a detached HEAD.
@@ -199,5 +205,85 @@ func TestPushFollowsNoTags(t *testing.T) {
 	}
 	if originRef(t, "refs/tags/v2") != "" || originRef(t, "refs/tags/v1") != "" {
 		t.Errorf("a plain push sent a tag")
+	}
+}
+
+// A git that cannot start for the push exits 3, saying so: here the folder
+// it would run in is gone.
+func TestPushNamedGitThatCannotStart(t *testing.T) {
+	namedPushRepo(t)
+	origin = "no-such-folder"
+	t.Cleanup(func() { origin = "" })
+	var stderr strings.Builder
+	code, err := push([]string{"--ref", "b"}, Out{Stdout: io.Discard, Stderr: &stderr})
+	if err != nil || code != ExitMissing || !strings.HasPrefix(stderr.String(), "itos: cannot run git: ") {
+		t.Errorf("push --ref b with no git to run = %d, %v\n%s", code, err, stderr.String())
+	}
+}
+
+// A failed push git says was refused exits 1; any other failure of no kind
+// 70.
+func TestRefusalExit(t *testing.T) {
+	if got := refusalExit("error: failed to push some refs to 'origin'\n"); got != ExitPolicy {
+		t.Errorf("a refused push exits %d", got)
+	}
+	if got := refusalExit("fatal: the remote end hung up unexpectedly\n"); got != ExitSoftware {
+		t.Errorf("a push failed for no known reason exits %d", got)
+	}
+}
+
+// The routine's own edges: a branch with no commit is nothing to push; with
+// no upstream and no origin there is nowhere to push, exit 3; with no
+// upstream but an origin, HEAD goes to origin's branch of its name; and once
+// it is there, there is nothing to push.
+func TestPushRoutineEdges(t *testing.T) {
+	gitConfigRepo(t, "version: 1\n")
+	standInHooks(t)
+	for _, kv := range [][2]string{{"GIT_AUTHOR_NAME", "itos"}, {"GIT_COMMITTER_NAME", "itos"},
+		{"GIT_AUTHOR_EMAIL", "itos@example.com"}, {"GIT_COMMITTER_EMAIL", "itos@example.com"}} {
+		t.Setenv(kv[0], kv[1])
+	}
+	t.Setenv(git.EnvGit, git.Bin())
+	sh := func(script string) {
+		t.Helper()
+		if out, err := exec.Command("sh", "-c", script).CombinedOutput(); err != nil {
+			t.Fatalf("%s: %s", script, out)
+		}
+	}
+	sh(`git checkout -q -b main`)
+	if code, stdout, stderr := run("push"); code != 0 || stdout != "Nothing to push: main has no commit yet.\n" {
+		t.Errorf("no commit: exit %d\n%s%s", code, stdout, stderr)
+	}
+	sh(`echo start > README.md && git add README.md && git commit -q -m 'chore: start'`)
+	if code, _, stderr := run("push"); code != ExitMissing ||
+		stderr != "itos push: main has no upstream and there is no remote origin to push to\n" {
+		t.Errorf("no remote: exit %d\n%s", code, stderr)
+	}
+	sh(`git init -q --bare .git/origin.git && git remote add origin .git/origin.git`)
+	if code, stdout, stderr := run("push", "--no-wait"); code != 0 || !strings.HasPrefix(stdout, "Pushed ") ||
+		originRef(t, "refs/heads/main") != gitLine(t, "rev-parse", "HEAD") {
+		t.Errorf("no upstream, an origin: exit %d\n%s%s", code, stdout, stderr)
+	}
+	if code, stdout, stderr := run("push"); code != 0 || stdout != "Nothing to push: main is at origin/main.\n" {
+		t.Errorf("at origin: exit %d\n%s%s", code, stdout, stderr)
+	}
+}
+
+// An option push does not take is refused as no argument of its, and only a
+// short option holding f, or one of the --force family, as forcing; the code
+// is the error's.
+func TestPushRefusesOtherOptions(t *testing.T) {
+	for _, arg := range []string{"--follow-tags", "-n"} {
+		_, err := readPushArgs([]string{arg})
+		if ExitCode(err) != ExitUsage || !strings.HasPrefix(err.Error(), "push takes no arguments") {
+			t.Errorf("readPushArgs(%s) = %v", arg, err)
+		}
+	}
+	if _, err := readPushArgs([]string{"-uf"}); err == nil || !strings.HasPrefix(err.Error(), "push never forces: -uf") {
+		t.Errorf("readPushArgs(-uf) = %v", err)
+	}
+	code, err := push([]string{"--follow-tags"}, Out{Stdout: io.Discard, Stderr: io.Discard})
+	if code != 0 || ExitCode(err) != ExitUsage {
+		t.Errorf("push --follow-tags = %d, %v", code, err)
 	}
 }
