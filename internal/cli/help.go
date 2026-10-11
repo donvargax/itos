@@ -327,15 +327,23 @@ while it was open and gate the close, and the commit before it still holds
 them. A check meant to keep running belongs in ci.steps or ci.nightly.steps.
 Landed is: none of the item's scenarios at HEAD
 (those tagged @<id>, @slice-<n> for the item slice-<n>, @bug-<n> for bug-<n>)
-still @wip; no commit
-of HEAD that no remote has (itos push them); a task's static checks passing, as
-the commit-msg hook runs them; and with ci.watch, HEAD's CI run passed, waited
-for as itos ci watch waits when it is still going. The commits at HEAD that
-touch only the work registry, pushed or not, are passed over, and the run
-judged is that of the newest commit that touches more, so several closes land
-in one itos push after the last. Pushed with them, that commit may have no
-run of its own: the newest run on its branch whose head has it judges it, and
-done names that run. Without ci.watch CI is not checked, and done says so.
+still @wip; each of the item's own commits on a remote (itos push them); a
+task's static checks passing, as the commit-msg hook runs them; and with
+ci.watch, a CI run that has the newest of its own commits passed. Its own
+commits are those whose footers name it (Item:, Task:, or Scenarios: naming one
+of its scenarios), as itos work show lists them, its registry commits aside.
+Commits no remote has that are not the item's are passed over, so several
+closes land in one itos push after the last. The run judged is the newest
+commit's own when it passed, else any run on its branch whose head has it and
+passed: a later run's range leaves the item's commits out, so a later red is
+not the item's. With none, done waits for the commit's run as itos ci watch
+waits, or for the newest run whose head has it, and names it. An item with no
+commit of its own is judged by HEAD: no commit of HEAD that no remote has, and
+HEAD's CI run passed, the commits at HEAD that touch only the work registry,
+pushed or not, passed over and the newest commit that touches more judged;
+pushed with them, that commit may have no run of its own, and the newest run
+on its branch whose head has it judges it. Without ci.watch CI is not
+checked, and done says so.
 The code proof of the config's proof.code is not run here: CI's run, which
 done requires green, judges it over the whole range (itos ci run --help).
 Refused, nothing written (exit 1): any of those not so, a registry, or the

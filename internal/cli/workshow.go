@@ -17,6 +17,7 @@ package cli
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -137,29 +138,31 @@ func workShow(args []string, o Out) (int, error) {
 // first: a registry commit of itos's naming it in its header, or one whose
 // footers link to it or to one of its scenarios.
 func belonging(cfg *config.Loaded, id string, scenarios []tests.Test, history []message.Logged) []message.Logged {
+	links := linksTo(cfg, id, scenarios)
+	var found []message.Logged
+	for _, c := range history {
+		named, ok := work.RegistryHeader(c.Header)
+		if (ok && named == id) || slices.ContainsFunc(c.Links, links) {
+			found = append(found, c)
+		}
+	}
+	return found
+}
+
+// linksTo is whether a footer's link names the item: its id, in a footer of
+// IDs (Task:, Item:), or one of its scenarios (Scenarios:).
+func linksTo(cfg *config.Loaded, id string, scenarios []tests.Test) func(message.Link) bool {
 	tagged := map[string]bool{}
 	for _, t := range scenarios {
 		tagged[t.ID] = true
 	}
-	links := func(l message.Link) bool {
+	return func(l message.Link) bool {
 		if l.Tests == "" {
 			return l.ID == id
 		}
 		k, _ := cfg.Tests.Get(l.Tests)
 		return tagged[l.ID] || tagged[k.TagPrefix+l.ID]
 	}
-	var found []message.Logged
-	for _, c := range history {
-		named, ok := work.RegistryHeader(c.Header)
-		belongs := ok && named == id
-		for _, l := range c.Links {
-			belongs = belongs || links(l)
-		}
-		if belongs {
-			found = append(found, c)
-		}
-	}
-	return found
 }
 
 // printScenarios writes the item's scenarios, a line each: its ID, its file

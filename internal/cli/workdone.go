@@ -7,13 +7,20 @@ package cli
 // @slice-<n> for the item slice-<n>) still @wip, no commit that no remote
 // has, a task's static checks passing as the commit-msg hook runs them, and
 // with ci.watch the CI run green, waited for as itos ci watch waits when it
-// is still going. The commit judged is HEAD, passing over the commits at HEAD
-// that touch only the work registry, pushed or not (slice 93): a take or a
-// close changes nothing a run judges, so closes made one after another land
-// in one push after the last. The judged commit, pushed with such commits
-// after it, may have no run of its own, CI running once for the push's head:
-// the newest run on the branch whose head has it judges it (bug 49), as for a
-// cancelled run (bug 41). The first that is not refuses, naming what
+// is still going. The commits judged are the item's own (slice 127), those
+// whose footers name it (an Item:, a Task:, or a Scenarios: footer naming one
+// of its scenarios) as work show lists them, its registry commits aside:
+// each must be on a remote, and some run whose head is the newest of them or
+// has it as an ancestor must have passed, since a later run's range starts
+// after the last green one and leaves them out, so a later red is not the
+// item's. Commits no remote has that are not the item's are passed over, so
+// closes chain and one push lands them. An item with no commit of its own is
+// judged as before: by HEAD, passing over the commits at HEAD that touch only
+// the work registry, pushed or not (slice 93): a take or a close changes
+// nothing a run judges. The judged commit, pushed with such commits after it,
+// may have no run of its own, CI running once for the push's head: the newest
+// run on the branch whose head has it judges it (bug 49), as for a cancelled
+// run (bug 41). The first that is not refuses, naming what
 // to do; without ci.watch CI is not checked, and done says so. The code
 // proof of the config's proof.code is no longer among them (slice 106, issue
 // #28): that green run judged it, over the whole range, so running it again
@@ -31,12 +38,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/ledger"
+	"github.com/donvargax/itos/v8/internal/message"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/tests"
@@ -66,11 +75,15 @@ func workDone(args []string, o Out) (int, error) {
 		release()
 		release = func() {}
 	}
-	found, err := wipScenarios(cfg, id)
+	tagged, err := tests.Tagged(cfg, "@"+id, "HEAD")
 	if err != nil {
 		return 0, err
 	}
-	landing := judgedCommit(cfg.Work.Registry)
+	found := wipScenarios(tagged, id)
+	landing := ownCommit(cfg, id, tagged)
+	if landing.sha == "" {
+		landing = judgedCommit(cfg.Work.Registry)
+	}
 	if len(found) == 0 {
 		found = unpushed(id, landing, o)
 	}
@@ -190,11 +203,7 @@ func doneChange(cfg *config.Loaded, registry work.Registry, text, id string, o O
 // wipScenarios are the problems of the item's scenarios at HEAD, those
 // tagged @<id>, that are still @wip: a slice is done when every scenario it
 // specified is live.
-func wipScenarios(cfg *config.Loaded, id string) ([]out.Problem, error) {
-	tagged, err := tests.Tagged(cfg, "@"+id, "HEAD")
-	if err != nil {
-		return nil, err
-	}
+func wipScenarios(tagged []tests.Test, id string) []out.Problem {
 	var found []out.Problem
 	for _, t := range tagged {
 		if t.Live {
@@ -206,16 +215,37 @@ func wipScenarios(cfg *config.Loaded, id string) ([]out.Problem, error) {
 			Fix:     "implement it and commit it live, then run itos work done " + id + " again",
 		})
 	}
-	return found, nil
+	return found
 }
 
 // doneCommit is the commit whose landing work done judges: its SHA, "" when
 // HEAD names no commit, how work done names its CI run, at the start of a
-// sentence, and how it names the commit, "HEAD" or its short SHA and why.
+// sentence, how it names the commit, "HEAD" or its short SHA and why, and
+// whether it is the newest of the item's own commits (ownCommit).
 type doneCommit struct {
 	sha  string
 	run  string
 	what string
+	own  bool
+}
+
+// ownCommit is the newest of the item's own commits in HEAD's history (slice
+// 127): those whose footers link to it (linksTo, as work show lists them),
+// its registry commits, which name it in their headers alone, aside, since a
+// take or a promote changes nothing a run judges. The zero doneCommit when it
+// has none, as a task taken and specified and nothing more has, or when the
+// history cannot be read, as with no commit yet: judgedCommit judges it then.
+func ownCommit(cfg *config.Loaded, id string, tagged []tests.Test) doneCommit {
+	history, _ := message.History(cfg, "HEAD")
+	links := linksTo(cfg, id, tagged)
+	var j doneCommit
+	for _, c := range history {
+		if slices.ContainsFunc(c.Links, links) {
+			what := c.Short + ", the newest commit of " + id
+			j = doneCommit{sha: c.SHA, run: "The CI run of " + what + ",", what: what, own: true}
+		}
+	}
+	return j
 }
 
 // runOf names the run that judged the commit, at the start of a sentence:
@@ -256,8 +286,8 @@ func judgedCommit(registry string) doneCommit {
 
 // unpushed is the problem of commits of the judged commit that no remote
 // has: work is landed when it is pushed. The commits after it touch only the
-// registry, and are not asked about. With no remote at all there is nowhere
-// to push to, and done says so and goes on.
+// registry, or are not the item's (slice 127), and are not asked about. With
+// no remote at all there is nowhere to push to, and done says so and goes on.
 func unpushed(id string, j doneCommit, o Out) []out.Problem {
 	if j.sha == "" {
 		return nil
@@ -274,9 +304,13 @@ func unpushed(id string, j doneCommit, o Out) []out.Problem {
 	if len(commits) > 1 {
 		what = fmt.Sprintf("%d commits", len(commits))
 	}
+	holder := "HEAD"
+	if j.own {
+		holder = "The history up to " + j.what + ","
+	}
 	return []out.Problem{{
 		Rule:    "work-done-unpushed",
-		Message: fmt.Sprintf("HEAD has %s no remote has, so %s has not landed", what, id),
+		Message: fmt.Sprintf("%s has %s no remote has, so %s has not landed", holder, what, id),
 		Fix:     "push them with itos push, then run itos work done " + id + " again",
 	}}
 }
@@ -330,7 +364,9 @@ func closedChecks(cfg *config.Loaded, id string) (*ledger.Edited, error) {
 	return &edited, nil
 }
 
-// landedCI is the judged commit's CI run with ci.watch, waited for as itos ci watch
+// landedCI is the judged commit's CI run with ci.watch: for the newest of the
+// item's own commits, any run that covers it and passed (passedRun, slice
+// 127); else, or while there is none, its run, waited for as itos ci watch
 // waits, or, while it has none, the run on its upstream branch that covers it
 // (watchCovered, bug 49): 0 when it passed, else the refusal (1 for a run that did not pass,
 // naming its address, 3 for one that did not end or could not be looked
@@ -355,6 +391,8 @@ func landedCI(cfg *config.Loaded, id string, j doneCommit, o Out) (watched, int,
 	wr, _, err := watcher(cfg, remote, o)
 	if err != nil {
 		fmt.Fprintf(o.Stderr, "itos: %s\n", err)
+	} else if passed, ok := passedRun(wr, j, remote, branch, o); ok {
+		w = passed
 	} else {
 		w = watchCovered(cfg, wr, sha, remote, branch, o)
 	}
@@ -378,4 +416,28 @@ func landedCI(cfg *config.Loaded, id string, j doneCommit, o Out) (watched, int,
 	}
 	code, err := refuseWork(found, w.code, o)
 	return w, code, err
+}
+
+// passedRun is a run that passed and covers the newest of the item's own
+// commits (slice 127): the commit's own run when it passed, else the newest
+// run on the branch that passed and whose head has it (covering). ok is false
+// for a commit that is not the item's own, and when no such run is found or a
+// look fails: watchCovered then waits for the commit's run, or the newest
+// that covers it, as before, and reports what it finds.
+func passedRun(wr providers.Watcher, j doneCommit, remote, branch string, o Out) (watched, bool) {
+	if !j.own {
+		return watched{}, false
+	}
+	run, _, _ := wr.Look(j.sha)
+	if run.Conclusion != "success" {
+		run, _, _ = covering(wr.Runs, branch, j.sha, remote, nil, "success")
+	}
+	if run.Conclusion != "success" {
+		return watched{}, false
+	}
+	end := o.Stdout
+	if o.JSON {
+		end = o.Stderr
+	}
+	return ended(run, o, end), true
 }

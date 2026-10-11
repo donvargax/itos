@@ -531,8 +531,15 @@
 //     judged commit that no remote has (said and skipped with no remote at
 //     all); a task's static checks, by the commit-msg hook's firstFailure,
 //     when the id is a task of the ledger; and with ci.watch, the judged
-//     commit's run, by watcher and watchRun. The judged commit
-//     (judgedCommit) is HEAD, passing over the commits of its first-parent
+//     commit's run, by watcher and watchRun. The judged commit is the newest
+//     of the item's own (ownCommit, slice 127): those whose footers link to
+//     it (linksTo, which work show's belonging shares), its registry commits
+//     aside, so a commit no remote has that is not the item's is passed over
+//     and closes chain; any run that covers it and passed judges it
+//     (passedRun: its own, else covering with a conclusion), since a later
+//     run's range leaves it out, and with none watchCovered waits as below.
+//     An item with no commit of its own is judged by judgedCommit:
+//     HEAD, passing over the commits of its first-parent
 //     line that touch only work.registry, pushed or not, by push's own rule
 //     (touchesOnlyRegistry, slice 93), so closes made one after another land
 //     in one push. Pushed with such commits, the judged commit may have no

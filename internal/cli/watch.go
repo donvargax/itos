@@ -152,7 +152,7 @@ func watchCovered(cfg *config.Loaded, wr providers.Watcher, sha, remote, branch 
 			}
 		case !found:
 			if branch != "" && target == sha {
-				next, ok, err := covering(wr.Runs, branch, sha, remote, nil)
+				next, ok, err := covering(wr.Runs, branch, sha, remote, nil, "")
 				if err != nil {
 					if w, end := failing(err); end {
 						return w
@@ -188,7 +188,7 @@ func watchCovered(cfg *config.Loaded, wr providers.Watcher, sha, remote, branch 
 				w.superseded = superseded
 				return w
 			}
-			next, ok, err := covering(wr.Runs, run.Branch, sha, remote, &run)
+			next, ok, err := covering(wr.Runs, run.Branch, sha, remote, &run, "")
 			switch {
 			case err != nil:
 				if w, end := failing(err); end {
@@ -233,10 +233,12 @@ func watchCovered(cfg *config.Loaded, wr providers.Watcher, sha, remote, branch 
 // the branch whose head is sha or has it as an ancestor; found is false when
 // there is none. With cancelled, sha's run that a newer push cancelled (bug
 // 41), only a run newer than it counts, the one that superseded it; without,
-// any run counts, for a commit that has no run of its own (bug 49). A head the
+// any run counts, for a commit that has no run of its own (bug 49). With a
+// conclusion, only a run that ended so counts: work done's look for a run
+// that passed (slice 127). A head the
 // clone does not have is fetched from remote once, since the newer push may be
 // someone else's; one still missing after it is passed over.
-func covering(runs providers.Runs, branch, sha, remote string, cancelled *providers.Run) (providers.Run, bool, error) {
+func covering(runs providers.Runs, branch, sha, remote string, cancelled *providers.Run, conclusion string) (providers.Run, bool, error) {
 	if runs == nil || branch == "" {
 		return providers.Run{}, false, nil
 	}
@@ -249,7 +251,7 @@ func covering(runs providers.Runs, branch, sha, remote string, cancelled *provid
 		if cancelled != nil && (r.ID == cancelled.ID || (r.Created != "" && cancelled.Created != "" && r.Created < cancelled.Created)) {
 			break
 		}
-		if r.HeadSHA == "" {
+		if r.HeadSHA == "" || (conclusion != "" && r.Conclusion != conclusion) {
 			continue
 		}
 		if r.HeadSHA != sha && !git.HasCommit(r.HeadSHA) && !fetched {

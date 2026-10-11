@@ -1,10 +1,18 @@
 package cli
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/message"
+	"github.com/donvargax/itos/v8/internal/providers"
+	"github.com/donvargax/itos/v8/internal/tests"
 )
 
 // The ledger and registry of closeRepo, before work done.
@@ -84,5 +92,183 @@ func TestWorkDoneRefusedKeepsTheChecks(t *testing.T) {
 	}
 	if status := gitIn(t, "status", "--porcelain"); status != "" {
 		t.Errorf("git status reports:\n%s", status)
+	}
+}
+
+// A commit belongs to an item when itos's registry commit names it in its
+// header, or a footer links to it: by its id in a footer of IDs, or by one of
+// its scenarios, tagged or not (linksTo); an id in a footer of tests is a
+// scenario's, never the item's.
+func TestBelongingLinksTheItemsCommits(t *testing.T) {
+	cfg := &config.Loaded{}
+	cfg.Tests = config.Ordered[config.Kind]{Keys: []string{"scenario"}, Values: map[string]config.Kind{"scenario": {TagPrefix: "@"}}}
+	scenarios := []tests.Test{{ID: "@ID-A-01"}, {ID: "ID-A-02"}}
+	history := []message.Logged{
+		{SHA: "1", Header: "docs: take slice-9"},
+		{SHA: "2", Header: "docs: take slice-1"},
+		{SHA: "3", Header: "chore: one", Links: []message.Link{{ID: "slice-9"}}},
+		{SHA: "4", Header: "chore: two", Links: []message.Link{{ID: "slice-1"}}},
+		{SHA: "5", Header: "feat: three", Links: []message.Link{{ID: "ID-A-01", Tests: "scenario"}}},
+		{SHA: "6", Header: "feat: four", Links: []message.Link{{ID: "ID-A-02", Tests: "scenario"}}},
+		{SHA: "7", Header: "feat: five", Links: []message.Link{{ID: "slice-9", Tests: "scenario"}, {ID: "ID-A-09", Tests: "scenario"}}},
+	}
+	var got []string
+	for _, c := range belonging(cfg, "slice-9", scenarios, history) {
+		got = append(got, c.SHA)
+	}
+	if strings.Join(got, " ") != "1 3 5 6" {
+		t.Fatalf("the commits of slice-9 are %v", got)
+	}
+}
+
+// closeRepo with a Task: footer linking commits to the ledger's tasks,
+// committed.
+func closeRepoLinked(t *testing.T) {
+	t.Helper()
+	closeRepo(t)
+	text, err := os.ReadFile("itos.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	footers := "commits:\n  footers:\n    Task:\n      source: ledger\n      read_at: commit\n"
+	if err := os.WriteFile("itos.yaml", append(text, footers...), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, "commit", "-q", "-m", "chore: link tasks", "--", "itos.yaml")
+}
+
+// closeRepoLinked with a remote, origin, a bare repository holding its
+// commits.
+func closeRepoWithRemote(t *testing.T) {
+	t.Helper()
+	closeRepoLinked(t)
+	remote := filepath.Join(t.TempDir(), "origin.git")
+	gitIn(t, "init", "-q", "--bare", remote)
+	gitIn(t, "remote", "add", "origin", remote)
+	gitIn(t, "push", "-q", "origin", "HEAD")
+}
+
+// An empty commit with the message.
+func commitEmpty(t *testing.T, message string) string {
+	t.Helper()
+	gitIn(t, "commit", "-q", "--allow-empty", "-m", message)
+	return gitLine(t, "rev-parse", "HEAD")
+}
+
+// The item's own commits are those whose footers name it (slice 127), the
+// newest judged; an item with none has no such commit.
+func TestOwnCommitIsTheNewestThatNamesTheItem(t *testing.T) {
+	closeRepoLinked(t)
+	cfg, err := config.Load(config.Path())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if j := ownCommit(cfg, "T-1", nil); j.sha != "" || j.own {
+		t.Fatalf("an item with no commit of its own judges %+v", j)
+	}
+	own := commitEmpty(t, "chore: one\n\nTask: T-1\n")
+	commitEmpty(t, "chore: two\n\nTask: T-2\n")
+	j := ownCommit(cfg, "T-1", nil)
+	short := gitLine(t, "rev-parse", "--short", own)
+	if j.sha != own || !j.own || j.what != short+", the newest commit of T-1" || j.run != "The CI run of "+short+", the newest commit of T-1," {
+		t.Fatalf("T-1's commit %s is judged as %+v", own, j)
+	}
+}
+
+// work done passes over a commit no remote has that is not the item's own,
+// and refuses while one of the item's own is on no remote (slice 127).
+func TestWorkDoneJudgesTheItemsOwnCommits(t *testing.T) {
+	closeRepoWithRemote(t)
+	commitEmpty(t, "chore: build T-1\n\nTask: T-1\n")
+	gitIn(t, "push", "-q", "origin", "HEAD")
+	commitEmpty(t, "chore: something else")
+	var stdout, stderr strings.Builder
+	code, err := workDone([]string{"T-1"}, Out{Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || err != nil {
+		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
+	}
+
+	closeRepoWithRemote(t)
+	own := commitEmpty(t, "chore: build T-1\n\nTask: T-1\n")
+	stdout.Reset()
+	stderr.Reset()
+	code, err = workDone([]string{"T-1"}, Out{Stdout: &stdout, Stderr: &stderr})
+	want := "The history up to " + gitLine(t, "rev-parse", "--short", own) + ", the newest commit of T-1, has a commit no remote has"
+	if code != ExitPolicy || err != nil || !strings.Contains(stderr.String(), want) {
+		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
+	}
+}
+
+// A run that passed and covers the item's newest commit judges it (slice
+// 127): its own, else one on the branch whose head has it, a failed one
+// passed over; none for a commit that is not the item's own, or when no run
+// passed. Under --json the run's end goes to stderr.
+func TestPassedRunIsAnyCoveringRunThatPassed(t *testing.T) {
+	failed := providers.Run{URL: "f", Status: "completed", Conclusion: "failure", HeadSHA: "abc"}
+	passed := providers.Run{URL: "p", Status: "completed", Conclusion: "success", HeadSHA: "abc"}
+	look := func(run providers.Run) providers.Watch {
+		return func(string) (providers.Run, bool, error) { return run, true, nil }
+	}
+	runs := func(listed ...providers.Run) providers.Runs {
+		return func(string) ([]providers.Run, error) { return listed, nil }
+	}
+	own := doneCommit{sha: "abc", own: true}
+	var stdout, stderr strings.Builder
+	o := Out{Stdout: &stdout, Stderr: &stderr}
+	if _, ok := passedRun(providers.Watcher{Look: look(passed)}, doneCommit{sha: "abc"}, "", "main", o); ok {
+		t.Fatal("a commit that is not the item's own was judged by a run that passed")
+	}
+	if w, ok := passedRun(providers.Watcher{Look: look(passed)}, own, "", "main", o); !ok || w.code != 0 || w.run.URL != "p" || !strings.Contains(stdout.String(), "CI passed: p") {
+		t.Fatalf("its own run that passed: %v %+v\n%s", ok, w, stdout.String())
+	}
+	if w, ok := passedRun(providers.Watcher{Look: look(failed), Runs: runs(failed, passed)}, own, "", "main", o); !ok || w.run.URL != "p" {
+		t.Fatalf("a run on the branch that passed: %v %+v", ok, w)
+	}
+	if _, ok := passedRun(providers.Watcher{Look: look(failed), Runs: runs(failed)}, own, "", "main", o); ok {
+		t.Fatal("no run passed, yet one judged the commit")
+	}
+	stdout.Reset()
+	if _, ok := passedRun(providers.Watcher{Look: look(passed)}, own, "", "main", Out{Stdout: &stdout, Stderr: &stderr, JSON: true}); !ok || stdout.Len() > 0 || !strings.Contains(stderr.String(), "CI passed: p") {
+		t.Fatalf("under --json: %v\n%s%s", ok, stdout.String(), stderr.String())
+	}
+}
+
+// work done asks GitHub for the item's newest commit's run (slice 127): one
+// that passed lands it; one that failed, with none on the branch that
+// passed, is waited for as before and refuses, naming it.
+func TestLandedCIJudgesTheItemsOwnRun(t *testing.T) {
+	gitConfigRepo(t, "version: 1\nci:\n  watch:\n    provider: github\n    interval: 0\n    github:\n      workflow: ci.yml\n")
+	t.Setenv("GIT_AUTHOR_NAME", "itos")
+	t.Setenv("GIT_COMMITTER_NAME", "itos")
+	t.Setenv("GIT_AUTHOR_EMAIL", "itos@example.com")
+	t.Setenv("GIT_COMMITTER_EMAIL", "itos@example.com")
+	sha := commitEmpty(t, "chore: build slice-9")
+	conclusion := "success"
+	server := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Header().Set("Content-Type", "application/json")
+		if strings.HasSuffix(req.URL.Path, "/jobs") {
+			fmt.Fprint(rw, `{"jobs":[]}`)
+			return
+		}
+		fmt.Fprintf(rw, `{"workflow_runs":[{"id":1,"html_url":"u","status":"completed","conclusion":%q,"head_sha":%q,"head_branch":"main","created_at":"1"}]}`, conclusion, sha)
+	}))
+	t.Cleanup(server.Close)
+	t.Setenv("GITHUB_API_URL", server.URL)
+	t.Setenv("GITHUB_REPOSITORY", "owner/scratch")
+	t.Setenv("GITHUB_TOKEN", "token")
+	cfg, err := config.Load(config.Path())
+	if err != nil {
+		t.Fatal(err)
+	}
+	j := doneCommit{sha: sha, run: "The CI run of it,", own: true}
+	var stdout, stderr strings.Builder
+	if w, code, err := landedCI(cfg, "slice-9", j, Out{Stdout: &stdout, Stderr: &stderr}); code != 0 || err != nil || w.run == nil || w.run.URL != "u" {
+		t.Fatalf("exit %d, %v, %+v\n%s%s", code, err, w, stdout.String(), stderr.String())
+	}
+	conclusion = "failure"
+	stdout.Reset()
+	stderr.Reset()
+	if _, code, err := landedCI(cfg, "slice-9", j, Out{Stdout: &stdout, Stderr: &stderr}); code != ExitPolicy || err != nil || !strings.Contains(stderr.String(), "The CI run of it, did not pass, so slice-9 is not done: u") {
+		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
 	}
 }

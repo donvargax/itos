@@ -1098,7 +1098,7 @@ Feature: The work registry
   # newest commit at HEAD that touches more than the registry (@ID-WORK-16,
   # 17, 56, 57). The covering-run lookup is bug 49's (@ID-WORK-74), widened
   # from the newest covering run to any covering run that passed.
-  @ID-WORK-98 @slice-127 @wip
+  @ID-WORK-98 @slice-127
   Scenario: work done passes over a commit no remote has that is not the item's own
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -1110,7 +1110,7 @@ Feature: The work registry
     Then itos exits with code 0
     And the registry's item "slice-9" has the status "done" and the owner "someone"
 
-  @ID-WORK-99 @slice-127 @wip
+  @ID-WORK-99 @slice-127
   Scenario: Two items close one after the other with no push between them
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -1126,7 +1126,7 @@ Feature: The work registry
     And the registry's item "T-001" has the status "done" and the owner "someone"
     And the registry's item "slice-9" has the status "done" and the owner "someone"
 
-  @ID-WORK-100 @slice-127 @wip
+  @ID-WORK-100 @slice-127
   Scenario: work done closes an item whose own run passed though a later run failed
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -1139,7 +1139,7 @@ Feature: The work registry
     And its output says "https://ci.example/runs/1"
     And the registry's item "slice-9" has the status "done" and the owner "someone"
 
-  @ID-WORK-101 @slice-127 @wip
+  @ID-WORK-101 @slice-127
   Scenario: work done refuses while the item's own commit is not pushed, naming itos push
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
@@ -1149,7 +1149,7 @@ Feature: The work registry
     And its output says "itos push"
     And the registry's item "slice-9" has the status "doing" and the owner "someone"
 
-  @ID-WORK-102 @slice-127 @wip
+  @ID-WORK-102 @slice-127
   Scenario: work done refuses when every run covering the item's own commit failed
     Given a clone of it, where itos runs
     And the work registry has the item "slice-9" owned by "someone" with the status "doing"
