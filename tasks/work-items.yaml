@@ -7416,6 +7416,9 @@ items:
       block; a project's handwritten instructions are migrated explicitly, never silently deleted
       (q-45). Folds in p1-agent-rules-ci-summary. Here AGENTS.md is 28.0 KB, read by every session
       for every task. Breaking: the first of the v8 release-candidate bundle.
+
+      2026-10-10, the v8 plan (docs/plans/v8-lean-agent-context.md): rc.1 of v8, after the ci task
+      that turns the release candidates on.
     refs: [AGENTS.md, internal/guide]
 
   - id: p1-notes-placement
