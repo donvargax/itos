@@ -4721,7 +4721,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-guide-before-action]
     kind: idea
     why: >
       The user's call (2026-10-06). Lessons grew as prose in AGENTS.md and ORCHESTRATING.md, read by
@@ -4761,6 +4761,18 @@ items:
       commands' names and syntax (q-43), the rules file's path and schema, and the per-role cap.
       Breaking (init --agent-rules writes another block): part of the v8 release-candidate bundle,
       split before specifying, the AGENTS.md reduction first.
+
+      2026-10-10, with the user: split. p1-guide-before-action (the procedures) and
+      p1-agents-md-reduced come first, p1-notes-placement after; this item keeps rules as data.
+      Decided: the file is guide.rules, by default rules.yaml in the ledger's folder (under a
+      stealth config, in itos's git folder). A rule has an id (a slug, like an idea's), roles (one
+      or both, none refused), at (the procedure that prints it: start, the role's essentials, or
+      commit, push, brief, land, repair, decide), an optional scope (kinds, types, paths; refused on
+      at: start, which q-44 keeps unscoped and, later, unsuspendable), text, why, exit (an item or
+      permanent), recorded and last_seen. The cap is bytes, not a count: one per role and at, start
+      the tightest, defaults in guide.budget, counting the rules' text and not what itos generates
+      from the config; rule check fails over it, so a new lesson retires or tightens another.
+      Commands: itos rule add|seen|list|check.
     refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
     tags: [docs]
 
