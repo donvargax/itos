@@ -5,6 +5,14 @@
 // what the tools print; the rule IDs and the registry's item key phase keep
 // their names whatever the label.
 //
+// Files lists the ledger's files by name, numeric groups by number (phase-2
+// before phase-10, slice 130). LayoutProblems are the layouts that read
+// nothing or read the registry: a ledger.group.pattern with anchors of its
+// own, {group} in ledger.files' folder, a ledger.files that matches
+// work.registry; config check reports them, exit 1, before it lists the
+// folder. IDPattern is ledger.id's one reader, anchored as ^(?:id)$, any ID
+// with no ledger.id.
+//
 // The schema is strict: duplicate or malformed IDs, unknown types, unknown
 // keys, both or neither of run and fails, and a cost: static written below a
 // late check of the same task, which written order would run late anyway. A

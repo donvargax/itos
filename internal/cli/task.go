@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	"regexp"
 	"slices"
 	"strings"
 
@@ -128,14 +127,11 @@ func selectTasks(cfg *config.Loaded, args []string, tasks []ledger.Task) []ledge
 }
 
 // unknownIDs are the IDs named on the command line that the ledger does not
-// have: the arguments that look like a task's ID (ledger.id, or T-<n> when
-// the config has none) and are not the value of a group flag or --skip.
+// have: the arguments that are a task's ID (ledger.IDPattern: ledger.id, or,
+// with none, every word that is no flag, slice 130) and are not the value of
+// a group flag or --skip.
 func unknownIDs(cfg *config.Loaded, args []string, tasks []ledger.Task) []string {
-	id := `T-\d+`
-	if cfg.Ledger.ID != nil {
-		id = *cfg.Ledger.ID
-	}
-	pattern := regexp.MustCompile("^(?:" + id + ")$")
+	pattern := ledger.IDPattern(cfg)
 	values := map[string]bool{}
 	for _, f := range append(groupFlags(cfg), "--skip") {
 		if v, ok := flagValue(args, f); ok {
@@ -144,7 +140,7 @@ func unknownIDs(cfg *config.Loaded, args []string, tasks []ledger.Task) []string
 	}
 	var unknown []string
 	for _, a := range args {
-		if !pattern.MatchString(a) || values[a] {
+		if strings.HasPrefix(a, "-") || !pattern.MatchString(a) || values[a] {
 			continue
 		}
 		if !slices.ContainsFunc(tasks, func(t ledger.Task) bool { return t.ID == a }) {

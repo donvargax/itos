@@ -6,6 +6,8 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"regexp/syntax"
+	"slices"
 	"sort"
 	"strings"
 
@@ -73,7 +75,8 @@ func Files(cfg *config.Loaded) ([]File, error) {
 		}}}
 	}
 	// By name: the TypeScript's localeCompare, which for names of one pattern
-	// (a prefix, a group, a suffix) is the order of their bytes.
+	// (a prefix, a group, a suffix) is the order of their bytes; numeric
+	// groups then by number (slice 130), phase-2 before phase-10.
 	sort.Strings(names)
 	var files []File
 	for _, name := range names {
@@ -81,7 +84,76 @@ func Files(cfg *config.Loaded) ([]File, error) {
 			files = append(files, File{Path: path.Join(layout.Dir, name), Group: m[1]})
 		}
 	}
+	if layout.Numeric {
+		sort.SliceStable(files, func(i, j int) bool { return groupBefore(files[i].Group, files[j].Group) })
+	}
 	return files, nil
+}
+
+// groupBefore is whether numeric group a comes before b: by number, a group
+// that is no number after every one that is, in the order of their names.
+func groupBefore(a, b string) bool {
+	x, y := value.ToNumber(a), value.ToNumber(b)
+	if math.IsNaN(y) {
+		return !math.IsNaN(x)
+	}
+	return x < y
+}
+
+// LayoutProblems are the ledger layouts that read nothing, or read what is
+// not a ledger (slice 130), judged before any file is listed: a
+// ledger.group.pattern with anchors of its own, which never match, since the
+// pattern stands inside a file's name, between what ledger.files writes
+// around {group}; {group} in ledger.files' folder, which Files would look for
+// as a folder of that name; and a ledger.files that matches work.registry,
+// which every reader of the ledger would read as a list of tasks. None when
+// the config has no ledger.
+func LayoutProblems(cfg *config.Loaded) []out.Problem {
+	layout, err := LayoutOf(cfg)
+	if err != nil {
+		return nil
+	}
+	var found []out.Problem
+	pattern := cfg.Ledger.Group.Pattern
+	if anchored(pattern) {
+		found = append(found, problem("config-ledger-group-anchors",
+			"ledger.group.pattern has anchors of its own: "+pattern+"; it is matched inside a file's name, "+
+				"between what ledger.files writes around {group}, so it matches no file",
+			"remove the anchors (^, $, \\A, \\z) from ledger.group.pattern"))
+	}
+	files := filepath.ToSlash(cfg.Ledger.Files)
+	if strings.Contains(path.Dir(files), "{group}") {
+		found = append(found, problem("config-ledger-files-folder",
+			"ledger.files has {group} in its folder: "+cfg.Ledger.Files+"; the ledger is one folder, and a group is "+
+				"a part of a file's name",
+			"write {group} in the file's name, as in tasks/phase-{group}.yaml"))
+	}
+	registry := filepath.ToSlash(cfg.Work.Registry)
+	if path.Dir(registry) == path.Clean(layout.Dir) && layout.File.MatchString(path.Base(registry)) {
+		found = append(found, problem("config-ledger-registry",
+			"ledger.files ("+cfg.Ledger.Files+") matches work.registry ("+cfg.Work.Registry+
+				"), so the registry would be read as a ledger file",
+			"change ledger.files or ledger.group.pattern so that no ledger file is work.registry, or move work.registry"))
+	}
+	return found
+}
+
+// anchored is whether a pattern that compiles holds an anchor: ^, $, \A or
+// \z, anywhere in it.
+func anchored(pattern string) bool {
+	re, err := syntax.Parse(pattern, syntax.Perl)
+	if err != nil {
+		return false
+	}
+	var has func(*syntax.Regexp) bool
+	has = func(r *syntax.Regexp) bool {
+		switch r.Op {
+		case syntax.OpBeginLine, syntax.OpEndLine, syntax.OpBeginText, syntax.OpEndText:
+			return true
+		}
+		return slices.ContainsFunc(r.Sub, has)
+	}
+	return has(re)
 }
 
 var (
@@ -215,13 +287,17 @@ func orderFindings(cfg *config.Loaded, checks []any) (problems, warnings []out.P
 }
 
 // IDPattern is the pattern a task's whole ID must match: ledger.id, or any
-// ID when the config has none.
+// ID when the config has none. It is ledger.id's one reader (slice 130):
+// itos task, the ledger check, work show's task items (work.SpecKind) and
+// minting all take it, anchored as ^(?:id)$, so an alternation anchors every
+// branch, where ^T-\d+|OPS-\d+$ anchored only the first's start and the
+// last's end.
 func IDPattern(cfg *config.Loaded) *regexp.Regexp {
 	id := ".+"
 	if cfg.Ledger.ID != nil {
 		id = *cfg.Ledger.ID
 	}
-	return regexp.MustCompile("^" + id + "$")
+	return regexp.MustCompile("^(?:" + id + ")$")
 }
 
 // fieldProblems are a task's id, type, title and why.

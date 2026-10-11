@@ -184,7 +184,7 @@ func amending() bool {
 }
 
 // stagesData is whether a staged path is the config, a ledger file, the
-// registry, a smoke set, or a decision record or their index in the folder
+// registry, the questions' file (slice 130), a smoke set, or a decision record or their index in the folder
 // work.decisions names (slice 74), as the staged config names them
 // (commit-data.ts's stagesData), read in the current source. A config that
 // does not load and is not staged leaves the commit to the hook's other
@@ -216,7 +216,7 @@ func stagesData(staged []string) bool {
 			return true
 		}
 	}
-	named := []string{cfg.Work.Registry}
+	named := []string{cfg.Work.Registry, cfg.Work.Asks}
 	for _, name := range cfg.Tests.Keys {
 		if smoke := cfg.Tests.Values[name].Smoke.File; smoke != nil && *smoke != "" {
 			named = append(named, *smoke)

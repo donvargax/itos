@@ -1676,15 +1676,18 @@ cases:
       Usage: itos config check [--ledger <file>] [--print-defaults]
 
       Validates the config, then the ledger (or one ledger file), the work registry,
-      each kind's smoke set and the decision records in the folder work.decisions
-      names: no two share a number, and a record whose status is "superseded by
-      ADR-NNNN" names a number a record there has. Exit 2 when the config is invalid
-      (among the rest, a proof.code that names no paths or whose check does not take
-      {base}), 1 for any other problem, a value no tool can use among them: a shell
-      with no program, a number not finite, a ledger.check.timeout or a check's
-      timeout of 0 or less, an except_types type commits.types does not list, a
-      wip_tag on a kind whose adapter is a command, or a ledger.group.label that is no
-      word itos task can take as its own flag. A warning (WARN) never fails it: a
+      the questions (work.asks), each kind's smoke set and the decision records in
+      the folder work.decisions names: no two share a number, and a record whose
+      status is "superseded by ADR-NNNN" names a number a record there has. Exit 2
+      when the config is invalid, as for every command (among the rest, a proof.code
+      that names no paths or whose check does not take {base}, a shell with no
+      program, a number not finite, a ledger.check.timeout of 0 or less), 1 for any
+      other problem, among them a check's timeout of 0 or less, an except_types type
+      commits.types does not list, a wip_tag on a kind whose adapter is a command, a
+      ledger.group.label that is no word itos task can take as its own flag, a
+      ledger.group.pattern with anchors of its own, {group} in ledger.files' folder,
+      a ledger.files that matches work.registry, and a question naming an item the
+      registry does not have. A warning (WARN) never fails it: a
       check static by a ci.cost.static pattern written below a late check of its task,
       which ci.cost.keep_written_order runs late, and a project's people file missing
       or unreadable (a stealth config reads none). --print-defaults prints the values

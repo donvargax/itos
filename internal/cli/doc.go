@@ -346,7 +346,8 @@
 //  1. itos's data at commit: configFindings under
 //     source.ReadingFrom(source.At("index"), …) when a staged path (git diff
 //     --cached --name-only --no-renames) is the config, a ledger file, the
-//     registry, a smoke set or a decision record or index, as
+//     registry, the questions' file (slice 130), a smoke set or a decision
+//     record or index, as
 //     the staged config names them (stagesData); data that cannot be read is
 //     one data-unreadable problem, the rejection's first line the staged
 //     commits.reject_message. Else, for each kind one of whose test files is

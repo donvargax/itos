@@ -9,9 +9,11 @@ import (
 	"unicode"
 
 	"github.com/donvargax/itos/v8/internal/adr"
+	"github.com/donvargax/itos/v8/internal/ask"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/source"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
 	"github.com/donvargax/itos/v8/internal/work"
@@ -96,10 +98,14 @@ func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) 
 	if missing := cfg.SinceIssues(); len(missing) > 0 {
 		return 2, prefixed(&config.Error{File: path, Problems: missing}, "config"), nil, nil, nil
 	}
+	// A ledger layout that reads nothing, or reads the registry, is judged
+	// before its folder is listed, which {group} as a folder would fail as
+	// missing; its files are then not read (slice 130).
+	layout := ledger.LayoutProblems(cfg)
 	var files []string
 	if ledgerFile != "" {
 		files = []string{ledgerFile}
-	} else {
+	} else if len(layout) == 0 {
 		listed, err := ledger.Files(cfg)
 		// The ledger's folder missing is a config error too: nothing of the
 		// ledger can be read, so it is the one problem.
@@ -118,9 +124,10 @@ func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) 
 		return 0, nil, nil, nil, err
 	}
 	ledgerProblems, ledgerWarnings := ledger.Findings(cfg, files)
-	// Values the config loads with that no tool can use (slice 129).
+	// Values the config loads with that nothing reads as written (slice 129),
+	// and the ledger layout's.
 	unusable := append(cfg.Unusable(), groupLabelProblems(cfg)...)
-	found := prefixed(&config.Error{File: path, Problems: unusable}, "config")
+	found := prefixed(&config.Error{File: path, Problems: append(unusable, layout...)}, "config")
 	found = append(found, tagged("ledger", ledgerProblems)...)
 	registry, err := work.Problems(cfg)
 	if err != nil {
@@ -131,6 +138,11 @@ func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) 
 		warnings = append(warnings, Found{*p, "people"})
 	}
 	found = append(found, tagged("registry", registry)...)
+	asks, err := asksProblems(cfg)
+	if err != nil {
+		return 0, nil, nil, nil, err
+	}
+	found = append(found, tagged("asks", asks)...)
 	found = append(found, smoke...)
 	// The decision records in the folder work.decisions names (slice 74);
 	// a folder that is not there holds none to check.
@@ -148,6 +160,51 @@ func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) 
 		code = 1
 	}
 	return code, found, warnings, lines, nil
+}
+
+// asksProblems are the problems of the questions' file, work.asks, read
+// from the current source as the ledger and the registry are (slice 130): a
+// file not as itos decision writes it (ask.Parse: an unknown key, an id given
+// twice, ...), else each question naming an item the registry does not have.
+// None when the file is not there; a registry that cannot be read is
+// work.Problems' to report.
+func asksProblems(cfg *config.Loaded) ([]out.Problem, error) {
+	file := cfg.Work.Asks
+	if !source.Has(file) {
+		return nil, nil
+	}
+	text, err := source.Read(file)
+	if err != nil {
+		return nil, err
+	}
+	f, err := ask.Parse(file, text)
+	if err != nil {
+		return []out.Problem{{
+			Rule:    "asks-invalid",
+			Message: err.Error(),
+			Fix:     "correct " + file + " to what itos decision writes, or undo the hand edit",
+		}}, nil
+	}
+	registry, err := work.Load(cfg, cfg.Work.Registry)
+	if err != nil {
+		return nil, nil
+	}
+	items := map[string]bool{}
+	for _, it := range registry.Items {
+		items[value.String(it.At("id"))] = true
+	}
+	var found []out.Problem
+	for _, q := range f.Questions {
+		if q.Item == "" || items[q.Item] {
+			continue
+		}
+		found = append(found, out.Problem{
+			Rule:    "asks-unknown-item",
+			Message: fmt.Sprintf("%s: %s names the item %s, which %s does not have", file, q.ID, q.Item, cfg.Work.Registry),
+			Fix:     "name an item of " + cfg.Work.Registry + " in " + q.ID + "'s item, or remove its item",
+		})
+	}
+	return found, nil
 }
 
 // groupLabelProblems: itos task takes a group by --<ledger.group.label> as

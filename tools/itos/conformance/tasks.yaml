@@ -3,7 +3,8 @@
 # for a remote branch that holds HEAD, a check's timeout; verbose for one task,
 # one status line per task; --group (or --phase, or --<ledger.group.label>),
 # the usage naming the label's flag; --skip, --pending; unknown
-# IDs (1) and no match (2); a missing ledger folder, one problem naming it (2);
+# IDs (1), of any shape with no ledger.id, and no match (2); numeric groups
+# in the order of their numbers; a missing ledger folder, one problem naming it (2);
 # --json with each check's result. One invocation
 # runs each check (its command, whitespace collapsed, and its timeout) once,
 # each task reading the exit status by its own run: or fails:; the counting
@@ -213,6 +214,19 @@ cases:
     exit: 1
     stderr: |
       No task T-099 in tasks/
+  # With no ledger.id, every word itos task is given that is no flag or a
+  # flag's value is a task ID (slice 130), so one the ledger lacks is named
+  # whatever its shape.
+  - name: with no ledger.id, an ID of any shape the ledger does not have
+    argv: [task, T-001, OPS-8, --skip, T-001]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", group: { label: phase, pattern: "\\d+", numeric: true } }
+        commits: { types: [build, ci, docs, test] }
+    exit: 1
+    stderr: |
+      No task OPS-8 in tasks/
   - name: no task matches
     argv: [task, --group, "7"]
     exit: 2
@@ -292,6 +306,22 @@ cases:
       no item  T-003  1   docs     Reviewed by hand
       no item  T-004  2   ci       Waits on the push
       no item  T-005  2   test     A check past its timeout
+    stderr: |
+      No work registry at tasks/work-items.yaml, so no task has an item.
+  # Numeric groups are read in the order of their numbers (slice 130), not
+  # of the files' names.
+  - name: task list reads numeric groups in the order of their numbers
+    argv: [task, list]
+    files:
+      tasks/phase-10.yaml: "- { id: T-010, type: docs, title: The tenth }\n"
+    exit: 0
+    stdout: |
+      no item  T-001  1   build    Checks that pass
+      no item  T-002  1   ci       A check that fails
+      no item  T-003  1   docs     Reviewed by hand
+      no item  T-004  2   ci       Waits on the push
+      no item  T-005  2   test     A check past its timeout
+      no item  T-010  10  docs     The tenth
     stderr: |
       No work registry at tasks/work-items.yaml, so no task has an item.
   - name: task list with the ledger folder missing is one problem naming it, exit 2

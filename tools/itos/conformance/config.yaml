@@ -12,8 +12,10 @@
 # the registry's and the smoke set's problems beside them; the decision
 # records' (a number twice, a supersede link to no record); a project's people
 # file missing or unreadable, a warning that passes; a tasks step, which v8
-# removed, refused wherever it is written; the values a config loads with that
-# no tool can use, exit 1; --print-defaults,
+# removed, refused wherever it is written; the values a command misbehaves on,
+# refused when the config loads, exit 2, and those nothing reads as written,
+# exit 1; ledger layouts that read nothing or read the registry, exit 1; the
+# questions' file's problems, exit 1; --print-defaults,
 # work.registry's beside the config's ledger, and work.asks beside the registry;
 # config get, a key's value as the tools read it (the config's, a default, a stealth config's own, from a
 # subfolder; a scalar bare, a mapping or a list as JSON, nothing for no value;
@@ -573,8 +575,8 @@ cases:
           fix: remove owner; a task's keys are id, type, title, why, done_when
           area: ledger
         - rule: ledger-id-pattern
-          message: "X-2: the id does not match ^T-\\d+$"
-          fix: rename the task to an id that matches ^T-\d+$
+          message: "X-2: the id does not match ^(?:T-\\d+)$"
+          fix: rename the task to an id that matches ^(?:T-\d+)$
           area: ledger
         - rule: ledger-type
           message: "X-2: type feat is not a commit type"
@@ -939,10 +941,11 @@ cases:
     exit: 2
     stderr: |
       FAIL hook.yaml: hooks.commit_msg.check_timeout is a number of seconds above 0, not 0
-  # Values a config loads with that no tool can use (slice 129): config check
-  # names each, exit 1, beside the ledger's problems, and every other command
-  # still reads the config.
-  - name: values no tool can use are refused, exit 1, each naming its key
+  # Values a command misbehaves on (slice 129, moved to the loader in slice
+  # 130): a number not finite, an empty shell, a ledger.check.timeout of 0 are
+  # refused when the config loads, exit 2, by config check as by every
+  # command, and nothing else is judged.
+  - name: values a command misbehaves on are refused when the config loads, exit 2, each naming its key
     argv: [config, check]
     files:
       itos.yaml: |
@@ -953,6 +956,48 @@ cases:
           group: { label: skip, pattern: "\\d+", numeric: true }
           id: "T-\\d+"
           check: { timeout: 0 }
+        commits: { types: [build, docs] }
+        ci:
+          steps: []
+          watch: { interval: .nan, timeout: .inf }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+    exit: 2
+    stderr: |
+      FAIL itos.yaml: ci.watch.interval is NaN, and a number in the config is finite
+      FAIL itos.yaml: ci.watch.timeout is Infinity, and a number in the config is finite
+      FAIL itos.yaml: shell names no program, so no command can run under it
+      FAIL itos.yaml: ledger.check.timeout is a number of seconds above 0, not 0
+  - name: a value a command misbehaves on, as --json, the loader's problem with its rule and fix
+    argv: [config, check, --json]
+    files:
+      itos.yaml: |
+        version: 1
+        shell: [""]
+        ledger: { files: "tasks/phase-{group}.yaml", group: { label: "a phase", pattern: "\\d+", numeric: true }, id: "T-\\d+" }
+        commits: { types: [build, docs] }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+    exit: 2
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: config-shell
+          message: "itos.yaml: shell names no program, so no command can run under it"
+          fix: "remove shell to run commands under sh -c, or name the program first: [bash, -c]"
+          area: config
+  # Values a config loads with that nothing reads as written (slice 129):
+  # config check names each, exit 1, beside the ledger's problems, and every
+  # other command still reads the config.
+  - name: values nothing reads as written are refused, exit 1, each naming its key
+    argv: [config, check]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger:
+          files: "tasks/phase-{group}.yaml"
+          group: { label: skip, pattern: "\\d+", numeric: true }
+          id: "T-\\d+"
         commits: { types: [build, docs] }
         tests:
           scenario:
@@ -965,25 +1010,19 @@ cases:
         ci:
           steps: [{ run: vp check, cost: static }]
           cost: { static: ["^vp check$"], keep_written_order: true }
-          watch: { interval: .nan, timeout: .inf }
         work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
       tasks/phase-1.yaml: "- { id: T-001, type: build, title: One, done_when: [{ run: vp check, timeout: -1 }] }\n"
     exit: 1
     stderr: |
-      FAIL itos.yaml: ci.watch.interval is NaN, and a number in the config is finite
-      FAIL itos.yaml: ci.watch.timeout is Infinity, and a number in the config is finite
-      FAIL itos.yaml: shell names no program, so no command can run under it
       FAIL itos.yaml: tests.scenario.range_checks[0].except_types names biuld, which is not one of commits.types
       FAIL itos.yaml: tests.unit.wip_tag is read only by the gherkin adapter, and tests.unit.adapter is a command, which says itself which tests are live
-      FAIL itos.yaml: ledger.check.timeout is a number of seconds above 0, not 0
       FAIL itos.yaml: ledger.group.label is skip, and --skip is already another flag of itos task, so it never takes a group
       FAIL T-001: check 0 says timeout: -1; its timeout is a finite number of seconds above 0
-  - name: a value no tool can use, as --json, with its rule, its fix and the config's area
+  - name: a value nothing reads as written, as --json, with its rule, its fix and the config's area
     argv: [config, check, --json]
     files:
       itos.yaml: |
         version: 1
-        shell: [""]
         ledger: { files: "tasks/phase-{group}.yaml", group: { label: "a phase", pattern: "\\d+", numeric: true }, id: "T-\\d+" }
         commits: { types: [build, docs] }
         work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
@@ -993,14 +1032,70 @@ cases:
       config: itos.yaml
       valid: false
       problems:
-        - rule: config-shell
-          message: "itos.yaml: shell names no program, so no command can run under it"
-          fix: "remove shell to run commands under sh -c, or name the program first: [bash, -c]"
-          area: config
         - rule: config-group-label
           message: "itos.yaml: ledger.group.label \"a phase\" cannot be typed as itos task's flag --a phase"
           fix: set ledger.group.label to one word, with no space, = or leading -, such as phase or milestone
           area: config
+  # Ledger layouts that read nothing, or read the registry (slice 130), are
+  # judged before the ledger's folder is listed, exit 1, and no ledger file
+  # is read.
+  - name: a ledger.group.pattern with its own anchors and {group} as a folder are refused, exit 1
+    argv: [config, check, --json]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "tasks/{group}/phase-{group}.yaml", group: { pattern: "^\\d+$" }, id: "T-\\d+" }
+        commits: { types: [build, docs] }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+    exit: 1
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: config-ledger-group-anchors
+          message: "itos.yaml: ledger.group.pattern has anchors of its own: ^\\d+$; it is matched inside a file's name, between what ledger.files writes around {group}, so it matches no file"
+          fix: "remove the anchors (^, $, \\A, \\z) from ledger.group.pattern"
+          area: config
+        - rule: config-ledger-files-folder
+          message: "itos.yaml: ledger.files has {group} in its folder: tasks/{group}/phase-{group}.yaml; the ledger is one folder, and a group is a part of a file's name"
+          fix: "write {group} in the file's name, as in tasks/phase-{group}.yaml"
+          area: config
+  - name: a ledger.files that matches work.registry is refused, naming both keys
+    argv: [config, check]
+    files:
+      itos.yaml: |
+        version: 1
+        ledger: { files: "{group}.yaml", group: { pattern: "[a-z-]+" } }
+        commits: { types: [build, docs] }
+        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
+    exit: 1
+    stderr: |
+      FAIL itos.yaml: ledger.files ({group}.yaml) matches work.registry (work-items.yaml), so the registry would be read as a ledger file
+  # The questions' file, work.asks, is judged as the ledger and the registry
+  # are (slice 130): as itos decision writes it, each item it names one the
+  # registry has.
+  - name: a question naming an item the registry does not have, with its rule and the area asks
+    argv: [config, check, --json]
+    files:
+      asks.yaml: "questions:\n  - { id: q-1, item: T-001, question: \"Which way?\" }\n  - { id: q-2, item: p1-gone, question: \"Which other?\" }\n"
+    exit: 1
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: asks-unknown-item
+          message: "asks.yaml: q-2 names the item p1-gone, which work-items.yaml does not have"
+          fix: "name an item of work-items.yaml in q-2's item, or remove its item"
+          area: asks
+  - name: a questions' file giving an id twice is refused, naming it
+    argv: [config, check]
+    files:
+      asks.yaml: "questions:\n  - { id: q-1, question: \"Which way?\" }\n  - { id: q-1, question: \"Which other?\" }\n"
+    exit: 1
+    stderr: |
+      FAIL asks.yaml: two questions have the id q-1
   - name: a nightly tasks step is refused as the step v8 removed, whatever its value
     argv: [config, check, --json, --config, nightly.yaml]
     files: { nightly.yaml: "version: 1\nci: { steps: [], nightly: { steps: [{ tasks: doing }] } }\n" }

@@ -173,7 +173,7 @@ Feature: The task runner runs each check once, and lists task status without run
   # only words matching T-\d+ were: so an ID the ledger lacks is named,
   # exit 1, as with a ledger.id, rather than leaving no task matched (exit 2).
   # See config.feature's comment above @ID-CONFIG-51.
-  @ID-TASK-15 @slice-130 @wip
+  @ID-TASK-15 @slice-130
   Scenario: With no ledger.id, itos task names an ID the ledger does not have, whatever its shape
     Given the config has no ledger.id
     When itos runs "task OPS-8"

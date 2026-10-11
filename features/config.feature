@@ -457,12 +457,14 @@ Feature: Every key the config accepts is one itos reads
   # config sets writes its value as a quoted string, which the schema would
   # refuse as the wrong type whatever these rules said, so a value meant as
   # YAML ([] an empty list, .nan and 0 numbers) is set "to the YAML". Refusing
-  # what was accepted is breaking, so the feat says so.
+  # what was accepted is breaking, so the feat says so. Slice 130 moved the
+  # empty shell, the number not finite and the timeout of 0 to the loader, so
+  # @ID-CONFIG-45, 49 and 50 exit 2, as every command does on them.
   @ID-CONFIG-45 @slice-129
   Scenario: config check refuses an empty shell
     Given the config sets "shell" to the YAML "[]"
     When itos checks the config
-    Then itos exits with code 1
+    Then itos exits with code 2
     And its output says "shell"
 
   @ID-CONFIG-46 @slice-129
@@ -490,14 +492,14 @@ Feature: Every key the config accepts is one itos reads
   Scenario: config check refuses a number that is not finite
     Given the config sets "ci.watch.interval" to the YAML ".nan"
     When itos checks the config
-    Then itos exits with code 1
+    Then itos exits with code 2
     And its output says "ci.watch.interval"
 
   @ID-CONFIG-50 @slice-129
   Scenario: config check refuses a timeout of 0 or less
     Given the config sets "ledger.check.timeout" to the YAML "0"
     When itos checks the config
-    Then itos exits with code 1
+    Then itos exits with code 2
     And its output says "ledger.check.timeout"
 
   # Slice 130 (p1-ledger-layout-checks, with p1-load-refuses-unusable-values,
@@ -536,28 +538,28 @@ Feature: Every key the config accepts is one itos reads
   # writes (ledger.files, ledger.id) replaces that value rather than adding a
   # second key, which value.Parse refuses; "the config has no ledger.id"
   # writes the config without it.
-  @ID-CONFIG-51 @slice-130 @wip
+  @ID-CONFIG-51 @slice-130
   Scenario: Any command refuses a config holding a number that is not finite, exit 2 naming the key
     Given the config sets "ci.watch.interval" to the YAML ".nan"
     When itos runs "work list"
     Then itos exits with code 2
     And its output says "ci.watch.interval"
 
-  @ID-CONFIG-52 @slice-130 @wip
+  @ID-CONFIG-52 @slice-130
   Scenario: config check refuses a ledger.group.pattern written with its own anchors
     Given the config sets "ledger.group.pattern" to "^\d+$"
     When itos checks the config
     Then itos exits with code 1
     And its output says "ledger.group.pattern"
 
-  @ID-CONFIG-53 @slice-130 @wip
+  @ID-CONFIG-53 @slice-130
   Scenario: config check refuses {group} as a folder in ledger.files
     Given the config sets "ledger.files" to "tasks/{group}/tasks.yaml"
     When itos checks the config
     Then itos exits with code 1
     And its output says "ledger.files"
 
-  @ID-CONFIG-54 @slice-130 @wip
+  @ID-CONFIG-54 @slice-130
   Scenario: config check refuses a ledger.files that matches the work registry, naming both keys
     Given the config sets "ledger.files" to "tasks/{group}.yaml"
     And the config sets "ledger.group.pattern" to "[a-z-]+"
@@ -566,7 +568,7 @@ Feature: Every key the config accepts is one itos reads
     And its output says "ledger.files"
     And its output says "work.registry"
 
-  @ID-CONFIG-55 @slice-130 @wip
+  @ID-CONFIG-55 @slice-130
   Scenario: A numeric ledger group reads phase-2 before phase-10
     Given the config's ledger groups are numeric
     And the ledger file "tasks/phase-10.yaml" holds the task "T-010" with the check "true"
@@ -575,7 +577,7 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 0
     And its output says "T-002" before "T-010"
 
-  @ID-CONFIG-56 @slice-130 @wip
+  @ID-CONFIG-56 @slice-130
   Scenario: config check refuses a questions file that gives an id twice
     Given the committed file "tasks/asks.yaml" holding the lines:
       """
@@ -589,7 +591,7 @@ Feature: Every key the config accepts is one itos reads
     Then itos exits with code 1
     And its output says "q-1"
 
-  @ID-CONFIG-57 @slice-130 @wip
+  @ID-CONFIG-57 @slice-130
   Scenario: The commit-msg hook refuses a commit that stages a questions file giving an id twice
     Given itos has installed the hooks
     And the staged file "tasks/asks.yaml" holding the lines:
@@ -605,7 +607,7 @@ Feature: Every key the config accepts is one itos reads
     And its output says "q-1"
     And no commit was made
 
-  @ID-CONFIG-58 @slice-130 @wip
+  @ID-CONFIG-58 @slice-130
   Scenario: A ledger.id alternation anchors every branch, so a task id with trailing text is refused
     Given the config sets "ledger.id" to "T-\d+|OPS-\d+"
     And the ledger file "tasks/phase-1.yaml" holds the task "T-1x" with the check "true"

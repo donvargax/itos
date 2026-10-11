@@ -18,6 +18,7 @@ func crossProblems(tree *value.Map, c *Config) []out.Problem {
 	for _, check := range []func(*value.Map, *Config) []out.Problem{
 		sinceProblems, pinProblems, scopeProblems, footerProblems, stepProblems,
 		patternProblems, providerProblems, hookProblems, rangeCheckProblems, watchProblems, tagProblems, proofProblems,
+		unusableProblems,
 	} {
 		found = append(found, check(tree, c)...)
 	}

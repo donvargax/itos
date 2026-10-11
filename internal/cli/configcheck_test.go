@@ -54,37 +54,88 @@ func TestGroupLabelProblemsSayWhatToWrite(t *testing.T) {
 	}
 }
 
-// config check's findings: the values no tool can use are the config's
-// problems, each after the file's name, exit 1; a registry that cannot be
-// read is an error, and no exit code of config check's own.
+// config check's findings: the values nothing reads as written, the ledger
+// layout's and the questions' are problems, each after the file's name, exit
+// 1; a value a command misbehaves on is the loader's, exit 2 (slice 130); a
+// registry that cannot be read is an error, and no exit code of config
+// check's own.
 func TestConfigFindings(t *testing.T) {
 	scratchFolder(t)
 	gitIn(t, "init", "-q", "-b", "main")
+	const ledger = "ledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\", group: { label: skip } }\n"
+	const work = "work: { people: { source: yaml, file: people.yaml } }\n"
 	writeFiles(t, map[string]string{
-		"itos.yaml": "version: 1\nshell: []\nledger: { files: \"tasks/phase-{group}.yaml\", id: \"T-\\\\d+\", group: { label: skip } }\n" +
-			"work: { people: { source: yaml, file: people.yaml } }\n",
+		"itos.yaml":             "version: 1\nshell: []\n" + ledger + work,
 		"tasks/phase-1.yaml":    "- { id: T-001, type: build, title: One }\n",
-		"tasks/work-items.yaml": "phases: {}\nitems: []\n",
+		"tasks/work-items.yaml": "phases: {}\nitems: [{ id: p1-a, title: A, phase: 1, owner: null, status: todo, depends_on: [], kind: idea, why: A }]\n",
 		"people.yaml":           "- a\n",
 	})
-	code, found, _, _, err := configFindings("")
-	if err != nil {
-		t.Fatal(err)
+	findings := func(wantCode int, want ...string) {
+		t.Helper()
+		code, found, _, _, err := configFindings("")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got []string
+		for _, f := range found {
+			got = append(got, f.Area+": "+f.Message)
+		}
+		if code != wantCode || !slices.Equal(got, want) {
+			t.Errorf("got %d %q, want %d %q", code, got, wantCode, want)
+		}
 	}
-	var got []string
-	for _, f := range found {
-		got = append(got, f.Area+": "+f.Message)
-	}
-	want := []string{
-		"config: itos.yaml: shell names no program, so no command can run under it",
+	findings(2, "config: itos.yaml: shell names no program, so no command can run under it")
+
+	writeFiles(t, map[string]string{
+		"itos.yaml":       "version: 1\n" + ledger + work,
+		"tasks/asks.yaml": "questions:\n  - { id: q-1, item: p1-a, question: \"Why?\" }\n  - { id: q-2, item: p1-b, question: \"How?\" }\n",
+	})
+	findings(ExitPolicy,
 		"config: itos.yaml: ledger.group.label is skip, and --skip is already another flag of itos task, so it never takes a group",
-	}
-	if code != ExitPolicy || !slices.Equal(got, want) {
-		t.Errorf("got %d %q, want %d %q", code, got, ExitPolicy, want)
+		"registry: p1-a: skip 1 is not listed",
+		"asks: tasks/asks.yaml: q-2 names the item p1-b, which tasks/work-items.yaml does not have")
+
+	writeFiles(t, map[string]string{
+		"itos.yaml": "version: 1\nledger: { files: \"tasks/{group}/phase.yaml\" }\n" +
+			"work: { registry: tasks/work-items.yaml, people: { source: yaml, file: people.yaml } }\n",
+		"tasks/asks.yaml": "questions:\n  - { id: q-1, question: \"Why?\" }\n  - { id: q-1, question: \"How?\" }\n",
+	})
+	findings(ExitPolicy,
+		"config: itos.yaml: ledger.files has {group} in its folder: tasks/{group}/phase.yaml; the ledger is one folder, and a group is a part of a file's name",
+		"registry: p1-a: phase 1 is not listed",
+		"asks: tasks/asks.yaml: two questions have the id q-1")
+
+	// A registry whose alias the reader refuses is the registry's problem
+	// alone, so the questions name no unknown item beside it.
+	writeFiles(t, map[string]string{
+		"itos.yaml":             "version: 1\n" + ledger + work,
+		"tasks/asks.yaml":       "questions:\n  - { id: q-1, item: p1-a, question: \"Why?\" }\n",
+		"tasks/work-items.yaml": "phases: {}\nitems: &a [*a]\n",
+	})
+	code, found, _, _, err := configFindings("")
+	if err != nil || code != ExitPolicy || slices.ContainsFunc(found, func(f Found) bool { return f.Area == "asks" }) {
+		t.Errorf("a registry with a cycle: %d %+v %v", code, found, err)
 	}
 
 	writeFiles(t, map[string]string{"tasks/work-items.yaml": "phases: [\n"})
 	if code, found, _, _, err := configFindings(""); err == nil || code != 0 || found != nil {
 		t.Errorf("a registry that cannot be read: %d %v %v", code, found, err)
+	}
+}
+
+// A questions' file that is there and cannot be read is an error, as the
+// registry's is.
+func TestConfigFindingsQuestionsUnreadable(t *testing.T) {
+	scratchFolder(t)
+	gitIn(t, "init", "-q", "-b", "main")
+	writeFiles(t, map[string]string{
+		"itos.yaml":             "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\" }\nwork: { people: { source: yaml, file: people.yaml } }\n",
+		"tasks/phase-1.yaml":    "[]\n",
+		"tasks/work-items.yaml": "phases: {}\nitems: []\n",
+		"people.yaml":           "- a\n",
+		"tasks/asks.yaml/x":     "",
+	})
+	if code, found, _, _, err := configFindings(""); err == nil || code != 0 || found != nil {
+		t.Errorf("a questions' file that cannot be read: %d %v %v", code, found, err)
 	}
 }

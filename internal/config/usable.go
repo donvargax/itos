@@ -10,21 +10,30 @@ import (
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
-// Unusable are the values of a config that loads which no tool can use
-// (slice 129), each found until now only when a command failed with no word
-// of the key: config check reports them, exit 1, naming the key, while Load
-// still loads the config, as it did. A number that is not finite (.nan, .inf)
-// anywhere in the file; a shell with no program; a range check's except_types
-// naming a type commits.types does not list; a wip_tag written on a kind whose
-// adapter is a command, which reads no tag; and a ledger.check.timeout of 0 or
-// less. The group label, which must be a flag of itos task's, is the command
-// line's to judge (cli's configFindings).
+// Unusable are the values of a config that loads which nothing reads as
+// written (slice 129): config check reports them, exit 1, naming the key. A
+// range check's except_types naming a type commits.types does not list, and
+// a wip_tag written on a kind whose adapter is a command, which reads no tag.
+// The group label, which must be a flag of itos task's, is the command line's
+// to judge (cli's configFindings). The values a command would misbehave on
+// are refused when the config loads (unusableProblems).
 func (l *Loaded) Unusable() []out.Problem {
-	found := nonFinite(l.file, "")
-	found = append(found, shellProblems(l.Shell)...)
-	found = append(found, exceptTypeProblems(&l.Config)...)
-	found = append(found, wipTagProblems(l.file, &l.Config)...)
-	return append(found, ledgerTimeoutProblems(l.file)...)
+	return append(exceptTypeProblems(&l.Config), wipTagProblems(l.file, &l.Config)...)
+}
+
+// unusableProblems are the values a command misbehaves on when it reads
+// them, refused when the config loads, exit 2, for every command (slice 130;
+// slice 129 had config check name them, exit 1, while every other command
+// read the config as before): a number that is .nan or .inf anywhere in the
+// file, a shell with no program, and a ledger.check.timeout of 0 or less.
+// The typed config reads a .nan as no value at all, so a .nan
+// ci.watch.interval panicked itos push.
+func unusableProblems(tree *value.Map, c *Config) []out.Problem {
+	found := nonFinite(tree, "")
+	if tree.Has("shell") {
+		found = append(found, shellProblems(c.Shell)...)
+	}
+	return append(found, ledgerTimeoutProblems(tree)...)
 }
 
 // nonFinite is every number of the file as written that is NaN or infinite,
