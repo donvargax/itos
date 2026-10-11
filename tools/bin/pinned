@@ -72,13 +72,14 @@ git-cliff)
 	member=git-cliff-$version/git-cliff
 	;;
 itos-cc)
-	# v0.7.0, 2026-10-10; first release with bounded fresh sampling (mutation run --count).
-	version=0.7.0
+	# v0.12.0, 2026-10-11; first release whose strict coverage judges only the changed lines
+	# (--fail-uncovered=lines with --since).
+	version=0.12.0
 	case "$platform" in
-	linux-amd64) asset=itos-cc-$version-linux-amd64.tar.gz sum=3fa9da3867a353c6037728d28210284840c92a1f77b6f00c3d20663d55b1c428 ;;
-	linux-arm64) asset=itos-cc-$version-linux-arm64.tar.gz sum=7090ab64e123f1ce5c089f539ac2f5707c1a07c8ffb18b541dcc3826b3302971 ;;
-	darwin-amd64) asset=itos-cc-$version-darwin-amd64.tar.gz sum=93dead0411bef6b85c45b4d9ce83c0c6b971c2bcb943ad539b392c8de15e15f2 ;;
-	darwin-arm64) asset=itos-cc-$version-darwin-arm64.tar.gz sum=af04f56c2dacdc170d4000468831aef61a58cdae3059e384fa13fa0fdb7007bb ;;
+	linux-amd64) asset=itos-cc-$version-linux-amd64.tar.gz sum=ade5529ba9b175732c9160f70e4ce8df36a9e198f5cbe7283f70bb809dcaea1c ;;
+	linux-arm64) asset=itos-cc-$version-linux-arm64.tar.gz sum=a6e20c55f7428cf379b0383f6bd5ffdd32bd4ec63f2c21fdc202dfffc9a2999e ;;
+	darwin-amd64) asset=itos-cc-$version-darwin-amd64.tar.gz sum=6457c87a04850b3cc5035c7b2122bb3fa2f402188e7109e4cd370ebbb08054fa ;;
+	darwin-arm64) asset=itos-cc-$version-darwin-arm64.tar.gz sum=83847010c04494d5c109904e98e6edaa50fc6af683e632928bc5011240545de9 ;;
 	esac
 	url=https://github.com/donvargax/itos-cc/releases/download/v$version/$asset
 	member=itos-cc

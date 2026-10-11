@@ -436,6 +436,8 @@ proof:
   code:
     paths: ["{cmd,internal}/**/*.go"]
     # One mutation site of the range's changed Go functions judged freshly, with no cache (q-41's
-    # push budget, q-52), and strict coverage of every changed function. A range with no site is
-    # not applicable and passes. Linux only, as CI's ci job is.
-    check: "tools/bin/pinned itos-cc mutation run --count 1 --since {base} --fail-uncovered --json cmd internal"
+    # push budget, q-52), and strict coverage of the lines the range adds or changes (q-57,
+    # itos-cc v0.12.0's =lines): old uncovered code beside a change is not the range's, and a
+    # change that only deletes judges no coverage. A range with no site is not applicable and
+    # passes. Linux only, as CI's ci job is.
+    check: "tools/bin/pinned itos-cc mutation run --count 1 --since {base} --fail-uncovered=lines --json cmd internal"
