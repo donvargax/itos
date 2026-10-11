@@ -1106,6 +1106,11 @@ items:
       05 passed before the work on purpose, as guards of what already held; a guard is declared (a
       tag such as @guard, or a list in the spec commit) and runs green, every other @wip scenario
       must fail, printing its failing step. Queue it soon after v8.
+
+      2026-10-11: slices 129 and 130 reached their agents with Givens that asserted instead of
+      setting up, a value quoted where YAML was meant, and a scenario that passed before the change;
+      run at spec time, the command would have shown each failing at a Given, or not failing at all,
+      before any agent started.
     tags: [tests]
 
   - id: p1-commit-message-file
