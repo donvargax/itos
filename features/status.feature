@@ -259,3 +259,36 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "slice-9"
     And its output does not say "10.0.0"
+
+  # v8 (the user's call, 2026-10-11): a project crossing to v8 with a 7.x
+  # itos on its PATH gets no automatic rewrite of AGENTS.md's itos block
+  # (p1-upgrade-refreshes-agent-block hands upgrade to the target only from
+  # v8 on), and only itos init said a block was stale. itos status, and so
+  # itos go, which ends with it, print one line naming itos init
+  # --agent-rules when AGENTS.md (or a stealth config's copies) holds a block
+  # other than the one this itos writes. A project with no block, one that
+  # declined the rules, gets no line: the block is offered by init, not
+  # required. 21 and 22 hold before the work too: they keep the line from
+  # being printed always.
+  @ID-STATUS-20 @slice-124 @wip
+  Scenario: status names itos init --agent-rules when AGENTS.md holds a block another itos wrote
+    Given the watched run's jobs "ci" and "platform" succeed
+    And the committed file "AGENTS.md" holds the project's line "Be kind to the build." and a block an older itos wrote, saying "Task:" between the markers
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output says "itos init --agent-rules"
+
+  @ID-STATUS-21 @slice-124 @wip
+  Scenario: status says nothing of a block this itos wrote
+    Given the watched run's jobs "ci" and "platform" succeed
+    And itos has run "init --agent-rules"
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output does not say "itos init --agent-rules"
+
+  @ID-STATUS-22 @slice-124 @wip
+  Scenario: status says nothing of rules a project never asked for
+    Given the watched run's jobs "ci" and "platform" succeed
+    When itos runs "status --as someone"
+    Then itos exits with code 0
+    And its output does not say "itos init --agent-rules"
