@@ -8206,8 +8206,8 @@ items:
   - id: T-158
     title: "Cut v8.0.0: remove the pre-release marker"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
