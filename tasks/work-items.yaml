@@ -7848,5 +7848,5 @@ items:
       nonexistent/zzz.txt, and when zsh passed a newline-joined file list as one argument, chore and
       refactor passed silently over 79 paths. A path neither in the tree nor staged as deleted is a
       mistake in the call; say so (exit 2) rather than judge it.
-    refs: [internal/cli/checkpaths.go]
+    refs: [internal/cli/commit.go]
     tags: [commit]
