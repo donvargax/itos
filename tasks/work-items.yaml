@@ -7385,6 +7385,10 @@ items:
       2026-10-11, because coverage alone would turn the corpus-only sites from uncovered into
       survivors, so the corpus joins as a listed suite that judges mutants, p1-corpus-listed-suite.
 
+      Seen again 2026-10-11: slice-120 deleted one line of initWrite and paid for its 21 old
+      uncovered statements, then restructured the function inside its feat to reach a branch no test
+      could, the reshaping q-57 names.
+
   - id: p1-corpus-listed-suite
     title: The conformance corpus is an itos-cc listed suite, so mutation checks count and judge what it reaches
     phase: 1
