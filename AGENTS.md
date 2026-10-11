@@ -138,10 +138,12 @@ Other people and sessions push to `main` too; expect the remote to have moved.
 
 **The push proof.** No local mutation runs (q-41) but one: before pushing a Go
 change, run CI's push proof once (q-55), `tools/bin/pinned itos-cc mutation
-run --count 1 --since $(git rev-parse origin/main) --fail-uncovered=lines
---json cmd internal`. It judges one mutation site of the changed functions and
-the coverage of the lines added or changed (q-57). A survivor, or an
-uncovered changed line, is real: kill it with a test.
+run --count 1 --since $(git rev-parse origin/main)
+--seed $(git rev-parse origin/main) --fail-uncovered=lines --json cmd internal`.
+It judges one mutation site of the changed functions and the coverage of the
+lines added or changed (q-57). The seed is the range's start, as CI's is
+(T-159), so the local run draws the site CI will while main is green. A
+survivor, or an uncovered changed line, is real: kill it with a test.
 
 1. **Push with `tools/bin/itos push --no-wait`** in the background, straight
    to `main` (no branches or pull requests), and take its result from the

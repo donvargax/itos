@@ -94,11 +94,12 @@ work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the
 - **The neighbours:** "Before pushing, run `go test ./features -count=1
 -scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.
 - **Proof and handoff (q-41, q-52, q-54, q-57):** CI judges fresh mutants:
-  one site of a push's changed Go functions, with the coverage of its changed
-  lines, and 20 a night, seeded by the run, without strict coverage. A pass is
-  sampled assurance; a survivor, or an uncovered changed line, is real and
-  needs a test. Agents run CI's push proof once before pushing Go
-  (q-55); no other local mutation runs.
+  one site of a push's changed Go functions, seeded by the range's start
+  (T-159), with the coverage of its changed lines, and 20 a night, seeded by
+  the run, without strict coverage. A pass is sampled assurance; a survivor,
+  or an uncovered changed line, is real and needs a test. Agents run CI's
+  push proof once before pushing Go (q-55), its `--since` and
+  `--seed $(git rev-parse origin/main)` both; no other local mutation runs.
   Push with `tools/bin/itos push --no-wait`, then report the exact pushed SHA,
   commits, checks and remaining work from a clean checkout. Do not watch CI or
   close the item: the coordinator watches and closes only on green.
