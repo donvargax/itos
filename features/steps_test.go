@@ -320,6 +320,15 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.stageScenarioEdit(id, rename(name))
 	})
 	sc.Step(`^the scenario "([^"]*)" is staged moved to "([^"]*)"$`, w.stageScenarioMove)
+	sc.Step(`^a change to the description of the feature in "([^"]*)" is staged$`, func(file string) error {
+		return w.stageFeatureEdit(file, changeDescription)
+	})
+	sc.Step(`^a change to the name of the feature in "([^"]*)" is staged$`, func(file string) error {
+		return w.stageFeatureEdit(file, renameFeature)
+	})
+	sc.Step(`^a change to the Background of the feature in "([^"]*)" is staged$`, func(file string) error {
+		return w.stageFeatureEdit(file, changeBackground)
+	})
 	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" and changing the steps of the scenario "([^"]*)" on top of it$`, w.commitChangingSteps)
 	sc.Step(`^the smoke set lists only "([^"]*)"$`, w.smokeSetLists)
 	sc.Step(`^a feature file "([^"]*)" with the live scenario "([^"]*)" is staged$`, w.featureFile)
@@ -729,7 +738,8 @@ func quote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + 
 // where the scenario moved it), the Conventional Commit types, a ledger footer
 // the non-feature types need (Task:, unless the scenario calls it otherwise),
 // a scenario footer when there is a kind of named tests, docs commits held to
-// prose, a CI, and a people list, plus what the scenario set.
+// prose (feature files included, as this repository's are), a CI, and a
+// people list, plus what the scenario set.
 func (w *world) writeConfig() error {
 	var b strings.Builder
 	if w.config.schemaLine != "" {
@@ -784,7 +794,7 @@ func (w *world) writeConfig() error {
 		}
 	}
 	b.WriteString(`  scopes:
-    docs: { only: ["**/*.md", "docs/**", "tasks/**"] }
+    docs: { only: ["**/*.md", "docs/**", "tasks/**", "features/**/*.feature"] }
 `)
 	if w.config.featMustTouch != "" {
 		fmt.Fprintf(&b, "    feat: { must_touch: [%q] }\n", w.config.featMustTouch)
@@ -1842,6 +1852,42 @@ func (w *world) stageScenarioMove(id, to string) error {
 	}
 	w.scenarioFiles[id] = to
 	return w.git("add", "--", filepath.Join("features", to))
+}
+
+// An edit of a feature file's header: the free text under its Feature line
+// (a line written right below it, the file's own having none), the name on
+// that line, or its Background (one written above the first scenario).
+func changeDescription(text string) string {
+	return featureLine.ReplaceAllString(text, "$0  What it covers, put another way.\n")
+}
+
+func renameFeature(text string) string {
+	return featureLine.ReplaceAllString(text, "${1}, renamed\n")
+}
+
+func changeBackground(text string) string {
+	return strings.Replace(text, "\n\n", "\n\n  Background:\n    Given it is set up\n\n", 1)
+}
+
+// featureLine is a feature file's Feature line, its name in the group.
+var featureLine = regexp.MustCompile(`(?m)^(Feature: .*)\n`)
+
+// The feature file under features/, edited in the working tree and staged
+// alone.
+func (w *world) stageFeatureEdit(file string, edit func(string) string) error {
+	path := filepath.Join("features", file)
+	text, err := os.ReadFile(filepath.Join(w.dir, path))
+	if err != nil {
+		return err
+	}
+	changed := edit(string(text))
+	if changed == string(text) {
+		return fmt.Errorf("the edit left %s as it was", path)
+	}
+	if err := w.write(path, changed); err != nil {
+		return err
+	}
+	return w.git("add", "--", path)
 }
 
 // A commit naming the task whose one change is the scenario's steps.
