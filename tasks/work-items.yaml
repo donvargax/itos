@@ -7347,14 +7347,15 @@ items:
       as a commit and CI step against caps. This item swaps the program for the tool here once the
       tool's first release is out; its own backlog lives in its repository.
 
-  - id: p1-proof-changed-lines-any-test
+  - id: T-152
     title: The push proof judges changed lines, covered by units, features or the corpus
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-proof-changed-lines-any-test.
       q-57 (2026-10-10): --fail-uncovered judges only the statements a range adds or changes, and a
       statement counts as covered when any test runs it. A read-only check found the features
       already count (itos-cc#14) and the corpus does not, and that the scope is whole functions.
