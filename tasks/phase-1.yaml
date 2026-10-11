@@ -1612,5 +1612,3 @@
     2026-10-11). While tools/bin/release-version/prerelease says rc (T-151) a major is cut as a
     release candidate; removing it makes the next green push cut v8.0.0 itself, its notes running
     from v7.5.0 as the candidates' did, as T-139 cut v7.0.0. The user confirms before the push.
-  done_when:
-    - run: test ! -e tools/bin/release-version/prerelease

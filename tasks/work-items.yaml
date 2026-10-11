@@ -8207,12 +8207,6 @@ items:
     title: "Cut v8.0.0: remove the pre-release marker"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      The v8 bundle has landed as v8.0.0-rc.1 onwards: slices 120, 107, 122, 124 to 130 and bug-104
-      and 105, slice-131 last. The testing tiers moved to v8.x, first after the cut (the user,
-      2026-10-11). While tools/bin/release-version/prerelease says rc (T-151) a major is cut as a
-      release candidate; removing it makes the next green push cut v8.0.0 itself, its notes running
-      from v7.5.0 as the candidates' did, as T-139 cut v7.0.0. The user confirms before the push.
