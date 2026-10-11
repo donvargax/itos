@@ -1753,6 +1753,70 @@ cases:
     exit: 2
     stderr: |
       itos: work queue needs one of --top, --before <id>, --after <id> or --remove (itos --help)
+  # Slice 118: work edit, drop, defer, resume and queue take several ids, the
+  # change made to each, all judged before anything is written, and one
+  # commit.
+  - name: under a stealth config work queue with several ids puts them together, in the order given
+    argv: [work, queue, z, x, --after, y]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *queued
+    exit: 0
+    stdout: |
+      z and x are after y in the queue, in that order
+      the registry is the stealth config's, so nothing is committed
+    files_after:
+      .git/itos/work-items.yaml: "phases: { 1: null }\n\nqueue:\n  - y\n  - z\n  - x\n\nitems:\n  - { id: x, title: X, phase: 1, status: todo }\n  - { id: y, title: Y, phase: 1, status: todo }\n  - { id: z, title: Z, phase: 1, status: todo }\n  - { id: d, title: D, phase: 1, status: done }\n"
+  - name: under a stealth config work edit with several ids gives each the change
+    argv: [work, edit, x, y, --refs, docs/x.md, --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *queued
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      items:
+        - { id: x, title: X, phase: 1, status: todo, refs: [docs/x.md], depends_on: [], tags: [] }
+        - { id: y, title: Y, phase: 1, status: todo, refs: [docs/x.md], depends_on: [], tags: [] }
+      commit: null
+    files_after:
+      .git/itos/work-items.yaml: "phases: { 1: null }\n\nqueue:\n  - x\n  - y\n  - z\n\nitems:\n  - { id: x, title: X, phase: 1, status: todo, refs: [docs/x.md] }\n  - { id: y, title: Y, phase: 1, status: todo, refs: [docs/x.md] }\n  - { id: z, title: Z, phase: 1, status: todo }\n  - { id: d, title: D, phase: 1, status: done }\n"
+  - name: work defer with several ids refuses them all when one would be, naming each refused, and writes nothing
+    argv: [work, defer, x, d, nope, --why, Later., --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: *queued
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      refused: [d, nope]
+      problems:
+        - rule: work-defer-done
+          message: "d is done, and a done item stays done"
+          fix: "defer an item still to do (itos work list)"
+        - rule: work-unknown-item
+          message: "no item nope in the registry"
+          fix: "itos work list --all names every item"
+    files_after:
+      .git/itos/work-items.yaml: *queued
+  - name: work edit refuses --title with several ids
+    argv: [work, edit, x, y, --title, One title]
+    exit: 2
+    stderr: |
+      itos: work edit --title is one item's own: give it one <id>, not 2 (itos --help)
+  - name: work queue refuses an id named twice
+    argv: [work, queue, x, y, x, --top]
+    exit: 2
+    stderr: |
+      itos: work queue names x twice (itos --help)
   - name: work check refuses a queue naming an item the registry does not have, or one twice
     argv: [work, check, --json]
     files:
@@ -1827,6 +1891,18 @@ cases:
     stderr: |
       z is done, and a done item stays done
         fix: drop an item still to do (itos work list)
+  - name: work drop with several ids drops each for the one reason, and commits the registry once
+    argv: [work, drop, x, y, --why, Merged into z.]
+    git:
+      - commit: "docs: start"
+        files:
+          work-items.yaml: &droppableTwo "phases: { 1: null }\nqueue:\n  - x\n  - z\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: todo, kind: idea, why: a gap }\n  - { id: y, title: Y, phase: 1, owner: null, status: todo, kind: idea }\n  - { id: z, title: Z, phase: 1, owner: null, status: todo }\n"
+    files:
+      work-items.yaml: *droppableTwo
+    exit: 0
+    stdout_has: ["x is dropped\ny is dropped\ncommitted ", " docs: drop x, y\n"]
+    files_after:
+      work-items.yaml: "phases: { 1: null }\nqueue:\n  - z\nitems:\n  - { id: x, title: X, phase: 1, owner: null, status: dropped, kind: idea }\n  - { id: y, title: Y, phase: 1, owner: null, status: dropped, kind: idea }\n  - { id: z, title: Z, phase: 1, owner: null, status: todo }\n"
   - name: work drop needs a reason
     argv: [work, drop, x]
     exit: 2

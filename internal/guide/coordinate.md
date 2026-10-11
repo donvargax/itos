@@ -38,7 +38,8 @@ is not yours: run `itos guide work` and follow that one.
    each committing the registry alone; `itos work done` takes a closed item
    out. An item no longer wanted is dropped, once the person agrees, with
    `itos work drop <id> --why '…'`, the reason its commit's body; it stays
-   in the registry, never proposed again.
+   in the registry, never proposed again. Defer, resume, queue, drop and
+   edit take several ids: one change for each, one commit.
 2. **Specify it** if it is not yet: `@wip` scenarios for a behaviour, or a
    task with checks for anything else. An idea becomes work with
    `itos work promote <idea> --kind slice|task` (itos mints the ID), and

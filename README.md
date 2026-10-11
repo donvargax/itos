@@ -88,7 +88,7 @@ list` lists every item with its title, done ones too, and `itos work show
   an idea a slice or a task with a minted ID, `itos work done <id>` marks an item done once
   it has landed (its scenarios live, its commits pushed, its CI run green),
   and `itos work add <idea-id>` makes an idea (slices and tasks are minted)
-  and `itos work edit <id>` changes one, each editing the registry in place and committing it alone; closing a
+  and `itos work edit <id>…` changes one or several, each editing the registry in place and committing it alone; closing a
   task with checks, `work done` takes them out of its ledger entry in the same
   commit.
 - **Decisions waiting on the person**: `itos decision add <text> [--item <id>]`

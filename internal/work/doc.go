@@ -86,6 +86,15 @@
 //     tags and the queue as they are; it refuses an item already deferred,
 //     one done or dropped, and one of any status but todo. Resume drops the
 //     key and nothing else.
+//   - EditEach, DropEach, DeferEach and ResumeEach (several.go, slice 118)
+//     make one writer's change to several ids, each on the registry the ids
+//     before it left (each, which reads the text again after every change),
+//     so what work check would find is judged with them changed; every id
+//     refused is named with its problems, and nothing is given to write.
+//     QueueEach puts the ids together where Place says, in the order given.
+//     A Several's commit names the ids it changed (severalHeader), or counts
+//     them when they do not fit the header lint's 100 characters, and its
+//     body lists every one; one id changed is that item's own commit.
 //
 // RegistryHeader reads back the headers the writers commit with (docs: take
 // <id>, docs: queue <id> and the rest), so itos work show finds an item's

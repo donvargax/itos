@@ -13,20 +13,29 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/out"
 	"github.com/donvargax/itos/v7/internal/work"
 )
 
-// workDefer is `work defer <id> --why <reason>`: the item deferred and the
+// workDefer is `work defer <id>… --why <reason>`: the item deferred and the
 // registry committed (work.Defer). A reason is required: it is what the
-// deferred key holds and the commit records.
+// deferred key holds and the commit records. Several ids are each deferred
+// for the one reason (work.DeferEach, writeEach).
 func workDefer(args []string, o Out) (int, error) {
-	id, flags, err := workArgs("defer", args, "--why")
+	ids, flags, err := workIDs("defer", args, nil, "--why")
 	if err != nil {
 		return 0, err
 	}
 	if strings.TrimSpace(flags["--why"]) == "" {
 		return 0, usage("work defer needs --why <reason>, why the item is put off, which its deferred key holds")
 	}
+	if len(ids) > 1 {
+		return writeEach(o, "defer", func(cfg *config.Loaded, r work.Registry, text string) (work.Several, []string, []out.Problem, error) {
+			return work.DeferEach(cfg, r, text, ids, flags["--why"])
+		}, eachLine(itemIs("deferred"), ""), nil)
+	}
+	id := ids[0]
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
 	if cfg == nil {
@@ -46,13 +55,20 @@ func workDefer(args []string, o Out) (int, error) {
 	return reportWork(fmt.Sprintf("%s is deferred: %s", id, committed(sha, change.Header)), change, sha, nil, o)
 }
 
-// workResume is `work resume <id>`: the item's deferral lifted and the
-// registry committed (work.Resume).
+// workResume is `work resume <id>…`: the item's deferral lifted and the
+// registry committed (work.Resume); several ids each (work.ResumeEach,
+// writeEach).
 func workResume(args []string, o Out) (int, error) {
-	id, _, err := workArgs("resume", args)
+	ids, _, err := workIDs("resume", args, nil)
 	if err != nil {
 		return 0, err
 	}
+	if len(ids) > 1 {
+		return writeEach(o, "resume", func(cfg *config.Loaded, r work.Registry, text string) (work.Several, []string, []out.Problem, error) {
+			return work.ResumeEach(cfg, r, text, ids)
+		}, eachLine(itemIs("resumed"), ""), nil)
+	}
+	id := ids[0]
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
 	if cfg == nil {

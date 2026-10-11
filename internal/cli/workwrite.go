@@ -567,11 +567,12 @@ func workPromoteLine(args []string) (id, kind string, flags map[string]string, e
 	return id, kind, flags, nil
 }
 
-// workQueue is `work queue <id> --top | --before <id> | --after <id> |
+// workQueue is `work queue <id>… --top | --before <id> | --after <id> |
 // --remove` (slice 66; --drop before v6.0.0): the item put first in the registry's queue, just
 // before or after an item it holds, or taken out of it, the queue written
 // whole and the registry committed, "docs: queue <id>" (work.Queue). One
-// place, exactly, is given.
+// place, exactly, is given. Several ids go there together, in the order
+// given (work.QueueEach, writeEach).
 func workQueue(args []string, o Out) (int, error) {
 	var rest []string
 	top, remove := false, false
@@ -585,7 +586,7 @@ func workQueue(args []string, o Out) (int, error) {
 			rest = append(rest, arg)
 		}
 	}
-	id, flags, err := workArgs("queue", rest, "--before", "--after")
+	ids, flags, err := workIDs("queue", rest, nil, "--before", "--after")
 	if err != nil {
 		return 0, err
 	}
@@ -599,6 +600,37 @@ func workQueue(args []string, o Out) (int, error) {
 	if given != 1 {
 		return 0, usage("work queue needs one of --top, --before <id>, --after <id> or --remove")
 	}
+	where := "first in the queue"
+	switch {
+	case at.Remove:
+		where = "out of the queue"
+	case at.Before != "":
+		where = "before " + at.Before + " in the queue"
+	case at.After != "":
+		where = "after " + at.After + " in the queue"
+	}
+	queued := func(list []string) []out.Field {
+		queue := make([]any, len(list))
+		for i, q := range list {
+			queue[i] = q
+		}
+		return []out.Field{{Key: "queue", Value: queue}}
+	}
+	if len(ids) > 1 {
+		return writeEach(o, "queue", func(_ *config.Loaded, r work.Registry, text string) (work.Several, []string, []out.Problem, error) {
+			return work.QueueEach(r, text, ids, at)
+		}, func(s work.Several) []string {
+			placed := where
+			if !at.Remove {
+				placed += ", in that order"
+			}
+			if s.Unchanged {
+				return []string{and(ids) + " are already " + placed}
+			}
+			return []string{and(ids) + " are " + placed}
+		}, func(s work.Several) []out.Field { return queued(s.Queue) })
+	}
+	id := ids[0]
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
 	if cfg == nil {
@@ -611,20 +643,7 @@ func workQueue(args []string, o Out) (int, error) {
 	if problem != nil {
 		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
 	}
-	where := "first in the queue"
-	switch {
-	case at.Remove:
-		where = "out of the queue"
-	case at.Before != "":
-		where = "before " + at.Before + " in the queue"
-	case at.After != "":
-		where = "after " + at.After + " in the queue"
-	}
-	queue := make([]any, len(change.Queue))
-	for i, q := range change.Queue {
-		queue[i] = q
-	}
-	extra := []out.Field{{Key: "queue", Value: queue}}
+	extra := queued(change.Queue)
 	if change.Unchanged {
 		return reportWork(id+" is already "+where+"; nothing to change", change, "", extra, o)
 	}

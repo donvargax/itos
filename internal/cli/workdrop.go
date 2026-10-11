@@ -12,20 +12,29 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v7/internal/out"
 	"github.com/donvargax/itos/v7/internal/work"
 )
 
-// workDrop is `work drop <id> --why <reason>`: the item dropped and the
+// workDrop is `work drop <id>… --why <reason>`: the item dropped and the
 // registry committed (work.Drop). A reason is required: it is what the
-// commit records.
+// commit records. Several ids are each dropped for the one reason
+// (work.DropEach, writeEach).
 func workDrop(args []string, o Out) (int, error) {
-	id, flags, err := workArgs("drop", args, "--why")
+	ids, flags, err := workIDs("drop", args, nil, "--why")
 	if err != nil {
 		return 0, err
 	}
 	if strings.TrimSpace(flags["--why"]) == "" {
 		return 0, usage("work drop needs --why <reason>, the commit's record of why the item is dropped")
 	}
+	if len(ids) > 1 {
+		return writeEach(o, "drop", func(cfg *config.Loaded, r work.Registry, text string) (work.Several, []string, []out.Problem, error) {
+			return work.DropEach(cfg, r, text, ids, flags["--why"])
+		}, eachLine(itemIs("dropped"), "is already dropped"), nil)
+	}
+	id := ids[0]
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
 	if cfg == nil {

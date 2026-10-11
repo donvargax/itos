@@ -69,13 +69,13 @@ Commands:
   work done <id>                   mark an item done once it has landed, and commit it
   work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task|bug] […]
                                    add an item to the work registry, and commit it
-  work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
+  work edit <id>… [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
                                    change an item, or add a note to its why, and commit it
-  work queue <id> --top|--before <id>|--after <id>|--remove
+  work queue <id>… --top|--before <id>|--after <id>|--remove
                                    order the work: put an item in the queue, or take it out
-  work drop <id> --why <reason>    take an item out of the open work, and commit the reason
-  work defer <id> --why <reason>   put an item off, and commit the reason
-  work resume <id>                 lift an item's deferral, and commit it
+  work drop <id>… --why <reason>   take an item out of the open work, and commit the reason
+  work defer <id>… --why <reason>  put an item off, and commit the reason
+  work resume <id>…                lift an item's deferral, and commit it
   work check [<file>]              validate the work registry
   decision [--all]                 the open decisions waiting on the person the work is for
   decision add <text> [--item <id>]
@@ -226,11 +226,11 @@ or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
         itos work promote <idea> --kind slice|task [--title <title>]
        itos work done <id>
         itos work add [<idea-id>] --title <title> --why <why> [--kind idea|slice|task|bug] […]
-       itos work edit <id> [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
-       itos work queue <id> --top|--before <id>|--after <id>|--remove
-       itos work drop <id> --why <reason>
-       itos work defer <id> --why <reason>
-       itos work resume <id>
+       itos work edit <id>… [--title <title>] [--depends-on <ids>] [--refs <refs>] [--tags <tags>] [--note <text>]
+       itos work queue <id>… --top|--before <id>|--after <id>|--remove
+       itos work drop <id>… --why <reason>
+       itos work defer <id>… --why <reason>
+       itos work resume <id>…
        itos work check [<file>]
 
 Who the session works for (--as, else the config's work.identity provider) and
@@ -371,7 +371,7 @@ stealth config the registry is written and nothing committed.
 --json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
 {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
-	"work edit": `Usage: itos work edit <id> [--title <title>] [--depends-on <id>,…] [--refs <ref>,…]
+	"work edit": `Usage: itos work edit <id>… [--title <title>] [--depends-on <id>,…] [--refs <ref>,…]
          [--tags <tag>,…] [--note <paragraph>]
 
 Changes an item: its title, its depends_on, its refs or its tags, each
@@ -388,10 +388,20 @@ done, a tag work.tags does not declare), a commit a hook refuses. An item
 already as asked changes nothing. Under a stealth config the registry is
 written and nothing committed.
 
---json: {"schema":1,"ok":true,"item":{…},"changed":["title"|"depends_on"|"refs"|"tags"|"why",…],"commit":"<sha>"|null},
-or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+Several ids each take the same change (--depends-on, --refs, --tags,
+--note; --title is one item's own, exit 2 with several), every one judged
+before anything is written: when any one would be refused, nothing is
+written and each id refused is named (exit 1). Then one commit holds them
+all, "docs: edit <id>, <id>…", or "docs: edit <n> items" when the ids do not
+fit the header, its body naming every item changed; an item already as
+asked is left out of it. An id named twice exits 2.
 
-	"work drop": `Usage: itos work drop <id> --why <reason>
+--json: {"schema":1,"ok":true,"item":{…},"changed":["title"|"depends_on"|"refs"|"tags"|"why",…],"commit":"<sha>"|null},
+or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}; for several
+ids {"schema":1,"ok":true,"items":[{…},…],"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"refused":[<id>,…],"problems":[…]}`,
+
+	"work drop": `Usage: itos work drop <id>… --why <reason>
 
 Takes an item out of the open work: its status dropped, a status itos knows
 whatever work.statuses lists, its why dropped as work done drops a closed
@@ -407,10 +417,20 @@ drop them, first), a commit a hook refuses. An item already dropped changes
 nothing. Exit 2 without --why. Under a stealth config the registry is written
 and nothing committed.
 
---json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
-{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+Several ids are each dropped for the one reason, in the order given, each
+judged with the ids before it dropped (so name an item after those that
+depend on it), all before anything is written: when any one would be
+refused, nothing is written and each id refused is named (exit 1). Then one
+commit holds them all, "docs: drop <id>, <id>…", or "docs: drop <n> items"
+when the ids do not fit the header, its body naming every item dropped, then
+the reason. An id named twice exits 2.
 
-	"work defer": `Usage: itos work defer <id> --why <reason>
+--json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}; for several
+ids {"schema":1,"ok":true,"items":[{…},…],"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"refused":[<id>,…],"problems":[…]}`,
+
+	"work defer": `Usage: itos work defer <id>… --why <reason>
 
 Puts an item off: its deferred key the reason, a folded text, then commits the
 registry alone, "docs: defer <id>", as work take does (itos help work take),
@@ -423,10 +443,19 @@ first), an item done or dropped, one of any other status but todo, a commit a
 hook refuses. Exit 2 without --why. Under a stealth config the registry is
 written and nothing committed.
 
---json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
-{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+Several ids are each deferred for the one reason, every one judged before
+anything is written: when any one would be refused, nothing is written and
+each id refused is named (exit 1). Then one commit holds them all, "docs:
+defer <id>, <id>…", or "docs: defer <n> items" when the ids do not fit the
+header, its body naming every item, then the reason. An id named twice
+exits 2.
 
-	"work resume": `Usage: itos work resume <id>
+--json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}; for several
+ids {"schema":1,"ok":true,"items":[{…},…],"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"refused":[<id>,…],"problems":[…]}`,
+
+	"work resume": `Usage: itos work resume <id>…
 
 Lifts an item's deferral: its deferred key removed, nothing else of it
 changed; then commits the registry alone, "docs: resume <id>", as work take
@@ -436,10 +465,18 @@ changes no commit holds, an id no item has, an item that is not deferred, a
 commit a hook refuses. Under a stealth config the registry is written and
 nothing committed.
 
---json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
-{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+Several ids are each resumed, every one judged before anything is written:
+when any one would be refused, nothing is written and each id refused is
+named (exit 1). Then one commit holds them all, "docs: resume <id>, <id>…",
+or "docs: resume <n> items" when the ids do not fit the header, its body
+naming every item and the reason it was deferred. An id named twice exits 2.
 
-	"work queue": `Usage: itos work queue <id> --top|--before <id>|--after <id>|--remove
+--json: {"schema":1,"ok":true,"item":{…},"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}; for several
+ids {"schema":1,"ok":true,"items":[{…},…],"commit":"<sha>"|null}, or
+{"schema":1,"ok":false,"refused":[<id>,…],"problems":[…]}`,
+
+	"work queue": `Usage: itos work queue <id>… --top|--before <id>|--after <id>|--remove
 
 Orders the work: the registry's queue, a top-level queue: list of item ids,
 one for the whole repository, ideas included, says what comes first, and itos
@@ -455,8 +492,18 @@ refuses. An item already where it is put, or not in the queue for --remove,
 changes nothing. Under a stealth config the registry is written and nothing
 committed.
 
+Several ids go there together, in the order given: --top puts them first,
+--before and --after at that place, beside an item they do not name, and
+--remove takes each out. Every id is judged before anything is written: when
+any one would be refused, nothing is written and each id refused is named
+(exit 1). Then one commit, "docs: queue <id>, <id>…", or "docs: queue <n>
+items" when the ids do not fit the header, its body naming every item. An id
+named twice exits 2.
+
 --json: {"schema":1,"ok":true,"item":{…},"queue":[…],"commit":"<sha>"|null}, or
-{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
+{"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}; for several
+ids {"schema":1,"ok":true,"items":[{…},…],"queue":[…],"commit":"<sha>"|null},
+or {"schema":1,"ok":false,"refused":[<id>,…],"problems":[…]}`,
 
 	"work list": `Usage: itos work list [--all] [--tag <tag>]
 

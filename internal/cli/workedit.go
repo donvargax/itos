@@ -15,6 +15,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/donvargax/itos/v7/internal/config"
 	"github.com/donvargax/itos/v7/internal/ledger"
 	"github.com/donvargax/itos/v7/internal/out"
 	"github.com/donvargax/itos/v7/internal/work"
@@ -99,17 +100,22 @@ func workAddLine(args []string) (id, kind string, flags map[string]string, err e
 	return id, kind, flags, nil
 }
 
-// workEdit is `work edit <id> [--title <t>] [--depends-on <ids>] [--refs
+// workEdit is `work edit <id>… [--title <t>] [--depends-on <ids>] [--refs
 // <refs>] [--tags <tags>] [--note <paragraph>]`: the item's title,
 // depends_on, refs or tags replaced, a paragraph added to its why, committed
 // (work.Edit). An empty --depends-on, --refs or --tags empties the list.
+// Several ids take the same change, --title excepted (work.EditEach,
+// writeEach).
 func workEdit(args []string, o Out) (int, error) {
-	id, flags, err := workArgsEmpty("edit", args, []string{"--depends-on", "--refs", "--tags"}, "--title", "--depends-on", "--refs", "--tags", "--note")
+	ids, flags, err := workIDs("edit", args, []string{"--depends-on", "--refs", "--tags"}, "--title", "--depends-on", "--refs", "--tags", "--note")
 	if err != nil {
 		return 0, err
 	}
 	if len(flags) == 0 {
 		return 0, usage("work edit needs --title, --depends-on, --refs, --tags or --note")
+	}
+	if _, ok := flags["--title"]; ok && len(ids) > 1 {
+		return 0, usage("work edit --title is one item's own: give it one <id>, not %d", len(ids))
 	}
 	var e work.Edits
 	if title, ok := flags["--title"]; ok {
@@ -128,6 +134,14 @@ func workEdit(args []string, o Out) (int, error) {
 		e.Tags = &list
 	}
 	e.Note = flags["--note"]
+	if len(ids) > 1 {
+		return writeEach(o, "edit", func(cfg *config.Loaded, r work.Registry, text string) (work.Several, []string, []out.Problem, error) {
+			return work.EditEach(cfg, r, text, ids, e, taskIDs(cfg))
+		}, eachLine(func(id string, c work.Change) string {
+			return fmt.Sprintf("%s's %s changed", id, strings.Join(c.Changed, ", "))
+		}, "is already so"), nil)
+	}
+	id := ids[0]
 	cfg, registry, text, release, code, err := soundRegistry(o)
 	defer release()
 	if cfg == nil {

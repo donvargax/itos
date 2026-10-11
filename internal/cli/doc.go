@@ -554,7 +554,12 @@
 //     drop (workdrop.go), work defer and work resume (workdefer.go) call
 //     their writers in internal/work; drop and defer put the --why reason
 //     first in their commit's body. Defer and resume are two commands rather
-//     than a flag on one (docs/CLI.md rule 18).
+//     than a flag on one (docs/CLI.md rule 18). Edit, drop, defer, resume and
+//     queue take one id or more (workIDs, an id named twice exit 2): one runs
+//     as before, several go through writeEach (workeach.go, slice 118) and
+//     work's *Each writers, refused whole by refuseEach (exit 1, naming every
+//     id refused, --json's refused) or committed once, --json's items in the
+//     order given. work edit --title with several ids exits 2.
 //
 // work show (workshow.go) reads, never writes: the item and the items whose
 // depends_on name it (work.Show), its scenarios at HEAD by tests.Tagged, the

@@ -986,7 +986,7 @@ Feature: The work registry
   # exit 2: work edit --title. work queue places the ids in the order given:
   # --top puts them first, --before and --after put them together at that
   # place, --remove takes each out. --json gives "items":[…] for each.
-  @ID-WORK-89 @slice-118 @wip
+  @ID-WORK-89 @slice-118
   Scenario: work edit with several ids gives each the same tags, in one commit
     Given the config's work.tags is "plugin, stealth"
     And the work registry has the idea "p1-a" owned by nobody
@@ -998,7 +998,7 @@ Feature: The work registry
     And the last commit's header is "docs: edit p1-a, p1-b"
     And the last commit touches only "tasks/work-items.yaml"
 
-  @ID-WORK-90 @slice-118 @wip
+  @ID-WORK-90 @slice-118
   Scenario: One id that would be refused refuses them all, naming it, and nothing is written
     Given the config's work.tags is "plugin, stealth"
     And the work registry has the idea "p1-a" owned by nobody
@@ -1007,7 +1007,7 @@ Feature: The work registry
     And its output says "p1-nope"
     And the registry's item "p1-a" has no tags
 
-  @ID-WORK-91 @slice-118 @wip
+  @ID-WORK-91 @slice-118
   Scenario: work drop with several ids drops each with the one reason, in one commit
     Given the work registry has the idea "p1-a" owned by nobody
     And the work registry has the idea "p1-b" owned by nobody
@@ -1018,7 +1018,7 @@ Feature: The work registry
     And the last commit's header is "docs: drop p1-a, p1-b"
     And the last commit's body says "Merged into slice 9."
 
-  @ID-WORK-92 @slice-118 @wip
+  @ID-WORK-92 @slice-118
   Scenario: work queue with several ids puts them first in the order given
     Given the work registry has the item "slice-7" owned by nobody with the status "todo"
     And the work registry has the item "slice-8" owned by nobody with the status "todo"
@@ -1028,7 +1028,7 @@ Feature: The work registry
     Then itos exits with code 0
     And the registry's queue is "slice-9, slice-8, slice-7"
 
-  @ID-WORK-93 @slice-118 @wip
+  @ID-WORK-93 @slice-118
   Scenario: work edit --title with several ids exits 2, naming --title
     Given the work registry has the idea "p1-a" owned by nobody
     And the work registry has the idea "p1-b" owned by nobody
