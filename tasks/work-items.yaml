@@ -7207,3 +7207,20 @@ items:
       go/cli branch is one). It enters itos core as a test kind beside the Gherkin and command kinds
       once its case format is designed as a public contract; until then T-144 keeps it a tool of
       this repository, so the format is not decided under the pressure of the move off Node.
+
+  - id: p1-use-anti-context-bloat
+    title: This repository runs anti-context-bloat, pinned, in place of tools/bin/doc-budget
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-10): the docs' byte budget (tools/bin/doc-budget, T-110) becomes
+      anti-context-bloat, a standalone tool of its own repository (one of the anti-* tools, aids to
+      how a person or an agent works), built from go-template-itos's go/cli branch once it is ready.
+      It counts the tokens of an agent's context, the files a harness loads into every session
+      (AGENTS.md, CLAUDE.md and its @imports) or any document, and reports them; it fails nothing
+      itself. itos makes it a gate the way it runs itos-cc: pinned through tools/bin/pinned and run
+      as a commit and CI step against caps. This item swaps the program for the tool here once the
+      tool's first release is out; its own backlog lives in its repository.
