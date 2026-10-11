@@ -137,3 +137,56 @@ Feature: itos push, the pull-rebase-push routine as one command
     Then itos exits with code 3
     And its output says "itos hook install"
     And the remote's branch does not have "chore: tidy the readme"
+
+  # Slice 131 (p1-push-tag-and-ref, issue #37 and its comment of 2026-10-11;
+  # the v8 plan). The guard, the shim and itos push refuse a ref push, so a
+  # release tag or a branch for another OS's CI went out through a hard-coded
+  # /usr/bin/git, past the shim's checks; and push.followtags decided
+  # silently whether the next unrelated itos push published a tag.
+  # itos push --tag <tag> (repeatable) pushes the named tags, and only them,
+  # in one atomic push (git push --atomic): a release of several tags, some on
+  # commits HEAD does not reach (itos-template's main/, stack/go/, go/cli/
+  # tags), lands whole or not at all. A tag the remote already holds at
+  # another commit is refused, never moved, and then no tag of the push
+  # lands. itos push --ref <branch> pushes that local branch to the remote's
+  # branch of the same name, never forced. A plain itos push pushes no tag,
+  # whatever push.followtags says (--no-follow-tags), which is the breaking
+  # part. The pre-push hook judges a pushed tag's commits as any ref's. The
+  # shim mapping git push origin <tag> or -u origin <branch> onto these
+  # (p3-shim-push-args, folded into the item) is not in this slice.
+  @ID-PUSH-11 @slice-131 @wip
+  Scenario: itos push --tag pushes the named tags in one push
+    Given the clone has the annotated tag "v1.0.0" on its HEAD
+    And the clone has the annotated tag "cli/v1.0.0" on its HEAD
+    When itos runs "push --tag v1.0.0 --tag cli/v1.0.0"
+    Then itos exits with code 0
+    And the remote has the tag "v1.0.0"
+    And the remote has the tag "cli/v1.0.0"
+
+  @ID-PUSH-12 @slice-131 @wip
+  Scenario: A plain itos push pushes no tag, whatever push.followTags says
+    Given the clone's git config says "push.followTags" is "true"
+    And the clone has the commit "docs: note the release" touching "README.md"
+    And the clone has the annotated tag "v1.0.0" on its HEAD
+    When itos runs "push"
+    Then itos exits with code 0
+    And the remote's branch has "docs: note the release"
+    And the remote does not have the tag "v1.0.0"
+
+  @ID-PUSH-13 @slice-131 @wip
+  Scenario: A tag the remote holds at another commit is refused, and no tag of the push lands
+    Given the remote's head is tagged "v1.0.0"
+    And the clone has the commit "docs: note the release" touching "README.md"
+    And the clone has the annotated tag "v1.0.0" on its HEAD
+    And the clone has the annotated tag "v1.0.1" on its HEAD
+    When itos runs "push --tag v1.0.0 --tag v1.0.1"
+    Then itos exits with code 1
+    And its output says "v1.0.0"
+    And the remote does not have the tag "v1.0.1"
+
+  @ID-PUSH-14 @slice-131 @wip
+  Scenario: itos push --ref pushes another local branch to the remote's branch of the same name
+    Given the clone has the branch "ci/windows" with the commit "docs: try windows" touching "README.md"
+    When itos runs "push --ref ci/windows"
+    Then itos exits with code 0
+    And the remote has the branch "ci/windows" with "docs: try windows"
