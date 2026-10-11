@@ -62,20 +62,20 @@ func TestPrereleaseNotes(t *testing.T) {
 	for _, p := range platforms {
 		hashes[p] = "00"
 	}
-	rc := notes{Version: "7.0.0-rc.2", Candidate: "7.0.0", From: "v6.5.0", Hashes: hashes, Module: modulePath("7.0.0-rc.2")}
+	rc := notes{Version: "8.0.0-rc.2", Candidate: "8.0.0", From: "v7.5.0", Hashes: hashes, Module: modulePath("8.0.0-rc.2")}
 	text, err := rc.render()
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"# itos 7.0.0-rc.2\n", "**A pre-release**, a candidate for 7.0.0",
+	for _, want := range []string{"# itos 8.0.0-rc.2\n", "**A pre-release**, a candidate for 8.0.0",
 		"`tools/bin/release-version/prerelease` says `rc`",
-		"never as latest", "`itos pin 7.0.0-rc.2` pins this one", "run from v6.5.0, the last\nstable release",
-		"go install github.com/donvargax/itos/v7/cmd/itos@v7.0.0-rc.2"} {
+		"never as latest", "`itos pin 8.0.0-rc.2` pins this one", "run from v7.5.0, the last\nstable release",
+		"go install github.com/donvargax/itos/v8/cmd/itos@v8.0.0-rc.2"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("an rc's notes lack %q:\n%s", want, text)
 		}
 	}
-	final := notes{Version: "7.0.0", From: "v6.5.0", Hashes: hashes, Module: modulePath("7.0.0")}
+	final := notes{Version: "8.0.0", From: "v7.5.0", Hashes: hashes, Module: modulePath("8.0.0")}
 	text, err = final.render()
 	if err != nil {
 		t.Fatal(err)

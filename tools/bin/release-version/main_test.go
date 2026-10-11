@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v8/internal/git"
 )
 
 // TestMain drops the variables a git hook exports before any test runs, so

@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v8/internal/git"
 )
 
 func main() {

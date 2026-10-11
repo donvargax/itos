@@ -35,7 +35,7 @@ import { join, resolve } from "node:path";
 import { repoProgram } from "./repo-program.ts";
 
 export const ROOT = resolve(import.meta.dirname, "../..");
-const MODULE = "github.com/donvargax/itos/v7";
+const MODULE = "github.com/donvargax/itos/v8";
 
 // The version this checkout's builds say they are (tools/bin/dev-version).
 function devVersion(): string {

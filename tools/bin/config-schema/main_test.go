@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v8/internal/config"
 )
 
 // A key renamed declares the key it was on its property, and the keys

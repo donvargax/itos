@@ -67,7 +67,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v7/internal/release"
+	"github.com/donvargax/itos/v8/internal/release"
 )
 
 const asset = "itos.schema.json"
