@@ -4671,8 +4671,8 @@ items:
   - id: slice-128
     title: "The shim, itos commit and itos push refuse what agents must not do: skipping hooks, sweeping stages, rewriting the remote"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
