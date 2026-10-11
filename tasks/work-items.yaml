@@ -6880,6 +6880,16 @@ items:
       strategy other projects can take: what runs locally, what each push's CI judges, what the
       nightly judges, and why each sits where it does.
 
+      Seeds, the user (2026-10-11): a tier is deterministic where it gates and random where it
+      explores. Local runs and each push use fixed seeds (a property test's seed pinned; the
+      mutation site seeded by the range, p1-push-proof-stable-site), so a red reproduces locally and
+      a repair push re-judges the same thing. The nightly uses fresh seeds (mutants seeded by the
+      run, q-54; new property-test seeds and more examples) to find what the fixed ones miss. Every
+      nightly find becomes a fixed regression the push tier guards: a test that kills the mutant, or
+      the property test's failing seed committed (rapid's failure file). Under mutation, property
+      tests run with a fixed seed, so a kill never depends on the draw. Part of the strategy to
+      comment on issue #41.
+
   - id: p1-itos-config-all-or-nothing
     title: ITOS_CONFIG resolves the ledger, the registry and the smoke sets beside the config it names
     phase: 1
