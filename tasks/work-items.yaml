@@ -2039,6 +2039,7 @@ items:
       itos commit could hand git a template with the subject's line and a blank one before the
       footers (git commit -t, or prepare-commit-msg), so the editor's commit reads as -m's does.
     refs: [internal/cli/gitcommit.go, features/commit-command.feature]
+    tags: [commit]
 
   - id: slice-36
     title: itos commit writes every footer a commit needs, its required ones refused up front
@@ -2149,6 +2150,7 @@ items:
       one, b79c767, v2.15.1), and the notes quote a multi-line footer with every line in the
       blockquote (63d7046, v2.21.1).
     refs: [internal/cli/gitcommit.go, internal/message/footers.go]
+    tags: [commit]
 
   - id: p3-stealth-amend-keeps-links
     title: A stealth amend through itos commit keeps the links its flags do not replace
@@ -2305,6 +2307,7 @@ items:
       names), refusing a typo before it lands; that is a footer source itos does not have (a
       tag's tree, not the commit's), so a feat with its scenario.
     refs: [tools/bin/previous-release/main.go, internal/message/footers.go, itos.yaml]
+    tags: [commit]
 
   - id: T-068
     title: v2.3.0, the itos plugin for Claude Code
@@ -2963,6 +2966,7 @@ items:
       message, and every commit made by plain git commit, still reach the hook unwrapped and are
       refused for a line over 100. git lets a commit-msg hook rewrite the message file, so the hook
       could apply the same message.Wrap before the built-in lint judges it.
+    tags: [commit]
 
   - id: p1-commit-wrap-delegate-limit
     title: A delegated header lint can say its body line limit, so itos commit wraps under it
@@ -3045,6 +3049,7 @@ items:
       value.Wrap's greedy loop (which counts runes where the lint counts UTF-16 units, as
       workwrite.go's body wrap does); message.CommentChar returns 'auto' for core.commentChar=auto,
       in the lint too. Tests for -F -, the unchanged-file path and CRLF.
+    tags: [commit]
 
   - id: bug-16
     title: itos follow and a stealth config keep every write of two writers at once, and follow doc keeps a thread private
@@ -4288,6 +4293,7 @@ items:
       A test commit touching tools/selftest/gates.ts is refused twice for the same path, once by
       test's only list and once by its never (T-098 gave test both): itos commit check-paths and the
       commit-msg hook print the same line twice. One line per refused path is enough.
+    tags: [commit]
 
   - id: T-099
     title: The module path is github.com/donvargax/itos/v5, and this config holds nothing v5 removed
@@ -4373,6 +4379,7 @@ items:
       own is refused, would close the gap; it changes the conformance cases moves.yaml 'a message
       whose type is not one of commits.types is the header lint's, as a merge's is' and
       messages.yaml's version case, so it is the user's call.
+    tags: [commit]
 
   - id: bug-46
     title: "Who the session is: one person needs no gh, and gh is bounded"
@@ -4873,6 +4880,7 @@ items:
       cannot make for a reason of its own exits 128, none of itos's codes (decision 36, docs/CLI.md
       rule 31). Classify it as push does: a hook's refusal 1, anything git reports without a kind
       70.
+    tags: [commit]
 
   - id: T-103
     title: go-schema.ts's value-not-allowed case names hooks.manager, which v6 removed
