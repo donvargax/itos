@@ -7973,3 +7973,19 @@ items:
       slice. Part of the testing tiers (issue #41, p1-testing-tiers-guide).
     refs: [itos.yaml, .github/workflows/nightly.yml]
     tags: [ci, tests]
+
+  - id: p1-shim-pathspec-sweeps
+    title: "The shim refuses git add's sweeping pathspecs: ':/', a glob matching everything, --pathspec-from-file"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-128]
+    kind: idea
+    why: >
+      slice-128's agent (2026-10-11): the shim refuses git add -A, -u, . and a folder, but git add
+      ':/' (the whole tree from anywhere), git add '*' and --pathspec-from-file sweep the same way
+      and pass. Refuse pathspec magic and globs that match beyond named files, naming git add
+      <path>; keep an explicit file list, --pathspec-from-file included only if every line is a
+      file.
+    refs: [internal/shim/add.go]
+    tags: [commit, guard]
