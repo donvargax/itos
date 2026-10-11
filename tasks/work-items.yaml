@@ -7404,8 +7404,8 @@ items:
   - id: slice-119
     title: itos guide prints the procedure an agent reads before an action, and itos go is the coordinator's start
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
