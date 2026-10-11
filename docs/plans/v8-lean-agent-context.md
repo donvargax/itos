@@ -16,11 +16,15 @@ the breaking checks the v7 plan already set aside for the next major.
 
 ## In v8
 
-- **`p1-agents-md-reduced`**: the AGENTS.md block `itos init --agent-rules` writes keeps the
-  universal safety boundaries, one line saying the gates enforce the repository's policy, and one
-  entry line (start with `itos go` unless your brief names another guide). A project's handwritten
-  instructions are migrated explicitly, never deleted silently (q-45). Folds in
+- **slice-120** (`p1-agents-md-reduced`): the AGENTS.md block `itos init --agent-rules` writes
+  keeps two lines, the entry line (start with `itos go` unless your brief names another guide) and
+  the one boundary no gate holds yet, staging only your own files (the user, 2026-10-11: the gates
+  and the guides cover the rest). Text outside the markers is never touched (q-45). Folds in
   `p1-agent-rules-ci-summary`.
+- **`p1-upgrade-refreshes-agent-block`**: `itos upgrade` has the new version rewrite a present
+  block, on every upgrade, so consumers get the two lines without a step by hand.
+- **`p1-trim-agents-md`**: this repository's own handwritten AGENTS.md text keeps only what is
+  its own.
 - **`p1-commit-exit-codes`**: `itos commit` exits by the error's kind, not with git commit's code.
 - **`p1-shim-refuses-hook-skipping`**: `itos commit`, `itos push` and the shim refuse
   `--no-verify`, `-n` and a `-c` that moves `core.hooksPath`.
@@ -69,5 +73,5 @@ coordinate` among them): not yet (the user, 2026-10-10).
 2. **A `ci` task turns the release candidates on**, as T-119 did for v7: go.mod's module path
    becomes `…/itos/v8`, and `tools/bin/release-version/prerelease` holds `rc`. The next feat or
    fix then cuts `v8.0.0-rc.1`.
-3. **rc.1 is `p1-agents-md-reduced`**, the headline; then the other items, each feat a further rc.
+3. **rc.1 is slice-120**, the headline; then the other items, each feat a further rc.
 4. **Remove the marker** once every item above is done and green: the next push cuts `v8.0.0`.
