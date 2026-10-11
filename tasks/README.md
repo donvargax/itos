@@ -76,8 +76,10 @@ own tag line or on its file's.
 between feature files, create feature files and delete the ones left empty,
 provided every moved scenario keeps its ID, name, tags and steps exactly, no
 scenario is lost or added (a `@wip` one may still come, go or change), and a
-file with a live scenario keeps its header and Background; comment lines are
-not compared, so a `docs` commit may write a scenario's reason beside it. The
+file with a live scenario keeps its header and Background; comment lines and a
+feature's description (the free text under its `Feature` line) are not
+compared, so a `docs` commit may write a scenario's reason beside it or reword
+the description. The
 files are organised by area of behaviour, and a move is a `test` commit, one
 that also moves the file's smoke entries in `features/smoke.yaml`. A live
 scenario's name may not change outside `feat` and `fix`, unless the rename is

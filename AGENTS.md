@@ -144,8 +144,10 @@ file.
   - Outside `feat` and `fix`, a feature file may only gain or change `@wip`
     scenarios; a `test` commit may also move scenarios between files under
     the moving rule (`features/README.md`), with their smoke entries in
-    `features/smoke.yaml`. Comment lines are not compared, so a scenario's
-    reason may be written beside it in any commit.
+    `features/smoke.yaml`. Comment lines and a feature's description (the
+    free text under its `Feature` line) are not compared, so a scenario's
+    reason may be written beside it, and the description reworded, in any
+    commit.
 - **Check a split without committing.**
   `tools/bin/itos commit check-paths --type <type> <path>…` applies the path
   rules to any list of files and prints what it would reject. Use it when you

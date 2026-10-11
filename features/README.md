@@ -153,7 +153,8 @@ ones left empty, provided
 - no scenario is lost or added (a `@wip` one may still come, go or change);
 - a file with a live scenario keeps its header and Background (a moved
   scenario runs under its new file's Background and inherits the tags above
-  its `Feature` line, so choose a file it fits);
+  its `Feature` line, so choose a file it fits), all but the feature's
+  description;
 - the file's smoke entries in `smoke.yaml` move with it, in the same commit.
 
 The scenario kind's range check (`tests.scenario.range_checks` in `itos.yaml`)
@@ -165,7 +166,11 @@ it makes) and each commit of the pushed range against its parent in
 by hand. A live scenario's name may change outside `feat` and `fix` only when
 the check's `allowed_renames` lists its ID and new name. Comment lines (`#`) are
 dropped before the comparison: a scenario's reason is written as a comment
-above its tag line, in any commit, and never as a change to the scenario.
+above its tag line, in any commit, and never as a change to the scenario. So
+is a feature's description, the free text under its `Feature` line up to its
+Background, first scenario or tag line: a `docs` or `test` commit may reword
+it, while the feature's name, the tags above it and its Background stay
+compared.
 
 ## Writing a scenario
 

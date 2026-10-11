@@ -48,8 +48,9 @@ or add a lesson.
     `decision record`, so every record keeps the question it answers and the format stays itos's.
   - `git grep` the old doc's name for its citations: point one at a section
     that left to its record, and keep one at a section that stayed. Code
-    comments change in a `refactor` commit, the rest in `docs` commits; a
-    feature file's description changes only in a feat or a fix.
+    comments change in a `refactor` commit, the rest in `docs` commits,
+    a feature file's description included: the built-in moves rule never
+    compares it.
   - Aim the task's checks at what it changes: a grep over whole folders also
     hits fixtures that keep old text on purpose.
 
