@@ -5223,8 +5223,8 @@ items:
   - id: T-150
     title: This repository declares its work tags and its reviewed open items carry them
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-118]
     kind: task
     why: >
