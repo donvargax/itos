@@ -439,5 +439,8 @@ proof:
     # push budget, q-52), and strict coverage of the lines the range adds or changes (q-57,
     # itos-cc v0.12.0's =lines): old uncovered code beside a change is not the range's, and a
     # change that only deletes judges no coverage. A range with no site is not applicable and
-    # passes. Linux only, as CI's ci job is.
-    check: "tools/bin/pinned itos-cc mutation run --count 1 --since {base} --fail-uncovered=lines --json cmd internal"
+    # passes. Linux only, as CI's ci job is. --seed {base} draws the site by the range's start, not
+    # HEAD (itos-cc's default seed), so the same site leads while the range stands: a repair push
+    # re-judges what failed instead of drawing another, and the local run, seeded by origin/main,
+    # draws what CI will. The gates' seeds are fixed, the nightly's fresh (q-54) (T-159).
+    check: "tools/bin/pinned itos-cc mutation run --count 1 --since {base} --seed {base} --fail-uncovered=lines --json cmd internal"

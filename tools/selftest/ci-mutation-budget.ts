@@ -104,13 +104,13 @@ try {
 	]);
 	const from = git(["rev-parse", "HEAD"]);
 
-	// A push: one fresh mutant of the range's changed Go functions, strict coverage of its changed
-	// lines (q-57), cmd and internal, and no other mutation command (the cached sample and
-	// complete check are gone).
+	// A push: one fresh mutant of the range's changed Go functions, drawn by the range's start
+	// (T-159), strict coverage of its changed lines (q-57), cmd and internal, and no other
+	// mutation command (the cached sample and complete check are gone).
 	const push = invocation(["ci", "run", from, to, "--json"]);
 	assert.equal(push.status, 0, `push CI driver did not pass with fake commands:\n${push.output}`);
 	assert.equal(push.json.ok, true);
-	const expectedPush = `tools/bin/pinned itos-cc mutation run --count 1 --since ${from} --fail-uncovered=lines --json cmd internal`;
+	const expectedPush = `tools/bin/pinned itos-cc mutation run --count 1 --since ${from} --seed ${from} --fail-uncovered=lines --json cmd internal`;
 	assert.deepEqual(
 		mutations(push.commands),
 		[expectedPush],
