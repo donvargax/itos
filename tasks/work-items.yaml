@@ -7516,3 +7516,15 @@ items:
       every brief by hand, from itos work show (the item, its title, its scenarios and their feature
       file, the repository's path). With an item, guide brief prints the template filled, leaving
       the coordinator the settled decisions and the reads.
+
+  - id: p1-guide-work-item
+    title: itos guide work <item> prints the item after the guide, as itos work show does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-guide-before-action]
+    kind: idea
+    why: >
+      Cut from p1-guide-before-action (2026-10-10): every implementing agent runs itos guide work
+      and then itos work show <item>, two round trips to start. With an item, guide work prints
+      both. Rules scoped to the item come later with p1-agent-rules-as-data.
