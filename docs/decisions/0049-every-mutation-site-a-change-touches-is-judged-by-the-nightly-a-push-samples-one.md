@@ -23,4 +23,4 @@ The nightly (the user, 2026-10-11). It judges every mutation site of the functio
 
 ### Consequences
 
-p1-nightly-judges-changed-sites builds it and p1-push-proof-stable-site seeds the push's sample by the range. Coordinators no longer brief a local run of every site. Part of the testing tiers, to be commented on issue #41 once final.
+p1-nightly-judges-changed-sites builds it and p1-push-proof-stable-site seeds the push's sample by the range. Until the nightly judges them, nothing judges all of a change's sites, so briefs keep asking the implementing session to judge every site of the functions it changed before pushing (the coordinator, 2026-10-11, after a side review); that stops when p1-nightly-judges-changed-sites lands. Part of the testing tiers, to be commented on issue #41 once final.
