@@ -8131,8 +8131,8 @@ items:
   - id: bug-105
     title: An answered question naming a renamed item is a warning, and work promote renames question links
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
