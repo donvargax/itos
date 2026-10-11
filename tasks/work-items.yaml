@@ -7666,6 +7666,11 @@ items:
       repository-specific implementer rules (vp staged and the pre-commit hook, the push proof, the
       commit split, the --no-wait handoff of q-41) stay until p1-agent-rules-as-data can hold them,
       and vp's generated block goes with the move off Node. In the v8 plan.
+
+      slice-120 (2026-10-11) left AGENTS.md at 20294 bytes with its handwritten text now partly
+      wrong: it still says the block at the end of the file lists the gates, generated from the
+      config. Lower doc-budget's 28000-byte cap on AGENTS.md in the same work, to what the trimmed
+      file needs.
     refs: [AGENTS.md]
     tags: [docs]
 
