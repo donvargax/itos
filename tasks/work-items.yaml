@@ -8208,3 +8208,20 @@ items:
       rule), so any update of an existing remote tag is refused, ancestor or not.
     refs: [internal/cli/hook.go]
     tags: [push, hooks, release]
+
+  - id: p1-shim-push-named-refs
+    title: The git shim maps git push origin <tag> and -u origin <branch> onto itos push --tag and --ref
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-131]
+    kind: idea
+    why: >
+      Was p3-shim-push-args, folded into p1-push-tag-and-ref by the backlog review of 2026-10-10 and
+      dropped with it, though slice-131's spec left it out (2026-10-11): through the git shim, git
+      push -u origin <branch>, git push origin HEAD, git push origin <tag> and git push --help are
+      usage errors, so a tool pushing a named ref fails. Map the unambiguous forms onto itos push
+      --tag and --ref, and say what itos push cannot take. Re-added under a new id, since a dropped
+      item cannot be reopened (p1-typed-items' status commands).
+    refs: [internal/shim]
+    tags: [push, guard]
