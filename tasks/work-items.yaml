@@ -7194,3 +7194,18 @@ items:
       item's commits. itos core gains it, the whole history or one task's, item's or scenario's
       commits, in place of this repository's script; T-145's parity record (the old output at a
       pinned commit) is its acceptance.
+
+  - id: p1-core-cli-corpus-kind
+    title: "itos runs a CLI's case corpus as a test kind: arguments, exit code, --json and files written"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-10): this repository's conformance runner (tools/itos/conformance,
+      ported to Go by T-144 first) judges a CLI binary by cases of arguments, environment, expected
+      exit code, --json and the files written, which any CLI project needs (go-template-itos's
+      go/cli branch is one). It enters itos core as a test kind beside the Gherkin and command kinds
+      once its case format is designed as a public contract; until then T-144 keeps it a tool of
+      this repository, so the format is not decided under the pressure of the move off Node.
