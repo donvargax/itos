@@ -6936,14 +6936,15 @@ items:
     depends_on: []
     kind: task
 
-  - id: p1-work-done-passes-own-closes
+  - id: slice-127
     title: work done passes over unpushed registry-only commits, so several closes land in one push
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-work-done-passes-own-closes.
       On 2026-10-10 the coordinator closed T-139 then T-140, and T-141 then T-137, each pair
       finished and green on main. The second work done refused each time (HEAD has a commit no
       remote has) because of the first one's own close commit, docs: close <id>, which touches only
