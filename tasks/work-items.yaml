@@ -7980,3 +7980,23 @@ items:
       tools/bin/itos's stamped build.
     refs: [tools/itos/conformance/config.yaml, tools/itos/conformance/run.ts]
     tags: [tests]
+
+  - id: p1-load-refuses-unusable-values
+    title: Every command refuses the values config check finds no tool can use
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-129]
+    kind: idea
+    why: >
+      Found in slice 129: config check now names the values no tool can use (config.Unusable, exit
+      1), as its scenarios ask, but Load still accepts them, so every other command reads such a
+      config as before. A .nan ci.watch.interval still panics itos push (watch.go dereferences the
+      nil the typed config decodes it to), a .nan hooks.commit_msg.check_timeout still leaves the
+      hook uncapped, and an empty shell still runs sh <command>. The loader could refuse them as it
+      refuses ci.watch.timeout <= 0 (exit 2, every command), which would also make config check exit
+      2 for them; or the readers could guard. The exit code the scenarios chose (1) and the loader's
+      (2) disagree today for the same kind of bound: ledger.check.timeout 0 is 1, ci.watch.timeout 0
+      and hooks.commit_msg.check_timeout 0 are 2.
+    refs: [internal/config/usable.go, internal/cli/watch.go]
+    tags: [config]
