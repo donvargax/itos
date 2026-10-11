@@ -1082,3 +1082,80 @@ Feature: The work registry
     Then itos exits with code 0
     And the registry's item "slice-9" is deferred with the reason "Waits for the other project."
     And the registry's item "slice-9" has the status "todo" and the owner "someone"
+
+  # Slice 127 (p1-work-done-passes-own-closes, the user's call, 2026-10-11):
+  # closing T-153 to T-156 and slice-126 took five pushes and five CI runs,
+  # since slice 93's pass-over covers only registry-only commits and a task's
+  # close also touches its ledger (slice 101), and T-153 waited on a red run
+  # that came after its own green one. work done now judges the item's own
+  # commits, the ones that name it (an Item:, Task: or Scenarios: footer, as
+  # itos work show lists them): each must be pushed, and some run whose head
+  # is the item's newest commit or has it as an ancestor must have passed,
+  # since a later run's range (itos ci range, from the last green run) leaves
+  # those commits out, so a later red is not the item's. Commits no remote
+  # has that are not the item's are passed over, so closes chain and one push
+  # lands them. An item with no commit of its own is judged as before, by the
+  # newest commit at HEAD that touches more than the registry (@ID-WORK-16,
+  # 17, 56, 57). The covering-run lookup is bug 49's (@ID-WORK-74), widened
+  # from the newest covering run to any covering run that passed.
+  @ID-WORK-98 @slice-127 @wip
+  Scenario: work done passes over a commit no remote has that is not the item's own
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the remote has the item "slice-9"'s commit touching "README.md"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    And the clone has the commit "docs: plan the next release" touching "docs/plan.md"
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And the registry's item "slice-9" has the status "done" and the owner "someone"
+
+  @ID-WORK-99 @slice-127 @wip
+  Scenario: Two items close one after the other with no push between them
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the work registry has the item "T-001" owned by "someone" with the status "doing"
+    And the remote has the item "slice-9"'s commit touching "README.md"
+    And the remote has the item "T-001"'s commit touching "NOTES.md"
+    And ci.watch asks a fake GitHub, which reports the run "https://ci.example/runs/1"
+    And the watched run's jobs "ci" and "platform" succeed
+    When itos runs "work done T-001"
+    Then itos exits with code 0
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And the registry's item "T-001" has the status "done" and the owner "someone"
+    And the registry's item "slice-9" has the status "done" and the owner "someone"
+
+  @ID-WORK-100 @slice-127 @wip
+  Scenario: work done closes an item whose own run passed though a later run failed
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the remote has the item "slice-9"'s commit touching "README.md"
+    And the remote has gained the commit "feat: something else" touching "other.txt"
+    And the fake GitHub's run of the item "slice-9"'s commit, "https://ci.example/runs/1", succeeded
+    And the fake GitHub's run of the remote's head, "https://ci.example/runs/2", failed
+    When itos runs "work done slice-9"
+    Then itos exits with code 0
+    And its output says "https://ci.example/runs/1"
+    And the registry's item "slice-9" has the status "done" and the owner "someone"
+
+  @ID-WORK-101 @slice-127 @wip
+  Scenario: work done refuses while the item's own commit is not pushed, naming itos push
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the clone has the item "slice-9"'s commit touching "README.md", not pushed
+    When itos runs "work done slice-9"
+    Then itos exits with code 1
+    And its output says "itos push"
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
+
+  @ID-WORK-102 @slice-127 @wip
+  Scenario: work done refuses when every run covering the item's own commit failed
+    Given a clone of it, where itos runs
+    And the work registry has the item "slice-9" owned by "someone" with the status "doing"
+    And the remote has the item "slice-9"'s commit touching "README.md"
+    And the fake GitHub's run of the item "slice-9"'s commit, "https://ci.example/runs/1", failed
+    When itos runs "work done slice-9"
+    Then itos exits with code 1
+    And its output says "https://ci.example/runs/1"
+    And the registry's item "slice-9" has the status "doing" and the owner "someone"
