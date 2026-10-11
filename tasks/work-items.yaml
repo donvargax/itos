@@ -8089,7 +8089,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-github-registry-pilot]
     kind: idea
     why: >
       The user (2026-10-11): the work model has grown too many commands for what is a todo list. The
