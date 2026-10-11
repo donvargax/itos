@@ -635,15 +635,9 @@ items:
     title: config check refuses an except_types type that is not one of commits.types
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-23]
     kind: idea
-    why: >
-      Found in slice 23: a range check's except_types is read as a list of commit types, and the
-      moves rule leaves those types alone, but config check accepts any word there, as it does
-      for the command checks. A misspelt type (fead) leaves feat judged by the rule, and every
-      feat that turns a scenario live is rejected with no hint of why. The footers' required_for
-      and validate_for are already held to commits.types; except_types could be too.
     tags: [config]
 
   - id: p1-moves-merge-by-git
@@ -737,29 +731,18 @@ items:
     title: config check refuses wip_tag on a kind whose adapter is a command
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-19]
     kind: idea
-    why: >
-      Found in slice 19: since the footer rule names the wip tag only for the Gherkin adapter, a
-      kind whose adapter is a command reads its wip_tag nowhere (the adapter says which tests are
-      live), yet config check accepts the key there, against "every key it accepts is one a tool
-      reads" (config.feature). It could refuse it on such a kind, as slice 4 refused unread keys.
     tags: [config]
 
   - id: p1-group-label-flag-word
     title: config check refuses a ledger.group.label that cannot be itos task's flag
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-21]
     kind: idea
-    why: >
-      Found in slice 21: itos task takes --<label> as a group flag, but config check accepts any
-      string as the label. One with a space can never be typed as a flag, and one that is another
-      of the task runner's flags (skip, pending) makes that flag read as a group, so --skip T-005
-      selects nothing. The v0.6.0 notes ask for one word that is no other flag; config check could
-      refuse the rest, naming the key.
     tags: [config]
 
   - id: slice-22
@@ -4054,17 +4037,9 @@ items:
     title: config check refuses .nan and .inf
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by the code review of 07b0e6d (2026-10-05). Non-finite numbers pass the schema and
-      decode to nil, so ci.watch.interval: .nan panics itos push and a nan check_timeout leaves the
-      hook uncapped (config.go:117, watch.go:78-79).
-
-      Backlog review of 2026-10-10, batch 3: folds in p1-check-timeout-positive: and above 0: a
-      ledger.check.timeout or a check's own timeout of 0 or less passes config check today, and
-      min(own, cap) in check/captured.go then lifts the commit-msg hook's cap.
     refs: [internal/config/config.go]
     tags: [config]
 
