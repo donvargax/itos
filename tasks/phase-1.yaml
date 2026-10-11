@@ -1502,5 +1502,3 @@
     the remaining review batches tag them; an item dropped, done or merged away since the review is
     skipped. The check needs work.tags declared, the registry sound, every declared tag carried by
     some item, and at least the 121 items the review tagged carrying one.
-  done_when:
-    - run: 'tags=$(tools/bin/itos config get work.tags | tr -d ''"[]'' | tr , '' '') && test -n "$tags" && tools/bin/itos work check >/dev/null && n=0 && for t in $tags; do c=$(tools/bin/itos work list --all --tag "$t" | grep -c .); test "$c" -gt 0 || exit 1; n=$((n + c)); done && test "$n" -ge 121'

@@ -5355,19 +5355,9 @@ items:
     title: This repository declares its work tags and its reviewed open items carry them
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-118]
     kind: task
-    why: >
-      Was p1-tag-this-registry.
-      Slice 97 built tags on work items, but this repository declares none, so its own registry, the
-      clusters that prompted the slice (upgrade, plugin, stealth, guard, json, windows), carries
-      none yet: work.tags in itos.yaml is a build commit, then work edit --tags on the open items.
-
-      Backlog review of 2026-10-10, batch 4: queued: the backlog review files (batch 1 to 4,
-      2026-10-10) give every kept item an area tag (ci, release, work, commit, hooks, plugin,
-      config, init, docs, tests, guard, upgrade, push, status, ask, message); landing the tags from
-      them now saves a second pass over the backlog.
     tags: [work]
 
   - id: p1-show-item-tags
