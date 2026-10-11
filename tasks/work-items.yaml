@@ -1130,6 +1130,7 @@ items:
       code that makes them pass. Not enforced: whether an agent followed red, green, refactor cannot
       be verified yet. A proof must tell a scenario that fails at a step from one with an undefined
       step, and allow a guard scenario meant to pass before the work.
+    tags: [tests]
 
   - id: p1-commit-message-file
     title: Commit messages through a file, so a heredoc cannot be piped into git
@@ -1201,6 +1202,7 @@ items:
       new Then collided with an existing Given of the same words. Fourth.
 
       Its next-id part is slice-60; what is left is itos tests steps and itos tests undefined.
+    tags: [tests]
 
   - id: slice-67
     title: "itos status, where the work stands, printed at the end of itos go"
@@ -1237,6 +1239,7 @@ items:
       suggest <kind> could print a YAML snippet per file lacking one, its live scenarios ranked by
       duration from the last full run (an optional tests.<kind>.timings report the runner writes) and
       marked when they failed on main recently, the why left for a person. Writes nothing.
+    tags: [tests]
 
   - id: p1-backport-code-design
     title: Backport the template's code-design rules, and the gates that decide them
@@ -1255,6 +1258,7 @@ items:
       (which moves p1-several-test-kinds up); slices and property-based tests stay prose. Here they
       fit a TypeScript CLI with no domain layer, whose scenarios and conformance corpus are
       already black-box integration tests.
+    tags: [tests]
 
   - id: p1-fixtures-folder-unused
     title: tools/itos/fixtures/ is unused, its only readers being checks T-125 dropped
@@ -2673,6 +2677,7 @@ items:
       nothing proves it for a feature branch, stealth or not. Scenarios: a new branch pushed to
       origin/<branch> with main untouched, and its notes not pushed.
     refs: [features/push.feature, features/stealth.feature]
+    tags: [tests]
 
   - id: p1-done-without-scenarios
     title: itos work done says when a slice has no @slice scenarios at all
@@ -3461,6 +3466,7 @@ items:
       commit-msg hook nor CI said so; the coordinator caught it by hand before an agent built on
       them. An ID is one scenario's, @wip or not, and one area is one feature file: both rules hold
       at commit.
+    tags: [tests]
 
   - id: slice-115
     title: The notice of a pin fallen behind, and itos init's note of it, name itos upgrade instead of itos pin
@@ -4554,6 +4560,7 @@ items:
       command kind, but itos tests moves <kind> stays Gherkin-only, its pinned message saying the
       rule reads feature files. Waits on slice-82 (q-15).
     refs: [internal/cli, features/moves-command.feature]
+    tags: [tests]
 
   - id: T-100
     title: previous-release judges an old case by itos's machine output alone, and CI reads ci range and version through --json
@@ -4629,6 +4636,7 @@ items:
       that asserts only through text gives previous-release nothing but its exit code since T-100;
       move such cases to json:, exit codes and files_after as they are touched.
     refs: [tools/itos/conformance/guide.yaml, tools/itos/conformance/status.yaml]
+    tags: [tests]
 
   - id: slice-87
     title: "itos version says what answers it: --version, latest for pin and upgrade, and the pin named"
@@ -4841,6 +4849,7 @@ items:
       itos go's inbox shows it; a new model also makes a run due, and each results file names its
       model.
     refs: [docs/plans/leashbench.md]
+    tags: [tests]
 
   - id: p1-baseline-reminder
     title: A monthly workflow opens a LeashBench due issue, and a new model makes a run due
@@ -4997,6 +5006,7 @@ items:
     why: >
       Slice 92 rewrote ASK-20 (slice 89, question add) to run decision add, so it asserts the same
       as ASK-22. Neither is released yet: dropping one before v6.0.0 costs nothing.
+    tags: [tests]
 
   - id: p1-ci-e2e-workflow
     title: Run a push's E2E step in a workflow of its own (#18)
