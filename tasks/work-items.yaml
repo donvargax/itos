@@ -7751,3 +7751,20 @@ items:
       taking an id too.
     refs: [internal/cli/idmint.go, features/draft.feature]
     tags: [work]
+
+  - id: p1-ci-run-help-proof-check
+    title: ci run's help says the code proof runs proof.code.check, which may judge fresh mutants
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #45 (itos-template, 2026-10-11): itos ci run --help, and internal/plan/plan.go's
+      comment, say the code proof reads the results recorded before the push and runs none of its
+      own. Since q-41, q-52 and q-55 a project's proof.code.check is a counted run judging fresh
+      mutants (here and in itos-template, minutes with --all-tests), so a reader expects a cheap
+      static step. Say the check is whatever proof.code.check runs. Help text only: no scenario, a
+      help corpus case.
+    refs: [internal/cli/help.go, internal/plan/plan.go, tools/itos/conformance/help.yaml]
+    tags: [ci, docs]
