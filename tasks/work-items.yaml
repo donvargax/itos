@@ -7536,8 +7536,8 @@ items:
   - id: slice-125
     title: A test or docs commit may reword a feature's description, which no scenario checks
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
