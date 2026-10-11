@@ -8133,3 +8133,15 @@ items:
       writing, as the step now does for a key the base config already holds.
     refs: [features/steps_test.go]
     tags: [tests]
+
+  - id: bug-105
+    title: An answered question naming a renamed item is a warning, and work promote renames question links
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      See features/config.feature, the comment above the bug's first scenario.
+    refs: [internal/cli/configcheck.go, internal/cli/workwrite.go]
+    tags: [work, config]
