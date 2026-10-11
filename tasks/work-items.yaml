@@ -711,20 +711,9 @@ items:
     title: ledger.id has one default, or none, for every command
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-19]
     kind: idea
-    why: >
-      Found in slice 19, which moved every agreed fallback into the defaults table: without
-      ledger.id, itos task reads a command-line word as a task ID only when it matches T-\d+ (cli.ts),
-      while the ledger check and the ledger footers take any ID (.+). The two disagree, so neither
-      went into the table. Either the table gets T-\d+ (a changed default: the ledger check and the
-      footers start rejecting other IDs) or itos task finds its IDs another way, and the key stays
-      without a default. Needs a scenario in ledger.feature or task.feature.
-
-      Backlog review of 2026-10-10, batch 3: folds in p1-ledger-id-grouping: the anchoring:
-      ledger.IDPattern compiles ^id$ with no group, so an alternation in ledger.id anchors only its
-      first and last branches; one reader of ledger.id wraps it as ^(?:id)$.
     tags: [config]
 
   - id: p1-wip-tag-command-kind
@@ -3129,15 +3118,9 @@ items:
     title: config check and the commit-msg hook judge itos ask's questions file
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: [slice-62]
     kind: idea
-    why: >
-      Slice 62 left asks.yaml judged only by the next itos ask that reads it: config check does not
-      read it, and the commit-msg hook checks itos's data at commit only for the config, the ledger,
-      the registry and the smoke set. A hand edit that breaks it (an unknown key, an id given twice,
-      an --item naming no item) lands unnoticed until an ask command or work show stops on it with
-      exit 2.
     tags: [config]
 
   - id: slice-114
@@ -7985,19 +7968,9 @@ items:
     title: Every command refuses the values config check finds no tool can use
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [slice-129]
     kind: idea
-    why: >
-      Found in slice 129: config check now names the values no tool can use (config.Unusable, exit
-      1), as its scenarios ask, but Load still accepts them, so every other command reads such a
-      config as before. A .nan ci.watch.interval still panics itos push (watch.go dereferences the
-      nil the typed config decodes it to), a .nan hooks.commit_msg.check_timeout still leaves the
-      hook uncapped, and an empty shell still runs sh <command>. The loader could refuse them as it
-      refuses ci.watch.timeout <= 0 (exit 2, every command), which would also make config check exit
-      2 for them; or the readers could guard. The exit code the scenarios chose (1) and the loader's
-      (2) disagree today for the same kind of bound: ledger.check.timeout 0 is 1, ci.watch.timeout 0
-      and hooks.commit_msg.check_timeout 0 are 2.
     refs: [internal/config/usable.go, internal/cli/watch.go]
     tags: [config]
 
