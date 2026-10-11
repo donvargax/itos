@@ -9,7 +9,9 @@
 // the head another clone pushed while itos waited. Slice 93's steps say which
 // commit's run work done asked for: the remote's head, never the clone's HEAD.
 // Bug 49's push a fix and a registry commit after it in one push, and give
-// the fake GitHub a run of the pushed head alone.
+// the fake GitHub a run of the pushed head alone. Slice 127's give it a
+// completed run of an item's commit or of the remote's head, and no watched
+// run, so a commit with no run of its own has none.
 package features
 
 import (
@@ -110,6 +112,23 @@ func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the fake GitHub reports the pushed commit's run cancelled, and the run "([^"]*)" of the remote's head, whose jobs "([^"]*)" and "([^"]*)" succeed$`, w.pushedRunCancelled)
 	sc.Step(`^the remote's head touches only the work registry, pushed in one push with the commit before it$`, w.pushedWithRegistryHead)
 	sc.Step(`^the fake GitHub has a run of the remote's head alone$`, w.runOfRemoteHeadAlone)
+	sc.Step(`^the fake GitHub's run of the item "([^"]*)"'s commit, "([^"]*)", (succeeded|failed)$`, func(id, url, ended string) error {
+		sha, err := w.itemCommitSHA(id)
+		if err != nil {
+			return err
+		}
+		return w.fakeRunOf(sha, url, ended)
+	})
+	sc.Step(`^the fake GitHub's run of the remote's head, "([^"]*)", (succeeded|failed)$`, func(url, ended string) error {
+		if err := w.watchFakeRuns(); err != nil {
+			return err
+		}
+		sha, err := w.remoteHead()
+		if err != nil {
+			return err
+		}
+		return w.fakeRunOf(sha, url, ended)
+	})
 	sc.Step(`^the fake GitHub was asked for the run of the clone's HEAD$`, w.fakeGitHubGivenHead)
 	sc.Step(`^the fake GitHub was asked for the run of the remote's head$`, w.fakeGitHubGivenRemoteHead)
 	sc.Step(`^the fake GitHub was never asked for the run of the clone's HEAD$`, w.fakeGitHubNotGivenHead)
@@ -464,4 +483,54 @@ func (w *world) outputSaysOnceBefore(text, later string) error {
 		return fmt.Errorf("the output does not say %q before %q\n%s", text, later, w.report())
 	}
 	return nil
+}
+
+// ci.watch asks the fake GitHub, which holds the runs the steps add and no
+// watched run (slice 127), when no step set ci.watch up: the config committed
+// on the remote's main, fetched and rebased onto first since another clone
+// may have pushed, and pushed. ci.watch.timeout is short, so a watch for a run
+// that never comes ends in seconds.
+func (w *world) watchFakeRuns() error {
+	w.fakeGitHub()
+	if w.config.watch != nil {
+		return nil
+	}
+	w.config.watch = &watchConfig{provider: "github", timeout: 3}
+	if err := w.git("fetch", "-q", "origin"); err != nil {
+		return err
+	}
+	if err := w.git("rebase", "-q", "origin/main"); err != nil {
+		return err
+	}
+	return w.pushConfig("chore: watch CI")
+}
+
+// The fake GitHub holds a completed run of the commit at the address, newer
+// than every run before it: its jobs ci and platform succeeding, or ci
+// failing, as ended says; ci.watch set up to ask it (watchFakeRuns).
+func (w *world) fakeRunOf(sha, url, ended string) error {
+	if err := w.watchFakeRuns(); err != nil {
+		return err
+	}
+	conclusion, jobs := "success", []watchedJob{job("ci", "success"), job("platform", "success")}
+	if ended == "failed" {
+		conclusion, jobs = "failure", []watchedJob{job("ci", "failure"), job("platform", "success")}
+	}
+	g := w.github
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.addRun(sha, url, conclusion, jobs)
+	return nil
+}
+
+// The full SHA of the remote's main.
+func (w *world) remoteHead() (string, error) {
+	cmd := exec.Command(git.Bin(), "rev-parse", "main")
+	cmd.Dir = w.remote()
+	cmd.Env = w.env()
+	out, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("git rev-parse main in the remote: %w", err)
+	}
+	return strings.TrimSpace(string(out)), nil
 }

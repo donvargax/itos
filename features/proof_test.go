@@ -52,7 +52,12 @@ func initializeProofSteps(sc *godog.ScenarioContext, w *world) {
 		w.config.proof = &proofConfig{paths: []string{paths}, check: "itos-no-such-provider mutation check --since {base} --fail-uncovered --json"}
 		return w.proveCode()
 	})
-	sc.Step(`^the remote has the item "([^"]*)"'s commit touching "([^"]*)"$`, w.itemCommitPushed)
+	sc.Step(`^the remote has the item "([^"]*)"'s commit touching "([^"]*)"$`, func(id, path string) error {
+		return w.itemCommit(id, path, true)
+	})
+	sc.Step(`^the clone has the item "([^"]*)"'s commit touching "([^"]*)", not pushed$`, func(id, path string) error {
+		return w.itemCommit(id, path, false)
+	})
 	sc.Step(`^the provider was run with the base the range starts at$`, w.providerRanWithRangeStart)
 	sc.Step(`^the provider was not run$`, w.providerNotRun)
 }
@@ -108,9 +113,11 @@ func (w *world) proofSection() string {
 }
 
 // The clone commits a line of the file with an Item: footer naming the item,
-// the config's registry footer turned on (and pushed) for it, then pushes the
-// commit to the remote's main past the hooks: the item's one commit, landed.
-func (w *world) itemCommitPushed(id, path string) error {
+// the config's registry footer turned on (and pushed) for it, then, with
+// push, pushes the commit to the remote's main past the hooks: the item's
+// one commit, landed; without, the commit stays the clone's alone (slice
+// 127).
+func (w *world) itemCommit(id, path string, push bool) error {
 	if !w.config.itemFooter {
 		w.config.itemFooter = true
 		if err := w.pushConfig("chore: link commits to items"); err != nil {
@@ -127,7 +134,23 @@ func (w *world) itemCommitPushed(id, path string) error {
 	if err := w.git("commit", "-q", "--no-verify", "-m", subject+"\n\nItem: "+id+"\n"); err != nil {
 		return err
 	}
+	if !push {
+		return nil
+	}
 	return w.git("push", "-q", "--no-verify", "origin", "HEAD:refs/heads/main")
+}
+
+// The full SHA of the clone's newest commit whose Item: footer names the
+// item, as itemCommit writes it.
+func (w *world) itemCommitSHA(id string) (string, error) {
+	sha, err := w.gitOutput("log", "-1", "--format=%H", "--grep=^Item: "+id+"$")
+	if err != nil {
+		return "", err
+	}
+	if sha = strings.TrimSpace(sha); sha == "" {
+		return "", fmt.Errorf("the clone has no commit of the item %q", id)
+	}
+	return sha, nil
 }
 
 // The runs the fake provider recorded, a line of words each.
