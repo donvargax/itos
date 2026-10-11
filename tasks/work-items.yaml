@@ -7623,14 +7623,15 @@ items:
     refs: [AGENTS.md]
     tags: [docs]
 
-  - id: p1-stale-agent-block-reported
+  - id: slice-124
     title: itos go and itos status say when AGENTS.md's itos block is one another itos wrote
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-120]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-stale-agent-block-reported.
       The user's call (2026-10-11): a project crossing to v8 with a 7.x launcher on its PATH gets no
       automatic block rewrite (p1-upgrade-refreshes-agent-block hands upgrade to the target only
       from v8 on), and only itos init reports a stale block today. itos go and itos status, which
