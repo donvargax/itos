@@ -1488,3 +1488,19 @@
     check requires no plan step to call node or vp.
   done_when:
     - run: '! test -e package.json && ! test -e pnpm-lock.yaml && ! test -d tools/parity && ! test -d tools/bin/parity && ! grep -rqE ''setup-node|setup-vp'' .github/workflows && ! grep -qE ''(^|[ "(])(node|vp) '' itos.yaml'
+
+- id: T-150
+  type: build
+  title: This repository declares its work tags and its reviewed open items carry them
+  why: >
+    Was p1-tag-this-registry. Slice 97 built tags on work items, but this repository declares no
+    work.tags, so work check refuses any tag and its own registry carries none. The backlog review
+    of 2026-10-10 (batches 1 to 4, the oldest open ideas up to those added 2026-10-06) gave every
+    kept item one area tag. work.tags in itos.yaml declares exactly the tags the review used, a
+    build commit, then work edit --tags puts each on the open items the review gave it, one commit
+    per tag. Items the review did not cover, those added from 2026-10-07 on, stay untagged until
+    the remaining review batches tag them; an item dropped, done or merged away since the review is
+    skipped. The check needs work.tags declared, the registry sound, every declared tag carried by
+    some item, and at least the 121 items the review tagged carrying one.
+  done_when:
+    - run: 'tags=$(tools/bin/itos config get work.tags | tr -d ''"[]'' | tr , '' '') && test -n "$tags" && tools/bin/itos work check >/dev/null && n=0 && for t in $tags; do c=$(tools/bin/itos work list --all --tag "$t" | grep -c .); test "$c" -gt 0 || exit 1; n=$((n + c)); done && test "$n" -ge 121'
