@@ -358,7 +358,10 @@ func TestRefreshedRules(t *testing.T) {
 		t.Errorf("an AGENTS.md that cannot be read: %v", got)
 	}
 
-	rules := filepath.ToSlash(filepath.Join(".git", config.StealthFolder, agentsFile))
+	// The rules file as said, with slashes, and on disk, as the code builds it:
+	// backslashed on Windows.
+	disk := filepath.Join(".git", config.StealthFolder, agentsFile)
+	rules := filepath.ToSlash(disk)
 	if got := refreshedRules(true); got != nil {
 		t.Errorf("stealth, AGENTS.md a folder: %v", got)
 	}
@@ -370,7 +373,7 @@ func TestRefreshedRules(t *testing.T) {
 	}
 	putFile(t, rules, olderBlock)
 	putFile(t, overrideFile, rulesBlock)
-	want = []rulesEdit{{rules, rules, rulesBlock, false}}
+	want = []rulesEdit{{rules, disk, rulesBlock, false}}
 	if got := refreshedRules(true); !slices.Equal(got, want) {
 		t.Errorf("stealth, an older block in the git folder: %v, not %v", got, want)
 	}
@@ -383,7 +386,7 @@ func TestRefreshedRules(t *testing.T) {
 	}
 	putFile(t, rules, olderBlock)
 	putFile(t, overrideFile, "Mine.\n\n"+olderBlock+"After.\n")
-	want = []rulesEdit{{rules, rules, rulesBlock, false}, {overrideFile, overrideFile, "Mine.\n\n" + rulesBlock + "After.\n", false}}
+	want = []rulesEdit{{rules, disk, rulesBlock, false}, {overrideFile, overrideFile, "Mine.\n\n" + rulesBlock + "After.\n", false}}
 	if got := refreshedRules(true); !slices.Equal(got, want) {
 		t.Errorf("stealth, older blocks in both: %v, not %v", got, want)
 	}
