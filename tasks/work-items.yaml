@@ -7853,17 +7853,7 @@ items:
     title: Kill the four mutants of internal/cli/upgrade.go that survive the push proof's range
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Was p1-upgrade-cli-survivors.
-      Judging all 126 sites of the range CI's push proof samples (since f585700, at 58d462f4) found
-      four survivors in internal/cli/upgrade.go, from slice-126's change to it: upgradeCommand's
-      want-older check (line 228, < 0 to <= 0 and 0 to 1: an upgrade to the version already on is
-      not told apart), its return 0, err after applySteps fails (line 261, 0 to 1: likely
-      equivalent, the code unread beside an error), and upgrade.print's
-      len(r.Breaking)+len(r.Upgrading) > 0 (line 381, > to >=: a release with no entries). Each push
-      draws one of the 126 sites, so until they are killed or recorded as equivalent in itos-cc.yaml
-      a push can go red on one.
     refs: [internal/cli/upgrade.go]

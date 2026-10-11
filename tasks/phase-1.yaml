@@ -1586,5 +1586,3 @@
     draws one site of the range until a run is green, so each is a red push waiting. Kill each with
     a test; an equivalent one is reshaped away, as T-155 did, or recorded in itos-cc.yaml with its
     reason.
-  done_when:
-    - run: go test ./internal/cli -run Upgrade -count=1
