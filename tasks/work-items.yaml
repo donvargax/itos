@@ -7412,8 +7412,8 @@ items:
   - id: slice-120
     title: "itos init --agent-rules writes a two-line block: the entry line and the staging boundary"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-119]
     kind: slice
     why: >
