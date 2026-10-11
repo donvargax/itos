@@ -8107,15 +8107,9 @@ items:
     title: work promote renames the idea in the questions file too, as it does in every depends_on
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      2026-10-11: slice-130's config check of tasks/asks.yaml turned main red (run 38171033719): six
-      questions named ideas work promote had renamed to slice-91, slice-71, slice-76, T-092 and
-      slice-108, since promote renames an idea in the registry's depends_on but not a question's
-      item. Fixed in the data by hand; promote should rename it there too, in the same commit, so
-      the check never trips on what itos itself wrote. A fix with a @bug scenario.
     refs: [internal/cli/workwrite.go, internal/work]
     tags: [work]
 
