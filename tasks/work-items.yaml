@@ -7443,3 +7443,22 @@ items:
       (q-45). Folds in p1-agent-rules-ci-summary. Here AGENTS.md is 28.0 KB, read by every session
       for every task. Breaking: the first of the v8 release-candidate bundle.
     refs: [AGENTS.md, internal/guide]
+
+  - id: p1-notes-placement
+    title: "Notes are placed like rules: startup essentials, or attached to a role, procedure or item"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-agent-rules-as-data]
+    kind: idea
+    why: >
+      Split from p1-agent-rules-as-data with the user (2026-10-10), q-47 and q-48: itos go stops
+      appending the repository's and the clone's notes whole. An author marks an operational note as
+      a startup essential or attaches it to a role, a procedure or an item; itos go prints only the
+      current essentials, and a before-action procedure prints the notes that apply to it.
+      Historical handoffs stay readable outside startup; current work lives in the registry,
+      decisions and drafts. Repository notes stay shared, clone notes private; classification and
+      archival are explicit, never heuristic summaries or silent truncation. itos status stays a
+      snapshot with no notes (q-48). Breaking (what itos go prints): part of the v8
+      release-candidate bundle.
+    refs: [docs/ORCHESTRATING.md, internal/guide]
