@@ -4049,8 +4049,8 @@ items:
   - id: slice-130
     title: itos refuses ledger layouts, questions files and config values it cannot use, the same way for every command
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
