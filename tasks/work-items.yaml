@@ -7560,3 +7560,18 @@ items:
       repository's coordinator gets two contradicting rules. The template's last steps become: push
       in the background, report the pushed SHA, leave CI and the close to the coordinator.
     refs: [internal/guide/brief.md, internal/guide/land.md]
+
+  - id: p1-corpus-stdout-lacks
+    title: A corpus case can say what the output must not hold
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-144]
+    kind: idea
+    why: >
+      Found by slice-119 (2026-10-10): the corpus runner has stdout_has but no stdout_lacks, so
+      guide commit leaving the config's rules out of a repository without a config is pinned only by
+      GUIDE-17 and a unit test, not by the corpus a consumer's suite reruns. After T-144, so it is
+      built once, in Go.
+    refs: [tools/itos/conformance]
+    tags: [tests]
