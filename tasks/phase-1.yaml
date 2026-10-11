@@ -1517,3 +1517,25 @@
     .metrics/mutate holds itos-cc's cached results keyed by the old path, regenerated or left to go
     stale as itos-cc's cache rules allow. Its feat-free commits release nothing; rc.1 is
     p1-agents-md-reduced.
+
+- id: T-152
+  type: ci
+  title: The push proof judges the lines a push changes, with itos-cc v0.12.0
+  why: >
+    Was p1-proof-changed-lines-any-test. q-57 (2026-10-10): the push proof's strict coverage judges
+    only what a range adds or changes, so a slice no longer pays for old uncovered statements in a
+    function it touches (slices 115 to 118, 120 and 107 did, two reshaping code to dodge it).
+    itos-cc v0.12.0 (2026-10-11) closed itos-cc#33 with --fail-uncovered=lines, which needs
+    --since: an uncovered mutant fails only on a changed line, a change that only deletes judges no
+    coverage, and a changed function still needs fresh evidence. tools/bin/pinned moves itos-cc to
+    v0.12.0 with each platform's sum from its checksums.txt (ADR-0046: our own tool, no age wait);
+    itos.yaml's proof step and AGENTS.md's push-proof line say --fail-uncovered=lines; AGENTS.md's
+    and docs/ORCHESTRATING.md's wording ("the statement coverage of every one of them", "an
+    uncovered statement in a changed function") says changed lines; ADR-0044's "in the functions an
+    item changes" gains a dated amendment naming q-57. The nightly keeps no strict coverage (q-54).
+    The corpus counting as coverage is p1-corpus-listed-suite, not this task. The pins of v0.8 to
+    v0.12 change Go's behaviour little (their notes): read them for what else moves.
+  done_when:
+    - run: tools/bin/pinned itos-cc version 2>&1 | grep -q '0\.12\.0'
+    - run: grep -q -- '--fail-uncovered=lines' itos.yaml
+    - run: grep -q -- '--fail-uncovered=lines' AGENTS.md
