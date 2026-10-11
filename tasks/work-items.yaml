@@ -7408,14 +7408,15 @@ items:
     kind: slice
     refs: [internal/guide, AGENTS.md, docs/ORCHESTRATING.md]
 
-  - id: p1-agents-md-reduced
-    title: AGENTS.md keeps the safety boundaries and one entry line; the commit policy moves to itos guide commit
+  - id: slice-120
+    title: "itos init --agent-rules writes a two-line block: the entry line and the staging boundary"
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-119]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-agents-md-reduced.
       Split from p1-agent-rules-as-data with the user (2026-10-10), q-45 and q-46: the AGENTS.md the
       harness loads for every session keeps the universal safety boundaries, one line saying the
       gates enforce the repository's policy, and one entry line (start with itos go unless your
