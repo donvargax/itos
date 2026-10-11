@@ -190,3 +190,18 @@ func (f *File) About(item string) []Question {
 	}
 	return found
 }
+
+// Rename makes every question that names the item old name the item new
+// instead (bug 105: work promote renames an idea there as in every
+// depends_on), and is the ids of the questions it changed, in the order
+// asked.
+func (f *File) Rename(old, new string) []string {
+	var renamed []string
+	for i := range f.Questions {
+		if f.Questions[i].Item == old {
+			f.Questions[i].Item = new
+			renamed = append(renamed, f.Questions[i].ID)
+		}
+	}
+	return renamed
+}

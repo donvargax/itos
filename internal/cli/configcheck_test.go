@@ -139,3 +139,35 @@ func TestConfigFindingsQuestionsUnreadable(t *testing.T) {
 		t.Errorf("a questions' file that cannot be read: %d %v %v", code, found, err)
 	}
 }
+
+// An answered question naming an item the registry does not have is a
+// warning, in the area asks, and never sets the code; an open one is a
+// problem (bug 105).
+func TestConfigFindingsAnsweredQuestionsWarn(t *testing.T) {
+	scratchFolder(t)
+	gitIn(t, "init", "-q", "-b", "main")
+	writeFiles(t, map[string]string{
+		"itos.yaml":             "version: 1\nledger: { files: \"tasks/phase-{group}.yaml\" }\nwork: { people: { source: yaml, file: people.yaml } }\n",
+		"tasks/phase-1.yaml":    "[]\n",
+		"tasks/work-items.yaml": "phases: { 1: null }\nitems: [{ id: p1-a, title: A, phase: 1, owner: null, status: todo, depends_on: [], kind: idea, why: A }]\n",
+		"people.yaml":           "- a\n",
+		"tasks/asks.yaml": "questions:\n  - { id: q-1, item: p1-gone, question: \"Why?\", answer: \"So.\" }\n" +
+			"  - { id: q-2, item: p1-a, question: \"How?\", answer: \"Thus.\" }\n  - { id: q-3, question: \"When?\", answer: \"Now.\" }\n",
+	})
+	code, found, warnings, _, err := configFindings("")
+	if err != nil || code != 0 || len(found) != 0 || len(warnings) != 1 {
+		t.Fatalf("answered: %d %+v %+v %v", code, found, warnings, err)
+	}
+	want := Found{Area: "asks"}
+	want.Rule = "asks-answered-unknown-item"
+	want.Message = "tasks/asks.yaml: q-1, answered, names the item p1-gone, which tasks/work-items.yaml does not have"
+	want.Fix = "name the item's new id in q-1's item, or remove its item"
+	if warnings[0] != want {
+		t.Errorf("warning %+v, want %+v", warnings[0], want)
+	}
+	writeFiles(t, map[string]string{"tasks/asks.yaml": "questions:\n  - { id: q-1, item: p1-gone, question: \"Why?\" }\n"})
+	code, found, warnings, _, err = configFindings("")
+	if err != nil || code != ExitPolicy || len(found) != 1 || found[0].Rule != "asks-unknown-item" || len(warnings) != 0 {
+		t.Errorf("open: %d %+v %+v %v", code, found, warnings, err)
+	}
+}

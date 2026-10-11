@@ -24,6 +24,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/donvargax/itos/v8/internal/ask"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/ledger"
@@ -522,7 +523,9 @@ var promoteKinds = []string{"slice", "task"}
 // the idea renamed, given a minted ID and the kind (and the title, when given),
 // "Was <idea>." before its why, every depends_on naming it renamed too, and
 // the registry committed (work.Promote). A task's id must match the ledger's
-// ledger.id.
+// ledger.id. Every question of work.asks naming the idea names the new id,
+// committed with the registry (bug 105, promotedAsks); with none, the
+// registry is committed alone.
 func workPromote(args []string, o Out) (int, error) {
 	id, kind, flags, err := workPromoteLine(args)
 	if err != nil {
@@ -544,20 +547,67 @@ func workPromote(args []string, o Out) (int, error) {
 	if problem != nil {
 		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
 	}
-	sha, code, err := writeRegistry(cfg, text, change, o)
+	files := []written{{path: cfg.Work.Registry, old: text, text: change.Text}}
+	asks, renamed, problem, err := promotedAsks(cfg, id, newID)
+	if err != nil {
+		return 0, err
+	}
+	if problem != nil {
+		return refuseWork([]out.Problem{*problem}, ExitPolicy, o)
+	}
+	body := change.Body
+	if len(renamed) > 0 {
+		files = append(files, *asks)
+		body = strings.TrimSuffix(body, ".") + ", and rename it in " + and(renamed) + " of " + cfg.Work.Asks + "."
+	}
+	sha, code, err := writeCommitted(cfg, files, change.Header, body, o)
 	if err != nil || code != 0 {
 		return code, err
 	}
 	line := fmt.Sprintf("%s is the %s %s", id, kind, newID)
-	if len(change.Rewritten) > 0 {
-		line += ", named now by " + strings.Join(change.Rewritten, ", ")
+	if namedBy := append(slices.Clone(change.Rewritten), renamed...); len(namedBy) > 0 {
+		line += ", named now by " + strings.Join(namedBy, ", ")
 	}
-	rewritten := make([]any, len(change.Rewritten))
-	for i, r := range change.Rewritten {
-		rewritten[i] = r
+	extra := []out.Field{{Key: "was", Value: id}, {Key: "rewritten", Value: anys(change.Rewritten)}}
+	// Only when a question named the idea, so a promote without one reports
+	// as it did.
+	if len(renamed) > 0 {
+		extra = append(extra, out.Field{Key: "questions", Value: anys(renamed)})
 	}
-	extra := []out.Field{{Key: "was", Value: id}, {Key: "rewritten", Value: rewritten}}
 	return reportWork(line+": "+committed(sha, change.Header), change, sha, extra, o)
+}
+
+// anys is the strings as a list out.Emit writes.
+func anys(names []string) []any {
+	list := make([]any, len(names))
+	for i, n := range names {
+		list[i] = n
+	}
+	return list
+}
+
+// promotedAsks is the questions' file, work.asks, with every question naming
+// the idea naming its new id (ask.File.Rename), and the ids of the ones it
+// renamed; none, and no file, when the file is not there or no question
+// names the idea. The problem, which refuses the promote, is a file that
+// cannot be read as itos decision writes it.
+func promotedAsks(cfg *config.Loaded, id, newID string) (*written, []string, *out.Problem, error) {
+	f, old, there, err := loadAsks(cfg)
+	if err != nil && there {
+		return nil, nil, &out.Problem{
+			Rule:    "asks-invalid",
+			Message: err.Error(),
+			Fix:     "correct " + cfg.Work.Asks + " to what itos decision writes, then promote " + id + " again",
+		}, nil
+	}
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	renamed := f.Rename(id, newID)
+	if len(renamed) == 0 {
+		return nil, nil, nil, nil
+	}
+	return &written{path: cfg.Work.Asks, old: old, text: ask.Text(f)}, renamed, nil, nil
 }
 
 // workPromoteLine reads work promote's arguments: the idea, the kind it

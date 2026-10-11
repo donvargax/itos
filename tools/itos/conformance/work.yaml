@@ -1095,6 +1095,53 @@ cases:
       commit: null
     files_after:
       .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - id: slice-1\n    title: The thing, specified # the plan replaced\n    phase: 1\n    status: todo\n    kind: slice\n    why: Was p1-thing. a gap\n"
+  # Every question naming the idea, answered or not, names the new id, written
+  # with the registry (bug 105); a question naming another item is kept.
+  - name: work promote renames the idea in the questions that name it
+    argv: [work, promote, p1-thing, --kind, slice]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - { id: p1-thing, title: A thing, phase: 1, status: todo, kind: idea, why: a gap }\n  - { id: slice-4, title: Four, phase: 1, status: todo, depends_on: [p1-thing] }\n"
+      .git/itos/asks.yaml: "questions:\n  - { id: q-1, item: p1-thing, question: \"Which way?\" }\n"
+    exit: 0
+    stdout: |
+      p1-thing is the slice slice-5, named now by slice-4, q-1: the registry is the stealth config's, so nothing is committed
+  - name: the same as --json, answered questions too, and a question naming another item kept
+    argv: [work, promote, p1-thing, --kind, slice, --json]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: "phases:\n  1: null\nitems:\n  - { id: p1-thing, title: A thing, phase: 1, status: todo, kind: idea, why: a gap }\n  - { id: p1-other, title: Other, phase: 1, status: todo, kind: idea, why: another }\n"
+      .git/itos/asks.yaml: "questions:\n  - { id: q-1, item: p1-thing, question: \"Which way?\" }\n  - { id: q-2, item: p1-other, question: \"Which other?\" }\n  - { id: q-3, item: p1-thing, question: \"Done?\", answer: \"Yes.\" }\n"
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: slice-1, title: A thing, phase: 1, status: todo, kind: slice, why: Was p1-thing. a gap, depends_on: [], tags: [] }
+      was: p1-thing
+      rewritten: []
+      questions: [q-1, q-3]
+      commit: null
+    files_after:
+      .git/itos/asks.yaml: "# The questions to the person the work is for, written by itos decision (itos help decision).\nquestions:\n  - id: q-1\n    item: \"slice-1\"\n    question: \"Which way?\"\n  - id: q-2\n    item: \"p1-other\"\n    question: \"Which other?\"\n  - id: q-3\n    item: \"slice-1\"\n    question: \"Done?\"\n    answer: \"Yes.\"\n"
+  - name: work promote refuses questions it cannot read, and writes nothing
+    argv: [work, promote, p1-thing, --kind, slice]
+    git: []
+    files:
+      itos.yaml: null
+      .git/itos/itos.yaml: *stealth
+      .git/itos/work-items.yaml: &one-idea "phases:\n  1: null\nitems:\n  - { id: p1-thing, title: A thing, phase: 1, status: todo, kind: idea, why: a gap }\n"
+      .git/itos/asks.yaml: "questions:\n  - { id: q-1, item: p1-thing, question: \"Which way?\", colour: red }\n"
+    exit: 1
+    stderr: |
+      .git/itos/asks.yaml: yaml: unmarshal errors:
+        line 2: field colour not found in type ask.Question
+        fix: correct .git/itos/asks.yaml to what itos decision writes, then promote p1-thing again
+    files_after:
+      .git/itos/work-items.yaml: *one-idea
   - name: work promote refuses an item that is not an idea
     argv: [work, promote, ready, --kind, slice]
     git: []

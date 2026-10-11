@@ -412,3 +412,101 @@ func TestWorkPromoteReturnsTheRegistrysRefusal(t *testing.T) {
 		return workPromote([]string{"p1-idea", "--kind", "slice"}, o)
 	})
 }
+
+// Every question naming the idea names the new id, committed with the
+// registry in the promote's one commit, whose body says which; a question
+// naming another item is kept (bug 105).
+func TestWorkPromoteRenamesTheIdeaInTheQuestions(t *testing.T) {
+	registryWriterRepo(t, "phases: { 1: null }\nitems:\n"+
+		"  - { id: p1-idea, title: Idea, phase: 1, owner: null, status: todo, kind: idea, why: Specified }\n")
+	writeFiles(t, map[string]string{"asks.yaml": "questions:\n  - { id: q-1, item: p1-idea, question: \"Why?\" }\n" +
+		"  - { id: q-2, item: p1-other, question: \"How?\" }\n  - { id: q-3, item: p1-idea, question: \"When?\", answer: \"Now.\" }\n"})
+	gitIn(t, "add", "--", "asks.yaml")
+	gitIn(t, "commit", "-q", "-m", "docs: ask")
+	var stdout, stderr strings.Builder
+	code, err := workPromote([]string{"p1-idea", "--kind", "slice"}, Out{Stdout: &stdout, Stderr: &stderr, JSON: true})
+	if err != nil || code != 0 || !strings.Contains(strings.Join(strings.Fields(stdout.String()), ""), `"questions":["q-1","q-3"]`) {
+		t.Fatalf("workPromote = (%d, %v), stdout=%q stderr=%q", code, err, stdout.String(), stderr.String())
+	}
+	asks, err := os.ReadFile("asks.yaml")
+	if err != nil || strings.Count(string(asks), `item: "slice-1"`) != 2 || !strings.Contains(string(asks), `item: "p1-other"`) {
+		t.Fatalf("questions after = %q (%v)", asks, err)
+	}
+	if files := strings.TrimSpace(gitIn(t, "show", "--name-only", "--format=", "HEAD")); files != "asks.yaml\nregistry.yaml" {
+		t.Errorf("the promote committed %q, want the questions and the registry", files)
+	}
+	if body := strings.Join(strings.Fields(gitIn(t, "log", "-1", "--format=%b")), " "); !strings.HasSuffix(body, "with itos work promote, and rename it in q-1 and q-3 of asks.yaml.") {
+		t.Errorf("the body %q does not name the questions", body)
+	}
+	if status := gitIn(t, "status", "--porcelain"); status != "" {
+		t.Errorf("left %q", status)
+	}
+}
+
+// With no question naming the idea the registry is committed alone, the
+// questions as they were, and the report names none.
+func TestWorkPromoteLeavesQuestionsNamingOthers(t *testing.T) {
+	registryWriterRepo(t, "phases: { 1: null }\nitems:\n"+
+		"  - { id: p1-idea, title: Idea, phase: 1, owner: null, status: todo, kind: idea, why: Specified }\n")
+	const asks = "questions:\n  - { id: q-1, item: p1-other, question: \"How?\" }\n"
+	writeFiles(t, map[string]string{"asks.yaml": asks})
+	gitIn(t, "add", "--", "asks.yaml")
+	gitIn(t, "commit", "-q", "-m", "docs: ask")
+	var stdout strings.Builder
+	code, err := workPromote([]string{"p1-idea", "--kind", "slice"}, Out{Stdout: &stdout, Stderr: &strings.Builder{}, JSON: true})
+	if err != nil || code != 0 || strings.Contains(stdout.String(), "questions") {
+		t.Fatalf("workPromote = (%d, %v), stdout=%q", code, err, stdout.String())
+	}
+	if after, err := os.ReadFile("asks.yaml"); err != nil || string(after) != asks {
+		t.Errorf("questions after = %q (%v)", after, err)
+	}
+	if files := strings.TrimSpace(gitIn(t, "show", "--name-only", "--format=", "HEAD")); files != "registry.yaml" {
+		t.Errorf("the promote committed %q, want the registry alone", files)
+	}
+}
+
+// Questions that cannot be parsed refuse the promote, exit 1, nothing
+// written; questions that cannot be read at all are an error.
+func TestWorkPromoteRefusesQuestionsItCannotRead(t *testing.T) {
+	registryWriterRepo(t, "phases: { 1: null }\nitems:\n"+
+		"  - { id: p1-idea, title: Idea, phase: 1, owner: null, status: todo, kind: idea, why: Specified }\n")
+	head := gitIn(t, "rev-parse", "HEAD")
+	writeFiles(t, map[string]string{"asks.yaml": "questions:\n  - { id: q-1, item: p1-idea, question: \"How?\", colour: red }\n"})
+	var stdout, stderr strings.Builder
+	code, err := workPromote([]string{"p1-idea", "--kind", "slice"}, Out{Stdout: &stdout, Stderr: &stderr})
+	if err != nil || code != ExitPolicy || stdout.Len() != 0 ||
+		!strings.Contains(stderr.String(), "correct asks.yaml to what itos decision writes, then promote p1-idea again") {
+		t.Fatalf("workPromote = (%d, %v), stdout=%q stderr=%q", code, err, stdout.String(), stderr.String())
+	}
+	if gitIn(t, "rev-parse", "HEAD") != head || gitIn(t, "status", "--porcelain", "--", "registry.yaml") != "" {
+		t.Fatal("the refused promote wrote or committed")
+	}
+	if err := os.Remove("asks.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	writeFiles(t, map[string]string{"asks.yaml/x": ""})
+	if code, err := workPromote([]string{"p1-idea", "--kind", "slice"}, Out{Stdout: &stdout, Stderr: &stderr}); err == nil || code != 0 {
+		t.Fatalf("questions that cannot be read: (%d, %v)", code, err)
+	}
+}
+
+// One question naming the idea is reported too, in the text and as JSON.
+func TestWorkPromoteReportsOneQuestion(t *testing.T) {
+	registryWriterRepo(t, "phases: { 1: null }\nitems:\n"+
+		"  - { id: p1-idea, title: Idea, phase: 1, owner: null, status: todo, kind: idea, why: Specified }\n"+
+		"  - { id: p1-next, title: Next, phase: 1, owner: null, status: todo, kind: idea, why: Specified }\n")
+	writeFiles(t, map[string]string{"asks.yaml": "questions:\n  - { id: q-1, item: p1-idea, question: \"Why?\" }\n" +
+		"  - { id: q-2, item: p1-next, question: \"How?\" }\n"})
+	gitIn(t, "add", "--", "asks.yaml")
+	gitIn(t, "commit", "-q", "-m", "docs: ask")
+	var stdout strings.Builder
+	code, err := workPromote([]string{"p1-idea", "--kind", "slice"}, Out{Stdout: &stdout, Stderr: &strings.Builder{}, JSON: true})
+	if err != nil || code != 0 || !strings.Contains(strings.Join(strings.Fields(stdout.String()), ""), `"questions":["q-1"]`) {
+		t.Fatalf("workPromote --json = (%d, %v), stdout=%q", code, err, stdout.String())
+	}
+	stdout.Reset()
+	code, err = workPromote([]string{"p1-next", "--kind", "slice"}, Out{Stdout: &stdout, Stderr: &strings.Builder{}})
+	if err != nil || code != 0 || !strings.HasPrefix(stdout.String(), "p1-next is the slice slice-2, named now by q-2: committed ") {
+		t.Fatalf("workPromote = (%d, %v), stdout=%q", code, err, stdout.String())
+	}
+}

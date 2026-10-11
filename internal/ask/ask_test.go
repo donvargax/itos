@@ -68,3 +68,24 @@ func TestParseRefuses(t *testing.T) {
 		}
 	}
 }
+
+// Rename changes every question naming the item, answered or not, and no
+// other, and names the ones it changed in the order asked.
+func TestRename(t *testing.T) {
+	var f File
+	f.Add("One?", "p1-idea")
+	f.Add("Two?", "slice-2")
+	f.Add("Three?", "p1-idea").Answer = "Yes."
+	f.Add("Four?", "")
+	renamed := f.Rename("p1-idea", "slice-5")
+	if strings.Join(renamed, ",") != "q-1,q-3" {
+		t.Errorf("renamed %v", renamed)
+	}
+	if f.Questions[0].Item != "slice-5" || f.Questions[1].Item != "slice-2" ||
+		f.Questions[2].Item != "slice-5" || f.Questions[3].Item != "" {
+		t.Errorf("items after %+v", f.Questions)
+	}
+	if again := f.Rename("p1-idea", "slice-6"); len(again) != 0 {
+		t.Errorf("renamed again %v", again)
+	}
+}

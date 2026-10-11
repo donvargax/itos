@@ -304,16 +304,18 @@ every item is the session's, and its owner is left as it is.
 	"work promote": `Usage: itos work promote <idea> --kind slice|task [--title <title>]
 
 Makes an idea a slice or a task: mints an ID from the shared counter, renames it, sets its kind, puts
-"Was <idea>." before its why and renames it in every depends_on that names it,
-then commits the registry alone, "docs: promote <idea> to <id>", as work take
+"Was <idea>." before its why and renames it in every depends_on and every
+question (work.asks) that names it, then commits the registry, with the
+questions when one named it, "docs: promote <idea> to <id>", as work take
 does (itos help work take). --title gives it a new title in the same commit,
 whose body says so; without it the idea's title is kept. Refused, nothing
 written (exit 2): a caller-supplied ID. Refused, nothing written (exit 1): a
-registry that is not sound or has changes no commit holds, an id no item has,
-an item that is not an idea, an idea dropped, a commit a hook refuses. Under
-a stealth config the registry is written and nothing committed.
+registry that is not sound or has changes no commit holds, questions that
+cannot be read, or that name the idea and have changes no commit holds, an id
+no item has, an item that is not an idea, an idea dropped, a commit a hook
+refuses. Under a stealth config the files are written and nothing committed.
 
---json: {"schema":1,"ok":true,"item":{…},"was","rewritten":[…],"commit":"<sha>"|null},
+--json: {"schema":1,"ok":true,"item":{…},"was","rewritten":[…],"questions"?:[…],"commit":"<sha>"|null},
 or {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
 
 	"work done": `Usage: itos work done <id>
@@ -986,11 +988,12 @@ other problem, among them a check's timeout of 0 or less, an except_types type
 commits.types does not list, a wip_tag on a kind whose adapter is a command, a
 ledger.group.label that is no word itos task can take as its own flag, a
 ledger.group.pattern with anchors of its own, {group} in ledger.files' folder,
-a ledger.files that matches work.registry, and a question naming an item the
-registry does not have. A warning (WARN) never fails it: a
+a ledger.files that matches work.registry, and an open question naming an item
+the registry does not have. A warning (WARN) never fails it: a
 check static by a ci.cost.static pattern written below a late check of its task,
-which ci.cost.keep_written_order runs late, and a project's people file missing
-or unreadable (a stealth config reads none). --print-defaults prints the values
+which ci.cost.keep_written_order runs late, a project's people file missing
+or unreadable (a stealth config reads none), and an answered question naming an
+item the registry does not have. --print-defaults prints the values
 the tools take when a key is left out (work.registry's in this config's ledger
 folder; a stealth config's hooks.bin, itos, and no work.people), and checks
 nothing.

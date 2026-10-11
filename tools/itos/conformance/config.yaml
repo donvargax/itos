@@ -1089,6 +1089,39 @@ cases:
           message: "asks.yaml: q-2 names the item p1-gone, which work-items.yaml does not have"
           fix: "name an item of work-items.yaml in q-2's item, or remove its item"
           area: asks
+  # An answered question naming an item the registry does not have is a
+  # warning, which never fails the run (bug 105): it is a record, its item
+  # gone breaks nothing; an open one, which holds its item up, is a problem.
+  - name: an answered question naming an item the registry does not have is a warning, and the check passes
+    argv: [config, check]
+    files:
+      asks.yaml: "questions:\n  - { id: q-1, item: p1-gone, question: \"Which way?\", answer: \"This way.\" }\n"
+    exit: 0
+    stdout: |
+      itos.yaml is valid, and so are the 2 ledger files it reads
+      work-items.yaml: sound
+      smoke.yaml: every file has a smoke test (1 in all)
+    stderr: |
+      WARN asks.yaml: q-1, answered, names the item p1-gone, which work-items.yaml does not have
+  - name: an open question naming a missing item is a problem, an answered one a warning, as --json
+    argv: [config, check, --json]
+    files:
+      asks.yaml: "questions:\n  - { id: q-1, item: p1-gone, question: \"Which way?\", answer: \"This way.\", decision: none }\n  - { id: q-2, item: p1-gone, question: \"Which other?\" }\n"
+    exit: 1
+    json:
+      schema: 1
+      config: itos.yaml
+      valid: false
+      problems:
+        - rule: asks-unknown-item
+          message: "asks.yaml: q-2 names the item p1-gone, which work-items.yaml does not have"
+          fix: "name an item of work-items.yaml in q-2's item, or remove its item"
+          area: asks
+      warnings:
+        - rule: asks-answered-unknown-item
+          message: "asks.yaml: q-1, answered, names the item p1-gone, which work-items.yaml does not have"
+          fix: "name the item's new id in q-1's item, or remove its item"
+          area: asks
   - name: a questions' file giving an id twice is refused, naming it
     argv: [config, check]
     files:

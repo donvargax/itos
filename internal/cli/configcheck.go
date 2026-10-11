@@ -81,8 +81,9 @@ func judgedSmokeFindings(cfg *config.Loaded, judged func(name, file string) bool
 // Its code is 2 when the config is invalid or the ledger's folder is
 // missing, since nothing else can be read, else 1 for any problem; a warning
 // (a check static by a ci.cost.static pattern that written order runs late,
-// ledger.Findings, or a project's people file missing or unreadable,
-// work.PeopleProblem) never sets it.
+// ledger.Findings, a project's people file missing or unreadable,
+// work.PeopleProblem, or an answered question naming an item the registry
+// does not have, asksProblems) never sets it.
 func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) {
 	path := config.Path()
 	cfg, err := config.Load(path)
@@ -138,11 +139,12 @@ func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) 
 		warnings = append(warnings, Found{*p, "people"})
 	}
 	found = append(found, tagged("registry", registry)...)
-	asks, err := asksProblems(cfg)
+	asks, stale, err := asksProblems(cfg)
 	if err != nil {
 		return 0, nil, nil, nil, err
 	}
 	found = append(found, tagged("asks", asks)...)
+	warnings = append(warnings, tagged("asks", stale)...)
 	found = append(found, smoke...)
 	// The decision records in the folder work.decisions names (slice 74);
 	// a folder that is not there holds none to check.
@@ -165,17 +167,19 @@ func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) 
 // asksProblems are the problems of the questions' file, work.asks, read
 // from the current source as the ledger and the registry are (slice 130): a
 // file not as itos decision writes it (ask.Parse: an unknown key, an id given
-// twice, ...), else each question naming an item the registry does not have.
-// None when the file is not there; a registry that cannot be read is
-// work.Problems' to report.
-func asksProblems(cfg *config.Loaded) ([]out.Problem, error) {
+// twice, ...), else each open question naming an item the registry does not
+// have, since it holds that item up. Its warnings are each answered question
+// naming one (bug 105): an answered question is a record, and its item gone,
+// renamed or dropped, breaks nothing a command does. None when the file is
+// not there; a registry that cannot be read is work.Problems' to report.
+func asksProblems(cfg *config.Loaded) (problems, warnings []out.Problem, err error) {
 	file := cfg.Work.Asks
 	if !source.Has(file) {
-		return nil, nil
+		return nil, nil, nil
 	}
 	text, err := source.Read(file)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	f, err := ask.Parse(file, text)
 	if err != nil {
@@ -183,28 +187,35 @@ func asksProblems(cfg *config.Loaded) ([]out.Problem, error) {
 			Rule:    "asks-invalid",
 			Message: err.Error(),
 			Fix:     "correct " + file + " to what itos decision writes, or undo the hand edit",
-		}}, nil
+		}}, nil, nil
 	}
 	registry, err := work.Load(cfg, cfg.Work.Registry)
 	if err != nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	items := map[string]bool{}
 	for _, it := range registry.Items {
 		items[value.String(it.At("id"))] = true
 	}
-	var found []out.Problem
 	for _, q := range f.Questions {
 		if q.Item == "" || items[q.Item] {
 			continue
 		}
-		found = append(found, out.Problem{
+		if q.Status() == ask.Answered {
+			warnings = append(warnings, out.Problem{
+				Rule:    "asks-answered-unknown-item",
+				Message: fmt.Sprintf("%s: %s, answered, names the item %s, which %s does not have", file, q.ID, q.Item, cfg.Work.Registry),
+				Fix:     "name the item's new id in " + q.ID + "'s item, or remove its item",
+			})
+			continue
+		}
+		problems = append(problems, out.Problem{
 			Rule:    "asks-unknown-item",
 			Message: fmt.Sprintf("%s: %s names the item %s, which %s does not have", file, q.ID, q.Item, cfg.Work.Registry),
 			Fix:     "name an item of " + cfg.Work.Registry + " in " + q.ID + "'s item, or remove its item",
 		})
 	}
-	return found, nil
+	return problems, warnings, nil
 }
 
 // groupLabelProblems: itos task takes a group by --<ledger.group.label> as

@@ -628,7 +628,7 @@ Feature: Every key the config accepts is one itos reads
   # commit, as it does in every depends_on (@ID-WORK-103), so itos stops
   # writing the stale link itself. A fix: @ID-CONFIG-56 (an id given twice)
   # is unchanged.
-  @ID-CONFIG-59 @bug-105 @wip
+  @ID-CONFIG-59 @bug-105
   Scenario: config check warns about an answered question naming an item the registry does not have
     Given the committed file "tasks/asks.yaml" holding the lines:
       """
@@ -643,7 +643,7 @@ Feature: Every key the config accepts is one itos reads
     And its output says "q-1"
     And its output says "p1-gone"
 
-  @ID-CONFIG-60 @bug-105 @wip
+  @ID-CONFIG-60 @bug-105
   Scenario: config check refuses an open question naming an item the registry does not have
     Given the committed file "tasks/asks.yaml" holding the lines:
       """
