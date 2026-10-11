@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-119
   - p1-guard-follows-cd
   - p1-task-add-promoted
   - p1-text-from-file
