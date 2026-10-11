@@ -7176,3 +7176,16 @@ items:
       vp. The last step: once the formatting, the self-tests, the conformance runner, the changelog,
       the inbox, the plugin's hooks and the audit need no Node, package.json, its lockfile and the
       devcontainer's and CI's Node setup go.
+
+  - id: p1-work-show-several-ids
+    title: work show finds the registry commits that change several ids
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-118]
+    kind: idea
+    why: >
+      Slice 118's commits of several ids are headed "docs: drop a, b", or "docs: drop 12 items" when
+      the ids do not fit the header, and work.RegistryHeader reads one id after the verb, so work
+      show lists none of them for an item they changed. Reading the comma list, and the ids a
+      counted header's body names, would find them.
