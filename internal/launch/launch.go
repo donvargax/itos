@@ -59,35 +59,35 @@ func Args(args []string) []string {
 }
 
 // Main runs the version of itos the arguments and the environment pick, when
-// it is not this binary: it gives that version's exit code and true. When this
-// binary is the one to run, it gives false, and the caller carries on. Where
-// a repository's pin has fallen behind the newest release, it says so on
-// stderr first (update.go).
-func Main(args []string, stderr io.Writer) (int, bool) {
+// it is not this binary, and gives that version's exit code. When this binary
+// is the one to run, it gives nil, no code at all, and the caller carries on.
+// Where a repository's pin has fallen behind the newest release, it says so
+// on stderr first (update.go).
+func Main(args []string, stderr io.Writer) *int {
 	if code, handed := handUpgrade(args, stderr); handed {
-		return code, true
+		return new(code)
 	}
 	if binaryCommand(args) {
-		return 0, false
+		return nil
 	}
 	t, ok := choose(args, stderr)
 	if !ok {
-		return 0, false
+		return nil
 	}
 	if unguarded(args, t) {
 		answerNothing(t, os.Stdin, stderr)
-		return 0, true
+		return new(0)
 	}
 	bin, err := ensure(t)
+	var code int
 	if err == nil {
-		var code int
 		code, err = run(bin, args, t.version)
-		if err == nil {
-			return code, true
-		}
 	}
-	fmt.Fprintf(stderr, "itos: %s\n", err)
-	return failed(err), true
+	if err != nil {
+		fmt.Fprintf(stderr, "itos: %s\n", err)
+		code = failed(err)
+	}
+	return new(code)
 }
 
 // failed is the exit code of a release the launcher could not fetch, check
@@ -119,7 +119,7 @@ func handUpgrade(args []string, stderr io.Writer) (int, bool) {
 	if err == nil {
 		bin, err = ensure(target{h.Version, release.SHA256(h.Checksums)})
 	}
-	code := 0
+	var code int
 	if err == nil {
 		// Set here, it reaches the version run as the rest of the
 		// environment does (environ).

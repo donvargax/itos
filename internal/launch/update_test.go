@@ -280,8 +280,8 @@ func TestHandUpgrade(t *testing.T) {
 	}
 	try("another command", []string{"pin"}, 0, false, "")
 	try("no server", []string{"upgrade"}, 75, true, "cannot ask for the newest itos")
-	if code, launched := Main([]string{"upgrade"}, io.Discard); code != 75 || !launched {
-		t.Errorf("Main: %d, %t", code, launched)
+	if code := Main([]string{"upgrade"}, io.Discard); code == nil || *code != 75 {
+		t.Error("Main handed no run, or not with exit 75")
 	}
 	_, asked := latestServer(t, "0.0.0")
 	try("a version no newer than this binary", []string{"upgrade"}, 0, false, "")

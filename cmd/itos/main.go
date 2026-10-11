@@ -20,8 +20,8 @@ func main() {
 	}
 	args = launch.Args(args)
 	git.Export()
-	if code, launched := launch.Main(args, os.Stderr); launched {
-		os.Exit(code)
+	if code := launch.Main(args, os.Stderr); code != nil {
+		os.Exit(*code)
 	}
 	os.Exit(cli.Main(args, os.Stdout, os.Stderr))
 }
