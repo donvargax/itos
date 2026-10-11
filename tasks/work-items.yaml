@@ -6925,6 +6925,12 @@ items:
       work.statuses lists, work check refuses an open item that depends on a dropped one, and work
       drop removes an existing why.
 
+      2026-10-10, from slice-118: work drop a b, where b depends on a, is refused for a, while work
+      drop b a works, since each id is judged on the registry the ids before it left. Several ids
+      dropped together should be judged as one change: an item whose only live dependants are
+      dropped in the same command is free to drop, whatever the order the ids are named in. A
+      grooming merge drops chains like this often.
+
   - id: p1-schema-contract-needs-declarations
     title: schema-contract refuses a config key dropped without a rename or removal declared
     phase: 1
