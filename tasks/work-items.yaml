@@ -1947,6 +1947,7 @@ items:
       relative to the top, unset or empty at the top) would let it, or the extension could run
       where it was started with ITOS_ROOT still the top.
     refs: [PLAN.md, features/extensions.feature]
+    tags: [extensions]
 
   - id: p3-shim-push-args
     title: git push with a remote or a branch through the git shim
