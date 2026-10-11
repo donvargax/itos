@@ -1579,3 +1579,19 @@
     path returns no code at all, whichever is simpler and leaves no stale exception.
   done_when:
     - run: go test ./internal/launch -count=1
+
+- id: T-156
+  type: test
+  title: The four mutants of internal/cli/upgrade.go that survive slice-126's range are killed
+  why: >
+    Was p1-upgrade-cli-survivors. T-155's agent judged all 126 sites of the range CI's push proof
+    samples (since f585700, at 58d462f4): four survive in internal/cli/upgrade.go, from slice-126's
+    change to it. upgradeCommand's want-older check (line 228, < 0 to <= 0, and 0 to 1: an upgrade
+    to the version already on is not told apart), its return 0, err after applySteps fails (line
+    261, 0 to 1: likely equivalent, the code unread beside an error) and upgrade.print's
+    len(r.Breaking)+len(r.Upgrading) > 0 (line 381, > to >=: a release with no entries). Each push
+    draws one site of the range until a run is green, so each is a red push waiting. Kill each with
+    a test; an equivalent one is reshaped away, as T-155 did, or recorded in itos-cc.yaml with its
+    reason.
+  done_when:
+    - run: go test ./internal/cli -run Upgrade -count=1
