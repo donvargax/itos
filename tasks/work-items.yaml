@@ -2104,6 +2104,7 @@ items:
       ci plan prints, and ci scope with no range is a usage error. Both could take git.Unpushed as
       verify and ci plan do, with a scenario each.
     refs: [internal/cli/commands.go, features/stealth.feature]
+    tags: [stealth]
 
   - id: p3-stealth-ignored-keys
     title: config check warns of the keys a stealth config sets and never reads
@@ -2121,6 +2122,7 @@ items:
       prints the github one. config check could warn of each, as it warns of a missing people
       file, with a scenario.
     refs: [internal/config/defaults.go, internal/cli/configcheck.go, features/stealth.feature]
+    tags: [stealth]
 
   - id: p3-pr-rebase-merge
     title: itos init offers to make the repository's pull requests rebase-and-merge
@@ -2180,6 +2182,7 @@ items:
       it is required). Merging the carried note with the flags' links, each footer once, would
       make an amend mean the same in both modes.
     refs: [internal/cli/gitcommit.go, features/stealth.feature]
+    tags: [stealth]
 
   - id: slice-45
     title: itos config get prints a config key's value as itos reads it
@@ -4461,6 +4464,7 @@ items:
       to a checkout, so a coordinator cannot hand a task's context to another checkout. The
       read-only half exists (task list --json, work list --all --json); an export bundle and an
       import are missing.
+    tags: [stealth]
 
   - id: p1-network-timeouts-named
     title: Every network call itos makes is bounded and says what it waited on
