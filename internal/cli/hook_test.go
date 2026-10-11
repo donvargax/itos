@@ -88,6 +88,42 @@ func TestStagesDecisions(t *testing.T) {
 	}
 }
 
+// The registry, the questions' file (slice 130) and each kind's smoke set
+// are itos's data the hook checks when staged; another file beside them is
+// not.
+func TestStagesNamedData(t *testing.T) {
+	notesRepo(t)
+	writeFile(t, "itos.yaml", "version: 1\ncommits: { types: [docs] }\nwork: { registry: work-items.yaml }\n"+
+		"tests: { scenario: { root: features, smoke: { file: features/smoke.yaml } } }\n")
+	for staged, want := range map[string]bool{
+		"work-items.yaml":     true,
+		"asks.yaml":           true,
+		"features/smoke.yaml": true,
+		"notes.yaml":          false,
+	} {
+		if got := stagesData([]string{staged}); got != want {
+			t.Errorf("stagesData(%q) = %v", staged, got)
+		}
+	}
+}
+
+// A ledger file is itos's data the hook checks when staged: a file in the
+// ledger's folder that its pattern does not name is not, nor is one the
+// pattern names in another folder.
+func TestStagesLedgerFiles(t *testing.T) {
+	notesRepo(t)
+	writeFile(t, "itos.yaml", "version: 1\ncommits: { types: [docs] }\nledger: { files: \"tasks/phase-{group}.yaml\" }\n")
+	for staged, want := range map[string]bool{
+		"tasks/phase-1.yaml": true,
+		"tasks/notes.md":     false,
+		"docs/phase-1.yaml":  false,
+	} {
+		if got := stagesData([]string{staged}); got != want {
+			t.Errorf("stagesData(%q) = %v", staged, got)
+		}
+	}
+}
+
 // The hook judges a merge being made as verify judges it made (bug 30): by
 // its own changes, none passing it whatever its message, and some judging it
 // as its first line's type, refused when that is none of the commit types.

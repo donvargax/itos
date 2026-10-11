@@ -1,6 +1,7 @@
 package ledger
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"slices"
@@ -95,13 +96,15 @@ func TestAnchoredReadsOnlyAPatternThatCompiles(t *testing.T) {
 // Numeric groups are read in the order of their numbers, a group that is no
 // number after them (slice 130); other groups by name.
 func TestFilesSortsNumericGroupsByNumber(t *testing.T) {
-	files := []string{"tasks/phase-10.yaml", "tasks/phase-2.yaml", "tasks/phase-1.yaml", "tasks/phase-x.yaml", "tasks/phase-b.yaml"}
+	files := []string{"tasks/phase-10.yaml", "tasks/phase-2.yaml", "tasks/phase-1.yaml", "tasks/phase-x.yaml", "tasks/phase-b.yaml",
+		"tasks/phase-01.yaml"}
 	for text, want := range map[string][]string{
+		// 01 and 1 are one number, kept in the order of their names.
 		"version: 1\nledger: { files: 'tasks/phase-{group}.yaml', group: { pattern: '\\w+', numeric: true } }\n": {
-			"1", "2", "10", "b", "x",
+			"01", "1", "2", "10", "b", "x",
 		},
 		"version: 1\nledger: { files: 'tasks/phase-{group}.yaml', group: { pattern: '\\w+' } }\n": {
-			"1", "10", "2", "b", "x",
+			"01", "1", "10", "2", "b", "x",
 		},
 	} {
 		cfg := configIn(t, text, files...)
@@ -132,5 +135,18 @@ func TestIDPatternAnchorsEveryBranch(t *testing.T) {
 	cfg.Ledger.ID = nil
 	if !IDPattern(cfg).MatchString("anything at all") {
 		t.Error("with no ledger.id, an ID did not match")
+	}
+}
+
+// A working tree's ledger folder that is there and cannot be listed keeps
+// its own error; one that is not there is the config error naming it.
+func TestFilesTellsAFolderMissingFromOneUnlisted(t *testing.T) {
+	const text = "version: 1\nledger: { files: 'tasks/phase-{group}.yaml' }\n"
+	var invalid *config.Error
+	if _, err := Files(configIn(t, text, "tasks")); err == nil || errors.As(err, &invalid) {
+		t.Errorf("a folder that is a file: got %v, want its own error", err)
+	}
+	if _, err := Files(configIn(t, text)); !errors.As(err, &invalid) || invalid.Problems[0].Rule != "ledger-folder-missing" {
+		t.Errorf("no folder: got %v, want ledger-folder-missing", err)
 	}
 }
