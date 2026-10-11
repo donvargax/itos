@@ -8036,3 +8036,23 @@ items:
       does. Only after the PBT pilot, and dropped if it finds nothing or costs too much.
     refs: [docs/decisions/0045-every-id-itos-writes-is-minted-and-the-counter-is-claimed-on-the-remote.md]
     tags: [tests]
+
+  - id: p3-evaluate-pstack
+    title: Pilot pstack's reasoning skills (poteto-mode) in a scratch project, under itos's gates
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user (2026-10-11): pilot github.com/michael-denyer/pstack-claude later. It is a prompt
+      layer (playbooks, design and review skills, principle skills), advice the model reads, where
+      itos is the gates; its principles alone are trust without verifying, and itos is the verify.
+      Its collisions here: the routing hook and poteto-mode's non-negotiables add context every
+      session (v8 shrinks it), its Babysit and Shipping playbooks assume PR stacks, swarm and arena
+      fan out (each in its own worktree), and its autonomy acts externally without asking, a
+      confused-deputy risk until the sandbox exists (sandbox-for-unattended-runs). Try the reasoning
+      skills (reproduce first, how and why, interrogate) on demand in a scratch project, routing
+      hook and poteto-mode off, and judge whether slices come back better. Beside
+      p3-evaluate-cupcake.
+    tags: [docs]
