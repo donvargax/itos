@@ -64,9 +64,9 @@ Not all breaking, but gaps go-template-itos hit, so they ship with the bundle (t
   pinned itos, so a newer itos on the PATH never writes its own block over the pin's. With
   `p1-upgrade-refreshes-agent-block` the block is always the pinned release's.
 
-### The testing tiers, for speed
+## First in v8.x: the testing tiers
 
-Not breaking, but every push after them is faster (the user, 2026-10-11). Issue #41's shape, which
+Not breaking, so moved out of the v8.0.0 bundle and done first after it, so v8.0.0 ships sooner (the user, 2026-10-11); every push after them is faster. Issue #41's shape, which
 this repository reached by q-41, q-52, q-54 and q-55 but for one tier:
 
 - **`p1-ci-e2e-workflow`** (issue #18): a push's end-to-end step runs in a workflow of its own,
@@ -111,3 +111,4 @@ coordinate` among them): not yet (the user, 2026-10-10).
    fix then cuts `v8.0.0-rc.1`.
 3. **rc.1 is slice-120**, the headline; then the other items, each feat a further rc.
 4. **Remove the marker** once every item above is done and green: the next push cuts `v8.0.0`.
+5. **Then the testing tiers**, first in v8.x, then the pilots (the user, 2026-10-11).
