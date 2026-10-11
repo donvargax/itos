@@ -7187,6 +7187,11 @@ items:
       commits, in place of this repository's script; T-145's parity record (the old output at a
       pinned commit) is its acceptance.
 
+      It replaces T-145 and takes its parity step: before deleting tools/changelog.ts, its first
+      commit records the script's output at a pinned commit (the whole history, --task T-001,
+      --scenario ID-STATUS-01) under tools/parity/changelog/, and its acceptance is itos changelog
+      giving the same, compared by tools/bin/parity. T-149, which deletes package.json, waits on it.
+
   - id: p1-core-cli-corpus-kind
     title: "itos runs a CLI's case corpus as a test kind: arguments, exit code, --json and files written"
     phase: 1
