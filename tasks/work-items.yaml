@@ -7487,3 +7487,19 @@ items:
       itos-driven repository.
     refs: [internal/cli]
     tags: [work]
+
+  - id: p1-v8-deprecation-sweep
+    title: v8 drops the commands, flags and spellings kept only for compatibility
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-10), shipping p1-guide-before-action without breaking anything:
+      before v8's release-candidate bundle closes, sweep the commands, flags, spellings and help
+      lines kept only because an older release had them, and drop each in the bundle. First
+      candidates: itos guide coordinate (itos go prints the same guide with the status), and help
+      history such as work list's 'until v4.0.0' line. The sweep lists them first, one breaking
+      change each, for the user to keep or drop.
+    tags: [cli]
