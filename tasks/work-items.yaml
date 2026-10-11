@@ -7416,22 +7416,9 @@ items:
     title: "itos init --agent-rules writes a two-line block: the entry line and the staging boundary"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-119]
     kind: slice
-    why: >
-      Was p1-agents-md-reduced.
-      Split from p1-agent-rules-as-data with the user (2026-10-10), q-45 and q-46: the AGENTS.md the
-      harness loads for every session keeps the universal safety boundaries, one line saying the
-      gates enforce the repository's policy, and one entry line (start with itos go unless your
-      brief names another guide). The generated enumeration of commit rules, path scopes and CI
-      steps leaves it; itos guide commit serves it instead. itos init --agent-rules writes the new
-      block; a project's handwritten instructions are migrated explicitly, never silently deleted
-      (q-45). Folds in p1-agent-rules-ci-summary. Here AGENTS.md is 28.0 KB, read by every session
-      for every task. Breaking: the first of the v8 release-candidate bundle.
-
-      2026-10-10, the v8 plan (docs/plans/v8-lean-agent-context.md): rc.1 of v8, after the ci task
-      that turns the release candidates on.
     refs: [AGENTS.md, internal/guide]
 
   - id: p1-notes-placement
