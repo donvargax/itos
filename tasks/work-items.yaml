@@ -2498,6 +2498,7 @@ items:
       version, which may predate the command and prints its own main help instead. binaryCommand
       could take help <command> for its own commands too. itos help init is the same (slice 48).
     refs: [internal/launch/launch.go]
+    tags: [upgrade]
 
   - id: bug-10
     title: ci plan and ci run read work's defaults where the config has no work section
@@ -3533,6 +3534,7 @@ items:
       to move a CI step's go install .../cmd/itos@v<version>, which itos upgrade neither edits nor
       mentions. It lists it with the asks, never edits it, keeping to the three edits the user
       chose.
+    tags: [upgrade]
 
   - id: p1-nightly-late-done-checks
     title: done_when holds acceptance only, and guarantees come from standing rules, not tasks
