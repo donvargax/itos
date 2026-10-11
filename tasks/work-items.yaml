@@ -2158,6 +2158,9 @@ items:
       2026-10-11 (slice-129): --breaking writes one footer line too, and a long breaking text was
       refused only after the whole pre-commit hook had run; itos commit can check every footer
       flag's length before git runs.
+
+      Third time on 2026-10-11 (slice-130): a --breaking line one character over 100 was refused
+      only after the whole pre-commit hook. Three agents in one day lost a hook run to it.
     refs: [internal/cli/gitcommit.go, internal/message/footers.go]
     tags: [commit]
 
