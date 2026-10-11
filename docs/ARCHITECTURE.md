@@ -38,7 +38,7 @@ stays a map:
 | `deps-check.json`           | The dependency check's exceptions, each with a reason.                                                     |
 | `.devcontainer/`            | A sandbox for Claude Code on this repository: shim first, egress allowlisted. Its README says how.         |
 
-itos is Go. `go.mod` is the module `github.com/donvargax/itos/v7`: from v2 a
+itos is Go. `go.mod` is the module `github.com/donvargax/itos/v8`: from v2 a
 module path ends in its major version or Go refuses its tag, so the path
 moves before a major release, and `tools/bin/release-version` refuses a
 version whose major the path does not match. Go is pinned by its `toolchain`
