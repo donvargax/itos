@@ -7627,8 +7627,8 @@ items:
   - id: slice-124
     title: itos go and itos status say when AGENTS.md's itos block is one another itos wrote
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-120]
     kind: slice
     why: >
