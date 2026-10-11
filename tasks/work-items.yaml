@@ -7685,3 +7685,21 @@ items:
       plan.
     refs: [internal/cli/status.go, internal/cli/initrules.go]
     tags: [status]
+
+  - id: p1-init-recommends-branch-protection
+    title: itos init recommends protecting the main branch from force pushes and deletion
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-11): neither the git shim nor the pre-push hook stops /usr/bin/git
+      push --force --no-verify; only the server can. This repository turned on a GitHub ruleset
+      (non_fast_forward and deletion on the default branch, no bypass) on 2026-10-11. itos init,
+      where the identity provider is github, reads the default branch's rules (GET
+      repos/<owner>/<repo>/rules/branches/<branch>) and, when force pushes or deletion are allowed,
+      says so and prints the gh api command that adds the ruleset; it never changes the repository's
+      settings itself. Offline or another host: one line saying it could not tell.
+    refs: [internal/cli/init.go, internal/providers]
+    tags: [init]
