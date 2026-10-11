@@ -8094,3 +8094,24 @@ items:
       (an idea's why, or a slice's or task's spec as a note in the brief) and records the merge
       would keep it where the agent looks.
     tags: [work]
+
+  - id: p1-typed-items
+    title: One kind of work item, typed by the conventional-commit type it becomes; an untyped item is an idea
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user (2026-10-11): the work model has grown too many commands for what is a todo list. The
+      kinds duplicate the commit types: a slice becomes a feat (scenarios), a bug a fix (a bug
+      scenario), a task any other type (ledger checks), an idea nothing yet. One kind of item with
+      an optional type would make the spec follow from the type, drop work promote (typing is
+      promoting) and the separate ID series, and let a refactor candidate be an idea typed refactor,
+      gathered until a chunk is worth doing (wait-for-right-design). Tags stay areas, a separate
+      axis. Also weigh folding drop, defer, resume and queue into fewer status commands, and what
+      the footers (Task:, Item:, @slice-n) become. A redesign of the registry, ledger, footers and
+      every consumer's data: a plan document after v8.0.0 ships, built as v9, which stays
+      semi-stable for a while before v10 (the stable release) so what is stable is known. Narrow
+      additions to the work commands wait on it (p1-work-merge).
+    tags: [work]
