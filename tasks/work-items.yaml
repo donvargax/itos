@@ -7844,11 +7844,9 @@ items:
     title: itos init in a repository that pins a version runs the pinned version, not the itos that was called
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Issue #47, was p1-init-agent-rules-runs-pin. See features/pin.feature.
     refs: [internal/launch/launch.go, features/pin.feature]
     tags: [init, launcher]
 
