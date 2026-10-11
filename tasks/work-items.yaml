@@ -7532,14 +7532,15 @@ items:
     refs: [internal/cli/work.go, internal/guide/repair.md]
     tags: [work]
 
-  - id: p1-moves-feature-description
+  - id: slice-125
     title: A test or docs commit may reword a feature's description, which no scenario checks
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-moves-feature-description.
       Issue #43 (2026-10-10, from go-template-itos): the moves rule refuses a test commit whose only
       change is the free text under Feature:, 'changes the header or Background', so only a feat or
       a fix may reword it, and those need a Scenarios: footer a rewording cannot honestly fill. The
