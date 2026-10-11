@@ -8154,3 +8154,25 @@ items:
       families).
     refs: [internal/work, internal/providers]
     tags: [work, providers]
+
+  - id: p2-pilot-mise
+    title: Pilot mise in place of tools/bin/pinned, with the 7-day age rule kept
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p2-adopt-go-template-itos]
+    kind: idea
+    why: >
+      The user (2026-10-11). tools/bin/pinned pins goreleaser, git-cliff and itos-cc by hand-edited
+      per-platform SHA-256s, Linux and macOS only, and the template adoption grows it
+      (go-template-itos's pinned adds golangci-lint and gitleaks, and the two conflicted in the dry
+      run). mise: one mise.toml and a mise.lock with per-platform checksums, Windows, the aqua
+      backend's checksum, cosign and SLSA provenance checks where a tool publishes them, a CI
+      action. To keep: the 7-day release-age rule (T-067), which mise does not enforce (Renovate's
+      minimumReleaseAge, once Renovate's commits pass itos verify, go-template-itos#3, or a check
+      over mise.lock); mise's own bootstrap pinned with a checksum; the Go toolchain stays go.mod's
+      toolchain line; vp's Node goes with T-142 on. itos's own pin of itos is product behaviour, not
+      this. A v8.x pilot during the adoption; if it holds, replace pinned here and backport to
+      go-template-itos as an issue.
+    refs: [tools/bin/pinned]
+    tags: [ci, release]
