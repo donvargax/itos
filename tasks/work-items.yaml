@@ -566,8 +566,8 @@ items:
   - id: slice-129
     title: config check refuses values no tool can use
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-3]
     kind: slice
     why: >
