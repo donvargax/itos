@@ -3,6 +3,7 @@ package cli
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -234,6 +235,8 @@ func TestRulesOfferOutcomes(t *testing.T) {
 		{"a no at the terminal", rulesOffer{}, "n\n", nil, "declined", 0, "Write itos's rules for agents into AGENTS.md"},
 		{"in place already", write, "", current, "current", 0, "AGENTS.md holds this itos's rules for agents already"},
 		{"CLAUDE.md a folder", write, "", map[string]string{claudeFile + "/": ""}, "failed", ExitPolicy, "AGENTS.md is not written"},
+		{"another itos's block, rerun", rerun, "", map[string]string{agentsFile: "Mine.\n\n" + olderBlock},
+			"stale", 0, staleRulesLine(false)},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			got, code, log := offerIn(t, c.offer, c.answers, c.files)
@@ -241,5 +244,79 @@ func TestRulesOfferOutcomes(t *testing.T) {
 				t.Errorf("%s, exit %d:\n%s", got.Action, code, log)
 			}
 		})
+	}
+}
+
+// olderBlock is a block between itos's markers other than the one this itos
+// writes.
+const olderBlock = rulesBegin + "\n\n## The rules itos holds this repository to\n\n" + rulesEnd + "\n"
+
+// The files holding a block other than this itos's, as status reads them
+// (slice 124): AGENTS.md's, or under a stealth config the copies init writes
+// there; no block, the current one, markers out of place and a file that
+// cannot be read are none.
+func TestStaleRules(t *testing.T) {
+	gitConfigRepo(t, "version: 1\n")
+	if got := staleRules(false); got != nil {
+		t.Errorf("no AGENTS.md: %v", got)
+	}
+	for text, want := range map[string][]string{
+		"Mine.\n":                      nil,
+		"Mine.\n\n" + rulesBlock:       nil,
+		"Mine.\n\n" + olderBlock:       {agentsFile},
+		rulesBegin + "\nMine.\n":       nil,
+		olderBlock + "\n" + olderBlock: nil,
+	} {
+		putFile(t, agentsFile, text)
+		if got := staleRules(false); !slices.Equal(got, want) {
+			t.Errorf("AGENTS.md of %q: %v, not %v", text, got, want)
+		}
+	}
+	if err := os.Remove(agentsFile); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(agentsFile, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := staleRules(false); got != nil {
+		t.Errorf("an AGENTS.md that cannot be read: %v", got)
+	}
+
+	rules := filepath.ToSlash(filepath.Join(".git", config.StealthFolder, agentsFile))
+	if got := staleRules(true); got != nil {
+		t.Errorf("stealth, AGENTS.md a folder: %v", got)
+	}
+	if err := os.Remove(agentsFile); err != nil {
+		t.Fatal(err)
+	}
+	if got := staleRules(true); got != nil {
+		t.Errorf("stealth, no rules written: %v", got)
+	}
+	putFile(t, rules, olderBlock)
+	putFile(t, overrideFile, rulesBlock)
+	if got := staleRules(true); !slices.Equal(got, []string{rules}) {
+		t.Errorf("stealth, an older block in the git folder: %v", got)
+	}
+	putFile(t, overrideFile, "Mine.\n\n"+olderBlock)
+	if got := staleRules(true); !slices.Equal(got, []string{rules, overrideFile}) {
+		t.Errorf("stealth, older blocks in both: %v", got)
+	}
+	var log strings.Builder
+	if got, code := (rulesOffer{stealth: true, rerun: true, log: &log}).run(); got.Action != "stale" || code != 0 ||
+		!strings.Contains(log.String(), staleRulesLine(true)) {
+		t.Errorf("init's rerun: %s, exit %d:\n%s", got.Action, code, log.String())
+	}
+	putFile(t, overrideFile, rulesBegin+"\nMine.\n")
+	if got := staleRules(true); got != nil {
+		t.Errorf("stealth, markers out of place: %v", got)
+	}
+	putFile(t, rules, rulesBlock)
+	putFile(t, overrideFile, rulesBlock)
+	if got := staleRules(true); got != nil {
+		t.Errorf("stealth, the current block: %v", got)
+	}
+	t.Chdir(t.TempDir())
+	if got := staleRules(true); got != nil {
+		t.Errorf("stealth, outside a repository: %v", got)
 	}
 }

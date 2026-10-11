@@ -19,7 +19,12 @@ package cli
 // version of itos the repository runs, its pin else its install script's as
 // itos upgrade reads it, and the newest stable release of itos, asked of the
 // release server once, naming itos upgrade only for a newer major: only a new
-// major is something to act on. It reads, never writes. What cannot be reached is
+// major is something to act on. Beside it (slice 124), a line naming itos
+// init --agent-rules when AGENTS.md, or under a stealth config the copies
+// init writes there, holds a block of itos's rules for agents other than the
+// one this itos writes, as init's rerun decides it (staleRules,
+// initrules.go): a project crossing majors with an older itos on its PATH
+// gets no block rewritten by itself. It reads, never writes. What cannot be reached is
 // one line naming it, and the rest still prints, exit 0; a status that
 // cannot be computed at all (no config, no registry, one with problems) is
 // exit 2 or 1, as itos work's. itos go prints it after the guides
@@ -95,11 +100,14 @@ type standing struct {
 	// Itos is the itos the repository runs against the newest release; nil
 	// when it runs none it names, the release server is not asked or does
 	// not answer.
-	Itos      *itosStanding `json:"itos"`
-	Doing     []any         `json:"doing"`
-	Next      []any         `json:"next"`
-	More      int           `json:"more"`
-	Questions []askEntry    `json:"questions"`
+	Itos *itosStanding `json:"itos"`
+	// AgentRules are the files holding a block of itos's rules for agents
+	// other than the one this itos writes; nil when none does.
+	AgentRules *agentRules `json:"agent_rules"`
+	Doing      []any       `json:"doing"`
+	Next       []any       `json:"next"`
+	More       int         `json:"more"`
+	Questions  []askEntry  `json:"questions"`
 	// Drafts are the drafts waiting for itos draft promote, in its order.
 	Drafts   []draftEntry  `json:"drafts"`
 	Unread   []string      `json:"unread"`
@@ -123,6 +131,24 @@ type itosStanding struct {
 	Runs     string `json:"runs"`
 	Newest   string `json:"newest"`
 	NewMajor bool   `json:"new_major"`
+}
+
+// agentRules are the files holding a block of itos's rules for agents
+// other than the one this itos writes, and whether the config is the
+// stealth one, which its line says.
+type agentRules struct {
+	Stale   []string `json:"stale"`
+	stealth bool
+}
+
+// agentRulesOf is how the rules for agents stand, nil when no block is
+// stale.
+func agentRulesOf(stealth bool) *agentRules {
+	stale := staleRules(stealth)
+	if len(stale) == 0 {
+		return nil
+	}
+	return &agentRules{Stale: stale, stealth: stealth}
 }
 
 // remoteHead is the remote branch's head: its commit and header ("" when
@@ -219,6 +245,7 @@ func statusOf(cfg *config.Loaded, as string, o Out) (*standing, []out.Problem, i
 	}
 	st.readHead(cfg, o)
 	st.Itos = newestItos(itosRuns(cfg))
+	st.AgentRules = agentRulesOf(cfg.Stealth)
 	for _, item := range proposal.Doing {
 		st.Doing = append(st.Doing, item)
 	}
@@ -659,6 +686,7 @@ func (st *standing) fields() []out.Field {
 		{Key: "release", Value: st.Release},
 		{Key: "unreleased", Value: st.Unreleased},
 		{Key: "itos", Value: st.Itos},
+		{Key: "agent_rules", Value: st.AgentRules},
 		{Key: "doing", Value: st.Doing},
 		{Key: "next", Value: st.Next},
 		{Key: "more", Value: st.More},
@@ -670,8 +698,9 @@ func (st *standing) fields() []out.Field {
 
 // print writes the status as text: the heading, the head and its CI run
 // (or what could not be reached), the newest release and the commits since
-// it, the itos the repository runs against the newest itos, the items in progress, the next ones and the open questions, each a
-// short section.
+// it, the itos the repository runs against the newest itos and whether its
+// rules for agents are stale, the items in progress, the next ones and the
+// open questions, each a short section.
 func (st *standing) print(w io.Writer) {
 	fmt.Fprintf(w, "%s\n\n", statusHeading)
 	for _, line := range st.start {
@@ -683,8 +712,15 @@ func (st *standing) print(w io.Writer) {
 			fmt.Fprintln(w, line)
 		}
 	}
+	var advice []string
 	if st.Itos != nil {
-		fmt.Fprintf(w, "\n%s\n", st.Itos.line())
+		advice = append(advice, st.Itos.line())
+	}
+	if st.AgentRules != nil {
+		advice = append(advice, staleRulesLine(st.AgentRules.stealth))
+	}
+	if len(advice) > 0 {
+		fmt.Fprintf(w, "\n%s\n", strings.Join(advice, "\n"))
 	}
 	whose := ""
 	if p, ok := st.Person.(string); ok {

@@ -144,6 +144,18 @@ func (s *stealthRules) parse() error {
 // found is whether any of the files holds a block of itos's.
 func (s *stealthRules) found() bool { return s.rules.found || s.claude.found || s.override.found }
 
+// staleBlocks are the paths of the rules file and overrideFile, as read,
+// that hold a rules block other than the one this itos writes.
+func (s *stealthRules) staleBlocks() []string {
+	var stale []string
+	for _, t := range []stealthTarget{s.rules, s.override} {
+		if _, at, _, _ := splitBlockOf(t.text, t.path, rulesBegin, rulesEnd); staleBlock(at) {
+			stale = append(stale, t.path)
+		}
+	}
+	return stale
+}
+
 // copyBlock is the marked copy of the project's AGENTS.md, "" when it has
 // none or an empty one.
 func (s *stealthRules) copyBlock() string {
@@ -268,18 +280,12 @@ func (r rulesOffer) runStealth() (rulesOutcome, int) {
 		if len(pending) == 0 {
 			return rulesOutcome{Action: "current", Files: none}, 0
 		}
-		rulesStale := false
-		for _, t := range []stealthTarget{s.rules, s.override} {
-			if _, at, _, _ := splitBlockOf(t.text, t.path, rulesBegin, rulesEnd); at != nil && *at != rulesBlock {
-				rulesStale = true
-			}
-		}
+		rulesStale := len(s.staleBlocks()) > 0
 		copyStale := s.copyAt != noSpan &&
 			strings.Join(s.lines[s.copyAt[0]:s.copyAt[1]+1], "") != s.copyBlock()
 		switch {
 		case rulesStale:
-			say("The itos rules for agents are not the ones this itos writes: itos init --agent-rules rewrites them, " +
-				"only between the markers.")
+			say("%s", staleRulesLine(true))
 		case !copyStale:
 			say("The itos rules for agents are not all in place here (%s): itos init --agent-rules writes them, "+
 				"only between the markers.", strings.Join(pending, ", "))

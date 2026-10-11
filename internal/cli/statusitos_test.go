@@ -147,3 +147,41 @@ func TestItosLine(t *testing.T) {
 		}
 	}
 }
+
+// A block of rules for agents other than this itos's is one line naming
+// itos init --agent-rules, beside the itos line, and --json's agent_rules
+// names its files, null with none (slice 124).
+func TestStatusAgentRules(t *testing.T) {
+	statusRepo(t, map[string]string{
+		"work-items.yaml": items("one"),
+		"people.yaml":     "[]\n",
+		agentsFile:        "Mine.\n\n" + olderBlock,
+	})
+	code, stdout, stderr := run("status")
+	if code != 0 || !strings.Contains(stdout, "\n\n"+staleRulesLine(false)+"\n") {
+		t.Errorf("exit %d, the status does not name itos init --agent-rules:\n%s%s", code, stdout, stderr)
+	}
+	code, stdout, stderr = run("status", "--json")
+	if code != 0 || !strings.Contains(stdout, `"agent_rules": {`) || !strings.Contains(stdout, `"stale": [`) {
+		t.Errorf("exit %d, --json does not give agent_rules:\n%s%s", code, stdout, stderr)
+	}
+	if got := agentRulesOf(true); got != nil {
+		t.Errorf("stealth with no rules written: %+v", got)
+	}
+
+	st := &standing{Itos: &itosStanding{Runs: "9.1.0", Newest: "9.2.0"}, AgentRules: &agentRules{Stale: []string{"x"}, stealth: true}}
+	var text strings.Builder
+	st.print(&text)
+	if want := "\n\n" + st.Itos.line() + "\n" + staleRulesLine(true) + "\n\n"; !strings.Contains(text.String(), want) {
+		t.Errorf("the advice lines are not one paragraph:\n%s", text.String())
+	}
+	var b strings.Builder
+	if err := out.Emit(&b, (&standing{}).fields()...); err != nil || !strings.Contains(b.String(), `"agent_rules": null`) {
+		t.Errorf("agent_rules is not null: %v\n%s", err, b.String())
+	}
+	text.Reset()
+	(&standing{}).print(&text)
+	if strings.Contains(text.String(), "itos init --agent-rules") {
+		t.Errorf("a status with no stale block names itos init --agent-rules:\n%s", text.String())
+	}
+}

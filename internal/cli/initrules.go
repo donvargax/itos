@@ -150,11 +150,10 @@ func (r rulesOffer) run() (rulesOutcome, int) {
 		}
 	}
 	if !r.flag.given && found != nil {
-		if *found == rulesBlock {
+		if !staleBlock(found) {
 			return rulesOutcome{Action: "current", Files: none}, 0
 		}
-		say("%s's itos rules are not the ones this itos writes: itos init --agent-rules rewrites them, "+
-			"only between the markers.", agentsFile)
+		say("%s", staleRulesLine(false))
 		return rulesOutcome{Action: "stale", Files: none}, 0
 	}
 
@@ -175,6 +174,46 @@ func (r rulesOffer) run() (rulesOutcome, int) {
 	say("%s holds itos's rules for agents, between %s and %s, which itos init --agent-rules rewrites; %s imports it (%s).",
 		agentsFile, rulesBegin, rulesEnd, claudeFile, claudeImport)
 	return rulesOutcome{Action: "written", Files: files}, 0
+}
+
+// staleBlock is whether a block found (nil for none) is other than the one
+// this itos writes: an older itos's, say, or one edited by hand.
+func staleBlock(found *string) bool { return found != nil && *found != rulesBlock }
+
+// staleRulesLine is what a rerun says of a stale block, and itos status
+// (status.go, slice 124) with it: AGENTS.md's, or under a stealth config
+// that of the files init writes there.
+func staleRulesLine(stealth bool) string {
+	whose := agentsFile + "'s itos rules are"
+	if stealth {
+		whose = "The itos rules for agents are"
+	}
+	return whose + " not the ones this itos writes: itos init --agent-rules rewrites them, only between the markers."
+}
+
+// staleRules are the files holding a block of itos's rules for agents other
+// than the one this itos writes, as init's rerun decides it without
+// --agent-rules: AGENTS.md, or under a stealth config the copies init
+// writes there (initrulesstealth.go). It writes nothing and never fails: no
+// block is none (the rules are offered, never required), and a file that
+// cannot be read, or whose markers cannot be placed, is none too, left for
+// init to report.
+func staleRules(stealth bool) []string {
+	if stealth {
+		s, err := readStealthRules()
+		if err != nil {
+			return nil
+		}
+		return s.staleBlocks()
+	}
+	text, _, err := readText(agentsFile)
+	if err != nil {
+		return nil
+	}
+	if _, found, _, err := splitBlock(text); err != nil || !staleBlock(found) {
+		return nil
+	}
+	return []string{agentsFile}
 }
 
 // rulesHowTo is what the offer says where nobody was asked.

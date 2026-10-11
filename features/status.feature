@@ -270,7 +270,7 @@ Feature: itos status, where the work stands
   # declined the rules, gets no line: the block is offered by init, not
   # required. 21 and 22 hold before the work too: they keep the line from
   # being printed always.
-  @ID-STATUS-20 @slice-124 @wip
+  @ID-STATUS-20 @slice-124
   Scenario: status names itos init --agent-rules when AGENTS.md holds a block another itos wrote
     Given the watched run's jobs "ci" and "platform" succeed
     And the committed file "AGENTS.md" holds the project's line "Be kind to the build." and a block an older itos wrote, saying "Task:" between the markers
@@ -278,7 +278,7 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "itos init --agent-rules"
 
-  @ID-STATUS-21 @slice-124 @wip
+  @ID-STATUS-21 @slice-124
   Scenario: status says nothing of a block this itos wrote
     Given the watched run's jobs "ci" and "platform" succeed
     And itos has run "init --agent-rules"
@@ -286,7 +286,7 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output does not say "itos init --agent-rules"
 
-  @ID-STATUS-22 @slice-124 @wip
+  @ID-STATUS-22 @slice-124
   Scenario: status says nothing of rules a project never asked for
     Given the watched run's jobs "ci" and "platform" succeed
     When itos runs "status --as someone"
