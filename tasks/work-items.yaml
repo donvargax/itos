@@ -7252,3 +7252,23 @@ items:
       tools/itos/conformance/** as support), sets the line-scope flag in itos.yaml's proof step, and
       amends ADR-0044's 'in the functions an item changes'. p1-push-proof-stable-site mostly goes
       with it.
+
+  - id: p1-corpus-listed-suite
+    title: The conformance corpus is an itos-cc listed suite, so mutation checks count and judge what it reaches
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-144]
+    kind: idea
+    why: >
+      donvargax/itos#44, from itos-cc#34 (closed 2026-10-11): the corpus reaches 567 of the 1,881 Go
+      blocks unit tests and features leave uncovered (441 mutation sites in 148 functions). Counted
+      as coverage alone those sites would survive, judged by tests that never reach them, so the
+      corpus must judge mutants: list prints one ID per fixture file (corpus:<file>) beside the
+      scenario IDs, run dispatches each ID to go test ./features or the corpus runner, support adds
+      tools/itos/conformance/**; the runner writes each fixture's coverage under
+      ITOS_CC_TEST_COVERDIR/<id> and runs the itos built from the tree under test, with -cover.
+      After T-144, so it is written once, in Go. Completes q-57's any-test half; the changed-lines
+      half is itos-cc#33. If one shared support list (a fixture edit staling every listed kill)
+      proves too coarse, itos-cc's follow-up gives each listed suite its own support.
+    refs: [itos-cc.yaml, tools/itos/conformance, tools/bin/itos-cc-tests.ts]
