@@ -1434,10 +1434,9 @@ cases:
       check is listed as pending, to run after the push (itos task, itos work done),
       and is neither run nor counted; one ci.nightly_only lists is left out. With no
       range, every step and every test. A failing step exits 1, naming its code.
-      --nightly runs ci.nightly.steps; a { tasks: done } step there runs the checks
-      of every task whose work item is done, each shared check once, and a failure
-      names the task. With ci.keep_step_order true, a push's run takes ci.steps as
-      written, then the named tasks' checks in ledger order.
+      --nightly runs ci.nightly.steps, in the order written, and no task's checks.
+      With ci.keep_step_order true, a push's run takes ci.steps as written, then the
+      named tasks' checks in ledger order.
       With the config's proof.code, a range that touches proof.code.paths runs the
       code proof as a step among the static ones, before the tests: proof.code.check
       with {base} the range's start, which reads the results recorded before the

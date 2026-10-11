@@ -8,7 +8,6 @@ import (
 	"github.com/donvargax/itos/v8/internal/ledger"
 	"github.com/donvargax/itos/v8/internal/tests"
 	"github.com/donvargax/itos/v8/internal/value"
-	"github.com/donvargax/itos/v8/internal/work"
 )
 
 // Action is what a run does with a task check.
@@ -71,8 +70,7 @@ type Plan struct {
 	// Steps are the steps' commands, in the order they run.
 	Steps []string
 	// Tasks are the tasks whose checks the plan holds: the named ones that
-	// are started, in ledger order; for the nightly, the done tasks with a
-	// check in its tasks step.
+	// are started, in ledger order; none for the nightly.
 	Tasks []string
 	// Checks are the checks of Order, in their tasks' order.
 	Checks []*Check
@@ -140,12 +138,18 @@ func TestsKind(cfg *config.Loaded) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	return kindOf(steps), nil
+}
+
+// kindOf is the kind of named tests the first of steps that runs them runs;
+// "" when none does.
+func kindOf(steps []Step) string {
 	for _, s := range steps {
 		if s.Tests != "" {
-			return s.Tests, nil
+			return s.Tests
 		}
 	}
-	return "", nil
+	return ""
 }
 
 // Smoke is the smoke set of the kind CI's `tests:` step runs, without the
@@ -173,10 +177,8 @@ type Input struct {
 	Known bool
 	// Scenarios are the kind's test IDs the range's footers name.
 	Scenarios []string
-	// Tasks are the tasks the range's ledger footers name; for the nightly,
-	// the tasks whose work item is done.
-	Tasks   []ledger.Task
-	Nightly bool
+	// Tasks are the tasks the range's ledger footers name.
+	Tasks []ledger.Task
 	// Smoke is the kind's smoke set, without the tag prefix.
 	Smoke []string
 	// Proof is the range's code proof as a step, when the config has a
@@ -270,9 +272,8 @@ func leftToNightly(cfg *config.Loaded, command string) bool {
 }
 
 // markDone gives each check with a run: command that the run would run the
-// step that did it, or, in a push, leaves it out when ci.nightly_only lists
-// it.
-func markDone(cfg *config.Loaded, checks []*Check, steps []string, nightly bool) error {
+// step that did it, or leaves it out when ci.nightly_only lists it.
+func markDone(cfg *config.Loaded, checks []*Check, steps []string) error {
 	for _, c := range checks {
 		if c.Action != Run || c.Check.Run == nil {
 			continue
@@ -284,7 +285,7 @@ func markDone(cfg *config.Loaded, checks []*Check, steps []string, nightly bool)
 		switch {
 		case by != "":
 			c.Action, c.CoveredBy = Covered, by
-		case !nightly && leftToNightly(cfg, *c.Check.Run):
+		case leftToNightly(cfg, *c.Check.Run):
 			c.Action = Nightly
 		}
 	}
@@ -357,9 +358,6 @@ func commands(steps []Step) []string {
 
 // Make is the plan for an input (ci-plan.ts's ciPlan).
 func Make(cfg *config.Loaded, in Input) (*Plan, error) {
-	if in.Nightly {
-		return nightlyPlan(cfg, in.Tasks, in.Smoke)
-	}
 	named, err := checksOf(cfg, in.Tasks)
 	if err != nil {
 		return nil, err
@@ -381,10 +379,11 @@ func Make(cfg *config.Loaded, in Input) (*Plan, error) {
 			c.Action = Pending
 		}
 	}
-	kind, err := TestsKind(cfg)
+	configured, err := ciSteps(cfg)
 	if err != nil {
 		return nil, err
 	}
+	kind := kindOf(configured)
 	var merge []merging
 	testsRun, haveRun := "", false
 	if kind != "" {
@@ -416,16 +415,14 @@ func Make(cfg *config.Loaded, in Input) (*Plan, error) {
 		}
 	}
 	// The kind's run takes the merged selection's command, and keeps its
-	// cost class as written.
-	var configured []Step
+	// cost class as written; a prose range runs the prose steps instead.
 	if in.Prose {
+		configured = nil
 		if cfg.CI.Prose != nil {
 			for _, command := range cfg.CI.Prose.Steps {
 				configured = append(configured, Step{Command: command})
 			}
 		}
-	} else if configured, err = ciSteps(cfg); err != nil {
-		return nil, err
 	}
 	var runs []Step
 	for _, s := range configured {
@@ -451,7 +448,7 @@ func Make(cfg *config.Loaded, in Input) (*Plan, error) {
 		runs[i] = runs[i].costed(cfg)
 	}
 	p.Steps = commands(runs)
-	if err := markDone(cfg, p.Checks, p.Steps, false); err != nil {
+	if err := markDone(cfg, p.Checks, p.Steps); err != nil {
 		return nil, err
 	}
 	if cfg.CI.KeepStepOrder {
@@ -462,114 +459,26 @@ func Make(cfg *config.Loaded, in Input) (*Plan, error) {
 	return p, nil
 }
 
-// nightlyPlan is the nightly's plan: its steps in written order, its tasks
-// step standing for the done tasks' checks, static then late (only the
-// static ones with cost: static). Each check is merged into the nightly's
-// whole run of its kind (the first kind its steps run), covered by one of
-// its steps, or run.
-func nightlyPlan(cfg *config.Loaded, done []ledger.Task, smoke []string) (*Plan, error) {
+// nightlyPlan is the nightly's plan: its steps in the order written. It runs
+// no task's checks: a task's checks are its own progress and leave the ledger
+// when work done closes it (ADR-0043), and config check refuses the step that
+// ran the done tasks' (slice 107).
+func nightlyPlan(cfg *config.Loaded) *Plan {
 	p := &Plan{Order: []Item{}, Steps: []string{}, Tasks: []string{}, Checks: []*Check{}, LeftOut: []*Check{}, Unknown: []string{}, NotStarted: []string{}}
-	kind := ""
-	var configured []config.Step
-	if cfg.CI.Nightly != nil {
-		configured = cfg.CI.Nightly.Steps
+	if cfg.CI.Nightly == nil {
+		return p
 	}
-	for _, s := range configured {
-		if s.Text == nil && s.Tasks != nil {
-			checks, err := checksOf(cfg, done)
-			if err != nil {
-				return nil, err
-			}
-			var planned []*Check
-			for _, c := range checks {
-				if s.Cost == nil || *s.Cost != "static" || c.Cost == check.Static {
-					planned = append(planned, c)
-				}
-			}
-			p.Checks = append(p.Checks, planned...)
-			p.Order = append(p.Order, inCostOrder(nil, planned)...)
-			continue
-		}
+	for _, s := range cfg.CI.Nightly.Steps {
 		step := stepOf(cfg, s)
-		if kind == "" {
-			kind = step.Tests
-		}
 		p.Steps = append(p.Steps, step.Command)
 		p.Order = append(p.Order, Item{Step: &step})
 	}
-	if kind != "" {
-		merge, err := runsOfKind(cfg, p.Checks, kind, smoke)
-		if err != nil {
-			return nil, err
-		}
-		for _, m := range merge {
-			m.check.Action, m.check.Kind = Merged, kind
-		}
-	}
-	if err := markDone(cfg, p.Checks, p.Steps, true); err != nil {
-		return nil, err
-	}
-	seen := map[string]bool{}
-	for _, c := range p.Checks {
-		if !seen[c.Task.ID] {
-			seen[c.Task.ID] = true
-			p.Tasks = append(p.Tasks, c.Task.ID)
-		}
-	}
-	return p, nil
+	return p
 }
 
-// hasTasksStep is whether the nightly has a step that runs the done tasks'
-// checks.
-func hasTasksStep(cfg *config.Loaded) bool {
-	if cfg.CI.Nightly == nil {
-		return false
-	}
-	for _, s := range cfg.CI.Nightly.Steps {
-		if s.Text == nil && s.Tasks != nil {
-			return true
-		}
-	}
-	return false
-}
-
-// DoneTasks are the tasks whose work item is done in the registry, for the
-// nightly's tasks step; none, and the ledger unread, when the nightly has
-// no such step.
-func DoneTasks(cfg *config.Loaded) ([]ledger.Task, error) {
-	if !hasTasksStep(cfg) {
-		return nil, nil
-	}
-	statuses := work.ItemStatuses(cfg.Work.Registry)
-	all, err := ledger.Tasks(cfg)
-	if err != nil {
-		return nil, err
-	}
-	var done []ledger.Task
-	for _, t := range all {
-		if status, ok := statuses.Of(t.ID); ok && status == "done" {
-			done = append(done, t)
-		}
-	}
-	return done, nil
-}
-
-// ForNightly is the nightly's plan, the done tasks read from the ledger and
-// the registry, the smoke set from the working tree; its range is every
-// commit up to HEAD.
-func ForNightly(cfg *config.Loaded) (*Plan, error) {
-	done, err := DoneTasks(cfg)
-	if err != nil {
-		return nil, err
-	}
-	smoke, err := Smoke(cfg, "")
-	if err != nil {
-		return nil, err
-	}
-	p, err := Make(cfg, Input{Nightly: true, Tasks: done, Smoke: smoke})
-	if err != nil {
-		return nil, err
-	}
+// ForNightly is the nightly's plan; its range is every commit up to HEAD.
+func ForNightly(cfg *config.Loaded) *Plan {
+	p := nightlyPlan(cfg)
 	p.fill(EndsOf(cfg, "", "HEAD"))
-	return p, nil
+	return p
 }

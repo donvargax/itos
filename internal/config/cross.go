@@ -251,9 +251,12 @@ func namedTypeProblems(c *Config, where string, named *Types) []out.Problem {
 	return found
 }
 
-// stepProblems: a step runs a command, a kind's tests or, in the nightly
-// alone, the checks of the done tasks, since a push runs the checks of the
-// tasks its commits name.
+// stepProblems: a step runs a command or a kind's tests. A step that ran
+// the done tasks' checks (tasks: done) is refused wherever it is written,
+// saying what replaced it: a task's checks are its own progress and leave
+// the ledger when work done closes it (ADR-0043), so v8 removed the step
+// (slice 107). The key stays in the schema so that this, and not an unknown
+// key, is what a config that still carries it is told.
 func stepProblems(_ *value.Map, c *Config) []out.Problem {
 	var found []out.Problem
 	for _, s := range c.CI.Steps {
@@ -271,42 +274,24 @@ func oneStepProblems(c *Config, s Step, nightly bool) []out.Problem {
 	if s.Text != nil {
 		return nil
 	}
-	if !nightly && s.Tasks != nil {
-		return []out.Problem{{
-			Rule:    "config-step-tasks",
-			Message: fmt.Sprintf("a CI step runs tasks: %s, which only a nightly step does: %s", *s.Tasks, s.JSON),
-			Fix:     "move the step to ci.nightly.steps; a push runs the checks of the tasks its commits name",
-		}}
-	}
-	given := 0
-	for _, v := range []*string{s.Run, s.Tests, s.Tasks} {
-		if v != nil {
-			given++
-		}
-	}
-	if given != 1 {
-		if nightly {
-			return []out.Problem{{
-				Rule:    "config-step",
-				Message: "a nightly step needs exactly one of run, tests and tasks: " + s.JSON,
-				Fix:     "give the step one of run: <command>, tests: <kind> or tasks: done",
-			}}
-		}
-		return []out.Problem{{
-			Rule:    "config-step",
-			Message: "a CI step needs exactly one of run and tests: " + s.JSON,
-			Fix:     "give the step either run: <command> or tests: <kind>, not both",
-		}}
+	where := "a CI step"
+	if nightly {
+		where = "a nightly step"
 	}
 	if s.Tasks != nil {
-		if s.Cost != nil && *s.Cost == "late" {
-			return []out.Problem{{
-				Rule:    "config-step-cost",
-				Message: "a nightly step runs tasks: " + *s.Tasks + " with cost: late; its cost is static or left out",
-				Fix:     "write cost: static to run only the static checks, or leave cost out to run them all",
-			}}
-		}
-		return nil
+		return []out.Problem{{
+			Rule: "config-step-tasks",
+			Message: fmt.Sprintf("%s runs tasks: %s, which v8 removed: a task's checks are its own progress "+
+				"and leave the ledger at work done: %s", where, *s.Tasks, s.JSON),
+			Fix: "remove the step; a check to run every night is a step of its own, run: <command>",
+		}}
+	}
+	if (s.Run == nil) == (s.Tests == nil) {
+		return []out.Problem{{
+			Rule:    "config-step",
+			Message: where + " needs exactly one of run and tests: " + s.JSON,
+			Fix:     "give the step either run: <command> or tests: <kind>, not both",
+		}}
 	}
 	if s.Tests == nil {
 		return nil

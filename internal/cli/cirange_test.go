@@ -53,3 +53,21 @@ func TestCIRangeJSONGivesTheStart(t *testing.T) {
 		t.Errorf("stdout %q (%v), want from %s", stdout.String(), err, since)
 	}
 }
+
+// The nightly's plan and run are its steps alone, in the order written: no
+// task's checks, so no ledger or registry is read (slice 107).
+func TestCINightlyIsItsStepsAlone(t *testing.T) {
+	t.Setenv("ITOS_FROM", "")
+	t.Setenv("ITOS_TO", "")
+	gitConfigRepo(t, "version: 1\nci: { steps: [], nightly: { steps: [echo one, { run: echo two, cost: static }] } }\n")
+	var stdout, stderr strings.Builder
+	code, err := ciPlan("", "", true, "", Out{Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || err != nil || stdout.String() != "late  echo one\nstatic  echo two\n" {
+		t.Fatalf("plan: exit %d, %v, stdout %q", code, err, stdout.String())
+	}
+	stdout.Reset()
+	code, err = ciRun("", "", true, Out{Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || err != nil || !strings.Contains(stdout.String(), "one\n") || !strings.Contains(stdout.String(), "CI passed") {
+		t.Errorf("run: exit %d, %v, stdout %q", code, err, stdout.String())
+	}
+}

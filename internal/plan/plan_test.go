@@ -1,6 +1,7 @@
 package plan
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -39,7 +40,7 @@ ci:
   cost: { static: ["^lint$", "^quick\\b"], keep_written_order: true }
   covers: [{ by: unit, matches: "^unit \\S+$" }]
   nightly_only: [slow]
-  nightly: { steps: [{ tests: scenario, whole: true }, { tasks: done, cost: static }] }
+  nightly: { steps: [{ tests: scenario, whole: true }, { run: quick check, cost: static }] }
 `
 
 func text(s string) *string { return &s }
@@ -134,22 +135,90 @@ late  T-1: quick again   (run)
 	}
 }
 
-// The nightly: its steps in written order, the tasks step only the static
-// checks, nothing left to the nightly by the nightly.
+// The nightly: its steps in the order written, whatever their cost, and no
+// task's checks (slice 107).
 func TestMakeNightly(t *testing.T) {
-	p, err := Make(load(t, scratch), Input{Nightly: true, Tasks: []ledger.Task{task}})
+	p := nightlyPlan(load(t, scratch))
+	want := "late  e2e\nstatic  quick check\n"
+	if got := lines(p); got != want || len(p.Tasks) != 0 || len(p.Checks) != 0 {
+		t.Errorf("plan:\n%s\ntasks %v, checks %d", got, p.Tasks, len(p.Checks))
+	}
+	if got := strings.Join(p.Steps, ","); got != "e2e,quick check" {
+		t.Errorf("steps %q", got)
+	}
+	if empty := nightlyPlan(load(t, "version: 1\n")); len(empty.Order) != 0 || len(empty.Steps) != 0 {
+		t.Errorf("a config with no nightly plans %d items", len(empty.Order))
+	}
+}
+
+// ForNightly plans the config's nightly steps alone, its range every commit
+// up to HEAD.
+func TestForNightly(t *testing.T) {
+	p := ForNightly(load(t, scratch))
+	if got := strings.Join(p.Steps, ","); got != "e2e,quick check" || p.Ends.From != "" || len(p.Checks) != 0 {
+		t.Errorf("steps %q, from %q, checks %d", got, p.Ends.From, len(p.Checks))
+	}
+}
+
+// Make stops at what it cannot read: a task whose checks it cannot, a config
+// with no ci section, a kind of named tests the config does not have (when a
+// check is read as one of its runs, and when only the run itself is), and a
+// ci.covers pattern that does not compile.
+func TestMakeStopsAtWhatItCannotRead(t *testing.T) {
+	broken := ledger.Task{ID: "T-9", Err: errors.New("T-9 cannot be read")}
+	if _, err := Make(load(t, scratch), Input{Tasks: []ledger.Task{broken}}); err == nil || err.Error() != "T-9 cannot be read" {
+		t.Errorf("a task it cannot read: %v", err)
+	}
+	if _, err := Make(load(t, "version: 1\n"), Input{}); err == nil || !strings.Contains(err.Error(), "ci is missing") {
+		t.Errorf("no ci section: %v", err)
+	}
+	if _, err := TestsKind(load(t, "version: 1\n")); err == nil {
+		t.Error("TestsKind of a config with no ci section gave no error")
+	}
+	missing := func() *config.Loaded {
+		cfg := load(t, scratch)
+		cfg.CI.Steps[2].Tests = text("missing")
+		return cfg
+	}
+	for name, in := range map[string]Input{
+		"a check read as a run": {Known: true, Tasks: []ledger.Task{task}},
+		"the run alone":         {Known: true},
+	} {
+		if _, err := Make(missing(), in); err == nil || !strings.Contains(err.Error(), "tests.missing is missing") {
+			t.Errorf("%s, of a kind the config does not have: %v", name, err)
+		}
+	}
+	cfg := load(t, scratch)
+	cfg.CI.Covers[0].Matches = "("
+	if _, err := Make(cfg, Input{Known: true, Tasks: []ledger.Task{task}}); err == nil {
+		t.Error("a ci.covers pattern that does not compile gave no error")
+	}
+}
+
+// A range it cannot read runs every test; a prose range whose static or
+// prose: true check is a run of the kind runs the kind's run for that check
+// alone.
+func TestMakeUnreadAndProseRuns(t *testing.T) {
+	unread, err := Make(load(t, scratch), Input{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "late  e2e\nstatic  T-1: quick check   (run)\n"
-	if got := lines(p); got != want || strings.Join(p.Tasks, ",") != "T-1" {
-		t.Errorf("plan:\n%s\ntasks %v", got, p.Tasks)
+	if got := strings.Join(unread.Steps, ","); got != "lint,unit,e2e" {
+		t.Errorf("an unread range's steps %q", got)
+	}
+	prose := ledger.Task{ID: "T-3", Title: "Three", DoneWhen: []ledger.Check{{Run: text("e2e --grep '@ID-C-'"), Prose: true}}}
+	p, err := Make(load(t, scratch), Input{Prose: true, Known: true, Tasks: []ledger.Task{prose}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(p.Steps, ","); got != "lint,e2e --grep '@ID-C-'" || p.Checks[0].Action != Merged {
+		t.Errorf("a prose range's steps %q, its check %s", got, p.Checks[0].Action)
 	}
 }
 
 // Bug 28: in a push, a named task's after: push check is pending, whatever
 // would otherwise merge it, cover it or leave it out, and the kind's run
-// takes no subset from it; the nightly runs it as any other.
+// takes no subset from it.
 func TestMakePushPending(t *testing.T) {
 	pushed := ledger.Task{ID: "T-2", Title: "Two", DoneWhen: []ledger.Check{
 		{Run: text("quick pushed"), After: "push"},
@@ -173,18 +242,6 @@ late  T-2: release check   (pending: runs after the push)
 `
 	if got := lines(p); got != want {
 		t.Errorf("plan:\n%s\nwant:\n%s", got, want)
-	}
-	nightly, err := Make(load(t, scratch), Input{Nightly: true, Tasks: []ledger.Task{pushed}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(nightly.Checks) != 1 {
-		t.Fatalf("the nightly plans %d checks", len(nightly.Checks))
-	}
-	for _, c := range nightly.Checks {
-		if c.Action != Run {
-			t.Errorf("the nightly leaves %s pending", c.Check.Command())
-		}
 	}
 }
 

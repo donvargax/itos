@@ -21,9 +21,8 @@
 //     command line and output keep their place in the log; a failure exits 1,
 //     naming the task and its title. A check merged into the run of named
 //     tests, covered by a step, left out by ci.nightly_only or pending until
-//     after the push is only logged, and never fails the run. The nightly
-//     shares one Runner's runs across its done tasks, so a check they share
-//     runs once; a push runs each named task's checks as its own.
+//     after the push is only logged, and never fails the run. Each named
+//     task's checks run as its own, a check two tasks share once for each.
 //   - The first failure ends the run, unless ci.stop_at_first_failure is
 //     false: then everything runs, each failure says where, and the first is
 //     the run's.

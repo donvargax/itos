@@ -24,13 +24,12 @@
 //     order. With ci.keep_step_order it is the steps as written, then the
 //     named tasks' checks in their ledger order (asWritten), for a
 //     repository whose CI ran its steps in a chosen order; the cost class
-//     still decides what the commit-msg hook and the nightly's static step
-//     run, and what a prose range keeps.
-//   - The nightly runs its own steps in the order written; its { tasks: done
-//     } step stands for the checks of every task whose work item is done
-//     (DoneTasks, by work.ItemStatuses), in cost order where it is written
-//     (only the static ones with cost: static). config check refuses that
-//     step in ci.steps, where the tasks are the ones the commits name.
+//     still decides what the commit-msg hook runs, and what a prose range
+//     keeps.
+//   - The nightly runs its own steps in the order written, and no task's
+//     checks: a task's checks are its own progress and leave the ledger when
+//     work done closes it (ADR-0043), so config check refuses the { tasks:
+//     done } step that ran the done tasks' (config-step-tasks, slice 107).
 //   - A prose-only range (only ci.prose.paths) runs the prose steps, then
 //     the named tasks' static checks and those that say prose: true, and
 //     lists what it leaves out.
@@ -54,9 +53,9 @@
 // Input; For(cfg, from, to, Data) plans a range, DataAt reading the ledger,
 // the registry and the smoke set from the working tree or, for --data-at,
 // from a commit under source.ReadingFrom (the config stays the working
-// tree's); ForNightly plans the nightly. Fields and Print are the JSON and
-// text itos ci plan prints, a contract: their keys, order and values are
-// held by the corpus.
+// tree's); ForNightly plans the nightly from the config alone. Fields and
+// Print are the JSON and text itos ci plan prints, a contract: their keys,
+// order and values are held by the corpus.
 //
 // A range's commits name tasks and tests through message.IDsIn (TasksIn,
 // TestsNamedIn), and its paths are Changed. The range is from..to as given:

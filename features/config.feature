@@ -394,7 +394,7 @@ Feature: Every key the config accepts is one itos reads
   # config still carries it is told what happened and what to write instead.
   # Deleting the key refuses it as an unknown key, which is honest and one
   # line less of schema, and says nothing about the rule that removed it.
-  @ID-CONFIG-42 @slice-107 @wip
+  @ID-CONFIG-42 @slice-107
   Scenario: config check refuses a nightly step that runs a done task's checks, saying what replaced it
     Given the committed file "itos.yaml" holding the lines:
       """
@@ -411,7 +411,7 @@ Feature: Every key the config accepts is one itos reads
   # One problem, not two: the step's own cost rule (config-step-cost) goes with
   # the step, so cost: static is refused as the same thing rather than as a cost
   # on a step that no longer exists.
-  @ID-CONFIG-43 @slice-107 @wip
+  @ID-CONFIG-43 @slice-107
   Scenario: The refused step is one problem with or without a cost
     Given the committed file "itos.yaml" holding the lines:
       """
@@ -428,7 +428,7 @@ Feature: Every key the config accepts is one itos reads
   # A consumer who never runs config check must still learn: the plan reads the
   # same config, so it refuses the same step the same way, rather than planning
   # a step no longer has an implementation.
-  @ID-CONFIG-44 @slice-107 @wip
+  @ID-CONFIG-44 @slice-107
   Scenario: ci plan refuses the nightly step too, so a plan of a stale config is never a pass
     Given the committed file "itos.yaml" holding the lines:
       """

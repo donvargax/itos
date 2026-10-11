@@ -4,9 +4,8 @@
 # against the ledger's folder), the tasks read from the footer whose source is
 # the ledger whatever its key, a
 # check recognized as the smoke run merged when there is a run of named tests
-# and run as itself when there is none, the nightly's tasks step (the done
-# tasks' checks, each shared one once, a failure naming the task's title), a
-# missing ledger folder stopping it at the plan (2), a named task waiting on
+# and run as itself when there is none, the nightly's tasks step refused
+# before any step runs, a missing ledger folder stopping it at the plan (2), a named task waiting on
 # the registry beside the ledger, and --json. The steps and checks are `echo`s, so the log shows what ran.
 git:
   - commit: "build: the scratch project"
@@ -595,7 +594,7 @@ cases:
       the gates self-test
 
       CI passed
-  - name: the nightly's tasks step runs the done tasks' checks, each one they share once, and leaves out a task in progress
+  - name: the nightly refuses a tasks step, which v8 removed, before any step runs
     argv: [ci, run, --nightly]
     files:
       itos.yaml: |
@@ -626,74 +625,9 @@ cases:
           nightly_only: [sh gates.sh]
           nightly: { steps: [{ tests: scenario, whole: true }, sh gates.sh, { tasks: done }] }
         work: { registry: tasks/work-items.yaml }
-      tasks/work-items.yaml: "items:\n  - { id: T-041, status: done }\n  - { id: T-020, status: done }\n  - { id: T-010, status: doing }\n"
-      tasks/phase-2.yaml: "- { id: T-020, type: build, title: Shares a check, done_when: [{ run: echo reads prose }] }\n"
-    exit: 0
-    stdout: |
-
-      $ echo run every scenario
-      run every scenario
-
-      $ sh gates.sh
-      the gates self-test
-
-      T-041
-        $ echo reads prose
-      reads prose
-
-      T-041
-        $ echo reads code
-      reads code
-
-      T-020
-        $ echo reads prose   (ran above; its exit status reused)
-
-      CI passed
-  - name: a done task's failing check fails the nightly, naming the task and its title
-    argv: [ci, run, --nightly]
-    files:
-      itos.yaml: |
-        version: 1
-        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
-        commits:
-          footers:
-            Task: { source: ledger, validate_for: all, read_at: commit }
-        tests:
-          scenario:
-            root: e2e/features
-            id: "ID-[A-Z]+-\\d+"
-            tag_prefix: "@"
-            run: { whole: "echo run every scenario", select: "printf 'run %s\\n' {pattern}", ids_pattern: "@(?:{ids})\\b" }
-            recognize:
-              - { command: "run-scenarios {pattern}", as: pattern }
-              - { command: "sh run-smoke.sh", as: smoke }
-            smoke: { file: e2e/smoke.yaml }
-        ci:
-          env: { CI: "1" }
-          steps:
-            - { run: echo lint, cost: static }
-            - { run: echo unit tests, cost: late }
-            - { tests: scenario }
-          prose: { paths: ["**/*.md", "docs/**"], steps: [echo lint] }
-          cost: { static: ["^echo lint$"], keep_written_order: true }
-          covers: [{ by: echo unit tests, matches: "^vp test run$" }]
-          nightly_only: [sh gates.sh]
-          nightly: { steps: [{ tasks: done }] }
-        work: { registry: tasks/work-items.yaml }
-      tasks/work-items.yaml: "items:\n  - { id: T-011, status: done }\n"
-    exit: 1
-    stdout: |
-
-      T-011
-        $ echo first
-      first
-
-      T-011
-        $ sh -c 'echo broken; exit 4'
-      broken
+    exit: 2
     stderr: |
-
-      CI failed at T-011 (A check that fails), its check: sh -c 'echo broken; exit 4'
+      FAIL itos.yaml: a nightly step runs tasks: done, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {"tasks":"done"}
   - name: with no range, every step and every test
     argv: [ci, run]
     exit: 0

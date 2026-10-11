@@ -64,6 +64,13 @@ func TestLoadProblems(t *testing.T) {
 		"version: 1\ncommits: { scopes: { docs: { only: [$prose] } } }\n": {
 			"commits.scopes.docs.only names $prose, which commits.path_sets does not have",
 		},
+		// A step runs a command or a kind's tests; the step that ran the done
+		// tasks' checks is refused as the one v8 removed (slice 107).
+		"version: 1\nci: { steps: [{ tests: x }], nightly: { steps: [{ cost: static }, { tasks: done, cost: static }] } }\n": {
+			"a CI step runs tests: x, and tests.x.run.whole is missing",
+			`a nightly step needs exactly one of run and tests: {"cost":"static"}`,
+			`a nightly step runs tasks: done, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {"tasks":"done","cost":"static"}`,
+		},
 	}
 	for text, want := range cases {
 		_, err := load(t, text)

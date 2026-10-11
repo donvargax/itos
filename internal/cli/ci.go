@@ -21,7 +21,7 @@ func planOf(from, to string, nightly bool, dataAt string) (*config.Loaded, *plan
 	}
 	var p *plan.Plan
 	if nightly {
-		p, err = plan.ForNightly(cfg)
+		p = plan.ForNightly(cfg)
 	} else {
 		var d plan.Data
 		if d, err = plan.DataAt(cfg, dataAt); err == nil {
@@ -39,7 +39,7 @@ func ciRun(from, to string, nightly bool, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	return ci.Run(cfg, p, ci.Options{JSON: o.JSON, Nightly: nightly, Stdout: o.Stdout, Stderr: o.Stderr})
+	return ci.Run(cfg, p, ci.Options{JSON: o.JSON, Stdout: o.Stdout, Stderr: o.Stderr})
 }
 
 // ciPlan is `ci plan <from> <to> | --nightly | --whole [--data-at <sha>]`

@@ -1,6 +1,7 @@
 package ci
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -111,9 +112,39 @@ func TestTheCodeProofFailsTheRunByItsProblems(t *testing.T) {
 	}
 }
 
-// The nightly runs a check its done tasks share once; a push runs each named
-// task's checks as its own.
-func TestOnlyTheNightlySharesRuns(t *testing.T) {
+// failingWriter refuses every write, as a closed stdout does.
+type failingWriter struct{}
+
+func (failingWriter) Write([]byte) (int, error) { return 0, errors.New("stdout is closed") }
+
+// A run stops, before anything runs, at what it cannot set or read: a ci.env
+// key the environment cannot take, a range end it cannot hand on, the
+// ledger's folder to name an unknown task against in a config with no
+// ledger; and under --json at a verdict it cannot write.
+func TestRunStopsAtWhatItCannotSetOrRead(t *testing.T) {
+	t.Setenv("ITOS_FROM", "")
+	t.Setenv("ITOS_TO", "")
+	var stdout, stderr strings.Builder
+	cfg := load(t)
+	cfg.CI.Env = map[string]string{"A\x00B": "x"}
+	if _, err := Run(cfg, &plan.Plan{}, Options{Stdout: &stdout, Stderr: &stderr}); err == nil {
+		t.Error("a ci.env key with a NUL in it gave no error")
+	}
+	if _, err := Run(load(t), &plan.Plan{Ends: plan.Ends{From: "a\x00b"}}, Options{Stdout: &stdout, Stderr: &stderr}); err == nil {
+		t.Error("a range end with a NUL in it gave no error")
+	}
+	if _, err := Run(load(t), &plan.Plan{Unknown: []string{"T-9"}}, Options{Stdout: &stdout, Stderr: &stderr}); err == nil ||
+		!strings.Contains(err.Error(), "ledger is missing") {
+		t.Errorf("an unknown task with no ledger: %v", err)
+	}
+	if _, err := Run(load(t), &plan.Plan{}, Options{JSON: true, Stdout: failingWriter{}, Stderr: &stderr}); err == nil {
+		t.Error("a verdict it cannot write gave no error")
+	}
+}
+
+// A run runs each named task's checks as its own, so a check two tasks share
+// runs once for each.
+func TestEachTaskRunsASharedCheck(t *testing.T) {
 	// Slashes, as sh reads a windows path's backslashes as escapes.
 	count := filepath.ToSlash(filepath.Join(t.TempDir(), "runs"))
 	command := "echo run >> " + count
@@ -124,18 +155,12 @@ func TestOnlyTheNightlySharesRuns(t *testing.T) {
 		}}
 	}
 	p := &plan.Plan{Order: []plan.Item{shared("T-001"), shared("T-002")}}
-	for _, c := range []struct {
-		nightly bool
-		runs    int
-	}{{false, 2}, {true, 1}} {
-		_ = os.Remove(count)
-		code, stdout, _ := run(t, p, Options{Nightly: c.nightly})
-		written, err := os.ReadFile(count)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if runs := strings.Count(string(written), "run"); code != 0 || runs != c.runs {
-			t.Errorf("nightly %v: exit %d, %d runs, want %d\n%s", c.nightly, code, runs, c.runs, stdout)
-		}
+	code, stdout, _ := run(t, p, Options{})
+	written, err := os.ReadFile(count)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if runs := strings.Count(string(written), "run"); code != 0 || runs != 2 {
+		t.Errorf("exit %d, %d runs, want 2\n%s", code, runs, stdout)
 	}
 }

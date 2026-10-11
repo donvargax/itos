@@ -30,9 +30,8 @@ The headings name the command or check that emits each rule. One invocation can 
 - `config-footer-text`: a free-text footer rule is not valid for its source.
 - `config-footer-in-place-of`: footer source replacement rules conflict.
 - `config-footer-types`: footer requirements name invalid or conflicting commit types.
-- `config-step-tasks`: a CI step names a task that cannot be selected there.
+- `config-step-tasks`: a CI or nightly step runs `tasks: done`, which v8 removed.
 - `config-step`: a CI step has an invalid shape or kind.
-- `config-step-cost`: a CI step has an invalid cost class or order.
 - `config-step-tests`: a CI step has an invalid named-test selection.
 - `config-regexp`: a configured regular expression is invalid or unsupported.
 - `config-login-from`: `work.people.login_from` is used with a people source that cannot read it, or its template does not contain exactly one `{login}`.

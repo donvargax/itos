@@ -261,7 +261,8 @@ type CI struct {
 }
 
 // Step is one CI step: a command written as text, or a mapping that runs a
-// command, a kind's tests or (in the nightly) the done tasks' checks. JSON is
+// command or a kind's tests; Tasks is read only for config check to refuse
+// the step v8 removed (config-step-tasks). JSON is
 // the step as JSON.stringify writes it, for the messages that quote it.
 type Step struct {
 	Text  *string `json:"-"`

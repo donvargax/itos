@@ -83,7 +83,6 @@ type scratchConfig struct {
 	smokeRuns         []string        // commands the kind of ciTests recognizes as its smoke run
 	stopAtFirst       *bool           // ci.stop_at_first_failure
 	keepStepOrder     *bool           // ci.keep_step_order
-	nightlyTasks      string          // ci.nightly.steps runs the done tasks' checks: "every" of them, or "static"
 	costStatic        []string        // ci.cost.static
 	keepWrittenOrder  *bool           // ci.cost.keep_written_order
 	covers            []cover         // ci.covers
@@ -297,8 +296,6 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the work registry has the item "([^"]*)" with the status "([^"]*)" and the item "([^"]*)" with the status "([^"]*)"$`, func(a, aStatus, b, bStatus string) error {
 		return w.workingRegistryItems(startingRegistry, [][2]string{{a, aStatus}, {b, bStatus}})
 	})
-	sc.Step(`^the nightly steps run the checks of the done tasks$`, func() error { return w.nightlyTasksAre("every") })
-	sc.Step(`^the nightly steps run the static checks of the done tasks$`, func() error { return w.nightlyTasksAre("static") })
 	sc.Step(`^work\.groups_key is "([^"]*)"$`, w.groupsKeyIs)
 	sc.Step(`^the people file is missing$`, w.peopleFileMissing)
 	sc.Step(`^no identity can be looked up$`, w.noIdentity)
@@ -406,7 +403,6 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		return w.itos("task", flag, group)
 	})
 	sc.Step(`^itos lists the tasks$`, func() error { return w.itos("task", "list") })
-	sc.Step(`^itos runs the nightly$`, func() error { return w.itos("ci", "run", "--nightly") })
 	// Every commit up to HEAD is the range an empty start gives (bug 33).
 	sc.Step(`^itos runs CI (?:over every commit up to HEAD|with an empty range start)$`, func() error {
 		return w.itos("ci", "run", "", "HEAD")
@@ -455,7 +451,6 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^its JSON lists the item "([^"]*)" with its title$`, w.jsonListsItem)
 	sc.Step(`^its output lists "([^"]*)" as "([^"]*)"$`, w.outputLists)
 	sc.Step(`^the counting check ran once$`, func() error { return w.countingCheckRan(1) })
-	sc.Step(`^the counting check did not run$`, func() error { return w.countingCheckRan(0) })
 	sc.Step(`^the range check started at the first commit$`, w.rangeCheckStartedAtFirst)
 	sc.Step(`^the recording shell ran "([^"]*)"$`, w.recordingShellRan)
 	sc.Step(`^the recording shell ran the range check$`, w.recordingShellRanRangeCheck)
@@ -1001,12 +996,6 @@ func (w *world) ciSection() string {
 	}
 	if w.config.proseSteps != "" {
 		fmt.Fprintf(&b, "  prose: { paths: [%q], steps: [%q] }\n", w.config.prosePaths, w.config.proseSteps)
-	}
-	switch w.config.nightlyTasks {
-	case "every":
-		b.WriteString("  nightly:\n    steps: [{ tasks: done }]\n")
-	case "static":
-		b.WriteString("  nightly:\n    steps: [{ tasks: done, cost: static }]\n")
 	}
 	if r := w.config.rangeGitHub; r != "" {
 		fmt.Fprintf(&b, "  range:\n    provider: github\n    github: { workflow: %q }\n", r)
@@ -2127,13 +2116,6 @@ func (w *world) workingRegistryItems(path string, items [][2]string) error {
 		w.registryLines = append(w.registryLines, lines...)
 	}
 	return w.write(path, "phases: { 1: null }\nitems:\n"+strings.Join(lines, ""))
-}
-
-// The nightly's one step runs the checks of the tasks whose work item is
-// done: every one of them, or only the static ones.
-func (w *world) nightlyTasksAre(which string) error {
-	w.config.nightlyTasks = which
-	return w.writeConfig()
 }
 
 // The same registry, staged, with the starting one's removal when it moved.

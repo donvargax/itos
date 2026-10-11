@@ -11,8 +11,8 @@
 # a check static by a ci.cost.static pattern that written order runs late, a warning that passes;
 # the registry's and the smoke set's problems beside them; the decision
 # records' (a number twice, a supersede link to no record); a project's people
-# file missing or unreadable, a warning that passes; the nightly's
-# tasks step (tasks: done, refused in ci.steps, with no late cost); --print-defaults,
+# file missing or unreadable, a warning that passes; a tasks step, which v8
+# removed, refused wherever it is written; --print-defaults,
 # work.registry's beside the config's ledger, and work.asks beside the registry;
 # config get, a key's value as the tools read it (the config's, a default, a stealth config's own, from a
 # subfolder; a scalar bare, a mapping or a list as JSON, nothing for no value;
@@ -938,25 +938,7 @@ cases:
     exit: 2
     stderr: |
       FAIL hook.yaml: hooks.commit_msg.check_timeout is a number of seconds above 0, not 0
-  - name: a nightly step runs the done tasks' checks, every one or only the static ones
-    argv: [config, check]
-    files:
-      itos.yaml: |
-        version: 1
-        ledger: { files: "tasks/phase-{group}.yaml", group: { pattern: "\\d+", numeric: true }, id: "T-\\d+" }
-        commits: { types: [build, docs] }
-        tests:
-          scenario: { root: features, id: "ID-[A-Z]+-\\d+", tag_prefix: "@", smoke: { file: smoke.yaml } }
-        ci:
-          steps: [{ run: vp check, cost: static }]
-          nightly: { steps: [{ tasks: done }, { tasks: done, cost: static }] }
-        work: { registry: work-items.yaml, people: { source: yaml, file: people.yaml } }
-    exit: 0
-    stdout: |
-      itos.yaml is valid, and so are the 2 ledger files it reads
-      work-items.yaml: sound
-      smoke.yaml: every file has a smoke test (1 in all)
-  - name: a nightly tasks step takes only done, named as the value not allowed
+  - name: a nightly tasks step is refused as the step v8 removed, whatever its value
     argv: [config, check, --json, --config, nightly.yaml]
     files: { nightly.yaml: "version: 1\nci: { steps: [], nightly: { steps: [{ tasks: doing }] } }\n" }
     exit: 2
@@ -965,11 +947,11 @@ cases:
       config: nightly.yaml
       valid: false
       problems:
-        - rule: config-enum
-          message: 'nightly.yaml: ci.nightly.steps[0].tasks should be one of done, not "doing"'
-          fix: set ci.nightly.steps[0].tasks to one of done
+        - rule: config-step-tasks
+          message: "nightly.yaml: a nightly step runs tasks: doing, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {\"tasks\":\"doing\"}"
+          fix: "remove the step; a check to run every night is a step of its own, run: <command>"
           area: config
-  - name: a tasks step belongs to the nightly, has no late cost, and runs nothing else
+  - name: a tasks step is refused in ci.steps and the nightly, with a cost or beside a run, once a step
     argv: [config, check, --json, --config, tasks.yaml]
     files:
       tasks.yaml: |
@@ -984,20 +966,20 @@ cases:
       valid: false
       problems:
         - rule: config-step-tasks
-          message: 'tasks.yaml: a CI step runs tasks: done, which only a nightly step does: {"tasks":"done"}'
-          fix: move the step to ci.nightly.steps; a push runs the checks of the tasks its commits name
+          message: "tasks.yaml: a CI step runs tasks: done, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {\"tasks\":\"done\"}"
+          fix: "remove the step; a check to run every night is a step of its own, run: <command>"
           area: config
-        - rule: config-step-cost
-          message: "tasks.yaml: a nightly step runs tasks: done with cost: late; its cost is static or left out"
-          fix: "write cost: static to run only the static checks, or leave cost out to run them all"
+        - rule: config-step-tasks
+          message: "tasks.yaml: a nightly step runs tasks: done, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {\"tasks\":\"done\",\"cost\":\"late\"}"
+          fix: "remove the step; a check to run every night is a step of its own, run: <command>"
+          area: config
+        - rule: config-step-tasks
+          message: "tasks.yaml: a nightly step runs tasks: done, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {\"tasks\":\"done\",\"run\":\"vp check\"}"
+          fix: "remove the step; a check to run every night is a step of its own, run: <command>"
           area: config
         - rule: config-step
-          message: 'tasks.yaml: a nightly step needs exactly one of run, tests and tasks: {"tasks":"done","run":"vp check"}'
-          fix: "give the step one of run: <command>, tests: <kind> or tasks: done"
-          area: config
-        - rule: config-step
-          message: 'tasks.yaml: a nightly step needs exactly one of run, tests and tasks: {"cost":"static"}'
-          fix: "give the step one of run: <command>, tests: <kind> or tasks: done"
+          message: 'tasks.yaml: a nightly step needs exactly one of run and tests: {"cost":"static"}'
+          fix: "give the step either run: <command> or tests: <kind>, not both"
           area: config
   - name: the defaults the tools take when a key is left out
     argv: [config, check, --print-defaults]

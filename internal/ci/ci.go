@@ -29,9 +29,9 @@ type Failure struct {
 }
 
 // Options are how a run reports: under JSON its log goes to Stderr and
-// Stdout holds the verdict. Nightly shares the task checks' runs.
+// Stdout holds the verdict.
 type Options struct {
-	JSON, Nightly  bool
+	JSON           bool
 	Stdout, Stderr io.Writer
 }
 
@@ -62,9 +62,7 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 	}
 	d.runner = check.NewRunner(cfg, o.Stdout, o.Stderr)
 	d.runner.Verbose, d.runner.ToStderr = true, o.JSON
-	if !o.Nightly {
-		d.runner.Runs = nil
-	}
+	d.runner.Runs = nil
 	failed, err := d.preamble(p)
 	if err != nil {
 		return 0, err

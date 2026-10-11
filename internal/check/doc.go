@@ -6,8 +6,8 @@
 // whitespace collapsed (config.Normal), and its timeout. Its Run prints the
 // verbose command line and runs each distinct check once, every later task
 // that lists it reading the kept exit status by its own run: or fails:. The
-// runs live for the invocation alone; the nightly shares one Runner across
-// its done tasks, while a push runs each named task's checks as its own.
+// runs live for the invocation alone, and CI's driver keeps none, so a push
+// runs each named task's checks as its own.
 //
 // CostOf, CostedChecks and ChecksBeforeLate are the cost classes and the
 // written order: a check is static by its own cost: static, else by a

@@ -103,14 +103,13 @@ func (s *spec) keys() []string {
 var cost = about("static (seconds, run first) or late.", enum("static", "late"))
 
 var step = about(
-	"A command, or a mapping that runs a command (run), a kind's tests (tests) or, in the nightly "+
-		"alone, the checks of every done task (tasks: done).",
+	"A command, or a mapping that runs a command (run) or a kind's tests (tests).",
 	either(str, obj(nil,
 		"run", about("The command the step runs.", str),
 		"tests", about("The kind of named tests the step runs, by its run.whole.", str),
 		"whole", about("Whether the step runs every test of its kind, rather than the ones a range names.", boo),
 		"cost", cost,
-		"tasks", about("done: the checks of every task whose work item is done (a nightly step).", enum("done")),
+		"tasks", about("Removed in v8, and refused: a task's checks leave the ledger at work done.", str),
 	)),
 )
 
