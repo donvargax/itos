@@ -4,9 +4,9 @@ import (
 	"math"
 	"os"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/ledger"
-	"github.com/donvargax/itos/v7/internal/shell"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/ledger"
+	"github.com/donvargax/itos/v8/internal/shell"
 )
 
 // Captured is a check run quietly (checks.ts's Captured): whether it passed,

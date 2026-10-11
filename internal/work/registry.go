@@ -6,12 +6,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/kind"
-	"github.com/donvargax/itos/v7/internal/out"
-	"github.com/donvargax/itos/v7/internal/providers"
-	"github.com/donvargax/itos/v7/internal/source"
-	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/providers"
+	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // kinds are the kinds an item may have: a bug (slice 104) is minted bug-<n>

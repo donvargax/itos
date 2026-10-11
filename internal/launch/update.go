@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v7/internal/release"
-	"github.com/donvargax/itos/v7/internal/version"
+	"github.com/donvargax/itos/v8/internal/release"
+	"github.com/donvargax/itos/v8/internal/version"
 )
 
 // Keeping to the newest release (features/update.feature). The launcher asks

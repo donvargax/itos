@@ -7,9 +7,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/glob"
-	"github.com/donvargax/itos/v7/internal/shell"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/glob"
+	"github.com/donvargax/itos/v8/internal/shell"
 )
 
 // Outcome is what a check's answer comes to.

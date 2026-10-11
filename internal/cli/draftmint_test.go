@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/draft"
+	"github.com/donvargax/itos/v8/internal/draft"
 )
 
 // A scratch repository under a stealth config whose registry holds T-002

@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 const queueText = "phases: { 1: null }\n" +

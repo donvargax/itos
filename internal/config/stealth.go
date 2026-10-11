@@ -25,9 +25,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/donvargax/itos/v7/internal/git"
-	"github.com/donvargax/itos/v7/internal/source"
-	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // The config's name, in the root and in the stealth folder.

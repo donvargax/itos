@@ -28,10 +28,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/git"
-	"github.com/donvargax/itos/v7/internal/kind"
-	"github.com/donvargax/itos/v7/internal/out"
-	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // configHooksSince is the first git that runs the hooks its config declares:

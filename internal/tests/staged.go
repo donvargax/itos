@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/source"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/source"
 )
 
 // StagesTestFile is whether one of paths, from the repository's top as git

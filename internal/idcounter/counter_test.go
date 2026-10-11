@@ -11,7 +11,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v8/internal/git"
 )
 
 func TestMain(m *testing.M) {

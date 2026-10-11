@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/out"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/out"
 )
 
 // The version of itos a repository runs is its pin, else its install

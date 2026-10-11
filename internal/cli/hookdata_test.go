@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v8/internal/config"
 )
 
 // scratchFolder is a new folder, made the current one, that no repository

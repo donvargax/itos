@@ -37,11 +37,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/draft"
-	"github.com/donvargax/itos/v7/internal/git"
-	"github.com/donvargax/itos/v7/internal/lock"
-	"github.com/donvargax/itos/v7/internal/out"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/draft"
+	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/lock"
+	"github.com/donvargax/itos/v8/internal/out"
 )
 
 // draftTakes is what draft takes, as a usage error names it.

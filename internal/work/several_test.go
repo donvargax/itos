@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/out"
-	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 const severalText = "phases: { 1: null }\nqueue:\n  - c\nitems:\n" +

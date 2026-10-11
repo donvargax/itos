@@ -23,7 +23,7 @@ import (
 
 	"github.com/cucumber/godog"
 
-	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v8/internal/git"
 )
 
 // One scenario's state.

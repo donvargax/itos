@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/git"
-	"github.com/donvargax/itos/v7/internal/release"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/release"
 )
 
 // The flags that answer init's three offers, so no test asks or installs.

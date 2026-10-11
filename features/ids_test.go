@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/cucumber/godog"
-	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v8/internal/git"
 )
 
 func initializeIDSteps(sc *godog.ScenarioContext, w *world) {

@@ -1,4 +1,4 @@
-module github.com/donvargax/itos/v7
+module github.com/donvargax/itos/v8
 
 go 1.27
 

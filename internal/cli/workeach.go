@@ -13,10 +13,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/out"
-	"github.com/donvargax/itos/v7/internal/value"
-	"github.com/donvargax/itos/v7/internal/work"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/value"
+	"github.com/donvargax/itos/v8/internal/work"
 )
 
 // workIDs reads the arguments of a registry command that takes one or more

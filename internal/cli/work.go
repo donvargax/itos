@@ -3,11 +3,11 @@ package cli
 import (
 	"fmt"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/out"
-	"github.com/donvargax/itos/v7/internal/providers"
-	"github.com/donvargax/itos/v7/internal/source"
-	"github.com/donvargax/itos/v7/internal/work"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/providers"
+	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/work"
 )
 
 // workCheck is `work check [<file>]` (work.ts's workCheck): the registry's

@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/git"
-	"github.com/donvargax/itos/v7/internal/kind"
-	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // The rollback of writeCommitted (bug 13): a scratch repository, its files

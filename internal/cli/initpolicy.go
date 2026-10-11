@@ -50,13 +50,13 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/git"
-	"github.com/donvargax/itos/v7/internal/ledger"
-	"github.com/donvargax/itos/v7/internal/out"
-	"github.com/donvargax/itos/v7/internal/release"
-	"github.com/donvargax/itos/v7/internal/tests"
-	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/ledger"
+	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/release"
+	"github.com/donvargax/itos/v8/internal/tests"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // The adoption task init --policy writes in a project, its type and its

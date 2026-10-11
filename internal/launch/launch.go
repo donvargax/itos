@@ -15,12 +15,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/donvargax/itos/v7/internal/cli"
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/kind"
-	"github.com/donvargax/itos/v7/internal/release"
-	"github.com/donvargax/itos/v7/internal/value"
-	"github.com/donvargax/itos/v7/internal/version"
+	"github.com/donvargax/itos/v8/internal/cli"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/release"
+	"github.com/donvargax/itos/v8/internal/value"
+	"github.com/donvargax/itos/v8/internal/version"
 )
 
 // The environment the launcher reads, and sets for the version it runs.

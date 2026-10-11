@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/git"
-	"github.com/donvargax/itos/v7/internal/idcounter"
-	"github.com/donvargax/itos/v7/internal/ledger"
-	"github.com/donvargax/itos/v7/internal/nextid"
-	"github.com/donvargax/itos/v7/internal/work"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/idcounter"
+	"github.com/donvargax/itos/v8/internal/ledger"
+	"github.com/donvargax/itos/v8/internal/nextid"
+	"github.com/donvargax/itos/v8/internal/work"
 )
 
 // reserved is the item id a draft reserved for the command itos draft

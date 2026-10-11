@@ -22,7 +22,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v8/internal/git"
 )
 
 // echoArgs writes each argument to a file of its own in the folder

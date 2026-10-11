@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/config"
+	"github.com/donvargax/itos/v8/internal/config"
 )
 
 // A ledger in a scratch folder, its files written, and its config loaded.

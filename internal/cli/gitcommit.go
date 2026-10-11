@@ -36,10 +36,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/git"
-	"github.com/donvargax/itos/v7/internal/message"
-	"github.com/donvargax/itos/v7/internal/out"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/message"
+	"github.com/donvargax/itos/v8/internal/out"
 )
 
 // commitFlags are what itos commit reads of its arguments: the IDs --task,

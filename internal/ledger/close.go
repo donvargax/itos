@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // Edited is a ledger file edited in place: its path, and its text before and

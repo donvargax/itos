@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/draft"
-	"github.com/donvargax/itos/v7/internal/git"
+	"github.com/donvargax/itos/v8/internal/draft"
+	"github.com/donvargax/itos/v8/internal/git"
 )
 
 // An edit draft of a committed notes.md and a new.md HEAD lacks, made by

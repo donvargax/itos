@@ -3,10 +3,10 @@ package main
 import (
 	"os"
 
-	"github.com/donvargax/itos/v7/internal/cli"
-	"github.com/donvargax/itos/v7/internal/git"
-	"github.com/donvargax/itos/v7/internal/launch"
-	"github.com/donvargax/itos/v7/internal/shim"
+	"github.com/donvargax/itos/v8/internal/cli"
+	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/launch"
+	"github.com/donvargax/itos/v8/internal/shim"
 )
 
 func main() {

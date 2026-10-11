@@ -13,13 +13,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/idcounter"
-	"github.com/donvargax/itos/v7/internal/ledger"
-	"github.com/donvargax/itos/v7/internal/out"
-	"github.com/donvargax/itos/v7/internal/source"
-	"github.com/donvargax/itos/v7/internal/tests"
-	"github.com/donvargax/itos/v7/internal/work"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/idcounter"
+	"github.com/donvargax/itos/v8/internal/ledger"
+	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/tests"
+	"github.com/donvargax/itos/v8/internal/work"
 )
 
 // registryIDs are the work registry's item ids, which name a slice, a bug

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"unicode/utf16"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/out"
-	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 // Several ids (slice 118): grooming a backlog is one change made to many

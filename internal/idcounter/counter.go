@@ -13,9 +13,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/git"
-	"github.com/donvargax/itos/v7/internal/kind"
-	"github.com/donvargax/itos/v7/internal/lock"
+	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/kind"
+	"github.com/donvargax/itos/v8/internal/lock"
 	"go.yaml.in/yaml/v3"
 )
 

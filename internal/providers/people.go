@@ -7,9 +7,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/source"
-	"github.com/donvargax/itos/v7/internal/value"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/source"
+	"github.com/donvargax/itos/v8/internal/value"
 )
 
 var contributorsList = regexp.MustCompile(`(?s)<!-- ALL-CONTRIBUTORS-LIST:START[^>]*-->(.*?)<!-- ALL-CONTRIBUTORS-LIST:END`)

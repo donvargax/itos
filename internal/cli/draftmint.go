@@ -16,9 +16,9 @@ import (
 	"os"
 	"slices"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/draft"
-	"github.com/donvargax/itos/v7/internal/tests"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/draft"
+	"github.com/donvargax/itos/v8/internal/tests"
 )
 
 // mintingLines are the commands that mint an item's id, as their first two

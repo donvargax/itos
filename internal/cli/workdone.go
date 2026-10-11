@@ -33,14 +33,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/donvargax/itos/v7/internal/check"
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/git"
-	"github.com/donvargax/itos/v7/internal/ledger"
-	"github.com/donvargax/itos/v7/internal/out"
-	"github.com/donvargax/itos/v7/internal/providers"
-	"github.com/donvargax/itos/v7/internal/tests"
-	"github.com/donvargax/itos/v7/internal/work"
+	"github.com/donvargax/itos/v8/internal/check"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/ledger"
+	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/providers"
+	"github.com/donvargax/itos/v8/internal/tests"
+	"github.com/donvargax/itos/v8/internal/work"
 )
 
 // workDone is `work done <id>`: the item done and the registry committed

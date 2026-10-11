@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/donvargax/itos/v7/internal/config"
-	"github.com/donvargax/itos/v7/internal/draft"
-	"github.com/donvargax/itos/v7/internal/out"
-	"github.com/donvargax/itos/v7/internal/release"
-	"github.com/donvargax/itos/v7/internal/source"
+	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/draft"
+	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/release"
+	"github.com/donvargax/itos/v8/internal/source"
 )
 
 // statusRepo is a scratch repository as the current folder, with no remote,

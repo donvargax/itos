@@ -52,7 +52,7 @@ import (
 const scenarioCoverEnv = "ITOS_CC_TEST_COVERDIR"
 
 // The variable the version's stamp is linked into, as tools/bin/itos links it.
-const versionStamp = "github.com/donvargax/itos/v7/internal/version.stamp"
+const versionStamp = "github.com/donvargax/itos/v8/internal/version.stamp"
 
 // coverBin is the -cover build of the itos under test, when the run made one:
 // what a scenario runs unless ITOS_BIN names a binary.
