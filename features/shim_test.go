@@ -6,6 +6,8 @@
 // ITOS_BIN, so a throwaway extension asks for it. The link and its folder go
 // with the support folder after the scenario, and the PATH is only ever the
 // scenario's commands' own, so no shim is left on the PATH of anything else.
+// An untracked file, and whether a file is staged, are the real git's to
+// tell (slice 128).
 package features
 
 import (
@@ -36,6 +38,9 @@ func initializeShimSteps(sc *godog.ScenarioContext, w *world) {
 	})
 
 	sc.Step(`^git exits with code (\d+)$`, w.gitExitsWith)
+	sc.Step(`^an untracked file "([^"]*)"$`, func(path string) error { return w.write(path, "A note.\n") })
+	sc.Step(`^the file "([^"]*)" is staged$`, func(path string) error { return w.staged(path, true) })
+	sc.Step(`^the file "([^"]*)" is not staged$`, func(path string) error { return w.staged(path, false) })
 	sc.Step(`^that repository's HEAD says "([^"]*)"$`, w.plainHeadSays)
 	sc.Step(`^"([^"]*)" runs itos$`, w.runsItos)
 }
@@ -176,6 +181,19 @@ func (w *world) gitThroughShim(dir, line string) error {
 func (w *world) gitExitsWith(code int) error {
 	if w.exit != code {
 		return fmt.Errorf("git exited %d, not %d\n%s", w.exit, code, w.report())
+	}
+	return nil
+}
+
+// Whether git's index holds a change to the file at path, from the
+// repository's top, against HEAD, as the real git tells it.
+func (w *world) staged(path string, want bool) error {
+	out, err := w.gitOutput("diff", "--cached", "--name-only", "--", path)
+	if err != nil {
+		return err
+	}
+	if got := strings.TrimSpace(out) != ""; got != want {
+		return fmt.Errorf("%s staged: %v, want %v\n%s", path, got, want, w.report())
 	}
 	return nil
 }

@@ -10,7 +10,8 @@
 // a commit of the remote's main by its header (bug 24's fake GitHub too), and
 // an origin that cannot be reached or is no repository (slice 90); a take
 // of an item in a commit no remote has that touches only the registry
-// (slice 93).
+// (slice 93); and the real git run in the clone, past any shim, its hooks
+// running (slice 128).
 package features
 
 import (
@@ -70,6 +71,15 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^git pushes HEAD to the remote's new branch "([^"]*)"$`, func(branch string) error {
 		return w.run(w.dir, git.Bin(), "push", "origin", "HEAD:refs/heads/"+branch)
 	})
+	// The real git, past any shim, in the clone, its hooks running.
+	sc.Step(`^the real git runs "([^"]*)"$`, func(line string) error {
+		args, err := shellWords(line)
+		if err != nil {
+			return err
+		}
+		return w.run(w.dir, git.Bin(), args...)
+	})
+	sc.Step(`^the real git exits with code (\d+)$`, w.gitExitsWith)
 	sc.Step(`^the remote has no branch "([^"]*)"$`, w.remoteHasNoBranch)
 	sc.Step(`^none of hooks\.pre_push's commands ran$`, func() error {
 		if _, err := os.Stat(w.prePushRecord()); err == nil {
