@@ -4052,22 +4052,9 @@ items:
     title: itos refuses ledger layouts, questions files and config values it cannot use, the same way for every command
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-ledger-layout-checks.
-      Found by the code review of 07b0e6d (2026-10-05). A ledger.group.pattern written with its own
-      anchors never matches and config check reports 0 ledger files as valid; {group} as a folder in
-      ledger.files passes and later fails as a missing folder (ledger.go:49, cross.go:358-372).
-
-      Backlog review of 2026-10-10, batch 1: folds in p1-ledger-matches-registry: refuse a
-      ledger.files that matches work.registry, naming both keys (tasks/{group}.yaml today fails as
-      tasks/work-items.yaml is not a list of tasks, naming neither).
-
-      Backlog review of 2026-10-10, batch 3: folds in p3-ledger-numeric-sort: ledger.group.numeric:
-      the files still sort byte-wise (ledger.go sort.Strings), so phase-10 is read before phase-2,
-      against the key's description.
     refs: [internal/ledger/ledger.go, internal/config/cross.go]
     tags: [config]
 
