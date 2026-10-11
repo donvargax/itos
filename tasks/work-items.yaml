@@ -4029,6 +4029,7 @@ items:
       install no interrupt handling, so the prompt returns while git and the editor still hold the
       console.
     refs: [internal/launch/run_other.go, internal/cli/extension_other.go]
+    tags: [windows]
 
   - id: p1-ledger-id-grouping
     title: ledger.id is anchored as a group
@@ -4421,6 +4422,7 @@ items:
       code review of 07b0e6d (gitshim.go linksItos and os.Link): after an upgrade replaces itos.exe,
       install and uninstall both refuse their own stale shim.
     refs: [internal/cli/gitshim.go]
+    tags: [windows]
 
   - id: p1-untyped-ignored-headers
     title: Judge a one-parent commit whose lint-ignored header names no type
