@@ -7016,6 +7016,10 @@ items:
       found and pass, the rule's intent. CI still judges fresh at push. Each extra local proof costs
       minutes and tokens in every itos-driven repository.
 
+      2026-10-10: q-57 and p1-proof-changed-lines-any-test (itos-cc#33, #34) take most of this away:
+      with line scope, a test commit that fixes a finding no longer draws old uncovered lines into
+      the proof.
+
   - id: slice-118
     title: work edit, drop, defer, resume and queue take several ids, one change for all in one commit
     phase: 1
