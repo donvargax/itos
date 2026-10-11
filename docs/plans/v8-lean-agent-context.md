@@ -28,7 +28,6 @@ the breaking checks the v7 plan already set aside for the next major.
   when the block is one another itos wrote.
 - **`p1-trim-agents-md`**: this repository's own handwritten AGENTS.md text keeps only what is
   its own.
-- **`p1-commit-exit-codes`**: `itos commit` exits by the error's kind, not with git commit's code.
 - **`p1-shim-refuses-hook-skipping`**, merged with `p1-agent-rules-as-checks` (the user,
   2026-10-11): the shim, `itos commit` and `itos push` refuse `--no-verify`, `-n` and a `-c` that
   moves `core.hooksPath`; the shim refuses sweeping stages (`git add -A`, `.`, `-u`, a folder) and
@@ -60,6 +59,9 @@ Not all breaking, but gaps go-template-itos hit, so they ship with the bundle (t
   `itos guide repair` already tells a coordinator to do after a revert.
 - **`p1-moves-feature-description`** (issue #43): a `test` or `docs` commit may reword a feature's
   description, which no scenario checks.
+- **`p1-init-agent-rules-runs-pin`** (issue #47): `itos init` in a pinned repository runs as the
+  pinned itos, so a newer itos on the PATH never writes its own block over the pin's. With
+  `p1-upgrade-refreshes-agent-block` the block is always the pinned release's.
 
 ### The testing tiers, for speed
 
@@ -84,6 +86,8 @@ this repository reached by q-41, q-52, q-54 and q-55 but for one tier:
 - **`p1-drop-compat-code`** and its sweep of commands kept for compatibility (`itos guide
 coordinate` among them): not yet (the user, 2026-10-10).
 - **`p1-flag-defaults-policy`**: held (the user, 2026-10-10).
+- **`p1-commit-exit-codes`**: out for now (the user, 2026-10-11); a change of exit code is breaking,
+  so it waits for a later major.
 - **Guided commits** (`p3-guard-replacement`, docs/plans/guided-commits.md): additive by q-37 and
   q-39, so minor releases when ready; only making the guided refusal the default is a major.
 - **`p1-push-fits-foreground`**: dropped. `itos push` waiting for CI stays the default; a project
