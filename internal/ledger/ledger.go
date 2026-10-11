@@ -2,6 +2,7 @@ package ledger
 
 import (
 	"fmt"
+	"math"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -103,6 +104,13 @@ type checkValue struct {
 var checkValues = []checkValue{
 	{"after", func(v any) bool { return v == "push" }, "after: push is its only value", "write after: push, or remove it"},
 	{"timeout", func(v any) bool { return value.TypeOf(v) == "number" }, "its timeout is a number of seconds", "write the timeout as a number of seconds"},
+	// A timeout of 0 is none at all to the shell, and the commit-msg hook takes
+	// the lesser of it and its cap, so one of 0 or less, or NaN, lifted the cap
+	// (slice 129); a number is judged here, anything else by the line above.
+	{"timeout", func(v any) bool {
+		seconds, ok := v.(float64)
+		return !ok || seconds > 0 && !math.IsInf(seconds, 1)
+	}, "its timeout is a finite number of seconds above 0", "write the timeout as the seconds the check may run, above 0"},
 	{"prose", func(v any) bool { return value.TypeOf(v) == "boolean" }, "prose is true or false", "write prose: true or false"},
 	{"cost", func(v any) bool { return v == "static" || v == "late" }, "cost is static or late", "write cost: static or cost: late"},
 }
@@ -135,10 +143,19 @@ func checkProblems(check any, where string) []out.Problem {
 	for _, cv := range checkValues {
 		if v := c.At(cv.key); v != value.Undefined && !cv.valid(v) {
 			found = append(found, problem("ledger-check-value",
-				fmt.Sprintf("%s says %s: %s; %s", where, cv.key, value.JSON(v), cv.rule), cv.fix+" in "+where))
+				fmt.Sprintf("%s says %s: %s; %s", where, cv.key, shown(v), cv.rule), cv.fix+" in "+where))
 		}
 	}
 	return found
+}
+
+// shown is a check's value as its problem names it: as JSON, but a number
+// as itos writes one, so a NaN reads as NaN, not as JSON's null.
+func shown(v any) string {
+	if n, ok := v.(float64); ok {
+		return value.Number(n)
+	}
+	return value.JSON(v)
 }
 
 // commandOf is a check's command, run's else fails', and whether it is text.

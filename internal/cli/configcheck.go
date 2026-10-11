@@ -3,7 +3,10 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/donvargax/itos/v8/internal/adr"
 	"github.com/donvargax/itos/v8/internal/config"
@@ -115,7 +118,10 @@ func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) 
 		return 0, nil, nil, nil, err
 	}
 	ledgerProblems, ledgerWarnings := ledger.Findings(cfg, files)
-	found := tagged("ledger", ledgerProblems)
+	// Values the config loads with that no tool can use (slice 129).
+	unusable := append(cfg.Unusable(), groupLabelProblems(cfg)...)
+	found := prefixed(&config.Error{File: path, Problems: unusable}, "config")
+	found = append(found, tagged("ledger", ledgerProblems)...)
 	registry, err := work.Problems(cfg)
 	if err != nil {
 		return 0, nil, nil, nil, err
@@ -142,6 +148,48 @@ func configFindings(ledgerFile string) (int, []Found, []Found, []string, error) 
 		code = 1
 	}
 	return code, found, warnings, lines, nil
+}
+
+// groupLabelProblems: itos task takes a group by --<ledger.group.label> as
+// by --group, so a label that cannot be typed as one flag (empty, a space, an
+// = or a leading -), or that is another flag of itos task's (skip, pending, a
+// global one such as json), never takes a group: --skip T-005 selected
+// nothing.
+func groupLabelProblems(cfg *config.Loaded) []out.Problem {
+	label := cfg.Ledger.Group.Label
+	flag := "--" + label
+	switch {
+	case label == "" || strings.HasPrefix(label, "-") || strings.ContainsRune(label, '=') ||
+		strings.IndexFunc(label, unicode.IsSpace) >= 0:
+		return []out.Problem{{
+			Rule:    "config-group-label",
+			Message: fmt.Sprintf("ledger.group.label %q cannot be typed as itos task's flag %s", label, flag),
+			Fix:     "set ledger.group.label to one word, with no space, = or leading -, such as phase or milestone",
+		}}
+	case !slices.Contains(group, val(flag)) && slices.Contains(taskFlags(), flag):
+		return []out.Problem{{
+			Rule:    "config-group-label",
+			Message: "ledger.group.label is " + label + ", and " + flag + " is already another flag of itos task, so it never takes a group",
+			Fix:     "set ledger.group.label to a word that is no other flag of itos task, such as phase or milestone",
+		}}
+	}
+	return nil
+}
+
+// taskFlags are the flags itos task and its subcommands take, the global
+// ones with them, by name.
+func taskFlags() []string {
+	names := []string{"--config", "--root"}
+	for name := range switches {
+		names = append(names, name)
+	}
+	task := specs["task"]
+	for _, s := range append([]spec{task}, slices.Collect(maps.Values(task.subs))...) {
+		for _, f := range s.flags {
+			names = append(names, f.name)
+		}
+	}
+	return names
 }
 
 // prefixed are a config error's problems, each message after the file's

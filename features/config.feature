@@ -458,42 +458,42 @@ Feature: Every key the config accepts is one itos reads
   # refuse as the wrong type whatever these rules said, so a value meant as
   # YAML ([] an empty list, .nan and 0 numbers) is set "to the YAML". Refusing
   # what was accepted is breaking, so the feat says so.
-  @ID-CONFIG-45 @slice-129 @wip
+  @ID-CONFIG-45 @slice-129
   Scenario: config check refuses an empty shell
     Given the config sets "shell" to the YAML "[]"
     When itos checks the config
     Then itos exits with code 1
     And its output says "shell"
 
-  @ID-CONFIG-46 @slice-129 @wip
+  @ID-CONFIG-46 @slice-129
   Scenario: config check refuses an except_types type that commits.types does not list
     Given the config's scenario kind has the range check "scenario-moves", builtin "moves", except_types "fead"
     When itos checks the config
     Then itos exits with code 1
     And its output says "fead"
 
-  @ID-CONFIG-47 @slice-129 @wip
+  @ID-CONFIG-47 @slice-129
   Scenario: config check refuses wip_tag on a kind whose adapter is a command
     Given the config has the test kind "unit" with a command adapter and the wip_tag "@wip"
     When itos checks the config
     Then itos exits with code 1
     And its output says "wip_tag"
 
-  @ID-CONFIG-48 @slice-129 @wip
+  @ID-CONFIG-48 @slice-129
   Scenario: config check refuses a ledger.group.label that cannot be itos task's flag
     Given the config sets "ledger.group.label" to "skip"
     When itos checks the config
     Then itos exits with code 1
     And its output says "ledger.group.label"
 
-  @ID-CONFIG-49 @slice-129 @wip
+  @ID-CONFIG-49 @slice-129
   Scenario: config check refuses a number that is not finite
     Given the config sets "ci.watch.interval" to the YAML ".nan"
     When itos checks the config
     Then itos exits with code 1
     And its output says "ci.watch.interval"
 
-  @ID-CONFIG-50 @slice-129 @wip
+  @ID-CONFIG-50 @slice-129
   Scenario: config check refuses a timeout of 0 or less
     Given the config sets "ledger.check.timeout" to the YAML "0"
     When itos checks the config

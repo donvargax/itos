@@ -70,6 +70,16 @@
 // as it is told: itos init --policy judges a policy, and the config it makes
 // of it, before it writes either (slice 108).
 //
+// A config that loads may still hold values no tool can use (usable.go,
+// slice 129): a number that is .nan or .inf, which the typed config reads as
+// no value; a shell with no program; a range check's except_types naming a
+// type commits.types does not list; a wip_tag on a kind whose adapter is a
+// command, which reads no tag; a ledger.check.timeout of 0 or less, which is
+// no timeout. Load does not refuse them, so every command reads the config as
+// it did; config check reports Unusable's problems, exit 1, with the group
+// label's, which the command line judges, since only it knows itos task's
+// flags.
+//
 // # The one table of defaults
 //
 // The file is laid over defaults() (defaults.go), one ordered tree, merged
