@@ -7150,6 +7150,13 @@ items:
       with line scope, a test commit that fixes a finding no longer draws old uncovered lines into
       the proof.
 
+      2026-10-11, still bites after q-57: slice-126's agent ran the push proof locally and passed;
+      CI on its push drew another site, then the T-154 repair push (a test-only fix for Windows)
+      re-judged slice-126's whole range from the last green run and drew a third, launch.go:71, an
+      equivalent mutant on a line slice-126 only moved. Each red push re-rolls the sample, so a
+      repair can turn up a new finding in code it never touched (T-155). A seed by the range's start
+      and its changed functions would let the local proof and every repair push judge the same site.
+
   - id: slice-118
     title: work edit, drop, defer, resume and queue take several ids, one change for all in one commit
     phase: 1
