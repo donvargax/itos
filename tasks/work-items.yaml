@@ -7548,3 +7548,21 @@ items:
       built once, in Go.
     refs: [tools/itos/conformance]
     tags: [tests]
+
+  - id: p1-work-give-back
+    title: An item in progress can be given back to todo, so it can be deferred or picked up again
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #42 (2026-10-10, from go-template-itos): an agent took T-42, found it blocked on another
+      project's missing command, and the person chose to defer it; work defer refuses anything but
+      todo, and no subcommand moves doing back to todo (take, done, defer, resume, drop, edit,
+      queue), while the rules forbid editing a status by hand. itos guide repair itself says to give
+      a reverted item back as todo, which nothing can do. Either work defer accepts a doing item
+      (keeping or clearing its owner) or work give-back <id> returns it to todo, committing the
+      registry alone. In the v8 plan (the user, 2026-10-10).
+    refs: [internal/cli/work.go, internal/guide/repair.md]
+    tags: [work]
