@@ -8000,3 +8000,22 @@ items:
       and hooks.commit_msg.check_timeout 0 are 2.
     refs: [internal/config/usable.go, internal/cli/watch.go]
     tags: [config]
+
+  - id: p2-stateful-pbt-registry
+    title: A stateful property test drives the work registry with random operation sequences against a model
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user (2026-10-11), after weighing agent-formal-verify: itos has no property-based testing;
+      itos-template uses pgregory.net/rapid (17 rapid.Check properties, none stateful), as
+      go-template-itos does. itos's richest state is files edited by sequences of operations, which
+      stateful PBT tests on the real code: random add, take, give-back, done, queue and drop against
+      a plain in-memory model, the invariants that the registry stays sound, the queue consistent
+      and comments kept; then the config editor (rename and remove keep every other byte) and the
+      ledger's minting (no ID twice). A pilot after v8; CI and itos-cc run it with a fixed seed so a
+      mutant is not killed on one run and kept on the next. If it pays, a standard tier (#41).
+    refs: [internal/work, internal/value]
+    tags: [tests, work]
