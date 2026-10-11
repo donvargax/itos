@@ -7015,17 +7015,9 @@ items:
     title: work edit, drop, defer, resume and queue take several ids, one change for all in one commit
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-work-edit-several-ids.
-      On 2026-10-10 the backlog review gave every kept item an area tag, and landing them
-      (p1-tag-this-registry) would take one work edit --tags per item, about 110 commits each
-      running the hooks. work edit, drop, defer and queue taking several ids (the same --tags,
-      --note or --why for all, refused whole if one id would be) turns a grooming pass into one
-      commit per change, a cost every coordinator of an itos-driven repository pays on each backlog
-      review.
 
   - id: p1-hook-env-unset-tracked
     title: The hooks' git environment is cleared in a tracked script, or proven unneeded
