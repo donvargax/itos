@@ -309,13 +309,16 @@ yours, `--plugin local` for you alone in this one, the default under
 `--stealth`, which keeps `.claude/settings.local.json` out of `git status`;
 on a terminal it asks, anywhere else it says how. Run again, it reports a
 plugin not installed without counting it as missing. It offers the rules for
-agents the same way: `--agent-rules` generates what the config decides (the
-commit types, the footer each type needs, the paths each type may touch and
-what the hooks and CI run) into `AGENTS.md`, between `<!-- itos:begin -->` and
-`<!-- itos:end -->` at its end, the rest of the file kept, and adds an
-`@AGENTS.md` line to `CLAUDE.md` so Claude Code reads it; `--no-agent-rules`
-declines. The block is one line a paragraph, so a Markdown formatter leaves it
-alone. Run again, init reports a block the config no longer matches, and
+agents the same way: `--agent-rules` writes two lines into `AGENTS.md`, the
+same in every repository, between `<!-- itos:begin -->` and
+`<!-- itos:end -->` at its end, the rest of the file kept: start with
+`itos go` unless your brief names another guide, and stage only your own
+files, by explicit path. It adds an `@AGENTS.md` line to `CLAUDE.md` so Claude
+Code reads it; `--no-agent-rules` declines. The commit rules the config sets
+are not in the block, since every session reads `AGENTS.md`: `itos guide
+commit` prints them for the session about to commit. The block is one line a
+paragraph, so a Markdown formatter leaves it alone. Run again, init reports a
+block other than the one this itos writes (an older itos's, say), and
 `itos init --agent-rules` rewrites only what is between the markers. Under
 `--stealth` nothing tracked changes, so `--agent-rules` writes the block to
 `.git/itos/AGENTS.md`, which every worktree shares, with a `CLAUDE.local.md`
@@ -323,7 +326,7 @@ importing it (and `@AGENTS.md`, when the project has one) for Claude Code and
 an `AGENTS.override.md` for Codex holding a marked copy of the project's
 `AGENTS.md`, then the block; both are listed in `.git/info/exclude`, and a file
 of yours already there only gains the block. Run again, init also reports a
-copy that no longer matches `AGENTS.md`. How to work with itos is not in the block: start a session with `! itos go`, and brief
+copy that no longer matches `AGENTS.md`. How to work with itos is itos's own guides: start a session with `! itos go`, and brief
 an implementer to run `itos guide work` first.
 
 **Where itos reads its config.** itos reads `itos.yaml` in the folder it runs

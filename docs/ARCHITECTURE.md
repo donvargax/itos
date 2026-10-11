@@ -324,8 +324,10 @@ workflow can apply them for anyone.
 ## The gates and CI
 
 Every rule a command can decide is itos's, run by the hooks and again by CI
-on every pushed commit, so a hook skipped turns CI red. `AGENTS.md`'s
-generated block lists, from `itos.yaml`, what each gate runs.
+on every pushed commit, so a hook skipped turns CI red. `itos guide commit`
+prints, from `itos.yaml`, the commit rules the hooks hold, and `itos ci plan`
+what CI runs; `AGENTS.md`'s block holds only the entry line and the staging
+boundary.
 
 ### The hooks
 
