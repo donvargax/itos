@@ -440,3 +440,61 @@ Feature: Every key the config accepts is one itos reads
     When itos runs "ci plan --nightly"
     Then itos exits with code 2
     And its output says "tasks: done"
+
+  # Slice 129 (p1-shell-not-empty, with p1-moves-except-types-checked,
+  # p1-wip-tag-command-kind, p1-group-label-flag-word and
+  # p1-config-finite-numbers, which folds in p1-check-timeout-positive; the v8
+  # plan, 2026-10-11): config check accepted values no tool can use, each found
+  # only when a command later failed with no word of the key. It now refuses
+  # them, exit 1 naming the key: an empty shell (every command would run as
+  # sh <command>, a script path); a range check's except_types naming a type
+  # commits.types does not list (a misspelt one leaves feat judged); wip_tag on
+  # a kind whose adapter is a command (it is read nowhere); a ledger.group.label
+  # that cannot be itos task's --<label> flag (a space, or another of its
+  # flags such as skip or pending); a number that is .nan or .inf anywhere in
+  # the config; and a timeout of 0 or less (ledger.check.timeout, a check's own
+  # timeout, ci.watch's interval and timeout), which lifts the hook's cap. The
+  # value in "the config sets" is written as YAML, so [] is an empty list and
+  # .nan a non-finite number: trace it before relying on it. Refusing what was
+  # accepted is breaking, so the feat says so.
+  @ID-CONFIG-45 @slice-129 @wip
+  Scenario: config check refuses an empty shell
+    Given the config sets "shell" to "[]"
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "shell"
+
+  @ID-CONFIG-46 @slice-129 @wip
+  Scenario: config check refuses an except_types type that commits.types does not list
+    Given the config's scenario kind has the range check "scenario-moves", builtin "moves", except_types "fead"
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "fead"
+
+  @ID-CONFIG-47 @slice-129 @wip
+  Scenario: config check refuses wip_tag on a kind whose adapter is a command
+    Given the config has the test kind "unit" with a command adapter and the wip_tag "@wip"
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "wip_tag"
+
+  @ID-CONFIG-48 @slice-129 @wip
+  Scenario: config check refuses a ledger.group.label that cannot be itos task's flag
+    Given the config sets "ledger.group.label" to "skip"
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "ledger.group.label"
+
+  @ID-CONFIG-49 @slice-129 @wip
+  Scenario: config check refuses a number that is not finite
+    Given the config sets "ci.watch.interval" to ".nan"
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "ci.watch.interval"
+
+  @ID-CONFIG-50 @slice-129 @wip
+  Scenario: config check refuses a timeout of 0 or less
+    Given the config sets "ledger.check.timeout" to "0"
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "ledger.check.timeout"
