@@ -7877,3 +7877,16 @@ items:
       task add, decision add), or say which hook stopped it and why.
     refs: [internal/adr, features/ask.feature]
     tags: [hooks]
+
+  - id: p2-harvest-gitattributes
+    title: A .gitattributes keeps every text file LF on every checkout
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Harvest of go-template-itos (q-58, after v8.0.0): the template sets LF everywhere; itos has no
+      .gitattributes, and Windows checkouts have bitten it (go:embed reading CRLF, bug 31's hash).
+      Let CI tell what moves.
+    tags: [windows, ci]
