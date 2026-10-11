@@ -7781,3 +7781,20 @@ items:
       help corpus case.
     refs: [internal/cli/help.go, internal/plan/plan.go, tools/itos/conformance/help.yaml]
     tags: [ci, docs]
+
+  - id: p1-draft-decision-id
+    title: draft add of decision add prints the q id it will take, and decision add takes its answer
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-11: recording the user's answer while an agent held the checkout, draft add --
+      decision add queued the question without the id it will get (work add, task add and work
+      promote print theirs, ID-DRAFT-17), so the answer could not be drafted beside it: the
+      coordinator either guesses q-<n> or waits for the promote and answers by hand, two commands
+      for one decision already made. Print the id at draft add as the others do, and let decision
+      add take --answer for a question asked and answered at once.
+    refs: [internal/cli/draft.go, features/draft.feature]
+    tags: [work]
