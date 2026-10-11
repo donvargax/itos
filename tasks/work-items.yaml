@@ -850,6 +850,7 @@ items:
       The plan merges only the kind of the first tests: step of ci.steps, with one smoke set, and the
       smoke rule names the kind scenario: in a config with two kinds (scenarios and Go tests, say)
       every tests: step would take the first kind's merged command.
+    tags: [ci]
 
   - id: slice-11
     title: ci run's log names a merged check by its kind of named tests
@@ -1067,6 +1068,7 @@ items:
       gains a failures list beside failed_at, keys added only) and p1-nightly-issue-names-tasks (the
       Nightly red issue names each failed step from that list, not only TestFeatures lines). Queued:
       one red scenario hides the self-tests and the mutation run, a day per hidden failure.
+    tags: [ci]
 
   - id: slice-17
     title: config check says a commits.since it cannot find may be outside a shallow clone
@@ -1475,6 +1477,7 @@ items:
       checks that rule: a static check over .github/workflows/ (such a trigger beside issues: write
       or pull-requests: write, or a gh label or issue edit step) would hold it on every push.
     refs: [docs/ORCHESTRATING.md, tools/bin/inbox.ts]
+    tags: [ci]
 
   - id: T-058
     title: v1.1.0, the config's patterns as RE2 in both implementations
@@ -2267,6 +2270,7 @@ items:
       flag an exception a week old as no longer needed) would find it the next morning; it needs
       the network, which the nightly has.
     refs: [tasks/phase-3.yaml, itos.yaml]
+    tags: [ci]
 
   - id: p3-ci-step-paths
     title: A CI step says which paths it is for, so a range that leaves them alone skips it
@@ -2283,6 +2287,7 @@ items:
       ci.prose.paths is, would leave such a step out of the plan, show it in itos ci plan, and
       drop the step's dependence on the workflow's environment. An itos feature, so a slice.
     refs: [itos.yaml, PLAN.md]
+    tags: [ci]
 
   - id: p3-changes-at-commit
     title: A Changes footer naming nothing of the last release is refused at the commit
@@ -2593,6 +2598,7 @@ items:
       conclusions) and print the failed step's name, and, when a release job succeeds, the tag it
       published. The command provider's object would gain optional keys for both.
     refs: [internal/providers/watch.go, internal/cli/watch.go]
+    tags: [ci]
 
   - id: bug-26
     title: A ci section may hold watch or range alone, ci.steps needed only by ci plan and ci run
@@ -2827,6 +2833,7 @@ items:
       Found by itos-cc dry (2026-10-03): git(), lastRelease() and anyReleasable() are copied across
       plugin-version, previous-release, release-version and schema-contract. One shared package
       under tools/bin.
+    tags: [ci]
 
   - id: p3-guard-cd
     title: The guard judges a git command by the folder a cd in the command moves to
@@ -3395,6 +3402,7 @@ items:
       run, release-notes -json, which the workflow now makes and uploads as upgrading.json.
       upgrading-json.ts judges only the asset it generates itself; a --json <file> mode, as
       release-notes.ts has --notes, would let release-cut.ts judge the snapshot's.
+    tags: [ci]
 
   - id: bug-22
     title: itos ask record's commit body fits the line limit whatever the title's length
@@ -4254,6 +4262,7 @@ items:
       too: a push moving it forward skips the commits it passes over in its own verify, as RangeArgs
       reads the head's config; reading it from the range's base would cost T-136-style escapes an
       extra push, so showing such a change is the lighter answer.
+    tags: [ci]
 
   - id: p3-marketplace-description
     title: The marketplace's plugin description says what the plugin does now
@@ -4935,6 +4944,7 @@ items:
       and E2E-cost task checks), a ci.range per workflow (the E2E workflow starts at its own last
       green run), and status and ci watch for a third workflow while push waits on the first. Design
       the stage split first. Unqueued until the user wants it (2026-10-06).
+    tags: [ci]
 
   - id: bug-47
     title: ci watch and push judge a run cancelled by a newer push by the newer run (#17)
@@ -5197,6 +5207,7 @@ items:
       with itos.yaml (cooldown, commit types, rebase strategy). A Dependabot repository still needs
       the brief's default-branch workflow_run merge (no PR code checked out, least permissions, gh
       pr merge --match-head-commit, the latest run of every required workflow green).
+    tags: [ci]
 
   - id: T-111
     title: CI checks that the built itos answers every command the Claude Code plugin calls
