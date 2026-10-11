@@ -7700,8 +7700,8 @@ items:
   - id: T-153
     title: The previous-release self-test passes with the runner's native-git lookup
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
