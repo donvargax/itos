@@ -4140,6 +4140,7 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). Superseding an already superseded record
       overwrites its link (cli/ask.go:546).
     refs: [internal/cli/ask.go]
+    tags: [ask]
 
   - id: p1-failure-exit-codes
     title: An I/O failure exits 1, not 2
@@ -4908,6 +4909,7 @@ items:
       kept for the old format. Open risk: whether agents keep the state current. followup note says
       on stderr when the state is older than the newest notes; watch how it goes, and change the
       design if it does not hold.
+    tags: [ask]
 
   - id: p1-ask-20-duplicate
     title: Drop @ID-ASK-20, which checks what @ID-ASK-22 checks since slice 92
