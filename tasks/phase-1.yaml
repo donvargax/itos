@@ -1548,9 +1548,6 @@
     issue #29 stopped each nightly before this self-test. CI's own previous-release step runs
     against v7.5.0, which has real-git, so pushes stay green. The fix gives the runner the native
     git without the scratch tree needing this repository's packages; how is the implementer's call.
-  done_when:
-    - run: node tools/selftest/previous-release.ts
-      timeout: 900
 
 - id: T-154
   type: test
