@@ -6849,6 +6849,14 @@ items:
       pushing a named branch fails; the shim could map them to itos push --ref <branch>, or hand git
       what itos push cannot take and say so.
 
+      Issue #37's comment of 2026-10-11: itos-template release makes one annotated tag per template
+      branch (main/v0.1.0, stack/go/v0.1.0, go/cli/v0.1.0) and publishes them with one git push
+      --atomic, so a release is whole or not at all. Two of them point at commits not reachable from
+      HEAD, so neither push.followtags nor a push of HEAD carries them, and one by one could leave a
+      partial release, which itos-template refuses to cut again. So --tag takes several tags and
+      pushes them atomically, and tags are pushed only when asked: with push.followtags on, any itos
+      push from main publishes main/v0.1.0 alone. In the v8 plan (the user, 2026-10-10).
+
   - id: p1-v7-upgrading-gaps
     title: The 7.0.0 Upgrading notes say what minting, closed tasks' checks and next-id change
     phase: 1
