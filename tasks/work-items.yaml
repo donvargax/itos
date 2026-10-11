@@ -6951,30 +6951,9 @@ items:
     title: work done passes over unpushed registry-only commits, so several closes land in one push
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-work-done-passes-own-closes.
-      On 2026-10-10 the coordinator closed T-139 then T-140, and T-141 then T-137, each pair
-      finished and green on main. The second work done refused each time (HEAD has a commit no
-      remote has) because of the first one's own close commit, docs: close <id>, which touches only
-      the registry. Each pair cost an extra push and CI run. work done already passes over
-      registry-only commits when it picks the commit to judge (slice-93); its unpushed check should
-      pass over them too, so work done A, work done B, then one itos push. The person runs many
-      agents across itos-driven repositories, so a step like this is paid many times over in tokens,
-      CI and time.
-
-      Seen again 2026-10-11: itos draft promote ran four idea adds and a docs/plans edit before a
-      drafted work done T-153, which then refused for those five unpushed commits, though T-153's
-      own were pushed and green. Pass over any unpushed commit that touches none of the item's paths
-      (docs and registry alike), not only registry-only ones, or have draft promote run drafted
-      closes first.
-
-      And 2026-10-11 again: work done T-153 refused because HEAD's run was red on slice-126's
-      Windows test, though T-153's own covering run (38152264449) was green. work done should judge
-      the newest run covering the item's own commits, not HEAD's, when the commits after them are
-      not the item's.
 
   - id: p1-test-commits-own-mutation-exceptions
     title: A test commit may touch itos-cc.yaml and .metrics/mutate/, so a killed mutant and its exception land together
