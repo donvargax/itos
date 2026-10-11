@@ -1,12 +1,15 @@
 # itos push: the routine of pulling with a rebase and pushing, as one
-# command. Every argument but --no-wait is refused, a forcing one saying why;
+# command. Every argument but --no-wait, --tag and --ref is refused, a
+# forcing one saying why;
 # tracked files with uncommitted changes refuse it before anything is
 # fetched, untracked ones never; it rebases onto the upstream (origin and the
 # branch's own name when there is none) whatever pull.rebase says, leaves a
 # rebase that stops for the person and pushes nothing; it pushes HEAD to the
 # upstream's branch alone, so a push refspec in the config sends nothing
-# else, and a push the pre-push hook refuses is reported with git's exit
-# code. Waiting for the CI run it started (ci.watch) is watch.yaml's.
+# else, not even a tag push.followTags would send, and a push the pre-push
+# hook refuses is reported with git's exit code. --tag and --ref push the
+# tags and branches they name, alone, to origin's refs of their names.
+# Waiting for the CI run it started (ci.watch) is watch.yaml's.
 #
 # Each repository's remote is a bare one in its own git folder,
 # .git/origin.git, so git's output names it the same in every case.
@@ -31,11 +34,21 @@ cases:
     exit: 2
     stderr: |
       itos: push never forces: +main is a forcing refspec; itos push rebases onto the remote's commits instead (itos --help)
-  - name: push takes no arguments but --no-wait
+  - name: push takes no arguments but --no-wait, --tag and --ref
     argv: [push, --no-wait, origin, main]
     exit: 2
     stderr: |
-      itos: push takes no arguments but --no-wait: it pushes HEAD to the branch's upstream (origin) (itos --help)
+      itos: push takes no arguments but --no-wait, --tag <tag> and --ref <branch>: it pushes HEAD to the branch's upstream (origin) (itos --help)
+  - name: push --tag needs a tag's name
+    argv: [push, --tag]
+    exit: 2
+    stderr: |
+      itos: push --tag needs a tag's name (itos --help)
+  - name: push --ref takes a branch's name, not a refspec
+    argv: [push, --ref, "HEAD:ci/windows"]
+    exit: 2
+    stderr: |
+      itos: push --ref takes a branch's name, not a refspec (HEAD:ci/windows): it pushes to the remote's of the same name (itos --help)
   - name: push outside a git repository is a missing environment
     argv: [push]
     exit: 3
@@ -83,6 +96,23 @@ cases:
     stderr_has: "{{sha.head}} -> main"
     files_after:
       .git/origin.git/refs/heads/main: "{{sha.head}}\n"
+  - name: push --tag pushes the tag alone, to origin's tag of its name, the branch left where it was
+    argv: [push, --tag, v1]
+    git:
+      - commit: "chore: start"
+        files: { README.md: "scratch\n" }
+        label: start
+      - run: git init -q --bare .git/origin.git && git remote add origin .git/origin.git && git push -q -u origin main
+      - commit: "chore: more"
+        files: { notes.md: "more\n" }
+        label: more
+      - run: git tag v1
+    exit: 0
+    stdout: |
+      Pushed tag v1 to origin.
+    files_after:
+      .git/origin.git/refs/heads/main: "{{sha.start}}\n"
+      .git/origin.git/refs/tags/v1: "{{sha.more}}\n"
   - name: nothing to push is success
     argv: [push]
     git:

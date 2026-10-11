@@ -14,7 +14,9 @@ package cli
 // the commit HEAD is at once the rebase is done, by its full SHA, to the
 // upstream's branch, an explicit refspec, so the hooks run as for any push,
 // nothing else goes with it (refs/notes/itos stays local in the stealth
-// mode), and nothing forces it. That commit is resolved once (bug 21):
+// mode, and no tag goes whatever push.followTags says, slice 131), and
+// nothing forces it. --tag and --ref push what they name instead
+// (pushnamed.go). That commit is resolved once (bug 21):
 // git runs the pre-push hook after it resolves the refspec, and a commit
 // made during the hook's unit tests moves HEAD, so nothing after the push
 // reads HEAD again; the commit named, waited for and counted is the one
@@ -44,19 +46,61 @@ import (
 	"github.com/donvargax/itos/v8/internal/work"
 )
 
-// readPushArgs refuses every argument but --no-wait, which it gives: itos
-// push pushes HEAD to the branch's upstream and takes nothing else, and an
-// argument that would force the push says why it is refused.
-func readPushArgs(args []string) (noWait bool, err error) {
+// pushArgs are itos push's arguments: --no-wait, and the tags and branches
+// --tag and --ref name, in the order given (slice 131).
+type pushArgs struct {
+	noWait     bool
+	tags, refs []string
+}
+
+// readPushArgs refuses every argument but --no-wait, --tag <tag> and --ref
+// <branch> (each as --tag=<tag> too, and as often as wanted), which it
+// gives: a plain itos push pushes HEAD to the branch's upstream and takes
+// nothing else, and an argument that would force the push says why it is
+// refused. A name is a tag's or a branch's, not a refspec.
+func readPushArgs(args []string) (pushArgs, error) {
+	var a pushArgs
 	var rest []string
-	for _, arg := range args {
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
 		if arg == "--no-wait" {
-			noWait = true
+			a.noWait = true
 			continue
 		}
-		rest = append(rest, arg)
+		flag, name, inline := strings.Cut(arg, "=")
+		if flag != "--tag" && flag != "--ref" {
+			rest = append(rest, arg)
+			continue
+		}
+		if !inline && i+1 < len(args) {
+			i++
+			name = args[i]
+		}
+		if err := pushName(flag, name); err != nil {
+			return a, err
+		}
+		if flag == "--tag" {
+			a.tags = append(a.tags, name)
+		} else {
+			a.refs = append(a.refs, name)
+		}
 	}
-	return noWait, refusePushArgs(rest)
+	return a, refusePushArgs(rest)
+}
+
+// pushName refuses what --tag or --ref is given when it is no name: nothing,
+// an option, a forcing refspec or a refspec at all.
+func pushName(flag, name string) error {
+	what := map[string]string{"--tag": "a tag's name", "--ref": "a branch's name"}[flag]
+	switch {
+	case name == "" || strings.HasPrefix(name, "-"):
+		return usage("push %s needs %s", flag, what)
+	case strings.HasPrefix(name, "+"):
+		return usage("push never forces: %s is a forcing refspec; push %s takes %s", name, flag, what)
+	case strings.Contains(name, ":"):
+		return usage("push %s takes %s, not a refspec (%s): it pushes to the remote's of the same name", flag, what, name)
+	}
+	return nil
 }
 
 // refusePushArgs refuses each argument, a forcing one and one that skips the
@@ -75,7 +119,8 @@ func refusePushArgs(args []string) error {
 		}
 	}
 	if len(args) > 0 {
-		return usage("push takes no arguments but --no-wait: it pushes HEAD to the branch's upstream (%s)", args[0])
+		return usage("push takes no arguments but --no-wait, --tag <tag> and --ref <branch>: it pushes HEAD to the "+
+			"branch's upstream (%s)", args[0])
 	}
 	return nil
 }
@@ -86,6 +131,7 @@ type pushRun struct {
 	o              Out
 	git            io.Writer // where git's stdout goes: stderr under --json
 	remote, branch string
+	tags, refs     []string // what --tag and --ref named, when they did (slice 131)
 	sha            string   // the commit pushed, resolved once before the push
 	noWait         bool     // --no-wait: push and return, whatever ci.watch says
 	watched        *watched // the CI run waited for after the push, if one was
@@ -97,7 +143,16 @@ func (r pushRun) report(code int, outcome string, lines ...string) (int, error) 
 	if r.o.JSON {
 		fields := []out.Field{{Key: "ok", Value: code == 0}, {Key: "outcome", Value: outcome}}
 		if r.remote != "" {
-			fields = append(fields, out.Field{Key: "remote", Value: r.remote}, out.Field{Key: "branch", Value: r.branch})
+			fields = append(fields, out.Field{Key: "remote", Value: r.remote})
+		}
+		if r.branch != "" {
+			fields = append(fields, out.Field{Key: "branch", Value: r.branch})
+		}
+		if r.tags != nil {
+			fields = append(fields, out.Field{Key: "tags", Value: r.tags})
+		}
+		if r.refs != nil {
+			fields = append(fields, out.Field{Key: "refs", Value: r.refs})
 		}
 		if outcome == "pushed" && r.sha != "" {
 			fields = append(fields, out.Field{Key: "commit", Value: r.sha})
@@ -125,7 +180,7 @@ func (r pushRun) upstream() string { return r.remote + "/" + r.branch }
 
 // push is `itos push`.
 func push(args []string, o Out) (int, error) {
-	noWait, err := readPushArgs(args)
+	a, err := readPushArgs(args)
 	if err != nil {
 		return 0, err
 	}
@@ -133,7 +188,7 @@ func push(args []string, o Out) (int, error) {
 		return 0, usage("push refuses core.hooksPath set by git -c: it moves the hooks git runs, skipping the " +
 			"repository's own; push without it")
 	}
-	r := pushRun{o: o, git: o.Stdout, noWait: noWait}
+	r := pushRun{o: o, git: o.Stdout, noWait: a.noWait}
 	if o.JSON {
 		r.git = o.Stderr
 	}
@@ -150,6 +205,9 @@ func push(args []string, o Out) (int, error) {
 			}
 			return r.report(ExitMissing, "hooks-not-run", "itos: "+err.Error())
 		}
+	}
+	if len(a.tags)+len(a.refs) > 0 {
+		return r.pushNamed(a.tags, a.refs)
 	}
 	if code, done, err := r.ready(); done {
 		return code, err
@@ -350,7 +408,7 @@ func (r pushRun) registryConflict() []string {
 // when the push makes the branch. HEAD is not read again: a commit made
 // while the hook ran is not the one pushed.
 func (r pushRun) push(remote, ref, onto string) (int, error) {
-	argv := []string{"push"}
+	argv := []string{"push", "--no-follow-tags"}
 	if r.o.Quiet {
 		argv = append(argv, "--quiet")
 	}
@@ -365,11 +423,7 @@ func (r pushRun) push(remote, ref, onto string) (int, error) {
 		if failure := git.RemoteFailure(words); failure != kind.Unknown {
 			return r.report(remoteExit(failure), "push-failed", r.remoteLines("the push to "+r.upstream()+" failed", failure)...)
 		}
-		exit := ExitSoftware
-		if git.Refused(words) {
-			exit = ExitPolicy
-		}
-		return r.report(exit, "push-failed",
+		return r.report(refusalExit(words), "push-failed",
 			fmt.Sprintf("itos push: the push to %s failed (git's message above); nothing was forced.", r.upstream()),
 			"If the remote moved, run itos push again to rebase onto it; if a hook refused it, fix what it reported first.")
 	}

@@ -295,7 +295,8 @@
 //
 // # itos push
 //
-// push (push.go) refuses every argument but --no-wait (readPushArgs): a
+// push (push.go) refuses every argument but --no-wait, --tag <tag> and --ref
+// <branch> (readPushArgs, pushName: a name, not an option or a refspec): a
 // force flag or a + refspec as push never forces, --no-verify as it skips the
 // pre-push hook (slice 128), anything else as push takes no arguments, all
 // usage errors, as is a core.hooksPath git -c sets (hooksPathSet). Outside a repository it exits 3.
@@ -320,9 +321,10 @@
 // reads HEAD again: git runs the pre-push hook after it resolves the
 // refspec, so a commit made during the hook's unit tests would move HEAD
 // without being pushed. A commit at or behind the fetched one is nothing to
-// push, exit 0. push runs git push <remote> <sha>:<ref>, an explicit
-// refspec, so a configured push refspec (the notes') sends nothing and the
-// pre-push hook runs as for any push. Each git runs with the terminal's
+// push, exit 0. push runs git push --no-follow-tags <remote> <sha>:<ref>, an
+// explicit refspec, so a configured push refspec (the notes') sends nothing,
+// nor does push.followTags send a tag (slice 131), and the pre-push hook runs
+// as for any push. Each git runs with the terminal's
 // stdin (a credential prompt). itos push reads no config until it has
 // pushed, so it runs where itos is not set up. After a push that sent
 // something, unless --no-wait, wait loads the config when there is one: with
@@ -334,6 +336,18 @@
 // --diff-merges=first-parent, the rule work done passes over commits by):
 // when every one is work.registry, push names itos ci watch <sha> and exits 0
 // without waiting.
+//
+// With --tag or --ref, after the hooks' check, pushNamed (pushnamed.go) runs
+// instead of the routine: no fetch, no rebase, no look at the working tree
+// and no wait. Each name must be a ref of the clone (refs/tags/<tag>,
+// refs/heads/<branch>), else exit 1; remoteTags reads the remote's tags of
+// the names with git ls-remote, its failure exiting by its kind, so a tag the
+// remote has as another object is refused, exit 1, before the pre-push hook
+// runs commands for a push git would refuse, and one it has as the clone does
+// is left out. What is left goes in one git push --atomic --no-follow-tags
+// <remote> <ref>:<ref>…, to namedRemote, the current branch's upstream's
+// remote or origin; its failure exits as the routine's push does
+// (refusalExit).
 //
 // # The hooks
 //

@@ -154,7 +154,7 @@ Feature: itos push, the pull-rebase-push routine as one command
   # part. The pre-push hook judges a pushed tag's commits as any ref's. The
   # shim mapping git push origin <tag> or -u origin <branch> onto these
   # (p3-shim-push-args, folded into the item) is not in this slice.
-  @ID-PUSH-11 @slice-131 @wip
+  @ID-PUSH-11 @slice-131
   Scenario: itos push --tag pushes the named tags in one push
     Given the clone has the annotated tag "v1.0.0" on its HEAD
     And the clone has the annotated tag "cli/v1.0.0" on its HEAD
@@ -163,7 +163,7 @@ Feature: itos push, the pull-rebase-push routine as one command
     And the remote has the tag "v1.0.0"
     And the remote has the tag "cli/v1.0.0"
 
-  @ID-PUSH-12 @slice-131 @wip
+  @ID-PUSH-12 @slice-131
   Scenario: A plain itos push pushes no tag, whatever push.followTags says
     Given the clone's git config says "push.followTags" is "true"
     And the clone has the commit "docs: note the release" touching "README.md"
@@ -173,7 +173,7 @@ Feature: itos push, the pull-rebase-push routine as one command
     And the remote's branch has "docs: note the release"
     And the remote does not have the tag "v1.0.0"
 
-  @ID-PUSH-13 @slice-131 @wip
+  @ID-PUSH-13 @slice-131
   Scenario: A tag the remote holds at another commit is refused, and no tag of the push lands
     Given the remote's head is tagged "v1.0.0"
     And the clone has the commit "docs: note the release" touching "README.md"
@@ -184,7 +184,7 @@ Feature: itos push, the pull-rebase-push routine as one command
     And its output says "v1.0.0"
     And the remote does not have the tag "v1.0.1"
 
-  @ID-PUSH-14 @slice-131 @wip
+  @ID-PUSH-14 @slice-131
   Scenario: itos push --ref pushes another local branch to the remote's branch of the same name
     Given the clone has the branch "ci/windows" with the commit "docs: try windows" touching "README.md"
     When itos runs "push --ref ci/windows"
