@@ -1229,6 +1229,7 @@ items:
       nothing recorded. An optional spend: list on an item, written by the coordinator (itos work done
       <id> --tokens 175k), and itos work cost printing totals and medians per kind and phase and an
       estimate of the queue. No budgets and no refusals.
+    tags: [work]
 
   - id: p1-smoke-suggest
     title: "itos tests smoke suggest proposes a smoke entry for a file that needs one"
@@ -1758,6 +1759,7 @@ items:
       also how agents in different repositories talk (p2-cross-repo-contract); a label sorts an
       issue, never makes it trusted, which stays who acted (the inbox's rule). Not needed yet.
     refs: [PLAN.md]
+    tags: [work]
 
   - id: p2-github-pure
     title: The work registry as GitHub itself
@@ -1773,6 +1775,7 @@ items:
       which also hold the queue's order (p1-work-queue-order) at the cost of more API. The ledger
       stays in the repository either way, since a task's checks are commands run at a commit.
     refs: [PLAN.md]
+    tags: [work]
 
   - id: slice-46
     title: The pre-push hook verifies the commits it pushes
@@ -2471,6 +2474,7 @@ items:
       new debt join an item quietly, so itos work list could show how many entries each item
       claims.
     refs: [PLAN.md]
+    tags: [work]
 
   - id: p3-config-21-own-value
     title: "@ID-CONFIG-21 sets a hooks.bin the default does not contain"
@@ -2698,6 +2702,7 @@ items:
       none. done could say so (a note, or a refusal unless --no-scenarios), without breaking
       @ID-WORK-18's promise as released.
     refs: [internal/cli/workdone.go, features/work.feature]
+    tags: [work]
 
   - id: T-080
     title: The conformance runner runs on a PATH of its own, as the help tests now do
@@ -2834,6 +2839,7 @@ items:
       Found by the post-landing review of slice 54: an empty --as= falls back to the identity
       provider, so --as=$UNSET silently proposes another person's work, bug 11's failure mode. Also
       work check ignores every argument after its first.
+    tags: [work]
 
   - id: p1-registry-code-cleanup
     title: The registry and ledger writers share their helpers
@@ -2905,6 +2911,7 @@ items:
       From another coordinator's notes (2026-10-05): task add --group N with a phase the registry
       does not list fails without help; it could list the phases and how to add one, and default to
       the only phase when no group is given.
+    tags: [work]
 
   - id: T-081
     title: "Changes: names a corpus case by a unique prefix of its name"
@@ -2979,6 +2986,7 @@ items:
       after its promotion says unknown item without naming what it became. Low: a literal why: |
       prints each line as a paragraph. Cleanup: history.go and workshow.go rebuild the notes
       arguments showNotes has, BareID would do for TagPrefix+ID, Link.Key is unused.
+    tags: [work]
 
   - id: slice-63
     title: itos work show lists the commits that wrote an item's spec
@@ -3243,6 +3251,7 @@ items:
       the queue, so a reader of one item, or the plugin's titles, cannot see its place without
       reading the YAML.
     refs: [internal/work/show.go]
+    tags: [work]
 
   - id: slice-70
     title: itos status names the newest release and the feat and fix commits since it
@@ -4197,6 +4206,7 @@ items:
       reworked, have it also rename the item in the questions file, so work show of the new id keeps
       its questions (code review of 07b0e6d).
     refs: [internal/work/write.go]
+    tags: [work]
 
   - id: p1-supersede-standing-only
     title: ask record --supersedes refuses a record already superseded
@@ -4465,6 +4475,7 @@ items:
       --why/--title/--add-check/--drop-check would write and commit it as task add does (writing
       only under stealth); changing a done task's checks asks a reason for the commit body, since it
       changes the evidence (T-008 and T-092's checks were changed by hand on 2026-10-05).
+    tags: [work]
 
   - id: p3-stealth-ledger-portability
     title: A stealth config's ledger, registry and questions exported and imported
@@ -4546,6 +4557,7 @@ items:
       window from minutes to milliseconds; it is no lock. Rare by the one-agent-per-checkout rule,
       so an idea until it bites.
     refs: [internal/cli/workwrite.go]
+    tags: [work]
 
   - id: p1-init-doctor-absolute-hooks
     title: A scenario for init's doctor reading an absolute hooks folder
@@ -4933,6 +4945,7 @@ items:
       Backlog review of 2026-10-10, batch 1: folds in p1-checkout-lease: itos draft (slice-96)
       solved the coordinator's case; carry the enforcement half, a commit-msg refusal of a commit
       whose footer is not the doing item's, with free paths and a stale expiry.
+    tags: [work]
 
   - id: slice-96
     title: itos draft keeps the coordinator's pending changes, and promotes them when no work is going on
@@ -5128,6 +5141,7 @@ items:
       itos draft lists a change by its header and paths only (slice-96), so a coordinator who
       drafted a spec in the morning cannot read what it holds, its patch and its whole message,
       before promoting it between agents, short of opening the patch file in the git folder.
+    tags: [work]
 
   - id: p1-wrap-long-body
     title: Wrap a long commit body in linear time
@@ -5164,6 +5178,7 @@ items:
       The user asked for parallel work (2026-10-06). A pilot of two, the coordinator watching main,
       before more. Waits on p1-pr-mode (the integration) and bug-41 (a superseded run read as a
       failure); drafts (slice-96) let the coordinator commit between.
+    tags: [work]
 
   - id: p1-registry-merge
     title: The work registry merges without conflicts when two sessions change different items
@@ -5176,6 +5191,7 @@ items:
       Every take, close and queue commits tasks/work-items.yaml, so parallel work conflicts there on
       every rebase or merge. A merge driver for the registry, or a file per item. Found discussing
       parallel work, 2026-10-06.
+    tags: [work]
 
   - id: p1-refs-overlap
     title: itos work warns when two doing items have overlapping refs or commit scopes
@@ -5187,6 +5203,7 @@ items:
     why: >
       Which items may run side by side is the coordinator judgement today; items carry refs, so itos
       can flag two doing items whose refs overlap. Found discussing parallel work, 2026-10-06.
+    tags: [work]
 
   - id: p1-pr-items
     title: A pull request names its item, its merge closes it, and work done reads merged-and-green from GitHub
@@ -5198,6 +5215,7 @@ items:
     why: >
       The user, 2026-10-06: pr mode can pair with GitHub for itos items, as the inbox already turns
       issues into items. Kept apart from p1-pr-mode so the switch stays small.
+    tags: [work]
 
   - id: T-109
     title: "docs/ARCHITECTURE.md is a map: per-package detail lives in package doc comments, history in the changelog"
@@ -5338,6 +5356,7 @@ items:
       2026-10-10) give every kept item an area tag (ci, release, work, commit, hooks, plugin,
       config, init, docs, tests, guard, upgrade, push, status, ask, message); landing the tags from
       them now saves a second pass over the backlog.
+    tags: [work]
 
   - id: p1-show-item-tags
     title: work show and work list print an item's tags
@@ -5350,6 +5369,7 @@ items:
       Slice 97 shows tags beside the id in itos work and itos status only: work show prints refs but
       not tags, and work list's columns leave them out, so an item's tags are seen there only
       through --json or --tag.
+    tags: [work]
 
   - id: p1-no-policy-text-tests
     title: No test or self-test reads a policy file as text; a test of a gate runs the gate
