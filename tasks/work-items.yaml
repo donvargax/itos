@@ -2351,6 +2351,7 @@ items:
       git push into an itos repository named that way is not denied. Reading such a folder as the
       sh would hand it to git (a drive from /<letter>/, a rooted path on the current drive) is a
       fix with its scenario, which only the windows platform job can run.
+    tags: [guard]
 
   - id: p3-role-protocol
     title: One adapter protocol for every role a command fills, the test kinds' own
@@ -3655,6 +3656,7 @@ items:
       overtaken. What this item tracks is the user's other solution, the guided item-aware commits
       of docs/plans/guided-commits.md, which the answers to q-30 to q-39 name.
     refs: [internal/guard/guard.go, integrations/claude-code/hooks/hooks.json]
+    tags: [guard]
 
   - id: p3-init-agent-rules-import-check
     title: itos init reports a CLAUDE.md that no longer imports AGENTS.md
@@ -4620,6 +4622,7 @@ items:
       remote. The shim exists so a misbehaving model cannot skip the gates; only CI's verify caught
       these. Full-path git stays a known gap (a guardrail, not a fortress).
     refs: [internal/cli/gitcommit.go, internal/cli/push.go, internal/cli/gitshim.go]
+    tags: [guard]
 
   - id: slice-113
     title: itos upgrade applies the renames and removals each release's schema declares, and ends with what is left by hand
