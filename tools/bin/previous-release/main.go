@@ -12,7 +12,12 @@
 // go.mod and corpus, and runs there
 //
 //	ITOS_BIN=<bin> go test ./features -count=1 -json
-//	node <this tree>/tools/itos/conformance/run.ts --bin <bin> --additive --only <its corpus>
+//	node <this tree>/tools/itos/conformance/run.ts --bin <bin> --git <native git> --additive --only <its corpus>
+//
+// The native git is internal/git's Real, the first git on the PATH that is not
+// an itos, as tools/bin/real-git would print it to the runner, handed over
+// with --git because the runner may be a copy in a tree with no real-git of
+// its own, as the self-test's scratch repository is (T-153).
 //
 // The release's scenarios run as they are, each judged by what its steps
 // assert. Its corpus is judged by itos's machine output alone, the only
@@ -86,8 +91,8 @@
 // a suite that cannot run (a build that fails, a fixture it cannot read, a
 // failure it cannot name) stops it with exit 2, never a pass.
 //
-// It imports nothing but the standard library, as tools/bin/deps-check and
-// tools/bin/schema-contract do (T-067).
+// Beside the standard library it imports internal/release and internal/git
+// alone.
 //
 //	go run ./tools/bin/previous-release [-range-from <rev>] [-bin <itos>]
 //
@@ -114,6 +119,7 @@ import (
 	"time"
 	"unicode"
 
+	itosgit "github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/release"
 )
 
@@ -535,9 +541,14 @@ func runCorpus(tree, top, bin string) suite {
 		s.err = err
 		return s
 	}
+	nativeGit, err := itosgit.Real()
+	if err != nil {
+		s.err = fmt.Errorf("no native git for the conformance runner: %v", err)
+		return s
+	}
 	sort.Strings(fixtures)
 	started := time.Now()
-	cmd := exec.Command("node", append([]string{runner, "--bin", bin, "--additive", "--only"}, fixtures...)...)
+	cmd := exec.Command("node", append([]string{runner, "--bin", bin, "--git", nativeGit, "--additive", "--only"}, fixtures...)...)
 	cmd.Dir = tree
 	cmd.Env = env()
 	var stdout, stderr bytes.Buffer
