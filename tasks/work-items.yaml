@@ -7696,3 +7696,21 @@ items:
       rare.
     refs: [itos.yaml, AGENTS.md]
     tags: [ci]
+
+  - id: T-153
+    title: The previous-release self-test passes with the runner's native-git lookup
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      The nightly of 2026-10-11 (run 38136830841) fails all 24 checks of
+      tools/selftest/previous-release.ts: since T-129 (48e65986, 2026-10-08) the conformance runner
+      resolves native git with go run ./tools/bin/real-git from its own tree's root, and the
+      self-test's scratch v1.0.0 repository copies run.ts but has no real-git (which imports
+      internal/git, so it cannot be copied alone). Latent since 10-08 because the go-hooks failure
+      of issue #29 stopped each nightly before this self-test. CI's own previous-release step runs
+      against v7.5.0, which has real-git, so pushes stay green. The fix gives the runner the native
+      git without the scratch tree needing this repository's packages; how is the implementer's
+      call.
