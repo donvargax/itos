@@ -7064,14 +7064,15 @@ items:
       whose spec comment or the slice's commits name the slice, or a slice could tag the scenarios
       it changes as well.
 
-  - id: p1-push-proof-stable-site
+  - id: T-159
     title: The push proof judges the same site until the range's code changes, so fixing it does not draw a new one
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-push-proof-stable-site.
       slice-115 (2026-10-10): run the push proof once (q-55) became four runs, because --count 1
       seeded by HEAD judged a different mutation site after each test commit, each finding a new
       gap. Seeding the sample by the range's start and its changed functions rather than HEAD, or
@@ -7882,7 +7883,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-push-proof-stable-site]
+    depends_on: [T-159]
     kind: idea
     why: >
       The user's call (2026-10-11): a push samples one site (q-52, q-55), so a slice's survivors
