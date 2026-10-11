@@ -6778,8 +6778,8 @@ items:
   - id: slice-131
     title: itos push --tag and --ref push a tag or another branch, never forced, and tags only when asked
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
