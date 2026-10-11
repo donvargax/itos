@@ -7836,8 +7836,8 @@ items:
   - id: bug-104
     title: itos init in a repository that pins a version runs the pinned version, not the itos that was called
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
