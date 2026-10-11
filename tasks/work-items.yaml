@@ -563,14 +563,15 @@ items:
     kind: task
     refs: [tasks/phase-1.yaml]
 
-  - id: p1-shell-not-empty
-    title: config check rejects an empty shell
+  - id: slice-129
+    title: config check refuses values no tool can use
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-3]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-shell-not-empty.
       Every command now starts through shell, read as its argv prefix; `shell: []` is accepted and
       then runs `sh <command>`, which reads the command as a script's path, so every check, step and
       delegate fails with a message about a missing file. config check could require at least one
