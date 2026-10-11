@@ -133,9 +133,12 @@ was in this file when the file was reorganized that day.
 
 - **Trace each Given to where itos runs before handing a spec out:** the
   config, clone, folder and launcher the step sets up (slices 68, 70, 114, 116,
-  117 assumed wrong ones; red first caught each). Task checks have the same
-  trap: grepping whole folders hits fixtures too (T-085); target what the task
-  changes. Exit: permanent. Recorded by 2026-10-04; last seen 2026-10-10.
+  117 assumed wrong ones; red first caught each), and that a step sets up
+  rather than asserts and writes YAML rather than a quoted string (slices 129,
+  130). Task checks have the same trap: grepping whole folders hits fixtures
+  too (T-085); target what the task changes. Exit: permanent, until
+  p1-wip-red-first prints each spec's failing step. Recorded by 2026-10-04;
+  last seen 2026-10-11.
 - **A checkpoint push naming a task runs its checks**, and is red until its
   `done_when` passes. Put release- or tag-dependent `after: push` checks late;
   checks reading CI's result belong in `ci.nightly_only`. A coordinator's spec
