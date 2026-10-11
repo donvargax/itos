@@ -6036,6 +6036,10 @@ items:
       trailer paragraph is the last one, after a blank line. Footers are read from the last
       paragraph alone, as git reads trailers; a body line that starts with a footer key is prose.
 
+      Again 2026-10-11 (bug-105): a wrapped body line starting 'record:' drew a false
+      footer-leading-blank warning; the agent reworded correct prose to quiet it. Three agents hit
+      this class in one day.
+
   - id: p1-tests-list-format
     title: itos tests list has a form itos-cc mutation.tests.list reads as is
     phase: 1
