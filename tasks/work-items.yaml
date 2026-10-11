@@ -3048,6 +3048,7 @@ items:
       From another coordinator's notes (2026-10-05): a dependency summary across sibling
       repositories, rendered by the coordinator from each repository's stored owner/repo#item
       references, would complement the per-repository ledgers.
+    tags: [status]
 
   - id: bug-15
     title: itos commit never wraps a line to start with a footer token, a breaking-change note or a comment
@@ -4492,6 +4493,7 @@ items:
       read-only, with a timeout each. Once its shape settles (parallel, a compact summary, --json),
       it is built properly as an extension, here or in its own repository. It reads status --json
       across versions, so that output becomes a contract (p2-cross-repo-contract).
+    tags: [status]
 
   - id: T-104
     title: The features and unit tests run the real git, never an itos linked as git
