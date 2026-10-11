@@ -7541,8 +7541,8 @@ items:
   - id: slice-122
     title: An item in progress can be given back to todo, so it can be deferred or picked up again
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
