@@ -7597,26 +7597,9 @@ items:
     title: The launcher hands itos upgrade to the target version when it is newer, so each release applies its own steps
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-120]
     kind: slice
-    why: >
-      Was p1-upgrade-refreshes-agent-block.
-      The user's call (2026-10-11): consumers get v8's two-line block through itos upgrade, not a
-      step by hand. upgrade is the launcher's own command and never runs the pinned version, so it
-      does not hold the new release's block text: once the pin moves, it runs the new version's own
-      rewrite (as init --agent-rules does, only between the markers, only where a block is present,
-      the stealth copies too), on every upgrade, not as a one-time migration. Its edits join
-      upgrade's edited list and its commit stays the project's. In the v8 plan.
-
-      Reshaped with the user (2026-10-11): upgrade runs as the itos on the PATH, which does not know
-      a newer release's block text or steps. When the target is newer than the running itos, the
-      launcher fetches it, as it fetches a pinned release, and runs the target's upgrade, with an
-      environment marker so the handoff never loops; the target then applies its own steps: the pin,
-      the config renames, and rewriting a present agent rules block, only between the markers. A pin
-      older than upgrade does not matter, since the target is always recent. A 7.x launcher has no
-      handoff and main cuts no 7.x since T-151, so the v7 to v8 crossing stays explicit: slice-120's
-      Upgrading footer and p1-stale-agent-block-reported.
     refs: [internal/cli/upgrade.go, internal/launch/launch.go]
     tags: [upgrade]
 
