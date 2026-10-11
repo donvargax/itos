@@ -266,17 +266,16 @@ push to `main` too, so expect the remote to have moved while you worked.
 
 No local mutation runs (q-41), but one: before pushing a Go change, run CI's
 push proof once (q-55), `tools/bin/pinned itos-cc mutation run --count 1
---since $(git rev-parse origin/main) --fail-uncovered --json cmd internal`.
+--since $(git rev-parse origin/main) --fail-uncovered=lines --json cmd internal`.
 CI judges fresh mutants at the approved budget
 with itos-cc's `mutation run --count` (q-52). A push whose range changes Go
-code judges one mutation site of its changed functions and the statement
-coverage of every one of them, as the code proof; a range with no site is not
-applicable and passes. The nightly judges 20 sites across `cmd` and
+code judges one mutation site of its changed functions and the coverage of
+the lines it adds or changes (q-57), as the code proof; a range with no site
+is not applicable and passes. The nightly judges 20 sites across `cmd` and
 `internal`, seeded by its run, not by HEAD, without strict coverage (q-54:
 the whole tree's uncovered statements are the debt baseline's, `p3-debt-role`).
 A pass is sampled assurance about the mutants judged, not a complete result.
-A survivor, or an uncovered statement in a changed function, is real: kill
-it with a test. Do not hide failing proof. Normal hook checks and required
+A survivor, or an uncovered changed line, is real: kill it with a test. Do not hide failing proof. Normal hook checks and required
 neighbour tests stay.
 
 1. **Push with `tools/bin/itos push --no-wait`, every time:** commit your work first,
