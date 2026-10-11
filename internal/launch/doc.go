@@ -93,10 +93,24 @@
 // binaryCommand leaves to the binary that was called the commands that must
 // not run a pinned version: git-shim install and uninstall, which link it as
 // git; pin, which moves the pin and may be newer than the version pinned;
-// upgrade, which moves it too; and init, which writes the config and its pin
+// upgrade, which moves it too, unless handed on (below); and init, which writes the config and its pin
 // where there is none. The git shim's own runs (git-shim run) are launched
 // as any other, so in a pinned repository git commit is the pinned itos's
 // when it has the shim (Handed tells internal/shim the version).
+//
+// # Handing an upgrade on
+//
+// upgrade runs as the binary called, which knows only its own release's
+// steps, so before binaryCommand handUpgrade asks cli.UpgradeTarget for the
+// version an upgrade moves to (features/upgrade-handoff.feature, slice 126).
+// When that version is newer than this binary, by version alone, a build of
+// a checkout included, it is fetched and checked as a pinned one is, against
+// the checksums.txt the upgrade read, and run with upgrade <version>, the
+// same flags and ITOS_UPGRADE_FROM, EnvUpgradeFrom, set to this binary's
+// version; its exit code is upgrade's, and the launcher says nothing of its
+// own but a version it cannot fetch (75 or 3, as above). An itos run with
+// ITOS_UPGRADE_FROM set never hands an upgrade on, so a release that is not
+// the version it was fetched as cannot loop.
 //
 // guard claude-code is handed on as any other run, but not to an itos older
 // than it (cli.GuardSince), which has no such command: its usage error's

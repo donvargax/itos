@@ -32,6 +32,10 @@ const (
 	// EnvCache is the folder the releases are kept in. The base the releases
 	// are fetched from is release.Env, ITOS_RELEASES.
 	EnvCache = "ITOS_CACHE"
+	// EnvUpgradeFrom is the version of the itos that handed an upgrade to
+	// the version it moves to (handUpgrade); an itos run with it set never
+	// hands an upgrade on again.
+	EnvUpgradeFrom = "ITOS_UPGRADE_FROM"
 )
 
 // fetchTimeout bounds each download, so a server that stops answering cannot
@@ -60,6 +64,9 @@ func Args(args []string) []string {
 // a repository's pin has fallen behind the newest release, it says so on
 // stderr first (update.go).
 func Main(args []string, stderr io.Writer) (int, bool) {
+	if code, handed := handUpgrade(args, stderr); handed {
+		return code, true
+	}
 	if binaryCommand(args) {
 		return 0, false
 	}
@@ -80,10 +87,50 @@ func Main(args []string, stderr io.Writer) (int, bool) {
 		}
 	}
 	fmt.Fprintf(stderr, "itos: %s\n", err)
-	// A release server that cannot be reached, or fails, may answer when
-	// asked again (75, release.Get); any other failure to fetch, check or run
-	// the pinned release is one this machine does not have (3).
-	return cli.ExitCode(kind.Else(kind.Missing, err)), true
+	return failed(err), true
+}
+
+// failed is the exit code of a release the launcher could not fetch, check
+// or run: a release server that cannot be reached, or fails, may answer when
+// asked again (75, release.Get); any other failure is one this machine does
+// not have (3).
+func failed(err error) int { return cli.ExitCode(kind.Else(kind.Missing, err)) }
+
+// handUpgrade hands itos upgrade to the version it moves to when that is
+// newer than this binary, by semver's precedence alone, a build of a
+// checkout included (slice 126): that version is fetched as a pinned one is
+// and runs upgrade with the version named, the same flags and
+// ITOS_UPGRADE_FROM set to this binary's version, and its exit code is
+// upgrade's. It writes nothing of its own but the one line of a version it
+// cannot fetch or run, as upgrade says it, exit 75 or 3. It hands nothing
+// on when ITOS_UPGRADE_FROM is set, so a release that is not the version it
+// was fetched as cannot loop, nor anything cli.UpgradeTarget leaves to this
+// binary, nor an upgrade to a version no newer than it.
+func handUpgrade(args []string, stderr io.Writer) (int, bool) {
+	if os.Getenv(EnvUpgradeFrom) != "" {
+		return 0, false
+	}
+	h, ok, err := cli.UpgradeTarget(args)
+	own := version.Version()
+	if !ok || err == nil && version.Compare(h.Version, own) <= 0 {
+		return 0, false
+	}
+	var bin string
+	if err == nil {
+		bin, err = ensure(target{h.Version, release.SHA256(h.Checksums)})
+	}
+	code := 0
+	if err == nil {
+		// Set here, it reaches the version run as the rest of the
+		// environment does (environ).
+		_ = os.Setenv(EnvUpgradeFrom, own)
+		code, err = run(bin, h.Args, h.Version)
+	}
+	if err != nil {
+		fmt.Fprintf(stderr, "itos: %s; every file is left as it was\n", err)
+		code = failed(err)
+	}
+	return code, true
 }
 
 // binaryCommand is whether the arguments run one of the launcher's own
@@ -91,7 +138,7 @@ func Main(args []string, stderr io.Writer) (int, bool) {
 // git-shim install and uninstall link that binary as git (slice 41), so no
 // version a pin picks runs them, or the link would point into the cache; pin
 // moves the pin (slice 47), which the version it names may predate, and so
-// does upgrade (slice 75); init
+// does upgrade (slice 75), when handUpgrade has not handed it on; init
 // readies a repository (slice 48), where there is no config to pin a version,
 // and the newest release must not run in its place.
 func binaryCommand(args []string) bool {

@@ -5,8 +5,8 @@
 // checksums.txt listing it, served at <base>/download/v<version>/<asset>, the
 // base being what ITOS_RELEASES names, and the newest of them at
 // <base>/latest/download/<asset> as well, as GitHub serves its latest release. The archive's itos is a shell script
-// (on windows script-exe running one, program_test.go) that records the version it is, the ITOS_VERSION it ran with and its
-// arguments, and exits with the code the scenario chose for it.
+// (on windows script-exe running one, program_test.go) that records the version it is, the ITOS_VERSION and
+// ITOS_UPGRADE_FROM it ran with and its arguments, and exits with the code the scenario chose for it.
 //
 // No scenario reaches the network or a real cache: ITOS_CACHE is always a
 // folder of the scenario's, and ITOS_RELEASES the release server when the
@@ -165,6 +165,8 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 	// The itos under test itself pinned, stamped as the version (stamp_test.go).
 	sc.Step(`^the config pins the itos under test, as the version "([^"]*)" of a release server that also offers "([^"]*)"$`,
 		w.pinItosUnderTest)
+	sc.Step(`^the itos that runs is the itos under test, as the version "([^"]*)"$`, w.itosUnderTestAs)
+	sc.Step(`^the release "([^"]*)" is the itos under test$`, w.releaseIsItosUnderTest)
 	sc.Step(`^the release server's checksums\.txt of "([^"]*)" is replaced$`, w.replaceChecksums)
 	sc.Step(`^the release server's archive of "([^"]*)" for this platform is replaced$`, w.replaceArchive)
 	sc.Step(`^the release server cannot be reached$`, w.releaseServerUnreachable)
@@ -196,7 +198,7 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the config still has the comment "([^"]*)"$`, w.configStillHasComment)
 	sc.Step(`^the config is unchanged$`, w.configUnchanged)
 	sc.Step(`^the version "([^"]*)" ran with the arguments "([^"]*)"$`, w.versionRanWithArguments)
-	sc.Step(`^the version "([^"]*)" ran with ITOS_VERSION "([^"]*)"$`, w.versionRanWithVersion)
+	sc.Step(`^the version "([^"]*)" ran with (ITOS_VERSION|ITOS_UPGRADE_FROM) "([^"]*)"$`, w.versionRanWithVariable)
 	sc.Step(`^the version "([^"]*)" ran with the arguments "([^"]*)" twice$`, func(version, args string) error {
 		return w.versionRanTimes(version, args, 2)
 	})
@@ -285,6 +287,12 @@ func (w *world) offerRelease(version, extra string) error {
 	if err != nil {
 		return err
 	}
+	return w.serveRelease(version, itos)
+}
+
+// The release of the version, its archive for this platform holding itos as
+// its binary, and its checksums.txt listing that archive.
+func (w *world) serveRelease(version string, itos []byte) error {
 	archive, err := releaseArchive(string(itos))
 	if err != nil {
 		return err
@@ -297,7 +305,8 @@ func (w *world) offerRelease(version, extra string) error {
 }
 
 // The file every fake itos appends its run to, a line each: its version, the
-// ITOS_VERSION it ran with and its arguments, tab-separated.
+// ITOS_VERSION and ITOS_UPGRADE_FROM it ran with and its arguments,
+// tab-separated.
 func (w *world) ranFile() string { return filepath.Join(w.support, "ran") }
 
 // The file holding the code the version exits with, 0 when there is none.
@@ -307,7 +316,7 @@ func (w *world) exitFile(version string) string {
 
 func (w *world) fakeItos(version, extra string) string {
 	script := fmt.Sprintf(`#!/bin/sh
-printf '%%s\t%%s\t%%s\n' %s "${ITOS_VERSION-}" "$*" >> %s
+printf '%%s\t%%s\t%%s\t%%s\n' %s "${ITOS_VERSION-}" "${ITOS_UPGRADE_FROM-}" "$*" >> %s
 printf 'itos %%s\n' %s
 code=$(cat %s 2>/dev/null) || code=0
 exit "${code:-0}"
@@ -502,7 +511,7 @@ func (w *world) alreadyRan(args string) error {
 }
 
 // One run of a fake itos, as it recorded it.
-type fakeRun struct{ version, itosVersion, args string }
+type fakeRun struct{ version, itosVersion, upgradeFrom, args string }
 
 // The fake itos runs recorded, all of them or those since the last run of
 // itos began.
@@ -516,9 +525,9 @@ func (w *world) fakeRuns(sinceLast bool) ([]fakeRun, error) {
 	}
 	var runs []fakeRun
 	for _, line := range strings.Split(strings.TrimSuffix(string(text), "\n"), "\n") {
-		parts := strings.SplitN(line, "\t", 3)
-		if len(parts) == 3 {
-			runs = append(runs, fakeRun{parts[0], parts[1], parts[2]})
+		parts := strings.SplitN(line, "\t", 4)
+		if len(parts) == 4 {
+			runs = append(runs, fakeRun{parts[0], parts[1], parts[2], parts[3]})
 		}
 	}
 	if sinceLast {
@@ -577,17 +586,23 @@ func (w *world) versionRanTimes(version, args string, times int) error {
 	return nil
 }
 
-func (w *world) versionRanWithVersion(version, itosVersion string) error {
+// The version ran, in the last run of itos, with the variable, ITOS_VERSION
+// or ITOS_UPGRADE_FROM, set to want.
+func (w *world) versionRanWithVariable(version, name, want string) error {
 	runs, err := w.lastRunsOf(version)
 	if err != nil {
 		return err
 	}
 	for _, r := range runs {
-		if r.itosVersion == itosVersion {
+		got := r.itosVersion
+		if name == "ITOS_UPGRADE_FROM" {
+			got = r.upgradeFrom
+		}
+		if got == want {
 			return nil
 		}
 	}
-	return fmt.Errorf("the version %s did not run with ITOS_VERSION %q; its runs: %v\n%s", version, itosVersion, runs, w.report())
+	return fmt.Errorf("the version %s did not run with %s %q; its runs: %v\n%s", version, name, want, runs, w.report())
 }
 
 func (w *world) noVersionRan(sinceLast bool) error {

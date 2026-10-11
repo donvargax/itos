@@ -21,8 +21,17 @@ package cli
 // Everything is fetched and every edit made in memory before a file is
 // written, so a failure, or a key in a layout the config editor cannot change
 // byte for byte (value.Doc's Rename and Remove), leaves every file as it was,
-// and nothing is committed. Like pin it is the launcher's own command
-// (internal/launch): the version pinned may predate it.
+// and nothing is committed.
+//
+// The itos doing the upgrade also rewrites a present block of its rules for
+// agents in its own words, as itos init --agent-rules does (initrules.go,
+// refreshedRules): only between the markers, only in a file that has a
+// block, the stealth copies too, each file it rewrites listed among the
+// edits (slice 126, features/upgrade-handoff.feature). Like pin it is the
+// launcher's own command, never the pinned version's, which may predate it;
+// but when the version it moves to is newer than this itos, the launcher
+// hands the upgrade to that version (UpgradeTarget, internal/launch), so
+// the steps applied, the block's words among them, are always the newest's.
 
 import (
 	"encoding/json"
@@ -133,6 +142,62 @@ type releaseNotes struct {
 	Notes   string `json:"notes"`
 }
 
+// Handoff is the upgrade the launcher hands to the version it moves to: that
+// version, its checksums.txt and the command line to run it with.
+type Handoff struct {
+	Version   string
+	Checksums []byte
+	Args      []string
+}
+
+// UpgradeTarget reads the arguments, as the launcher gets them, for an itos
+// upgrade it can hand on (slice 126): the version it moves to, <version> or
+// the newest, asked for as upgrade asks, and the same command line with
+// that version named in place of none or latest, every flag kept. ok is
+// false for anything else, left to this binary: another command, an
+// extension, --help, a line upgrade refuses as written, or one with a "--".
+// An error is a version that cannot be had, its kind as upgrade gives it.
+func UpgradeTarget(args []string) (h Handoff, ok bool, err error) {
+	g := Parse(args)
+	if g.Extension != "" || g.Help || len(g.Rest) == 0 || g.Rest[0] != "upgrade" || slices.Contains(args, "--") {
+		return h, false, nil
+	}
+	read, err := readLine(args)
+	if err != nil {
+		return h, false, nil
+	}
+	want, err := versionArg("upgrade", read.Rest[1:])
+	if err != nil {
+		return h, false, nil
+	}
+	if h.Version, h.Checksums, err = pinned(want); err != nil {
+		return h, true, err
+	}
+	h.Args = namingVersion(args, h.Version)
+	return h, true, nil
+}
+
+// namingVersion is an upgrade's command line, its global flags anywhere,
+// with v in place of its version, or after the command word when it names
+// none.
+func namingVersion(args []string, v string) []string {
+	named := slices.Clone(args)
+	command := -1
+	for i := 0; i < len(named); i++ {
+		switch a := named[i]; {
+		case a == "--config" || a == "--root":
+			i++
+		case strings.HasPrefix(a, "-"):
+		case command < 0:
+			command = i
+		default:
+			named[i] = v
+			return named
+		}
+	}
+	return slices.Insert(named, command+1, v)
+}
+
 // upgradeCommand is `upgrade [<version>]`.
 func upgradeCommand(args []string, o Out) (int, error) {
 	want, err := versionArg("upgrade", args)
@@ -208,6 +273,7 @@ func upgradeCommand(args []string, o Out) (int, error) {
 			return 0, fmt.Errorf("cannot edit %s: %w; every file is left as it was", installScriptPath, err)
 		}
 	}
+	rules := refreshedRules(config.IsStealth(c.file))
 	if text != c.text {
 		if err := writeKeepingMode(c.file, text); err != nil {
 			return 0, err
@@ -219,6 +285,12 @@ func upgradeCommand(args []string, o Out) (int, error) {
 			return 0, err
 		}
 		u.edited = append(u.edited, installScriptPath)
+	}
+	for _, e := range rules {
+		if err := e.write(); err != nil {
+			return 0, err
+		}
+		u.edited = append(u.edited, e.path)
 	}
 	if o.JSON {
 		return 0, u.emit("upgraded")
@@ -283,7 +355,7 @@ func (u upgrade) print() {
 	w := u.o.Stdout
 	edited := "nothing needed editing"
 	if len(u.edited) > 0 {
-		edited = "edited " + strings.Join(u.edited, " and ")
+		edited = "edited " + prose(u.edited, "and")
 	}
 	fmt.Fprintf(w, "Upgraded itos from %s to %s: %s, and committed nothing.\n", u.from, u.to, edited)
 	fmt.Fprintf(w, "Each release since %s, oldest first:\n", u.from)

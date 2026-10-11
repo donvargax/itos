@@ -1,6 +1,7 @@
 package launch
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -258,5 +259,41 @@ func TestNoticeTellsAReleaseCandidatesPinOfItsRelease(t *testing.T) {
 		if told := strings.HasPrefix(b.String(), "itos 9.2.0 is out (this repository pins "+c.pin+"): "); told != c.told {
 			t.Errorf("notice under the pin %s said %q, told %t, want %t", c.pin, b.String(), told, c.told)
 		}
+	}
+}
+
+// An upgrade to a version newer than this binary is handed to it (slice
+// 126): a version it cannot fetch is said in one line, as upgrade says it,
+// and exits 75 or 3; one no newer, an ITOS_UPGRADE_FROM already set and
+// another command are left to this binary.
+func TestHandUpgrade(t *testing.T) {
+	offline(t)
+	t.Setenv(EnvUpgradeFrom, "")
+	try := func(name string, args []string, wantCode int, wantHanded bool, says string) {
+		t.Helper()
+		var stderr strings.Builder
+		code, handed := handUpgrade(args, &stderr)
+		if code != wantCode || handed != wantHanded || !strings.Contains(stderr.String(), says) ||
+			says == "" && stderr.Len() > 0 {
+			t.Errorf("%s: %d, %t, %q; want %d, %t, saying %q", name, code, handed, stderr.String(), wantCode, wantHanded, says)
+		}
+	}
+	try("another command", []string{"pin"}, 0, false, "")
+	try("no server", []string{"upgrade"}, 75, true, "cannot ask for the newest itos")
+	if code, launched := Main([]string{"upgrade"}, io.Discard); code != 75 || !launched {
+		t.Errorf("Main: %d, %t", code, launched)
+	}
+	_, asked := latestServer(t, "0.0.0")
+	try("a version no newer than this binary", []string{"upgrade"}, 0, false, "")
+	latestServer(t, "99.0.0")
+	try("a newer version that cannot be fetched", []string{"upgrade"}, 3, true, "itos 99.0.0")
+	if asked.Load() != 1 {
+		t.Errorf("the server was asked %d times, not once", asked.Load())
+	}
+	t.Setenv(EnvUpgradeFrom, "9.1.0")
+	_, asked = latestServer(t, "99.0.0")
+	try("an upgrade handed off already", []string{"upgrade"}, 0, false, "")
+	if asked.Load() != 0 {
+		t.Errorf("an upgrade handed off already asked the server %d times", asked.Load())
 	}
 }

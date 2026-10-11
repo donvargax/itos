@@ -320,3 +320,84 @@ func TestStaleRules(t *testing.T) {
 		t.Errorf("stealth, outside a repository: %v", got)
 	}
 }
+
+// upgrade's rewrite of a present block (slice 126): each file staleRules
+// finds, its block in this itos's words and nothing else changed, CRLF kept;
+// no block, the current one, markers out of place and a file that cannot be
+// read give no edit. Under a stealth config the rules file and
+// AGENTS.override.md are rewritten, the override's copy of AGENTS.md kept.
+func TestRefreshedRules(t *testing.T) {
+	gitConfigRepo(t, "version: 1\n")
+	if got := refreshedRules(false); got != nil {
+		t.Errorf("no AGENTS.md: %v", got)
+	}
+	for _, text := range []string{"Mine.\n", "Mine.\n\n" + rulesBlock, rulesBegin + "\nMine.\n", olderBlock + "\n" + olderBlock} {
+		putFile(t, agentsFile, text)
+		if got := refreshedRules(false); got != nil {
+			t.Errorf("AGENTS.md of %q: %v", text, got)
+		}
+	}
+	putFile(t, agentsFile, "Mine.\r\n\r\n"+strings.ReplaceAll(olderBlock, "\n", "\r\n")+"\r\nAfter.\r\n")
+	want := []rulesEdit{{agentsFile, agentsFile, "Mine.\n\n" + rulesBlock + "\nAfter.\n", true}}
+	if got := refreshedRules(false); !slices.Equal(got, want) {
+		t.Errorf("an older block, CRLF: %v, not %v", got, want)
+	}
+	if err := want[0].write(); err != nil {
+		t.Fatal(err)
+	}
+	if text, _ := os.ReadFile(agentsFile); string(text) != "Mine.\r\n\r\n"+strings.ReplaceAll(rulesBlock, "\n", "\r\n")+"\r\nAfter.\r\n" {
+		t.Errorf("written: %q", text)
+	}
+	if err := os.Remove(agentsFile); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(agentsFile, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := refreshedRules(false); got != nil {
+		t.Errorf("an AGENTS.md that cannot be read: %v", got)
+	}
+
+	rules := filepath.ToSlash(filepath.Join(".git", config.StealthFolder, agentsFile))
+	if got := refreshedRules(true); got != nil {
+		t.Errorf("stealth, AGENTS.md a folder: %v", got)
+	}
+	if err := os.Remove(agentsFile); err != nil {
+		t.Fatal(err)
+	}
+	if got := refreshedRules(true); got != nil {
+		t.Errorf("stealth, no rules written: %v", got)
+	}
+	putFile(t, rules, olderBlock)
+	putFile(t, overrideFile, rulesBlock)
+	want = []rulesEdit{{rules, rules, rulesBlock, false}}
+	if got := refreshedRules(true); !slices.Equal(got, want) {
+		t.Errorf("stealth, an older block in the git folder: %v, not %v", got, want)
+	}
+	copied := copyBegin + "\n\nThe project's.\n\n" + copyEnd + "\n"
+	putFile(t, rules, rulesBlock)
+	putFile(t, overrideFile, copied+"\n"+strings.TrimSuffix(olderBlock, "\n"))
+	want = []rulesEdit{{overrideFile, overrideFile, copied + "\n" + rulesBlock, false}}
+	if got := refreshedRules(true); !slices.Equal(got, want) {
+		t.Errorf("stealth, an older block after the copy: %v, not %v", got, want)
+	}
+	putFile(t, rules, olderBlock)
+	putFile(t, overrideFile, "Mine.\n\n"+olderBlock+"After.\n")
+	want = []rulesEdit{{rules, rules, rulesBlock, false}, {overrideFile, overrideFile, "Mine.\n\n" + rulesBlock + "After.\n", false}}
+	if got := refreshedRules(true); !slices.Equal(got, want) {
+		t.Errorf("stealth, older blocks in both: %v, not %v", got, want)
+	}
+	putFile(t, overrideFile, copied)
+	if got := refreshedRules(true); !slices.Equal(got, want[:1]) {
+		t.Errorf("stealth, an override with no rules block: %v", got)
+	}
+	putFile(t, overrideFile, rulesBegin+"\nMine.\n")
+	if got := refreshedRules(true); got != nil {
+		t.Errorf("stealth, markers out of place: %v", got)
+	}
+	putFile(t, rules, rulesBegin+"\nMine.\n")
+	putFile(t, overrideFile, rulesBlock)
+	if got := refreshedRules(true); got != nil {
+		t.Errorf("stealth, markers out of place in the rules file: %v", got)
+	}
+}

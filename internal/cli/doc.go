@@ -81,7 +81,9 @@
 // # Commands the launcher leaves to this binary
 //
 // binaryCommand in internal/launch leaves pin, upgrade, init and git-shim
-// install and uninstall to the binary that was called, and says no notice.
+// install and uninstall to the binary that was called, and says no notice;
+// but first the launcher hands an upgrade to the version it moves to when
+// that is newer than this binary, reading it with UpgradeTarget (slice 126).
 //
 // itos pin (pin.go) reads the config config.Path finds (the stealth one
 // included), asks internal/release for the version's checksums.txt, or for
@@ -114,7 +116,10 @@
 // release by release, oldest first, by value.Doc's Rename and Remove
 // (applySteps), each on the text the one before left; one the editor cannot
 // make byte for byte exits 2 naming the key. Only then are the files
-// written, so a failed fetch or edit leaves every file as it was. It prints
+// written, so a failed fetch or edit leaves every file as it was. A block of
+// the rules for agents other than the one this itos writes, in AGENTS.md or
+// a stealth config's copies, is rewritten with them, only between the
+// markers (refreshedRules, initrules.go), and listed among the edits. It prints
 // each release's edits and lists oldest first, then By hand: the breaking
 // changes and Upgrading footers, all that a commit's text asks, or under
 // --json returns the releases as upgrading.json holds them with applied and

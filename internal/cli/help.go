@@ -1075,7 +1075,16 @@ does not have exits 3, and a release server that cannot be reached or fails
 75, every file untouched, the pin included.
 A project already on the version changes nothing, exit 0; a pin on it with
 other checksums is left as it is, exit 1: the release changed after it was
-pinned. It commits nothing, and runs the binary called, whatever the pin says.
+pinned. It commits nothing, and runs the binary called, whatever the pin says,
+unless the version it moves to is newer than it: then that version is fetched,
+as a pinned one is, and runs the upgrade with ITOS_UPGRADE_FROM set, so each
+release applies its own steps; its exit code is upgrade's.
+
+Where AGENTS.md, or a stealth config's copies, holds a block of itos's rules
+for agents other than the one it writes, the itos doing the upgrade rewrites
+it in its own words, only between the markers, as itos init --agent-rules
+does; a file with no block gains none. Each file it rewrites is among those
+it edited.
 
 --json: {"schema":1,"action","from","to","releases","edited","applied",
         "manual"}, action one of upgraded, already, refused; each release

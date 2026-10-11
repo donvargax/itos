@@ -439,6 +439,15 @@ func TestUpgradeCommandCannotWrite(t *testing.T) {
 	if code, err, printed := upgradeRun(false); code != 0 || err == nil {
 		t.Errorf("a script it cannot write: %d, %v, %s", code, err, printed)
 	}
+
+	upgradeIn(t, "9.3.0", pinOf("9.1.0"), nil)
+	writeFile(t, agentsFile, olderBlock)
+	if err := os.Chmod(agentsFile, 0o444); err != nil {
+		t.Fatal(err)
+	}
+	if code, err, printed := upgradeRun(false); code != 0 || err == nil {
+		t.Errorf("an AGENTS.md it cannot write: %d, %v, %s", code, err, printed)
+	}
 }
 
 // --json, already on the version and upgraded.
@@ -453,5 +462,67 @@ func TestUpgradeCommandJSON(t *testing.T) {
 	code, err, printed := upgradeRun(true)
 	if code != 0 || err != nil || !strings.Contains(printed, `"action": "upgraded"`) || !strings.Contains(printed, `"value": 600`) {
 		t.Errorf("upgraded: %d, %v, %s", code, err, printed)
+	}
+}
+
+// upgrade rewrites a present block of the rules for agents in this itos's
+// words, listing AGENTS.md among its edits, and a project with no block
+// keeps its AGENTS.md (slice 126).
+func TestUpgradeCommandRewritesTheRulesBlock(t *testing.T) {
+	upgradeIn(t, "9.3.0", pinOf("9.1.0"), nil)
+	writeFile(t, agentsFile, "Mine.\n\n"+olderBlock)
+	code, err, printed := upgradeRun(false)
+	if text, _ := os.ReadFile(agentsFile); code != 0 || err != nil || string(text) != "Mine.\n\n"+rulesBlock ||
+		!strings.Contains(printed, "itos.yaml and AGENTS.md, and committed nothing") {
+		t.Errorf("an older block: %d, %v, %s\n%s", code, err, printed, text)
+	}
+	upgradeIn(t, "9.3.0", pinOf("9.1.0"), nil)
+	writeFile(t, agentsFile, "Mine.\n")
+	code, err, printed = upgradeRun(true)
+	if text, _ := os.ReadFile(agentsFile); code != 0 || err != nil || string(text) != "Mine.\n" ||
+		!strings.Contains(printed, `"action": "upgraded"`) || strings.Contains(printed, agentsFile) {
+		t.Errorf("no block: %d, %v, %s\n%s", code, err, printed, text)
+	}
+}
+
+// The command line handed to the version an upgrade moves to: that version
+// named in place of none or latest, every global flag kept where it stood.
+func TestNamingVersion(t *testing.T) {
+	for in, want := range map[string]string{
+		"upgrade":                                  "upgrade 9.3.0",
+		"upgrade --json":                           "upgrade 9.3.0 --json",
+		"--json upgrade latest":                    "--json upgrade 9.3.0",
+		"upgrade v9.3.0 -q":                        "upgrade 9.3.0 -q",
+		"--root dir upgrade --config c.yaml":       "--root dir upgrade 9.3.0 --config c.yaml",
+		"--root=dir upgrade --config=c.yaml 9.3.0": "--root=dir upgrade --config=c.yaml 9.3.0",
+	} {
+		if got := strings.Join(namingVersion(strings.Fields(in), "9.3.0"), " "); got != want {
+			t.Errorf("namingVersion(%q) = %q, not %q", in, got, want)
+		}
+	}
+}
+
+// UpgradeTarget reads an upgrade the launcher can hand on, and leaves
+// anything else to the binary called (slice 126).
+func TestUpgradeTarget(t *testing.T) {
+	upgradeIn(t, "9.3.0", "", nil)
+	for _, line := range []string{"", "status", "upgrade --help", "help upgrade", "upgrade 9.1.0 9.2.0", "upgrade --force",
+		"upgrade -- 9.2.0", "upgrade nine"} {
+		if h, ok, err := UpgradeTarget(strings.Fields(line)); ok || err != nil || h.Version != "" {
+			t.Errorf("%q: %v, %t, %v", line, h, ok, err)
+		}
+	}
+	h, ok, err := UpgradeTarget([]string{"--json", "upgrade"})
+	if !ok || err != nil || h.Version != "9.3.0" || string(h.Checksums) != sumsOf("9.3.0") ||
+		!slices.Equal(h.Args, []string{"--json", "upgrade", "9.3.0"}) {
+		t.Errorf("the newest: %v, %t, %v", h, ok, err)
+	}
+	h, ok, err = UpgradeTarget([]string{"upgrade", "v9.2.0"})
+	if !ok || err != nil || h.Version != "9.2.0" || !slices.Equal(h.Args, []string{"upgrade", "9.2.0"}) {
+		t.Errorf("a version: %v, %t, %v", h, ok, err)
+	}
+	h, ok, err = UpgradeTarget([]string{"upgrade", "9.9.0"})
+	if !ok || kind.Of(err) != kind.Missing || h.Args != nil {
+		t.Errorf("a version the server does not have: %v, %t, %v", h, ok, err)
 	}
 }

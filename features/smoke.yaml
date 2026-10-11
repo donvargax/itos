@@ -160,6 +160,10 @@
   scenarios:
     - id: "@ID-UPGRADECMD-01"
       why: the pin moved to the newest and every release's asks since the old pin listed, oldest first, the command's whole path
+- file: upgrade-handoff.feature
+  scenarios:
+    - id: "@ID-UPGRADEHAND-01"
+      why: an itos older than the target hands upgrade to it, its arguments, ITOS_UPGRADE_FROM and exit code, the file's point
 - file: upgrading.feature
   scenarios:
     - id: "@ID-UPGRADE-01"

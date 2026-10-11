@@ -36,7 +36,7 @@ Feature: itos upgrade is handed to the release it moves to, when that release is
   # stealth config beside this Background's committed one is not a layout
   # upgrade meets. A 7.x launcher has no handoff: the v7 to v8 crossing stays
   # slice-120's Upgrading footer and slice-124's status line.
-  @ID-UPGRADEHAND-01 @slice-126 @wip
+  @ID-UPGRADEHAND-01 @slice-126
   Scenario: A running itos older than the target hands upgrade to it, and exits with its code
     Given the itos that runs is the itos under test, as the version "9.2.0"
     And the version "9.3.0" exits with code 3
@@ -46,7 +46,7 @@ Feature: itos upgrade is handed to the release it moves to, when that release is
     And the version "9.3.0" ran with ITOS_UPGRADE_FROM "9.2.0"
     And the config is unchanged
 
-  @ID-UPGRADEHAND-02 @slice-126 @wip
+  @ID-UPGRADEHAND-02 @slice-126
   Scenario: An upgrade already handed off is never handed off again
     Given the itos that runs is the itos under test, as the version "9.2.0"
     And ITOS_UPGRADE_FROM is "9.1.0"
@@ -55,7 +55,7 @@ Feature: itos upgrade is handed to the release it moves to, when that release is
     And no version of the release server ran
     And the config's pin is the version "9.3.0" of the release server, with its checksums
 
-  @ID-UPGRADEHAND-03 @slice-126 @wip
+  @ID-UPGRADEHAND-03 @slice-126
   Scenario: The release handed the upgrade rewrites a present block in its own words, the text outside the markers kept
     Given the release "9.3.0" is the itos under test
     And the itos that runs is the itos under test, as the version "9.2.0"
@@ -68,7 +68,7 @@ Feature: itos upgrade is handed to the release it moves to, when that release is
     And the file "AGENTS.md" has the line "Be kind to the build."
     And nothing was committed
 
-  @ID-UPGRADEHAND-04 @slice-126 @wip
+  @ID-UPGRADEHAND-04 @slice-126
   Scenario: An itos already the newest upgrades itself, rewriting the block and listing AGENTS.md among its edits
     Given the itos that runs is the itos under test, as the version "9.3.0"
     And the committed file "AGENTS.md" holds the project's line "Be kind to the build." and a block an older itos wrote, saying "Task:" between the markers
@@ -78,7 +78,7 @@ Feature: itos upgrade is handed to the release it moves to, when that release is
     And the file "AGENTS.md" says "Stage only your own files, by explicit path" between the markers
     And its output says "AGENTS.md"
 
-  @ID-UPGRADEHAND-05 @slice-126 @wip
+  @ID-UPGRADEHAND-05 @slice-126
   Scenario: A project with no block keeps its AGENTS.md as it is, and gets no block
     Given the itos that runs is the itos under test, as the version "9.3.0"
     And the committed file "AGENTS.md" holding the lines:

@@ -216,6 +216,42 @@ func staleRules(stealth bool) []string {
 	return []string{agentsFile}
 }
 
+// rulesEdit is a file whose rules block upgrade rewrites: its path as said,
+// its path on disk, its new text (LF) and whether it used CRLF.
+type rulesEdit struct {
+	path, disk, text string
+	crlf             bool
+}
+
+// write writes the edit, keeping the file's line endings.
+func (e rulesEdit) write() error { return writeText(e.disk, e.text, e.crlf) }
+
+// refreshedRules are the files staleRules finds, each with its block
+// rewritten in this itos's words, as itos init --agent-rules rewrites it,
+// only between the markers (upgrade.go, slice 126): AGENTS.md, or under a
+// stealth config the copies init writes there. It writes nothing. A file
+// with no block gains none, since the rules are offered, never required,
+// and one that cannot be read, or whose markers cannot be placed, is left
+// as it is, for init to report.
+func refreshedRules(stealth bool) []rulesEdit {
+	if stealth {
+		s, err := readStealthRules()
+		if err != nil {
+			return nil
+		}
+		return s.refreshed()
+	}
+	text, crlf, err := readText(agentsFile)
+	if err != nil {
+		return nil
+	}
+	before, found, after, err := splitBlock(text)
+	if err != nil || !staleBlock(found) {
+		return nil
+	}
+	return []rulesEdit{{agentsFile, agentsFile, before + rulesBlock + after, crlf}}
+}
+
 // rulesHowTo is what the offer says where nobody was asked.
 var rulesHowTo = "itos's rules for agents are not written: itos init --agent-rules writes them " +
 	"into " + agentsFile + ", between " + rulesBegin + " and " + rulesEnd + ", and imports it from " + claudeFile +

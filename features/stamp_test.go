@@ -16,6 +16,15 @@
 // ITOS_NO_UPDATE_NOTICE: it names the newer release and itos upgrade on its
 // own, so left on it would answer for the very lines the scenario reads.
 //
+// A scenario of itos upgrade stamps it too (slice 126,
+// upgrade-handoff.feature): upgrade is handed to the version it moves to
+// when that is newer than the itos that runs, so no such scenario may rest
+// on the version of the itos under test as built, which moves with every
+// commit. "the itos that runs is the itos under test, as the version" runs
+// the build stamped so in place of it, and "the release is the itos under
+// test" serves that build as the version's release, so a handed upgrade runs
+// this tree's code.
+//
 // A binary ITOS_BIN names cannot be stamped again, so these scenarios build
 // the tree the features are run from even then: run as the last release's
 // suite by tools/bin/previous-release, they judge that release's own code,
@@ -109,4 +118,32 @@ func (w *world) pinItosUnderTest(v, other string) error {
 	}
 	w.vars = append(w.vars, "ITOS_NO_UPDATE_NOTICE=1")
 	return w.pinVersion(v, v)
+}
+
+// The itos every run of the scenario starts is the itos under test, stamped
+// as the version v.
+func (w *world) itosUnderTestAs(v string) error {
+	bin, err := stampedItos(v)
+	if err != nil {
+		return err
+	}
+	w.bin = bin
+	return nil
+}
+
+// The release server's release of the version v holds the itos under test,
+// stamped as v, in its archive, and lists that archive in its checksums.txt.
+func (w *world) releaseIsItosUnderTest(v string) error {
+	if err := w.needReleases(); err != nil {
+		return err
+	}
+	bin, err := stampedItos(v)
+	if err != nil {
+		return err
+	}
+	itos, err := os.ReadFile(bin)
+	if err != nil {
+		return err
+	}
+	return w.serveRelease(v, itos)
 }

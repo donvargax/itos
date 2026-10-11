@@ -24,7 +24,9 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
   fails leaves every file as it was, and it commits nothing: the move is the
   project's own commit, as itos pin's is. Like itos pin, it is the
   launcher's own command and never runs the pinned version, which may
-  predate it, and it edits the config itos finds, the stealth one included.
+  predate it, though it is handed to the version it moves to when that is
+  newer (upgrade-handoff.feature), and it edits the config itos finds, the
+  stealth one included.
 
   The version it moves from is the pin's, or with no pin the install
   script's; with neither there is nothing to move. Moving to an older
@@ -36,9 +38,14 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
   "applied":[{"version","kind":"renamed"|"removed","key","from"?,"value"?}],
   "manual":[{"version","text"}]}
 
+  # Slice 126: upgrade is handed to the version it moves to when that is
+  # newer than the itos that runs (upgrade-handoff.feature), so the itos
+  # under test runs stamped as the newest of these releases, and these
+  # scenarios judge the walk it does itself, whatever version it is built as.
   Background:
     Given a release server offering the versions "9.1.0", "9.2.0" and "9.3.0", each with an upgrading.json naming the one before it
     And a repository whose ledger has the task "T-001"
+    And the itos that runs is the itos under test, as the version "9.3.0"
 
   @ID-UPGRADECMD-01 @slice-75
   Scenario: itos upgrade moves the pin to the newest release and lists what each release since the old pin asks, oldest first

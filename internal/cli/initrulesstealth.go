@@ -156,6 +156,30 @@ func (s *stealthRules) staleBlocks() []string {
 	return stale
 }
 
+// refreshed are the rules file and overrideFile, as read, that hold a rules
+// block other than the one this itos writes, each with that block, and
+// nothing else, rewritten in this itos's words: overrideFile's copy of
+// AGENTS.md is left as it is.
+func (s *stealthRules) refreshed() []rulesEdit {
+	var edits []rulesEdit
+	if before, found, after, err := splitBlockOf(s.rules.text, s.rules.path, rulesBegin, rulesEnd); err == nil &&
+		staleBlock(found) {
+		edits = append(edits, rulesEdit{s.rules.path, s.rules.disk, before + rulesBlock + after, s.rules.crlf})
+	}
+	if s.rulesAt == noSpan {
+		return edits
+	}
+	block := strings.Join(s.lines[s.rulesAt[0]:s.rulesAt[1]+1], "")
+	if !strings.HasSuffix(block, "\n") {
+		block += "\n"
+	}
+	if block != rulesBlock {
+		text := strings.Join(s.lines[:s.rulesAt[0]], "") + rulesBlock + strings.Join(s.lines[s.rulesAt[1]+1:], "")
+		edits = append(edits, rulesEdit{s.override.path, s.override.disk, text, s.override.crlf})
+	}
+	return edits
+}
+
 // copyBlock is the marked copy of the project's AGENTS.md, "" when it has
 // none or an empty one.
 func (s *stealthRules) copyBlock() string {
