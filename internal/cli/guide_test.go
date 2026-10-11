@@ -110,7 +110,7 @@ func TestGuideProcedures(t *testing.T) {
 }
 
 // itos guide commit prints the commit policy the config sets after the
-// procedure, as AGENTS.md's block holds it; with no config the procedure
+// procedure; with no config the procedure
 // prints alone, and with one that cannot be read, alone after a warning.
 func TestGuideCommitPrintsTheConfigsPolicy(t *testing.T) {
 	dir, _ := notesRepo(t)
@@ -120,7 +120,7 @@ func TestGuideCommitPrintsTheConfigsPolicy(t *testing.T) {
 	}
 	writeFile(t, filepath.Join(dir, "itos.yaml"), "version: 1\ncommits:\n  types: [feat, deps]\n")
 	code, stdout, stderr = run("guide", "commit")
-	policy := strings.Index(stdout, "## The rules the config sets\n\nAs `itos init --agent-rules` writes them from `itos.yaml`")
+	policy := strings.Index(stdout, "## The rules the config sets\n\nAs `itos.yaml` sets them; the hooks and CI hold")
 	if code != 0 || policy < strings.Index(stdout, "itos commit check-paths") ||
 		!strings.Contains(stdout[max(policy, 0):], "A commit's type is one of `feat` or `deps`.") || stderr != "" {
 		t.Errorf("a config: exit %d, stdout %s, stderr %s", code, stdout, stderr)

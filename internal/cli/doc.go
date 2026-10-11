@@ -200,19 +200,20 @@
 //     link to this itos is kept, a git that is no link to itos refused for
 //     --git-shim (exit 1) and otherwise only said, a link to another itos
 //     replaced; then makeLink and standingLine.
-//   - The rules for agents (initrules.go, rulesOffer.run): rulesBlock renders
-//     the loaded config (commits.types, the header lint, each footer's source
+//   - The rules for agents (initrules.go, rulesOffer.run): rulesBlock is a
+//     constant, the entry line and the staging boundary under a heading
+//     (slice 120), in Markdown a formatter leaves alone: one line a
+//     paragraph, a blank line between blocks. commitPolicy renders the
+//     loaded config (commits.types, the header lint, each footer's source
 //     and required_for with in_place_of as an alternative, commits.scopes
-//     with its $sets expanded, the hooks' rules and hooks.pre_push, ci.steps
-//     in check.CostOf's order, the prose steps and the nightly's) as Markdown
-//     a formatter leaves alone: one line a paragraph or list item, a blank
-//     line between blocks, every config value through code, a one-line code
-//     span fenced past any backtick it holds. splitBlock cuts AGENTS.md
+//     with its $sets expanded) the same way for itos guide commit, every
+//     config value through code, a one-line code span fenced past any
+//     backtick it holds. splitBlock cuts AGENTS.md
 //     around <!-- itos:begin --> and <!-- itos:end -->, refusing a lone or
 //     misordered marker or a second block; writeRules replaces that block, or
 //     appends one, and gives CLAUDE.md an @AGENTS.md line unless it has one or
 //     is AGENTS.md itself; both files keep the line endings they had. A rerun
-//     with no flag compares the block with rulesBlock's and says only that it
+//     with no flag compares the block with rulesBlock and says only that it
 //     is stale. Under a stealth config runStealth (initrulesstealth.go)
 //     writes three files, never AGENTS.md or CLAUDE.md: the block to <git
 //     common dir>/itos/AGENTS.md; a CLAUDE.local.md whose block imports
@@ -225,9 +226,7 @@
 //     nothing outside the rules block; any other is the person's and only
 //     gains the block, as a CLAUDE.local.md always does. plan computes each
 //     file's next text, so a rerun compares texts; a rewrite refuses a file
-//     at the top that the project tracks. The shared block names the config
-//     and its data by their place beside it (stealthSource, stealthData),
-//     since their paths differ between worktrees and the block must not.
+//     at the top that the project tracks.
 //
 // itos git-shim install and uninstall (gitshim.go) link os.Executable as git
 // (git.exe) in --dir, typed from where the person stood, or its own folder, a

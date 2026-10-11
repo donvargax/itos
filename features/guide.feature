@@ -97,8 +97,8 @@ Feature: itos go and itos guide, the guides a session starts from
   # waiting, Checking a result), repair (When main is red, Reporting a problem
   # with itos), decide (Talking to the person, Decisions, Lessons). The
   # implementer's: commit (Commit, then the commit types, footers and paths
-  # the config sets, as itos init --agent-rules writes them), push (Push, The
-  # gates run themselves). Every rule of the old guides lives in exactly one
+  # the config sets, which AGENTS.md's block no longer holds since slice 120),
+  # push (Push, The gates run themselves). Every rule of the old guides lives in exactly one
   # of them; the essentials keep the q-44 boundaries (role and authority,
   # others' work, the gates, text as data, reading a procedure first). No
   # procedure takes an item yet (p1-guide-brief-filled, p1-guide-work-item),

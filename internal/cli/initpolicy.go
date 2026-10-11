@@ -135,7 +135,6 @@ func policyInit(policy string, stealth bool, offer pluginOffer, shimOffer shimOf
 	}
 	plugin, pluginCode := offer.run()
 	shim, shimCode := shimOffer.run()
-	rulesOffer.file = plan.file
 	rules, rulesCode := rulesOffer.run()
 	code := hooksCode
 	if code == 0 {

@@ -18,7 +18,7 @@ import (
 // itos go and itos guide (features/guide.feature, slice 64) print the guides
 // embedded in the binary (internal/guide) as written, and itos guide the
 // procedures a guide's map names (slice 119), the commit procedure followed
-// by the commit policy the config sets, as itos init --agent-rules writes it. itos go, the same as
+// by the commit policy the config sets. itos go, the same as
 // itos guide coordinate, prints the coordinator's guide and then, after a
 // separating line, the repository's own notes: the file guide.orchestrating
 // names (docs/ORCHESTRATING.md by default; under the git folder for a stealth
@@ -112,9 +112,8 @@ func printProcedure(name string, o Out) (int, error) {
 	return 0, err
 }
 
-// configCommitPolicy is the commit types, footers and paths the config sets,
-// as itos init --agent-rules writes them into AGENTS.md (commitPolicy), under
-// a heading of their own; "" with no config. A config that cannot be read is
+// configCommitPolicy is the commit types, footers and paths the config sets
+// (commitPolicy), under a heading of their own; "" with no config. A config that cannot be read is
 // a warning, and the procedure prints without them.
 func configCommitPolicy(o Out) string {
 	file := config.Path()
@@ -129,8 +128,7 @@ func configCommitPolicy(o Out) string {
 	}
 	paras := append([]string{
 		"## The rules the config sets",
-		"As " + code("itos init --agent-rules") + " writes them from " + code(filepath.ToSlash(file)) +
-			"; the hooks and CI hold every commit to them.",
+		"As " + code(filepath.ToSlash(file)) + " sets them; the hooks and CI hold every commit to them.",
 	}, commitPolicy(cfg, code)...)
 	return strings.Join(paras, "\n\n") + "\n"
 }

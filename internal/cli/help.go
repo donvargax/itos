@@ -1135,18 +1135,20 @@ replaced, exit 1, the rest of init's work done. Run again where a config is,
 it never asks: a shim not linked is reported, never counted as missing, and
 --git-shim links it.
 
-It offers the rules for agents the same way: what the config decides (the
-commit types, the footer each type needs, the paths each type may touch and
-what the hooks and CI run), generated from it into AGENTS.md between the lines
-<!-- itos:begin --> and <!-- itos:end -->, and a line importing it, @AGENTS.md,
-at the end of CLAUDE.md, written when it is missing. The block has one line a
+It offers the rules for agents the same way: two lines, the same in every
+repository, written into AGENTS.md between the lines <!-- itos:begin --> and
+<!-- itos:end -->: start with itos go unless your brief names another guide,
+and stage only your own files, by explicit path. The commit policy the config
+sets is itos guide commit's. A line importing the block, @AGENTS.md, goes at
+the end of CLAUDE.md, written when it is missing. The block has one line a
 paragraph, so a Markdown formatter leaves it as written. An AGENTS.md without
 the markers gains the block at its end, its text kept; nothing outside them is
 ever changed, and a file's CRLF line endings are kept. --agent-rules writes
 it, --no-agent-rules declines; on a terminal with neither it asks, yes its
 default answer; anywhere else it writes nothing and says how to. Run again
-where a config is, it never asks: a block the config no longer matches is
-reported, never counted as missing, and --agent-rules rewrites it.
+where a config is, it never asks: a block other than the one this itos writes
+(an older itos's) is reported, never counted as missing, and --agent-rules
+rewrites it.
 
 Under a stealth config, which changes nothing tracked, AGENTS.md and CLAUDE.md
 are never written. The block goes to <git common dir>/itos/AGENTS.md, which
@@ -1172,9 +1174,10 @@ Run again, a copy that no longer matches AGENTS.md is reported as well, and
         replaced (a link to another itos), kept, offered, declined, refused (a git that is no
         link to itos is there) or failed;
         agent_rules {"action","files":[{"path","action"}],"problem"?}, action one of written,
-        current (the block matches the config), stale (it does not, and was not rewritten),
-        offered, declined or failed; under a stealth config, stale too when the copy of
-        AGENTS.md no longer matches it; each file's action wrote, updated or kept`,
+        current (the block is the one this itos writes), stale (it is not, and was not
+        rewritten), offered, declined or failed; under a stealth config, stale too when
+        the copy of AGENTS.md no longer matches it; each file's action wrote, updated or
+        kept`,
 
 	"followup": `Usage: itos followup [--all]
        itos followup add <id> --with <who> --title <title> --note <text>
@@ -1558,8 +1561,7 @@ to specify an item, then the brief to fill in), land (pushing, waiting on CI
 and checking a result), repair (a red main branch, a problem itos itself
 causes) and decide (asking the person, the queue, decisions and lessons); the
 implementer's commit (how to commit through itos, then, where there is a
-config, the commit types, footers and paths it sets, as itos init
---agent-rules writes them) and push (the push routine and what the gates do).
+config, the commit types, footers and paths it sets) and push (the push routine and what the gates do).
 A procedure takes no argument. It needs no config and writes nothing; a config
 that cannot be read is a line on stderr, and commit prints without its rules.
 A name it has no guide or procedure by is a usage error (exit 2) naming the

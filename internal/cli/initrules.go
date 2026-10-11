@@ -2,19 +2,20 @@ package cli
 
 // itos init's rules for agents (slice 59, features/init.feature;
 // docs/decisions/0033-itos-s-own-guides-say-how-to-work-with-itos-not-the-plugin.md):
-// what the config decides, generated from it into a marked block of
-// AGENTS.md, between <!-- itos:begin --> and <!-- itos:end -->, and a line
-// importing it, @AGENTS.md, in CLAUDE.md, so Claude Code reads it too. The
-// block holds only what the config decides: the commit types, the footer
-// each type needs, the paths each type may touch and what each gate runs.
-// How to work with itos is itos's own guides (itos go, itos guide work),
-// never the block.
+// a marked block of AGENTS.md, between <!-- itos:begin --> and
+// <!-- itos:end -->, and a line importing it, @AGENTS.md, in CLAUDE.md, so
+// Claude Code reads it too. Since slice 120 (v8, q-45 and q-46) the block
+// holds two lines under a heading, the same in every repository: the entry
+// line, start with itos go unless your brief names another guide, and the
+// one boundary no gate holds yet, staging only your own files. AGENTS.md is
+// read by every session for every task, so the commit policy the config
+// sets, which the block held before, is printed by itos guide commit
+// (commitPolicy, guide.go) for the session about to commit; how to work with
+// itos is itos's own guides (itos go, itos guide work).
 //
-// The block is written formatter-stable: one line per paragraph or list
-// item, no hard wrap, every value from the config in a code span on one
-// line, a blank line around every heading, list and marker. A project's
-// Markdown formatter then leaves it as written, and a rerun's comparison of
-// the block with the config stays exact.
+// The block is written formatter-stable: one line per paragraph, a blank
+// line around the heading and every marker. A project's Markdown formatter
+// then leaves it as written, and a rerun's comparison stays exact.
 //
 // itos touches only what is inside the markers. An AGENTS.md without them
 // gains the block at its end, its text kept; a CLAUDE.md lacking the import
@@ -25,10 +26,11 @@ package cli
 // The offer is made as the plugin's is (initplugin.go): --agent-rules writes
 // the block, --no-agent-rules declines, a terminal is asked on the first run,
 // and anywhere else nothing is written and the report says how. Run again
-// where a config is, it never asks: a block the config no longer matches is
-// reported, naming itos init --agent-rules, never counted as missing, and
-// --agent-rules rewrites it. Under a stealth config nothing tracked may
-// change, so the block goes where git never looks (initrulesstealth.go).
+// where a config is, it never asks: a block other than the one this itos
+// writes (an older itos's, say) is reported, naming itos init --agent-rules,
+// never counted as missing, and --agent-rules rewrites it; the config does
+// not enter into it. Under a stealth config nothing tracked may change, so
+// the block goes where git never looks (initrulesstealth.go).
 
 import (
 	"bufio"
@@ -40,7 +42,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/kind"
 )
@@ -81,8 +82,8 @@ func parseRulesFlag(args []string, i int, f *rulesFlag) (int, error) {
 
 // rulesOutcome is what came of the offer, init's --json "agent_rules":
 // action one of written (the block written or rewritten, or CLAUDE.md given
-// its import), current (the block matches the config, nothing to write),
-// stale (a rerun's block the config no longer matches, or under a stealth
+// its import), current (the block is the one this itos writes, nothing to
+// write), stale (a rerun's block other than this itos's, or under a stealth
 // config a copy of AGENTS.md that no longer matches it, not rewritten),
 // offered (no block, and nobody asked), declined or failed (exit 1 when
 // --agent-rules or a terminal asked for it); files each file written, or
@@ -95,14 +96,12 @@ type rulesOutcome struct {
 
 // rulesOffer is the offer's context, as pluginOffer's: the flag, the mode,
 // whether this is a rerun where a config was there, whether a terminal may be
-// asked, where it says what it did, and where an answer is read from; file
-// is the config the block is generated from.
+// asked, where it says what it did, and where an answer is read from.
 type rulesOffer struct {
 	flag    rulesFlag
 	stealth bool
 	rerun   bool
 	ask     bool
-	file    string
 	log     io.Writer
 	answers io.Reader
 }
@@ -137,7 +136,7 @@ func (r rulesOffer) run() (rulesOutcome, int) {
 	if !r.flag.given && found == nil {
 		answer := ""
 		if r.ask && !r.rerun {
-			answer = r.question(fmt.Sprintf("Write the rules the config decides into %s, between itos's markers, "+
+			answer = r.question(fmt.Sprintf("Write itos's rules for agents into %s, between itos's markers, "+
 				"and import it from %s?", agentsFile, claudeFile))
 		}
 		switch {
@@ -150,27 +149,22 @@ func (r rulesOffer) run() (rulesOutcome, int) {
 			return rulesOutcome{Action: "offered", Files: none}, 0
 		}
 	}
-	cfg, err := config.Load(r.file)
-	if err != nil {
-		return failed("the config "+r.file+" does not load, so there are no rules to write", r.flag.given || found == nil)
-	}
-	block := rulesBlock(cfg, code(r.file), code)
 	if !r.flag.given && found != nil {
-		if *found == block {
+		if *found == rulesBlock {
 			return rulesOutcome{Action: "current", Files: none}, 0
 		}
-		say("%s's itos rules no longer match %s: itos init --agent-rules rewrites them, only between the markers.",
-			agentsFile, r.file)
+		say("%s's itos rules are not the ones this itos writes: itos init --agent-rules rewrites them, "+
+			"only between the markers.", agentsFile)
 		return rulesOutcome{Action: "stale", Files: none}, 0
 	}
 
-	files, err := writeRules(text, before, found, after, block)
+	files, err := writeRules(text, before, found, after, rulesBlock)
 	if err != nil {
 		return failed(err.Error(), true)
 	}
 	changed := slices.ContainsFunc(files, func(f writtenFile) bool { return f.Action != "kept" })
 	if !changed {
-		say("%s's itos rules match %s already, and %s imports them.", agentsFile, r.file, claudeFile)
+		say("%s holds this itos's rules for agents already, and %s imports them.", agentsFile, claudeFile)
 		return rulesOutcome{Action: "current", Files: files}, 0
 	}
 	for _, f := range files {
@@ -178,13 +172,13 @@ func (r rulesOffer) run() (rulesOutcome, int) {
 			say("%s %s", f.Action, f.Path)
 		}
 	}
-	say("%s holds the rules %s decides, between %s and %s, which itos init --agent-rules rewrites; %s imports it (%s).",
-		agentsFile, r.file, rulesBegin, rulesEnd, claudeFile, claudeImport)
+	say("%s holds itos's rules for agents, between %s and %s, which itos init --agent-rules rewrites; %s imports it (%s).",
+		agentsFile, rulesBegin, rulesEnd, claudeFile, claudeImport)
 	return rulesOutcome{Action: "written", Files: files}, 0
 }
 
 // rulesHowTo is what the offer says where nobody was asked.
-var rulesHowTo = "itos's rules for agents are not written: itos init --agent-rules writes what the config decides " +
+var rulesHowTo = "itos's rules for agents are not written: itos init --agent-rules writes them " +
 	"into " + agentsFile + ", between " + rulesBegin + " and " + rulesEnd + ", and imports it from " + claudeFile +
 	" (" + claudeImport + "); --no-agent-rules declines."
 
@@ -428,28 +422,18 @@ func typesOf(cfg *config.Loaded, t *config.Types) []string {
 	return nil
 }
 
-// rulesBlock is the block the config decides, its markers included, LF;
-// source names the config in Markdown, and data the path of a file of
-// itos's own data the config names.
-func rulesBlock(cfg *config.Loaded, source string, data func(string) string) string {
-	var paras []string
-	add := func(lines ...string) { paras = append(paras, strings.Join(lines, "\n")) }
-	add(rulesBegin)
-	add("## The rules itos holds this repository to")
-	add("Generated by itos init from " + source + ", which decides them: change the config, then run " +
-		code("itos init --agent-rules") + ", which rewrites only what is between these markers. " +
-		"The hooks and CI hold every commit to these rules.")
-	paras = append(paras, commitPolicy(cfg, data)...)
-	add("### What the gates run")
-	paras = append(paras, gateParagraphs(cfg)...)
-	add(rulesEnd)
-	return strings.Join(paras, "\n\n") + "\n"
-}
+// rulesBlock is the block, its markers included, LF: the entry line and the
+// staging boundary, the same in every repository.
+const rulesBlock = rulesBegin + "\n\n" +
+	"## itos\n\n" +
+	"Start with `itos go` unless your brief names another guide.\n\n" +
+	"Stage only your own files, by explicit path: untracked files you did not make are someone else's work in progress.\n\n" +
+	rulesEnd + "\n"
 
-// commitPolicy are the block's sections on commits, as the config decides
-// them: the commit types, the footers each type needs and the paths each
-// may touch. itos guide commit prints them too (guide.go, slice 119); data
-// is the path of a file of itos's own data the config names, in Markdown.
+// commitPolicy are the sections on commits the config sets, as itos guide
+// commit prints them (guide.go, slice 119): the commit types, the footers
+// each type needs and the paths each may touch; data is the path of a file
+// of itos's own data the config names, in Markdown.
 func commitPolicy(cfg *config.Loaded, data func(string) string) []string {
 	var paras []string
 	add := func(lines ...string) { paras = append(paras, strings.Join(lines, "\n")) }
@@ -562,129 +546,4 @@ func commitPolicy(cfg *config.Loaded, data func(string) string) []string {
 		add(items...)
 	}
 	return paras
-}
-
-// gateParagraphs are what the hooks and CI run, as the config says.
-func gateParagraphs(cfg *config.Loaded) []string {
-	var paras []string
-	add := func(lines ...string) { paras = append(paras, strings.Join(lines, "\n")) }
-	bin := cfg.Hooks.Bin
-	ledgerFooters := []string{}
-	for _, key := range cfg.Commits.Footers.Keys {
-		f := cfg.Commits.Footers.Values[key]
-		if f.Source.IsName && f.Source.Name == "ledger" {
-			ledgerFooters = append(ledgerFooters, key+":")
-		}
-	}
-
-	add("The commit-msg hook, " + code(bin+" hook commit-msg") + ", runs these on every commit, the first to fail refusing it:")
-	items := []string{
-		"- itos's own data, when the commit stages any of it (the config, the ledger, the work registry and the smoke sets), as " +
-			code("itos config check") + " judges it.",
-		"- The paths the commit's type may touch.",
-	}
-	for _, kind := range cfg.Tests.Keys {
-		for _, rc := range cfg.Tests.Values[kind].RangeChecks {
-			outside := ""
-			if len(rc.ExceptTypes) > 0 {
-				outside = "outside " + codes(rc.ExceptTypes, "and") + ", "
-			}
-			switch {
-			case rc.Builtin != nil && *rc.Builtin == "moves":
-				items = append(items, "- The "+code(rc.Name)+" rule: "+outside+"the "+code(kind)+
-					" tests may only move between files, unchanged.")
-			case rc.Staged != nil:
-				items = append(items, "- The "+code(rc.Name)+" check: "+outside+code(*rc.Staged)+".")
-			}
-		}
-	}
-	items = append(items, "- The header and the footers.")
-	if cfg.Hooks.CommitMsg.TaskChecks && len(ledgerFooters) > 0 {
-		items = append(items, "- The static checks of the tasks "+codes(ledgerFooters, "or")+
-			" names: a failure refuses the commit once the task's work item is done, and is only printed while it is not.")
-	}
-	add(items...)
-
-	add("The pre-push hook, " + code(bin+" hook pre-push") + ", runs these on every push:")
-	items = []string{"- The commit rules above, over every commit the push adds, as " + code("itos verify") + " judges them."}
-	if p := cfg.Hooks.PrePush; p != nil {
-		items = append(items, "- "+code(p.PerBase)+", "+code("{base}")+" the remote's commit, or "+code(p.Whole)+
-			" when there is none to compare with.")
-	}
-	add(items...)
-
-	if len(cfg.CI.Steps) == 0 {
-		return paras
-	}
-	how := "in this order, stopping at the first failure:"
-	if !cfg.CI.StopAtFirstFailure {
-		how = "in this order, every one whatever the others do:"
-	}
-	add("CI runs its plan, " + code("itos ci run") + ", on every push, " + how)
-	var static, late []string
-	for _, s := range cfg.CI.Steps {
-		line, cost := stepLine(cfg, s)
-		if cost == check.Static {
-			static = append(static, line)
-		} else {
-			late = append(late, line)
-		}
-	}
-	items = static
-	if len(ledgerFooters) > 0 {
-		items = append(items, "- The static checks of the tasks the push's commits name.")
-	}
-	items = append(items, late...)
-	if len(ledgerFooters) > 0 {
-		items = append(items, "- The other checks of the tasks the push's commits name.")
-	}
-	add(items...)
-	if p := cfg.CI.Prose; p != nil && len(p.Paths) > 0 {
-		line := "A push that touches only " + codes(p.Paths, "and") + " runs only " + codes(p.Steps, "and")
-		if len(ledgerFooters) > 0 {
-			line += ", and the static checks of the tasks its commits name"
-		}
-		add(line + ".")
-	}
-	if n := cfg.CI.Nightly; n != nil && len(n.Steps) > 0 {
-		add("The nightly, " + code("itos ci run --nightly") + ", runs these in order:")
-		items = nil
-		for _, s := range n.Steps {
-			line, _ := stepLine(cfg, s)
-			items = append(items, line)
-		}
-		add(items...)
-	}
-	return paras
-}
-
-// stepLine is a CI step as a list item, and its cost.
-func stepLine(cfg *config.Loaded, s config.Step) (string, check.Cost) {
-	own := ""
-	if s.Cost != nil && s.Text == nil {
-		own = *s.Cost
-	}
-	switch {
-	case s.Text != nil:
-		return "- " + code(*s.Text), check.CostOf(cfg, *s.Text, own).Cost
-	case s.Run != nil:
-		return "- " + code(*s.Run), check.CostOf(cfg, *s.Run, own).Cost
-	case s.Tests != nil:
-		whole := ""
-		if k, ok := cfg.Tests.Get(*s.Tests); ok && k.Run.Whole != nil {
-			whole = *k.Run.Whole
-		}
-		if s.Whole {
-			return "- Every " + code(*s.Tests) + " test.", check.CostOf(cfg, whole, own).Cost
-		}
-		return "- The " + code(*s.Tests) + " tests of the smoke set and those the push's commits name, in one run.",
-			check.CostOf(cfg, whole, own).Cost
-	case s.Tasks != nil:
-		which := "The checks"
-		if own == string(check.Static) {
-			which = "The static checks"
-		}
-		return "- " + which + " of every task whose work item is " + code(*s.Tasks) + ".", check.CostOf(cfg, "", own).Cost
-	}
-	return "- " + code(s.JSON), check.CostOf(cfg, "", own).Cost
 }

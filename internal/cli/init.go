@@ -110,7 +110,7 @@ func initCommand(args []string, o Out) (int, error) {
 			return 0, pluginRefused()
 		}
 		return initReport(file, pluginOffer{flag: plugin, stealth: stealth}, shimOffer{flag: shim},
-			rulesOffer{flag: rules, stealth: stealth, rerun: true, file: file}, o)
+			rulesOffer{flag: rules, stealth: stealth, rerun: true}, o)
 	}
 	if named := os.Getenv("ITOS_CONFIG"); named != "" {
 		return 0, usage("init writes itos.yaml at the repository's top, or with --stealth in the git folder, "+
@@ -210,6 +210,25 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 		files = append(files, writtenFile{filepath.ToSlash(p), action})
 		return nil
 	}
+	// The scenarios are listed by the config about to be written, or the one
+	// there, before anything is written. With none carrying an ID tag the
+	// footer is required of no type, and the config written says so.
+	smoke, smokeIDs := "", 0
+	if s.scenarios {
+		cfg, err := config.FromText(file, s.config(), stealth)
+		if exists(file) {
+			cfg, err = config.Load(file)
+		}
+		if err != nil {
+			return 0, err
+		}
+		list, err := tests.ListTests(cfg, "scenario", "worktree")
+		if err != nil {
+			return 0, err
+		}
+		s.untagged = len(list.Tests) == 0 && !exists(file)
+		smoke, smokeIDs = starterSmokeSet(list)
+	}
 	if err := write(file, s.config()); err != nil {
 		return 0, err
 	}
@@ -219,27 +238,8 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 	if err := write(beside(starterRegistry), starterRegistryText); err != nil {
 		return 0, err
 	}
-	smokeIDs := 0
 	if s.scenarios {
-		cfg, err := config.Load(file)
-		if err != nil {
-			return 0, err
-		}
-		list, err := tests.ListTests(cfg, "scenario", "worktree")
-		if err != nil {
-			return 0, err
-		}
-		// No scenario with an ID tag: the footer is required of no type, so
-		// the config is written again saying so.
-		if len(list.Tests) == 0 && files[0].Action == "wrote" {
-			s.untagged = true
-			if err := os.WriteFile(file, []byte(s.config()), 0o666); err != nil {
-				return 0, err
-			}
-		}
-		text, n := starterSmokeSet(list)
-		smokeIDs = n
-		if err := write(beside(starterSmoke), text); err != nil {
+		if err := write(beside(starterSmoke), smoke); err != nil {
 			return 0, err
 		}
 	}
@@ -281,7 +281,6 @@ func initWrite(stealth, initialized bool, offer pluginOffer, shimOffer shimOffer
 	}
 	plugin, pluginCode := offer.run()
 	shim, shimCode := shimOffer.run()
-	rulesOffer.file = file
 	rules, rulesCode := rulesOffer.run()
 	code := hooksCode
 	if code == 0 {
@@ -406,8 +405,8 @@ func smokeSetOf(list tests.List, prefix string) (string, int) {
 // behind the newest release, where the release server answers; then makes
 // the plugin's offer and the git shim's, which never ask, and install only
 // for --plugin and --git-shim; then the offer of the rules for agents, which
-// reports a block the config no longer matches and writes one only for
-// --agent-rules. None of them not in place is counted as missing.
+// reports a block other than the one this itos writes and writes one only
+// for --agent-rules. None of them not in place is counted as missing.
 func initReport(file string, offer pluginOffer, shimOffer shimOffer, rulesOffer rulesOffer, o Out) (int, error) {
 	_, found, notes, _, err := configFindings("")
 	if err != nil {

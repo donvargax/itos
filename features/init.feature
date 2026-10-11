@@ -764,15 +764,17 @@ Feature: itos init, a repository made ready for itos
   # itos init --agent-rules, which rewrites only inside the markers; like the
   # plugin, it is reported and never counted as missing. The stealth half
   # (CLAUDE.local.md and Codex's AGENTS.override.md under .git/info/exclude)
-  # is slice 80, below.
+  # is slice 80, below. Since slice 120 (v8) the block holds two lines, the
+  # same in every repository, not the config's rules, and it is stale when
+  # an itos wrote other text; its scenarios are at the end of this file.
   @ID-INIT-26 @slice-59
-  Scenario: With --agent-rules init writes the config's rules into a marked block of AGENTS.md, and CLAUDE.md imports it
+  Scenario: With --agent-rules init writes itos's rules for agents into a marked block of AGENTS.md, and CLAUDE.md imports it
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "init --agent-rules"
     Then itos exits with code 0
     And the file "AGENTS.md" has the line "<!-- itos:begin -->"
     And the file "AGENTS.md" has the line "<!-- itos:end -->"
-    And the file "AGENTS.md" says "Task:" between the markers
+    And the file "AGENTS.md" says "## itos" between the markers
     And the file "CLAUDE.md" has the line "@AGENTS.md"
 
   @ID-INIT-27 @slice-59
@@ -791,25 +793,6 @@ Feature: itos init, a repository made ready for itos
     Then itos exits with code 0
     And the file "AGENTS.md" has the line "Be kind to the build."
     And the file "AGENTS.md" has the line "<!-- itos:begin -->" after the line "Be kind to the build."
-
-  @ID-INIT-29 @slice-59
-  Scenario: Run again after the config changed, init reports the rules the config no longer matches and changes nothing
-    Given a repository that does not use itos, its one commit "docs: start"
-    And itos has already run "init --agent-rules"
-    And the config's commits.types gains "deps"
-    When itos runs "init"
-    Then its output says "itos init --agent-rules"
-    And the file "AGENTS.md" does not say "deps" between the markers
-
-  @ID-INIT-30 @slice-59
-  Scenario: Run again with --agent-rules, init rewrites the block alone, the text outside the markers kept
-    Given a repository that does not use itos, its one commit "docs: start"
-    And the committed file "AGENTS.md" holding "Be kind to the build."
-    And itos has already run "init --agent-rules"
-    And the config's commits.types gains "deps"
-    When itos runs "init --agent-rules"
-    Then the file "AGENTS.md" says "deps" between the markers
-    And the file "AGENTS.md" has the line "Be kind to the build."
 
   # Slice 80, the stealth half of slice 59 (the user's calls of 2026-10-03,
   # in slice-59's why; asked for at once on 2026-10-05). Under a stealth
@@ -832,7 +815,8 @@ Feature: itos init, a repository made ready for itos
   # --no-agent-rules declines, a terminal is asked, anywhere else nothing is
   # written and the report says how. Run again under the stealth config,
   # init reports a copy that no longer matches AGENTS.md, or rules that no
-  # longer match the config, naming itos init --agent-rules, which rewrites
+  # longer match the config (since slice 120, rules other than the ones this
+  # itos writes), naming itos init --agent-rules, which rewrites
   # only between the markers; that is never counted as missing. v4.1.0
   # refused --stealth --agent-rules (exit 2, "not written yet"); accepting it
   # is additive (T-095 taught the release check so).
@@ -842,9 +826,9 @@ Feature: itos init, a repository made ready for itos
     When itos runs "init --stealth --agent-rules"
     Then itos exits with code 0
     And git status shows nothing to commit
-    And the file ".git/itos/AGENTS.md" says "Task:" between the markers
+    And the file ".git/itos/AGENTS.md" says "Start with `itos go`" between the markers
     And the file "CLAUDE.local.md" names ".git/itos/AGENTS.md"
-    And the file "AGENTS.override.md" says "Task:" between the markers
+    And the file "AGENTS.override.md" says "Start with `itos go`" between the markers
     And the file "AGENTS.md" does not exist
     And the file "CLAUDE.md" does not exist
 
@@ -871,7 +855,7 @@ Feature: itos init, a repository made ready for itos
     And the file "CLAUDE.local.md" has the line "My own notes."
     And the file "CLAUDE.local.md" has the line "@AGENTS.md"
     And the file "AGENTS.override.md" has the line "My own override."
-    And the file "AGENTS.override.md" says "Task:" between the markers
+    And the file "AGENTS.override.md" says "Start with `itos go`" between the markers
     And the file "AGENTS.override.md" does not name "Be kind to the build."
 
   @ID-INIT-35 @slice-80
@@ -886,17 +870,16 @@ Feature: itos init, a repository made ready for itos
     And the file "AGENTS.override.md" does not name "Be kinder to the build."
 
   @ID-INIT-36 @slice-80
-  Scenario: Under a stealth config, run again with --agent-rules, init refreshes the copy and the rules, git status still clean
+  Scenario: Under a stealth config, run again with --agent-rules, init refreshes the copy and keeps the rules, git status still clean
     Given a repository that does not use itos, its one commit "docs: start"
     And the committed file "AGENTS.md" holding "Be kind to the build."
     And itos has already run "init --stealth --agent-rules"
     And the committed file "AGENTS.md" holding "Be kinder to the build."
-    And the config's commits.types gains "deps"
     When itos runs "init --agent-rules"
     Then itos exits with code 0
     And the file "AGENTS.override.md" has the line "Be kinder to the build."
-    And the file "AGENTS.override.md" says "deps" between the markers
-    And the file ".git/itos/AGENTS.md" says "deps" between the markers
+    And the file "AGENTS.override.md" says "Start with `itos go`" between the markers
+    And the file ".git/itos/AGENTS.md" says "Start with `itos go`" between the markers
     And git status shows nothing to commit
 
   @ID-INIT-37 @slice-80
@@ -954,7 +937,7 @@ Feature: itos init, a repository made ready for itos
   # "Task:" or "deps" there) and the corpus cases that pin the old block,
   # naming each in its Changes footer, with BREAKING-CHANGE. itos upgrade
   # rewriting a present block is p1-upgrade-refreshes-agent-block.
-  @ID-INIT-57 @slice-120 @wip
+  @ID-INIT-57 @slice-120
   Scenario: With --agent-rules init writes the entry line and the staging boundary, and none of the config's rules
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "init --agent-rules"
@@ -964,7 +947,7 @@ Feature: itos init, a repository made ready for itos
     And the file "AGENTS.md" does not say "Task:" between the markers
     And the file "CLAUDE.md" has the line "@AGENTS.md"
 
-  @ID-INIT-58 @slice-120 @wip
+  @ID-INIT-58 @slice-120
   Scenario: Run again after the config changed, init finds the block current
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init --agent-rules"
@@ -973,7 +956,7 @@ Feature: itos init, a repository made ready for itos
     Then itos exits with code 0
     And its output does not say "itos init --agent-rules"
 
-  @ID-INIT-59 @slice-120 @wip
+  @ID-INIT-59 @slice-120
   Scenario: A block an older itos wrote is reported, then rewritten by --agent-rules, the text outside the markers kept
     Given a repository that does not use itos, its one commit "docs: start"
     And itos has already run "init --agent-rules"
@@ -986,7 +969,7 @@ Feature: itos init, a repository made ready for itos
     And the file "AGENTS.md" says "Start with `itos go`" between the markers
     And the file "AGENTS.md" has the line "Be kind to the build."
 
-  @ID-INIT-60 @slice-120 @wip
+  @ID-INIT-60 @slice-120
   Scenario: With --stealth --agent-rules the same two lines go where agents read them, git status left clean
     Given a repository that does not use itos, its one commit "docs: start"
     When itos runs "init --stealth --agent-rules"

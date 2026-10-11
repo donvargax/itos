@@ -116,7 +116,7 @@ func TestWriteRulesLeavesACLAUDELinkedToAGENTS(t *testing.T) {
 }
 
 // A scope's except is said beside its never.
-func TestRulesBlockSaysExcept(t *testing.T) {
+func TestCommitPolicySaysExcept(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "itos.yaml")
 	text := `version: 1
 commits:
@@ -131,15 +131,14 @@ commits:
 	if err != nil {
 		t.Fatal(err)
 	}
-	block := rulesBlock(cfg, "itos.yaml", code)
+	policy := strings.Join(commitPolicy(cfg, code), "\n\n")
 	want := "- `chore` may not touch `src/**`, except `src/games/*/themes/**`."
-	if !strings.Contains(block, want) {
-		t.Errorf("the block does not say %q:\n%s", want, block)
+	if !strings.Contains(policy, want) {
+		t.Errorf("the policy does not say %q:\n%s", want, policy)
 	}
 }
 
-// The commit policy, AGENTS.md's block and itos guide commit alike (slice
-// 119), says each header lint, footer source and scope rule the config sets.
+// The commit policy itos guide commit prints (slice 119) says each header lint, footer source and scope rule the config sets.
 func TestCommitPolicy(t *testing.T) {
 	for _, c := range []struct{ config, want string }{
 		{`commits:

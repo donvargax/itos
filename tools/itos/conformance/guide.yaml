@@ -87,7 +87,7 @@ cases:
     exit: 0
     stdout_has:
       - "# Committing with itos\n"
-      - "\n\n## The rules the config sets\n\nAs `itos init --agent-rules` writes them from `itos.yaml`; the hooks and CI hold every commit to them.\n\n### Commit types\n\nA commit's type is one of `feat` or `deps`."
+      - "\n\n## The rules the config sets\n\nAs `itos.yaml` sets them; the hooks and CI hold every commit to them.\n\n### Commit types\n\nA commit's type is one of `feat` or `deps`."
   - name: a procedure takes no argument
     argv: [guide, brief, slice-1]
     exit: 2
