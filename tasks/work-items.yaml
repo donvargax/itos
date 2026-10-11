@@ -4720,7 +4720,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-guide-before-action]
+    depends_on: [slice-119]
     kind: idea
     why: >
       The user's call (2026-10-06). Lessons grew as prose in AGENTS.md and ORCHESTRATING.md, read by
@@ -7400,14 +7400,15 @@ items:
       proves too coarse, itos-cc's follow-up gives each listed suite its own support.
     refs: [itos-cc.yaml, tools/itos/conformance, tools/bin/itos-cc-tests.ts]
 
-  - id: p1-guide-before-action
+  - id: slice-119
     title: itos guide prints the procedure an agent reads before an action, and itos go is the coordinator's start
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-guide-before-action.
       Split from p1-agent-rules-as-data with the user (2026-10-10), settling q-43's syntax: itos
       guide <procedure> [<item>] prints what an agent reads before an action, from the built-in text
       until rules are data. work <item>: the implementer's essentials and the procedure map; commit:
@@ -7424,7 +7425,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-guide-before-action]
+    depends_on: [slice-119]
     kind: idea
     why: >
       Split from p1-agent-rules-as-data with the user (2026-10-10), q-45 and q-46: the AGENTS.md the
@@ -7509,7 +7510,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-guide-before-action]
+    depends_on: [slice-119]
     kind: idea
     why: >
       Cut from p1-guide-before-action (2026-10-10): the coordinator fills the same template for
@@ -7522,7 +7523,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-guide-before-action]
+    depends_on: [slice-119]
     kind: idea
     why: >
       Cut from p1-guide-before-action (2026-10-10): every implementing agent runs itos guide work
