@@ -1,0 +1,60 @@
+# v8: the lean agent context, and the breaking checks that waited
+
+v8 is the next bundle of breaking changes, shipped as release candidates as v7 was (the user's call,
+2026-10-10). Its headline is what an agent reads: AGENTS.md, which the harness loads into every
+session for every task (28 KB here), shrinks to the safety boundaries and one entry line, and the
+commit policy it enumerates is printed by `itos guide commit` instead (q-45, q-46). Around it go
+the breaking checks the v7 plan already set aside for the next major.
+
+## Already done, in 7.x
+
+- **The procedures** (slice-119, v7.5.0): `itos guide brief|land|repair|decide|commit|push`, and
+  `itos go` and `itos guide work` cut to each role's essentials. `guide commit` prints the commit
+  policy from the config, so AGENTS.md can drop it.
+- **Crossing a major** (slices 113 and 116): `itos upgrade` applies the schema's config renames and
+  removals and moves a consumer across a major, which the v7 plan wanted in place before this one.
+
+## In v8
+
+- **`p1-agents-md-reduced`**: the AGENTS.md block `itos init --agent-rules` writes keeps the
+  universal safety boundaries, one line saying the gates enforce the repository's policy, and one
+  entry line (start with `itos go` unless your brief names another guide). A project's handwritten
+  instructions are migrated explicitly, never deleted silently (q-45). Folds in
+  `p1-agent-rules-ci-summary`.
+- **`p1-commit-exit-codes`**: `itos commit` exits by the error's kind, not with git commit's code.
+- **`p1-shim-refuses-hook-skipping`**: `itos commit`, `itos push` and the shim refuse
+  `--no-verify`, `-n` and a `-c` that moves `core.hooksPath`.
+- **Config tightening, one slice**: config check refuses an empty `shell`
+  (`p1-shell-not-empty`), an `except_types` type not in `commits.types`
+  (`p1-moves-except-types-checked`), `wip_tag` on a command kind (`p1-wip-tag-command-kind`), a
+  group label that cannot be a flag (`p1-group-label-flag-word`), `.nan` and `.inf`
+  (`p1-config-finite-numbers`) and ledger layouts that read nothing (`p1-ledger-layout-checks`);
+  `ledger.id` gets one default (`p1-ledger-id-default`); config check and the commit-msg hook
+  judge the questions file (`p1-asks-check`); a `Changes:` footer naming nothing of the last
+  release is refused at the commit (`p3-changes-at-commit`).
+- **slice-107**: config check refuses a nightly step that runs a done task's checks (q-25, moved
+  here from v7).
+
+## Not in v8
+
+- **Agent rules as data** (`p1-agent-rules-as-data`): it only adds (a rules file, `itos rule`),
+  so it ships as minor releases, before or after v8.
+- **`p1-notes-placement`**: it changes what `itos go` prints, so it is breaking, but it waits on
+  rules as data; holding the rc window open for that is weeks. The next major.
+- **`p1-drop-compat-code`** and its sweep of commands kept for compatibility (`itos guide
+coordinate` among them): not yet (the user, 2026-10-10).
+- **`p1-flag-defaults-policy`**: held (the user, 2026-10-10).
+- **Guided commits** (`p3-guard-replacement`, docs/plans/guided-commits.md): additive by q-37 and
+  q-39, so minor releases when ready; only making the guided refusal the default is a major.
+- **`p1-push-fits-foreground`**: dropped. `itos push` waiting for CI stays the default; a project
+  with slow CI makes `--no-wait` its own rule, as this one did by q-41.
+
+## Order
+
+1. **Land what is not breaking first.** Once the marker is in, every feat or fix is an rc, so a
+   fix a consumer needs now goes out before it.
+2. **A `ci` task turns the release candidates on**, as T-119 did for v7: go.mod's module path
+   becomes `…/itos/v8`, and `tools/bin/release-version/prerelease` holds `rc`. The next feat or
+   fix then cuts `v8.0.0-rc.1`.
+3. **rc.1 is `p1-agents-md-reduced`**, the headline; then the other items, each feat a further rc.
+4. **Remove the marker** once every item above is done and green: the next push cuts `v8.0.0`.
