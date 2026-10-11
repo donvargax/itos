@@ -1159,3 +1159,13 @@ Feature: The work registry
     Then itos exits with code 1
     And its output says "https://ci.example/runs/1"
     And the registry's item "slice-9" has the status "doing" and the owner "someone"
+
+  # Bug 105: see config.feature's comment above @ID-CONFIG-59.
+  @ID-WORK-103 @bug-105 @wip
+  Scenario: work promote renames the idea in the questions that name it
+    Given the work registry has the idea "p1-thing" owned by nobody
+    And itos has already run "decision add Which-way --item p1-thing"
+    When itos runs "work promote p1-thing --kind slice"
+    Then itos exits with code 0
+    When itos runs "decision show q-1"
+    Then its output says "slice-1"

@@ -614,3 +614,44 @@ Feature: Every key the config accepts is one itos reads
     When itos checks the config
     Then itos exits with code 1
     And its output says "T-1x"
+
+  # Bug 105 (the user's call, 2026-10-11): slice 130 made config check refuse
+  # any question naming an item the registry does not have. On itos's own main
+  # it found six answered questions naming ideas work promote had since
+  # renamed, and the same check run over itos-cc, itos-template and
+  # go-template-itos found 31 more, none with a "Was <idea>." marker to repair
+  # them from. An answered question is a record: its item gone stale breaks
+  # nothing a command does, so config check warns about it (exit 0, naming the
+  # question and the item), while an open question, which holds its item up,
+  # must still name one the registry has (@ID-CONFIG-60, exit 1). And work
+  # promote renames the idea in every question that names it, in the same
+  # commit, as it does in every depends_on (@ID-WORK-103), so itos stops
+  # writing the stale link itself. A fix: @ID-CONFIG-56 (an id given twice)
+  # is unchanged.
+  @ID-CONFIG-59 @bug-105 @wip
+  Scenario: config check warns about an answered question naming an item the registry does not have
+    Given the committed file "tasks/asks.yaml" holding the lines:
+      """
+      questions:
+        - id: q-1
+          item: "p1-gone"
+          question: "Which way?"
+          answer: "This way."
+      """
+    When itos checks the config
+    Then itos exits with code 0
+    And its output says "q-1"
+    And its output says "p1-gone"
+
+  @ID-CONFIG-60 @bug-105 @wip
+  Scenario: config check refuses an open question naming an item the registry does not have
+    Given the committed file "tasks/asks.yaml" holding the lines:
+      """
+      questions:
+        - id: q-1
+          item: "p1-gone"
+          question: "Which way?"
+      """
+    When itos checks the config
+    Then itos exits with code 1
+    And its output says "q-1"
