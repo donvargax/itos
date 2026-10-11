@@ -7612,3 +7612,22 @@ items:
       .metrics/mutate holds itos-cc's cached results keyed by the old path, regenerated or left to
       go stale as itos-cc's cache rules allow. Its feat-free commits release nothing; rc.1 is
       p1-agents-md-reduced.
+
+  - id: p1-module-move-commit
+    title: A module path move can be committed so each commit builds and vets
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-151 (2026-10-11), as T-119 found for v7: moving go.mod's module path changes the
+      imports of {cmd,internal}/**/*.go (refactor) and of tools/bin's Go programs (ci or build
+      only), and no type but revert may touch both. The pre-commit hook runs go vet ./... over the
+      whole module, so the refactor commit is refused while tools/bin still imports the old path; it
+      went through only with the ci edits left unstaged in the tree, and the commit alone does not
+      vet. Every major's first commit pays it. A rule that lets one commit move a module path whole
+      (a type or an exception judged by the diff being import lines only), or a hook that vets the
+      staged tree, would make it one clean commit.
+    refs: [itos.yaml, .vite-hooks/pre-commit]
+    tags: [commit]
