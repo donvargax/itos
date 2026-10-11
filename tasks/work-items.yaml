@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - slice-118
   - p1-tag-this-registry
   - p1-guard-follows-cd
   - p1-task-add-promoted
