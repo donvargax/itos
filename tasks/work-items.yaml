@@ -4227,6 +4227,7 @@ items:
       provider that runs no repository command and so needs no trust gate. Also p2-go-port, whose
       port is done; what it still held (GitLab, Forgejo, HTTP identity and people) is this item.
     refs: [internal/providers, PLAN.md]
+    tags: [providers]
 
   - id: p3-itos-search
     title: itos search across the project's records, and itos where first
