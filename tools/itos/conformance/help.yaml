@@ -1394,7 +1394,8 @@ cases:
       rule, as the commit-msg hook does for a type the rule does not exempt: live
       scenarios keep their ID, name, tags and steps exactly, none is lost or added,
       and a file with a live scenario keeps its header and Background; @wip ones may
-      come, go or change, and comment lines are never compared. A rename the kind's
+      come, go or change, and comment lines and the feature's description (the free
+      text under Feature:) are never compared. A rename the kind's
       range check { builtin: moves } lists in allowed_renames passes. Exit 1 with
       each problem.
 

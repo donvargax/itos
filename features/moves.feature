@@ -87,7 +87,7 @@ Feature: Live scenarios only move, by a rule itos ships
   # except_types is: so a test or docs commit may make it. Renaming the
   # feature or changing its Background stays refused; 09 and 10 hold before
   # the work too.
-  @ID-MOVES-07 @slice-125 @wip
+  @ID-MOVES-07 @slice-125
   Scenario: A test commit may reword a feature's description
     Given a change to the description of the feature in "a.feature" is staged
     When the commit-msg hook checks the message:
@@ -98,13 +98,13 @@ Feature: Live scenarios only move, by a rule itos ships
       """
     Then itos exits with code 0
 
-  @ID-MOVES-08 @slice-125 @wip
+  @ID-MOVES-08 @slice-125
   Scenario: A docs commit may reword a feature's description
     Given a change to the description of the feature in "a.feature" is staged
     When the commit-msg hook checks the message "docs: reword the feature's description"
     Then itos exits with code 0
 
-  @ID-MOVES-09 @slice-125 @wip
+  @ID-MOVES-09 @slice-125
   Scenario: A test commit that renames the feature is still refused
     Given a change to the name of the feature in "a.feature" is staged
     When the commit-msg hook checks the message:
@@ -116,7 +116,7 @@ Feature: Live scenarios only move, by a rule itos ships
     Then itos exits with code 1
     And its output says "changes the header or Background of"
 
-  @ID-MOVES-10 @slice-125 @wip
+  @ID-MOVES-10 @slice-125
   Scenario: A test commit that rewords the description and changes the Background is still refused
     Given a change to the description of the feature in "a.feature" is staged
     And a change to the Background of the feature in "a.feature" is staged

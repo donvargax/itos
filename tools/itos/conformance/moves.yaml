@@ -5,7 +5,8 @@
 # its range against its parent, a root commit against the empty tree, and
 # `itos tests moves <kind>` judging HEAD against the index by hand; live
 # scenarios keep their ID, name, tags and steps, none is lost or added, a file
-# with a live scenario keeps its header; @wip ones and comment lines are free;
+# with a live scenario keeps its header; @wip ones, comment lines and a
+# feature's description (the free text under its Feature line) are free;
 # a rename allowed_renames lists passes. config check refuses builtin with a
 # command, on a command kind without supports_at: true (slice 82), and
 # allowed_renames without it.
@@ -85,6 +86,22 @@ cases:
       - stage: { features/a.feature: "Feature: A\n\n  # why it opens\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it at once\n\n  @ID-A-03 @wip\n  Scenario: Locks\n    When I lock it\n" }
     exit: 0
     stderr: ""
+  - name: a feature's description reworded is never compared
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n  What opens, and what closes,\n\n  told another way.\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    exit: 0
+    stderr: ""
+  - name: a description reworded beside a tag added above the Feature line is a changed header
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage: { features/a.feature: "@phase-2\nFeature: A\n  What opens, told another way.\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - a test commit changes the header or Background of features/a.feature
   - name: the rename allowed_renames lists passes
     argv: [hook, commit-msg, msg]
     git:

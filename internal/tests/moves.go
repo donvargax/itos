@@ -8,12 +8,16 @@ package tests
 // may move scenarios between feature files, create feature files and delete
 // the ones left empty, provided every live scenario keeps its ID, name, tags
 // and steps exactly, none is lost or added, and a file with a live scenario
-// keeps its header and Background. A wip scenario may still be added, changed
+// keeps its header and Background, all but its feature's description. A wip scenario may still be added, changed
 // or removed: that is how a specification lands before its implementation. A
 // rename the project allows is listed in allowed_renames, by ID (without its
 // prefix) and new name. Comment lines (`#`) are not part of a scenario's ID,
 // name, tags or steps, nor of a header, so they are dropped before anything
-// is compared: a reason may be written beside a scenario in any commit.
+// is compared: a reason may be written beside a scenario in any commit. Nor
+// is a feature's description (slice 125): the free text under its Feature
+// line is prose a reader sees and no scenario checks, so a commit outside
+// except_types may reword it, while the feature's name, its tags and its
+// Background stay compared.
 //
 // One judgement, Moves.Between, and its callers: the commit-msg hook judges
 // HEAD against the index, or for an amend HEAD's parent against it, verify
@@ -39,7 +43,33 @@ var (
 	scenarioLine = regexp.MustCompile(`^(` + value.Space + `*Scenario(?: Outline)?:` + value.Space + `*)` +
 		`([^\n\r\x{2028}\x{2029}]*?)` + value.Space + `*$`)
 	commentLine = regexp.MustCompile(`^` + value.Space + `*#`)
+	// descriptionEnd is a trimmed line that ends a feature's description: a
+	// tag line, or Gherkin's Background, Rule, Scenario or Example keyword.
+	descriptionEnd = regexp.MustCompile(`^(@|(Background|Rule|Scenario|Scenario Outline|Scenario Template|Example):)`)
 )
+
+// withoutDescription is a header, its comments dropped, without its
+// feature's description: the lines after its Feature line up to the first
+// that ends it (descriptionEnd), blank ones included. The tags and the Feature
+// line above it, and all from its end on, the Background included, are kept.
+func withoutDescription(header string) string {
+	var kept []string
+	describing, described := false, false
+	for _, line := range strings.Split(header, "\n") {
+		trimmed := value.Trim(line)
+		if describing && descriptionEnd.MatchString(trimmed) {
+			describing, described = false, true
+		}
+		if describing {
+			continue
+		}
+		kept = append(kept, line)
+		if !described && strings.HasPrefix(trimmed, "Feature:") {
+			describing = true
+		}
+	}
+	return strings.Join(kept, "\n")
+}
 
 // withoutComments is a text without its comment lines, which the rule never
 // compares.
@@ -62,7 +92,8 @@ type Scenario struct {
 }
 
 // FeatureSet is a tree's feature files read: each file's header (everything
-// before its first scenario, the Background included) and every scenario by
+// before its first scenario, the Background included, less its comments and
+// its feature's description) and every scenario by
 // ID, each in the order first read, as JavaScript's Maps keep it.
 type FeatureSet struct {
 	Files     []string
@@ -87,7 +118,7 @@ func ReadFeatures(files map[string]string, o Options) (*FeatureSet, error) {
 			return nil, err
 		}
 		set.Files = append(set.Files, file)
-		set.Headers[file] = withoutComments(f.Header)
+		set.Headers[file] = withoutDescription(withoutComments(f.Header))
 		for _, id := range f.IDs {
 			if _, seen := set.Scenarios[id]; !seen {
 				set.IDs = append(set.IDs, id)

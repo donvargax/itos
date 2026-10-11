@@ -64,6 +64,55 @@ func TestMoveProblems(t *testing.T) {
 	}
 }
 
+// A feature's description (slice 125), the lines under its Feature line up
+// to a tag line or a Background, Rule, Scenario or Example keyword, blank ones
+// included, is dropped; the tags and Feature line above it and all from its
+// end on are kept, a later line beginning Feature: (in a doc string) included.
+func TestWithoutDescription(t *testing.T) {
+	for _, c := range []struct{ name, header, want string }{
+		{"no Feature line", "  Some text\n\n  More", "  Some text\n\n  More"},
+		{"tags and the Feature line kept", "@phase-1 @wip\nFeature: A\n  Prose,\n\n  more prose.\n", "@phase-1 @wip\nFeature: A"},
+		{"up to the Background", "Feature: A\n  Prose.\n\n  Background:\n    Given it is set up",
+			"Feature: A\n  Background:\n    Given it is set up"},
+		{"up to a Rule", "Feature: A\n  Prose.\n  Rule: R\n    Prose of the rule.", "Feature: A\n  Rule: R\n    Prose of the rule."},
+		{"up to an untagged scenario", "Feature: A\n  Prose.\n  Scenario: S\n    When it runs", "Feature: A\n  Scenario: S\n    When it runs"},
+		{"up to an outline", "Feature: A\n  Prose.\n  Scenario Outline: S", "Feature: A\n  Scenario Outline: S"},
+		{"up to a template", "Feature: A\n  Prose.\n  Scenario Template: S", "Feature: A\n  Scenario Template: S"},
+		{"up to an example", "Feature: A\n  Prose.\n  Example: S", "Feature: A\n  Example: S"},
+		{"up to a tag line", "Feature: A\n  Prose.\n  @smoke\n  Scenario: S", "Feature: A\n  @smoke\n  Scenario: S"},
+		{"a Feature line in the Background's doc string is not a second description",
+			"Feature: A\n  Prose.\n  Background:\n    Given the file:\n      \"\"\"\n      Feature: B\n        Its prose.\n      \"\"\"",
+			"Feature: A\n  Background:\n    Given the file:\n      \"\"\"\n      Feature: B\n        Its prose.\n      \"\"\""},
+	} {
+		if got := withoutDescription(c.header); got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+// A description reworded is no problem; the feature renamed, a tag added
+// above it, or its Background changed beside the rewording, each is.
+func TestMoveProblemsDescription(t *testing.T) {
+	const scenarios = "\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n"
+	before := featureSet(t, map[string]string{"features/a.feature": "Feature: A\n  It opens." + scenarios})
+	changed := []string{"changes the header or Background of features/a.feature"}
+	for _, c := range []struct {
+		name, after string
+		want        []string
+	}{
+		{"reworded", "Feature: A\n  It opens,\n\n  told another way." + scenarios, nil},
+		{"left out", "Feature: A" + scenarios, nil},
+		{"renamed", "Feature: B\n  It opens." + scenarios, changed},
+		{"tagged", "@phase-2\nFeature: A\n  It opens, reworded." + scenarios, changed},
+		{"a Background", "Feature: A\n  It opens, reworded.\n\n  Background:\n    Given it is shut" + scenarios, changed},
+	} {
+		got := MoveProblems(before, featureSet(t, map[string]string{"features/a.feature": c.after}), nil)
+		if !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
 // A file tagged wip above its Feature line is wip throughout, and a scenario
 // ID written twice keeps its first place and its last block.
 func TestReadFeatures(t *testing.T) {
