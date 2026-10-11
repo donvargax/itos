@@ -7413,3 +7413,21 @@ items:
       AGENTS.md cannot drop the commit policy before guide commit serves it. Breaking (guide
       coordinate removed): part of the v8 release-candidate bundle.
     refs: [internal/guide, AGENTS.md, docs/ORCHESTRATING.md]
+
+  - id: p1-agents-md-reduced
+    title: AGENTS.md keeps the safety boundaries and one entry line; the commit policy moves to itos guide commit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-guide-before-action]
+    kind: idea
+    why: >
+      Split from p1-agent-rules-as-data with the user (2026-10-10), q-45 and q-46: the AGENTS.md the
+      harness loads for every session keeps the universal safety boundaries, one line saying the
+      gates enforce the repository's policy, and one entry line (start with itos go unless your
+      brief names another guide). The generated enumeration of commit rules, path scopes and CI
+      steps leaves it; itos guide commit serves it instead. itos init --agent-rules writes the new
+      block; a project's handwritten instructions are migrated explicitly, never silently deleted
+      (q-45). Folds in p1-agent-rules-ci-summary. Here AGENTS.md is 28.0 KB, read by every session
+      for every task. Breaking: the first of the v8 release-candidate bundle.
+    refs: [AGENTS.md, internal/guide]
