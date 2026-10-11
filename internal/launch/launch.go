@@ -138,14 +138,19 @@ func handUpgrade(args []string, stderr io.Writer) (int, bool) {
 // git-shim install and uninstall link that binary as git (slice 41), so no
 // version a pin picks runs them, or the link would point into the cache; pin
 // moves the pin (slice 47), which the version it names may predate, and so
-// does upgrade (slice 75), when handUpgrade has not handed it on; init
+// does upgrade (slice 75), when handUpgrade has not handed it on. init
 // readies a repository (slice 48), where there is no config to pin a version,
-// and the newest release must not run in its place.
+// and the newest release must not run in its place, so it is the binary's
+// own only where the config pins nothing: where it pins a version, that
+// version runs init as it runs every other command (bug 104), so a newer itos
+// called never writes its own agent rules block and hooks over the pin's.
 func binaryCommand(args []string) bool {
 	rest := cli.Parse(args).Rest
 	switch {
-	case len(rest) >= 1 && (rest[0] == "pin" || rest[0] == "upgrade" || rest[0] == "init"):
+	case len(rest) >= 1 && (rest[0] == "pin" || rest[0] == "upgrade"):
 		return true
+	case len(rest) >= 1 && rest[0] == "init":
+		return readConfig(args).state != pinned
 	case len(rest) >= 2 && rest[0] == "git-shim":
 		return rest[1] == "install" || rest[1] == "uninstall"
 	}

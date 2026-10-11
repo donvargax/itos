@@ -19,9 +19,10 @@ package cli
 // of a template's policy instead, fresh data and all, and refuses where a
 // config or data is there (initpolicy.go).
 //
-// It is the launcher's own command, as pin is (internal/launch): where there
-// is no config there is no pin to hand the run to, and the newest release
-// must not run in its place.
+// It is the launcher's own command, as pin is (internal/launch), where the
+// config pins nothing: where there is no config there is no pin to hand the
+// run to, and the newest release must not run in its place. Where the config
+// pins a version, that version runs it, as any other command (bug 104).
 
 import (
 	"bufio"

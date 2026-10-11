@@ -20,8 +20,10 @@ Feature: itos init, a repository made ready for itos
   Where a config already is, init writes nothing: it reports what is missing
   (the config's problems, a hook not installed) and exits 1 when anything
   is, 0 when nothing is, so run again it doubles as a check. init is the
-  launcher's own command, as itos pin is: where there is no config there is
-  no pin to hand the run to. Slice 49 offers the Claude Code plugin, and
+  launcher's own command, as itos pin is, where the config pins nothing:
+  where there is no config there is no pin to hand the run to. Where the
+  config pins a version, that version runs init (bug 104, pin.feature).
+  Slice 49 offers the Claude Code plugin, and
   slice 50 the git shim and what a rerun notes beside what is missing (below).
 
   # The repository has a commit and no itos file at all; the scenarios

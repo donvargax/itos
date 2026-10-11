@@ -286,10 +286,13 @@ func TestStoreKeepsWhatAnotherRunCached(t *testing.T) {
 }
 
 func TestBinaryCommand(t *testing.T) {
+	offline(t)
+	writeConfig(t, "version: 1\n")
 	for args, want := range map[string]bool{
 		"pin":                    true,
 		"pin 9.1.0":              true,
 		"--json pin":             true,
+		"upgrade":                true,
 		"init":                   true,
 		"init --stealth":         true,
 		"git-shim install":       true,
@@ -302,6 +305,43 @@ func TestBinaryCommand(t *testing.T) {
 		if got := binaryCommand(strings.Fields(args)); got != want {
 			t.Errorf("binaryCommand(%s) = %v, want %v", args, got, want)
 		}
+	}
+}
+
+// init is the binary's own only where the config pins nothing: a pinned
+// version runs it, as it runs every other command (bug 104), while pin and
+// upgrade stay the binary's whatever the pin says.
+func TestBinaryCommandLeavesInitToThePin(t *testing.T) {
+	offline(t)
+	pinned := "version: 1\npin: { version: \"9.1.0\", checksums: \"" + sums + "\" }\n"
+	cases := []struct {
+		name, config, args string
+		want               bool
+	}{
+		{"init under a pin", pinned, "init --agent-rules", false},
+		{"init --stealth under a pin", pinned, "init --stealth", false},
+		{"pin under a pin", pinned, "pin 9.2.0", true},
+		{"upgrade under a pin", pinned, "upgrade", true},
+		{"init with no config", "", "init", true},
+		{"init under a pin the launcher cannot use", "version: 1\npin: { version: v9 }\n", "init", true},
+		{"init with --config naming a pinned config", "version: 1\n", "--config other.yaml init", false},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dir := t.TempDir()
+			t.Chdir(dir)
+			if c.config != "" {
+				if err := os.WriteFile(filepath.Join(dir, "itos.yaml"), []byte(c.config), 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if err := os.WriteFile(filepath.Join(dir, "other.yaml"), []byte(pinned), 0o644); err != nil {
+				t.Fatal(err)
+			}
+			if got := binaryCommand(strings.Fields(c.args)); got != c.want {
+				t.Errorf("binaryCommand(%s) = %v, want %v", c.args, got, c.want)
+			}
+		})
 	}
 }
 

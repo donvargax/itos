@@ -234,7 +234,7 @@ Feature: A global itos runs the version a repository pins
   # the pin's: the block and the hooks are the pinned release's. With no pin,
   # init still runs as the itos that was called, never the newest release.
   # launch.go's binaryCommand comment changes with it.
-  @ID-PIN-22 @bug-104 @wip
+  @ID-PIN-22 @bug-104
   Scenario: itos init in a repository that pins a version runs the pinned version
     Given the config pins the version "9.1.0" of the release server
     When itos runs "init --agent-rules"

@@ -93,10 +93,17 @@
 // binaryCommand leaves to the binary that was called the commands that must
 // not run a pinned version: git-shim install and uninstall, which link it as
 // git; pin, which moves the pin and may be newer than the version pinned;
-// upgrade, which moves it too, unless handed on (below); and init, which writes the config and its pin
-// where there is none. The git shim's own runs (git-shim run) are launched
-// as any other, so in a pinned repository git commit is the pinned itos's
-// when it has the shim (Handed tells internal/shim the version).
+// upgrade, which moves it too, unless handed on (below); and init, which
+// writes the config and its pin where there is none, but only where the
+// config pins nothing (no config, the stealth config with no pin, or a
+// project's config with none or one the launcher cannot use): where it pins
+// a version, that version runs init, ITOS_VERSION over it as for any
+// command, so the agent rules block and the hooks it writes are the pin's,
+// never a newer itos's that was called (bug 104). Unpinned, init runs as the
+// binary called, never the newest release, ITOS_VERSION or not. The git
+// shim's own runs (git-shim run) are launched as any other, so in a pinned
+// repository git commit is the pinned itos's when it has the shim (Handed
+// tells internal/shim the version).
 //
 // # Handing an upgrade on
 //

@@ -80,8 +80,9 @@
 //
 // # Commands the launcher leaves to this binary
 //
-// binaryCommand in internal/launch leaves pin, upgrade, init and git-shim
-// install and uninstall to the binary that was called, and says no notice;
+// binaryCommand in internal/launch leaves pin, upgrade, git-shim install and
+// uninstall, and init where the config pins no version (bug 104), to the
+// binary that was called, and says no notice;
 // but first the launcher hands an upgrade to the version it moves to when
 // that is newer than this binary, reading it with UpgradeTarget (slice 126).
 //
