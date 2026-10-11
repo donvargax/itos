@@ -62,9 +62,25 @@ func initializeInitSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the file "([^"]*)" does not say "([^"]*)" between the markers$`, func(path, text string) error {
 		return w.saysBetweenMarkers(path, text, false)
 	})
+	sc.Step(`^the committed file "([^"]*)" holds the project's line "([^"]*)" and a block an older itos wrote, saying "([^"]*)" between the markers$`,
+		w.committedFileWithOlderBlock)
 	sc.Step(`^the untracked file "([^"]*)" holding "([^"]*)"$`, w.untrackedFileHolding)
 	sc.Step(`^the file "([^"]*)" names "([^"]*)"$`, w.fileNames)
 	initializePolicyInitSteps(sc, w)
+}
+
+// The file at the path, from the repository's top, holding the project's own
+// line and then a block between itos's markers as a release before v8 wrote
+// it, the config's rules under their heading, the text among them; committed
+// with everything else in the folder, as a project that adopted itos then
+// would have it.
+func (w *world) committedFileWithOlderBlock(path, line, text string) error {
+	older := line + "\n\n" + beginMarker + "\n\n## The rules itos holds this repository to\n\n" +
+		"- " + text + " names tasks of the ledger, `tasks/phase-{group}.yaml`.\n\n" + endMarker + "\n"
+	if err := w.write(path, older); err != nil {
+		return err
+	}
+	return w.commit("docs: add " + path)
 }
 
 // The file at the path, from the repository's top, holding the text as one
