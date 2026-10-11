@@ -3761,6 +3761,7 @@ items:
       itos receives what is left and cannot tell. The help of ask add, work add, and every --why and
       --note could say to quote the text, and each could take it from a file or stdin (-F <file>, -
       for stdin), as itos commit does, the one way that works the same on every shell.
+    tags: [message]
 
   - id: p1-commit-empty-hint
     title: itos commit with nothing staged names --allow-empty
@@ -4583,6 +4584,7 @@ items:
       scenario, the item or the commit is only in the message today (out.Problem is rule, message,
       fix). Each rule documents its keys; added after v6 they are additive (T-076).
     refs: [internal/out/out.go]
+    tags: [message]
 
   - id: T-133
     title: Document built-in and delegated JSON problem rule IDs
@@ -4871,6 +4873,7 @@ items:
       but itos nosuch --help still prints the main help and exits 0 (help.yaml's case an unknown
       command's help is itos's). Rule 12 of docs/CLI.md asks exit 2 for an unknown command either
       way; the case is a breaking change of its own.
+    tags: [message]
 
   - id: p1-sequential-gate
     title: A project that works one item at a time can say so, and itos work take refuses parallel work
