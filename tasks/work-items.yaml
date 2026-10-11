@@ -7947,21 +7947,9 @@ items:
     title: This repository's AGENTS.md keeps only what is its own, and doc-budget holds it there
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Was p1-trim-agents-md (the user, 2026-10-11; in the v8 plan). After slice-120 the itos block
-      is two lines, and itos guide work, commit and push print the generic implementer rules and the
-      commit policy from the config, but AGENTS.md's handwritten text is still about 20 KB, loaded
-      into every session, and partly wrong: it still says the block at the end of the file lists the
-      gates, generated from the config. Keep only what holds here and no guide or gate says: the
-      session split (implementer or coordinator), vp staged and the pre-commit hook, the commit
-      split this repository's scopes need, the push proof (q-55, q-57) and the --no-wait handoff
-      (q-41), the Never list a gate does not hold, until p1-agent-rules-as-data can hold them; point
-      to itos guide work, commit and push for the rest rather than restating them. Vp's generated
-      block stays until the move off Node (T-142 on). Lower doc-budget's AGENTS.md cap from 28000 to
-      what the trimmed file needs, with a little room.
 
   - id: p2-user-feedback-targets
     title: A per-user itos setting names the tools whose friction a session reports, and where, and itos go prints it

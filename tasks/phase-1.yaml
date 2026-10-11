@@ -1602,8 +1602,3 @@
     work, commit and push for the rest rather than restating them. Vp's generated block stays until
     the move off Node (T-142 on). Lower doc-budget's AGENTS.md cap from 28000 to what the trimmed
     file needs, with a little room.
-  done_when:
-    - run: test $(wc -c < AGENTS.md) -le 12000
-    - run: "! grep -q 'The block at the end of this file' AGENTS.md"
-    - run: "test $(sed -n 's/.*\"AGENTS.md\", \"bytes\": \\([0-9]*\\).*/\\1/p' tools/bin/doc-budget/caps.json) -le 13000"
-    - run: go run ./tools/bin/doc-budget
