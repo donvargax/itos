@@ -7530,3 +7530,18 @@ items:
       Cut from p1-guide-before-action (2026-10-10): every implementing agent runs itos guide work
       and then itos work show <item>, two round trips to start. With an item, guide work prints
       both. Rules scoped to the item come later with p1-agent-rules-as-data.
+
+  - id: p1-doc-budget-procedures
+    title: The doc budget caps the procedures, and holds the guides' essentials at their new size
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-119]
+    kind: idea
+    why: >
+      Found by slice-119 (2026-10-10): the guides shrank to their essentials, coordinate.md 13.9 KB
+      to 5.2 KB and work.md 5.1 KB to 3.8 KB, but tools/bin/doc-budget/caps.json still caps them at
+      14000 and 6000 bytes, so either can grow back to its old size unnoticed, and it caps none of
+      the six procedures itos guide prints (internal/guide/brief.md, land.md, repair.md, decide.md,
+      commit.md, push.md), each read before its step. A ci commit lowers the two caps and adds one
+      per procedure; p1-use-anti-context-bloat later moves the caps to that tool.
