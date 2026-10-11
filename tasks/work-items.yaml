@@ -7711,6 +7711,10 @@ items:
       refuse with nothing minted, and let a command draft be replaced keeping its id (draft add <id>
       --replace, or draft edit on a command draft); work add, task add and work promote check before
       taking an id too.
+
+      2026-10-11 (bug-105's agent): work promote also mints from the shared counter before its late
+      refusals (now an unparseable questions file too), so a refused promote burns a slice number;
+      the same order fix applies to it.
     refs: [internal/cli/idmint.go, features/draft.feature]
     tags: [work]
 
