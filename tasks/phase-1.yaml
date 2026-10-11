@@ -1559,8 +1559,6 @@
     (filepath.Join), as the display path beside it stays slashed. The test compares OS paths with
     slashed literals; the code is right. Blocks slice-126's release and every close until main is
     green.
-  done_when:
-    - run: go test ./internal/cli -run TestRefreshedRules -count=1
 
 - id: T-155
   type: test

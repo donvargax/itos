@@ -7822,16 +7822,9 @@ items:
     title: TestRefreshedRules passes on Windows
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      slice-126's push (04ba2a92, run 38153430512) is red on platform (windows-latest) alone:
-      internal/cli/initrules_test.go:375 and 388 expect the stealth target's path as
-      .git/itos/AGENTS.md, and on Windows the code rightly gives .git\\itos\\AGENTS.md
-      (filepath.Join), as the display path beside it stays slashed. The test compares OS paths with
-      slashed literals; the code is right. Blocks slice-126's release and every close until main is
-      green.
 
   - id: p1-check-paths-missing-path
     title: commit check-paths refuses a path that does not exist and is not deleted in the index
