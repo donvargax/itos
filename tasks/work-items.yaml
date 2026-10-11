@@ -2160,6 +2160,10 @@ items:
       footers from the trailer paragraph only (a wrapped body line starting Changes: was listed as
       one, b79c767, v2.15.1), and the notes quote a multi-line footer with every line in the
       blockquote (63d7046, v2.21.1).
+
+      2026-10-11 (slice-129): --breaking writes one footer line too, and a long breaking text was
+      refused only after the whole pre-commit hook had run; itos commit can check every footer
+      flag's length before git runs.
     refs: [internal/cli/gitcommit.go, internal/message/footers.go]
     tags: [commit]
 
