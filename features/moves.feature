@@ -76,3 +76,55 @@ Feature: Live scenarios only move, by a rule itos ships
     When itos checks the staged moves of the kind "scenario"
     Then itos exits with code 1
     And its output says "changes the live scenario ID-A-01"
+
+  # Issue #43 (2026-10-10, from go-template-itos; v8, the user's call
+  # 2026-10-10): the rule refused a test commit whose only change was the
+  # free text under Feature:, as "changes the header or Background", so only a
+  # feat or a fix could reword it, and those need a Scenarios: footer a
+  # rewording cannot honestly fill. The description is prose a reader sees;
+  # no scenario checks it. A change confined to it (the feature's name, its
+  # tags and its Background unchanged) is a move, judged as any commit outside
+  # except_types is: so a test or docs commit may make it. Renaming the
+  # feature or changing its Background stays refused; 09 and 10 hold before
+  # the work too.
+  @ID-MOVES-07 @slice-125 @wip
+  Scenario: A test commit may reword a feature's description
+    Given a change to the description of the feature in "a.feature" is staged
+    When the commit-msg hook checks the message:
+      """
+      test: reword the feature's description
+
+      Task: T-001
+      """
+    Then itos exits with code 0
+
+  @ID-MOVES-08 @slice-125 @wip
+  Scenario: A docs commit may reword a feature's description
+    Given a change to the description of the feature in "a.feature" is staged
+    When the commit-msg hook checks the message "docs: reword the feature's description"
+    Then itos exits with code 0
+
+  @ID-MOVES-09 @slice-125 @wip
+  Scenario: A test commit that renames the feature is still refused
+    Given a change to the name of the feature in "a.feature" is staged
+    When the commit-msg hook checks the message:
+      """
+      test: rename the feature
+
+      Task: T-001
+      """
+    Then itos exits with code 1
+    And its output says "changes the header or Background of"
+
+  @ID-MOVES-10 @slice-125 @wip
+  Scenario: A test commit that rewords the description and changes the Background is still refused
+    Given a change to the description of the feature in "a.feature" is staged
+    And a change to the Background of the feature in "a.feature" is staged
+    When the commit-msg hook checks the message:
+      """
+      test: reword and change the setup
+
+      Task: T-001
+      """
+    Then itos exits with code 1
+    And its output says "changes the header or Background of"
