@@ -7864,6 +7864,9 @@ items:
       perhaps because nothing needed formatting. Confirm, then commit as a normal commit of the
       staged paths (as itos commit does), for every command that commits its files alone (work add,
       task add, decision add), or say which hook stopped it and why.
+
+      Reproduced 2026-10-11 on q-60, the third failure in three tries today; records 47 to 49 were
+      written by hand. Every decision recorded here now costs a hand-written record.
     refs: [internal/adr, features/ask.feature]
     tags: [hooks]
 
