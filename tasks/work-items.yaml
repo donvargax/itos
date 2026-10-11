@@ -7568,14 +7568,15 @@ items:
     refs: [itos.yaml, .vite-hooks/pre-commit]
     tags: [commit]
 
-  - id: p1-upgrade-refreshes-agent-block
+  - id: slice-126
     title: The launcher hands itos upgrade to the target version when it is newer, so each release applies its own steps
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-120]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-upgrade-refreshes-agent-block.
       The user's call (2026-10-11): consumers get v8's two-line block through itos upgrade, not a
       step by hand. upgrade is the launcher's own command and never runs the pinned version, so it
       does not hold the new release's block text: once the pin moves, it runs the new version's own
