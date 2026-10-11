@@ -7695,3 +7695,21 @@ items:
       writes: no wall-clock deadline on setup, or one scaled to what it measures.
     refs: [tools/itos/conformance/run.ts, tools/itos/conformance/run.test.ts]
     tags: [tests]
+
+  - id: p1-push-proof-local-cost
+    title: The local push proof costs seconds, not the twelve minutes slice-124's took
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice-124 (2026-10-11): the one local push proof q-55 allows took about 12 minutes,
+      mostly its coverage run of the listed features plus a 187 s internal/cli baseline, past the
+      harness's foreground limit; every slice that changes Go pays it, on a machine other sessions
+      share. q-55 allowed the local run to save a red CI round trip. Weigh: itos-cc reusing coverage
+      the pre-push unit tests already measured, narrowing the coverage run to the scenarios that
+      reach the changed lines, or leaving the proof to CI alone now that line scope makes surprises
+      rare.
+    refs: [itos.yaml, AGENTS.md]
+    tags: [ci]
