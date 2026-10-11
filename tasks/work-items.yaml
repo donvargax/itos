@@ -3014,6 +3014,7 @@ items:
       The coordinator's recommendation, open for the user: an explicit itos follow reopen <id>
       [--note], so a note added to a closed thread after the fact does not bring it back.
     refs: [features/follow.feature]
+    tags: [followup]
 
   - id: p2-cross-repo-contract
     title: itos as the per-repository layer under a cross-repository coordinator
