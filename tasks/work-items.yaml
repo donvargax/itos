@@ -7798,3 +7798,20 @@ items:
       add take --answer for a question asked and answered at once.
     refs: [internal/cli/draft.go, features/draft.feature]
     tags: [work]
+
+  - id: p1-upgrade-already-refreshes-block
+    title: itos upgrade on a project already on the newest release still rewrites a stale agent block
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-126]
+    kind: idea
+    why: >
+      slice-126's agent (2026-10-11): upgrade answers already and leaves a stale block alone when
+      the pin is the newest, which is the project a 7.x launcher moved to v8 (no handoff, so v7's
+      code did the walk). Today only status's line (slice-124) and init --agent-rules cover it.
+      Rewriting the block on already too would make itos upgrade the one command that settles it.
+      Also from that slice: a command line holding -- is not handed off; the called binary runs it
+      as before.
+    refs: [internal/cli/upgrade.go, features/upgrade-handoff.feature]
+    tags: [upgrade]
