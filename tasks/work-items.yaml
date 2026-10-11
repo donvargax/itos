@@ -4844,6 +4844,12 @@ items:
       Backlog review of 2026-10-10, batch 3: folds in p1-status-last-green-unfetched:
       readLastGreen's not-fetched branch and last_green's empty header in internal/cli/status.go,
       which served ci.range.command, removed in v5 (slice 85).
+
+      2026-10-10, folds in p1-v8-deprecation-sweep (the user's call, shipping slice-119 without
+      breaking anything): sweep the commands, flags, spellings and help lines kept only because an
+      older release had them, listing them first, one breaking change each, for the user to keep or
+      drop. Candidates: itos guide coordinate (itos go prints the same guide with the status) and
+      help history such as work list's 'until v4.0.0' line. Not in v8 yet (the user, 2026-10-10).
     tags: [config]
 
   - id: p1-model-baseline
