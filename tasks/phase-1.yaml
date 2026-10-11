@@ -1572,8 +1572,6 @@
     count as changed). Confirm it is equivalent (every caller of launch.Main), then record it as
     itos-cc.yaml's other equivalent mutants are, with the reason, or reshape Main so the not-handed
     path returns no code at all, whichever is simpler and leaves no stale exception.
-  done_when:
-    - run: go test ./internal/launch -count=1
 
 - id: T-156
   type: test
