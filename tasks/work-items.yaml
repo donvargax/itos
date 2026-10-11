@@ -7545,3 +7545,18 @@ items:
       the six procedures itos guide prints (internal/guide/brief.md, land.md, repair.md, decide.md,
       commit.md, push.md), each read before its step. A ci commit lowers the two caps and adds one
       per procedure; p1-use-anti-context-bloat later moves the caps to that tool.
+
+  - id: p1-guide-brief-handoff
+    title: The brief template hands CI and closing to the coordinator, as itos guide land says
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by slice-119 (2026-10-10): the generic brief template tells the agent to wait for CI and
+      close the item with itos work done, while itos guide land has the coordinator watch the pushed
+      head and close on green. This repository's notes override the template's line; every other
+      repository's coordinator gets two contradicting rules. The template's last steps become: push
+      in the background, report the pushed SHA, leave CI and the close to the coordinator.
+    refs: [internal/guide/brief.md, internal/guide/land.md]
