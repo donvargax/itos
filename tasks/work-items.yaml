@@ -7067,8 +7067,8 @@ items:
   - id: T-159
     title: The push proof judges the same site until the range's code changes, so fixing it does not draw a new one
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
