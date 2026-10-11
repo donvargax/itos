@@ -4063,14 +4063,15 @@ items:
     kind: idea
     refs: [internal/check/captured.go]
 
-  - id: p1-ledger-layout-checks
-    title: config check refuses ledger layouts that read nothing
+  - id: slice-130
+    title: itos refuses ledger layouts, questions files and config values it cannot use, the same way for every command
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ledger-layout-checks.
       Found by the code review of 07b0e6d (2026-10-05). A ledger.group.pattern written with its own
       anchors never matches and config check reports 0 ledger files as valid; {group} as a folder in
       ledger.files passes and later fails as a missing folder (ledger.go:49, cross.go:358-372).
