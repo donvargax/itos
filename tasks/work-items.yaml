@@ -6916,6 +6916,11 @@ items:
       workflow template beside ci.steps, and platform jobs that run the smoke set and named
       scenarios (with #18).
 
+      In the v8 plan (the user, 2026-10-11), for speed: the platform jobs' move from every feature
+      to the smoke set and named scenarios per push shortens every later run. The guidance half
+      shrank with slice-119: itos guide push and land already say what CI and the nightly run; what
+      is left is which tier each gate belongs to.
+
   - id: p1-itos-config-all-or-nothing
     title: ITOS_CONFIG resolves the ledger, the registry and the smoke sets beside the config it names
     phase: 1
