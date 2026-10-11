@@ -7503,3 +7503,16 @@ items:
       history such as work list's 'until v4.0.0' line. The sweep lists them first, one breaking
       change each, for the user to keep or drop.
     tags: [cli]
+
+  - id: p1-guide-brief-filled
+    title: itos guide brief <item> fills the brief template from the item
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-guide-before-action]
+    kind: idea
+    why: >
+      Cut from p1-guide-before-action (2026-10-10): the coordinator fills the same template for
+      every brief by hand, from itos work show (the item, its title, its scenarios and their feature
+      file, the repository's path). With an item, guide brief prints the template filled, leaving
+      the coordinator the settled decisions and the reads.
