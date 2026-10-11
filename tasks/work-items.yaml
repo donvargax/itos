@@ -7875,14 +7875,15 @@ items:
       it as itos-cc.yaml's other equivalent mutants are, with the reason, or reshape Main so the
       not-handed path returns no code at all, whichever is simpler and leaves no stale exception.
 
-  - id: p1-upgrade-cli-survivors
+  - id: T-156
     title: Kill the four mutants of internal/cli/upgrade.go that survive the push proof's range
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-upgrade-cli-survivors.
       Judging all 126 sites of the range CI's push proof samples (since f585700, at 58d462f4) found
       four survivors in internal/cli/upgrade.go, from slice-126's change to it: upgradeCommand's
       want-older check (line 228, < 0 to <= 0 and 0 to 1: an upgrade to the version already on is
