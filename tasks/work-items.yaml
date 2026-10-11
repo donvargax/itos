@@ -1915,6 +1915,7 @@ items:
       the newest. Nothing removes them but the user; a run could drop the versions it
       has not run for some months, or the cache could keep a few.
     refs: [internal/launch/launch.go]
+    tags: [launcher]
 
   - id: slice-47
     title: One command moves a repository's pin to a release
@@ -3967,6 +3968,7 @@ items:
       Found by the code review of 07b0e6d (2026-10-05). ITOS_VERSION is used as a path segment
       unchecked (launch.go:168-176, 321): ../../x makes cached() exec a file outside the cache.
     refs: [internal/launch/launch.go]
+    tags: [launcher]
 
   - id: p1-launcher-rehash-cache
     title: A pinned run re-hashes the cached binary
@@ -3980,6 +3982,7 @@ items:
       checksums.txt, so a binary swapped beside a genuine checksums.txt still runs; matters with a
       shared or restored ITOS_CACHE (launch.go:334-343).
     refs: [internal/launch/launch.go]
+    tags: [launcher]
 
   - id: p3-windows-hardlink-shim
     title: A hard-linked git shim on Windows stays manageable
@@ -4462,6 +4465,7 @@ items:
       stderr when a download starts, give the connection a short timeout so a dead one fails in
       seconds, and name the host and the file in a timeout's error. Audit every other network call
       likewise.
+    tags: [launcher]
 
   - id: p3-itos-repos
     title: itos repos, the status of every sibling repository at once
