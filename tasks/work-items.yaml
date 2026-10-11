@@ -7685,3 +7685,21 @@ items:
       rules in Rego; then retire the guard, keep it, or bring Cupcake into anti-container's design.
     refs: [internal/guard/guard.go, docs/plans/anti-container.md]
     tags: [guard]
+
+  - id: p1-corpus-runner-load-deadline
+    title: The corpus runner's setup does not fail on a busy machine
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-144]
+    kind: idea
+    why: >
+      Found by slice-122 (2026-10-11): on a machine with a load average around 44 (other sessions'
+      builds and tests), the conformance runner stopped at 'runner setup … exceeded its 15000ms
+      deadline': its own self-test (run.test.ts) runs under a clean HOME, which took about 52 s
+      there against about 3 s normally, so the whole corpus did not run. The agent ran it with
+      --only over every fixture, which skips the self-test. Many agents share one machine, so a
+      fixed wall-clock deadline on setup fails the correct path. Fix it in the Go runner T-144
+      writes: no wall-clock deadline on setup, or one scaled to what it measures.
+    refs: [tools/itos/conformance/run.ts, tools/itos/conformance/run.test.ts]
+    tags: [tests]
