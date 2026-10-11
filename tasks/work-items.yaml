@@ -4204,6 +4204,7 @@ items:
       (id, kind, status). First, a tenth of the work: itos where prints the paths of every data file
       the config names, stealth included.
     refs: [internal/cli]
+    tags: [cli]
 
   - id: T-097
     title: The plugin's guard and titles run only the itos on the PATH
