@@ -283,6 +283,17 @@ func TestUpgradePrint(t *testing.T) {
 			t.Errorf("the report does not say %q:\n%s", s, stdout.String())
 		}
 	}
+
+	// A release that asks nothing by hand has no place under By hand, even
+	// when a later one does.
+	stdout.Reset()
+	u = upgrade{o: Out{Stdout: &stdout}, from: "9.1.0", to: "9.3.0", releases: []any{releaseAsks{Version: "9.2.0"},
+		releaseAsks{Version: "9.3.0", Upgrading: []upgradingEntry{{Commit: "def", Header: "feat: c", Text: "Do it."}}}}}
+	u.print()
+	_, byHand, _ := strings.Cut(stdout.String(), "By hand:")
+	if strings.Contains(byHand, "itos 9.2.0") || !strings.Contains(byHand, "itos 9.3.0") {
+		t.Errorf("By hand names a release that asks nothing, or not the one that asks:\n%s", stdout.String())
+	}
 }
 
 // --json lists the edits made and what is left by hand.
@@ -395,6 +406,15 @@ func TestUpgradeCommandRefuses(t *testing.T) {
 	code, err, printed = upgradeRun(false)
 	expect("an upgrading.json that cannot be fetched", ExitTemporary, false, "cannot fetch what itos 9.3.0 asks", code, err, printed)
 
+	file := upgradeIn(t, "9.3.0", pinOf("9.1.0")+"ci:\n  watch: { timeout: 600 }\n", map[string]string{
+		"/download/v9.3.0/itos.schema.json": `{"x-itos-removed": ["ci.watch.timeout"]}`,
+	})
+	code, err, printed = upgradeRun(false)
+	expect("a config step it cannot make", 0, true, "cannot remove ci.watch.timeout in "+file, code, err, printed)
+	if text, _ := os.ReadFile(file); string(text) != pinOf("9.1.0")+"ci:\n  watch: { timeout: 600 }\n" {
+		t.Errorf("a config step it cannot make edited the config:\n%s", text)
+	}
+
 	upgradeIn(t, "9.3.0", "version: 1\npin: &p { version: 9.1.0, checksums: "+release.SHA256([]byte(sumsOf("9.1.0")))+" }\n", nil)
 	code, err, printed = upgradeRun(false)
 	expect("a pin it cannot edit", 0, true, "cannot edit the pin", code, err, printed)
@@ -455,6 +475,11 @@ func TestUpgradeCommandJSON(t *testing.T) {
 	upgradeIn(t, "9.3.0", pinOf("9.3.0"), nil)
 	if code, err, printed := upgradeRun(true); code != 0 || err != nil || !strings.Contains(printed, `"action": "already"`) {
 		t.Errorf("already: %d, %v, %s", code, err, printed)
+	}
+	// The version already on, named, is no move back.
+	if code, err, printed := upgradeRun(false, "9.3.0"); code != 0 || err != nil ||
+		!strings.Contains(printed, "already on itos 9.3.0: nothing to upgrade") {
+		t.Errorf("already, named: %d, %v, %s", code, err, printed)
 	}
 	upgradeIn(t, "9.3.0", pinOf("9.1.0")+"ci:\n  watch:\n    timeout: 600\n", map[string]string{
 		"/download/v9.3.0/itos.schema.json": `{"x-itos-removed": ["ci.watch.timeout"]}`,
