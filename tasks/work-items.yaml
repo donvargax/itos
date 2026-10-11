@@ -441,6 +441,7 @@ items:
       later in the same push, passes CI, whose config check reads only the head. source.ts can read
       a commit's tree, so verify could run the check at each commit that touches the data. Needs a
       scenario.
+    tags: [verify]
 
   - id: p1-pre-commit-asks-what-skips
     title: A project's pre-commit hook asks itos which staged files need no tests
@@ -891,6 +892,7 @@ items:
       before commits.since, say), so a project's own range command may judge commits before it;
       the built-in moves rule judges verify's own list of commits, which leaves them out. A {since}
       in the template, or a range given as a commit list, would close it.
+    tags: [verify]
 
   - id: p1-hooks-config-write
     title: "hooks install writes lefthook's and pre-commit's config"
@@ -1104,6 +1106,7 @@ items:
       the clone. The same check (git cat-file -e, then --is-shallow-repository) could make it a
       problem naming the commit, with git fetch --unshallow or fetch-depth: 0 as its fix, and a
       <from> no clone has (a typo) one of its own.
+    tags: [verify]
 
   - id: p1-wip-red-first
     title: A command that shows a slice's @wip scenarios fail against the current binary
@@ -1808,6 +1811,7 @@ items:
       place a waiver is taken as a human's, with no signature, tag or note. Claude Code's sandbox
       or Cupcake could firm the guard up later if ever needed.
     refs: [itos.yaml, internal/cli/verify.go]
+    tags: [verify]
 
   - id: slice-41
     title: A git shim that makes git commit and git push itos's in an itos repository
