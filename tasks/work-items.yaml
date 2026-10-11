@@ -6953,6 +6953,12 @@ items:
       agents across itos-driven repositories, so a step like this is paid many times over in tokens,
       CI and time.
 
+      Seen again 2026-10-11: itos draft promote ran four idea adds and a docs/plans edit before a
+      drafted work done T-153, which then refused for those five unpushed commits, though T-153's
+      own were pushed and green. Pass over any unpushed commit that touches none of the item's paths
+      (docs and registry alike), not only registry-only ones, or have draft promote run drafted
+      closes first.
+
   - id: p1-test-commits-own-mutation-exceptions
     title: A test commit may touch itos-cc.yaml and .metrics/mutate/, so a killed mutant and its exception land together
     phase: 1
