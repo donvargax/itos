@@ -3792,6 +3792,7 @@ items:
       internal/cli needs splitting. Start with what touches people's machines (stealth, hooks, the
       launcher, the git shim). The gates and the release check already cover most of what a review
       would, so the gain is design and edge cases.
+    tags: [review]
 
   - id: bug-29
     title: The range walk counts a commit's green run on any branch
