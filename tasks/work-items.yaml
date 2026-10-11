@@ -7850,3 +7850,20 @@ items:
       mistake in the call; say so (exit 2) rather than judge it.
     refs: [internal/cli/commit.go]
     tags: [commit]
+
+  - id: T-155
+    title: The push proof passes over launch.Main's not-handed return, an equivalent mutant
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
+    why: >
+      Run 38154600080 (62965b88) is red at the code proof: the range since the last green run
+      (f585700) holds slice-126, and its one sampled site was internal/launch/launch.go:71,
+      launch.Main's return 0, false when this binary runs itself; 0 to 1 survived every test.
+      cmd/itos/main.go reads the code only when the second value is true, so the mutant looks
+      equivalent; it counts as changed because slice-126 moved the lines around it (q-57: moved
+      lines count as changed). Confirm it is equivalent (every caller of launch.Main), then record
+      it as itos-cc.yaml's other equivalent mutants are, with the reason, or reshape Main so the
+      not-handed path returns no code at all, whichever is simpler and leaves no stale exception.
