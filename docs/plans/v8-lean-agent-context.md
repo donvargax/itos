@@ -35,6 +35,19 @@ the breaking checks the v7 plan already set aside for the next major.
 - **slice-107**: config check refuses a nightly step that runs a done task's checks (q-25, moved
   here from v7).
 
+### From the consumer reports, bundled
+
+Not all breaking, but gaps go-template-itos hit, so they ship with the bundle (the user,
+2026-10-10):
+
+- **`p1-push-tag-and-ref`** (issue #37): a sanctioned way to push release tags, several at once and
+  atomically, and tags pushed only when asked. Ignoring git's `push.followtags` is the breaking
+  part: today any `itos push` from main can publish one tag of a multi-branch release alone.
+- **`p1-work-give-back`** (issue #42): an item in progress can go back to `todo`, as
+  `itos guide repair` already tells a coordinator to do after a revert.
+- **`p1-moves-feature-description`** (issue #43): a `test` or `docs` commit may reword a feature's
+  description, which no scenario checks.
+
 ## Not in v8
 
 - **Agent rules as data** (`p1-agent-rules-as-data`): it only adds (a rules file, `itos rule`),
