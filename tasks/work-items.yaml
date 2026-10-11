@@ -6171,8 +6171,8 @@ items:
   - id: slice-107
     title: config check refuses a nightly step that runs a done task's checks, and the step is gone from the plan and the driver
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-101]
     kind: slice
     why: >
