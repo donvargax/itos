@@ -111,6 +111,7 @@ type scratchConfig struct {
 	featMustTouch     string          // commits.scopes.feat.must_touch, one glob, when set
 	choreNeverExcept  *[2]string      // commits.scopes.chore's never and except, one glob each, when set
 	ledgerFiles       string          // ledger.files; tasks/phase-{group}.yaml when empty
+	noLedgerID        bool            // the config writes no ledger.id
 	prosePaths        string          // ci.prose.paths, one glob
 	proseSteps        string          // ci.prose.steps, one command
 	pin               *[2]string      // pin.version and pin.checksums
@@ -373,6 +374,18 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the kind "([^"]*)" runs a selection as "([^"]*)"$`, w.kindRunsSelection)
 	sc.Step(`^the config sets "([^"]*)" to "([^"]*)"$`, w.configSets)
 	sc.Step(`^the config sets "([^"]*)" to the YAML "([^"]*)"$`, w.configSetsYAML)
+	sc.Step(`^the config's ledger groups are numeric$`, func() error { return w.configSetsYAML("ledger.group.numeric", "true") })
+	sc.Step(`^the config has no ledger\.id$`, func() error {
+		w.config.noLedgerID = true
+		return w.writeConfig()
+	})
+	sc.Step(`^the ledger file "([^"]*)" holds the task "([^"]*)" with the check "([^"]*)"$`, w.ledgerFileHoldsTask)
+	sc.Step(`^the staged file "([^"]*)" holding the lines:$`, func(path string, lines *godog.DocString) error {
+		if err := w.write(path, lines.Content+"\n"); err != nil {
+			return err
+		}
+		return w.git("add", "--", path)
+	})
 	sc.Step(`^the config's scenario kind has the range check "([^"]*)", builtin "([^"]*)", except_types "([^"]*)"$`,
 		w.builtinRangeCheck)
 	sc.Step(`^the config has the test kind "([^"]*)" with a command adapter and the wip_tag "([^"]*)"$`, w.commandKindWipTag)
@@ -775,7 +788,18 @@ func (w *world) writeConfig() error {
 	if w.config.recordingShell {
 		fmt.Fprintf(&b, "shell: [%q]\n", w.recordingShellPath())
 	}
-	fmt.Fprintf(&b, "ledger:\n  files: %q\n  id: \"T-\\\\d+\"\n", w.ledgerFilesPattern())
+	// A key the scenario sets that this section already writes replaces its
+	// value here, where a second key would make the config unreadable.
+	files := fmt.Sprintf("%q", w.ledgerFilesPattern())
+	if set, ok := w.setting("ledger.files"); ok {
+		files = set.written()
+	}
+	fmt.Fprintf(&b, "ledger:\n  files: %s\n", files)
+	if set, ok := w.setting("ledger.id"); ok {
+		fmt.Fprintf(&b, "  id: %s\n", set.written())
+	} else if !w.config.noLedgerID {
+		b.WriteString("  id: \"T-\\\\d+\"\n")
+	}
 	b.WriteString(w.settingsUnder("ledger"))
 	footer := w.config.ledgerFooter
 	if footer == "" {
@@ -1055,9 +1079,26 @@ func flowSetting(path []string, value string) string {
 }
 
 // The scenario's settings under a section the config writes, as lines below it.
+// The scenario's setting of a key path, the last when it sets it twice.
+func (w *world) setting(key string) (setting, bool) {
+	for i := len(w.config.settings) - 1; i >= 0; i-- {
+		if w.config.settings[i].key == key {
+			return w.config.settings[i], true
+		}
+	}
+	return setting{}, false
+}
+
+// replacedLedgerKeys are the ledger keys writeConfig writes itself, a
+// setting of which replaces the value it writes.
+var replacedLedgerKeys = []string{"ledger.files", "ledger.id"}
+
 func (w *world) settingsUnder(section string) string {
 	var b strings.Builder
 	for _, s := range w.config.settings {
+		if slices.Contains(replacedLedgerKeys, s.key) {
+			continue
+		}
 		if path := strings.Split(s.key, "."); path[0] == section && len(path) > 1 {
 			if s.flow {
 				b.WriteString("  " + flowSetting(path[1:], s.written()) + "\n")

@@ -591,6 +591,19 @@ func (w *world) lastTouchesOnly(paths ...string) error {
 	return nil
 }
 
+// The ledger file, where the scenario keeps itos's data, holds the task, a
+// chore whose one check runs the command (run:), written after the tasks it
+// holds already, or as its first when it is not there; not committed.
+func (w *world) ledgerFileHoldsTask(file, id, command string) error {
+	full := filepath.Join(w.dir, w.data(file))
+	text, err := os.ReadFile(full)
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	task := fmt.Sprintf("- { id: %q, type: chore, title: %q, done_when: [{ run: %q }] }\n", id, "Task "+id, command)
+	return w.write(w.data(file), string(text)+task)
+}
+
 // The ledger file, read where the scenario keeps itos's data, has the task,
 // one of whose checks runs the command (run:).
 func (w *world) ledgerFileHasTask(file, id, command string) error {
