@@ -8141,3 +8141,29 @@ items:
       See features/config.feature, the comment above the bug's first scenario.
     refs: [internal/cli/configcheck.go, internal/cli/workwrite.go]
     tags: [work, config]
+
+  - id: p1-github-registry-pilot
+    title: Pilot GitHub issues as the work registry, behind a registry provider beside the YAML file
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user (2026-10-11): parallel agents need it, since every take and close edits
+      tasks/work-items.yaml and parallel agents would conflict there; issues are a shared store with
+      atomic numbering, assignees and close states. A v8.x pilot, opt-in. Shape after
+      hybridgroup/taskmapper (Ruby, formerly TicketMaster: one API over trackers, a provider per
+      system, GitHub and Jira among them; dormant since 2021, a reference only): a registry provider
+      interface (list, take, give back, done, drop, queue, tags) with the YAML file as today's
+      adapter and GitHub issues the pilot's. Mapping: ID minting to issue numbers, owner to
+      assignee, done to closed completed, drop to closed not planned, tags to area labels, item
+      types (p1-typed-items) to type labels, depends_on to GitHub's issue dependencies, queue order
+      to a Projects field or ranking label. Hard parts to settle: trust (an item's body becomes what
+      agents act on, so only allow-listed authors' or maintainer-labelled issues are items, enforced
+      by the provider, as the inbox does today); specs stay in git (scenarios, task checks), so how
+      work done finds an item's commits and what footers name; offline, stealth and rate limits (the
+      file provider stays). Its findings feed p1-typed-items' design (type and area as two label
+      families).
+    refs: [internal/work, internal/providers]
+    tags: [work, providers]
