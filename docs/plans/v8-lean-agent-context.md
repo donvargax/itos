@@ -32,8 +32,9 @@ the breaking checks the v7 plan already set aside for the next major.
   2026-10-11): the shim, `itos commit` and `itos push` refuse `--no-verify`, `-n` and a `-c` that
   moves `core.hooksPath`; the shim refuses sweeping stages (`git add -A`, `.`, `-u`, a folder) and
   `itos commit` refuses `-a`; the pre-push hook refuses a push whose remote commit is not an
-  ancestor. Then the block's staging line is gated too and the block can keep the entry line
-  alone. The server-side guarantee against a force-push past all of these is GitHub's ruleset on
+  ancestor (slice-128, v8.0.0-rc.9). The block keeps its staging line (the user, 2026-10-11): the
+  git add refusal lives in the shim, opt-in per machine, so for a consumer without it the line is
+  the only word on sweeping stages. The server-side guarantee against a force-push past all of these is GitHub's ruleset on
   main, on since 2026-10-11 (`p1-init-recommends-branch-protection` recommends it to every
   project, in any release).
 - **Config tightening, one slice**: config check refuses an empty `shell`
@@ -41,9 +42,9 @@ the breaking checks the v7 plan already set aside for the next major.
   (`p1-moves-except-types-checked`), `wip_tag` on a command kind (`p1-wip-tag-command-kind`), a
   group label that cannot be a flag (`p1-group-label-flag-word`), `.nan` and `.inf`
   (`p1-config-finite-numbers`) and ledger layouts that read nothing (`p1-ledger-layout-checks`);
-  `ledger.id` gets one default (`p1-ledger-id-default`); config check and the commit-msg hook
-  judge the questions file (`p1-asks-check`); a `Changes:` footer naming nothing of the last
-  release is refused at the commit (`p3-changes-at-commit`).
+  `ledger.id` gets one reader, and with none an ID is what the ledger holds (`p1-ledger-id-default`); config check and the commit-msg hook
+  judge the questions file (`p1-asks-check`). Two slices: config check's refusals (slice-129), then
+  the ledger and questions file, with one reader of ledger.id (slice-130).
 - **slice-107**: config check refuses a nightly step that runs a done task's checks (q-25, moved
   here from v7).
 
@@ -86,6 +87,8 @@ this repository reached by q-41, q-52, q-54 and q-55 but for one tier:
 - **`p1-drop-compat-code`** and its sweep of commands kept for compatibility (`itos guide
 coordinate` among them): not yet (the user, 2026-10-10).
 - **`p1-flag-defaults-policy`**: held (the user, 2026-10-10).
+- **`p3-changes-at-commit`**: a feature (the commit-msg hook reading the last release's tag), not
+  a config check, and CI already refuses an unnamed old case; after v8 (the user, 2026-10-11).
 - **`p1-commit-exit-codes`**: out for now (the user, 2026-10-11); a change of exit code is breaking,
   so it waits for a later major.
 - **Guided commits** (`p3-guard-replacement`, docs/plans/guided-commits.md): additive by q-37 and
