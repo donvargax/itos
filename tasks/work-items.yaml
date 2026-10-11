@@ -6561,6 +6561,11 @@ items:
       2026-10-03 and 10-04 the guard denied git commit in scratch repositories under /tmp, judged by
       the session's folder, and an agent fell back to git commit-tree; a guard that pushes agents to
       plumbing is worse than one that follows the cd.
+
+      2026-10-11 (slice-130's agent): the guard refused a plain git commit in a scratch repository
+      under the session's scratchpad, outside any itos repository, so the agent fell back to git
+      commit-tree. The guard should judge the repository the command runs in, not the session's
+      folder.
     refs: [internal/guard/guard.go, internal/guard/doc.go, features/guard.feature]
 
   - id: slice-109
