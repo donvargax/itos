@@ -68,3 +68,20 @@ Feature: The pre-push hook verifies the commits it pushes
     When itos runs "push"
     Then itos exits with code 1
     And none of hooks.pre_push's commands ran
+
+  # Slice 128: a push that replaces a remote commit not in the pushed
+  # commit's history rewrites what others may have built on. itos push never
+  # forces, but git push --force past the shim (or with no shim) still runs
+  # this hook, so the hook refuses any pushed ref whose remote commit is not
+  # an ancestor of the commit pushed, or that the clone lacks, naming itos
+  # push, which rebases instead, and none of hooks.pre_push's commands runs.
+  # A new branch has no remote commit and is judged as before (@ID-PREPUSH-04).
+  @ID-PREPUSH-06 @slice-128 @wip
+  Scenario: A forced push that would replace a remote commit is refused, and the remote keeps it
+    Given the remote has gained the commit "docs: someone else's work" touching "OTHER.md"
+    And the clone has fetched the remote
+    And the clone has the commit "docs: mine" touching "README.md"
+    When the real git runs "push --force origin HEAD:main"
+    Then the real git exits with code 1
+    And its output says "itos push"
+    And the remote's branch has "docs: someone else's work"

@@ -75,3 +75,68 @@ Feature: The git shim, git commit and git push as itos's in an itos repository
     Then git exits with code 0
     And no version of the release server ran
     And its output says "2.0.0"
+
+  # Slice 128 (p1-shim-refuses-hook-skipping, merged with p1-agent-rules-as-checks,
+  # the user's calls of 2026-10-06 and 2026-10-11): the shim exists so a
+  # session cannot skip the gates, yet the devcontainer test of 2026-10-06
+  # committed and pushed junk through it with git commit --no-verify, -n and
+  # git -c core.hooksPath=<elsewhere>. itos commit and itos push, and so the
+  # shim, now refuse --no-verify, -n (commit's short form) and a -c that sets
+  # core.hooksPath, exit 2 naming what was refused; itos commit refuses -a and
+  # --all, which stage every tracked change; and in an itos repository the
+  # shim refuses the sweeping stages AGENTS.md's block warns of (git add -A,
+  # --all, ., -u, --update, a folder), exit 2 naming git add <path>, while an
+  # explicit file path runs the real git as before. A person at a terminal is
+  # refused the same; no config switch until someone needs one. The forms
+  # without a scenario (., -u, --update, --all, -n on push) are judged by
+  # unit tests. /usr/bin/git with --no-verify stays out of reach: the server's
+  # branch protection is that guarantee.
+  @ID-SHIM-09 @slice-128 @wip
+  Scenario: git commit --no-verify is refused, and nothing is committed
+    When git runs "commit --no-verify --task T-001 -m 'chore: tidy the readme'"
+    Then git exits with code 2
+    And its output says "--no-verify"
+    And no commit was made
+
+  @ID-SHIM-10 @slice-128 @wip
+  Scenario: git commit -a is refused, naming the explicit-path form
+    When git runs "commit -a --task T-001 -m 'chore: tidy the readme'"
+    Then git exits with code 2
+    And its output says "-a"
+    And no commit was made
+
+  @ID-SHIM-11 @slice-128 @wip
+  Scenario: A -c that moves core.hooksPath is refused for a commit
+    When git runs "-c core.hooksPath=/nonexistent commit --task T-001 -m 'chore: tidy the readme'"
+    Then git exits with code 2
+    And its output says "core.hooksPath"
+    And no commit was made
+
+  @ID-SHIM-12 @slice-128 @wip
+  Scenario: git push --no-verify is refused
+    When git runs "push --no-verify"
+    Then git exits with code 2
+    And its output says "--no-verify"
+
+  @ID-SHIM-13 @slice-128 @wip
+  Scenario: git add -A is refused in an itos repository, naming git add with a path
+    Given an untracked file "notes.md"
+    When git runs "add -A"
+    Then git exits with code 2
+    And its output says "git add <path>"
+    And the file "notes.md" is not staged
+
+  @ID-SHIM-14 @slice-128 @wip
+  Scenario: git add of a folder is refused in an itos repository
+    Given a "sub" folder
+    And an untracked file "sub/notes.md"
+    When git runs "add sub"
+    Then git exits with code 2
+    And the file "sub/notes.md" is not staged
+
+  @ID-SHIM-15 @slice-128 @wip
+  Scenario: git add of a file by its path runs the real git
+    Given an untracked file "notes.md"
+    When git runs "add notes.md"
+    Then git exits with code 0
+    And the file "notes.md" is staged
