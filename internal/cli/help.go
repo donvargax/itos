@@ -35,7 +35,8 @@ ITOS_BIN and ITOS_VERSION. ` + "`itos help <command>`" + ` runs ` + "`itos-<comm
 
 const asGit = `As git: linked as git before the real git on the PATH (itos git-shim install),
 itos runs git commit and git push as itos commit and itos push in a repository
-with an itos config, from any folder of it, and the real git for anything else.`
+with an itos config, from any folder of it, refuses git add -A, -u or of a
+folder there, and runs the real git for anything else.`
 
 const exitCodes = `Exit codes: 0 success; 1 policy failure (a check failed, a commit rejected,
 a registry or smoke problem, an unknown task, a failing step of ci run);
@@ -608,14 +609,21 @@ BREAKING-CHANGE stay in the message.
 usage error, never a path: paths for git go after a flag or after --, as in
 itos commit --task T-1 -m '…' -- README.md.
 
+It refuses before anything else, exit 2, what would commit past the gates:
+--no-verify and -n, which skip git's hooks; a core.hooksPath set by git -c,
+which moves them; and -a and --all, which stage every change to a tracked
+file, someone else's work in progress among them (stage your own with git add
+<path>). git's arguments are read as git reads them: -m's value, a cluster
+of short flags (-am) and anything after -- are git's.
+
 Where itos is set up (a config is there), it refuses before git runs, exit 3,
 when git would run none of its checks: the git config declares no commit-msg
 hook of itos's (run itos hook install once in the clone), or the git runs no
 hook its config declares (git older than ` + configHooksSince + `).
 
 Exit: git's own code; 1 when a required footer is missing; 2 when the first
-word is no subcommand, a flag has no value or the config no footer for it; 3
-when itos's commit-msg hook would not run.
+word is no subcommand, a flag has no value or the config no footer for it, or
+an argument is refused; 3 when itos's commit-msg hook would not run.
 
 --json: git's output on stderr; {"schema":1,"ok","commit"?}, or when a footer
         is missing {"schema":1,"ok":false,"problems":[{"rule","message","fix"}]}`,
@@ -673,14 +681,15 @@ first, which the remote keeps, and git rebase --skip to give it up. Only HEAD
 goes, to that branch, whatever the config's push refspecs say, so the stealth
 mode's refs/notes/itos stays local; under a stealth config notes.rewriteRef is
 set first, as itos commit sets it, so the rebase carries the notes. It never
-forces: --force, -f, --force-with-lease or a + refspec is a usage error, as is
-any other argument but --no-wait, and a push the remote or the hook refuses is
-reported, not retried. Nothing to push is success. -q is git's --quiet and
-leaves out the success lines. Where itos is set up (a config is there), it
-refuses before anything is fetched, exit 3, when git would run none of its
-checks: the git config declares no pre-push hook of itos's (run itos hook
-install once in the clone), or the git runs no hook its config declares (git
-older than ` + configHooksSince + `).
+forces: --force, -f, --force-with-lease or a + refspec is a usage error, as are
+--no-verify, which skips the pre-push hook, a core.hooksPath set by git -c,
+which moves the hooks, and any other argument but --no-wait, and a push the
+remote or the hook refuses is reported, not retried. Nothing to push is
+success. -q is git's --quiet and leaves out the success lines. Where itos is
+set up (a config is there), it refuses before anything is fetched, exit 3,
+when git would run none of its checks: the git config declares no pre-push
+hook of itos's (run itos hook install once in the clone), or the git runs no
+hook its config declares (git older than ` + configHooksSince + `).
 
 With ci.watch's provider (none by default), it then waits for the CI run of
 the commit it pushed as itos ci watch does, printing each job's result as it
@@ -694,14 +703,14 @@ one with no newer run to follow exits 75. The commits are pushed either way.
 
 Exit: 0 pushed, or nothing to push; 1 refused before the pull, the rebase
 stopped, the remote or the pre-push hook refused the push, or the CI run
-waited for failed; 2 an argument; 3 no git repository, itos's pre-push hook
-that would not run, no upstream and no remote origin, a remote that is no
-repository or that git cannot find, or a
-CI run not to be looked at; 75 a remote that cannot be reached (a connection
-refused or timed out, a host that does not resolve), a CI run not finished,
-a CI run cancelled with no newer run to follow, or GitHub's API failing; 70 a fetch or a push that failed for another reason.
-The kind of a failed fetch or push is read from git's message; git's own exit
-code is never itos's.
+waited for failed; 2 an argument, or a core.hooksPath set by git -c; 3 no git
+repository, itos's pre-push hook that would not run, no upstream and no remote
+origin, a remote that is no repository or that git cannot find, or a CI run
+not to be looked at; 75 a remote that cannot be reached (a connection refused
+or timed out, a host that does not resolve), a CI run not finished, a CI run
+cancelled with no newer run to follow, or GitHub's API failing; 70 a fetch or
+a push that failed for another reason. The kind of a failed fetch or push is
+read from git's message; git's own exit code is never itos's.
 
 --json: git's output on stderr; {"schema":1,"ok","outcome","remote"?,"branch"?,"commit"?,"ci"?,"run"?},
         outcome one of pushed, nothing-to-push, uncommitted, rebase-in-progress,
@@ -907,17 +916,20 @@ prints its report and decides: exit 1, or the header lint's own code.`,
 	"hook pre-push": `Usage: itos hook pre-push <remote> <url>
 
 The pre-push hook. Reads git's ref lines on stdin (or PRE_COMMIT_FROM_REF and
-PRE_COMMIT_TO_REF under pre-commit or prek) and first verifies the commits
-each pushed ref adds, as itos verify does (messages, paths, range checks,
-commits.since left out): the ones after the remote's commit it replaces, else
-(a new branch, or a remote commit this clone lacks) the ones on no
-remote-tracking branch. It prints nothing for commits that pass. A failure
+PRE_COMMIT_TO_REF under pre-commit or prek) and first refuses a push that
+would replace a remote ref's commit with one that does not build on it, as a
+forced push does: the remote's commit is not an ancestor of the commit
+pushed, or this clone lacks it. It names the ref and itos push, which rebases
+onto the remote's commits instead, runs nothing more and exits 1; a new
+branch is not refused. Then it verifies the commits each pushed ref adds, as
+itos verify does (messages, paths, range checks, commits.since left out): the
+ones after the remote's commit it replaces, else (a new branch) the ones on
+no remote-tracking branch. It prints nothing for commits that pass. A failure
 prints verify's report and how to fix the commits (git commit --amend for the
 last one, git rebase -i for an earlier one), runs nothing more and exits 1.
 Then it runs hooks.pre_push.per_base once per remote commit the push builds
-on, else hooks.pre_push.whole (a new branch, or a base this clone lacks);
-without hooks.pre_push, nothing. A deleted branch runs nothing. Exit 1 when
-a command fails.`,
+on, else hooks.pre_push.whole (a new branch); without hooks.pre_push,
+nothing. A deleted branch runs nothing. Exit 1 when a command fails.`,
 
 	"hook install": `Usage: itos hook install [--print] [--force]
 
@@ -1008,7 +1020,13 @@ run the real git, the first git on the PATH that is not itos, with the same
 arguments, streams and exit code; with no such git the shim exits 3. In a
 pinned repository git commit and git push are the pinned itos's; a pin, or
 ITOS_VERSION, older than 2.2.0, which has no git shim, runs the real git
-instead, after a line on stderr saying so.
+instead, after a line on stderr saying so. itos commit and itos push refuse
+--no-verify, commit's -n and -a, and a core.hooksPath set by -c, exit 2.
+
+In a repository itos manages, git add (or git stage) that stages more than
+the files it names is refused, exit 2, naming git add <path>, and nothing
+runs: -A, --all, -u or --update, or a folder, . among them. git add of files
+by their paths runs the real git, as everywhere else.
 
 install links the itos running as git in <folder> (default: the folder holding
 it) and says whether that folder comes before the real git on the PATH. It

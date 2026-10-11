@@ -19,8 +19,9 @@ package cli
 // made during the hook's unit tests moves HEAD, so nothing after the push
 // reads HEAD again; the commit named, waited for and counted is the one
 // pushed. Nothing forces the push: a force flag or a + refspec is
-// a usage error, and a push the remote refuses is reported, exit 1, never
-// retried. A fetch or a push that fails exits by the kind of the failure,
+// a usage error, as are --no-verify and a core.hooksPath set by git -c,
+// which skip or move the hooks (slice 128), and a push the remote refuses is
+// reported, exit 1, never retried. A fetch or a push that fails exits by the kind of the failure,
 // read from git's words (slice 90), never with git's own code: a remote out
 // of reach 75, one that is no repository 3, any other failure 70. A rebase that stops on a conflict in the work
 // registry says so in a person's words beside git's advice (slice 66): two
@@ -58,10 +59,14 @@ func readPushArgs(args []string) (noWait bool, err error) {
 	return noWait, refusePushArgs(rest)
 }
 
-// refusePushArgs refuses each argument, a forcing one saying why.
+// refusePushArgs refuses each argument, a forcing one and one that skips the
+// pre-push hook (--no-verify, slice 128) saying why.
 func refusePushArgs(args []string) error {
 	for _, arg := range args {
 		switch {
+		case noVerify(arg):
+			return usage("push refuses %s: it skips the pre-push hook, and the checks it runs; push without it, "+
+				"and fix what the hook reports", arg)
 		case arg == "-f" || strings.HasPrefix(arg, "--force") ||
 			(strings.HasPrefix(arg, "-") && !strings.HasPrefix(arg, "--") && strings.Contains(arg, "f")):
 			return usage("push never forces: %s would overwrite the remote's commits; itos push rebases onto them instead", arg)
@@ -123,6 +128,10 @@ func push(args []string, o Out) (int, error) {
 	noWait, err := readPushArgs(args)
 	if err != nil {
 		return 0, err
+	}
+	if hooksPathSet() {
+		return 0, usage("push refuses core.hooksPath set by git -c: it moves the hooks git runs, skipping the " +
+			"repository's own; push without it")
 	}
 	r := pushRun{o: o, git: o.Stdout, noWait: noWait}
 	if o.JSON {

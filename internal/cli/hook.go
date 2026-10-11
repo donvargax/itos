@@ -608,10 +608,11 @@ func tasksRule(cfg *config.Loaded, text string, o Out) (int, error) {
 var zeros = regexp.MustCompile(`^0+$`)
 
 // pushedRef is one ref a push sends, from git's `<local ref> <local sha>
-// <remote ref> <remote sha>` line: the commit it sends, and the remote's
-// commit it replaces when this clone has that one, else "" (a new branch, or
-// a remote commit the clone lacks).
-type pushedRef struct{ local, base string }
+// <remote ref> <remote sha>` line: the commit it sends, the remote's commit
+// it replaces when this clone has that one, else "" (a new branch, or a
+// remote commit the clone lacks), and the remote ref with the commit it is
+// at, "" for a new branch.
+type pushedRef struct{ local, base, ref, remote string }
 
 // pushedRefs are the refs a push sends, a deleted one (zero local SHA) left
 // out, since it sends nothing.
@@ -632,13 +633,45 @@ func pushedRefs(input string) []pushedRef {
 		if local == "" || zeros.MatchString(local) {
 			continue
 		}
-		ref := pushedRef{local: local}
-		if remote != "" && !zeros.MatchString(remote) && git.HasCommit(remote) {
-			ref.base = remote
+		ref := pushedRef{local: local, ref: field(2)}
+		if remote != "" && !zeros.MatchString(remote) {
+			ref.remote = remote
+			if git.HasCommit(remote) {
+				ref.base = remote
+			}
 		}
 		refs = append(refs, ref)
 	}
 	return refs
+}
+
+// rewrites is the first pushed ref that would replace a remote commit the
+// commit pushed does not build on (slice 128): one this clone lacks, or one
+// that is not an ancestor of the commit pushed; false when every ref is a
+// new branch or adds to the remote's commit. Such a push rewrites what
+// others may have built on, which only a forced push does.
+func rewrites(refs []pushedRef) (pushedRef, bool) {
+	for _, r := range refs {
+		if r.remote != "" && (r.base == "" || !git.Succeeds("merge-base", "--is-ancestor", r.base, r.local)) {
+			return r, true
+		}
+	}
+	return pushedRef{}, false
+}
+
+// refuseRewrite is the hook's refusal of a push that rewrites the remote's
+// ref: it names the ref and its commit, and itos push, which rebases onto the
+// remote's commits and never forces.
+func refuseRewrite(r pushedRef, o Out) int {
+	why := "a commit that does not build on it"
+	if r.base == "" {
+		why = "one that cannot build on it, since this clone lacks it"
+	}
+	fmt.Fprintf(o.Stderr, "itos: the push would replace %s's commit %s on the remote with %s, rewriting what "+
+		"others may have built on; it is refused, and hooks.pre_push's commands did not run.\n", r.ref, short(r.remote),
+		why)
+	fmt.Fprintln(o.Stderr, "Run itos push instead: it fetches the remote's commits and rebases yours onto them, and never forces.")
+	return ExitPolicy
 }
 
 // pushBases are the remote commits a push builds on (pre-push.ts's
@@ -766,7 +799,8 @@ func prePushInput() (string, error) {
 }
 
 // hookPrePush is `hook pre-push <remote> <url>` (pre-push.ts's prePush, and
-// slice 46): verify over what each pushed ref adds, then, when every commit
+// slice 46): a push that would rewrite a remote ref refused first (slice
+// 128, rewrites), then verify over what each pushed ref adds, then, when every commit
 // passes, the commands of hooks.pre_push, per_base once per remote base with
 // {base} filled in, else whole, each printed and run with the hook's
 // streams; without hooks.pre_push (or a hooks section), the verify alone,
@@ -776,11 +810,14 @@ func hookPrePush(o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	refs := pushedRefs(input)
+	if r, ok := rewrites(refs); ok {
+		return refuseRewrite(r, o), nil
+	}
 	cfg, err := config.Load(config.Path())
 	if err != nil {
 		return 0, err
 	}
-	refs := pushedRefs(input)
 	if code, err := verifyPush(cfg, refs, o); code != 0 || err != nil {
 		return code, err
 	}

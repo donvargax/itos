@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -127,5 +128,24 @@ func TestPushAHookRefusesExits1(t *testing.T) {
 	code, stdout, stderr := run("push", "--no-wait")
 	if code != ExitPolicy {
 		t.Fatalf("exit %d, want 1\n%s%s", code, stdout, stderr)
+	}
+}
+
+// git push --no-verify, or git's abbreviation of it, is refused naming it
+// and the hook it skips (slice 128); a core.hooksPath git -c sets is refused
+// before anything is fetched.
+func TestPushRefusesSkippingTheHooks(t *testing.T) {
+	for _, arg := range []string{"--no-verify", "--no-veri"} {
+		_, err := readPushArgs([]string{"--no-wait", arg})
+		if ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), arg+": it skips the pre-push hook") {
+			t.Errorf("readPushArgs(%s) = %v", arg, err)
+		}
+	}
+	t.Setenv("GIT_CONFIG_COUNT", "1")
+	t.Setenv("GIT_CONFIG_KEY_0", "core.hooksPath")
+	t.Chdir(t.TempDir())
+	code, err := push(nil, Out{Stdout: io.Discard, Stderr: io.Discard})
+	if code != 0 || ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), "core.hooksPath") {
+		t.Errorf("push under git -c core.hooksPath = %d, %v", code, err)
 	}
 }

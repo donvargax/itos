@@ -259,7 +259,13 @@
 // lint's 100 characters, and the content, <Key>: <text> in the config's
 // order, then BREAKING-CHANGE: <text>. readGitArgs reads git's own arguments
 // as git reads them (a valued option's value skipped, so -m --amend is a
-// message): the -m messages, the -F file, --amend and --no-edit. lacking
+// message): the -m messages, the -F file, --amend and --no-edit, and the
+// first option itos commit refuses (slice 128): --no-verify or -n, which skip
+// the hooks, or -a or --all, which stage every change to a tracked file, each
+// in a cluster too (-am) and --no-verify as git abbreviates it.
+// refuseCommitArgs refuses it before anything else, as it does a
+// core.hooksPath git -c sets (hooksPathSet: the shim's GIT_CONFIG_KEY_<n>, or
+// git's GIT_CONFIG_PARAMETERS), a usage error, exit 2. lacking
 // refuses up front what the hook would: from the message itos can read (-m,
 // -F <file>, or HEAD's for --amend --no-edit; nothing for the editor's or -F
 // -), its type's required footers that neither it nor the flags give
@@ -290,8 +296,9 @@
 // # itos push
 //
 // push (push.go) refuses every argument but --no-wait (readPushArgs): a
-// force flag or a + refspec as push never forces, anything else as push
-// takes no arguments, both usage errors. Outside a repository it exits 3.
+// force flag or a + refspec as push never forces, --no-verify as it skips the
+// pre-push hook (slice 128), anything else as push takes no arguments, all
+// usage errors, as is a core.hooksPath git -c sets (hooksPathSet). Outside a repository it exits 3.
 // ready refuses (exit 1) a rebase in progress, a conflict left and tracked
 // changes, then a detached HEAD; with no upstream a missing origin exits 3.
 // fetch runs git fetch --quiet --no-tags <remote> <ref> and takes
@@ -373,7 +380,11 @@
 // hook pre-push reads git's ref lines, or under pre-commit or prek the line
 // their environment gives, as pushedRefs: each ref's local commit and the
 // remote's commit it replaces when this clone has it, a deleted ref left
-// out. It verifies first (verifyPush): verifier.over on each distinct
+// out. First it refuses a push that rewrites the remote (slice 128,
+// rewrites): a ref whose remote commit this clone lacks, or that is not an
+// ancestor of the commit pushed (git merge-base --is-ancestor), as only a
+// forced push replaces; refuseRewrite names the ref and itos push, exit 1,
+// before the config is read and with no command run. It verifies next (verifyPush): verifier.over on each distinct
 // pushedRange, <remote sha>..<local sha>, or the unpushed commits up to the
 // local one when there is no remote commit to compare with, each run's
 // report written to a buffer, so a push whose commits pass prints nothing.

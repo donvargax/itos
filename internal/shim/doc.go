@@ -34,6 +34,18 @@
 // it is set, since an exec runs no exit hook to write them (T-124); elsewhere a child with the terminal's streams, an interrupt left
 // to it and its exit code handed back.
 //
+// In a repository itos manages, git add and git stage that stage more than
+// the files they name are the shim's own to refuse (slice 128, add.go), exit
+// 2, saying to name the files with git add <path>, and no git runs: -A, --all,
+// --no-ignore-removal, -u or --update, as a cluster's letter too (-Av) and as
+// git abbreviates the long ones, or a path that is a folder, . among them,
+// before -- or after it. sweeping reads git add's options as git reads them,
+// a valued option's value (-U 3, --chmod +x) neither an option nor a path. A
+// file named by its path, one that is not there, and every git add elsewhere
+// run the real git. git commit's and git push's refusals (--no-verify, -n,
+// -a, a -c that sets core.hooksPath) are itos commit's and itos push's, which
+// read the -c the shim hands on in GIT_CONFIG_KEY_<n>.
+//
 // Of git's options before the command, -C <path> and -c <name>=<value> are
 // honoured, since tools write git -C <dir> commit and git -c <key>=<value>
 // commit (an editor's, say) for an ordinary commit: the shim moves to the

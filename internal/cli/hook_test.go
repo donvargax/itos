@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"io"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -130,5 +132,63 @@ func TestMergeHook(t *testing.T) {
 	}
 	if code, out := hook("chore: merge the topic\n"); code != 0 {
 		t.Errorf("a chore merge with a change of its own: exit %d\n%s", code, out)
+	}
+}
+
+// A pushed ref rewrites the remote's when the remote commit it replaces is
+// not an ancestor of the commit pushed, or is one this clone lacks (slice
+// 128); a ref that adds to the remote's commit, or makes a new branch, does
+// not. The hook refuses the first that rewrites, naming the ref and itos
+// push, before it reads the config or runs anything.
+func TestRewrites(t *testing.T) {
+	gitConfigRepo(t, "version: 1\n")
+	for _, kv := range [][2]string{{"GIT_AUTHOR_NAME", "itos"}, {"GIT_COMMITTER_NAME", "itos"},
+		{"GIT_AUTHOR_EMAIL", "itos@example.com"}, {"GIT_COMMITTER_EMAIL", "itos@example.com"}} {
+		t.Setenv(kv[0], kv[1])
+	}
+	run := func(args ...string) string {
+		t.Helper()
+		out, err := exec.Command(git.Bin(), args...).Output()
+		if err != nil {
+			t.Fatalf("git %s: %v", strings.Join(args, " "), err)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	run("commit", "-q", "--allow-empty", "-m", "a")
+	a := run("rev-parse", "HEAD")
+	run("commit", "-q", "--allow-empty", "-m", "b")
+	b := run("rev-parse", "HEAD")
+	c := run("commit-tree", "HEAD^{tree}", "-p", a, "-m", "c")
+	zero := strings.Repeat("0", 40)
+	lacked := strings.Repeat("e", 40)
+	line := func(local, remote string) string { return "HEAD " + local + " refs/heads/main " + remote + "\n" }
+	for input, want := range map[string]string{
+		line(b, a):                     "",
+		line(b, zero):                  "",
+		line(b, b):                     "",
+		line(c, b):                     b,
+		line(b, a) + line(b, lacked):   lacked,
+		"(delete) " + zero + " x " + a: "",
+	} {
+		r, ok := rewrites(pushedRefs(input))
+		if ok != (want != "") || r.remote != want {
+			t.Errorf("rewrites(%q) = %+v, %v; want %q", input, r, ok, want)
+		}
+	}
+
+	t.Setenv("PRE_COMMIT_TO_REF", c)
+	t.Setenv("PRE_COMMIT_FROM_REF", b)
+	t.Setenv("PRE_COMMIT_REMOTE_BRANCH", "refs/heads/main")
+	var stderr strings.Builder
+	code, err := hookPrePush(Out{Stdout: io.Discard, Stderr: &stderr})
+	if err != nil || code != ExitPolicy || !strings.Contains(stderr.String(), "refs/heads/main's commit "+b[:7]) ||
+		!strings.Contains(stderr.String(), "a commit that does not build on it") || !strings.Contains(stderr.String(), "Run itos push") {
+		t.Errorf("hook pre-push of a rewrite = %d, %v:\n%s", code, err, stderr.String())
+	}
+	t.Setenv("PRE_COMMIT_FROM_REF", lacked)
+	stderr.Reset()
+	if code, _ := hookPrePush(Out{Stdout: io.Discard, Stderr: &stderr}); code != ExitPolicy ||
+		!strings.Contains(stderr.String(), "since this clone lacks it") {
+		t.Errorf("hook pre-push over a commit the clone lacks = %d:\n%s", code, stderr.String())
 	}
 }

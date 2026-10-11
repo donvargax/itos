@@ -7,9 +7,10 @@
 # the header lint, if any, built in or a delegate, and the footer rules,
 # always); `hook pre-push` (git's ref lines on stdin, or pre-commit's
 # environment: once per remote base, else the whole run, and nothing for a
-# deleted branch), after verifying the commits each pushed ref adds, printing
-# nothing for those that pass and refusing the push, running no command, for
-# one that fails.
+# deleted branch), after refusing a push that would replace a remote commit
+# not in the history of the commit pushed, or one the clone lacks (slice 128),
+# and verifying the commits each pushed ref adds, printing nothing for those
+# that pass and refusing the push, running no command, for one that fails.
 git:
   - commit: "docs: start"
     files: { README.md: "scratch\n" }
@@ -744,13 +745,22 @@ cases:
     stdout: |
       $ echo every test
       every test
-  - name: pre-push runs the whole command for a remote commit the clone lacks
+  - name: pre-push refuses a push over a remote commit the clone lacks, running no command
     argv: [hook, pre-push, upstream, git@example.invalid:x.git]
     stdin: "refs/heads/main {{sha.more}} refs/heads/main 1111111111111111111111111111111111111111\n"
-    exit: 0
-    stdout: |
-      $ echo every test
-      every test
+    exit: 1
+    stdout: ""
+    stderr: |
+      itos: the push would replace refs/heads/main's commit 1111111 on the remote with one that cannot build on it, since this clone lacks it, rewriting what others may have built on; it is refused, and hooks.pre_push's commands did not run.
+      Run itos push instead: it fetches the remote's commits and rebases yours onto them, and never forces.
+  - name: pre-push refuses a push that replaces the remote's commit with one not built on it, running no command
+    argv: [hook, pre-push, upstream, git@example.invalid:x.git]
+    stdin: "refs/heads/main {{sha.base}} refs/heads/main {{sha.more}}\n"
+    exit: 1
+    stdout: ""
+    stderr: |
+      itos: the push would replace refs/heads/main's commit {{short.more}} on the remote with a commit that does not build on it, rewriting what others may have built on; it is refused, and hooks.pre_push's commands did not run.
+      Run itos push instead: it fetches the remote's commits and rebases yours onto them, and never forces.
   - name: pre-push runs nothing for a deleted branch
     argv: [hook, pre-push, upstream, git@example.invalid:x.git]
     stdin: "(delete) 0000000000000000000000000000000000000000 refs/heads/old {{sha.base}}\n"

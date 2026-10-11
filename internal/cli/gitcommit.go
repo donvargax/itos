@@ -24,6 +24,13 @@ package cli
 // the built-in header lint's limit before git sees it (slice 58, wrapBody),
 // so a commit is not refused for a line itos can break; the editor's
 // message is the hook's to judge.
+//
+// What would commit past the gates is refused before anything else, exit 2
+// (slice 128, refuseCommitArgs): --no-verify and -n, which skip the hooks, a
+// core.hooksPath set by git -c, which moves them, and -a and --all, which
+// stage every change to a tracked file, someone else's among them. git's own
+// reading decides what is an option: a value (-m -n), a cluster (-am) and
+// anything after "--" are read as git reads them.
 
 import (
 	"errors"
@@ -201,14 +208,37 @@ var (
 // gitArgs are what itos reads of git commit's arguments, before any "--":
 // the messages -m gives and the file -F gives, each with where it sits among
 // the arguments, whether the commit amends HEAD (the last of --amend and
-// --no-amend winning) and whether --no-edit keeps the message it starts with.
+// --no-amend winning), whether --no-edit keeps the message it starts with,
+// and the first option itos commit refuses (slice 128), "" when none:
+// --no-verify or -n, which skip the hooks, or -a or --all, which stage every
+// change to a tracked file.
 type gitArgs struct {
 	messages      []string
 	messagesAt    []valueAt
 	file          string
 	fileAt        valueAt
 	amend, noEdit bool
+	refused       string
 }
+
+// refuse keeps the option as the first refused, when none is yet.
+func (g *gitArgs) refuse(option string) {
+	if g.refused == "" {
+		g.refused = option
+	}
+}
+
+// abbreviates is whether arg is the long option full, or an abbreviation of
+// it git takes, at least min characters long: git reads any unambiguous start
+// of a long option as the option, so --no-veri is --no-verify.
+func abbreviates(arg, full string, min int) bool {
+	return len(arg) >= min && strings.HasPrefix(full, arg)
+}
+
+// noVerify is whether the argument is --no-verify, as git commit and git
+// push read it: the option, or its start down to --no-veri, the shortest
+// that is no other option's.
+func noVerify(arg string) bool { return abbreviates(arg, "--no-verify", len("--no-veri")) }
 
 // valueAt is where an option's value sits among git's arguments: the
 // argument's index, -1 when there is none, and what comes before the value
@@ -239,6 +269,8 @@ func readGitArgs(args []string) gitArgs {
 			g.amend = arg == "--amend"
 		case arg == "--no-edit", arg == "--edit":
 			g.noEdit = arg == "--no-edit"
+		case noVerify(arg), arg == "--all":
+			g.refuse(arg)
 		case strings.HasPrefix(arg, "--") && slices.Contains(gitValued, name):
 			at := valueAt{index: i, prefix: name + "="}
 			if !given {
@@ -266,6 +298,8 @@ func (g *gitArgs) readCluster(cluster string, index int, next func() (string, va
 		switch {
 		case c == 'e':
 			g.noEdit = false
+		case c == 'a' || c == 'n':
+			g.refuse("-" + string(c))
 		case c == 'u' || c == 'S':
 			return
 		case strings.IndexByte(gitShortValued, c) >= 0:
@@ -403,6 +437,27 @@ func wrapBody(args []string, g gitArgs, limit int, keys []string) ([]string, str
 	return args, f.Name(), nil
 }
 
+// refuseCommitArgs refuses, before anything else, what would commit past the
+// gates (slice 128): an option that skips the hooks (--no-verify, -n), a
+// core.hooksPath set by git -c (hooksPathSet), which moves the hooks git
+// runs, and an option that stages every change to a tracked file (-a,
+// --all), someone else's work in progress among them. A usage error, exit 2,
+// naming what is refused; nothing is committed.
+func refuseCommitArgs(g gitArgs) error {
+	switch {
+	case g.refused == "-a" || g.refused == "--all":
+		return usage("commit refuses %s: it stages every change to a tracked file, someone else's work in progress "+
+			"among them; stage your own files by path (git add <path>), then commit without it", g.refused)
+	case g.refused != "":
+		return usage("commit refuses %s: it skips git's hooks, and the checks they run; commit without it, and fix "+
+			"what the hooks report", g.refused)
+	case hooksPathSet():
+		return usage("commit refuses core.hooksPath set by git -c: it moves the hooks git runs, skipping the " +
+			"repository's own; commit without it")
+	}
+	return nil
+}
+
 // trailers are the footers as git commit's own --trailer arguments.
 func trailers(lines []string) []string {
 	var args []string
@@ -430,12 +485,15 @@ func gitCommit(args []string, o Out) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	g := readGitArgs(flags.git)
+	if err := refuseCommitArgs(g); err != nil {
+		return 0, err
+	}
 	links, content, err := flags.footerLines(cfg, missing)
 	if err != nil {
 		return 0, err
 	}
 	stealth := config.IsStealth(config.Path())
-	g := readGitArgs(flags.git)
 	if cfg != nil {
 		if found := lacking(cfg, g, links, content, stealth); len(found) > 0 {
 			return refuseCommit(cfg, found, o)

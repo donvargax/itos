@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"io"
 	"os"
 	"path/filepath"
 	"slices"
@@ -47,5 +48,77 @@ func TestWrapBody(t *testing.T) {
 	defer os.Remove(written)
 	if text, _ := os.ReadFile(written); string(text) != wrapped+"\n" {
 		t.Errorf("the written message is %q", text)
+	}
+}
+
+// The options itos commit refuses (slice 128) are read as git reads them: a
+// cluster's letters (-am, -an), git's abbreviation of --no-verify, never a
+// valued option's value (-m -n, -mn, --message --no-verify, -uno) nor what
+// comes after "--"; the first refused is the one named.
+func TestReadGitArgsRefuses(t *testing.T) {
+	for args, want := range map[string]string{
+		"--no-verify -m x":       "--no-verify",
+		"--no-veri":              "--no-veri",
+		"-n -m x":                "-n",
+		"-a":                     "-a",
+		"-am x":                  "-a",
+		"-na":                    "-n",
+		"-an":                    "-a",
+		"-q --all":               "--all",
+		"-m x -- --no-verify":    "",
+		"-m -n":                  "",
+		"-mn":                    "",
+		"--message --no-verify":  "",
+		"--message=-a":           "",
+		"-uno":                   "",
+		"-Sn":                    "",
+		"--no-ver":               "",
+		"--allow-empty --verify": "",
+	} {
+		if got := readGitArgs(strings.Fields(args)).refused; got != want {
+			t.Errorf("readGitArgs(%q).refused = %q, want %q", args, got, want)
+		}
+	}
+}
+
+// A refused option is a usage error naming it and why; a core.hooksPath that
+// git -c sets, handed on by the shim or by git, in any case, is refused too.
+func TestRefuseCommitArgs(t *testing.T) {
+	t.Setenv("ITOS_CONFIG", "")
+	t.Chdir(t.TempDir())
+	for _, name := range []string{"GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS"} {
+		t.Setenv(name, "")
+	}
+	for refused, says := range map[string]string{"-a": "git add <path>", "--all": "stages every change",
+		"-n": "skips git's hooks", "--no-verify": "skips git's hooks"} {
+		err := refuseCommitArgs(gitArgs{refused: refused})
+		if ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), refused+":") || !strings.Contains(err.Error(), says) {
+			t.Errorf("refusing %s: %v", refused, err)
+		}
+	}
+	if err := refuseCommitArgs(gitArgs{}); err != nil {
+		t.Errorf("nothing refused: %v", err)
+	}
+	t.Setenv("GIT_CONFIG_COUNT", "2")
+	t.Setenv("GIT_CONFIG_KEY_0", "user.name")
+	t.Setenv("GIT_CONFIG_KEY_1", "Core.HooksPath")
+	if err := refuseCommitArgs(gitArgs{}); ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), "core.hooksPath") {
+		t.Errorf("git -c core.hooksPath through the shim: %v", err)
+	}
+	if code, err := gitCommit([]string{"-m", "chore: x"}, Out{Stdout: io.Discard, Stderr: io.Discard}); code != 0 ||
+		ExitCode(err) != ExitUsage {
+		t.Errorf("gitCommit under git -c core.hooksPath = %d, %v", code, err)
+	}
+	t.Setenv("GIT_CONFIG_KEY_1", "core.editor")
+	if hooksPathSet() {
+		t.Error("no core.hooksPath among the shim's keys")
+	}
+	for params, want := range map[string]bool{"'core.hooksPath'='/x'": true, "'core.hookspath=/x'": true,
+		"'user.name'='core.hooksPath'": false, "'a'='x' 'CORE.HOOKSPATH'='y'": true,
+		"'a'='x '\\''core.hooksPath='": false, "": false} {
+		t.Setenv("GIT_CONFIG_PARAMETERS", params)
+		if got := hooksPathSet(); got != want {
+			t.Errorf("GIT_CONFIG_PARAMETERS %q: hooksPathSet = %v", params, got)
+		}
 	}
 }

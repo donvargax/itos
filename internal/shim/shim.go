@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -30,7 +31,9 @@ func Named(arg0 string) bool {
 // manages.
 var Commands = []string{"commit", "push"}
 
-// Main runs git's command line, the arguments after git. When the command is
+// Main runs git's command line, the arguments after git. A git add (or git
+// stage) here that stages more than the files it names (sweeping) is
+// refused, exit 2, saying to name them, and nothing runs. When the command is
 // itos's here, it moves to the folder -C names, sets -c for every git itos
 // runs and ITOS_GIT to the real git, and gives the itos arguments to run
 // (`git-shim run -- <command> <args>…`), for the launcher and the command
@@ -50,8 +53,14 @@ func Main(args []string, stderr io.Writer) (itos []string, code int, done bool) 
 		}
 		real = p
 	}
-	if !under {
-		if line, ok := parse(args); ok && itosCommand(line.name) && !namedRepository() && config.Managed(line.dir) {
+	if line, ok := parse(args); ok && !under && !namedRepository() {
+		switch {
+		case slices.Contains(Staging, line.name):
+			if arg, what := sweeping(line.dir, line.rest); arg != "" && config.Managed(line.dir) {
+				fmt.Fprintln(stderr, refuseAdd(line.name, arg, what))
+				return nil, 2, true
+			}
+		case itosCommand(line.name) && config.Managed(line.dir):
 			back, err := line.enter()
 			if err != nil {
 				fmt.Fprintf(stderr, "itos: git -C %s: %s\n", line.dir, err)

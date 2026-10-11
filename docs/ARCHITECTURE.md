@@ -59,7 +59,8 @@ itos ──────────────────┴─> cmd/itos ─>
 1. **The git shim** (`internal/shim`): started as `git` through the link
    `itos git-shim install` makes, itos passes every git command to the real
    git, except `git commit` and `git push` in a repository itos manages, which
-   become `itos git-shim run`.
+   become `itos git-shim run`, and a `git add` there that stages more than the
+   files it names (`-A`, `-u`, a folder), which it refuses.
 2. **The real git** (`internal/git`): `git.Export` sets `ITOS_GIT` so nothing
    the run starts reaches the shim again.
 3. **The launcher** (`internal/launch`): picks the version to run
@@ -357,8 +358,9 @@ git runs them beside whatever `core.hooksPath` holds. `hooks.bin` is
   lint (built in here) and always the footer rules; then the static checks of
   the tasks the `Task:` footer names, up to each task's first late one, a
   failure refusing the commit only once the task's item is done.
-- **pre-push**: the commits each pushed ref adds, verified as `itos verify`
-  does, then `hooks.pre_push`: `tools/bin/go-unit-tests <remote sha>` per
+- **pre-push**: a push that would replace a remote commit the commit pushed
+  does not build on refused, as only a forced push does; the commits each
+  pushed ref adds, verified as `itos verify` does, then `hooks.pre_push`: `tools/bin/go-unit-tests <remote sha>` per
   pushed ref, or `--all` with no remote commit to compare with. The scenarios
   and the task checks are CI's.
 

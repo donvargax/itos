@@ -23,9 +23,11 @@ package cli
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/git"
@@ -216,3 +218,22 @@ func declareHooks(root, bin string, print, force bool, o Out, say func(string)) 
 	}
 	return code, nil
 }
+
+// hooksPathSet is whether git's command line sets core.hooksPath for every
+// git this itos runs (slice 128): git -c core.hooksPath=<folder>, which the
+// git shim hands on in GIT_CONFIG_KEY_<n>, or a git that started itos in
+// GIT_CONFIG_PARAMETERS. The key is read as git reads it, in any case.
+func hooksPathSet() bool {
+	n, _ := strconv.Atoi(os.Getenv("GIT_CONFIG_COUNT"))
+	for i := 0; i < n; i++ {
+		if strings.EqualFold(os.Getenv("GIT_CONFIG_KEY_"+strconv.Itoa(i)), "core.hooksPath") {
+			return true
+		}
+	}
+	return hooksPathParameter.MatchString(os.Getenv("GIT_CONFIG_PARAMETERS"))
+}
+
+// hooksPathParameter finds core.hooksPath among GIT_CONFIG_PARAMETERS's
+// entries, each 'key'='value' or 'key=value', shell-quoted and separated by
+// spaces, so a quote inside a value is never one an entry starts with.
+var hooksPathParameter = regexp.MustCompile(`(?i)(^|\s)'core\.hookspath['=]`)

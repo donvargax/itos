@@ -1,10 +1,14 @@
 package shim
 
 import (
+	"os"
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v8/internal/git"
 )
 
 func TestNamed(t *testing.T) {
@@ -35,6 +39,83 @@ func TestParse(t *testing.T) {
 	} {
 		if l, ok := parse(args); ok {
 			t.Errorf("parse(%q) = %+v, want not the shim's", args, l)
+		}
+	}
+}
+
+// git add's arguments that stage more than the files they name (slice 128),
+// read as git reads them: -A, -u and their long forms and abbreviations, in a
+// cluster too, and a folder, . among them, after "--" too; never a valued
+// option's value, a file, a path that is not there, or --no-all.
+func TestSweeping(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(dir, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "notes.md"), nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for args, want := range map[string]string{
+		"-A":                        "-A",
+		"-vA notes.md":              "-A",
+		"--all":                     "--all",
+		"--al":                      "--al",
+		"--no-ignore-removal":       "--no-ignore-removal",
+		"-u":                        "-u",
+		"-nu":                       "-u",
+		"--update":                  "--update",
+		"--up":                      "--up",
+		".":                         ".",
+		"notes.md sub":              "sub",
+		"-- sub":                    "sub",
+		"notes.md":                  "",
+		"-- -A":                     "",
+		"gone.md":                   "",
+		"--no-all notes.md":         "",
+		"-v -f notes.md":            "",
+		"-U sub notes.md":           "",
+		"-U3 notes.md":              "",
+		"--chmod +x notes.md":       "",
+		"--chmod=+x notes.md":       "",
+		"--pathspec-from-file sub":  "",
+		"--inter-hunk-context 3 -p": "",
+		"--a":                       "",
+	} {
+		arg, what := sweeping(dir, strings.Fields(args))
+		if arg != want || (want == "") != (what == "") {
+			t.Errorf("sweeping(%q) = %q, %q; want %q", args, arg, what, want)
+		}
+	}
+	if _, what := sweeping(dir, []string{"sub"}); what != "everything in the folder sub" {
+		t.Errorf("a folder stages %q", what)
+	}
+}
+
+// In a repository itos manages, git add -A and git stage of a folder are
+// refused, exit 2, naming git add <path>, and no git runs.
+func TestMainRefusesSweepingStages(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{git.EnvGit, "GIT_DIR", "GIT_WORK_TREE", "ITOS_CONFIG"} {
+		t.Setenv(name, "")
+		os.Unsetenv(name)
+	}
+	// A git folder of the repository's, for -C sub to find its top by.
+	if err := os.MkdirAll(filepath.Join(dir, ".git"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(dir, "sub"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "itos.yaml"), []byte("version: 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(dir)
+	for _, args := range [][]string{{"add", "-A"}, {"-C", "sub", "stage", "."}} {
+		var stderr strings.Builder
+		itos, code, done := Main(args, &stderr)
+		if itos != nil || code != 2 || !done || !strings.Contains(stderr.String(), "git add <path>") ||
+			!strings.Contains(stderr.String(), "git "+args[len(args)-2]+" "+args[len(args)-1]+" would stage") {
+			t.Errorf("Main(%q) = %q, %d, %v:\n%s", args, itos, code, done, stderr.String())
 		}
 	}
 }

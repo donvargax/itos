@@ -5,8 +5,9 @@ Feature: The pre-push hook verifies the commits it pushes
   longer the person's to amend. itos hook pre-push now verifies the commits
   each pushed ref adds, as itos verify does (their messages, their paths and
   the range checks, commits.since left out): the ones after the remote's
-  commit the ref replaces, or, for a new branch or a remote commit the clone
-  lacks, the ones on no remote-tracking branch. A failure refuses the push,
+  commit the ref replaces, or, for a new branch, the ones on no
+  remote-tracking branch; a push that would replace a remote commit it does
+  not build on is refused before that (slice 128). A failure refuses the push,
   prints verify's report and how to fix the commits (git commit --amend for
   the last one, git rebase -i for an earlier one), and runs none of
   hooks.pre_push's commands; only when every commit passes do they run, as
@@ -76,7 +77,7 @@ Feature: The pre-push hook verifies the commits it pushes
   # an ancestor of the commit pushed, or that the clone lacks, naming itos
   # push, which rebases instead, and none of hooks.pre_push's commands runs.
   # A new branch has no remote commit and is judged as before (@ID-PREPUSH-04).
-  @ID-PREPUSH-06 @slice-128 @wip
+  @ID-PREPUSH-06 @slice-128
   Scenario: A forced push that would replace a remote commit is refused, and the remote keeps it
     Given the remote has gained the commit "docs: someone else's work" touching "OTHER.md"
     And the clone has fetched the remote
