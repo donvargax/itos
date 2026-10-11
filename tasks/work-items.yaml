@@ -8079,3 +8079,18 @@ items:
       Upgrading itos-template on this machine is the first step.
     refs: [docs/decisions, itos.yaml, go.mod]
     tags: [release, docs]
+
+  - id: p1-work-merge
+    title: work merge folds an idea into another item, keeping its why
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-11: the coordinator folded four ideas into slice-129 with work drop, which drops each
+      why, so the implementing agent had to recover their detail from git show of the drop commit
+      (work show printed titles alone). A merge that appends each folded item's why to the target
+      (an idea's why, or a slice's or task's spec as a note in the brief) and records the merge
+      would keep it where the agent looks.
+    tags: [work]
