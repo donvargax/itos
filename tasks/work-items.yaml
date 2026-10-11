@@ -8085,7 +8085,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [p1-typed-items]
     kind: idea
     why: >
       2026-10-11: the coordinator folded four ideas into slice-129 with work drop, which drops each
