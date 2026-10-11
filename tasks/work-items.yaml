@@ -7353,24 +7353,9 @@ items:
     title: The push proof judges changed lines, covered by units, features or the corpus
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Was p1-proof-changed-lines-any-test.
-      q-57 (2026-10-10): --fail-uncovered judges only the statements a range adds or changes, and a
-      statement counts as covered when any test runs it. A read-only check found the features
-      already count (itos-cc#14) and the corpus does not, and that the scope is whole functions.
-      Line scope was filed on itos-cc as itos-cc#33. Once released, this repository bumps
-      itos-cc's pin in tools/bin/pinned, sets the line-scope flag in itos.yaml's proof step, and
-      amends ADR-0044's 'in the functions an item changes'. p1-push-proof-stable-site mostly goes
-      with it. The corpus is not this item's: itos-cc#34 (extra coverage sources) closed on
-      2026-10-11, because coverage alone would turn the corpus-only sites from uncovered into
-      survivors, so the corpus joins as a listed suite that judges mutants, p1-corpus-listed-suite.
-
-      Seen again 2026-10-11: slice-120 deleted one line of initWrite and paid for its 21 old
-      uncovered statements, then restructured the function inside its feat to reach a branch no test
-      could, the reshaping q-57 names.
 
   - id: p1-corpus-listed-suite
     title: The conformance corpus is an itos-cc listed suite, so mutation checks count and judge what it reaches
