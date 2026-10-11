@@ -7703,3 +7703,21 @@ items:
       settings itself. Offline or another host: one line saying it could not tell.
     refs: [internal/cli/init.go, internal/providers]
     tags: [init]
+
+  - id: p3-evaluate-cupcake
+    title: Evaluate Cupcake against itos's guard for the harness-side rules
+    phase: 3
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's interest (2026-10-11), for later: Cupcake (github.com/eqtylab/cupcake, Apache 2.0,
+      open source since 2025-12-10) is a policy layer on agent hooks, Rego compiled to Wasm,
+      reaching Claude Code, Cursor, OpenCode and Factory. Like the guard it judges a command's text
+      before it runs, so neither guarantees an agent cannot reach /usr/bin/git: the server's branch
+      protection and an OS boundary (anti-container) do that. Weigh: how it parses shell (the guard
+      uses mvdan.cc/sh), installing beyond Nix, the hook events it uses, its upkeep, and the guard's
+      rules in Rego; then retire the guard, keep it, or bring Cupcake into anti-container's design.
+    refs: [internal/guard/guard.go, docs/plans/anti-container.md]
+    tags: [guard]
