@@ -6959,6 +6959,11 @@ items:
       (docs and registry alike), not only registry-only ones, or have draft promote run drafted
       closes first.
 
+      And 2026-10-11 again: work done T-153 refused because HEAD's run was red on slice-126's
+      Windows test, though T-153's own covering run (38152264449) was green. work done should judge
+      the newest run covering the item's own commits, not HEAD's, when the commits after them are
+      not the item's.
+
   - id: p1-test-commits-own-mutation-exceptions
     title: A test commit may touch itos-cc.yaml and .metrics/mutate/, so a killed mutant and its exception land together
     phase: 1
