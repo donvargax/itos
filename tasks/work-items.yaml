@@ -921,14 +921,9 @@ items:
     title: Agent rules a command can decide, moved into itos
     phase: 1
     owner: donvargax
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      A rule moves from the agent instructions into itos once a command can decide it. Two
-      candidates: pre-push refusing a non-fast-forward push (AGENTS.md, "Force-push, in any form"),
-      and a commit refusing paths the config marks as someone's work in progress (AGENTS.md, "Stage
-      your own work"). The instructions then point to the check.
     tags: [hooks]
 
   # What the coordinator and the agents did by hand, the same way each time, in the session that
