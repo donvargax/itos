@@ -10,8 +10,9 @@
 // a commit of the remote's main by its header (bug 24's fake GitHub too), and
 // an origin that cannot be reached or is no repository (slice 90); a take
 // of an item in a commit no remote has that touches only the registry
-// (slice 93); and the real git run in the clone, past any shim, its hooks
-// running (slice 128).
+// (slice 93); the real git run in the clone, past any shim, its hooks
+// running (slice 128); and annotated tags and another branch of the clone,
+// and the tags and branches the remote has afterwards (slice 131).
 package features
 
 import (
@@ -51,6 +52,13 @@ func initializePushSteps(sc *godog.ScenarioContext, w *world) {
 		return w.git("fetch", "-q", "origin")
 	})
 	sc.Step(`^the clone has the commit "([^"]*)" touching "([^"]*)"$`, w.cloneCommits)
+	sc.Step(`^the clone has the annotated tag "([^"]*)" on its HEAD$`, func(tag string) error {
+		return w.git("tag", "-a", "-m", "Release "+tag+".", tag, "HEAD")
+	})
+	sc.Step(`^the clone has the branch "([^"]*)" with the commit "([^"]*)" touching "([^"]*)"$`, w.cloneBranchCommits)
+	sc.Step(`^the remote has the tag "([^"]*)"$`, w.remoteHasTag)
+	sc.Step(`^the remote does not have the tag "([^"]*)"$`, w.remoteLacksTag)
+	sc.Step(`^the remote has the branch "([^"]*)" with "([^"]*)"$`, w.remoteBranchHas)
 	sc.Step(`^the clone's "([^"]*)" has an uncommitted change$`, w.uncommittedChange)
 	sc.Step(`^the clone's "([^"]*)" still has its uncommitted change$`, w.stillUncommitted)
 	sc.Step(`^the remote's branch ends with "([^"]*)" then "([^"]*)", with no merge commit$`, w.remoteEndsWith)
@@ -270,6 +278,64 @@ func (w *world) cloneCommits(subject, path string) error {
 		return err
 	}
 	return w.git("commit", "-q", "--no-verify", "-m", subject, "--", path)
+}
+
+// A branch of the clone made at its HEAD with one commit of that one file,
+// as cloneCommits makes it, the clone left on the branch it was on (slice
+// 131): a local branch other than the one checked out.
+func (w *world) cloneBranchCommits(branch, subject, path string) error {
+	if err := w.git("checkout", "-q", "-b", branch); err != nil {
+		return err
+	}
+	if err := w.cloneCommits(subject, path); err != nil {
+		return err
+	}
+	return w.git("checkout", "-q", "-")
+}
+
+// What the ref names in the repository in dir, "" when it names nothing.
+func (w *world) refIn(dir, ref string) string {
+	cmd := exec.Command(git.Bin(), "rev-parse", "--verify", "--quiet", ref)
+	cmd.Dir = dir
+	cmd.Env = w.env()
+	out, _ := cmd.Output()
+	return strings.TrimSpace(string(out))
+}
+
+// The remote has the tag, the clone's own tag object (slice 131): the one
+// pushed, not another of the name.
+func (w *world) remoteHasTag(tag string) error {
+	ref := "refs/tags/" + tag
+	theirs, ours := w.refIn(w.remote(), ref), w.refIn(w.dir, ref)
+	if theirs == "" {
+		return fmt.Errorf("the remote has no tag %q\n%s", tag, w.report())
+	}
+	if theirs != ours {
+		return fmt.Errorf("the remote's tag %q is %s, not the clone's %s\n%s", tag, theirs, ours, w.report())
+	}
+	return nil
+}
+
+func (w *world) remoteLacksTag(tag string) error {
+	if sha := w.refIn(w.remote(), "refs/tags/"+tag); sha != "" {
+		return fmt.Errorf("the remote has the tag %q, at %s\n%s", tag, sha, w.report())
+	}
+	return nil
+}
+
+// The remote's branch of the name has the commit with the subject.
+func (w *world) remoteBranchHas(branch, subject string) error {
+	cmd := exec.Command(git.Bin(), "log", "--format=%s", "refs/heads/"+branch)
+	cmd.Dir = w.remote()
+	cmd.Env = w.env()
+	out, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("the remote has no branch %q: %w\n%s", branch, err, w.report())
+	}
+	if !slices.Contains(strings.Split(strings.TrimSpace(string(out)), "\n"), subject) {
+		return fmt.Errorf("the remote's branch %q does not have %q:\n%s\n%s", branch, subject, out, w.report())
+	}
+	return nil
 }
 
 // The file at path in the folder dir, holding one line naming the commit, so
