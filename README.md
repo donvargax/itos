@@ -40,6 +40,10 @@ it, and the instructions then point to the check instead of restating it.
   talk to coordinates: it specifies the work and hands each item to an agent.
   An agent it starts is told by its brief to run `itos guide work`, the
   implementer's guide, instead; no file asks an agent to judge which it is.
+  Each guide holds its role's essentials and a map of procedures, each read
+  before its step with `itos guide <procedure>`: `brief`, `land`, `repair`
+  and `decide` for the coordinator, `commit` (with the commit rules the
+  config sets) and `push` for an implementer.
 - **A ledger of tasks with executable checks** (`tasks/`): `itos task <id>`
   runs a task's `done_when` commands and says done, pending or failing, and
   `itos task add` mints the next ledger ID, writes the task into its group's

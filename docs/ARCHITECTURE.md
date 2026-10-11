@@ -124,7 +124,7 @@ How the gates use them: the git hooks call `itos hook commit-msg` and
 | The code proof of a CI run: a provider's check, read by its contract     | `internal/proof`, read by `internal/ci`                |
 | Questions and decision records                                           | `internal/ask`, `internal/adr`                         |
 | Follow-up threads, the coordinator's drafts                              | `internal/follow`, `internal/draft`                    |
-| The guides `itos go` and `itos guide` print                              | `internal/guide`                                       |
+| The guides and procedures `itos go` and `itos guide` print               | `internal/guide`                                       |
 | The git shim, the Claude Code guard                                      | `internal/shim`, `internal/guard`                      |
 | git itself: the real binary, paths, merges, ranges, rebase state         | `internal/git`                                         |
 | YAML read as itos reads it, and edited in place                          | `internal/value`                                       |
