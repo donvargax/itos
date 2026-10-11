@@ -11,6 +11,12 @@
 //       and Markdown by what they must still hold, an output that only adds
 //       or changes a comment passing (below)
 //
+// Native Git, the git the runner builds and inspects each case's repository
+// with, is what tools/bin/real-git prints, asked of this runner's own tree.
+// A caller whose tree has no real-git names it with --git <absolute path>
+// instead: tools/bin/previous-release does, from internal/git's lookup, since
+// it runs the copy of this runner a scratch checkout holds (T-153).
+//
 // A fixture file is YAML: `files`, `git` and `env` at the top are every case's
 // defaults, and `cases` is a list. A case is:
 //
@@ -304,8 +310,13 @@ function nativeGitFirst(path: string, folder: string): string {
 }
 
 // Resolve Git with the same real-git helper used by the repository's self-tests,
-// before a fixture can put an old or fake executable in its environment.
-export function resolveNativeGit(): string {
+// before a fixture can put an old or fake executable in its environment; given,
+// the git the caller named with --git, which internal/git found.
+export function resolveNativeGit(given?: string): string {
+	if (given !== undefined) {
+		if (!isAbsolute(given)) throw new FixtureError(`--git names a non-absolute path: ${given}`);
+		NATIVE_GIT = given;
+	}
 	if (NATIVE_GIT) return NATIVE_GIT;
 	const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !/^(GIT_|ITOS_)/.test(key)));
 	const asked = spawnSync("go", ["run", "./tools/bin/real-git"], {
@@ -1144,37 +1155,50 @@ const binary = (bin: string) => (bin.includes("/") ? resolve(bin) : bin);
 
 async function main(args: string[]): Promise<number> {
 	let bin: string | undefined;
+	let git: string | undefined;
 	const only: string[] = [];
 	let listing = false;
 	const additive = args.includes("--additive");
 	for (let i = 0; i < args.length; i++) {
 		if (args[i] === "--bin") bin = args[++i];
-		else if (args[i] === "--only") listing = true;
+		else if (args[i] === "--git") {
+			git = args[++i] ?? "";
+			listing = false;
+		} else if (args[i] === "--only") listing = true;
 		else if (listing && !args[i]!.startsWith("--")) only.push(args[i]!);
 		else listing = false;
 	}
 	if (!bin) {
-		console.error("Usage: node tools/itos/conformance/run.ts --bin <command> [--additive] [--only <file>…]");
+		console.error(
+			"Usage: node tools/itos/conformance/run.ts --bin <command> [--git <path>] [--additive] [--only <file>…]",
+		);
 		return 2;
 	}
 	const paths = mkdtempSync(join(tmpdir(), "itos-conformance-path-"));
 	try {
-		return await runAll(binary(bin), only, additive, paths);
+		return await runAll(binary(bin), only, additive, paths, git);
 	} finally {
 		rmSync(paths, { recursive: true, force: true });
 	}
 }
 
 // Every case of the fixtures (only, or all), the caller's extensions hidden
-// from the PATH by folders made in paths.
-async function runAll(bin: string, only: string[], additive: boolean, paths: string): Promise<number> {
+// from the PATH by folders made in paths, native Git the one git names (--git),
+// else real-git's.
+async function runAll(
+	bin: string,
+	only: string[],
+	additive: boolean,
+	paths: string,
+	git?: string,
+): Promise<number> {
 	const started = performance.now();
 	let fixtures: Fixture[];
 	let nativeGit: string;
 	try {
 		fixtures = (only.length ? only : fixtureFiles()).map(readFixture);
 		hideExtensions(paths);
-		nativeGit = resolveNativeGit();
+		nativeGit = resolveNativeGit(git);
 		NATIVE_GIT_PATH = nativeGitDirectory(nativeGit, paths);
 		RUN_PATH = nativeGitFirst(RUN_PATH, NATIVE_GIT_PATH);
 		learnVersion(bin);
