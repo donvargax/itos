@@ -7537,14 +7537,15 @@ items:
     refs: [tools/itos/conformance]
     tags: [tests]
 
-  - id: p1-work-give-back
+  - id: slice-122
     title: An item in progress can be given back to todo, so it can be deferred or picked up again
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-work-give-back.
       Issue #42 (2026-10-10, from go-template-itos): an agent took T-42, found it blocked on another
       project's missing command, and the person chose to defer it; work defer refuses anything but
       todo, and no subcommand moves doing back to todo (take, done, defer, resume, drop, edit,
