@@ -7,8 +7,8 @@ stays a map:
 - **What one Go package does, how and why** is that package's doc comment, in
   a `doc.go` beside its code (`go doc ./internal/<pkg>`), changed in the same
   commit as the code. Read it before touching the package.
-- **What landed, and when** is the history: `vp run changelog`, or
-  `vp run changelog -- --task <id>` and `-- --scenario <id>` for one task's or
+- **What landed, and when** is the history: `node tools/changelog.ts`, or
+  `node tools/changelog.ts --task <id>` and `--scenario <id>` for one task's or
   one scenario's commits.
 - **Why it is so** is a decision record in `docs/decisions/` when it was a
   decision, a task's `why` in `tasks/*.yaml`, a scenario's comment in its
@@ -34,7 +34,7 @@ stays a map:
 | `integrations/claude-code/` | The Claude Code plugin; `.claude-plugin/marketplace.json` makes the repository its marketplace.            |
 | `.github/workflows/`        | `ci.yml` (every push), `release.yml` (called by `ci.yml`), `nightly.yml`.                                  |
 | `.goreleaser.yaml`          | The release build.                                                                                         |
-| `.vite-hooks/pre-commit`    | The project's own pre-commit hook; itos's hooks live in the git config.                                    |
+| `tools/bin/pre-commit`      | The project's own pre-commit hook, declared in the git config beside itos's.                               |
 | `deps-check.json`           | The dependency check's exceptions, each with a reason.                                                     |
 | `.devcontainer/`            | A sandbox for Claude Code on this repository: shim first, egress allowlisted. Its README says how.         |
 
@@ -338,11 +338,11 @@ and `itos hook pre-push` in the clone's git config
 git runs them beside whatever `core.hooksPath` holds. `hooks.bin` is
 `tools/bin/itos` here, so this repository's hooks run its own build.
 
-- **pre-commit** is the project's own (`.vite-hooks/pre-commit`, where
-  `vp config` points git): `vp staged` (each path's command in
-  `vite.config.ts`'s `staged`: `vp check --fix`, or for Go `gofmt -w` and
-  `go vet`), then, unless every staged file is Markdown, under `docs/**`,
-  under `tasks/**` or a feature file: the dependency check when `go.mod` or
+- **pre-commit** is the project's own (`tools/bin/pre-commit`, declared in
+  the git config once per clone): the staged Markdown and YAML through
+  dprint (`dprint.json`) and the staged Go through `gofmt`, staged again,
+  and `go vet` when Go is staged; then, unless every staged file is
+  Markdown, under `docs/**`, under `tasks/**` or a feature file: the dependency check when `go.mod` or
   `go.sum` is staged, the unit tests the change reaches
   (`tools/bin/go-unit-tests --cached`), and `fallow audit` on what is new
   against HEAD (this repository's TypeScript tooling, scored by complexity).
@@ -350,8 +350,9 @@ git runs them beside whatever `core.hooksPath` holds. `hooks.bin` is
   deepest package folder holding it, and one `go list -e -test -deps` over
   `./cmd/... ./internal/...` gives every package whose tests reach one;
   `go.mod` or `go.sum` runs them all. `features/` is not among them: it is
-  CI's and the nightly's. It does not check itos's data: the commit-msg hook
-  does, from the staged tree.
+  CI's and the nightly's. Once it has read the change, it drops the hook's
+  `GIT_DIR` and `GIT_INDEX_FILE`, so no test's scratch repository is this
+  one. The hook does not check itos's data: the commit-msg hook does.
 - **commit-msg** (`internal/cli`'s hooks): itos's own data when the commit
   stages any of it, as `config check` judges it over the index; the type's
   path rules; outside `feat` and `fix` the scenario moving rule; the header
@@ -374,10 +375,10 @@ request's base, else at `commits.since` when no green run is found, empty
 meaning run everything, and is written to the job's
 environment once, so the commit re-check and the plan read the same range.
 `itos verify` re-checks every commit of the range after `commits.since`. The
-workflow sets up Node, Vite+ and Go from `go.mod`, and builds itos once
-(`Build itos`) before any step calls it, and installs actionlint, which the
-plan's own step runs. Claude Code is not installed: no step of a push's plan
-runs it, the nightly's plugin steps do.
+workflow sets up Node and Go from `go.mod`, builds itos once (`Build itos`)
+before any step calls it, and fetches dprint and actionlint, which the plan's
+own steps run. Claude Code is not installed: no step of a push's plan runs
+it, the nightly's plugin steps do.
 
 **The plan** (`itos ci plan <from> <to>` prints it, running nothing;
 `internal/plan`) is one sequence in cost order: the static steps of

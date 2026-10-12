@@ -10,10 +10,10 @@ non-behavior checks into the test suites.
 
 A check **runs something that does real work** and uses its exit code:
 
-- a tool that validates its subject: `actionlint`, `vp check`, `go vet`,
+- a tool that validates its subject: `actionlint`, `dprint check`, `go vet`,
   `fallow audit`, `tsc`;
 - the thing itself doing its job: the pre-commit hook rejecting a badly
-  formatted file in a scratch repository, `vp run ci` executing the same steps
+  formatted file in a scratch repository, `itos ci run` executing the same steps
   the workflow runs;
 - a negative proof: a command that **must fail**, such as a commit message
   without a footer, or a config with a misspelt key.
@@ -25,11 +25,11 @@ commit is being made, with the change in the index and HEAD its parent, and CI
 runs them on a clean checkout; a check that reads the index (running the hook
 itself on a fixed message, say) answers differently in the two. Prove a hook
 through the scenarios, which build their own repositories. A check that reads
-the working tree (`vp check`, `itos config check`) also sees, in the hook, the
+the working tree (`dprint check`, `itos config check`) also sees, in the hook, the
 edits the commit leaves unstaged.
 
 A check is **never** a regex over a config or source file ("the workflow has
-a docker build step", "the hook mentions `vp staged`"). That proves the text
+a docker build step", "the hook mentions `dprint`"). That proves the text
 exists, not that it works, and it breaks on harmless rewording. If the only
 way to confirm something is to grep for it, run the thing instead, or leave it
 to review.
@@ -47,8 +47,8 @@ there, not in the commits.
 "The implementation" is `commits.path_sets.implementation`: itos's Go packages,
 the Go files under `cmd/` and `internal/` (the TypeScript v0 in `tools/itos/`
 left in T-062). "The gates" are `commits.path_sets.gates`: `itos.yaml`, the
-workflows (`.github/**`), the hooks (`.vite-hooks/**`), `tools/bin/**`, the
-gates' self-tests (`tools/selftest/**`) and `deps-check.json`. Only `build` and
+workflows (`.github/**`), `tools/bin/**` (the pre-commit hook among them), the
+gates' self-tests (`tools/selftest/**`), `deps-check.json` and `dprint.json`. Only `build` and
 `ci`, which always need a `Task:`, may touch them (T-098), so a self-test of a
 gate is a `ci` commit, not a `test` one.
 
@@ -132,7 +132,7 @@ the two alone. A supplied positional ID is a usage error.
   title: GitHub Actions CI
   why: Every push runs the same gates as local development.
   done_when:
-    - run: vp run ci # the workflow's steps, executed locally
+    - run: tools/bin/itos ci run # the workflow's steps, executed locally
     - run: actionlint # workflow syntax, expressions, action inputs, shellcheck of run steps
     - run: gh run list --branch main --workflow ci.yml --limit 1 --json conclusion --jq '.[0].conclusion == "success"' | grep -qx true
       after: push # only meaningful once pushed; reported as "pending" before that

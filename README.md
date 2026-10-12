@@ -579,11 +579,14 @@ too, and a rebase it runs carries them.
 ## Working on it
 
 ```sh
-vp install                               # dependencies and the git hooks
+pnpm install                             # the Node tools the hooks and CI still run
+tools/bin/itos hook install              # itos's hooks, in the git config, once per clone
+git config hook.repo-pre-commit.event pre-commit             # this repository's own
+git config hook.repo-pre-commit.command tools/bin/pre-commit # pre-commit hook, likewise
 go test ./features -count=1              # every feature, against tools/bin/itos
 go test ./cmd/... ./internal/...         # the unit tests
 tools/bin/itos task --phase 1            # the phase's tasks and their state
-vp run work                              # what you can take next
+tools/bin/itos work                      # what you can take next
 ```
 
 Read `AGENTS.md` before changing anything: the hooks run the checks on every

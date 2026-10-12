@@ -18,7 +18,7 @@ on it starts. Its tasks stay in `tasks/phase-<n>.yaml` and its scenarios in
 owner, and every work item with its owner, status (`todo`, `doing`, `done`,
 `blocked`), dependencies and issue. Who works on the project is
 `CONTRIBUTORS.md`, an All Contributors table: an owner is a GitHub login, and
-one that table does not list is refused. `vp run work` names the person a
+one that table does not list is refused. `tools/bin/itos work` names the person a
 session works for from the account `gh api user` is signed in as (`itos.yaml`'s
 `work.people` and `work.identity` say so), or `--as <handle>`, which wins;
 without `gh`, or with it signed out, it says so and proposes `--as`. It lists:
@@ -31,7 +31,7 @@ without `gh`, or with it signed out, it says so and proposes `--as`. It lists:
   never count as startable;
 - what is deferred (`deferred: <reason>` on a `todo` item), with its reason.
 
-`vp run work --json` gives the same to an agent, `tools/bin/itos work list` (or
+`tools/bin/itos work --json` gives the same to an agent, `tools/bin/itos work list` (or
 `--json`) the open items with their kind, status and title, `--all` every one,
 done ones too,
 `tools/bin/itos work show <id>` one item with its scenarios and its commits

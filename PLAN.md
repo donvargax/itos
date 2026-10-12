@@ -15,7 +15,7 @@ each with its reasons, are records in `docs/decisions/`, listed in
 [`docs/decisions/README.md`](docs/decisions/README.md). How the code is
 actually put together is `docs/ARCHITECTURE.md`, a map, and each Go
 package's doc comment; what has been built, and
-why, is the history (`vp run changelog`); who works which phase is
+why, is the history (`node tools/changelog.ts`); who works which phase is
 `docs/PHASES.md`, and the open work is `tasks/work-items.yaml`. What each
 command takes is its `--help`.
 
@@ -261,7 +261,7 @@ pre-push commands).
   why: > # optional
     Every push runs the same gates as local development.
   done_when: # optional; empty is review
-    - run: vp run ci # exactly one of run / fails
+    - run: tools/bin/itos ci run # exactly one of run / fails
     - fails: printf 'update things\n' | itos commit check-message -
     - run: sh -c 'test -z "$(git ls-files dist)"'
       cost: static # static | late; wins over ci.cost.static

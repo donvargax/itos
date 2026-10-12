@@ -24,8 +24,7 @@ the open questions. Read these too:
   new work. It is also the next fix release.
 - **The inbox:** `node tools/bin/inbox.ts` (below).
 
-Here itos is `tools/bin/itos`, this tree's build, for every command and gate;
-`vp run work` is `itos work`.
+Here itos is `tools/bin/itos`, this tree's build, for every command and gate.
 
 ## The inbox
 
@@ -82,7 +81,7 @@ handoff line below replaces the template's "wait for CI … close the item":
 
 - **Reads:** `AGENTS.md` (this repository's rules, which add to `itos guide
   work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the item rests on, and the earlier items'
-  commits (`itos work show <id>`, `vp run changelog -- --scenario <id>`).
+  commits (`itos work show <id>`, `node tools/changelog.ts --scenario <id>`).
 - **For a feat or a fix:** run `go run ./tools/bin/previous-release`, and name
   in a `Changes:` footer any old scenario or non-help corpus case the change
   alters on purpose. A case can be named by a unique prefix of its name, so
@@ -119,11 +118,9 @@ to land, without pushing their branches. Keep worktrees and scratch files
 inside this directory. Each isolated agent has a worktree under
 `.claude/worktrees/`. In each one:
 
-- symlink `node_modules` to the main checkout's instead of running `vp
-  install`, because a second install can load two copies of a tool;
-- run `vp config --hooks --no-agent` before the first commit, because a new
-  worktree has no `.vite-hooks/_` and its pre-commit hook silently does not
-  run (itos's own hooks are in the git config, which every worktree shares);
+- symlink `node_modules` to the main checkout's instead of running `pnpm
+  install`, because a second install can load two copies of a tool (the
+  hooks, `tools/bin/pre-commit` among them, are in the shared git config);
 - pull with `--no-autostash` before each push.
 
 ## Lessons from this repository

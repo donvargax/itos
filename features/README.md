@@ -11,7 +11,7 @@ repository, its exit code, and what it prints.
 Never here:
 
 - code structure and module boundaries (lint rules);
-- dead code, dependencies, formatting (the audit, `vp check`, `gofmt`,
+- dead code, dependencies, formatting (the audit, dprint, `gofmt`,
   `go vet`);
 - refactors and performance budgets (task contracts in `tasks/`);
 - internal logic (unit tests, next to the code).
