@@ -8195,7 +8195,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [T-147]
+    depends_on: []
     kind: idea
     why: >
       The user's call (2026-10-11). actionlint already runs shellcheck over the workflows' run:
