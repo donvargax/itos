@@ -1453,9 +1453,9 @@ cases:
 
       Judges the staged feature files of a Gherkin kind against HEAD's by the moves
       rule, as the commit-msg hook does for a type the rule does not exempt: live
-      scenarios keep their ID, name, tags and steps exactly, none is lost, and a
-      file with a live scenario keeps its header and Background; @wip ones may
-      come, go or change, and comment lines and the feature's description (the free
+      scenarios keep their ID, name, tags and steps exactly, none is lost or turned
+      @wip, and a file with a live scenario keeps its header and Background; @wip
+      ones may come, go or change, and comment lines and the feature's description (the free
       text under Feature:) are never compared. A rename the kind's
       range check { builtin: moves } lists in allowed_renames passes. A scenario
       going live (a new live one, or one losing its @wip) is reported: there is no

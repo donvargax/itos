@@ -49,6 +49,12 @@ func TestMoveProblems(t *testing.T) {
 		{"a rename not allowed",
 			map[string]string{"features/a.feature": "Feature: A\n\n  @ID-A-01\n  Scenario: Opens at last\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n"},
 			[]string{"changes the live scenario ID-A-01 in features/a.feature: a moved scenario keeps its ID, name, tags and steps exactly"}},
+		{"a live scenario turned wip",
+			map[string]string{"features/a.feature": "Feature: A\n\n  @ID-A-01 @wip\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n"},
+			[]string{"turns the live scenario ID-A-01 wip in features/a.feature"}},
+		{"moved into a wip file",
+			map[string]string{"features/b.feature": "@wip\nFeature: B\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n"},
+			[]string{"turns the live scenario ID-A-01 wip in features/b.feature"}},
 		{"added, lost and a header changed",
 			map[string]string{"features/a.feature": "Feature: A, retitled\n\n  @ID-A-03\n  Scenario: Locks\n    When I lock it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n"},
 			[]string{

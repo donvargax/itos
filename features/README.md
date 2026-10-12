@@ -150,7 +150,8 @@ may move scenarios between feature files, create feature files and delete the
 ones left empty, provided
 
 - every moved scenario keeps its ID, name, tags and steps exactly;
-- no scenario is lost or added (a `@wip` one may still come, go or change);
+- no scenario is lost, added or turned `@wip` (a `@wip` one may still come,
+  go or change);
 - a file with a live scenario keeps its header and Background (a moved
   scenario runs under its new file's Background and inherits the tags above
   its `Feature` line, so choose a file it fits), all but the feature's

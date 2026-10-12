@@ -7,9 +7,14 @@ package tests
 // listings instead (moves_command.go, slice 82). A commit of a type except_types does not name
 // may move scenarios between feature files, create feature files and delete
 // the ones left empty, provided every live scenario keeps its ID, name, tags
-// and steps exactly, none is lost, and a file with a live scenario
-// keeps its header and Background, all but its feature's description. A wip scenario may still be added, changed
-// or removed: that is how a specification lands before its implementation. A
+// and steps exactly, none is lost or turned wip, and a file with a live
+// scenario keeps its header and Background, all but its feature's
+// description. Turning a live scenario wip (bug 108), a @wip on its tag line
+// or its file's, takes it out of every run, which weakens what it guards as
+// surely as changing its steps, so it is refused as "turns the live scenario
+// <ID> wip", as a command kind's "turns the live test … wip" is. A wip
+// scenario may still be added, changed or removed: that is how a
+// specification lands before its implementation. A
 // rename the project allows is listed in allowed_renames, by ID (without its
 // prefix) and new name.
 //
@@ -220,9 +225,12 @@ func (l Live) Problem(id, what string) string {
 
 // movedProblem is a scenario of the later set against its earlier self,
 // if any: "" when it holds. A scenario going live, new or wip before, is
-// live's to judge.
+// live's to judge; a live one turned wip, itself or its file, is refused
+// (bug 108), moved or not.
 func movedProblem(id string, was *Scenario, now Scenario, renames map[string]string, live Live) string {
 	switch {
+	case now.Wip && was != nil && !was.Wip:
+		return "turns the live scenario " + id + " wip in " + now.File
 	case now.Wip:
 		return ""
 	case was == nil || was.Wip:

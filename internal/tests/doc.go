@@ -68,6 +68,8 @@
 // commit), its IDs and files kept in the order JavaScript's Maps keep them
 // (files by path, as git lists them; an ID written twice keeps its first
 // place and its last block), since the problems are printed in that order.
+// A live scenario turned wip, moved or not, is refused as one changed is
+// (bug 108); a wip one may be added, changed or removed.
 // On a kind whose adapter is a command the rule compares two adapter
 // listings instead (ListedProblems, moves_command.go), each read once per
 // tree at the index or a commit, a tree that names no commit (the empty

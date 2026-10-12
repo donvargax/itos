@@ -4,8 +4,9 @@
 # commits.types lists the types, one of them), verify judging each commit of
 # its range against its parent, a root commit against the empty tree, and
 # `itos tests moves <kind>` judging HEAD against the index by hand; live
-# scenarios keep their ID, name, tags and steps, none is lost or added, a file
-# with a live scenario keeps its header; @wip ones, comment lines and a
+# scenarios keep their ID, name, tags and steps, none is lost or added, none
+# is turned wip, moved or not (bug 108), a file with a live scenario keeps its
+# header; @wip ones, comment lines and a
 # feature's description (the free text under its Feature line) are free;
 # a rename allowed_renames lists passes. A scenario going live, a new live
 # one or a wip one made live, is refused outside except_types unless the
@@ -122,6 +123,26 @@ cases:
     stderr: |
       Commit rejected:
         - a test commit changes the live scenario ID-A-01 in features/a.feature: a moved scenario keeps its ID, name, tags and steps exactly
+  - name: commit-msg rejects a test commit that turns a live scenario wip
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  @ID-A-01 @wip\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - a test commit turns the live scenario ID-A-01 wip in features/a.feature
+  - name: a live scenario moved to a new file whose @wip covers it is turned wip
+    argv: [hook, commit-msg, msg]
+    git:
+      - *base
+      - stage:
+          features/a.feature: null
+          features/b.feature: "@wip\nFeature: B\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n"
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - a test commit turns the live scenario ID-A-01 wip in features/b.feature
   - name: an added and a lost live scenario and a changed header, each a problem
     argv: [hook, commit-msg, msg]
     git:
