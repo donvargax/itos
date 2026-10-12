@@ -76,11 +76,6 @@ commits:
       - ".github/**"
       - "tools/bin/**"
       - "tools/selftest/**"
-      # The parity records and the changelog script, both deleted by T-149: kept here only until
-      # CI is green past the commits that delete them, since itos verify judges a range's commits
-      # by this config (p1-drop-deleted-config-paths).
-      - "tools/parity/**"
-      - tools/changelog.ts
       - .claude/settings.json
     # itos itself, its Go packages since the TypeScript v0 left (T-062): the
     # one place a feat or a fix must change unless it changes the features.
