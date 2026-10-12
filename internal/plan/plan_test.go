@@ -1,15 +1,19 @@
 package plan
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/check"
 	"github.com/donvargax/itos/v8/internal/config"
+	"github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/ledger"
+	"github.com/donvargax/itos/v8/internal/out"
 )
 
 func load(t *testing.T, text string) *config.Loaded {
@@ -352,6 +356,103 @@ proof:
 	// A glob itos cannot read is config check's finding, before a plan reads
 	// one (proof.Touches is the only other reading of the paths, and its own
 	// error is unit-tested beside it).
+}
+
+// gitRange is a scratch repository as the current folder, away from the
+// user's git config and with no maintenance, holding two commits; it gives
+// the range from the first to the second, which touches internal/x.go.
+func gitRange(t *testing.T) (from, to string) {
+	t.Helper()
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
+		t.Setenv(name, "")
+		os.Unsetenv(name)
+	}
+	for name, value := range map[string]string{
+		"GIT_CONFIG_GLOBAL": os.DevNull, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_COUNT": "2",
+		"GIT_CONFIG_KEY_0": "maintenance.auto", "GIT_CONFIG_VALUE_0": "false",
+		"GIT_CONFIG_KEY_1": "gc.auto", "GIT_CONFIG_VALUE_1": "0",
+		"GIT_AUTHOR_NAME": "itos", "GIT_AUTHOR_EMAIL": "itos@example.com",
+		"GIT_COMMITTER_NAME": "itos", "GIT_COMMITTER_EMAIL": "itos@example.com",
+	} {
+		t.Setenv(name, value)
+	}
+	t.Chdir(t.TempDir())
+	run := func(args ...string) string {
+		t.Helper()
+		got, err := exec.Command(git.Bin(), args...).CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %s: %s", strings.Join(args, " "), got)
+		}
+		return strings.TrimSpace(string(got))
+	}
+	commit := func(path, message string) string {
+		t.Helper()
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(message+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		run("add", "--", path)
+		run("commit", "-q", "-m", message)
+		return run("rev-parse", "HEAD")
+	}
+	run("init", "-q")
+	return commit("README.md", "docs: start"), commit("internal/x.go", "feat: x")
+}
+
+// For stops at a proof.code glob it cannot read. Loading refuses one
+// (config-proof-glob), so it is set after the load: For takes any config,
+// not only one that loaded.
+func TestForStopsAtAProofGlobItCannotRead(t *testing.T) {
+	from, to := gitRange(t)
+	cfg := load(t, scratch+`proof:
+  code:
+    paths: ["{cmd,internal}/**/*.go"]
+    check: "cc mutation check --since {base} --fail-uncovered --json"
+`)
+	if p, err := For(cfg, from, to, Data{}); err != nil || p.Order[1].Step == nil || !p.Order[1].Step.Proof {
+		t.Fatalf("the range's plan: %+v, %v", p, err)
+	}
+	cfg.Proof.Code.Paths = []string{"?src"}
+	if p, err := For(cfg, from, to, Data{}); err == nil || p != nil {
+		t.Errorf("a proof glob it cannot read gave %+v, %v", p, err)
+	}
+}
+
+// The plan's JSON gives a step its command, cost and where its cost came
+// from, and marks the range's code proof; a check its task, place, command
+// and action.
+func TestFieldsGiveEachItem(t *testing.T) {
+	p, err := Make(load(t, scratch), Input{Known: true, Tasks: []ledger.Task{task},
+		Proof: &Step{Command: "cc --since a1", Proof: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var b strings.Builder
+	if err := out.Emit(&b, p.Fields(Range{From: "a1", To: "b2", Readable: true})...); err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Order []map[string]any
+	}
+	if err := json.Unmarshal([]byte(b.String()), &got); err != nil {
+		t.Fatalf("%v:\n%s", err, b.String())
+	}
+	step := func(i int) string { s, _ := got.Order[i]["step"].(string); return s }
+	if len(got.Order) < 3 || step(0) != "lint" || got.Order[0]["cost"] != "static" || got.Order[0]["proof"] != nil ||
+		step(1) != "cc --since a1" || got.Order[1]["proof"] != true {
+		t.Errorf("order:\n%s", b.String())
+	}
+	checks := 0
+	for _, item := range got.Order {
+		if c, ok := item["check"].(map[string]any); ok && c["task"] == "T-1" && item["action"] != nil {
+			checks++
+		}
+	}
+	if checks == 0 {
+		t.Errorf("no check of T-1 in the order:\n%s", b.String())
+	}
 }
 
 // A range that runs everything, an empty or all-zeros start without

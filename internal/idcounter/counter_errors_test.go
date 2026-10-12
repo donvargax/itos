@@ -74,8 +74,14 @@ func TestMintRemoteReturnsNoNumberWhenGitFails(t *testing.T) {
 	for _, tc := range []struct {
 		subcommand, want string
 	}{
+		{"fetch", "cannot fetching id counter on remote"},
+		{"rev-parse", "cannot fetching id counter on remote"},
 		{"show", "cannot reading id counter on remote"},
 		{"read-tree", "build id counter commit"},
+		{"hash-object", "build id counter commit"},
+		{"update-index", "build id counter commit"},
+		{"write-tree", "build id counter commit"},
+		{"commit-tree", "build id counter commit"},
 		{"push", "cannot pushing id counter on remote"},
 	} {
 		t.Run(tc.subcommand, func(t *testing.T) {
@@ -103,5 +109,161 @@ func TestMintRemoteAcceptsAZeroCounter(t *testing.T) {
 	}
 	if got := strings.TrimSpace(gitAt(t, remote, "show", "refs/itos/ids:counters/slice")); got != "1" {
 		t.Fatalf("remote slice counter = %q, want 1", got)
+	}
+}
+
+// The first reservation on a remote with no counter yet builds its commit
+// from an empty tree; git failing there stops it with no number, and the
+// remote still has no counter.
+func TestMintRemoteReturnsNoNumberWhenTheFirstCounterCommitFails(t *testing.T) {
+	root, remote := counterRemote(t, "")
+	gitRun(t, remote, "update-ref", "-d", "refs/itos/ids")
+	failGit(t, "read-tree")
+	n, err := Mint(Store{Root: root, Remote: "origin"}, "slice", 0)
+	if n != 0 || err == nil || !strings.Contains(err.Error(), "build id counter commit") ||
+		!strings.Contains(err.Error(), "injected git failure") {
+		t.Fatalf("Mint = (%d, %v), want (0, build id counter commit error)", n, err)
+	}
+	t.Setenv("ITOS_GIT", "")
+	if got := gitAt(t, remote, "for-each-ref", "refs/itos/ids"); got != "" {
+		t.Fatalf("remote counter ref = %q, want none", got)
+	}
+}
+
+// A counter commit whose scratch index cannot be made, the temporary folder
+// gone, is no commit.
+func TestCounterCommitStopsWhereItsIndexCannotBeMade(t *testing.T) {
+	root := t.TempDir()
+	gitRun(t, root, "init", "-q")
+	missing := filepath.Join(t.TempDir(), "missing")
+	for _, name := range []string{"TMPDIR", "TMP", "TEMP"} {
+		t.Setenv(name, missing)
+	}
+	if commit, err := counterCommit(root, "", "slice", 1); commit != "" || err == nil {
+		t.Fatalf("counterCommit = (%q, %v), want an error", commit, err)
+	}
+}
+
+// A local counter file that cannot be read is no reservation; one that holds
+// no counters (empty, or counters: with nothing under it) is a counter at 0.
+func TestMintLocalReadsTheCounterFile(t *testing.T) {
+	counterFile := func(t *testing.T) (common, file string) {
+		t.Helper()
+		common = t.TempDir()
+		if err := os.MkdirAll(filepath.Join(common, "itos"), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		return common, filepath.Join(common, "itos", localFile)
+	}
+	t.Run("a folder in its place", func(t *testing.T) {
+		common, file := counterFile(t)
+		if err := os.Mkdir(file, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if n, err := Mint(Store{CommonDir: common, LocalOnly: true}, "slice", 0); err == nil || n != 0 {
+			t.Fatalf("Mint = (%d, %v), want (0, error)", n, err)
+		}
+	})
+	for name, text := range map[string]string{"empty": "", "no counters": "counters:\n"} {
+		t.Run(name, func(t *testing.T) {
+			common, file := counterFile(t)
+			if err := os.WriteFile(file, []byte(text), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			n, err := Mint(Store{CommonDir: common, LocalOnly: true}, "slice", 0)
+			if err != nil || n != 1 {
+				t.Fatalf("Mint = (%d, %v), want (1, nil)", n, err)
+			}
+			if got, err := os.ReadFile(file); err != nil || string(got) != "counters:\n    slice: 1\n" {
+				t.Fatalf("counter file = %q (%v)", got, err)
+			}
+		})
+	}
+}
+
+// writeCounters makes the counter's folder; one it cannot make, a file in the
+// way, stops it.
+func TestWriteCountersStopsWhereItsFolderCannotBeMade(t *testing.T) {
+	blocker := filepath.Join(t.TempDir(), "file")
+	if err := os.WriteFile(blocker, []byte("file"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeCounters(filepath.Join(blocker, "itos", localFile), map[string]int{"slice": 1}); err == nil {
+		t.Fatal("writeCounters made a folder under a file")
+	}
+}
+
+var errDisk = errors.New("injected disk failure")
+
+// failingFile is a real temporary file that fails at one step, as a full or
+// failing disk would. Its Close still closes the real file, so it can be
+// removed, on Windows too.
+type failingFile struct {
+	*os.File
+	at string
+}
+
+func (f failingFile) Chmod(mode os.FileMode) error {
+	if f.at == "chmod" {
+		return errDisk
+	}
+	return f.File.Chmod(mode)
+}
+
+func (f failingFile) Write(b []byte) (int, error) {
+	if f.at == "write" {
+		return 0, errDisk
+	}
+	return f.File.Write(b)
+}
+
+func (f failingFile) Sync() error {
+	if f.at == "sync" {
+		return errDisk
+	}
+	return f.File.Sync()
+}
+
+func (f failingFile) Close() error {
+	err := f.File.Close()
+	if f.at == "close" {
+		return errDisk
+	}
+	return err
+}
+
+// A temporary file that cannot be made, set, written, synced or closed stops
+// writeCounters with its error: the counter keeps what it held, and no
+// temporary file is left beside it.
+func TestWriteCountersLeavesTheCounterWhereItsFileFails(t *testing.T) {
+	for _, at := range []string{"create", "chmod", "write", "sync", "close"} {
+		t.Run(at, func(t *testing.T) {
+			dir := t.TempDir()
+			file := filepath.Join(dir, localFile)
+			const held = "counters:\n    slice: 4\n"
+			if err := os.WriteFile(file, []byte(held), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			err := writeCountersThrough(file, map[string]int{"slice": 5}, func(dir string) (tempFile, error) {
+				if at == "create" {
+					return nil, errDisk
+				}
+				f, err := os.CreateTemp(dir, ".ids-*.tmp")
+				if err != nil {
+					return nil, err
+				}
+				return failingFile{f, at}, nil
+			})
+			if !errors.Is(err, errDisk) {
+				t.Fatalf("writeCountersThrough = %v, want the injected failure", err)
+			}
+			if got, err := os.ReadFile(file); err != nil || string(got) != held {
+				t.Fatalf("counter file = %q (%v), want it unchanged", got, err)
+			}
+			entries, err := os.ReadDir(dir)
+			if err != nil || len(entries) != 1 {
+				t.Fatalf("the counter's folder holds %v (%v), want the counter alone", entries, err)
+			}
+		})
 	}
 }
