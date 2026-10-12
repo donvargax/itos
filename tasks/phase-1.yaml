@@ -1724,5 +1724,3 @@
     job. README.md's install paragraph names /v8 (it still says /v7) and says @latest can lag the
     newest release by a while, @v<version> never does. From p1-release-warms-go-proxy; the same
     change goes to go-template-itos as a backport issue once it lands.
-  done_when:
-    - run: grep -q 'proxy.golang.org' .github/workflows/release.yml && grep -q 'itos/v8/cmd/itos@v' README.md && ! grep -q 'itos/v7/cmd/itos@' README.md

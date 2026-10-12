@@ -8677,7 +8677,7 @@ items:
     title: The release asks the Go module proxy for its new version, and the README's go install line names v8
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
