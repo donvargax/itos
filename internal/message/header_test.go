@@ -100,7 +100,7 @@ func TestFooterLeadingBlankLine(t *testing.T) {
 		{"# a\nchore: x\n\n# b\nbody\nsee #12 here\n", "#", `line 6, "see #12 here", begins with a word, a space and #`},
 		{"\n\nchore: x\n\nbody\nTask: T-1", "", `line 6, "Task: T-1", begins with a word and a colon`},
 		{"fix: it\n\nbody\nfix: it", "", `line 4, "fix: it", begins with a word and a colon`},
-		{"chore: x\n\nbody\nBREAKING CHANGE: gone", "", `line 4, "BREAKING CHANGE: gone", is a breaking-change note`},
+		{"chore: x\n\nbody\nBREAKING CHANGE: gone\nfor good\nRefs: 1", "", `line 4, "BREAKING CHANGE: gone", is a breaking-change note`},
 	} {
 		found, err := HeaderProblems(cfg, c.message, c.comment)
 		if err != nil {
