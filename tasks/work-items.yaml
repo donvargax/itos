@@ -8739,8 +8739,8 @@ items:
   - id: slice-135
     title: itos status names the repository's visibility, public or private, beside its remote
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
