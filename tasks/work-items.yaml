@@ -7157,7 +7157,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [T-142, T-143, T-144, p1-core-changelog, T-146, T-147, T-148]
+    depends_on: [T-142, T-143, T-144, p1-core-changelog, T-146, T-148]
     kind: task
     why: >
       The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and
