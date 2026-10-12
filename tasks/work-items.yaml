@@ -1098,6 +1098,11 @@ items:
       setting up, a value quoted where YAML was meant, and a scenario that passed before the change;
       run at spec time, the command would have shown each failing at a Given, or not failing at all,
       before any agent started.
+
+      #58 (2026-10-12): a consumer asks for the red step's runner, itos tests run <kind> --item <id>
+      or <ID>..., through run.select and ids_pattern, @wip included on request; today each session
+      rebuilds the selection from the runner's flags. A plain runner for named or tagged scenarios
+      could land before the red-first proof.
     tags: [tests]
 
   - id: p1-commit-message-file
