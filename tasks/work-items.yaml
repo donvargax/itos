@@ -8107,6 +8107,10 @@ items:
       having taken it, so the close cost a take commit, then a close commit. For an item with no
       owner and status todo, work done could set the owner to the person and close it in one commit;
       an item someone else owns is still refused.
+
+      Met twice more on 2026-10-12: T-160 (the coordinator's own task) and T-169 (minted by
+      slice-135's agent mid-slice, never taken), each a refused work done, then a take commit and a
+      done commit.
     tags: [work]
 
   - id: p1-pre-commit-windows
