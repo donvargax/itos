@@ -8525,6 +8525,13 @@ items:
       path (the consumer widened except_types, which also lets perf reword a live scenario). Needs
       the user's call: going live allowed outside feat and fix (a footer naming it, refused when the
       code under test changes), or a documented order. The message fix stands either way.
+
+      The user's call (2026-10-12): any commit type may bring a scenario live (a new live one, or
+      dropping @wip) by naming it in a Scenarios: footer; refused when the same commit changes the
+      code under test (the implementation paths), so describing existing behaviour or landing a perf
+      or refactor task's guards is honest and a live scenario still never changes outside feat and
+      fix. The refusal for a scenario going live without the footer says 'brings ID-A-01 live', not
+      'changes the live scenario'. Not a documented order alone.
     tags: [verify, tests]
 
   - id: p1-push-watch-new-workflow
