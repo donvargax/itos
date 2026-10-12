@@ -8347,3 +8347,21 @@ items:
       notes.
     refs: [internal/config]
     tags: [work]
+
+  - id: p1-upgrade-notes-tidy
+    title: itos upgrade's notes leave out the steps it did, and group a commit's changed cases under one header
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      donvargax/itos#50 (itos 7.5.0 to 8.0.0 in itos-cc): (1) upgrade rewrote AGENTS.md's block
+      itself, yet its By hand list still asked for itos init --agent-rules, which then changed
+      nothing; leave out or mark done the footers whose step upgrade did. (2) Changes on purpose
+      repeated the full commit header for each of 38 scenarios (76 lines); one header per commit
+      with its scenarios under it is about 10. (3) The notes say two-line block where the block is a
+      heading and two lines. (4) init --agent-rules opens with 'itos.yaml is there already, so init
+      wrote nothing', which answers a question --agent-rules does not ask.
+    refs: [internal/cli/upgrade.go]
+    tags: [upgrade]
