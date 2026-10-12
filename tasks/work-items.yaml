@@ -1017,8 +1017,8 @@ items:
   - id: slice-133
     title: The nightly goes on past a failing step and names every failure, its --json listing them
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-16]
     kind: slice
     why: >
