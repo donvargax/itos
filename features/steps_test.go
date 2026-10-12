@@ -78,6 +78,7 @@ type scratchConfig struct {
 	commandKind       *commandKind    // a second kind of tests, behind a command adapter
 	recordingShell    bool            // shell is the recording shell
 	ciSteps           []string        // ci.steps
+	nightlySteps      []string        // ci.nightly.steps
 	ciWatchOnly       string          // the workflow of a github ci.watch, the ci section's one key, when set
 	ciTests           string          // a kind of named tests, with run and recognize templates, run by the last of ci.steps
 	runSelect         string          // the scenario kind's run.select, when ciTests gives it none
@@ -272,6 +273,14 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	})
 	sc.Step(`^the header lint is the command "([^"]*)"$`, w.headerLintIs)
 	sc.Step(`^the header lint is itos's built-in one$`, w.builtinHeaderLint)
+	// The nightly's own steps, ci.nightly.steps, which ci run --nightly runs
+	// in the order written (slice 133).
+	sc.Step(`^the nightly steps are "([^"]*)" then a step that records it ran$`, func(step string) error {
+		return w.nightlyStepsAre(step, "printf 'ran\\n' > "+recordingStepFile)
+	})
+	sc.Step(`^the nightly steps are "([^"]*)", then "([^"]*)"$`, func(first, second string) error {
+		return w.nightlyStepsAre(first, second)
+	})
 	sc.Step(`^ci\.stop_at_first_failure is (true|false)$`, w.stopAtFirstFailureIs)
 	sc.Step(`^work\.registry is "([^"]*)"$`, w.registryIs)
 	sc.Step(`^the work registry at "([^"]*)" has the item "([^"]*)" with the status "([^"]*)"$`, w.registryAt)
@@ -448,6 +457,12 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	// Every commit up to HEAD is the range an empty start gives (bug 33).
 	sc.Step(`^itos runs CI (?:over every commit up to HEAD|with an empty range start)$`, func() error {
 		return w.itos("ci", "run", "", "HEAD")
+	})
+	sc.Step(`^itos runs the nightly CI( with --json)?$`, func(withJSON string) error {
+		if withJSON != "" {
+			return w.itos("ci", "run", "--nightly", "--json")
+		}
+		return w.itos("ci", "run", "--nightly")
 	})
 	sc.Step(`^itos runs CI over the commits after the first$`, func() error {
 		if len(w.commits) == 0 {
@@ -1052,6 +1067,12 @@ func (w *world) ciSection() string {
 	}
 	if w.config.ciTests != "" {
 		fmt.Fprintf(&b, "    - { tests: %s }\n", w.config.ciTests)
+	}
+	if len(w.config.nightlySteps) > 0 {
+		b.WriteString("  nightly:\n    steps:\n")
+		for _, step := range w.config.nightlySteps {
+			fmt.Fprintf(&b, "      - %q\n", step)
+		}
 	}
 	if w.config.stopAtFirst != nil {
 		fmt.Fprintf(&b, "  stop_at_first_failure: %t\n", *w.config.stopAtFirst)
@@ -2146,6 +2167,11 @@ func (w *world) emptySmokeSet() error {
 
 func (w *world) ciStepsAre(steps ...string) error {
 	w.config.ciSteps = steps
+	return w.writeConfig()
+}
+
+func (w *world) nightlyStepsAre(steps ...string) error {
+	w.config.nightlySteps = steps
 	return w.writeConfig()
 }
 
