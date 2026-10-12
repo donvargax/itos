@@ -8719,8 +8719,8 @@ items:
   - id: T-166
     title: ARCHITECTURE.md is a map of about 12 KB that points to the code and the decision records, and its cap falls to match
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
