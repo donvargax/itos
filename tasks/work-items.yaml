@@ -6871,6 +6871,11 @@ items:
       tests run with a fixed seed, so a kill never depends on the draw. Part of the strategy to
       comment on issue #41.
 
+      2026-10-12, the user: the platform jobs' scoping is split out as slice-132 (itos ci run
+      --tests) and T-163 (this repository's workflows), ahead of p1-ci-e2e-workflow, which stays
+      parked until the ci job itself is the bottleneck. What is left here is the guidance (which
+      tier each gate belongs to) and the consumer's nightly workflow.
+
   - id: p1-itos-config-all-or-nothing
     title: ITOS_CONFIG resolves the ledger, the registry and the smoke sets beside the config it names
     phase: 1
