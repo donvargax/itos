@@ -1,8 +1,8 @@
 # The itos devcontainer
 
 A container to run Claude Code in, unattended, on this repository: Claude Code with
-`bypassPermissions`, itos and its git shim first on the PATH, the Go and pnpm the hooks
-need, and outbound traffic limited to an allowlist. The container limits what reaches the
+`bypassPermissions`, itos and its git shim first on the PATH, the Go the hooks need and
+pnpm, and outbound traffic limited to an allowlist. The container limits what reaches the
 host; the shim and the hooks still hold every commit to the repository's rules.
 
 ## Before the first start, on the host
@@ -17,8 +17,8 @@ hooks or change the git config. Do these once per clone, on the host:
    `git config hook.repo-pre-commit.event pre-commit` and
    `git config hook.repo-pre-commit.command tools/bin/pre-commit`.
 3. **Start it:** `devcontainer up --workspace-folder .`, then
-   `devcontainer exec --workspace-folder . zsh`. Inside, run `pnpm install` once, so the
-   pre-commit hook finds fallow in `node_modules`. Scripts are off inside
+   `devcontainer exec --workspace-folder . zsh`. Inside, run `pnpm install` once, for the
+   TypeScript self-tests and runners that import from `node_modules`. Scripts are off inside
    (`PNPM_CONFIG_IGNORE_SCRIPTS`).
 
 **Commit inside the container, never on the host, once the container has written the
@@ -74,7 +74,7 @@ leaves the container closed (see `docker logs`).
 | `api.anthropic.com`                    | Claude Code                                                                                |
 | `proxy.golang.org`, `sum.golang.org`   | `go build`, `go vet` and the unit tests in the hooks, fetching modules                     |
 | `vuln.go.dev`                          | the pre-commit hook's `deps-check`, whose govulncheck runs when go.mod or go.sum is staged |
-| `registry.npmjs.org`                   | `pnpm install`, which installs what the pre-commit hook's audit runs                       |
+| `registry.npmjs.org`                   | `pnpm install`, which installs what the TypeScript self-tests and runners import           |
 | `plugins.dprint.dev`                   | dprint's plugins, which the pre-commit hook's dprint fetches once, checked by SHA-256      |
 | `release-assets.githubusercontent.com` | GitHub's release downloads: dprint, through `tools/bin/pinned`, and the other pinned tools |
 | `pypi.org`, `files.pythonhosted.org`   | the base's Python tooling (`uv`); nothing in this repository's build                       |

@@ -2,8 +2,8 @@
 # Based on Microsoft devcontainer image for better devcontainer integration
 #
 # trailofbits/claude-code-devcontainer at feea113 (Apache-2.0, LICENSE beside this file), changed
-# for itos (T-108): dnsmasq-base; Go and pnpm for this repository's hooks; itos and
-# its git shim first on the PATH; the egress allowlist baked in and run at every start; no
+# for itos (T-108): dnsmasq-base; Go for this repository's hooks and pnpm for its TypeScript
+# tooling; itos and its git shim first on the PATH; the egress allowlist baked in and run at every start; no
 # passwordless sudo; no /workspace (the workspace is mounted at its host path); the base image
 # moved to a digest whose git is 2.55, since itos runs its hooks from the git config (2.54+).
 FROM ghcr.io/astral-sh/uv:0.10@sha256:10902f58a1606787602f303954cea099626a4adb02acbac4c69920fe9d278f82 AS uv
@@ -155,8 +155,8 @@ RUN curl -fsSL https://fnm.vercel.app/install | bash -s -- --install-dir "$FNM_D
 # fnm's shell hook is zsh-only, so without this node/npm are missing from bash/sh
 ENV PATH="$FNM_DIR/aliases/default/bin:$PATH"
 
-# pnpm, the version package.json's packageManager names, which installs what the pre-commit
-# hook's audit runs.
+# pnpm, the version package.json's packageManager names, which installs what the TypeScript
+# self-tests and runners import.
 ARG PNPM_VERSION=12.4.1
 RUN npm install --global "pnpm@${PNPM_VERSION}"
 
