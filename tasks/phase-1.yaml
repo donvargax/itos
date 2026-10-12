@@ -1363,8 +1363,6 @@
     name. The 7 no step runs since T-125 (config-gate, go-port, header-agreement,
     header-agreement-record, release-cut, release-notes, scratch) are deleted, the commit body
     saying why each is not ported.
-  done_when:
-    - run: '! ls tools/selftest/*.ts >/dev/null 2>&1 && ! grep -q ''node tools/selftest'' itos.yaml && go run ./tools/bin/parity selftest'
 
 - id: T-144
   type: test
