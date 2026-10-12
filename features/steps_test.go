@@ -345,6 +345,9 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the scenario "([^"]*)" is staged live$`, func(id string) error {
 		return w.stageScenarioEdit(id, dropWip)
 	})
+	sc.Step(`^the scenario "([^"]*)" is staged wip$`, func(id string) error {
+		return w.stageScenarioEdit(id, addWip)
+	})
 	sc.Step(`^a new live scenario "([^"]*)" is staged in "([^"]*)"$`, w.stageNewLiveScenario)
 	sc.Step(`^a change to the steps of the scenario "([^"]*)" is staged$`, func(id string) error {
 		return w.stageScenarioEdit(id, changeSteps)
@@ -362,7 +365,10 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^a change to the Background of the feature in "([^"]*)" is staged$`, func(file string) error {
 		return w.stageFeatureEdit(file, changeBackground)
 	})
-	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" and changing the steps of the scenario "([^"]*)" on top of it$`, w.commitChangingSteps)
+	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" and changing the steps of the scenario "([^"]*)" on top of it$`,
+		w.commitEditing(changeSteps))
+	sc.Step(`^the commit "([^"]*)" naming the task "([^"]*)" and turning the scenario "([^"]*)" wip on top of it$`,
+		w.commitEditing(addWip))
 	sc.Step(`^the smoke set lists only "([^"]*)"$`, w.smokeSetLists)
 	sc.Step(`^a feature file "([^"]*)" with the live scenario "([^"]*)" is staged$`, w.featureFile)
 	sc.Step(`^the committed smoke set lists only "([^"]*)"$`, w.committedSmokeSet)
@@ -2000,6 +2006,11 @@ func dropWip(text, id string) string {
 	return strings.Replace(text, "  "+id+" @wip\n", "  "+id+"\n", 1)
 }
 
+// addWip writes @wip on the scenario's tag line, setting it aside.
+func addWip(text, id string) string {
+	return strings.Replace(text, "  "+id+"\n", "  "+id+" @wip\n", 1)
+}
+
 func changeSteps(text, id string) string {
 	return strings.Replace(text, "    When it runs\n", "    When it runs twice\n", 1)
 }
@@ -2099,12 +2110,15 @@ func (w *world) stageFeatureEdit(file string, edit func(string) string) error {
 	return w.git("add", "--", path)
 }
 
-// A commit naming the task whose one change is the scenario's steps.
-func (w *world) commitChangingSteps(message, task, id string) error {
-	if _, err := w.editScenario(id, changeSteps); err != nil {
-		return err
+// A commit naming the task whose one change is the edit of the scenario:
+// its steps changed, or @wip written on it.
+func (w *world) commitEditing(edit scenarioEdit) func(message, task, id string) error {
+	return func(message, task, id string) error {
+		if _, err := w.editScenario(id, edit); err != nil {
+			return err
+		}
+		return w.commit(message + "\n\nTask: " + task + "\n")
 	}
-	return w.commit(message + "\n\nTask: " + task + "\n")
 }
 
 // The smoke set holds the one scenario, under the feature file it is in.
