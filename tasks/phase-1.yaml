@@ -1679,3 +1679,19 @@
     is argued in the commit and excepted only as itos-cc allows. No change to what itos does; if a
     test finds a bug, stop and report it. The check runs the nightly's step at the same seed that
     drew the survivor, capped at 2 sites.
+
+- id: T-163
+  type: ci
+  title: The platform jobs run a push's named tests, and the nightly runs every feature on three platforms
+  why: >
+    The user's call (2026-10-12), rapid feedback: run 38229764019 waited 6 min 17 s on Windows
+    running every feature, the ci job taking 4 min 11 s and running only the smoke set and the
+    range's named scenarios. With slice-132's itos ci run <from> <to> --tests, ci.yml's platform
+    jobs read the range as the ci job does (itos ci range) and run the range's named tests on their
+    own platform in place of go test ./features, keeping the unit tests, the launcher steps and a
+    features timing summary if the run can give one. Every feature on Linux, macOS and Windows moves
+    to nightly.yml as a platform matrix job beside the nightly job, whose failure the Nightly red
+    issue reports as it reports the nightly job's. Part of p1-testing-tiers-guide (issue #41); the
+    guidance half follows.
+  done_when:
+    - run: "grep -q -- 'ci run .*--tests' .github/workflows/ci.yml && ! grep -qE 'run: go test ./features -count=1' .github/workflows/ci.yml && grep -q 'windows-latest' .github/workflows/nightly.yml && grep -q 'macos-latest' .github/workflows/nightly.yml"

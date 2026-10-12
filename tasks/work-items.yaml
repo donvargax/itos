@@ -8429,3 +8429,11 @@ items:
       p1-ci-e2e-workflow (#18) stays parked.
     refs: [internal/cli/ci.go, features/ci.feature]
     tags: [ci]
+
+  - id: T-163
+    title: The platform jobs run a push's named tests, and the nightly runs every feature on three platforms
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
