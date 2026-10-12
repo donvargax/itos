@@ -7798,14 +7798,15 @@ items:
       for that user alone would make it harness-neutral. After v8.
     tags: [cli, docs]
 
-  - id: p1-nightly-judges-changed-sites
+  - id: T-161
     title: The nightly judges every mutation site of the functions changed since the last green nightly, with strict coverage
     phase: 1
     owner: null
     status: todo
     depends_on: [T-159]
-    kind: idea
+    kind: task
     why: >
+      Was p1-nightly-judges-changed-sites.
       The user's call (2026-10-11): a push samples one site (q-52, q-55), so a slice's survivors
       wait for a later push to draw them; on 2026-10-11 slice-126 left four in upgrade.go and one
       equivalent in launch.go, found one red push at a time (T-155, T-156), the last by a test-only
