@@ -397,10 +397,12 @@ features.
 
 **The platform jobs** (`platform (<runner>)` on `ubuntu-latest`,
 `macos-latest` and `windows-latest`) build itos natively, stamped as
-`tools/bin/itos` stamps it, and run the Go unit tests and every feature
-against it, in Git for Windows' `bash` on windows. They block, and the release
-job needs them; releases are still built on Linux alone. Actions are pinned
-by commit.
+`tools/bin/itos` stamps it, into `ITOS_BIN`, read the range as the ci job does
+and run the Go unit tests and the range's named tests against it
+(`itos ci run <from> <to> --tests`: the smoke set and what the range names),
+in Git for Windows' `bash` on windows. They block, and the release job needs
+them; releases are still built on Linux alone. Actions are pinned by commit.
+Every feature on the three platforms is the nightly's (T-163).
 
 **`tools/bin/itos`** is a POSIX sh script that builds `./cmd/itos` into
 `.tools/bin/itos` (ignored), stamped with `tools/bin/dev-version`'s version
@@ -435,15 +437,17 @@ module they judge runs inside them, each documented in its `main.go`:
 
 **The nightly** (`.github/workflows/nightly.yml`, at 11:44 UTC on `main` or
 by hand) runs `itos ci run --nightly`: `ci.nightly.steps` in written order,
-here every feature, the gates' self-tests, the release build and the
+here the gates' self-tests, the release build and the
 config's schema, then the steps T-125 kept from the done tasks' checks (what
 a push's features step selects, the build script's staleness rule, the
 upgrade asset, five runs with something hostile first on the PATH, two
 coverage runs and the plugin's Claude Code checks), then the newest release's
 archive passing `gh attestation verify` and the newest completed CI run on
-`main` having passed its three platform jobs. A red run opens one
-`nightly-red` issue, or comments on the open one with the failing scenarios; a
-green run closes it.
+`main` having passed its three platform jobs. Beside it, its own platform
+jobs run the unit tests and every feature on Linux, macOS and Windows, with
+`-timings` in each job's summary. A report job, once all are done, opens one
+`nightly-red` issue for a red job, or comments on the open one with each red
+job's failing scenarios; a night whose every job is green closes it.
 
 **The self-tests** prove the gates rather than the code: each a Go test,
 `TestSelftest`, a subtest a case, beside the program it tests or in

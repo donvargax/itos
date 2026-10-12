@@ -55,8 +55,9 @@ being there proves nothing by itself.
 
 ## How the gates and releases work here
 
-Every push to `main` runs the plan `itos.yaml`'s `ci` states, the unit tests and
-every feature on Linux, macOS and Windows (T-072). A range with a feat or a fix
+Every push to `main` runs the plan `itos.yaml`'s `ci` states, and the unit tests
+and the range's named tests on Linux, macOS and Windows (T-072, T-163); every
+feature on the three runs nightly. A range with a feat or a fix
 also runs:
 
 - the config schema, held to the last release's (T-070);

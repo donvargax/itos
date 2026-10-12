@@ -80,9 +80,9 @@ and the nightly run, `tools/bin/itos ci plan <from> <to>` and `ci plan
   build stops it with exit 3 and a line naming the build.
 - **CI** (`.github/workflows/ci.yml`, every push to `main`) re-checks every
   commit since the last green run with `itos verify`, runs the plan, and runs
-  the unit tests and every feature on Linux, macOS and Windows. **The
-  nightly** (`nightly.yml`) runs every feature and opens or comments on one
-  "Nightly red" issue; a green run closes it.
+  the unit tests and the range's named tests on Linux, macOS and Windows.
+  **The nightly** (`nightly.yml`) runs every feature on all three and opens or
+  comments on one "Nightly red" issue; a green run closes it.
 
 So: no `dprint check`, `go vet` or `go test ./features` "to be sure", no
 formatting passes, no tidying imports by hand, no reading a file back to
