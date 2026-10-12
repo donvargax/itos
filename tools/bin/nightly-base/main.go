@@ -3,7 +3,8 @@
 // success, so every Go function changed since the last green night is judged, strictly covered,
 // until a green night moves the base.
 //
-//	base=$(go run ./tools/bin/nightly-base) && tools/bin/pinned itos-cc mutation run --since "$base" …
+//	base=$(go run ./tools/bin/nightly-base) && files=$(go run ./tools/bin/nightly-base -linux-files cmd internal) &&
+//	tools/bin/pinned itos-cc mutation run --since "$base" … $files
 //
 // The run is read with gh (gh run list --workflow nightly.yml --branch main --status success
 // --limit 1), with the token gh has: the nightly's step hands it github.token, whose actions: read
@@ -18,10 +19,20 @@
 // the step never judges every function of the tree. Stderr names the base it chose and why, so
 // the night's log says what was judged.
 //
+// With -linux-files it prints instead, one a line, the non-test Go files under the folders it is
+// given (relative to the repository's top, the working folder) that a Linux build compiles: the
+// files go/build matches for GOOS=linux, so a _windows.go or _darwin.go file, or one whose build
+// constraint Linux fails, is left out, as are testdata, folders go ignores and nested modules.
+// itos-cc cannot measure code only another OS builds (itos-cc#18), so a change to such a file
+// would leave the changed-sites step red every night and its base, which moves only on a green
+// night, never moving; the step judges these files alone until itos-cc#18 is fixed. It never
+// prints no file, which would let itos-cc judge the whole tree: none found is exit 2.
+//
 // It imports nothing but the standard library, as the other gate programs do, and runs git and gh
 // by name.
 //
-// Exit status: 0 a base printed, 2 a usage error or a git that could not read HEAD's history.
+// Exit status: 0 a base (or the files) printed, 2 a usage error, a git that could not read HEAD's
+// history, or no Go file a Linux build compiles.
 package main
 
 import (
@@ -29,9 +40,12 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"go/build"
 	"io"
+	"io/fs"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -52,8 +66,20 @@ func run(args []string, cmd runner, now time.Time, stdout, stderr io.Writer) int
 	flags.SetOutput(stderr)
 	workflow := flags.String("workflow", "nightly.yml", "the workflow whose last green run is the base")
 	branch := flags.String("branch", "main", "the branch its runs are read on")
+	linux := flags.Bool("linux-files", false, "print the non-test Go files under the folders named that a Linux build compiles, not the base")
 	if err := flags.Parse(args); err != nil {
 		return 2
+	}
+	if *linux {
+		files, err := linuxFiles(".", flags.Args())
+		if err != nil {
+			fmt.Fprintf(stderr, "nightly-base: %v\n", err)
+			return 2
+		}
+		for _, f := range files {
+			fmt.Fprintln(stdout, f)
+		}
+		return 0
 	}
 	if flags.NArg() > 0 {
 		fmt.Fprintf(stderr, "nightly-base: unexpected argument %q\n", flags.Arg(0))
@@ -162,4 +188,59 @@ func firstLine(s string) string {
 		}
 	}
 	return "(nothing)"
+}
+
+// linuxFiles is every non-test Go file under the roots, folders relative to top, that a Linux
+// build of top's module compiles, relative to top with forward slashes, in walk order. An error
+// when a root cannot be read, a file's build constraint cannot be parsed, or no file is found.
+func linuxFiles(top string, roots []string) ([]string, error) {
+	if len(roots) == 0 {
+		return nil, errors.New("-linux-files needs the folders to read, cmd internal for this repository")
+	}
+	ctx := build.Default
+	ctx.GOOS = "linux"
+	var files []string
+	for _, root := range roots {
+		start := filepath.Join(top, root)
+		err := filepath.WalkDir(start, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			name := d.Name()
+			if d.IsDir() {
+				if path == start {
+					return nil
+				}
+				if name == "testdata" || strings.HasPrefix(name, ".") || strings.HasPrefix(name, "_") {
+					return filepath.SkipDir
+				}
+				if _, err := os.Stat(filepath.Join(path, "go.mod")); err == nil {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			if !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+				return nil
+			}
+			ok, err := ctx.MatchFile(filepath.Dir(path), name)
+			if err != nil {
+				return err
+			}
+			if ok {
+				rel, err := filepath.Rel(top, path)
+				if err != nil {
+					return err
+				}
+				files = append(files, filepath.ToSlash(rel))
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no Go file a Linux build compiles under %s", strings.Join(roots, " "))
+	}
+	return files, nil
 }

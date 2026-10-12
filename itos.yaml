@@ -352,9 +352,13 @@ ci:
       # base, and never runs past the job's time. With no green nightly in reach (none, gh failing,
       # or its commit not in HEAD's history) it says so and judges the last 24 hours' first-parent
       # range instead, never every function. A survivor or an uncovered changed line fails the
-      # night. Linux only, as the job is (T-161).
+      # night. Linux only, as the job is (T-161). Its paths are the Go files of cmd and internal a
+      # Linux build compiles (nightly-base -linux-files), not the folders: Linux cannot measure code
+      # only another OS builds (itos-cc#18), so a change to a _windows.go file would keep every
+      # night red and the base, which moves only on a green night, would never move (the user,
+      # 2026-10-12). The narrowing goes when an itos-cc release fixes itos-cc#18.
       - {
-          run: 'base=$(go run ./tools/bin/nightly-base) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal',
+          run: 'base=$(go run ./tools/bin/nightly-base) && files=$(go run ./tools/bin/nightly-base -linux-files cmd internal) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json $files',
           cost: late,
         }
       # The features never run the itos on the PATH (T-087's check, kept as a step in T-125): a

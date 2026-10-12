@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -169,5 +171,78 @@ func TestExecRunNamesStderr(t *testing.T) {
 	}
 	if firstLine("\n \n") != "(nothing)" {
 		t.Error("an empty text's first line")
+	}
+}
+
+// writeTree writes files, relative paths to their text, under a new folder, and returns it.
+func writeTree(t *testing.T, files map[string]string) string {
+	t.Helper()
+	top := t.TempDir()
+	for name, text := range files {
+		path := filepath.Join(top, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return top
+}
+
+func TestLinuxFilesAreTheGoFilesALinuxBuildCompiles(t *testing.T) {
+	top := writeTree(t, map[string]string{
+		"internal/a/plain.go":            "package a\n",
+		"internal/a/plain_test.go":       "package a\n",
+		"internal/a/file_windows.go":     "package a\n",
+		"internal/a/file_darwin.go":      "package a\n",
+		"internal/a/file_linux.go":       "package a\n",
+		"internal/a/tagged.go":           "//go:build windows\n\npackage a\n",
+		"internal/a/unix.go":             "//go:build unix\n\npackage a\n",
+		"internal/a/notes.md":            "not Go\n",
+		"internal/a/testdata/fixture.go": "package fixture\n",
+		"internal/a/_skip/old.go":        "package old\n",
+		"internal/nested/go.mod":         "module nested\n",
+		"internal/nested/n.go":           "package nested\n",
+		"cmd/tool/main.go":               "package main\n",
+		"other/ignored.go":               "package other\n",
+	})
+	got, err := linuxFiles(top, []string{"cmd", "internal"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"cmd/tool/main.go", "internal/a/file_linux.go", "internal/a/plain.go", "internal/a/unix.go"}
+	if strings.Join(got, " ") != strings.Join(want, " ") {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestLinuxFilesRefusesToPrintNone(t *testing.T) {
+	top := writeTree(t, map[string]string{"internal/a/only_windows.go": "package a\n"})
+	if files, err := linuxFiles(top, []string{"internal"}); err == nil || !strings.Contains(err.Error(), "no Go file a Linux build compiles under internal") {
+		t.Errorf("files %v, err %v", files, err)
+	}
+	if _, err := linuxFiles(top, nil); err == nil {
+		t.Error("no folders gave no error")
+	}
+	if _, err := linuxFiles(top, []string{"missing"}); err == nil {
+		t.Error("a missing folder gave no error")
+	}
+	bad := writeTree(t, map[string]string{"internal/a/bad.go": "//go:build (\n\npackage a\n"})
+	if _, err := linuxFiles(bad, []string{"internal"}); err == nil {
+		t.Error("an unreadable build constraint gave no error")
+	}
+}
+
+func TestRunPrintsTheLinuxFilesOneALine(t *testing.T) {
+	top := writeTree(t, map[string]string{"internal/a/a.go": "package a\n", "internal/a/b_windows.go": "package a\n", "cmd/c/c.go": "package main\n"})
+	t.Chdir(top)
+	var stdout, stderr strings.Builder
+	if code := run([]string{"-linux-files", "cmd", "internal"}, nil, now, &stdout, &stderr); code != 0 || stdout.String() != "cmd/c/c.go\ninternal/a/a.go\n" {
+		t.Errorf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
+	}
+	stdout.Reset()
+	if code := run([]string{"-linux-files", "nowhere"}, nil, now, &stdout, &stderr); code != 2 || stdout.Len() != 0 {
+		t.Errorf("a missing folder: exit %d, stdout %q", code, stdout.String())
 	}
 }
