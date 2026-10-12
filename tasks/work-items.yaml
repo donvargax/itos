@@ -8655,16 +8655,9 @@ items:
     title: The moves rule lets a live scenario turn @wip outside except_types on a Gherkin kind
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: bug
-    why: >
-      Found by slice-134's agent (2026-10-12), filed as p1-moves-live-to-wip: on a Gherkin kind a
-      live scenario that gains @wip passes the moves rule (movedProblem returns early when the later
-      one is wip), while a command kind refuses the same change ('turns the live test … wip').
-      Turning a scenario wip takes it out of every run, so it weakens what the scenario guards as
-      surely as changing its steps, which is what the rule exists to stop. Outside except_types it
-      is refused, named for what it does: turns the live scenario <ID> wip.
     tags: [tests]
 
   - id: p1-release-warms-go-proxy
