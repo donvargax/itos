@@ -8226,4 +8226,4 @@ items:
       exists. T-148 excused three of them from staticcheck's ST1005 with a lint:ignore rather than
       reword them, as rewording changes what itos prints: a fix with a scenario saying what each
       malformed registry is refused with.
-    tags: [message]
+    tags: [work]
