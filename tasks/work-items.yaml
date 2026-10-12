@@ -8742,3 +8742,23 @@ items:
       name and warn when the type's scope cannot touch them, or the ledger's type could be read as a
       default the commit may differ from.
     tags: [work]
+
+  - id: bug-109
+    title: The footer-leading-blank warning names the line read as the start of the footer, and why
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      From p1-lint-names-footer-line (#48; the user's go, 2026-10-12): the built-in lint reads a
+      message as commitlint does, so any body line beginning with a word and ': ' or ' #' starts the
+      footer, and when the line above it is not blank it warns 'footer must have leading blank line'
+      without saying which line. Agents bisect their messages or reword correct prose to quiet it;
+      it was met four times on 2026-10-12 alone (slice-133's spec, T-165, T-166, the coordinator's
+      commits). The warning keeps its rule and verdict (commitlint's) and adds the line's number in
+      the message, its text, and why it reads as a footer: it begins with a word and a colon, or a
+      word and ' #'. --json carries the same in its message. Whether the lint should instead read
+      the footer as git reads trailers, the last paragraph alone, which would end the false warnings
+      (#21), stays p1-lint-leading-blank-hash-line, the user's call.
+    tags: [commit, message]
