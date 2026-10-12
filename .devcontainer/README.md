@@ -1,8 +1,8 @@
 # The itos devcontainer
 
 A container to run Claude Code in, unattended, on this repository: Claude Code with
-`bypassPermissions`, itos and its git shim first on the PATH, the Go the hooks need and
-pnpm, and outbound traffic limited to an allowlist. The container limits what reaches the
+`bypassPermissions`, itos and its git shim first on the PATH, the Go the hooks need (and no
+Node), and outbound traffic limited to an allowlist. The container limits what reaches the
 host; the shim and the hooks still hold every commit to the repository's rules.
 
 ## Before the first start, on the host
@@ -17,9 +17,7 @@ hooks or change the git config. Do these once per clone, on the host:
    `git config hook.repo-pre-commit.event pre-commit` and
    `git config hook.repo-pre-commit.command tools/bin/pre-commit`.
 3. **Start it:** `devcontainer up --workspace-folder .`, then
-   `devcontainer exec --workspace-folder . zsh`. Inside, run `pnpm install` once, for the
-   TypeScript self-tests and runners that import from `node_modules`. Scripts are off inside
-   (`PNPM_CONFIG_IGNORE_SCRIPTS`).
+   `devcontainer exec --workspace-folder . zsh`.
 
 **Commit inside the container, never on the host, once the container has written the
 workspace.** The hooks run code from the working tree: `tools/bin/pre-commit`,
@@ -32,16 +30,16 @@ reads hooks from `.claude/settings.json`): read what the container changed befor
 
 [trailofbits/claude-code-devcontainer](https://github.com/trailofbits/claude-code-devcontainer)
 at `feea113`, Apache-2.0 (`LICENSE`). Changed here: the Dockerfile adds Go (go.mod's toolchain),
-pnpm, dnsmasq, itos from a pinned release with its git shim, and the allowlist
-below as a root-owned script run at every start; it takes away the container user's passwordless
-sudo and the `/workspace` folder, and moves the base image to a digest whose git is 2.55 (itos
-runs its hooks from the git config, which needs git 2.54). `devcontainer.json` mounts the
-workspace at its host path, so paths written on one side (`node_modules/.bin`, an absolute
-`core.hooksPath`) hold on the other, runs the image's entrypoint (`overrideCommand: false`),
-sets no container name, and sets `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` and
-`PNPM_CONFIG_IGNORE_SCRIPTS`. `post_install.py` loses its `sudo chown` step. The base's `devc`
-helper (`install.sh`), its `renovate.json` and its README are not carried: the devcontainer CLI
-or an editor starts the container directly.
+dnsmasq, itos from a pinned release with its git shim, and the allowlist below as a root-owned
+script run at every start; it takes away the container user's passwordless sudo, the
+`/workspace` folder, and the base's Node, fnm and npm settings, which nothing here runs (T-149);
+and it moves the base image to a digest whose git is 2.55 (itos runs its hooks from the git
+config, which needs git 2.54). `devcontainer.json` mounts the workspace at its host path, so
+paths written on one side (an absolute `core.hooksPath`) hold on the other, runs the image's
+entrypoint (`overrideCommand: false`), sets no container name, and sets
+`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`. `post_install.py` loses its `sudo chown` step. The
+base's `devc` helper (`install.sh`), its `renovate.json` and its README are not carried: the
+devcontainer CLI or an editor starts the container directly.
 
 ## Pinned versions
 
@@ -49,7 +47,6 @@ or an editor starts the container directly.
 | ---- | --------------------------------------- | -------------------------------------------------- |
 | itos | `ITOS_VERSION` in the Dockerfile        | `ITOS_CHECKSUMS_SHA256`, the hash of its checksums |
 | Go   | `GO_VERSION`, go.mod's `toolchain` line | `GO_SHA256_AMD64`/`_ARM64`, from go.dev/dl         |
-| pnpm | `PNPM_VERSION`, package.json's          | npm's registry                                     |
 
 To move itos: set `ITOS_VERSION`, download that release's `checksums.txt`, set
 `ITOS_CHECKSUMS_SHA256` to its `sha256sum`, and rebuild.
@@ -74,7 +71,6 @@ leaves the container closed (see `docker logs`).
 | `api.anthropic.com`                    | Claude Code                                                                                |
 | `proxy.golang.org`, `sum.golang.org`   | `go build`, `go vet` and the unit tests in the hooks, fetching modules                     |
 | `vuln.go.dev`                          | the pre-commit hook's `deps-check`, whose govulncheck runs when go.mod or go.sum is staged |
-| `registry.npmjs.org`                   | `pnpm install`, which installs what the TypeScript self-tests and runners import           |
 | `plugins.dprint.dev`                   | dprint's plugins, which the pre-commit hook's dprint fetches once, checked by SHA-256      |
 | `release-assets.githubusercontent.com` | GitHub's release downloads: dprint, through `tools/bin/pinned`, and the other pinned tools |
 | `pypi.org`, `files.pythonhosted.org`   | the base's Python tooling (`uv`); nothing in this repository's build                       |
