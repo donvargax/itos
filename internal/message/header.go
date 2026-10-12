@@ -3,10 +3,9 @@ package message
 // The built-in header lint (commits.header_lint.use: builtin): what
 // commitlint does with @commitlint/config-conventional, in Go, so that a
 // project needs no Node to judge its headers. Each part follows the package
-// that does it there, as this repository's node_modules hold them:
-// conventional-commits-parser 7 with the conventionalcommits preset's
-// patterns reads the message into a header, its type, scope and subject, a
-// body and a footer (parse); @commitlint/is-ignored passes the messages
+// that does it there: conventional-commits-parser 7 with the
+// conventionalcommits preset's patterns reads the message into a header, its
+// type, scope and subject, a body and a footer (parse); @commitlint/is-ignored passes the messages
 // commitlint leaves alone (ignored); @commitlint/rules judges them, at the
 // levels config-conventional sets (headerRules), each problem under the
 // rule's id and in its words. type-enum's list is commits.types, or
