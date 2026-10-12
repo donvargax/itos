@@ -8328,3 +8328,22 @@ items:
       word and a colon. Beside p1-lint-leading-blank-hash-line (#21), which is a different trigger.
     refs: [internal/message]
     tags: [commit]
+
+  - id: p1-asks-relink
+    title: An answered question naming a renamed item has a sanctioned fix, and config check's warning names it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      donvargax/itos#49 (itos 8.0.0, itos-cc after upgrading from 7.5.0): config check warns, 23
+      lines on every config check, task, init and commit-msg hook run, that answered questions name
+      items the registry no longer has (asked before bug-105 made promote rename them). The warning
+      is right but has no fix line, no command re-points an answered question or clears its item
+      (only a hand edit of asks.yaml, which the guides forbid), and v8.0.0's Upgrading notes did not
+      announce it. Wanted: a fix line naming the way (an itos decision subcommand to relink or clear
+      the item), and itos upgrade rewriting ids it can resolve from the registry's 'Was <idea>.'
+      notes.
+    refs: [internal/config]
+    tags: [work]
