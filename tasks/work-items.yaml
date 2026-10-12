@@ -8227,3 +8227,20 @@ items:
       reword them, as rewording changes what itos prints: a fix with a scenario saying what each
       malformed registry is refused with.
     tags: [work]
+
+  - id: p1-shellcheck-scripts
+    title: shellcheck lints the repository's shell scripts as a static step of CI's plan
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [T-147]
+    kind: idea
+    why: >
+      The user's call (2026-10-11). actionlint already runs shellcheck over the workflows' run:
+      blocks (ubuntu runners carry shellcheck), but nothing lints the standalone scripts:
+      tools/bin/pre-commit, go-unit-tests, pinned, itos, install-launcher, action-version,
+      dev-version, the plugin's guard.sh, the devcontainer's firewall script and the fixture
+      adapter. T-147 turns the plugin's TypeScript hooks into shell too, and T-142 and T-148 leave
+      the plugin with no other lint. Add shellcheck, pinned, as a static step over the tracked shell
+      scripts, fixing what it reports. After T-147, so its new scripts are covered from the start.
+    refs: [tools/bin/pre-commit, integrations/claude-code/hooks/guard.sh, itos.yaml]
