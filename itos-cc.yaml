@@ -1,6 +1,6 @@
 mutation:
   tests:
-    list: node tools/bin/itos-cc-tests.ts
+    list: go run ./tools/bin/itos-cc-tests
     run: "go test ./features -count=1 -scenarios='{pattern}'"
     ids_pattern: "^@(?:{ids})$"
     join: { each: "{id}", sep: "|" }
@@ -8,7 +8,8 @@ mutation:
     support:
       - features/*_test.go
       - features/testdata/**
-      - tools/bin/itos-cc-tests.ts
+      - tools/bin/itos-cc-tests/main.go
+      - tools/bin/repo-program/repoprogram.go
   exceptions:
     - file: internal/ledger/nextid.go
       function: github.com/donvargax/itos/v8/internal/ledger#NextIDAfter

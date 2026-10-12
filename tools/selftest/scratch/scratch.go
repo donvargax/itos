@@ -31,6 +31,7 @@ import (
 	"time"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	repoprogram "github.com/donvargax/itos/v8/tools/bin/repo-program"
 )
 
 // EnvSelftest is the variable that lets a self-test run (Gate).
@@ -177,13 +178,9 @@ func Run(dir string, env []string, stdin string, name string, args ...string) Re
 
 // Program is the command and the arguments that start one of the repository's programs, a shell
 // script: the script itself where the kernel reads its #! line, sh and the script on windows,
-// which starts no script that way (T-135).
+// which starts no script that way (T-135). tools/bin's programs ask the same resolver.
 func Program(script string, args ...string) (string, []string) {
-	if runtime.GOOS != "windows" {
-		return script, args
-	}
-	// Slashes: sh reads a backslash in the path as an escape.
-	return "sh", append([]string{filepath.ToSlash(script)}, args...)
+	return repoprogram.Command(script, args...)
 }
 
 // Itos runs tools/bin/itos of dir in dir and returns its stdout, failing the test when it fails.

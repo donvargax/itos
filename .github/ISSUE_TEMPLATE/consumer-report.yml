@@ -2,7 +2,7 @@
 # session running `gh issue create -R donvargax/itos --template
 # consumer-report.yml`. The form applies consumer-report and nothing else: an
 # issue form applies its labels for whoever files it, so a label it applies
-# proves nothing. It must never apply itos-accepted, which tools/bin/inbox.ts
+# proves nothing. It must never apply itos-accepted, which tools/bin/inbox
 # trusts only when its timeline shows an allowed login applied it
 # (docs/ORCHESTRATING.md, the loop).
 name: Consumer report

@@ -14,7 +14,7 @@
 # above the last release and below the next one, whatever that turns out to
 # be, and two builds sort by N. It is all pre-release, no + build metadata,
 # so a pin.version and the launcher's own version read it as they read a
-# release's. tools/bin/itos and tools/bin/build-go.ts stamp it into the
+# release's. tools/bin/itos and tools/bin/build-go stamp it into the
 # binary; a release's binary is stamped by GoReleaser from its tag instead
 # (.goreleaser.yaml).
 #

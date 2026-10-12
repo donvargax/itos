@@ -3,7 +3,7 @@
 # the Go binary built from cmd/itos into .tools/bin/itos (ignored by git),
 # stamped with the version tools/bin/dev-version gives this checkout from git
 # describe (2.3.1-dev.5.g1234abc five commits after v2.3.0, the release's own
-# at its tag; T-069), as tools/bin/build-go.ts stamps it, and records that
+# at its tag; T-069), as tools/bin/build-go stamps it, and records that
 # version beside it in .tools/bin/itos.version. The binary is built when
 # missing, rebuilt when anything under cmd/ or internal/, go.mod or go.sum is
 # newer than it (a file removed counts, by its folder's time), and restamped

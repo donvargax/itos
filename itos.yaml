@@ -233,8 +233,12 @@ ci:
     - { run: 'go run ./tools/bin/previous-release -range-from "${FROM-}"', cost: late }
     # The coordinator's inbox trust rule, offline (T-057's check, kept as a step in T-125): an issue
     # is actionable only from an allow-listed login, or with an itos-accepted label applied by one.
-    # Nothing else runs tools/bin/inbox.ts.
-    - { run: node tools/bin/inbox.ts --self-test, cost: late }
+    # A Go test since T-146, a subtest a case, which runs only with ITOS_SELFTEST set: nothing else
+    # runs it.
+    - {
+        run: "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/bin/inbox",
+        cost: late,
+      }
     # The changelog generator (T-010's check, kept as a step in T-125): tools/changelog.ts still
     # runs over this history, and every session is sent to it; the weakest of the kept checks, as
     # it guards a tool rather than a gate.
@@ -294,7 +298,7 @@ ci:
     - by: go run ./tools/bin/conformance --bin tools/bin/itos
       matches: "^go run \\./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*$"
     - by: go run ./tools/bin/conformance --bin tools/bin/itos
-      matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && go run \\./tools/bin/conformance --bin dist/go/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*'$"
+      matches: "^sh -c 'go run \\./tools/bin/build-go dist/go && go run \\./tools/bin/conformance --bin dist/go/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*'$"
   # There is no ci.nightly_only: T-125 removed it with the ledger's checks, whose three commands
   # (the gates self-test, the newest release's attestation, the newest CI run's platform jobs) are
   # steps here, and nothing a push names is left out of a push.

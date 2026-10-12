@@ -7,7 +7,7 @@
 //
 // It builds the release from the checkout as a GoReleaser snapshot (tools/bin/pinned goreleaser
 // release --snapshot --clean, stamped with tools/bin/dev-version's version, as
-// tools/bin/build-go.ts --release builds it) into a scratch folder, then reads the folder with
+// tools/bin/build-go --release builds it) into a scratch folder, then reads the folder with
 // Go's own archive and hash readers, not the code that wrote it:
 //
 //   - the folder holds one archive per platform of platforms below, named as the release names
