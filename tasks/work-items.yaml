@@ -2302,6 +2302,12 @@ items:
       and decides itself (-changed-since). A paths list on a step, read by itos ci plan as
       ci.prose.paths is, would leave such a step out of the plan, show it in itos ci plan, and
       drop the step's dependence on the workflow's environment. An itos feature, so a slice.
+
+      2026-10-12: T-163 changed ci.nightly and the nightly went red in
+      tools/selftest/features-scope, which judges the plan's shape but runs only at night (35 s, too
+      slow for every push). With a paths list, a range touching itos.yaml or the workflows would run
+      it per push, so the change that breaks it is told before it lands, not the next morning
+      (T-164). A case for moving this up from phase 3.
     refs: [itos.yaml, PLAN.md]
     tags: [ci]
 
