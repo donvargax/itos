@@ -11,7 +11,7 @@ non-behavior checks into the test suites.
 A check **runs something that does real work** and uses its exit code:
 
 - a tool that validates its subject: `actionlint`, `dprint check`, `go vet`,
-  `fallow audit`, `tsc`;
+  `go tool staticcheck`, `tsc`;
 - the thing itself doing its job: the pre-commit hook rejecting a badly
   formatted file in a scratch repository, `itos ci run` executing the same steps
   the workflow runs;

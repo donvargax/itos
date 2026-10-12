@@ -343,9 +343,9 @@ git runs them beside whatever `core.hooksPath` holds. `hooks.bin` is
   dprint (`dprint.json`) and the staged Go through `gofmt`, staged again,
   and `go vet` when Go is staged; then, unless every staged file is
   Markdown, under `docs/**`, under `tasks/**` or a feature file: the dependency check when `go.mod` or
-  `go.sum` is staged, the unit tests the change reaches
-  (`tools/bin/go-unit-tests --cached`), and `fallow audit` on what is new
-  against HEAD (this repository's TypeScript tooling, scored by complexity).
+  `go.sum` is staged, and the unit tests the change reaches
+  (`tools/bin/go-unit-tests --cached`). staticcheck, over the whole module,
+  is CI's (`go tool staticcheck ./...`, pinned by go.mod's `tool` directive).
   `go-unit-tests` chooses without building: a changed file belongs to the
   deepest package folder holding it, and one `go list -e -test -deps` over
   `./cmd/... ./internal/...` gives every package whose tests reach one;

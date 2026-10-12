@@ -121,8 +121,8 @@ inside this directory. Each isolated agent has a worktree under
 `.claude/worktrees/`. In each one:
 
 - symlink `node_modules` to the main checkout's instead of running `pnpm
-  install`, because a second install can load two copies of a tool (the
-  hooks, `tools/bin/pre-commit` among them, are in the shared git config);
+  install`, for the TypeScript self-tests and runners that import from it
+  (no hook needs it);
 - pull with `--no-autostash` before each push.
 
 ## Lessons from this repository

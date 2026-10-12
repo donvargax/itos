@@ -72,10 +72,10 @@ and the nightly run, `tools/bin/itos ci plan <from> <to>` and `ci plan
   unstaged changes is only checked), and runs `go vet` when Go is staged; then,
   when `go.mod` or `go.sum` is staged, `go run ./tools/bin/deps-check` (no Go
   module younger than 7 days unless `deps-check.json` excepts it, then
-  govulncheck; needs the network), the unit tests the change reaches
-  (`tools/bin/go-unit-tests --cached`) and `fallow audit`. The tests and the
-  audit are skipped when every staged file is Markdown, under `docs/**` or
-  `tasks/**`, or a feature file.
+  govulncheck; needs the network) and the unit tests the change reaches
+  (`tools/bin/go-unit-tests --cached`), both skipped when every staged file is
+  Markdown, under `docs/**` or `tasks/**`, or a feature file. staticcheck
+  (`go tool staticcheck ./...`) is a CI step, not the hook's.
 - Every gate that calls itos runs `tools/bin/itos`; a Go tree that does not
   build stops it with exit 3 and a line naming the build.
 - **CI** (`.github/workflows/ci.yml`, every push to `main`) re-checks every
