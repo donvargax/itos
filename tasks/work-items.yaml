@@ -8295,3 +8295,20 @@ items:
       covers rule and its .goreleaser.yaml mentions, when T-149 deletes tools/parity.
     refs: [tools/bin/build-go, itos.yaml, .github/workflows/ci.yml]
     tags: [ci]
+
+  - id: p1-work-edit-rename-ref
+    title: work edit renames one ref across every item that names it, in one commit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-146 deleted four TypeScript programs under tools/bin; three ideas named two of them in their
+      refs, each beside other refs. work edit --refs replaces an item's whole list, and several ids
+      take the same list, so moving the three took three work edit calls, three commits, each list
+      retyped. A rename of one ref (old to new, on every item naming old, or on the ids given) would
+      be one call and one commit, and a file move would not leave refs naming a path that is gone,
+      which nothing checks today.
+    refs: [internal/cli/workedit.go]
+    tags: [work]
