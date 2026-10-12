@@ -357,3 +357,53 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     And the commit "chore: change the app" touching only "src/app.go" on top of it
     When itos runs CI over the commits after the first
     Then itos exits with code 1
+
+  # Slice 132 (the user's call, 2026-10-12, rapid feedback): a push waits on
+  # its slowest job, and that was a platform job running every feature, where
+  # the ci job runs only the smoke set and the scenarios the range names. ci
+  # plan's steps are plain commands with nothing marking the run of named
+  # tests, so a platform job could not ask for it. ci run <from> <to> --tests
+  # runs that run alone, as ci run would merge it (the smoke set, the range's
+  # named tests, the task checks recognized as them), and nothing else: no
+  # other step, no other task check, no code proof. With no run of named tests
+  # for the range, it runs nothing and says so, exit 0.
+  @ID-CI-25 @slice-132 @wip
+  Scenario: ci run --tests runs the range's named tests and no other step
+    Given the CI steps are "exit 3"
+    And the CI steps run the named tests of the kind "scenario"
+    And the task "T-001" has a check that runs the scenario "@ID-A-01"
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos runs CI's named tests over the commits after the first
+    Then itos exits with code 0
+    And its output says "run @ID-A-01"
+    And its output says "@ID-A-02"
+    And its output does not say "exit 3"
+
+  @ID-CI-26 @slice-132 @wip
+  Scenario: ci run --tests runs no task check that is not a run of named tests
+    Given the CI steps run the named tests of the kind "scenario"
+    And the task "T-001" has the check "exit 4"
+    And the commit "chore: tidy the readme" naming the task "T-001" on top of it
+    When itos runs CI's named tests over the commits after the first
+    Then itos exits with code 0
+    And its output does not say "exit 4"
+
+  @ID-CI-27 @slice-132 @wip
+  Scenario: ci run --tests does not run the code proof
+    Given the CI steps run the named tests of the kind "scenario"
+    And the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
+    And the commit "chore: change the app" touching only "src/app.go" on top of it
+    When itos runs CI's named tests over the commits after the first
+    Then itos exits with code 0
+    And the provider was not run
+
+  @ID-CI-28 @slice-132 @wip
+  Scenario: ci run --tests with no run of named tests for the range runs nothing and says so
+    Given the CI steps are "exit 3"
+    And the CI steps run the named tests of the kind "scenario"
+    And the smoke set is empty
+    And the commit "chore: tidy the readme" touching only "README.md" on top of it
+    When itos runs CI's named tests over the commits after the first
+    Then itos exits with code 0
+    And its output says "no named tests"
+    And its output does not say "exit 3"
