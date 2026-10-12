@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - bug-110
   - bug-109
   - p1-guard-follows-cd
   - p1-task-add-promoted
