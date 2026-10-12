@@ -8654,8 +8654,8 @@ items:
   - id: bug-108
     title: The moves rule lets a live scenario turn @wip outside except_types on a Gherkin kind
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
