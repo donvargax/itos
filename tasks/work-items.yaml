@@ -8730,8 +8730,8 @@ items:
   - id: bug-110
     title: Footers are read as git reads trailers, the message's last paragraph, by the footer rules and the header lint alike
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
