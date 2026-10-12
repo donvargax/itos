@@ -8378,14 +8378,15 @@ items:
     refs: [internal/cli]
     tags: [work]
 
-  - id: p1-drop-deleted-config-paths
+  - id: T-160
     title: itos.yaml's config set stops naming tools/parity and tools/changelog.ts
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-drop-deleted-config-paths.
       T-149 deleted tools/parity/ and tools/changelog.ts but had to keep both in
       commits.path_sets.config: itos verify judges every commit of CI's range by the config at its
       head, so removing them in the same push refused the commits that delete them (T-149's first
