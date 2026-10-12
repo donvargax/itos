@@ -455,6 +455,14 @@ func initializeScenario(sc *godog.ScenarioContext) {
 		}
 		return w.itos("ci", "run", w.commits[0], "HEAD")
 	})
+	// What a platform job runs per push: the range's run of named tests alone
+	// (slice 132).
+	sc.Step(`^itos runs CI's named tests over the commits after the first$`, func() error {
+		if len(w.commits) == 0 {
+			return errors.New("the repository has no commit yet")
+		}
+		return w.itos("ci", "run", w.commits[0], "HEAD", "--tests")
+	})
 	sc.Step(`^itos plans CI over the commits after the first$`, func() error {
 		if len(w.commits) == 0 {
 			return errors.New("the repository has no commit yet")
