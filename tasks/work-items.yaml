@@ -8270,3 +8270,18 @@ items:
       2026-10-11): the files' readers are agents, who follow the rules' pointer, not programs bound
       to the layout, so it ships in a minor. Pairs with p1-work-show-closing-checks.
     tags: [work]
+
+  - id: p1-message-doc-header-agreement
+    title: internal/message's doc comment stops naming the deleted header-agreement self-test
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-143 deleted tools/selftest/header-agreement.ts unported (red by design since squash! and
+      fixup! are judged by type; the header lint is the @ID-CMSG scenarios' and the corpus's
+      messages.yaml). internal/message/doc.go still says that file holds the built-in header lint to
+      a recorded fixture of commitlint's verdicts. A refactor commit rewording that sentence to name
+      what holds the lint now; T-143 left it, as its brief changed no Go under internal/.
+    tags: [docs]
