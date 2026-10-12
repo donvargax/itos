@@ -8388,3 +8388,24 @@ items:
     depends_on: []
     kind: task
     refs: [itos.yaml]
+
+  - id: p1-nightly-changed-sites-other-os-files
+    title: The nightly's changed-sites step can never pass while its range holds a file only another OS builds
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found by T-161's local run (2026-10-12): mutation run --since 9397855d --fail-uncovered=lines
+      over cmd and internal reports internal/idcounter/counter_file_windows.go (changed 2026-10-08,
+      after the last green nightly) as mutation.coverage-missing on Linux, itos-cc#18. Strict
+      coverage judges every admitted function of the range, not only the sampled sites, so the night
+      stays red while that change is in the range, and the base moves only on a green night: the
+      step can never go green on its own. The push proof has the same rule but sees the file only
+      when a push touches it. Options: wait for itos-cc#18, or give the step paths or an exclusion
+      that leaves out files no Linux build compiles. The same run listed 22 uncovered changed lines
+      in 7 functions and a survivor in initWrite (init.go:326) since 2026-10-08, which are the
+      step's real work.
+    refs: [itos.yaml, internal/idcounter/counter_file_windows.go]
+    tags: [ci]
