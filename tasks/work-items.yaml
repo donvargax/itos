@@ -8469,3 +8469,17 @@ items:
       Linux CI's unit step or the nightly; the cost per push decides which (rapid feedback: the
       nightly unless it is cheap).
     tags: [ci, tests]
+
+  - id: p2-fuzz-parsers
+    title: "Go fuzz targets for the parsers: commit messages and footers, the config, the YAML readers"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      No func Fuzz targets exist (the #41 progress report, 2026-10-12). The parsers take text from
+      commits, configs and registries written by hand or by agents; a fuzz target per parser finds
+      the crash or the silent misread a scenario never thought of. Seeds from the conformance
+      corpus; a bounded -fuzztime run in the nightly, the found inputs kept as regression seeds.
+    tags: [tests]
