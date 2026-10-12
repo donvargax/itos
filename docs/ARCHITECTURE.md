@@ -26,7 +26,8 @@ stays a map:
 | `tools/bin/itos`            | The entry point the hooks, CI and the ledger's checks call: builds `./cmd/itos` from the tree and runs it. |
 | `tools/bin/*/` (Go)         | The gates and the release's programs, each `go run ./tools/bin/<name>`, each documented in its `main.go`.  |
 | `tools/bin/*` (sh, `.ts`)   | `dev-version`, `go-unit-tests`, `pinned`, `install-launcher`, `build-go.ts`, `inbox.ts`.                   |
-| `tools/selftest/`           | The self-tests of the gates and of the release (Node), run with the git `tools/bin/real-git` names.        |
+| `tools/selftest/`           | The gates' self-tests that test no one program (Go), and `scratch`, what every self-test shares.           |
+| `tools/parity/`             | What a TypeScript tool said, which `tools/bin/parity` holds its Go replacement to (T-143, T-149).          |
 | `tools/changelog.ts`        | The changelog's filter over git-cliff.                                                                     |
 | `itos.yaml`                 | This repository's policy: every rule a command can decide.                                                 |
 | `tasks/`                    | The ledger (`phase-<n>.yaml`), the work registry (`work-items.yaml`), the questions (`asks.yaml`).         |
@@ -43,8 +44,8 @@ module path ends in its major version or Go refuses its tag, so the path
 moves before a major release, and `tools/bin/release-version` refuses a
 version whose major the path does not match. Go is pinned by its `toolchain`
 line; the dependencies are few and held to the dependency check. Node runs
-only this repository's tooling (the corpus runner, the self-tests, the
-builds, the inbox); no consumer of itos needs it.
+only this repository's tooling (the corpus runner, the builds, the
+inbox); no consumer of itos needs it.
 
 ## How a run goes
 
@@ -446,18 +447,18 @@ archive passing `gh attestation verify` and the newest completed CI run on
 `nightly-red` issue, or comments on the open one with the failing scenarios; a
 green run closes it.
 
-**The self-tests** (`tools/selftest/`) prove the gates rather than the code,
-in scratch worktrees whose hooks run as git runs them (`scratch.ts`):
-`gates.ts` that the hooks and CI catch what they should, and that CI catches
-what the hooks let through; `go-hooks.ts` that the hooks run exactly the unit
-tests a change reaches; `ci-scope.ts` and `features-scope.ts` that the plan
-runs exactly the scenarios it claims; `config-gate.ts` that itos's data is
-checked where it is guarded; `header-agreement.ts` that the built-in header
-lint agrees with a recorded fixture of commitlint's verdicts; `go-release.ts`,
-`release-cut.ts`, `release-notes.ts` and `upgrading-json.ts` the release and
-its notes; `go-schema.ts` the config's schema; `deps-check.ts`,
-`schema-contract.ts`, `plugin-version.ts` and `previous-release.ts` the gate
-programs; `go-dogfood.ts` that `tools/bin/itos` needs no Node. The GitHub
+**The self-tests** prove the gates rather than the code: each a Go test,
+`TestSelftest`, a subtest a case, beside the program it tests or in
+`tools/selftest/<name>/`, run by its step with `ITOS_SELFTEST=1`, which
+`go test ./tools/...` lacks, in scratch worktrees whose hooks run as git runs
+them.
+`gates`: the hooks and CI catch what they should, and CI what the hooks let
+through; `go-hooks`: the hooks run exactly the unit tests a change reaches;
+`ci-scope` and `features-scope`: the plan runs what it claims; `go-release`,
+`config-schema`'s and `release-notes'`: the release, its schema and its
+upgrade asset; `deps-check`'s, `schema-contract`'s, `plugin-version`'s and
+`previous-release`'s: those gates; `go-dogfood`: `tools/bin/itos` needs no
+Node; `ci-mutation-budget`: the mutation commands. The GitHub
 providers' choice of run, which no command reaches without a network, is
 their unit tests' and the fake GitHub's scenarios.
 
