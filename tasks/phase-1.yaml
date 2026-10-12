@@ -1693,3 +1693,22 @@
     to nightly.yml as a platform matrix job beside the nightly job, whose failure the Nightly red
     issue reports as it reports the nightly job's. Part of p1-testing-tiers-guide (issue #41); the
     guidance half follows.
+
+- id: T-164
+  type: ci
+  title: The features-scope self-test holds the nightly to its shape after T-163
+  why: >
+    The nightly of 2026-10-12 (run 38245333242) went red in tools/selftest/features-scope: 'the
+    nightly runs every scenario first, and the gates self-test' asserts ci.nightly's first step is
+    the whole features run, which T-163 took out on purpose: every feature on Linux, macOS and
+    Windows now runs in nightly.yml's platform jobs, and the plan still runs every feature under the
+    hostile PATHs. The self-test runs only at night, so T-163's push never ran it, and the red
+    stopped the plan before both mutation steps (T-161's changed sites ran for the first time on no
+    night yet). The subtest holds the new shape, not a looser one: every feature still runs nightly
+    (a plan step running the whole features command, and nightly.yml's platform jobs on the three
+    systems running every feature), and the gates self-test is in the plan. Fixing it forward is a
+    ci commit.
+  done_when:
+    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/features-scope
+      timeout: 300
+    - run: grep -q 'nightly.yml' tools/selftest/features-scope/scope_test.go
