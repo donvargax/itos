@@ -265,18 +265,19 @@ func jsonList(values []string, indent string) string {
 	return "[\n" + indent + "\t" + strings.Join(values, ",\n"+indent+"\t") + "\n" + indent + "]"
 }
 
-// jsonIssue is an issue as the JSON report writes it, at the depth of a list's item, its trust
-// left out when it has none.
+// jsonIssue is an issue as the JSON report writes it, at the depth of a list's item: its keys in
+// the order gh's jq (gojq) writes them, sorted, as the inbox has always passed them on, then its
+// trust, left out when it has none.
 func jsonIssue(i judged) string {
 	labels := make([]string, len(i.Labels))
 	for k, l := range i.Labels {
 		labels[k] = quote(l)
 	}
 	fields := []string{
-		`"number": ` + strconv.Itoa(i.Number),
-		`"title": ` + quote(i.Title),
 		`"author": ` + quote(i.Author),
 		`"labels": ` + jsonList(labels, "\t\t\t"),
+		`"number": ` + strconv.Itoa(i.Number),
+		`"title": ` + quote(i.Title),
 	}
 	if i.trust != nil {
 		fields = append(fields, `"trust": {`+"\n\t\t\t\t"+`"how": `+quote(i.trust.How)+",\n\t\t\t\t"+`"login": `+quote(i.trust.Login)+"\n\t\t\t}")
