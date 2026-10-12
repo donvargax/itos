@@ -55,12 +55,12 @@ phases:
   3: donvargax
 
 queue:
+  - slice-133
   - p1-guard-follows-cd
   - p1-task-add-promoted
   - p1-text-from-file
   - p1-defer-reason-footer
   - p3-commit-long-text-footer
-  - slice-133
   - p1-core-changelog
   - p1-windows-id-validation
   - bug-38
