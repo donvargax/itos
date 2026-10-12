@@ -1758,3 +1758,25 @@
   done_when:
     - run: grep -q 'doc-budget' tools/bin/pre-commit && grep -q 'doc-budget' tools/selftest/gates/gates_test.go && ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates
       timeout: 300
+
+- id: T-168
+  type: feat
+  title: itos guide brief says which tier a new check belongs to, and a decision record holds why
+  why: >
+    From p1-testing-tiers-guide (issue #41; the user's calls, 2026-10-11 and 10-12). itos's guides
+    say nothing of where a check runs, so each coordinator places a new gate by feel, and slow ones
+    land per push. When a spec adds a check (a task's done_when that becomes a CI step, a hook, a
+    ci.steps entry or a nightly one), itos guide brief, the procedure read before specifying, says
+    where it goes, in a few lines: at the cheapest tier that catches what it catches (the hooks for
+    what the change reaches, in seconds; each push's CI for what a push can break, judged the same
+    way twice; the nightly, ci.nightly, for what is slow, wide or random, which nothing waits on);
+    deterministic where a tier gates, random where it explores (fixed seeds locally and per push,
+    fresh ones nightly); and every nightly find becomes a fixed regression at the push tier (a test
+    that kills the mutant, a property test's failing seed committed). Examples, briefly: a race
+    detector and fuzzing nightly, a secrets scan at pre-push and CI, govulncheck nightly. A decision
+    record (the next number) holds the reasoning, rapid feedback first, and the seeds rule; the
+    guide names it. Code is king: the guide says the rule, not this repository's steps. Whether a
+    guide's text is a feat with its corpus case or needs Changes:, previous-release says; a consumer
+    workflow template is go-template-itos#9's, not this task's.
+  done_when:
+    - run: tools/bin/itos guide brief | grep -qi 'nightly' && tools/bin/itos guide brief | grep -qi 'tier' && ls docs/decisions | grep -qi 'tier'

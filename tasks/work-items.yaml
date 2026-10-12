@@ -8746,3 +8746,11 @@ items:
       standing; a record superseding it would hold the security reason the code comments now carry
       alone.
     refs: [docs/decisions/0029-the-plugin-s-hooks-run-the-itos-the-repository-s-git-hooks-run.md, integrations/claude-code/hooks/guard.sh]
+
+  - id: T-168
+    title: itos guide brief says which tier a new check belongs to, and a decision record holds why
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
