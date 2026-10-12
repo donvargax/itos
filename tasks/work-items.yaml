@@ -8263,3 +8263,25 @@ items:
       the confusion the user hit in another repository.
     refs: [internal/work, tasks/README.md]
     tags: [work]
+
+  - id: p1-archive-closed
+    title: Closed items, tasks and answered questions move to an archive itos reads and agents need not
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-11), to keep the data agents read small. Today tasks/work-items.yaml
+      is 328 KB: 436 of 670 items are done or dropped (about 85 KB; the 233 open items are 208 KB),
+      tasks/phase-1.yaml 110 KB and tasks/asks.yaml 62 KB, mostly answered questions whose decisions
+      are records in docs/decisions/. work done, work drop and an answered question move the entry
+      into an archive file beside its source (tasks/archive/, by kind and phase), and every itos
+      command that needs it (work show, list --all, id minting, depends-on and closes checks,
+      changelog) reads both. The agent rules say closed work is read through itos work show, not the
+      archive files: a soft gate on purpose, since a reader may still have reasons to open them, and
+      a CLI-only ledger was weighed and turned down (agents parse files well, and the CLI would
+      print the same text). The gain is grep noise as much as tokens. Not breaking (the user,
+      2026-10-11): the files' readers are agents, who follow the rules' pointer, not programs bound
+      to the layout, so it ships in a minor. Pairs with p1-work-show-closing-checks.
+    tags: [work]
