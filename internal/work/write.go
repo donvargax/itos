@@ -396,7 +396,8 @@ func sound(cfg *config.Loaded, r Registry, i int, after *value.Map) ([]out.Probl
 
 // Add is the registry with a new item at the end of its items (slice 54):
 // todo, of its kind, in its group, owned by its owner or nobody, its why a
-// folded text. Refused, with nothing changed: an id an item has, a task's id
+// folded text, and no why when it has none (task add's, whose why is the
+// ledger entry's). Refused, with nothing changed: an id an item has, a task's id
 // that ledger.id (taskID) does not match, no group given where the default
 // is not plain (phaseOf), and whatever work check would find in the
 // registry with it (a group not listed, an owner not among the people, a
@@ -428,7 +429,10 @@ func Add(cfg *config.Loaded, r Registry, text string, n New, taskID *regexp.Rege
 		group = phase
 	}
 	item := value.NewMap("id", n.ID, "title", n.Title, "phase", group, "owner", owner, "status", "todo",
-		"depends_on", listOf(n.DependsOn), "kind", n.Kind, "why", n.Why)
+		"depends_on", listOf(n.DependsOn), "kind", n.Kind)
+	if n.Why != "" {
+		item.Set("why", n.Why)
+	}
 	if len(n.Refs) > 0 {
 		item.Set("refs", listOf(n.Refs))
 	}

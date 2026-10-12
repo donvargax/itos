@@ -1664,6 +1664,60 @@ cases:
         - { id: q-1, item: x, question: "Labels or Projects?", status: answered, answer: Labels. }
         - { id: q-3, item: x, question: "Is the archive\nworth it?", status: open }
       commits: []
+  # bug-107: task add wrote a task's why into its registry item as well as its
+  # ledger entry, and the registries written keep the copy; work show prints a
+  # registry why that reads as the ledger's once, whitespace aside, and one that
+  # says something else after it.
+  - name: work show prints a task's why once when its registry item repeats the ledger's
+    argv: [work, show, T-1]
+    files:
+      itos.yaml: *ledgered
+      tasks/phase-1.yaml: &folded "- id: T-1\n  type: docs\n  title: One\n  why: >\n    The ledger\n    says why.\n"
+      work-items.yaml: &repeated "phases: { 1: null }\nitems:\n  - { id: T-1, title: One, phase: 1, owner: null, status: todo, kind: task, depends_on: [], why: The ledger says why. }\n"
+    exit: 0
+    stdout: |
+      T-1  One
+        kind: task, status: todo, owner: nobody, phase: 1
+
+        The ledger says why.
+
+      Scenarios: none tagged @T-1
+
+      Commits: none yet
+  - name: work show prints a registry why that differs from the ledger's after it
+    argv: [work, show, T-1]
+    files:
+      itos.yaml: *ledgered
+      tasks/phase-1.yaml: *folded
+      work-items.yaml: "phases: { 1: null }\nitems:\n  - { id: T-1, title: One, phase: 1, owner: null, status: todo, kind: task, depends_on: [], why: An idea's reasons. }\n"
+    exit: 0
+    stdout: |
+      T-1  One
+        kind: task, status: todo, owner: nobody, phase: 1
+
+        The ledger says why.
+
+        An idea's reasons.
+
+      Scenarios: none tagged @T-1
+
+      Commits: none yet
+  - name: work show --json leaves out of the item a registry why that repeats its ledger_why
+    argv: [work, show, T-1, --json]
+    files:
+      itos.yaml: *ledgered
+      tasks/phase-1.yaml: *folded
+      work-items.yaml: *repeated
+    exit: 0
+    json:
+      schema: 1
+      ok: true
+      item: { id: T-1, title: One, phase: 1, owner: null, status: todo, kind: task, depends_on: [], tags: [] }
+      ledger_why: "The ledger says why.\n"
+      depended_on_by: []
+      scenarios: []
+      questions: []
+      commits: []
   - name: work show refuses an id no item has
     argv: [work, show, nothing]
     exit: 1

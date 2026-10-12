@@ -3,7 +3,7 @@ package cli
 // task add (slice 55, features/task.feature): a task is added by a command,
 // as registry items are (workedit.go). It writes the task at the end of its
 // group's ledger file (ledger.Add) and its item, of kind task, todo and
-// nobody's, at the end of the registry (work.Add), and commits the two files
+// nobody's, with no why (the ledger entry holds it), at the end of the registry (work.Add), and commits the two files
 // alone, "docs: add <id>", through writeCommitted, which puts both back if
 // the commit is refused.
 
@@ -110,7 +110,9 @@ func taskAdd(args []string, o Out) (int, error) {
 	if len(found) > 0 {
 		return refuseWork(found, ExitPolicy, o)
 	}
-	item := work.New{ID: n.ID, Title: n.Title, Why: n.Why, Kind: "task", Phase: n.Group, DependsOn: []string{}}
+	// The why is the ledger entry's alone, the registry being an index
+	// (slice 76, bug-107).
+	item := work.New{ID: n.ID, Title: n.Title, Kind: "task", Phase: n.Group, DependsOn: []string{}}
 	change, found, err := work.Add(cfg, registry, text, item, ledger.IDPattern(cfg))
 	if err != nil {
 		return 0, uneditable(cfg.Work.Registry, err)

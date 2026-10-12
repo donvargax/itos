@@ -71,6 +71,39 @@ func TestShowNamesTheItemsDependingOnIt(t *testing.T) {
 	}
 }
 
+// A registry why that reads as the ledger's, whitespace and blank lines
+// aside, is the copy task add wrote until bug-107: work show gives it once.
+// One that says something else, or beside no ledger why, stays.
+func TestListedLeavesOutARegistryWhyRepeatingTheLedgers(t *testing.T) {
+	item := func(why any) *value.Map { return value.NewMap("id", "T-1", "kind", "task", "why", why) }
+	for _, c := range []struct {
+		ledger   string
+		registry any
+		kept     bool
+	}{
+		{"The ledger\nsays why.\n", "The ledger says why.", true},
+		{"One  para.\n\nTwo.\n", "  One para.\nTwo.", false},
+		{"The ledger says why.\n", "The ledger says why.\n", false},
+		{"The ledger says why.\n", "An idea's reasons.", true},
+		{"", "The registry says why.", true},
+		{"The ledger says why.\n", nil, true},
+	} {
+		shown := Shown{Item: item(c.registry), LedgerWhy: c.ledger}
+		listed := shown.Listed()
+		if listed.Has("why") != c.kept {
+			t.Errorf("ledger %q, registry %#v: why kept %v, want %v", c.ledger, c.registry, listed.Has("why"), c.kept)
+		}
+		if !shown.Item.Has("why") {
+			t.Errorf("ledger %q, registry %#v: Listed changed the registry's item", c.ledger, c.registry)
+		}
+	}
+	var b strings.Builder
+	Shown{Item: item("The  ledger says why."), LedgerWhy: "The ledger says why.\n"}.Print(&b, 100)
+	if got := strings.Count(b.String(), "says why."); got != 1 {
+		t.Errorf("prints the why %d times:\n%s", got, b.String())
+	}
+}
+
 // Where an item's why lives (slice 76): its kind says, else its id, a task's
 // only where ledger.id is given.
 func TestSpecKind(t *testing.T) {

@@ -98,7 +98,7 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
   # registry why the same as the ledger's once; a registry why that says
   # something else (an idea's reasons kept through work promote) still prints
   # after the ledger's. task add stops writing the copy (@ID-TASK-16).
-  @ID-SHOW-08 @bug-107 @wip
+  @ID-SHOW-08 @bug-107
   Scenario: work show prints a task's why once when the registry holds the same why as the ledger
     Given the ledger's task "T-001" has the why "The ledger says why."
     And the work registry has the item "T-001" owned by "someone" with the status "todo" and the why "The ledger says why."

@@ -210,7 +210,8 @@ Mints a task ID from the shared counter, then adds it at the end of its group's 
 filled in, made when the group has none yet): its id, type, title, why (a
 folded text) and done_when, one run: check per --check in order, a --timeout
 after a --check giving that check its own seconds. Adds its item to the work
-registry, a task, todo and nobody's, as work add does, then commits the ledger
+registry, a task, todo and nobody's, as work add does but with no why (the
+ledger entry holds it), then commits the ledger
 file and the registry alone, "docs: add <id>", as work take commits the
 registry (itos help work take); a commit a hook refuses puts both back.
 --phase <g> and --<label> <g> are --group <g>. Refused, nothing written (exit
@@ -263,7 +264,8 @@ committing it (itos help work take).`,
 	"work show": `Usage: itos work show <id> [--patch]
 
 Prints the item (its title, kind, status, owner, phase, depends_on, the items
-depending on it, refs and why, a task's why read from its ledger entry first),
+depending on it, refs and why, a task's why read from its ledger entry first,
+its registry why after it unless the two read the same),
 its scenarios at HEAD (those tagged @<id>, @slice-<n> for the item slice-<n>,
 live or @wip) and its commits, oldest first,
 each with its short SHA and header, and between them the questions of itos

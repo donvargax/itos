@@ -629,7 +629,7 @@ cases:
     stdout_has: "T-006 is a new task in tasks/phase-1.yaml, and an item in tasks/work-items.yaml: committed "
     files_after:
       tasks/phase-1.yaml: "- id: T-001\n  type: build\n  title: Checks that pass\n  done_when:\n    - run: echo first\n    - fails: sh -c 'echo second; exit 1'\n- id: T-002\n  type: ci\n  title: A check that fails\n  done_when:\n    - run: \"true\"\n    - run: sh -c 'echo broken >&2; exit 5'\n    - run: echo still runs\n- id: T-003\n  type: docs\n  title: Reviewed by hand\n  done_when: []\n- id: T-006\n  type: docs\n  title: \"Write: the guide\"\n  why: >\n    It is missing.\n  done_when:\n    - run: \"true\"\n    - run: sh -c 'exit 0'\n      timeout: 30\n"
-      tasks/work-items.yaml: "phases: { 1: null, 2: null }\nitems:\n  - { id: T-001, title: Checks that pass, phase: 1, status: done }\n  - id: T-006\n    title: \"Write: the guide\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    kind: task\n    why: >\n      It is missing.\n"
+      tasks/work-items.yaml: "phases: { 1: null, 2: null }\nitems:\n  - { id: T-001, title: Checks that pass, phase: 1, status: done }\n  - id: T-006\n    title: \"Write: the guide\"\n    phase: 1\n    owner: null\n    status: todo\n    depends_on: []\n    kind: task\n"
   - name: under a stealth config task add makes the file of a group that has none, with a check's timeout, and commits nothing
     argv: [task, add, --phase, "3", --type, build, --title, Three, --why, A phase of its own., --check, go vet ./..., --timeout, "120", --json]
     git: []
@@ -647,7 +647,7 @@ cases:
       ok: true
       task: { id: T-004, type: build, title: Three, why: "A phase of its own.\n", done_when: [{ run: go vet ./..., timeout: 120 }] }
       file: .git/itos/tasks/phase-3.yaml
-      item: { id: T-004, title: Three, phase: 3, owner: null, status: todo, depends_on: [], tags: [], kind: task, why: "A phase of its own.\n" }
+      item: { id: T-004, title: Three, phase: 3, owner: null, status: todo, depends_on: [], tags: [], kind: task }
       commit: null
     files_after:
       .git/itos/tasks/phase-3.yaml: "- id: T-004\n  type: build\n  title: Three\n  why: >\n    A phase of its own.\n  done_when:\n    - run: go vet ./...\n      timeout: 120\n"

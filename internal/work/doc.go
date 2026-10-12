@@ -65,7 +65,8 @@
 //     whose dependency is not done refused, one already done Unchanged);
 //     Unqueue then takes it out of the queue, a commit of its own.
 //   - Add puts a new item, todo, at the end of the items (value.Doc's Append,
-//     keys in the registry's own order, its why folded); its group is
+//     keys in the registry's own order, its why folded, none for task add's,
+//     whose why is its ledger entry's); its group is
 //     --phase, else the one a p<n>- id names, else the registry's only one.
 //   - Edit replaces a title, a depends_on or refs and adds a paragraph to the
 //     why; a list the item lacks compares as an empty one. A note on a slice
@@ -105,5 +106,6 @@
 // registry commits; its unit test reads the writers' headers. Clashes gives,
 // for itos push's rebase conflict, each item both sides changed over the
 // registry at the base, theirs and mine. Show is an item with the ids of the
-// items whose depends_on name it.
+// items whose depends_on name it; Listed leaves out of it a registry why that
+// reads as the task's ledger why, the copy task add wrote until bug-107.
 package work

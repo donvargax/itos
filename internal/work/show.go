@@ -28,6 +28,34 @@ type Shown struct {
 	LedgerWhy string
 }
 
+// Listed is the item as work show gives it: the registry's mapping less a
+// why that reads as LedgerWhy does (bug-107: task add wrote a task's why into
+// its registry item too, and the registries written keep the copy), else the
+// mapping itself. A registry why that says something else, an idea's reasons
+// kept through work promote, stays.
+func (s Shown) Listed() *value.Map {
+	why := s.Item.At("why")
+	if s.LedgerWhy == "" || absent(why) || printed(value.String(why)) != printed(s.LedgerWhy) {
+		return s.Item
+	}
+	listed := value.Copy(s.Item).(*value.Map)
+	listed.Delete("why")
+	return listed
+}
+
+// printed is a why as printWhy reads it: its paragraphs, one a line, the
+// blank ones left out and each one's whitespace a single space, so a folded
+// scalar and a plain one of the same words compare the same.
+func printed(why string) string {
+	var paragraphs []string
+	for _, paragraph := range strings.Split(why, "\n") {
+		if words := strings.Fields(paragraph); len(words) > 0 {
+			paragraphs = append(paragraphs, strings.Join(words, " "))
+		}
+	}
+	return strings.Join(paragraphs, "\n")
+}
+
 // Show is the item with the id, or the problem of an id no item has.
 func Show(r Registry, id string) (Shown, *out.Problem) {
 	i := find(r, id)
@@ -115,7 +143,7 @@ func RegistryHeader(header string) (id string, ok bool) {
 // its kind, status, owner (nobody for none), phase, the items it depends on
 // and those depending on it, its refs and issue when it has them, and its why
 // wrapped at width, each paragraph after a blank line: a task's ledger why
-// first (LedgerWhy), then the registry's.
+// first (LedgerWhy), then the registry's unless it reads the same (Listed).
 func (s Shown) Print(w io.Writer, width int) {
 	at := func(key string) string {
 		if v := s.Item.At(key); !absent(v) {
@@ -146,7 +174,7 @@ func (s Shown) Print(w io.Writer, width int) {
 		fmt.Fprintf(w, "  issue: #%s\n", value.String(issue))
 	}
 	printWhy(w, s.LedgerWhy, width)
-	if why := s.Item.At("why"); !absent(why) {
+	if why := s.Listed().At("why"); !absent(why) {
 		printWhy(w, value.String(why), width)
 	}
 }

@@ -213,7 +213,8 @@ func showArgs(cfg *config.Loaded) []string {
 	return args
 }
 
-// emitShown prints work show --json: the item, the ids of the items
+// emitShown prints work show --json: the item (less a registry why that
+// repeats its ledger_why, as the text prints it once), the ids of the items
 // depending on it, its scenarios, the questions naming it and its commits,
 // with --patch each one's message and diff.
 func emitShown(shown work.Shown, task bool, scenarios []tests.Test, questions []ask.Question, commits []message.Logged, patch bool, o Out) error {
@@ -239,7 +240,7 @@ func emitShown(shown work.Shown, task bool, scenarios []tests.Test, questions []
 	}
 	fields := []out.Field{
 		{Key: "ok", Value: true},
-		{Key: "item", Value: shown.Item},
+		{Key: "item", Value: shown.Listed()},
 	}
 	if task {
 		var why any

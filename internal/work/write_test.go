@@ -241,6 +241,15 @@ func TestAdd(t *testing.T) {
 		change.Body != `Add the idea p1-c ("C: the third") to phase 1, with itos work add.` {
 		t.Errorf("add p1-c:\n got %q\nwant %q\n%s", change.Text, want, change.Body)
 	}
+	// task add's item has no why, its ledger entry holding it (bug-107).
+	change, found, err = Add(cfg, r, text, New{ID: "T-3", Title: "T", Kind: "task", Phase: "1"}, regexp.MustCompile(`^T-\d+$`))
+	if err != nil || found != nil {
+		t.Fatal(err, found)
+	}
+	if want := text + "\n  - id: T-3\n    title: T\n    phase: 1\n    owner: null\n    status: todo\n" +
+		"    depends_on: []\n    kind: task\n"; change.Text != want || change.Item.Has("why") {
+		t.Errorf("add T-3:\n got %q\nwant %q", change.Text, want)
+	}
 	for name, c := range map[string]struct {
 		n    New
 		rule string
