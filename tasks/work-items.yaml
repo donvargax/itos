@@ -8737,8 +8737,8 @@ items:
   - id: bug-109
     title: The footer-leading-blank warning names the line read as the start of the footer, and why
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: bug
     why: >
