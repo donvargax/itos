@@ -8731,3 +8731,19 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-adr-0029-stale
+    title: ADR-0029 still stands, though the plugin's hooks now run only the itos on the PATH
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found in T-166: docs/decisions/0029 says the plugin's hooks run the repository's hooks.bin
+      (else tools/bin/itos, else the PATH's itos), but T-097 made the titles and the guard run only
+      the itos on the PATH, so that opening Claude Code in a cloned repository never runs a program
+      it ships (hooks/guard.sh and hooks/register.ts say so). The record is still listed as
+      standing; a record superseding it would hold the security reason the code comments now carry
+      alone.
+    refs: [docs/decisions/0029-the-plugin-s-hooks-run-the-itos-the-repository-s-git-hooks-run.md, integrations/claude-code/hooks/guard.sh]
