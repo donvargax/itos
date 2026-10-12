@@ -7604,6 +7604,11 @@ items:
       2026-10-11 (bug-105's agent): work promote also mints from the shared counter before its late
       refusals (now an unparseable questions file too), so a refused promote burns a slice number;
       the same order fix applies to it.
+
+      2026-10-12, the coordinator: work add --kind bug without --phase, in a registry of four
+      phases, was refused ('which phase bug-106 is in is not said') after minting bug-106, so the
+      retry got bug-107 and bug-106 is burned. work add itself checks after minting too, not only
+      draft add.
     refs: [internal/cli/idmint.go, features/draft.feature]
     tags: [work]
 
