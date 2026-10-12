@@ -8278,3 +8278,20 @@ items:
       policy name which types may name an idea. Weigh against keeping every gate change behind a
       task with a check.
     tags: [commit]
+
+  - id: p1-build-go-no-caller
+    title: "tools/bin/build-go has no caller: keep it as the one stamped build, or drop it"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-146 ported tools/bin/build-go.ts to Go, its output held by parity, but nothing runs it: CI's
+      Build itos step and tools/bin/itos each stamp their own go build with tools/bin/dev-version's
+      version, the go-release self-test and the release workflow run tools/bin/pinned goreleaser
+      themselves, and itos.yaml names it only in a covers rule for a check no task has. Either the
+      stamped builds go through it, so the -ldflags line lives in one place, or it goes, with its
+      covers rule and its .goreleaser.yaml mentions, when T-149 deletes tools/parity.
+    refs: [tools/bin/build-go, itos.yaml, .github/workflows/ci.yml]
+    tags: [ci]
