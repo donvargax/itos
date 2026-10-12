@@ -76,7 +76,9 @@
 // (the breaking-change header tried first, the body ending at the first
 // footer-token line, a breaking-change note running to the next one) and
 // config-conventional's rules in its order, each a judgement that gives
-// commitlint's words or none; ignore.go is is-ignored's wildcards (merges,
+// commitlint's words or none, footer-leading-blank's with the line that
+// starts the footer, numbered as the message is written (comment and blank
+// lines counted), and why it reads as one (bug 109); ignore.go is is-ignored's wildcards (merges,
 // reverts, reapplies, fixups, versions by semver's strict pattern); cases.go
 // is subject-case and type-case as @commitlint/ensure and es-toolkit find a
 // case, its word pattern written out with the backtracking each alternative

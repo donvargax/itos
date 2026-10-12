@@ -27,7 +27,7 @@ var fixes = map[string]string{
 	"header-max-length":      "shorten the header to 100 characters or fewer",
 	"header-trim":            "remove the spaces around the header",
 	"body-leading-blank":     "leave a blank line between the header and the body",
-	"footer-leading-blank":   "leave a blank line before the footers",
+	"footer-leading-blank":   "leave a blank line before the footers, or reword or rewrap the line named if it is prose",
 	"body-max-line-length":   "wrap the body at 100 characters",
 	"footer-max-line-length": "split the footer over several lines of 100 characters or fewer; a footer may repeat",
 }

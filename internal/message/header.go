@@ -43,7 +43,9 @@ var (
 	// as JavaScript's /i reads ASCII; # is the preset's issue prefix.
 	breaking    = `[Bb][Rr][Ee][Aa][Kk][Ii][Nn][Gg]`
 	change      = `[Cc][Hh][Aa][Nn][Gg][Ee]`
-	footerToken = regexp.MustCompile(`^(?:` + breaking + ` ` + change + `|[\w-]+)(?::` + value.Space + `+|` + value.Space + `+#)` + line + `+`)
+	footerWord  = `^(?:` + breaking + ` ` + change + `|[\w-]+)`
+	footerToken = regexp.MustCompile(footerWord + `(?::` + value.Space + `+|` + value.Space + `+#)` + line + `+`)
+	footerColon = regexp.MustCompile(footerWord + `:` + value.Space)
 	noteLine    = regexp.MustCompile(`^(?:\*` + value.Space + `+)?(?:` + breaking + `[ -]` + change + `):`)
 	gpgLine     = regexp.MustCompile(`^` + value.Space + `*gpg:`)
 	newline     = regexp.MustCompile(`\r?\n`)
@@ -55,10 +57,12 @@ var (
 const scissor = "------------------------ >8 ------------------------"
 
 // parsed is a message as the parser reads it: nil where it has none.
+// footerAt is the index among raw's lines of the footer's first line.
 type parsed struct {
 	raw                  string
 	header, body, footer *string
 	typ, scope, subject  string // "" where the header gives none
+	footerAt             int
 }
 
 func truthy(s *string) bool { return s != nil && *s != "" }
@@ -80,14 +84,25 @@ func appendLine(text *string, l string) *string {
 	return &l
 }
 
-// parser reads a message's lines into its parts (CommitParser).
+// parser reads a message's lines into its parts (CommitParser); rawAt is
+// each line's index among the raw message's.
 type parser struct {
 	lines []string
+	rawAt []int
 	at    int
 	p     parsed
 }
 
 func (ps *parser) available() bool { return ps.at < len(ps.lines) }
+
+// toFooter reads the line at hand into the footer.
+func (ps *parser) toFooter() {
+	if ps.p.footer == nil {
+		ps.p.footerAt = ps.rawAt[ps.at]
+	}
+	ps.p.footer = appendLine(ps.p.footer, ps.lines[ps.at])
+	ps.at++
+}
 
 // notes reads a breaking-change note and the lines that continue it into
 // the footer, up to and with the next footer line.
@@ -95,15 +110,13 @@ func (ps *parser) notes() bool {
 	if !ps.available() || !noteLine.MatchString(ps.lines[ps.at]) {
 		return false
 	}
-	ps.p.footer = appendLine(ps.p.footer, ps.lines[ps.at])
-	ps.at++
+	ps.toFooter()
 	for ps.available() {
 		if ps.notes() {
 			return true
 		}
 		token := footerToken.MatchString(ps.lines[ps.at])
-		ps.p.footer = appendLine(ps.p.footer, ps.lines[ps.at])
-		ps.at++
+		ps.toFooter()
 		if token {
 			break
 		}
@@ -118,13 +131,13 @@ func (ps *parser) bodyOrFooter(isBody bool) bool {
 		return isBody
 	}
 	still := isBody && !footerToken.MatchString(ps.lines[ps.at])
-	if still {
-		ps.p.body = appendLine(ps.p.body, ps.lines[ps.at])
-	} else {
-		ps.p.footer = appendLine(ps.p.footer, ps.lines[ps.at])
+	if !still {
+		ps.toFooter()
+		return false
 	}
+	ps.p.body = appendLine(ps.p.body, ps.lines[ps.at])
 	ps.at++
-	return still
+	return true
 }
 
 // parse is the message read as commitlint reads it: comment lines (those
@@ -132,7 +145,8 @@ func (ps *parser) bodyOrFooter(isBody bool) bool {
 // out when commentChar is given, as commitlint --edit does, and gpg's lines
 // always.
 func parse(raw, commentChar string) parsed {
-	ps := &parser{lines: kept(raw, commentChar), p: parsed{raw: raw}}
+	found, at := kept(raw, commentChar)
+	ps := &parser{lines: found, rawAt: at, p: parsed{raw: raw}}
 	if ps.available() {
 		header := ps.lines[0]
 		ps.at++
@@ -165,12 +179,15 @@ func parse(raw, commentChar string) parsed {
 	return ps.p
 }
 
-// kept are the lines of a message the parser reads: the line breaks at
-// either end trimmed, then comment lines and everything from git's scissor
-// line down left out when commentChar is given, and gpg's lines always.
-func kept(raw, commentChar string) []string {
-	found := []string{}
-	for _, l := range lines(trimNewLines(raw)) {
+// kept are the lines of a message the parser reads, with each one's index
+// among raw's lines: the line breaks at either end trimmed, then comment
+// lines and everything from git's scissor line down left out when
+// commentChar is given, and gpg's lines always.
+func kept(raw, commentChar string) (found []string, at []int) {
+	found = []string{}
+	trimmed := strings.TrimLeft(raw, "\r\n")
+	offset := strings.Count(raw[:len(raw)-len(trimmed)], "\n")
+	for i, l := range lines(strings.TrimRight(trimmed, "\r\n")) {
 		if commentChar != "" && l == commentChar+" "+scissor {
 			break
 		}
@@ -178,8 +195,9 @@ func kept(raw, commentChar string) []string {
 			continue
 		}
 		found = append(found, l)
+		at = append(at, offset+i)
 	}
-	return found
+	return found, at
 }
 
 // Cleaned is the message the commit-msg hook's file holds as the header lint
@@ -188,7 +206,8 @@ func kept(raw, commentChar string) []string {
 // hook judges the type, the paths and the footers on it, never on the file's
 // own first line, which would hide a commit's type behind a comment.
 func Cleaned(raw, commentChar string) string {
-	return strings.Join(kept(raw, commentChar), "\n")
+	found, _ := kept(raw, commentChar)
+	return strings.Join(found, "\n")
 }
 
 // length is a text's length as JavaScript counts it, in UTF-16 code units.
@@ -225,6 +244,17 @@ func blankBefore(raw []string, index int) bool {
 		start = max(len(raw)+start, 0)
 	}
 	return start < len(raw) && raw[start] == ""
+}
+
+// footerReason is why the parser reads a line as the start of the footer.
+func footerReason(l string) string {
+	switch {
+	case noteLine.MatchString(l):
+		return "is a breaking-change note"
+	case footerColon.MatchString(l):
+		return "begins with a word and a colon"
+	}
+	return "begins with a word, a space and #"
 }
 
 // rule is one of config-conventional's rules: its id, whether it is a
@@ -268,7 +298,8 @@ var headerRules = []rule{
 		if blankBefore(raw, index) {
 			return ""
 		}
-		return "footer must have leading blank line"
+		return "footer must have leading blank line: line " + strconv.Itoa(p.footerAt+1) + `, "` + first + `", ` +
+			footerReason(first) + ", so it reads as the start of the footer"
 	}},
 	{"footer-max-line-length", false, func(p parsed, _ []string) string {
 		if !truthy(p.footer) || linesFit(*p.footer) {

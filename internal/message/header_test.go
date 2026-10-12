@@ -90,6 +90,29 @@ func TestHeaderWords(t *testing.T) {
 	}
 }
 
+// footer-leading-blank names the line that starts the footer by its number
+// in the message as written, comment and leading blank lines counted, and
+// why it reads as a footer (bug 109); a header with the same text is not it.
+func TestFooterLeadingBlankLine(t *testing.T) {
+	cfg := load(t, "version: 1\ncommits:\n  header_lint: { use: builtin }\n")
+	for _, c := range []struct{ message, comment, want string }{
+		{"chore: x\n\nbody\nTask: T-1", "", `line 4, "Task: T-1", begins with a word and a colon`},
+		{"# a\nchore: x\n\n# b\nbody\nsee #12 here\n", "#", `line 6, "see #12 here", begins with a word, a space and #`},
+		{"\n\nchore: x\n\nbody\nTask: T-1", "", `line 6, "Task: T-1", begins with a word and a colon`},
+		{"fix: it\n\nbody\nfix: it", "", `line 4, "fix: it", begins with a word and a colon`},
+		{"chore: x\n\nbody\nBREAKING CHANGE: gone", "", `line 4, "BREAKING CHANGE: gone", is a breaking-change note`},
+	} {
+		found, err := HeaderProblems(cfg, c.message, c.comment)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := "footer must have leading blank line: " + c.want + ", so it reads as the start of the footer"
+		if last := found[len(found)-1]; last.Rule != "footer-leading-blank" || last.Message != want {
+			t.Errorf("%q: %+v, want %q", c.message, found, want)
+		}
+	}
+}
+
 // The cases subject-case names, as es-toolkit's case functions find them.
 func TestSubjectCases(t *testing.T) {
 	for subject, want := range map[string][]string{

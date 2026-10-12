@@ -88,7 +88,7 @@ Feature: The built-in header lint
   # the line, by its number in the message and its text, and why it reads as
   # a footer. Whether the lint should read the footer as git does stays
   # p1-lint-leading-blank-hash-line (issue #21).
-  @ID-HEADER-07 @bug-109 @wip
+  @ID-HEADER-07 @bug-109
   Scenario: The footer-leading-blank warning names the line that starts the footer, and why
     When the commit-msg hook checks the message:
       """
@@ -105,7 +105,7 @@ Feature: The built-in header lint
     And its output says "scenarios: line below the first reads as a footer."
     And its output says "a word and a colon"
 
-  @ID-HEADER-08 @bug-109 @wip
+  @ID-HEADER-08 @bug-109
   Scenario: The warning names a line read as a footer for a word and a hash
     When the commit-msg hook checks the message:
       """
