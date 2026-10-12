@@ -61,7 +61,6 @@ queue:
   - p1-defer-reason-footer
   - p3-commit-long-text-footer
   - p1-nightly-past-first-failure
-  - T-142
   - T-143
   - T-144
   - p1-core-changelog
