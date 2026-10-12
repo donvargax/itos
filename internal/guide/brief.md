@@ -20,6 +20,15 @@ loop's steps 2 and 3 in `itos go`).
   label the product does not use, asserts more than its behaviour, or holds
   either way sends the agent after the wrong thing. Ask whether it can fail
   before the work.
+- **A check a spec adds goes at the cheapest tier that catches what it
+  catches**: the hooks for what the change reaches, in seconds; each push's
+  CI for what a push can break; the nightly for what is slow, wide or random,
+  which nothing waits on. Deterministic where a tier gates, random where it
+  explores: fixed seeds locally and per push, fresh ones nightly. Every
+  nightly find becomes a fixed regression at the push tier (a test that kills
+  the mutant, a failing seed committed). So a race detector and fuzzing run
+  nightly, a secrets scan at pre-push and in CI, govulncheck nightly. Why:
+  ADR-0051 in itos's own repository.
 - **Split before starting.** A cheap job beside an expensive one is two
   items: the small one lands sooner, and less is lost if the other stops.
 - **Specify the next item while the current one runs**: the specs, not the
