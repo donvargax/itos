@@ -2,11 +2,18 @@
 // since T-143), proved through the real CI planner and driver: a push's code range runs
 // proof.code.check, one freshly judged mutation site of its changed Go functions, and a nightly
 // runs twenty over cmd and internal with a seed of its own and without strict coverage (q-54),
-// and neither plan runs any other mutation command. Each plan is this repository's own, whole,
+// then up to sixty of the Go functions changed since the last green nightly, strictly covered on
+// their changed lines (ADR-0049, T-161), and neither plan runs any other mutation command. Each plan is this repository's own, whole,
 // with only the configured shell replaced in a scratch config, so the driver dispatches every
 // planned command to a fake that logs it (this test's own binary, TestMain), and nothing it names
 // (itos-cc, the features, CI's other steps) runs. A provider's refusal, and a provider that cannot
 // run, must still fail the run.
+//
+// The changed-sites step's base is read by tools/bin/nightly-base, which the fake shell never
+// runs, so the step as the plan dispatches it is also run by a real sh, with a fake gh first on
+// the PATH and the mutation provider replaced by a fake that logs its arguments (this binary
+// again): a green run found gives its head commit, and none found, gh failing or a head commit out
+// of HEAD's history give the last 24 hours' first-parent base, said on stderr.
 package budget
 
 import (
@@ -19,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/donvargax/itos/v8/tools/selftest/scratch"
 )
@@ -29,12 +37,30 @@ const (
 	envFake = "CI_MUTATION_FAKE_SHELL"
 	envLog  = "CI_MUTATION_COMMANDS"
 	envFail = "CI_MUTATION_FAIL"
+	// envFailOnly narrows envFail to the mutation commands holding its text.
+	envFailOnly = "CI_MUTATION_FAIL_ONLY"
+	// envGh makes this binary, started as gh, a fake gh: "green <sha>" lists one green run at that commit,
+	// "none" lists none, "fail" fails as a gh without access does.
+	envGh = "CI_MUTATION_FAKE_GH"
+	// envProvider makes this binary a fake itos-cc that logs its arguments to the file it names.
+	envProvider = "CI_MUTATION_FAKE_PROVIDER"
 )
 
 // TestMain is the fake shell when the driver starts this binary as one: it answers every
 // command with exit 0, except a mutation command while CI_MUTATION_FAIL is set: "refuse" prints
 // itos-cc's refusal of a survivor and exits 1, a number exits with it.
 func TestMain(m *testing.M) {
+	if mode := os.Getenv(envGh); mode != "" && filepath.Base(os.Args[0]) == "gh" {
+		fakeGh(mode)
+	}
+	if file := os.Getenv(envProvider); file != "" {
+		line, _ := json.Marshal(os.Args[1:])
+		if err := os.WriteFile(file, line, 0o644); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+			os.Exit(9)
+		}
+		os.Exit(0)
+	}
 	if os.Getenv(envFake) == "" {
 		os.Exit(m.Run())
 	}
@@ -48,13 +74,33 @@ func TestMain(m *testing.M) {
 	f.Write(append(line, '\n'))
 	f.Close()
 	fail := os.Getenv(envFail)
-	if fail != "" && strings.Contains(command, "itos-cc mutation") {
+	if fail != "" && strings.Contains(command, "itos-cc mutation") && strings.Contains(command, os.Getenv(envFailOnly)) {
 		if fail == "refuse" {
 			os.Stdout.WriteString(`{"schema":1,"ok":false,"problems":[{"rule":"mutation.survived","message":"a mutant of ci.Run survived","fix":"test it"}]}`)
 			os.Exit(1)
 		}
 		code, _ := strconv.Atoi(fail)
 		os.Exit(code)
+	}
+	os.Exit(0)
+}
+
+// fakeGh answers gh run list --json databaseId,headSha,createdAt as mode says, and exits.
+func fakeGh(mode string) {
+	if len(os.Args) < 3 || os.Args[1] != "run" || os.Args[2] != "list" {
+		fmt.Fprintf(os.Stderr, "fake gh: unexpected %v\n", os.Args[1:])
+		os.Exit(9)
+	}
+	switch {
+	case mode == "fail":
+		os.Stderr.WriteString("HTTP 401: Bad credentials (https://api.github.com/graphql)\n")
+		os.Exit(1)
+	case mode == "none":
+		os.Stdout.WriteString("[]\n")
+	case strings.HasPrefix(mode, "green "):
+		fmt.Printf(`[{"databaseId":4242,"headSha":%q,"createdAt":"2026-10-08T11:49:36Z"}]`+"\n", strings.TrimPrefix(mode, "green "))
+	default:
+		os.Exit(9)
 	}
 	os.Exit(0)
 }
@@ -109,6 +155,9 @@ func TestSelftest(t *testing.T) {
 	}
 	log := filepath.Join(dir, "commands.jsonl")
 
+	// failOnly narrows a failing provider to the mutation commands holding it; "" is every one.
+	failOnly := ""
+
 	// One run of tools/bin/itos with the fake shell: its exit code, its answer and every
 	// itos-cc mutation command the plan dispatched, the plan's budget.
 	invocation := func(t *testing.T, fail string, args ...string) (int, answer, []string) {
@@ -117,7 +166,7 @@ func TestSelftest(t *testing.T) {
 			t.Fatal(err)
 		}
 		name, argv := scratch.Program(filepath.Join(root, "tools", "bin", "itos"), args...)
-		r := scratch.Run(root, scratch.With(env, "ITOS_CONFIG="+config, envLog+"="+log, envFake+"=1", envFail+"="+fail), "", name, argv...)
+		r := scratch.Run(root, scratch.With(env, "ITOS_CONFIG="+config, envLog+"="+log, envFake+"=1", envFail+"="+fail, envFailOnly+"="+failOnly), "", name, argv...)
 		if r.Code < 0 {
 			t.Fatalf("tools/bin/itos could not start:\n%s", r.Output())
 		}
@@ -151,6 +200,7 @@ func TestSelftest(t *testing.T) {
 
 	expectedPush := "tools/bin/pinned itos-cc mutation run --count 1 --since " + from + " --seed " + from + " --fail-uncovered=lines --json cmd internal"
 	const expectedNightly = `tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal`
+	const expectedChanged = `base=$(go run ./tools/bin/nightly-base) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json cmd internal`
 
 	// A push: one fresh mutant of the range's changed Go functions, drawn by the range's start
 	// (T-159), strict coverage of its changed lines (q-57), cmd and internal, and no other
@@ -167,16 +217,101 @@ func TestSelftest(t *testing.T) {
 
 	// A nightly: twenty fresh mutants over cmd and internal, seeded by the run, not HEAD, with no
 	// range, no strict coverage (q-54: with no range it judges every function), and no other
-	// mutation command.
+	// mutation command over the whole tree: the only other is the changed sites' below.
 	t.Run("the nightly runs exactly twenty mutants with a seed of its own", func(t *testing.T) {
 		code, a, mutations := invocation(t, "", "ci", "run", "--nightly", "--json")
 		if code != 0 || !a.OK {
 			t.Fatalf("the nightly's CI driver did not pass with fake commands: exit %d", code)
 		}
-		if !slices.Equal(mutations, []string{expectedNightly}) {
-			t.Errorf("the nightly must run exactly %s:\n%s", expectedNightly, strings.Join(mutations, "\n"))
+		whole := slices.DeleteFunc(slices.Clone(mutations), func(c string) bool { return c == expectedChanged })
+		if !slices.Equal(whole, []string{expectedNightly}) {
+			t.Errorf("the nightly must run exactly %s over the whole tree:\n%s", expectedNightly, strings.Join(mutations, "\n"))
 		}
 	})
+
+	// And then sixty fresh mutants of the functions changed since the last green nightly, seeded
+	// as the twenty are, strictly covered on their changed lines (T-161), after the twenty: the
+	// nightly's two mutation commands, in that order, and no other.
+	t.Run("the nightly judges sixty sites changed since the last green nightly", func(t *testing.T) {
+		code, a, mutations := invocation(t, "", "ci", "run", "--nightly", "--json")
+		if code != 0 || !a.OK {
+			t.Fatalf("the nightly's CI driver did not pass with fake commands: exit %d", code)
+		}
+		if !slices.Equal(mutations, []string{expectedNightly, expectedChanged}) {
+			t.Errorf("the nightly must run exactly\n%s\n%s\nnot:\n%s", expectedNightly, expectedChanged, strings.Join(mutations, "\n"))
+		}
+	})
+
+	// The changed-sites step itself, run by a real sh with a fake gh and a fake provider: what
+	// base it hands itos-cc, and what it says about it. GITHUB_RUN_ID seeds it, as in the job.
+	fakeBin := filepath.Join(dir, "bin")
+	if err := os.MkdirAll(fakeBin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(self, filepath.Join(fakeBin, "gh")); err != nil {
+		t.Fatal(err)
+	}
+	providerLog := filepath.Join(dir, "provider.json")
+	changed := func(t *testing.T, gh string) (scratch.Result, []string) {
+		t.Helper()
+		os.Remove(providerLog)
+		command := strings.Replace(expectedChanged, "tools/bin/pinned itos-cc", "'"+self+"'", 1)
+		r := scratch.Run(root, scratch.With(env, "PATH="+fakeBin+string(os.PathListSeparator)+os.Getenv("PATH"),
+			envGh+"="+gh, envProvider+"="+providerLog, "GITHUB_RUN_ID=4321"), "", "sh", "-c", command)
+		if r.Code != 0 {
+			t.Fatalf("the changed-sites step failed with gh %q: exit %d\n%s", gh, r.Code, r.Output())
+		}
+		data, err := os.ReadFile(providerLog)
+		if err != nil {
+			t.Fatalf("the step never ran the provider: %v\n%s", err, r.Output())
+		}
+		var args []string
+		if err := json.Unmarshal(data, &args); err != nil {
+			t.Fatal(err)
+		}
+		return r, args
+	}
+	providerArgs := func(base string) []string {
+		return []string{"mutation", "run", "--since", base, "--count", "60", "--seed", "4321", "--fail-uncovered=lines", "--json", "cmd", "internal"}
+	}
+	// The last 24 hours' first-parent base, as git reads it: the newest commit on HEAD's
+	// first-parent line committed a day ago or earlier, else the line's oldest.
+	dayAgo := func(t *testing.T) string {
+		t.Helper()
+		if base := git("", "rev-list", "--first-parent", "-1", fmt.Sprintf("--before=@%d", time.Now().Add(-24*time.Hour).Unix()), "HEAD"); base != "" {
+			return base
+		}
+		line := strings.Split(git("", "rev-list", "--first-parent", "HEAD"), "\n")
+		return line[len(line)-1]
+	}
+
+	t.Run("the changed sites' base is the last green nightly's head commit", func(t *testing.T) {
+		green := git("", "rev-parse", "HEAD~1")
+		r, args := changed(t, "green "+green)
+		if !slices.Equal(args, providerArgs(green)) {
+			t.Errorf("the provider was handed %v, not %v", args, providerArgs(green))
+		}
+		if !strings.Contains(r.Stderr, "the base is "+green+", the head commit of the last green run of nightly.yml on main (run 4242") {
+			t.Errorf("the step does not say which run its base is:\n%s", r.Output())
+		}
+	})
+
+	for _, c := range []struct{ name, gh, why string }{
+		{"with no green nightly the changed sites are the last day's", "none", "no run of nightly.yml on main concluded success"},
+		{"with gh failing the changed sites are the last day's", "fail", "gh run list failed: gh: exit status 1: HTTP 401: Bad credentials (https://api.github.com/graphql)"},
+		{"with the green nightly out of reach the changed sites are the last day's", "green 0123456789abcdef0123456789abcdef01234567", "the last green run's head commit 0123456789abcdef0123456789abcdef01234567 is not in HEAD's history"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			r, args := changed(t, c.gh)
+			base := dayAgo(t)
+			if !slices.Equal(args, providerArgs(base)) {
+				t.Errorf("the provider was handed %v, not %v", args, providerArgs(base))
+			}
+			if want := "no green nightly in reach (" + c.why + "); judging the last 24 hours' first-parent range instead, since " + base; !strings.Contains(r.Stderr, want) {
+				t.Errorf("the step does not say %q:\n%s", want, r.Output())
+			}
+		})
+	}
 
 	// The seed as the nightly's sh expands it: GitHub's run id, so two runs of one commit draw
 	// differently; by hand, the time.
@@ -217,11 +352,20 @@ func TestSelftest(t *testing.T) {
 		}
 	})
 
-	// And the nightly's step fails the night.
+	// And the nightly's steps fail the night: the twenty first, the changed sites' alone.
 	t.Run("a failing provider blocks the nightly", func(t *testing.T) {
 		code, a, _ := invocation(t, "1", "ci", "run", "--nightly", "--json")
 		if code != 1 || a.FailedAt.Step != expectedNightly || a.FailedAt.Code != 1 {
 			t.Errorf("a failing nightly provider did not block: exit %d, %+v", code, a)
+		}
+	})
+
+	t.Run("a failing provider of the changed sites blocks the nightly", func(t *testing.T) {
+		failOnly = "--since"
+		defer func() { failOnly = "" }()
+		code, a, _ := invocation(t, "1", "ci", "run", "--nightly", "--json")
+		if code != 1 || a.FailedAt.Step != expectedChanged || a.FailedAt.Code != 1 {
+			t.Errorf("a failing changed-sites provider did not block: exit %d, %+v", code, a)
 		}
 	})
 }
