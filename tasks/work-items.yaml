@@ -8298,19 +8298,9 @@ items:
     title: The footer-leading-blank warning names the line git reads as the start of the footer, and why
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      donvargax/itos#48 (itos 8.0.0, from itos-cc): itos commit check-message warns 'footer must
-      have leading blank line' for a body whose mid-paragraph line 'trimmed: starts with…' reads as
-      a trailer, without naming the line; an agent bisected its message to find it. The warning
-      should give the line number and text, and say it reads as a footer because it starts with a
-      word and a colon. Beside p1-lint-leading-blank-hash-line (#21), which is a different trigger.
-
-      2026-10-12: met three times that day on the correct path (the slice-133 spec's body line
-      'scenarios: the nightly…', T-165's 'cut: it requests…'), each time a warning naming no line,
-      read only by guessing which line began with a word and a colon.
     refs: [internal/message]
     tags: [commit]
 
