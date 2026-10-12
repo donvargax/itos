@@ -8198,6 +8198,9 @@ items:
       adapter. T-147 turns the plugin's TypeScript hooks into shell too, and T-142 and T-148 leave
       the plugin with no other lint. Add shellcheck, pinned, as a static step over the tracked shell
       scripts, fixing what it reports. After T-147, so its new scripts are covered from the start.
+
+      2026-10-12: T-147 is dropped (the plugin's titles stay TypeScript, run by Claude Code), so
+      this waits on nothing; the plugin's only shell is guard.sh.
     refs: [tools/bin/pre-commit, integrations/claude-code/hooks/guard.sh, itos.yaml]
 
   - id: p1-work-show-closing-checks
