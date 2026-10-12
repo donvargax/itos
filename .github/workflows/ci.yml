@@ -76,11 +76,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-  # The unit tests and every feature on Linux, macOS and Windows (T-072): itos built natively on
-  # each runner and run as a person on that platform meets it, with that platform's git, shell and
-  # paths. The release archives are cross-compiled on Linux (T-069); this is what runs them. It
-  # blocks, and the release job needs it, so a platform break stops a release as every other check
-  # of a push does. The job's name holds the runner's OS word, which T-072's check reads.
+  # The unit tests and the range's named tests on Linux, macOS and Windows (T-072, T-163): itos
+  # built natively on each runner and run as a person on that platform meets it, with that
+  # platform's git, shell and paths. The release archives are cross-compiled on Linux (T-069); this
+  # is what runs them. It blocks, and the release job needs it, so a platform break stops a release
+  # as every other check of a push does. Every feature on the three platforms is the nightly's
+  # (nightly.yml's platform jobs), so a push waits for the scenarios the ci job runs, not for the
+  # whole suite on Windows. The job's name holds the runner's OS word, which T-072's check reads.
   platform:
     name: platform (${{ matrix.os }})
     strategy:
@@ -96,14 +98,16 @@ jobs:
       # rule), as release.yml pins them: actions/checkout v4.4.0, actions/setup-go v7.0.0.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          fetch-depth: 0 # the tags, for the version the build is stamped with
+          fetch-depth: 0 # the tags, for the version the build is stamped with, and the range's commits
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache-dependency-path: go.sum
       # The build tools/bin/itos makes, stamped with tools/bin/dev-version's version, but written
       # where the features find it on every platform: ITOS_BIN, itos.exe on windows, since Go runs
-      # no shell script there and tools/bin/itos is one.
+      # no shell script there and tools/bin/itos is one. The steps below call it as ITOS_BIN too,
+      # on every platform alike: the itos under test reads the range and runs its tests, where
+      # tools/bin/itos, a shell script, would build a second binary of its own.
       - name: Build itos
         id: build
         run: |
@@ -117,20 +121,28 @@ jobs:
           echo "ITOS_BIN=$bin" >> "$GITHUB_ENV"
       - name: Unit tests
         run: go test ./cmd/... ./internal/...
-      # After the unit tests whatever they said, so one run shows a platform's every failure.
-      # -timings writes where the run spent its time (features/timings_test.go, T-115), which the
-      # next step prints, so a platform that slows down says what it pays for.
-      - name: Features
-        id: features
+      # Where the range starts, read as the ci job reads it (its Range step says how), so both
+      # judge the same commits.
+      - name: Range
+        id: range
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: go test ./features -count=1 -timings="$RUNNER_TEMP/features-timings.txt"
-      - name: Where the features spent their time
-        if: ${{ !cancelled() && (steps.features.outcome == 'success' || steps.features.outcome == 'failure') }}
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          f="$RUNNER_TEMP/features-timings.txt"
-          [ -f "$f" ] || { echo "The features wrote no timings."; exit 0; }
-          cat "$f"
-          { echo "### Features on ${{ matrix.os }}"; echo '```'; cat "$f"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          out=$("$ITOS_BIN" ci range --json --head "$TO" --base "$BASE")
+          from=$(jq -er '.from | strings' <<<"$out" | tr -d '\r') # jq.exe ends its lines with CRLF
+          echo "FROM=$from"
+          echo "FROM=$from" >> "$GITHUB_ENV"
+      # After the unit tests whatever they said, so one run shows a platform's every failure. The
+      # plan's one run of named tests alone (slice-132): the smoke set and the scenarios and task
+      # subsets the range names, the ci job's own features step, here on this platform. Its command
+      # is the config's, so it takes no -timings: where the features spend their time on each
+      # platform is the nightly's summary. The scenarios find the build through ITOS_BIN, which ci
+      # run hands on to go test with the rest of the job's environment.
+      - name: Named tests
+        if: ${{ !cancelled() && steps.range.outcome == 'success' }}
+        run: '"$ITOS_BIN" ci run "$FROM" "$TO" --tests'
       # The global itos as a consumer's CI gets it, from this repository's own action (T-093),
       # proved on every platform by every push, and cached per release by it (T-127), so a push
       # after the one that installed that release fetches no launcher archive at all. Last, so the

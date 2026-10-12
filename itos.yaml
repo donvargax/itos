@@ -259,7 +259,8 @@ ci:
         cost: late,
       }
     # The one merged run; late, as no pattern matches it. Against the Go
-    # binary, tools/bin/itos, the features' default ITOS_BIN.
+    # binary, tools/bin/itos, the features' default ITOS_BIN. ci.yml's platform
+    # jobs run it alone, on each platform, with ci run --tests (T-163).
     - { tests: scenario }
   prose: # a range that touches only these runs only the prose steps
     paths: ["**/*.md", "docs/**"]
@@ -293,20 +294,21 @@ ci:
   # There is no ci.nightly_only: T-125 removed it with the ledger's checks, whose three commands
   # (the gates self-test, the newest release's attestation, the newest CI run's platform jobs) are
   # steps here, and nothing a push names is left out of a push.
-  # Every feature, the gates self-test, the hooks' choice of Go unit tests
-  # (T-059: since the TypeScript left, the one proof that the hooks run only
-  # the unit tests a change reaches), the Go release build (T-040) and the
-  # config's JSON Schema held to config check over the corpus (T-054), the
-  # previous-release check held to which commits excuse an old failure (T-106,
-  # T-117: no push ran its self-test, and it went red unseen). Then what
-  # T-125's answered list keeps from the done tasks' checks, each a step with
-  # a comment saying what it guards that no scenario, unit test or other
-  # self-test does. Last, so a red one does not keep the features from
-  # reporting; the release build is every night's, not every push's: it builds
-  # five platforms, and nothing publishes it until the Go release.
+  # The gates self-test, the hooks' choice of Go unit tests (T-059: since the
+  # TypeScript left, the one proof that the hooks run only the unit tests a
+  # change reaches), the Go release build (T-040) and the config's JSON Schema
+  # held to config check over the corpus (T-054), the previous-release check
+  # held to which commits excuse an old failure (T-106, T-117: no push ran its
+  # self-test, and it went red unseen). Then what T-125's answered list keeps
+  # from the done tasks' checks, each a step with a comment saying what it
+  # guards that no scenario, unit test or other self-test does. The release
+  # build is every night's, not every push's: it builds five platforms, and
+  # nothing publishes it until the Go release. Every feature is not a step:
+  # nightly.yml's platform jobs run them on Linux, macOS and Windows beside
+  # this plan (T-163), and the plan runs them on Linux only with something
+  # hostile first on the PATH, below.
   nightly:
     steps:
-      - { tests: scenario, whole: true }
       - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates"
       - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/go-hooks"
       - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/go-release"
