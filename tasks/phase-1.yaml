@@ -1449,6 +1449,10 @@
     record, so a port that drops a case fails. tools/bin/parity is built by the first of T-143 to
     T-147 to land; T-149 deletes it and tools/parity/. Recorded: register.ts's and titles.ts's
     outputs for the inputs of their .test.ts cases, which the shell versions must give.
+    The plugin gets no vp check and no fallow audit once T-142 and T-148 land, and needs none (the
+    user, 2026-10-11): it is a few small shell hooks calling itos, checked by claude plugin validate
+    and claude plugin test and by its parity record. If it grows past that, it moves to a
+    repository of its own with its own gates, rather than this one gaining a toolchain for it.
   done_when:
     - run: '! ls integrations/claude-code/hooks/*.ts >/dev/null 2>&1 && go run ./tools/bin/parity plugin-hooks'
 
