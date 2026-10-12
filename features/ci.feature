@@ -407,3 +407,38 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And its output says "no named tests"
     And its output does not say "exit 3"
+
+  # Slice 133 (p1-nightly-past-first-failure; the user's call, 2026-10-12,
+  # rapid feedback). ci.stop_at_first_failure was one setting for pushes and
+  # the nightly, so the nightly stopped at its first failure: on 2026-10-12 a
+  # red self-test hid both mutation steps behind it, a day per hidden failure.
+  # The nightly runs once a day to report, so it always goes on past a
+  # failing step and fails at the end; a push still stops early when the
+  # setting says so (@ID-CONFIG-05). A run that goes on names the first
+  # failure as before and each later one after it, and --json lists them all
+  # in failures, failed_at staying the first.
+  @ID-CI-29 @slice-133 @wip
+  Scenario: The nightly goes on past a failing step when ci.stop_at_first_failure is true, and still fails
+    Given the nightly steps are "exit 3" then a step that records it ran
+    And ci.stop_at_first_failure is true
+    When itos runs the nightly CI
+    Then itos exits with code 1
+    And its output says "CI failed at: exit 3"
+    And the recording step ran
+
+  @ID-CI-30 @slice-133 @wip
+  Scenario: The nightly names every failing step after the first, and its --json lists each one
+    Given the nightly steps are "exit 3", then "exit 4"
+    When itos runs the nightly CI with --json
+    Then itos exits with code 1
+    And its output says "also failed at: exit 4"
+    And its JSON's "failures" has one entry whose "step" is "exit 4"
+
+  @ID-CI-31 @slice-133 @wip
+  Scenario: A push's CI that goes on past its first failure names every failing step
+    Given the CI steps are "exit 3", then "exit 4"
+    And ci.stop_at_first_failure is false
+    When itos runs CI over every commit up to HEAD
+    Then itos exits with code 1
+    And its output says "CI failed at: exit 3"
+    And its output says "also failed at: exit 4"
