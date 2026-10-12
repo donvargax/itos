@@ -8666,3 +8666,21 @@ items:
       surely as changing its steps, which is what the rule exists to stop. Outside except_types it
       is refused, named for what it does: turns the live scenario <ID> wip.
     tags: [tests]
+
+  - id: p1-release-warms-go-proxy
+    title: A release asks the Go module proxy for its version, so go install @latest finds it at once
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-12: the user ran go install github.com/donvargax/itos/v8/cmd/itos@latest for a while
+      after v8.3.0 was cut and got v8.2.0: proxy.golang.org caches a module's @latest and version
+      list and refreshes them on its own schedule, and the release job never tells it a tag exists.
+      Requesting @v/<tag>.info made the proxy fetch v8.3.0 at once, though @latest still lagged. The
+      release job ends by requesting the new version's .info (and running go list -m <module>@<tag>
+      through the proxy), so the version is fetched before anyone asks; the notes or install docs
+      say go install …@<tag> when @latest lags. Template-shaped: go-template-itos's release does the
+      same; file it there once this lands.
+    tags: [release]
