@@ -8676,3 +8676,11 @@ items:
       say go install …@<tag> when @latest lags. Template-shaped: go-template-itos's release does the
       same; file it there once this lands.
     tags: [release]
+
+  - id: T-165
+    title: The release asks the Go module proxy for its new version, and the README's go install line names v8
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

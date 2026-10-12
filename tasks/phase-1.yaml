@@ -1708,3 +1708,21 @@
     (a plan step running the whole features command, and nightly.yml's platform jobs on the three
     systems running every feature), and the gates self-test is in the plan. Fixing it forward is a
     ci commit.
+
+- id: T-165
+  type: ci
+  title: The release asks the Go module proxy for its new version, and the README's go install line names v8
+  why: >
+    The user (2026-10-12) ran go install github.com/donvargax/itos/v8/cmd/itos@latest for a while
+    after v8.3.0 was cut and kept getting v8.2.0: proxy.golang.org caches a module's @latest and
+    version list and refreshes them on its own schedule, and release.yml never tells it a tag
+    exists. Asking for @v/<tag>.info made the proxy fetch the version at once (v8.3.0 and v8.3.1
+    that day), though @latest lagged a while longer. release.yml gains a last step, after Publish,
+    that requests the new version from the proxy (go list -m <module>@<tag> with
+    GOPROXY=https://proxy.golang.org, or its @v/<tag>.info), retried a few times; the release is
+    already out by then, so a proxy that does not answer warns (::warning::) and never fails the
+    job. README.md's install paragraph names /v8 (it still says /v7) and says @latest can lag the
+    newest release by a while, @v<version> never does. From p1-release-warms-go-proxy; the same
+    change goes to go-template-itos as a backport issue once it lands.
+  done_when:
+    - run: grep -q 'proxy.golang.org' .github/workflows/release.yml && grep -q 'itos/v8/cmd/itos@v' README.md && ! grep -q 'itos/v7/cmd/itos@' README.md
