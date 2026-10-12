@@ -20,7 +20,8 @@ ledger:
 commits:
   types: [feat, fix, refactor, perf, test, build, ci, chore, docs, revert]
   # itos's own lint of config-conventional's rules, held to commitlint's verdicts over this history
-  # (T-063, tools/selftest/header-agreement.ts); the footer rules run beside it.
+  # when it replaced commitlint (T-063), and since to @ID-CMSG's scenarios and the corpus's
+  # messages.yaml; the footer rules run beside it.
   header_lint: { use: builtin }
   footers: # internal/message reads them, for the footer rules and CI
     Task:
@@ -47,7 +48,7 @@ commits:
       in_place_of: { Task: [test, docs, chore] }
     # What a consumer of itos must change for the commit, or none: feat and fix are
     # what a consumer can feel. itos commit footers gathers them into a release's
-    # Upgrading section, and release-notes.ts holds each to it. since: the commit
+    # Upgrading section, and release-notes' self-test holds the asset to them. since: the commit
     # before the rule, so verify judges no commit written before it by it.
     Upgrading:
       source: text

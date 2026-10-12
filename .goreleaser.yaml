@@ -1,8 +1,8 @@
 # GoReleaser (https://goreleaser.com), run by tools/bin/pinned at the version pinned there: the
 # one way a release is built (T-069). The release workflow (.github/workflows/release.yml) runs
-# `goreleaser release` at the tag it computed, which publishes a draft; tools/bin/build-go.ts
-# --release runs `goreleaser release --snapshot` for the self-tests and the nightly, which build
-# and publish nothing.
+# `goreleaser release` at the tag it computed, which publishes a draft; the go-release self-test
+# (tools/selftest/go-release, the nightly's) and tools/bin/build-go.ts --release run `goreleaser
+# release --snapshot`, which builds and publishes nothing.
 #
 # What it publishes is what the launcher (internal/launch), a pin, `go install` and a consumer's
 # install script read, unchanged from v2.3.0
@@ -10,8 +10,7 @@
 # arm64 and windows on amd64, itos-<version>-<os>-<arch>.tar.gz (.zip for windows) holding the
 # binary (itos, or itos.exe), LICENSE and README.md at its top level; itos.schema.json, the
 # config's JSON Schema; and checksums.txt, every one's SHA-256 in sha256sum's format.
-# tools/selftest/go-release.ts proves those, and tools/selftest/release-cut.ts holds them to what
-# the last release published.
+# The go-release self-test proves those.
 version: 2
 project_name: itos
 # Not dist/, which tools/bin/build-go.ts and the ledger's checks build into: --clean empties

@@ -49,9 +49,8 @@
 // release workflow uploads it to the draft beside the archives; it is not in
 // checksums.txt, since itos only prints it.
 //
-// tools/selftest/release-notes.ts proves notes it writes against the range,
-// tools/selftest/upgrading-json.ts the asset,
-// and tools/selftest/release-cut.ts runs both on a snapshot. It imports
+// Its self-test (selftest_test.go, the nightly's) proves the asset against
+// this history's footers, breaking commits and schema contract. It imports
 // nothing but the standard library (T-067). Exit status: 0 written, 2 a part
 // could not be read (a tool that fails, a checksums.txt without an archive of
 // a platform).
