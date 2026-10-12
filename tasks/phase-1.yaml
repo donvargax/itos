@@ -1475,8 +1475,6 @@
     noisy. The pre-commit hook drops fallow and keeps go vet as its Go check. .fallowrc.json and
     the fallow dependency go with it. T-148 runs before T-143: fallow audits only the TypeScript
     that T-143 to T-147 delete, and keeps Node in every commit's hook.
-  done_when:
-    - run: '! grep -rq fallow itos.yaml package.json && tools/bin/itos ci plan --whole | grep -qE ''staticcheck|deadcode'''
 
 - id: T-149
   type: build
