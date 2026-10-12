@@ -437,7 +437,8 @@ module they judge runs inside them, each documented in its `main.go`:
 
 **The nightly** (`.github/workflows/nightly.yml`, at 11:44 UTC on `main` or
 by hand) runs `itos ci run --nightly`: `ci.nightly.steps` in written order,
-here the gates' self-tests, the release build and the
+going on past a failing step whatever `ci.stop_at_first_failure` says and
+failing at the end, here the gates' self-tests, the release build and the
 config's schema, then the steps T-125 kept from the done tasks' checks (what
 a push's features step selects, the build script's staleness rule, the
 upgrade asset, five runs with something hostile first on the PATH, two
