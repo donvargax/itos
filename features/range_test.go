@@ -13,7 +13,8 @@
 // look for every request after it, as the run a push started would answer
 // while it goes; a step can have it do something first, when it is first
 // asked for the watched run (bug 34), and a run that something adds for the
-// commit is the answer (bug 41: the run of a push that another push cancels). Anything else it is asked is a 404, everything a 401 once
+// commit is the answer (bug 41: the run of a push that another push cancels). It answers the
+// repository's endpoint with the visibility a step gave it (slice 135), and 404 while none did. Anything else it is asked is a 404, everything a 401 once
 // a step makes it refuse the token, and everything a 500 once a step makes it fail (slice 86).
 package features
 
@@ -67,8 +68,11 @@ type fakeGitHub struct {
 	looks    int          // how many looks at the watched run were given
 	given    []string     // the commits a look at the watched run was given
 	alone    string       // the one commit the watched run is of, when a step says so (bug 49)
-	refuses  bool         // whether it answers every request 401
-	failing  bool         // whether it answers every request 500, a server error
+	// The repository's visibility, public, private or internal; "" answers
+	// its endpoint 404, a repository the token cannot see.
+	visibility string
+	refuses    bool // whether it answers every request 401
+	failing    bool // whether it answers every request 500, a server error
 	// How many requests, from the next, it answers 403 for its rate limit, as
 	// GitHub does (bug 40), with headers that ask for no wait; -1 answers every
 	// one so.
@@ -118,6 +122,10 @@ func (g *fakeGitHub) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if m := jobsPath.FindStringSubmatch(req.URL.Path); m != nil {
 		id, _ := strconv.Atoi(m[1])
 		g.writeJobs(rw, req, id)
+		return
+	}
+	if req.URL.Path == "/repos/"+fakeRepository {
+		g.writeRepository(rw, req)
 		return
 	}
 	m := runsPath.FindStringSubmatch(req.URL.Path)
@@ -220,6 +228,18 @@ func (g *fakeGitHub) writeJobs(rw http.ResponseWriter, req *http.Request, id int
 	}
 	rw.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(rw).Encode(map[string]any{"total_count": len(listed), "jobs": listed})
+}
+
+// The repository as GitHub's endpoint gives it: its name, its visibility and
+// whether it is private; 404 when it has no visibility.
+func (g *fakeGitHub) writeRepository(rw http.ResponseWriter, req *http.Request) {
+	if g.visibility == "" {
+		http.NotFound(rw, req)
+		return
+	}
+	rw.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(rw).Encode(map[string]any{"full_name": fakeRepository,
+		"private": g.visibility != "public", "visibility": g.visibility})
 }
 
 func writeRuns(rw http.ResponseWriter, runs []gitHubRun) {

@@ -11,7 +11,8 @@
 // Bug 49's push a fix and a registry commit after it in one push, and give
 // the fake GitHub a run of the pushed head alone. Slice 127's give it a
 // completed run of an item's commit or of the remote's head, and no watched
-// run, so a commit with no run of its own has none.
+// run, so a commit with no run of its own has none. Slice 135's say what the
+// fake GitHub answers for the repository: its visibility, or a 404.
 package features
 
 import (
@@ -86,6 +87,20 @@ func initializeWatchSteps(sc *godog.ScenarioContext, w *world) {
 			return errors.New("no fake GitHub: start one first")
 		}
 		w.github.refuses = true
+		return nil
+	})
+	sc.Step(`^the fake GitHub says the repository is "(public|private|internal)"$`, func(visibility string) error {
+		if w.github == nil {
+			return errors.New("no fake GitHub: start one first")
+		}
+		w.github.visibility = visibility
+		return nil
+	})
+	sc.Step(`^the fake GitHub does not know the repository$`, func() error {
+		if w.github == nil {
+			return errors.New("no fake GitHub: start one first")
+		}
+		w.github.visibility = ""
 		return nil
 	})
 	sc.Step(`^the fake GitHub answers every look with a server error$`, func() error {
