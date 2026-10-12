@@ -21,7 +21,7 @@ stays a map:
 | `cmd/itos`                  | The binary: the order a run passes through the packages.                                                   |
 | `internal/`                 | itos's packages (below). With `cmd/`, `commits.path_sets.implementation`.                                  |
 | `features/`                 | The named tests: Gherkin feature files, their Go steps (`*_test.go`), the smoke set `smoke.yaml`.          |
-| `tools/itos/conformance/`   | The regression corpus, one YAML file per area, and its runner `run.ts`.                                    |
+| `tools/itos/conformance/`   | The regression corpus, one YAML file per area; `tools/bin/conformance` runs it.                            |
 | `tools/itos/fixtures/`      | The configs and ledgers the ledger's negative proofs (`tasks/phase-0.yaml`) hand itos.                     |
 | `tools/bin/itos`            | The entry point the hooks, CI and the ledger's checks call: builds `./cmd/itos` from the tree and runs it. |
 | `tools/bin/*/` (Go)         | The gates and the release's programs, each `go run ./tools/bin/<name>`, each documented in its `main.go`.  |
@@ -44,8 +44,8 @@ module path ends in its major version or Go refuses its tag, so the path
 moves before a major release, and `tools/bin/release-version` refuses a
 version whose major the path does not match. Go is pinned by its `toolchain`
 line; the dependencies are few and held to the dependency check. Node runs
-only this repository's tooling (the corpus runner, the builds, the
-inbox); no consumer of itos needs it.
+only this repository's tooling (the builds, the inbox); no consumer of
+itos needs it.
 
 ## How a run goes
 
@@ -212,12 +212,14 @@ expression matching no tag fails the run. `@wip` scenarios never run.
 **The conformance corpus** (`tools/itos/conformance/`) is what itos does as
 cases run through its command line in scratch repositories, one file per
 area, every `--help` text among them, since agents read them.
-`run.ts --bin <command>` runs them through any binary; a tampered case file
-fails, since the runner compares what it claims to. A case's `github` key
-starts a fake GitHub API in the runner for that case, so the GitHub
-providers have cases without a network. CI runs the corpus as a step of its
-own; its `--additive` mode is how the last release's corpus judges this
-tree (below).
+`go run ./tools/bin/conformance --bin <command>` runs them through any
+binary; a tampered case file fails, since the runner compares what it claims
+to. A case's `github` key starts a fake GitHub API in the runner for that
+case, so the GitHub providers have cases without a network. The runner is a
+package (`tools/bin/conformance/corpus`, whose doc is the fixtures' format)
+that `previous-release` links in. CI runs the corpus as a step of its own;
+its `--additive` mode is how the last release's corpus judges this tree
+(below).
 
 ## The release
 
