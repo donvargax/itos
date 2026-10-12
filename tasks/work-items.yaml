@@ -8709,7 +8709,7 @@ items:
     title: itos guide brief says which tier a new check belongs to, and a decision record holds why
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

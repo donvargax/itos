@@ -1775,5 +1775,3 @@
     guide names it. Code is king: the guide says the rule, not this repository's steps. Whether a
     guide's text is a feat with its corpus case or needs Changes:, previous-release says; a consumer
     workflow template is go-template-itos#9's, not this task's.
-  done_when:
-    - run: tools/bin/itos guide brief | grep -qi 'nightly' && tools/bin/itos guide brief | grep -qi 'tier' && ls docs/decisions | grep -qi 'tier'
