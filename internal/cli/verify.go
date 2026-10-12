@@ -99,7 +99,11 @@ func (v *verifier) commit(sha string) (verified, error) {
 	}
 	ok := code == 0
 	if ok {
-		judged := judged{typ: message.Type(text), files: files, after: sha, merge: merge}
+		footers := text
+		if v.cfg.Stealth {
+			footers = reading.Note
+		}
+		judged := judged{typ: message.Type(text), files: files, after: sha, merge: merge, footers: footers}
 		if merge {
 			judged.parent = parents[0]
 		}
@@ -114,12 +118,15 @@ func (v *verifier) commit(sha string) (verified, error) {
 }
 
 // judged is a commit as its paths and moves are judged: its type, the paths
-// it changes (a merge's own), the commit, and for a merge its first parent.
+// it changes (a merge's own), the commit, for a merge its first parent, and
+// the footers it carries, its message's or under a stealth config its
+// note's, whose named tests may bring a test live (slice 134).
 type judged struct {
 	typ           string
 	files         []string
 	after, parent string
 	merge         bool
+	footers       string
 }
 
 // holds is a commit's paths against its type's rules and its feature files
@@ -137,10 +144,11 @@ func (v *verifier) holds(c judged) (bool, error) {
 	}
 	found = append(found, paths...)
 	var moved []out.Problem
+	change := movesChange(v.cfg, c.footers, c.files)
 	if c.merge {
-		moved, err = v.moves.Merge(c.typ, c.parent, c.after, c.files)
+		moved, err = v.moves.Merge(c.typ, c.parent, c.after, c.files, change)
 	} else {
-		moved, err = v.moves.Commit(c.after, c.typ)
+		moved, err = v.moves.Commit(c.after, c.typ, change)
 	}
 	if err != nil {
 		return false, err

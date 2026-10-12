@@ -74,13 +74,17 @@
 // tree, an unborn HEAD) listing nothing, so it needs supports_at: true: no
 // live test added or lost, none switched between live and wip, and a live
 // test's title, when the adapter gives one at both ends, kept unless
-// allowed_renames lists the new one; bodies are not compared. config check
+// allowed_renames lists the new one; bodies are not compared. On either, a
+// test going live (a new live one, or a wip one made live) is Live's to
+// judge (slice 134): allowed when the check sets code, the commit's footer
+// for the kind names it and the commit changes none of that code, so the
+// callers hand each commit's named tests and paths in a Change. config check
 // refuses builtin beside a command, on a command kind without supports_at:
-// true or a kind whose named adapter is not gherkin, and allowed_renames
-// without it.
+// true or a kind whose named adapter is not gherkin, and allowed_renames or
+// code without it; code's $path_sets are expanded as commits.scopes' are.
 //
 // NewMoves(cfg) reads each kind's feature files once per tree and gives the
-// callers: Commit(sha, type) for verify (the commit against git.Parent, the
+// callers: Commit(sha, type, change) for verify (the commit against git.Parent, the
 // empty tree for a root commit, nothing read when no check judges the type),
 // Between for the commit-msg hook (HEAD, or for an amend HEAD's parent,
 // against the index), Merge for a merge commit in both (its own paths, the

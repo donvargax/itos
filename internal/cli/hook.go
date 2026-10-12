@@ -390,11 +390,15 @@ func stagedRule(cfg *config.Loaded, text, base string, merge *judged, o Out) (in
 	if base != "" {
 		before = base
 	}
+	change, err := stagedChange(cfg, text, base, merge)
+	if err != nil {
+		return 0, err
+	}
 	var moved []out.Problem
 	if merge != nil {
-		moved, err = tests.NewMoves(cfg).Merge(typ, merge.parent, "index", merge.files)
+		moved, err = tests.NewMoves(cfg).Merge(typ, merge.parent, "index", merge.files, change)
 	} else {
-		moved, err = tests.NewMoves(cfg).Between(typ, before, "index")
+		moved, err = tests.NewMoves(cfg).Between(typ, before, "index", change)
 	}
 	if err != nil {
 		return 0, err
@@ -405,6 +409,41 @@ func stagedRule(cfg *config.Loaded, text, base string, merge *judged, o Out) (in
 	}
 	rules.Reject(o.Stderr, found)
 	return ExitPolicy, nil
+}
+
+// stagedChange is the commit being made as the moves rule reads it beside
+// its trees (slice 134): the tests its footers name, the message's own or,
+// under a stealth config, those its note will hold (handedFooters), and the
+// paths it stages, a merge's own.
+func stagedChange(cfg *config.Loaded, text, base string, merge *judged) (tests.Change, error) {
+	footers := text
+	if cfg.Stealth {
+		var err error
+		if footers, err = handedFooters(); err != nil {
+			return tests.Change{}, err
+		}
+	}
+	if merge != nil {
+		return movesChange(cfg, footers, merge.files), nil
+	}
+	staged, err := stagedFiles(base)
+	if err != nil {
+		return tests.Change{}, err
+	}
+	return movesChange(cfg, footers, staged), nil
+}
+
+// movesChange is a commit as the moves rule reads it beside its trees: the
+// IDs its footers (a message, or a note) name, by kind of named tests, and
+// the paths it changes.
+func movesChange(cfg *config.Loaded, footers string, paths []string) tests.Change {
+	change := tests.Change{Named: map[string][]string{}, Paths: paths}
+	for _, l := range message.Links(cfg, footers) {
+		if l.Tests != "" {
+			change.Named[l.Tests] = append(change.Named[l.Tests], l.ID)
+		}
+	}
+	return change
 }
 
 // namedTask is a task the message names, with its work item's status as

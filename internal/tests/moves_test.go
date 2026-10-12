@@ -52,12 +52,12 @@ func TestMoveProblems(t *testing.T) {
 		{"added, lost and a header changed",
 			map[string]string{"features/a.feature": "Feature: A, retitled\n\n  @ID-A-03\n  Scenario: Locks\n    When I lock it\n\n  @ID-A-02 @wip\n  Scenario: Closes\n    When I close it\n"},
 			[]string{
-				"adds the live scenario ID-A-03 to features/a.feature",
+				"brings the scenario ID-A-03 live in features/a.feature, which needs the check's code set to be allowed outside except_types",
 				"loses the scenario ID-A-01 of features/a.feature",
 				"changes the header or Background of features/a.feature",
 			}},
 	} {
-		got := MoveProblems(before, featureSet(t, c.after), renames)
+		got := MoveProblems(before, featureSet(t, c.after), renames, Live{})
 		if !reflect.DeepEqual(got, c.want) {
 			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
 		}
@@ -106,7 +106,7 @@ func TestMoveProblemsDescription(t *testing.T) {
 		{"tagged", "@phase-2\nFeature: A\n  It opens, reworded." + scenarios, changed},
 		{"a Background", "Feature: A\n  It opens, reworded.\n\n  Background:\n    Given it is shut" + scenarios, changed},
 	} {
-		got := MoveProblems(before, featureSet(t, map[string]string{"features/a.feature": c.after}), nil)
+		got := MoveProblems(before, featureSet(t, map[string]string{"features/a.feature": c.after}), nil, Live{})
 		if !reflect.DeepEqual(got, c.want) {
 			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
 		}
@@ -191,16 +191,117 @@ tests:
     range_checks: [{ name: moves, builtin: moves, except_types: [feat] }]
 `)
 	moves := NewMoves(cfg)
-	found, err := moves.Merge("test", first, "HEAD", nil)
+	found, err := moves.Merge("test", first, "HEAD", nil, Change{})
 	if err != nil || len(found) != 0 {
 		t.Fatalf("a merge with no own change judged by what its topic brings: %v, %v", found, err)
 	}
-	found, err = moves.Merge("test", first, "HEAD", []string{"features/b.feature"})
+	found, err = moves.Merge("test", first, "HEAD", []string{"features/b.feature"}, Change{})
 	if err != nil || len(found) != 0 {
 		t.Fatalf("a merge whose own change is to a wip scenario: %v, %v", found, err)
 	}
-	found, err = moves.Merge("test", first, "HEAD", []string{"features/a.feature"})
+	found, err = moves.Merge("test", first, "HEAD", []string{"features/a.feature"}, Change{})
 	if err != nil || len(found) != 1 || !strings.Contains(found[0].Message, "a test commit changes the live scenario ID-A-01") {
 		t.Fatalf("a merge whose own change is to a live scenario: %v, %v", found, err)
+	}
+}
+
+// A scenario going live (slice 134), a wip one made live or a new live one,
+// is live's to judge: refused with why when the check has no code, when no
+// message was read, when the footer does not name it or the commit changes
+// the code under test; "" when it may.
+func TestLiveProblem(t *testing.T) {
+	what := "the scenario ID-C-01 live in features/c.feature"
+	named := map[string]bool{"ID-C-01": true}
+	for _, c := range []struct {
+		name string
+		live Live
+		want string
+	}{
+		{"no code", Live{Known: true, Named: named, Footer: "Scenarios:"},
+			"brings " + what + ", which needs the check's code set to be allowed outside except_types"},
+		{"no message read", Live{Code: true, Footer: "Scenarios:"},
+			"brings " + what + ", which a commit may by naming it in Scenarios: and changing none of the check's code"},
+		{"named, no code touched", Live{Code: true, Known: true, Named: named, Footer: "Scenarios:"}, ""},
+		{"unnamed", Live{Code: true, Known: true, Footer: "Scenarios:"}, "brings " + what + " without naming it in Scenarios:"},
+		{"named, code touched", Live{Code: true, Known: true, Named: named, Touched: []string{"src/a.go", "src/b.go"}, Footer: "Scenarios:"},
+			"brings " + what + " while changing the code under test: src/a.go, src/b.go"},
+		{"unnamed, code touched", Live{Code: true, Known: true, Touched: []string{"src/a.go"}, Footer: "Scenarios:"},
+			"brings " + what + " without naming it in Scenarios:, and while changing the code under test: src/a.go"},
+	} {
+		if got := c.live.Problem("ID-C-01", what); got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+// A wip scenario made live, its steps changed too or its file's @wip taken
+// off, and a new live one, each go live; a live scenario changed does not,
+// whatever live allows.
+func TestMoveProblemsGoingLive(t *testing.T) {
+	before := featureSet(t, map[string]string{
+		"features/a.feature": base,
+		"features/b.feature": "@wip\nFeature: B\n\n  @ID-B-01\n  Scenario: One\n    When it runs\n",
+	})
+	after := featureSet(t, map[string]string{
+		"features/a.feature": "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it twice\n\n  @ID-A-02\n  Scenario: Closes\n    When I close it now\n\n  @ID-A-03\n  Scenario: Locks\n",
+		"features/b.feature": "Feature: B\n\n  @ID-B-01\n  Scenario: One\n    When it runs\n",
+	})
+	allowed := Live{Code: true, Known: true, Named: map[string]bool{"ID-A-01": true, "ID-A-02": true, "ID-A-03": true, "ID-B-01": true}}
+	want := []string{
+		"changes the live scenario ID-A-01 in features/a.feature: a moved scenario keeps its ID, name, tags and steps exactly",
+		"changes the header or Background of features/b.feature",
+	}
+	if got := MoveProblems(before, after, nil, allowed); !reflect.DeepEqual(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+	unnamed := Live{Code: true, Known: true, Footer: "Scenarios:"}
+	want = []string{
+		"changes the live scenario ID-A-01 in features/a.feature: a moved scenario keeps its ID, name, tags and steps exactly",
+		"brings the scenario ID-A-02 live in features/a.feature without naming it in Scenarios:",
+		"brings the scenario ID-A-03 live in features/a.feature without naming it in Scenarios:",
+		"brings the scenario ID-B-01 live in features/b.feature without naming it in Scenarios:",
+		"changes the header or Background of features/b.feature",
+	}
+	if got := MoveProblems(before, after, nil, unnamed); !reflect.DeepEqual(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// A check's judgement of a commit (slice 134): the IDs the kind's footers
+// name, the paths of the check's code among those it changes, and the
+// footer a message names the kind's tests by, or the phrase for a kind no
+// footer names; a glob JavaScript would refuse is an error, reached.
+func TestMovesLive(t *testing.T) {
+	cfg := load(t, `version: 1
+commits:
+  types: [feat, test]
+  path_sets: { app: ["src/**"] }
+  footers:
+    Scenarios: { source: { tests: scenario }, strip_prefix: "@" }
+tests:
+  scenario:
+    root: features
+    id: "ID-[A-Z]+-\\d+"
+    range_checks: [{ name: moves, builtin: moves, except_types: [feat], code: [$app, "go.mod"] }]
+  other:
+    root: other
+    id: "ID-[A-Z]+-\\d+"
+    range_checks: [{ name: moves, builtin: moves, except_types: [feat], code: ["?x"] }]
+`)
+	m := NewMoves(cfg)
+	checks := m.checks()
+	got, err := m.live(checks[0], Change{
+		Named: map[string][]string{"scenario": {"ID-C-01"}, "other": {"ID-D-01"}},
+		Paths: []string{"features/c.feature", "src/app.go", "go.mod"},
+	})
+	want := Live{Code: true, Known: true, Named: map[string]bool{"ID-C-01": true}, Touched: []string{"src/app.go", "go.mod"}, Footer: "Scenarios:"}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Errorf("got %+v, %v, want %+v", got, err, want)
+	}
+	if _, err := m.live(checks[1], Change{Paths: []string{"x"}}); err == nil {
+		t.Error("a glob JavaScript refuses gave no error")
+	}
+	if got := m.footer("other"); got != "a footer whose source is { tests: other }" {
+		t.Errorf("a kind no footer names: %q", got)
 	}
 }

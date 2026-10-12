@@ -1393,7 +1393,9 @@ cases:
       Re-checks every commit of the range (from may be empty or all zeros: every
       commit up to <to>): its message, with the footers read at that commit, its
       paths, and, by a kind's built-in moves rule, its feature files against its
-      parent's, unless the rule's except_types names its type; then each kind's
+      parent's, unless the rule's except_types names its type (a scenario going
+      live judged by the commit's own footers and paths, as the hook judged it);
+      then each kind's
       range command. A merge commit is judged by its own changes, the paths of its
       dense combined diff (git diff-tree --cc): with none it passes whatever its
       message, with some it is judged as its first line's type, and refused when
@@ -1451,12 +1453,15 @@ cases:
 
       Judges the staged feature files of a Gherkin kind against HEAD's by the moves
       rule, as the commit-msg hook does for a type the rule does not exempt: live
-      scenarios keep their ID, name, tags and steps exactly, none is lost or added,
-      and a file with a live scenario keeps its header and Background; @wip ones may
+      scenarios keep their ID, name, tags and steps exactly, none is lost, and a
+      file with a live scenario keeps its header and Background; @wip ones may
       come, go or change, and comment lines and the feature's description (the free
       text under Feature:) are never compared. A rename the kind's
-      range check { builtin: moves } lists in allowed_renames passes. Exit 1 with
-      each problem.
+      range check { builtin: moves } lists in allowed_renames passes. A scenario
+      going live (a new live one, or one losing its @wip) is reported: there is no
+      message here, and it is the commit's footer that allows it, when the check
+      sets code, the footer for the kind (Scenarios:) names it and the commit
+      changes none of that code. Exit 1 with each problem.
 
       --json: {"schema":1,"kind","ok","problems":[{"rule","message"}]}
   - name: itos tests next-id --help
@@ -1622,7 +1627,9 @@ cases:
       check judges it, read from the staged tree too; then the staged files
       against the message's type (the path rules, then
       each kind's staged range checks: the built-in moves rule here, for a type its
-      except_types does not name), then the header lint (commits.header_lint: the
+      except_types does not name, which lets a scenario go live when the rule's code
+      is set, the message's footer for the kind names it and nothing staged is that
+      code), then the header lint (commits.header_lint: the
       built-in one, or the hook delegate if any) and itos's footer
       rules (commits.footers), always,
       both reported, then the checks of each task a ledger footer names (Task:

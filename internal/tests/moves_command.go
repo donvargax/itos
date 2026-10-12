@@ -3,7 +3,10 @@ package tests
 // The moves rule on a kind whose adapter is a command (slice 82, issue #9).
 // The adapter lists no test's body, so the rule compares what it lists at
 // both ends of a commit: outside the types except_types names, a commit may
-// not add or lose a live test, nor switch one between live and wip, and when
+// not add or lose a live test, nor switch one between live and wip, but for
+// a test going live, a new live one or a wip one made live, which the
+// listing tells as a feature file does and which is allowed as on a Gherkin
+// kind (Live, slice 134), and when
 // the adapter gives a live test a title at both ends, the title stays, unless
 // allowed_renames lists the new one for its ID. A test's file, its body and a
 // wip test are free. config check refuses the rule unless the adapter sets
@@ -45,7 +48,7 @@ func (m *Moves) testList(name, tree string) (List, error) {
 // listedProblems is a command kind's check from before to after, or for a
 // merge (own not nil) from after with the tests of its own paths as before
 // lists them.
-func (m *Moves) listedProblems(c movesCheck, k config.Kind, before, after string, own []string) ([]string, error) {
+func (m *Moves) listedProblems(c movesCheck, k config.Kind, before, after string, own []string, live Live) ([]string, error) {
 	was, err := m.testList(c.kind, before)
 	if err != nil {
 		return nil, err
@@ -57,7 +60,7 @@ func (m *Moves) listedProblems(c movesCheck, k config.Kind, before, after string
 	if own != nil {
 		was = ownList(k, was, now, own)
 	}
-	return ListedProblems(was, now, k.TagPrefix, c.check.AllowedRenames), nil
+	return ListedProblems(was, now, k.TagPrefix, c.check.AllowedRenames, live), nil
 }
 
 // ownList is a merge's listing before its own changes: after's tests, with
@@ -103,10 +106,11 @@ func listed(list List) ([]string, map[string]Test) {
 
 // ListedProblems is what breaks the rule between two listings of a command
 // kind, each problem a phrase for "a <type> commit …", a test named by its
-// tag (the kind's tag prefix and its ID): the later listing's tests added,
-// switched or retitled, then the earlier one's lost. renames are the allowed
-// renames, by ID and new title.
-func ListedProblems(before, after List, prefix string, renames map[string]string) []string {
+// tag (the kind's tag prefix and its ID): the later listing's tests brought
+// live, turned wip or retitled, then the earlier one's lost. renames are the
+// allowed renames, by ID and new title; live judges a test going live, a new
+// live one or a wip one made live (slice 134).
+func ListedProblems(before, after List, prefix string, renames map[string]string, live Live) []string {
 	var problems []string
 	wasIDs, was := listed(before)
 	nowIDs, now := listed(after)
@@ -114,14 +118,13 @@ func ListedProblems(before, after List, prefix string, renames map[string]string
 		t, tag := now[id], prefix+id
 		old, kept := was[id]
 		switch {
-		case !kept:
-			if t.Live {
-				problems = append(problems, "adds the live test "+tag+" to "+t.File)
+		case t.Live && (!kept || !old.Live):
+			if p := live.Problem(id, "the test "+tag+" live in "+t.File); p != "" {
+				problems = append(problems, p)
 			}
+		case !kept:
 		case old.Live && !t.Live:
 			problems = append(problems, "turns the live test "+tag+" of "+t.File+" wip")
-		case !old.Live && t.Live:
-			problems = append(problems, "makes the wip test "+tag+" of "+t.File+" live")
 		case t.Live && old.Title != nil && t.Title != nil && *old.Title != *t.Title && renames[id] != *t.Title:
 			problems = append(problems, "retitles the live test "+tag+" of "+t.File+" from "+
 				strconv.Quote(*old.Title)+" to "+strconv.Quote(*t.Title)+": a live test keeps its title")

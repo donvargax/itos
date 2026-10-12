@@ -141,7 +141,7 @@ Feature: Live scenarios only move, by a rule itos ships
   # it. Without code the rule cannot tell, so going live stays feat's and
   # fix's, as before. A live scenario still never changes outside them, named
   # or not; 16 holds before the work.
-  @ID-MOVES-11 @slice-134 @wip
+  @ID-MOVES-11 @slice-134
   Scenario: A test commit that brings a wip scenario live unnamed is refused, saying it brings it live
     Given the moves rule's code is "src/**"
     And the committed feature file "c.feature" with the wip scenario "@ID-C-01"
@@ -156,7 +156,7 @@ Feature: Live scenarios only move, by a rule itos ships
     And its output says "brings the scenario ID-C-01 live"
     And its output does not say "changes the live scenario"
 
-  @ID-MOVES-12 @slice-134 @wip
+  @ID-MOVES-12 @slice-134
   Scenario: A test commit brings a wip scenario live when Scenarios: names it and it touches no code
     Given the moves rule's code is "src/**"
     And the committed feature file "c.feature" with the wip scenario "@ID-C-01"
@@ -170,7 +170,7 @@ Feature: Live scenarios only move, by a rule itos ships
       """
     Then itos exits with code 0
 
-  @ID-MOVES-13 @slice-134 @wip
+  @ID-MOVES-13 @slice-134
   Scenario: A named scenario going live is refused when the same commit changes the code under test
     Given the moves rule's code is "src/**"
     And the committed feature file "c.feature" with the wip scenario "@ID-C-01"
@@ -187,7 +187,7 @@ Feature: Live scenarios only move, by a rule itos ships
     And its output says "brings the scenario ID-C-01 live"
     And its output says "src/app.go"
 
-  @ID-MOVES-14 @slice-134 @wip
+  @ID-MOVES-14 @slice-134
   Scenario: A test commit adds a new live guard scenario it names, before the change it guards
     Given the moves rule's code is "src/**"
     And a new live scenario "@ID-A-02" is staged in "a.feature"
@@ -200,7 +200,7 @@ Feature: Live scenarios only move, by a rule itos ships
       """
     Then itos exits with code 0
 
-  @ID-MOVES-15 @slice-134 @wip
+  @ID-MOVES-15 @slice-134
   Scenario: Without the moves rule's code, a named scenario going live outside feat and fix stays refused
     Given the committed feature file "c.feature" with the wip scenario "@ID-C-01"
     And the scenario "@ID-C-01" is staged live
@@ -215,7 +215,7 @@ Feature: Live scenarios only move, by a rule itos ships
     And its output says "brings the scenario ID-C-01 live"
     And its output says "code"
 
-  @ID-MOVES-16 @slice-134 @wip
+  @ID-MOVES-16 @slice-134
   Scenario: Naming a live scenario in Scenarios: does not let a test commit change it
     Given the moves rule's code is "src/**"
     And a change to the steps of the scenario "@ID-A-01" is staged

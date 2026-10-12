@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/donvargax/itos/v8/internal/out"
@@ -174,8 +175,9 @@ func fromText(file, text string, isStealth func(string) bool) (*Loaded, error) {
 	return loaded, nil
 }
 
-// expandSets replaces each $name of a path list by commits.path_sets.<name>,
-// and is a problem for a name the sets do not have.
+// expandSets replaces each $name of a path list (commits.scopes', ci.prose's
+// paths, a range check's code) by commits.path_sets.<name>, and is a problem
+// for a name the sets do not have.
 func expandSets(tree *value.Map) []out.Problem {
 	commits := value.Prop(tree, "commits")
 	sets, _ := value.Prop(commits, "path_sets").(*value.Map)
@@ -206,6 +208,16 @@ func expandSets(tree *value.Map) []out.Problem {
 			for _, k := range []string{"only", "never", "except", "must_touch"} {
 				if globs, ok := rule.At(k).([]any); ok {
 					rule.Set(k, expand(globs, "commits.scopes."+typ+"."+k))
+				}
+			}
+		}
+	}
+	if kinds, ok := value.Prop(tree, "tests").(*value.Map); ok {
+		for _, name := range kinds.Keys() {
+			checks, _ := value.Prop(kinds.At(name), "range_checks").([]any)
+			for i, check := range checks {
+				if globs, ok := value.Prop(check, "code").([]any); ok {
+					check.(*value.Map).Set("code", expand(globs, "tests."+name+".range_checks["+strconv.Itoa(i)+"].code"))
 				}
 			}
 		}

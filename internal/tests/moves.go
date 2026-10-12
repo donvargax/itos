@@ -1,17 +1,34 @@
 package tests
 
 // The moves rule (moves.ts), a built-in range check of a kind:
-// `{ name, builtin: moves, except_types, allowed_renames }` in
+// `{ name, builtin: moves, except_types, allowed_renames, code }` in
 // tests.<kind>.range_checks. On a Gherkin kind it reads feature files, as
 // below; on a kind whose adapter is a command it compares the adapter's
 // listings instead (moves_command.go, slice 82). A commit of a type except_types does not name
 // may move scenarios between feature files, create feature files and delete
 // the ones left empty, provided every live scenario keeps its ID, name, tags
-// and steps exactly, none is lost or added, and a file with a live scenario
+// and steps exactly, none is lost, and a file with a live scenario
 // keeps its header and Background, all but its feature's description. A wip scenario may still be added, changed
 // or removed: that is how a specification lands before its implementation. A
 // rename the project allows is listed in allowed_renames, by ID (without its
-// prefix) and new name. Comment lines (`#`) are not part of a scenario's ID,
+// prefix) and new name.
+//
+// A scenario going live, a new live one or a wip one losing its @wip, changes
+// no live scenario, and is judged apart (Live, slice 134, issue #55): such a
+// commit may bring it live when the check sets code, the paths of the code
+// under test (globs, or $path_sets as commits.scopes takes them), the
+// commit's footer for the kind (the one whose source is { tests: <kind> },
+// Scenarios: here) names it, and the commit changes none of that code. So a
+// project may describe behaviour its code already has, or land a perf or
+// refactor task's guard scenarios before the change they guard, while a live
+// scenario still never changes outside except_types, named or not. Without
+// code the rule cannot tell, and going live stays except_types'. A refusal
+// says it brings the scenario live, and why: unnamed, the code paths it
+// changes, or code unset. The hook reads the message being made (under a
+// stealth config the footers its note will hold) and the staged paths,
+// verify each commit's own message (or note) and paths (Change); itos tests
+// moves reads no message, so it reports a scenario going live, saying how a
+// footer allows it. Comment lines (`#`) are not part of a scenario's ID,
 // name, tags or steps, nor of a header, so they are dropped before anything
 // is compared: a reason may be written beside a scenario in any commit. Nor
 // is a feature's description (slice 125): the free text under its Feature
@@ -33,6 +50,7 @@ import (
 
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/glob"
 	"github.com/donvargax/itos/v8/internal/out"
 	"github.com/donvargax/itos/v8/internal/value"
 )
@@ -161,16 +179,55 @@ func (s *FeatureSet) hasLive(file string) bool {
 	return false
 }
 
-// movedProblem is a scenario of the later set against its earlier self,
-// if any: "" when it holds.
-func movedProblem(id string, was *Scenario, now Scenario, renames map[string]string) string {
-	if was == nil {
-		if now.Wip {
-			return ""
-		}
-		return "adds the live scenario " + id + " to " + now.File
+// Live is how one moves check judges a commit bringing a test live, a new
+// live one or a wip one made live (slice 134): Code, whether the check sets
+// code; Known, whether the commit's message was read (itos tests moves reads
+// none); Named, the IDs the kind's footer names; Touched, the paths of the
+// check's code the commit changes; Footer, how a message names the kind's
+// tests ("Scenarios:").
+type Live struct {
+	Code    bool
+	Known   bool
+	Named   map[string]bool
+	Touched []string
+	Footer  string
+}
+
+// Problem is the problem of the test id going live, what naming it ("the
+// scenario ID-A-01 live in features/a.feature"), for "a <type> commit …":
+// "" when the check sets code and the commit's footer names it and touches
+// none of that code, else why not.
+func (l Live) Problem(id, what string) string {
+	brings := "brings " + what
+	switch {
+	case !l.Code:
+		return brings + ", which needs the check's code set to be allowed outside except_types"
+	case !l.Known:
+		return brings + ", which a commit may by naming it in " + l.Footer + " and changing none of the check's code"
 	}
-	if was.Body == now.Body || now.Wip {
+	var why []string
+	if !l.Named[id] {
+		why = append(why, "without naming it in "+l.Footer)
+	}
+	if len(l.Touched) > 0 {
+		why = append(why, "while changing the code under test: "+strings.Join(l.Touched, ", "))
+	}
+	if len(why) == 0 {
+		return ""
+	}
+	return brings + " " + strings.Join(why, ", and ")
+}
+
+// movedProblem is a scenario of the later set against its earlier self,
+// if any: "" when it holds. A scenario going live, new or wip before, is
+// live's to judge.
+func movedProblem(id string, was *Scenario, now Scenario, renames map[string]string, live Live) string {
+	switch {
+	case now.Wip:
+		return ""
+	case was == nil || was.Wip:
+		return live.Problem(id, "the scenario "+id+" live in "+now.File)
+	case was.Body == now.Body:
 		return ""
 	}
 	if allowed := renames[id]; allowed != "" && renamedTo(was.Body, now.Body, allowed) {
@@ -181,18 +238,18 @@ func movedProblem(id string, was *Scenario, now Scenario, renames map[string]str
 }
 
 // MoveProblems is what breaks the rule between two sets, each problem a
-// phrase for "a <type> commit …": the later set's scenarios added or changed,
-// then the earlier set's lost, then the files whose header changed while
-// they held a live scenario. renames are the allowed renames, by ID and new
-// name.
-func MoveProblems(before, after *FeatureSet, renames map[string]string) []string {
+// phrase for "a <type> commit …": the later set's scenarios brought live or
+// changed, then the earlier set's lost, then the files whose header changed
+// while they held a live scenario. renames are the allowed renames, by ID and
+// new name; live judges a scenario going live.
+func MoveProblems(before, after *FeatureSet, renames map[string]string, live Live) []string {
 	var problems []string
 	for _, id := range after.IDs {
 		var was *Scenario
 		if sc, ok := before.Scenarios[id]; ok {
 			was = &sc
 		}
-		if p := movedProblem(id, was, after.Scenarios[id], renames); p != "" {
+		if p := movedProblem(id, was, after.Scenarios[id], renames, live); p != "" {
 			problems = append(problems, p)
 		}
 	}
@@ -314,11 +371,51 @@ func (m *Moves) judges(c config.RangeCheck, typ string) bool {
 	return !slices.Contains(c.ExceptTypes, typ) && (types == nil || slices.Contains(types, typ))
 }
 
+// Change is what the moves rule reads of a commit beside its trees, to judge
+// a test going live (slice 134): the IDs its footers name, strip_prefix off,
+// by the kind of named tests each footer's source is, and the paths it
+// changes, a merge's own.
+type Change struct {
+	Named map[string][]string
+	Paths []string
+}
+
+// live is how a check judges a test going live in a commit that makes the
+// change: the check's code against the paths it changes, the IDs the kind's
+// footers name.
+func (m *Moves) live(c movesCheck, change Change) (Live, error) {
+	l := Live{Code: c.check.Code != nil, Known: true, Named: map[string]bool{}, Footer: m.footer(c.kind)}
+	for _, id := range change.Named[c.kind] {
+		l.Named[id] = true
+	}
+	for _, p := range change.Paths {
+		ok, err := glob.MatchesAny(p, c.check.Code)
+		if err != nil {
+			return Live{}, err
+		}
+		if ok {
+			l.Touched = append(l.Touched, p)
+		}
+	}
+	return l, nil
+}
+
+// footer is how a message names a kind's tests: the first footer whose
+// source is the kind, as "Scenarios:", or a phrase for the footer it lacks.
+func (m *Moves) footer(kind string) string {
+	for _, key := range m.cfg.Commits.Footers.Keys {
+		if m.cfg.Commits.Footers.Values[key].Source.Tests == kind {
+			return key + ":"
+		}
+	}
+	return "a footer whose source is { tests: " + kind + " }"
+}
+
 // Between is the moves checks' problems for a commit of a type, from the
 // tree before to the tree after, each worded for "a <type> commit" under the
-// check's name.
-func (m *Moves) Between(typ, before, after string) ([]out.Problem, error) {
-	return m.judge(typ, before, after, nil)
+// check's name; change is what it names and touches.
+func (m *Moves) Between(typ, before, after string, change Change) ([]out.Problem, error) {
+	return m.judge(typ, before, after, nil, change)
 }
 
 // Merge is the moves rule for a merge commit, which is judged by its own
@@ -327,28 +424,31 @@ func (m *Moves) Between(typ, before, after string) ([]out.Problem, error) {
 // its first parent has them. What its parents bring was judged in their own
 // commits, so a merge with no feature file among its own paths moves nothing.
 // A command kind's tests are judged by their files the same way.
-func (m *Moves) Merge(typ, parent, after string, own []string) ([]out.Problem, error) {
+func (m *Moves) Merge(typ, parent, after string, own []string, change Change) ([]out.Problem, error) {
 	if own == nil {
 		own = []string{}
 	}
-	return m.judge(typ, parent, after, own)
+	return m.judge(typ, parent, after, own, change)
 }
 
 // judge is Between, or with own not nil Merge, over every moves check that
 // judges the type: a Gherkin kind's feature sets, a command kind's listings
 // (moves_command.go).
-func (m *Moves) judge(typ, before, after string, own []string) ([]out.Problem, error) {
+func (m *Moves) judge(typ, before, after string, own []string, change Change) ([]out.Problem, error) {
 	found := []out.Problem{}
 	for _, c := range m.checks() {
 		if !m.judges(c.check, typ) {
 			continue
 		}
+		live, err := m.live(c, change)
+		if err != nil {
+			return nil, err
+		}
 		var problems []string
-		var err error
 		if k, _ := KindOf(m.cfg, c.kind); k.Adapter.Command != "" {
-			problems, err = m.listedProblems(c, k, before, after, own)
+			problems, err = m.listedProblems(c, k, before, after, own, live)
 		} else {
-			problems, err = m.featureProblems(c, before, after, own)
+			problems, err = m.featureProblems(c, before, after, own, live)
 		}
 		if err != nil {
 			return nil, err
@@ -362,7 +462,7 @@ func (m *Moves) judge(typ, before, after string, own []string) ([]out.Problem, e
 
 // featureProblems is a Gherkin kind's check from before to after, or for a
 // merge (own not nil) from after with its own paths as before has them.
-func (m *Moves) featureProblems(c movesCheck, before, after string, own []string) ([]string, error) {
+func (m *Moves) featureProblems(c movesCheck, before, after string, own []string, live Live) ([]string, error) {
 	var was *FeatureSet
 	var err error
 	if own != nil {
@@ -377,13 +477,14 @@ func (m *Moves) featureProblems(c movesCheck, before, after string, own []string
 	if err != nil {
 		return nil, err
 	}
-	return MoveProblems(was, now, c.check.AllowedRenames), nil
+	return MoveProblems(was, now, c.check.AllowedRenames, live), nil
 }
 
 // Commit is verify's moves rule for one commit: the commit against its
-// parent, or the empty tree for a root commit. Nothing is read when no check
-// judges the type.
-func (m *Moves) Commit(sha, typ string) ([]out.Problem, error) {
+// parent, or the empty tree for a root commit, change what its own message
+// names and the paths it changes. Nothing is read when no check judges the
+// type.
+func (m *Moves) Commit(sha, typ string, change Change) ([]out.Problem, error) {
 	judged := false
 	for _, c := range m.checks() {
 		judged = judged || m.judges(c.check, typ)
@@ -391,13 +492,15 @@ func (m *Moves) Commit(sha, typ string) ([]out.Problem, error) {
 	if !judged {
 		return []out.Problem{}, nil
 	}
-	return m.Between(typ, git.Parent(sha), sha)
+	return m.Between(typ, git.Parent(sha), sha, change)
 }
 
 // Index is `itos tests moves <kind>`'s judgement: HEAD against the index, by
 // the kind's moves checks' allowed renames (none when it has no moves check),
-// each problem under the rule moves, worded for "the index". A config error
-// when the kind is missing or its adapter is not gherkin.
+// each problem under the rule moves, worded for "the index". It reads no
+// message, so a scenario going live is reported, saying how a commit's
+// footer allows it when one of the checks sets code. A config error when the
+// kind is missing or its adapter is not gherkin.
 func (m *Moves) Index(name string) ([]out.Problem, error) {
 	k, err := KindOf(m.cfg, name)
 	if err != nil {
@@ -411,11 +514,13 @@ func (m *Moves) Index(name string) ([]out.Problem, error) {
 		}}}
 	}
 	renames := map[string]string{}
+	live := Live{Footer: m.footer(name)}
 	for _, c := range m.checks() {
 		if c.kind == name {
 			for id, to := range c.check.AllowedRenames {
 				renames[id] = to
 			}
+			live.Code = live.Code || c.check.Code != nil
 		}
 	}
 	was, err := m.featureSet(name, "HEAD")
@@ -427,7 +532,7 @@ func (m *Moves) Index(name string) ([]out.Problem, error) {
 		return nil, err
 	}
 	found := []out.Problem{}
-	for _, p := range MoveProblems(was, now, renames) {
+	for _, p := range MoveProblems(was, now, renames, live) {
 		found = append(found, out.Problem{Rule: "moves", Message: "the index " + p})
 	}
 	return found, nil

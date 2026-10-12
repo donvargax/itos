@@ -7,9 +7,13 @@
 # scenarios keep their ID, name, tags and steps, none is lost or added, a file
 # with a live scenario keeps its header; @wip ones, comment lines and a
 # feature's description (the free text under its Feature line) are free;
-# a rename allowed_renames lists passes. config check refuses builtin with a
+# a rename allowed_renames lists passes. A scenario going live, a new live
+# one or a wip one made live, is refused outside except_types unless the
+# check sets code (globs or $path_sets) and the commit's Scenarios: footer
+# names it and it changes none of that code (slice 134); verify reads each
+# commit's own footers and paths. config check refuses builtin with a
 # command, on a command kind without supports_at: true (slice 82), and
-# allowed_renames without it.
+# allowed_renames or code without it.
 #
 # Every case starts from one feat committing features/a.feature, a live
 # scenario and a @wip one, and the ledger.
@@ -126,7 +130,7 @@ cases:
     exit: 1
     stderr: |
       Commit rejected:
-        - a test commit adds the live scenario ID-A-03 to features/a.feature
+        - a test commit brings the scenario ID-A-03 live in features/a.feature, which needs the check's code set to be allowed outside except_types
         - a test commit loses the scenario ID-A-01 of features/a.feature
         - a test commit changes the header or Background of features/a.feature
   - name: verify judges each commit against its parent, skipping except_types, and names a failing one under its report
@@ -181,8 +185,77 @@ cases:
       0/1 commits pass the commit rules
     stderr: |
       Commit rejected:
-        - a docs commit adds the live scenario ID-A-01 to features/a.feature
+        - a docs commit brings the scenario ID-A-01 live in features/a.feature, which needs the check's code set to be allowed outside except_types
         ^ {{short.root}} docs: start
+  - name: verify lets a test commit bring a wip scenario live that its Scenarios footer names, changing none of code
+    argv: [verify, "{{sha.base}}", HEAD]
+    files:
+      itos.yaml: &live |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          types: [feat, fix, test, docs]
+          path_sets: { app: ["src/**"] }
+          footers:
+            Task: { source: ledger, required_for: [test, docs], validate_for: all, read_at: commit }
+            Scenarios: { source: { tests: scenario }, strip_prefix: "@", validate_for: [feat, fix] }
+        tests:
+          scenario:
+            root: features
+            id: "ID-[A-Z]+-\\d+"
+            range_checks: [{ name: moves, builtin: moves, except_types: [feat, fix], code: [$app] }]
+        ci: { steps: [] }
+        work: { people: { source: yaml, file: people.yaml } }
+    git:
+      - *base
+      - commit: "test: describe what closing does\n\nTask: T-001\nScenarios: @ID-A-02\n"
+        files: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02\n  Scenario: Closes\n    When I close it\n" }
+    exit: 0
+    stdout: |
+      1/1 commits pass the commit rules
+    stderr: ""
+  - name: verify refuses a commit that brings a named scenario live and changes the code under test, naming that code
+    argv: [verify, "{{sha.base}}", HEAD]
+    files: { itos.yaml: *live }
+    git:
+      - *base
+      - commit: "test: describe what closing does now\n\nTask: T-001\nScenarios: @ID-A-02\n"
+        files: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02\n  Scenario: Closes\n    When I close it\n", src/app.go: "package app\n" }
+        label: live
+    exit: 1
+    stdout: |
+      0/1 commits pass the commit rules
+    stderr: |
+      Commit rejected:
+        - a test commit brings the scenario ID-A-02 live in features/a.feature while changing the code under test: src/app.go
+        ^ {{short.live}} test: describe what closing does now
+  - name: commit-msg refuses a new live scenario its message does not name, under code
+    argv: [hook, commit-msg, msg]
+    files: { itos.yaml: *live }
+    git:
+      - *base
+      - stage: { features/b.feature: "Feature: B\n\n  @ID-B-01\n  Scenario: Locks\n    When I lock it\n" }
+    exit: 1
+    stderr: |
+      Commit rejected:
+        - a test commit brings the scenario ID-B-01 live in features/b.feature without naming it in Scenarios:
+  - name: tests moves reports a scenario going live, saying how a commit's footer allows it under code
+    argv: [tests, moves, scenario]
+    files: { itos.yaml: *live }
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02\n  Scenario: Closes\n    When I close it\n" }
+    exit: 1
+    stdout: ""
+    stderr: "  - the index brings the scenario ID-A-02 live in features/a.feature, which a commit may by naming it in Scenarios: and changing none of the check's code\n"
+  - name: tests moves reports a scenario going live without code as needing it
+    argv: [tests, moves, scenario]
+    git:
+      - *base
+      - stage: { features/a.feature: "Feature: A\n\n  @ID-A-01\n  Scenario: Opens\n    When I open it\n\n  @ID-A-02\n  Scenario: Closes\n    When I close it\n" }
+    exit: 1
+    stdout: ""
+    stderr: "  - the index brings the scenario ID-A-02 live in features/a.feature, which needs the check's code set to be allowed outside except_types\n"
   - name: tests moves with nothing staged
     argv: [tests, moves, scenario]
     exit: 0
@@ -270,6 +343,22 @@ cases:
           message: "refused.yaml: tests.command.range_checks[0] is builtin: moves, which lists the tests at both ends of a commit, and tests.command.adapter does not set supports_at: true"
           fix: "set supports_at: true on tests.command.adapter if its command lists the tests of any tree, or remove tests.command.range_checks[0]"
           area: config
+  - name: config check refuses code without builtin, and a $path_set code names that commits.path_sets lacks
+    argv: [config, check, --config, code.yaml]
+    files:
+      code.yaml: |
+        version: 1
+        tests:
+          scenario:
+            root: features
+            id: "ID-[A-Z]+-\\d+"
+            range_checks:
+              - { name: code, staged: "sh moves.sh", code: ["src/**"] }
+              - { name: moves, builtin: moves, code: [$app] }
+    exit: 2
+    stderr: |
+      FAIL code.yaml: tests.scenario.range_checks[1].code names $app, which commits.path_sets does not have
+      FAIL code.yaml: tests.scenario.range_checks[0] has code, which only builtin: moves reads
   - name: builtin takes only moves
     argv: [config, check, --config, other.yaml]
     files:

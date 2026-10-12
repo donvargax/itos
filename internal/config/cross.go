@@ -459,13 +459,20 @@ func oneRangeCheckProblems(name string, adapter Adapter, check RangeCheck, at st
 		return out.Problem{Rule: "config-range-check-builtin", Message: at + " " + message, Fix: fix}
 	}
 	if check.Builtin == nil {
+		var found []out.Problem
 		if check.AllowedRenames != nil {
-			return []out.Problem{refused(
+			found = append(found, refused(
 				"has allowed_renames, which only builtin: moves reads",
 				"remove allowed_renames from "+at+", or make it builtin: moves",
-			)}
+			))
 		}
-		return nil
+		if check.Code != nil {
+			found = append(found, refused(
+				"has code, which only builtin: moves reads",
+				"remove code from "+at+", or make it builtin: moves",
+			))
+		}
+		return found
 	}
 	var found []out.Problem
 	var commands []string

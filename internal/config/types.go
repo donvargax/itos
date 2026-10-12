@@ -225,7 +225,9 @@ type Recognize struct {
 
 // RangeCheck is a kind's rule on how its tests may change between two trees:
 // commands run on the staged tree and over a range, or the built-in moves
-// rule.
+// rule, with its renames and its code, the paths of the code under test
+// ($path_sets expanded), which a commit bringing a test live outside
+// except_types may not touch (slice 134).
 type RangeCheck struct {
 	Name           string            `json:"name"`
 	ExceptTypes    []string          `json:"except_types"`
@@ -233,6 +235,7 @@ type RangeCheck struct {
 	Range          *string           `json:"range"`
 	Builtin        *string           `json:"builtin"`
 	AllowedRenames map[string]string `json:"allowed_renames"`
+	Code           []string          `json:"code"`
 }
 
 // CI is CI's plan: its steps, the prose shortcut, the cost patterns, what
