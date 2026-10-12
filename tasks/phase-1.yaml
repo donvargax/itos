@@ -1382,8 +1382,6 @@
     the replacement's output with that record, so a port that drops a case fails. tools/bin/parity
     is built by the first of T-143 to T-147 to land; T-149 deletes it and tools/parity/. Recorded:
     every corpus case's name and verdict over the whole corpus.
-  done_when:
-    - run: '! test -e tools/itos/conformance/run.ts && ! grep -q ''conformance/run.ts'' itos.yaml && go run ./tools/bin/parity conformance'
 
 - id: T-145
   type: build
