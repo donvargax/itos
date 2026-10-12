@@ -1,13 +1,9 @@
-node_modules
 dist
-coverage/
 # Local notes, and the metrics reports written beside the tracked .metrics/mutate/ (T-141).
 .tmp/
 .metrics/*.json
 *.log
 *.local
-# The changelog, written on demand from the commits by `node tools/changelog.ts`.
-docs/changelog/
 
 # Editor directories and files
 .vscode/*

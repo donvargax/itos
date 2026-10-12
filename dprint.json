@@ -14,8 +14,6 @@
 	},
 	"includes": ["**/*.{md,yaml,yml}"],
 	"excludes": [
-		// The changelog, written on demand by node tools/changelog.ts.
-		"docs/changelog/**",
 		// The conformance fixtures hold exact command output, byte for byte.
 		"tools/itos/conformance/**",
 		// The guides itos prints (internal/guide/*.md, embedded): what itos says is its own
@@ -24,8 +22,6 @@
 		// The questions, the work registry and the ledgers: itos writes and commits them itself,
 		// so their layout is itos's (T-137).
 		"tasks/*.yaml",
-		// pnpm writes its lockfile.
-		"pnpm-lock.yaml",
 		// The agents' worktrees, each a checkout of its own.
 		".claude/**"
 	],
