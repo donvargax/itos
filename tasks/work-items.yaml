@@ -6844,51 +6844,9 @@ items:
     title: "The guide says which tier each gate belongs to: fast local, judging CI, thorough nightly"
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: [p1-ci-e2e-workflow]
     kind: idea
-    why: >
-      Issue #41 (itos-template, 7.0.0-rc.3): a proposal to place each gate by the cost it can
-      afford: locally per item, mutation over a file's own unit tests and scenarios only for a
-      survivor; per push, the code proof, a sample of 1 or 2 and the smoke set plus named scenarios;
-      nightly, a sample of 20 and every scenario on three platforms. This repository already runs
-      that shape (q-52, q-54). What itos lacks: guidance in the coordinator's guide, a nightly
-      workflow template beside ci.steps, and platform jobs that run the smoke set and named
-      scenarios (with #18).
-
-      In the v8 plan (the user, 2026-10-11), for speed: the platform jobs' move from every feature
-      to the smoke set and named scenarios per push shortens every later run. The guidance half
-      shrank with slice-119: itos guide push and land already say what CI and the nightly run; what
-      is left is which tier each gate belongs to.
-
-      The user (2026-10-11): once the test strategy is final (this item, p1-ci-e2e-workflow,
-      p1-nightly-judges-changed-sites, p1-push-proof-stable-site), comment it on issue #41 as the
-      strategy other projects can take: what runs locally, what each push's CI judges, what the
-      nightly judges, and why each sits where it does.
-
-      Seeds, the user (2026-10-11): a tier is deterministic where it gates and random where it
-      explores. Local runs and each push use fixed seeds (a property test's seed pinned; the
-      mutation site seeded by the range, p1-push-proof-stable-site), so a red reproduces locally and
-      a repair push re-judges the same thing. The nightly uses fresh seeds (mutants seeded by the
-      run, q-54; new property-test seeds and more examples) to find what the fixed ones miss. Every
-      nightly find becomes a fixed regression the push tier guards: a test that kills the mutant, or
-      the property test's failing seed committed (rapid's failure file). Under mutation, property
-      tests run with a fixed seed, so a kill never depends on the draw. Part of the strategy to
-      comment on issue #41.
-
-      2026-10-12, the user: the platform jobs' scoping is split out as slice-132 (itos ci run
-      --tests) and T-163 (this repository's workflows), ahead of p1-ci-e2e-workflow, which stays
-      parked until the ci job itself is the bottleneck. What is left here is the guidance (which
-      tier each gate belongs to) and the consumer's nightly workflow.
-
-      The user's calls (2026-10-12): the placement rule goes in the coordinator's guide
-      (internal/guide/coordinate.md, under its doc budget) with a decision record behind it: each
-      check at the cheapest tier that catches what it catches, deterministic where a tier gates and
-      random where it explores, what is slow or wide nightly where nothing waits on it, every
-      nightly find a fixed regression at the push tier (the seeds rule above); examples: the race
-      detector and fuzzing nightly, gitleaks at pre-push and CI, govulncheck nightly. The consumer's
-      nightly workflow leaves itos, which ships no workflows: it goes to go-template-itos as a
-      backport issue, modelled on this repository's nightly.yml.
 
   - id: p1-itos-config-all-or-nothing
     title: ITOS_CONFIG resolves the ledger, the registry and the smoke sets beside the config it names
