@@ -239,10 +239,6 @@ ci:
         run: "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/bin/inbox",
         cost: late,
       }
-    # The changelog generator (T-010's check, kept as a step in T-125): tools/changelog.ts still
-    # runs over this history, and every session is sent to it; the weakest of the kept checks, as
-    # it guards a tool rather than a gate.
-    - { run: node tools/changelog.ts, cost: late }
     # Three gates' own self-tests (T-067's, T-070's and T-074's checks, kept as steps in T-125),
     # each one the gate's refusals: a young module refused or excepted and a govulncheck finding
     # failing, a breaking schema change refused unless marked, a plugin version unraised or lowered

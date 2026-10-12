@@ -33,10 +33,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: voidzero-dev/setup-vp@v1.21.0
-        with:
-          node-version: "24"
-          cache: true
       # Go for itos itself and the features' steps (godog), the version go.mod's
       # toolchain line pins.
       - uses: actions/setup-go@v7
@@ -48,7 +44,6 @@ jobs:
       # every later call in the job finds it current and runs it without building.
       - name: Build itos
         run: tools/bin/itos version
-      - run: vp install
       # Claude Code, for the two plugin steps of ci.nightly (claude plugin validate --strict on the
       # marketplace and on the plugin, and claude plugin test, which need no login): the latest
       # release, unpinned, since it releases several times a day and the latest is what a person

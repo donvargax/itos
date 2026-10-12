@@ -29,10 +29,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # the commit re-check and the scope read the pushed range
-      - uses: voidzero-dev/setup-vp@v1.21.0
-        with:
-          node-version: "24"
-          cache: true
       # Go for itos itself and the features' steps (godog), the version go.mod's
       # toolchain line pins.
       - uses: actions/setup-go@v7
@@ -44,7 +40,6 @@ jobs:
       # every later call in the job finds it current and runs it without building.
       - name: Build itos
         run: tools/bin/itos version
-      - run: vp install
       # dprint, for the plan's format step (T-142): fetched and checked against the SHA-256
       # tools/bin/pinned holds, and its plugins against those dprint.json holds, here, so the step
       # itself asks no network.
