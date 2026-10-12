@@ -8645,15 +8645,9 @@ items:
     title: The moves rule refuses a live scenario turning @wip outside except_types, on a Gherkin kind as on a command kind
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Found by slice-134's agent (2026-10-12): on a Gherkin kind a live scenario that gains @wip
-      passes the moves rule (movedProblem returns early when the later one is wip), while a command
-      kind refuses the same change ('turns the live test … wip'). Turning a scenario wip takes it
-      out of every run, so it weakens what the scenario guards as surely as changing its steps;
-      outside feat and fix it should be refused on both kinds, named for what it does.
     tags: [tests]
 
   - id: bug-108
