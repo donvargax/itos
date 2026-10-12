@@ -8455,3 +8455,17 @@ items:
       #41 progress comment should say.
     refs: [itos.yaml, tools/bin/nightly-base]
     tags: [ci]
+
+  - id: p1-race-detector
+    title: The unit tests run under the race detector in some tier
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      No tier runs go test -race (the #41 progress report, 2026-10-12): the registry writers, the
+      push watch and the feature runner are concurrent code, and a data race shows only under -race.
+      Linux CI's unit step or the nightly; the cost per push decides which (rapid feedback: the
+      nightly unless it is cheap).
+    tags: [ci, tests]
