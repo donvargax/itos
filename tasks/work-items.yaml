@@ -8617,3 +8617,21 @@ items:
       job's ci run --json output kept as an artifact or read from the log's 'CI failed at' and 'also
       failed at' lines. A ci change to this repository's workflow.
     tags: [ci]
+
+  - id: p1-commit-msg-checks-the-index
+    title: The commit-msg hook runs a named task's checks against what the commit holds, not the working tree
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #60 (2026-10-12), on 8.1.0: the hook reads the named tasks and their status from the index but
+      runs their checks in the working tree, so an untracked or unstaged file passes a done task's
+      check that the commit itself fails (test -f gen/out.txt passed with gen/ untracked, and the
+      commit had no gen/). CI catches it later, as it runs the checks on a clean checkout of the
+      pushed commit, so this is late feedback, not a hole into main. Options: run the checks in a
+      scratch copy of the index (git checkout-index --prefix), or at least say when the working tree
+      differs from the index that the verdict may not hold. Seen in practice when a session's first
+      commit of a task passed only because uncommitted files were on disk.
+    tags: [hooks]
