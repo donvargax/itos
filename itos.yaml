@@ -72,6 +72,8 @@ commits:
       - go.sum
       - .gitignore
       - .editorconfig
+      # Until the push that deleted .vite-hooks/pre-commit (T-142) is green: itos verify judges a
+      # range's commits by the config at its tip, which must still let that build commit touch it.
       - ".vite-hooks/**"
       - ".github/**"
       - "tools/bin/**"
@@ -82,16 +84,17 @@ commits:
     # one place a feat or a fix must change unless it changes the features.
     implementation:
       - "{cmd,internal}/**/*.go"
-    # The gates themselves: the config, the workflows, the hooks, their Go code and self-tests, and
-    # the dependency check's exceptions. Only build and ci, which need a Task, may touch them
-    # (T-098); every other type that could has them in never.
+    # The gates themselves: the config, the workflows, the hooks (tools/bin/pre-commit beside
+    # itos's), their Go code and self-tests, the dependency check's exceptions and the formatter's
+    # config. Only build and ci, which need a Task, may touch them (T-098); every other type that
+    # could has them in never.
     gates:
       - itos.yaml
       - ".github/**"
-      - ".vite-hooks/**"
       - "tools/bin/**"
       - "tools/selftest/**"
       - deps-check.json
+      - dprint.json
   scopes: # the paths each commit type may touch (tasks/README.md's table)
     feat: { must_touch: [$implementation, "features/**"] }
     fix: { must_touch: [$implementation, "features/**"] }
