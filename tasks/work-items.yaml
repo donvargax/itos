@@ -56,7 +56,6 @@ phases:
 
 queue:
   - T-162
-  - T-161
   - p1-guard-follows-cd
   - p1-task-add-promoted
   - p1-text-from-file
