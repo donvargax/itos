@@ -24,6 +24,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -82,9 +83,9 @@ func Root(t testing.TB) string {
 func Git() string { return git.Bin() }
 
 // OutsideEnv is the environment a self-test runs everything in: no hook's GIT_ variables and no
-// CI, and ITOS_GIT naming the real git, as an itos run hands its git to what it starts, so a
-// hook, a gate or a script that runs the name git reaches an itos linked as git with ITOS_GIT
-// set and passes straight to that git.
+// CI, ITOS_GIT naming the real git, as an itos run hands its git to what it starts, so a hook, a
+// gate or a script that runs the name git reaches an itos linked as git with ITOS_GIT set and
+// passes straight to that git, and no background maintenance (noMaintenance).
 func OutsideEnv() []string {
 	var env []string
 	for _, kv := range os.Environ() {
@@ -94,7 +95,32 @@ func OutsideEnv() []string {
 		}
 		env = append(env, kv)
 	}
+	env = append(env, noMaintenance...)
 	return append(env, git.EnvGit+"="+Git())
+}
+
+// noMaintenance keeps git from maintaining a scratch repository on its own, as the features
+// keep it from theirs (T-143): after a commit, a fetch or a merge git starts git maintenance run
+// --auto, detached, which takes and drops objects/maintenance.lock (and, past gc.auto's
+// threshold, gcs) after the command that started it has returned; in a scratch worktree that is
+// the checkout's own object store. maintenance.auto false starts none, and gc.auto 0 leaves the
+// gc off. Given as git's environment config, entries 0 and 1, so every git reads it; a self-test
+// that adds entries of its own appends them (declareHooks).
+var noMaintenance = []string{
+	"GIT_CONFIG_COUNT=2",
+	"GIT_CONFIG_KEY_0=maintenance.auto", "GIT_CONFIG_VALUE_0=false",
+	"GIT_CONFIG_KEY_1=gc.auto", "GIT_CONFIG_VALUE_1=0",
+}
+
+// lookup is the value of name in env, or "".
+func lookup(env []string, name string) string {
+	value := ""
+	for _, kv := range env {
+		if k, v, ok := strings.Cut(kv, "="); ok && k == name {
+			value = v
+		}
+	}
+	return value
 }
 
 // With is env with each NAME=value of set in place of the variable's old value.
@@ -394,9 +420,10 @@ func (r *Repo) declareHooks() string {
 	if err := os.WriteFile(file, []byte(config), 0o644); err != nil {
 		r.t.Fatal(err)
 	}
-	r.Env = With(r.Env, "GIT_CONFIG_COUNT=1",
-		"GIT_CONFIG_KEY_0=includeIf.gitdir:"+r.Git("rev-parse", "--absolute-git-dir")+".path",
-		"GIT_CONFIG_VALUE_0="+file)
+	n, _ := strconv.Atoi(lookup(r.Env, "GIT_CONFIG_COUNT"))
+	r.Env = With(r.Env, "GIT_CONFIG_COUNT="+strconv.Itoa(n+1),
+		"GIT_CONFIG_KEY_"+strconv.Itoa(n)+"=includeIf.gitdir:"+r.Git("rev-parse", "--absolute-git-dir")+".path",
+		"GIT_CONFIG_VALUE_"+strconv.Itoa(n)+"="+file)
 	return hooks
 }
 
