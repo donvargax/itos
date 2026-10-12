@@ -170,10 +170,3 @@ was in this file when the file was reorganized that day.
   line and never ended (bug 35), another slept (slice 83). The brief says:
   push `--no-wait` in the background; use completion notifications. Exit:
   `p1-push-fits-foreground`. Recorded 2026-10-06; last seen 2026-10-06.
-- **`vp staged`'s backup uses git's stash**, shared by every worktree. A commit
-  hook failing with "lint-staged failed due to a git error" is transient: run
-  it again. If a tree is lost anyway, the hook's backup is still in the object
-  store. Run `git fsck --no-reflog --unreachable`: the newest `WIP on main`
-  commit is the working tree, and its second parent is what was staged.
-  Restore paths with `git checkout <wip> -- <paths>`. Exit: permanent.
-  Recorded by 2026-10-04.
