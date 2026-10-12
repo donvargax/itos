@@ -8696,3 +8696,19 @@ items:
       could say: push the take at once when others may take the same work, else it goes with the
       work's push, the brief deciding.
     tags: [docs]
+
+  - id: p1-doc-budget-at-commit
+    title: The pre-commit hook runs the doc budget when a capped file is staged
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-12: T-165 added a clause to docs/ARCHITECTURE.md that put it 31 bytes over its
+      32000-byte cap; no hook checks the budget, so the agent pushed and CI's static doc-budget step
+      turned main red (run 38286287307), repaired by a follow-up trim. go run ./tools/bin/doc-budget
+      reads five files and takes a second: tools/bin/pre-commit could run it when one of
+      tools/bin/doc-budget/caps.json's files is staged, as it runs go vet when Go is staged.
+      ARCHITECTURE.md now sits 59 bytes under its cap, so the next edit to it will meet this again.
+    tags: [hooks, docs]
