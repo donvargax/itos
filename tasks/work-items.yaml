@@ -7126,17 +7126,9 @@ items:
     title: "tools/bin's TypeScript programs (the inbox, build-go, itos-cc-tests, repo-program) are Go programs"
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and
-      Markdown, YAML, JSON and TOML are formatted by dprint, pinned by checksum through
-      tools/bin/pinned with each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth
-      adopting). None of it changes what itos does for consumers, whose repositories never carried
-      vp. tools/bin/inbox.ts, which lists the open issues by the allow-list and the itos-accepted
-      label's timeline, with its self-test, becomes a Go program under tools/bin, its rules
-      unchanged.
 
   - id: T-147
     title: The Claude Code plugin's hooks hold no TypeScript

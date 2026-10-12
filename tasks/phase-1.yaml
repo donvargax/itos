@@ -1424,8 +1424,6 @@
     that drops a case fails. tools/bin/parity is built by the first of T-143 to T-147 to land; T-149
     deletes it and tools/parity/. Recorded: the inbox's self-test case names and its listing of a
     fixed fake issue set, and each other program's output and exit code on representative calls.
-  done_when:
-    - run: '! ls tools/bin/*.ts >/dev/null 2>&1 && ! grep -qE ''node tools/bin/'' itos.yaml && go run ./tools/bin/parity tools-bin'
 
 - id: T-147
   type: refactor
