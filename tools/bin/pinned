@@ -11,9 +11,14 @@
 #   tools/bin/pinned git-cliff <args>…    git-cliff, which lists a release's
 #                                         commits by type (tools/bin/release-notes)
 #   tools/bin/pinned itos-cc <args>…      itos-cc, which measures code and tests
+#   tools/bin/pinned dprint <args>…       dprint, which formats the Markdown and
+#                                         YAML (dprint.json, the pre-commit hook
+#                                         and CI's format step, T-142)
 #   tools/bin/pinned --path <tool>        prints the binary's path, fetching it
 #
-# GoReleaser and git-cliff are held to the 7-day module age rule (T-067).
+# GoReleaser, git-cliff and dprint are held to the 7-day module age rule
+# (T-067); dprint's plugins are pinned by their SHA-256 in dprint.json, which
+# dprint checks when it fetches them.
 # itos-cc is our own built tool (ADR-0046), so it has no age wait. To move a
 # pin, change its version and all four platform hashes together, from the
 # release's own checksums (or the archive's SHA-256 after checking an upstream
@@ -84,7 +89,20 @@ itos-cc)
 	url=https://github.com/donvargax/itos-cc/releases/download/v$version/$asset
 	member=itos-cc
 	;;
-*) die "no pinned tool named $tool (goreleaser, git-cliff, itos-cc)" ;;
+dprint)
+	# 0.60.1, 2026-10-03. A zip, as dprint publishes no tarball.
+	version=0.60.1
+	case "$platform" in
+	linux-amd64) target=x86_64-unknown-linux-gnu sum=5612c587a34dfbbda37162d46755f9e8c6a4efba7950920b2a308ea84ce0886a ;;
+	linux-arm64) target=aarch64-unknown-linux-gnu sum=03fd8908f9b418bdc4701347ff0527a59d1c08db2bc09a9f5d8101eb711e7fe2 ;;
+	darwin-amd64) target=x86_64-apple-darwin sum=551fd5b0ce32a83682f6aaa425317db54402451a0ab66b46c0e11e17900f7db8 ;;
+	darwin-arm64) target=aarch64-apple-darwin sum=b495103be1c01ba097449d73af3d76bbcef3deb291b87e9b7db6e8d12d497ef6 ;;
+	esac
+	asset=dprint-$target.zip
+	url=https://github.com/dprint/dprint/releases/download/$version/$asset
+	member=dprint
+	;;
+*) die "no pinned tool named $tool (goreleaser, git-cliff, itos-cc, dprint)" ;;
 esac
 
 dir=$root/.tools/$tool-$version
@@ -97,7 +115,13 @@ if [ ! -x "$bin" ]; then
 	curl -fsSL -o "$tmp/$asset" "$url" || die "cannot fetch $url"
 	(cd "$tmp" && echo "$sum  $asset" | $check >/dev/null) ||
 		die "$asset is not the one pinned: its SHA-256 is not $sum"
-	tar -xzf "$tmp/$asset" -C "$tmp" "$member" || die "$asset holds no $member"
+	case "$asset" in
+	*.zip)
+		command -v unzip >/dev/null 2>&1 || die "unzip is not on the PATH, to unpack $asset"
+		unzip -q -o "$tmp/$asset" "$member" -d "$tmp" || die "$asset holds no $member"
+		;;
+	*) tar -xzf "$tmp/$asset" -C "$tmp" "$member" || die "$asset holds no $member" ;;
+	esac
 	mkdir -p "$dir"
 	# Moved into place last, so a fetch cut short leaves no binary to run.
 	mv -f "$tmp/$member" "$bin.$$" && chmod +x "$bin.$$" && mv -f "$bin.$$" "$bin"

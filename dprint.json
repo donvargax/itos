@@ -1,0 +1,37 @@
+{
+	// What the pre-commit hook formats in the files it stages and CI's format step checks over the
+	// tree (tools/bin/pinned dprint check), T-142: Markdown and YAML. Paragraphs keep their line
+	// breaks (textWrap maintain), so prose is never rewrapped.
+	"lineWidth": 100,
+	"newLineKind": "lf",
+	"markdown": {
+		"textWrap": "maintain",
+		"emphasisKind": "underscores",
+		"strongKind": "asterisks"
+	},
+	"yaml": {
+		"indentWidth": 2
+	},
+	"includes": ["**/*.{md,yaml,yml}"],
+	"excludes": [
+		// The changelog, written on demand by node tools/changelog.ts.
+		"docs/changelog/**",
+		// The conformance fixtures hold exact command output, byte for byte.
+		"tools/itos/conformance/**",
+		// The guides itos prints (internal/guide/*.md, embedded): what itos says is its own
+		// code's to change, never a formatter's.
+		"internal/**",
+		// The questions, the work registry and the ledgers: itos writes and commits them itself,
+		// so their layout is itos's (T-137).
+		"tasks/*.yaml",
+		// pnpm writes its lockfile.
+		"pnpm-lock.yaml",
+		// The agents' worktrees, each a checkout of its own.
+		".claude/**"
+	],
+	// Each plugin pinned by its SHA-256, which dprint checks when it fetches it.
+	"plugins": [
+		"https://plugins.dprint.dev/markdown-0.26.0.wasm@5cebd0459bf1aa13fb027331720158d03e2a897b1d9f7b3bf93cac661ca4ddbd",
+		"https://plugins.dprint.dev/g-plane/pretty_yaml-v0.6.0.wasm@40a2fdda7040317eb1b23520f3a00769a5571eedb049c4ca9175c1b9eeba01ae"
+	]
+}
