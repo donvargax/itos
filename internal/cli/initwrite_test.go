@@ -120,25 +120,37 @@ func TestInitWriteWhereTheHooksFail(t *testing.T) {
 }
 
 // The plugin installed for the project is declared in its settings, which
-// init names among what to commit.
+// init names among what to commit; installed at another scope, it leaves
+// the project's settings out, even a changed one that is there.
 func TestInitWriteNamesTheProjectsPluginSettings(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("the fake claude is a shell script")
 	}
-	dir := initScratch(t, "commit", nil)
-	bin := filepath.Join(dir, ".git", "bin")
-	putFile(t, filepath.Join(bin, "claude"), "#!/bin/sh\ncase \"$1 $2\" in\n\"plugin list\") echo '[]' ;;\n"+
-		"\"plugin install\") mkdir -p .claude && echo '{}' > .claude/settings.json ;;\nesac\n")
-	if err := os.Chmod(filepath.Join(bin, "claude"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
-	var stdout strings.Builder
-	code, err := initCommand([]string{"--plugin", "project", "--no-agent-rules", "--no-git-shim"},
-		Out{Stdout: &stdout, Stderr: &stdout})
-	want := "git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml .claude/settings.json, " +
-		"then itos commit --task T-1 -m 'chore: adopt itos'\n"
-	if code != 0 || err != nil || !strings.HasSuffix(stdout.String(), want) {
-		t.Errorf("exit %d, %v:\n%s", code, err, stdout.String())
+	for _, c := range []struct {
+		scope string
+		files map[string]string
+		want  string
+	}{
+		{"project", nil, "git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml .claude/settings.json, "},
+		{"user", map[string]string{".claude/settings.json": "{\"mine\": true}\n"},
+			"git add itos.yaml tasks/phase-1.yaml tasks/work-items.yaml, "},
+	} {
+		t.Run(c.scope, func(t *testing.T) {
+			dir := initScratch(t, "commit", c.files)
+			bin := filepath.Join(dir, ".git", "bin")
+			putFile(t, filepath.Join(bin, "claude"), "#!/bin/sh\ncase \"$1 $2 $5\" in\n\"plugin list \"*) echo '[]' ;;\n"+
+				"\"plugin install project\") mkdir -p .claude && echo '{}' > .claude/settings.json ;;\nesac\n")
+			if err := os.Chmod(filepath.Join(bin, "claude"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+			var stdout strings.Builder
+			code, err := initCommand([]string{"--plugin", c.scope, "--no-agent-rules", "--no-git-shim"},
+				Out{Stdout: &stdout, Stderr: &stdout})
+			want := c.want + "then itos commit --task T-1 -m 'chore: adopt itos'\n"
+			if code != 0 || err != nil || !strings.HasSuffix(stdout.String(), want) {
+				t.Errorf("exit %d, %v:\n%s", code, err, stdout.String())
+			}
+		})
 	}
 }
