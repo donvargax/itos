@@ -85,3 +85,25 @@ func TestWhoamiAsksOnlyAmongSeveral(t *testing.T) {
 		t.Errorf("--as z, not the one person, is %+v", who)
 	}
 }
+
+// A registry with no items, the key absent or null, reads as one with none,
+// as the TypeScript's `raw.items ?? []` did; items that are not a list are
+// refused.
+func TestRegistryWithoutItems(t *testing.T) {
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile("itos.yaml", []byte("version: 1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load("itos.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, text := range []string{"phases: { 1: z }\n", "phases: { 1: z }\nitems: null\n"} {
+		if r, err := parse(cfg, text); err != nil || len(r.Items) != 0 {
+			t.Errorf("%q: items %v, %v", text, r.Items, err)
+		}
+	}
+	if _, err := parse(cfg, "phases: { 1: z }\nitems: 3\n"); err == nil {
+		t.Error("items: 3 is read")
+	}
+}
