@@ -1724,3 +1724,23 @@
     job. README.md's install paragraph names /v8 (it still says /v7) and says @latest can lag the
     newest release by a while, @v<version> never does. From p1-release-warms-go-proxy; the same
     change goes to go-template-itos as a backport issue once it lands.
+
+- id: T-166
+  type: docs
+  title: ARCHITECTURE.md is a map of about 12 KB that points to the code and the decision records, and its cap falls to match
+  why: >
+    The user (2026-10-12): ARCHITECTURE.md was 32 KB, about 8,000 tokens every brief pays, and
+    T-165's paragraph on a release step it already commented put it over its cap. It mixes a map
+    (the layout, how a run goes, where to look, the rules that cross packages, about 10 KB) with
+    step-by-step accounts of CI, the release, the hooks, the features and the plugin (about 16 KB)
+    that the workflows, itos.yaml, the doc comments and itos ci plan already say, and with reasons
+    that are the decision records' (it links 8 of 51). It becomes the map: those sections a short
+    paragraph each, saying what the piece is and where its detail lives (the file, the doc comment,
+    the ADR by path). Code is king (the user's rule): detail the code, a workflow or a config
+    already shows is cut, not moved into comments; a comment or paragraph stays only where the code
+    is ambiguous or serves a purpose it does not show, security for one. A fact no other file holds
+    and a reader needs moves to its doc.go or decision record first. AGENTS.md's 'Where knowledge
+    goes' gains that rule in a sentence. tools/bin/doc-budget/caps.json lowers ARCHITECTURE.md's cap
+    to 12000, in a ci commit of its own that says why.
+  done_when:
+    - run: "test $(wc -c < docs/ARCHITECTURE.md) -le 12000 && grep -q '\"docs/ARCHITECTURE.md\", \"bytes\": 12000' tools/bin/doc-budget/caps.json && go run ./tools/bin/doc-budget && grep -qi 'ambiguous' AGENTS.md"

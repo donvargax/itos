@@ -8711,3 +8711,11 @@ items:
       tools/bin/doc-budget/caps.json's files is staged, as it runs go vet when Go is staged.
       ARCHITECTURE.md now sits 59 bytes under its cap, so the next edit to it will meet this again.
     tags: [hooks, docs]
+
+  - id: T-166
+    title: ARCHITECTURE.md is a map of about 12 KB that points to the code and the decision records, and its cap falls to match
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
