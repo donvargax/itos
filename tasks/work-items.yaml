@@ -8570,7 +8570,7 @@ items:
   - id: T-164
     title: The features-scope self-test holds the nightly to its shape after T-163
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
