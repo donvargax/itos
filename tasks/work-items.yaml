@@ -8209,3 +8209,17 @@ items:
       there. CI is unaffected: the format step runs on Linux and the platform jobs run no hooks.
       Either pinned learns dprint's Windows zip (x86_64-pc-windows-msvc) and Git Bash's uname, or
       the hook says plainly that it cannot format there.
+
+  - id: p1-drop-vite-hooks-path
+    title: itos.yaml's config set stops naming .vite-hooks
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-142 deleted .vite-hooks/pre-commit in a build commit, and itos verify judges the commits a
+      push adds by the config at the push's tip, so the config set (what build and ci may touch)
+      keeps .vite-hooks/** until the range holding that commit is green on main. Then a ci commit
+      removes the line and its comment from commits.path_sets.config. More generally, a path a
+      commit deletes cannot leave the commit rules in the same push.
