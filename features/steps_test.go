@@ -567,7 +567,8 @@ func moduleRoot() (string, error) {
 // The environment every command runs in: the caller's, less what would make
 // git or itos read anything but the scratch repository (a hook's GIT_DIR, CI's
 // settings), with no global or system git config and a fixed identity, and
-// what keeps the launcher off the network and any real cache (launcherEnv),
+// no background maintenance (noMaintenance), what keeps the launcher off the
+// network and any real cache (launcherEnv),
 // and the scenario's git link and extensions first on the PATH (pathFirst),
 // the caller's PATH without its claude or its itos (callerPath) after them.
 // With ITOS_CC_TEST_COVERDIR set, GOCOVERDIR is the scenario's coverage
@@ -589,6 +590,9 @@ func (w *world) env() []string {
 	env = append(env,
 		"GIT_CONFIG_GLOBAL="+os.DevNull,
 		"GIT_CONFIG_NOSYSTEM=1",
+	)
+	env = append(env, noMaintenance...)
+	env = append(env,
 		"GIT_AUTHOR_NAME=itos features",
 		"GIT_AUTHOR_EMAIL=features@localhost",
 		"GIT_COMMITTER_NAME=itos features",
@@ -600,6 +604,19 @@ func (w *world) env() []string {
 		env = append(env, "PATH="+strings.Join(append(first, w.basePath()), string(os.PathListSeparator)))
 	}
 	return env
+}
+
+// noMaintenance keeps git from maintaining a scenario's repository on its own. After a commit, a
+// fetch or a merge, git starts git maintenance run --auto, detached, which takes and drops
+// .git/objects/maintenance.lock (and, past gc.auto's threshold, gcs) after the command that
+// started it has returned, so a step that snapshots the folder around a run ("writing nothing")
+// could see a file neither itos nor the step wrote, as CI did under load on 2026-10-11 (T-143).
+// maintenance.auto false starts none; gc.auto 0 leaves the gc it would run off too. Given as
+// git's environment config, so every git a scenario runs reads it, itos's and the steps' alike.
+var noMaintenance = []string{
+	"GIT_CONFIG_COUNT=2",
+	"GIT_CONFIG_KEY_0=maintenance.auto", "GIT_CONFIG_VALUE_0=false",
+	"GIT_CONFIG_KEY_1=gc.auto", "GIT_CONFIG_VALUE_1=0",
 }
 
 // basePath is the PATH every command starts from: the caller's without its
