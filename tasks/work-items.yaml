@@ -7097,8 +7097,8 @@ items:
   - id: T-143
     title: The gates' self-tests are Go tests, and tools/selftest holds no TypeScript
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
