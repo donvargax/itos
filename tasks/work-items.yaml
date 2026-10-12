@@ -1462,7 +1462,7 @@ items:
       from labelling issues, since it labels with its own token for whoever triggered it. Nothing
       checks that rule: a static check over .github/workflows/ (such a trigger beside issues: write
       or pull-requests: write, or a gh label or issue edit step) would hold it on every push.
-    refs: [docs/ORCHESTRATING.md, tools/bin/inbox.ts]
+    refs: [docs/ORCHESTRATING.md, tools/bin/inbox]
     tags: [ci]
 
   - id: T-058
