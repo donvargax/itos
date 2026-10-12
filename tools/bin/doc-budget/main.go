@@ -23,9 +23,11 @@
 //
 // It imports nothing but the standard library, as the other gate programs do,
 // and reads the files alone, with no git and no network: CI runs it in the
-// prose plan too, since a docs-only push is where the docs grow.
+// prose plan too, since a docs-only push is where the docs grow. With -index
+// it judges what is staged instead, the caps file and each capped file read
+// from git's index, as the pre-commit hook judges what is committed.
 //
-//	go run ./tools/bin/doc-budget [-caps <file>]
+//	go run ./tools/bin/doc-budget [-caps <file>] [-index]
 //
 // Exit status: 0 every file within its cap, 1 a file over its cap or gone,
 // each named with its size and cap, 2 a caps file it cannot read.
@@ -40,8 +42,10 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -66,6 +70,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	flags := flag.NewFlagSet("doc-budget", flag.ContinueOnError)
 	flags.SetOutput(stderr)
 	capsFile := flags.String("caps", defaultCaps, "the caps file: {\"caps\": [{\"file\": …, \"bytes\": …}]}")
+	index := flags.Bool("index", false, "judge the files staged in git's index, not the working tree")
 	if err := flags.Parse(args); err != nil {
 		return 2
 	}
@@ -74,30 +79,42 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	limits, err := readCaps(*capsFile)
+	read, sizes := os.ReadFile, diskSizes
+	if *index {
+		read, sizes = indexBlob, indexSizes
+	}
+	data, err := read(*capsFile)
 	if err != nil {
 		fmt.Fprintf(stderr, "doc-budget: cannot read the caps in %s: %v\n", *capsFile, err)
+		return 2
+	}
+	limits, err := parseCaps(data)
+	if err != nil {
+		fmt.Fprintf(stderr, "doc-budget: cannot read the caps in %s: %v\n", *capsFile, err)
+		return 2
+	}
+	files := make([]string, len(limits))
+	for i, l := range limits {
+		files[i] = l.File
+	}
+	size, err := sizes(files)
+	if err != nil {
+		fmt.Fprintf(stderr, "doc-budget: %v\n", err)
 		return 2
 	}
 
 	var over []string
 	for _, l := range limits {
-		info, err := os.Stat(filepath.FromSlash(l.File))
+		n, ok := size[l.File]
 		switch {
-		case errors.Is(err, fs.ErrNotExist):
+		case !ok:
 			over = append(over, fmt.Sprintf("%s is gone, but %s caps it at %d bytes: move its cap with it, or remove the cap",
 				l.File, *capsFile, l.Bytes))
-		case err != nil:
-			fmt.Fprintf(stderr, "doc-budget: cannot read %s: %v\n", l.File, err)
-			return 2
-		case info.IsDir():
-			fmt.Fprintf(stderr, "doc-budget: %s, which %s caps, is a folder, not a file\n", l.File, *capsFile)
-			return 2
-		case info.Size() > l.Bytes:
+		case n > l.Bytes:
 			over = append(over, fmt.Sprintf("%s is %d bytes, over its cap of %d by %d",
-				l.File, info.Size(), l.Bytes, info.Size()-l.Bytes))
+				l.File, n, l.Bytes, n-l.Bytes))
 		default:
-			fmt.Fprintf(stdout, "doc-budget: %s is %d bytes, within its cap of %d\n", l.File, info.Size(), l.Bytes)
+			fmt.Fprintf(stdout, "doc-budget: %s is %d bytes, within its cap of %d\n", l.File, n, l.Bytes)
 		}
 	}
 	if len(over) == 0 {
@@ -113,13 +130,76 @@ func run(args []string, stdout, stderr io.Writer) int {
 	return 1
 }
 
-// readCaps is the caps file's limits, refused when the file holds anything
-// but a list of distinct relative paths, each with a positive cap.
-func readCaps(name string) ([]limit, error) {
-	data, err := os.ReadFile(name)
+// diskSizes is each file's size in the working tree; a file that is gone is
+// left out.
+func diskSizes(files []string) (map[string]int64, error) {
+	sizes := map[string]int64{}
+	for _, f := range files {
+		info, err := os.Stat(filepath.FromSlash(f))
+		switch {
+		case errors.Is(err, fs.ErrNotExist):
+		case err != nil:
+			return nil, fmt.Errorf("cannot read %s: %v", f, err)
+		case info.IsDir():
+			return nil, fmt.Errorf("%s, which the caps name, is a folder, not a file", f)
+		default:
+			sizes[f] = info.Size()
+		}
+	}
+	return sizes, nil
+}
+
+// indexBlob is the file's content as staged in git's index.
+func indexBlob(name string) ([]byte, error) {
+	return git(nil, "cat-file", "blob", ":"+filepath.ToSlash(name))
+}
+
+// indexSizes is each file's size as staged in git's index, in one git
+// cat-file call; a file the index does not hold is left out.
+func indexSizes(files []string) (map[string]int64, error) {
+	var in bytes.Buffer
+	for _, f := range files {
+		in.WriteString(":" + f + "\n")
+	}
+	out, err := git(&in, "cat-file", "--batch-check=%(objecttype) %(objectsize)")
 	if err != nil {
 		return nil, err
 	}
+	lines := strings.Split(strings.TrimSuffix(string(out), "\n"), "\n")
+	if len(lines) != len(files) {
+		return nil, fmt.Errorf("git cat-file answered %d lines for %d files:\n%s", len(lines), len(files), out)
+	}
+	sizes := map[string]int64{}
+	for i, line := range lines {
+		if strings.HasSuffix(line, " missing") {
+			continue
+		}
+		kind, size, _ := strings.Cut(line, " ")
+		n, err := strconv.ParseInt(size, 10, 64)
+		if kind != "blob" || err != nil {
+			return nil, fmt.Errorf("%s, which the caps name, is not a staged file: git cat-file says %q", files[i], line)
+		}
+		sizes[files[i]] = n
+	}
+	return sizes, nil
+}
+
+// git runs git with args and stdin, returning its stdout.
+func git(stdin io.Reader, args ...string) ([]byte, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Stdin = stdin
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("git %s: %v: %s", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
+	}
+	return out, nil
+}
+
+// parseCaps is the caps file's limits, refused when the file holds anything
+// but a list of distinct relative paths, each with a positive cap.
+func parseCaps(data []byte) ([]limit, error) {
 	dec := json.NewDecoder(bytes.NewReader(data))
 	dec.DisallowUnknownFields()
 	var c caps

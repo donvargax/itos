@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -106,5 +107,44 @@ func TestUnreadableCapsExits2(t *testing.T) {
 				t.Errorf("stderr does not say the caps file could not be read:\n%s", stderr)
 			}
 		})
+	}
+}
+
+// TestIndexJudgesTheStagedFiles stages the caps and the files in a scratch
+// repository, then changes the working tree: -index judges what is staged.
+func TestIndexJudgesTheStagedFiles(t *testing.T) {
+	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE"} {
+		t.Setenv(name, "")
+		os.Unsetenv(name)
+	}
+	code, _, stderr := budget(t, map[string]int{"AGENTS.md": 100, "docs/ARCHITECTURE.md": 150}, twoCaps)
+	if code != 0 {
+		t.Fatalf("exit %d on the working tree, want 0; stderr:\n%s", code, stderr)
+	}
+	gitRun := func(args ...string) {
+		t.Helper()
+		if out, err := exec.Command("git", args...).CombinedOutput(); err != nil {
+			t.Fatalf("git %s: %v\n%s", strings.Join(args, " "), err, out)
+		}
+	}
+	gitRun("init", "-q")
+	gitRun("add", "caps.json", "AGENTS.md")
+	// Within its cap staged, over it in the working tree; over its cap and never staged.
+	if err := os.WriteFile("AGENTS.md", bytes.Repeat([]byte("x"), 500), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile("caps.json", []byte(`{"caps": [{"file": "AGENTS.md", "bytes": 1}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, errs bytes.Buffer
+	code = run([]string{"-caps", "caps.json", "-index"}, &stdout, &errs)
+	if code != 1 {
+		t.Fatalf("exit %d, want 1; stderr:\n%s", code, errs.String())
+	}
+	if want := "doc-budget: AGENTS.md is 100 bytes, within its cap of 100"; !strings.Contains(stdout.String(), want) {
+		t.Errorf("stdout lacks %q:\n%s", want, stdout.String())
+	}
+	if want := "docs/ARCHITECTURE.md is gone"; !strings.Contains(errs.String(), want) {
+		t.Errorf("stderr lacks %q:\n%s", want, errs.String())
 	}
 }
