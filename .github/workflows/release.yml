@@ -39,7 +39,8 @@ name: Release
 #      which is when GitHub creates the tag, so the tag and a release holding every asset appear
 #      together. upgrading.json is not in checksums.txt, so neither attested nor read by a pin:
 #      itos only prints it. A run that fails before leaves no tag,
-#      only a draft the next run replaces; a tag is never moved.
+#      only a draft the next run replaces; a tag is never moved;
+#   7. proxy.golang.org is asked for the new version, so go install finds it at once (T-165).
 # The releaser never commits: the notes are the release's description, not a file.
 on:
   workflow_call:
@@ -159,3 +160,26 @@ jobs:
           else
             gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md" --draft=false --latest
           fi
+      # proxy.golang.org caches a module's version list and @latest and refreshes them on its own
+      # schedule, so go install ...@latest lagged each new release by a while (T-165). Asking the
+      # proxy for the new version is what makes it fetch the tag at once; @latest follows later.
+      # The module path is go.mod's, so the next major needs no edit here (it is all lower case,
+      # which the proxy's path takes as is). The release is published by now, so a proxy that
+      # never answers is a warning and never fails the job.
+      - name: Ask the Go module proxy for the version
+        if: steps.version.outputs.next != ''
+        env:
+          NEXT: ${{ steps.version.outputs.next }}
+        run: |
+          module=$(go list -m)
+          url="https://proxy.golang.org/$module/@v/v$NEXT.info"
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsS --max-time 60 "$url"; then
+              echo
+              exit 0
+            fi
+            echo "attempt $attempt: the proxy has no $module@v$NEXT yet"
+            sleep 10
+          done
+          echo "::warning::proxy.golang.org did not answer for $module@v$NEXT; go install fetches it on first use, and @latest may lag"
+          exit 0
