@@ -7271,6 +7271,10 @@ items:
       After T-144, so it is written once, in Go. Completes q-57's any-test half; the changed-lines
       half is itos-cc#33. If one shared support list (a fixture edit staling every listed kill)
       proves too coarse, itos-cc's follow-up gives each listed suite its own support.
+
+      2026-10-12, slice-134: the push proof called two config-check branches uncovered that only
+      conformance cases reach, so the agent wrote unit tests duplicating them; every push that adds
+      a config refusal pays this until the corpus counts.
     refs: [itos-cc.yaml, tools/itos/conformance, tools/bin/itos-cc-tests]
 
   - id: slice-119
