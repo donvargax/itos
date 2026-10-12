@@ -1466,6 +1466,11 @@
     and CI steps give way to Go's (go vet, staticcheck or deadcode, chosen with the user when the
     task starts). Its check also requires the Go checks to be a step of CI's plan, so dropping the
     audit cannot close it.
+    The user's pick (2026-10-11): staticcheck, U1000 among its checks, as a static step of CI's
+    plan; no deadcode, which tests and the features calling code through the binary would make
+    noisy. The pre-commit hook drops fallow and keeps go vet as its Go check. .fallowrc.json and
+    the fallow dependency go with it. T-148 runs before T-143: fallow audits only the TypeScript
+    that T-143 to T-147 delete, and keeps Node in every commit's hook.
   done_when:
     - run: '! grep -rq fallow itos.yaml package.json && tools/bin/itos ci plan --whole | grep -qE ''staticcheck|deadcode'''
 
