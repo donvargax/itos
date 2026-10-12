@@ -8421,8 +8421,8 @@ items:
   - id: slice-132
     title: itos ci run --tests runs only a range's run of named tests, for platform jobs
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
