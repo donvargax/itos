@@ -6,7 +6,8 @@
 //
 //   - tools/bin/itos tests smoke run scenario runs exactly the smoke set;
 //   - a range naming one scenario runs the smoke set plus that one;
-//   - the nightly, and a range CI can't read, run every live scenario;
+//   - a range CI can't read runs every live scenario, and so does the nightly: its plan (under
+//     the hostile PATHs) and nightly.yml's platform jobs on Linux, macOS and Windows (T-163);
 //   - a range naming the ledger's tasks, none of which holds a check that is a run of the
 //     features or a step any more (T-125 emptied them), still runs one go test run, over the
 //     smoke set alone;
@@ -232,18 +233,71 @@ func TestSelftest(t *testing.T) {
 		same(t, runOf(t, step), wanted(t, smoke, []string{named}), "a range naming @"+named)
 	})
 
-	// The nightly, and a range that can't be read, run every scenario.
-	t.Run("the nightly runs every scenario first, and the gates self-test", func(t *testing.T) {
+	// The nightly, and a range that can't be read, run every scenario. Since T-163 the nightly's
+	// plain run of every feature is .github/workflows/nightly.yml's platform jobs, one on each of
+	// Linux, macOS and Windows; the plan runs every feature too, with something hostile first on
+	// the PATH (a step wrapping the whole run in sh -c). A whole run here is the whole command
+	// with nothing after it that could narrow it: the end of the command, a closing quote or a
+	// separator, and in the platform jobs only the -timings flag (T-115).
+	t.Run("the nightly runs every scenario on three platforms and in its plan, and the gates self-test", func(t *testing.T) {
+		wholeRun := regexp.MustCompile(regexp.QuoteMeta(whole) + `(?:$|['"]|\s*(?:&&|\|\||;))`)
 		nightly := scratch.CIPlan(t, root, "--nightly").Steps
-		if len(nightly) == 0 || nightly[0] != whole {
-			t.Errorf("the nightly's first step is not every scenario: %v", nightly)
-		}
-		gates := false
+		plain, gates := false, false
 		for _, step := range nightly {
+			plain = plain || wholeRun.MatchString(step)
 			gates = gates || strings.Contains(step, "./tools/selftest/gates")
+		}
+		if !plain {
+			t.Errorf("no step of the nightly's plan runs every scenario (%s): %v", whole, nightly)
 		}
 		if !gates {
 			t.Error("the nightly runs no gates self-test")
+		}
+
+		data, err := os.ReadFile(filepath.Join(root, ".github", "workflows", "nightly.yml"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var workflow struct {
+			Jobs map[string]struct {
+				If       string `yaml:"if"`
+				RunsOn   string `yaml:"runs-on"`
+				Strategy struct {
+					Matrix struct {
+						OS []string `yaml:"os"`
+					} `yaml:"matrix"`
+				} `yaml:"strategy"`
+				Steps []struct {
+					Run string `yaml:"run"`
+				} `yaml:"steps"`
+			} `yaml:"jobs"`
+		}
+		if err := yaml.Unmarshal(data, &workflow); err != nil {
+			t.Fatal(err)
+		}
+		platformRun := regexp.MustCompile(`^` + regexp.QuoteMeta(whole) + `(?:\s+-timings=\S+)?\s*$`)
+		covered := map[string]bool{}
+		for _, job := range workflow.Jobs {
+			if job.If != "" || job.RunsOn != "${{ matrix.os }}" {
+				continue
+			}
+			runs := false
+			for _, step := range job.Steps {
+				runs = runs || platformRun.MatchString(strings.TrimSpace(step.Run))
+			}
+			if !runs {
+				continue
+			}
+			for _, runner := range job.Strategy.Matrix.OS {
+				for _, system := range []string{"ubuntu", "macos", "windows"} {
+					covered[system] = covered[system] || strings.HasPrefix(runner, system+"-")
+				}
+			}
+		}
+		for _, system := range []string{"ubuntu", "macos", "windows"} {
+			if !covered[system] {
+				t.Errorf("no job of nightly.yml runs every scenario (%s) on %s", whole, system)
+			}
 		}
 	})
 	t.Run("a range CI cannot read runs everything", func(t *testing.T) {
