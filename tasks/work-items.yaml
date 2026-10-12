@@ -8751,3 +8751,19 @@ items:
       github), shown on the status's origin line, e.g. 'origin/main (public): …', and in --json; a
       provider that cannot tell, or no network, says nothing rather than guessing.
     tags: [status]
+
+  - id: p1-work-done-absorbed-idea
+    title: work done closes an idea another item did, naming that item
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #62 (2026-10-12, from itos-cc): an idea a task absorbs (the task's why names it, its commits
+      do the work) can only be dropped, with a why, since work done refuses an idea not yet
+      specified; the registry then cannot tell absorbed ideas from abandoned ones. This repository
+      drops every absorbed idea so too ('Became T-165', 'Became bug-110'). work done <idea> --by
+      <item>, accepted once that item is done, records the idea done by it, and work show lists it
+      under that item.
+    tags: [work]
