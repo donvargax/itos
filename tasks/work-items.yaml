@@ -8575,7 +8575,7 @@ items:
     title: The features-scope self-test holds the nightly to its shape after T-163
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

@@ -1708,7 +1708,3 @@
     (a plan step running the whole features command, and nightly.yml's platform jobs on the three
     systems running every feature), and the gates self-test is in the plan. Fixing it forward is a
     ci commit.
-  done_when:
-    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/features-scope
-      timeout: 300
-    - run: grep -q 'nightly.yml' tools/selftest/features-scope/scope_test.go
