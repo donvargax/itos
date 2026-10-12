@@ -6486,6 +6486,13 @@ items:
       and could start from the plugin's newest {name}--v{version} tag instead
       (p3-plugin-release-tags). Worth queueing: with no green run in reach, every run is red until a
       person acts.
+
+      Bit twice on 2026-10-11 and 10-12: T-142 deleting .vite-hooks/pre-commit and T-149 deleting
+      tools/parity/ and tools/changelog.ts each had to keep the deleted path in the config set,
+      because pre-push verify judged the deleting build commit by HEAD's config, then needed a
+      follow-up push after green to take the line out (p1-drop-vite-hooks-path,
+      p1-drop-deleted-config-paths). Judging each commit by its own config would let one push delete
+      a file and its rule.
     refs: [internal/providers/range.go, internal/cli/verify.go]
 
   - id: p1-written-yaml-formatter-stable
