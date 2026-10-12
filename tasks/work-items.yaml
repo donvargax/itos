@@ -8483,3 +8483,19 @@ items:
       the crash or the silent misread a scenario never thought of. Seeds from the conformance
       corpus; a bounded -fuzztime run in the nightly, the found inputs kept as regression seeds.
     tags: [tests]
+
+  - id: p1-moves-going-live
+    title: The moves rule tells a scenario going live from a live one changed, and gives existing behaviour and perf guards a way live
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #55 (2026-10-12) and its comment: outside feat and fix, dropping @wip is refused as 'changes
+      the live scenario', which misnames it; a project adopting scenarios for behaviour its code
+      already has, or a perf or refactor task landing the guard scenarios it rests on, has no honest
+      path (the consumer widened except_types, which also lets perf reword a live scenario). Needs
+      the user's call: going live allowed outside feat and fix (a footer naming it, refused when the
+      code under test changes), or a documented order. The message fix stands either way.
+    tags: [verify, tests]
