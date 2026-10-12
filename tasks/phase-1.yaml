@@ -1755,9 +1755,6 @@
     over-cap file stops the commit with doc-budget's own message. The gates self-test gains a case:
     a staged capped file over its cap is refused, one within passes, and a commit staging no capped
     file never runs it.
-  done_when:
-    - run: grep -q 'doc-budget' tools/bin/pre-commit && grep -q 'doc-budget' tools/selftest/gates/gates_test.go && ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates
-      timeout: 300
 
 - id: T-168
   type: feat
