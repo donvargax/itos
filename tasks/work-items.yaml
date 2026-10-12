@@ -8680,3 +8680,19 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-guide-take-push-or-brief
+    title: itos guide work says when the take commit is pushed on its own and when it rides with the work
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-12, T-165's agent: itos guide work says to push the take commit before the work, while
+      this repository's briefs say to push once, so each agent picks one and reports the conflict.
+      Pushing the take alone tells other people and sessions the item is owned, at the cost of a CI
+      run; with one coordinator handing out work in turn, the coordinator already knows. The guide
+      could say: push the take at once when others may take the same work, else it goes with the
+      work's push, the brief deciding.
+    tags: [docs]
