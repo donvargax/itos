@@ -29,6 +29,16 @@ case "${1:-}" in
 	;;
 *) changed=$(git diff --name-only --no-renames "$1") ;;
 esac
+root=$(git rev-parse --show-toplevel)
+
+# What git hands a hook stops here, once the change is read from it: the index the commit is
+# made from (GIT_INDEX_FILE, an index.lock under git commit -a), in a linked worktree GIT_DIR,
+# and the rest a git command or itos may set. A test's git inherits them through go test, so a
+# scratch repository's commands would read and write this repository instead, its index and its
+# hooks included (p1-hook-env-unset-tracked; tools/selftest/hookenv, T-142).
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX GIT_COMMON_DIR \
+	GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES \
+	GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0 GIT_CONFIG_PARAMETERS ITOS_GIT
 
 # Nothing a Go package is built or tested from: no `go` at all.
 printf '%s\n' "$changed" | grep -qE '^(cmd/|internal/|go\.(mod|sum)$)' || exit 0
@@ -42,7 +52,6 @@ fi
 # variant's path is `p [p.test]` and its test main's `p.test`: both are p's
 # tests. A Dep recompiled for a test reads `q [p.test]`, which the space splits
 # into q and a word in brackets, dropped.
-root=$(git rev-parse --show-toplevel)
 # shellcheck disable=SC2086 # the patterns are words
 packages=$(go list -e -test -f '{{.ImportPath}}|{{.Dir}}|{{join .Deps " "}}' $patterns |
 	CHANGED="$changed" ROOT="$root/" awk -F'|' '
