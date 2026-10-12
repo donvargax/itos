@@ -34,6 +34,8 @@ ALLOWED_NAMES=(
 	sum.golang.org
 	vuln.go.dev
 	registry.npmjs.org
+	plugins.dprint.dev
+	release-assets.githubusercontent.com
 	pypi.org
 	files.pythonhosted.org
 )
