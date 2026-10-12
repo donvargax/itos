@@ -163,11 +163,13 @@ release's notes (Upgrading) give the whole script with both filled in, and
 hooks and CI.
 
 Go developers can instead
-`go install github.com/donvargax/itos/v7/cmd/itos@v<version>` for a v7
+`go install github.com/donvargax/itos/v8/cmd/itos@v<version>` for a v8
 release or release candidate (the module path ends in the major version from
-v2, as Go requires: `/v6` for the v6 releases, `/v5` for the v5 releases, `/v4`
-for the v4 releases, `/v3` for v3.4.0 to v3.7.1, while v3.0.0 to v3.3.0 were
-cut from a path still ending in `/v2` and Go refuses them).
+v2, as Go requires: `/v7` for the v7 releases, `/v6` for the v6 releases, `/v5`
+for the v5 releases, `/v4` for the v4 releases, `/v3` for v3.4.0 to v3.7.1,
+while v3.0.0 to v3.3.0 were cut from a path still ending in `/v2` and Go
+refuses them). `@latest` can lag the newest release for a while, as Go's module
+proxy refreshes it on its own schedule; `@v<version>` never does.
 
 A version bump is the script's version and hashes, from the newer release's
 notes.

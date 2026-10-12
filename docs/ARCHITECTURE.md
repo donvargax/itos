@@ -241,7 +241,10 @@ the version is the tag, held nowhere in the tree.
   `dist/goreleaser` and uploads them to a draft release on the commit,
   attests every file `checksums.txt` lists
   (`actions/attest-build-provenance`), writes the notes and `upgrading.json`,
-  uploads `upgrading.json` and publishes the draft with the notes. GitHub
+  uploads `upgrading.json` and publishes the draft with the notes, then asks
+  proxy.golang.org for the new version, so the proxy fetches it at once
+  rather than on its own schedule (T-165; a proxy that never answers is a
+  warning, not a failure). GitHub
   creates the tag when the draft is published, so a tag never exists without
   its assets, and a failed run leaves at most a draft, which the next
   replaces. The releaser commits nothing.
