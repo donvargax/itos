@@ -55,6 +55,7 @@ phases:
   3: donvargax
 
 queue:
+  - T-148
   - p1-guard-follows-cd
   - p1-task-add-promoted
   - p1-text-from-file
@@ -66,7 +67,6 @@ queue:
   - p1-core-changelog
   - T-146
   - T-147
-  - T-148
   - T-149
   - p1-windows-id-validation
   - bug-38
