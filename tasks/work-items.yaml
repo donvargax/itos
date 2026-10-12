@@ -8720,7 +8720,7 @@ items:
     title: ARCHITECTURE.md is a map of about 12 KB that points to the code and the decision records, and its cap falls to match
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 

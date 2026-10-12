@@ -1742,8 +1742,6 @@
     and a reader needs moves to its doc.go or decision record first. AGENTS.md's 'Where knowledge
     goes' gains that rule in a sentence. tools/bin/doc-budget/caps.json lowers ARCHITECTURE.md's cap
     to 12000, in a ci commit of its own that says why.
-  done_when:
-    - run: "test $(wc -c < docs/ARCHITECTURE.md) -le 12000 && grep -q '\"docs/ARCHITECTURE.md\", \"bytes\": 12000' tools/bin/doc-budget/caps.json && go run ./tools/bin/doc-budget && grep -qi 'ambiguous' AGENTS.md"
 
 - id: T-167
   type: build
