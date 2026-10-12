@@ -14,9 +14,9 @@
 // Each case that fails is printed to stderr, with its command and what differs, and a line on
 // stdout says how many pass of each file's, and how long they took. --json writes instead a JSON
 // line a case to stdout, {"name": "<file>.yaml: <case>", "file", "case", "verdict": "pass" or
-// "fail", "problems"}, the line saying how many pass going to stderr, for a program to read
-// (tools/bin/parity's verdicts reader). Exit status: 0 every case passed, 1 one failed, 2 a usage
-// error, a fixture that cannot be read or a runner that cannot be readied.
+// "fail", "problems"}, the line saying how many pass going to stderr, for a program to read.
+// Exit status: 0 every case passed, 1 one failed, 2 a usage error, a fixture that cannot be read
+// or a runner that cannot be readied.
 //
 // It was tools/itos/conformance/run.ts until T-144 (the user's call, 2026-10-10: this repository
 // drops Node); it lives with the other programs CI's steps run, under tools/bin, as a gate, which

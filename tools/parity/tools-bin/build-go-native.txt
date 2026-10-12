@@ -1,1 +1,0 @@
-<root>/dist/parity/build-go/itos

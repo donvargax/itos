@@ -6,7 +6,7 @@ import (
 )
 
 // TestCommand holds commandOn to what tools/bin/repo-program.ts gave on each platform, case by
-// case (tools/parity/tools-bin/repo-program.json).
+// case.
 func TestCommand(t *testing.T) {
 	for _, c := range []struct {
 		name, goos, script string

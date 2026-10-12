@@ -17,8 +17,7 @@ import (
 	itosgit "github.com/donvargax/itos/v8/internal/git"
 )
 
-// The runner's regressions, run.test.ts's until T-144 (tools/parity/conformance/regressions.json
-// holds their names): a case's processes, its native Git and its deadline, at RunCase's seam.
+// The runner's regressions, run.test.ts's until T-144: a case's processes, its native Git and its deadline, at RunCase's seam.
 // The command under test is sh, so not on windows, where this file is not built.
 
 // fixtureCase is the one case of a fixture's YAML text.

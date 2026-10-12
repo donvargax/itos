@@ -9,7 +9,7 @@ import (
 )
 
 // Key is how a case is named outside its file: its file's name and its own, as a Changes: footer
-// and the parity record name it.
+// names it.
 func (r Result) Key() string { return r.Fixture.Base() + ": " + r.Case.Name }
 
 // Failures writes each failed case, its command and what differs, as the runner prints them.

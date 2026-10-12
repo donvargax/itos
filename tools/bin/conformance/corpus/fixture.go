@@ -30,8 +30,7 @@ type Fixture struct {
 	Cases []*Case
 }
 
-// Base is the fixture's file name, by which a Changes: footer and the parity record name its
-// cases.
+// Base is the fixture's file name, by which a Changes: footer names its cases.
 func (f *Fixture) Base() string { return filepath.Base(f.Path) }
 
 // entry is one path of a files mapping: its text, or none to delete it.

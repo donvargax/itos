@@ -1,3 +1,0 @@
-ID-ASK-01	features/ask.feature
-bug-12	features/nested/commit.feature
-ID-ZED-09	features/zed.feature
