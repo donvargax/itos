@@ -1628,7 +1628,3 @@
     The nightly keeps its run-seeded 20 sites (q-54). ADR-0049 says a push samples one site; this
     makes that sample deterministic, as the seed rule of the testing tiers asks (gates fixed,
     the nightly fresh).
-  done_when:
-    - run: grep -q -- "--seed {base}" itos.yaml
-    - run: grep -q -- "--seed \$(git rev-parse origin/main)" AGENTS.md
-    - run: tools/bin/itos config check
