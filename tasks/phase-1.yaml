@@ -1632,3 +1632,16 @@
     The nightly keeps its run-seeded 20 sites (q-54). ADR-0049 says a push samples one site; this
     makes that sample deterministic, as the seed rule of the testing tiers asks (gates fixed,
     the nightly fresh).
+
+- id: T-160
+  type: build
+  title: itos.yaml's config set stops naming the paths T-149 deleted
+  why: >
+    Was p1-drop-deleted-config-paths. T-149 deleted tools/parity/ and tools/changelog.ts, but the
+    config set (what build and ci commits may touch) had to keep naming them until CI was green past
+    the deleting commits, since itos verify judges a range's commits by the config at its tip (as
+    T-142's .vite-hooks did, folded into T-143). CI run 38220144090 passed that range, so a build
+    commit removes the two lines and their comment. p1-verify-past-the-window would make this
+    second push unneeded.
+  done_when:
+    - run: '! grep -qE ''tools/parity|tools/changelog\.ts'' itos.yaml'
