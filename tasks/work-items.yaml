@@ -8637,3 +8637,18 @@ items:
       differs from the index that the verdict may not hold. Seen in practice when a session's first
       commit of a task passed only because uncommitted files were on disk.
     tags: [hooks]
+
+  - id: p1-moves-file-wip-going-live
+    title: A feature file losing its file-level @wip goes live, not a changed header
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slice 134 lets a commit outside except_types bring a scenario live when the footer names it
+      and no code changes, but a feature file tagged @wip above its Feature line that loses the tag
+      is refused as changing its header (MoveProblems compares the header, tags included, once the
+      file holds a live scenario), so its scenarios cannot go live that way even when every one is
+      named. The header check could ignore the wip tag alone when the rest of the header is
+      unchanged and every scenario it brings live is allowed by Live.
