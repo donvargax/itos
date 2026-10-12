@@ -8410,3 +8410,22 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: slice-132
+    title: itos ci run --tests runs only a range's run of named tests, for platform jobs
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: slice
+    why: >
+      The user's call (2026-10-12), rapid feedback: a push's wait is its slowest job, Windows
+      running every feature (6 min 17 s against the ci job's 4 min 11 s on run 38229764019). The ci
+      job already runs the smoke set and the scenarios the range names; the platform jobs cannot,
+      since ci plan's steps are plain commands with no mark for the run of named tests. ci run
+      <from> <to> --tests runs that run alone (the smoke set, the range's named tests and the task
+      checks recognized as them), no other step, task check or code proof, so a platform job runs
+      what the ci job judges per push on its own platform. Split from p1-testing-tiers-guide;
+      p1-ci-e2e-workflow (#18) stays parked.
+    refs: [internal/cli/ci.go, features/ci.feature]
+    tags: [ci]
