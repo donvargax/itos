@@ -1,7 +1,10 @@
 package cli
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,6 +14,7 @@ import (
 	"github.com/donvargax/itos/v8/internal/config"
 	"github.com/donvargax/itos/v8/internal/draft"
 	"github.com/donvargax/itos/v8/internal/out"
+	"github.com/donvargax/itos/v8/internal/providers"
 	"github.com/donvargax/itos/v8/internal/release"
 	"github.com/donvargax/itos/v8/internal/source"
 )
@@ -164,5 +168,80 @@ func TestStatusUnread(t *testing.T) {
 		if !strings.Contains(stdout+stderr, want) {
 			t.Errorf("the status does not say %q:\n%s%s", want, stdout, stderr)
 		}
+	}
+}
+
+// The head's line names the repository's visibility as ci.watch's provider
+// tells it, and --json's head holds it; a provider that cannot tell it says
+// nothing of it.
+func TestStatusNamesTheVisibility(t *testing.T) {
+	visibility := "public"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.URL.Path == "/repos/o/n" && visibility != "":
+			w.Write([]byte(`{"visibility":"` + visibility + `"}`))
+		case strings.HasSuffix(r.URL.Path, "/runs"):
+			w.Write([]byte(`{"workflow_runs":[]}`))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+	statusRepo(t, map[string]string{
+		"itos.yaml": "version: 1\nwork:\n  registry: work-items.yaml\n  people: { source: yaml, file: people.yaml }\n" +
+			"ci:\n  steps: []\n  watch: { provider: github, interval: 0 }\n",
+		"work-items.yaml": items("one"),
+		"people.yaml":     "- a\n",
+	})
+	for name, value := range map[string]string{"GITHUB_API_URL": server.URL, "GITHUB_REPOSITORY": "o/n", "GITHUB_TOKEN": "t"} {
+		t.Setenv(name, value)
+	}
+	gitIn(t, "add", ".")
+	gitIn(t, "-c", "user.name=a", "-c", "user.email=a@example.com", "commit", "-q", "-m", "chore: start")
+	remote := filepath.Join(t.TempDir(), "origin.git")
+	gitIn(t, "init", "-q", "--bare", remote)
+	gitIn(t, "remote", "add", "origin", remote)
+	gitIn(t, "push", "-q", "-u", "origin", "HEAD:main")
+	gitIn(t, "branch", "-q", "-m", "main")
+	gitIn(t, "branch", "-q", "-u", "origin/main")
+	if code, stdout, stderr := run("status", "--as", "a"); code != 0 || !strings.Contains(stdout, "origin/main (public): ") {
+		t.Fatalf("exit %d\n%s%s", code, stdout, stderr)
+	}
+	visibility = "private"
+	code, stdout, stderr := run("status", "--as", "a", "--json")
+	var st struct {
+		Head map[string]any `json:"head"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &st); code != 0 || err != nil || st.Head["visibility"] != "private" {
+		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout, stderr)
+	}
+	visibility = ""
+	code, stdout, stderr = run("status", "--as", "a", "--json")
+	st.Head = nil
+	if err := json.Unmarshal([]byte(stdout), &st); code != 0 || err != nil || st.Head == nil || st.Head["visibility"] != nil {
+		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout, stderr)
+	}
+	if code, stdout, stderr := run("status", "--as", "a"); code != 0 || !strings.Contains(stdout, "origin/main: ") {
+		t.Fatalf("exit %d\n%s%s", code, stdout, stderr)
+	}
+}
+
+// visibility is "" for no provider, one that cannot look or cannot tell, and
+// a look that fails.
+func TestVisibilityOfAProvider(t *testing.T) {
+	tells := providers.Watcher{Visibility: func() (string, error) { return "internal", nil }}
+	fails := providers.Watcher{Visibility: func() (string, error) { return "public", errors.New("no network") }}
+	for name, got := range map[string]string{
+		"none":        visibility(tells, false, nil),
+		"cannot look": visibility(tells, true, errors.New("no token")),
+		"cannot tell": visibility(providers.Watcher{}, true, nil),
+		"fails":       visibility(fails, true, nil),
+	} {
+		if got != "" {
+			t.Errorf("%s: %q", name, got)
+		}
+	}
+	if got := visibility(tells, true, nil); got != "internal" {
+		t.Errorf("tells: %q", got)
 	}
 }

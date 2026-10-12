@@ -24,7 +24,10 @@ package cli
 // init writes there, holds a block of itos's rules for agents other than the
 // one this itos writes, as init's rerun decides it (staleRules,
 // initrules.go): a project crossing majors with an older itos on its PATH
-// gets no block rewritten by itself. It reads, never writes. What cannot be reached is
+// gets no block rewritten by itself. The head's line names the repository's
+// visibility (slice 135), public, private or internal, asked once of
+// ci.watch's provider, and nothing of it when the provider cannot tell. It
+// reads, never writes. What cannot be reached is
 // one line naming it, and the rest still prints, exit 0; a status that
 // cannot be computed at all (no config, no registry, one with problems) is
 // exit 2 or 1, as itos work's. itos go prints it after the guides
@@ -152,14 +155,16 @@ func agentRulesOf(stealth bool) *agentRules {
 }
 
 // remoteHead is the remote branch's head: its commit and header ("" when
-// the commit is not fetched here), and whether it was read as last fetched,
-// the remote not answering.
+// the commit is not fetched here), whether it was read as last fetched, the
+// remote not answering, and the repository's visibility, "" when ci.watch's
+// provider cannot tell it.
 type remoteHead struct {
 	Remote      string `json:"remote"`
 	Branch      string `json:"branch"`
 	Commit      string `json:"commit"`
 	Header      string `json:"header"`
 	LastFetched bool   `json:"last_fetched"`
+	Visibility  string `json:"visibility,omitempty"`
 }
 
 // lastGreen is the commit ci.range's provider names as main's last green
@@ -330,14 +335,20 @@ func (st *standing) readBranch(cfg *config.Loaded, remote, ref, branch string, o
 		head.Header = strings.TrimSpace(header)
 	}
 	st.Head = head
-	line := fmt.Sprintf("%s/%s: %s", remote, branch, short(sha))
+	wr, ok, err := watcher(cfg, remote, o)
+	head.Visibility = visibility(wr, ok, err)
+	line := remote + "/" + branch
+	if head.Visibility != "" {
+		line += " (" + head.Visibility + ")"
+	}
+	line += ": " + short(sha)
 	if head.Header != "" {
 		line += " " + head.Header
 	} else {
 		line += " (not fetched here)"
 	}
 	st.start = append(st.start, line)
-	st.readCI(cfg, remote, sha, o)
+	st.readCI(wr, ok, err, sha)
 	if st.CI != nil && st.CI.Result != "success" {
 		st.readLastGreen(cfg, remote, branch, o)
 	}
@@ -551,9 +562,23 @@ func (st *standing) releaseUnread(line string) {
 	st.released = append(st.released, line)
 }
 
-// readCI looks once at the commit's CI run through ci.watch's provider.
-func (st *standing) readCI(cfg *config.Loaded, remote, sha string, o Out) {
-	wr, ok, err := watcher(cfg, remote, o)
+// visibility is the repository's visibility, asked once of ci.watch's
+// provider (slice 135); "" when there is none, it cannot tell it, or the
+// asking fails, which status says nothing of.
+func visibility(wr providers.Watcher, ok bool, err error) string {
+	if err != nil || !ok || wr.Visibility == nil {
+		return ""
+	}
+	v, err := wr.Visibility()
+	if err != nil {
+		return ""
+	}
+	return v
+}
+
+// readCI looks once at the commit's CI run through ci.watch's provider, wr,
+// none when ok is false, or err when it cannot look.
+func (st *standing) readCI(wr providers.Watcher, ok bool, err error, sha string) {
 	switch {
 	case err != nil:
 		st.unread(fmt.Sprintf("CI cannot be read: %s", err))

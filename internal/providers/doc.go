@@ -48,7 +48,9 @@
 // status, conclusion, jobs, and the ID, head, branch and creation --json
 // leaves out); and Runs, RunsOn, the workflow's last 20 runs on a branch,
 // newest first, among which a watch finds the run that superseded a
-// cancelled one (bug 41). Its token is ci.range.github.token_env's variable else
+// cancelled one (bug 41); and Visibility, the repository's (Visibility, slice
+// 135), from its endpoint's visibility, else its private bool, which itos
+// status names on the head's line. Its token is ci.range.github.token_env's variable else
 // GhToken (gh auth token), its repository repository_env's else
 // GitHubRepository, the remote's URL read as GitHub's (https, ssh or
 // scp-like); with no token it fails before any request, naming both ways to

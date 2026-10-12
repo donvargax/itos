@@ -1623,7 +1623,10 @@ status the object itos status --json prints, but its schema`,
 Prints where things stand, for the person the work is for (--as, else the
 identity provider's, as itos work): the remote branch's head, its short SHA and
 header, asked of the remote (the branch's upstream, else origin), or as last
-fetched when the remote cannot be reached; its CI run, looked at once through
+fetched when the remote cannot be reached, and the repository's visibility in
+brackets after the branch, public, private or internal, asked once of ci.watch's
+provider (for github the repository's visibility, else its private flag) and
+left out when it cannot tell; its CI run, looked at once through
 ci.watch's provider and never waited for, a run still going said to be going;
 while it is going or has not passed, the commit main last proved, "Last green:"
 and its short SHA and header (the SHA alone when it is not fetched here), as
@@ -1659,7 +1662,7 @@ Exit 1 when the work registry is not there or not sound, 3 when --as is not
 among the people. itos go prints it last.
 
 --json: {"schema":1,"person","every_item"?,"head":{"remote","branch","commit",
-"header","last_fetched"}|null,"ci":{"result","run"?}|null,"last_green":
+"header","last_fetched","visibility"?}|null,"ci":{"result","run"?}|null,"last_green":
 {"commit","header"}|null,"nightly":{"url","status","conclusion"?,"jobs"}|null,
 "release":{"tag","commit","last_fetched"}|null,"unreleased":["<header>"]|null,
 "itos":{"runs","newest","new_major"}|null,"agent_rules":{"stale":["<path>"]}|null,

@@ -414,6 +414,59 @@ cases:
       questions: []
       drafts: []
       unread: ["No remote origin, so neither its head nor its CI run is read."]
+  # Slice 135: the head's line names the repository's visibility, as
+  # ci.watch's provider tells it (GitHub's repository, its visibility), and
+  # --json's head holds it; a provider that cannot tell it, as the fake GitHub
+  # answering the repository 404 above, says nothing of it.
+  - name: status names a public repository on the main branch's line
+    argv: [status]
+    github:
+      visibility: public
+      runs:
+        - head_sha: "*"
+          html_url: "https://ci.example/runs/{sha}"
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+    exit: 0
+    stdout_has: "origin/main (public): {{short.head}} chore: first\nCI: success, https://ci.example/runs/{{sha.head}}\n"
+  - name: status --json gives the repository's visibility in its head
+    argv: [status, --json]
+    github:
+      visibility: private
+      runs:
+        - head_sha: "*"
+          html_url: "https://ci.example/runs/{sha}"
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+    exit: 0
+    json:
+      schema: 1
+      person: a
+      head: { remote: origin, branch: main, commit: "{{sha.head}}", header: "chore: first", last_fetched: false, visibility: private }
+      ci:
+        result: success
+        run:
+          url: "https://ci.example/runs/{{sha.head}}"
+          status: completed
+          conclusion: success
+          jobs: [{ name: ci, status: completed, conclusion: success }]
+      last_green: null
+      nightly: null
+      release: null
+      unreleased: null
+      itos: null
+      agent_rules: null
+      doing: [{ id: busy, title: Busy, phase: 1, owner: a, status: doing, depends_on: [], tags: [] }]
+      next:
+        - { id: free, title: Free, phase: 2, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: phased, title: Owned by the phase, phase: 1, owner: null, status: todo, depends_on: [], tags: [] }
+        - { id: ready, title: Ready, phase: 1, owner: a, status: todo, depends_on: [], tags: [] }
+      more: 0
+      questions: [{ id: q-2, item: ready, question: "Which way?", status: open }]
+      drafts: []
+      unread: []
   # Slice 124: a block of itos's rules for agents other than the one this
   # itos writes is one line naming itos init --agent-rules, and --json's
   # agent_rules names the files that hold it.

@@ -75,11 +75,17 @@ type Watch func(sha string) (run Run, found bool, err error)
 // error is as Watch's.
 type Runs func(branch string) ([]Run, error)
 
-// Watcher is ci.watch's provider: Look at a commit's run, and the Runs on a
-// branch.
+// Visibility is the repository's visibility, public, private or internal
+// (slice 135), asked once: "" with an error when it cannot be told.
+type Visibility func() (string, error)
+
+// Watcher is ci.watch's provider: Look at a commit's run, the Runs on a
+// branch, and the repository's Visibility, nil for a provider that cannot
+// tell it.
 type Watcher struct {
-	Look Watch
-	Runs Runs
+	Look       Watch
+	Runs       Runs
+	Visibility Visibility
 }
 
 // WatchSetup is what the github provider needs from outside the config: the
@@ -104,7 +110,7 @@ func WatchProvider(cfg *config.Loaded, s WatchSetup) (watch Watcher, ok bool, er
 		return Watcher{}, false, err
 	}
 	g.Workflow = w.GitHub.Workflow
-	return Watcher{Look: g.RunOf, Runs: g.RunsOn}, true, nil
+	return Watcher{Look: g.RunOf, Runs: g.RunsOn, Visibility: g.Visibility}, true, nil
 }
 
 // Nightly looks once at the last nightly's run: found is false when there
@@ -213,6 +219,28 @@ func (g GitHub) NewestRun() (Run, bool, error) {
 func (g GitHub) RunsOn(branch string) ([]Run, error) {
 	return g.list(fmt.Sprintf("/repos/%s/actions/workflows/%s/runs?branch=%s&per_page=20",
 		g.Repository, url.PathEscape(g.Workflow), url.QueryEscape(branch)))
+}
+
+// Visibility is the repository's visibility, as GitHub's repository
+// endpoint gives it: its visibility, else private (a bool) as private or
+// public.
+func (g GitHub) Visibility() (string, error) {
+	var repository struct {
+		Visibility string `json:"visibility"`
+		Private    *bool  `json:"private"`
+	}
+	if err := g.get("/repos/"+g.Repository, &repository); err != nil {
+		return "", err
+	}
+	switch {
+	case repository.Visibility != "":
+		return repository.Visibility, nil
+	case repository.Private == nil:
+		return "", fmt.Errorf("GitHub's API named no visibility for %s", g.Repository)
+	case *repository.Private:
+		return "private", nil
+	}
+	return "public", nil
 }
 
 // list is the runs the API path lists, newest first by created_at, without

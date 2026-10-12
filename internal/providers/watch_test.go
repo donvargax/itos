@@ -287,3 +287,44 @@ func TestARateLimitedLookIsTemporaryAndSaysItsWait(t *testing.T) {
 		t.Fatalf("a rate limit is %v, wait %s", err, Wait(err))
 	}
 }
+
+// The repository's visibility is its endpoint's visibility, else its private
+// bool, asked at GITHUB_API_URL with the token; an answer naming neither, or
+// a refusal, tells none.
+func TestVisibilityReadsTheRepository(t *testing.T) {
+	answer, status := "", http.StatusOK
+	var asked []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		asked = append(asked, r.URL.Path+" "+r.Header.Get("Authorization"))
+		w.WriteHeader(status)
+		w.Write([]byte(answer))
+	}))
+	defer server.Close()
+	env := map[string]string{"GITHUB_TOKEN": "t", "GITHUB_REPOSITORY": "o/n", "GITHUB_API_URL": server.URL + "/api/v3"}
+	watch, ok, err := WatchProvider(githubWatchConfig(), WatchSetup{Env: func(name string) string { return env[name] }})
+	if !ok || err != nil || watch.Visibility == nil {
+		t.Fatalf("ok %v, err %v", ok, err)
+	}
+	for body, want := range map[string]string{
+		`{"visibility":"internal","private":true}`: "internal",
+		`{"visibility":"public","private":true}`:   "public",
+		`{"private":true}`:                         "private",
+		`{"private":false}`:                        "public",
+	} {
+		answer = body
+		if got, err := watch.Visibility(); got != want || err != nil {
+			t.Errorf("%s: %q, %v", body, got, err)
+		}
+	}
+	if asked[0] != "/api/v3/repos/o/n Bearer t" {
+		t.Errorf("asked %v", asked)
+	}
+	answer = `{"full_name":"o/n"}`
+	if got, err := watch.Visibility(); got != "" || err == nil || !strings.Contains(err.Error(), "o/n") {
+		t.Errorf("no visibility named: %q, %v", got, err)
+	}
+	answer, status = `{"message":"Not Found"}`, http.StatusNotFound
+	if got, err := watch.Visibility(); got != "" || err == nil {
+		t.Errorf("a 404: %q, %v", got, err)
+	}
+}

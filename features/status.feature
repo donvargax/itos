@@ -301,7 +301,7 @@ Feature: itos status, where the work stands
   # asks (GitHub's repository, its visibility), and in --json as the head's
   # visibility. A provider that cannot tell says nothing of it, and the rest
   # still prints.
-  @ID-STATUS-23 @slice-135 @wip
+  @ID-STATUS-23 @slice-135
   Scenario: status names a public repository on the main branch's line
     Given the watched run's jobs "ci" and "platform" succeed
     And the fake GitHub says the repository is "public"
@@ -309,7 +309,7 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "origin/main (public):"
 
-  @ID-STATUS-24 @slice-135 @wip
+  @ID-STATUS-24 @slice-135
   Scenario: status names a private repository on the main branch's line
     Given the watched run's jobs "ci" and "platform" succeed
     And the fake GitHub says the repository is "private"
@@ -317,7 +317,7 @@ Feature: itos status, where the work stands
     Then itos exits with code 0
     And its output says "origin/main (private):"
 
-  @ID-STATUS-25 @slice-135 @wip
+  @ID-STATUS-25 @slice-135
   Scenario: status names no visibility when the provider cannot tell, and prints the rest
     Given the watched run's jobs "ci" and "platform" succeed
     And the fake GitHub does not know the repository
