@@ -92,7 +92,7 @@ cases:
         - { id: q-1, question: a, status: answered, answer: b, decision: 3 }
         - { id: q-2, question: c, status: answered, answer: d, decision: none }
   - name: decision refuses a decision that is neither a record's number nor none, and leaves the file as it is
-    argv: [decision, add, Which way?]
+    argv: [decision, add, "Which way?"]
     files:
       asks.yaml: &baddecision "questions:\n  - { id: q-1, question: a, answer: b, decision: \"0003\" }\n"
     exit: 2
@@ -203,7 +203,7 @@ cases:
     files_after:
       asks.yaml: null
   - name: decision add refuses a questions file with changes no commit holds
-    argv: [decision, add, Which way?]
+    argv: [decision, add, "Which way?"]
     git: []
     exit: 1
     stderr: |
@@ -212,7 +212,7 @@ cases:
     files_after:
       asks.yaml: *asks
   - name: decision add refuses a questions file itos did not write whole, and leaves it as it is
-    argv: [decision, add, Which way?]
+    argv: [decision, add, "Which way?"]
     files:
       asks.yaml: &unknown "questions:\n  - { id: q-1, question: a, status: open }\n"
     exit: 2
