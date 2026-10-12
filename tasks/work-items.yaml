@@ -8513,3 +8513,18 @@ items:
       normally. A 404 for a workflow the range adds is 'not registered yet', retried at
       ci.watch.interval; exit 3 only when the timeout passes.
     tags: [ci, push]
+
+  - id: p1-ci-steps-discoverable
+    title: ci.steps' entry forms and the range a step receives are in itos ci's help and --print-defaults
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #57 (2026-10-12): an agent setting up CI read itos's source to learn the step forms ({run,
+      cost}, {tests: <kind>}, whole: true) and that a step gets ITOS_FROM and ITOS_TO in its
+      environment and {from} and {to} in its text. Neither itos ci --help nor config check
+      --print-defaults says so; --print-defaults could show them as commented examples, as it does
+      tests.<kind>.
+    tags: [ci, docs]
