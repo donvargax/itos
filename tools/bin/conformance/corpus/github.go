@@ -47,10 +47,12 @@ type fakeRun struct {
 	Looks      []fakeLook `json:"looks"`
 }
 
-// fakeGitHub is a case's github: every request refused, or the runs it holds.
+// fakeGitHub is a case's github: every request refused, or the runs it holds and the
+// repository's visibility, "" for a repository it does not know.
 type fakeGitHub struct {
-	Refuse bool      `json:"refuse"`
-	Runs   []fakeRun `json:"runs"`
+	Refuse     bool      `json:"refuse"`
+	Runs       []fakeRun `json:"runs"`
+	Visibility string    `json:"visibility"`
 
 	mu    sync.Mutex
 	seen  []int      // each run's looks given so far
@@ -149,6 +151,13 @@ func (g *fakeGitHub) answer(req *http.Request) (int, any) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	path := req.URL.EscapedPath()
+	if path == "/repos/"+fakeRepository {
+		if g.Visibility == "" {
+			return http.StatusNotFound, notFound
+		}
+		return http.StatusOK, map[string]any{"full_name": fakeRepository, "visibility": g.Visibility,
+			"private": g.Visibility != "public"}
+	}
 	if m := jobsPath.FindStringSubmatch(path); m != nil {
 		id, _ := strconv.Atoi(m[1])
 		return g.jobs(id)

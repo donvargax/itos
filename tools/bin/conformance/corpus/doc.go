@@ -63,9 +63,11 @@
 //	         asked about), status, conclusion and jobs ([{name, status, conclusion}]); or looks,
 //	         a list of those answer fields, the nth request that finds the run given the nth,
 //	         the last one for every request after it, as a run going on would be seen
+//	visibility  public, private or internal: the repository's, as its endpoint answers it,
+//	         with private (GitHub's bool) beside it; left out, the endpoint is a 404
 //
-// It answers a workflow's runs (head_sha and branch narrowing them) and a run's jobs, the token
-// required; anything else is a 404.
+// It answers a workflow's runs (head_sha and branch narrowing them), a run's jobs and the
+// repository, the token required; anything else is a 404.
 //
 // In every string, {{dir}} is the case's folder, {{PATH}} the runner's PATH with the caller's
 // extensions hidden and a private native Git folder first, {{PATH_SEP}} its platform separator,
