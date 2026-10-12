@@ -1693,5 +1693,3 @@
     to nightly.yml as a platform matrix job beside the nightly job, whose failure the Nightly red
     issue reports as it reports the nightly job's. Part of p1-testing-tiers-guide (issue #41); the
     guidance half follows.
-  done_when:
-    - run: "grep -q -- 'ci run .*--tests' .github/workflows/ci.yml && ! grep -qE 'run: go test ./features -count=1' .github/workflows/ci.yml && grep -q 'windows-latest' .github/workflows/nightly.yml && grep -q 'macos-latest' .github/workflows/nightly.yml"

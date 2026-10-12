@@ -8431,7 +8431,7 @@ items:
     title: The platform jobs run a push's named tests, and the nightly runs every feature on three platforms
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-132]
     kind: task
 
