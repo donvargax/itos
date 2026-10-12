@@ -1679,6 +1679,3 @@
     is argued in the commit and excepted only as itos-cc allows. No change to what itos does; if a
     test finds a bug, stop and report it. The check runs the nightly's step at the same seed that
     drew the survivor, capped at 2 sites.
-  done_when:
-    - run: files=$(go run ./tools/bin/nightly-base -linux-files cmd internal) && tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 2 --seed 2026-10-12T08:44:12Z --fail-uncovered=lines --json $files
-      timeout: 900

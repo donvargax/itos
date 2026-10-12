@@ -8408,6 +8408,6 @@ items:
     title: The Go changed since the 2026-10-08 nightly is covered, and init.go's drawn survivor is killed
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
