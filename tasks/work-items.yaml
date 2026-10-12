@@ -8574,3 +8574,18 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-secrets-scan
+    title: gitleaks scans what a push adds for secrets, in the pre-push hook and over CI's range
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      No tier scans for secrets (the #41 progress report, 2026-10-12), in a public repository.
+      gitleaks, pinned by tools/bin/pinned like dprint, over the commits a push adds in the pre-push
+      hook and over the range in CI as a static step; the nightly could scan the whole history. The
+      user (2026-10-12): its own item, not waiting on p2-adopt-go-template-itos, which had folded it
+      in on 2026-10-11.
+    tags: [ci, hooks]
