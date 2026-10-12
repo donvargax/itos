@@ -128,3 +128,103 @@ Feature: Live scenarios only move, by a rule itos ships
       """
     Then itos exits with code 1
     And its output says "changes the header or Background of"
+
+  # Slice 134 (issue #55 and its comment; the user's call, 2026-10-12). A
+  # scenario going live outside except_types, a wip one losing its @wip or a
+  # new live one, was refused as "changes the live scenario", which misnames
+  # it, and left no honest way to describe behaviour the code already has, or
+  # to land a perf or refactor task's guard scenarios before the change they
+  # guard. Now a commit of any type may bring a scenario live when the kind's
+  # footer (Scenarios: here) names it and the commit touches none of the moves
+  # rule's code, a list of paths (globs, or a $path_set as commits.scopes
+  # takes them): a guard goes live on the old code, then the change runs under
+  # it. Without code the rule cannot tell, so going live stays feat's and
+  # fix's, as before. A live scenario still never changes outside them, named
+  # or not; 16 holds before the work.
+  @ID-MOVES-11 @slice-134 @wip
+  Scenario: A test commit that brings a wip scenario live unnamed is refused, saying it brings it live
+    Given the moves rule's code is "src/**"
+    And the committed feature file "c.feature" with the wip scenario "@ID-C-01"
+    And the scenario "@ID-C-01" is staged live
+    When the commit-msg hook checks the message:
+      """
+      test: bring the scenario live
+
+      Task: T-001
+      """
+    Then itos exits with code 1
+    And its output says "brings the scenario ID-C-01 live"
+    And its output does not say "changes the live scenario"
+
+  @ID-MOVES-12 @slice-134 @wip
+  Scenario: A test commit brings a wip scenario live when Scenarios: names it and it touches no code
+    Given the moves rule's code is "src/**"
+    And the committed feature file "c.feature" with the wip scenario "@ID-C-01"
+    And the scenario "@ID-C-01" is staged live
+    When the commit-msg hook checks the message:
+      """
+      test: describe what the code already does
+
+      Task: T-001
+      Scenarios: @ID-C-01
+      """
+    Then itos exits with code 0
+
+  @ID-MOVES-13 @slice-134 @wip
+  Scenario: A named scenario going live is refused when the same commit changes the code under test
+    Given the moves rule's code is "src/**"
+    And the committed feature file "c.feature" with the wip scenario "@ID-C-01"
+    And the scenario "@ID-C-01" is staged live
+    And a change to "src/app.go" is staged
+    When the commit-msg hook checks the message:
+      """
+      test: describe what the code does now
+
+      Task: T-001
+      Scenarios: @ID-C-01
+      """
+    Then itos exits with code 1
+    And its output says "brings the scenario ID-C-01 live"
+    And its output says "src/app.go"
+
+  @ID-MOVES-14 @slice-134 @wip
+  Scenario: A test commit adds a new live guard scenario it names, before the change it guards
+    Given the moves rule's code is "src/**"
+    And a new live scenario "@ID-A-02" is staged in "a.feature"
+    When the commit-msg hook checks the message:
+      """
+      test: guard the totals before making them faster
+
+      Task: T-001
+      Scenarios: @ID-A-02
+      """
+    Then itos exits with code 0
+
+  @ID-MOVES-15 @slice-134 @wip
+  Scenario: Without the moves rule's code, a named scenario going live outside feat and fix stays refused
+    Given the committed feature file "c.feature" with the wip scenario "@ID-C-01"
+    And the scenario "@ID-C-01" is staged live
+    When the commit-msg hook checks the message:
+      """
+      test: describe what the code already does
+
+      Task: T-001
+      Scenarios: @ID-C-01
+      """
+    Then itos exits with code 1
+    And its output says "brings the scenario ID-C-01 live"
+    And its output says "code"
+
+  @ID-MOVES-16 @slice-134 @wip
+  Scenario: Naming a live scenario in Scenarios: does not let a test commit change it
+    Given the moves rule's code is "src/**"
+    And a change to the steps of the scenario "@ID-A-01" is staged
+    When the commit-msg hook checks the message:
+      """
+      test: tidy the scenario
+
+      Task: T-001
+      Scenarios: @ID-A-01
+      """
+    Then itos exits with code 1
+    And its output says "changes the live scenario ID-A-01"
