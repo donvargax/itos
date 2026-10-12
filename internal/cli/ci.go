@@ -31,13 +31,25 @@ func planOf(from, to string, nightly bool, dataAt string) (*config.Loaded, *plan
 	return cfg, p, err
 }
 
-// ciRun is `ci run [<from> <to>] | --nightly` (ci.ts's ciRun): the plan
-// ci plan prints, carried out by internal/ci. A plan that cannot be made
-// (a missing ledger folder, say) stops the run before any step, exit 2.
-func ciRun(from, to string, nightly bool, o Out) (int, error) {
+// ciRun is `ci run [<from> <to>] | --nightly [--tests]` (ci.ts's ciRun):
+// the plan ci plan prints, carried out by internal/ci. A plan that cannot be
+// made (a missing ledger folder, say) stops the run before any step, exit 2.
+// With tests it carries out the plan's run of named tests alone
+// (plan.NamedTests, slice 132), what a platform job runs per push; with no
+// such run it says so and passes, having run nothing.
+func ciRun(from, to string, nightly, tests bool, o Out) (int, error) {
 	cfg, p, err := planOf(from, to, nightly, "")
 	if err != nil {
 		return 0, err
+	}
+	if tests {
+		if p = p.NamedTests(); len(p.Order) == 0 {
+			log := o.Stdout
+			if o.JSON {
+				log = o.Stderr
+			}
+			fmt.Fprintln(log, "ci run --tests: no named tests to run (no tests: step, or nothing selected), so nothing ran.")
+		}
 	}
 	return ci.Run(cfg, p, ci.Options{JSON: o.JSON, Stdout: o.Stdout, Stderr: o.Stderr})
 }

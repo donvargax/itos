@@ -130,7 +130,8 @@ Commands:
                                    the kind's next free tag of the stem, claimed for an area
   ci plan <from> <to> | --nightly | --whole
                                    print the CI plan; runs nothing
-  ci run [<from> <to>] | --nightly run the CI plan
+  ci run [<from> <to>] | --nightly [--tests]
+                                   run the CI plan; --tests, its run of named tests alone
   ci scope <from> <to>             docs_only=true|false, for GITHUB_OUTPUT
   ci range --head <sha> [--base <sha>]
                                    FROM=<sha>: where a push's range starts
@@ -828,7 +829,7 @@ each problem.
 --json: {"schema":1,"kind","ok","problems":[{"rule","message"}]}`,
 
 	"ci": `Usage: itos ci plan <from> <to> | --nightly | --whole [--data-at <sha>]
-       itos ci run [<from> <to>] | --nightly
+       itos ci run [<from> <to>] | --nightly [--tests]
        itos ci scope <from> <to>
        itos ci range --head <sha> [--base <sha>]
        itos ci watch [<sha>]`,
@@ -850,7 +851,7 @@ remote branch (every one with no remote), the range's from "--remotes".
 --json: the plan contract, keys only ever added
         {"schema":1,"range","prose","steps","order","tasks","left_out","unknown","not_started"}`,
 
-	"ci run": `Usage: itos ci run [<from> <to>] | --nightly
+	"ci run": `Usage: itos ci run [<from> <to>] | --nightly [--tests]
 
 Runs the plan: unknown task IDs fail first, tasks not started and checks a
 prose-only range leaves out are listed, then each step and task check in cost
@@ -868,6 +869,14 @@ with {base} the range's start, which reads the results recorded before the
 push and runs none of its own. A surviving mutant, an uncovered or a missing
 result fails the run, naming each problem its --json lists by its rule and
 message, and a check that cannot run fails it too. Itos ci plan lists it.
+--tests runs the plan's run of named tests alone, merged as the run merges it
+(the smoke set, the tests the range's commits name, the task checks
+recognized as runs of the kind), and nothing else: no other step, task check
+or code proof, and no preamble. It is for a platform job, which runs per push
+on its own platform what the ci job judges, the ci job running the rest. Its
+exit code is that run's; with no run of named tests (no tests: step, or
+nothing selected) it runs nothing, says so, and exits 0. With --nightly it is
+the nightly's tests: step alone, and with no range, every test.
 
 --json: the run's log on stderr; {"schema":1,"ok","failed_at"?} on stdout`,
 

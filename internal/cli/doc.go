@@ -455,8 +455,10 @@
 // # CI
 //
 // ci plan and ci scope (ci.go) print internal/plan's plan; ci run makes the
-// same plan and hands it to internal/ci. ci range reads the config first, so
-// a broken ci.range is a config error even with --base, then asks
+// same plan and hands it to internal/ci, cut to its run of named tests under
+// --tests (plan.NamedTests, slice 132), for a platform job. ci range reads
+// the config first, so a broken ci.range is a config error even with --base,
+// then asks
 // providers.RangeStart, giving it commits.since's commit to fall back on. ci watch and the end of itos push (watch.go) wait
 // for a commit's run: watcher builds the providers.Watch from ci.watch, and
 // watchRun looks, then sleeps min(interval, time left) (sleep, a variable a

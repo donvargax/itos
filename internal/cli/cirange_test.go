@@ -66,8 +66,23 @@ func TestCINightlyIsItsStepsAlone(t *testing.T) {
 		t.Fatalf("plan: exit %d, %v, stdout %q", code, err, stdout.String())
 	}
 	stdout.Reset()
-	code, err = ciRun("", "", true, Out{Stdout: &stdout, Stderr: &stderr})
+	code, err = ciRun("", "", true, false, Out{Stdout: &stdout, Stderr: &stderr})
 	if code != 0 || err != nil || !strings.Contains(stdout.String(), "one\n") || !strings.Contains(stdout.String(), "CI passed") {
 		t.Errorf("run: exit %d, %v, stdout %q", code, err, stdout.String())
+	}
+}
+
+// ci run --tests with no run of named tests runs nothing and says so, on
+// stderr under --json, whose stdout keeps its one object (slice 132).
+func TestCIRunTestsWithNoRunOfNamedTests(t *testing.T) {
+	t.Setenv("ITOS_FROM", "")
+	t.Setenv("ITOS_TO", "")
+	gitConfigRepo(t, "version: 1\nci: { steps: [], nightly: { steps: [echo one] } }\n")
+	var stdout, stderr strings.Builder
+	code, err := ciRun("", "", true, true, Out{JSON: true, Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || err != nil || strings.Contains(stderr.String(), "one\n") ||
+		!strings.Contains(stderr.String(), "no named tests") || strings.Contains(stdout.String(), "no named tests") ||
+		!strings.Contains(stdout.String(), `"ok": true`) {
+		t.Errorf("run: exit %d, %v, stdout %q, stderr %q", code, err, stdout.String(), stderr.String())
 	}
 }

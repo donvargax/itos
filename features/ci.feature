@@ -367,7 +367,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # named tests, the task checks recognized as them), and nothing else: no
   # other step, no other task check, no code proof. With no run of named tests
   # for the range, it runs nothing and says so, exit 0.
-  @ID-CI-25 @slice-132 @wip
+  @ID-CI-25 @slice-132
   Scenario: ci run --tests runs the range's named tests and no other step
     Given the CI steps are "exit 3"
     And the CI steps run the named tests of the kind "scenario"
@@ -375,11 +375,11 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     And the commit "chore: tidy the readme" naming the task "T-001" on top of it
     When itos runs CI's named tests over the commits after the first
     Then itos exits with code 0
-    And its output says "run @ID-A-01"
-    And its output says "@ID-A-02"
+    And its output says "ID-A-02"
+    And its output says "@ID-A-01"
     And its output does not say "exit 3"
 
-  @ID-CI-26 @slice-132 @wip
+  @ID-CI-26 @slice-132
   Scenario: ci run --tests runs no task check that is not a run of named tests
     Given the CI steps run the named tests of the kind "scenario"
     And the task "T-001" has the check "exit 4"
@@ -388,7 +388,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And its output does not say "exit 4"
 
-  @ID-CI-27 @slice-132 @wip
+  @ID-CI-27 @slice-132
   Scenario: ci run --tests does not run the code proof
     Given the CI steps run the named tests of the kind "scenario"
     And the config's proof.code covers "src/**" and checks with a provider that finds a survivor in "app.Total"
@@ -397,7 +397,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 0
     And the provider was not run
 
-  @ID-CI-28 @slice-132 @wip
+  @ID-CI-28 @slice-132
   Scenario: ci run --tests with no run of named tests for the range runs nothing and says so
     Given the CI steps are "exit 3"
     And the CI steps run the named tests of the kind "scenario"

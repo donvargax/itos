@@ -152,7 +152,7 @@ var specs = map[string]spec{
 	}},
 	"ci": {subs: map[string]spec{
 		"plan":  {flags: []flagSpec{sw("--nightly"), sw("--whole"), val("--data-at")}},
-		"run":   {flags: []flagSpec{sw("--nightly")}},
+		"run":   {flags: []flagSpec{sw("--nightly"), sw("--tests")}},
 		"scope": {},
 		"watch": {},
 		"range": {flags: []flagSpec{val("--head"), val("--base")}},

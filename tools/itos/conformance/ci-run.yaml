@@ -6,7 +6,8 @@
 # check recognized as the smoke run merged when there is a run of named tests
 # and run as itself when there is none, the nightly's tasks step refused
 # before any step runs, a missing ledger folder stopping it at the plan (2), a named task waiting on
-# the registry beside the ledger, and --json. The steps and checks are `echo`s, so the log shows what ran.
+# the registry beside the ledger, --tests running the run of named tests alone,
+# and --json. The steps and checks are `echo`s, so the log shows what ran.
 git:
   - commit: "build: the scratch project"
     files:
@@ -140,6 +141,32 @@ cases:
 
       T-010
         - echo only after the push   (pending: runs after the push)
+
+      CI passed
+  - name: --tests runs the range's run of named tests alone, merged as the run merges it
+    argv: [ci, run, "{{sha.base}}", "{{sha.every}}", --tests]
+    exit: 0
+    stdout: |
+
+      $ printf 'run %s\n' '@(?:ID-A-01)\b|@ID-A-02'
+      run @(?:ID-A-01)\b|@ID-A-02
+
+      CI passed
+  - name: --tests with no run of named tests for the range runs nothing and says so
+    argv: [ci, run, "{{sha.prose}}", "{{sha.smoke}}", --tests]
+    files: { e2e/smoke.yaml: "[]\n" }
+    exit: 0
+    stdout: |
+      ci run --tests: no named tests to run (no tests: step, or nothing selected), so nothing ran.
+
+      CI passed
+  - name: --tests with --nightly runs the nightly's tests step alone
+    argv: [ci, run, --nightly, --tests]
+    exit: 0
+    stdout: |
+
+      $ echo run every scenario
+      run every scenario
 
       CI passed
   - name: a check recognized as the smoke run is in the run of named tests

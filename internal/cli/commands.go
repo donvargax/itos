@@ -297,7 +297,7 @@ func ciCommand(args []string, o Out) (int, error) {
 		if err := rangeRefs("ci run", from, to); err != nil {
 			return 0, err
 		}
-		return ciRun(from, to, nightly, o)
+		return ciRun(from, to, nightly, slices.Contains(rest, "--tests"), o)
 	case "scope":
 		if to == "" {
 			return 0, usage("ci scope needs <from> <to>")

@@ -55,7 +55,9 @@
 // from a commit under source.ReadingFrom (the config stays the working
 // tree's); ForNightly plans the nightly from the config alone. Fields and
 // Print are the JSON and text itos ci plan prints, a contract: their keys,
-// order and values are held by the corpus.
+// order and values are held by the corpus. NamedTests cuts a plan to its run
+// of named tests alone, as ci run --tests carries it out on a platform job
+// (slice 132): no other step, no task check, no code proof, no preamble.
 //
 // A range's commits name tasks and tests through message.IDsIn (TasksIn,
 // TestsNamedIn), and its paths are Changed. The range is from..to as given:

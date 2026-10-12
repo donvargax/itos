@@ -459,6 +459,23 @@ func Make(cfg *config.Loaded, in Input) (*Plan, error) {
 	return p, nil
 }
 
+// NamedTests is the plan cut to its run of named tests (ci run --tests,
+// slice 132): the steps whose Tests names a kind, as the plan merged them,
+// and nothing else, so no other step, no task check (one merged into the run
+// is in its selection already), no code proof and no preamble. Its Order is
+// empty when the plan has no such run: no tests: step, or nothing selected.
+// The ends stay the plan's.
+func (p *Plan) NamedTests() *Plan {
+	cut := &Plan{Order: []Item{}, Steps: []string{}, Tasks: []string{}, Checks: []*Check{}, LeftOut: []*Check{}, Unknown: []string{}, NotStarted: []string{}, Ends: p.Ends}
+	for _, item := range p.Order {
+		if item.Step != nil && item.Step.Tests != "" {
+			cut.Order = append(cut.Order, item)
+			cut.Steps = append(cut.Steps, item.Step.Command)
+		}
+	}
+	return cut
+}
+
 // nightlyPlan is the nightly's plan: its steps in the order written. It runs
 // no task's checks: a task's checks are its own progress and leave the ledger
 // when work done closes it (ADR-0043), and config check refuses the step that

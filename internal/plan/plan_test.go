@@ -318,6 +318,37 @@ late  e2e --grep '@(?:ID-S-01)'
 	}
 }
 
+// NamedTests cuts a plan to its run of named tests (slice 132): the merged
+// run alone, with no other step, no task check and no code proof, the ends
+// kept; nothing at all when the plan has no such run.
+func TestNamedTests(t *testing.T) {
+	proofCfg := load(t, scratch+"proof:\n  code:\n    paths: [\"**\"]\n    check: \"cc {base}\"\n")
+	p, err := Make(proofCfg, Input{Known: true, Smoke: []string{"ID-S-01"}, Tasks: []ledger.Task{task},
+		Proof: &Step{Command: "cc a1", Proof: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p.Ends = Ends{From: "a1", To: "b2"}
+	cut := p.NamedTests()
+	if got := lines(cut); got != "late  e2e --grep '@(?:ID-S-01)|@ID-A-'\n" {
+		t.Errorf("cut plan:\n%s", got)
+	}
+	if got := strings.Join(cut.Steps, ","); got != "e2e --grep '@(?:ID-S-01)|@ID-A-'" || cut.Ends != p.Ends ||
+		len(cut.Checks) != 0 || len(cut.Tasks) != 0 {
+		t.Errorf("steps %q, ends %+v, checks %d, tasks %v", got, cut.Ends, len(cut.Checks), cut.Tasks)
+	}
+	none, err := Make(load(t, "version: 1\nci:\n  steps: [lint]\n"), Input{Known: true, Tasks: []ledger.Task{task}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cut := none.NamedTests(); len(cut.Order) != 0 || len(cut.Steps) != 0 {
+		t.Errorf("a plan with no run of named tests cut to %d items", len(cut.Order))
+	}
+	if got := lines(nightlyPlan(load(t, scratch)).NamedTests()); got != "late  e2e\n" {
+		t.Errorf("the nightly cut:\n%s", got)
+	}
+}
+
 // codeProof is the step a range's code proof is when the config has a
 // proof.code and the range touches its paths, and none of that otherwise:
 // no proof.code, no touched path, or no start to judge from.
