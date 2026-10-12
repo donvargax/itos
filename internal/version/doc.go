@@ -7,7 +7,7 @@
 // The version is the release's tag, written nowhere in the tree: a
 // release's GoReleaser stamps it into the binary with -ldflags
 // "-X github.com/donvargax/itos/v8/internal/version.stamp=<v>", and
-// tools/bin/itos and tools/bin/build-go.ts stamp a build of a checkout with
+// tools/bin/itos and tools/bin/build-go stamp a build of a checkout with
 // the version tools/bin/dev-version reads from git describe: the release's
 // at its tag, X.Y.(Z+1)-dev.N.g<sha> N commits after the newest vX.Y.Z tag
 // (0.0.1-dev.N.g<sha> with none, 0.0.0-dev outside git). That is a
