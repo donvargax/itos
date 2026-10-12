@@ -179,3 +179,13 @@ Feature: The task runner runs each check once, and lists task status without run
     When itos runs "task OPS-8"
     Then itos exits with code 1
     And its output says "OPS-8"
+
+  # bug-107 (donvargax/itos#52): a task's why lives in its ledger entry, the
+  # registry being an index (slice 76), but task add wrote it into the registry
+  # item too, and work show printed it twice. See show.feature's @ID-SHOW-08.
+  @ID-TASK-16 @bug-107 @wip
+  Scenario: task add writes the why into the ledger entry alone, not into the registry item
+    Given the work registry has the item "T-001" owned by nobody with the status "done"
+    When itos runs the command line "task add --group 1 --type chore --title 'Tidy the readme' --why 'It drifted.' --check 'true'"
+    Then itos exits with code 0
+    And the registry's item "T-003" has the status "todo" and no why

@@ -90,3 +90,18 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
     When itos runs "work show slice-9"
     Then itos exits with code 0
     And its output says "docs: specify slice 9"
+
+  # bug-107 (donvargax/itos#52, itos 8.0.0): task add wrote its why into the
+  # registry item as well as the ledger entry, so work show printed the same
+  # text twice, the ledger's and then the registry's, for every task task add
+  # made. The registries written so far keep that copy, so work show prints a
+  # registry why the same as the ledger's once; a registry why that says
+  # something else (an idea's reasons kept through work promote) still prints
+  # after the ledger's. task add stops writing the copy (@ID-TASK-16).
+  @ID-SHOW-08 @bug-107 @wip
+  Scenario: work show prints a task's why once when the registry holds the same why as the ledger
+    Given the ledger's task "T-001" has the why "The ledger says why."
+    And the work registry has the item "T-001" owned by "someone" with the status "todo" and the why "The ledger says why."
+    When itos runs "work show T-001"
+    Then itos exits with code 0
+    And its output says "The ledger says why." once, before "Scenarios: none tagged @T-001"
