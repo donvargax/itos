@@ -1744,3 +1744,19 @@
     to 12000, in a ci commit of its own that says why.
   done_when:
     - run: "test $(wc -c < docs/ARCHITECTURE.md) -le 12000 && grep -q '\"docs/ARCHITECTURE.md\", \"bytes\": 12000' tools/bin/doc-budget/caps.json && go run ./tools/bin/doc-budget && grep -qi 'ambiguous' AGENTS.md"
+
+- id: T-167
+  type: build
+  title: The pre-commit hook runs the doc budget when a capped file is staged
+  why: >
+    From p1-doc-budget-at-commit (the user's OK, 2026-10-12): T-165 pushed docs/ARCHITECTURE.md 31
+    bytes over its cap and CI's static doc-budget step turned main red (run 38286287307), as no hook
+    checks the budget. tools/bin/pre-commit runs go run ./tools/bin/doc-budget when a file
+    tools/bin/doc-budget/caps.json lists is staged, as it runs go vet when Go is staged, reading the
+    staged files' sizes (the index, not the working tree, as the hook judges what is committed); an
+    over-cap file stops the commit with doc-budget's own message. The gates self-test gains a case:
+    a staged capped file over its cap is refused, one within passes, and a commit staging no capped
+    file never runs it.
+  done_when:
+    - run: grep -q 'doc-budget' tools/bin/pre-commit && grep -q 'doc-budget' tools/selftest/gates/gates_test.go && ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates
+      timeout: 300
