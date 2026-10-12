@@ -8382,15 +8382,7 @@ items:
     title: itos.yaml's config set stops naming tools/parity and tools/changelog.ts
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      Was p1-drop-deleted-config-paths.
-      T-149 deleted tools/parity/ and tools/changelog.ts but had to keep both in
-      commits.path_sets.config: itos verify judges every commit of CI's range by the config at its
-      head, so removing them in the same push refused the commits that delete them (T-149's first
-      push was refused so). Once CI has a green run past T-149's commits, a build commit takes the
-      two lines and their comment out of the config set. p1-verify-past-the-window would make this
-      unnecessary by judging each commit by the config at that commit.
     refs: [itos.yaml]

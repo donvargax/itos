@@ -1643,5 +1643,3 @@
     T-142's .vite-hooks did, folded into T-143). CI run 38220144090 passed that range, so a build
     commit removes the two lines and their comment. p1-verify-past-the-window would make this
     second push unneeded.
-  done_when:
-    - run: '! grep -qE ''tools/parity|tools/changelog\.ts'' itos.yaml'
