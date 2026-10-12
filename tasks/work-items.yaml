@@ -6159,7 +6159,7 @@ items:
       tests. This is separate from slice-102 and T-129. No --all-tests, full mutation sweep, stale
       reports or duplicate jobs; stop and explain an unavoidable full coverage refresh before
       running it.
-    refs: [itos-cc.yaml, tools/bin/itos-cc-tests.ts, docs/ORCHESTRATING.md]
+    refs: [itos-cc.yaml, tools/bin/itos-cc-tests, docs/ORCHESTRATING.md]
 
   - id: p1-targeted-quality-evidence
     title: CI requires fresh coverage, CRAP, Scrap and mutation evidence for changed code
