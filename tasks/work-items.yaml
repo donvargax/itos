@@ -8415,3 +8415,11 @@ items:
       itos-cc#18.
     refs: [itos.yaml, internal/idcounter/counter_file_windows.go]
     tags: [ci]
+
+  - id: T-162
+    title: The Go changed since the 2026-10-08 nightly is covered, and init.go's drawn survivor is killed
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

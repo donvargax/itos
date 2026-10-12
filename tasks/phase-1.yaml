@@ -1665,3 +1665,22 @@
     learns the new command, its case names kept and new cases added for the base's reading.
   done_when:
     - run: "tools/bin/itos ci plan --nightly | grep -qE 'itos-cc mutation run .*--since .*--count 60 .*--fail-uncovered=lines'"
+
+- id: T-162
+  type: test
+  title: The Go changed since the 2026-10-08 nightly is covered, and init.go's drawn survivor is killed
+  why: >
+    T-161's changed-sites step, run locally on 2026-10-12 over the range since the last green
+    nightly (9397855d, 2026-10-08), found a survivor at internal/cli/init.go:326 (&& to || in
+    initWrite) and 22 changed statements no test runs, in workArgsEmpty (internal/cli/workwrite.go),
+    counterCommit, fetchCounter, readCounters and writeCounters (internal/idcounter/counter.go), For
+    (internal/plan/data.go) and json (internal/plan/json.go). With strict coverage of the range's
+    changed lines, the nightly is red on them every night until they are tested, and the base cannot
+    move. Tests that run those statements and kill the survivor, at the seam each function is
+    reached by (unit tests first, a scenario where only a scenario reaches it); an equivalent mutant
+    is argued in the commit and excepted only as itos-cc allows. No change to what itos does; if a
+    test finds a bug, stop and report it. The check runs the nightly's step at the same seed that
+    drew the survivor, capped at 2 sites.
+  done_when:
+    - run: files=$(go run ./tools/bin/nightly-base -linux-files cmd internal) && tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 2 --seed 2026-10-12T08:44:12Z --fail-uncovered=lines --json $files
+      timeout: 900
