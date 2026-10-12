@@ -8794,3 +8794,20 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-brief-names-fake-endpoints
+    title: A brief says when a conformance case needs the corpus's fake GitHub to answer something new, a ci task of its own
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-12, slice-135: the brief asked for a conformance case of status's visibility, which
+      needed tools/bin/conformance/corpus's fake GitHub to answer /repos/{repo}; tools/bin/** is the
+      gates', so only a ci or build commit with a Task may touch it, and the agent minted T-169
+      mid-slice. The coordinator, specifying, can see when a case needs a new fake answer (a
+      provider endpoint not faked yet) and add the ci task beside the slice, so the agent neither
+      mints one nor stops. itos guide brief could say so, or the corpus fake could answer from a
+      case's files without a gate change.
+    tags: [docs, tests]
