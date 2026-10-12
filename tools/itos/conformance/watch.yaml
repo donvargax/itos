@@ -9,7 +9,7 @@
 # newer push cancelled is followed by the newer run that has the commit, or
 # exits 75 when none does (bug 41).
 #
-# GitHub here is the runner's fake (run.ts): its one run answers for any
+# GitHub here is the runner's fake (tools/bin/conformance): its one run answers for any
 # commit, the commit asked about in its address.
 files:
   itos.yaml: |

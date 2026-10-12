@@ -26,7 +26,7 @@
 # provider that fails is a line, and provider none prints nothing.
 #
 # The remote is a bare one in the git folder, .git/origin.git, holding the
-# repository's one commit. GitHub is the runner's fake (run.ts), its run
+# repository's one commit. GitHub is the runner's fake (tools/bin/conformance), its run
 # answering for any commit, and the person is the one a fake gh, bin/gh, says
 # it is signed in as (work.identity's github provider): v5.0.0 removed the
 # command providers this corpus faked them with (slice 85).

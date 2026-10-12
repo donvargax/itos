@@ -5,7 +5,7 @@
 # provider proposes the nearest of the head's first parents with a green run
 # of ci.range.github.workflow, on any branch (bug 29); finding none, or an API
 # that refuses, is not an error. The command provider went in v5.0.0 (slice
-# 85); GitHub here is the runner's fake (run.ts).
+# 85); GitHub here is the runner's fake (tools/bin/conformance).
 # The repository: main (root, one, two) and a branch off root (divergent).
 git:
   - commit: "chore: root"

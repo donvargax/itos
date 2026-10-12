@@ -151,7 +151,7 @@
 // The header lint, where a scenario needs one, is itos's built-in one (use:
 // builtin), which needs nothing installed and holds no footer rule, so a
 // scenario's footer rules are itos's own. The conformance corpus's runner
-// (tools/itos/conformance/run.ts) cleans its environment the same way.
+// (tools/bin/conformance) cleans its environment the same way.
 package features
 
 import (
