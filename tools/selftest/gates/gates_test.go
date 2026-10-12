@@ -6,6 +6,8 @@
 //
 //   - CI runs the whole unit suite and the features, which the hooks leave to it;
 //   - pre-commit formats a root .yml file, as it must format action.yml (T-127);
+//   - pre-commit refuses a staged file over its doc budget, judging the staged size, and runs
+//     doc-budget only when a file it caps is staged (T-167);
 //   - pre-push passes a prose-only push;
 //   - pre-push runs neither the scenarios a commit's Scenarios: footer names nor the checks of
 //     the tasks its Task: footer names; CI reads those footers from the pushed range and runs
@@ -81,6 +83,51 @@ func TestSelftest(t *testing.T) {
 		}
 		if got, _ := os.ReadFile(yml); string(got) != "name: itos\n" {
 			t.Errorf("pre-commit left a root .yml file unformatted: %q", got)
+		}
+	})
+
+	// The doc budget judges a capped file by its staged size, and runs only when one is staged
+	// (T-167). The scratch copy's caps.json caps one file, budget.md, at 100 bytes.
+	reset(base)
+	budget := filepath.Join(repo.Dir, "budget.md")
+	write := func(file string, size int) {
+		t.Helper()
+		if err := os.WriteFile(file, []byte(strings.Repeat("x", size-1)+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(budget, 50)
+	if err := os.WriteFile(filepath.Join(repo.Dir, "tools/bin/doc-budget/caps.json"),
+		[]byte(`{"caps": [{"file": "budget.md", "bytes": 100}]}`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	capped := repo.Commit("ci: cap budget.md")
+	t.Run("pre-commit refuses a staged file over its doc budget", func(t *testing.T) {
+		reset(capped)
+		write(budget, 101)
+		r := hooks.PreCommit(t, "a capped file over its cap")
+		if r.Code != 1 || !strings.Contains(r.Output(), "doc-budget: budget.md is 101 bytes, over its cap of 100 by 1") {
+			t.Errorf("pre-commit did not refuse a capped file over its cap with doc-budget's message:\n%s", r.Output())
+		}
+	})
+	t.Run("pre-commit judges a capped file by its staged size", func(t *testing.T) {
+		reset(capped)
+		write(budget, 100)
+		repo.Git("add", "budget.md")
+		write(budget, 500)
+		r := hooks.Gate(t, "pre-commit, a capped file within its cap, over it unstaged", "sh tools/bin/pre-commit")
+		if r.Code != 0 || !strings.Contains(r.Output(), "doc-budget: budget.md is 100 bytes, within its cap of 100") {
+			t.Errorf("pre-commit did not pass a capped file staged within its cap:\n%s", r.Output())
+		}
+	})
+	t.Run("pre-commit runs no doc budget when no capped file is staged", func(t *testing.T) {
+		reset(capped)
+		write(budget, 500)
+		repo.Edit("README.md", "# ", "A prose edit.\n\n# ")
+		repo.Git("add", "README.md")
+		r := hooks.Gate(t, "pre-commit, a capped file over its cap, unstaged", "sh tools/bin/pre-commit")
+		if r.Code != 0 || strings.Contains(r.Output(), "doc-budget") {
+			t.Errorf("pre-commit ran the doc budget with no capped file staged:\n%s", r.Output())
 		}
 	})
 
