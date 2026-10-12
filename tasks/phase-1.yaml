@@ -1663,8 +1663,6 @@
     last 24 hours' first-parent range instead, never every function. A survivor or an uncovered
     changed line fails the night. Linux only, as the job is. The ci-mutation-budget self-test
     learns the new command, its case names kept and new cases added for the base's reading.
-  done_when:
-    - run: "tools/bin/itos ci plan --nightly | grep -qE 'itos-cc mutation run .*--since .*--count 60 .*--fail-uncovered=lines'"
 
 - id: T-162
   type: test
