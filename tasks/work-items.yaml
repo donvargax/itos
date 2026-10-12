@@ -6003,33 +6003,9 @@ items:
     title: The footer-leading-blank warning fires on a plain prose line beginning with a hash
     phase: 1
     owner: null
-    status: todo
+    status: dropped
     depends_on: []
     kind: idea
-    why: >
-      Issue #21 (itos 7.0.0-rc.1 and 6.4.0): itos commit check-message warns footer-leading-blank
-      for a body line reading "with #, which is plain prose", where a blank line does separate the
-      body from the footers; a line starting with a hash or "see #12, fixed." gives no warning. The
-      warning teaches agents to reword correct bodies (one added a rule to its brief to avoid the
-      text). The lint reads the line as a trailer where git does not; a fix names it in Changes,
-      since it changes what a released scenario promised
-
-      Same class, 2026-10-11 (slice-127's feat): a wrapped body line beginning 'Item:, Task:, or …'
-      was read as an Item: footer and the commit refused (unknown items: a, Task:, or…), though the
-      trailer paragraph is the last one, after a blank line. Footers are read from the last
-      paragraph alone, as git reads trailers; a body line that starts with a footer key is prose.
-
-      Again 2026-10-11 (bug-105): a wrapped body line starting 'record:' drew a false
-      footer-leading-blank warning; the agent reworded correct prose to quiet it. Three agents hit
-      this class in one day.
-
-      The user's call (2026-10-12): the built-in lint reads the footer as git reads trailers, the
-      last paragraph alone when its lines are trailers (git interpret-trailers), not as
-      conventional-commits-parser does (the first line that looks like a token starts the footer,
-      mid-paragraph included). commitlint parity was for the header; footers follow git, as itos's
-      own footer rules should. footer-leading-blank then fires only where a trailer block is glued
-      to body lines, and bug-109's naming of the line still serves there. Every warning met on
-      2026-10-12 was a correct message.
 
   - id: p1-tests-list-format
     title: itos tests list has a form itos-cc mutation.tests.list reads as is
