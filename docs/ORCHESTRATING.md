@@ -83,7 +83,7 @@ handoff line below replaces the template's "wait for CI … close the item":
 
 - **Reads:** `AGENTS.md` (this repository's rules, which add to `itos guide
   work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the item rests on, and the earlier items'
-  commits (`itos work show <id>`, `node tools/changelog.ts --scenario <id>`).
+  commits (`itos work show <id>`, and `git show <sha>` for a commit's body).
 - **For a feat or a fix:** run `go run ./tools/bin/previous-release`, and name
   in a `Changes:` footer any old scenario or non-help corpus case the change
   alters on purpose. A case can be named by a unique prefix of its name, so
@@ -118,12 +118,7 @@ q-41 permits independent work while CI is pending; red repairs take priority
 before further landings. Repair agents hand back commits for the coordinator
 to land, without pushing their branches. Keep worktrees and scratch files
 inside this directory. Each isolated agent has a worktree under
-`.claude/worktrees/`. In each one:
-
-- symlink `node_modules` to the main checkout's instead of running `pnpm
-  install`, for the TypeScript self-tests and runners that import from it
-  (no hook needs it);
-- pull with `--no-autostash` before each push.
+`.claude/worktrees/`, and pulls there with `--no-autostash` before each push.
 
 ## Lessons from this repository
 

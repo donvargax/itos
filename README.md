@@ -579,7 +579,6 @@ too, and a rebase it runs carries them.
 ## Working on it
 
 ```sh
-pnpm install                             # the Node tools the hooks and CI still run
 tools/bin/itos hook install              # itos's hooks, in the git config, once per clone
 git config hook.repo-pre-commit.event pre-commit             # this repository's own
 git config hook.repo-pre-commit.command tools/bin/pre-commit # pre-commit hook, likewise

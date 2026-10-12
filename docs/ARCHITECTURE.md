@@ -7,9 +7,8 @@ stays a map:
 - **What one Go package does, how and why** is that package's doc comment, in
   a `doc.go` beside its code (`go doc ./internal/<pkg>`), changed in the same
   commit as the code. Read it before touching the package.
-- **What landed, and when** is the history: `node tools/changelog.ts`, or
-  `node tools/changelog.ts --task <id>` and `--scenario <id>` for one task's or
-  one scenario's commits.
+- **What landed, and when** is the history: `itos work show <id>` lists one
+  item's commits, and `git show <sha>` prints a commit's body.
 - **Why it is so** is a decision record in `docs/decisions/` when it was a
   decision, a task's `why` in `tasks/*.yaml`, a scenario's comment in its
   feature file.
@@ -27,8 +26,6 @@ stays a map:
 | `tools/bin/*/` (Go)         | The gates, the release's programs, the inbox: each `go run ./tools/bin/<name>`, documented in `main.go`.   |
 | `tools/bin/*` (sh)          | `dev-version`, `go-unit-tests`, `pinned`, `install-launcher`; Go starts one through `repo-program`.        |
 | `tools/selftest/`           | The gates' self-tests that test no one program (Go), and `scratch`, what every self-test shares.           |
-| `tools/parity/`             | What a TypeScript tool said, which `tools/bin/parity` holds its Go replacement to (T-143, T-149).          |
-| `tools/changelog.ts`        | The changelog's filter over git-cliff.                                                                     |
 | `itos.yaml`                 | This repository's policy: every rule a command can decide.                                                 |
 | `tasks/`                    | The ledger (`phase-<n>.yaml`), the work registry (`work-items.yaml`), the questions (`asks.yaml`).         |
 | `docs/`                     | This map, `PHASES.md`, `ORCHESTRATING.md` (the repository's notes for `itos go`), `CLI.md`, decisions.     |
@@ -43,9 +40,8 @@ itos is Go. `go.mod` is the module `github.com/donvargax/itos/v8`: from v2 a
 module path ends in its major version or Go refuses its tag, so the path
 moves before a major release, and `tools/bin/release-version` refuses a
 version whose major the path does not match. Go is pinned by its `toolchain`
-line; the dependencies are few and held to the dependency check. Node runs
-only this repository's tooling (the changelog, the plugin's tests); no
-consumer of itos needs it.
+line; the dependencies are few and held to the dependency check. Nothing
+here needs Node (T-149); the plugin's TypeScript hooks run in Claude Code.
 
 ## How a run goes
 
@@ -378,7 +374,7 @@ request's base, else at `commits.since` when no green run is found, empty
 meaning run everything, and is written to the job's
 environment once, so the commit re-check and the plan read the same range.
 `itos verify` re-checks every commit of the range after `commits.since`. The
-workflow sets up Node and Go from `go.mod`, builds itos once (`Build itos`)
+workflow sets up Go from `go.mod`, builds itos once (`Build itos`)
 before any step calls it, and fetches dprint and actionlint, which the plan's
 own steps run. Claude Code is not installed: no step of a push's plan runs
 it, the nightly's plugin steps do.
@@ -463,10 +459,6 @@ upgrade asset; `deps-check`'s, `schema-contract`'s, `plugin-version`'s and
 Node; `ci-mutation-budget`: the mutation commands. The GitHub
 providers' choice of run, which no command reaches without a network, is
 their unit tests' and the fake GitHub's scenarios.
-
-**The changelog** (`tools/changelog.ts`, `cliff.toml`): git-cliff groups the
-commits by type, each with its footers and body, into `docs/changelog/`,
-which git, the formatter, the linter and the audit ignore.
 
 **Agents' worktrees** live under `.claude/worktrees/`, ignored by git and
 left out of the linter and the formatter: their files are theirs.

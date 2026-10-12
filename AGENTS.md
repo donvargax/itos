@@ -15,8 +15,8 @@ feature files in `features/` (read its README), run by godog against the
 binary; the conformance corpus in `tools/itos/conformance/` records what it
 does; tasks are in `tasks/` (read its README). `docs/ARCHITECTURE.md` maps how
 the code fits together; what one package does, and why, is its doc comment
-(`doc.go`). `node tools/changelog.ts --task <id>` or `--scenario <id>` prints
-one task's or one scenario's commits. `CONTRIBUTORS.md` lists who works here,
+(`doc.go`). `tools/bin/itos work show <id>` lists one item's commits, and
+`git show <sha>` prints a commit's body. `CONTRIBUTORS.md` lists who works here,
 `tasks/work-items.yaml` who owns what (`docs/PHASES.md` explains it), and
 `tools/bin/itos work` what you can start next.
 
@@ -92,7 +92,6 @@ is reported by CI if it is in the smoke set, else by the nightly.
 
 ## What no gate does for you
 
-- `pnpm install` after pulling, when the lockfile changed.
 - `tools/bin/itos task <id>`: CI runs the checks of every task your commits
   name, the push does not. An `after: push` check stays pending until the
   commit is on the remote.
