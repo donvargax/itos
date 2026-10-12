@@ -8498,14 +8498,15 @@ items:
       corpus; a bounded -fuzztime run in the nightly, the found inputs kept as regression seeds.
     tags: [tests]
 
-  - id: p1-moves-going-live
-    title: The moves rule tells a scenario going live from a live one changed, and gives existing behaviour and perf guards a way live
+  - id: slice-134
+    title: "A scenario goes live outside feat and fix when Scenarios: names it and the commit changes no code under test"
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-moves-going-live.
       #55 (2026-10-12) and its comment: outside feat and fix, dropping @wip is refused as 'changes
       the live scenario', which misnames it; a project adopting scenarios for behaviour its code
       already has, or a perf or refactor task landing the guard scenarios it rests on, has no honest
