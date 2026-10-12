@@ -85,6 +85,7 @@ func TestListedLeavesOutARegistryWhyRepeatingTheLedgers(t *testing.T) {
 		{"One  para.\n\nTwo.\n", "  One para.\nTwo.", false},
 		{"The ledger says why.\n", "The ledger says why.\n", false},
 		{"The ledger says why.\n", "An idea's reasons.", true},
+		{"Why.\n", "Because.", true},
 		{"", "The registry says why.", true},
 		{"The ledger says why.\n", nil, true},
 	} {
