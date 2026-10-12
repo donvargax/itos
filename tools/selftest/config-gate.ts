@@ -28,7 +28,7 @@ const { dir, sh, git, edit, commit, hookRun } = repo;
 const messages = mkdtempSync(join(tmpdir(), "config-gate-selftest-msg-"));
 const attempt = (files: string[], message: string) => {
 	git(`add -- ${files.join(" ")}`);
-	const preCommit = sh("sh .vite-hooks/pre-commit");
+	const preCommit = sh("sh tools/bin/pre-commit");
 	if (preCommit.status !== 0) return { stopped: "pre-commit", output: preCommit.output };
 	const file = join(messages, "COMMIT_EDITMSG");
 	writeFileSync(file, message);

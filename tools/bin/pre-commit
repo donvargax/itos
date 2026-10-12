@@ -1,0 +1,95 @@
+#!/bin/sh
+# pre-commit: this repository's own pre-commit hook (T-142), declared in the git config beside
+# itos's commit-msg and pre-push (decision 37), so every worktree of a clone runs it. Once per
+# clone, from its top folder:
+#
+#   git config hook.repo-pre-commit.event pre-commit
+#   git config hook.repo-pre-commit.command tools/bin/pre-commit
+#
+# It formats what is staged and stages it again: Markdown and YAML by dprint (dprint.json says
+# which files), Go by gofmt, then go vet when Go is staged. A file with changes left unstaged is
+# only checked, never rewritten, since its working copy is not what is committed. Then, unless
+# every staged file is prose or itos's own data, the dependency check when go.mod or go.sum is
+# staged, the unit tests the change reaches and fallow's audit.
+#
+# git hands a hook the index it commits from (GIT_INDEX_FILE) and, in a linked worktree,
+# GIT_DIR. The git commands here read and write that index on purpose; tools/bin/go-unit-tests
+# drops them before any test runs, as a test's scratch repository would otherwise be this one.
+set -eu
+cd "$(dirname -- "$0")/../.."
+
+# The staged files (added, copied, modified or renamed) the pathspecs match, one a line.
+staged() {
+	git diff --cached --name-only --diff-filter=ACMR -- "$@"
+}
+
+# gofmt -l, failing when it names a file.
+gofmt_check() {
+	unformatted=$(gofmt -l "$@")
+	[ -z "$unformatted" ] || {
+		printf '%s\n' "$unformatted"
+		return 1
+	}
+}
+
+# Formats the given files with $1 and stages them again; a file with unstaged changes is checked
+# with $2 instead. Each command takes the file names last.
+format() {
+	fix=$1 check=$2
+	shift 2
+	whole="" partial=""
+	for f in "$@"; do
+		if git diff --quiet -- "$f"; then whole="$whole $f"; else partial="$partial $f"; fi
+	done
+	if [ -n "$whole" ]; then
+		# shellcheck disable=SC2086 # the commands and the file lists are words: no tracked path holds a space
+		$fix $whole
+		# shellcheck disable=SC2086
+		git add -- $whole
+	fi
+	if [ -n "$partial" ]; then
+		# shellcheck disable=SC2086
+		$check $partial || {
+			echo "pre-commit: the files above are unformatted and have unstaged changes; format and stage them" >&2
+			exit 1
+		}
+	fi
+}
+
+# shellcheck disable=SC2046 # the file lists are words
+format "tools/bin/pinned dprint fmt --allow-no-files" "tools/bin/pinned dprint check --allow-no-files" \
+	$(staged '*.md' '*.yaml' '*.yml')
+gofiles=$(staged '*.go')
+if [ -n "$gofiles" ]; then
+	# shellcheck disable=SC2086
+	format "gofmt -w" gofmt_check $gofiles
+	# go vet reads packages, not files: the whole module.
+	go vet ./...
+fi
+
+# Prose and itos's own data need no test or audit gate: Markdown, docs/**, tasks/** (the ledger
+# and the work registry) and feature files. itos.yaml, the ledger, the registry and the smoke set
+# are checked by the commit-msg hook (itos hook commit-msg), from the staged tree.
+if [ -z "$(git diff --cached --name-only --diff-filter=ACMRD -- . ':(exclude)*.md' ':(exclude)docs/**' ':(exclude)tasks/**' ':(exclude)features/**/*.feature')" ]; then
+	exit 0
+fi
+# The dependency check (T-067) when go.mod or go.sum is staged, where a module can come in: no
+# module younger than 7 days unless deps-check.json excepts it, then govulncheck. It asks the
+# module proxy and the vulnerability database, so it needs the network, as the go get that
+# changed them did. Before the unit tests, which would run a new module's code.
+if [ -n "$(git diff --cached --name-only -- go.mod go.sum)" ]; then
+	go run ./tools/bin/deps-check
+fi
+# The unit tests the staged change reaches, itos's Go packages': the packages it touches and
+# those that import them (tools/bin/go-unit-tests, which pre-push runs too, through itos.yaml's
+# hooks.pre_push). Nothing when no file under cmd/ or internal/, nor go.mod or go.sum, is
+# staged. The whole suite is CI's.
+tools/bin/go-unit-tests --cached
+# fallow's audit of the TypeScript, new findings only (T-148 replaces it); skipped until the
+# repository has a first commit to diff against. From node_modules (pnpm install).
+git rev-parse --verify HEAD >/dev/null 2>&1 || exit 0
+[ -x node_modules/.bin/fallow ] || {
+	echo "pre-commit: node_modules/.bin/fallow is missing: run pnpm install" >&2
+	exit 1
+}
+node_modules/.bin/fallow audit --quiet --gate-marker pre-commit

@@ -6,7 +6,7 @@
 //
 // commitlint left this repository when it switched to the built-in lint, so
 // rerunning this needs it back first, in a scratch checkout of your own
-// (`vp add -D @commitlint/cli @commitlint/config-conventional`), and the
+// (`pnpm add -D @commitlint/cli @commitlint/config-conventional`), and the
 // fixture it writes is the one header-agreement.ts reads,
 // tools/selftest/header-agreement.json.
 //

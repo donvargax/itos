@@ -1,12 +1,12 @@
-// vp run changelog                        write the changelog to docs/changelog/CHANGELOG.md
-// vp run changelog -- --task T-010        print only the commits whose Task: footer names it
-// vp run changelog -- --scenario @ID-APP-01   the same for a Scenarios: footer
+// node tools/changelog.ts                         write the changelog to docs/changelog/CHANGELOG.md
+// node tools/changelog.ts --task T-010            print only the commits whose Task: footer names it
+// node tools/changelog.ts --scenario @ID-APP-01   the same for a Scenarios: footer
 //
 // The history is the changelog: git-cliff reads the Conventional
 // Commits with the root cliff.toml, grouped by type, newest first, each with
 // its short SHA, its Task: / Scenarios: footers and its body. The file is
-// written on demand into docs/changelog/, which git, the formatter, the linter
-// and the audit ignore, so nothing committed can be stale. git-cliff has no filter
+// written on demand into docs/changelog/, which git, the formatter and the
+// audit ignore, so nothing committed can be stale. git-cliff has no filter
 // by footer, so a filtered run takes its context (the parsed commits as JSON),
 // keeps the commits that name the id and renders that. Always `--offline`: no
 // remote is read or linked.
@@ -47,7 +47,7 @@ const names = (footer: Footer, id: string) =>
 		.map((token) => token.replace(/^@/, ""))
 		.includes(id.replace(/^@/, ""));
 
-// `vp run changelog -- --task <id>` hands the script its `--` as well.
+// A leading `--`, as a package script hands one on, is dropped.
 const args = process.argv.slice(2);
 const [flag, id] = args[0] === "--" ? args.slice(1) : args;
 if (flag === undefined) {
@@ -72,6 +72,6 @@ if (flag === undefined) {
 	const named = releases.filter((release) => release.commits.length > 0);
 	process.stdout.write(cliff(["--from-context", "-"], JSON.stringify(named)));
 } else {
-	console.error("usage: vp run changelog [-- --task <T-id> | -- --scenario <@ID-…>]");
+	console.error("usage: node tools/changelog.ts [--task <T-id> | --scenario <@ID-…>]");
 	process.exit(2);
 }

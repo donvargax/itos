@@ -45,6 +45,11 @@ jobs:
       - name: Build itos
         run: tools/bin/itos version
       - run: vp install
+      # dprint, for the plan's format step (T-142): fetched and checked against the SHA-256
+      # tools/bin/pinned holds, and its plugins against those dprint.json holds, here, so the step
+      # itself asks no network.
+      - name: dprint
+        run: tools/bin/pinned dprint output-resolved-config > /dev/null
       # Where the range starts, computed once for every step below: a pull
       # request's base, else the last green run on main, else empty (run
       # everything). See `tools/bin/itos ci range --help`. Read from --json, since

@@ -7,7 +7,7 @@ coverage/
 *.log
 *.local
 .fallow/
-# The changelog, written on demand from the commits by `vp run changelog`.
+# The changelog, written on demand from the commits by `node tools/changelog.ts`.
 docs/changelog/
 
 # Editor directories and files

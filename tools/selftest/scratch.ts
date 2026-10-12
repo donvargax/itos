@@ -154,7 +154,7 @@ export function scratchRepo(name: string) {
 				throw new Error(`could not copy the working tree:\n${applied.output}`);
 		}
 		const untracked = sh(
-			`${shGit()} ls-files --others --exclude-standard -- tools .vite-hooks features`,
+			`${shGit()} ls-files --others --exclude-standard -- tools features`,
 			undefined,
 			root,
 		);
@@ -173,8 +173,8 @@ export function scratchRepo(name: string) {
 	// hands its environment to the hooks and all they run, so an include
 	// matched to the copy's git dir leaves every other repository, the unit
 	// tests' among them, as it was. core.hooksPath, an empty folder there,
-	// keeps the checkout's own hook folder (vp's core.hooksPath names it) from
-	// running beside them, so a hook run is what the git config declares.
+	// keeps a hook folder the checkout's core.hooksPath may name from running
+	// beside them, so a hook run is what the git config declares.
 	// Made once, after open.
 	let hooks = "";
 	const declareHooks = () => {
@@ -224,8 +224,8 @@ export function scratchRepo(name: string) {
 
 // The real hooks, run in a scratch copy and timed for the report, and the
 // problems a self-test collects instead of stopping at the first: pre-commit,
-// vp's, from its file; commit-msg and pre-push, itos's, as git runs them from
-// the copy's git config (hookRun).
+// this repository's own, from its file (tools/bin/pre-commit); commit-msg and
+// pre-push, itos's, as git runs them from the copy's git config (hookRun).
 export function hookGates({ sh, git, hookRun }: ReturnType<typeof scratchRepo>) {
 	const problems: string[] = [];
 	const timings: string[] = [];
@@ -241,7 +241,7 @@ export function hookGates({ sh, git, hookRun }: ReturnType<typeof scratchRepo>) 
 	};
 	const preCommit = (label: string) => {
 		git("add -A");
-		return gate(`pre-commit, ${label}`, "sh .vite-hooks/pre-commit");
+		return gate(`pre-commit, ${label}`, "sh tools/bin/pre-commit");
 	};
 	const commitMsg = (label: string, file: string) =>
 		gate(`commit-msg, ${label}`, hookRun("commit-msg", [file]));

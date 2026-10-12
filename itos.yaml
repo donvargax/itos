@@ -152,8 +152,12 @@ tests: # named tests, each kind behind an adapter (internal/tests)
 ci:
   env: { CI: "1" }
   steps: # every step of CI, in order; each states its cost
-    - { run: vp check, cost: static }
-    - { run: "! gofmt -l features cmd internal | grep .", cost: static } # names each file gofmt would change
+    # The Markdown and YAML as dprint formats them (dprint.json, T-142), which the pre-commit hook
+    # does to what it stages; a file it would change fails, named. ci.yml fetches dprint and its
+    # plugins before the plan, so the step asks no network.
+    - { run: tools/bin/pinned dprint check, cost: static }
+    # gofmt names each file it would change.
+    - { run: "! gofmt -l features cmd internal | grep .", cost: static }
     - { run: go vet ./..., cost: static }
     # The three workflows (T-008's check, kept as a step in T-125): their expressions, the inputs
     # of the actions they use and the shell of each run: (shellcheck). Nothing else lints them:
@@ -161,7 +165,8 @@ ci:
     # nightly.yml only at night. ci.yml installs it for this step.
     - { run: actionlint, cost: static }
     - { run: tools/bin/itos tests smoke check scenario, cost: static }
-    - { run: tools/bin/itos config check, cost: static } # the config, the ledger, the registry, the smoke set
+    # The config, the ledger, the registry, the smoke set.
+    - { run: tools/bin/itos config check, cost: static }
     # This repository's own ci.prose.paths (T-008's check, kept as a step in T-125): none of them,
     # which reach the ledger, the registry, a feature, the config or code, takes the prose shortcut
     # down. The corpus proves the shortcut over its own configurations, never over these paths.
@@ -198,7 +203,7 @@ ci:
     # the step above and tools/bin/go-unit-tests take ./cmd/... ./internal/... alone, so these ran
     # only when a push named a task that listed them. It settles idea p1-tools-bin-unit-tests-in-ci.
     - { run: "go test ./tools/...", cost: late }
-    - { run: vp run audit, cost: late }
+    - { run: node_modules/.bin/fallow audit --quiet, cost: late }
     # The conformance corpus: what itos did when it was written, as cases run
     # through its command line; a regression corpus, not named tests. Against
     # tools/bin/itos, the Go binary built from this tree.
@@ -216,9 +221,9 @@ ci:
     # Nothing else runs tools/bin/inbox.ts.
     - { run: node tools/bin/inbox.ts --self-test, cost: late }
     # The changelog generator (T-010's check, kept as a step in T-125): tools/changelog.ts still
-    # runs over this history, and every session is sent to it. vp check type-checks it and nothing
-    # ran it; the weakest of the kept checks, as it guards a tool rather than a gate.
-    - { run: vp run changelog, cost: late }
+    # runs over this history, and every session is sent to it; the weakest of the kept checks, as
+    # it guards a tool rather than a gate.
+    - { run: node tools/changelog.ts, cost: late }
     # Three gates' own self-tests (T-067's, T-070's and T-074's checks, kept as steps in T-125),
     # each one the gate's refusals: a young module refused or excepted and a govulncheck finding
     # failing, a breaking schema change refused unless marked, a plugin version unraised or lowered
@@ -237,7 +242,7 @@ ci:
   prose: # a range that touches only these runs only the prose steps
     paths: ["**/*.md", "docs/**"]
     steps: # CONTRIBUTORS.md, the people, is Markdown
-      - vp check
+      - tools/bin/pinned dprint check
       - tools/bin/itos config check
       - 'go run ./tools/bin/plugin-version -range-from "${FROM-}"' # the plugin's skill is Markdown
       - go run ./tools/bin/doc-budget # the docs' byte budget: docs-only pushes are where they grow
@@ -247,7 +252,7 @@ ci:
     # static sh -c check says `cost: static` in the ledger. A command whose
     # first word is hooks.bin (tools/bin/itos) is read as starting with itos.
     static:
-      - "^vp check$"
+      - "^tools/bin/pinned dprint check$"
       - "^itos (tests smoke check|commit|verify|ci (plan|scope|range)|work|config check)\\b"
       - "^actionlint\\b"
       - "^git ls-remote "
