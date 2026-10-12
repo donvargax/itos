@@ -7147,8 +7147,8 @@ items:
   - id: T-149
     title: This repository has no package.json and no node_modules
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-142, T-143, T-144, T-146, T-148]
     kind: task
     why: >
