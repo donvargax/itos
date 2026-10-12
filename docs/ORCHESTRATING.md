@@ -17,9 +17,11 @@ release and what is unreleased, the person's work, the queue's next items and
 the open questions. Read these too:
 
 - **A red nightly's failures:** `gh run view <id> --log-failed`, the id from
-  the status's Nightly line, or the open "Nightly red" issue. Every feature,
-  the gates' self-tests and every done task's checks run only there, so a
-  change that reaches scenarios no push names shows up the next morning.
+  the status's Nightly line, or the open "Nightly red" issue. The gates'
+  self-tests, the features under hostile PATHs, 20 fresh mutation sites and
+  the release's verification run only there, so a change that reaches what
+  no push judges shows up the next morning. A closed task's checks run
+  nowhere: `work done` takes them out of the ledger (ADR-0043).
   **A red nightly is the first item**, a `fix` handed to an agent before any
   new work. It is also the next fix release.
 - **The inbox:** `node tools/bin/inbox.ts` (below).
