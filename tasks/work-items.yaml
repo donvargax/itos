@@ -8589,3 +8589,17 @@ items:
       user (2026-10-12): its own item, not waiting on p2-adopt-go-template-itos, which had folded it
       in on 2026-10-11.
     tags: [ci, hooks]
+
+  - id: p1-pin-actions-by-sha
+    title: Every action in the workflows is pinned to a commit SHA, the tag in a comment beside it
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The workflows pin actions inconsistently (the #41 progress report, 2026-10-12): the platform
+      jobs by commit SHA, the ci job by tag (actions/checkout@v4), and a tag can move under a
+      release. The user (2026-10-12): its own item, not waiting on p2-adopt-go-template-itos, which
+      had folded in p2-harvest-pinned-actions on 2026-10-11.
+    tags: [ci]
