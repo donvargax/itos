@@ -123,12 +123,13 @@ type scratchConfig struct {
 }
 
 // The built-in moves rule as the kind's range check: its name (moves when
-// empty), the types it leaves alone, and the renames it allows, each an ID
-// and its new name.
+// empty), the types it leaves alone, the renames it allows, each an ID and
+// its new name, and its code, the paths of the code under test.
 type moves struct {
 	name        string
 	exceptTypes []string
 	renames     [][2]string
+	code        []string
 }
 
 // A kind of tests beside the scenario kind, behind a command adapter: its
@@ -339,6 +340,12 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^the committed feature file "([^"]*)" with the live scenario "([^"]*)"$`, w.committedFeatureFile)
 	sc.Step(`^the kind's range check is the built-in moves rule, except for "([^"]*)"$`, w.movesRule)
 	sc.Step(`^the moves rule allows renaming "([^"]*)" to "([^"]*)"$`, w.movesAllowRename)
+	sc.Step(`^the moves rule's code is "([^"]*)"$`, w.movesCode)
+	sc.Step(`^the committed feature file "([^"]*)" with the wip scenario "([^"]*)"$`, w.committedWipFeatureFile)
+	sc.Step(`^the scenario "([^"]*)" is staged live$`, func(id string) error {
+		return w.stageScenarioEdit(id, dropWip)
+	})
+	sc.Step(`^a new live scenario "([^"]*)" is staged in "([^"]*)"$`, w.stageNewLiveScenario)
 	sc.Step(`^a change to the steps of the scenario "([^"]*)" is staged$`, func(id string) error {
 		return w.stageScenarioEdit(id, changeSteps)
 	})
@@ -947,6 +954,9 @@ func (w *world) writeConfig() error {
 		}
 		fmt.Fprintf(&b, "      - name: %s\n        builtin: moves\n        except_types: [%s]\n",
 			name, strings.Join(m.exceptTypes, ", "))
+		if len(m.code) > 0 {
+			fmt.Fprintf(&b, "        code: [%s]\n", strings.Join(yamlQuoted(m.code), ", "))
+		}
 		if len(m.renames) > 0 {
 			b.WriteString("        allowed_renames:\n")
 			for _, r := range m.renames {
@@ -1925,8 +1935,70 @@ func (w *world) movesAllowRename(id, name string) error {
 	return w.writeConfig()
 }
 
+// The moves rule's code: the comma-separated paths of the code under test.
+func (w *world) movesCode(paths string) error {
+	if w.config.moves == nil {
+		return errors.New("the kind's range check is not the moves rule")
+	}
+	w.config.moves.code = nil
+	for _, p := range strings.Split(paths, ",") {
+		w.config.moves.code = append(w.config.moves.code, strings.TrimSpace(p))
+	}
+	return w.writeConfig()
+}
+
+// Each text in double quotes, as YAML reads it.
+func yamlQuoted(texts []string) []string {
+	out := make([]string, len(texts))
+	for i, t := range texts {
+		out[i] = fmt.Sprintf("%q", t)
+	}
+	return out
+}
+
+// A feature file under features/ with one @wip scenario, committed as the
+// test commit that specifies it, with whatever else the working tree holds.
+func (w *world) committedWipFeatureFile(file, id string) error {
+	if w.scenarioFiles == nil {
+		w.scenarioFiles = map[string]string{}
+	}
+	w.scenarioFiles[id] = file
+	text := fmt.Sprintf("Feature: %s\n\n  %s @wip\n  Scenario: %s runs\n    When it runs\n", file, id, id)
+	if err := w.write(filepath.Join("features", file), text); err != nil {
+		return err
+	}
+	return w.commit("test: specify the scenario " + id + "\n\nTask: T-001\n")
+}
+
+// A live scenario written at the end of a feature file under features/,
+// the file made when it has none, staged.
+func (w *world) stageNewLiveScenario(id, file string) error {
+	if w.scenarioFiles == nil {
+		w.scenarioFiles = map[string]string{}
+	}
+	w.scenarioFiles[id] = file
+	path := filepath.Join("features", file)
+	text, err := os.ReadFile(filepath.Join(w.dir, path))
+	if errors.Is(err, os.ErrNotExist) {
+		text, err = []byte("Feature: "+file+"\n"), nil
+	}
+	if err != nil {
+		return err
+	}
+	block := fmt.Sprintf("\n  %s\n  Scenario: %s runs\n    When it runs\n", id, id)
+	if err := w.write(path, string(text)+block); err != nil {
+		return err
+	}
+	return w.git("add", "--", path)
+}
+
 // An edit of a scenario's text: its steps changed, or its name.
 type scenarioEdit func(text, id string) string
+
+// dropWip takes the @wip tag off the scenario's tag line, bringing it live.
+func dropWip(text, id string) string {
+	return strings.Replace(text, "  "+id+" @wip\n", "  "+id+"\n", 1)
+}
 
 func changeSteps(text, id string) string {
 	return strings.Replace(text, "    When it runs\n", "    When it runs twice\n", 1)
