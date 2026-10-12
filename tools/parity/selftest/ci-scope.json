@@ -1,0 +1,55 @@
+{
+	"was": "node tools/selftest/ci-scope.ts",
+	"run": [
+		"go",
+		"test",
+		"-count=1",
+		"-json",
+		"-run",
+		"^TestSelftest$",
+		"./tools/selftest/ci-scope"
+	],
+	"env": [
+		"ITOS_SELFTEST=1"
+	],
+	"read": "go-test",
+	"test": "TestSelftest",
+	"cases": [
+		{
+			"name": "the docs and the root prose are prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "a decision record is prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "prose beside a Go source is not prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "the ledger is not prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "a feature file is not prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "package.json is not prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "go.mod is not prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "a workflow is not prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "a range with no start runs everything",
+			"verdict": "pass"
+		}
+	]
+}

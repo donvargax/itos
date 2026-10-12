@@ -1,0 +1,151 @@
+{
+	"was": "node tools/selftest/schema-contract.ts",
+	"run": [
+		"go",
+		"test",
+		"-count=1",
+		"-json",
+		"-run",
+		"^TestSelftest$",
+		"./tools/bin/schema-contract"
+	],
+	"env": [
+		"ITOS_SELFTEST=1"
+	],
+	"read": "go-test",
+	"test": "TestSelftest",
+	"cases": [
+		{
+			"name": "the release's own schema passes with no change",
+			"verdict": "pass"
+		},
+		{
+			"name": "a key removed is refused with no breaking-change commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "a key removed passes with a BREAKING-CHANGE footer",
+			"verdict": "pass"
+		},
+		{
+			"name": "a key removed passes with a ! header",
+			"verdict": "pass"
+		},
+		{
+			"name": "a type narrowed is refused with no breaking-change commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "a type narrowed passes with a BREAKING-CHANGE footer",
+			"verdict": "pass"
+		},
+		{
+			"name": "a type narrowed passes with a ! header",
+			"verdict": "pass"
+		},
+		{
+			"name": "an enum value removed is refused with no breaking-change commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "an enum value removed passes with a BREAKING-CHANGE footer",
+			"verdict": "pass"
+		},
+		{
+			"name": "an enum value removed passes with a ! header",
+			"verdict": "pass"
+		},
+		{
+			"name": "a key newly required is refused with no breaking-change commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "a key newly required passes with a BREAKING-CHANGE footer",
+			"verdict": "pass"
+		},
+		{
+			"name": "a key newly required passes with a ! header",
+			"verdict": "pass"
+		},
+		{
+			"name": "an object closed is refused with no breaking-change commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "an object closed passes with a BREAKING-CHANGE footer",
+			"verdict": "pass"
+		},
+		{
+			"name": "an object closed passes with a ! header",
+			"verdict": "pass"
+		},
+		{
+			"name": "a default changed is refused with no breaking-change commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "a default changed passes with a BREAKING-CHANGE footer",
+			"verdict": "pass"
+		},
+		{
+			"name": "a default changed passes with a ! header",
+			"verdict": "pass"
+		},
+		{
+			"name": "a default changed in a map's entries is refused with no breaking-change commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "a default changed in a map's entries passes with a BREAKING-CHANGE footer",
+			"verdict": "pass"
+		},
+		{
+			"name": "a default changed in a map's entries passes with a ! header",
+			"verdict": "pass"
+		},
+		{
+			"name": "a key added passes and is printed",
+			"verdict": "pass"
+		},
+		{
+			"name": "a type widened passes and is printed",
+			"verdict": "pass"
+		},
+		{
+			"name": "an enum value added passes and is printed",
+			"verdict": "pass"
+		},
+		{
+			"name": "range-from checks nothing for a range of a docs commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "range-from checks a range with a feat",
+			"verdict": "pass"
+		},
+		{
+			"name": "a keyword the comparison does not read stops it",
+			"verdict": "pass"
+		},
+		{
+			"name": "the downloaded schema is compared",
+			"verdict": "pass"
+		},
+		{
+			"name": "a release without the schema stops it",
+			"verdict": "pass"
+		},
+		{
+			"name": "no network stops it",
+			"verdict": "pass"
+		},
+		{
+			"name": "no release tag passes, saying so",
+			"verdict": "pass"
+		},
+		{
+			"name": "a shallow clone stops it",
+			"verdict": "pass"
+		}
+	]
+}

@@ -1,0 +1,47 @@
+{
+	"was": "node tools/selftest/features-scope.ts",
+	"run": [
+		"go",
+		"test",
+		"-count=1",
+		"-json",
+		"-run",
+		"^TestSelftest$",
+		"./tools/selftest/features-scope"
+	],
+	"env": [
+		"ITOS_SELFTEST=1"
+	],
+	"read": "go-test",
+	"test": "TestSelftest",
+	"cases": [
+		{
+			"name": "the whole run is every live scenario",
+			"verdict": "pass"
+		},
+		{
+			"name": "the smoke run is the smoke set",
+			"verdict": "pass"
+		},
+		{
+			"name": "a range naming a scenario runs the smoke set and it",
+			"verdict": "pass"
+		},
+		{
+			"name": "the nightly runs every scenario first, and the gates self-test",
+			"verdict": "pass"
+		},
+		{
+			"name": "a range CI cannot read runs everything",
+			"verdict": "pass"
+		},
+		{
+			"name": "a range naming tasks runs one go test run, over the smoke set",
+			"verdict": "pass"
+		},
+		{
+			"name": "the smoke rule holds today",
+			"verdict": "pass"
+		}
+	]
+}

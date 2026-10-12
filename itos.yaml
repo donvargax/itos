@@ -72,12 +72,12 @@ commits:
       - go.sum
       - .gitignore
       - .editorconfig
-      # Until the push that deleted .vite-hooks/pre-commit (T-142) is green: itos verify judges a
-      # range's commits by the config at its tip, which must still let that build commit touch it.
-      - ".vite-hooks/**"
       - ".github/**"
       - "tools/bin/**"
       - "tools/selftest/**"
+      # What a TypeScript tool said, recorded before its Go replacement deletes it, which
+      # tools/bin/parity holds the replacement to (T-143 to T-147); T-149 deletes both.
+      - "tools/parity/**"
       - tools/changelog.ts
       - .claude/settings.json
     # itos itself, its Go packages since the TypeScript v0 left (T-062): the
@@ -85,14 +85,15 @@ commits:
     implementation:
       - "{cmd,internal}/**/*.go"
     # The gates themselves: the config, the workflows, the hooks (tools/bin/pre-commit beside
-    # itos's), their Go code and self-tests, the dependency check's exceptions and the formatter's
-    # config. Only build and ci, which need a Task, may touch them (T-098); every other type that
-    # could has them in never.
+    # itos's), their Go code and self-tests, the records parity holds a port to, the dependency
+    # check's exceptions and the formatter's config. Only build and ci, which need a Task, may
+    # touch them (T-098); every other type that could has them in never.
     gates:
       - itos.yaml
       - ".github/**"
       - "tools/bin/**"
       - "tools/selftest/**"
+      - "tools/parity/**"
       - deps-check.json
       - dprint.json
   scopes: # the paths each commit type may touch (tasks/README.md's table)

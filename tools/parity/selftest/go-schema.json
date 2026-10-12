@@ -1,0 +1,55 @@
+{
+	"was": "node tools/selftest/go-schema.ts",
+	"run": [
+		"go",
+		"test",
+		"-count=1",
+		"-json",
+		"-run",
+		"^TestSelftest$",
+		"./tools/bin/config-schema"
+	],
+	"env": [
+		"ITOS_SELFTEST=1"
+	],
+	"read": "go-test",
+	"test": "TestSelftest",
+	"cases": [
+		{
+			"name": "the schema is JSON Schema 2020-12, every keyword one it knows",
+			"verdict": "pass"
+		},
+		{
+			"name": "this repository's itos.yaml passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "every config config check calls sound passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "every corpus config the schema refuses is one itos refuses",
+			"verdict": "pass"
+		},
+		{
+			"name": "every config config check refuses for what the schema says the schema refuses",
+			"verdict": "pass"
+		},
+		{
+			"name": "a misspelt key is refused, by the schema and by config check",
+			"verdict": "pass"
+		},
+		{
+			"name": "a wrong type is refused, by the schema and by config check",
+			"verdict": "pass"
+		},
+		{
+			"name": "a value not allowed is refused, by the schema and by config check",
+			"verdict": "pass"
+		},
+		{
+			"name": "the schema validated something",
+			"verdict": "pass"
+		}
+	]
+}

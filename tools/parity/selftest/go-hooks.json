@@ -1,0 +1,47 @@
+{
+	"was": "node tools/selftest/go-hooks.ts",
+	"run": [
+		"go",
+		"test",
+		"-count=1",
+		"-json",
+		"-run",
+		"^TestSelftest$",
+		"./tools/selftest/go-hooks"
+	],
+	"env": [
+		"ITOS_SELFTEST=1"
+	],
+	"read": "go-test",
+	"test": "TestSelftest",
+	"cases": [
+		{
+			"name": "pre-commit tests what a harmless change reaches, and passes it",
+			"verdict": "pass"
+		},
+		{
+			"name": "pre-push tests what that change reaches, and passes it",
+			"verdict": "pass"
+		},
+		{
+			"name": "pre-commit refuses a change that breaks a unit test",
+			"verdict": "pass"
+		},
+		{
+			"name": "pre-push refuses that change",
+			"verdict": "pass"
+		},
+		{
+			"name": "a change to go.mod tests every package",
+			"verdict": "pass"
+		},
+		{
+			"name": "a Markdown-only commit runs no Go test",
+			"verdict": "pass"
+		},
+		{
+			"name": "a prose-only push runs no Go test",
+			"verdict": "pass"
+		}
+	]
+}

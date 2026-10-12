@@ -1,0 +1,59 @@
+{
+	"was": "node tools/selftest/go-dogfood.ts",
+	"run": [
+		"go",
+		"test",
+		"-count=1",
+		"-json",
+		"-run",
+		"^TestSelftest$",
+		"./tools/selftest/go-dogfood"
+	],
+	"env": [
+		"ITOS_SELFTEST=1"
+	],
+	"read": "go-test",
+	"test": "TestSelftest",
+	"cases": [
+		{
+			"name": "the PATH built without node holds go, git and sh but no node",
+			"verdict": "pass"
+		},
+		{
+			"name": "version runs with no node, building the binary",
+			"verdict": "pass"
+		},
+		{
+			"name": "config check runs with no node",
+			"verdict": "pass"
+		},
+		{
+			"name": "task list runs with no node",
+			"verdict": "pass"
+		},
+		{
+			"name": "a call with nothing changed builds nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "a Go source added rebuilds the binary",
+			"verdict": "pass"
+		},
+		{
+			"name": "a Go source removed rebuilds the binary",
+			"verdict": "pass"
+		},
+		{
+			"name": "a new commit restamps the binary",
+			"verdict": "pass"
+		},
+		{
+			"name": "a Go source that does not compile exits 3, naming the build",
+			"verdict": "pass"
+		},
+		{
+			"name": "the build fixed runs again",
+			"verdict": "pass"
+		}
+	]
+}
