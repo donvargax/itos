@@ -8761,3 +8761,27 @@ items:
       the footer as git reads trailers, the last paragraph alone, which would end the false warnings
       (#21), stays p1-lint-leading-blank-hash-line, the user's call.
     tags: [commit, message]
+
+  - id: bug-110
+    title: Footers are read as git reads trailers, the message's last paragraph, by the footer rules and the header lint alike
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      From p1-lint-leading-blank-hash-line (#21) and the user's call (2026-10-12): footers follow
+      git, the header keeps commitlint's parity. Today itos's footer rules read any line of the
+      message beginning '<Key>:' as that footer (IDs and Texts in internal/message/footers.go scan
+      every line), so a wrapped body line beginning 'Task:, Item: or…' was read as a Task footer and
+      refused (slice-127's feat, 2026-10-11), and a footer above more prose counts though git, and
+      so git log's trailers, do not see it. The built-in lint reads the footer as
+      conventional-commits-parser does, from the first line beginning with a word and ': ' or ' #',
+      mid-paragraph included, so footer-leading-blank warned on correct messages (four times on
+      2026-10-12). Both read the footers as git interpret-trailers does: the last paragraph, when
+      its lines are trailers (a key, a colon, a value, continuation lines indented).
+      footer-leading-blank then fires only where a trailer line is glued to body lines in the last
+      paragraph, naming the line as bug-109 made it. A line beginning with a word and ' #' is prose.
+      The hook, check-message, verify and CI's range reading agree. Probably the behaviour change of
+      a fix: a footer above the last paragraph no longer counts.
+    tags: [commit, message]
