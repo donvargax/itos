@@ -8407,5 +8407,11 @@ items:
       that leaves out files no Linux build compiles. The same run listed 22 uncovered changed lines
       in 7 functions and a survivor in initWrite (init.go:326) since 2026-10-08, which are the
       step's real work.
+
+      The exclusion is in place (6baa9772, T-161, the user's call of 2026-10-12): the nightly's
+      changed-sites step judges only the Go files of cmd and internal that a Linux build compiles,
+      from nightly-base -linux-files, so the windows file no longer keeps the night red. The idea is
+      now to remove that narrowing, passing cmd internal again, once an itos-cc release fixes
+      itos-cc#18.
     refs: [itos.yaml, internal/idcounter/counter_file_windows.go]
     tags: [ci]
