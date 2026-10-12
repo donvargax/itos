@@ -349,3 +349,48 @@ func TestLoadFailsWhereTheTypedConfigCannotBeRead(t *testing.T) {
 		}
 	}
 }
+
+// A range check's code (slice 134): its $path_sets expanded as
+// commits.scopes' are, a set the config lacks a problem; and refused, as
+// allowed_renames is, on a check that is not builtin: moves.
+func TestRangeCheckCode(t *testing.T) {
+	loaded, err := FromText("itos.yaml", `version: 1
+commits: { path_sets: { app: ["src/**", "go.mod"] } }
+tests:
+  scenario:
+    root: features
+    id: "ID-[A-Z]+-\\d+"
+    range_checks: [{ name: moves, builtin: moves, code: [$app, "cmd/**"] }]
+`, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := loaded.Tests.Values["scenario"].RangeChecks[0].Code, []string{"src/**", "go.mod", "cmd/**"}; !slices.Equal(got, want) {
+		t.Errorf("code %q, want %q", got, want)
+	}
+	_, err = FromText("itos.yaml", `version: 1
+tests:
+  scenario:
+    root: features
+    id: "ID-[A-Z]+-\\d+"
+    range_checks:
+      - { name: renames, staged: "true", allowed_renames: { ID-A-01: Opens }, code: ["src/**"] }
+      - { name: moves, builtin: moves, code: [$app] }
+`, false)
+	var e *Error
+	if !errors.As(err, &e) {
+		t.Fatalf("got %v", err)
+	}
+	var got []string
+	for _, p := range e.Problems {
+		got = append(got, p.Message)
+	}
+	want := []string{
+		"tests.scenario.range_checks[1].code names $app, which commits.path_sets does not have",
+		"tests.scenario.range_checks[0] has allowed_renames, which only builtin: moves reads",
+		"tests.scenario.range_checks[0] has code, which only builtin: moves reads",
+	}
+	if !slices.Equal(got, want) {
+		t.Errorf("problems %q, want %q", got, want)
+	}
+}

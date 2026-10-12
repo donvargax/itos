@@ -304,4 +304,15 @@ tests:
 	if got := m.footer("other"); got != "a footer whose source is { tests: other }" {
 		t.Errorf("a kind no footer names: %q", got)
 	}
+	bad := NewMoves(load(t, `version: 1
+commits: { types: [feat, test] }
+tests:
+  other:
+    root: other
+    id: "ID-[A-Z]+-\\d+"
+    range_checks: [{ name: moves, builtin: moves, except_types: [feat], code: ["?x"] }]
+`))
+	if _, err := bad.Between("test", "HEAD", "index", Change{Paths: []string{"x"}}); err == nil {
+		t.Error("the rule judged a commit by a glob JavaScript refuses")
+	}
 }
