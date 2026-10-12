@@ -6979,7 +6979,7 @@ items:
       repositories, so each script costs again.
 
   - id: p1-next-id-names-the-stem
-    title: tests next-id names the stem it wanted when given an area without its prefix
+    title: tests next-id takes an area without the id's prefix, or refuses naming the stem
     phase: 1
     owner: null
     status: todo
@@ -6991,6 +6991,10 @@ items:
       ID-UPGRADECMD. The refusal should name the stem it would accept (did you mean ID-UPGRADECMD),
       or take the area without the configured prefix. A wrong guess costs a round trip on the
       correct path, in every repository whose scenario ids carry a prefix.
+
+      #59 (2026-10-12), on 8.1.0: with id 'ID-[A-Z]+-\d+' and @ID-SEC-01 present, next-id scenario
+      SEC prints @SEC-1, an id the pattern does not match, unpadded, ignoring ID-SEC-01; only ID-SEC
+      gives @ID-SEC-02. Minting an id the kind's pattern refuses is a bug, not only a message.
 
   - id: p1-drop-done-dependency
     title: Dropping an idea already built frees the items that wait on it, as work done does
