@@ -23,6 +23,8 @@
 //
 //	  - was: the TypeScript the record was taken from, for people; parity does not run it.
 //	  - run: the replacement's command, its words as given (no shell), run at the repository's top.
+//	    One that starts go run <package> has the package built first and its binary run with the
+//	    rest, as go run exits 1 whatever code the program exits with (T-146).
 //	  - dir: the folder the command runs in instead, relative to the repository's top; optional.
 //	  - env: NAME=value entries laid over parity's own environment for that command. A value's
 //	    $NAME and ${NAME} are expanded from parity's environment, and $PARITY_ROOT is the
@@ -69,6 +71,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -291,8 +294,19 @@ func checkCases(cases []kase, key func(string) string, noSlash bool) error {
 
 // judge runs the record's command and reads what it says.
 func judge(r *record, root, dir string) {
-	cmd := exec.Command(r.Run[0], r.Run[1:]...)
-	cmd.Dir = filepath.Join(root, filepath.FromSlash(r.Dir))
+	run := r.Run
+	at := filepath.Join(root, filepath.FromSlash(r.Dir))
+	if len(run) > 2 && run[0] == "go" && run[1] == "run" && !strings.HasPrefix(run[2], "-") {
+		binary, err := goBuild(run[2], at)
+		if err != nil {
+			r.verdict = append(r.verdict, fmt.Sprintf("go build %s failed: %v", run[2], err))
+			return
+		}
+		defer os.RemoveAll(filepath.Dir(binary))
+		run = append([]string{binary}, run[3:]...)
+	}
+	cmd := exec.Command(run[0], run[1:]...)
+	cmd.Dir = at
 	cmd.Env = append(os.Environ(), expand(r.Env, root)...)
 	r.root = root
 	var out, errs bytes.Buffer
@@ -310,6 +324,26 @@ func judge(r *record, root, dir string) {
 	if len(r.verdict) > 0 && errs.Len() > 0 {
 		r.notes = append(r.notes, "its stderr:\n"+errs.String())
 	}
+}
+
+// goBuild builds the package pkg names, from the folder at, into a folder of its own, and returns
+// the binary's path.
+func goBuild(pkg, at string) (string, error) {
+	tmp, err := os.MkdirTemp("", "parity-")
+	if err != nil {
+		return "", err
+	}
+	binary := filepath.Join(tmp, "program")
+	if runtime.GOOS == "windows" {
+		binary += ".exe"
+	}
+	cmd := exec.Command("go", "build", "-o", binary, pkg)
+	cmd.Dir = at
+	if out, err := cmd.CombinedOutput(); err != nil {
+		os.RemoveAll(tmp)
+		return "", fmt.Errorf("%v\n%s", err, out)
+	}
+	return binary, nil
 }
 
 // expand is a record's env entries with $NAME and ${NAME} expanded from parity's environment,
