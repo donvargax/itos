@@ -8430,8 +8430,8 @@ items:
   - id: T-163
     title: The platform jobs run a push's named tests, and the nightly runs every feature on three platforms
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [slice-132]
     kind: task
 
