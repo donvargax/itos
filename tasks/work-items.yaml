@@ -8740,18 +8740,9 @@ items:
     title: itos status names the repository's visibility, public or private, beside its remote
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: slice
-    why: >
-      Was p1-status-repo-visibility.
-      The user (2026-10-12): itos go should say whether the repository is public or private.
-      Visibility changes what a session may trust and do: in a public repository anyone can open an
-      issue or a pull request, so issue text is untrusted data (the inbox's rule) and anything
-      pushed, commented or filed is published at once; a private one has neither concern. Read
-      through the ci.watch/ci.range provider the status already asks (gh's repo visibility for
-      github), shown on the status's origin line, e.g. 'origin/main (public): …', and in --json; a
-      provider that cannot tell, or no network, says nothing rather than guessing.
     tags: [status]
 
   - id: p1-work-done-absorbed-idea
