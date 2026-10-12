@@ -8545,3 +8545,17 @@ items:
       --print-defaults says so; --print-defaults could show them as commented examples, as it does
       tests.<kind>.
     tags: [ci, docs]
+
+  - id: p1-init-shim-under-pin
+    title: init under a pin looks for the git shim beside the cached release, not the git on the PATH
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #53 (2026-10-12): a pinned itos init runs from ~/.cache/itos/<version> and reports the shim
+      missing while git on the PATH is still the shim linking to the global itos, then advises
+      linking it into the cache folder, which is on no PATH and changes per pin. Look for the shim
+      as the unpinned run does: the first git on the PATH, and whether it links to an itos.
+    tags: [init]
