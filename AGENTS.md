@@ -137,6 +137,9 @@ list of its own; one you are unsure is real goes in your report. A scenario's re
 its tag line, a task's is its `why`, how a package works is its `doc.go`, how
 the pieces meet is `docs/ARCHITECTURE.md`, a decision is a record in
 `docs/decisions/`. Steps taken and counts a gate checks stay in the history.
+Code is king: a comment, or prose restating code, a workflow or a config, is
+written only where the code is ambiguous or serves a purpose it doesn't show
+(security, for one).
 
 <!-- itos:begin -->
 
