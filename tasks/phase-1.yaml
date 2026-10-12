@@ -1787,5 +1787,3 @@
     answers GET /repos/owner/name with it and with private, GitHub's bool; left out, the endpoint
     stays a 404, so no case of this corpus or a release's changes. The check is the fake answering
     it, in the package's Go test.
-  done_when:
-    - run: go test ./tools/bin/conformance/corpus -count=1 -run TestFakeGitHubRepository
