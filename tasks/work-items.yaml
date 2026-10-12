@@ -7261,7 +7261,7 @@ items:
       After T-144, so it is written once, in Go. Completes q-57's any-test half; the changed-lines
       half is itos-cc#33. If one shared support list (a fixture edit staling every listed kill)
       proves too coarse, itos-cc's follow-up gives each listed suite its own support.
-    refs: [itos-cc.yaml, tools/itos/conformance, tools/bin/itos-cc-tests.ts]
+    refs: [itos-cc.yaml, tools/itos/conformance, tools/bin/itos-cc-tests]
 
   - id: slice-119
     title: itos guide prints the procedure an agent reads before an action, and itos go is the coordinator's start
