@@ -56,6 +56,7 @@ phases:
 
 queue:
   - slice-132
+  - T-163
   - p1-guard-follows-cd
   - p1-task-add-promoted
   - p1-text-from-file
