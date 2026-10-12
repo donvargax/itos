@@ -8194,3 +8194,18 @@ items:
       owner and status todo, work done could set the owner to the person and close it in one commit;
       an item someone else owns is still refused.
     tags: [work]
+
+  - id: p1-pre-commit-windows
+    title: The pre-commit hook formats on Windows
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      T-142's pre-commit hook formats Markdown and YAML through tools/bin/pinned dprint, and
+      tools/bin/pinned knows Linux and macOS alone (exit 2 elsewhere), so on Windows (Git Bash)
+      every commit staging Markdown or YAML fails in the hook. vp staged, which it replaced, ran
+      there. CI is unaffected: the format step runs on Linux and the platform jobs run no hooks.
+      Either pinned learns dprint's Windows zip (x86_64-pc-windows-msvc) and Git Bash's uname, or
+      the hook says plainly that it cannot format there.
