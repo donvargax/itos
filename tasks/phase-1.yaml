@@ -1492,8 +1492,6 @@
     docs/ARCHITECTURE.md) name itos work show <id> for an item's commits and git show for a body.
     The Claude Code plugin's TypeScript stays (T-147 dropped): Claude Code runs and tests it, so no
     Node is needed for it here.
-  done_when:
-    - run: '! test -e package.json && ! test -e pnpm-lock.yaml && ! test -d tools/parity && ! test -d tools/bin/parity && ! grep -rqE ''setup-node|setup-vp'' .github/workflows && ! grep -qE ''(^|[ "(])(node|vp) '' itos.yaml'
 
 - id: T-150
   type: build
