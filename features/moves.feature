@@ -228,3 +228,34 @@ Feature: Live scenarios only move, by a rule itos ships
       """
     Then itos exits with code 1
     And its output says "changes the live scenario ID-A-01"
+
+  # Bug 108 (found by slice 134's agent, 2026-10-12; the user's call). On a
+  # Gherkin kind a live scenario that gained @wip passed the rule, while a
+  # command kind refused the same change. Turning a scenario wip takes it out
+  # of every run, so it weakens what the scenario guards as surely as changing
+  # its steps. Outside except_types it is refused, named for what it does; a
+  # type except_types names may still do it (18 holds before the fix).
+  @ID-MOVES-17 @bug-108 @wip
+  Scenario: The commit-msg hook rejects a test commit that turns a live scenario wip
+    Given the scenario "@ID-A-01" is staged wip
+    When the commit-msg hook checks the message:
+      """
+      test: set the scenario aside
+
+      Task: T-001
+      """
+    Then itos exits with code 1
+    And its output says "turns the live scenario ID-A-01 wip"
+
+  @ID-MOVES-18 @bug-108 @wip
+  Scenario: A type except_types names may turn a live scenario wip
+    Given the scenario "@ID-A-01" is staged wip
+    When the commit-msg hook checks the message "feat: set the scenario aside while its behaviour changes"
+    Then itos exits with code 0
+
+  @ID-MOVES-19 @bug-108 @wip
+  Scenario: verify rejects a commit of the range that turned a live scenario wip outside except_types
+    Given the commit "test: set the scenario aside" naming the task "T-001" and turning the scenario "@ID-A-01" wip on top of it
+    When itos verifies the commits after the first
+    Then itos exits with code 1
+    And its output says "turns the live scenario ID-A-01 wip"
