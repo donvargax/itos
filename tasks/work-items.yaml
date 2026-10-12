@@ -7092,22 +7092,9 @@ items:
     title: Markdown and YAML are formatted without vp, Go first, and itos declares the pre-commit hook in place of vp staged
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
-    why: >
-      The user's call (2026-10-10): this repository drops vp and Node; every tool is Go, and
-      Markdown, YAML, JSON and TOML are formatted by dprint, pinned by checksum through
-      tools/bin/pinned with each plugin's SHA-256 in dprint.json (Go has no Markdown formatter worth
-      adopting). None of it changes what itos does for consumers, whose repositories never carried
-      vp. First step: dprint replaces vp check's formatting and Oxfmt, with Markdown at textWrap
-      maintain so prose is not rewrapped, T-137's exclusion of itos's own tasks/*.yaml kept, and one
-      reformat commit for what dprint's output changes. The pre-commit hook moves to the git config
-      beside commit-msg and pre-push (decision 37), running dprint on the staged files, gofmt, go
-      vet and tools/bin/go-unit-tests, so .vite-hooks, vp staged, vite.config.ts, Oxlint and the
-      Vite+ block of AGENTS.md go. vp run scripts become the commands they ran.
-      p1-hook-env-unset-tracked is settled here: whatever the new hook needs to keep a hook's git
-      environment from the unit tests lives in the tracked hook.
 
   - id: T-143
     title: The gates' self-tests are Go tests, and tools/selftest holds no TypeScript

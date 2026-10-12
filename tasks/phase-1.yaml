@@ -1339,8 +1339,6 @@
     they ran. p1-hook-env-unset-tracked is settled here: whatever the new hook needs to keep a
     hook's git environment from the unit tests lives in the tracked hook. Its check also requires
     the chosen formatter to be a step of CI's plan, so dropping formatting cannot close it.
-  done_when:
-    - run: '! test -e vite.config.ts && ! test -d .vite-hooks && ! grep -qE ''vite-plus|"vite"|vitest'' package.json && ! grep -q ''vp check'' itos.yaml && tools/bin/itos ci plan --whole | grep -qE ''yamlfmt|markdownfmt|dprint'''
 
 - id: T-143
   type: ci
