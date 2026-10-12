@@ -120,3 +120,21 @@ Feature: The built-in header lint
     And its output names the rule "footer-leading-blank"
     And its output says "line 4"
     And its output says "with #, which is plain prose."
+
+  # Bug 110 (issue #21; the user's call, 2026-10-12): the lint reads the
+  # footer as git reads trailers, the last paragraph, so a body line
+  # beginning with a word and a colon, mid-paragraph, is prose and draws no
+  # warning when the footers stand after a blank line.
+  @ID-HEADER-09 @bug-110 @wip
+  Scenario: A body line beginning with a word and a colon draws no footer warning
+    When the commit-msg hook checks the message:
+      """
+      chore: tidy the readme
+
+      The paragraphs said the same thing twice, and the wrapped
+      scenarios: line below the first is prose.
+
+      Task: T-001
+      """
+    Then itos exits with code 0
+    And its output does not say "footer-leading-blank"
