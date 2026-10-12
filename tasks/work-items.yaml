@@ -7119,8 +7119,8 @@ items:
   - id: T-146
     title: "tools/bin's TypeScript programs (the inbox, build-go, itos-cc-tests, repo-program) are Go programs"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
