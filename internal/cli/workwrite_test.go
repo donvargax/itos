@@ -95,11 +95,11 @@ func asItWas(t *testing.T) {
 	}
 }
 
-func writeAndCommit(t *testing.T, cfg *config.Loaded, files []written, body string) (string, int, error, string) {
+func writeAndCommit(t *testing.T, cfg *config.Loaded, files []written, body string) (string, int, string, error) {
 	t.Helper()
 	var stdout, stderr strings.Builder
 	sha, code, err := writeCommitted(cfg, files, "docs: add T-2", body, Out{Stdout: &stdout, Stderr: &stderr})
-	return sha, code, err, stderr.String()
+	return sha, code, stderr.String(), err
 }
 
 // A commit a hook refuses puts every file back, file and index, the new one
@@ -108,7 +108,7 @@ func TestRollbackHookRefuses(t *testing.T) {
 	cfg := rollbackRepo(t)
 	refusingHook(t)
 	head := gitIn(t, "rev-parse", "HEAD")
-	sha, code, err, stderr := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
+	sha, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
 	if sha != "" || code != ExitPolicy || err != nil {
 		t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
 	}
@@ -128,7 +128,7 @@ func TestRefuseWithoutHooks(t *testing.T) {
 	cfg := rollbackRepo(t)
 	gitIn(t, "config", "--remove-section", "hook.itos-commit-msg")
 	head := gitIn(t, "rev-parse", "HEAD")
-	sha, code, err, stderr := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
+	sha, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
 	if sha != "" || code != 0 || kind.Of(err) != kind.Missing || !strings.Contains(err.Error(), "itos hook install") {
 		t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
 	}
@@ -143,7 +143,7 @@ func TestRollbackSecondWriteFails(t *testing.T) {
 	cfg := rollbackRepo(t)
 	files := rollbackFiles()
 	files[1].path = filepath.Join("missing", "new.yaml")
-	_, _, err, _ := writeAndCommit(t, cfg, files, "Add T-2.")
+	_, _, _, err := writeAndCommit(t, cfg, files, "Add T-2.")
 	if err == nil || !strings.Contains(err.Error(), filepath.Join("missing", "new.yaml")+" cannot be written") {
 		t.Fatalf("the error is %v", err)
 	}
@@ -154,7 +154,7 @@ func TestRollbackSecondWriteFails(t *testing.T) {
 // than any system lets a program be given, puts back what git add staged.
 func TestRollbackGitCannotStart(t *testing.T) {
 	cfg := rollbackRepo(t)
-	_, code, err, stderr := writeAndCommit(t, cfg, rollbackFiles(), strings.Repeat("word ", 1<<20))
+	_, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles(), strings.Repeat("word ", 1<<20))
 	if err == nil || !strings.Contains(err.Error(), "cannot run git") {
 		t.Fatalf("exit %d, the error is %v\n%s", code, err, stderr)
 	}
@@ -168,7 +168,7 @@ func TestRollbackGitAddFails(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(".git", "info", "exclude"), []byte("new.yaml\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, code, err, stderr := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
+	_, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
 	if code != ExitPolicy || err != nil {
 		t.Fatalf("exit %d, %v\n%s", code, err, stderr)
 	}
@@ -195,7 +195,7 @@ func TestRefuseUncommittedDeletion(t *testing.T) {
 				{path: "ledger.yaml", text: "- id: T-2\n", created: true},
 				{path: "registry.yaml", old: "items: []\n", text: "items:\n  - id: T-2\n"},
 			}
-			_, code, err, stderr := writeAndCommit(t, cfg, files, "Add T-2.")
+			_, code, stderr, err := writeAndCommit(t, cfg, files, "Add T-2.")
 			if code != ExitPolicy || err != nil {
 				t.Fatalf("exit %d, %v\n%s", code, err, stderr)
 			}
@@ -228,7 +228,7 @@ done
 		t.Fatal(err)
 	}
 	gitIn(t, "add", "--", "ledger.yaml")
-	sha, code, err, stderr := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
+	sha, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles(), "Add T-2.")
 	if sha == "" || code != 0 || err != nil {
 		t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
 	}
@@ -266,7 +266,7 @@ func TestCommitBodyWrapsClearOfFooters(t *testing.T) {
 			t.Fatalf("a plain wrap does not start a line with %q:\n%s", text, plain)
 		}
 		files := []written{{path: "registry.yaml", old: old, text: strings.Repeat("# edit\n", i+1) + old}}
-		if sha, code, err, stderr := writeAndCommit(t, cfg, files, body); sha == "" || code != 0 || err != nil {
+		if sha, code, stderr, err := writeAndCommit(t, cfg, files, body); sha == "" || code != 0 || err != nil {
 			t.Fatalf("got %q, exit %d, %v\n%s", sha, code, err, stderr)
 		}
 		old = files[0].text

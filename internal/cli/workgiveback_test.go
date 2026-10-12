@@ -37,18 +37,18 @@ func givingRepo(t *testing.T) {
 
 // giveBack runs work give-back in a fresh givingRepo, and gives its exit
 // code, error, stdout and stderr.
-func giveBack(t *testing.T, asJSON bool, args ...string) (int, error, string, string) {
+func giveBack(t *testing.T, asJSON bool, args ...string) (int, string, string, error) {
 	t.Helper()
 	givingRepo(t)
 	var stdout, stderr strings.Builder
 	code, err := workGiveBack(args, Out{Stdout: &stdout, Stderr: &stderr, JSON: asJSON})
-	return code, err, stdout.String(), stderr.String()
+	return code, stdout.String(), stderr.String(), err
 }
 
 // Slice 122: the person is work take's, the owner judged against them; one
 // id and several end alike for a person who is not among the people.
 func TestWorkGiveBack(t *testing.T) {
-	code, err, stdout, stderr := giveBack(t, false, "a", "--why", "Blocked.", "--as", "p")
+	code, stdout, stderr, err := giveBack(t, false, "a", "--why", "Blocked.", "--as", "p")
 	if code != 0 || err != nil || !strings.HasPrefix(stdout, "a is given back, todo again for p: committed ") ||
 		!strings.HasSuffix(stdout, " docs: give back a\n") {
 		t.Errorf("give-back a --as p: (%d, %v) %q %q", code, err, stdout, stderr)
@@ -56,7 +56,7 @@ func TestWorkGiveBack(t *testing.T) {
 	if text, _ := os.ReadFile("registry.yaml"); !strings.Contains(string(text), "{ id: a, title: A, phase: 1, owner: p, status: todo }") {
 		t.Errorf("give-back a --as p wrote:\n%s", text)
 	}
-	code, err, stdout, _ = giveBack(t, true, "a", "--why", "Blocked.", "--as", "p")
+	code, stdout, _, err = giveBack(t, true, "a", "--why", "Blocked.", "--as", "p")
 	var got struct {
 		OK     bool           `json:"ok"`
 		Item   map[string]any `json:"item"`
@@ -77,7 +77,7 @@ func TestWorkGiveBack(t *testing.T) {
 		{[]string{"a", "b", "--why", "Blocked.", "--as", "r"}, ExitMissing, "r"},
 		{[]string{"a", "b", "--why", "Blocked.", "--as", "p"}, ExitPolicy, "work give-back refuses b, so nothing is written"},
 	} {
-		code, err, _, stderr := giveBack(t, false, c.args...)
+		code, _, stderr, err := giveBack(t, false, c.args...)
 		if code != c.code || err != nil || !strings.Contains(stderr, c.says) {
 			t.Errorf("give-back %q: (%d, %v) %q", c.args, code, err, stderr)
 		}
@@ -85,7 +85,7 @@ func TestWorkGiveBack(t *testing.T) {
 			t.Errorf("give-back %q wrote the registry:\n%s", c.args, text)
 		}
 	}
-	code, err, stdout, _ = giveBack(t, true, "a", "b", "--why", "Blocked.", "--as", "r")
+	code, stdout, _, err = giveBack(t, true, "a", "b", "--why", "Blocked.", "--as", "r")
 	got.OK = true
 	if code != ExitMissing || err != nil || json.Unmarshal([]byte(stdout), &got) != nil || got.OK || !strings.Contains(stdout, "work-no-person") {
 		t.Errorf("give-back a b --as r --json: (%d, %v) %s", code, err, stdout)

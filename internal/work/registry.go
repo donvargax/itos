@@ -78,6 +78,7 @@ func parse(cfg *config.Loaded, text string) (Registry, error) {
 		return Registry{}, err
 	}
 	if raw == nil {
+		//lint:ignore ST1005 JavaScript's own TypeError, quoted verbatim as the TypeScript itos printed it; rewording it changes what itos prints
 		return Registry{}, fmt.Errorf("Cannot read properties of null (reading '%s')", cfg.Work.GroupsKey)
 	}
 	phases, err := groups(value.Prop(raw, cfg.Work.GroupsKey))
@@ -94,6 +95,7 @@ func parse(cfg *config.Loaded, text string) (Registry, error) {
 		for _, item := range list {
 			copied, ok := value.Copy(item).(*value.Map)
 			if item == nil {
+				//lint:ignore ST1005 JavaScript's own TypeError, quoted verbatim as the TypeScript itos printed it; rewording it changes what itos prints
 				return Registry{}, errors.New("Cannot read properties of null (reading 'depends_on')")
 			}
 			if !ok {

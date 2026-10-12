@@ -215,6 +215,8 @@ func Prop(v any, key string) any {
 
 // ErrMultipleDocuments is the `yaml` package's refusal of a stream of
 // several documents.
+//
+//lint:ignore ST1005 the yaml package's own message, quoted verbatim as the TypeScript itos printed it; rewording it changes what itos prints
 var ErrMultipleDocuments = errors.New("Source contains multiple documents; please use YAML.parseAllDocuments()")
 
 // Parse reads YAML text as the `yaml` package's parse does: null for an empty

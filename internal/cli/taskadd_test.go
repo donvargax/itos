@@ -330,7 +330,6 @@ func TestTaskAddWritesAndReportsMintedTask(t *testing.T) {
 	if code != 0 || err != nil || stdout.Len() != 0 || stderr.Len() != 0 {
 		t.Fatalf("quiet taskAdd = (%d, %v), stdout=%q stderr=%q", code, err, stdout.String(), stderr.String())
 	}
-	beforeLedger, beforeRegistry := string(ledgerText), string(registryText)
 	ledgerText, err = os.ReadFile(filepath.Join(dir, "tasks/phase-1.yaml"))
 	if err != nil || !strings.Contains(string(ledgerText), "id: T-004") {
 		t.Fatalf("ledger after quiet taskAdd = %q (%v), want T-004", ledgerText, err)
@@ -339,7 +338,7 @@ func TestTaskAddWritesAndReportsMintedTask(t *testing.T) {
 	if err != nil || !strings.Contains(string(registryText), "id: T-004") {
 		t.Fatalf("registry after quiet taskAdd = %q (%v), want T-004", registryText, err)
 	}
-	beforeLedger, beforeRegistry = string(ledgerText), string(registryText)
+	beforeLedger, beforeRegistry := string(ledgerText), string(registryText)
 	head := gitIn(t, "rev-parse", "HEAD")
 	stdout.Reset()
 	stderr.Reset()

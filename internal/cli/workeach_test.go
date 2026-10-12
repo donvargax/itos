@@ -26,12 +26,12 @@ const eachRegistry = "phases: { 1: null }\nqueue:\n  - a\nitems:\n" +
 
 // eachRun runs a registry command in a fresh repository whose registry is
 // the text, and gives its exit code, error, stdout and stderr.
-func eachRun(t *testing.T, registry string, run func([]string, Out) (int, error), json bool, args ...string) (int, error, string, string) {
+func eachRun(t *testing.T, registry string, run func([]string, Out) (int, error), json bool, args ...string) (int, string, string, error) {
 	t.Helper()
 	registryWriterRepo(t, registry)
 	var stdout, stderr strings.Builder
 	code, err := run(args, Out{Stdout: &stdout, Stderr: &stderr, JSON: json})
-	return code, err, stdout.String(), stderr.String()
+	return code, stdout.String(), stderr.String(), err
 }
 
 // Slice 118: each command that takes several ids, run with one id and with
@@ -66,21 +66,21 @@ func TestSeveralIDCommands(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			for _, args := range c.usage {
-				if code, err, _, _ := eachRun(t, eachRegistry, c.run, false, args...); code != 0 || err == nil || ExitCode(err) != ExitUsage {
+				if code, _, _, err := eachRun(t, eachRegistry, c.run, false, args...); code != 0 || err == nil || ExitCode(err) != ExitUsage {
 					t.Errorf("%q: (%d, %v), want a usage error", args, code, err)
 				}
 			}
 			for _, args := range [][]string{c.one, c.several} {
-				if code, err, stdout, stderr := eachRun(t, eachRegistry, c.run, false, args...); code != 0 || err != nil || !strings.Contains(stdout, "committed ") {
+				if code, stdout, stderr, err := eachRun(t, eachRegistry, c.run, false, args...); code != 0 || err != nil || !strings.Contains(stdout, "committed ") {
 					t.Errorf("%q: (%d, %v) %q %q", args, code, err, stdout, stderr)
 				}
 				// A registry that is not sound, one that cannot be edited
 				// in place and a commit a hook refuses each end it.
-				if code, err, _, _ := eachRun(t, "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, status: todo, depends_on: [nope] }\n", c.run, false, args...); code != ExitPolicy || err != nil {
+				if code, _, _, err := eachRun(t, "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, status: todo, depends_on: [nope] }\n", c.run, false, args...); code != ExitPolicy || err != nil {
 					t.Errorf("%q, a registry not sound: (%d, %v)", args, code, err)
 				}
 				flow := "{ phases: { 1: null }, queue: [a], items: [" + strings.Join(itemsOf(eachRegistry), ", ") + "] }\n"
-				if code, err, _, _ := eachRun(t, flow, c.run, false, args...); code != 0 || err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
+				if code, _, _, err := eachRun(t, flow, c.run, false, args...); code != 0 || err == nil || !strings.Contains(err.Error(), "cannot be edited in place") {
 					t.Errorf("%q, a flow registry: (%d, %v)", args, code, err)
 				}
 				registryWriterRepo(t, eachRegistry)
@@ -90,7 +90,7 @@ func TestSeveralIDCommands(t *testing.T) {
 				}
 			}
 			for _, args := range [][]string{c.refused, c.refusedSeveral} {
-				if code, err, _, stderr := eachRun(t, eachRegistry, c.run, false, args...); code != ExitPolicy || err != nil || stderr == "" {
+				if code, _, stderr, err := eachRun(t, eachRegistry, c.run, false, args...); code != ExitPolicy || err != nil || stderr == "" {
 					t.Errorf("%q: (%d, %v) %q, want refused", args, code, err, stderr)
 				}
 				if text, _ := os.ReadFile("registry.yaml"); string(text) != eachRegistry {
@@ -98,11 +98,11 @@ func TestSeveralIDCommands(t *testing.T) {
 				}
 			}
 			if c.same != nil {
-				if code, err, stdout, _ := eachRun(t, eachRegistry, c.run, false, c.same...); code != 0 || err != nil || !strings.Contains(stdout, "nothing to change") {
+				if code, stdout, _, err := eachRun(t, eachRegistry, c.run, false, c.same...); code != 0 || err != nil || !strings.Contains(stdout, "nothing to change") {
 					t.Errorf("%q: (%d, %v) %q", c.same, code, err, stdout)
 				}
 			}
-			code, err, stdout, _ := eachRun(t, eachRegistry, c.run, false, c.several...)
+			code, stdout, _, err := eachRun(t, eachRegistry, c.run, false, c.several...)
 			if code != 0 || err != nil || !strings.HasPrefix(stdout, c.says) || !strings.Contains(stdout, "docs: "+strings.ReplaceAll(c.name, "-", " ")+" ") {
 				t.Errorf("%q: %q", c.several, stdout)
 			}
@@ -125,7 +125,7 @@ func itemsOf(text string) []string {
 // a refusal the ids refused; -q prints nothing; a change already made
 // commits nothing.
 func TestWriteEachReports(t *testing.T) {
-	code, err, stdout, _ := eachRun(t, eachRegistry, workQueue, true, "c", "b", "--after", "a")
+	code, stdout, _, err := eachRun(t, eachRegistry, workQueue, true, "c", "b", "--after", "a")
 	var got struct {
 		OK     bool             `json:"ok"`
 		Items  []map[string]any `json:"items"`
@@ -136,7 +136,7 @@ func TestWriteEachReports(t *testing.T) {
 		got.Items[0]["id"] != "c" || strings.Join(got.Queue, " ") != "a c b" || got.Commit == nil {
 		t.Errorf("queue c b --after a --json: (%d, %v) %s", code, err, stdout)
 	}
-	code, err, stdout, _ = eachRun(t, eachRegistry, workResume, true, "c", "a", "z")
+	code, stdout, _, err = eachRun(t, eachRegistry, workResume, true, "c", "a", "z")
 	var refused struct {
 		OK       bool          `json:"ok"`
 		Refused  []string      `json:"refused"`
@@ -151,32 +151,32 @@ func TestWriteEachReports(t *testing.T) {
 	if code, err := workDrop([]string{"a", "b", "--why", "Gone."}, Out{Stdout: &quiet, Stderr: &quiet, Quiet: true}); code != 0 || err != nil || strings.Contains(quiet.String(), "dropped") {
 		t.Errorf("drop -q: (%d, %v) %q", code, err, quiet.String())
 	}
-	code, err, stdout, _ = eachRun(t, eachRegistry, workQueue, true, "b", "c", "--remove")
+	code, stdout, _, err = eachRun(t, eachRegistry, workQueue, true, "b", "c", "--remove")
 	if code != 0 || err != nil || json.Unmarshal([]byte(stdout), &got) != nil || got.Commit != nil {
 		t.Errorf("queue b c --remove of items not queued --json: (%d, %v) %s", code, err, stdout)
 	}
-	code, err, stdout, _ = eachRun(t, eachRegistry, workQueue, false, "b", "c", "--remove")
+	code, stdout, _, err = eachRun(t, eachRegistry, workQueue, false, "b", "c", "--remove")
 	if code != 0 || err != nil || stdout != "b and c are already out of the queue\nnothing to change\n" {
 		t.Errorf("queue b c --remove: (%d, %v) %q", code, err, stdout)
 	}
-	code, err, stdout, _ = eachRun(t, eachRegistry, workDrop, false, "a", "b", "--why", "Gone.")
+	code, stdout, _, err = eachRun(t, eachRegistry, workDrop, false, "a", "b", "--why", "Gone.")
 	if code != 0 || err != nil || !strings.HasPrefix(stdout, "a is dropped\nb is dropped\ncommitted ") {
 		t.Errorf("drop a b: %q", stdout)
 	}
-	code, err, stdout, _ = eachRun(t, "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, status: dropped }\n  - { id: b, title: B, phase: 1, status: dropped }\n",
+	code, stdout, _, err = eachRun(t, "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, status: dropped }\n  - { id: b, title: B, phase: 1, status: dropped }\n",
 		workDrop, false, "a", "b", "--why", "Gone.")
 	if code != 0 || err != nil || stdout != "a is already dropped\nb is already dropped\nnothing to change\n" {
 		t.Errorf("drop a b already dropped: (%d, %v) %q", code, err, stdout)
 	}
-	code, err, stdout, _ = eachRun(t, "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, status: dropped }\n", workDrop, false, "a", "--why", "Gone.")
+	code, stdout, _, err = eachRun(t, "phases: { 1: null }\nitems:\n  - { id: a, title: A, phase: 1, status: dropped }\n", workDrop, false, "a", "--why", "Gone.")
 	if code != 0 || err != nil || stdout != "a is already dropped; nothing to change\n" {
 		t.Errorf("drop a already dropped: (%d, %v) %q", code, err, stdout)
 	}
-	code, err, stdout, _ = eachRun(t, eachRegistry, workEdit, false, "a", "--title", "A, renamed", "--depends-on", "", "--tags", "")
+	code, stdout, _, err = eachRun(t, eachRegistry, workEdit, false, "a", "--title", "A, renamed", "--depends-on", "", "--tags", "")
 	if code != 0 || err != nil || !strings.HasPrefix(stdout, "a's title changed: committed ") {
 		t.Errorf("edit a --title: (%d, %v) %q", code, err, stdout)
 	}
-	code, err, stdout, _ = eachRun(t, eachRegistry, workQueue, false, "a", "b", "--after", "a")
+	code, stdout, _, err = eachRun(t, eachRegistry, workQueue, false, "a", "b", "--after", "a")
 	if code != ExitPolicy || err != nil {
 		t.Errorf("queue a b --after a: (%d, %v) %q", code, err, stdout)
 	}
