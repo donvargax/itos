@@ -1,0 +1,3894 @@
+{
+	"was": "node tools/itos/conformance/run.ts --bin tools/bin/itos",
+	"run": [
+		"go",
+		"run",
+		"./tools/bin/conformance",
+		"--bin",
+		"tools/bin/itos",
+		"--json"
+	],
+	"read": "verdicts",
+	"cases": [
+		{
+			"name": "ask.yaml: decision lists the open questions, each with the item it names",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision --all lists the answered questions after the open ones, each with its answer",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision --all gives each answered question's decision, and names none when every answer is recorded",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision show gives the question's decision",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision --json gives each question's decision, a number or none",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision refuses a decision that is neither a record's number nor none, and leaves the file as it is",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision --json lists the open questions",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision with no questions file says there are none",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision show prints an answered question and its answer",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision show prints an open question, its lines kept",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision show --json gives the question",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision show refuses an id no question has",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision show takes only a question's id",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision has no subcommand it does not know",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision add needs the question",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision add asks with the next free id, and commits the file alone, what else is staged left staged",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: the first decision add makes the file, its id q-1",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision add refuses an item the registry does not have, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision add refuses a questions file with changes no commit holds",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision add refuses a questions file itos did not write whole, and leaves it as it is",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision answer keeps the answer beside the question, and commits the file alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision answer refuses a question already answered",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision answer refuses an id no question has",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision answer needs the answer",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: under a stealth config decision add writes the questions beside its registry and commits nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: under a stealth config decision answer --json gives the question and no commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: work.asks moves the questions file",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record writes the answer as the first decision record, makes the index, notes the decision and commits them",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record --supersedes sets the old record's status, and the index keeps its own text and drops it",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record writes in the folder work.decisions names, numbered past the highest name there, and reads no .adr-dir",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record --none marks the answer as recorded nowhere, writes no record and commits the questions alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record refuses a question not answered",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record refuses a question already recorded",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record refuses to supersede a record the folder does not have, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record refuses an index with changes no commit holds, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record needs a title, or --none",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record --none takes no title",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record --option needs a value",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: decision record --supersedes takes a record's number",
+			"verdict": "pass"
+		},
+		{
+			"name": "ask.yaml: under a stealth config decision record writes the records in the git folder and commits nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a push's run, in cost order, with what it merged, covered, left out and left pending",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a check recognized as the smoke run is in the run of named tests",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: with an empty smoke set and no test named there is no such run, so the check runs as itself",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a failing check ends the run, naming the task",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a failing step ends the run with exit 1, naming its own exit code",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: with ci.stop_at_first_failure false every step and check runs, and the first failure is named",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: the same as --json, its verdict the first failure",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a code proof that finds a survivor fails the run, naming the problem, and --json carries it",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a code proof that cannot run fails the run, never a pass",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a CI with no tests step reads no kind of named tests and no smoke set",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a step and a check run through the config's shell",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a task no task file has fails the run before anything runs",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a task the ledger lacks is reported against the ledger's own folder",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: without work.registry, a named task waits on the registry beside a ledger in another folder",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: the tasks a range names are read from the ledger footer, whatever its key",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: the ledger folder missing stops the run at the plan, before any step",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a task not started is named, and its checks wait",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: a prose-only range runs the prose steps and says what it leaves out",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: --json keeps stdout for the verdict",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: --json of a run that passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: the nightly runs every scenario, then its own steps",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: the nightly refuses a tasks step, which v8 removed, before any step runs",
+			"verdict": "pass"
+		},
+		{
+			"name": "ci-run.yaml: with no range, every step and every test",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: an unknown command is a usage error",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: an unknown subcommand is a usage error",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: commit whose first argument is a flag is git commit, and gives git's exit code",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: commit --task needs an ID",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: commit --breaking needs a text",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: commit --scenarios needs a footer whose source is a kind of named tests",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: verify needs two commits",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: ci plan needs a range, --nightly or --whole",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: ci scope needs a range",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: ci range needs --head",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: commit check-paths needs --type",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: commit check-message needs a file or -",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: tests list needs a kind",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: tests smoke needs an action and a kind",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: hook install takes no --manager, which v6 removed with the hook managers",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: hook needs commit-msg or pre-push",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: pin takes a release's version",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: pin takes one version at most",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: pin takes no flag of its own",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: pin with no release server to ask exits 75, naming it, and leaves the config as it was",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: config needs check",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: version --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: a first argument --version is version",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: version --check passes when the binary satisfies requires",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: version --check fails when it does not",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: version --check --json says whether it is satisfied",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: every comparator of requires must hold (a lower and an upper bound)",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: an upper bound that fails",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: a bare version is an exact one",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: a bare version's missing parts are zero, so 0 is 0.0.0, not every 0.x",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: a v prefix and = are allowed",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: a comparator it cannot read never holds",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: greater than is strict",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: without requires every version is satisfied",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: a missing config is a config error",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: a config that is not version 1",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: version needs no config",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: version --json without a config leaves requires out",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: version without --check prints its version over a config it cannot read",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: --config names another config, wherever it stands",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: ITOS_CONFIG names another config",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: --root runs as if started in the folder",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: global flags before the command",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: followup needs a git repository, and no config",
+			"verdict": "pass"
+		},
+		{
+			"name": "cli.yaml: draft needs a git repository",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a sound config, ledger, registry and smoke set",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: the same as --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: quietly",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a missing people file is a warning, and the check passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: the same as --json, the warning with its rule and fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a YAML people file that is not a list is a warning, its owners unchecked",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a YAML people entry that is not a login is a warning",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: an .all-contributorsrc without a contributors list is a warning",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: an .all-contributorsrc contributor without a login is a warning",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a misspelt key names the key it misspells (typo.yaml)",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: the same as text",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: an unknown key far from any lists the keys there are",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: work.tags declares no empty tag and none twice",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: the keys of features not built yet are unknown, header_lint.use is builtin or command, and hooks.manager, removed in v6, is unknown",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: wrong types, a value not allowed, missing keys",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a config that is not a mapping",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: patterns that do not compile, and a ledger file name without its group",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: patterns RE2 does not have, a lookaround and a backreference, and a kind's ID pattern",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: patterns RE2 does not have, a repeat count above 1000, letter escapes and empty classes",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: names that refer to nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: an except in a scope with no never (config-scope-except)",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: the same as text, and commit check-paths refuses the config too",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a static check written below a late one (static-after-late)",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a check static by a pattern written below a late one is a warning (pattern-static-after-late)",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: the same as --json, the warning with its rule, fix and area",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: beside an explicit cost static below a late check, which still fails",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: without keep_written_order, a check static by a pattern below a late one is not reported",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a check that calls hooks.bin is read as itos by the patterns, one under another path as written",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: every problem of a task, as --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a ledger file that is not a list, and one that cannot be read",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: the registry's and the smoke set's problems beside the ledger's",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: no registry where itos looks is the registry's problem, naming the path",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: decision records that hold to both rules pass",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: decision records sharing a number, and one superseded by a record not there",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a smoke set that cannot be read is one problem",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a missing ledger folder is one problem naming it, exit 2",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a missing ledger folder as --json, the report with its rule and fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: commits.since naming a commit of the repository",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: commits.since that is not a full SHA",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: commits.since naming no commit of the repository",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: commits.since beyond a shallow clone's history",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: commits.since beyond a shallow clone's history, as JSON with its fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a footer of free text with a since naming a commit of the repository",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a footer of free text takes no key that reads IDs, and its since is a full SHA",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a footer's since naming no commit of the repository",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a hooks.commit_msg.check_timeout of no seconds is refused, since it would be no timeout",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: values a command misbehaves on are refused when the config loads, exit 2, each naming its key",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a value a command misbehaves on, as --json, the loader's problem with its rule and fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: values nothing reads as written are refused, exit 1, each naming its key",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a value nothing reads as written, as --json, with its rule, its fix and the config's area",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a ledger.group.pattern with its own anchors and {group} as a folder are refused, exit 1",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a ledger.files that matches work.registry is refused, naming both keys",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a question naming an item the registry does not have, with its rule and the area asks",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: an answered question naming an item the registry does not have is a warning, and the check passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: an open question naming a missing item is a problem, an answered one a warning, as --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a questions' file giving an id twice is refused, naming it",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a nightly tasks step is refused as the step v8 removed, whatever its value",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a tasks step is refused in ci.steps and the nightly, with a cost or beside a run, once a step",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: the defaults the tools take when a key is left out",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: the defaults put the registry in the folder of this config's ledger",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: with no config to read, the defaults put the registry in tasks/",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: the defaults as --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get prints a value the config sets, bare",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get prints the hooks.bin the config sets, not its default",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get prints a default the config leaves out",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get prints a number default bare",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get prints a boolean default",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get prints a kind's default under the kind the config has",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get prints a list as JSON on one line",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get prints a mapping as JSON on one line, defaults laid under it",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get prints nothing for a key with no value and no default",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get as --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get as --json, a key with no value null",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get reads a stealth config, whose hooks.bin is itos whatever it says",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get gives a stealth config's own data where itos reads it, beside it",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get from a subfolder reads the config at the repository's top",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get reads ci.watch's nightly workflow, a key itos status reads",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: ci.watch's nightly workflow has no default, so status prints no nightly",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get refuses a key v5 removed, saying what to do instead",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get refuses a key the config does not have, naming the keys there",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get refuses a key under a value that has none",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get needs one key",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: config get with no config to read fails as every command does",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a pin of a release with the SHA-256 of its checksums.txt is sound",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: a pin needs both its version and its checksums",
+			"verdict": "pass"
+		},
+		{
+			"name": "config.yaml: pin.version is a release's version and pin.checksums a SHA-256 in hex",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup lists the open threads, with their titles, people and last notes",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup --all lists the closed threads after the open ones",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup --json lists the open threads",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup with no threads says so",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup has no subcommand it does not know",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup refuses a follow-ups.yaml it does not write",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup refuses a follow-ups.yaml holding a second document, and leaves it as it is",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup refuses an empty follow-ups.yaml, which itos never writes, and leaves it as it is",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup show prints the times in the reader's zone",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup show prints the whole thread, every note in order",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup show prints a closed thread's date of closing",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup show --json is the thread as the file holds it",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup show refuses an id no thread has",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup doc writes the thread as Markdown, its folders made, and the thread records it",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup doc to a path git ignores writes it with no warning",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup doc to - prints the Markdown, writes no file and records nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup doc to - --json gives the Markdown beside the thread",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup doc writes nothing over a file already there",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup doc --force writes over a file already there",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup add opens a thread",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup add refuses an id a thread has, closed or not, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup add needs a person, a title and a note",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup add takes an id a command line can type",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup note adds a note, its words joined",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup note refuses an id no thread has",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup note needs a text",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup close closes a thread",
+			"verdict": "pass"
+		},
+		{
+			"name": "follow.yaml: followup close refuses a thread already closed, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: * matches a file at the root",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: * does not cross a slash",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: ** crosses slashes",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: ** after a folder does not match the folder's name alone, nor a longer name",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: **/ may match no folder at all",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: **/ still needs the rest to match",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: {a,b} is either",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: {a,b} is nothing else",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: a glob matches the whole path, not a part of it",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: a dot and the regular expression characters are literal",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: a $set stands for its path set",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: never rejects each path that matches",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: must_touch needs one path that matches",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: must_touch fails when none does",
+			"verdict": "pass"
+		},
+		{
+			"name": "globs.yaml: a path set the config lacks is a config error",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: guide work prints the implementer's guide outside a repository",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: go prints the coordinator's guide outside a repository",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: guide coordinate is go",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: go appends docs/ORCHESTRATING.md after a line of ---",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: go from a subfolder reads docs/ORCHESTRATING.md at the repository's top",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: go appends the file guide.orchestrating names",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: go reads a stealth config's guide.orchestrating beside it, in the git folder",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: config get gives a stealth config's guide.orchestrating beside it",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: guide with a name it has no guide by names those it has",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: guide needs a name",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: a procedure prints alone outside a repository",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: guide commit outside a repository prints how to commit alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: guide commit appends the commit policy the config sets",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: a procedure takes no argument",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: a procedure as --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: go takes no arguments",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: guide as --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: go as --json names the file it appended",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: go from a subfolder names the file it appended from there",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: go prints this clone's own notes under their heading, after the repository's",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: go as --json names this clone's own notes",
+			"verdict": "pass"
+		},
+		{
+			"name": "guide.yaml: go from a subfolder names this clone's own notes from there",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos task --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos task list --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos task add --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos task next-id --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work take --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work promote --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work done --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work add --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work edit --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work queue --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work drop --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work defer --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work resume --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work give-back --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work list --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work show --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos work check --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos decision --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos decision add --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos decision answer --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos decision record --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos decision show --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos followup --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos followup add --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos followup note --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos followup close --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos followup show --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos followup doc --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos draft --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos draft add --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos draft edit --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos draft promote --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos draft drop --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos commit --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos commit check-message --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos commit check-paths --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos commit footers --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos push --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos git-shim --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos pin --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos upgrade --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos init --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos verify --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos tests --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos tests list --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos tests smoke --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos tests moves --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos tests next-id --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos ci --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos ci plan --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos ci run --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos ci scope --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos ci range --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos ci watch --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos hook --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos hook commit-msg --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos hook pre-push --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos hook install --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos guard --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos guard claude-code --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos config --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos config check --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos config get --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos version --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos go --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos guide --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: itos status --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: a bare itos prints the help and exits 2",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: help <command> is the command's --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: -h is --help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: the help of the longest command path it knows",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: arguments after the command do not change its help",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: an unknown command's help is itos's",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: help with a topic that is no command exits 2, naming it",
+			"verdict": "pass"
+		},
+		{
+			"name": "help.yaml: version",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: hook install declares both hooks in the git config, and leaves the project's hooks and core.hooksPath alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: an entry already as hook install writes it is left unchanged",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: --print prints the git config's entries and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: --print --json gives the entries as data, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: an entry under itos's name that does not call itos is never replaced without --force",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: --force replaces an entry that does not call itos",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: --json of the entries",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a stealth config declares the hooks the same way, with its own hooks.bin",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a git that runs no hook its config declares makes hook install exit 3, naming the git to upgrade to",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: itos commit refuses, exit 3, where the git config declares no commit-msg hook of itos's, and commits nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: itos commit refuses, exit 3, with a git that runs no hook its config declares",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: itos push refuses, exit 3, where the git config declares no pre-push hook of itos's",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: commit-msg rejects a staged path the type may not touch",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: commit-msg runs the kind's staged range check for the commit's type",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a type the range check leaves out skips it",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: commit-msg then runs the footer rules when there is no header lint",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a sound commit passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a docs commit may name a task it need not carry",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: commit-msg rejects a staged ledger with a problem, read from the index",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: commit-msg rejects a staged registry with a problem",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: commit-msg rejects a staged itos.yaml with an unknown key, naming the key",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: staged data whose index holds no people file is not refused for it",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: staged data that cannot be read is rejected, saying why",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a commit that stages none of itos's data leaves it unchecked",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: commit-msg rejects a staged feature file with no smoke scenario, read from the index",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a commit that stages no test file runs no smoke rule",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a done task whose static check fails rejects the commit, with the check's output",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a task in progress whose static check fails is reported, and the commit goes through",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a task with no work item counts as in progress",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a task stops at its first failing check, and its checks that pass print nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: the checks stop at a task's first late one, by its cost or the patterns'",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: an after push check waits, since the commit being made is not pushed",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a check that outlasts hooks.commit_msg.check_timeout fails, naming the key",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a check's own shorter timeout is not the key's to name",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: hooks.commit_msg.task_checks false runs no task check",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a commit another rule rejects runs no task check",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: the header lint delegate gets the message file, and its exit code is the hook's",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: the footer rules run beside a delegate, and a failing delegate's code is the hook's",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a delegate that passes leaves the footer rules to reject the commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a message file path with a space and a quote reaches the delegate as one word",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: the built-in header lint reads the message file as commitlint --edit does, git's comment lines left out",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: the built-in header lint's problems and the footer rules' are both printed, and reject the commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: a warning of the built-in header lint is printed and does not reject the commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: the built-in header lint passes a blank message file, as commitlint --edit does",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: use builtin runs no hook delegate, though the config names one",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: pre-push runs the per-base command once per remote base",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: pre-push runs the whole command for a new branch",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: pre-push refuses a push over a remote commit the clone lacks, running no command",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: pre-push refuses a push that replaces the remote's commit with one not built on it, running no command",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: pre-push runs nothing for a deleted branch",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: pre-push fails when a command fails",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: under pre-commit or prek the refs come from the environment",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: under pre-commit with no remote ref, the whole run",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: pre-push refuses a pushed commit that breaks the commit rules, running no command, and says how to fix it",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: pre-push judges a new branch by the commits on no remote-tracking branch",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: pre-push without hooks.pre_push verifies alone, printing nothing for commits that pass",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: guard claude-code denies a git commit in an itos repository, naming itos commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: guard claude-code denies a git push later in a chain, naming itos push",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: guard claude-code names both commands for a commit and a push, from the folder itos runs in when the input names none",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: guard claude-code gives no answer to another git command",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: guard claude-code gives no answer to a git commit -C names outside the repository",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: guard claude-code gives no answer to another tool",
+			"verdict": "pass"
+		},
+		{
+			"name": "hooks.yaml: guard claude-code cannot read a Bash input with no command, and exits 1",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init refuses an argument it does not take, naming what it takes",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init's --git-shim-dir needs a folder",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init takes --git-shim or --no-git-shim, not both",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init's --git-shim-dir goes with --git-shim, not --no-git-shim",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init's --plugin takes a scope",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: under --stealth init refuses to install the plugin for the project",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init --stealth where the project has its own itos.yaml is a usage error, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init writes the starter config, its ledger and registry, pins nothing it cannot reach, and installs the hooks",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init with a config there writes nothing and lists what is missing, config check's problems and the hooks', then what it notes",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: with --plugin and no claude on the PATH init says Claude Code was not found, and does the rest",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: with --plugin project init adds the marketplace and installs the plugin, and names its settings in the commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: with no --plugin and nobody to ask init installs nothing and says how to",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: run again where nothing is missing, init notes a people file missing and reports a plugin not installed, and still exits 0",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: run again with the plugin installed, init's JSON says so, and what it notes",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: a claude that fails at the install is reported, exit 1, the rest of init done",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: with --agent-rules init writes its rules for agents at the end of AGENTS.md, its text kept, and CLAUDE.md imports it",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: with no --agent-rules and nobody to ask init writes no rules and says how to",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: run again, a block other than the one this itos writes is reported, naming itos init --agent-rules, and kept",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: an AGENTS.md with a begin marker and no end one is not written, exit 1, the rest of init done",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: under --stealth, --agent-rules writes the rules in the git folder, imported from CLAUDE.local.md and after a copy of AGENTS.md in AGENTS.override.md, both excluded",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: under --stealth a CLAUDE.local.md and an AGENTS.override.md of the person's keep their text and gain the block alone, never the copy",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: with no --agent-rules and nobody to ask, under --stealth init writes no rules and says how to",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init takes --agent-rules or --no-agent-rules, not both",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: with --git-shim init links itos as git in the folder --git-shim-dir names, and says where it stands on the PATH",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: with no --git-shim and nobody to ask init links nothing and says how to",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: run again with --git-shim, init links it and reports it in its JSON",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: run again with no --git-shim, init says how to link it and does not count it as missing",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: where no scenario carries an ID tag, the starter requires the Scenarios footer of no type, and init says how to tag one",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init's --policy needs a file",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init --policy writes the project's own config, never one --config names",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init --policy refuses a policy config check refuses before it runs git init",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init --policy refuses a policy that cannot name the file of group 1, nor hold T-1, writing nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init --policy refuses data written outside the project before it runs a command adapter's list",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init --policy derives a command adapter's smoke set from its list, run once in the project",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init --policy refuses a command adapter's list that fails, with its error, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: under --json init --policy refuses a list whose output the protocol refuses",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init --policy keeps a smoke set the project has when the smoke check passes over it, and names it in what to commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init --policy refuses a smoke set the project has that the smoke check refuses, with its problems, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: under --json init --policy refuses a smoke set the project has that is no list, writing nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: under --json init --policy keeps a command kind's smoke set the project has, its list run once for the check",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init --policy refuses a project's data that is there already, an empty registry too, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: under --json init --policy lists the config there already as refused",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: init --policy makes the policy, read from where it ran, the project's config at its top, with fresh data and HEAD as commits.since",
+			"verdict": "pass"
+		},
+		{
+			"name": "init.yaml: under --json and --stealth init --policy keeps the policy's pin, adds the starter's ledger and writes it all in the git folder",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a scenario now @wip is rejected in a new commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the message may come from a file",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: --at reads the scenarios at that commit, where it was live",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: --at still rejects a scenario that commit did not have",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: --at HEAD reads the scenario as @wip",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a task the ledger had at the commit passes there",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a task taken out of the ledger is unknown in a new commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the footers read the staged tree, not the working tree",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a task only the working tree has is unknown to a commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a commit that predates the ledger is read against the working tree, and says so",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the working tree still rejects a task it lacks",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a message that names no task reads no ledger, so a missing ledger folder is no problem",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a missing footer is judged without the ledger folder",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a task named when the ledger folder is missing is one problem naming the folder, exit 2",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the missing ledger folder as --json, with its rule and fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a type that needs a Task footer, without one",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a type that needs a Scenarios footer, without one",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a type that needs a free-text footer, without one",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the missing free-text footer as --json, with its fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: none says a consumer changes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a free-text footer passes with whatever it says",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: an empty free-text footer is no footer to a type that needs one",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: an empty free-text footer is rejected where the type validates it, beside one that says something",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: check-message requires a footer of a commit before its since, as the commit-msg hook does",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: commit footers lists a range's free-text footers with their commits, oldest first, leaving out none",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: commit footers as --json, each with its commit's full SHA and subject",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: commit footers from an empty start reads every commit up to the end",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: commit footers lists only a footer of free text",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: commit footers needs a name and a range",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: docs needs no footer",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a footer over several lines, with and without its prefix",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: an ID without the prefix is the same ID",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: every footer is checked, each problem on its line",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a Task footer on a type that needs none is still validated",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: --json gives each problem its rule and fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: an unknown task's fix names the ledger's own folder",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: --json of a missing footer",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: --json of a message that passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: another config's footer, required for its types, with its ID hint",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: another config's footer, given",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: validate_for all checks a type that need not carry it",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: without must_be_live a @wip scenario may be named",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a kind without wip_tag names the default one for a test not live",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: another config's footer hint for a kind of tests",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a footer the config does not define is not read",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: read_at worktree reads the working tree even at a commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: read_at commit reads that commit beside it",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a header lint delegate's report is printed as it comes, and its failure is the message's",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: --json reads the delegate's report into problems, each with its level and fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a message the delegate passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the footer rules run after a delegate that passes, and reject the message",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a delegate that fails without a report of its rules is one header-lint problem",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a delegate's footer rule gets the footer's fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint names a header without a type or a subject by commitlint's rules and words",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint takes its type list from commits.types, in lower case, and refuses a sentence-case subject and a full stop",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint names every case a subject is in",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint refuses a header with spaces around it",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint refuses a header over 100 characters, saying how long it is",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint refuses body and footer lines over 100 characters, but not a line with a URL",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint's warnings are printed and do not reject the message",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: --json gives the built-in lint's problems with their levels and fixes, then the footer rules'",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: --json of a message the built-in lint only warns about is ok",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the footer rules run beside the built-in lint when it passes the header",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint passes a sound message",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint leaves a merge's message alone, as commitlint does",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint leaves a revert's message alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint leaves a fixup's message alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: the built-in lint leaves a version alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a blank message has neither type nor subject for the built-in lint",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: a comment line is part of a message on stdin, as commitlint reads stdin",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: without commits.types the built-in lint's type list is config-conventional's",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: use builtin runs no delegate, though the config names one",
+			"verdict": "pass"
+		},
+		{
+			"name": "messages.yaml: use command runs the delegate, as a config with no use does",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: commit-msg rejects a test commit that changes a live scenario's steps",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: a type except_types names is left to its own rules",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: a message whose type is not one of commits.types is the header lint's, as a merge's is",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: a live scenario moved unchanged to a new file, the old one deleted, passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: @wip scenarios may change, and comment lines are never compared",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: a feature's description reworded is never compared",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: a description reworded beside a tag added above the Feature line is a changed header",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: the rename allowed_renames lists passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: a rename allowed_renames does not list is a change",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: an added and a lost live scenario and a changed header, each a problem",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: verify judges each commit against its parent, skipping except_types, and names a failing one under its report",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: the same as --json, the failing commit not ok",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: a root commit is judged against the empty tree",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: tests moves with nothing staged",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: tests moves names each problem of the staged feature files",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: tests moves allows the kind's allowed renames",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: tests moves as --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: tests moves needs a kind",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: tests moves of a kind the config does not have",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: tests moves of a kind whose adapter is a command",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: tests moves of a kind without a root, which has no default",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: config check refuses builtin beside a command, on a command kind without supports_at, and allowed_renames without builtin",
+			"verdict": "pass"
+		},
+		{
+			"name": "moves.yaml: builtin takes only moves",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: selections merge into one command, the IDs deduplicated, patterns joined",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a whole run wins over every selection",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: T-045's pair keeps its written order, the sh -c late by default",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a check said static below a late one is late by order",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a static check above a late one runs before the unit tests",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a code range plans every check of the task, its subset in the one run",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a prose range runs vp check and the static and prose checks, and lists what it leaves out",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: subsets merge into one run, a step covers a check, the nightly's check waits",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a named scenario joins the smoke set in the run",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a step that calls hooks.bin is read as itos by the patterns, one under another path as written",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a check that calls hooks.bin is read as itos by covers, nightly_only and recognize, one under another path as written",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: static checks first, the build's and the push's last",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a range that touches proof.code's paths plans the code proof, static and before the tests",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a range that touches none of proof.code's paths plans no code proof",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a task not started waits, an unknown one is listed",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: the plan as text, one item a line",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a plan with the ledger folder missing is one problem naming it, exit 2",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: the same as --json, the config error's report",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: an empty smoke set adds no pattern, so the run is the subsets alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: an empty smoke set and a range that names no test run no named tests",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: an empty smoke set and no test named leave no run, so the smoke run's check runs as itself",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: the same as --json, the check's action run",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: the nightly runs every test, then its own steps, and no check",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: the nightly's plan refuses a tasks step, which v8 removed, and plans nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a range with no start is unread, runs every test and the tasks every commit names",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: a start the repository does not have is unread",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: --whole plans every step with every test",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: --data-at reads the ledger, the registry and the smoke set at a commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: ci scope of a prose-only range",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: ci scope of a range that touches code",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: ci scope of a range that touches the ledger is not prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: ci scope of a range it cannot read is not prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: ci scope --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: without prose paths nothing is prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "plans.yaml: without a registry no task waits",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: push --force is a usage error naming why",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: push -f is a usage error naming why",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: push --force-with-lease is a usage error naming why",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: a + refspec is a usage error naming why",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: push takes no arguments but --no-wait, --tag and --ref",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: push --tag needs a tag's name",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: push --ref takes a branch's name, not a refspec",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: push outside a git repository is a missing environment",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: uncommitted changes to tracked files refuse the push",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: a detached HEAD is refused",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: no upstream and no origin is a missing environment",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: with no upstream it pushes to origin's branch of the same name, untracked files no reason to refuse",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: push --tag pushes the tag alone, to origin's tag of its name, the branch left where it was",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: nothing to push is success",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: nothing to push, as JSON",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: the remote's commits are fetched and the branch rebased onto them before the push, whatever pull.rebase says",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: a rebase that stops pushes nothing and says how to go on",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: a rebase in progress refuses the push",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: a push the pre-push hook refuses is reported with git's exit code",
+			"verdict": "pass"
+		},
+		{
+			"name": "push.yaml: only HEAD is pushed, the itos notes left behind whatever the config's push refspec says",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: an ancestor with a green run starts the range",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: the nearest first parent with a green run starts it, past one whose run failed",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: a green run on another branch counts",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: a green run off the head's history starts nothing, which runs everything",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: an API that refuses runs everything, and is not an error",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: a pull request keeps its base",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: provider none always runs everything",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: provider none still keeps a pull request's base",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: provider github without a repository runs everything, asking no one",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: with no green run the range starts at commits.since",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: a green run nearer than commits.since starts the range",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: an API that refuses starts the range at commits.since",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: provider none starts the range at commits.since",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: commits.since off the head's history starts nothing, which runs everything",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: a pull request keeps its base over commits.since",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: the command provider was removed in v5",
+			"verdict": "pass"
+		},
+		{
+			"name": "range.yaml: ci.range.github.branch was removed in v5",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: docs may touch prose, the ledger and the feature files",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: docs may not touch config, tools or source",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: from a subfolder, a path is read from it and named from the top",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: build may touch the root config, hooks, workflows, tools, index.html and src/main.ts",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: build may not touch the ledger, nor source beyond src/main.ts",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: ci follows the same rule as build",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: refactor may not touch the feature files",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: perf may not touch the feature files",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: test may touch e2e, unit tests, tools and the Playwright config",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: test may not touch source or prose",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: feat must change src or e2e",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: feat that changes e2e passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: fix must change src",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: chore may touch anything but src",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: style has no rule",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: a type with no scope passes any path (the header lint's business)",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: a type the config does not know passes any path",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: --json names each problem's rule and the types that would take the path",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: --json says must_touch's rule and fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: --json of a split that holds",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: --json of never's rule",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: except takes a path back out of never",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: --json of a path under never that except does not name",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: another project's rules, from the config ITOS_CONFIG names (lax-refactor)",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: another project's rejection message",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: without reject_message the rejection says Commit rejected",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: a scope for a type that is not a commit type is a config error",
+			"verdict": "pass"
+		},
+		{
+			"name": "scopes.yaml: a config without commits cannot check paths",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: the rule holds, a file with only @wip scenarios needing none",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: quietly",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: the rule as --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: a feature file with a live scenario and no smoke one",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: a smoke ID that is not a live scenario of its file",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: a file with more than one that does not say why, and one without its why",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: an entry for a file that is not a feature file",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: --features checks another folder of feature files",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: the hint when the config gives none",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: without tag_prefix, a smoke ID is read with the default prefix",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: a smoke file that is not a list",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: an entry with a key the shape does not have",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: a scenario without an id",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: an entry without a file",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: a why that is not text",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: a missing smoke file",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: a kind without a smoke file",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: with smoke.every_file false, a file with live tests may have no smoke test",
+			"verdict": "pass"
+		},
+		{
+			"name": "smoke.yaml: with smoke.every_file false, a smoke ID is still a live test",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status prints the remote's head and its CI run, the work and the open questions",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status --as lists another person's work",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: a run still going is said to be going, never waited for",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: a run that failed names the jobs that failed",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: the last nightly's run follows the head's, the jobs that failed named",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: a nightly still going is said to be going",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: a refusal from GitHub's API is a line for the run and the nightly, and the rest prints",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: with ci.watch.provider none the CI run is not read",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: while the head's run is going, main's last green commit follows it, before the nightly",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: a head's run that failed is followed by main's last green commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: no green run of the head's first parents names no last green commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: with ci.range's provider none no last green commit is read",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: when the head's run passed no last green commit is read",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: with no remote neither the head nor its CI run is read, and the rest prints",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: a remote that cannot be reached is read as last fetched",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: a remote without the branch has no head to read",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status lists five of the next items, and says how many more",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: a long question is cut short",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status --json lists what could not be reached",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status names itos init --agent-rules for a block another itos wrote",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status --json names the files holding a block another itos wrote",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status --json gives the last nightly's run",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status --json gives main's last green commit while the head's run is going",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status names the newest release and the feat, fix and breaking commits since it",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: the release is asked of the remote, whose tags this clone may not have",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: a remote that cannot be reached gives its release as last fetched",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: where the remote's head is not fetched here the commits since the release may be behind",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status --json gives the newest release and the headers of the commits since it",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status takes no arguments",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status --as someone not among the people is a missing environment",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: status with no work registry is refused",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: go ends with where things stand, after a line of ---",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: go with no work registry prints the guide and says the status is left out",
+			"verdict": "pass"
+		},
+		{
+			"name": "status.yaml: go --json gives the status as its object",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: one task runs verbosely, then its status line",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: a failing check fails the task, the rest still run",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: several tasks, one status line each",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: after push waits while no remote branch holds HEAD",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: after push runs once a remote branch holds HEAD",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: a check past its timeout fails",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: a group of tasks",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: --phase is --group",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: --<ledger.group.label> is --group",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: --phase is --group whatever the label",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: no task matches, the usage naming the label's flag",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: --pending shows the tasks not done",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: a task with no checks is done when its work item is, review when it is not",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: --pending leaves out a task with no checks whose work item is done",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: an ID the ledger does not have",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: with no ledger.id, an ID of any shape the ledger does not have",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: no task matches",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: a task run with the ledger folder missing is one problem naming it, exit 2",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: --json with each check's result, the verbose log on stderr",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: --json for several tasks",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list reads numeric groups in the order of their numbers",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list with the ledger folder missing is one problem naming it, exit 2",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list --json with the ledger folder missing is the config error's report",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list of a group",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list of a group by the label's flag",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list with the work registry's statuses, running no check",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list --json with the registry's statuses",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list reads the registry work.registry names",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list reads the registry beside a ledger in another folder, not tasks/",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task list with no registry beside a ledger in another folder names that path",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: a check two tasks list runs once, and both read its result",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: a command one task runs and another must fail runs once, each reading it its way",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: the same command with another timeout is another check",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: one task listing a check twice runs it once and says the second is reused",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: an after push check waits though another task ran its command",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: a ledger whose groups are names",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: a group by its name",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task add writes the task after the last of its group's file and its item into the registry, and commits both alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: under a stealth config task add makes the file of a group that has none, with a check's timeout, and commits nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task add refuses a caller-supplied id, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task add refuses a type commits.types does not list",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task add refuses a group the registry does not list, as work check would, writing nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task add refuses a group ledger.group.pattern does not match",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task add needs a check",
+			"verdict": "pass"
+		},
+		{
+			"name": "tasks.yaml: task add takes a timeout only after a check",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: every feature file and scenario, a file-level @wip making its scenarios not live",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: the listing as text",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: the listing at a commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: the listing of the staged tree",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: a tree that names no commit is refused, naming it",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: a command adapter is listed as the command prints it",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: a command adapter that cannot list a tree reads the working tree, and says so",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: a footer names a command adapter's tests",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: a footer naming a test the adapter does not list",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: a footer naming a test that is not live, where the kind has no wip tag",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: the warning that a tree is read as the working tree comes once a run",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: an adapter that fails, with what it said",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: an adapter that prints no JSON",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: an adapter that speaks another protocol",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: an adapter that lists no files",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: an adapter whose test lacks a field",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: an adapter that is not built in",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: a kind the config does not have",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: the smoke run is the kind's select template over the smoke IDs, the arguments after the kind passed on",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: a -- right after the kind is taken, so itos's own flags after it reach the runner, and is not passed on",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: an empty smoke set runs nothing, and says so",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: the smoke IDs",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: the smoke IDs as --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: tests next-id claims an area's next tag through the id counter, kept in the git folder with no remote",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: tests next-id claims past an area's counter when the counter is ahead of the files",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: tests next-id --count claims several of an area's tags in a row, one a line",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: tests next-id of a stem the registry's items use only reads, claiming nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: tests next-id refuses a --count that is no number from 1 up, claiming nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: tests next-id refuses a --count that is not a number",
+			"verdict": "pass"
+		},
+		{
+			"name": "tests.yaml: tests next-id refuses --count for a stem that only reads",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: every commit up to the head, a feat valid at its own commit though a later one set its scenario back",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: a from of zeros is every commit up to the head",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: a range with commits that fail, each named under its report",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: --json of that range, the reports on stderr",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: a range check that fails fails the range, its commits sound",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: the header lint delegate reads the commit it checks from ITOS_AT",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: a header the delegate rejects",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: a commit made without the hooks, no type and no footer, is the delegate's to reject",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: the built-in header lint rejects a commit made without the hooks",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: an empty range passes",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: commits.since and its ancestors are left out, and the range checks start there",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: a start older than commits.since starts at it",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: a start newer than commits.since keeps its own",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: without a since of its own, a required footer fails every commit written before the rule",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: a footer's since leaves that commit and its ancestors out of its required_for",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: a commit after the footer's since still needs it",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: a footer's since naming no commit of the repository",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: commits.since naming no commit of the repository",
+			"verdict": "pass"
+		},
+		{
+			"name": "verify.yaml: commits.since beyond a shallow clone's history",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: ci watch waits for HEAD's run and exits 0 when it succeeded",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: ci watch <sha> watches that commit, asked of GitHub in full",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: a run that failed exits 1, naming the failed jobs",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: a queued run is waited for, and each job's result printed once, as it finishes",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: ci watch --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: a run still going after ci.watch.timeout exits 75, naming itos ci watch",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: a run a newer push cancelled is judged by the newer run, which --json names",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: a cancelled run with no newer run to follow exits 75, ci cancelled",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: a refusal from GitHub's API exits 3",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: what is not a commit is a usage error",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: with ci.watch's provider none there is no run to watch",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: github with no token and no gh exits 3 before any request, naming both ways to sign in",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: github with a token and no GitHub remote exits 3, naming the repository variable",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: the command provider and its keys were removed in v5",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: the interval and the timeout have their bounds",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: push waits for the run of the commit it pushed",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: a push whose run fails exits 1, its commit pushed",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: push --no-wait pushes and returns, no run looked at",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: push --json with the run it waited for",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: nothing to push waits for no run",
+			"verdict": "pass"
+		},
+		{
+			"name": "watch.yaml: a push whose watch cannot look exits 3, its commit pushed and itos ci watch named",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: what a person can start, then what nobody owns, what waits, ideas and deferred items",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: the same as --json, the proposal agents read",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: another person sees their own and the unowned",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: the identity provider says who the session works for",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a handle not among the people is a missing environment",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a registry that is not sound stops the proposal",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: the registry is sound",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: the registry is sound, quietly",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: without work.registry, the registry is tasks/work-items.yaml",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: without work.registry, the registry is beside a ledger in another folder",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: with the registry in tasks/ and the ledger in work/, work check names work/work-items.yaml",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work.registry still overrides the default beside the ledger",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: with no registry where itos looks, work check names the path",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: the same as --json, with its rule and fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: with no registry where itos looks, the proposal stops there",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a registry file named on the command line that is not there",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a registry file named on the command line",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a cycle, as --json with its rule and fix",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: every problem of an item, as text",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: every problem of an item, as --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a group called by ledger.group.label in the messages and fixes",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: the same as --json, the rule IDs as they are",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: the people from an All Contributors table, by their profile links",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a table's links on another host name nobody by default",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: login_from reads the logins from another host's links",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: login_from needs one {login}",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: login_from is read only from a table",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: the people from an .all-contributorsrc",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: an .all-contributorsrc without a contributors list leaves the owners unchecked, saying nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a YAML people file that is not a list leaves the owners unchecked, saying nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: with no people file, --as is taken as given, and nothing is said of the people",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: identity none makes the session nobody, with its hint",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: --as works whatever the identity provider",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a handle the provider gives that is not among the people owns nothing yet",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: the GitHub account gh is signed in as",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: gh signed out makes the session nobody",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: gh missing makes the session nobody",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a stealth session owns every item, gh never asked",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a stealth session's proposal says every item is its own",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: --as under a stealth config proposes that handle's items, as in a project",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: the owners per group under work.groups_key, the statuses work.statuses lists",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work list prints the open items in the registry's order, other people's too, a deferred one marked so",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work list --all prints every item in the registry's order, done ones too",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work list leaves out a done or dropped item, which --all prints, and lists a blocked one or any other status",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work list --json, the open items each as work --json writes it, and where the registry was read",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work list --all prints every item, done ones too",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work list --all --json writes every item as work list --json writes the open ones",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work list --tag --json lists the open items carrying the tag, each with its tags",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work check refuses a tag work.tags does not declare, naming it",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work list judges nothing, so a registry that is not sound still lists",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: with no registry where itos looks, work list says where that is",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work list takes no argument but --all",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work list reads a stealth config's registry in the git folder",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take sets an item in progress for the person and commits the registry alone, its comments and quoting kept",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: under a stealth config work take writes the registry and commits nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: a stealth session with no --as takes any item, its owner left as it is",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take refuses an item someone else owns",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take refuses an item whose group someone else owns",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take refuses an idea, naming work promote",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take refuses an item that waits on one not done",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take refuses an item done",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take refuses a deferred item",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take refuses an id no item has",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take of an item already in progress for the person changes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take refuses a registry with changes no commit holds",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take refuses a registry that is not sound",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take with --as not among the people exits 3",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take needs one id",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take takes only --as",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work promote makes an idea a slice, its why led by its old id, and renames it where items depend on it",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work promote --title gives the promoted item a new title, written in place",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work promote renames the idea in the questions that name it",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: the same as --json, answered questions too, and a question naming another item kept",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work promote refuses questions it cannot read, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work promote refuses an item that is not an idea",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work promote refuses an id an item already has",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work promote refuses a task id ledger.id does not match",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work promote needs --kind slice or task",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work promote needs --kind",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: draft add of a work add that mints reserves the id at once, prints it and keeps it in the draft",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: draft add of a work add --kind bug reserves the bug id at once",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: draft add of a task add says the task id it reserved, under --json",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: draft add of an idea's work add mints nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: draft promote runs a minting draft with the id it reserved, and mints no other",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work done marks an item done and commits the registry alone, saying what it could not check",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work done of a task with checks takes them out of its ledger entry in the close commit",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work done of a task with no checks leaves its ledger as it is",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work done refuses an item one of whose scenarios at HEAD is still @wip",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work done refuses an idea, naming work promote",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work done refuses a deferred item",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work done refuses an item that is not doing, naming work take",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work done refuses an item whose dependency is not done, naming it",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work done of an item already done changes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work add makes an idea at the end of the items, todo and nobody's, and commits the registry alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: under a stealth config work add writes a slice with its group, owner, dependencies and refs, and commits nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work add refuses an id an item has",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work add refuses a dependency on no item, as work check would",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work add refuses an owner the people do not list, as work check would",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work add needs a phase where the registry lists more than one and the id names none",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work add refuses a task id ledger.id does not match",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work add needs a title and a why",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work add makes an idea, a slice or a task",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: under a stealth config work add --kind bug mints the next bug past the registry's and the @bug tags",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work add refuses an id for a bug, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work edit changes a title in its quoting and gives an item with no why the note, committing the registry alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: under a stealth config work edit replaces dependencies and refs, and adds a paragraph to a folded why",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work edit empties a list given nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work edit writes a list of any shape whole, one flow list on its key's line",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work edit of an item with no refs given none changes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work edit refuses a cycle, as work check would",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work edit refuses an id no item has",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work edit of an item already as asked changes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work edit needs something to change",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work edit changes no owner, work take does",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work show prints the item, what depends on it, its scenarios and its commits, oldest first",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work show --json, the item, what depends on it, its scenarios and its commits as data",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work show lists the questions naming the item, open and answered, and no other",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work show --json gives the questions naming the item",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work show refuses an id no item has",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work show needs one id",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work refuses a subcommand it does not have, naming those it has",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work refuses a flag it does not take",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work --as needs a handle",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work proposes in the queue's order, the unqueued after",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work queue --top starts the queue before items, a block list, and commits the registry alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: under a stealth config work queue --after moves an item and commits nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: under a stealth config work queue --remove of the last item leaves an empty queue",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work queue refuses a place beside an item the queue does not hold",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work queue refuses an item done",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work queue of an item already where it is put changes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work queue needs one place",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: under a stealth config work queue with several ids puts them together, in the order given",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: under a stealth config work edit with several ids gives each the change",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work defer with several ids refuses them all when one would be, naming each refused, and writes nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work edit refuses --title with several ids",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work queue refuses an id named twice",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work check refuses a queue naming an item the registry does not have, or one twice",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work check refuses a queue that is not a list",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work drop marks an item dropped, drops its why, takes it out of the queue, and commits the registry alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: under a stealth config work drop writes the registry and commits nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work drop refuses an item an item still to do depends on, naming it",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work drop refuses an item done",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work drop with several ids drops each for the one reason, and commits the registry once",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work drop needs a reason",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work defer sets the item's deferred key to the reason, and commits the registry alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: under a stealth config work defer writes the registry and commits nothing",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work defer refuses an item already deferred, naming its reason",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work defer refuses an item done",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work defer needs a reason",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work resume removes the item's deferred key, and commits the registry alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work resume refuses an item that is not deferred",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work give-back puts an item in progress back to todo, keeping its owner, and commits the registry alone",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: under a stealth config work give-back writes the registry and commits nothing, every item the session's",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work give-back refuses an item not in progress, naming its status",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work give-back refuses an item someone else has in progress, naming them",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work give-back exits 3 for a person not among the people",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work give-back needs a reason",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work take refuses an item dropped, naming its status",
+			"verdict": "pass"
+		},
+		{
+			"name": "work.yaml: work check knows dropped whatever work.statuses lists, and reports an item still to do depending on one",
+			"verdict": "pass"
+		}
+	]
+}

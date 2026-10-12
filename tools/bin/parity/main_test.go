@@ -83,6 +83,42 @@ func TestReadStdout(t *testing.T) {
 	}
 }
 
+func TestReadVerdicts(t *testing.T) {
+	recorded := func() *record {
+		return &record{Read: "verdicts", Cases: []kase{{"a.yaml: one/two", "pass"}, {"b.yaml: three", "pass"}}}
+	}
+	line := func(name, verdict string) string {
+		return `{"name":"` + name + `","verdict":"` + verdict + `","problems":["exit: expected 0, got 1"]}` + "\n"
+	}
+	for _, c := range []struct {
+		name, stdout string
+		want         []string
+	}{
+		{"every case as recorded holds", line("a.yaml: one/two", "pass") + "a summary\n" + line("b.yaml: three", "pass"), nil},
+		{"a case dropped fails, named", line("a.yaml: one/two", "pass"), []string{`case "b.yaml: three": recorded pass, not run`}},
+		{"a verdict changed fails, named", line("a.yaml: one/two", "fail") + line("b.yaml: three", "pass"),
+			[]string{`case "a.yaml: one/two": recorded pass, ran fail`}},
+		{"a case not recorded fails, named", line("a.yaml: one/two", "pass") + line("b.yaml: three", "pass") + line("c.yaml: new", "pass"),
+			[]string{`case "c.yaml: new": ran pass, not recorded`}},
+		{"no verdict at all fails", "FAIL conformance runner setup: no git\n", []string{"it said no verdict (exit 2)"}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			r := recorded()
+			readVerdicts(r, []byte(c.stdout), 2, "")
+			if !slices.Equal(r.verdict, c.want) {
+				t.Errorf("verdict %q, want %q", r.verdict, c.want)
+			}
+		})
+	}
+	t.Run("a verdict changed notes what the tool said", func(t *testing.T) {
+		r := recorded()
+		readVerdicts(r, []byte(line("a.yaml: one/two", "fail")+line("b.yaml: three", "pass")), 1, "")
+		if len(r.notes) != 1 || r.notes[0] != "exit: expected 0, got 1" {
+			t.Errorf("notes %q", r.notes)
+		}
+	})
+}
+
 func TestCheck(t *testing.T) {
 	for _, c := range []struct {
 		name string
@@ -95,6 +131,8 @@ func TestCheck(t *testing.T) {
 		{"a case twice", record{Run: []string{"x"}, Read: "go-test", Test: "T", Cases: []kase{{"a b", "pass"}, {"a_b", "pass"}}}, "recorded twice"},
 		{"a verdict unknown", record{Run: []string{"x"}, Read: "go-test", Test: "T", Cases: []kase{{"a", "ok"}}}, "is not pass, fail or skip"},
 		{"no output file", record{Run: []string{"x"}, Read: "stdout"}, "names the file of its output"},
+		{"no verdicts", record{Run: []string{"x"}, Read: "verdicts"}, "names its cases"},
+		{"a verdicts case twice", record{Run: []string{"x"}, Read: "verdicts", Cases: []kase{{"a.yaml: a/b", "pass"}, {"a.yaml: a/b", "fail"}}}, "recorded twice"},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			err := check(&c.r)

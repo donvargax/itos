@@ -36,6 +36,12 @@
 //     named; so does a top test that never ran.
 //   - stdout: the stdout is compared byte for byte with the file the record's stdout names,
 //     beside the record (a recorded output), and the command must exit 0.
+//   - verdicts: the stdout is JSON lines, one object a case, {"name": "…", "verdict": "pass"},
+//     as the conformance runner's --json writes them (T-144); a line that is not such an object
+//     is passed over. cases is every case, its name as the TypeScript named it, a slash allowed,
+//     and its verdict (pass, fail or skip), judged as go-test's are: a case run and not recorded,
+//     one recorded and not run, and one whose verdict differs each fail, named; so does a command
+//     that says no verdict at all.
 //
 // A tool whose replacement says something else adds a reader here, with its fields, before its
 // first record uses it.
@@ -85,8 +91,9 @@ type kase struct {
 
 // readers is how a record's command is judged, by its read.
 var readers = map[string]func(r *record, stdout []byte, code int, dir string){
-	"go-test": readGoTest,
-	"stdout":  readStdout,
+	"go-test":  readGoTest,
+	"stdout":   readStdout,
+	"verdicts": readVerdicts,
 }
 
 func main() {
@@ -158,7 +165,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 
 // held says what a record that holds held.
 func held(r *record) string {
-	if r.Read == "go-test" {
+	if r.Read == "go-test" || r.Read == "verdicts" {
 		return fmt.Sprintf("%d cases as recorded", len(r.Cases))
 	}
 	return "its output as recorded"
@@ -218,7 +225,7 @@ func check(r *record) error {
 		return errors.New("run names no command")
 	}
 	if _, ok := readers[r.Read]; !ok {
-		return fmt.Errorf("read %q is no reader of parity's (go-test, stdout)", r.Read)
+		return fmt.Errorf("read %q is no reader of parity's (go-test, stdout, verdicts)", r.Read)
 	}
 	for _, kv := range r.Env {
 		if !strings.Contains(kv, "=") {
@@ -230,22 +237,36 @@ func check(r *record) error {
 		if r.Test == "" || len(r.Cases) == 0 {
 			return errors.New("a go-test record names its test and its cases")
 		}
-		seen := map[string]bool{}
-		for _, c := range r.Cases {
-			switch {
-			case c.Name == "" || strings.Contains(c.Name, "/"):
-				return fmt.Errorf("case %q: a case's name is not empty and holds no slash", c.Name)
-			case c.Verdict != "pass" && c.Verdict != "fail" && c.Verdict != "skip":
-				return fmt.Errorf("case %q: verdict %q is not pass, fail or skip", c.Name, c.Verdict)
-			case seen[subtest(c.Name)]:
-				return fmt.Errorf("case %q is recorded twice", c.Name)
-			}
-			seen[subtest(c.Name)] = true
+		return checkCases(r.Cases, subtest, true)
+	case "verdicts":
+		if len(r.Cases) == 0 {
+			return errors.New("a verdicts record names its cases")
 		}
+		return checkCases(r.Cases, func(name string) string { return name }, false)
 	case "stdout":
 		if r.Stdout == "" {
 			return errors.New("a stdout record names the file of its output")
 		}
+	}
+	return nil
+}
+
+// checkCases refuses a case with no name, a slash in its name where slash says a name cannot
+// hold one, a verdict that is not pass, fail or skip, and two cases whose names key alike.
+func checkCases(cases []kase, key func(string) string, noSlash bool) error {
+	seen := map[string]bool{}
+	for _, c := range cases {
+		switch {
+		case c.Name == "":
+			return errors.New("a case's name is not empty")
+		case noSlash && strings.Contains(c.Name, "/"):
+			return fmt.Errorf("case %q: a case's name is not empty and holds no slash", c.Name)
+		case c.Verdict != "pass" && c.Verdict != "fail" && c.Verdict != "skip":
+			return fmt.Errorf("case %q: verdict %q is not pass, fail or skip", c.Name, c.Verdict)
+		case seen[key(c.Name)]:
+			return fmt.Errorf("case %q is recorded twice", c.Name)
+		}
+		seen[key(c.Name)] = true
 	}
 	return nil
 }
@@ -337,9 +358,16 @@ func readGoTest(r *record, stdout []byte, code int, _ string) {
 	} else if topVerdict == "skip" && len(ran) == 0 {
 		r.verdict = append(r.verdict, fmt.Sprintf("%s was skipped, its cases not run", r.Test))
 	}
+	compareCases(r, subtest, ran, order, func(name string) string { return outputs[name].String() })
+}
+
+// compareCases holds what ran, each case by its key its verdict, keys in the order they ran, to
+// the record's cases: a case recorded and not run, one whose verdict differs (its output a note)
+// and one run and not recorded each fail, named.
+func compareCases(r *record, key func(string) string, ran map[string]string, order []string, output func(string) string) {
 	recorded := map[string]bool{}
 	for _, c := range r.Cases {
-		name := subtest(c.Name)
+		name := key(c.Name)
 		recorded[name] = true
 		got, ok := ran[name]
 		switch {
@@ -347,7 +375,9 @@ func readGoTest(r *record, stdout []byte, code int, _ string) {
 			r.verdict = append(r.verdict, fmt.Sprintf("case %q: recorded %s, not run", c.Name, c.Verdict))
 		case got != c.Verdict:
 			r.verdict = append(r.verdict, fmt.Sprintf("case %q: recorded %s, ran %s", c.Name, c.Verdict, got))
-			r.notes = append(r.notes, outputs[name].String())
+			if out := output(name); out != "" {
+				r.notes = append(r.notes, out)
+			}
 		}
 	}
 	for _, name := range order {
@@ -357,6 +387,39 @@ func readGoTest(r *record, stdout []byte, code int, _ string) {
 			}
 		}
 	}
+}
+
+// verdictLine is one line of a verdicts record's stdout: a case and its verdict, and what the
+// tool said of a case that failed.
+type verdictLine struct {
+	Name     string   `json:"name"`
+	Verdict  string   `json:"verdict"`
+	Problems []string `json:"problems"`
+}
+
+// readVerdicts holds the JSON lines of the command's stdout, a case each, to the record's cases.
+func readVerdicts(r *record, stdout []byte, code int, _ string) {
+	ran := map[string]string{}
+	said := map[string]string{}
+	var order []string
+	lines := bufio.NewScanner(bytes.NewReader(stdout))
+	lines.Buffer(make([]byte, 1<<20), 64<<20)
+	for lines.Scan() {
+		var v verdictLine
+		if !bytes.HasPrefix(lines.Bytes(), []byte("{")) || json.Unmarshal(lines.Bytes(), &v) != nil || v.Name == "" || v.Verdict == "" {
+			continue
+		}
+		if _, twice := ran[v.Name]; !twice {
+			order = append(order, v.Name)
+		}
+		ran[v.Name] = v.Verdict
+		said[v.Name] = strings.Join(v.Problems, "\n")
+	}
+	if len(ran) == 0 {
+		r.verdict = append(r.verdict, fmt.Sprintf("it said no verdict (exit %d)", code))
+		return
+	}
+	compareCases(r, func(name string) string { return name }, ran, order, func(name string) string { return said[name] })
 }
 
 // readStdout holds the command's stdout to the recorded output, byte for byte.
