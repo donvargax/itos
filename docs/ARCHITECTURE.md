@@ -24,8 +24,8 @@ stays a map:
 | `tools/itos/conformance/`   | The regression corpus, one YAML file per area; `tools/bin/conformance` runs it.                            |
 | `tools/itos/fixtures/`      | The configs and ledgers the ledger's negative proofs (`tasks/phase-0.yaml`) hand itos.                     |
 | `tools/bin/itos`            | The entry point the hooks, CI and the ledger's checks call: builds `./cmd/itos` from the tree and runs it. |
-| `tools/bin/*/` (Go)         | The gates and the release's programs, each `go run ./tools/bin/<name>`, each documented in its `main.go`.  |
-| `tools/bin/*` (sh, `.ts`)   | `dev-version`, `go-unit-tests`, `pinned`, `install-launcher`, `build-go.ts`, `inbox.ts`.                   |
+| `tools/bin/*/` (Go)         | The gates, the release's programs, the inbox: each `go run ./tools/bin/<name>`, documented in `main.go`.   |
+| `tools/bin/*` (sh)          | `dev-version`, `go-unit-tests`, `pinned`, `install-launcher`; Go starts one through `repo-program`.        |
 | `tools/selftest/`           | The gates' self-tests that test no one program (Go), and `scratch`, what every self-test shares.           |
 | `tools/parity/`             | What a TypeScript tool said, which `tools/bin/parity` holds its Go replacement to (T-143, T-149).          |
 | `tools/changelog.ts`        | The changelog's filter over git-cliff.                                                                     |
@@ -44,8 +44,8 @@ module path ends in its major version or Go refuses its tag, so the path
 moves before a major release, and `tools/bin/release-version` refuses a
 version whose major the path does not match. Go is pinned by its `toolchain`
 line; the dependencies are few and held to the dependency check. Node runs
-only this repository's tooling (the builds, the inbox); no consumer of
-itos needs it.
+only this repository's tooling (the changelog, the plugin's tests); no
+consumer of itos needs it.
 
 ## How a run goes
 
@@ -255,7 +255,7 @@ the version is the tag, held nowhere in the tree.
   `itos-<version>-<os>-<arch>.tar.gz` (`.zip` for windows), entries owned by
   root by number and dated at the commit; `itos.schema.json` (written by a
   `before` hook) and `checksums.txt` in `sha256sum`'s format beside them.
-  `tools/bin/build-go.ts <out dir>` builds a checkout's binary with
+  `tools/bin/build-go <out dir>` builds a checkout's binary with
   `CGO_ENABLED=0` and `-trimpath`, stamped with `tools/bin/dev-version`'s
   version (`internal/version`); `--release` builds a GoReleaser snapshot.
 - **The notes** (`tools/bin/release-notes`) are generated, never committed: a
@@ -319,7 +319,7 @@ plugin it loads (git-ignored), so the repository's type-aware lint leaves it
 out, and `claude plugin validate --strict` judges it.
 
 **Consumer reports** come in as issues through
-`.github/ISSUE_TEMPLATE/consumer-report.yml`. `tools/bin/inbox.ts` is the
+`.github/ISSUE_TEMPLATE/consumer-report.yml`. `tools/bin/inbox` is the
 coordinator's view (`docs/ORCHESTRATING.md`): open issues, actionable when a
 login on its allow-list opened one or last applied `itos-accepted` to it,
 printed without any issue's text. Labels count for nothing, since a form or a

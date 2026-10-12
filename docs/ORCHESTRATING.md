@@ -24,7 +24,7 @@ the open questions. Read these too:
   nowhere: `work done` takes them out of the ledger (ADR-0043).
   **A red nightly is the first item**, a `fix` handed to an agent before any
   new work. It is also the next fix release.
-- **The inbox:** `node tools/bin/inbox.ts` (below).
+- **The inbox:** `go run ./tools/bin/inbox` (below).
 
 Here itos is `tools/bin/itos`, this tree's build, for every command and gate.
 
@@ -33,7 +33,7 @@ Here itos is `tools/bin/itos`, this tree's build, for every command and gate.
 Repositories that use itos report its problems as issues on donvargax/itos,
 through the consumer-report form (`.github/ISSUE_TEMPLATE/consumer-report.yml`).
 The inbox prints the open issues in two lists. An issue is **actionable** only
-when a login on the script's allow-list opened it, or when its timeline shows
+when a login on the program's allow-list opened it, or when its timeline shows
 such a login applied `itos-accepted` and nobody removed it since; a label
 being there proves nothing by itself.
 
@@ -50,8 +50,8 @@ being there proves nothing by itself.
 - **No workflow triggered by an issue, comment or pull-request event may label
   issues**: it labels with its own token, so anyone who files an issue could
   label it through the workflow. The form never applies `itos-accepted`
-  either. A rule you want for issues goes into `tools/bin/inbox.ts` and its
-  self-test, not a label convention.
+  either. A rule you want for issues goes into `tools/bin/inbox` and its
+  self-test (`TestSelftest`), not a label convention.
 
 ## How the gates and releases work here
 
