@@ -4164,6 +4164,10 @@ items:
       Backlog review of 2026-10-10, batch 3: folds in p1-promote-moves-asks: while promote is
       reworked, have it also rename the item in the questions file, so work show of the new id keeps
       its questions (code review of 07b0e6d).
+
+      #54 (2026-10-12): a consumer met it on the guide's documented path, work promote <idea> --kind
+      task, then itos commit --task T-2 refused with unknown tasks: T-2. Promote writes the ledger
+      entry, or refuses --kind task and points at task add.
     refs: [internal/work/write.go]
     tags: [work]
 
