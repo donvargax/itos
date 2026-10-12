@@ -8502,8 +8502,8 @@ items:
   - id: slice-134
     title: "A scenario goes live outside feat and fix when Scenarios: names it and the commit changes no code under test"
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: slice
     why: >
