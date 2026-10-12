@@ -8614,3 +8614,20 @@ items:
       release. The user (2026-10-12): its own item, not waiting on p2-adopt-go-template-itos, which
       had folded in p2-harvest-pinned-actions on 2026-10-11.
     tags: [ci]
+
+  - id: p1-nightly-report-names-steps
+    title: The Nightly red issue names each failed step of the nightly plan, from ci run's failures
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Split from slice-133 (2026-10-12), which folded in p1-nightly-issue-names-tasks: the nightly
+      now goes on past a failing step and ci run --json lists every failure in failures, but
+      nightly.yml's report job still reads only failing scenarios from a job's log, and for the
+      plan's job said 'No failing scenario in its log: it failed before the features ran, or outside
+      them' (run 38245333242). The report names each failed step and its exit code, from the nightly
+      job's ci run --json output kept as an artifact or read from the log's 'CI failed at' and 'also
+      failed at' lines. A ci change to this repository's workflow.
+    tags: [ci]
