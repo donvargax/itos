@@ -8767,3 +8767,20 @@ items:
       <item>, accepted once that item is done, records the idea done by it, and work show lists it
       under that item.
     tags: [work]
+
+  - id: p1-upgrade-names-action-uses
+    title: "itos upgrade moves or names the workflows' uses: donvargax/itos lines, and says the pin decides"
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #63 (2026-10-12): after itos upgrade 8.3.0 a consumer's workflows still launched the action at
+      v8.0.1's commit, and nothing named those lines. The action installs the launcher and the
+      repository's pin chooses the itos that runs (action.yml's header, ADR-0024), so the old line
+      still runs the pinned release; the session could not tell and moved them by hand. itos upgrade
+      moves each uses: donvargax/itos@<sha or tag> line in .github/workflows/ to the new release's
+      commit and tag comment, as it moves the install script's lines, or at least names each one it
+      leaves and says the pin decides what runs.
+    tags: [upgrade]
