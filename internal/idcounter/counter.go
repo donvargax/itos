@@ -119,16 +119,34 @@ func readCounters(file string) (map[string]int, error) {
 }
 
 func writeCounters(file string, counters map[string]int) error {
-	text, err := yaml.Marshal(struct {
+	return writeCountersThrough(file, counters, func(dir string) (tempFile, error) {
+		return os.CreateTemp(dir, ".ids-*.tmp")
+	})
+}
+
+// tempFile is the file writeCounters writes the counters to before it moves
+// it over the counter: an *os.File, or in the tests one that fails as a full
+// or failing disk would, which a real file does not do on demand.
+type tempFile interface {
+	Name() string
+	Chmod(mode os.FileMode) error
+	Write(b []byte) (int, error)
+	Sync() error
+	Close() error
+}
+
+// writeCountersThrough is writeCounters with its temporary file made by
+// create, in the counter's folder.
+func writeCountersThrough(file string, counters map[string]int, create func(dir string) (tempFile, error)) error {
+	// A map of strings to ints always marshals: yaml.Marshal fails only on a
+	// value it cannot encode, and every string and int encodes.
+	text, _ := yaml.Marshal(struct {
 		Counters map[string]int `yaml:"counters"`
 	}{Counters: counters})
-	if err != nil {
-		return err
-	}
 	if err := os.MkdirAll(filepath.Dir(file), 0o700); err != nil {
 		return err
 	}
-	f, err := os.CreateTemp(filepath.Dir(file), ".ids-*.tmp")
+	f, err := create(filepath.Dir(file))
 	if err != nil {
 		return err
 	}
@@ -226,24 +244,18 @@ func fetchCounter(store Store) (string, error) {
 // two clones racing from the same parent must not push the same commit object
 // and both believe they reserved the number.
 func counterCommit(root, parent, category string, n int) (string, error) {
+	// crypto/rand.Read never returns an error (since Go 1.24): where the
+	// system cannot give random bytes, it stops the program.
 	var nonce [16]byte
-	if _, err := rand.Read(nonce[:]); err != nil {
-		return "", fmt.Errorf("create unique id counter commit identity: %w", err)
-	}
-	index, err := os.CreateTemp("", "itos-id-index-")
+	_, _ = rand.Read(nonce[:])
+	// The index is a path no file holds yet, in a folder of its own, so git
+	// makes it, and its lock beside it, where nothing else writes.
+	scratch, err := os.MkdirTemp("", "itos-id-index-")
 	if err != nil {
 		return "", err
 	}
-	indexPath := index.Name()
-	if err := index.Close(); err != nil {
-		_ = os.Remove(indexPath)
-		return "", err
-	}
-	if err := os.Remove(indexPath); err != nil {
-		return "", err
-	}
-	defer os.Remove(indexPath)
-	env := []string{"GIT_INDEX_FILE=" + indexPath}
+	defer os.RemoveAll(scratch)
+	env := []string{"GIT_INDEX_FILE=" + filepath.Join(scratch, "index")}
 	if parent == "" {
 		if _, err := run(root, env, "read-tree", "--empty"); err != nil {
 			return "", err
