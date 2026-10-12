@@ -17,7 +17,7 @@
 import { hookGates, scratchRepo } from "./scratch.ts";
 
 const repo = scratchRepo("go-hooks-selftest");
-const { env, sh, git, edit, commit } = repo;
+const { sh, git, edit, commit } = repo;
 
 const MODULE = "github.com/donvargax/itos/v8/";
 // The packages a `go test` run reported, by the line it prints for each:
@@ -53,7 +53,6 @@ const testsReached = (hook: string, output: string) => {
 let base = "";
 try {
 	base = repo.open();
-	env.FALLOW_AUDIT_BASE = base;
 	every = sh("go list ./cmd/... ./internal/...").output.split("\n").filter(Boolean);
 
 	// 1. A harmless change to one package runs its tests and its importers',

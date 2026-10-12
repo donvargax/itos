@@ -41,7 +41,7 @@ import { join } from "node:path";
 import { ciPlan, featuresStep, hookGates, scratchRepo } from "./scratch.ts";
 
 const repo = scratchRepo("gates-selftest");
-const { dir, env, git, edit, commit } = repo;
+const { dir, git, edit, commit } = repo;
 
 const hooks = hookGates(repo);
 const { problems, timings, expect, gate, preCommit, prePush } = hooks;
@@ -56,10 +56,6 @@ const commitMsg = (label: string, message: string) => {
 let base = "";
 try {
 	base = repo.open();
-	// The audit's "new" is measured against the base, as it is against the
-	// upstream branch in the checkout.
-	env.FALLOW_AUDIT_BASE = base;
-
 	const features = "go test ./features -count=1";
 	const steps = ciPlan(["--whole"], dir).steps;
 	for (const step of [features, "go test ./cmd/... ./internal/..."])

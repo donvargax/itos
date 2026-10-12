@@ -162,6 +162,12 @@ ci:
     # gofmt names each file it would change.
     - { run: "! gofmt -l features cmd internal | grep .", cost: static }
     - { run: go vet ./..., cost: static }
+    # staticcheck (T-148), its default checks over the whole module: U1000 (unused code), the SA
+    # checks (likely bugs), the S simplifications and the ST style rules. A finding is fixed, or
+    # excused with a //lint:ignore <check> <reason> beside it when it is a false positive. Its
+    # version is go.mod's tool directive, held to the dependency check's 7-day rule like every
+    # module; run it with `go tool staticcheck ./...`. Linux only, as the ci job is.
+    - { run: go tool staticcheck ./..., cost: static }
     # The three workflows (T-008's check, kept as a step in T-125): their expressions, the inputs
     # of the actions they use and the shell of each run: (shellcheck). Nothing else lints them:
     # gates.ts runs none of them, and a broken release.yml shows only when a release is cut and
@@ -206,7 +212,6 @@ ci:
     # the step above and tools/bin/go-unit-tests take ./cmd/... ./internal/... alone, so these ran
     # only when a push named a task that listed them. It settles idea p1-tools-bin-unit-tests-in-ci.
     - { run: "go test ./tools/...", cost: late }
-    - { run: node_modules/.bin/fallow audit --quiet, cost: late }
     # The conformance corpus: what itos did when it was written, as cases run
     # through its command line; a regression corpus, not named tests. Against
     # tools/bin/itos, the Go binary built from this tree.
@@ -260,7 +265,7 @@ ci:
       - "^actionlint\\b"
       - "^git ls-remote "
       - "^node tools/selftest/ci-scope\\.ts$"
-      - "^go (vet|mod verify)\\b"
+      - "^go (vet|mod verify|tool staticcheck)\\b"
     keep_written_order: true # a task's checks never run before the ones above them
   covers: # a check a step has just done is not run again
     # The corpus step runs every corpus file against the Go binary built from

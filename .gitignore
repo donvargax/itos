@@ -6,7 +6,6 @@ coverage/
 .metrics/*.json
 *.log
 *.local
-.fallow/
 # The changelog, written on demand from the commits by `node tools/changelog.ts`.
 docs/changelog/
 

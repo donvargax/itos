@@ -10,7 +10,7 @@
 # which files), Go by gofmt, then go vet when Go is staged. A file with changes left unstaged is
 # only checked, never rewritten, since its working copy is not what is committed. Then, unless
 # every staged file is prose or itos's own data, the dependency check when go.mod or go.sum is
-# staged, the unit tests the change reaches and fallow's audit.
+# staged and the unit tests the change reaches. staticcheck is CI's (T-148).
 #
 # git hands a hook the index it commits from (GIT_INDEX_FILE) and, in a linked worktree,
 # GIT_DIR. The git commands here read and write that index on purpose; tools/bin/go-unit-tests
@@ -85,11 +85,3 @@ fi
 # hooks.pre_push). Nothing when no file under cmd/ or internal/, nor go.mod or go.sum, is
 # staged. The whole suite is CI's.
 tools/bin/go-unit-tests --cached
-# fallow's audit of the TypeScript, new findings only (T-148 replaces it); skipped until the
-# repository has a first commit to diff against. From node_modules (pnpm install).
-git rev-parse --verify HEAD >/dev/null 2>&1 || exit 0
-[ -x node_modules/.bin/fallow ] || {
-	echo "pre-commit: node_modules/.bin/fallow is missing: run pnpm install" >&2
-	exit 1
-}
-node_modules/.bin/fallow audit --quiet --gate-marker pre-commit
