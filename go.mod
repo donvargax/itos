@@ -6,6 +6,7 @@ toolchain go1.27.2
 
 require (
 	github.com/cucumber/godog v0.16.0
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	go.yaml.in/yaml/v3 v3.0.4
 	mvdan.cc/sh/v3 v3.14.1
 )
@@ -24,6 +25,7 @@ require (
 	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.48.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260908163034-4bcc4b2ee518 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.50.0 // indirect
 	golang.org/x/vuln v1.8.0 // indirect
 	honnef.co/go/tools v0.8.1 // indirect
