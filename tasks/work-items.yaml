@@ -7972,6 +7972,10 @@ items:
       itos's highest (itos-template#6); AGENTS.md and the docs caps stay itos's. An improvement that
       is template-shaped, found while resolving, goes to go-template-itos as an issue (no PRs yet).
       Upgrading itos-template on this machine is the first step.
+
+      2026-10-12: gitleaks and SHA-pinned actions left this item for p1-secrets-scan and
+      p1-pin-actions-by-sha (the user's call); the adoption takes the template's versions only where
+      they differ.
     refs: [docs/decisions, itos.yaml, go.mod]
     tags: [release, docs]
 
