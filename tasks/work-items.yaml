@@ -6023,6 +6023,14 @@ items:
       footer-leading-blank warning; the agent reworded correct prose to quiet it. Three agents hit
       this class in one day.
 
+      The user's call (2026-10-12): the built-in lint reads the footer as git reads trailers, the
+      last paragraph alone when its lines are trailers (git interpret-trailers), not as
+      conventional-commits-parser does (the first line that looks like a token starts the footer,
+      mid-paragraph included). commitlint parity was for the header; footers follow git, as itos's
+      own footer rules should. footer-leading-blank then fires only where a trailer block is glued
+      to body lines, and bug-109's naming of the line still serves there. Every warning met on
+      2026-10-12 was a correct message.
+
   - id: p1-tests-list-format
     title: itos tests list has a form itos-cc mutation.tests.list reads as is
     phase: 1
