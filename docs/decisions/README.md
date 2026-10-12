@@ -1,7 +1,7 @@
 # Decisions
 
 The decisions that still stand, one record each. A record superseded keeps its
-file and leaves this list, which itos ask record writes.
+file and leaves this list, which itos decision record writes.
 
 <!-- itos:decisions:begin -->
 
