@@ -8371,3 +8371,18 @@ items:
       wrote nothing', which answers a question --agent-rules does not ask.
     refs: [internal/cli/upgrade.go]
     tags: [upgrade]
+
+  - id: bug-107
+    title: itos work show prints a task's ledger why twice
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      donvargax/itos#52 (itos 8.0.0, in itos-cc): work show T-36, a task made by task add whose
+      registry item has no why, printed the ledger entry's why twice, and every task there does. The
+      ledger's why should print once (and a registry why, when an item still has one, once beside
+      it).
+    refs: [internal/cli]
+    tags: [work]
