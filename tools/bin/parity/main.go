@@ -23,7 +23,10 @@
 //
 //	  - was: the TypeScript the record was taken from, for people; parity does not run it.
 //	  - run: the replacement's command, its words as given (no shell), run at the repository's top.
-//	  - env: NAME=value entries laid over parity's own environment for that command.
+//	  - dir: the folder the command runs in instead, relative to the repository's top; optional.
+//	  - env: NAME=value entries laid over parity's own environment for that command. A value's
+//	    $NAME and ${NAME} are expanded from parity's environment, and $PARITY_ROOT is the
+//	    repository's top folder, so a record can put a fake program first on PATH (T-146).
 //	  - read: how the command's stdout is read, one of the readers below.
 //
 // Each reader has fields of its own:
@@ -42,6 +45,10 @@
 //     and its verdict (pass, fail or skip), judged as go-test's are: a case run and not recorded,
 //     one recorded and not run, and one whose verdict differs each fail, named; so does a command
 //     that says no verdict at all.
+//   - exit: the command's exit code is compared with the record's exit, and its stdout, with the
+//     repository's top folder written <root>, byte for byte with the file the record's stdout
+//     names, beside the record (T-146's programs, whose usage errors and failures say only their
+//     code on stdout). Its stderr is not compared: it names the command, which the port changes.
 //
 // A tool whose replacement says something else adds a reader here, with its fields, before its
 // first record uses it.
@@ -79,6 +86,9 @@ type record struct {
 	Test    string   `json:"test"`
 	Cases   []kase   `json:"cases"`
 	Stdout  string   `json:"stdout"`
+	Dir     string   `json:"dir"`
+	Exit    *int     `json:"exit"`
+	root    string   // the repository's top folder
 	verdict []string // what differs, empty when the record holds
 	notes   []string // the output of what failed
 }
@@ -94,6 +104,7 @@ var readers = map[string]func(r *record, stdout []byte, code int, dir string){
 	"go-test":  readGoTest,
 	"stdout":   readStdout,
 	"verdicts": readVerdicts,
+	"exit":     readExit,
 }
 
 func main() {
@@ -168,6 +179,9 @@ func held(r *record) string {
 	if r.Read == "go-test" || r.Read == "verdicts" {
 		return fmt.Sprintf("%d cases as recorded", len(r.Cases))
 	}
+	if r.Read == "exit" {
+		return fmt.Sprintf("its output and exit %d as recorded", *r.Exit)
+	}
 	return "its output as recorded"
 }
 
@@ -225,7 +239,7 @@ func check(r *record) error {
 		return errors.New("run names no command")
 	}
 	if _, ok := readers[r.Read]; !ok {
-		return fmt.Errorf("read %q is no reader of parity's (go-test, stdout, verdicts)", r.Read)
+		return fmt.Errorf("read %q is no reader of parity's (go-test, stdout, verdicts, exit)", r.Read)
 	}
 	for _, kv := range r.Env {
 		if !strings.Contains(kv, "=") {
@@ -246,6 +260,10 @@ func check(r *record) error {
 	case "stdout":
 		if r.Stdout == "" {
 			return errors.New("a stdout record names the file of its output")
+		}
+	case "exit":
+		if r.Stdout == "" || r.Exit == nil {
+			return errors.New("an exit record names the file of its output and its exit code")
 		}
 	}
 	return nil
@@ -274,8 +292,9 @@ func checkCases(cases []kase, key func(string) string, noSlash bool) error {
 // judge runs the record's command and reads what it says.
 func judge(r *record, root, dir string) {
 	cmd := exec.Command(r.Run[0], r.Run[1:]...)
-	cmd.Dir = root
-	cmd.Env = append(os.Environ(), r.Env...)
+	cmd.Dir = filepath.Join(root, filepath.FromSlash(r.Dir))
+	cmd.Env = append(os.Environ(), expand(r.Env, root)...)
+	r.root = root
 	var out, errs bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &out, &errs
 	code := 0
@@ -291,6 +310,21 @@ func judge(r *record, root, dir string) {
 	if len(r.verdict) > 0 && errs.Len() > 0 {
 		r.notes = append(r.notes, "its stderr:\n"+errs.String())
 	}
+}
+
+// expand is a record's env entries with $NAME and ${NAME} expanded from parity's environment,
+// and $PARITY_ROOT the repository's top folder.
+func expand(env []string, root string) []string {
+	var out []string
+	for _, kv := range env {
+		out = append(out, os.Expand(kv, func(name string) string {
+			if name == "PARITY_ROOT" {
+				return root
+			}
+			return os.Getenv(name)
+		}))
+	}
+	return out
 }
 
 // subtest is a case's name as go test writes a subtest's: a space an underscore, a character it
@@ -424,13 +458,30 @@ func readVerdicts(r *record, stdout []byte, code int, _ string) {
 
 // readStdout holds the command's stdout to the recorded output, byte for byte.
 func readStdout(r *record, stdout []byte, code int, dir string) {
+	if code != 0 {
+		r.verdict = append(r.verdict, fmt.Sprintf("it exited %d", code))
+	}
+	sameOutput(r, stdout, dir)
+}
+
+// readExit holds the command's exit code to the recorded one, and its stdout, the repository's
+// top folder written <root>, to the recorded output.
+func readExit(r *record, stdout []byte, code int, dir string) {
+	if code != *r.Exit {
+		r.verdict = append(r.verdict, fmt.Sprintf("it exited %d, recorded %d", code, *r.Exit))
+	}
+	if r.root != "" {
+		stdout = bytes.ReplaceAll(stdout, []byte(r.root), []byte("<root>"))
+	}
+	sameOutput(r, stdout, dir)
+}
+
+// sameOutput holds stdout to the record's recorded output, byte for byte.
+func sameOutput(r *record, stdout []byte, dir string) {
 	want, err := os.ReadFile(filepath.Join(dir, r.Stdout))
 	if err != nil {
 		r.verdict = append(r.verdict, fmt.Sprintf("its recorded output: %v", err))
 		return
-	}
-	if code != 0 {
-		r.verdict = append(r.verdict, fmt.Sprintf("it exited %d", code))
 	}
 	if !bytes.Equal(stdout, want) {
 		at := 0

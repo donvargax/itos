@@ -1,0 +1,16 @@
+{
+	"was": "node tools/bin/build-go.ts --release dist/parity/build-go-release",
+	"run": [
+		"go",
+		"run",
+		"./tools/bin/build-go",
+		"--release",
+		"dist/parity/build-go-release"
+	],
+	"env": [
+		"ITOS_SNAPSHOT_VERSION=8.99.0"
+	],
+	"read": "exit",
+	"exit": 0,
+	"stdout": "build-go-release.txt"
+}

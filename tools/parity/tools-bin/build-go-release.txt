@@ -1,0 +1,7 @@
+<root>/dist/parity/build-go-release/itos-8.99.0-darwin-amd64.tar.gz
+<root>/dist/parity/build-go-release/itos-8.99.0-darwin-arm64.tar.gz
+<root>/dist/parity/build-go-release/itos-8.99.0-linux-amd64.tar.gz
+<root>/dist/parity/build-go-release/itos-8.99.0-linux-arm64.tar.gz
+<root>/dist/parity/build-go-release/itos-8.99.0-windows-amd64.zip
+<root>/dist/parity/build-go-release/itos.schema.json
+<root>/dist/parity/build-go-release/checksums.txt

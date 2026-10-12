@@ -1,0 +1,81 @@
+{
+	"repository": "donvargax/itos",
+	"actionable": [
+		{
+			"number": 21,
+			"title": "Opened by the allowed login",
+			"author": "donvargax",
+			"labels": [
+				"consumer-report"
+			],
+			"trust": {
+				"how": "opened",
+				"login": "donvargax"
+			}
+		},
+		{
+			"number": 23,
+			"title": "Accepted by the allowed login",
+			"author": "someone-else",
+			"labels": [
+				"consumer-report",
+				"itos-accepted"
+			],
+			"trust": {
+				"how": "accepted",
+				"login": "donvargax"
+			}
+		},
+		{
+			"number": 27,
+			"title": "Accepted, removed, accepted again",
+			"author": "a-collaborator",
+			"labels": [
+				"itos-accepted"
+			],
+			"trust": {
+				"how": "accepted",
+				"login": "donvargax"
+			}
+		}
+	],
+	"rest": [
+		{
+			"number": 22,
+			"title": "A stranger's \u001b[31mred\u001b[0m title,\ta tab and a\nnew line",
+			"author": "someone-else",
+			"labels": []
+		},
+		{
+			"number": 24,
+			"title": "Accepted, then the label removed",
+			"author": "someone-else",
+			"labels": [
+				"consumer-report"
+			]
+		},
+		{
+			"number": 25,
+			"title": "Accepted by another login <b>&amp;</b>   a line separator",
+			"author": "someone-else",
+			"labels": [
+				"itos-accepted"
+			]
+		},
+		{
+			"number": 26,
+			"title": "The form's label only",
+			"author": "someone-else",
+			"labels": [
+				"consumer-report",
+				"bell\u0007label"
+			]
+		},
+		{
+			"number": 28,
+			"title": "Removed by another login after the allowed login applied it",
+			"author": "someone-else",
+			"labels": []
+		}
+	]
+}

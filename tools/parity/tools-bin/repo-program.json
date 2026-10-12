@@ -1,0 +1,40 @@
+{
+	"was": "tools/bin/repo-program.ts's repoProgram, a library, mocking process.platform",
+	"run": [
+		"go",
+		"test",
+		"-count=1",
+		"-json",
+		"-run",
+		"^TestCommand$",
+		"./tools/bin/repo-program"
+	],
+	"read": "go-test",
+	"test": "TestCommand",
+	"cases": [
+		{
+			"name": "a script runs as itself on linux, its arguments kept",
+			"verdict": "pass"
+		},
+		{
+			"name": "a script runs as itself on darwin",
+			"verdict": "pass"
+		},
+		{
+			"name": "a script with no arguments runs as itself",
+			"verdict": "pass"
+		},
+		{
+			"name": "a script runs through sh on windows, its arguments after it",
+			"verdict": "pass"
+		},
+		{
+			"name": "a windows path's backslashes are slashes for sh, its arguments untouched",
+			"verdict": "pass"
+		},
+		{
+			"name": "a script with no arguments runs through sh on windows",
+			"verdict": "pass"
+		}
+	]
+}

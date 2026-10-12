@@ -1,0 +1,17 @@
+{
+	"was": "node tools/bin/inbox.ts --json --json, FAKE_GH=set",
+	"run": [
+		"go",
+		"run",
+		"./tools/bin/inbox",
+		"--json",
+		"--json"
+	],
+	"env": [
+		"PATH=$PARITY_ROOT/tools/parity/tools-bin/fake:$PATH",
+		"FAKE_GH=set"
+	],
+	"read": "exit",
+	"exit": 2,
+	"stdout": "inbox-usage-twice.txt"
+}

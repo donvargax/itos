@@ -83,6 +83,39 @@ func TestReadStdout(t *testing.T) {
 	}
 }
 
+func TestReadExit(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "out.txt"), []byte("<root>/dist/itos\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	exit := func(code int) *record { return &record{Read: "exit", Stdout: "out.txt", Exit: &code, root: "/top"} }
+	for _, c := range []struct {
+		name, stdout string
+		code         int
+		r            *record
+		want         []string
+	}{
+		{"the output, the top folder written <root>, and the exit as recorded hold", "/top/dist/itos\n", 0, exit(0), nil},
+		{"another exit fails, named", "/top/dist/itos\n", 2, exit(0), []string{"it exited 2, recorded 0"}},
+		{"another output fails", "/elsewhere/dist/itos\n", 2, exit(2), []string{"its stdout (21 bytes) is not out.txt (17 bytes), from line 1 on"}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			readExit(c.r, []byte(c.stdout), c.code, dir)
+			if !slices.Equal(c.r.verdict, c.want) {
+				t.Errorf("verdict %q, want %q", c.r.verdict, c.want)
+			}
+		})
+	}
+}
+
+func TestExpand(t *testing.T) {
+	t.Setenv("PARITY_TEST_PATH", "/usr/bin")
+	got := expand([]string{"PATH=$PARITY_ROOT/fake:${PARITY_TEST_PATH}", "FAKE=set"}, "/top")
+	if want := []string{"PATH=/top/fake:/usr/bin", "FAKE=set"}; !slices.Equal(got, want) {
+		t.Errorf("expand said %q, want %q", got, want)
+	}
+}
+
 func TestReadVerdicts(t *testing.T) {
 	recorded := func() *record {
 		return &record{Read: "verdicts", Cases: []kase{{"a.yaml: one/two", "pass"}, {"b.yaml: three", "pass"}}}
@@ -131,6 +164,7 @@ func TestCheck(t *testing.T) {
 		{"a case twice", record{Run: []string{"x"}, Read: "go-test", Test: "T", Cases: []kase{{"a b", "pass"}, {"a_b", "pass"}}}, "recorded twice"},
 		{"a verdict unknown", record{Run: []string{"x"}, Read: "go-test", Test: "T", Cases: []kase{{"a", "ok"}}}, "is not pass, fail or skip"},
 		{"no output file", record{Run: []string{"x"}, Read: "stdout"}, "names the file of its output"},
+		{"no exit code", record{Run: []string{"x"}, Read: "exit", Stdout: "out.txt"}, "names the file of its output and its exit code"},
 		{"no verdicts", record{Run: []string{"x"}, Read: "verdicts"}, "names its cases"},
 		{"a verdicts case twice", record{Run: []string{"x"}, Read: "verdicts", Cases: []kase{{"a.yaml: a/b", "pass"}, {"a.yaml: a/b", "fail"}}}, "recorded twice"},
 	} {

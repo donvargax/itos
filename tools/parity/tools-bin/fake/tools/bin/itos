@@ -1,0 +1,35 @@
+#!/bin/sh
+# A fake tools/bin/itos for parity's itos-cc-tests records (T-146): itos-cc-tests runs
+# tools/bin/itos tests list scenario --json from the folder it runs in, and this answers it as
+# FAKE_ITOS says: "listing" (live scenarios and @wip ones), "fails" (exit 3, as a Go tree that
+# does not build), "not-json", "no-tests" (an object with no tests list) or "bad-test" (a test
+# with no file, after a live one). Any other call is refused.
+[ "$*" = "tests list scenario --json" ] || {
+	echo "fake itos: not itos-cc-tests' call: $*" >&2
+	exit 2
+}
+case "${FAKE_ITOS-}" in
+listing) cat <<'JSON' ;;
+{
+	"schema": 1,
+	"tests": [
+		{ "id": "ID-ASK-01", "file": "ask.feature", "live": true },
+		{ "id": "ID-ASK-02", "file": "ask.feature", "live": false },
+		{ "id": "bug-12", "file": "nested/commit.feature", "live": true },
+		{ "id": "ID-WIP-01", "file": "wip.feature", "live": false },
+		{ "id": "ID-ZED-09", "file": "zed.feature", "live": true }
+	]
+}
+JSON
+fails)
+	echo "tools/bin/itos: go build ./cmd/itos failed" >&2
+	exit 3
+	;;
+not-json) echo "itos: not JSON at all" ;;
+no-tests) echo '{"schema": 1, "test": []}' ;;
+bad-test) echo '{"tests": [{"id": "ID-ASK-01", "file": "ask.feature", "live": true}, {"id": "ID-ASK-02", "live": true}]}' ;;
+*)
+	echo "fake itos: FAKE_ITOS is \"${FAKE_ITOS-}\"" >&2
+	exit 2
+	;;
+esac

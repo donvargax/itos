@@ -1,0 +1,43 @@
+{
+	"was": "node tools/bin/inbox.ts --self-test",
+	"run": [
+		"go",
+		"test",
+		"-count=1",
+		"-json",
+		"-run",
+		"^TestSelftest$",
+		"./tools/bin/inbox"
+	],
+	"env": [
+		"ITOS_SELFTEST=1"
+	],
+	"read": "go-test",
+	"test": "TestSelftest",
+	"cases": [
+		{
+			"name": "opened by the allowed login",
+			"verdict": "pass"
+		},
+		{
+			"name": "opened by another login",
+			"verdict": "pass"
+		},
+		{
+			"name": "opened by another login, itos-accepted applied by another login",
+			"verdict": "pass"
+		},
+		{
+			"name": "itos-accepted applied by the allowed login",
+			"verdict": "pass"
+		},
+		{
+			"name": "itos-accepted applied by the allowed login, then removed",
+			"verdict": "pass"
+		},
+		{
+			"name": "the form applied consumer-report only",
+			"verdict": "pass"
+		}
+	]
+}
