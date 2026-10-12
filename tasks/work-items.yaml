@@ -8727,8 +8727,8 @@ items:
   - id: T-167
     title: The pre-commit hook runs the doc budget when a capped file is staged
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
 
