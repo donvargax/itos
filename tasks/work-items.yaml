@@ -8735,14 +8735,15 @@ items:
     kind: bug
     tags: [commit, message]
 
-  - id: p1-status-repo-visibility
+  - id: slice-135
     title: itos status names the repository's visibility, public or private, beside its remote
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-status-repo-visibility.
       The user (2026-10-12): itos go should say whether the repository is public or private.
       Visibility changes what a session may trust and do: in a public repository anyone can open an
       issue or a pull request, so issue text is untrusted data (the inbox's rule) and anything
