@@ -1018,22 +1018,9 @@ items:
     title: The nightly goes on past a failing step and names every failure, its --json listing them
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: [slice-16]
     kind: slice
-    why: >
-      Was p1-nightly-past-first-failure.
-      ci.stop_at_first_failure is one setting for pushes and the nightly. A push should stop early
-      to save the runner, but the nightly runs once a day to report: with it true, a red scenario
-      in the whole run hides every done task's check after it, and a red task check placed first
-      hides the features. A ci.nightly.stop_at_first_failure (false by default, or the nightly
-      always going on) would report everything red in one night; with p1-ci-run-every-failure-json
-      its JSON would list them.
-
-      Backlog review of 2026-10-10, batch 1: folds in p1-ci-run-every-failure-json (ci run --json
-      gains a failures list beside failed_at, keys added only) and p1-nightly-issue-names-tasks (the
-      Nightly red issue names each failed step from that list, not only TestFeatures lines). Queued:
-      one red scenario hides the self-tests and the mutation run, a day per hidden failure.
     tags: [ci]
 
   - id: slice-17
