@@ -1775,3 +1775,17 @@
     guide names it. Code is king: the guide says the rule, not this repository's steps. Whether a
     guide's text is a feat with its corpus case or needs Changes:, previous-release says; a consumer
     workflow template is go-template-itos#9's, not this task's.
+
+- id: T-169
+  type: ci
+  title: The conformance runner's fake GitHub answers a repository's visibility
+  why: >
+    For slice 135, whose corpus cases pin itos status naming the repository's visibility on the main
+    branch's line and in --json. The runner's fake GitHub (tools/bin/conformance/corpus) answers
+    every path but a workflow's runs and a run's jobs 404, so no case can show a public or private
+    repository. A case's github gains visibility (public, private or internal): the fake then
+    answers GET /repos/owner/name with it and with private, GitHub's bool; left out, the endpoint
+    stays a 404, so no case of this corpus or a release's changes. The check is the fake answering
+    it, in the package's Go test.
+  done_when:
+    - run: go test ./tools/bin/conformance/corpus -count=1 -run TestFakeGitHubRepository

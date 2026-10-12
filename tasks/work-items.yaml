@@ -8786,3 +8786,11 @@ items:
       commit and tag comment, as it moves the install script's lines, or at least names each one it
       leaves and says the pin decides what runs.
     tags: [upgrade]
+
+  - id: T-169
+    title: The conformance runner's fake GitHub answers a repository's visibility
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
