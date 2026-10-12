@@ -221,11 +221,11 @@ ci:
     - { run: "go test ./tools/...", cost: late }
     # The conformance corpus: what itos did when it was written, as cases run
     # through its command line; a regression corpus, not named tests. Against
-    # tools/bin/itos, the Go binary built from this tree.
-    - { run: node tools/itos/conformance/run.ts --bin tools/bin/itos, cost: late }
+    # tools/bin/itos, the Go binary built from this tree. The runner is Go (T-144).
+    - { run: go run ./tools/bin/conformance --bin tools/bin/itos, cost: late }
     # The last release's scenarios and corpus against this tree's itos (T-071), when the range has
     # a feat or a fix: the release's tag checked out into a scratch worktree, its go test ./features
-    # run there with ITOS_BIN naming tools/bin/itos, and its corpus with its own runner. An old
+    # run there with ITOS_BIN naming tools/bin/itos, and its corpus with this tree's runner. An old
     # scenario or case that fails is accepted only when a fix or a breaking commit since the tag
     # names it in Changes: (T-106). A shallow clone or a tag it cannot check out stops it (exit 2),
     # and no release tag passes it, saying so. After this tree's own corpus, which fails for a cause
@@ -291,10 +291,10 @@ ci:
     # this tree, so a check running some of them by --only, against it or
     # against the port's own build of the same tree (T-039 to T-052), is what
     # it has just done.
-    - by: node tools/itos/conformance/run.ts --bin tools/bin/itos
-      matches: "^node tools/itos/conformance/run\\.ts --bin tools/bin/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*$"
-    - by: node tools/itos/conformance/run.ts --bin tools/bin/itos
-      matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && node tools/itos/conformance/run\\.ts --bin dist/go/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*'$"
+    - by: go run ./tools/bin/conformance --bin tools/bin/itos
+      matches: "^go run \\./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*$"
+    - by: go run ./tools/bin/conformance --bin tools/bin/itos
+      matches: "^sh -c 'node tools/bin/build-go\\.ts dist/go && go run \\./tools/bin/conformance --bin dist/go/itos --only tools/itos/conformance/[a-z-]+\\.yaml(?: tools/itos/conformance/[a-z-]+\\.yaml)*'$"
   # There is no ci.nightly_only: T-125 removed it with the ledger's checks, whose three commands
   # (the gates self-test, the newest release's attestation, the newest CI run's platform jobs) are
   # steps here, and nothing a push names is left out of a push.
@@ -359,7 +359,8 @@ ci:
           ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./features -count=1 &&
           PATH="$d:$PATH" go test ./internal/cli -count=1 -run TestDeclareHooksOldGit'
       # The tools/bin programs' tests use the real git when `git` is an itos (T-122's check, kept
-      # as a step in T-125): tools/bin/real-git. As above, no runner has the shim.
+      # as a step in T-125): internal/git's Real, which the corpus runner calls too. As above, no
+      # runner has the shim.
       - run: >-
           sh -c 'd=$(mktemp -d) && ln -s "$PWD/.tools/bin/itos" "$d/git" && PATH="$d:$PATH" go test ./tools/bin/... -count=1'
       # internal/cli's help tests do not depend on what itos-* extensions the PATH holds (T-077's
@@ -369,7 +370,7 @@ ci:
       - run: >-
           sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" go test ./internal/cli -count=1'
       - run: >-
-          sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" node tools/itos/conformance/run.ts --bin tools/bin/itos'
+          sh -c 'd=$(mktemp -d) && printf "#!/bin/sh\n" > "$d/itos-zz-path-check" && chmod +x "$d/itos-zz-path-check" && PATH="$d:$PATH" go run ./tools/bin/conformance --bin tools/bin/itos'
       # The features build the itos under test with -cover and split its counters per scenario
       # (T-121's check, kept as a step in T-125): ID-PIN-01 covers launch.fetch, ID-ASK-01 does
       # not. T-120 adopts that integration coverage through itos-cc; this remains a targeted

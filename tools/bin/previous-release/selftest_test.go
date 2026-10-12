@@ -36,8 +36,9 @@
 //     saying so; a shallow clone and a tag that cannot be checked out stop it with exit 2, never
 //     a pass.
 //
-// The corpus runner is node's (tools/itos/conformance/run.ts, until T-144), with the checkout's
-// node_modules. Not on windows, where the binaries under test, shell scripts, cannot start.
+// The corpus runner is this tree's (tools/bin/conformance/corpus), linked into previous-release,
+// so the scratch release's tree holds none of its own (T-144). Not on windows, where the
+// binaries under test, shell scripts, cannot start.
 package main_test
 
 import (
@@ -57,8 +58,7 @@ const longCase = "greets the world with hello on a line of its own, as it has si
 // release is the release's tree: its scenarios, the steps that run them and its corpus, as this
 // repository lays them out; the runner is added from the checkout.
 var release = map[string]string{
-	"go.mod":       "module example.com/scratch\n\ngo 1.22\n",
-	"package.json": `{ "name": "scratch", "version": "1.0.0", "type": "module" }` + "\n",
+	"go.mod": "module example.com/scratch\n\ngo 1.22\n",
 	"features/greet.feature": `Feature: Greeting
 
   # It greets as it always has.
@@ -218,7 +218,6 @@ func TestSelftest(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("the binaries under test are shell scripts")
 	}
-	root := scratch.Root(t)
 	rel := scratch.NewRelease(t)
 	tmp := rel.Tmp
 	repo := filepath.Join(tmp, "repo")
@@ -268,23 +267,14 @@ func TestSelftest(t *testing.T) {
 
 	// The scratch history: a fix naming the scenario and a breaking change before the release,
 	// the release's tag, then a feat that says nothing; branches add a commit that does.
-	runner, err := os.ReadFile(filepath.Join(root, "tools", "itos", "conformance", "run.ts"))
-	if err != nil {
-		t.Fatal(err)
-	}
 	rel.Git(tmp, "init", "-q", "-b", "main", repo)
 	scratch.WriteFiles(t, repo, release)
-	scratch.WriteFiles(t, repo, map[string]string{"tools/itos/conformance/run.ts": string(runner)})
 	rel.Git(repo, "add", "-A")
 	rel.Commit(repo, "build: the release's tree")
 	rel.Commit(repo, "fix: an old fix\n\nWhy.\n\nChanges: @ID-GREET-01\nChanges: greet.yaml: greets the world")
 	rel.Commit(repo, "feat!: an old break, before the release")
 	rel.Git(repo, "tag", "v1.0.0")
 	released := rel.Git(repo, "rev-parse", "HEAD")
-	// The corpus runner's YAML parser, as the checkout's node_modules.
-	if err := os.Symlink(filepath.Join(root, "node_modules"), filepath.Join(repo, "node_modules")); err != nil {
-		t.Fatal(err)
-	}
 	rel.Commit(repo, "feat: greet otherwise\n\nNo word on the old scenario.\n\nTask: T-1")
 	feat := rel.Git(repo, "rev-parse", "HEAD")
 	branch := func(name, message string) {

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -117,23 +116,10 @@ const oldCorpus = `cases:
       out.txt: "old\n"
 `
 
-// oldTree is a checkout of a release whose corpus is oldCorpus, as cli.yaml,
-// readied as run readies one; it skips the test without node or the yaml
-// package oldCorpusScript and the runner read the fixtures with.
-func oldTree(t *testing.T) (tree, top string) {
+// oldTree is a checkout of a release whose corpus is oldCorpus, as cli.yaml.
+func oldTree(t *testing.T) string {
 	t.Helper()
-	top, err := filepath.Abs("../../..")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := exec.LookPath("node"); err != nil {
-		t.Skip("node is not on the PATH, and oldCorpusScript and the corpus runner run in it: skipping")
-	}
-	modules := filepath.Join(top, "node_modules")
-	if _, err := os.Stat(filepath.Join(modules, "yaml")); err != nil {
-		t.Skipf("%s has no yaml package, which the fixtures are read with (vp install): skipping", modules)
-	}
-	tree = t.TempDir()
+	tree := t.TempDir()
 	dir := filepath.Join(tree, "tools/itos/conformance")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
@@ -141,21 +127,21 @@ func oldTree(t *testing.T) (tree, top string) {
 	if err := os.WriteFile(filepath.Join(dir, "cli.yaml"), []byte(oldCorpus), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := prepare(tree, top); err != nil {
-		t.Fatal(err)
-	}
-	return tree, top
+	return tree
 }
 
 // readyOldCorpus takes out of every old case what is for people, its plain
 // output and its json's message and fix keys at any depth, and keeps the rest
 // as written: the exit code, files_after and every other json key
 // (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md).
+// It counts what it left out, names every case, and writes nothing to the
+// release's tree. What it leaves of a case is corpus.File's Machine's, tested
+// there; TestOldCorpusJudgesMachineOutputAlone runs it.
 func TestReadyOldCorpusKeepsMachineOutputOnly(t *testing.T) {
-	tree, _ := oldTree(t)
-	r, err := readyOldCorpus(tree)
-	if err != nil {
-		t.Fatal(err)
+	tree := oldTree(t)
+	r := readyOldCorpus(tree)
+	if r.Err != nil {
+		t.Fatal(r.Err)
 	}
 	if r.Cases != 8 || r.Plain != 4 || r.Keys != 4 {
 		t.Errorf("cases read, cases whose plain output it left out, message and fix keys it left out: got %d, %d, %d, want 8, 4, 4",
@@ -164,32 +150,27 @@ func TestReadyOldCorpusKeepsMachineOutputOnly(t *testing.T) {
 	if got := len(r.Names["cli.yaml"]); got != 8 {
 		t.Errorf("the case names, as written: got %d, want 8: %q", got, r.Names["cli.yaml"])
 	}
-
+	if len(r.Fixtures) != 1 || len(r.Fixtures[0].Cases) != 8 || r.Fixtures[0].Shown != "tools/itos/conformance/cli.yaml" {
+		t.Errorf("the fixtures to run: %+v", r.Fixtures)
+	}
 	written, err := os.ReadFile(filepath.Join(tree, "tools/itos/conformance/cli.yaml"))
-	if err != nil {
+	if err != nil || string(written) != oldCorpus {
+		t.Errorf("the release's corpus should be left as it was written: %v\n%s", err, written)
+	}
+}
+
+// A release's corpus that cannot be read stops the corpus's run, named.
+func TestReadyOldCorpusUnreadable(t *testing.T) {
+	tree := oldTree(t)
+	if err := os.WriteFile(filepath.Join(tree, "tools/itos/conformance/bad.yaml"), []byte("cases: [\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	text := string(written)
-	var wrong []string
-	for _, gone := range []string{"stdout", "stderr", "message:", "fix:", "the old"} {
-		if strings.Contains(text, gone) {
-			wrong = append(wrong, fmt.Sprintf("it should leave out %q", gone))
-		}
+	r := readyOldCorpus(tree)
+	if r.Err == nil || !strings.Contains(r.Err.Error(), "bad.yaml") || len(r.Names["cli.yaml"]) != 8 {
+		t.Errorf("an unreadable file should be the run's error, the readable ones named: %v, %q", r.Err, r.Names)
 	}
-	for _, kept := range []string{
-		"name: help, said anew",
-		"exit: 2",
-		"rule: r-one",
-		"line: 3",
-		"from: abc1234",
-		"out.txt:",
-	} {
-		if !strings.Contains(text, kept) {
-			wrong = append(wrong, fmt.Sprintf("it should keep %q", kept))
-		}
-	}
-	if len(wrong) > 0 {
-		t.Errorf("the run's fixture:\n  %s\nit reads:\n%s", strings.Join(wrong, "\n  "), text)
+	if s := runCorpus(r, "itos"); s.err == nil {
+		t.Errorf("the corpus's run should stop on it")
 	}
 }
 
@@ -198,16 +179,16 @@ func TestReadyOldCorpusKeepsMachineOutputOnly(t *testing.T) {
 // fix pass; a changed exit code, rule id or files_after, or a json key
 // removed, fails (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md).
 func TestOldCorpusJudgesMachineOutputAlone(t *testing.T) {
-	tree, top := oldTree(t)
-	if _, err := readyOldCorpus(tree); err != nil {
-		t.Fatal(err)
+	old := readyOldCorpus(oldTree(t))
+	if old.Err != nil {
+		t.Fatal(old.Err)
 	}
 	self, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv(fakeEnv, "1")
-	s := runCorpus(tree, top, self)
+	s := runCorpus(old, self)
 	if s.err != nil {
 		t.Fatalf("the corpus could not run: %v\n%s", s.err, s.output)
 	}

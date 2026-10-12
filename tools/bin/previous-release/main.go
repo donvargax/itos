@@ -6,18 +6,22 @@
 // it promised, and the suite that judges a change is the edited one, so a
 // behaviour change could pass every check and ship as a minor under T-069. The
 // features' steps are a black box that runs whatever ITOS_BIN names
-// (features/README.md), and the corpus runner runs whatever --bin names, so
-// the last release's own suite can judge the new binary: this checks the
-// release's tag out into a scratch worktree, with its own features, steps,
+// (features/README.md), and the corpus runner runs whatever binary it is
+// given, so the last release's own suite can judge the new binary: this checks
+// the release's tag out into a scratch worktree, with its own features, steps,
 // go.mod and corpus, and runs there
 //
 //	ITOS_BIN=<bin> go test ./features -count=1 -json
-//	node <this tree>/tools/itos/conformance/run.ts --bin <bin> --git <native git> --additive --only <its corpus>
 //
-// The native git is internal/git's Real, the first git on the PATH that is not
-// an itos, as tools/bin/real-git would print it to the runner, handed over
-// with --git because the runner may be a copy in a tree with no real-git of
-// its own, as the self-test's scratch repository is (T-153).
+// and its corpus, tools/itos/conformance/*.yaml, through this tree's corpus
+// runner (tools/bin/conformance/corpus), linked into this program, so the
+// runner that judges the old corpus is always this tree's, whatever tree the
+// check runs in (its self-test's scratch repository has none of its own,
+// T-153). The runner builds and inspects each case's repository with
+// internal/git's Real, the first git on the PATH that is not an itos. It reads
+// a release's fixtures as that release wrote them, YAML 1.2 that
+// go.yaml.in/yaml/v3 alone refuses included (v8.0.0's ask.yaml), since a
+// release's tree is never rewritten (T-144).
 //
 // The release's scenarios run as they are, each judged by what its steps
 // assert. Its corpus is judged by itos's machine output alone, the only
@@ -27,9 +31,9 @@
 // person reads and change with them. Its stdout, stderr, stdout_has and
 // stderr_has are not compared: every plain-text output, help, a refusal or a
 // success alike, is for people and may change in any release. They are taken
-// out of the worktree's fixtures before the runner reads them
-// (oldCorpusScript), with the message and fix keys, and the check says how
-// many it left out. A help case or a usage error is judged as any other case
+// out of the release's cases before the runner runs them (corpus.File's
+// Machine), with the message and fix keys, and the check says how many it
+// left out. A help case or a usage error is judged as any other case
 // is, by its exit code and the files it leaves: no rule of its own. This
 // tree's own corpus, run without any of this, still pins every word exactly.
 //
@@ -91,8 +95,8 @@
 // a suite that cannot run (a build that fails, a fixture it cannot read, a
 // failure it cannot name) stops it with exit 2, never a pass.
 //
-// Beside the standard library it imports internal/release and internal/git
-// alone.
+// Beside the standard library it imports internal/release, internal/git and
+// the corpus runner, which reads YAML with go.yaml.in/yaml/v3, as itos does.
 //
 //	go run ./tools/bin/previous-release [-range-from <rev>] [-bin <itos>]
 //
@@ -107,13 +111,13 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -121,6 +125,7 @@ import (
 
 	itosgit "github.com/donvargax/itos/v8/internal/git"
 	"github.com/donvargax/itos/v8/internal/release"
+	"github.com/donvargax/itos/v8/tools/bin/conformance/corpus"
 )
 
 // commit is one commit since the release's tag.
@@ -209,16 +214,8 @@ func run() int {
 	if err != nil {
 		return fail("%v", err)
 	}
-	top, err := git("rev-parse", "--show-toplevel")
-	if err != nil {
-		return fail("%v", err)
-	}
-	top = strings.TrimSpace(top)
 	if _, err := git("worktree", "add", "--detach", tree, tag); err != nil {
 		return fail("cannot check out %s into a scratch worktree: %v", tag, err)
-	}
-	if err := prepare(tree, top); err != nil {
-		return fail("%s's worktree: %v", tag, err)
 	}
 	what := judged
 	if *bin == "" {
@@ -226,10 +223,7 @@ func run() int {
 	}
 	fmt.Printf("%s: %s's scenarios and conformance corpus against %s (itos %s), in a scratch worktree of %s\n",
 		self, tag, what, version, tag)
-	corpusReadied, err := readyOldCorpus(tree)
-	if err != nil {
-		return fail("%s's corpus: cannot leave out its plain output and its message and fix keys: %v", tag, err)
-	}
+	corpusReadied := readyOldCorpus(tree)
 	cases := corpusReadied.Names
 	fmt.Printf("%s: %s's conformance corpus: its %s judged by itos's machine output alone, by this tree's runner (--additive):\n"+
 		"  each one's exit code, files_after and json, a json key added passing and one removed or changed failing;\n"+
@@ -243,7 +237,7 @@ func run() int {
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() { defer wg.Done(); features = runFeatures(tree, binary) }()
-	go func() { defer wg.Done(); corpus = runCorpus(tree, top, binary) }()
+	go func() { defer wg.Done(); corpus = runCorpus(corpusReadied, binary) }()
 	wg.Wait()
 	for _, s := range []suite{features, corpus} {
 		if s.err != nil {
@@ -274,108 +268,50 @@ type suite struct {
 	err                   error
 }
 
-// prepare readies the release's worktree: the checkout top's node_modules is
-// linked in, for the YAML parser oldCorpusScript reads its fixtures with.
-func prepare(tree, top string) error {
-	modules := filepath.Join(top, "node_modules")
-	if _, err := os.Stat(modules); err != nil {
-		return fmt.Errorf("no node_modules in this checkout, which the corpus runner needs (vp install)")
-	}
-	return os.Symlink(modules, filepath.Join(tree, "node_modules"))
-}
-
-// oldCorpusScript readies the fixtures of the corpus in its working directory
-// for the run, leaving in each case only what itos's contract holds it to
-// (docs/decisions/0035-only-machine-output-is-itos-s-contract-exit-codes-json-less-message-and-fix-and-the-files-it-writes.md):
-// it takes out every case's stdout, stderr, stdout_has and stderr_has, which
-// pin plain text, and every key named message or fix at any depth of its json,
-// which are the same sentences; the exit code, files_after, every other json
-// key and what a case sets up stay as written. It prints how many cases it
-// read, how many of them lost their plain output, how many message and fix
-// keys it left out, and the names of every file's cases, as JSON
-// ({"cases": n, "plain": n, "keys": n, "names": {"<file>": ["<name>", …]}}).
-//
-// It runs with the yaml package prepare links in, the one the corpus runner
-// parses fixtures with, and writes each file back from what it parsed, which
-// it checks reads back the same; a file that does not parse is left for the
-// runner to report.
-const oldCorpusScript = `
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { parse, stringify } from "yaml";
-
-const dir = "tools/itos/conformance";
-const plain = ["stdout", "stderr", "stdout_has", "stderr_has"];
-const sentences = new Set(["message", "fix"]);
-const told = { cases: 0, plain: 0, keys: 0, names: {} };
-const machine = (value) => {
-	if (Array.isArray(value)) return value.map(machine);
-	if (value === null || typeof value !== "object") return value;
-	const kept = {};
-	for (const [key, v] of Object.entries(value)) {
-		if (sentences.has(key)) told.keys++;
-		else kept[key] = machine(v);
-	}
-	return kept;
-};
-for (const file of readdirSync(dir).filter((f) => f.endsWith(".yaml")).sort()) {
-	const path = join(dir, file);
-	told.names[file] = [];
-	let doc;
-	try {
-		doc = parse(readFileSync(path, "utf8"));
-	} catch {
-		continue;
-	}
-	if (!doc || !Array.isArray(doc.cases)) continue;
-	told.names[file] = doc.cases.flatMap((c) => (c && typeof c.name === "string" ? [c.name] : []));
-	const cases = doc.cases.map((c) => {
-		if (!c || typeof c !== "object" || Array.isArray(c)) return c;
-		told.cases++;
-		const kept = { ...c };
-		if (plain.some((key) => Object.hasOwn(kept, key))) told.plain++;
-		for (const key of plain) delete kept[key];
-		if (Object.hasOwn(kept, "json")) kept.json = machine(kept.json);
-		return kept;
-	});
-	const readied = { ...doc, cases };
-	const text = stringify(readied, { lineWidth: 0 });
-	if (JSON.stringify(parse(text)) !== JSON.stringify(readied))
-		throw new Error(file + ": its cases do not read back as readied");
-	writeFileSync(path, text);
-}
-console.log(JSON.stringify(told));
-`
-
-// readied is what oldCorpusScript did to the release's corpus: how many cases
-// it read, how many lost their plain output, how many message and fix keys it
+// readied is the release's corpus readied for the run: each fixture with only
+// what itos's contract holds it to (corpus.File's Machine), how many cases it
+// read, how many lost their plain output, how many message and fix keys it
 // left out of their json, and each corpus file's case names, by its base name,
-// which Changes: entries are read against.
+// which Changes: entries are read against. A file that cannot be read is an
+// error the corpus's run reports, its names none.
 type readied struct {
-	Cases int                 `json:"cases"`
-	Plain int                 `json:"plain"`
-	Keys  int                 `json:"keys"`
-	Names map[string][]string `json:"names"`
+	Cases, Plain, Keys int
+	Names              map[string][]string
+	Fixtures           []*corpus.Fixture
+	Err                error
 }
 
-// readyOldCorpus readies the release's corpus in tree as oldCorpusScript
-// does, and says what it did.
-func readyOldCorpus(tree string) (readied, error) {
-	var r readied
-	cmd := exec.Command("node", "--input-type=module", "-")
-	cmd.Dir = tree
-	cmd.Env = env()
-	cmd.Stdin = strings.NewReader(oldCorpusScript)
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	out, err := cmd.Output()
+// readyOldCorpus readies the release's corpus in tree.
+func readyOldCorpus(tree string) readied {
+	r := readied{Names: map[string][]string{}}
+	paths, err := corpus.Files(filepath.Join(tree, "tools", "itos", "conformance"))
+	if err == nil && len(paths) == 0 {
+		err = fmt.Errorf("it has no tools/itos/conformance/*.yaml")
+	}
 	if err != nil {
-		return r, fmt.Errorf("node: %v\n%s", err, stderr.String())
+		r.Err = err
+		return r
 	}
-	if err := json.Unmarshal(out, &r); err != nil {
-		return r, fmt.Errorf("node said %q: %v", out, err)
+	for _, path := range paths {
+		base := filepath.Base(path)
+		r.Names[base] = []string{}
+		file, err := corpus.ReadFile(path)
+		if err != nil {
+			r.Err = errors.Join(r.Err, err)
+			continue
+		}
+		r.Names[base] = file.Names()
+		cases, plain, keys := file.Machine()
+		r.Cases, r.Plain, r.Keys = r.Cases+cases, r.Plain+plain, r.Keys+keys
+		fixture, err := file.Fixture()
+		if err != nil {
+			r.Err = errors.Join(r.Err, err)
+			continue
+		}
+		fixture.Shown = "tools/itos/conformance/" + base
+		r.Fixtures = append(r.Fixtures, fixture)
 	}
-	return r, nil
+	return r
 }
 
 // counted is n things, one or many: "1 case", "3 cases".
@@ -525,20 +461,13 @@ func runFeatures(tree, bin string) suite {
 	return s
 }
 
-var corpusFail = regexp.MustCompile(`^FAIL (\S+\.yaml): (.+)$`)
-
-// runCorpus runs the release's corpus against bin with the runner of the
-// checkout at top, judging it additively, and names each case that fails by
-// its file and its name.
-func runCorpus(tree, top, bin string) suite {
+// runCorpus runs the release's readied corpus against bin with this tree's
+// runner, judging it additively, and names each case that fails by its file
+// and its name.
+func runCorpus(old readied, bin string) suite {
 	s := suite{name: "conformance corpus"}
-	runner := filepath.Join(top, "tools/itos/conformance/run.ts")
-	fixtures, err := filepath.Glob(filepath.Join(tree, "tools/itos/conformance/*.yaml"))
-	if err == nil && len(fixtures) == 0 {
-		err = fmt.Errorf("it has no tools/itos/conformance/*.yaml")
-	}
-	if err != nil {
-		s.err = err
+	if old.Err != nil {
+		s.err = old.Err
 		return s
 	}
 	nativeGit, err := itosgit.Real()
@@ -546,38 +475,28 @@ func runCorpus(tree, top, bin string) suite {
 		s.err = fmt.Errorf("no native git for the conformance runner: %v", err)
 		return s
 	}
-	sort.Strings(fixtures)
 	started := time.Now()
-	cmd := exec.Command("node", append([]string{runner, "--bin", bin, "--git", nativeGit, "--additive", "--only"}, fixtures...)...)
-	cmd.Dir = tree
-	cmd.Env = env()
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout, cmd.Stderr = &stdout, &stderr
-	runErr := cmd.Run()
+	runner, err := corpus.New(corpus.Options{Bin: bin, Git: nativeGit, Additive: true})
+	if err != nil {
+		s.err = fmt.Errorf("the conformance runner: %v", err)
+		return s
+	}
+	defer runner.Close()
+	if err := runner.LearnVersion(); err != nil {
+		s.err = fmt.Errorf("the conformance runner: %v", err)
+		return s
+	}
+	results := runner.Run(old.Fixtures)
 	s.seconds = time.Since(started).Seconds()
-	last := strings.TrimSpace(stdout.String())
-	if i := strings.LastIndex(last, "\n"); i >= 0 {
-		last = last[i+1:]
-	}
-	s.summary = last
-	if runErr == nil {
-		return s
-	}
-	if exit, ok := runErr.(*exec.ExitError); !ok || exit.ExitCode() != 1 {
-		s.output = stdout.String() + stderr.String()
-		s.err = fmt.Errorf("node %s: %v", runner, runErr)
-		return s
-	}
-	for _, line := range strings.Split(stderr.String(), "\n") {
-		if m := corpusFail.FindStringSubmatch(line); m != nil {
-			key := caseKey(m[1], m[2])
+	s.summary = corpus.Summary(old.Fixtures, results, time.Since(started))
+	var output strings.Builder
+	corpus.Failures(&output, results)
+	s.output = output.String()
+	for _, r := range results {
+		if len(r.Problems) > 0 {
+			key := caseKey(r.Fixture.Base(), r.Case.Name)
 			s.failures = append(s.failures, failure{Key: key, What: "conformance case " + key})
 		}
-	}
-	s.output = stderr.String()
-	if len(s.failures) == 0 {
-		s.output = stdout.String() + stderr.String()
-		s.err = fmt.Errorf("the corpus failed, and no case did")
 	}
 	return s
 }
