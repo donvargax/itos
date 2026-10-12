@@ -13,7 +13,7 @@ hooks or change the git config. Do these once per clone, on the host:
 1. **Use a clone, not a git worktree.** A worktree's `.git` is a file naming the main
    repository's folder on the host, which the container does not mount, so git fails inside.
 2. **Install the hooks:** `tools/bin/itos init` (it reports the hooks; `tools/bin/itos hook
-install` writes them) and `vp config`, which points `core.hooksPath` at `.vite-hooks/_`.
+   install` writes them) and `vp config`, which points `core.hooksPath` at `.vite-hooks/_`.
 3. **Start it:** `devcontainer up --workspace-folder .`, then
    `devcontainer exec --workspace-folder . zsh`. Inside, run `vp install` once, so the
    pre-commit hook finds the project's vite-plus in `node_modules`. Scripts are off inside

@@ -81,7 +81,7 @@ Add these lines to the brief template `itos guide brief` prints; the
 handoff line below replaces the template's "wait for CI … close the item":
 
 - **Reads:** `AGENTS.md` (this repository's rules, which add to `itos guide
-work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the item rests on, and the earlier items'
+  work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the item rests on, and the earlier items'
   commits (`itos work show <id>`, `vp run changelog -- --scenario <id>`).
 - **For a feat or a fix:** run `go run ./tools/bin/previous-release`, and name
   in a `Changes:` footer any old scenario or non-help corpus case the change
@@ -92,7 +92,7 @@ work`), the decision records in `docs/decisions/` and the `PLAN.md` sections the
   after `itos upgrade` (which applies the schema's renames), concretely,
   since the notes quote it. Never "none; …" followed by text: it reads as none.
 - **The neighbours:** "Before pushing, run `go test ./features -count=1
--scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.
+  -scenarios='^@(ID-AREA-|…)'`", naming the item's areas and those it touches.
 - **Proof and handoff (q-41, q-52, q-54, q-57):** CI judges fresh mutants:
   one site of a push's changed Go functions, seeded by the range's start
   (T-159), with the coverage of its changed lines, and 20 a night, seeded by
@@ -120,7 +120,7 @@ inside this directory. Each isolated agent has a worktree under
 `.claude/worktrees/`. In each one:
 
 - symlink `node_modules` to the main checkout's instead of running `vp
-install`, because a second install can load two copies of a tool;
+  install`, because a second install can load two copies of a tool;
 - run `vp config --hooks --no-agent` before the first commit, because a new
   worktree has no `.vite-hooks/_` and its pre-commit hook silently does not
   run (itos's own hooks are in the git config, which every worktree shares);

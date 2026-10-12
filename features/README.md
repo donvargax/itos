@@ -111,7 +111,7 @@ not a slice.
   reference an existing scenario that was failing. Same footer.
 - A `fix:` that changes what a scenario of the last release promised, because
   it held the bug, names it in a `Changes: @ID-…` footer (`itos commit
---changes`); a `feat:` that does is a breaking change, and names it in
+  --changes`); a `feat:` that does is a breaking change, and names it in
   `Changes:` too. CI runs the last release's feature files against the new
   binary (`tools/bin/previous-release`, T-071) and refuses an old scenario that
   fails unless a fix or a breaking commit names it.

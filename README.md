@@ -54,7 +54,7 @@ it, and the instructions then point to the check instead of restating it.
   `itos hook commit-msg` applies them before a commit, validates itos's
   own files as the commit stages them, and runs the static checks of the
   tasks it names, rejecting it when a finished task's check fails; `itos hook
-pre-push` verifies the commits a push adds before they leave, refusing the
+  pre-push` verifies the commits a push adds before they leave, refusing the
   push with how to fix them when one fails (and printing nothing when they
   pass), and `itos verify` re-checks a pushed range in CI, from
   `commits.since` on. `itos commit --task <id>` (or
@@ -85,8 +85,8 @@ pre-push` verifies the commits a push adds before they leave, refusing the
   anything.
 - **Work routing**: `itos work` says what the person a session works for can
   start next, from `tasks/work-items.yaml` and `CONTRIBUTORS.md`; `itos work
-list` lists every item with its title, done ones too, and `itos work show
-<id>` one item with its scenarios and the commits that belong to it, by
+  list` lists every item with its title, done ones too, and `itos work show
+  <id>` one item with its scenarios and the commits that belong to it, by
   their footers, `--patch` adding their diffs. `itos work take <id>`
   sets an item in progress for the person, `itos work promote <idea>` makes
   an idea a slice or a task with a minted ID, `itos work done <id>` marks an item done once

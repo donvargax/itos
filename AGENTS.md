@@ -125,7 +125,7 @@ is reported by CI if it is in the smoke set, else by the nightly.
   name, the push does not. An `after: push` check stays pending until the
   commit is on the remote.
 - At the end of a slice, `go test ./features -count=1
--scenarios='^@slice-<n>$'` if your commits didn't name all its scenarios.
+  -scenarios='^@slice-<n>$'` if your commits didn't name all its scenarios.
 - Before the push, when your change touches something many scenarios pass
   through (the config loader, the footer reader, the commit-msg hook),
   `go test ./features -count=1`: every feature, in seconds. A nightly red on a

@@ -91,7 +91,7 @@ this repository reached by q-41, q-52, q-54 and q-55 but for one tier:
 - **`p1-notes-placement`**: it changes what `itos go` prints, so it is breaking, but it waits on
   rules as data; holding the rc window open for that is weeks. The next major.
 - **`p1-drop-compat-code`** and its sweep of commands kept for compatibility (`itos guide
-coordinate` among them): not yet (the user, 2026-10-10).
+  coordinate` among them): not yet (the user, 2026-10-10).
 - **`p1-flag-defaults-policy`**: held (the user, 2026-10-10).
 - **`p3-changes-at-commit`**: a feature (the commit-msg hook reading the last release's tag), not
   a config check, and CI already refuses an unnamed old case; after v8 (the user, 2026-10-11).

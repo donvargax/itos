@@ -38,7 +38,7 @@ run while the task is open and gate `work done`, then `work done` removes them f
   itos never reads itos-cc's cache or `itos-cc.yaml`.
 - **In CI, as the gate** (slice-106, issue #28; it ran at work done in rc.1 and rc.2, after the
   push and a feat's release, so it gated nothing that ships): `mutation check --since <range start>
---fail-uncovered --json`, a step of `itos ci run` when the range touches `proof.code.paths`. It
+  --fail-uncovered --json`, a step of `itos ci run` when the range touches `proof.code.paths`. It
   runs nothing slow: it refuses missing or stale results (a function or its tests changed since),
   so a failing proof fails the run and the release job never runs. The agent runs `mutation run`
   before its push; the brief says so. `work done` no longer runs it: the green run it requires
@@ -143,9 +143,9 @@ anything).
      README section on `proof`, docs/ARCHITECTURE.md's line and the package docs. Its feat cuts
      v7.0.0-rc.1.
    - **T-120**: this repository turns the proof on with itos-cc **v0.5.0**, the first release with
-     listed tests, pinned through `tools/bin/pinned` and verified against its release checksums.
-     ADR-0046 exempts this tool we build from the 7-day dependency age rule. `itos-cc.yaml` lists
-     live scenarios under `mutation.tests`; CI samples cached results over the pushed range, and
+     listed tests, pinned through ``tools/bin/pinned`` and verified against its release checksums.
+     ADR-0046 exempts this tool we build from the 7-day dependency age rule. ``itos-cc.yaml`` lists
+     live scenarios under ``mutation.tests``; CI samples cached results over the pushed range, and
      the coordinator's notes tell agents to run `tools/bin/pinned itos-cc mutation run --since
      <base> --fail-uncovered` before pushing.
 4. **Then, each a further rc:** slice-101 (done, rc.2), the ids (slice-102 and slice-109 done,
@@ -172,4 +172,4 @@ anything).
   `refs/itos/ids` on a shared remote, pushed without hooks by itos's minting code alone, or a file
   in the git folder under stealth; explicit ids refused, ideas keep their author's names, bugs a
   kind of their own (slice-104), scenario ids claimed by `tests next-id` (slice-105), and `draft
-add` mints at once (slice-103). Specified in features/ids.feature and beside it; a v7 break.
+  add` mints at once (slice-103). Specified in features/ids.feature and beside it; a v7 break.
