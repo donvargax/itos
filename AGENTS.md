@@ -69,7 +69,8 @@ and the nightly run, `tools/bin/itos ci plan <from> <to>` and `ci plan
   config beside itos's hooks (its header says how, once per clone; worktrees
   share it). It formats the staged Markdown and YAML with dprint
   (`dprint.json`) and the staged Go with `gofmt`, re-staging them (a file with
-  unstaged changes is only checked), and runs `go vet` when Go is staged; then,
+  unstaged changes is only checked), runs `go vet` when Go is staged and the
+  doc budget (`tools/bin/doc-budget`, staged sizes) when a file it caps is; then,
   when `go.mod` or `go.sum` is staged, `go run ./tools/bin/deps-check` (no Go
   module younger than 7 days unless `deps-check.json` excepts it, then
   govulncheck; needs the network) and the unit tests the change reaches
