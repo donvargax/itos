@@ -23,12 +23,16 @@
 //     tests, covered by a step, left out by ci.nightly_only or pending until
 //     after the push is only logged, and never fails the run. Each named
 //     task's checks run as its own, a check two tasks share once for each.
-//   - The first failure ends the run, unless ci.stop_at_first_failure is
-//     false: then everything runs, each failure says where, and the first is
-//     the run's.
+//   - The first failure ends a push's run, unless ci.stop_at_first_failure
+//     is false: then everything runs, the first failure says "CI failed at"
+//     and each later one "also failed at", and the first is the run's. The
+//     nightly (Options.Nightly) always goes on and fails at the end, whatever
+//     the setting says: it runs once a day to report, and a failure that
+//     stops it hides every step after it for a day (slice 133).
 //
 // Every step and check sees ci.env, and the range's ends (plan.Ends) as
 // ITOS_FROM and ITOS_TO, which ci.env cannot override. The log goes to
 // stdout, or to stderr under --json, which keeps stdout for its one object;
-// --json's failed_at is a Failure.
+// --json's failed_at is the first Failure, and its failures every one, in
+// run order.
 package ci

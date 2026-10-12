@@ -1523,11 +1523,15 @@ cases:
       Runs the plan: unknown task IDs fail first, tasks not started and checks a
       prose-only range leaves out are listed, then each step and task check in cost
       order, stopping at the first failure; with ci.stop_at_first_failure false,
-      every one runs and the first failure is the run's. A named task's after: push
+      every one runs and the first failure is the run's. A run that goes on says
+      "CI failed at" for the first failure and "also failed at" for each later
+      one, naming it the same way. A named task's after: push
       check is listed as pending, to run after the push (itos task, itos work done),
       and is neither run nor counted; one ci.nightly_only lists is left out. With no
       range, every step and every test. A failing step exits 1, naming its code.
-      --nightly runs ci.nightly.steps, in the order written, and no task's checks.
+      --nightly runs ci.nightly.steps, in the order written, and no task's checks,
+      going on past a failing step whatever ci.stop_at_first_failure says, and
+      fails at the end.
       With ci.keep_step_order true, a push's run takes ci.steps as written, then the
       named tasks' checks in ledger order.
       With the config's proof.code, a range that touches proof.code.paths runs the
@@ -1545,7 +1549,8 @@ cases:
       nothing selected) it runs nothing, says so, and exits 0. With --nightly it is
       the nightly's tests: step alone, and with no range, every test.
 
-      --json: the run's log on stderr; {"schema":1,"ok","failed_at"?} on stdout
+      --json: the run's log on stderr; {"schema":1,"ok","failed_at"?,"failures"?} on stdout,
+              failures every failure in run order, failed_at the first
   - name: itos ci scope --help
     argv: [ci, scope, --help]
     exit: 0

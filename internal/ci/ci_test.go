@@ -1,6 +1,7 @@
 package ci
 
 import (
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -162,5 +163,53 @@ func TestEachTaskRunsASharedCheck(t *testing.T) {
 	}
 	if runs := strings.Count(string(written), "run"); code != 0 || runs != 2 {
 		t.Errorf("exit %d, %d runs, want 2\n%s", code, runs, stdout)
+	}
+}
+
+// The nightly goes on past a failing step whatever ci.stop_at_first_failure
+// says (its default, true, here), naming the first failure as "CI failed at"
+// and each later one, a step's, the code proof's or a task check's, as "also
+// failed at"; --json's failures lists each in run order, failed_at the
+// first. A push's run, under the same setting, stops at the first (slice
+// 133).
+func TestTheNightlyGoesOnPastAFailingStep(t *testing.T) {
+	failing := "exit 5"
+	items := func() []plan.Item {
+		first, passing, proof := plan.Step{Command: "exit 3"}, plan.Step{Command: "exit 0"}, plan.Step{Command: "exit 4", Proof: true}
+		return []plan.Item{{Step: &first}, {Step: &passing}, {Step: &proof}, {Check: &plan.Check{
+			CostedCheck: check.CostedCheck{Task: ledger.Task{ID: "T-002"}, Check: ledger.Check{Run: &failing}},
+			Action:      plan.Run,
+		}}}
+	}
+	failuresOf := func(stdout string) []Failure {
+		var verdict struct {
+			FailedAt Failure   `json:"failed_at"`
+			Failures []Failure `json:"failures"`
+		}
+		if err := json.Unmarshal([]byte(stdout), &verdict); err != nil {
+			t.Fatalf("%v: %q", err, stdout)
+		}
+		if verdict.FailedAt.Step == nil || *verdict.FailedAt.Step != "exit 3" {
+			t.Errorf("failed_at is not the first failure: %q", stdout)
+		}
+		return verdict.Failures
+	}
+	code, stdout, stderr := run(t, &plan.Plan{Order: items()}, Options{JSON: true, Nightly: true})
+	for _, want := range []string{
+		"\nCI failed at: exit 3 (it exited 3)\n",
+		"\nalso failed at the code proof: exit 4\n",
+		"\nalso failed at T-002, its check: exit 5\n",
+	} {
+		if !strings.Contains(stderr, want) {
+			t.Errorf("the nightly's stderr does not say %q: %q", want, stderr)
+		}
+	}
+	failures := failuresOf(stdout)
+	if code != 1 || len(failures) != 3 || failures[1].Problems == nil || failures[2].Task != "T-002" {
+		t.Errorf("the nightly: exit %d, failures %+v", code, failures)
+	}
+	code, stdout, stderr = run(t, &plan.Plan{Order: items()}, Options{JSON: true})
+	if failures := failuresOf(stdout); code != 1 || len(failures) != 1 || strings.Contains(stderr, "also failed at") {
+		t.Errorf("a push's run: exit %d, failures %+v, stderr %q", code, failures, stderr)
 	}
 }

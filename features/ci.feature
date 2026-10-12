@@ -417,7 +417,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
   # setting says so (@ID-CONFIG-05). A run that goes on names the first
   # failure as before and each later one after it, and --json lists them all
   # in failures, failed_at staying the first.
-  @ID-CI-29 @slice-133 @wip
+  @ID-CI-29 @slice-133
   Scenario: The nightly goes on past a failing step when ci.stop_at_first_failure is true, and still fails
     Given the nightly steps are "exit 3" then a step that records it ran
     And ci.stop_at_first_failure is true
@@ -426,7 +426,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     And its output says "CI failed at: exit 3"
     And the recording step ran
 
-  @ID-CI-30 @slice-133 @wip
+  @ID-CI-30 @slice-133
   Scenario: The nightly names every failing step after the first, and its --json lists each one
     Given the nightly steps are "exit 3", then "exit 4"
     When itos runs the nightly CI with --json
@@ -434,7 +434,7 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     And its output says "also failed at: exit 4"
     And its JSON's "failures" has one entry whose "step" is "exit 4"
 
-  @ID-CI-31 @slice-133 @wip
+  @ID-CI-31 @slice-133
   Scenario: A push's CI that goes on past its first failure names every failing step
     Given the CI steps are "exit 3", then "exit 4"
     And ci.stop_at_first_failure is false

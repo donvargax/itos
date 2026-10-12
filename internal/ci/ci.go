@@ -15,9 +15,10 @@ import (
 	"github.com/donvargax/itos/v8/internal/shell"
 )
 
-// Failure is where a run stopped, as --json's failed_at gives it: a step
-// (Code its own exit code), a task check, the code proof (Problems, what
-// its check's --json named), or the unknown tasks named.
+// Failure is where a run failed, as --json's failed_at gives the first and
+// failures each in run order: a step (Code its own exit code), a task check,
+// the code proof (Problems, what its check's --json named), or the unknown
+// tasks named.
 type Failure struct {
 	Step     *string       `json:"step,omitempty"`
 	Task     string        `json:"task,omitempty"`
@@ -29,9 +30,11 @@ type Failure struct {
 }
 
 // Options are how a run reports: under JSON its log goes to Stderr and
-// Stdout holds the verdict.
+// Stdout holds the verdict. Nightly is the nightly's run, which goes on past
+// a failing step whatever ci.stop_at_first_failure says (slice 133).
 type Options struct {
 	JSON           bool
+	Nightly        bool
 	Stdout, Stderr io.Writer
 }
 
@@ -67,19 +70,32 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	var failures []*Failure
+	if failed != nil {
+		failures = append(failures, failed)
+	}
+	stop := cfg.CI.StopAtFirstFailure && !o.Nightly
 	for _, item := range p.Order {
-		if failed != nil && (cfg.CI.StopAtFirstFailure || failed.Unknown != nil) {
+		if failed != nil && (stop || failed.Unknown != nil) {
 			break
+		}
+		lead := "CI failed at"
+		if failed != nil {
+			lead = "also failed at"
 		}
 		var failure *Failure
 		switch {
 		case item.Step == nil:
-			failure = d.check(item.Check)
+			failure = d.check(item.Check, lead)
 		case item.Step.Proof:
-			failure = d.proof(item.Step)
+			failure = d.proof(item.Step, lead)
 		default:
-			failure = d.step(item.Step.Command)
+			failure = d.step(item.Step.Command, lead)
 		}
+		if failure == nil {
+			continue
+		}
+		failures = append(failures, failure)
 		if failed == nil {
 			failed = failure
 		}
@@ -90,7 +106,7 @@ func Run(cfg *config.Loaded, p *plan.Plan, o Options) (int, error) {
 	if o.JSON {
 		fields := []out.Field{{Key: "ok", Value: failed == nil}}
 		if failed != nil {
-			fields = append(fields, out.Field{Key: "failed_at", Value: failed})
+			fields = append(fields, out.Field{Key: "failed_at", Value: failed}, out.Field{Key: "failures", Value: failures})
 		}
 		if err := out.Emit(o.Stdout, fields...); err != nil {
 			return 0, err
@@ -146,19 +162,20 @@ func (d driver) proseLine() string {
 }
 
 // step runs one step through the config's shell, its output in the log; a
-// failure carries the step's exit code, named on stderr, 1 when it has none
-// (stopped by a signal, or never started).
-func (d driver) step(command string) *Failure {
+// failure carries the step's exit code, named on stderr after lead ("CI
+// failed at" for the run's first, "also failed at" for a later one), 1 when
+// it has none (stopped by a signal, or never started).
+func (d driver) step(command, lead string) *Failure {
 	fmt.Fprintf(d.log, "\n$ %s\n", command)
 	r := shell.Run(d.cfg, command, shell.Options{Stdin: os.Stdin, Stdout: d.log, Stderr: d.stderr})
 	if r.OK() {
 		return nil
 	}
 	if r.Code <= 0 {
-		fmt.Fprintf(d.stderr, "\nCI failed at: %s (it gave no exit code)\n", command)
+		fmt.Fprintf(d.stderr, "\n%s: %s (it gave no exit code)\n", lead, command)
 		return &Failure{Step: &command, Code: 1}
 	}
-	fmt.Fprintf(d.stderr, "\nCI failed at: %s (it exited %d)\n", command, r.Code)
+	fmt.Fprintf(d.stderr, "\n%s: %s (it exited %d)\n", lead, command, r.Code)
 	return &Failure{Step: &command, Code: r.Code}
 }
 
@@ -170,7 +187,7 @@ func (d driver) step(command string) *Failure {
 // release that needs the run never runs; a check that cannot run fails it
 // too, as any step does (@ID-CI-19), never a pass. The run's exit code is 1
 // either way, the code of a step passed through (decision 35).
-func (d driver) proof(s *plan.Step) *Failure {
+func (d driver) proof(s *plan.Step, lead string) *Failure {
 	fmt.Fprintf(d.log, "\n$ %s\n", s.Command)
 	v := proof.Run(d.cfg, s.Command, d.stderr)
 	problems := proofProblems(v.Problems)
@@ -185,7 +202,7 @@ func (d driver) proof(s *plan.Step) *Failure {
 			Fix: "make proof.code.check run (its command, its tools) and push the range again; nothing is proved until it answers",
 		}}, problems...)
 	}
-	fmt.Fprintf(d.stderr, "\nCI failed at the code proof: %s\n", s.Command)
+	fmt.Fprintf(d.stderr, "\n%s the code proof: %s\n", lead, s.Command)
 	if len(problems) == 0 {
 		problems = []out.Problem{{
 			Rule:    "ci-code-proof",
@@ -214,8 +231,8 @@ func proofProblems(found []proof.Problem) []out.Problem {
 }
 
 // check is one task check: logged as merged, covered, left out or pending,
-// else run; a failure names the task and its title.
-func (d driver) check(c *plan.Check) *Failure {
+// else run; a failure names the task and its title after lead.
+func (d driver) check(c *plan.Check, lead string) *Failure {
 	command := c.Check.Command()
 	fmt.Fprintf(d.log, "\n%s\n", c.Task.ID)
 	switch c.Action {
@@ -235,7 +252,7 @@ func (d driver) check(c *plan.Check) *Failure {
 		if c.Task.Title != "" {
 			title = " (" + c.Task.Title + ")"
 		}
-		fmt.Fprintf(d.stderr, "\nCI failed at %s%s, its check: %s\n", c.Task.ID, title, command)
+		fmt.Fprintf(d.stderr, "\n%s %s%s, its check: %s\n", lead, c.Task.ID, title, command)
 		return &Failure{Task: c.Task.ID, Title: c.Task.Title, Command: command, Code: 1}
 	}
 	return nil

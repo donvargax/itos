@@ -1,13 +1,14 @@
 # The CI driver (`ci run`): the plan carried out in cost order with the
 # config's `ci.env`, the log lines agents and their instructions quote, the first failure ending the run (a failing step's
 # own exit code, a task check's 1, unknown tasks before anything runs, named
-# against the ledger's folder), the tasks read from the footer whose source is
+# against the ledger's folder; the nightly goes on past a failing step and
+# names each later one), the tasks read from the footer whose source is
 # the ledger whatever its key, a
 # check recognized as the smoke run merged when there is a run of named tests
 # and run as itself when there is none, the nightly's tasks step refused
 # before any step runs, a missing ledger folder stopping it at the plan (2), a named task waiting on
 # the registry beside the ledger, --tests running the run of named tests alone,
-# and --json. The steps and checks are `echo`s, so the log shows what ran.
+# and --json, whose failures lists every failure. The steps and checks are `echo`s, so the log shows what ran.
 git:
   - commit: "build: the scratch project"
     files:
@@ -301,7 +302,7 @@ cases:
 
       CI failed at: sh -c 'echo tests fail; exit 3' (it exited 3)
 
-      CI failed at T-011 (A check that fails), its check: sh -c 'echo broken; exit 4'
+      also failed at T-011 (A check that fails), its check: sh -c 'echo broken; exit 4'
   - name: the same as --json, its verdict the first failure
     argv: [ci, run, "{{sha.every}}", "{{sha.failing}}", --json]
     files:
@@ -327,6 +328,13 @@ cases:
       failed_at:
         step: sh -c 'echo tests fail; exit 3'
         code: 3
+      failures:
+        - step: sh -c 'echo tests fail; exit 3'
+          code: 3
+        - task: T-011
+          title: A check that fails
+          command: sh -c 'echo broken; exit 4'
+          code: 1
   - name: a code proof that finds a survivor fails the run, naming the problem, and --json carries it
     argv: [ci, run, "{{sha.smoke}}", "{{sha.code}}", --json]
     files:
@@ -360,6 +368,13 @@ cases:
             message: "src/a.ts:3:9: a mutant of Total survived"
             fix: test it
         code: 1
+      failures:
+        - step: sh proof.sh mutation check --since {{sha.smoke}} --fail-uncovered --json
+          problems:
+            - rule: mutation.survived
+              message: "src/a.ts:3:9: a mutant of Total survived"
+              fix: test it
+          code: 1
 
   - name: a code proof that cannot run fails the run, never a pass
     argv: [ci, run, "{{sha.smoke}}", "{{sha.code}}"]
@@ -570,6 +585,11 @@ cases:
         title: A check that fails
         command: sh -c 'echo broken; exit 4'
         code: 1
+      failures:
+        - task: T-011
+          title: A check that fails
+          command: sh -c 'echo broken; exit 4'
+          code: 1
     stderr: |
 
       $ echo lint
@@ -655,6 +675,52 @@ cases:
     exit: 2
     stderr: |
       FAIL itos.yaml: a nightly step runs tasks: done, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {"tasks":"done"}
+  - name: the nightly goes on past a failing step though ci.stop_at_first_failure is true, naming each failure
+    argv: [ci, run, --nightly]
+    files:
+      itos.yaml: &nightly-fails |
+        version: 1
+        ledger: { files: "tasks/phase-{group}.yaml", id: "T-\\d+" }
+        commits:
+          footers:
+            Task: { source: ledger, validate_for: all, read_at: commit }
+        ci:
+          steps: [echo lint]
+          stop_at_first_failure: true
+          nightly: { steps: ["sh -c 'echo first fails; exit 3'", echo still runs, "sh -c 'echo second fails; exit 4'"] }
+        work: { registry: tasks/work-items.yaml }
+    exit: 1
+    stdout: |
+
+      $ sh -c 'echo first fails; exit 3'
+      first fails
+
+      $ echo still runs
+      still runs
+
+      $ sh -c 'echo second fails; exit 4'
+      second fails
+    stderr: |
+
+      CI failed at: sh -c 'echo first fails; exit 3' (it exited 3)
+
+      also failed at: sh -c 'echo second fails; exit 4' (it exited 4)
+  - name: the nightly's --json lists every failure in failures, in run order, failed_at the first
+    argv: [ci, run, --nightly, --json]
+    files:
+      itos.yaml: *nightly-fails
+    exit: 1
+    json:
+      schema: 1
+      ok: false
+      failed_at:
+        step: sh -c 'echo first fails; exit 3'
+        code: 3
+      failures:
+        - step: sh -c 'echo first fails; exit 3'
+          code: 3
+        - step: sh -c 'echo second fails; exit 4'
+          code: 4
   - name: with no range, every step and every test
     argv: [ci, run]
     exit: 0

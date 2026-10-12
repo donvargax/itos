@@ -51,7 +51,7 @@ func ciRun(from, to string, nightly, tests bool, o Out) (int, error) {
 			fmt.Fprintln(log, "ci run --tests: no named tests to run (no tests: step, or nothing selected), so nothing ran.")
 		}
 	}
-	return ci.Run(cfg, p, ci.Options{JSON: o.JSON, Stdout: o.Stdout, Stderr: o.Stderr})
+	return ci.Run(cfg, p, ci.Options{JSON: o.JSON, Nightly: nightly, Stdout: o.Stdout, Stderr: o.Stderr})
 }
 
 // ciPlan is `ci plan <from> <to> | --nightly | --whole [--data-at <sha>]`
