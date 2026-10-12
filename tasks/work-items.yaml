@@ -7802,8 +7802,8 @@ items:
   - id: T-161
     title: The nightly judges every mutation site of the functions changed since the last green nightly, with strict coverage
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: [T-159]
     kind: task
     why: >
