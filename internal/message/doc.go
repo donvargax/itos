@@ -7,9 +7,15 @@
 //
 // # Footers
 //
-// A footer is `<Key>: <id> <id>, …` at the start of a line, and may repeat
-// over several lines to stay within the line length limit (FooterLines packs
-// IDs so, SplitIDs reads them). Per key of commits.footers: its source (the
+// The footers are git's trailers (bug 110, trailers.go): the message's last
+// paragraph, never its first, when its lines are `<Key>: <value>` with
+// indented continuation lines, as git interpret-trailers and git log's
+// %(trailers) read it, BREAKING CHANGE with its space the one key git would
+// not read. A body line beginning with a key is prose, and a footer above
+// the last paragraph is not read. Under a stealth config every line of a
+// commit's note is a footer. A footer of IDs is `<Key>: <id> <id>, …`, and
+// may repeat over several lines to stay within the line length limit
+// (FooterLines packs IDs so, SplitIDs reads them). Per key of commits.footers: its source (the
 // ledger, the work registry's items, a kind's named tests as its adapter
 // lists them, or text), strip_prefix, required_for, validate_for,
 // must_be_live, in_place_of (the footers it stands in for, and for which
@@ -29,8 +35,9 @@
 // A footer whose source is text carries no IDs: `<Key>: <text>`, each line
 // one footer, the text whatever a consumer of the project must do, or the
 // word none (None is the one reading of it). Its rule is only that it is
-// there (required_for) and not empty (validate_for); Texts reads it, a line
-// each, trimmed. CI's plan reads no text footer; Gathered gives a range's
+// there (required_for) and not empty (validate_for); Texts reads it, each
+// footer on one line, its continuation lines joined as git unfolds them,
+// trimmed. CI's plan reads no text footer; Gathered gives a range's
 // texts with their commits (git log --no-merges --reverse over from..to),
 // which itos commit footers prints for a release's notes.
 //
@@ -48,7 +55,7 @@
 // through FooterProblems with At set to it and Made set.
 //
 // IDsIn reads a range's links for CI's plan (git log --format=%B from..to,
-// newest first); History logs every commit of a revision with its links
+// newest first, each commit's footers its own); History logs every commit of a revision with its links
 // (Links: each footer whose source is the ledger or a kind of named tests,
 // its strip_prefix taken off), for itos work show.
 //
@@ -71,14 +78,18 @@
 //
 // Under commits.header_lint.use: builtin the built-in lint (HeaderProblems)
 // runs in the delegate's place in all three: it is commitlint 21 with
-// config-conventional, read from those packages. header.go is
-// conventional-commits-parser with the conventionalcommits preset's patterns
-// (the breaking-change header tried first, the body ending at the first
-// footer-token line, a breaking-change note running to the next one) and
+// config-conventional, read from those packages, but for where the footer
+// is. header.go is
+// conventional-commits-parser's header with the conventionalcommits preset's
+// patterns (the breaking-change header tried first) and
 // config-conventional's rules in its order, each a judgement that gives
-// commitlint's words or none, footer-leading-blank's with the line that
-// starts the footer, numbered as the message is written (comment and blank
-// lines counted), and why it reads as one (bug 109); ignore.go is is-ignored's wildcards (merges,
+// commitlint's words or none. The lint's footer is the trailers, as the
+// footer rules read them, and its body what stands between them and the
+// header, so a body line beginning with a word and a colon, or a word and
+// " #", is prose (bug 110); footer-leading-blank fires only on footers that
+// end the last paragraph below lines that are none, glued to the body where
+// git does not read them, and names the first, numbered as the message is
+// written (comment and blank lines counted) (bug 109); ignore.go is is-ignored's wildcards (merges,
 // reverts, reapplies, fixups, versions by semver's strict pattern); cases.go
 // is subject-case and type-case as @commitlint/ensure and es-toolkit find a
 // case, its word pattern written out with the backtracking each alternative
@@ -126,11 +137,13 @@
 // BuiltinFlags has that name). Wrap breaks a body to BodyLimit (the
 // built-in lint's 100, 0 for no lint or a delegate): it reads the -m
 // paragraphs as one message, git's blank line between them, keeps the
-// header, every line from the first the lint reads as a footer, comment and
-// indented lines and lines within the limit, and breaks the rest greedily at
+// header, the footers, comment and indented lines and lines within the
+// limit, and breaks the rest greedily at
 // spaces, a list item's continuation indented by its marker's width. A break
 // whose next line would start with a footer token or a breaking-change note,
 // a configured footer key and its colon, or the comment character moves back
 // a word, and with none left the line runs over the limit. The registry
-// writers wrap their bodies with it too.
+// writers wrap their bodies with it too. Trailed is a message with footers
+// added as git commit --trailer adds them, which itos commit's check of a
+// missing footer reads.
 package message

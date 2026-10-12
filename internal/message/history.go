@@ -31,7 +31,7 @@ func Links(cfg *config.Loaded, text string) []Link {
 		if !ownIDs(f) && f.Source.Tests == "" {
 			continue
 		}
-		for _, id := range IDs(text, key, strip(f)) {
+		for _, id := range IDs(cfg, text, key) {
 			links = append(links, Link{Key: key, ID: id, Tests: f.Source.Tests})
 		}
 	}

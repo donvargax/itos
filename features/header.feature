@@ -80,33 +80,30 @@ Feature: The built-in header lint
     When the commit-msg hook checks the message ""
     Then itos exits with code 0
 
-  # Bug 109 (issue #48; the user's go, 2026-10-12). The lint reads a message
-  # as commitlint does: a body line beginning with a word and ": " or " #"
-  # starts the footer, and with no blank line above it the lint warns. The
+  # Bug 109 (issue #48; the user's go, 2026-10-12). The footer-leading-blank
   # warning named no line, so agents bisected their messages or reworded
-  # correct prose to quiet it. It keeps commitlint's verdict and now names
-  # the line, by its number in the message and its text, and why it reads as
-  # a footer. Whether the lint should read the footer as git does stays
-  # p1-lint-leading-blank-hash-line (issue #21).
-  @ID-HEADER-07 @bug-109
-  Scenario: The footer-leading-blank warning names the line that starts the footer, and why
+  # correct prose to quiet it; it names the line, by its number in the
+  # message and its text, and why it reads as a footer. Since bug 110 it
+  # fires only on a footer glued to the body, which git does not read, so
+  # the chore below has no Task footer either.
+  @ID-HEADER-07 @bug-109 @bug-110
+  Scenario: The footer-leading-blank warning names the footer glued to the body, and why
     When the commit-msg hook checks the message:
       """
       chore: tidy the readme
 
-      The paragraphs said the same thing twice, and the wrapped
-      scenarios: line below the first reads as a footer.
-
+      The paragraphs said the same thing twice.
       Task: T-001
       """
-    Then itos exits with code 0
+    Then itos exits with code 1
     And its output names the rule "footer-leading-blank"
     And its output says "line 4"
-    And its output says "scenarios: line below the first reads as a footer."
+    And its output says "Task: T-001"
     And its output says "a word and a colon"
 
-  @ID-HEADER-08 @bug-109
-  Scenario: The warning names a line read as a footer for a word and a hash
+  # Bug 110: a line beginning with a word and " #" is prose, never a footer.
+  @ID-HEADER-08 @bug-109 @bug-110
+  Scenario: A body line beginning with a word and a hash draws no footer warning
     When the commit-msg hook checks the message:
       """
       chore: tidy the readme
@@ -117,15 +114,13 @@ Feature: The built-in header lint
       Task: T-001
       """
     Then itos exits with code 0
-    And its output names the rule "footer-leading-blank"
-    And its output says "line 4"
-    And its output says "with #, which is plain prose."
+    And its output does not say "footer-leading-blank"
 
   # Bug 110 (issue #21; the user's call, 2026-10-12): the lint reads the
   # footer as git reads trailers, the last paragraph, so a body line
   # beginning with a word and a colon, mid-paragraph, is prose and draws no
   # warning when the footers stand after a blank line.
-  @ID-HEADER-09 @bug-110 @wip
+  @ID-HEADER-09 @bug-110
   Scenario: A body line beginning with a word and a colon draws no footer warning
     When the commit-msg hook checks the message:
       """

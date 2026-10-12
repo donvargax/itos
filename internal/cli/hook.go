@@ -465,11 +465,7 @@ func namedTaskIDs(cfg *config.Loaded, text string) []string {
 		if !f.Source.IsName || f.Source.Name != "ledger" {
 			continue
 		}
-		strip := ""
-		if f.StripPrefix != nil {
-			strip = *f.StripPrefix
-		}
-		for _, id := range message.IDs(text, key, strip) {
+		for _, id := range message.IDs(cfg, text, key) {
 			if !seen[id] {
 				seen[id] = true
 				ids = append(ids, id)

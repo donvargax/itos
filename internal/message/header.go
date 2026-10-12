@@ -4,8 +4,9 @@ package message
 // commitlint does with @commitlint/config-conventional, in Go, so that a
 // project needs no Node to judge its headers. Each part follows the package
 // that does it there: conventional-commits-parser 7 with the
-// conventionalcommits preset's patterns reads the message into a header, its
-// type, scope and subject, a body and a footer (parse); @commitlint/is-ignored passes the messages
+// conventionalcommits preset's patterns reads the header, its type, scope
+// and subject, and the footer is the message's trailers as git reads them,
+// the body what stands between (parse, bug 110); @commitlint/is-ignored passes the messages
 // commitlint leaves alone (ignored); @commitlint/rules judges them, at the
 // levels config-conventional sets (headerRules), each problem under the
 // rule's id and in its words. type-enum's list is commits.types, or
@@ -39,13 +40,13 @@ var (
 	// tried first, as the parser tries them.
 	breakingHeader = regexp.MustCompile(`^(\w*)(?:\((` + line + `*)\))?!: (` + line + `*)$`)
 	headerPattern  = regexp.MustCompile(`^(\w*)(?:\((` + line + `*)\))?!?: (` + line + `*)$`)
-	// A footer's first line and a breaking-change note, case-insensitive
-	// as JavaScript's /i reads ASCII; # is the preset's issue prefix.
+	// A footer's first line as the conventionalcommits preset reads it and
+	// a breaking-change note, case-insensitive as JavaScript's /i reads
+	// ASCII, # the preset's issue prefix: no wrap starts a line with either.
 	breaking    = `[Bb][Rr][Ee][Aa][Kk][Ii][Nn][Gg]`
 	change      = `[Cc][Hh][Aa][Nn][Gg][Ee]`
 	footerWord  = `^(?:` + breaking + ` ` + change + `|[\w-]+)`
 	footerToken = regexp.MustCompile(footerWord + `(?::` + value.Space + `+|` + value.Space + `+#)` + line + `+`)
-	footerColon = regexp.MustCompile(footerWord + `:` + value.Space)
 	noteLine    = regexp.MustCompile(`^(?:\*` + value.Space + `+)?(?:` + breaking + `[ -]` + change + `):`)
 	gpgLine     = regexp.MustCompile(`^` + value.Space + `*gpg:`)
 	newline     = regexp.MustCompile(`\r?\n`)
@@ -56,13 +57,15 @@ var (
 // scissor is the line below which git leaves what the editor showed.
 const scissor = "------------------------ >8 ------------------------"
 
-// parsed is a message as the parser reads it: nil where it has none.
-// footerAt is the index among raw's lines of the footer's first line.
+// parsed is a message as the lint reads it: nil where it has none. glued
+// is the index among raw's lines of a footer glued to the lines above it,
+// -1 when there is none.
 type parsed struct {
 	raw                  string
 	header, body, footer *string
 	typ, scope, subject  string // "" where the header gives none
-	footerAt             int
+	glued                int
+	gluedLine            string
 }
 
 func truthy(s *string) bool { return s != nil && *s != "" }
@@ -75,108 +78,75 @@ func trimNewLines(text string) string {
 	return strings.TrimRight(strings.TrimLeft(text, "\r\n"), "\r\n")
 }
 
-// appendLine is the parser's: a line after a text, or alone when the text
-// is empty.
-func appendLine(text *string, l string) *string {
-	if truthy(text) {
-		l = *text + "\n" + l
+// joined is lines as one text, its line breaks at either end trimmed; nil
+// for no lines.
+func joined(found []string) *string {
+	if len(found) == 0 {
+		return nil
 	}
-	return &l
+	text := trimNewLines(strings.Join(found, "\n"))
+	return &text
 }
 
-// parser reads a message's lines into its parts (CommitParser); rawAt is
-// each line's index among the raw message's.
-type parser struct {
-	lines []string
-	rawAt []int
-	at    int
-	p     parsed
-}
-
-func (ps *parser) available() bool { return ps.at < len(ps.lines) }
-
-// toFooter reads the line at hand into the footer.
-func (ps *parser) toFooter() {
-	if ps.p.footer == nil {
-		ps.p.footerAt = ps.rawAt[ps.at]
-	}
-	ps.p.footer = appendLine(ps.p.footer, ps.lines[ps.at])
-	ps.at++
-}
-
-// notes reads a breaking-change note and the lines that continue it into
-// the footer, up to and with the next footer line.
-func (ps *parser) notes() bool {
-	if !ps.available() || !noteLine.MatchString(ps.lines[ps.at]) {
-		return false
-	}
-	ps.toFooter()
-	for ps.available() {
-		if ps.notes() {
-			return true
-		}
-		token := footerToken.MatchString(ps.lines[ps.at])
-		ps.toFooter()
-		if token {
-			break
-		}
-	}
-	return true
-}
-
-// bodyOrFooter reads one line into the body while it still is one, else the
-// footer; whether the body goes on.
-func (ps *parser) bodyOrFooter(isBody bool) bool {
-	if !ps.available() {
-		return isBody
-	}
-	still := isBody && !footerToken.MatchString(ps.lines[ps.at])
-	if !still {
-		ps.toFooter()
-		return false
-	}
-	ps.p.body = appendLine(ps.p.body, ps.lines[ps.at])
-	ps.at++
-	return true
-}
-
-// parse is the message read as commitlint reads it: comment lines (those
+// parse is the message read as the lint reads it: comment lines (those
 // starting with commentChar, and everything below git's scissor line) left
 // out when commentChar is given, as commitlint --edit does, and gpg's lines
-// always.
+// always. The header is its first line, as conventional-commits-parser reads
+// it; the footer is its trailers, as git reads them (bug 110); the body is
+// what stands between.
 func parse(raw, commentChar string) parsed {
 	found, at := kept(raw, commentChar)
-	ps := &parser{lines: found, rawAt: at, p: parsed{raw: raw}}
-	if ps.available() {
-		header := ps.lines[0]
-		ps.at++
-		if header != "" {
-			ps.p.header = &header
-			m := breakingHeader.FindStringSubmatch(header)
-			if m == nil {
-				m = headerPattern.FindStringSubmatch(header)
+	p := parsed{raw: raw, glued: -1}
+	if len(found) == 0 {
+		return p
+	}
+	if header := found[0]; header != "" {
+		p.header = &header
+		m := breakingHeader.FindStringSubmatch(header)
+		if m == nil {
+			m = headerPattern.FindStringSubmatch(header)
+		}
+		if m != nil {
+			p.typ, p.scope, p.subject = m[1], m[2], m[3]
+		}
+	}
+	start, end := trailerBlock(found, commentChar)
+	if start == end {
+		start = len(found)
+		if g := gluedAt(found[:end]); g >= 0 {
+			p.glued, p.gluedLine = at[g], found[g]
+		}
+	}
+	p.body = joined(found[1:start])
+	p.footer = joined(found[start:])
+	return p
+}
+
+// gluedAt is the index of the first of the trailers that end a message's
+// last paragraph below lines that are none, its header among them: a footer
+// git does not read for the lack of a blank line above it. -1 when there is
+// none.
+func gluedAt(found []string) int {
+	first := len(found)
+	for i := len(found) - 1; i >= 1; i-- {
+		l := found[i]
+		switch {
+		case blankLine(l):
+			return -1
+		case trailerLine(l):
+			first = i
+		case gitSpace(l[0]):
+		default:
+			if first < len(found) {
+				return first
 			}
-			if m != nil {
-				ps.p.typ, ps.p.scope, ps.p.subject = m[1], m[2], m[3]
-			}
+			return -1
 		}
 	}
-	isBody := true
-	for ps.available() {
-		if ps.notes() {
-			isBody = false
-		}
-		if !ps.bodyOrFooter(isBody) {
-			isBody = false
-		}
+	if first < len(found) {
+		return first
 	}
-	for _, part := range []**string{&ps.p.body, &ps.p.footer} {
-		if truthy(*part) {
-			trimmed := trimNewLines(**part)
-			*part = &trimmed
-		}
-	}
-	return ps.p
+	return -1
 }
 
 // kept are the lines of a message the parser reads, with each one's index
@@ -236,27 +206,6 @@ func linesFit(text string) bool {
 	return true
 }
 
-// blankBefore is whether the raw line before index is empty, the index read
-// as JavaScript's slice reads a negative one.
-func blankBefore(raw []string, index int) bool {
-	start := index - 1
-	if start < 0 {
-		start = max(len(raw)+start, 0)
-	}
-	return start < len(raw) && raw[start] == ""
-}
-
-// footerReason is why the parser reads a line as the start of the footer.
-func footerReason(l string) string {
-	switch {
-	case noteLine.MatchString(l):
-		return "is a breaking-change note"
-	case footerColon.MatchString(l):
-		return "begins with a word and a colon"
-	}
-	return "begins with a word, a space and #"
-}
-
 // rule is one of config-conventional's rules: its id, whether it is a
 // warning rather than an error, and its judgement, "" when the message
 // passes it, else why not.
@@ -283,23 +232,11 @@ var headerRules = []rule{
 		return "body's lines must not be longer than " + strconv.Itoa(maxLength) + " characters"
 	}},
 	{"footer-leading-blank", true, func(p parsed, _ []string) string {
-		if !truthy(p.footer) {
+		if p.glued < 0 {
 			return ""
 		}
-		raw := lines(p.raw)
-		first := lines(*p.footer)[0]
-		index := -1
-		for i, l := range raw {
-			if l == first {
-				index = i
-				break
-			}
-		}
-		if blankBefore(raw, index) {
-			return ""
-		}
-		return "footer must have leading blank line: line " + strconv.Itoa(p.footerAt+1) + `, "` + first + `", ` +
-			footerReason(first) + ", so it reads as the start of the footer"
+		return "footer must have leading blank line: line " + strconv.Itoa(p.glued+1) + `, "` + p.gluedLine +
+			`", begins with a word and a colon, a footer git reads only after a blank line`
 	}},
 	{"footer-max-line-length", false, func(p parsed, _ []string) string {
 		if !truthy(p.footer) || linesFit(*p.footer) {

@@ -35,12 +35,13 @@ func Note(sha string) (string, error) {
 }
 
 // footersFormat is how a range log prints each commit's footers for a
-// config: its note under a stealth config, else its message.
+// config, each ended by a record separator: its note under a stealth config,
+// else its message.
 func footersFormat(cfg *config.Loaded) []string {
 	if cfg.Stealth {
-		return append(append([]string{}, showNotes...), "--format=%N")
+		return append(append([]string{}, showNotes...), "--format=%N%x1e")
 	}
-	return []string{"--format=%B"}
+	return []string{"--format=%B%x1e"}
 }
 
 // typedFooter is why a footer of the config written in the message is

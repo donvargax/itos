@@ -350,8 +350,7 @@ func lacking(cfg *config.Loaded, g gitArgs, links, content []string, stealth boo
 	if !ok || typ == "" {
 		return nil
 	}
-	written := strings.Join(content, "\n")
-	linked := text + "\n" + strings.Join(links, "\n") + "\n" + written
+	linked := message.Trailed(text, slices.Concat(links, content))
 	if stealth {
 		linked = strings.Join(links, "\n")
 		if len(links) == 0 && g.amend {
@@ -359,7 +358,7 @@ func lacking(cfg *config.Loaded, g gitArgs, links, content []string, stealth boo
 		}
 	}
 	var found []out.Problem
-	for _, key := range message.Missing(cfg, typ, linked, text+"\n"+written) {
+	for _, key := range message.Missing(cfg, typ, linked, message.Trailed(text, content)) {
 		flag, what := message.Flag(cfg, key)
 		if flag == "" {
 			continue

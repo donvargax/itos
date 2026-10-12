@@ -5,18 +5,18 @@ package message
 // lint's body-max-line-length is broken at word boundaries, so a message
 // typed or generated as long lines is not refused for them. Only lines the
 // lint would hold to the limit and could be broken without changing what
-// they mean are touched: the header, the footers (from the first line the
-// lint reads as one, as it reads the rest after it as footer too), comment
-// lines, indented lines and lines within the limit are left as written, and
-// lines are never joined, so a message already wrapped comes back unchanged.
+// they mean are touched: the header, the footers (the message's trailers,
+// as git and the lint read them), comment lines, indented lines and lines
+// within the limit are left as written, and lines are never joined, so a
+// message already wrapped comes back unchanged.
 //
 // A break never starts a line with what something reads as other than body
-// (bug 15): a footer token or a breaking-change note, which the parser, the
-// lint, the footer rules and a release read as the footer from there on, a
-// configured footer key and its colon, which the footer rules read as one
-// wherever it is, or git's comment char, a line strip cleanup drops. Such a
-// break moves back a word; with none left before it, the line runs over the
-// limit, for the lint to judge.
+// (bug 15): a footer token or a breaking-change note, which
+// conventional-commits-parser reads as the footer from there on, a
+// configured footer key and its colon, which ends the last paragraph as a
+// footer glued to the body, or git's comment char, a line strip cleanup
+// drops. Such a break moves back a word; with none left before it, the line
+// runs over the limit, for the lint to judge.
 
 import (
 	"io"
@@ -82,20 +82,19 @@ func Wrap(parts []string, limit int, commentChar string, keys []string) []string
 }
 
 // keptLines are which lines of a message stay as written: everything up to
-// the header, its first line with text; every line from the first the lint
-// reads as a footer or a breaking-change note on; comment lines, indented
-// lines and lines within the limit.
+// the header, its first line with text; the trailers; comment lines,
+// indented lines and lines within the limit.
 func keptLines(lines []string, limit int, commentChar string) []bool {
 	keep := make([]bool, len(lines))
-	header, footer := false, false
+	header := false
+	start, _ := trailerBlock(lines, commentChar)
 	for i, l := range lines {
 		comment := commentChar != "" && strings.HasPrefix(l, commentChar)
 		switch {
 		case !header:
 			header = strings.TrimSpace(l) != "" && !comment
 			keep[i] = true
-		case footer || footerToken.MatchString(l) || noteLine.MatchString(l):
-			footer = true
+		case i >= start:
 			keep[i] = true
 		default:
 			keep[i] = comment || strings.HasPrefix(l, " ") || strings.HasPrefix(l, "\t") || length(l) <= limit
@@ -106,7 +105,7 @@ func keptLines(lines []string, limit int, commentChar string) []bool {
 
 // opensFooter is whether a line starting with a text is read as other than
 // body: a footer token or a breaking-change note, as the parser reads them,
-// a footer key and its colon, as IDs and Texts read them, or a comment. The
+// a footer key and its colon, or a comment. The
 // line is lead and then rest, read as one text without being built (see
 // wrapLine): every test is anchored at its start, so it reads only as far as
 // it must.

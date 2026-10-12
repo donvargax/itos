@@ -9,7 +9,8 @@ import (
 
 // The body's long lines broken at a limit of 20, everything else as
 // written: the header, a short line, an indented one, a comment, a word
-// longer than the limit, and every line from the first footer on.
+// longer than the limit, and the footers, as git reads its trailers, which
+// a footer glued to the body is not.
 func TestWrap(t *testing.T) {
 	long := "chore: a header that is longer than twenty"
 	text := strings.Join([]string{
@@ -22,9 +23,11 @@ func TestWrap(t *testing.T) {
 		"- an item that goes on and on",
 		"12. a numbered item that goes on",
 		"averyveryverylongwordindeed and more",
+		"Task: T-001 glued to the body",
 		"",
-		"Task: T-001",
-		"a footer's continuation that is long",
+		"Task: T-001 and a footer that is long",
+		"Item: a-footer-with-a-continuation",
+		" that is long",
 	}, "\n")
 	want := strings.Join([]string{
 		long,
@@ -40,9 +43,12 @@ func TestWrap(t *testing.T) {
 		"    that goes on",
 		"averyveryverylongwordindeed",
 		"and more",
+		"Task: T-001 glued to",
+		"the body",
 		"",
-		"Task: T-001",
-		"a footer's continuation that is long",
+		"Task: T-001 and a footer that is long",
+		"Item: a-footer-with-a-continuation",
+		" that is long",
 	}, "\n")
 	if got := Wrap([]string{text}, 20, "#", nil)[0]; got != want {
 		t.Errorf("Wrap:\n%s\nwant:\n%s", got, want)

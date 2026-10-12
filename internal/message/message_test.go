@@ -12,19 +12,82 @@ import (
 )
 
 // A footer's IDs over several lines, split at whitespace and commas, the
-// prefix taken off where it is given; a line that only mentions the key is
-// not the footer.
+// prefix taken off where it is given, read as git reads trailers (bug 110):
+// the last paragraph, a continuation line's IDs the footer's; a line of the
+// body beginning with the key, or a footer above the last paragraph, is not
+// the footer; under a stealth config every line of the note is.
 func TestIDs(t *testing.T) {
-	text := "feat: x\n\nScenarios: @ID-A-1, @ID-B-2\nScenarios:ID-C-3 @ID-D-4\r\nSee Scenarios: ID-E-5\n"
-	got := IDs(text, "Scenarios", "@")
-	if want := []string{"ID-A-1", "ID-B-2", "ID-C-3", "ID-D-4"}; !reflect.DeepEqual(got, want) {
+	cfg := load(t, "version: 1\ncommits:\n  footers:\n    Scenarios: { source: { tests: scenario }, strip_prefix: \"@\" }\n"+
+		"tests:\n  scenario: { root: features, id: \"ID-[A-Z]+-\\\\d+\" }\n")
+	text := "feat: x\n\nScenarios: ID-Z-9\n\nScenarios: or a footer, as\nScenarios: says.\n\n" +
+		"Scenarios: @ID-A-1, @ID-B-2\nScenarios :ID-C-3 @ID-D-4\r\n  @ID-E-5\nSigned-off-by: A <a@b>\n# a comment\n\n"
+	if got, want := IDs(cfg, text, "Scenarios"), []string{"ID-A-1", "ID-B-2", "ID-C-3", "ID-D-4", "ID-E-5"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("IDs %q", got)
+	}
+	cfg.Stealth = true
+	if got, want := IDs(cfg, "Scenarios: @ID-A-1\nScenarios: ID-B-2\n", "Scenarios"), []string{"ID-A-1", "ID-B-2"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("IDs of a note %q", got)
 	}
 	if got := Type("feat(scope): x"); got != "feat" {
 		t.Errorf("Type %q", got)
 	}
 	if got := Type(": x"); got != "" {
 		t.Errorf("Type %q", got)
+	}
+}
+
+// The trailers are git's (trailer.c): the last paragraph, never the first,
+// when each of its lines is a trailer or a continuation, or when it holds
+// one git writes and a quarter of its lines are trailers; the blank and
+// comment lines at the end, and git's scissors line and what follows it,
+// are not the message's. BREAKING CHANGE, its space and all, is a key, as
+// the Conventional Commits spec has it, where git reads none with a space.
+func TestTrailers(t *testing.T) {
+	for message, want := range map[string][]trailer{
+		"chore: x":                        nil,
+		"Task: T-1":                       nil,
+		"chore: x\nTask: T-1":             nil,
+		"chore: x\n\nTask: T-1":           {{"Task", "T-1"}},
+		"chore: x\n\nTask: T-1\n\n\n":     {{"Task", "T-1"}},
+		"chore: x\n\nTask: T-1\nprose":    nil,
+		"chore: x\n\nprose\nTask: T-1":    nil,
+		"chore: x\n\n: T-1":               nil,
+		"chore: x\n\nA key: T-1":          nil,
+		"chore: x\n\nTask: T-1\n\nprose":  nil,
+		"chore: x\n\nTask: T-1\n  T-2":    {{"Task", "T-1\n  T-2"}},
+		"chore: x\n\n  T-0\nTask: T-1":    nil,
+		"chore: x\n\nTask: T-1\n# a note": {{"Task", "T-1"}},
+		"chore: x\n\nTask: T-1\n# ------------------------ >8 ------------------------\nprose": {{"Task", "T-1"}},
+		"chore: x\n\nprose\n  more\nSigned-off-by: A\n(cherry picked from commit 1)\nTask: T-1": {
+			{"Signed-off-by", "A"}, {"Task", "T-1"}},
+		"chore: x\n\nprose\nmore\nyet more\nstill more\nSigned-off-by: A": nil,
+		"chore: x\n\nprose\nSigned-off-by: A\n\t T-2\n  T-3":              {{"Signed-off-by", "A\n\t T-2\n  T-3"}},
+		"chore: x\n\n\t\nTask: T-1":                                       {{"Task", "T-1"}},
+		"chore: x\n\nhttps://x.y/z":                                       nil,
+		"chore: x\n\nTask: T-1\n# c\nItem: b":                             {{"Task", "T-1"}, {"Item", "b"}},
+		"chore: x\n\nprose\n  more\n# c\nSigned-off-by: A":                {{"Signed-off-by", "A"}},
+		"chore: x\n\nBREAKING CHANGE: x\nTask: T-1":                       {{"BREAKING CHANGE", "x"}, {"Task", "T-1"}},
+		"chore: x\n\nBREAKING CHANGES: x\nTask: T-1":                      nil,
+		"chore: x\n\nSee : https://x.y/z":                                 {{"See", "https://x.y/z"}},
+	} {
+		if got := trailers(message); !reflect.DeepEqual(got, want) {
+			t.Errorf("trailers(%q) = %q, want %q", message, got, want)
+		}
+	}
+	if got := unfolded("a\r\n\t b \n c "); got != "a\r b  c" {
+		t.Errorf("unfolded %q", got)
+	}
+	for message, want := range map[string]string{
+		"chore: x":                    "chore: x\n\nTask: T-1",
+		"chore: x\n\nbody\n":          "chore: x\n\nbody\n\nTask: T-1",
+		"chore: x\n\nItem: a\n# note": "chore: x\n\nItem: a\nTask: T-1",
+	} {
+		if got := Trailed(message, []string{"Task: T-1"}); got != want {
+			t.Errorf("Trailed(%q) = %q, want %q", message, got, want)
+		}
+	}
+	if got := Trailed("chore: x", nil); got != "chore: x" {
+		t.Errorf("Trailed with no footers %q", got)
 	}
 }
 
@@ -79,8 +142,9 @@ func TestTypeOfGitsHeaders(t *testing.T) {
 // line that only mentions the key is not the footer. None is the word alone,
 // in lower case.
 func TestTexts(t *testing.T) {
-	text := "chore: x\n\nUpgrading:  rename a key \nUpgrading:\nSee Upgrading: below\nUpgrading: none\n"
-	if got, want := Texts(text, "Upgrading"), []string{"rename a key", "", "none"}; !reflect.DeepEqual(got, want) {
+	text := "chore: x\n\nUpgrading: below\n\nSee Upgrading: below\nUpgrading: so\n\n" +
+		"Upgrading:  rename a key \nUpgrading:\nUpgrading: drop\n  the old one\nUpgrading: none\n"
+	if got, want := Texts(text, "Upgrading"), []string{"rename a key", "", "drop the old one", "none"}; !reflect.DeepEqual(got, want) {
 		t.Errorf("Texts %q", got)
 	}
 	for text, want := range map[string]bool{"none": true, "None": false, "none.": false, "": false} {
@@ -165,7 +229,7 @@ commits:
 	if len(lines) != 4 || lines[2] != "Scenarios: "+long || lines[3] != "Scenarios: @ID-A-01" {
 		t.Errorf("FooterLines %q", lines)
 	}
-	if got := IDs(strings.Join(lines, "\n"), "Scenarios", ""); len(got) != 12 {
+	if got := IDs(cfg, "feat: x\n\n"+strings.Join(lines, "\n"), "Scenarios"); len(got) != 12 {
 		t.Errorf("the lines read back as %d IDs", len(got))
 	}
 	if got := FooterLines("Task", nil); got != nil {
@@ -243,10 +307,10 @@ commits:
 			t.Errorf("Flag(%s) = %q %q", key, flag, what)
 		}
 	}
-	if got := Missing(cfg, "chore", "Upgrading: none", "Task: T-1"); !slices.Equal(got, []string{"Task", "Upgrading"}) {
+	if got := Missing(cfg, "chore", "chore: x\n\nUpgrading: none", "chore: x\n\nTask: T-1"); !slices.Equal(got, []string{"Task", "Upgrading"}) {
 		t.Errorf("missing from the wrong texts %q", got)
 	}
-	if got := Missing(cfg, "chore", "Task: T-1", "Upgrading: none"); got != nil {
+	if got := Missing(cfg, "chore", "chore: x\n\nTask: T-1", "chore: x\n\nUpgrading: none"); got != nil {
 		t.Errorf("missing %q", got)
 	}
 	if got := Missing(cfg, "feat", "", ""); got != nil {
@@ -301,7 +365,7 @@ commits:
 		{"test", "Item:", []string{"Task"}},
 		{"refactor", "Item: slice-9", []string{"Task"}},
 	} {
-		if got := Missing(cfg, c.typ, c.links, ""); !slices.Equal(got, c.want) {
+		if got := Missing(cfg, c.typ, c.typ+": x\n\n"+c.links, ""); !slices.Equal(got, c.want) {
 			t.Errorf("Missing(%s, %q) = %q, want %q", c.typ, c.links, got, c.want)
 		}
 	}

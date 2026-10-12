@@ -109,11 +109,26 @@ func Missing(cfg *config.Loaded, typ, links, content string) []string {
 			if !slices.ContainsFunc(Texts(content, key), func(t string) bool { return t != "" }) {
 				keys = append(keys, key)
 			}
-		} else if len(IDs(links, key, strip(f))) == 0 && !stoodIn(cfg, key, typ, links) {
+		} else if len(IDs(cfg, links, key)) == 0 && !stoodIn(cfg, key, typ, links) {
 			keys = append(keys, key)
 		}
 	}
 	return keys
+}
+
+// Trailed is a message with footer lines added as git commit --trailer adds
+// them: after its footers when it has some, else as a paragraph of their own.
+func Trailed(message string, footers []string) string {
+	if len(footers) == 0 {
+		return message
+	}
+	lines := strings.Split(message, "\n")
+	start, end := trailerBlock(lines, repositoryComment())
+	gap := "\n\n"
+	if start < end {
+		gap = "\n"
+	}
+	return strings.Join(lines[:end], "\n") + gap + strings.Join(footers, "\n")
 }
 
 // SplitIDs are the IDs a list gives, separated as a footer separates them, by

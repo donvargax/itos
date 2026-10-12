@@ -68,8 +68,8 @@ item teaches you to the repository's own notes, as a lesson
 >
 > Others push to main while you work: commit with `itos commit`, push with
 > `itos push`, never force. Do the work yourself; start no agents. Each
-> commit's body says why, and no line of it starts with `word:`, which git
-> reads as a footer. Prefix your scratch files with <item>: sessions share
+> commit's body says why, and its footers stand alone in its last
+> paragraph, the one place git reads them. Prefix your scratch files with <item>: sessions share
 > the folder. Push, wait for CI with `itos push` in the
 > background, and close the item with `itos work done <item>` once it is
 > green.

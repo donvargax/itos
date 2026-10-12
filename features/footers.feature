@@ -132,7 +132,7 @@ Feature: The footer rules are itos's, whatever the header lint
   # feat was refused so), and a footer above more prose counted where git's
   # trailers do not see it. The footers are the message's last paragraph,
   # when its lines are trailers, as git interpret-trailers reads them.
-  @ID-FOOT-10 @bug-110 @wip
+  @ID-FOOT-10 @bug-110
   Scenario: A body line beginning with a footer's key is prose, not that footer
     When the commit-msg hook checks the message:
       """
@@ -145,7 +145,7 @@ Feature: The footer rules are itos's, whatever the header lint
       """
     Then itos exits with code 0
 
-  @ID-FOOT-11 @bug-110 @wip
+  @ID-FOOT-11 @bug-110
   Scenario: A footer above the last paragraph is not read, as git's trailers do not read it
     When the commit-msg hook checks the message:
       """
@@ -156,4 +156,4 @@ Feature: The footer rules are itos's, whatever the header lint
       The readme said the same thing twice.
       """
     Then itos exits with code 1
-    And its output says "need a Task footer"
+    And its output names the rule "task-footer"

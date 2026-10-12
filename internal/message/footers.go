@@ -51,34 +51,34 @@ var (
 	idHint      = regexp.MustCompile(`^[\w-]*`)
 )
 
-// IDs are the IDs one footer gives in a text (a message, or a range's
-// messages), in order, strip taken off the front of each, not deduplicated.
-func IDs(text, key, strip string) []string {
+// IDs are the IDs one footer of IDs gives in a commit's links (its
+// message, or under a stealth config its note), in order, the footer's
+// strip_prefix taken off each, not deduplicated.
+func IDs(cfg *config.Loaded, links, key string) []string {
+	f, _ := cfg.Commits.Footers.Get(key)
+	prefix := strip(f)
 	var ids []string
-	for _, line := range strings.Split(text, "\n") {
-		if !strings.HasPrefix(line, key+":") {
+	for _, t := range linked(cfg, links) {
+		if t.key != key {
 			continue
 		}
-		for _, id := range idSeparator.Split(line[len(key)+1:], -1) {
+		for _, id := range idSeparator.Split(t.value, -1) {
 			if id == "" {
 				continue
 			}
-			if strip != "" && strings.HasPrefix(id, strip) {
-				id = id[len(strip):]
-			}
-			ids = append(ids, id)
+			ids = append(ids, strings.TrimPrefix(id, prefix))
 		}
 	}
 	return ids
 }
 
-// Texts are the texts one free-text footer gives in a message, a line each,
-// in order, trimmed, the empty ones kept as "".
+// Texts are the texts one free-text footer gives in a message, in order,
+// each on one line and trimmed, the empty ones kept as "".
 func Texts(message, key string) []string {
 	var texts []string
-	for _, line := range strings.Split(message, "\n") {
-		if strings.HasPrefix(line, key+":") {
-			texts = append(texts, value.Trim(line[len(key)+1:]))
+	for _, t := range trailers(message) {
+		if t.key == key {
+			texts = append(texts, unfolded(t.value))
 		}
 	}
 	return texts
@@ -328,7 +328,7 @@ func CheckFooter(cfg *config.Loaded, key, typ, message string, r Reading) (strin
 	if f.Text() {
 		return checkText(cfg, key, f, typ, message, required), nil
 	}
-	ids := IDs(message, key, strip(f))
+	ids := IDs(cfg, message, key)
 	if required && len(ids) == 0 && !stoodIn(cfg, key, typ, message) {
 		return fmt.Sprintf("%s commits need a %s footer%s", typ, example(cfg, key, f), stealthNeed(cfg, key, f)), nil
 	}
@@ -372,7 +372,7 @@ func stoodIn(cfg *config.Loaded, key, typ, footers string) bool {
 			continue
 		}
 		types, ok := f.InPlaceOf.Get(key)
-		if ok && applies(&types, typ) && len(IDs(footers, other, strip(f))) > 0 {
+		if ok && applies(&types, typ) && len(IDs(cfg, footers, other)) > 0 {
 			return true
 		}
 	}
@@ -437,9 +437,9 @@ func PrintFooters(w io.Writer, found []out.Problem) {
 }
 
 // IDsIn are the IDs a pushed range's commits give in one footer (footers.ts's
-// footerIdsIn, the range log CI's plan reads): `git log --format=%B
-// from..to`, or each commit's itos note under a stealth config, newest
-// commit first, each ID once in the order first given, the
+// footerIdsIn, the range log CI's plan reads): each commit's message from
+// `git log --format=%B from..to`, or its itos note under a stealth config,
+// newest commit first, each ID once in the order first given, the
 // footer's strip_prefix taken off, and only those whose whole matches the
 // footer's ID pattern (the ledger's id, or its kind's; any ID without one). A
 // range that cannot be read, or has no end, gives none. The range is the one
@@ -475,15 +475,14 @@ func IDsIn(cfg *config.Loaded, from, to, key string) []string {
 		return nil
 	}
 	var ids []string
-	for _, id := range unique(IDs(log, key, "")) {
-		if s := strip(f); s != "" && strings.HasPrefix(id, s) {
-			id = id[len(s):]
-		}
-		if matches.MatchString(id) {
-			ids = append(ids, id)
+	for _, entry := range strings.Split(log, "\x1e") {
+		for _, id := range IDs(cfg, strings.TrimLeft(entry, "\n"), key) {
+			if matches.MatchString(id) {
+				ids = append(ids, id)
+			}
 		}
 	}
-	return ids
+	return unique(ids)
 }
 
 // unique is a list without its repeats, in the order first seen.

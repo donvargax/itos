@@ -663,14 +663,42 @@ cases:
     exit: 0
     stderr: |
       ⚠   body must have leading blank line [body-leading-blank]
-      ⚠   footer must have leading blank line: line 3, "Refs: 1", begins with a word and a colon, so it reads as the start of the footer [footer-leading-blank]
-  - name: the footer-leading-blank warning names the line that starts the footer, by its number and text, and why
+      ⚠   footer must have leading blank line: line 3, "Refs: 1", begins with a word and a colon, a footer git reads only after a blank line [footer-leading-blank]
+  - name: a body line beginning with a word and a hash is prose, and draws no footer warning
     argv: [commit, check-message, "-", --config, builtin.yaml]
     stdin: "docs: a page\n\nThe page said it twice, so one line now starts\nwith #, which is plain prose.\n"
     files: *builtin
     exit: 0
+    stderr: ""
+  # The footers are git's trailers (bug 110): the last paragraph, when its
+  # lines are trailers, BREAKING CHANGE with its space among them.
+  - name: a body line beginning with a footer's key is prose, not that footer
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "chore: tidy\n\nName the work in the footers, with\nTask: or Item: as the config asks.\n\nTask: T-001\n"
+    files: *builtin
+    exit: 0
+    stderr: ""
+  - name: a footer above the last paragraph is not read
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "chore: tidy\n\nTask: T-001\n\nThe readme said it twice.\n"
+    files: *builtin
+    exit: 1
     stderr: |
-      ⚠   footer must have leading blank line: line 4, "with #, which is plain prose.", begins with a word, a space and #, so it reads as the start of the footer [footer-leading-blank]
+      ✖   chore commits need a "Task: T-…" footer [task-footer]
+  - name: a footer glued to the body is warned of and not read
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "chore: tidy\n\nThe readme said it twice.\nTask: T-001\n"
+    files: *builtin
+    exit: 1
+    stderr: |
+      ⚠   footer must have leading blank line: line 4, "Task: T-001", begins with a word and a colon, a footer git reads only after a blank line [footer-leading-blank]
+      ✖   chore commits need a "Task: T-…" footer [task-footer]
+  - name: a breaking-change note beside the other footers keeps them all
+    argv: [commit, check-message, "-", --config, builtin.yaml]
+    stdin: "chore: tidy\n\nBREAKING CHANGE: the keys moved\nTask: T-001\n"
+    files: *builtin
+    exit: 0
+    stderr: ""
   - name: --json gives the footer-leading-blank warning with the line it names
     argv: [commit, check-message, "-", --json, --config, builtin.yaml]
     stdin: "docs: a page\n\nThe page said it twice, and the wrapped\nscenarios: line below reads as a footer.\n"
@@ -681,7 +709,7 @@ cases:
       ok: true
       problems:
         - rule: footer-leading-blank
-          message: 'footer must have leading blank line: line 4, "scenarios: line below reads as a footer.", begins with a word and a colon, so it reads as the start of the footer'
+          message: 'footer must have leading blank line: line 4, "scenarios: line below reads as a footer.", begins with a word and a colon, a footer git reads only after a blank line'
           fix: leave a blank line before the footers, or reword or rewrap the line named if it is prose
           level: warning
   - name: --json gives the built-in lint's problems with their levels and fixes, then the footer rules'
