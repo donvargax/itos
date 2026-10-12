@@ -1643,3 +1643,25 @@
     T-142's .vite-hooks did, folded into T-143). CI run 38220144090 passed that range, so a build
     commit removes the two lines and their comment. p1-verify-past-the-window would make this
     second push unneeded.
+
+- id: T-161
+  type: ci
+  title: The nightly judges the mutation sites of the Go functions changed since the last green nightly
+  why: >
+    Was p1-nightly-judges-changed-sites (ADR-0049, the testing tiers of issue #41). A push samples
+    one site (q-52, q-55, seeded by its range since T-159), so a slice's other survivors wait for a
+    later push to draw them: on 2026-10-11 slice-126 left four in upgrade.go and one in launch.go,
+    found one red push at a time (T-155, T-156). The nightly gains a step, beside its 20 random
+    sites across cmd and internal, which stay (q-54: they sample the old code's debt): itos-cc
+    mutation run --since <base> --count 60 --seed <the run's id, as the 20's> --fail-uncovered=lines
+    --json cmd internal, where base is the head commit of the last nightly run that concluded
+    success (gh run list on nightly.yml, the workflow's own token). The user's calls (2026-10-12):
+    capped and seeded per run, so a range with 60 sites or fewer is judged whole and a bigger one
+    (after a red streak: the last green nightly was 2026-10-08) gets a fresh sample of 60 each
+    night until a green night moves the base, never running past the job's time; and both steps
+    kept. With no green nightly in reach (none, or gh failing), the step says so and judges the
+    last 24 hours' first-parent range instead, never every function. A survivor or an uncovered
+    changed line fails the night. Linux only, as the job is. The ci-mutation-budget self-test
+    learns the new command, its case names kept and new cases added for the base's reading.
+  done_when:
+    - run: "tools/bin/itos ci plan --nightly | grep -qE 'itos-cc mutation run .*--since .*--count 60 .*--fail-uncovered=lines'"
