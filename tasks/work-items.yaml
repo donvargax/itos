@@ -8728,3 +8728,18 @@ items:
       made) would mint the number, write the record in the format and keep the list, as it does for
       an answered question.
     tags: [ask]
+
+  - id: p1-task-type-fits-paths
+    title: task add warns when a task's type cannot touch what its why and checks name
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      2026-10-12, T-168: the coordinator added a feat task whose work was guide Markdown alone,
+      which commits.scopes refuses as a feat (it must touch the implementation or features), so the
+      agent committed docs and the ledger kept type: feat. task add could read the paths its checks
+      name and warn when the type's scope cannot touch them, or the ledger's type could be read as a
+      default the commit may differ from.
+    tags: [work]
