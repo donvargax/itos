@@ -7191,6 +7191,13 @@ items:
       commit records the script's output at a pinned commit (the whole history, --task T-001,
       --scenario ID-STATUS-01) under tools/parity/changelog/, and its acceptance is itos changelog
       giving the same, compared by tools/bin/parity. T-149, which deletes package.json, waits on it.
+    deferred: >
+      Parked (the user, 2026-10-12): no need for now. Of its two parts, one item's commits are itos
+      work show <id> (headers; bodies by git show), and the whole-history changelog has no reader
+      here, CI's release notes being the history consumers read (tools/bin/release-notes, git-cliff
+      pinned by tools/bin/pinned, which stays). T-149 deletes tools/changelog.ts and the root
+      cliff.toml without a replacement; lift this to build itos changelog when a consumer wants a
+      history across releases, sharing work show's commit lookup.
 
   - id: p1-core-cli-corpus-kind
     title: "itos runs a CLI's case corpus as a test kind: arguments, exit code, --json and files written"
