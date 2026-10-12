@@ -23,7 +23,8 @@
 //
 // A release's GoReleaser (.goreleaser.yaml's before hook) writes it as
 // itos.schema.json, published beside the archives and listed in checksums.txt,
-// and tools/selftest/go-schema.ts proves it.
+// and its self-test (selftest_test.go, the nightly's) proves it says what
+// config check says.
 package main
 
 import (

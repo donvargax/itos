@@ -38,7 +38,7 @@
 // -range-from <rev> checks nothing unless a commit in <rev>..HEAD is a feat or a
 // fix, which is how CI runs it over a push's range; an empty <rev> checks.
 // -old and -new read the two schemas from files instead (the self-test's way,
-// tools/selftest/schema-contract.ts). -release <tag> holds the tree to that
+// selftest_test.go). -release <tag> holds the tree to that
 // release instead of the newest tag reachable from HEAD (the release job's,
 // whose own tag is already made locally when it writes the notes). -json prints the findings as one JSON
 // object on stdout instead of lines, for the release notes T-069 generates

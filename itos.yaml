@@ -171,8 +171,8 @@ ci:
     - { run: go tool staticcheck ./..., cost: static }
     # The three workflows (T-008's check, kept as a step in T-125): their expressions, the inputs
     # of the actions they use and the shell of each run: (shellcheck). Nothing else lints them:
-    # gates.ts runs none of them, and a broken release.yml shows only when a release is cut and
-    # nightly.yml only at night. ci.yml installs it for this step.
+    # the gates self-test runs none of them, and a broken release.yml shows only when a release is
+    # cut and nightly.yml only at night. ci.yml installs it for this step.
     - { run: actionlint, cost: static }
     - { run: tools/bin/itos tests smoke check scenario, cost: static }
     # The config, the ledger, the registry, the smoke set.
@@ -180,7 +180,12 @@ ci:
     # This repository's own ci.prose.paths (T-008's check, kept as a step in T-125): none of them,
     # which reach the ledger, the registry, a feature, the config or code, takes the prose shortcut
     # down. The corpus proves the shortcut over its own configurations, never over these paths.
-    - { run: node tools/selftest/ci-scope.ts, cost: static }
+    # Each gate's self-test is a Go test, TestSelftest, with one subtest per case (T-143), which
+    # runs only with ITOS_SELFTEST set: go test ./tools/... below skips it, and its step runs it.
+    - {
+        run: "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-scope",
+        cost: static,
+      }
     # The plugin's version rule (T-074): a range whose tree changes integrations/claude-code/ must
     # leave its plugin.json's version higher, by semver, than at the range's start, as Claude Code
     # offers an installed plugin an update only when that version changes. It reads git alone, so
@@ -238,13 +243,25 @@ ci:
     # failing, a breaking schema change refused unless marked, a plugin version unraised or lowered
     # refused and a shallow clone stopping it. The steps above judge real modules, a real range and
     # a real change to the plugin, which never exercise a refusal.
-    - { run: node tools/selftest/deps-check.ts, cost: late }
-    - { run: node tools/selftest/schema-contract.ts, cost: late }
-    - { run: node tools/selftest/plugin-version.ts, cost: late }
+    - {
+        run: "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/bin/deps-check",
+        cost: late,
+      }
+    - {
+        run: "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/bin/schema-contract",
+        cost: late,
+      }
+    - {
+        run: "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/bin/plugin-version",
+        cost: late,
+      }
     # The push and nightly mutation commands (proof.code.check below, the nightly's mutation run),
     # dispatched through ci run with a fake shell: their counts and paths, and that a failing
     # provider blocks (T-131).
-    - { run: node tools/selftest/ci-mutation-budget.ts, cost: late }
+    - {
+        run: "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-mutation-budget",
+        cost: late,
+      }
     # The one merged run; late, as no pattern matches it. Against the Go
     # binary, tools/bin/itos, the features' default ITOS_BIN.
     - { tests: scenario }
@@ -265,7 +282,7 @@ ci:
       - "^itos (tests smoke check|commit|verify|ci (plan|scope|range)|work|config check)\\b"
       - "^actionlint\\b"
       - "^git ls-remote "
-      - "^node tools/selftest/ci-scope\\.ts$"
+      - "^ITOS_SELFTEST=1 go test -count=1 -run '\\^TestSelftest\\$' \\./tools/selftest/ci-scope$"
       - "^go (vet|mod verify|tool staticcheck)\\b"
     keep_written_order: true # a task's checks never run before the ones above them
   covers: # a check a step has just done is not run again
@@ -294,31 +311,31 @@ ci:
   nightly:
     steps:
       - { tests: scenario, whole: true }
-      - node tools/selftest/gates.ts
-      - node tools/selftest/go-hooks.ts
-      - node tools/selftest/go-release.ts
-      - node tools/selftest/go-schema.ts
-      - node tools/selftest/previous-release.ts
+      - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates"
+      - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/go-hooks"
+      - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/go-release"
+      - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/bin/config-schema"
+      - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/bin/previous-release"
       # What a push's features step selects, read back from go test -json (T-005's and T-016's
       # checks, kept as a step in T-125): this repository's scenario kind and the harness's
       # -scenarios selection. The corpus proves the plan's command, never what go test then runs.
-      - node tools/selftest/features-scope.ts
+      - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/features-scope"
       # tools/bin/itos, which every hook and every CI step calls (T-060's check, kept as a step in
       # T-125): it runs with no node, rebuilds when a Go source is added or removed or HEAD's
       # version changes, and a Go tree that does not build exits 3 without ever running the old
       # binary. Every job uses the script and nothing else tests its staleness rule.
-      - node tools/selftest/go-dogfood.ts
+      - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/go-dogfood"
       # upgrading.json, the asset `itos upgrade` reads, end to end over this history and
       # `itos commit footers` (T-091's check, kept as a step in T-125): release-notes' TestAsset
       # proves its shape on fixtures, never against the footers command. Asks the network.
-      - node tools/selftest/upgrading-json.ts
+      - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/bin/release-notes"
       # The push and nightly mutation commands through ci run with a fake shell (T-131).
-      - node tools/selftest/ci-mutation-budget.ts
+      - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-mutation-budget"
       # The programs in tools/bin are shell scripts, which windows cannot start at all: every
       # program under tools/ starts one of them through one resolver, and this runs two of them
       # here to keep that true (T-135). Cheap and offline, so it can also run by hand on windows,
       # where it is the check that says a spawn lost its exit code.
-      - node tools/selftest/tools-bin-programs.ts
+      - "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/tools-bin-programs"
       # Twenty mutation sites of the Go code judged freshly (q-41's nightly budget, q-52), drawn
       # across cmd and internal with no cache; a survivor fails the night. Not --fail-uncovered
       # (q-54): with no range, strict coverage judges every function, and that backlog is the
