@@ -6496,6 +6496,10 @@ items:
       follow-up push after green to take the line out (p1-drop-vite-hooks-path,
       p1-drop-deleted-config-paths). Judging each commit by its own config would let one push delete
       a file and its rule.
+
+      #55 (2026-10-12): the same for range checks, not only path rules: a moves rule added later
+      fails a test commit made before it, on CI's first run from commits.since. Judging each commit
+      by its own config covers both.
     refs: [internal/providers/range.go, internal/cli/verify.go]
 
   - id: p1-written-yaml-formatter-stable
