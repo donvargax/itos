@@ -8444,3 +8444,25 @@ items:
     status: todo
     depends_on: [slice-132]
     kind: task
+
+  - id: p1-nightly-carry-judged-sites
+    title: The nightly judges every changed site across nights, carrying which are judged, and moves its base only when none are left
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-12), after a side note: T-161 caps the changed-sites step at 60
+      seeded by the run and moves its base on any green night, so on a busy day (2,778 sites since
+      2026-10-08, about 700 a day) a green night drops every site it did not draw. Changed lines are
+      still all covered (strict coverage judges the whole range); what is sampled is which mutants
+      survive. The fix: each night judges up to 60 sites not yet judged since the base, carrying the
+      judged set between runners (an Actions cache), and the base moves only once none are left.
+      itos-cc v0.12.0 cannot: --count never reads or writes snapshots, omits the identities it left
+      out, and keys sites by line numbers that shift. Filed as itos-cc#43 (a counted --unjudged mode
+      writing snapshots and reporting unjudged_after, or line-independent keys with
+      --exclude-identities). Waits on that release; until then T-161's step stays a sample, as the
+      #41 progress comment should say.
+    refs: [itos.yaml, tools/bin/nightly-base]
+    tags: [ci]
