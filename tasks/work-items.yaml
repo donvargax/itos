@@ -2151,6 +2151,12 @@ items:
 
       Third time on 2026-10-11 (slice-130): a --breaking line one character over 100 was refused
       only after the whole pre-commit hook. Three agents in one day lost a hook run to it.
+
+      donvargax/itos#51 (itos 8.0.0, 2026-10-12): an --upgrading text whose footer line would be 126
+      characters was refused by the lint as 'footer's lines must not be longer than 100 characters',
+      naming neither the footer nor its length. itos commit builds that line itself, so it can
+      refuse before git runs: '--upgrading's footer line would be 126 characters, over 100: shorten
+      the text to 88 or fewer'; for a footer from the message file, name the footer and its length.
     refs: [internal/cli/gitcommit.go, internal/message/footers.go]
     tags: [commit]
 
