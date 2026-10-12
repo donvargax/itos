@@ -7104,8 +7104,8 @@ items:
   - id: T-144
     title: The conformance corpus is run by a Go program
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
