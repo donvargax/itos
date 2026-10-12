@@ -8244,3 +8244,22 @@ items:
       the plugin with no other lint. Add shellcheck, pinned, as a static step over the tracked shell
       scripts, fixing what it reports. After T-147, so its new scripts are covered from the start.
     refs: [tools/bin/pre-commit, integrations/claude-code/hooks/guard.sh, itos.yaml]
+
+  - id: p1-work-show-closing-checks
+    title: itos work show prints the checks a closed task was judged by
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-11): work done takes a closed task's done_when out of the ledger
+      (ADR-0043: a task's checks are scaffolding, not standing guarantees), so the record of how the
+      task was judged complete survives only in the close commit's parent, where nobody looks. work
+      show <id> for a done task prints them, read from the ledger at the commit before its docs:
+      close <id>, labelled as the checks it closed on and saying they no longer run. The ledger
+      stays small and nothing stale looks like a live gate; ADR-0043 stands. Keeping them in the
+      ledger under an inert key was weighed and turned down: it grows the ledger and reads as live,
+      the confusion the user hit in another repository.
+    refs: [internal/work, tasks/README.md]
+    tags: [work]
