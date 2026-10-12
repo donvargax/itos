@@ -60,7 +60,7 @@ queue:
   - p1-text-from-file
   - p1-defer-reason-footer
   - p3-commit-long-text-footer
-  - p1-nightly-past-first-failure
+  - slice-133
   - p1-core-changelog
   - p1-windows-id-validation
   - bug-38
@@ -1014,14 +1014,15 @@ items:
     depends_on: [slice-16]
     kind: idea
 
-  - id: p1-nightly-past-first-failure
-    title: The nightly goes on past its first failure, so a red step does not hide the done tasks
+  - id: slice-133
+    title: The nightly goes on past a failing step and names every failure, its --json listing them
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-16]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-nightly-past-first-failure.
       ci.stop_at_first_failure is one setting for pushes and the nightly. A push should stop early
       to save the runner, but the nightly runs once a day to report: with it true, a red scenario
       in the whole run hides every done task's check after it, and a red task check placed first
