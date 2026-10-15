@@ -142,6 +142,26 @@ jobs:
             exit 1
           fi
           echo "GOTOOLCHAIN=$toolchain" >> "$GITHUB_ENV"
+          case "$RUNNER_ARCH" in
+            ARM64) cache_arch=arm64; host_arch=arm64 ;;
+            X64) cache_arch=x64; host_arch=amd64 ;;
+            *) echo "Unsupported runner architecture: $RUNNER_ARCH" >&2; exit 1 ;;
+          esac
+          # macOS caches Go without putting it on PATH. Use the tool-cache layout and
+          # completion marker that actions/tool-cache uses, restricted to the native arch.
+          if ! command -v go >/dev/null; then
+            for bin in "$RUNNER_TOOL_CACHE"/go/*/"$cache_arch"/bin; do
+              [ -f "${bin%/bin}.complete" ] || continue
+              if [ -x "$bin/go" ] || [ -x "$bin/go.exe" ]; then
+                export PATH="$bin:$PATH"
+                echo "$bin" >> "$GITHUB_PATH"
+                break
+              fi
+            done
+          fi
+          command -v go >/dev/null || { echo 'No native bootstrap Go found' >&2; exit 1; }
+          actual_arch=$(GOTOOLCHAIN=local go env GOHOSTARCH | tr -d '\r')
+          [ "$actual_arch" = "$host_arch" ] || { echo "Go architecture $actual_arch is not $host_arch" >&2; exit 1; }
           # Read cache paths with the bundled Go before restoring the selected toolchain cache.
           mod=$(GOTOOLCHAIN=local go env GOMODCACHE | tr -d '\r')
           build=$(GOTOOLCHAIN=local go env GOCACHE | tr -d '\r')

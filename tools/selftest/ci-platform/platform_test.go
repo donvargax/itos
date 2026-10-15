@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -356,8 +357,9 @@ func testToolchain(t *testing.T) {
 		t.Fatal("unconditional toolchain selection and verification must precede the build")
 	}
 	for _, tc := range []struct {
-		name, pin, reported string
-		failGo, ok          bool
+		name, pin, reported             string
+		failGo, ok                      bool
+		cached, wrongArch, missingCache bool
 	}{
 		{name: "exact version", pin: "toolchain go1.27.2\n", ok: true},
 		{name: "CRLF", pin: "toolchain go1.27.2\r\n", ok: true},
@@ -368,14 +370,20 @@ func testToolchain(t *testing.T) {
 		{name: "duplicate pin", pin: "toolchain go1.27.2\ntoolchain go1.27.2\n"},
 		{name: "newer Go refused", pin: "toolchain go1.27.2\n", reported: "go1.28.0"},
 		{name: "download failure", pin: "toolchain go1.27.2\n", failGo: true},
+		{name: "native Go only in tool cache", pin: "toolchain go1.27.2\n", cached: true, ok: true},
+		{name: "wrong architecture refused", pin: "toolchain go1.27.2\n", wrongArch: true},
+		{name: "missing native cache refused", pin: "toolchain go1.27.2\n", cached: true, missingCache: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dir, env := fakeEnv(t)
 			scratch.WriteFiles(t, dir, map[string]string{
 				"go.mod":     "module example.test/platform\ngo 1.27\n" + tc.pin,
-				"github-env": "", "github-output": "",
+				"github-env": "", "github-output": "", "github-path": "",
 				"go": `#!/bin/sh
 case "$*" in
+  'env GOHOSTARCH')
+    [ "$GOTOOLCHAIN" = local ] || exit 80
+    printf '%s\r\n' "$HOST_ARCH";;
   'env GOMODCACHE'|'env GOCACHE')
     [ "$GOTOOLCHAIN" = local ] || exit 81
     printf 'C:\\Users\\runner\\%s\r\n' "$2";;
@@ -388,7 +396,39 @@ case "$*" in
 esac
 `,
 			})
+			// Isolate PATH from the host's Go, but retain the two external shell utilities.
+			for _, name := range []string{"awk", "tr"} {
+				path, err := exec.LookPath(name)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink(path, filepath.Join(dir, name)); err != nil {
+					t.Fatal(err)
+				}
+			}
+			cache := filepath.Join(dir, "tool cache")
+			cachedBin := filepath.Join(cache, "go", "1.26.8", "arm64", "bin")
+			if tc.cached {
+				if tc.missingCache {
+					cachedBin = filepath.Join(cache, "go", "1.26.8", "x64", "bin")
+				}
+				if err := os.MkdirAll(cachedBin, 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Rename(filepath.Join(dir, "go"), filepath.Join(cachedBin, "go")); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Dir(cachedBin)+".complete", nil, 0o644); err != nil {
+					t.Fatal(err)
+				}
+			}
+			hostArch := "arm64"
+			if tc.wrongArch {
+				hostArch = "amd64"
+			}
 			env = scratch.With(env, "GITHUB_ENV="+filepath.Join(dir, "github-env"),
+				"GITHUB_PATH="+filepath.Join(dir, "github-path"), "PATH="+dir,
+				"RUNNER_ARCH=ARM64", "RUNNER_TOOL_CACHE="+cache, "HOST_ARCH="+hostArch,
 				"GITHUB_OUTPUT="+filepath.Join(dir, "github-output"), "GOTOOLCHAIN=auto",
 				"EXPECTED="+strings.TrimSpace(strings.TrimPrefix(tc.pin, "toolchain ")),
 				"REPORTED="+tc.reported, fmt.Sprintf("FAIL_GO=%t", tc.failGo))
@@ -407,6 +447,18 @@ esac
 					t.Fatalf("cache paths were not preserved: %q", output)
 				}
 				env = scratch.With(env, strings.TrimSpace(string(written)))
+				path, err := os.ReadFile(filepath.Join(dir, "github-path"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if tc.cached {
+					if string(path) != cachedBin+"\n" {
+						t.Fatalf("bootstrap path not exported: %q", path)
+					}
+					env = scratch.With(env, "PATH="+cachedBin+string(os.PathListSeparator)+dir)
+				} else if len(path) != 0 {
+					t.Fatalf("existing PATH Go replaced: %q", path)
+				}
 				result = scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", verifyGo.Run)
 			}
 			if (result.Code == 0) != tc.ok {
