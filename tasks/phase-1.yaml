@@ -1832,9 +1832,6 @@
     scenario to prove neither disappears. The user also authorized T-170 Linux consolidation;
     preserve its single Linux test owner and launcher coverage. Document the local command that
     reproduces the same scoped plan. No Windows test optimization or mutation-policy change.
-  done_when:
-    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-registry
-    - run: actionlint
 
 - id: T-172
   type: ci

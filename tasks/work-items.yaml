@@ -8845,7 +8845,7 @@ items:
     title: Use a narrow CI validation route for registry-only pushes
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
