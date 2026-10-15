@@ -258,6 +258,11 @@ ci:
         run: "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-mutation-budget",
         cost: late,
       }
+    # Workflow coverage, launcher guards and the nightly's latest-CI query, offline (T-170).
+    - {
+        run: "ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-platform",
+        cost: late,
+      }
     # The one merged run; late, as no pattern matches it. Against the Go
     # binary, tools/bin/itos, the features' default ITOS_BIN. ci.yml's platform
     # jobs run it alone, on each platform, with ci run --tests (T-163).
@@ -422,7 +427,11 @@ ci:
       - go run ./tools/bin/verify-release -repo donvargax/itos -manifest checksums.txt
       # The newest completed CI run on main passed on Linux, macOS and Windows (T-072): a push's own
       # run is still going when its plan runs, so the nightly reads the one before it.
-      - sh -c 'id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq ".[0].databaseId") && gh run view "$id" --json jobs --jq "[.jobs[] | select(.name | test(\"ubuntu|macos|windows\")) | .conclusion] | length == 3 and all(. == \"success\")" | grep -qx true'
+      - >-
+        id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq '.[0].databaseId') &&
+        gh run view "$id" --json jobs --jq
+        '.jobs as $jobs | ["ci (ubuntu-latest)", "platform (macos-latest)", "platform (windows-latest)"] |
+        all(. as $name | [$jobs[] | select(.name == $name)] | length == 1 and all(.conclusion == "success"))' | grep -qx true
   wait_on_status: [todo] # a named task nobody has started waits
   stop_at_first_failure: true
   range:

@@ -24,6 +24,7 @@ jobs:
   # decided by `tools/bin/itos ci run` (itos.yaml's `ci`), so it is the same
   # decision locally.
   ci:
+    name: ci (ubuntu-latest)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,19 +77,37 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
-  # The unit tests and the range's named tests on Linux, macOS and Windows (T-072, T-163): itos
+      # The global itos as a consumer's CI gets it, from this repository's own action (T-093),
+      # proved on every platform by every push, and cached per release by it (T-127), so a push
+      # after the one that installed that release fetches no launcher archive at all. Last, so the
+      # launcher it puts on the PATH cannot stand in for the build the steps above test; this
+      # repository pins nothing, so the launcher runs as itself and says its own version.
+      - name: Install the launcher
+        id: launcher
+        if: ${{ !cancelled() }}
+        uses: ./
+      - name: The launcher
+        if: ${{ !cancelled() && steps.launcher.outcome == 'success' }}
+        run: |
+          command -v itos
+          out=$(itos version --json)
+          echo "$out"
+          jq -e '.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+")' <<<"$out"
+
+  # The unit tests and the range's named tests on macOS and Windows (T-072, T-163): itos
   # built natively on each runner and run as a person on that platform meets it, with that
   # platform's git, shell and paths. The release archives are cross-compiled on Linux (T-069); this
   # is what runs them. It blocks, and the release job needs it, so a platform break stops a release
   # as every other check of a push does. Every feature on the three platforms is the nightly's
   # (nightly.yml's platform jobs), so a push waits for the scenarios the ci job runs, not for the
-  # whole suite on Windows. The job's name holds the runner's OS word, which T-072's check reads.
+  # whole suite on Windows. Linux runs these once in ci above, including the launcher check
+  # (T-170); the nightly requires all three named jobs to succeed.
   platform:
     name: platform (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
