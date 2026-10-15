@@ -6611,6 +6611,20 @@ items:
       regression targets for separate survivor work; no exception is justified without an
       equivalence proof. The changed-site step failed later during unit-test TempDir cleanup, not
       toolchain coverage planning.
+
+      Nightly 38810070537 (2026-10-15, bb9bf485) verifies T-175 and T-176: all three platform jobs
+      pass; both mutation runs complete (20 random, 60 changed-site), with no preparation or cleanup
+      failure and no strict changed-line coverage error. Remaining failures are survivors only.
+      Random: cli/ask.go:421:29 askList != to ==; cli/gitconfig.go:122:20 hooksReady 1 to 0;
+      value/docedit.go:792:13 Doc.keyLines 0 to 1; cli/draft.go:754:16 draftPromote || to &&;
+      cli/workdone.go:254:16 doneCommit.runOf || to &&. Changed-site: value/docedit.go:792:13
+      Doc.keyLines 0 to 1 again; work/giveback.go:73:32 GiveBackEach 0 to 1; launch/update.go:139:13
+      notice == to !=; cli/initrulesstealth.go:288:15 rulesOffer.runStealth == to !=;
+      message/trailers.go:119:17 trailerBlock 0 to 1; message/header.go:116:35 parse >= to >;
+      config/cross.go:300:40 oneStepProblems && to ||; cli/init.go:298:68 initWrite 1 to 0;
+      draft/draft.go:151:81 parse + to -; cli/commands.go:275:19 ciCommand 0 to 1. All paths are
+      under internal/. These 14 distinct sites are separate regression or equivalence-analysis work;
+      no mutation exception, threshold or budget was changed by the infrastructure repair.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
 
   - id: slice-110
