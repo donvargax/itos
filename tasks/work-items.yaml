@@ -9334,6 +9334,13 @@ items:
       selected scenarios took only 18 seconds. Measure individual tests and distinguish subprocess,
       filesystem, fixture setup and test execution costs before changing them. Keep native-platform
       validation and defer implementation until that machine is available.
+
+      The user resumed this investigation on their native Windows machine. Five successful push CI
+      runs (38296464726, 38297865726, 38299320397, 38299957863, 38300017399) spent 123-156 seconds
+      in the Windows unit-test step versus 18-20 seconds in named tests. Run 38299320397 restored
+      its Go cache and reported internal/cli at 112.458 seconds; toolchain setup took another 29
+      seconds. Profile native Windows before choosing a change, preserving assertions and all
+      platform coverage. The separate deferred feature-runner adoption remains out of scope.
     refs: [internal/cli, .github/workflows/ci.yml]
     tags: [tests, windows]
 
