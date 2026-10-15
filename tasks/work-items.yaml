@@ -8897,3 +8897,20 @@ items:
       change existing gates.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, tools/bin/go-unit-tests, itos.yaml]
     tags: [tests, hooks, docs]
+
+  - id: p1-windows-unit-profile
+    title: Profile the slow Windows CLI unit tests on the user Windows machine
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user wants to investigate Windows unit-test time on their own Windows machine, with
+      follow-up tomorrow (2026-10-15), not by profiling from this Linux session. CI run 38299320397
+      took 126 seconds for the Windows unit-test step, with internal/cli reporting 112.458 seconds;
+      selected scenarios took only 18 seconds. Measure individual tests and distinguish subprocess,
+      filesystem, fixture setup and test execution costs before changing them. Keep native-platform
+      validation and defer implementation until that machine is available.
+    refs: [internal/cli, .github/workflows/ci.yml]
+    tags: [tests, windows]
