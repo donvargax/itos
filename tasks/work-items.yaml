@@ -10768,3 +10768,21 @@ items:
       CLI package run, which passed; do not treat this gate exit zero as unit-test evidence until
       repaired.
     refs: [tools/bin/go-unit-tests]
+
+  - id: p1-cli-argument-fixture-starts
+    title: CLI argument-error tests avoid unnecessary repository setup
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Native Windows profiling for T-173 found TestSeveralIDCommands spent 42.12 of 49.17
+      instrumented seconds in registryWriterRepo setup. Seventeen malformed-argument cases create
+      Git repositories, hook config, author identity and initial commits even though argument
+      parsing refuses before repository state is needed. Separate these cases from repository-backed
+      success, refusal and rollback cases while preserving every assertion and invocation.
+      Additional gains beyond T-173 are unmeasured. Do not move existing Windows t.Skip calls
+      earlier or claim a speedup by losing later assertions; restoring coverage skipped after
+      refusingHook is separate work.
+    refs: [internal/cli/workeach_test.go, internal/cli/workmint_test.go]
