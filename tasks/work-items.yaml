@@ -8813,3 +8813,11 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: T-171
+    title: Use a narrow CI validation route for registry-only pushes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

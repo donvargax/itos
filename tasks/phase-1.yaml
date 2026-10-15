@@ -1807,3 +1807,34 @@
   done_when:
     - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-platform
     - run: actionlint
+
+- id: T-171
+  type: ci
+  title: Use a narrow CI validation route for registry-only pushes
+  why: >
+    The user approved change-aware CI selection on 2026-10-14 after registry-only push 95018c2 ran
+    the full plan and all platform tests. A known nonempty range changing only tasks/work-items.yaml
+    (optionally alongside existing prose paths) and naming no Task or Scenarios requirements should
+    run commit verification, formatting, config/ledger/registry validation, and the other existing
+    prose validation steps, without core unit tests, corpus, mutation proof, platform test suites or
+    launcher installation. Preserve existing ordinary-prose behavior where appropriate. Never widen
+    tasks/** into prose: ledger definitions, features, config, workflows, code, mixed code/registry
+    changes, unknown or unreadable bases, and ranges naming task checks or scenarios keep the full
+    existing plan and required platform coverage. Treat rename sources and destinations
+    conservatively. Reuse the configured prose validation commands and existing itos range/footer
+    parsing; do not duplicate hardcoded policy or change cmd/internal product behavior. A small
+    repository gate/helper may choose a temporary effective config for eligible ranges and run the
+    ordinary itos plan; no new product API or general workflow interpreter. Decide scope before
+    platform test/install steps, keeping code-push jobs concurrent and release dependent on every
+    required job. Keep nightly latest-CI coverage meaningful when metadata-only runs legitimately
+    skip platform coverage, by selecting a real complete code-validation run or explicitly
+    validating the reduced run type; do not accept partial failures as successful coverage. Add an
+    executable regression self-test over synthetic git ranges showing the prior workflow/plan runs
+    unnecessary tests, the new route executes real validation and refuses malformed data, and all
+    fallback cases retain their checks. Include a case with a named late task check and a named
+    scenario to prove neither disappears. The user also authorized T-170 Linux consolidation;
+    preserve its single Linux test owner and launcher coverage. Document the local command that
+    reproduces the same scoped plan. No Windows test optimization or mutation-policy change.
+  done_when:
+    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-registry
+    - run: actionlint
