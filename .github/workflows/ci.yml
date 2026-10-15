@@ -234,7 +234,7 @@ jobs:
 
       - name: Save Go cache
         if: ${{ success() && steps.go-cache.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@941c5c3115bdf7f6297f2c478215bca2593c6ab5 # v4.3.0, as action.yml
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0, as action.yml
         with:
           path: |
             ${{ steps.go.outputs.mod }}
