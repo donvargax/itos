@@ -1787,3 +1787,23 @@
     answers GET /repos/owner/name with it and with private, GitHub's bool; left out, the endpoint
     stays a 404, so no case of this corpus or a release's changes. The check is the fake answering
     it, in the package's Go test.
+
+- id: T-170
+  type: ci
+  title: Run Linux push tests once while preserving three-platform coverage
+  why: >
+    The user approved removing duplicate Linux testing on 2026-10-14. The ci job and ubuntu platform
+    job both run the core unit suite and selected scenarios. Keep the main Linux ci plan as the one
+    owner, remove the duplicate Ubuntu matrix entry, and move its launcher install/version check to
+    the main Linux job. macOS and Windows retain their unit, selected-scenario and launcher checks.
+    Release still waits on all required checks. Keep the nightly check of the latest CI platform
+    coverage correct: it must recognize Linux coverage in the main ci job and still require
+    successful macOS and Windows coverage, not silently accept two platforms. Add a focused
+    executable self-test of the workflow coverage contract (parse workflow jobs and exercise
+    relevant commands using the existing scratch/fake-command approach, not grep assertions),
+    including refusal when any platform or launcher coverage is missing. Do not change nightly
+    feature coverage, Windows tests, mutation policy, or product behavior. The existing duplicated
+    Linux workflow is the failing baseline.
+  done_when:
+    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-platform
+    - run: actionlint
