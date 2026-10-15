@@ -1841,18 +1841,19 @@
 
 - id: T-172
   type: ci
-  title: Use Go's verified pinned toolchain in push platform jobs
+  title: Share Go's verified pinned toolchain across repository workflows
   why: >
-    Push macOS jobs repeatedly fail in runner setup while fetching the unchanged setup-go action
-    archive. The official v7 SHA exists and its archive downloads outside the runner; a debug retry
-    still failed, and moving to macOS 15 ARM reproduced the same error in run 38687585252. Restore
-    macos-latest and avoid this archive dependency in the platform matrix by using the hosted
-    runner's Go to select the exact toolchain named by go.mod. Go verifies downloaded toolchains
-    through its checksum database. Refuse a missing or invalid pin and any reported version mismatch
-    before building. Preserve module/build caching, ARM coverage, all unit/scenario/launcher checks
-    and release dependencies. Keep nightly feature runners and coverage/mutation policies unchanged.
-    Exercise selection, CRLF handling and refusal through the workflow's scripts with a fake Go,
-    without downloading a toolchain. Green required push CI must demonstrate the recovery.
+    Runner setup repeatedly fails to fetch the unchanged setup-go action archive on macOS and,
+    in run 38688697241, Linux. The official SHA exists; retries and an older macOS image did not
+    recover it. Native Go selection now passes macOS setup and builds. Share that verified bootstrap
+    through one repository composite action used by push CI, nightly and release, removing the
+    remaining setup-go archive dependency. Use the hosted runner's PATH Go or its completed native
+    tool-cache installation, select the exact toolchain in go.mod, and reject missing/invalid pins,
+    architecture or version mismatches before building. Go verifies downloaded toolchains through
+    its checksum database. Preserve module/build caching using the existing pinned cache action,
+    all unit/scenario/launcher checks, nightly feature runners, coverage/mutation policies and
+    release behavior. Exercise the shared scripts and workflow wiring with a fake Go, without
+    downloading toolchains. Green required push CI must demonstrate the recovery.
   done_when:
     - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-platform
       timeout: 60

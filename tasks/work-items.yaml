@@ -8939,7 +8939,7 @@ items:
       wait for that result before implementation.
 
   - id: T-172
-    title: Use Go's verified pinned toolchain in push platform jobs
+    title: Share Go's verified pinned toolchain across repository workflows
     phase: 1
     owner: donvargax
     status: doing
