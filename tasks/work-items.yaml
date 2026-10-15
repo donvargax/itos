@@ -8821,3 +8821,27 @@ items:
     status: doing
     depends_on: []
     kind: task
+
+  - id: p1-neighbor-checks-in-done-when
+    title: Declare neighboring scenarios in done_when instead of manual brief commands
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user directed this on 2026-10-14 while reviewing repeated local and CI test runs. Required
+      neighboring scenarios belong in the work item acceptance data, done_when, so the automated
+      gates select and execute them. The brief should name that declaration and its owning gate, not
+      tell an implementing agent to run a second copy before pushing. Preserve coverage of both
+      commands when behavior moves between them and broad shared-code coverage when justified, but
+      express those requirements as checks the planner can merge with the smoke set and named
+      scenarios. Update itos guide brief, work and push plus this repository AGENTS.md and
+      docs/ORCHESTRATING.md consistently. Account for slices and bugs, which currently have
+      scenarios rather than ledger done_when, without losing their neighbors: use a linked
+      acceptance task or specify the item-model support before implementation. Acceptance should
+      prove the declared neighboring scenarios are selected by the automated plan and each is
+      executed once within that run; this is not permission to drop coverage or disable the
+      independent CI verdict.
+    refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, docs/ORCHESTRATING.md, tasks/README.md]
+    tags: [tests, docs]
