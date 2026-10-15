@@ -61,15 +61,12 @@ jobs:
       cancel-in-progress: false
     steps:
       # Every action pinned to a commit, each release at least 7 days old when pinned (T-067's
-      # rule): actions/checkout v4.4.0, actions/setup-go v7.0.0,
+      # rule): actions/checkout v4.4.0,
       # actions/attest-build-provenance v4.2.2.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0 # the tags and the commits since the last one
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: go.sum
+      - uses: ./.github/actions/go-toolchain
       - name: Version
         id: version
         run: |

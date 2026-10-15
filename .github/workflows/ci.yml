@@ -32,10 +32,7 @@ jobs:
           fetch-depth: 0 # the commit re-check and the scope read the pushed range
       # Go for itos itself and the features' steps (godog), the version go.mod's
       # toolchain line pins.
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: go.sum
+      - uses: ./.github/actions/go-toolchain
       # tools/bin/itos runs the Go binary, built here once into .tools/bin/ and
       # stamped with the version git describe gives the commit (tools/bin/dev-version):
       # every later call in the job finds it current and runs it without building.
@@ -130,59 +127,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0 # the tags, for the version the build is stamped with, and the range's commits
-      # Hosted runners already have Go >=1.21. Its verified toolchain download avoids the
-      # setup-go action archive that macOS repeatedly fails to fetch (T-172); an exact pin also
-      # keeps a newer image's bundled Go from silently changing the version under test.
-      - name: Go toolchain
-        id: go
-        run: |
-          toolchain=$(awk '$1 == "toolchain" { print $2 }' go.mod | tr -d '\r')
-          if [[ ! "$toolchain" =~ ^go[0-9]+\.[0-9]+(\.[0-9]+|rc[0-9]+|beta[0-9]+)$ ]]; then
-            echo 'go.mod must name one exact Go toolchain' >&2
-            exit 1
-          fi
-          echo "GOTOOLCHAIN=$toolchain" >> "$GITHUB_ENV"
-          case "$RUNNER_ARCH" in
-            ARM64) cache_arch=arm64; host_arch=arm64 ;;
-            X64) cache_arch=x64; host_arch=amd64 ;;
-            *) echo "Unsupported runner architecture: $RUNNER_ARCH" >&2; exit 1 ;;
-          esac
-          # macOS caches Go without putting it on PATH. Use the tool-cache layout and
-          # completion marker that actions/tool-cache uses, restricted to the native arch.
-          if ! command -v go >/dev/null; then
-            for bin in "$RUNNER_TOOL_CACHE"/go/*/"$cache_arch"/bin; do
-              [ -f "${bin%/bin}.complete" ] || continue
-              if [ -x "$bin/go" ] || [ -x "$bin/go.exe" ]; then
-                export PATH="$bin:$PATH"
-                echo "$bin" >> "$GITHUB_PATH"
-                break
-              fi
-            done
-          fi
-          command -v go >/dev/null || { echo 'No native bootstrap Go found' >&2; exit 1; }
-          actual_arch=$(GOTOOLCHAIN=local go env GOHOSTARCH | tr -d '\r')
-          [ "$actual_arch" = "$host_arch" ] || { echo "Go architecture $actual_arch is not $host_arch" >&2; exit 1; }
-          # Read cache paths with the bundled Go before restoring the selected toolchain cache.
-          mod=$(GOTOOLCHAIN=local go env GOMODCACHE | tr -d '\r')
-          build=$(GOTOOLCHAIN=local go env GOCACHE | tr -d '\r')
-          echo "mod=$mod" >> "$GITHUB_OUTPUT"
-          echo "build=$build" >> "$GITHUB_OUTPUT"
-      - name: Restore Go cache
-        id: go-cache
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0, as action.yml
-        with:
-          path: |
-            ${{ steps.go.outputs.mod }}
-            ${{ steps.go.outputs.build }}
-          key: go-native-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.mod', 'go.sum') }}
-      - name: Verify Go toolchain
-        run: |
-          actual=$(go env GOVERSION | tr -d '\r')
-          if [ "$actual" != "$GOTOOLCHAIN" ]; then
-            echo "Go selected $actual, expected $GOTOOLCHAIN" >&2
-            exit 1
-          fi
-          go version
+      - uses: ./.github/actions/go-toolchain
       # The build tools/bin/itos makes, stamped with tools/bin/dev-version's version, but written
       # where the features find it on every platform: ITOS_BIN, itos.exe on windows, since Go runs
       # no shell script there and tools/bin/itos is one. The steps below call it as ITOS_BIN too,
@@ -251,15 +196,6 @@ jobs:
           out=$(itos version --json)
           echo "$out"
           jq -e '.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+")' <<<"$out"
-
-      - name: Save Go cache
-        if: ${{ success() && steps.go-cache.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0, as action.yml
-        with:
-          path: |
-            ${{ steps.go.outputs.mod }}
-            ${{ steps.go.outputs.build }}
-          key: ${{ steps.go-cache.outputs.cache-primary-key }}
 
   # A push to main whose ci job and platform jobs are green cuts a release when its commits since
   # the last tag carry a feat, a fix or a breaking change (T-069; release.yml says how). The only

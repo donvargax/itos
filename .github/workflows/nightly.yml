@@ -36,10 +36,7 @@ jobs:
           fetch-depth: 0
       # Go for itos itself and the features' steps (godog), the version go.mod's
       # toolchain line pins.
-      - uses: actions/setup-go@v7
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: go.sum
+      - uses: ./.github/actions/go-toolchain
       # tools/bin/itos runs the Go binary, built here once into .tools/bin/ and
       # stamped with the version git describe gives the commit (tools/bin/dev-version):
       # every later call in the job finds it current and runs it without building.
@@ -98,14 +95,11 @@ jobs:
       run:
         shell: bash # Git for Windows' bash on windows
     steps:
-      # actions/checkout v4.4.0, actions/setup-go v7.0.0, as ci.yml's platform job.
+      # actions/checkout v4.4.0, as ci.yml's platform job.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0 # the tags, for the version the build is stamped with
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          go-version-file: go.mod
-          cache-dependency-path: go.sum
+      - uses: ./.github/actions/go-toolchain
       # As ci.yml's platform job: the build tools/bin/itos makes, written where the features find
       # it on every platform, ITOS_BIN, itos.exe on windows.
       - name: Build itos

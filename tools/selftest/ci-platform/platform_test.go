@@ -28,8 +28,12 @@ type job struct {
 type workflow struct{ Jobs map[string]job }
 
 func readWorkflow(t *testing.T) workflow {
+	return readWorkflowFile(t, "ci.yml")
+}
+
+func readWorkflowFile(t *testing.T, name string) workflow {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(scratch.Root(t), ".github/workflows/ci.yml"))
+	data, err := os.ReadFile(filepath.Join(scratch.Root(t), ".github/workflows", name))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -337,24 +341,78 @@ func TestSelftest(t *testing.T) {
 // Execute the workflow's own scripts against a fake bootstrap Go. A newer bundled version must
 // never replace the pin; CRLF and native Windows cache paths survive the environment handoff.
 func testToolchain(t *testing.T) {
-	j := readWorkflow(t).Jobs["platform"]
-	selectAt, verifyAt, buildAt := -1, -1, -1
+	const actionPath = "./.github/actions/go-toolchain"
+	for file, ids := range map[string][]string{
+		"ci.yml":      {"ci", "platform"},
+		"nightly.yml": {"nightly", "platform"},
+		"release.yml": {"release"},
+	} {
+		w := readWorkflowFile(t, file)
+		for id, j := range w.Jobs {
+			checkedOut, setup := false, 0
+			for _, s := range j.Steps {
+				if strings.HasPrefix(s.Uses, "actions/setup-go@") {
+					t.Fatalf("%s %s still predownloads setup-go", file, id)
+				}
+				if strings.HasPrefix(s.Uses, "actions/checkout@") {
+					checkedOut = true
+				}
+				if s.Uses == actionPath {
+					if !checkedOut || s.If != "" {
+						t.Fatalf("%s %s must set up Go unconditionally after checkout", file, id)
+					}
+					setup++
+				}
+				if slices.Contains(ids, id) && s.Run != "" && setup != 1 {
+					t.Fatalf("%s %s runs commands before Go setup", file, id)
+				}
+			}
+			if slices.Contains(ids, id) && setup != 1 {
+				t.Fatalf("%s %s has %d shared Go setups", file, id, setup)
+			}
+		}
+		for _, id := range ids {
+			if _, ok := w.Jobs[id]; !ok {
+				t.Fatalf("%s has no %s job", file, id)
+			}
+		}
+	}
+	data, err := os.ReadFile(filepath.Join(scratch.Root(t), actionPath, "action.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var action struct {
+		Runs struct {
+			Using string
+			Steps []step
+		}
+	}
+	if err := yaml.Unmarshal(data, &action); err != nil {
+		t.Fatal(err)
+	}
+	if action.Runs.Using != "composite" {
+		t.Fatal("Go setup is not a composite action")
+	}
+	selectAt, verifyAt, cacheAt := -1, -1, -1
 	var selectGo, verifyGo step
-	for i, s := range j.Steps {
+	for i, s := range action.Runs.Steps {
 		if strings.HasPrefix(s.Uses, "actions/setup-go@") {
-			t.Fatal("platform still predownloads setup-go")
+			t.Fatal("shared action still predownloads setup-go")
 		}
 		switch s.Name {
 		case "Go toolchain":
 			selectAt, selectGo = i, s
 		case "Verify Go toolchain":
 			verifyAt, verifyGo = i, s
-		case "Build itos":
-			buildAt = i
+		case "Go cache":
+			cacheAt = i
+			if s.Uses != "actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830" {
+				t.Fatal("shared setup lost its pinned restore/post-job-save action")
+			}
 		}
 	}
-	if selectAt < 0 || verifyAt <= selectAt || buildAt <= verifyAt || selectGo.If != "" || verifyGo.If != "" {
-		t.Fatal("unconditional toolchain selection and verification must precede the build")
+	if selectAt < 0 || cacheAt <= selectAt || verifyAt <= cacheAt || selectGo.If != "" || verifyGo.If != "" {
+		t.Fatal("shared setup must select the toolchain, restore cache, and verify unconditionally")
 	}
 	for _, tc := range []struct {
 		name, pin, reported             string
