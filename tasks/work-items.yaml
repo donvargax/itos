@@ -8845,3 +8845,28 @@ items:
       independent CI verdict.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, docs/ORCHESTRATING.md, tasks/README.md]
     tags: [tests, docs]
+
+  - id: p1-agent-test-runs-once
+    title: Agents rely on declared automated checks and avoid duplicate test runs
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user directed this on 2026-10-14: scenarios declared in done_when are executed by the
+      automated push workflow, so subagents must not independently repeat those runs as a pre-push
+      ritual. State one execution owner for each required check in the brief and guide; report its
+      result rather than rerunning it, including after an agent handoff. The same applies to unit
+      tests already run by hooks. Extra local execution is for a relevant source/test/input change,
+      diagnosing a failure, or a check the declared gates demonstrably do not cover, with the reason
+      recorded. Prevent repeated task acceptance runs followed by identical gate runs when the
+      inputs have not changed. Investigate making the planned checks and completed evidence
+      machine-readable so the instruction is enforceable, reusing the existing plan merging and
+      covers rules. Never treat old results, another commit, or another platform as equivalent
+      evidence without a defined validity rule; keep independent remote CI validation. Coordinate
+      with p1-neighbor-checks-in-done-when and reconsider the separate local mutation proof, which
+      repeats coverage and e2es. This records the requested workflow direction; it does not silently
+      change existing gates.
+    refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, tools/bin/go-unit-tests, itos.yaml]
+    tags: [tests, hooks, docs]
