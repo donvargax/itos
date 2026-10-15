@@ -8957,7 +8957,7 @@ items:
   - id: T-175
     title: Repair nightly mutation coverage preparation with the pinned Go toolchain
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
