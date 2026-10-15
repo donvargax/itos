@@ -567,7 +567,11 @@ esac
 					if string(path) != want {
 						t.Fatalf("verified toolchain not exported for offline children: got %q, want %q", path, want)
 					}
-					env = scratch.With(env, "PATH="+selectedBin+string(os.PathListSeparator)+dir,
+					childPath := dir
+					for _, bin := range strings.Split(strings.TrimSpace(string(path)), "\n") {
+						childPath = bin + string(os.PathListSeparator) + childPath
+					}
+					env = scratch.With(env, "PATH="+childPath,
 						"GOTOOLCHAIN=local", "GOPROXY=off", "GOSUMDB=off")
 					result = scratch.Run(filepath.Join(dir, "frozen"), env, "", "sh", "-c", "go list ./...")
 				}
