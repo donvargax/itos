@@ -1889,5 +1889,10 @@
     push proof; use read-only diagnostics and focused go list/toolchain subprocess reproduction
     instead. No product CLI behavior changes. Actual nightly acceptance follows the push, with
     failures diagnosed rather than ignored; unrelated survivor debt stays separately identified.
+    Attempt 6e5c2d0b/505896d3 passed Linux and macOS but CI 38807032546 failed Windows setup:
+    putting a native C:/ drive path directly in Bash PATH still selected go1.24.13. Reverted both
+    commits in eb974e86. Convert the verified toolchain path to the shell format for the current
+    Bash process while publishing a native path for later runner steps; regress an actual drive
+    prefix and preserve the offline-child checks before retrying the repair.
   done_when:
     - run: ITOS_SELFTEST=1 go test -count=1 -run ^TestSelftest$ ./tools/selftest/ci-platform ./tools/selftest/ci-mutation-budget
