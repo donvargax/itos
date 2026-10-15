@@ -119,22 +119,50 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # macOS 15 keeps ARM coverage while the macOS 26 pool fails action downloads (T-172).
-        os: [macos-15, windows-latest]
+        os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
         shell: bash # Git for Windows' bash on windows
     steps:
       # Every action pinned to a commit, each release at least 7 days old when pinned (T-067's
-      # rule), as release.yml pins them: actions/checkout v4.4.0, actions/setup-go v7.0.0.
+      # rule), as release.yml pins them: actions/checkout v4.4.0.
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0 # the tags, for the version the build is stamped with, and the range's commits
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      # Hosted runners already have Go >=1.21. Its verified toolchain download avoids the
+      # setup-go action archive that macOS repeatedly fails to fetch (T-172); an exact pin also
+      # keeps a newer image's bundled Go from silently changing the version under test.
+      - name: Go toolchain
+        id: go
+        run: |
+          toolchain=$(awk '$1 == "toolchain" { print $2 }' go.mod | tr -d '\r')
+          if [[ ! "$toolchain" =~ ^go[0-9]+\.[0-9]+(\.[0-9]+|rc[0-9]+|beta[0-9]+)$ ]]; then
+            echo 'go.mod must name one exact Go toolchain' >&2
+            exit 1
+          fi
+          echo "GOTOOLCHAIN=$toolchain" >> "$GITHUB_ENV"
+          # Read cache paths with the bundled Go before restoring the selected toolchain cache.
+          mod=$(GOTOOLCHAIN=local go env GOMODCACHE | tr -d '\r')
+          build=$(GOTOOLCHAIN=local go env GOCACHE | tr -d '\r')
+          echo "mod=$mod" >> "$GITHUB_OUTPUT"
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+      - name: Restore Go cache
+        id: go-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0, as action.yml
         with:
-          go-version-file: go.mod
-          cache-dependency-path: go.sum
+          path: |
+            ${{ steps.go.outputs.mod }}
+            ${{ steps.go.outputs.build }}
+          key: go-native-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('go.mod', 'go.sum') }}
+      - name: Verify Go toolchain
+        run: |
+          actual=$(go env GOVERSION | tr -d '\r')
+          if [ "$actual" != "$GOTOOLCHAIN" ]; then
+            echo "Go selected $actual, expected $GOTOOLCHAIN" >&2
+            exit 1
+          fi
+          go version
       # The build tools/bin/itos makes, stamped with tools/bin/dev-version's version, but written
       # where the features find it on every platform: ITOS_BIN, itos.exe on windows, since Go runs
       # no shell script there and tools/bin/itos is one. The steps below call it as ITOS_BIN too,
@@ -203,6 +231,15 @@ jobs:
           out=$(itos version --json)
           echo "$out"
           jq -e '.version | test("^[0-9]+\\.[0-9]+\\.[0-9]+")' <<<"$out"
+
+      - name: Save Go cache
+        if: ${{ success() && steps.go-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@941c5c3115bdf7f6297f2c478215bca2593c6ab5 # v4.3.0, as action.yml
+        with:
+          path: |
+            ${{ steps.go.outputs.mod }}
+            ${{ steps.go.outputs.build }}
+          key: ${{ steps.go-cache.outputs.cache-primary-key }}
 
   # A push to main whose ci job and platform jobs are green cuts a release when its commits since
   # the last tag carry a feat, a fix or a breaking change (T-069; release.yml says how). The only

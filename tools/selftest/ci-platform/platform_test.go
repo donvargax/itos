@@ -199,7 +199,7 @@ func scopedContract(t *testing.T, w workflow, full bool) error {
 			}
 		}
 	}
-	for _, runner := range []string{"ubuntu-latest", "macos-15", "windows-latest"} {
+	for _, runner := range []string{"ubuntu-latest", "macos-latest", "windows-latest"} {
 		if counts[runner] != 1 {
 			return fmt.Errorf("%s has %d test owners, want one", runner, counts[runner])
 		}
@@ -214,6 +214,7 @@ func scopedContract(t *testing.T, w workflow, full bool) error {
 
 func TestSelftest(t *testing.T) {
 	scratch.Gate(t)
+	t.Run("platform Go uses the exact verified toolchain", testToolchain)
 	t.Run("one test owner and launcher check per platform", func(t *testing.T) {
 		if err := contract(t, readWorkflow(t)); err != nil {
 			t.Fatal(err)
@@ -234,14 +235,14 @@ func TestSelftest(t *testing.T) {
 			t.Fatalf("plan has %d core unit runs, %d named runs", units, named)
 		}
 	})
-	for _, remove := range []string{"ubuntu-latest", "macos-15", "windows-latest", "launcher", "launcher version", "Linux launcher", "Linux launcher version", "unit", "named", "release", "duplicate Linux"} {
+	for _, remove := range []string{"ubuntu-latest", "macos-latest", "windows-latest", "launcher", "launcher version", "Linux launcher", "Linux launcher version", "unit", "named", "release", "duplicate Linux"} {
 		t.Run("reject missing coverage "+remove, func(t *testing.T) {
 			w := readWorkflow(t)
 			j := w.Jobs["platform"]
 			switch remove {
 			case "ubuntu-latest":
 				delete(w.Jobs, "ci")
-			case "macos-15", "windows-latest":
+			case "macos-latest", "windows-latest":
 				j.Strategy.Matrix.OS = slices.DeleteFunc(j.Strategy.Matrix.OS, func(s string) bool { return s == remove })
 			case "launcher":
 				j.Steps = slices.DeleteFunc(j.Steps, func(s step) bool { return s.Uses == "./" })
@@ -280,7 +281,7 @@ func TestSelftest(t *testing.T) {
 			t.Fatal("nightly has no latest CI job check")
 		}
 		w := readWorkflow(t)
-		names := []string{w.Jobs["ci"].Name, "platform (macos-15)", "platform (windows-latest)"}
+		names := []string{w.Jobs["ci"].Name, "platform (macos-latest)", "platform (windows-latest)"}
 		for _, mode := range []string{"green", "missing Linux", "missing macOS", "missing Windows", "failed", "skipped", "duplicate macOS", "API failure", "metadata", "mixed metadata", "missing named tests", "missing launcher"} {
 			t.Run(mode, func(t *testing.T) {
 				dir, env := fakeEnv(t)
@@ -330,4 +331,87 @@ func TestSelftest(t *testing.T) {
 			})
 		}
 	})
+}
+
+// Execute the workflow's own scripts against a fake bootstrap Go. A newer bundled version must
+// never replace the pin; CRLF and native Windows cache paths survive the environment handoff.
+func testToolchain(t *testing.T) {
+	j := readWorkflow(t).Jobs["platform"]
+	selectAt, verifyAt, buildAt := -1, -1, -1
+	var selectGo, verifyGo step
+	for i, s := range j.Steps {
+		if strings.HasPrefix(s.Uses, "actions/setup-go@") {
+			t.Fatal("platform still predownloads setup-go")
+		}
+		switch s.Name {
+		case "Go toolchain":
+			selectAt, selectGo = i, s
+		case "Verify Go toolchain":
+			verifyAt, verifyGo = i, s
+		case "Build itos":
+			buildAt = i
+		}
+	}
+	if selectAt < 0 || verifyAt <= selectAt || buildAt <= verifyAt || selectGo.If != "" || verifyGo.If != "" {
+		t.Fatal("unconditional toolchain selection and verification must precede the build")
+	}
+	for _, tc := range []struct {
+		name, pin, reported string
+		failGo, ok          bool
+	}{
+		{name: "exact version", pin: "toolchain go1.27.2\n", ok: true},
+		{name: "CRLF", pin: "toolchain go1.27.2\r\n", ok: true},
+		{name: "release candidate", pin: "toolchain go1.28rc1\n", ok: true},
+		{name: "missing pin"},
+		{name: "language version is not a toolchain", pin: "toolchain go1.27\n"},
+		{name: "automatic selection is not exact", pin: "toolchain go1.27.2+auto\n"},
+		{name: "duplicate pin", pin: "toolchain go1.27.2\ntoolchain go1.27.2\n"},
+		{name: "newer Go refused", pin: "toolchain go1.27.2\n", reported: "go1.28.0"},
+		{name: "download failure", pin: "toolchain go1.27.2\n", failGo: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir, env := fakeEnv(t)
+			scratch.WriteFiles(t, dir, map[string]string{
+				"go.mod":     "module example.test/platform\ngo 1.27\n" + tc.pin,
+				"github-env": "", "github-output": "",
+				"go": `#!/bin/sh
+case "$*" in
+  'env GOMODCACHE'|'env GOCACHE')
+    [ "$GOTOOLCHAIN" = local ] || exit 81
+    printf 'C:\\Users\\runner\\%s\r\n' "$2";;
+  'env GOVERSION')
+    [ "$FAIL_GO" != true ] || exit 82
+    [ "$GOTOOLCHAIN" = "$EXPECTED" ] || exit 83
+    printf '%s\r\n' "${REPORTED:-$GOTOOLCHAIN}";;
+  version) echo "go version $GOTOOLCHAIN";;
+  *) exit 84;;
+esac
+`,
+			})
+			env = scratch.With(env, "GITHUB_ENV="+filepath.Join(dir, "github-env"),
+				"GITHUB_OUTPUT="+filepath.Join(dir, "github-output"), "GOTOOLCHAIN=auto",
+				"EXPECTED="+strings.TrimSpace(strings.TrimPrefix(tc.pin, "toolchain ")),
+				"REPORTED="+tc.reported, fmt.Sprintf("FAIL_GO=%t", tc.failGo))
+			selected := scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", selectGo.Run)
+			result := selected
+			if selected.Code == 0 {
+				written, err := os.ReadFile(filepath.Join(dir, "github-env"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				output, err := os.ReadFile(filepath.Join(dir, "github-output"))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if string(output) != "mod=C:\\Users\\runner\\GOMODCACHE\nbuild=C:\\Users\\runner\\GOCACHE\n" {
+					t.Fatalf("cache paths were not preserved: %q", output)
+				}
+				env = scratch.With(env, strings.TrimSpace(string(written)))
+				result = scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", verifyGo.Run)
+			}
+			if (result.Code == 0) != tc.ok {
+				t.Fatalf("exit %d, wanted success=%t: %s", result.Code, tc.ok, result.Output())
+			}
+		})
+	}
 }
