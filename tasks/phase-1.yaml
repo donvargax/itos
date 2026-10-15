@@ -1849,6 +1849,30 @@
     release behavior. Exercise the shared scripts and workflow wiring with a fake Go, without
     downloading toolchains. Green required push CI must demonstrate the recovery.
 
+- id: T-173
+  type: test
+  title: Build CLI hook fixtures without Git subprocesses
+  why: >
+    Was p1-windows-unit-profile. Native Windows profiling found 3022 Git processes in internal/cli,
+    with fixture setup accounting for 148 seconds of syscall delay in a 434-second instrumented
+    run. Hosted CI run 38299320397 reported 112.458 seconds in this package; five successful runs
+    spent 123-156 seconds in unit tests versus 18-20 seconds in selected scenarios. A controlled
+    native Windows experiment replaced standInHooks' four git config calls with equivalent local
+    config fixture data: TestSeveralIDCommands and TestWriteEachReports removed exactly 204 Git
+    processes, preserved all other Git command counts and outcomes, and took 47.979 rather than
+    57.878 seconds. This is one comparison, not a whole-suite speedup promise. Implement only this
+    measured test-helper improvement. Preserve existing config, real Git execution, every assertion,
+    existing platform skips and all CI coverage. Keep production code and workflows unchanged; do
+    not parallelize tests that mutate process-wide state. Prove deterministically that standInHooks
+    starts no Git process and that real Git reads the expected effective hook values without losing
+    existing config. The test must fail against the old helper. Hooks own affected unit execution;
+    do not repeat it manually. Identity setup, malformed-argument fixture removal and the existing
+    Windows hook-skip coverage gap remain outside this change. Raw profiles and the experiment
+    report are in the native machine's approved temporary directory under p1-windows-unit-profile.
+  done_when:
+    - run: go test ./internal/cli -count=1 -run '^TestStandInHooksFixture$'
+      timeout: 60
+
 - id: T-174
   type: ci
   title: Repair the nightly latest-CI platform coverage gate
