@@ -1853,5 +1853,5 @@
     coverage. Preserve nightly feature runners and all coverage/mutation policies. This is a
     runner-pool workaround; verify it with green required push CI before closing.
   done_when:
-    - run: env ITOS_SELFTEST=1 go test ./tools/selftest/ci-platform -count=1
+    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-platform
       timeout: 60
