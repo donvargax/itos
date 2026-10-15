@@ -8934,3 +8934,6 @@ items:
       completed implementation of registry-only CI routing and duplicate Linux job removal.
     refs: [features/README.md, itos-cc.yaml, itos.yaml]
     tags: [tests, ci]
+    deferred: >
+      The user is validating the approach in another repository and will bring it here when ready;
+      wait for that result before implementation.
