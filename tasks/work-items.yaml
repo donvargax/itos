@@ -1090,6 +1090,18 @@ items:
       or <ID>..., through run.select and ids_pattern, @wip included on request; today each session
       rebuilds the selection from the runner's flags. A plain runner for named or tagged scenarios
       could land before the red-first proof.
+
+      2026-10-14: the user is reconsidering the mandatory red-first step as wasteful while reviewing
+      repeated agent test runs. Reassess the blanket requirement in guide brief and guide work to
+      commit steps separately, temporarily remove @wip, execute the expected failures and report
+      each failing step. Consider making red reproduction targeted to a bug or a spec whose
+      effectiveness is uncertain, instead of mandatory for every task/slice. Do not proceed with the
+      older proposal to enforce red-first automatically without settling this changed direction.
+      Keep meaningful regression assertions and detect invalid or vacuous specifications; the
+      concern is the universal extra execution and commit ceremony. This is a concern recorded for a
+      policy decision, not a claim that existing rules or gates have already changed. Related
+      direction: neighboring scenarios in done_when and no duplicate subagent runs
+      (p1-neighbor-checks-in-done-when, p1-agent-test-runs-once).
     tags: [tests]
 
   - id: p1-commit-message-file
