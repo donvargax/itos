@@ -6602,6 +6602,15 @@ items:
       refusePushArgs ! deleted, and internal/work/propose.go:105 propose true to false (possibly
       equivalent, unchecked). Each red nightly adds its survivors here; kill each with a test, or
       except it in itos-cc.yaml only when it is truly equivalent, with the reason.
+
+      Nightly 38807804744 (2026-10-15, eb7d9c8a) now prepares coverage with the pinned toolchain
+      after T-175 and completed its random budget: selected 20, executed 19, one uncovered. Four
+      survivors: internal/cli/gitcommit.go:115:13 readCommitFlags && to ||;
+      internal/cli/initrules.go:76:24 parseRulesFlag != to ==; internal/cli/draft.go:73:52
+      draftsFile || to &&; internal/cli/nextid.go:141:45 taskNextID 0 to 1. Preserve these fixed
+      regression targets for separate survivor work; no exception is justified without an
+      equivalence proof. The changed-site step failed later during unit-test TempDir cleanup, not
+      toolchain coverage planning.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
 
   - id: slice-110
