@@ -8937,3 +8937,11 @@ items:
     deferred: >
       The user is validating the approach in another repository and will bring it here when ready;
       wait for that result before implementation.
+
+  - id: T-172
+    title: Use a supported macOS ARM runner for push CI
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
