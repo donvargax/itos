@@ -8950,6 +8950,6 @@ items:
     title: Repair the nightly latest-CI platform coverage gate
     phase: 1
     owner: donvargax
-    status: doing
+    status: dropped
     depends_on: []
     kind: task
