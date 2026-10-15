@@ -9320,14 +9320,15 @@ items:
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/push.md, AGENTS.md, tools/bin/go-unit-tests, itos.yaml]
     tags: [tests, hooks, docs]
 
-  - id: p1-windows-unit-profile
-    title: Profile the slow Windows CLI unit tests on the user Windows machine
+  - id: T-173
+    title: Build CLI hook fixtures without Git subprocesses
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: task
     why: >
+      Was p1-windows-unit-profile.
       The user wants to investigate Windows unit-test time on their own Windows machine, with
       follow-up tomorrow (2026-10-15), not by profiling from this Linux session. CI run 38299320397
       took 126 seconds for the Windows unit-test step, with internal/cli reporting 112.458 seconds;
