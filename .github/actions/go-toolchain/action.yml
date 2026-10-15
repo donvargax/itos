@@ -58,12 +58,20 @@ runs:
         # itos-cc prepares frozen checkouts offline with GOTOOLCHAIN=local. Put the
         # verified toolchain itself on PATH, so those children cannot use the bootstrap.
         root=$(go env GOROOT | tr -d '\r' | tr '\\' '/')
-        [ -x "$root/bin/go" ] || [ -x "$root/bin/go.exe" ] || {
+        native_bin="$root/bin"
+        shell_bin="$native_bin"
+        # Native drive colons split Bash PATH. MSYS supplies the shell spelling;
+        # GITHUB_PATH still takes the native spelling for later runner steps.
+        if [ "$RUNNER_OS" = Windows ]; then
+          shell_bin=$(cygpath -u "$native_bin")
+        fi
+        selected_go="$shell_bin/go"
+        [ -x "$selected_go" ] || selected_go="$shell_bin/go.exe"
+        [ -x "$selected_go" ] || {
           echo "No Go executable in selected toolchain: $root" >&2
           exit 1
         }
-        export PATH="$root/bin:$PATH"
-        actual=$(GOTOOLCHAIN=local go env GOVERSION | tr -d '\r')
+        actual=$(GOTOOLCHAIN=local "$selected_go" env GOVERSION | tr -d '\r')
         [ "$actual" = "$GOTOOLCHAIN" ] || {
           echo "Local Go selected $actual, expected $GOTOOLCHAIN" >&2
           exit 1
@@ -73,10 +81,16 @@ runs:
           X64) host_arch=amd64 ;;
           *) echo "Unsupported runner architecture: $RUNNER_ARCH" >&2; exit 1 ;;
         esac
-        actual_arch=$(GOTOOLCHAIN=local go env GOHOSTARCH | tr -d '\r')
+        actual_arch=$(GOTOOLCHAIN=local "$selected_go" env GOHOSTARCH | tr -d '\r')
         [ "$actual_arch" = "$host_arch" ] || {
           echo "Local Go architecture $actual_arch is not $host_arch" >&2
           exit 1
         }
-        echo "$root/bin" >> "$GITHUB_PATH"
+        export PATH="$shell_bin:$PATH"
+        actual=$(GOTOOLCHAIN=local go env GOVERSION | tr -d '\r')
+        [ "$actual" = "$GOTOOLCHAIN" ] || {
+          echo "PATH Go selected $actual, expected $GOTOOLCHAIN" >&2
+          exit 1
+        }
+        echo "$native_bin" >> "$GITHUB_PATH"
         go version
