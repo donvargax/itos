@@ -43,7 +43,16 @@ func fakeEnv(t *testing.T) (string, []string) {
 	t.Helper()
 	dir := t.TempDir()
 	scratch.WriteFiles(t, dir, map[string]string{
-		"go": "#!/bin/sh\n[ \"$*\" = 'test ./cmd/... ./internal/...' ] || exit 91\necho unit >> \"$LOG\"\n",
+		"go": `#!/bin/sh
+case "$*" in
+  'test ./cmd/... ./internal/...') echo unit >> "$LOG";;
+  'run ./tools/bin/ci-repo scope base head') printf '{"full":%s}\n' "$FULL";;
+  'run ./tools/bin/ci-repo run base head')
+    if [ "$FULL" = true ]; then printf 'unit\nnamed\n' >> "$LOG"; else echo validation >> "$LOG"; fi;;
+  'run ./tools/bin/ci-repo tests base head') echo named >> "$LOG";;
+  *) exit 91;;
+esac
+`,
 		"tools/bin/itos": `#!/bin/sh
 case "$*" in
   'ci run base head') printf 'unit\nnamed\n' >> "$LOG";;
@@ -81,10 +90,20 @@ esac
 // on their jobs fail closed; each selected command must actually invoke the expected program.
 func contract(t *testing.T, w workflow) error {
 	t.Helper()
+	for _, full := range []bool{true, false} {
+		if err := scopedContract(t, w, full); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func scopedContract(t *testing.T, w workflow, full bool) error {
+	t.Helper()
 	counts := map[string]int{}
 	for _, id := range []string{"ci", "platform"} {
 		j, ok := w.Jobs[id]
-		if !ok || j.If != "" {
+		if !ok || j.If != "" || len(j.Needs) != 0 {
 			return fmt.Errorf("missing or conditional %s job", id)
 		}
 		oses := []string{j.RunsOn}
@@ -97,36 +116,64 @@ func contract(t *testing.T, w workflow) error {
 		for _, runner := range oses {
 			counts[runner]++
 			dir, env := fakeEnv(t)
+			env = scratch.With(env, fmt.Sprintf("FULL=%t", full), "GITHUB_OUTPUT="+filepath.Join(dir, "output"))
+			scoped, marked := false, false
 			installed, checked := false, false
 			for _, s := range j.Steps {
+				if s.Name == "Scope" {
+					if s.ID != "scope" || s.If != "" {
+						return fmt.Errorf("scope must run unconditionally")
+					}
+					result := scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", s.Run)
+					output, _ := os.ReadFile(filepath.Join(dir, "output"))
+					if result.Code != 0 || string(output) != fmt.Sprintf("full=%t\n", full) {
+						return fmt.Errorf("scope output: %s %s", result.Output(), output)
+					}
+					scoped = true
+				}
+				if s.Name == "Validation-only range" {
+					if !scoped || s.If != "${{ steps.scope.outputs.full == 'false' }}" {
+						return fmt.Errorf("metadata marker is not scope guarded")
+					}
+					marked = true
+				}
 				if s.Uses == "./" {
-					if s.ID != "launcher" || s.If != "${{ !cancelled() }}" {
+					if s.ID != "launcher" || !scoped || s.If != "${{ !cancelled() && steps.scope.outputs.full == 'true' }}" {
 						return fmt.Errorf("%s launcher install guard changed", runner)
 					}
 					installed = true
 				}
-				selected := s.Name == "Unit tests" || s.Name == "Named tests" || s.Name == "The launcher" || strings.TrimSpace(s.Run) == `tools/bin/itos ci run "$FROM" "$TO"`
+				selected := s.Name == "Unit tests" || s.Name == "Named tests" || s.Name == "The launcher" || s.Name == "Plan"
 				if !selected {
 					continue
 				}
-				if s.Name == "Unit tests" && s.If != "" {
-					return fmt.Errorf("%s unit tests are conditional", runner)
+				if !scoped {
+					return fmt.Errorf("%s tests run before scope", runner)
 				}
-				if s.Name == "Named tests" && s.If != "${{ !cancelled() && steps.range.outcome == 'success' }}" {
+				if s.Name == "Unit tests" && s.If != "${{ steps.scope.outputs.full == 'true' }}" {
+					return fmt.Errorf("%s unit tests lack scope guard", runner)
+				}
+				if s.Name == "Named tests" && s.If != "${{ !cancelled() && steps.scope.outputs.full == 'true' }}" {
 					return fmt.Errorf("%s named-test guard changed", runner)
 				}
 				if id == "ci" && s.Name != "The launcher" && s.If != "" {
 					return fmt.Errorf("Linux plan is conditional")
 				}
 				if s.Name == "The launcher" {
-					if !installed || s.If != "${{ !cancelled() && steps.launcher.outcome == 'success' }}" {
+					if !installed || s.If != "${{ !cancelled() && steps.scope.outputs.full == 'true' && steps.launcher.outcome == 'success' }}" {
 						return fmt.Errorf("%s launcher check has no successful install", runner)
 					}
 					checked = true
+					if !full {
+						continue
+					}
 					bad := scratch.Run(dir, scratch.With(env, "LAUNCHER_VERSION=invalid"), "", "bash", "-eo", "pipefail", "-c", s.Run)
 					if bad.Code == 0 {
 						return fmt.Errorf("%s launcher check accepts an invalid version", runner)
 					}
+				}
+				if !full && s.Name != "Plan" {
+					continue
 				}
 				r := scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", s.Run)
 				if r.Code != 0 {
@@ -137,10 +184,17 @@ func contract(t *testing.T, w workflow) error {
 			if err != nil {
 				return err
 			}
-			if string(events) != "unit\nnamed\n" {
+			want := "unit\nnamed\n"
+			if !full {
+				want = ""
+				if id == "ci" {
+					want = "validation\n"
+				}
+			}
+			if string(events) != want {
 				return fmt.Errorf("%s test invocations: %q", runner, events)
 			}
-			if !checked {
+			if !checked || !marked {
 				return fmt.Errorf("%s missing launcher check", runner)
 			}
 		}
@@ -227,10 +281,10 @@ func TestSelftest(t *testing.T) {
 		}
 		w := readWorkflow(t)
 		names := []string{w.Jobs["ci"].Name, "platform (macos-latest)", "platform (windows-latest)"}
-		for _, mode := range []string{"green", "missing Linux", "missing macOS", "missing Windows", "failed", "skipped", "duplicate macOS", "API failure"} {
+		for _, mode := range []string{"green", "missing Linux", "missing macOS", "missing Windows", "failed", "skipped", "duplicate macOS", "API failure", "metadata", "mixed metadata", "missing named tests", "missing launcher"} {
 			t.Run(mode, func(t *testing.T) {
 				dir, env := fakeEnv(t)
-				var jobs []map[string]string
+				var jobs []map[string]any
 				for i, name := range names {
 					if mode == []string{"missing Linux", "missing macOS", "missing Windows"}[i] {
 						continue
@@ -242,7 +296,26 @@ func TestSelftest(t *testing.T) {
 					if i == 2 && mode == "duplicate macOS" {
 						name = names[1]
 					}
-					jobs = append(jobs, map[string]string{"name": name, "conclusion": conclusion})
+					stepNames := []string{"Install the launcher", "The launcher"}
+					if i == 0 {
+						stepNames = append(stepNames, "Plan")
+					} else {
+						stepNames = append(stepNames, "Unit tests", "Named tests")
+					}
+					if mode == "metadata" || (mode == "mixed metadata" && i == 0) {
+						stepNames = []string{"Validation-only range", "Plan"}
+					}
+					var steps []map[string]string
+					for _, stepName := range stepNames {
+						if mode == "missing named tests" && i == 1 && stepName == "Named tests" {
+							continue
+						}
+						if mode == "missing launcher" && i == 2 && stepName == "Install the launcher" {
+							continue
+						}
+						steps = append(steps, map[string]string{"name": stepName, "conclusion": "success"})
+					}
+					jobs = append(jobs, map[string]any{"name": name, "conclusion": conclusion, "steps": steps})
 				}
 				data, _ := json.Marshal(map[string]any{"jobs": jobs})
 				scratch.WriteFiles(t, dir, map[string]string{"jobs.json": string(data)})
@@ -251,7 +324,7 @@ func TestSelftest(t *testing.T) {
 					env = scratch.With(env, "GH_FAIL=1")
 				}
 				r := scratch.Run(dir, env, "", "sh", "-c", command)
-				if (r.Code == 0) != (mode == "green") {
+				if (r.Code == 0) != (mode == "green" || mode == "metadata") {
 					t.Fatalf("%s: exit %d\n%s", mode, r.Code, r.Output())
 				}
 			})

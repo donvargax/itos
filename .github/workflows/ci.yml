@@ -21,8 +21,8 @@ env:
 jobs:
   # One job, always run, always reported: a prose-only push still gets its
   # green check, it just has less to prove. What each range has to run is
-  # decided by `tools/bin/itos ci run` (itos.yaml's `ci`), so it is the same
-  # decision locally.
+  # decided by `go run ./tools/bin/ci-repo run` using itos.yaml, so it is the same
+  # decision locally, including registry-only changes without named requirements.
   ci:
     name: ci (ubuntu-latest)
     runs-on: ubuntu-latest
@@ -60,11 +60,22 @@ jobs:
           from=$(jq -er '.from | strings' <<<"$out")
           echo "FROM=$from"
           echo "FROM=$from" >> "$GITHUB_ENV"
+      - name: Scope
+        id: scope
+        run: |
+          out=$(go run ./tools/bin/ci-repo scope "$FROM" "$TO")
+          echo "$out"
+          full=$(jq -er '.full | tostring' <<<"$out")
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+      - name: Validation-only range
+        if: ${{ steps.scope.outputs.full == 'false' }}
+        run: echo 'This range needs metadata validation only; scope proved no task or scenario requirements.'
       # The commit-msg hook's rules again, for commits made without hooks.
       - run: tools/bin/itos verify "$FROM" "$TO"
       # actionlint, for the step of the plan that lints the workflows: the
       # runners don't carry it. Pinned, from its own release script.
       - name: actionlint
+        if: ${{ steps.scope.outputs.full == 'true' }}
         run: |
           mkdir -p "$RUNNER_TEMP/bin"
           bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP/bin"
@@ -73,21 +84,22 @@ jobs:
       # run over the smoke set and the scenarios and task subsets the range
       # names; the whole suite runs in nightly.yml. GH_TOKEN is for the task
       # checks that ask GitHub.
-      - run: tools/bin/itos ci run "$FROM" "$TO"
+      - name: Plan
+        run: go run ./tools/bin/ci-repo run "$FROM" "$TO"
         env:
           GH_TOKEN: ${{ github.token }}
 
       # The global itos as a consumer's CI gets it, from this repository's own action (T-093),
-      # proved on every platform by every push, and cached per release by it (T-127), so a push
+      # proved on every platform by every full push, and cached per release by it (T-127), so a push
       # after the one that installed that release fetches no launcher archive at all. Last, so the
       # launcher it puts on the PATH cannot stand in for the build the steps above test; this
       # repository pins nothing, so the launcher runs as itself and says its own version.
       - name: Install the launcher
         id: launcher
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.scope.outputs.full == 'true' }}
         uses: ./
       - name: The launcher
-        if: ${{ !cancelled() && steps.launcher.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.scope.outputs.full == 'true' && steps.launcher.outcome == 'success' }}
         run: |
           command -v itos
           out=$(itos version --json)
@@ -101,7 +113,7 @@ jobs:
   # as every other check of a push does. Every feature on the three platforms is the nightly's
   # (nightly.yml's platform jobs), so a push waits for the scenarios the ci job runs, not for the
   # whole suite on Windows. Linux runs these once in ci above, including the launcher check
-  # (T-170); the nightly requires all three named jobs to succeed.
+  # (T-170); the nightly requires all three named jobs to succeed and proves their scope.
   platform:
     name: platform (${{ matrix.os }})
     strategy:
@@ -138,8 +150,6 @@ jobs:
             -o "$bin" ./cmd/itos
           "$bin" version
           echo "ITOS_BIN=$bin" >> "$GITHUB_ENV"
-      - name: Unit tests
-        run: go test ./cmd/... ./internal/...
       # Where the range starts, read as the ci job reads it (its Range step says how), so both
       # judge the same commits.
       - name: Range
@@ -153,6 +163,20 @@ jobs:
           from=$(jq -er '.from | strings' <<<"$out" | tr -d '\r') # jq.exe ends its lines with CRLF
           echo "FROM=$from"
           echo "FROM=$from" >> "$GITHUB_ENV"
+      # Scope is computed independently on each runner: code jobs stay concurrent with Linux.
+      - name: Scope
+        id: scope
+        run: |
+          out=$(go run ./tools/bin/ci-repo scope "$FROM" "$TO")
+          echo "$out"
+          full=$(jq -er '.full | tostring' <<<"$out" | tr -d '\r')
+          echo "full=$full" >> "$GITHUB_OUTPUT"
+      - name: Validation-only range
+        if: ${{ steps.scope.outputs.full == 'false' }}
+        run: echo 'This range needs metadata validation only; scope proved no task or scenario requirements.'
+      - name: Unit tests
+        if: ${{ steps.scope.outputs.full == 'true' }}
+        run: go test ./cmd/... ./internal/...
       # After the unit tests whatever they said, so one run shows a platform's every failure. The
       # plan's one run of named tests alone (slice-132): the smoke set and the scenarios and task
       # subsets the range names, the ci job's own features step, here on this platform. Its command
@@ -160,19 +184,19 @@ jobs:
       # platform is the nightly's summary. The scenarios find the build through ITOS_BIN, which ci
       # run hands on to go test with the rest of the job's environment.
       - name: Named tests
-        if: ${{ !cancelled() && steps.range.outcome == 'success' }}
-        run: '"$ITOS_BIN" ci run "$FROM" "$TO" --tests'
+        if: ${{ !cancelled() && steps.scope.outputs.full == 'true' }}
+        run: go run ./tools/bin/ci-repo tests "$FROM" "$TO"
       # The global itos as a consumer's CI gets it, from this repository's own action (T-093),
-      # proved on every platform by every push, and cached per release by it (T-127), so a push
+      # proved on every platform by every full push, and cached per release by it (T-127), so a push
       # after the one that installed that release fetches no launcher archive at all. Last, so the
       # launcher it puts on the PATH cannot stand in for the build the steps above test; this
       # repository pins nothing, so the launcher runs as itself and says its own version.
       - name: Install the launcher
         id: launcher
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.scope.outputs.full == 'true' }}
         uses: ./
       - name: The launcher
-        if: ${{ !cancelled() && steps.launcher.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.scope.outputs.full == 'true' && steps.launcher.outcome == 'success' }}
         run: |
           command -v itos
           out=$(itos version --json)
