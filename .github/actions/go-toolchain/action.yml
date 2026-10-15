@@ -55,28 +55,4 @@ runs:
           echo "Go selected $actual, expected $GOTOOLCHAIN" >&2
           exit 1
         fi
-        # itos-cc prepares frozen checkouts offline with GOTOOLCHAIN=local. Put the
-        # verified toolchain itself on PATH, so those children cannot use the bootstrap.
-        root=$(go env GOROOT | tr -d '\r' | tr '\\' '/')
-        [ -x "$root/bin/go" ] || [ -x "$root/bin/go.exe" ] || {
-          echo "No Go executable in selected toolchain: $root" >&2
-          exit 1
-        }
-        export PATH="$root/bin:$PATH"
-        actual=$(GOTOOLCHAIN=local go env GOVERSION | tr -d '\r')
-        [ "$actual" = "$GOTOOLCHAIN" ] || {
-          echo "Local Go selected $actual, expected $GOTOOLCHAIN" >&2
-          exit 1
-        }
-        case "$RUNNER_ARCH" in
-          ARM64) host_arch=arm64 ;;
-          X64) host_arch=amd64 ;;
-          *) echo "Unsupported runner architecture: $RUNNER_ARCH" >&2; exit 1 ;;
-        esac
-        actual_arch=$(GOTOOLCHAIN=local go env GOHOSTARCH | tr -d '\r')
-        [ "$actual_arch" = "$host_arch" ] || {
-          echo "Local Go architecture $actual_arch is not $host_arch" >&2
-          exit 1
-        }
-        echo "$root/bin" >> "$GITHUB_PATH"
         go version
