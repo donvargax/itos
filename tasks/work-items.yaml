@@ -8914,3 +8914,6 @@ items:
       validation and defer implementation until that machine is available.
     refs: [internal/cli, .github/workflows/ci.yml]
     tags: [tests, windows]
+    deferred: >
+      The user will follow up on their Windows machine tomorrow (2026-10-15); do not profile or
+      optimize Windows tests from this Linux session.
