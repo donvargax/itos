@@ -256,3 +256,4 @@ questions:
     decision: 50
   - id: q-62
     question: "Nightly 38729845909 failed both mutation runs during coverage-plan (go list exited 1; zero mutants judged), and its latest-push CI contract check exited 1 although CI 38689498798 and all three nightly platform jobs passed. Recommended: authorize a focused gate/infrastructure repair with regression checks, preserving all mutation budgets and coverage requirements; defer unrelated backlog work. Proceed with that repair, or leave the nightly unchanged?"
+    answer: "Proceed with the focused nightly gate/infrastructure repair and regression checks. Preserve mutation budgets and coverage requirements; defer unrelated backlog work."
