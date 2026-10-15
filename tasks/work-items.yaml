@@ -10750,3 +10750,21 @@ items:
       ledger, the questions and the feature files for '#<n>' and split the actionable list into new
       and tracked, naming the items for each tracked one.
     refs: [tools/bin/inbox]
+
+  - id: p1-windows-unit-selector-paths
+    title: The affected-unit hook selects native Windows package paths
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found during T-173 on native Windows: tools/bin/go-unit-tests --cached exited successfully
+      without running tests for staged internal/cli/gitconfig_test.go. Its awk compares Git root
+      C:/... against native go list Dir C:\..., then matches slash-relative changed paths against
+      backslash package folders, so no package is selected. Normalize both root and package paths
+      and prove selection with actual native Windows package data, retaining deepest-package and
+      reverse-dependency behavior. T-173 filled the missing coverage with one explicitly authorized
+      CLI package run, which passed; do not treat this gate exit zero as unit-test evidence until
+      repaired.
+    refs: [tools/bin/go-unit-tests]
