@@ -1841,17 +1841,18 @@
 
 - id: T-172
   type: ci
-  title: Use a supported macOS ARM runner for push CI
+  title: Use Go's verified pinned toolchain in push platform jobs
   why: >
-    Required push CI repeatedly fails before checkout on macos-latest (macos-26-arm64): the runner
-    cannot download the unchanged pinned setup-go archive, while Linux and Windows pass and the
-    official SHA archive is available outside that runner. A debug retry of run 38686814234
-    confirmed the same setup failure. Move only the push platform job to supported macos-15,
-    retaining ARM architecture, pinned action SHAs, unit tests, selected scenarios, launcher
-    verification, and release dependencies. Update the nightly check of latest push-job coverage and
-    its focused executable self-test to recognize the new job name and still reject missing
-    coverage. Preserve nightly feature runners and all coverage/mutation policies. This is a
-    runner-pool workaround; verify it with green required push CI before closing.
+    Push macOS jobs repeatedly fail in runner setup while fetching the unchanged setup-go action
+    archive. The official v7 SHA exists and its archive downloads outside the runner; a debug retry
+    still failed, and moving to macOS 15 ARM reproduced the same error in run 38687585252. Restore
+    macos-latest and avoid this archive dependency in the platform matrix by using the hosted
+    runner's Go to select the exact toolchain named by go.mod. Go verifies downloaded toolchains
+    through its checksum database. Refuse a missing or invalid pin and any reported version mismatch
+    before building. Preserve module/build caching, ARM coverage, all unit/scenario/launcher checks
+    and release dependencies. Keep nightly feature runners and coverage/mutation policies unchanged.
+    Exercise selection, CRLF handling and refusal through the workflow's scripts with a fake Go,
+    without downloading a toolchain. Green required push CI must demonstrate the recovery.
   done_when:
     - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-platform
       timeout: 60
