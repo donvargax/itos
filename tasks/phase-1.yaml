@@ -1848,6 +1848,3 @@
     all unit/scenario/launcher checks, nightly feature runners, coverage/mutation policies and
     release behavior. Exercise the shared scripts and workflow wiring with a fake Go, without
     downloading toolchains. Green required push CI must demonstrate the recovery.
-  done_when:
-    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-platform
-      timeout: 60

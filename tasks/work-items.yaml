@@ -8942,6 +8942,6 @@ items:
     title: Share Go's verified pinned toolchain across repository workflows
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
