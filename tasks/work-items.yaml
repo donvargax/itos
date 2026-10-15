@@ -9323,8 +9323,8 @@ items:
   - id: T-173
     title: Build CLI hook fixtures without Git subprocesses
     phase: 1
-    owner: null
-    status: todo
+    owner: donvargax
+    status: doing
     depends_on: []
     kind: task
     why: >
