@@ -415,14 +415,20 @@ func testToolchain(t *testing.T) {
 		t.Fatal("shared setup must select the toolchain, restore cache, and verify unconditionally")
 	}
 	for _, tc := range []struct {
-		name, pin, reported             string
-		failGo, ok                      bool
-		cached, wrongArch, missingCache bool
+		name, pin, reported                     string
+		failGo, ok                              bool
+		cached, wrongArch, missingCache         bool
+		windowsRoot, wrongLocal, wrongLocalArch bool
+		windowsSlash, conversionFail            bool
 	}{
 		{name: "exact version", pin: "toolchain go1.27.2\n", ok: true},
-		{name: "CRLF", pin: "toolchain go1.27.2\r\n", ok: true},
+		{name: "Windows drive root and CRLF", windowsRoot: true, pin: "toolchain go1.27.2\r\n", ok: true},
+		{name: "Windows drive with forward slashes", windowsRoot: true, windowsSlash: true, pin: "toolchain go1.27.2\n", ok: true},
+		{name: "Windows conversion failure", windowsRoot: true, conversionFail: true, pin: "toolchain go1.27.2\n"},
 		{name: "release candidate", pin: "toolchain go1.28rc1\n", ok: true},
 		{name: "missing pin"},
+		{name: "offline child selects wrong version", pin: "toolchain go1.27.2\n", wrongLocal: true},
+		{name: "offline child selects wrong architecture", pin: "toolchain go1.27.2\n", wrongLocalArch: true},
 		{name: "language version is not a toolchain", pin: "toolchain go1.27\n"},
 		{name: "automatic selection is not exact", pin: "toolchain go1.27.2+auto\n"},
 		{name: "duplicate pin", pin: "toolchain go1.27.2\ntoolchain go1.27.2\n"},
@@ -449,11 +455,65 @@ case "$*" in
     [ "$FAIL_GO" != true ] || exit 82
     [ "$GOTOOLCHAIN" = "$EXPECTED" ] || exit 83
     printf '%s\r\n' "${REPORTED:-$GOTOOLCHAIN}";;
+  'env GOROOT') printf '%s\r\n' "$SELECTED_ROOT";;
   version) echo "go version $GOTOOLCHAIN";;
   *) exit 84;;
 esac
 `,
 			})
+			// The bootstrap delegates to the pin only while GOTOOLCHAIN names it. Mutation
+			// preparation forces local and offline in a fresh checkout, so PATH must resolve
+			// the downloaded toolchain directly, independently of the parent environment.
+			selectedRoot := filepath.Join(dir, "downloaded toolchain")
+			selectedBin := filepath.Join(selectedRoot, "bin")
+			scratch.WriteFiles(t, dir, map[string]string{
+				"downloaded toolchain/bin/go": `#!/bin/sh
+case "$*" in
+  'env GOVERSION')
+    [ "$GOTOOLCHAIN" = local ] || exit 85
+    [ "$WRONG_LOCAL" != true ] || { echo go1.26.8; exit 0; }
+    printf '%s\r\n' "$EXPECTED";;
+  'env GOHOSTARCH')
+    [ "$WRONG_LOCAL_ARCH" != true ] || { echo amd64; exit 0; }
+    printf '%s\r\n' "$HOST_ARCH";;
+  'list ./...')
+    [ "$GOTOOLCHAIN" = local ] && [ "$GOPROXY" = off ] && [ "$GOSUMDB" = off ] || exit 86
+    printf 'example.test/platform\n';;
+  version) echo "go version $EXPECTED";;
+  *) exit 87;;
+esac
+`,
+				"frozen/go.mod": "module example.test/platform\ngo 1.27\n" + tc.pin,
+			})
+			if err := os.Chmod(filepath.Join(selectedBin, "go"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			reportedRoot, exportedBin := selectedRoot, selectedBin
+			runnerOS := "Linux"
+			if tc.windowsRoot {
+				runnerOS = "Windows"
+				// Model a real drive: the native path is executable from this cwd, but
+				// its colon splits Bash PATH. cygpath maps it to the actual shell path.
+				reportedRoot = "C:/downloaded toolchain"
+				exportedBin = reportedRoot + "/bin"
+				if err := os.Mkdir(filepath.Join(dir, "C:"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.Symlink(selectedRoot, filepath.Join(dir, "C:", "downloaded toolchain")); err != nil {
+					t.Fatal(err)
+				}
+				if !tc.windowsSlash {
+					reportedRoot = strings.ReplaceAll(reportedRoot, "/", `\`)
+				}
+				scratch.WriteFiles(t, dir, map[string]string{"cygpath": `#!/bin/sh
+[ "$CONVERSION_FAIL" != true ] || exit 88
+[ "$1" = -u ] && [ "$2" = 'C:/downloaded toolchain/bin' ] || exit 89
+printf '%s\n' "$SHELL_BIN"
+`})
+				if err := os.Chmod(filepath.Join(dir, "cygpath"), 0o755); err != nil {
+					t.Fatal(err)
+				}
+			}
 			// Isolate PATH from the host's Go, but retain the two external shell utilities.
 			for _, name := range []string{"awk", "tr"} {
 				path, err := exec.LookPath(name)
@@ -486,10 +546,13 @@ esac
 			}
 			env = scratch.With(env, "GITHUB_ENV="+filepath.Join(dir, "github-env"),
 				"GITHUB_PATH="+filepath.Join(dir, "github-path"), "PATH="+dir,
-				"RUNNER_ARCH=ARM64", "RUNNER_TOOL_CACHE="+cache, "HOST_ARCH="+hostArch,
+				"RUNNER_ARCH=ARM64", "RUNNER_OS="+runnerOS, "RUNNER_TOOL_CACHE="+cache, "HOST_ARCH="+hostArch,
+				"SHELL_BIN="+selectedBin, fmt.Sprintf("CONVERSION_FAIL=%t", tc.conversionFail),
 				"GITHUB_OUTPUT="+filepath.Join(dir, "github-output"), "GOTOOLCHAIN=auto",
 				"EXPECTED="+strings.TrimSpace(strings.TrimPrefix(tc.pin, "toolchain ")),
-				"REPORTED="+tc.reported, fmt.Sprintf("FAIL_GO=%t", tc.failGo))
+				"REPORTED="+tc.reported, fmt.Sprintf("FAIL_GO=%t", tc.failGo),
+				"SELECTED_ROOT="+reportedRoot, fmt.Sprintf("WRONG_LOCAL=%t", tc.wrongLocal),
+				fmt.Sprintf("WRONG_LOCAL_ARCH=%t", tc.wrongLocalArch))
 			selected := scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", selectGo.Run)
 			result := selected
 			if selected.Code == 0 {
@@ -518,6 +581,31 @@ esac
 					t.Fatalf("existing PATH Go replaced: %q", path)
 				}
 				result = scratch.Run(dir, env, "", "bash", "-eo", "pipefail", "-c", verifyGo.Run)
+				if result.Code == 0 {
+					path, err = os.ReadFile(filepath.Join(dir, "github-path"))
+					if err != nil {
+						t.Fatal(err)
+					}
+					want := exportedBin + "\n"
+					if tc.cached {
+						want = cachedBin + "\n" + want
+					}
+					if string(path) != want {
+						t.Fatalf("verified toolchain not exported for offline children: got %q, want %q", path, want)
+					}
+					childPath := dir
+					for _, bin := range strings.Split(strings.TrimSpace(string(path)), "\n") {
+						// The runner imports native GITHUB_PATH entries into the next Bash.
+						if tc.windowsRoot && bin == exportedBin {
+							bin = selectedBin
+						}
+						childPath = bin + string(os.PathListSeparator) + childPath
+					}
+					env = scratch.With(env, "PATH="+childPath,
+						"GOTOOLCHAIN=local", "GOPROXY=off", "GOSUMDB=off")
+					result = scratch.Run(filepath.Join(dir, "frozen"), env, "", "sh", "-c", "go list ./...")
+				}
+
 			}
 			if (result.Code == 0) != tc.ok {
 				t.Fatalf("exit %d, wanted success=%t: %s", result.Code, tc.ok, result.Output())
