@@ -437,7 +437,7 @@ ci:
       - >-
         id=$(gh run list --workflow ci.yml --branch main --status completed --limit 1 --json databaseId --jq '.[0].databaseId') &&
         gh run view "$id" --json jobs --jq
-        '.jobs as $jobs | ["ci (ubuntu-latest)", "platform (macos-latest)", "platform (windows-latest)"] as $names |
+        '.jobs as $jobs | ["ci (ubuntu-latest)", "platform (macos-15)", "platform (windows-latest)"] as $names |
         def passed($name): any(.steps[]?; .name == $name and .conclusion == "success");
         ($names | all(. as $name | [$jobs[] | select(.name == $name)] | length == 1 and all(.conclusion == "success"))) and
         ([$jobs[] | select(.name as $name | $names | index($name))] |

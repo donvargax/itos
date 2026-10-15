@@ -199,7 +199,7 @@ func scopedContract(t *testing.T, w workflow, full bool) error {
 			}
 		}
 	}
-	for _, runner := range []string{"ubuntu-latest", "macos-latest", "windows-latest"} {
+	for _, runner := range []string{"ubuntu-latest", "macos-15", "windows-latest"} {
 		if counts[runner] != 1 {
 			return fmt.Errorf("%s has %d test owners, want one", runner, counts[runner])
 		}
@@ -234,14 +234,14 @@ func TestSelftest(t *testing.T) {
 			t.Fatalf("plan has %d core unit runs, %d named runs", units, named)
 		}
 	})
-	for _, remove := range []string{"ubuntu-latest", "macos-latest", "windows-latest", "launcher", "launcher version", "Linux launcher", "Linux launcher version", "unit", "named", "release", "duplicate Linux"} {
+	for _, remove := range []string{"ubuntu-latest", "macos-15", "windows-latest", "launcher", "launcher version", "Linux launcher", "Linux launcher version", "unit", "named", "release", "duplicate Linux"} {
 		t.Run("reject missing coverage "+remove, func(t *testing.T) {
 			w := readWorkflow(t)
 			j := w.Jobs["platform"]
 			switch remove {
 			case "ubuntu-latest":
 				delete(w.Jobs, "ci")
-			case "macos-latest", "windows-latest":
+			case "macos-15", "windows-latest":
 				j.Strategy.Matrix.OS = slices.DeleteFunc(j.Strategy.Matrix.OS, func(s string) bool { return s == remove })
 			case "launcher":
 				j.Steps = slices.DeleteFunc(j.Steps, func(s step) bool { return s.Uses == "./" })
@@ -280,7 +280,7 @@ func TestSelftest(t *testing.T) {
 			t.Fatal("nightly has no latest CI job check")
 		}
 		w := readWorkflow(t)
-		names := []string{w.Jobs["ci"].Name, "platform (macos-latest)", "platform (windows-latest)"}
+		names := []string{w.Jobs["ci"].Name, "platform (macos-15)", "platform (windows-latest)"}
 		for _, mode := range []string{"green", "missing Linux", "missing macOS", "missing Windows", "failed", "skipped", "duplicate macOS", "API failure", "metadata", "mixed metadata", "missing named tests", "missing launcher"} {
 			t.Run(mode, func(t *testing.T) {
 				dir, env := fakeEnv(t)
