@@ -8945,3 +8945,11 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: T-174
+    title: Repair the nightly latest-CI platform coverage gate
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

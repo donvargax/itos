@@ -1848,3 +1848,22 @@
     all unit/scenario/launcher checks, nightly feature runners, coverage/mutation policies and
     release behavior. Exercise the shared scripts and workflow wiring with a fake Go, without
     downloading toolchains. Green required push CI must demonstrate the recovery.
+
+- id: T-174
+  type: ci
+  title: Repair the nightly latest-CI platform coverage gate
+  why: >
+    Approved in q-62. Nightly run 38729845909 at e85ddc91 failed its last command checking latest
+    completed push CI, even though run 38689498798 succeeded with Linux Plan and launcher plus
+    macOS/Windows unit, named-test and launcher steps. Reproduce the failure with the actual GitHub
+    jobs response and execute the configured command with real jq, rather than a fake that imitates
+    the predicate. Repair the gate and its executable regression tests. Require exactly one
+    successful job per expected platform, all required successful test/launcher steps on full runs,
+    and a consistent explicitly validated metadata-only route. Reject missing, failed, skipped or
+    duplicate required jobs/steps, mixed routes and API errors. Keep unrelated release jobs
+    permissible. Preserve the single Linux test owner, strict platform requirements, existing
+    metadata scope, release dependencies and all mutation policy. No product CLI or scenario change.
+    Add the regression at the push tier so it remains after closure; run only applicable automated
+    checks, avoiding duplicate verification.
+  done_when:
+    - run: ITOS_SELFTEST=1 go test -count=1 -run ^TestSelftest$ ./tools/selftest/ci-platform
