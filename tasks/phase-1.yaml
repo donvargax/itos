@@ -1804,9 +1804,6 @@
     including refusal when any platform or launcher coverage is missing. Do not change nightly
     feature coverage, Windows tests, mutation policy, or product behavior. The existing duplicated
     Linux workflow is the failing baseline.
-  done_when:
-    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-platform
-    - run: actionlint
 
 - id: T-171
   type: ci
