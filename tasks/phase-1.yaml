@@ -1894,3 +1894,25 @@
     commits in eb974e86. Convert the verified toolchain path to the shell format for the current
     Bash process while publishing a native path for later runner steps; regress an actual drive
     prefix and preserve the offline-child checks before retrying the repair.
+
+- id: T-176
+  type: test
+  title: Keep CLI scratch repositories free of background Git maintenance
+  why: >
+    Nightly 38807804744 on eb7d9c8a now uses the correct pinned Go after T-175, and the random
+    mutation run completes, but changed-site coverage stops when TestWorkDoneTakesTheChecksOut fails
+    TempDir RemoveAll cleanup: unlinkat /tmp/TestWorkDoneTakesTheChecksOut3557525746/001/.git:
+    directory not empty. Investigate and confirm whether CLI scratch repository Git commands launch
+    asynchronous auto-maintenance, the race already addressed in feature and self-test scratch
+    repos. Correct shared CLI test fixture setup so automatic maintenance and automatic gc cannot
+    outlive test cleanup. Preserve product behavior and every assertion; no sleeps, retries or
+    ignored cleanup errors. Add a deterministic unit regression named
+    TestScratchReposDisableAutoMaintenance exercising actual fixture setup and effective Git
+    configuration or command behavior, failing before the change, including inherited user config
+    where practical. Keep the repair limited to test fixtures and their regression; survivors from
+    the random run remain separate backlog work. Use existing cheap unit selection and the normal
+    push gate, not repeated full suites or local mutation experiments. A broad fixture change must
+    cover each distinct fixture entry point it affects.
+  done_when:
+    - run: go test ./internal/cli -count=1 -run ^TestScratchReposDisableAutoMaintenance$
+    - run: go test ./internal/cli -count=1 -run ^TestWorkDoneTakesTheChecksOut$

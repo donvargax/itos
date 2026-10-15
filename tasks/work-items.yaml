@@ -8970,3 +8970,11 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: T-176
+    title: Keep CLI scratch repositories free of background Git maintenance
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
