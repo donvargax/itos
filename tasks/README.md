@@ -212,3 +212,16 @@ finds the same on prose. A push that also touches `tasks/**`, a feature file
 or code runs everything. `tools/bin/itos task <id>` runs every check, the gates
 self-test included. A phase is complete when all its scenarios pass without
 `@wip` and `tools/bin/itos task --phase <n>` reports every task done.
+
+This repository's workflow applies a narrower metadata rule before planning:
+a known, nonempty range changing only `tasks/work-items.yaml` and prose, with
+no named task or scenario requirements, uses the configured prose validation
+steps. Any task or scenario requirement keeps the full plan, even on prose.
+Ledger definitions and every other non-prose path keep the full route. Reproduce
+the workflow locally with `tools/bin/itos verify <from> <to>` followed by
+`go run ./tools/bin/ci-repo run <from> <to>`; replace `run` with `plan` for its
+JSON plan or `scope` for the route. The shipped `itos ci` commands keep their
+general policy. All three jobs still set up Go and build independently, but a
+metadata range skips their test suites and launcher installation. Each reports
+its reduced scope explicitly so the nightly can distinguish valid metadata
+validation from missing platform coverage.
