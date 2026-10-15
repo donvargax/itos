@@ -8953,3 +8953,11 @@ items:
     status: dropped
     depends_on: []
     kind: task
+
+  - id: T-175
+    title: Repair nightly mutation coverage preparation with the pinned Go toolchain
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

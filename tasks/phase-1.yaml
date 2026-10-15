@@ -1867,3 +1867,27 @@
     checks, avoiding duplicate verification.
   done_when:
     - run: ITOS_SELFTEST=1 go test -count=1 -run ^TestSelftest$ ./tools/selftest/ci-platform
+
+- id: T-175
+  type: ci
+  title: Repair nightly mutation coverage preparation with the pinned Go toolchain
+  why: >
+    Approved in q-62. Nightly run 38729845909 at e85ddc91 failed both the 20 random-site and 60
+    changed-site mutation steps during coverage-plan: go list coverage scope in fresh-plan scratch
+    worktrees executed /usr/bin/go and exited 1; zero mutants were judged. The shared Go setup had
+    passed and all three platform unit and feature jobs passed. Diagnose the actual underlying
+    failure before changing configuration, including the pinned mutation tool, fresh scratch
+    checkout environment and exact native/pinned Go selection. Repair repository gate infrastructure
+    within scope; if it is an upstream tool defect, present concrete evidence and use the supported
+    narrow integration repair or report the dependency block rather than weaken the gate. Keep exact
+    go.mod toolchain, verified downloads, native architecture checks and caching, 20 random
+    mutations nightly, 60 seeded changed-site budget, strict changed-line coverage and platform
+    requirements. Add an executable deterministic regression at the cheapest effective push tier
+    exercising the failing child-process or scratch-worktree path, with fake native Go if
+    appropriate, and prove it fails before repair. Preserve the latest-CI contract repair and
+    existing metadata route. No local mutation experiments beyond the repository permitted seeded
+    push proof; use read-only diagnostics and focused go list/toolchain subprocess reproduction
+    instead. No product CLI behavior changes. Actual nightly acceptance follows the push, with
+    failures diagnosed rather than ignored; unrelated survivor debt stays separately identified.
+  done_when:
+    - run: ITOS_SELFTEST=1 go test -count=1 -run ^TestSelftest$ ./tools/selftest/ci-platform ./tools/selftest/ci-mutation-budget
