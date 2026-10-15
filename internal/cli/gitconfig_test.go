@@ -16,6 +16,7 @@ import (
 // repository a hook runs the tests in and from the user's git config.
 func gitConfigRepo(t *testing.T, config string) string {
 	t.Helper()
+	disableScratchMaintenance(t)
 	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
 		t.Setenv(name, "")
 		os.Unsetenv(name)

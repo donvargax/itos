@@ -15,6 +15,7 @@ import (
 // git config, a fixed author, and no ITOS_CONFIG.
 func scratchFolder(t *testing.T) string {
 	t.Helper()
+	disableScratchMaintenance(t)
 	dir := t.TempDir()
 	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR", "ITOS_CONFIG", AmendEnv} {
 		t.Setenv(name, "")

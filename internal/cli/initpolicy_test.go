@@ -23,6 +23,7 @@ var noOffers = []string{"--plugin", "no", "--no-git-shim", "--no-agent-rules"}
 // repo is "commit", one with none when it is "unborn", and none when "".
 func initScratch(t *testing.T, repo string, files map[string]string) string {
 	t.Helper()
+	disableScratchMaintenance(t)
 	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
 		t.Setenv(name, "")
 		os.Unsetenv(name)

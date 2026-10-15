@@ -14,6 +14,7 @@ import (
 // folder, away from the user's git config; its git folder is returned.
 func notesRepo(t *testing.T) (dir, gitDir string) {
 	t.Helper()
+	disableScratchMaintenance(t)
 	for _, name := range []string{"GIT_DIR", "GIT_INDEX_FILE", "GIT_WORK_TREE", "GIT_COMMON_DIR"} {
 		t.Setenv(name, "")
 		os.Unsetenv(name)
