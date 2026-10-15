@@ -6160,6 +6160,21 @@ items:
       tests. This is separate from slice-102 and T-129. No --all-tests, full mutation sweep, stale
       reports or duplicate jobs; stop and explain an unavoidable full coverage refresh before
       running it.
+
+      2026-10-14 discussion: the user asked whether independent coverage already runs in
+      pre-commit/pre-push and whether the sampled mutation gate is worth its cost. Current hooks run
+      affected ordinary unit tests; changed-line coverage is bundled into the separate local proof
+      and CI mutation command. CI run 38299320397 spent about 86 seconds on that command: about 10
+      seconds instrumented units, 22 seconds full feature coverage, 9 seconds clean baseline, 5
+      seconds the actual mutant, and about 40 seconds other preparation, including an unlabelled
+      33-second gap that has not been attributed. A single killed mutant gives limited sampled
+      assurance. Proposed, not yet approved for implementation: a standalone changed-executable-line
+      coverage gate on pushes and mutation trials nightly. Go coverprofile and instrumented
+      CLI/GOCOVERDIR can collect and merge unit plus feature coverage without mutation, but a
+      diff-aware enforcement command is still needed; deleting the mutation command now would also
+      delete its changed-line coverage requirement. Measure the preparation cost before promising
+      savings. Coordinate with p1-agent-test-runs-once; preserve relevant integration coverage and
+      the independent CI verdict.
     refs: [itos-cc.yaml, tools/bin/itos-cc-tests, docs/ORCHESTRATING.md]
 
   - id: p1-targeted-quality-evidence
