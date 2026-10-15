@@ -8917,3 +8917,20 @@ items:
     deferred: >
       The user will follow up on their Windows machine tomorrow (2026-10-15); do not profile or
       optimize Windows tests from this Linux session.
+
+  - id: p1-adopt-faster-feature-testing
+    title: Adopt faster e2e feature testing after the user validates it in another repository
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user is test-driving ideas for faster e2e feature execution in another repository and
+      wants itos to adopt them once ready. Wait for the user to provide that validated approach and
+      its evidence; do not invent or implement a competing runner optimization here in the meantime.
+      Preserve named scenario selection, done_when-driven neighboring coverage, per-platform
+      behavior and any coverage collection contract during adoption. This is separate from the
+      completed implementation of registry-only CI routing and duplicate Linux job removal.
+    refs: [features/README.md, itos-cc.yaml, itos.yaml]
+    tags: [tests, ci]
