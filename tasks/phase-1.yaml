@@ -1913,6 +1913,3 @@
     the random run remain separate backlog work. Use existing cheap unit selection and the normal
     push gate, not repeated full suites or local mutation experiments. A broad fixture change must
     cover each distinct fixture entry point it affects.
-  done_when:
-    - run: go test ./internal/cli -count=1 -run ^TestScratchReposDisableAutoMaintenance$
-    - run: go test ./internal/cli -count=1 -run ^TestWorkDoneTakesTheChecksOut$
