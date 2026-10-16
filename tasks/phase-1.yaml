@@ -2036,3 +2036,43 @@
     now.
   done_when:
     - run: go test ./tools/bin/conformance/... ./tools/bin/itos-cc-corpus -count=1
+
+- id: T-182
+  type: ci
+  title: Dispatch listed mutation tests to features and conformance fixtures
+  why: >
+    Issue #44, second delivery for p1-corpus-listed-suite, depending on T-181. Extend
+    tools/bin/itos-cc-tests as the single listed-suite adapter: no arguments (and an explicit list
+    form if useful) prints the current live feature IDs as before followed by corpus-<stem> for
+    every top-level tools/itos/conformance/*.yaml fixture in sorted path order. Each row is exactly
+    ID, TAB, slash-separated project-relative defining file, LF; corpus:<stem> is not used because
+    IDs name coverage directories on Windows. Buffer and validate the entire inventory before
+    stdout: nonempty unique IDs using only ASCII letters/digits, underscore, dot and hyphen, with no
+    path components or comma; existing feature ID/file semantics stay intact, WIP feature IDs stay
+    excluded, corpus paths name real fixtures and duplicate/unsafe identities fail rather than
+    silently disappearing. Provide run --ids <comma-separated IDs> and run --whole, mutually
+    exclusive and no other implicit selection. Validate every selected ID against the current
+    inventory before any test process starts; refuse empty, duplicate, unknown or malformed IDs with
+    a diagnostic and nonzero status, and never convert an empty selection into all tests. One
+    feature subprocess receives the selected feature IDs as an escaped, anchored @ID regex through
+    the existing -scenarios filter; one corpus helper subprocess receives only the selected fixture
+    paths through --only, using T-181's fresh current-tree binary. For mixed selection run features
+    then corpus and stop at the first failing child, retaining nonzero outcome and diagnostics;
+    never report success when a selected child failed or could not start. Whole runs every live
+    feature and all corpus fixtures, in that order, with the same failure behavior. Forward caller
+    coverage variables to each harness; corpus-only selections do not start features and
+    feature-only selections do not build/run the corpus. Update mutation.tests.run to call this
+    adapter with --ids '{pattern}', ids_pattern to '{ids}', join to comma-separated raw IDs, and
+    whole to the adapter's --whole form. Inventory validation makes this shell interpolation safe
+    for this repository's IDs. Preserve the two-column protocol and all mutation exceptions, proof
+    operands/count/seed, strictness, deadlines and other CI policy. Extend existing support entries
+    to cover conformance fixtures, the Go conformance runner and new helper/dispatcher source,
+    relevant shared helper files and the dev-version build stamp script; document that this single
+    support list can stale feature evidence too. No new provider feature, per-case IDs, fingerprint
+    column, additional suite protocol or local mutation campaign is required. Add focused dispatcher
+    regressions with fake child commands for feature-only, corpus-only, mixed, whole, failure and
+    rejected-before-start selections; exercise coverage through T-181's existing integration check
+    and prove config-to-adapter ID joining agrees. Use ordinary CI acceptance and the existing push
+    proof when Go changes, not additional full mutation runs.
+  done_when:
+    - run: go test ./tools/bin/itos-cc-tests ./tools/bin/itos-cc-corpus ./tools/bin/conformance/... -count=1
