@@ -262,7 +262,7 @@ questions:
     question: "Task promotion (#54): recommend extending work promote --kind task to accept the required task type and checks, validating before minting and writing the ledger, registry and question/dependency rewrites in one commit. The alternative is task add --from <idea> as the canonical conversion, with work promote --kind task refusing before minting and directing callers there. Which public interface should the specification use?"
     answer: "Option 1: extend work promote <idea> --kind task to accept the required task type and checks. Validate before minting; create the ledger entry and update the registry, dependencies and linked questions in one commit. Do not introduce task add --from as the conversion interface for this item."
   - id: q-64
-    item: "p1-work-show-why-once"
+    item: "slice-146"
     question: "Task inspection (#75): the ledger is the authoritative task specification. Recommend printing only that specification by default, preserving distinct registry wording in the existing structured JSON and git history. Alternative: print the ledger specification followed by an explicitly labeled Registry background section in the default text output. Which default presentation should the specification require?"
     answer: "The user refined option 1: a task has one authoritative specification from its ledger in both text and JSON. Do not expose older registry wording as a second task description in either output; Git history preserves it. An idea still uses its registry why, since it has no ledger specification. This settles presentation authority, not a deletion of stored history or a particular JSON field rename."
   - id: q-65
@@ -270,7 +270,7 @@ questions:
     question: "CI classification (#72): recommend a public read-only classifier plus a documented workflow recipe, preserving the current ci run planner policy. This lets workflows skip expensive platform jobs only for proven bookkeeping while retaining metadata validation and all named checks. Alternative: include opt-in planner integration so ci run also uses the reduced metadata route in this item. Which scope should the specification use?"
     answer: "Classifier and workflow recipe first, as the user selected. Preserve existing ci run planner policy. The recipe retains verify, metadata validation and every named check; an opt-in planner route is separate future work."
   - id: q-66
-    item: "p1-work-show-why-once"
+    item: "slice-146"
     question: "Task inspection, q-64/#75: removing the older item.why from task JSON intentionally changes machine output, which ADR-0035 treats as contract even though the property is already conditional. Recommend delivering the complete text-and-JSON change in the planned next major bundle; alternatively let this change trigger the next major as soon as it is ready. Both preserve the decision to omit historical wording. Which release timing should the item specify?"
     answer: "Join the planned next major release, as the user selected. Keep the complete authoritative-description change in text and JSON together; do not trigger a major release solely to deliver it sooner. This does not defer the separate additive current-check display in slice-136."
   - id: q-67
