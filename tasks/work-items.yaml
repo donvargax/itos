@@ -9459,14 +9459,15 @@ items:
       new local reproduction.
     refs: [internal/guide/repair.md, internal/work/show.go, internal/cli/workshow.go]
 
-  - id: p1-promoted-slice-context
-    title: Promoted slices distinguish settled specification from historical idea prose
+  - id: slice-145
+    title: Use scenario specifications instead of copied idea prose for slices
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-promoted-slice-context.
       Issue #68. work promote preserves an idea's why and work edit --note then refuses a slice, so
       tentative old wording can remain prominent after the user settles the design. The report also
       assumes a new feature file cannot land WIP scenarios first; current docs scope permits that,
