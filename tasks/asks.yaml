@@ -294,3 +294,4 @@ questions:
   - id: q-72
     item: "p1-draft-task-fields"
     question: "For #74, recommend a task-scoped draft mode with explicitly selected title, why and checks fields: merge unrelated task/field updates, but refuse same-field conflicts. Keep generic whole-file drafts unchanged. Should this be the first delivery, or should the first delivery instead attempt general structured merging of arbitrary ledger edits?"
+    answer: "Task-specific field drafts first: explicitly selected title, why or checks fields, preserving unrelated task/field edits and refusing same-field conflicts. Keep generic whole-file drafts unchanged; do not build a general arbitrary-ledger merge engine for this delivery."
