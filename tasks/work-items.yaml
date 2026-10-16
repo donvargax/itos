@@ -4757,6 +4757,13 @@ items:
       the tightest, defaults in guide.budget, counting the rules' text and not what itos generates
       from the config; rule check fails over it, so a new lesson retires or tightens another.
       Commands: itos rule add|seen|list|check.
+
+      2026-10-15 open-issue audit: #27's growing generated CI enumeration is already addressed by
+      done slice-120, implementation 5a1bb170 and live ID-INIT-57..60. Current initrules.go emits
+      the same two-instruction block for every repository; adding CI steps cannot enlarge it. This
+      establishes the reported symptom's mapping, not completion of this broader rules-as-data idea.
+      No extra renderer, ci-summary flag or implementation is needed for #27, and no GitHub closure
+      was performed.
     refs: [docs/ORCHESTRATING.md, AGENTS.md, internal/guide]
     tags: [docs]
 
