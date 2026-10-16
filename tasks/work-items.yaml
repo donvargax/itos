@@ -9517,14 +9517,15 @@ items:
       data loss.
     refs: [internal/cli/draft.go, internal/draft, internal/ledger, features/draft.feature]
 
-  - id: p1-draft-promote-selection
-    title: Promote selected independent drafts while preserving dependencies
+  - id: slice-148
+    title: Promote selected drafts with dependency and independence checks
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-140, slice-141, slice-147]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-draft-promote-selection.
       Issue #76. Add explicit selection to promotion while keeping no-argument ordered promotion.
       Selection order must follow stored queue order, not caller argument order. Unknown/duplicate
       selection and unsatisfied selected/unselected dependencies must refuse before applying
