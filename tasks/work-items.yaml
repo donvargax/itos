@@ -5696,6 +5696,18 @@ items:
       p1-work-show-closing-checks). Exact JSON shape, compatibility and missing-ledger behavior
       remain to specify before implementation.
 
+      Definition refinement after q-64: keep the existing task JSON ledger_why as the single
+      description and omit item.why for a task even when the ledger text differs; do not rename
+      other fields or rewrite registry data as part of display. Ideas retain item.why. Preserve work
+      show's read-only, best-effort inspection policy: if a task ledger entry cannot be read, retain
+      its metadata/history and ledger_why: null, explicitly say the specification is unavailable in
+      text, and never substitute historical registry prose as the current specification. Add
+      coverage for missing ledger, empty/missing why, legacy kind inference, idea output, and both
+      equivalent and divergent text. JSON output is contractual under ADR-0035: assess this removal
+      against the released corpus and scenarios and mark the intentional compatibility change before
+      promotion; do not label the contract change a wording-only fix. Current checks and historical
+      check recovery remain independent items.
+
   - id: p1-config-release-prerelease
     title: itos.yaml accepts release.prerelease, the marker that turns release candidates on
     phase: 1
