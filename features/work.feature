@@ -1455,7 +1455,7 @@ Feature: The work registry
       | change                                  | outcome |
       | edit an unrelated item's title          | success |
       | add a different item to the queue       | success |
-      | transfer T-001 to a different owner     | refusal |
+      | transfer T-001 to a different owner     | success |
       | replace T-001's checks with a failing check | refusal |
 
   # The configured stealth ledger and registry are outside the tracked
@@ -1516,7 +1516,7 @@ Feature: The work registry
       | defect                     |
       | unknown item               |
       | dropped item               |
-      | owned by another person    |
+      | not started and still todo |
       | live work still marked wip |
       | unpublished implementation |
       | failing acceptance check   |
