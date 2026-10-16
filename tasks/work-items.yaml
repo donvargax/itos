@@ -5059,6 +5059,15 @@ items:
       the stage split first. Unqueued until the user wants it (2026-10-06).
 
       In the v8 plan (the user, 2026-10-11), before p1-testing-tiers-guide, which needs it.
+
+      2026-10-15 issue audit: slice-132's current ci run --tests supplies only the named-tests
+      subset, not the complementary fast-only plan, E2E-cost task-check partition, independent
+      workflow range or third-workflow status/watch. The original #18 design also changes which
+      green result push/completion owns. Reconcile that design with the user's parked
+      guard/CI-ownership discussion before implementation; retain current
+      shared-checkout/no-worktree and wait/handoff rules. No workflow split, new waiting policy or
+      claim of completion is authorized by this audit, and this note does not defer or reprioritize
+      the item.
     tags: [ci]
 
   - id: bug-47
