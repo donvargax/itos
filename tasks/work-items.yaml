@@ -9403,3 +9403,25 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-ci-watch-progress
+    title: Show meaningful job and step transitions during CI watches
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #79. Improve the existing background ci watch display while preserving exact-revision
+      selection, required-job policy, timeout and all terminal success/failure/cancellation
+      semantics. First delivery reports newly discovered jobs, queued versus in-progress status,
+      active step changes and completion once per transition; it must not repeat unchanged states or
+      make callers poll separately. Use provider timestamps where supplied and avoid inventing step
+      timing when absent. Progress belongs on stderr in JSON mode, preserving the current final JSON
+      contract. Offline scripted provider fixtures should cover an initially undiscovered required
+      job, queued/in-progress transitions, a long unchanged step, changed active step, reordered job
+      responses and final outcome; missing optional step data must not imply a stall or success. No
+      wall-clock heartbeat, remote cancellation, mandatory worker waiting or new CI execution
+      policy. Provider capability and exact transition format still need scenarios before
+      implementation.
+    refs: [internal/cli/watch.go, internal/providers]
