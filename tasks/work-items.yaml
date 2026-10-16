@@ -9680,3 +9680,21 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-task-check-status-wording
+    title: Distinguish passing task checks from work-item completion in task output
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Additional #65 consumer comment (2026-10-15, runtime 8.4.0): a worker seeking a read-only
+      listing mistakenly ran task T-91, executing acceptance checks and seeing done T-91 while work
+      show still correctly reported doing. This is acknowledged consumer misuse, not unexpected
+      execution or a closure defect. slice-136 supplies the requested read-only check view.
+      Independently consider task report wording that clearly identifies check results and does not
+      imply registry closure; preserve task execution, exit codes and lifecycle gates. Source is the
+      issue comment and its captured-output claim; no new reproduction or independent check
+      execution was performed here.
+    refs: [internal/cli/task.go, features/task.feature]
