@@ -9115,7 +9115,7 @@ items:
       can use conditional instructions where the guide has no actual item context; it need not solve
       filled briefs (p1-guide-brief-filled). Required custom footers remain named by the existing
       commit-policy renderer rather than inventing new CLI flags.
-    refs: [internal/guide/brief.md, internal/guide/work.md, internal/cli/guide.go, internal/message/written.go]
+    refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/guide.go, internal/message/written.go]
 
   - id: p1-ci-scope-registry-changes
     title: Public CI classification distinguishes registry bookkeeping from test-affecting changes
