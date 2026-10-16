@@ -9239,3 +9239,29 @@ items:
       selective promotion and field-scoped rebasing. Any expansion to external lint execution
       requires a separate decision.
     refs: [internal/cli/draft.go, internal/message/written.go, features/draft.feature]
+
+  - id: p1-agent-git-ci-contract
+    title: Separate Git validation, helper commands and ownership of CI follow-up
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user (2026-10-15) is reconsidering the Claude Code guard and mandatory worker waiting
+      before more guard fixes. Investigate three separate contracts: native Git hooks/CI enforce
+      valid commits, wrappers supply footer and push convenience, and an explicit owner follows CI
+      through green or repair. History: git shim 69bdee1c and guard 7d1c5241 landed on 2026-10-03 to
+      route commits/pushes through itos; the guard predates CI waiting. Waiting and --no-wait both
+      entered in 66784603 on 2026-10-03, with ci.watch opt-in. Recorded q-41 (eb0a5069) and 93fd966f
+      on 2026-10-08 moved this repository's workers to --no-wait and assigned watching/closure to
+      the coordinator. Current generic guide work/push still describe worker-owned waiting while
+      this repository overrides it. The user favors worker waiting and direct repair when CI is
+      fast, but is still deciding; neither guard removal nor a new wait rule is authorized yet. The
+      guard only checks command invocation, not whether CI was waited on, and installed native hooks
+      still run for normal Git. Account for the separate git shim when discussing plain git. First
+      settle guard value, ownership and per-repository policy; do not widen shell parsing as a
+      substitute for that decision. Preserve green-CI closure/release guarantees unless explicitly
+      revised. Release direction is v8 active design, v9 remaining problems/breaks, v10 first
+      stable; record the roadmap separately.
+    refs: [internal/guide/work.md, internal/guide/push.md, internal/cli/push.go, internal/guard/doc.go, integrations/claude-code/hooks/guard.sh]
