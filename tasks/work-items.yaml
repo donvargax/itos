@@ -8617,6 +8617,13 @@ items:
       stay immutable. Resolving manual instructions needs a concrete representation or an honest
       presentation of automatic actions alongside original release instructions, not guessed
       natural-language completion.
+
+      The init rerun status concern is now specified as bug-114: qualify only the existing config
+      result instead of globally claiming init wrote nothing before requested offers run. Repeated
+      upgrade headings are slice-152. A literal audit found no current two-line block claim in
+      internal/, docs/, README.md or features/; do not rewrite historical published footer text. The
+      remaining substantive parent design is reconciling automatically completed operations with
+      mixed free-text manual instructions without dropping genuine cleanup requests.
     refs: [internal/cli/upgrade.go]
     tags: [upgrade]
 
