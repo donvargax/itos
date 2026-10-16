@@ -9133,6 +9133,21 @@ items:
       validation failure. The private tools/bin/ci-repo classifier is path-based and cannot be
       exported unchanged. Still to decide: classifier and recipe only, or also opt-in planner
       integration; no current planner or workflow policy changes are authorized by this outline.
+
+      q-65 is answered: the user selected classifier and workflow recipe first. Planner integration
+      is excluded. Proposed additive JSON contract keeps schema and docs_only as they are and adds
+      classification (prose, metadata or full) and stable reason codes; the recipe branches on the
+      new classification, never treats docs_only as proof of harmless registry changes, and always
+      runs verify plus metadata validation. Classify the declared committed range, not unstaged
+      files. A reduced classification requires the classification policy to be provably the
+      committed target policy; unversioned or unavailable policy retains full validation. Registry
+      formatting-only changes may be metadata, but changes to why/title/tags/dependencies/refs or
+      other unlisted fields stay full in this initial contract. Check every intermediate commit,
+      including requirements and config/path changes, rather than endpoints alone. This conservative
+      first scope can be expanded separately. Before promotion, scenarios must pin the
+      classification fields and reason codes, negative-path fixtures and an executable recipe
+      demonstration; there is no authorization here to change ci run execution or this repository's
+      current helper.
     refs: [internal/cli/ci.go, internal/plan, tools/bin/ci-repo/main.go]
 
   - id: p1-draft-replace-reserved-command
