@@ -6800,7 +6800,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-143]
     kind: idea
     why: >
       slice-93 lets work done pass over registry-only commits, but a close commit also changes the
@@ -6838,7 +6838,19 @@ items:
       versus general reusable receipts first. Do not treat this proposed first delivery as already
       accepted, or claim it eliminates every evidence-reuse case. Structural transaction slice-142
       supplies the shared close/dequeue boundary.
-    refs: [internal/cli/workwrite.go]
+
+      q-70 is now answered: evidence with closure first, superseding the older broad data-skip
+      proposal. Proposed interface is work done <id>... --evidence-file <path>, capturing a nonempty
+      UTF-8 narrative once before validation and quoting it in the same atomic close commit body
+      after all existing acceptance and hosted CI gates pass. Do not edit task why, create an
+      intermediate associated commit, execute narrative text, parse it as proof, or trust its claims
+      instead of the tool-verified CI result. Batch evidence identifies only the items actually
+      transitioning; an all-already-done request with evidence must refuse rather than silently
+      discard it. Without the flag existing idempotency is unchanged. Depend on slice-143 for the
+      single batch/close/dequeue transaction. Separately committed evidence reuse is now
+      p1-reusable-completion-evidence. Stealth persistence needs an explicit first-delivery boundary
+      because that mode creates no close commit.
+    refs: [features/work-evidence.feature, internal/cli/workdone.go, internal/cli/workwrite.go]
 
   - id: p1-decision-add-answer
     title: itos decision add --answer records a question already answered in one commit
