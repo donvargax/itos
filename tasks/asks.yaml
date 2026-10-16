@@ -343,3 +343,6 @@ questions:
   - id: q-84
     item: "p1-upgrade-notes-tidy"
     question: "For the remaining #50 manual-instruction problem, recommend honest presentation first: list the actual automatic operations completed by this upgrade, and label free-text release instructions as original instructions that may include already-completed work. Never suppress a mixed instruction containing both init --agent-rules and manual cleanup by guessing its prose. Alternative: design structured migration-operation IDs and completion tracking before changing this output. Which first delivery should we specify? Grouped headings and the inaccurate init rerun message are already separate specs."
+  - id: q-85
+    item: "p1-repair-plan"
+    question: "For #80, recommend a read-only repair planner first: explicit failed and known-good revisions, associated commits with diffs and retention/review classifications, and a proposed ordinary revert sequence only where unambiguous. It must not execute reverts/pushes or infer safe source-only commits from paths/item links. Retry bookkeeping remains separate and immediate restoration policy stays unchanged. Alternative: deliver only a concrete documented repair/retry recipe before introducing a planner command. Which first delivery is worthwhile?"
