@@ -1960,8 +1960,10 @@
   title: Correct the embedded CI code-proof help and planner comment
   why: >
     Issue #45, tracked by p1-ci-run-help-proof-check. Correct only documentation text in
-    internal/cli/help.go and the matching comments in internal/plan/plan.go and internal/plan/doc.go,
-    and update the existing help conformance expectation. Explain that itos executes proof.code.check, with {base} filled
+    internal/cli/help.go and the matching comments in internal/plan/plan.go, internal/plan/doc.go and
+    internal/proof/doc.go, and update the existing help conformance expectation. Correct the proof
+    package overview's obsolete attribution to work done and to an item's first-commit parent:
+    ranged CI owns execution and supplies the range start. Explain that itos executes proof.code.check, with {base} filled
     from the range start, and that the configured command decides whether it reads saved results or
     runs fresh checks such as counted mutations. Static is the planner cost class, not a promise
     that the command is cheap; fresh mutation commands may take minutes. Preserve current
