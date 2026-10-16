@@ -16,7 +16,7 @@ Feature: An unambiguous bare scenario area gets a correction before any ID is re
 
   Background:
     Given a repository whose ledger has the task "T-001"
-    And tests.scenario.id is "ID-[A-Z]+-\\d+"
+    And tests.scenario.id is "ID-[A-Z]+-\d+"
     And the feature files have the live scenario "@ID-SEC-01"
     And the ID counter records every request
 
