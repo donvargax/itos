@@ -260,3 +260,4 @@ questions:
   - id: q-63
     item: "p1-task-add-promoted"
     question: "Task promotion (#54): recommend extending work promote --kind task to accept the required task type and checks, validating before minting and writing the ledger, registry and question/dependency rewrites in one commit. The alternative is task add --from <idea> as the canonical conversion, with work promote --kind task refusing before minting and directing callers there. Which public interface should the specification use?"
+    answer: "Option 1: extend work promote <idea> --kind task to accept the required task type and checks. Validate before minting; create the ledger entry and update the registry, dependencies and linked questions in one commit. Do not introduce task add --from as the conversion interface for this item."
