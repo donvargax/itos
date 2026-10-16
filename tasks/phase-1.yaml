@@ -2104,3 +2104,38 @@
     - run: tools/bin/itos guide work
     - run: tools/bin/itos guide brief
     - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/guide.yaml
+
+- id: T-184
+  type: docs
+  title: Document the missing v7 migration guidance and v8 distinctions
+  why: >
+    Issue #40. Add a concise current migration guide at docs/upgrading.md, linked from README.md's
+    upgrade documentation, to explain the v6-to-v7 changes and the later v8 difference. Published
+    release bodies, historical commit footers and tags are immutable; this is an advisory
+    supplement, not rewritten release history. Cover: numbered task/work/scenario minting reserves
+    refs/itos/ids on the selected push remote, uses the minting code's narrowly scoped --no-verify
+    push for that counter ref only (no source branch or tag), needs network/auth when a remote
+    exists and fails offline instead of issuing a pretend reservation, while supported
+    no-remote/stealth counters remain local. Do not prescribe hook bypass for user commits or
+    pushes. Explain task next-id is a local preview counting ledger/registry IDs, not a cross-clone
+    reservation, and use task add/work promotion or tests next-id with a full scenario stem for real
+    claims; auxiliary test stems retain preview semantics. Explain work done removes a closing
+    task's checks, lasting checks belong in CI/nightly when ready, and no keep-check flag exists.
+    Separate a manually edited done status retaining checks from supported closure; already-done
+    work done is idempotent, not a cleanup command for hand-closed tasks. Provide an honest
+    review/manual-migration path through ordinary commits without invoking nonexistent cleanup
+    automation or changing done status to manufacture one. Verify historical behavior at tags:
+    source-read v7.0.0 still accepts and executes nightly tasks:done (internal/config/schema.go and
+    internal/plan/plan.go); its removal is slice-107/59a483fe, present in v8.0.0 and v8.0.0-rc.2,
+    not a v7 removal. Before moving an open check into a standing gate, ensure the implementation
+    exists and the gate is at its intended cost tier; do not publish an intentionally failing
+    standing gate just to preserve a future check. State the original empty/repeated What changed
+    headings as a historical reporting limitation, without claiming this documentation repairs a
+    release generator. Current upgrade text grouping is slice-152, distinct from historical release
+    generation. Link primary repository source/tags and current help for supported commands; do not
+    copy the broad historical proof plan as current truth. Acceptance is semantic review of examples
+    and source attribution plus existing shipped help checks. No product behavior, config, provider
+    protocol, release rewrite or policy-text test belongs here.
+  done_when:
+    - run: tools/bin/itos tests next-id --help
+    - run: tools/bin/itos work done --help

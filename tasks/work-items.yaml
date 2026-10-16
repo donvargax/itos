@@ -10117,3 +10117,11 @@ items:
       do not claim issue #25 is fully visible to this consumer until adoption is covered. No
       provider patch or wrapper is implemented in the specification phase.
     refs: [itos.yaml, internal/proof/proof.go]
+
+  - id: T-184
+    title: Document the missing v7 migration guidance and v8 distinctions
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
