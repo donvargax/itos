@@ -6609,6 +6609,22 @@ items:
       under the session's scratchpad, outside any itos repository, so the agent fell back to git
       commit-tree. The guard should judge the repository the command runs in, not the session's
       folder.
+
+      Definition outline for #34 and duplicate #69: first delivery follows literal cd, including
+      quoted literal paths, relative paths and git -C after cd, in the shell AST already parsed.
+      Directory changes inside subshells, command substitutions, pipelines, functions and background
+      commands must not leak to the parent list. For cd D && git commit, the right side uses D; for
+      cd D || git commit, the right side uses the original directory. A semicolon or conditional
+      merge must consider both success and failure destinations, denying when any statically
+      possible target is managed rather than asserting cd succeeded. Repeated cd resolves from the
+      preceding possible directory. Do not execute shell commands to discover paths. Dynamic
+      expansions, aliases and shell-dependent lookup remain documented limits; do not claim a fully
+      resolved target for them. Literal pushd/popd and directory-stack modeling are a separate
+      future item, not part of this first slice. Acceptance must prove managed-to-scratch allow and
+      scratch-to-managed deny, existing git -C behavior, quoted/relative paths, nested isolation and
+      control-flow joins. Preserve the guard's never-allow contract, its current error/exit policy,
+      and ordinary config.Managed semantics. No plugin file changes are implied; if implementation
+      touches them, obey the plugin version gate.
     refs: [internal/guard/guard.go, internal/guard/doc.go, features/guard.feature]
 
   - id: slice-109
