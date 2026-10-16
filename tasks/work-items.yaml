@@ -7051,6 +7051,12 @@ items:
       than command by command, beginning with init's; a flipped default is breaking, so it waits for
       the next major.
 
+      q-78's first concrete default is fully specified as slice-159, ID-INIT-61..69: fresh
+      project/stealth/policy initialization writes local rules, --no-agent-rules opts out, reruns
+      remain explicit, and plugin/global shim installation stay opt-in. This parent retains the
+      broader flag-default audit, which has no blanket default change authorized. Treat defaults by
+      actual ordinary user intent and existing compatibility, not invert every opt-in flag.
+
   - id: p1-testing-tiers-guide
     title: "The guide says which tier each gate belongs to: fast local, judging CI, thorough nightly"
     phase: 1
