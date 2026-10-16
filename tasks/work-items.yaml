@@ -7134,14 +7134,15 @@ items:
       unknown and are counted. Every coordinator does this review across many itos-driven
       repositories, so each script costs again.
 
-  - id: p1-next-id-names-the-stem
-    title: tests next-id takes an area without the id's prefix, or refuses naming the stem
+  - id: slice-157
+    title: Refuse mistaken bare ID-area stems with a valid full-stem correction
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-next-id-names-the-stem.
       On 2026-10-10, itos tests next-id scenario UPGRADECMD --count 7 was refused with 'UPGRADECMD
       is no area of tests.scenario's id: its next id is only read', when the stem it claims for is
       ID-UPGRADECMD. The refusal should name the stem it would accept (did you mean ID-UPGRADECMD),
