@@ -292,6 +292,6 @@ questions:
     question: "For #68, recommend keeping settled slice decisions only in WIP scenarios and omitting copied idea why from promoted slices, with history retained in Git. This would extend the task-only authority decision (#75) to slices and may change JSON, so it would join the planned next major. Alternatively label the copied why as historical context while continuing to print it. Which behavior should the slice specification use?"
     answer: "Omit copied idea prose from promoted slices, in text and JSON, as for tasks. Settled slice rules belong in WIP scenarios; Git retains the historical idea context. Include machine-output contract changes in the planned next major, not an immediate major release."
   - id: q-72
-    item: "p1-draft-task-fields"
+    item: "slice-147"
     question: "For #74, recommend a task-scoped draft mode with explicitly selected title, why and checks fields: merge unrelated task/field updates, but refuse same-field conflicts. Keep generic whole-file drafts unchanged. Should this be the first delivery, or should the first delivery instead attempt general structured merging of arbitrary ledger edits?"
     answer: "Task-specific field drafts first: explicitly selected title, why or checks fields, preserving unrelated task/field edits and refusing same-field conflicts. Keep generic whole-file drafts unchanged; do not build a general arbitrary-ledger merge engine for this delivery."

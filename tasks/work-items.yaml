@@ -9493,14 +9493,15 @@ items:
     deferred: >
       Wait for the planned next major, as agreed in q-71.
 
-  - id: p1-draft-task-fields
-    title: Draft task fields without overwriting unrelated ledger updates
+  - id: slice-147
+    title: Draft selected task fields and preserve unrelated ledger changes
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-draft-task-fields.
       Issue #74. Allow private specification edits scoped to a task and explicitly selected fields;
       promotion must preserve unrelated task entries, legitimate done_when removal on another
       completed task, ordering/comments where supported, and concurrent registry ownership/status.
