@@ -9623,14 +9623,15 @@ items:
       no runtime regression reproduced yet.
     refs: [internal/config/schema.go, internal/config/types.go, internal/plan/plan.go]
 
-  - id: p1-upgrade-group-changed-cases
-    title: Group upgrade report entries by release, category and commit
+  - id: slice-152
+    title: Group repeated upgrade report entries under one commit heading
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-upgrade-group-changed-cases.
       Independent presentation part of #50, split from p1-upgrade-notes-tidy so it need not wait on
       classifying manual instructions. Text output groups Changes on purpose, Breaking and Upgrading
       entries once per full commit identity within each release/category, first-seen group order and
