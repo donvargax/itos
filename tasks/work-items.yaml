@@ -9533,6 +9533,16 @@ items:
       (#73) and the parked guard/CI ownership review; no current workflow-policy change is
       authorized. Consumer source/CI references are in the GitHub issue; reported sequence is not a
       new local reproduction.
+
+      2026-10-15 refresh via gh api: #80 has two further consumer examples. The second reports T-90
+      implementation ed617d07b48e7fd15c6fb60822cf9c1101a30618 failing exact CI 38841139032, followed
+      by source-only revert 0cf65d37209dc47a02fb4e677ae9c8418dff4c80 while retaining an intervening
+      task-ledger specification addition, then separate attempt/give-back/retake commits. This is
+      reported evidence, not independently verified restoration or repaired-CI proof. It reinforces
+      that a plan must distinguish source and independently retained specification within mixed
+      history, with uncertain or mixed-purpose commits marked needs-review rather than inferred safe
+      from item association or path names alone. The earlier extra example was a one-expression
+      staticcheck repair; do not weaken lint or the current revert-first rule to reduce bookkeeping.
     refs: [internal/guide/repair.md, internal/work/show.go, internal/cli/workshow.go]
 
   - id: slice-145
