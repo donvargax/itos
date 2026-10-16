@@ -6567,14 +6567,15 @@ items:
     kind: idea
     refs: [AGENTS.md, docs/ORCHESTRATING.md]
 
-  - id: p1-verify-past-the-window
-    title: CI's range with no green run in reach re-judges all history by today's path rules
+  - id: slice-163
+    title: Verify each project commit with its tracked configuration
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-verify-past-the-window.
       On 2026-10-09 the last green run fell past FirstParentsAsked (100 first parents,
       internal/providers/range.go), so ci range gave no start and itos verify judged every commit
       since commits.since by today's commits.scopes: commits written before a rule changed fail it
