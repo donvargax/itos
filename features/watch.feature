@@ -228,3 +228,112 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
     Given the fake GitHub answers every look with a 403 rate limit
     When itos runs "ci watch"
     Then itos exits with code 75
+
+  # Slice 144 (#79): consume job status, active steps and supplied started_at
+  # values from the jobs response already fetched by the GitHub provider.
+  # No extra progress API request or new polling cadence is needed. Keep
+  # existing terminal lines; add queued/in_progress lines on transitions,
+  # with "; step: <name>" and "; started: <timestamp>" when supplied.
+  # Stable run/job identity, not response order or display name alone,
+  # controls deduplication. No repeating heartbeat or stall diagnosis.
+  # Scripted fake responses advance on provider looks, without real sleeps
+  # or external GitHub requests. Complete runs use exact clone revisions.
+  @ID-WATCH-20 @slice-144 @wip
+  Scenario: a watcher reports discovery job status and active-step transitions once
+    Given the fake GitHub scripts these successive watch observations:
+      | run       | job ID | job  | status      | active step | step started_at       |
+      | absent    |        |      |             |             |                       |
+      | discovered |       |      |             |             |                       |
+      | running   | 101    | test | queued      |             |                       |
+      | running   | 101    | test | in_progress | Build       | 2026-10-15T20:00:00Z  |
+      | running   | 101    | test | in_progress | Build       | 2026-10-15T20:00:00Z  |
+      | running   | 101    | test | in_progress | Test        | 2026-10-15T20:01:00Z  |
+      | success   | 101    | test | completed   |             |                       |
+    When itos runs "ci watch"
+    Then itos exits with code 0
+    And progress reports "CI run: not yet discovered" once
+    And progress reports "CI jobs: not yet discovered" once
+    And progress reports these lines once in this order:
+      """
+        test: queued
+        test: in_progress; step: Build; started: 2026-10-15T20:00:00Z
+        test: in_progress; step: Test; started: 2026-10-15T20:01:00Z
+        test: success
+      """
+    And the fake GitHub was asked only for the normal watch endpoints
+
+  @ID-WATCH-21 @slice-144 @wip
+  Scenario: response reordering does not repeat progress and equal job names do not hide distinct jobs
+    Given the fake GitHub scripts two distinct job IDs both named "test"
+    And both jobs move from queued to in_progress and then success
+    And repeated unchanged responses reverse their job order
+    When itos runs "ci watch"
+    Then itos exits with code 0
+    And each job's distinct state transitions were reported exactly once
+    And there are exactly two queued reports and two in_progress reports
+    And there are exactly two "test: success" reports
+
+  # JSON remains a single final object with the released run/job fields.
+  # Progress-only step/timing/identity data must not leak into that object.
+  @ID-WATCH-22 @slice-144 @wip
+  Scenario: JSON watching sends progress to stderr and retains its existing final object
+    Given the fake GitHub scripts a queued job then an active step then a successful run
+    And the normal expected final watch JSON is saved without progress metadata
+    When itos runs "ci watch --json"
+    Then itos exits with code 0
+    And stderr reports the queued job and active step
+    And stdout is exactly the saved final watch JSON
+
+  @ID-WATCH-23 @slice-144 @wip
+  Scenario: missing optional step and timing data still reports a running job without inventing details
+    Given the fake GitHub scripts a queued job then a running job without steps or timestamps then success
+    When itos runs "ci watch"
+    Then itos exits with code 0
+    And progress reports the queued and in_progress job transitions once
+    And progress contains no step timestamp elapsed-time or stalled claim
+    And its output says "CI passed"
+
+  # Guards: only observability changes. These terminal outcomes, error
+  # kinds and quiet behavior already hold and must remain unchanged.
+  @ID-WATCH-24 @slice-144 @guard @wip
+  Scenario Outline: progress never changes the watch's terminal outcome
+    Given the fake GitHub scripts the existing watch outcome "<outcome>"
+    When itos runs "ci watch --json"
+    Then itos exits with code <code>
+    And its JSON's "ci" is "<ci>"
+
+    Examples:
+      | outcome                       | code | ci        |
+      | completed successful run      | 0    | success   |
+      | completed failed run          | 1    | failure   |
+      | cancelled without replacement | 75   | cancelled |
+      | timeout                       | 75   | timeout   |
+      | authentication refusal        | 3    | error     |
+      | repeated temporary errors     | 75   | error     |
+
+  # Use the existing cancellation/covering fixture with real descendant
+  # commits on its scratch remote. Both run IDs contain the same job name;
+  # switching runs must reset progress identity while preserving ancestry.
+  @ID-WATCH-25 @slice-144 @wip
+  Scenario: following a covering replacement run reports that run's progress afresh
+    Given a cancelled watched run and a valid covering descendant run
+    And both runs have the job "test" with an active step named "Build"
+    And the covering run eventually succeeds
+    When itos runs "ci watch HEAD~1 --json"
+    Then itos exits with code 0
+    And stderr identifies both runs and their active Build step
+    And its JSON's "superseded" identifies the cancelled run
+    And its JSON's "run" identifies the successful covering run
+
+  @ID-WATCH-26 @slice-144 @guard @wip
+  Scenario Outline: quiet watching suppresses progress and retains failure diagnostics
+    Given the fake GitHub scripts an active job then a completed "<conclusion>" run
+    When itos runs "ci watch -q"
+    Then itos exits with code <code>
+    And no discovery queued or active-step progress was printed
+    And the quiet watch has "<diagnostics>"
+
+    Examples:
+      | conclusion | code | diagnostics          |
+      | success    | 0    | no output            |
+      | failure    | 1    | a failure diagnostic |
