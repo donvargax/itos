@@ -9115,3 +9115,26 @@ items:
       exported unchanged. Still to decide: classifier and recipe only, or also opt-in planner
       integration; no current planner or workflow policy changes are authorized by this outline.
     refs: [internal/cli/ci.go, internal/plan, tools/bin/ci-repo/main.go]
+
+  - id: p1-draft-replace-reserved-command
+    title: Replace a command draft without losing its reserved item ID
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [p1-draft-checks-before-minting]
+    kind: idea
+    why: >
+      Split from p1-draft-checks-before-minting (#46) during definition review. Proposed interface:
+      draft add <draft-id> --replace -- <itos args> replaces an existing command draft in place
+      after validation. Preserve draft ID, reserved item ID and queue position; the stored original
+      remains unchanged on rejection. Accept edits only within the same repository/config
+      reservation domain and the same minted item kind; refuse cross-kind or cross-repository
+      replacement before writing or reserving an ID. No new mint or counter release occurs. The
+      normal command later consumes the retained reservation at promotion and revalidates against
+      the actual tree. Replacing edit/change drafts, selective promotion (#76), field-scoped ledger
+      rebase (#74), and reusing IDs of deliberately dropped drafts are excluded. Acceptance covers
+      changed task title/checks with the same reserved ID, invalid replacement leaving original
+      intact, cross-kind/domain refusal, unchanged ordering, no extra counter reservation and final
+      promotion using the retained ID. Depends on the shared preflight contract in
+      p1-draft-checks-before-minting; not yet promoted or specified as scenarios.
+    refs: [internal/cli/draft.go, internal/cli/draftmint.go, internal/draft, features/draft.feature]
