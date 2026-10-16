@@ -8541,14 +8541,15 @@ items:
     refs: [internal/message]
     tags: [commit]
 
-  - id: p1-asks-relink
-    title: An answered question naming a renamed item has a sanctioned fix, and config check's warning names it
+  - id: slice-156
+    title: Relink question items explicitly and show supported repairs in diagnostics
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-asks-relink.
       donvargax/itos#49 (itos 8.0.0, itos-cc after upgrading from 7.5.0): config check warns, 23
       lines on every config check, task, init and commit-msg hook run, that answered questions name
       items the registry no longer has (asked before bug-105 made promote rename them). The warning
