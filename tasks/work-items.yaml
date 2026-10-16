@@ -55,7 +55,6 @@ phases:
   3: donvargax
 
 queue:
-  - p1-guard-follows-cd
   - slice-138
   - p1-text-from-file
   - p1-defer-reason-footer
@@ -69,6 +68,8 @@ queue:
   - p1-commit-wrap-review
   - p1-work-as-empty
   - p1-tools-bin-shared
+  - p1-agent-git-ci-contract
+  - p1-guard-follows-cd
 
 items:
   # ---- phase 0 ----------------------------------------------------------------
