@@ -420,6 +420,214 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And its output explains that dependency creation awaits promotion
     And no queued command or task check ran
     And the working tree index and HEAD match the saved minting state
+
+  # Slice 147 (#74, q-72):
+  # draft edit <id> --task <task-id> --fields <list> -m <message>
+  # creates a task-field draft; list is a nonempty, duplicate-free subset
+  # of title,why,done_when (the ledger's acceptance-check field). Paths may
+  # not accompany --task. The task must exist; no ID is minted. Creation
+  # takes project data from HEAD, ignoring an agent's staged/unstaged edits;
+  # stealth data has no committed copy and is snapshotted where configured.
+  # It prints a private task.yaml path. JSON retains ok/draft/copies with
+  # draft.kind=task, task=<id>, fields=<selected keys>, no minted property.
+  # The fragment contains exactly selected keys, using null for absence;
+  # null requests field removal subject to normal ledger validation. It may
+  # not edit id/type/group/status/owner or add unselected keys.
+  #
+  # Promotion compares semantic field values, including absence, against
+  # the saved base: unchanged private fields write nothing; current=base
+  # accepts the edit; current=desired is already applied; anything else is
+  # a conflict. done_when is one ordered field, not a per-check merge. A
+  # changed title updates an existing registry title atomically, comparing
+  # its separately captured base too. Other index fields and missing index
+  # entries are never manufactured. Preserve comments outside changed
+  # fields and task order. Changed check definitions cannot be applied to
+  # a now-done task or recreate checks its closure removed. Independent
+  # prose edits may merge after closure without reopening it.
+  #
+  # Re-resolve identity/domain; deletion, duplicate IDs or changed ledger
+  # layout require recreating the draft, never guessing another target.
+  # Validate the complete proposed ledger and current commit policy before
+  # writing; final normal hooks still run. Refusal keeps the private draft
+  # and remaining queue. A semantic no-op removes this draft without a
+  # commit. Generic file drafts and selection order are unchanged. Fixtures
+  # below install real hooks, commit valid setup and expose private copies
+  # only through CLI results; snapshots include the complete store/counter.
+  @ID-DRAFT-39 @slice-147 @wip
+  Scenario: task draft creation copies only selected committed fields without taking an agent's edits
+    Given a committed task-field draft fixture for "T-001"
+    And the task's staged and unstaged ledger contents differ from HEAD
+    And the minting state is saved for comparison
+    When itos runs the command line "draft edit task-spec --task T-001 --fields why,done_when -m 'docs: clarify task acceptance' --json"
+    Then itos exits with code 0
+    And its JSON's "draft.kind" is "task"
+    And its JSON's "draft.task" is "T-001"
+    And its JSON's "draft.fields" is ["why","done_when"]
+    And its JSON's "draft" has no property "minted"
+    And its JSON's "copies" names one private task fragment
+    And that fragment contains exactly the selected fields as HEAD holds them
+    And no queued command task check or project hook ran
+    And no additional ID was reserved
+    And the working tree index and HEAD match the saved minting state
+
+  @ID-DRAFT-40 @slice-147 @wip
+  Scenario: promoting edited task fields preserves unrelated closure registry metadata and comments
+    Given a committed task-field draft fixture with tasks "T-001,T-002"
+    And the task draft "task-spec" selects "title,why" for "T-001"
+    And its private fragment changes title and why
+    And a subsequent commit closes T-002 removes T-002's checks and changes T-001's owner and queue position
+    And that commit also changes T-001's unselected check definitions
+    And the repository state is saved for comparison
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And exactly one commit was added by the command
+    And T-001's ledger and existing registry titles equal the edited title
+    And only T-001's selected ledger fields changed after the saved commit
+    And T-002 stays done without checks
+    And the saved owner queue position unselected checks comments and task order are preserved
+    And the draft "task-spec" does not exist
+
+  @ID-DRAFT-41 @slice-147 @wip
+  Scenario Outline: conflicting edits to the same selected field keep the draft and apply nothing
+    Given a committed task-field draft fixture for "T-001"
+    And a task draft changes "<field>" from its base to a new value
+    And a subsequent commit changes "<field>" to a different value
+    And the draft store and repository state are saved for comparison
+    When itos runs "draft promote"
+    Then itos refuses the task draft naming "T-001" and "<field>"
+    And the draft store and repository match the saved state
+
+    Examples:
+      | field          |
+      | title          |
+      | why            |
+      | done_when      |
+      | registry title |
+
+  # Selected fields that the private copy did not actually change are
+  # ignored. An old unedited check list cannot resurrect removed checks.
+  @ID-DRAFT-42 @slice-147 @wip
+  Scenario: a prose-only task draft survives closure without restoring checks from its selected snapshot
+    Given a committed task-field draft fixture for "T-001"
+    And the task draft "task-spec" selects "why,done_when" for "T-001"
+    And its private fragment changes only why
+    And a subsequent commit closes T-001 and removes its checks
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And T-001 has the edited ledger why
+    And T-001 remains done with no done_when field
+    And the draft "task-spec" does not exist
+
+  @ID-DRAFT-43 @slice-147 @wip
+  Scenario: edited checks cannot reopen a task that closed while its draft waited
+    Given a committed task-field draft fixture for "T-001"
+    And the task draft "task-spec" changes T-001's done_when
+    And a subsequent commit closes T-001 and removes its checks
+    And the draft store and repository state are saved for comparison
+    When itos runs "draft promote"
+    Then itos refuses the task draft naming "T-001" and "done_when"
+    And the draft store and repository match the saved state
+
+  @ID-DRAFT-44 @slice-147 @wip
+  Scenario: a rejected task-title promotion restores both ledger and index data and retains the draft
+    Given a committed task-field draft fixture for "T-001"
+    And the task draft "task-spec" changes T-001's title
+    And a recording commit hook rejects the task-field promotion
+    And the draft store and repository state are saved for comparison
+    When itos runs "draft promote"
+    Then itos refuses the task draft naming the rejecting hook
+    And the rejecting task-field hook ran exactly once
+    And the draft store and repository match the saved state
+
+  @ID-DRAFT-45 @slice-147 @wip
+  Scenario Outline: invalid task-field selection creates no private copy or reservation
+    Given a committed task-field draft fixture for "T-001"
+    And the minting state is saved for comparison
+    When itos runs the command line "draft edit invalid -m 'docs: clarify task acceptance' <arguments>"
+    Then itos refuses the task draft naming "<diagnostic>"
+    And the minting state matches the saved state
+
+    Examples:
+      | arguments                                      | diagnostic |
+      | --task T-001                                   | fields     |
+      | --task T-001 --fields ''                       | fields     |
+      | --task T-001 --fields why,why                  | why        |
+      | --task T-001 --fields status                   | status     |
+      | --task T-001 --fields id                       | id         |
+      | --task T-001 --fields why notes.md             | paths      |
+      | --task T-999 --fields why                      | T-999      |
+      | --fields why notes.md                         | task       |
+
+  @ID-DRAFT-46 @slice-147 @wip
+  Scenario: an already-applied semantic field edit retires its draft without another commit
+    Given a committed task-field draft fixture for "T-001"
+    And the task draft "task-spec" changes T-001's why
+    And a subsequent commit independently applies exactly that desired why with different YAML formatting
+    And the repository files index and HEAD are saved for comparison
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And the draft "task-spec" does not exist
+    And the repository files index and HEAD match the saved state
+
+  @ID-DRAFT-47 @slice-147 @wip
+  Scenario: task-field promotion follows the configured ledger layout and preserves written check definitions
+    Given a committed task-field draft fixture for "T-001" with relocated ledger files
+    And the task draft "task-spec" selects "done_when" for "T-001"
+    And its private done_when is edited to:
+      """
+      - run: check-one
+        timeout: 4
+        prose: true
+        cost: static
+      - fails: check-two
+        after: push
+        timeout: 9
+      """
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And only the configured task entry receives exactly those ordered check definitions
+    And no default-layout ledger was created
+
+  @ID-DRAFT-48 @slice-147 @wip
+  Scenario: a stealth task-field draft merges configured private data without committing it
+    Given a committed task-field draft fixture for "T-001" using relocated stealth data
+    And the task draft "task-spec" changes T-001's why
+    And the repository files index and HEAD are saved for comparison
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And the configured stealth task has the edited why
+    And the draft "task-spec" does not exist
+    And the working tree index and HEAD match the saved state
+
+  @ID-DRAFT-49 @slice-147 @wip
+  Scenario Outline: invalid fragments or changed targets refuse promotion without losing the private draft
+    Given a committed task-field draft fixture for "T-001"
+    And the task draft "task-spec" selects "why,done_when" for "T-001"
+    And its pending task-field edit has "<problem>"
+    And the draft store and repository state are saved for comparison
+    When itos runs "draft promote"
+    Then itos refuses the task draft naming "<diagnostic>"
+    And the draft store and repository match the saved state
+
+    Examples:
+      | problem                                  | diagnostic |
+      | malformed private YAML                    | YAML       |
+      | an unselected title key in its fragment   | title      |
+      | a missing selected key in its fragment    | field      |
+      | a check containing both run and fails     | done_when  |
+      | duplicate task identities in the ledger   | T-001      |
+      | the target task deleted by a later commit | T-001      |
+      | changed effective ledger layout           | layout     |
+
+  @ID-DRAFT-50 @slice-147 @wip
+  Scenario: task-field draft creation shares pure commit-message preflight before creating copies
+    Given a committed task-field draft fixture for "T-001"
+    And its policy requires Upgrading on fixes
+    And the minting state is saved for comparison
+    When itos runs the command line "draft edit invalid --task T-001 --fields why -m 'fix: clarify task acceptance'"
+    Then itos refuses the task draft naming "Upgrading"
+    And no queued command task check or project hook ran
+    And the minting state matches the saved state
     When itos runs "draft promote"
     Then itos exits with code 0
     And both items exist with the later item depending on the earlier item
