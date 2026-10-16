@@ -8670,14 +8670,15 @@ items:
     kind: slice
     tags: [verify, tests]
 
-  - id: p1-push-watch-new-workflow
-    title: itos push waits through GitHub's 404 for a workflow its range adds, until ci.watch.timeout
+  - id: slice-153
+    title: Wait through registration 404s for a newly pushed workflow
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-push-watch-new-workflow.
       #56 (2026-10-12): the first push of .github/workflows/ci.yml gets a 404 on the workflow's runs
       until GitHub registers it, and itos push exits 3 at once; itos ci watch a little later waits
       normally. A 404 for a workflow the range adds is 'not registered yet', retried at
