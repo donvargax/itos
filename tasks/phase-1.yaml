@@ -1913,3 +1913,22 @@
     the random run remain separate backlog work. Use existing cheap unit selection and the normal
     push gate, not repeated full suites or local mutation experiments. A broad fixture change must
     cover each distinct fixture entry point it affects.
+
+- id: T-177
+  type: docs
+  title: Explain automatic wrapping of scenario-ID footers
+  why: >
+    Issue #64. Add concise guidance to internal/guide/commit.md explaining that --scenarios packs a
+    long ID list onto repeated configured scenario-footer lines within the supported line limit, and
+    a hand-written footer may repeat instead of exceeding that limit. Refer to the configured footer
+    key rather than assuming every project calls it Scenarios. Distinguish ID packing from free-text
+    Upgrading/BREAKING-CHANGE handling: current --upgrading does not automatically wrap long text,
+    so do not copy the report suggestion that it does. Preserve existing lint limits, footer
+    parsing, commit behavior, and config semantics. Review the emitted guide against a long nine-ID
+    example and the CLI help, with no new renderer or policy-text test. Existing guide conformance
+    checks confirm the shipped guide still renders; semantic accuracy is a review criterion. The
+    task is specification only until taken; its checks belong to normal automated acceptance, not an
+    extra coordinator verification run.
+  done_when:
+    - run: tools/bin/itos guide commit
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/guide.yaml
