@@ -10101,3 +10101,19 @@ items:
       borrowing a new command for old policy. No epoch segmentation or historical script checkout is
       chosen yet.
     refs: [internal/cli/verify.go]
+
+  - id: p1-proof-summary-provider-adoption
+    title: Adopt the common proof-summary envelope in the configured provider
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: [slice-164]
+    kind: idea
+    why: >
+      After slice-164, itos can report the common optional envelope, but an unchanged itos-cc
+      command does not yet promise that envelope. Specify native provider support or a thin
+      repository wrapper using verified provider metric meanings and preserving stdout/problem/exit
+      semantics. Do not infer functions or mutants by guessing the shape of files/judged arrays, and
+      do not claim issue #25 is fully visible to this consumer until adoption is covered. No
+      provider patch or wrapper is implemented in the specification phase.
+    refs: [itos.yaml, internal/proof/proof.go]
