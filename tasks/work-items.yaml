@@ -9404,14 +9404,15 @@ items:
     depends_on: []
     kind: task
 
-  - id: p1-ci-watch-progress
+  - id: slice-144
     title: Show meaningful job and step transitions during CI watches
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ci-watch-progress.
       Issue #79. Improve the existing background ci watch display while preserving exact-revision
       selection, required-job policy, timeout and all terminal success/failure/cancellation
       semantics. First delivery reports newly discovered jobs, queued versus in-progress status,
