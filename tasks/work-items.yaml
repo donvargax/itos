@@ -4188,6 +4188,25 @@ items:
       minting, restoration of all participating files on commit failure, and unchanged slice
       promotion. Reuse task add semantics for type, ordered run checks and per-check timeouts; do
       not redesign check schemas, draft replacement or slice promotion in this item.
+
+      Proposed concrete CLI for q-63: work promote <idea> --kind task --type <type> --check
+      <command> [--timeout <seconds>]... [--title <title>] [--why <why>]. Inherit the idea phase for
+      the ledger group and its title/why unless explicitly overridden; no cross-phase move is added.
+      Reuse task add's ordered run checks and positive per-check timeout rules. Task-only flags on
+      --kind slice are usage errors, not silently ignored. A missing type/check, empty required
+      value, malformed timeout or explicit caller ID is rejected before reservation. Semantic
+      config/type/group/registry/questions problems are also preflighted. Creating definitions must
+      never execute the supplied checks. The task's final why belongs in the new ledger entry under
+      ADR-0034; do not introduce a fresh registry copy. Preserve existing promotion metadata,
+      queue/reference rewrites and its ordinary/stealth commit behavior. Commit the ledger, registry
+      and any rewritten questions together, leaving unrelated staged files alone and restoring
+      participating files on failure. Reserved IDs are never recycled after a later hook failure.
+      Acceptance must pin the successful task as usable by its configured ledger footer,
+      default/overridden prose, order/timeouts, missing metadata and semantic failures before
+      reservation, commit rollback, stealth behavior and slice rejection of task-only flags. The old
+      registry-only bare-task promotion behavior is intentionally replaced; identify the released
+      cases it changes before choosing the implementation commit's compatibility footers. This is
+      still a definition outline; do not hand off before those cases and scenarios are attached.
     refs: [internal/work/write.go]
     tags: [work]
 
