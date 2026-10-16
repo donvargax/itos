@@ -298,3 +298,4 @@ questions:
   - id: q-73
     item: "p1-draft-promote-selection"
     question: "For #76, recommend explicit draft dependencies plus conservative independence checks: selected drafts run in stored order; refuse missing predecessors, reserved-ID dependencies and unknown command effects rather than assume independence. Start with known file/task-field drafts and supported command footprints, keeping no-argument ordered promotion. Should this be the contract, or should selection rely on declared dependencies alone and make independence the coordinator responsibility?"
+    answer: "Dependencies plus independence checks. Keep stored queue order for selected drafts; reject missing predecessors and uncertainty about skipped drafts or arbitrary command effects. Declared dependencies alone do not prove independence, and planning must not execute queued commands."
