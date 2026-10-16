@@ -6793,6 +6793,15 @@ items:
       file: none can change what an item's code does. A spec commit adding @wip scenarios to a
       feature file stays out, since a feature file is test code. The user agreed 2026-10-10; ranked
       before p1-decision-add-answer.
+
+      Issue #71 provides a concrete evidence-only lifecycle: T-80 implementation 094e634 had green
+      CI 38786410533, then ledger documentation commit 6710147 naming T-80 led to CI 38790254907
+      before closure. The original refusal transcript is absent, so this is reported friction rather
+      than a newly reproduced failure. q-70 remains a design question after explaining why accepting
+      all ledger-only changes would also cover changed checks or specifications. Do not implement
+      blanket ledger skipping or claim old green CI proves new acceptance criteria. Finalize the
+      evidence-recording/reuse boundary before this item becomes a slice; structural close/dequeue
+      is slice-142.
     refs: [internal/cli/workwrite.go]
 
   - id: p1-decision-add-answer
