@@ -9967,5 +9967,6 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [T-179]
     kind: task
+    refs: [README.md, internal/cli/help.go, internal/plan/data.go, internal/proof/proof.go]
