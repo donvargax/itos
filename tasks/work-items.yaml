@@ -10063,3 +10063,16 @@ items:
       execution, preserving private stealth configs and policy files read only as import input.
       Shared external metadata and per-branch planning are separate designs.
     refs: [internal/config/config.go, internal/config/stealth.go, internal/config/top.go]
+
+  - id: p1-tests-run-local
+    title: Run explicitly selected live tests from the working tree
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #58, q-82: a plain runner for explicit live IDs or a built-in Gherkin item tag first,
+      using existing configured selection. No WIP guarantee, red-proof interpretation, automatic
+      commits, stashing or worktrees. The original idea retains WIP and red-first policy design.
+    refs: [internal/tests/run.go, internal/tests/gherkin.go, internal/cli/tests.go]
