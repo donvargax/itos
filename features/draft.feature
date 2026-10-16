@@ -258,3 +258,105 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     When itos runs the command line "work add --kind slice --title 'Another' --why 'Because.'"
     Then itos exits with code 0
     And its output says "slice-3"
+
+  # Slice 139 (#78): creation checks decidable commit metadata before
+  # taking changes out of the tree or creating private copies. The fixture
+  # commits a policy requiring Scenarios and Upgrading on fix commits.
+  # Message-taking When steps pass the doc string as one -m argument to
+  # draft edit/add, not through shell interpolation.
+  # Existence of future IDs, path/range rules and arbitrary external lint
+  # execution remain outside creation-time metadata checking.
+  @ID-DRAFT-19 @slice-139 @wip
+  Scenario: draft edit rejects a missing required upgrading footer before creating copies
+    Given a committed draft policy requiring scenario and upgrading footers for fixes
+    And the draft store and repository state are saved for comparison
+    When itos creates an edit draft named "missing-upgrade" for "features/a.feature" with this message:
+      """
+      fix: complete the snapshot specification
+
+      Scenarios: ID-A-01
+      """
+    Then itos exits with code 1
+    And its output says "Upgrading"
+    And the draft "missing-upgrade" does not exist
+    And the draft store and repository match the saved state
+
+  @ID-DRAFT-20 @slice-139 @wip
+  Scenario: invalid change-draft metadata leaves the caller's working changes and staging intact
+    Given a committed draft policy requiring scenario and upgrading footers for fixes
+    And the committed file "notes.md" holding "Old."
+    And the file "notes.md" is changed to hold "New."
+    And an unrelated change to "WORK.md" is staged
+    And the draft store and repository state are saved for comparison
+    When itos creates a change draft named "missing-upgrade" for "notes.md" with this message:
+      """
+      fix: clarify the acceptance notes
+
+      Scenarios: ID-A-01
+      """
+    Then itos exits with code 1
+    And its output says "Upgrading"
+    And the file "notes.md" says "New."
+    And the draft store and repository match the saved state
+
+  @ID-DRAFT-21 @slice-139 @wip
+  Scenario: draft creation diagnoses an absent required ID footer without resolving its IDs
+    Given a committed draft policy requiring scenario and upgrading footers for fixes
+    And the draft store and repository state are saved for comparison
+    When itos creates an edit draft named "missing-link" for "features/a.feature" with this message:
+      """
+      fix: complete the snapshot specification
+
+      Upgrading: none
+      """
+    Then itos exits with code 1
+    And its output says "Scenarios"
+    And the draft store and repository match the saved state
+
+  # Guard: a valid message can name a scenario the draft will introduce.
+  # The fixture's hooks, adapter and checks each record any execution; none
+  # may run just to prepare a private draft. Expected to pass before the slice.
+  @ID-DRAFT-22 @slice-139 @guard @wip
+  Scenario: syntactically complete draft metadata can refer to future IDs without running external validators
+    Given a committed draft policy requiring scenario and upgrading footers for fixes
+    And the draft policy has recording hooks adapters and task checks
+    And the draft store and repository state are saved for comparison
+    When itos creates an edit draft named "future-scenario" for "features/a.feature" with this message:
+      """
+      fix: introduce the missing snapshot case
+
+      Scenarios: ID-FUTURE-01
+      Upgrading: none
+      """
+    Then itos exits with code 0
+    And the draft "future-scenario" exists
+    And no external draft validator ran
+    And the working tree and index match the saved state
+
+  # Guard: sources and in_place_of decide substitution, not the key's name.
+  @ID-DRAFT-23 @slice-139 @guard @wip
+  Scenario: metadata preflight accepts a custom registry footer that satisfies the required ledger footer
+    Given a committed draft policy whose registry footer "Work" substitutes for "Task" on test commits
+    When itos creates an edit draft named "test-steps" for "notes.md" with this message:
+      """
+      test: scaffold the snapshot assertions
+
+      Work: future-slice
+      """
+    Then itos exits with code 0
+    And the draft "test-steps" exists
+
+  # Guard: early success cannot waive the policy in effect at promotion.
+  # The complete draft fixture has valid changed contents and a valid
+  # message under its original policy. The new policy is committed, so a
+  # dirty-tree refusal cannot masquerade as the intended metadata failure.
+  @ID-DRAFT-24 @slice-139 @guard @wip
+  Scenario: promotion revalidates a message after the committed footer policy changes
+    Given a complete edit draft named "snapshot-spec" whose message passes the committed draft policy
+    And the draft policy now requires a "Migration" footer and that policy change is committed
+    And the repository state is saved for comparison
+    When itos runs "draft promote"
+    Then itos exits with code 1
+    And its output says "Migration"
+    And the draft "snapshot-spec" exists
+    And the repository files index and HEAD match the saved state
