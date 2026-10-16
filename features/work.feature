@@ -1582,3 +1582,152 @@ Feature: The work registry
     And its JSON's "changed" is ["T-001","slice-1","T-002"]
     And its JSON's "commit" is null
     And the working tree index and HEAD match the saved completion state
+
+  # Slice 149 (#62), after batch completion: work done <idea>... --by
+  # <completed-item> records explicit absorption, not abandonment. Sources
+  # must be ideas; the target must be a distinct done task/slice/bug. No
+  # inference from matching prose and no automatic closure of other ideas.
+  # All existing registry invariants still apply. Preserve source owners
+  # and dependencies; mark done, remove source why and dequeue atomically.
+  # Add absorbed_by=<target> to each source. Do not rerun the completed
+  # target's checks/CI or claim a fresh implementation proof for the idea.
+  # Ordinary completion without --by retains its current implementation
+  # gates, and --by cannot close unfinished concrete work.
+  #
+  # Registry validation accepts absorbed_by only on a done idea pointing
+  # to an existing done concrete item. Same target on a repeated close is
+  # unchanged; a different/absent historical relation cannot be reassigned
+  # through this command. Single-item JSON uses item/commit; batches retain
+  # ordered items/changed/results and one commit. Absorption results carry
+  # id, changed and absorbed_by, without fabricated ci/run fields.
+  # Work show prints the source relationship and lists the target's
+  # absorbed_ideas as registry-ordered IDs in JSON, omitted when none.
+  #
+  # Fixtures commit valid setup before installing actual hooks. Deliberate
+  # future-format/corrupt registry Givens write data directly, not through
+  # the unimplemented command. A recording fake CI and a completed target's
+  # legacy retained marker check detect unintended replay. Hook rejection
+  # cases reach a real hook and snapshot the full registry/index/HEAD.
+  @ID-WORK-129 @slice-149 @wip
+  Scenario: an explicit completed-work link closes an absorbed idea without pretending it implemented a new slice
+    Given a committed absorption fixture with queued idea "p1-extra" and completed task "T-001"
+    And the completion state is saved for comparison
+    When itos runs "work done p1-extra"
+    Then itos refuses completion naming "idea"
+    And the registry ledger queue index and HEAD match the saved completion state
+    When itos runs "work done p1-extra --by T-001 --json"
+    Then itos exits with code 0
+    And exactly one commit was added after the saved state
+    And the idea "p1-extra" is done with absorbed_by "T-001"
+    And its old why is removed and it is not queued
+    And its owner and dependencies remain unchanged
+    And its JSON's "item.absorbed_by" is "T-001"
+    And its JSON's "commit" identifies that close commit
+    And the close body names the absorbed idea and completed target
+    And no completed-target acceptance check or CI lookup ran
+    And no ledger data was changed
+
+  @ID-WORK-130 @slice-149 @wip
+  Scenario: one explicit batch closes selected absorbed ideas and frees their dependents
+    Given a committed absorption fixture with queued ideas "p1-first,p1-second,p1-unselected" and completed task "T-001"
+    And another todo item depends on "p1-first"
+    And the completion state is saved for comparison
+    When itos runs "work done p1-second p1-first --by T-001 --json"
+    Then itos exits with code 0
+    And exactly one commit was added by the command
+    And both selected ideas are done with absorbed_by "T-001" and are not queued
+    And its JSON lists items and results in the order "p1-second,p1-first"
+    And its JSON's "changed" is ["p1-second","p1-first"]
+    And no absorption result claims a new successful CI run
+    And "p1-unselected" and the dependent item's status remain unchanged
+    And the dependent item is no longer blocked by "p1-first"
+
+  # The fixture supplies existing objects in each named state. Unknown
+  # target is deliberately absent. Every other input is valid, so a
+  # diagnostic must identify the actual invalid source/target condition.
+  @ID-WORK-131 @slice-149 @wip
+  Scenario Outline: invalid absorption never partially closes a batch or bypasses concrete work gates
+    Given a committed absorption fixture for "<sources>" and target "<target>" with "<condition>"
+    And the completion state is saved for comparison
+    When itos runs "work done <sources> --by <target> --json"
+    Then itos refuses absorption for "<condition>"
+    And the registry ledger queue index and HEAD match the saved completion state
+
+    Examples:
+      | sources          | target      | condition                    |
+      | p1-a p1-b        | T-999       | unknown target               |
+      | p1-a p1-b        | T-002       | target still doing           |
+      | p1-a p1-b        | T-003       | target dropped               |
+      | p1-a             | p1-previous | target is another idea       |
+      | p1-a             | p1-a        | source is its own target     |
+      | slice-1          | T-001       | source is a concrete slice   |
+      | T-002            | T-001       | source is a concrete task    |
+      | p1-a p1-deferred | T-001       | a source is deferred         |
+      | p1-a p1-dropped  | T-001       | a source is dropped          |
+
+  @ID-WORK-132 @slice-149 @wip
+  Scenario: inspection exposes absorption in both directions without rewriting historical reasons
+    Given a committed absorption fixture with ideas "p1-first,p1-second" absorbed by completed task "T-001"
+    And the repository files index and HEAD are saved for comparison
+    When itos runs "work show T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "absorbed_ideas" is ["p1-first","p1-second"]
+    When itos runs "work show p1-first"
+    Then itos exits with code 0
+    And its output identifies "T-001" as the work that absorbed this idea
+    When itos runs "work show p1-first --json"
+    Then itos exits with code 0
+    And its JSON's "item.absorbed_by" is "T-001"
+    And the repository files index and HEAD match the saved state
+
+  @ID-WORK-133 @slice-149 @wip
+  Scenario: repeated absorption is a no-op and cannot silently rewrite who completed the idea
+    Given a committed absorption fixture with idea "p1-extra" absorbed by completed task "T-001"
+    And another concrete task "T-002" is done
+    And the completion state is saved for comparison
+    When itos runs "work done p1-extra --by T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "commit" is null
+    And the registry ledger queue index and HEAD match the saved completion state
+    When itos runs "work done p1-extra --by T-002 --json"
+    Then itos refuses absorption for changing its existing target
+    And the registry ledger queue index and HEAD match the saved completion state
+
+  @ID-WORK-134 @slice-149 @wip
+  Scenario Outline: registry validation rejects dangling or semantically invalid absorption relationships
+    Given a committed absorption fixture whose absorbed_by relation has "<condition>"
+    When itos runs "work check --json"
+    Then itos exits with code 1
+    And a reported problem has rule "work-absorption"
+    And that problem identifies the source and invalid target or state
+
+    Examples:
+      | condition                       |
+      | a missing target                |
+      | a target not yet done           |
+      | a target that is an idea        |
+      | a source not yet done           |
+      | a source that is a task         |
+      | a non-string target value       |
+
+  @ID-WORK-135 @slice-149 @wip
+  Scenario: a rejected absorption commit restores every source and its queue placement
+    Given a committed absorption fixture with queued ideas "p1-first,p1-second" and completed task "T-001"
+    And a recording commit hook rejects the combined absorption close
+    And an unrelated change to "NOTES.md" is staged
+    And the completion state is saved for comparison
+    When itos runs "work done p1-first p1-second --by T-001"
+    Then itos refuses completion naming the rejecting hook
+    And the closure hook ran exactly once
+    And the registry ledger queue index and HEAD match the saved completion state
+
+  @ID-WORK-136 @slice-149 @wip
+  Scenario: stealth absorption writes the configured registry without committing or altering the completed task
+    Given a committed absorption fixture with queued idea "p1-extra" and completed task "T-001" using relocated stealth data
+    And the completion state is saved for comparison
+    When itos runs "work done p1-extra --by T-001 --json"
+    Then itos exits with code 0
+    And the configured idea is done with absorbed_by "T-001" and is not queued
+    And its JSON's "commit" is null
+    And the completed task and its ledger data are unchanged
+    And the working tree index and HEAD match the saved completion state
