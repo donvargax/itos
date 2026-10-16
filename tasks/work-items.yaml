@@ -9138,3 +9138,28 @@ items:
       promotion using the retained ID. Depends on the shared preflight contract in
       p1-draft-checks-before-minting; not yet promoted or specified as scenarios.
     refs: [internal/cli/draft.go, internal/cli/draftmint.go, internal/draft, features/draft.feature]
+
+  - id: p1-draft-message-preflight
+    title: Draft creation diagnoses commit metadata that can be checked without applying the draft
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #78. Definition outline: draft edit and change-style draft add validate known commit
+      metadata before creating copies, capturing changes or changing draft state. Check the
+      configured commit type and syntactic required footer presence, including in_place_of, using
+      the current message parser and pure policy rules; diagnose missing Upgrading and missing link
+      footers immediately. Do not require referenced future scenarios/tasks to exist at creation
+      time or claim the unapplied tree passed path/range checks. Do not run project hooks, check
+      commands, adapters or delegated lint commands merely to prepare a draft. Retain full
+      authoritative hooks and tree-dependent checks at promotion; a later policy change may
+      legitimately invalidate a previously valid draft. Outside a configured repository, retain
+      existing config behavior. Acceptance covers missing Upgrading on fix, valid message,
+      substitution footers, custom footer names, references intentionally introduced by prior queued
+      drafts, unchanged working tree/index/draft store on refusal, and promotion revalidation after
+      config changes. This is separate from command preflight before minting (#46), replacement,
+      selective promotion and field-scoped rebasing. Any expansion to external lint execution
+      requires a separate decision.
+    refs: [internal/cli/draft.go, internal/message/written.go, features/draft.feature]
