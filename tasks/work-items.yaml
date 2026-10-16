@@ -9489,6 +9489,8 @@ items:
       change with the planned next major rather than releasing a major immediately. The task
       authority change remains the companion p1-work-show-why-once.
     refs: [internal/work/show.go, internal/work/write.go, internal/cli/workwrite.go, internal/guide/brief.md, features/work.feature]
+    deferred: >
+      Wait for the planned next major, as agreed in q-71.
 
   - id: p1-draft-task-fields
     title: Draft task fields without overwriting unrelated ledger updates
