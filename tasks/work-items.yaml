@@ -8961,14 +8961,15 @@ items:
     tags: [work]
     refs: [internal/cli/workdone.go, internal/work/write.go, internal/work/registry.go, internal/work/show.go, features/work.feature]
 
-  - id: p1-upgrade-names-action-uses
-    title: "itos upgrade moves or names the workflows' uses: donvargax/itos lines, and says the pin decides"
+  - id: slice-150
+    title: "Report workflow action refs and explain runtime pin selection during upgrade"
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-upgrade-names-action-uses.
       #63 (2026-10-12): after itos upgrade 8.3.0 a consumer's workflows still launched the action at
       v8.0.1's commit, and nothing named those lines. The action installs the launcher and the
       repository's pin chooses the itos that runs (action.yml's header, ADR-0024), so the old line
