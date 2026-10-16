@@ -9348,7 +9348,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [bug-111]
     kind: slice
     why: >
       Was p1-work-completion-transaction.
