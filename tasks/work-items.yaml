@@ -9502,3 +9502,26 @@ items:
       editing acceptance. This is a request for finer granularity, not evidence of reproduced silent
       data loss.
     refs: [internal/cli/draft.go, internal/draft, internal/ledger, features/draft.feature]
+
+  - id: p1-draft-promote-selection
+    title: Promote selected independent drafts while preserving dependencies
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #76. Add explicit selection to promotion while keeping no-argument ordered promotion.
+      Selection order must follow stored queue order, not caller argument order. Unknown/duplicate
+      selection and unsatisfied selected/unselected dependencies must refuse before applying
+      anything; after execution begins retain the existing stop-on-first-failure behavior for the
+      selected sequence and keep unselected drafts untouched. A later draft referencing a minted ID
+      held by an unselected predecessor is not independent. Whole-file patches and arbitrary command
+      drafts cannot be assumed independent from IDs alone; define declared dependencies plus a
+      conservative scope proof or explicit review model before allowing reordering. Need a product
+      choice for this dependency/independence interface; a prefix-only operation does not satisfy
+      the report's desired independent selection by itself. No arbitrary command execution during
+      planning, hook bypass, draft-metadata hand edits or rollback of previously successful commits.
+      Coordinate with slice-140's bounded assurance and p1-draft-task-fields, without treating
+      either as a general projected-queue simulator.
+    refs: [internal/cli/draft.go, internal/draft, features/draft.feature]
