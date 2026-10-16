@@ -4178,6 +4178,16 @@ items:
       #54 (2026-10-12): a consumer met it on the guide's documented path, work promote <idea> --kind
       task, then itos commit --task T-2 refused with unknown tasks: T-2. Promote writes the ledger
       entry, or refuses --kind task and points at task add.
+
+      2026-10-15, q-63: the user selected option 1. The conversion interface is work promote <idea>
+      --kind task, extended with the required task type and checks. Validate before minting, then
+      create the ledger entry and rewrite the registry, dependencies and linked questions in one
+      commit. This supersedes the older alternatives of task add --from or a registry-only task
+      promotion. Acceptance must cover a usable ledger-backed task whose ID works in Task footers,
+      preserved idea metadata and reference rewrites, rejected invalid task definitions before
+      minting, restoration of all participating files on commit failure, and unchanged slice
+      promotion. Reuse task add semantics for type, ordered run checks and per-check timeouts; do
+      not redesign check schemas, draft replacement or slice promotion in this item.
     refs: [internal/work/write.go]
     tags: [work]
 
