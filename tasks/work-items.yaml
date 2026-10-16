@@ -9587,3 +9587,20 @@ items:
       while dependents remain. Final hooks and normal partial-progress behavior remain authoritative
       after execution starts.
     refs: [internal/cli/draft.go, internal/draft, features/draft.feature]
+
+  - id: p1-ci-step-whole-inert
+    title: Resolve the accepted but unused ci.steps whole flag
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      #57 specification audit (2026-10-15): internal/config/schema.go accepts ci.steps[].whole and
+      describes forcing every test of a kind; config.Step stores it, but plan.stepOf never reads it
+      and plan.Make replaces test-kind commands with range-selected commands. This is distinct from
+      making existing step forms discoverable. Decide whether to remove the inert option in the
+      planned next major or implement its declared effect, including merge, prose, and nightly
+      semantics. Do not teach whole:true as effective in help until settled. Source inspection only;
+      no runtime regression reproduced yet.
+    refs: [internal/config/schema.go, internal/config/types.go, internal/plan/plan.go]
