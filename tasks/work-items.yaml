@@ -6074,14 +6074,15 @@ items:
     depends_on: []
     kind: idea
 
-  - id: p1-tests-list-format
-    title: itos tests list has a form itos-cc mutation.tests.list reads as is
+  - id: slice-154
+    title: List live named tests as project-relative TSV for external tools
     phase: 1
     owner: null
     status: todo
     depends_on: [T-120]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-tests-list-format.
       Issue #22: itos-cc v0.5.0 reads mutation.tests.list as one test a line, its ID, a tab and its
       file from the project root, but itos tests list scenario prints two spaces and the file
       relative to the kinds root, so every machine running mutation needs jq and 2>/dev/null to hide
