@@ -10023,3 +10023,16 @@ items:
     depends_on: [slice-138]
     kind: task
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/commit.md]
+
+  - id: p1-init-local-rules-default
+    title: Write local agent rules by default on fresh init
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #30, q-78: fresh init defaults local agent rules on in the selected mode;
+      --no-agent-rules opts out, reruns retain explicit rewrite, and plugin/global Git shim stay
+      opt-in. Split this concrete default from the broader command-default audit.
+    refs: [internal/cli/init.go, internal/cli/initrules.go, internal/cli/initrulesstealth.go, features/init.feature]
