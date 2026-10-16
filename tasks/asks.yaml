@@ -273,3 +273,6 @@ questions:
     item: "p1-work-show-why-once"
     question: "Task inspection, q-64/#75: removing the older item.why from task JSON intentionally changes machine output, which ADR-0035 treats as contract even though the property is already conditional. Recommend delivering the complete text-and-JSON change in the planned next major bundle; alternatively let this change trigger the next major as soon as it is ready. Both preserve the decision to omit historical wording. Which release timing should the item specify?"
     answer: "Join the planned next major release, as the user selected. Keep the complete authoritative-description change in text and JSON together; do not trigger a major release solely to deliver it sooner. This does not defer the separate additive current-check display in slice-136."
+  - id: q-67
+    item: "p1-guard-follows-cd"
+    question: "Guard directory tracking (#34/#69): recommend a first delivery limited to literal cd in unambiguous && chains, with nested-shell isolation and existing git -C support. This fixes both reported directions without guessing whether a failed cd changed directory. Alternative: also analyze semicolon/conditional/OR branches, conservatively denying when any statically possible target is managed; that adds scope and may retain false-positive denials. Which scope should the first delivery cover?"
