@@ -1169,3 +1169,119 @@ Feature: The work registry
     Then itos exits with code 0
     When itos runs "decision show q-1"
     Then its output says "slice-1"
+
+  # Slice 138 (#54, q-63): task promotion creates a usable ledger task in
+  # the same commit as the rename and reference rewrites. --type and at
+  # least one --check are required; --timeout follows its own check.
+  # Group/title/why come from the idea, with --title/--why overrides.
+  # The final why belongs in the ledger, not a new registry copy.
+  # Task-only flags on slice promotion are errors. Preflight never runs
+  # check commands and rejects invalid input before reserving an ID.
+  # A later hook failure may leave a reserved-number gap (ADR-0045).
+  #
+  # The fixture below commits a valid idea in phase 1, declares any people
+  # and tags it uses, supplies completed dependencies, and records its
+  # initial metadata. It also supplies a queued position, a dependent item
+  # and a linked question so every reference rewrite is observable.
+  @ID-WORK-104 @slice-138 @wip
+  Scenario: task promotion creates the ledger entry and preserves the idea's metadata and references
+    Given a committed task-promotion fixture for the idea "p1-archive"
+    When itos runs "work promote p1-archive --kind task --type build --check 'echo archive > promotion-check-marker' --json"
+    Then itos exits with code 0
+    And its JSON's "item.kind" is "task"
+    And the promoted ledger task has type "build" and the idea's title and why
+    And the promoted item preserves the idea's phase owner dependencies refs tags and queue position
+    And every dependency and question naming "p1-archive" names the promoted task instead
+    And the promoted registry item has no why copy
+    And a commit message naming the promoted task passes its configured ledger-footer check
+    And the file "promotion-check-marker" does not exist
+
+  @ID-WORK-105 @slice-138 @wip
+  Scenario: task promotion accepts a current specification and ordered checks with per-check timeouts
+    Given a committed task-promotion fixture for the idea "p1-archive"
+    When itos runs "work promote p1-archive --kind task --type build --title 'Build reviewed archives' --why 'Package the reviewed inputs.' --check 'echo first' --timeout 9 --check 'echo second' --timeout 11 --json"
+    Then itos exits with code 0
+    And the promoted ledger task has title "Build reviewed archives" and why "Package the reviewed inputs."
+    And the promoted ledger task's checks equal:
+      """
+      [{"run":"echo first","timeout":9},{"run":"echo second","timeout":11}]
+      """
+    And the promotion commit contains the ledger registry and rewritten questions together
+
+  # Task-only slice flags and malformed timeout cases are regression guards
+  # inside the outline; their existing rejection must remain unchanged.
+  @ID-WORK-106 @slice-138 @wip
+  Scenario Outline: invalid promotion arguments change neither the repository nor the ID counter
+    Given a committed task-promotion fixture for the idea "p1-archive"
+    And the promotion state is saved for comparison
+    When itos runs "work promote p1-archive --kind <kind> <arguments>"
+    Then itos exits with code 2
+    And the promotion files index HEAD and ID counter match the saved state
+
+    Examples:
+      | kind  | arguments                                  |
+      | task  |                                            |
+      | task  | --type build                               |
+      | task  | --check true                               |
+      | task  | --type build --check ''                     |
+      | task  | --type build --timeout 9 --check true       |
+      | task  | --type build --check true --timeout 0       |
+      | task  | --type build --check true --timeout invalid |
+      | task  | --type build --check true --id T-999        |
+      | slice | --type build --check true                  |
+
+  # Each defect is deliberately committed before the snapshot, so refusal
+  # must preserve that input rather than silently repair the fixture.
+  @ID-WORK-107 @slice-138 @wip
+  Scenario Outline: semantic promotion failures are reported before reserving a task ID
+    Given a committed task-promotion fixture for the idea "p1-archive"
+    And the promotion fixture has "<problem>"
+    And the promotion state is saved for comparison
+    When itos runs "work promote p1-archive --kind task --type <type> --check true"
+    Then itos exits with code 1
+    And the promotion files index HEAD and ID counter match the saved state
+
+    Examples:
+      | problem                                  | type        |
+      | an undeclared commit type                | undeclared  |
+      | an idea phase outside the ledger pattern | build       |
+      | an unknown dependency                    | build       |
+      | an unreadable linked questions file      | build       |
+      | an unstaged edit to the target ledger    | build       |
+
+  # The hook records that it ran, then refuses the final promotion commit.
+  # This must reach Git; a parser refusal cannot satisfy the scenario.
+  @ID-WORK-108 @slice-138 @wip
+  Scenario: a rejected promotion commit restores all participating files and leaves unrelated staging alone
+    Given a committed task-promotion fixture for the idea "p1-archive"
+    And a configured hook that records and rejects promotion commits
+    And an unrelated change to "NOTES.md" is staged
+    And the promotion state is saved for comparison
+    When itos runs "work promote p1-archive --kind task --type build --check true"
+    Then itos exits with code 1
+    And the rejecting promotion hook ran
+    And the promotion files index and HEAD match the saved state
+
+  # The stealth setup relocates config, ledger, registry and questions
+  # together, so the default worktree ledger cannot satisfy the assertions.
+  @ID-WORK-109 @slice-138 @wip
+  Scenario: promotion under a stealth config writes the complete task and references without a commit
+    Given a committed task-promotion fixture for the idea "p1-archive"
+    And the promotion fixture uses a stealth config
+    And the promotion state is saved for comparison
+    When itos runs "work promote p1-archive --kind task --type build --check true --json"
+    Then itos exits with code 0
+    And the configured stealth ledger contains the promoted task
+    And every dependency and question naming "p1-archive" names the promoted task instead
+    And its JSON's "commit" is null
+    And HEAD and the working tree are unchanged by the promotion
+
+  # Guard: ordinary slice promotion already works and must remain usable
+  # without task metadata. This case is expected to pass before the slice.
+  @ID-WORK-110 @slice-138 @guard @wip
+  Scenario: slice promotion continues without task fields and creates no ledger entry
+    Given a committed task-promotion fixture for the idea "p1-archive"
+    When itos runs "work promote p1-archive --kind slice --json"
+    Then itos exits with code 0
+    And its JSON's "item.kind" is "slice"
+    And the promoted slice has no ledger entry
