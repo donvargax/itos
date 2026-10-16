@@ -1471,3 +1471,114 @@ Feature: The work registry
     And its JSON's "commit" is null
     And any emitted queue_commit is null
     And the working tree index and HEAD match the saved completion state
+
+  # Slice 143 (#70), after slice 142: work done <id>... is all-or-nothing.
+  # Parse and validate every target before any write; perform landing gates
+  # in input order and preserve their existing failure/temporary exit codes.
+  # No dependency or absorbed idea is implicitly included. Re-read and
+  # revalidate all targets after waits, as in slice 142. Shared task checks
+  # use only the task runner's existing command/timeout identity rules.
+  # New multi-item success JSON has schema, ok, items in distinct input
+  # order, changed IDs, queue, one commit and results in input order.
+  # Each result has id and changed; a validated changing item additionally
+  # has the existing ci/run/superseded fields. Already-done items get no
+  # fabricated fresh validation result. Single-item JSON stays unchanged.
+  @ID-WORK-122 @slice-143 @wip
+  Scenario: a mixed batch closes every validated item with one shared commit
+    Given a committed batch-landing fixture for the queued items "T-001,slice-1,T-002"
+    And an unrelated item is also queued
+    And the completion state is saved for comparison
+    When itos runs "work done T-001 slice-1 T-002 --json"
+    Then itos exits with code 0
+    And exactly one commit was added by the command
+    And the last commit's header is "docs: close T-001, slice-1, T-002"
+    And all three items are done with only their current task checks removed
+    And the unrelated queued item and ledger entries are unchanged
+    And its JSON lists items and results in the order "T-001,slice-1,T-002"
+    And its JSON's "changed" is ["T-001","slice-1","T-002"]
+    And its JSON's "commit" identifies the shared close commit
+    And every changed item's result identifies its own successful validation
+    And the close body records each item's validation and pre-close check-definition revision
+
+  # Each defect belongs only to T-002; T-001 is otherwise closable. The
+  # assertion must reach the named gate rather than fail on an invalid
+  # fixture or on parsing the newly supported second positional argument.
+  @ID-WORK-123 @slice-143 @wip
+  Scenario Outline: one invalid member prevents every batch mutation
+    Given a committed batch-landing fixture for the queued items "T-001,T-002"
+    And only "T-002" has completion defect "<defect>"
+    And the completion state is saved for comparison
+    When itos runs "work done T-001 T-002 --json"
+    Then the completion batch refuses "T-002" for "<defect>"
+    And the registry ledger queue index and HEAD match the saved completion state
+
+    Examples:
+      | defect                     |
+      | unknown item               |
+      | dropped item               |
+      | owned by another person    |
+      | live work still marked wip |
+      | unpublished implementation |
+      | failing acceptance check   |
+
+  @ID-WORK-124 @slice-143 @wip
+  Scenario: a sibling's green CI cannot close an item with its own red required run
+    Given a committed batch-landing fixture for the queued items "T-001,T-002"
+    And their own implementation revisions have distinct configured CI runs
+    And only T-001's required run succeeds while T-002's required run fails
+    And the completion state is saved for comparison
+    When itos runs "work done T-001 T-002 --json"
+    Then the completion batch refuses "T-002" for its failed CI
+    And the registry ledger queue index and HEAD match the saved completion state
+
+  @ID-WORK-125 @slice-143 @wip
+  Scenario: already-done members remain unchanged and a repeated completed batch adds no commit
+    Given a committed batch-landing fixture where "T-001" is already done and "T-002" is closable
+    When itos runs "work done T-001 T-002 --json"
+    Then itos exits with code 0
+    And exactly one commit was added by the command
+    And its JSON's "changed" is ["T-002"]
+    And the result for "T-001" is unchanged with no new validation claim
+    Given the completion state is saved for comparison
+    When itos runs "work done T-001 T-002 --json"
+    Then itos exits with code 0
+    And its JSON's "changed" is []
+    And its JSON's "commit" is null
+    And the registry ledger queue index and HEAD match the saved completion state
+
+  # The sibling parser rejects duplicates; its comment saying each once
+  # is not a promise to silently deduplicate the supplied arguments.
+  @ID-WORK-126 @slice-143 @wip
+  Scenario: a repeated ID is a usage refusal before checking or closing any item
+    Given a committed batch-landing fixture for the queued items "T-001,T-002"
+    And the completion state is saved for comparison
+    When itos runs "work done T-001 T-002 T-001"
+    Then itos exits with code 2
+    And its output says "T-001"
+    And no completion check or CI provider ran
+    And the registry ledger queue index and HEAD match the saved completion state
+
+  # Place the two tasks in distinct configured ledger files, so a rollback
+  # that repairs only one task file cannot satisfy the snapshot comparison.
+  @ID-WORK-127 @slice-143 @wip
+  Scenario: a hook-rejected batch restores every ledger file and caller staging
+    Given a committed batch-landing fixture for the queued items "T-001,T-002" in separate ledger files
+    And a recording commit hook rejects the combined closure
+    And an unrelated change to "NOTES.md" is staged
+    And the completion state is saved for comparison
+    When itos runs "work done T-001 T-002"
+    Then itos refuses completion naming the rejecting hook
+    And the closure hook ran exactly once
+    And the registry all ledgers queue index and HEAD match the saved completion state
+
+  @ID-WORK-128 @slice-143 @wip
+  Scenario: a stealth batch writes every configured closure together without making a commit
+    Given a committed batch-landing fixture for the queued items "T-001,slice-1,T-002" using relocated stealth data
+    And the completion state is saved for comparison
+    When itos runs "work done T-001 slice-1 T-002 --json"
+    Then itos exits with code 0
+    And all three items are done with only their current task checks removed
+    And none of the three items remains queued
+    And its JSON's "changed" is ["T-001","slice-1","T-002"]
+    And its JSON's "commit" is null
+    And the working tree index and HEAD match the saved completion state
