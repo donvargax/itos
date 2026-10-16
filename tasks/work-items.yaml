@@ -8682,7 +8682,21 @@ items:
       until GitHub registers it, and itos push exits 3 at once; itos ci watch a little later waits
       normally. A 404 for a workflow the range adds is 'not registered yet', retried at
       ci.watch.interval; exit 3 only when the timeout passes.
+
+      First delivery: only itos push can grant registration grace from its captured post-rebase
+      remote base and exact pushed SHA. A literal configured workflow basename ending .yml/.yaml is
+      eligible when absent at the known remote base and present as a regular workflow blob at the
+      pushed SHA; a genuinely new branch uses the empty tree. Unknown history, numeric or
+      unsupported workflow identifiers, an already-existing workflow, or uncommitted-only files do
+      not establish grace. Until the first successful workflow-runs response, only HTTP 404 from
+      that exact workflow-runs listing is treated as not yet available. It does not count toward six
+      consecutive transport failures and uses the existing interval and overall deadline; timeout is
+      75 under current watch semantics, not the issue suggestion of 3. Other endpoints and permanent
+      errors retain their existing behavior. Standalone ci watch has no push-range proof and retains
+      existing 404 behavior. No new config, retry switch, extra remote fetch, push retry or policy
+      change.
     tags: [ci, push]
+    refs: [features/watch-registration.feature, internal/cli/push.go, internal/cli/watch.go, internal/providers/watch.go]
 
   - id: slice-151
     title: Explain CI step forms and range inputs in CLI help and defaults examples
