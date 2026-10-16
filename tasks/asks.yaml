@@ -276,6 +276,7 @@ questions:
   - id: q-67
     item: "p1-guard-follows-cd"
     question: "Guard directory tracking (#34/#69): recommend a first delivery limited to literal cd in unambiguous && chains, with nested-shell isolation and existing git -C support. This fixes both reported directions without guessing whether a failed cd changed directory. Alternative: also analyze semicolon/conditional/OR branches, conservatively denying when any statically possible target is managed; that adds scope and may retain false-positive denials. Which scope should the first delivery cover?"
+    answer: "Park the guard and Git/CI workflow discussion at low priority, without deferring it or changing current behavior. The user has not selected either shell-analysis implementation; revisit scope when the low-priority policy review is taken up. Keep the present single shared checkout workflow for now."
   - id: q-68
     question: "What role should v8, v9 and v10 have on the path to the first stable itos release? The user clarified this while reconsidering agent Git and CI ownership policy on 2026-10-15."
     answer: "v8 is the active design stage: get the design right there. Use v9 to resolve remaining glaring problems and any necessary breaking changes missed during v8. v10 is the intended first stable release; releasing v1 earlier was premature. This records the user roadmap, not permission to bypass the current compatibility or release gates."
