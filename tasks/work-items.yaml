@@ -6656,6 +6656,11 @@ items:
       and does not enforce waiting; --no-wait existed from the introduction of ci.watch, while
       mandatory coordinator-owned handoff here came later in q-41. Keep source validation, command
       convenience and responsibility for CI as separate decisions.
+
+      2026-10-15: the user parked the guard/workflow discussion at low priority without a deferred
+      flag and requested no workflow changes now. Move this proposed guard enhancement out of the
+      front of the queue, behind p1-agent-git-ci-contract. No narrow or broad shell-analysis
+      implementation was selected in q-67.
     refs: [internal/guard/guard.go, internal/guard/doc.go, features/guard.feature]
 
   - id: slice-109
