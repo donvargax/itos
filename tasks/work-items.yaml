@@ -9119,14 +9119,15 @@ items:
       commit-policy renderer rather than inventing new CLI flags.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/guide.go, internal/message/written.go]
 
-  - id: p1-ci-scope-registry-changes
-    title: Public CI classification distinguishes registry bookkeeping from test-affecting changes
+  - id: slice-137
+    title: Classify committed registry bookkeeping for workflow job selection
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ci-scope-registry-changes.
       Issue #72. Proposed contract for specification review: expose range classification through
       itos ci scope --json with a workflow recipe that always retains metadata validation and
       verify. Preserve the existing docs_only field and meaning; add a separate classification and
