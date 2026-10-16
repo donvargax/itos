@@ -9315,3 +9315,21 @@ items:
       sequential in the shared checkout; the user is not adopting worktrees or parallel directory
       slices now. Revisit the policy review later in queue order.
     refs: [internal/guide/work.md, internal/guide/push.md, internal/cli/push.go, internal/guard/doc.go, integrations/claude-code/hooks/guard.sh]
+
+  - id: bug-111
+    title: Name queue removals as dequeue commits
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Issue #67. Explicit work queue --remove and the current work done queue-removal commit must
+      say docs: dequeue <id>, while insertions and moves keep docs: queue <id>. Work-show history
+      must recognize both verbs, including historical queue removals, and multi-item removal headers
+      must remain attributable using the existing multi-item writer convention. Preserve queue
+      semantics, no-op behavior, output fields and single-item close sequencing; merging
+      close/dequeue is separate #73 work. Pin exact new headers and history discoverability in
+      scenarios. A fix may need Changes naming released queue cases that promised the old header; it
+      does not migrate old Git history.
+    refs: [internal/work/queue.go, internal/work/show.go, internal/cli/workdone.go, features/work.feature]
