@@ -6931,14 +6931,15 @@ items:
       commit or the empty tree), or itos says plainly that this run judged no proof, so a green
       whole run does not read as a proved one.
 
-  - id: p1-plan-names-code-proof
-    title: The text plan labels the code proof, and says why when it is left out
+  - id: slice-155
+    title: Name scheduled code proof and explain when ranged proof is omitted
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-plan-names-code-proof.
       Issue #36 (itos-template and go-template-itos, 7.0.0-rc.3 and rc.4): ci plan prints the code
       proof as one more unlabelled static step, only --json marks it proof, and init --agent-rules
       leaves it out of What the gates run. Agents reading AGENTS.md are never told the proof gates
