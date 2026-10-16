@@ -290,3 +290,4 @@ questions:
   - id: q-71
     item: "p1-promoted-slice-context"
     question: "For #68, recommend keeping settled slice decisions only in WIP scenarios and omitting copied idea why from promoted slices, with history retained in Git. This would extend the task-only authority decision (#75) to slices and may change JSON, so it would join the planned next major. Alternatively label the copied why as historical context while continuing to print it. Which behavior should the slice specification use?"
+    answer: "Omit copied idea prose from promoted slices, in text and JSON, as for tasks. Settled slice rules belong in WIP scenarios; Git retains the historical idea context. Include machine-output contract changes in the planned next major, not an immediate major release."
