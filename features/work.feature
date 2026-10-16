@@ -1285,3 +1285,82 @@ Feature: The work registry
     Then itos exits with code 0
     And its JSON's "item.kind" is "slice"
     And the promoted slice has no ledger entry
+
+  # Bug 111 (#67): changing only the verb makes a removal recognizable in
+  # git log without reading its body. --remove is the current spelling;
+  # the report's --drop was renamed in v6. Keep historical queue headers
+  # readable. General discovery of multi-item commits belongs separately
+  # to p1-work-show-several-ids, not this header correction.
+  @ID-WORK-111 @bug-111 @wip
+  Scenario: explicit queue removal records a dequeue header that work show recognizes
+    Given a committed queue fixture with the items "slice-1,slice-2" queued in that order
+    When itos runs "work queue slice-1 --remove --json"
+    Then itos exits with code 0
+    And the last commit's header is "docs: dequeue slice-1"
+    And the queue is "slice-2"
+    And its JSON's "queue" is ["slice-2"]
+    And the last commit changes only the configured registry
+    Given the last commit SHA is saved as "dequeue"
+    When itos runs "work show slice-1 --json"
+    Then itos exits with code 0
+    And the shown history includes the saved "dequeue" commit
+
+  # The landing fixture has an owned implemented slice, live tagged
+  # scenarios and published commits with successful configured CI. It must
+  # pass the existing closure gates so the assertion reaches dequeue.
+  # This case preserves today's two-commit sequence; the #73 transaction
+  # spec deliberately changes that sequence in its own later delivery.
+  @ID-WORK-112 @bug-111 @wip
+  Scenario: the queue-removal commit after successful closure says dequeue
+    Given a committed landing fixture for the queued slice "slice-1"
+    When itos runs "work done slice-1 --json"
+    Then itos exits with code 0
+    And exactly two commits were added by the command
+    And their headers are "docs: close slice-1" then "docs: dequeue slice-1"
+    And the queue does not contain "slice-1"
+    And its JSON's "queue_commit" identifies the dequeue commit
+
+  # Use the same 100-unit header limit and counted fallback as the other
+  # multi-item writers. The fixture supplies valid distinct item IDs and
+  # retains their full list in the commit body when the header is counted.
+  @ID-WORK-113 @bug-111 @wip
+  Scenario Outline: multi-item removal uses the dequeue verb with the normal header length convention
+    Given a committed queue fixture for "<items>"
+    When all those items are removed by one work-queue command
+    Then itos exits with code 0
+    And exactly one commit was added by the command
+    And the last commit's header is "<header>"
+    And the commit body names every removed item
+    And none of those items remains queued
+
+    Examples:
+      | items                                | header                           |
+      | slice-1 and slice-2                   | docs: dequeue slice-1, slice-2   |
+      | twelve IDs exceeding the header limit | docs: dequeue 12 items          |
+
+  # Guards: insertion and moves already use queue; the fix changes only
+  # removals. Distinct initial orders force a real edit in each example.
+  @ID-WORK-114 @bug-111 @guard @wip
+  Scenario Outline: queue insertion and movement retain the queue verb
+    Given a committed queue fixture where "<arguments>" changes the order
+    When itos runs "work queue slice-1 <arguments>"
+    Then itos exits with code 0
+    And the last commit's header is "docs: queue slice-1"
+
+    Examples:
+      | arguments        |
+      | --top            |
+      | --before slice-2 |
+      | --after slice-2  |
+
+  @ID-WORK-115 @bug-111 @guard @wip
+  Scenario: an old queue-removal header remains discoverable and repeated removal is a no-op
+    Given a committed queue fixture with "slice-1" already removed by a historical "docs: queue slice-1" commit
+    And that historical removal commit SHA is saved as "old-removal"
+    And the repository state is saved for comparison
+    When itos runs "work queue slice-1 --remove"
+    Then itos exits with code 0
+    And the repository files index and HEAD match the saved state
+    When itos runs "work show slice-1 --json"
+    Then itos exits with code 0
+    And the shown history includes the saved "old-removal" commit
