@@ -6647,6 +6647,15 @@ items:
       control-flow joins. Preserve the guard's never-allow contract, its current error/exit policy,
       and ordinary config.Managed semantics. No plugin file changes are implied; if implementation
       touches them, obey the plugin version gate.
+
+      2026-10-15, follow-up to q-67: after reviewing the scratch-fixture evidence in #34/#69, the
+      user questioned whether the guard itself is still worth keeping and asked for the origins of
+      both blocking plain Git and --no-wait. No choice to keep, remove or widen the guard has been
+      made. The design review is p1-agent-git-ci-contract; resolve that before committing to the
+      proposed directory-tracking implementation. The guard was introduced before CI waiting existed
+      and does not enforce waiting; --no-wait existed from the introduction of ci.watch, while
+      mandatory coordinator-owned handoff here came later in q-41. Keep source validation, command
+      convenience and responsibility for CI as separate decisions.
     refs: [internal/guard/guard.go, internal/guard/doc.go, features/guard.feature]
 
   - id: slice-109
