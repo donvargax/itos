@@ -7720,6 +7720,18 @@ items:
       availability and post-reservation failures. Exact support for chained non-minting command
       effects remains a promotion-time check; do not interpret or execute arbitrary commands during
       preflight.
+
+      q-69 is settled: use bounded early validation, not simulation of the preceding queue. Reject
+      only definitively invalid current inputs before reservation. Earlier drafts can change
+      config/registry/ledger inputs; checks affected by such drafts remain explicitly pending until
+      promotion, and earlier reserved IDs are recognized. Without a relevant preceding draft, an
+      undeclared tag or invalid group is decidable and must be refused before minting. Explain
+      pending checks in the draft result rather than presenting the draft as proven promotable.
+      Revalidation at promotion remains authoritative. Acceptance must include a preceding config
+      draft that declares the later command tag, no false rejection of that chain, and a genuinely
+      undeclared tag without a preceding policy change. This qualifies the old
+      all-checks-before-minting wording: the first delivery provides bounded assurance, not a
+      projection engine or a guarantee about future inputs.
     refs: [internal/cli/idmint.go, features/draft.feature]
     tags: [work]
 
