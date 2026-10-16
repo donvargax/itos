@@ -260,3 +260,106 @@ Feature: itos upgrade moves a project to a newer itos and walks it through what 
     Then itos exits with code 0
     And the config still has the comment "# Wait ten minutes for CI."
     And the config's "ci.watch.wait" is "600"
+
+  # Slice 150 (#63): report the alternative the consumer explicitly accepts,
+  # naming each unchanged action use and explaining what selects the runtime.
+  # Read .github/workflows/*.yml and *.yaml at the repository root as YAML;
+  # report jobs' step uses of the root donvargax/itos action, not comments,
+  # shell strings, forks, local actions or reusable-workflow references.
+  # File/line/ref describe the literal occurrence, with a one-based uses
+  # line. Preserve raw refs and optional with.version strings/expressions;
+  # do not resolve SHAs, evaluate expressions or rewrite workflow bytes.
+  # Both the action ref and version input select the installed launcher;
+  # a repository pin selects the runtime wherever that pin is loaded. Do
+  # not promise every workflow loads this pin, or say version overrides it.
+  #
+  # Successful upgraded/already JSON adds action_uses (file,line,ref and
+  # optional version_input) sorted by file then physical line, and
+  # action_scan_problems (file,message), both arrays. Existing fields keep
+  # their meaning; reported workflows are not edited paths. Malformed or
+  # unreadable workflow data is an explicit advisory scan problem, while
+  # other files are still scanned and normal upgrade semantics are retained.
+  # Existing release-fetch/edit failures still fail without claiming success.
+  # Fixture line numbers below are achieved by writing real valid workflows
+  # with padding comments; a Given never asserts the future report itself.
+  @ID-UPGRADECMD-20 @slice-150 @wip
+  Scenario: upgrade names action references and explains that bootstrap selection differs from runtime pin selection
+    Given the config pins the version "9.1.0" of the release server
+    And the workflow-action fixture contains:
+      | file                           | line | ref                                      | version_input |
+      | .github/workflows/ci.yml        | 7    | 1111111111111111111111111111111111111111 |               |
+      | .github/workflows/nightly.yaml  | 11   | v9.2.0                                   | 9.1.0         |
+    And the workflow bytes index and HEAD are saved for comparison
+    When itos runs "upgrade"
+    Then itos exits with code 0
+    And the config's pin is the version "9.3.0" of the release server, with its checksums
+    And its output names every workflow use with its physical line and unchanged ref
+    And its output explains action refs and version inputs select the launcher
+    And its output explains a loaded repository pin selects the runtime
+    And the workflow bytes index and HEAD match the saved state
+    And no action-ref resolution was requested
+
+  @ID-UPGRADECMD-21 @slice-150 @wip
+  Scenario: upgrade JSON exposes action references as additive data without listing them as edits
+    Given the config pins the version "9.1.0" of the release server
+    And the workflow-action fixture contains:
+      | file                          | line | ref      | version_input |
+      | .github/workflows/b.yaml       | 7    | v9.2.0   |               |
+      | .github/workflows/a.yml        | 7    | v9.1.0   | 9.2.0         |
+    When itos runs "upgrade --json"
+    Then itos exits with code 0
+    And its JSON's "action" is "upgraded"
+    And its JSON's "action_uses" equals:
+      """
+      [
+        {"file":".github/workflows/a.yml","line":7,"ref":"v9.1.0","version_input":"9.2.0"},
+        {"file":".github/workflows/b.yaml","line":7,"ref":"v9.2.0"}
+      ]
+      """
+    And its JSON's "action_scan_problems" is []
+    And the existing from to releases edited applied and manual fields retain their normal upgrade values
+    And no workflow is listed as edited
+
+  @ID-UPGRADECMD-22 @slice-150 @wip
+  Scenario: action reporting ignores lookalikes outside actual matching step uses
+    Given the config pins the version "9.1.0" of the release server
+    And valid workflow YAML contains itos-use lookalikes only in comments run strings another owner's action and local paths
+    When itos runs "upgrade --json"
+    Then itos exits with code 0
+    And its JSON's "action_uses" is []
+    And its JSON's "action_scan_problems" is []
+
+  @ID-UPGRADECMD-23 @slice-150 @wip
+  Scenario: an already-current pin still reports existing workflow action references without changing files
+    Given the config pins the version "9.3.0" of the release server
+    And a valid workflow uses "donvargax/itos@v9.1.0"
+    And the repository files index and HEAD are saved for comparison
+    When itos runs "upgrade --json"
+    Then itos exits with code 0
+    And its JSON's "action" is "already"
+    And its JSON's "action_uses" names that workflow reference
+    And the repository files index and HEAD match the saved state
+
+  @ID-UPGRADECMD-24 @slice-150 @wip
+  Scenario: an unreadable workflow definition is reported explicitly while other references remain discoverable
+    Given the config pins the version "9.1.0" of the release server
+    And a valid workflow uses "donvargax/itos@v9.1.0"
+    And ".github/workflows/bad.yml" contains malformed YAML
+    And the workflow bytes index and HEAD are saved for comparison
+    When itos runs "upgrade --json"
+    Then itos exits with code 0
+    And the config's pin is the version "9.3.0" of the release server, with its checksums
+    And its JSON's "action_uses" names the valid workflow reference
+    And its JSON's "action_scan_problems" names ".github/workflows/bad.yml" and the parse failure
+    And the workflow bytes index and HEAD match the saved state
+
+  @ID-UPGRADECMD-25 @slice-150 @guard @wip
+  Scenario: action inspection cannot turn a release-fetch failure into a partial or successful upgrade
+    Given the config pins the version "9.1.0" of the release server
+    And a valid workflow uses "donvargax/itos@v9.1.0"
+    And the release server refuses the target release's checksums
+    And the repository files index and HEAD are saved for comparison
+    When itos runs "upgrade"
+    Then the upgrade reports the checksums-fetch failure
+    And its output does not claim the upgrade completed
+    And the repository files index and HEAD match the saved state
