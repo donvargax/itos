@@ -9273,4 +9273,10 @@ items:
       substitute for that decision. Preserve green-CI closure/release guarantees unless explicitly
       revised. Release direction is v8 active design, v9 remaining problems/breaks, v10 first
       stable; record the roadmap separately.
+
+      2026-10-15: the user chose to park this review at low priority, explicitly without deferring
+      it. Keep the current guard, mandatory --no-wait handoff and CI ownership workflow unchanged.
+      The proposals discussed are not accepted implementation decisions. Current work stays
+      sequential in the shared checkout; the user is not adopting worktrees or parallel directory
+      slices now. Revisit the policy review later in queue order.
     refs: [internal/guide/work.md, internal/guide/push.md, internal/cli/push.go, internal/guard/doc.go, integrations/claude-code/hooks/guard.sh]
