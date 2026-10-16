@@ -1305,20 +1305,20 @@ Feature: The work registry
     Then itos exits with code 0
     And the shown history includes the saved "dequeue" commit
 
-  # The landing fixture has an owned implemented slice, live tagged
-  # scenarios and published commits with successful configured CI. It must
-  # pass the existing closure gates so the assertion reaches dequeue.
-  # This case preserves today's two-commit sequence; the #73 transaction
-  # spec deliberately changes that sequence in its own later delivery.
+  # A historical two-commit close can leave a completed item queued if its
+  # second commit fails. Explicit removal must still repair that state.
+  # Do not promise a second queue commit from work done: slice 142 removes
+  # that failure boundary by including dequeue in the close itself.
   @ID-WORK-112 @bug-111 @wip
-  Scenario: the queue-removal commit after successful closure says dequeue
-    Given a committed landing fixture for the queued slice "slice-1"
-    When itos runs "work done slice-1 --json"
+  Scenario: explicit dequeue repairs a previously completed item still left in the queue
+    Given a committed queue fixture with the completed task "T-001" still queued
+    When itos runs "work queue T-001 --remove --json"
     Then itos exits with code 0
-    And exactly two commits were added by the command
-    And their headers are "docs: close slice-1" then "docs: dequeue slice-1"
-    And the queue does not contain "slice-1"
-    And its JSON's "queue_commit" identifies the dequeue commit
+    And exactly one commit was added by the command
+    And the last commit's header is "docs: dequeue T-001"
+    And the registry's item "T-001" has the status "done"
+    And the queue does not contain "T-001"
+    And no ledger data was changed
 
   # Use the same 100-unit header limit and counted fallback as the other
   # multi-item writers. The fixture supplies valid distinct item IDs and
@@ -1370,8 +1370,8 @@ Feature: The work registry
   # or new success claim is introduced. The task fixture owns T-001, has
   # meaningful passing checks, and configures a fake exact-revision green
   # CI for published implementation commits. It records all command-created
-  # commits separately from fixture setup. This supersedes WORK-112's
-  # transitional two-commit assertion when this slice is implemented.
+  # commits separately from fixture setup. Queue removal belongs to this
+  # close commit and does not create a second dequeue commit.
   @ID-WORK-116 @slice-142 @wip
   Scenario: task closure records status check removal and dequeue in one commit
     Given a committed landing fixture for the queued task "T-001"
