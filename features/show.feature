@@ -313,3 +313,98 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
     And its JSON has no property "item.why"
     And an explicitly requested historical patch still contains "Should the old bonus remain?"
     And the repository files index and HEAD match the saved state
+
+  # Slice 146 (#75, q-64/q-66), planned next major: ledger_why remains the
+  # task specification field; item.why is omitted even when legacy registry
+  # text differs. No field rename, registry cleanup or automatic migration.
+  # Missing/unreadable ledger specification is unknown, never a fallback to
+  # old registry prose. Keep work show's best-effort metadata/history view.
+  # Existing idea guard SHOW-13 still applies; SHOW-16..21 cover slices.
+  @ID-SHOW-22 @slice-146 @wip
+  Scenario: task text shows the current ledger specification once and omits differing old registry prose
+    Given the ledger's task "T-001" has the why "The current fixture and proof requirements."
+    And the work registry has the item "T-001" owned by "someone" with the status "todo" and the why "The earlier incomplete plan."
+    When itos runs "work show T-001"
+    Then itos exits with code 0
+    And its output says "The current fixture and proof requirements." once
+    And its output does not say "The earlier incomplete plan."
+
+  @ID-SHOW-23 @slice-146 @wip
+  Scenario: task JSON has one authoritative specification without its old registry why
+    Given the ledger's task "T-001" has the why "The current fixture and proof requirements."
+    And the work registry has the item "T-001" owned by "someone" with the status "todo" and the why "The earlier incomplete plan."
+    And the task has a known dependency question and associated commit
+    When itos runs "work show T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "ledger_why" is "The current fixture and proof requirements."
+    And its JSON has no property "item.why"
+    And its JSON retains the task's other metadata dependencies questions and associated commits
+
+  # The unreadable-path fixture uses a directory where a ledger file is
+  # expected, avoiding permission-bit behavior that differs under root and
+  # on Windows. Save the deliberately broken input before querying it.
+  @ID-SHOW-24 @slice-146 @wip
+  Scenario Outline: unavailable task specifications are explicit and never replaced by stale registry text
+    Given a committed task-authority fixture for "T-001" with old registry why "The earlier incomplete plan."
+    And its configured ledger specification is "<condition>"
+    And the repository files index and HEAD are saved for comparison
+    When itos runs "work show T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "ledger_why" is null
+    And its JSON has no property "item.why"
+    And its JSON retains the task's metadata and history
+    When itos runs "work show T-001"
+    Then itos exits with code 0
+    And its text reports the ledger specification unavailable
+    And its output does not say "The earlier incomplete plan."
+    And the repository files index and HEAD match the saved state
+
+    Examples:
+      | condition                          |
+      | missing task entry                 |
+      | missing ledger file                |
+      | malformed ledger YAML              |
+      | an unreadable ledger path          |
+
+  # Guard: existing deduplication already handles equivalent descriptions;
+  # that behavior remains while the differing-description case changes.
+  @ID-SHOW-25 @slice-146 @guard @wip
+  Scenario: equivalent legacy task prose still renders once and leaves the existing ledger field intact
+    Given the ledger's task "T-001" has the why "The same acceptance reason."
+    And the work registry has the item "T-001" owned by "someone" with the status "todo" and the why "The same acceptance reason."
+    When itos runs "work show T-001"
+    Then itos exits with code 0
+    And its output says "The same acceptance reason." once
+    When itos runs "work show T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "ledger_why" is "The same acceptance reason."
+    And its JSON has no property "item.why"
+
+  @ID-SHOW-26 @slice-146 @wip
+  Scenario Outline: closing a task or inferring its kind does not revive older registry prose
+    Given a committed task-authority fixture for "T-001" whose registry kind is "<kind>" and status is "<status>"
+    And the ledger's task "T-001" has the why "The current acceptance specification."
+    And its legacy registry why is "The earlier incomplete plan."
+    When itos runs "work show T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "ledger_why" is "The current acceptance specification."
+    And its JSON has no property "item.why"
+
+    Examples:
+      | kind    | status |
+      | task    | done   |
+      | omitted | todo   |
+
+  @ID-SHOW-27 @slice-146 @wip
+  Scenario: authoritative task inspection follows relocated ledger data without executing checks or rewriting copies
+    Given the ledger files are relocated to "acceptance/phase-{group}.yaml"
+    And the ledger's task "T-001" has the why "The configured ledger is authoritative."
+    And the work registry has the item "T-001" owned by nobody with the status "doing" and the why "The earlier incomplete plan."
+    And the ledger's task "T-001" has a check that would create "authority-check-marker"
+    And the repository files index and HEAD are saved for comparison
+    When itos runs "work show T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "ledger_why" is "The configured ledger is authoritative."
+    And its JSON has no property "item.why"
+    And the file "authority-check-marker" does not exist
+    And the repository files index and HEAD match the saved state
