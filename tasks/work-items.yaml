@@ -9978,3 +9978,11 @@ items:
     depends_on: [T-179]
     kind: task
     refs: [README.md, internal/cli/help.go, internal/plan/data.go, internal/proof/proof.go]
+
+  - id: T-181
+    title: Build the conformance binary from the tested tree and split fixture coverage
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

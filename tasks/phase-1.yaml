@@ -2001,3 +2001,38 @@
   done_when:
     - run: tools/bin/itos ci run --help
     - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml
+
+- id: T-181
+  type: ci
+  title: Build the conformance binary from the tested tree and split fixture coverage
+  why: >
+    Issue #44, foundation for p1-corpus-listed-suite after the Go runner migration T-144. Extend the
+    existing Go conformance runner so ITOS_CC_TEST_COVERDIR assigns each selected top-level corpus
+    fixture the portable ID corpus-<filename stem>, and every tested-binary process belonging to
+    that fixture inherits GOCOVERDIR=<absolute base>/<ID>. All cases of one fixture share that
+    directory; concurrently running different fixtures never share counters. Create directories
+    before processes start, override an inherited GOCOVERDIR and fixture-level coverage overrides
+    only in this explicit per-test mode, and retain the existing no-variable behavior. Reject
+    colliding or nonportable fixture identities and directory setup failure before case execution;
+    do not emit a successful empty measurement. The version probe uses a separate disposable
+    coverage directory, removed afterwards, so it contributes to no listed fixture. Preserve fixture
+    comparison, ordering, case deadlines, process cleanup, native Git selection and ordinary --bin
+    behavior, including previous-release consumers. Add a repository-only Go helper
+    tools/bin/itos-cc-corpus accepting no arguments for all fixtures or --only <file>... for
+    selected corpus fixtures. It builds ./cmd/itos once per invocation from the actual module
+    working tree into its own temporary executable, using this checkout's dev-version stamp, never
+    the cached tools/bin/itos binary or a release launcher. Build with -cover -covermode=atomic when
+    ITOS_CC_TEST_COVERDIR or GOCOVERDIR requests coverage, and an ordinary fresh build otherwise;
+    give that exact binary to the conformance runner. Resolve selections to existing regular
+    fixtures under tools/itos/conformance, refuse duplicates, escaping or unknown paths before
+    building/running, and clean the helper's executable and probe scratch on success and failure
+    while keeping caller-owned coverage. A build/setup failure must fail the adapter, not fall back
+    to a stale binary. Do not mutate the source checkout, add worktrees, change mutation gates or
+    weaken assertions. Add meaningful regressions for parallel fixture isolation and probe exclusion
+    using an instrumented child; for a build failure beside a stale usable binary; and for an
+    uncommitted source change being executed by the helper. Tests may use an isolated minimal build
+    fixture or injected tool boundary, but at least one integration check must exercise the real
+    build/run path. The checks are normal hook/CI acceptance when implemented, not coordinator runs
+    now.
+  done_when:
+    - run: go test ./tools/bin/conformance/... ./tools/bin/itos-cc-corpus -count=1
