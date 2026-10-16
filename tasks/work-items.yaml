@@ -9106,6 +9106,15 @@ items:
       required footer, custom footer names, no config, and read-only rendering. This item does not
       change red-first or check execution policy. Exact handling of required custom nonstandard link
       sources must be checked against existing supported footer flag behavior before promotion.
+
+      Clarification: a registry footer can be present yet fail to satisfy a required ledger footer
+      for the illustrated commit type; this does not make --item itself forbidden. The guide must
+      show every required link, using registry substitution only where in_place_of permits it. If
+      both ledger and registry links are required and neither substitutes, include both with
+      distinct placeholders. Do not silently select a random ledger task from depends_on. The change
+      can use conditional instructions where the guide has no actual item context; it need not solve
+      filled briefs (p1-guide-brief-filled). Required custom footers remain named by the existing
+      commit-policy renderer rather than inventing new CLI flags.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/cli/guide.go, internal/message/written.go]
 
   - id: p1-ci-scope-registry-changes
