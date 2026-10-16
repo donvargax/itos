@@ -9356,14 +9356,15 @@ items:
       separate. This transaction is a prerequisite for batch completion (#70).
     refs: [internal/cli/workdone.go, internal/cli/workwrite.go, internal/work/write.go, features/work.feature]
 
-  - id: p1-work-done-many
+  - id: slice-143
     title: Close several validated items in one commit
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-142]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-work-done-many.
       Issue #70. Extend work done <id>... using a shared closure transaction, after
       p1-work-completion-transaction. Validate every requested item before writing anything; one
       refusal leaves the entire batch unchanged. Do not implicitly close dependencies or absorbed
