@@ -9036,3 +9036,27 @@ items:
       points to this read-only view. This is a definition outline, not yet a promoted or
       scenario-backed item.
     refs: [internal/cli/workshow.go, internal/ledger/tasks.go, features/show.feature]
+
+  - id: p1-guides-use-configured-footers
+    title: Guides prescribe only commit links the project's footer policy supports
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #66. Proposed contract for specification review: guide brief and guide work must not
+      prescribe --item when no configured registry footer supports it for the described commit type.
+      Use the loaded commit footer sources, required_for and in_place_of policy; a footer name alone
+      is insufficient. When a registry link is usable, show --item <item>. Otherwise, when the
+      described commit requires a ledger footer, show --task <ledger-task-id> and explicitly require
+      a real linked acceptance task: never substitute a slice ID as a ledger ID or invent a mapping
+      from depends_on. If there is no suitable linked task, explain the missing setup instead of
+      emitting a runnable-looking invalid command. When no work footer is required, omit the linking
+      flag. Outside a configured repository, describe these branches generically. Do not edit
+      consumers' config or add a footer during guide rendering. Acceptance covers registry
+      substitution allowed, registry source present but not allowed for test, ledger-only policy, no
+      required footer, custom footer names, no config, and read-only rendering. This item does not
+      change red-first or check execution policy. Exact handling of required custom nonstandard link
+      sources must be checked against existing supported footer flag behavior before promotion.
+    refs: [internal/guide/brief.md, internal/guide/work.md, internal/cli/guide.go, internal/message/written.go]
