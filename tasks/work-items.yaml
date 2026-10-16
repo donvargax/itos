@@ -9230,14 +9230,15 @@ items:
       p1-draft-checks-before-minting; not yet promoted or specified as scenarios.
     refs: [internal/cli/draft.go, internal/cli/draftmint.go, internal/draft, features/draft.feature]
 
-  - id: p1-draft-message-preflight
-    title: Draft creation diagnoses commit metadata that can be checked without applying the draft
+  - id: slice-139
+    title: Validate decidable draft commit metadata before creating the draft
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-draft-message-preflight.
       Issue #78. Definition outline: draft edit and change-style draft add validate known commit
       metadata before creating copies, capturing changes or changing draft state. Check the
       configured commit type and syntactic required footer presence, including in_place_of, using
