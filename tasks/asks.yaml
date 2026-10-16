@@ -311,3 +311,6 @@ questions:
   - id: q-76
     item: "p1-work-done-past-data-commits"
     question: "For #71, recommend --evidence-file as narrative in the validated close commit body, preserving results in Git instead of task specification. Stealth closes create no Git commit, so this storage cannot retain their evidence. Should the first delivery support project-mode evidence and explicitly refuse the flag under stealth, or also introduce a private evidence journal and readback for stealth? Ordinary stealth closure without the flag stays supported."
+  - id: q-77
+    item: "p1-commit-msg-checks-the-index"
+    question: "For #60, the reported check test -f gen/out.txt passed because an untracked working-tree file existed, although the index lacked it. Recommend a first delivery that clearly warns before task checks when staged and working-tree inputs differ, preserving current hook verdicts and exact-commit CI. Full staged-snapshot execution could reject the false pass, but needs a scratch execution environment and rules for Git-dependent checks and ignored/generated inputs; it need not use Git worktrees. Should the first delivery be the explicit warning or staged-snapshot execution?"
