@@ -8735,7 +8735,19 @@ items:
       missing while git on the PATH is still the shim linking to the global itos, then advises
       linking it into the cache folder, which is on no PATH and changes per pin. Look for the shim
       as the unpinned run does: the first git on the PATH, and whether it links to an itos.
+
+      Source audit (2026-10-15): initshim.shimOffer.run already checks firstGit, but only keeps it
+      when linksItos reports the exact running executable. A valid global launcher is classified as
+      another itos under a cached runtime, so it falls back to the cache path. internal/git.IsItos
+      already recognizes other-version symlinks, chains and Go-built hard links/copies without
+      executing them. Existing-shim detection/reporting can use that identity boundary and preserve
+      the effective PATH entry; it must not change init dispatch back to the launcher because
+      bug-104 intentionally uses the pin for agent rules and hooks. Broader missing-shim
+      installation/advice remains a separate boundary to settle: the cached runtime has no
+      original-launcher-path handoff today. Do not silently point a new shim into a per-release
+      cache, claim an inactive later PATH shim is active, or replace arbitrary git programs.
     tags: [init]
+    refs: [internal/cli/initshim.go, internal/cli/gitshim.go, internal/git/bin.go, internal/launch/launch.go]
 
   - id: T-164
     title: The features-scope self-test holds the nightly to its shape after T-163
