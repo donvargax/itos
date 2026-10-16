@@ -7779,7 +7779,13 @@ items:
       mutants (here and in itos-template, minutes with --all-tests), so a reader expects a cheap
       static step. Say the check is whatever proof.code.check runs. Help text only: no scenario, a
       help corpus case.
-    refs: [internal/cli/help.go, internal/plan/plan.go, tools/itos/conformance/help.yaml]
+
+      Concrete documentation delivery is now T-179: embedded help and matching planner comment,
+      using the existing help conformance corpus and no runtime change. Keep this idea linked until
+      that task lands; it may then be explicitly recorded as absorbed rather than dropped. The
+      refactor type covers source-held documentation and comments, not relabeling any change to
+      proof execution.
+    refs: [internal/cli/help.go, internal/plan/plan.go, tools/itos/conformance/help.yaml, tasks/phase-1.yaml]
     tags: [ci, docs]
 
   - id: p1-draft-decision-id
