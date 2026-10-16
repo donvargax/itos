@@ -9220,14 +9220,15 @@ items:
       current helper.
     refs: [internal/cli/ci.go, internal/plan, tools/bin/ci-repo/main.go]
 
-  - id: p1-draft-replace-reserved-command
-    title: Replace a command draft without losing its reserved item ID
+  - id: slice-141
+    title: Replace a command draft without losing its reserved ID
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-140]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-draft-replace-reserved-command.
       Split from p1-draft-checks-before-minting (#46) during definition review. Proposed interface:
       draft add <draft-id> --replace -- <itos args> replaces an existing command draft in place
       after validation. Preserve draft ID, reserved item ID and queue position; the stored original
