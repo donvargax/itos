@@ -1364,3 +1364,110 @@ Feature: The work registry
     When itos runs "work show slice-1 --json"
     Then itos exits with code 0
     And the shown history includes the saved "old-removal" commit
+
+  # Slice 142 (#73, structural delivery): closure is one local transaction,
+  # after all existing landing gates. No stored receipt, evidence-reuse rule
+  # or new success claim is introduced. The task fixture owns T-001, has
+  # meaningful passing checks, and configures a fake exact-revision green
+  # CI for published implementation commits. It records all command-created
+  # commits separately from fixture setup. This supersedes WORK-112's
+  # transitional two-commit assertion when this slice is implemented.
+  @ID-WORK-116 @slice-142 @wip
+  Scenario: task closure records status check removal and dequeue in one commit
+    Given a committed landing fixture for the queued task "T-001"
+    And an unrelated change to "NOTES.md" is staged
+    And the completion state is saved for comparison
+    When itos runs "work done T-001 --json"
+    Then itos exits with code 0
+    And exactly one commit was added by the command
+    And the last commit's header is "docs: close T-001"
+    And that commit marks "T-001" done removes its current checks and removes it from the queue
+    And the task's ledger why is preserved
+    And the close body names the validated revision successful CI and pre-close check-definition revision
+    And its JSON's "commit" identifies that single close commit
+    And its JSON's "queue_commit" identifies that same close commit
+    And the unrelated staging matches the saved completion state
+
+  @ID-WORK-117 @slice-142 @wip
+  Scenario Outline: one closure transaction handles slices tasks without checks and unqueued items
+    Given a committed landing fixture for "<item>" with "<state>"
+    And the completion state is saved for comparison
+    When itos runs "work done <item> --json"
+    Then itos exits with code 0
+    And exactly one commit was added by the command
+    And the registry's item "<item>" has the status "done"
+    And "<item>" is not queued
+    And no unrelated ledger entry was changed
+    And any emitted queue_commit identifies the same commit as commit
+
+    Examples:
+      | item    | state                          |
+      | slice-1 | queued implemented slice       |
+      | T-001   | queued task without checks     |
+      | T-001   | unqueued task with checks      |
+
+  # All other inputs remain valid. CI failure uses a fake provider with a
+  # completed red exact-revision run; no network timeout can satisfy it.
+  @ID-WORK-118 @slice-142 @guard @wip
+  Scenario Outline: a failed landing gate leaves the entire closure unapplied
+    Given a committed landing fixture for the queued task "T-001"
+    And only its landing condition "<condition>" is invalid
+    And the completion state is saved for comparison
+    When itos runs "work done T-001"
+    Then itos refuses completion naming "<diagnostic>"
+    And the registry ledger queue index and HEAD match the saved completion state
+
+    Examples:
+      | condition                         | diagnostic |
+      | a tagged scenario remains wip     | wip        |
+      | its implementation is unpublished | pushed     |
+      | its acceptance command fails      | T-001      |
+      | its configured CI run failed      | CI         |
+
+  # The hook records invocation before failing, distinguishing transaction
+  # rollback from refusal before the close was attempted.
+  @ID-WORK-119 @slice-142 @wip
+  Scenario: a rejected close commit restores status checks queue and unrelated staging
+    Given a committed landing fixture for the queued task "T-001"
+    And a recording commit hook rejects its closure
+    And an unrelated change to "NOTES.md" is staged
+    And the completion state is saved for comparison
+    When itos runs "work done T-001"
+    Then itos refuses completion naming the rejecting hook
+    And the closure hook ran exactly once
+    And the registry ledger queue index and HEAD match the saved completion state
+
+  # The deterministic provider callback commits a separate allowed change
+  # while work done waits, then returns the original implementation's green
+  # result. Snapshot comparisons start at that callback commit, so preserving
+  # a legitimate concurrent edit is distinct from rolling it back.
+  @ID-WORK-120 @slice-142 @wip
+  Scenario Outline: closure refreshes participating data after waiting instead of overwriting concurrent changes
+    Given a committed landing fixture for the queued task "T-001"
+    And while CI is awaited a committed change will "<change>"
+    When itos runs "work done T-001"
+    Then completion has outcome "<outcome>"
+    And the committed concurrent change remains intact
+    And a successful close contains current validation and current data
+    And a refused close changes no files index or HEAD after the concurrent commit
+
+    Examples:
+      | change                                  | outcome |
+      | edit an unrelated item's title          | success |
+      | add a different item to the queue       | success |
+      | transfer T-001 to a different owner     | refusal |
+      | replace T-001's checks with a failing check | refusal |
+
+  # The configured stealth ledger and registry are outside the tracked
+  # working tree. Their current checks still run; no success is fabricated.
+  @ID-WORK-121 @slice-142 @wip
+  Scenario: stealth closure applies the same complete data change without a commit
+    Given a committed landing fixture for the queued task "T-001" using relocated stealth data
+    And the completion state is saved for comparison
+    When itos runs "work done T-001 --json"
+    Then itos exits with code 0
+    And the configured task is done with its checks removed and is not queued
+    And the task's ledger why is preserved
+    And its JSON's "commit" is null
+    And any emitted queue_commit is null
+    And the working tree index and HEAD match the saved completion state
