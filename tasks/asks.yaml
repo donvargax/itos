@@ -268,3 +268,4 @@ questions:
   - id: q-65
     item: "p1-ci-scope-registry-changes"
     question: "CI classification (#72): recommend a public read-only classifier plus a documented workflow recipe, preserving the current ci run planner policy. This lets workflows skip expensive platform jobs only for proven bookkeeping while retaining metadata validation and all named checks. Alternative: include opt-in planner integration so ci run also uses the reduced metadata route in this item. Which scope should the specification use?"
+    answer: "Classifier and workflow recipe first, as the user selected. Preserve existing ci run planner policy. The recipe retains verify, metadata validation and every named check; an opt-in planner route is separate future work."
