@@ -9361,7 +9361,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-142]
     kind: idea
     why: >
       Issue #70. Extend work done <id>... using a shared closure transaction, after
@@ -9379,4 +9379,9 @@ items:
       follows the existing task runner identity/timeout rules only; one successful item never
       excuses a failed sibling. Specs must cover mixed task/slice batches, one invalid item,
       already-done and duplicate IDs, independent CI, hook rollback and stealth.
+
+      Parser correction after reading workIDs: sibling multi-ID writers reject repeated IDs rather
+      than deduplicating them. Batch completion must likewise reject duplicate IDs as a usage error
+      before checks or writes. This supersedes the deduplication sentence above; preserve input
+      order only for distinct IDs.
     refs: [internal/cli/workdone.go, internal/work/several.go, features/work.feature]
