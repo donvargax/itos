@@ -9458,3 +9458,24 @@ items:
       authorized. Consumer source/CI references are in the GitHub issue; reported sequence is not a
       new local reproduction.
     refs: [internal/guide/repair.md, internal/work/show.go, internal/cli/workshow.go]
+
+  - id: p1-promoted-slice-context
+    title: Promoted slices distinguish settled specification from historical idea prose
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #68. work promote preserves an idea's why and work edit --note then refuses a slice, so
+      tentative old wording can remain prominent after the user settles the design. The report also
+      assumes a new feature file cannot land WIP scenarios first; current docs scope permits that,
+      so confirm the actual consumer/version limitation before adding a temporary second
+      specification store. Candidate direction is to keep settled decisions in WIP scenarios before
+      implementation and keep historical idea context only in Git, consistent with the
+      authoritative-task-spec decision for #75. Need an explicit choice about retaining, labeling or
+      removing copied why for slices and the no-scenarios-yet interval. Do not silently extend #75's
+      accepted task JSON removal to slices or invent --why behavior for slice promotion. Any
+      machine-output contract removal joins the planned next major under the same release review. No
+      implementation is ready until these authority/timing questions are settled.
+    refs: [internal/work/show.go, internal/work/write.go, internal/cli/workwrite.go, internal/guide/brief.md, features/work.feature]
