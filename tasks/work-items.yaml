@@ -10043,3 +10043,16 @@ items:
       --no-agent-rules opts out, reruns retain explicit rewrite, and plugin/global Git shim stay
       opt-in. Split this concrete default from the broader command-default audit.
     refs: [internal/cli/init.go, internal/cli/initrules.go, internal/cli/initrulesstealth.go, features/init.feature]
+
+  - id: p1-external-config-refusal
+    title: Refuse runtime project configs outside the working tree
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #31, q-79: reject an external runtime project config before partial data resolution or
+      execution, preserving private stealth configs and policy files read only as import input.
+      Shared external metadata and per-branch planning are separate designs.
+    refs: [internal/config/config.go, internal/config/stealth.go, internal/config/top.go]
