@@ -7046,6 +7046,12 @@ items:
       remain a separate generator investigation, not solved by prose or slice-152's current upgrade
       grouping.
 
+      The latest published v8.4.0 body was re-read through gh api during this audit: What changed
+      has populated Features, Tests, CI and Documentation sections with commit links. The old #40
+      empty-heading observation is not reproduced there. Keep it as historical migration context; do
+      not invent a current release-generator fix or rewrite old release bodies from that observation
+      alone.
+
   - id: slice-161
     title: Record ADR validation separately from decision acceptance
     phase: 1
