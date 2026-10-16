@@ -8,8 +8,14 @@ Feature: Each project commit is verified under its tracked policy
   # Resolve the invocation's effective config path to one repository-relative
   # path once, then read that exact path at each selected SHA. No current-
   # tree, parent-config, branch-tip or default-config fallback. Historical
-  # pin/requires data does not launch/download another itos: the invoked
-  # runtime parses the historical schema, refusing unsupported config.
+  # pin/requires data does not launch/download another itos. Read a historical
+  # verification-policy projection, validating the sections it actually needs
+  # (commit rules, their sources, named-test identity/moves, delegated shell),
+  # rather than holding unrelated old CI/initializer settings to today's full
+  # config migration rules. For example v7 nightly tasks:done must not block
+  # message/path verification merely because current CI removed that step.
+  # Unsupported or invalid relevant policy still refuses; never ignore an
+  # unknown verification rule or pretend to implement a newer policy schema.
   # Current effective commits.since still selects the overall verification
   # window as today; older configs do not independently truncate that list.
   # A selected commit lacking the fixed config path is config usage exit 2,
@@ -18,7 +24,7 @@ Feature: Each project commit is verified under its tracked policy
   # the window is explicitly unsupported here and refuses, rather than
   # guessing provenance or moving since to conceal rule failures. Unavailable
   # Git objects are environment exit 3 with full-history/fetch guidance.
-  # Invalid historical YAML/schema is 2; actual rule rejection stays 1.
+  # Invalid historical YAML/relevant policy is 2; actual rule rejection stays 1.
   # Merge commits use their own config and existing own-change merge rules;
   # side commits use their own blobs, not the first parent's policy.
   # Current range enumeration, empty/unpushed starts and footer since remain.
@@ -94,8 +100,11 @@ Feature: Each project commit is verified under its tracked policy
     And config deletion or rename is not treated as an automatically exempt commit
 
   @wip @slice-163 @ID-VERIFY-07
-  Scenario: Unreadable or unsupported historical policy never falls back to today's config
-    Given commits with malformed or unsupported historical config blobs
+  Scenario: Historical verification distinguishes relevant policy from unrelated retired config
+    Given a historical config with valid verification policy and the retired v7 nightly tasks:done step
+    When verify checks its valid message and paths without executing that nightly
+    Then the unrelated retired CI step does not make historical verification fail
+    Given commits with malformed YAML or unsupported relevant historical verification policy
     When verify reaches each
     Then itos exits with code 2 and names the historical config problem
     And no newer config default or pinned runtime substitutes for it
