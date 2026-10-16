@@ -9882,3 +9882,23 @@ items:
       setup/cleanup failures report environment errors rather than claim a staged verdict. The
       feature specification will define these boundaries before implementation.
     refs: [features/hook-task-snapshot.feature, internal/cli/hook.go, internal/check/captured.go, internal/shell/shell.go, internal/git/bin.go]
+
+  - id: p1-pinned-shim-install-target
+    title: Use a stable launcher target for new shim installation from pinned init
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Residual installation boundary found while specifying #53. Active existing-shim recognition
+      can be fixed independently. When no effective shim exists, pinned init still computes its
+      default link and target from the cached runtime executable; explicit --git-shim-dir changes
+      only the link location, not that target. The launcher currently passes version but no
+      original-launcher path to the runtime. Define a stable launcher installation/advice contract,
+      including absent or unprovable launcher identity, without reverting bug-104 pinned init
+      dispatch for agent rules/hooks or installing a per-release cache shim implicitly. No new
+      environment protocol, global replacement, cache installation, mandatory guard or
+      default-policy change is chosen here. Existing installation behavior is not silently redefined
+      by the active-shim detection fix.
+    refs: [internal/cli/initshim.go, internal/cli/gitshim.go, internal/launch/launch.go]
