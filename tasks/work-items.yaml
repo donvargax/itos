@@ -6813,6 +6813,15 @@ items:
       before CI selection; distinguish that fresh acceptance run from whether an older hosted CI run
       covers a later task-associated commit. q-70 still needs an answer before choosing receipt
       storage or revised skip semantics.
+
+      q-70 follow-up after direct diff inspection: a simpler first delivery can accept final
+      evidence through work done and record it in the same validated close transaction, avoiding the
+      intermediate Task-associated documentation commit seen in #71. This preserves current
+      acceptance checks and CI rules; it does not grant general reuse across separately committed
+      ledger/specification changes. The person is being asked to choose evidence-with-closure first
+      versus general reusable receipts first. Do not treat this proposed first delivery as already
+      accepted, or claim it eliminates every evidence-reuse case. Structural transaction slice-142
+      supplies the shared close/dequeue boundary.
     refs: [internal/cli/workwrite.go]
 
   - id: p1-decision-add-answer
