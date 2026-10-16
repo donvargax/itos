@@ -9613,3 +9613,21 @@ items:
       semantics. Do not teach whole:true as effective in help until settled. Source inspection only;
       no runtime regression reproduced yet.
     refs: [internal/config/schema.go, internal/config/types.go, internal/plan/plan.go]
+
+  - id: p1-upgrade-group-changed-cases
+    title: Group upgrade report entries by release, category and commit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Independent presentation part of #50, split from p1-upgrade-notes-tidy so it need not wait on
+      classifying manual instructions. Text output groups Changes on purpose, Breaking and Upgrading
+      entries once per full commit identity within each release/category, first-seen group order and
+      original entry order within a group. Preserve every text entry including duplicates and
+      multiline content; identical headers or abbreviated SHA prefixes do not merge distinct
+      commits. Entries lacking commit identity remain separate. JSON release/manual arrays retain
+      their existing entries, ordering and shape. No interpretation or execution of footer prose and
+      no change to upgrade edits.
+    refs: [features/upgrade-notes.feature, internal/cli/upgrade.go]
