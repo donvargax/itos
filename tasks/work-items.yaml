@@ -9012,3 +9012,27 @@ items:
     status: done
     depends_on: []
     kind: task
+
+  - id: p1-work-show-current-checks
+    title: work show exposes a task's current acceptance checks without running them
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #65 and #75. Proposed contract for specification review: work show <task> includes its
+      current ledger done_when in written order in text and as a top-level checks array in JSON.
+      Each JSON entry retains the ledger keys run or fails, and any explicitly configured timeout,
+      after, prose and cost; do not substitute execution results for definitions or infer a pass
+      from inspection. An empty current done_when is an empty array, not historical proof. Ideas and
+      slices do not acquire ledger check definitions. Inspection never invokes check commands,
+      changes files, takes ownership or closes work; prove this with a check command that would
+      create a marker, including fails and after: push cases. Preserve existing JSON fields, exit
+      behavior and source-reading policy. Show explicit timeout values and document omitted timeout
+      as the existing default. Closed-task check recovery belongs to p1-work-show-closing-checks,
+      not this item. Acceptance: ordered run/fails definitions with all optional fields,
+      no-command-execution marker, no checks, non-task item, and custom ledger layout. Guide work
+      points to this read-only view. This is a definition outline, not yet a promoted or
+      scenario-backed item.
+    refs: [internal/cli/workshow.go, internal/ledger/tasks.go, features/show.feature]
