@@ -7083,6 +7083,11 @@ items:
       becomes an item (p1-plan-per-branch); go-template-itos's per-branch-ledgers idea would be its
       first consumer.
 
+      q-79 is specified as slice-160, ID-CONFIG-61..68: external runtime project configs are refused
+      before partial resolution or pinned execution; private stealth configs, in-tree alternatives
+      and external policy-import documents remain supported. Shared external metadata and per-branch
+      plan selection remain separate, undecided work, not claimed solved by the refusal.
+
   - id: T-141
     title: The repository ignores local notes in .tmp/ and the metrics reports beside .metrics/mutate/
     phase: 1
