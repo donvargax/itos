@@ -257,3 +257,6 @@ questions:
   - id: q-62
     question: "Nightly 38729845909 failed both mutation runs during coverage-plan (go list exited 1; zero mutants judged), and its latest-push CI contract check exited 1 although CI 38689498798 and all three nightly platform jobs passed. Recommended: authorize a focused gate/infrastructure repair with regression checks, preserving all mutation budgets and coverage requirements; defer unrelated backlog work. Proceed with that repair, or leave the nightly unchanged?"
     answer: "Proceed with the focused nightly gate/infrastructure repair and regression checks. Preserve mutation budgets and coverage requirements; defer unrelated backlog work."
+  - id: q-63
+    item: "p1-task-add-promoted"
+    question: "Task promotion (#54): recommend extending work promote --kind task to accept the required task type and checks, validating before minting and writing the ledger, registry and question/dependency rewrites in one commit. The alternative is task add --from <idea> as the canonical conversion, with work promote --kind task refusing before minting and directing callers there. Which public interface should the specification use?"
