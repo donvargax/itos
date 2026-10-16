@@ -8889,7 +8889,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [bug-112]
     kind: idea
     why: >
       #60 (2026-10-12), on 8.1.0: the hook reads the named tasks and their status from the index but
@@ -8900,7 +8900,15 @@ items:
       scratch copy of the index (git checkout-index --prefix), or at least say when the working tree
       differs from the index that the verdict may not hold. Seen in practice when a session's first
       commit of a task passed only because uncommitted files were on disk.
+
+      q-77 selected staged-snapshot execution. Concrete implementation and scenarios are bug-112;
+      this original report item remains linked for explicit absorption after that fix lands, rather
+      than being dropped. No warning-only workaround, Git worktree or stash-based source-checkout
+      swap is authorized. Task-check selection/cost/timeout/verdict policy remains current; the fix
+      isolates relative filesystem inputs and Git context for execution, including a stable captured
+      index and private metadata.
     tags: [hooks]
+    refs: [features/hook-task-snapshot.feature, internal/cli/hook.go, internal/check/captured.go, internal/shell/shell.go]
 
   - id: p1-moves-file-wip-going-live
     title: A feature file losing its file-level @wip goes live, not a changed header
