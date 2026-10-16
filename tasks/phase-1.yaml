@@ -1954,3 +1954,24 @@
   done_when:
     - run: tools/bin/itos guide brief
     - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/guide.yaml
+
+- id: T-179
+  type: refactor
+  title: Correct the embedded CI code-proof help and planner comment
+  why: >
+    Issue #45, tracked by p1-ci-run-help-proof-check. Correct only documentation text in
+    internal/cli/help.go and the matching comment in internal/plan/plan.go, and update the existing
+    help conformance expectation. Explain that itos executes proof.code.check, with {base} filled
+    from the range start, and that the configured command decides whether it reads saved results or
+    runs fresh checks such as counted mutations. Static is the planner cost class, not a promise
+    that the command is cheap; fresh mutation commands may take minutes. Preserve current
+    applicability, ordering before named tests, JSON problem reporting, and all execution and
+    configuration semantics. Do not promise that every proof command creates mutants or that none
+    can do so. Both ci run --help and help ci run must expose the corrected text. This is a refactor
+    task for embedded documentation and comments, with no command logic changes; any runtime defect
+    discovered is a separate slice. Review wording against the configurable-command contract and the
+    consumer example. Use the existing help corpus, without a new feature scenario or policy-text
+    unit test.
+  done_when:
+    - run: tools/bin/itos ci run --help
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml

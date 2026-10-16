@@ -9641,3 +9641,11 @@ items:
       their existing entries, ordering and shape. No interpretation or execution of footer prose and
       no change to upgrade edits.
     refs: [features/upgrade-notes.feature, internal/cli/upgrade.go]
+
+  - id: T-179
+    title: Correct the embedded CI code-proof help and planner comment
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
