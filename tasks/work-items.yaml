@@ -6931,6 +6931,13 @@ items:
       commit or the empty tree), or itos says plainly that this run judged no proof, so a green
       whole run does not read as a proved one.
 
+      The explicit-warning alternative requested in #35 is now specified through slice-155: the text
+      plan and full CI run say when configured automatic ranged proof is not scheduled, including
+      the missing-start case. This does not execute proof over the whole tree or fabricate a base.
+      Keep this idea for any later decision to add whole-tree proof execution; do not claim that a
+      green full test run proves code when the configured proof was omitted. No new whole-run gate
+      or deferral has been chosen.
+
   - id: slice-155
     title: Name scheduled code proof and explain when ranged proof is omitted
     phase: 1
