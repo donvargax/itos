@@ -9765,3 +9765,22 @@ items:
       issue #30 remains open as of the 2026-10-15 gh api read. Do not implement cached-evidence
       reuse or weaken current proof gates in this item.
     refs: [internal/tests/gherkin.go, internal/tests/tests.go]
+
+  - id: p1-reusable-completion-evidence
+    title: Preserve separately committed completion evidence without reusing stale acceptance proof
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Residual #71 scope after q-70 chose evidence with closure first. A separately committed
+      pre-close evidence report may still make current work done ask CI for the newer associated
+      commit. Decide a sound reusable-receipt or evidence-only representation if this use case
+      remains needed; bind it to the implementation and acceptance inputs actually validated. Do not
+      bless arbitrary registry, task-why, check, scenario or policy edits as already proved solely
+      from their paths. No receipt schema, broad skip rule, CI bypass or deferral has been chosen.
+      The verified consumer 671014753bbce42ff915ab24c066b02f8112b2ac changed only task T-80 why with
+      final result narrative after green 094e634b072f618cdd8aa4e252151fa758553bca; a full original
+      refusal transcript was unavailable.
+    refs: [internal/cli/workdone.go]
