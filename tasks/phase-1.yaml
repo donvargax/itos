@@ -2076,3 +2076,31 @@
     proof when Go changes, not additional full mutation runs.
   done_when:
     - run: go test ./tools/bin/itos-cc-tests ./tools/bin/itos-cc-corpus ./tools/bin/conformance/... -count=1
+
+- id: T-183
+  type: docs
+  title: Make guide commit-link examples conditional on the footer policy
+  why: >
+    Issue #66, wording-only delivery from p1-guides-use-configured-footers. Replace unconditional
+    runnable-looking itos commit --item <slice> prescriptions in internal/guide/brief.md and
+    internal/guide/work.md with conditional instructions tied to the configured commit type and the
+    policy printed by guide commit. A registry footer's presence makes --item available but does not
+    by itself satisfy a required ledger footer: show --task <real-ledger-task-id> as well or instead
+    unless in_place_of allows registry substitution. If both links are required and neither
+    substitutes, name both distinct placeholders. Never pass a slice ID as a ledger ID or infer a
+    task from depends_on. When a real acceptance task is needed but not supplied, state that missing
+    setup rather than inventing an executable command; after slice-138 task promotion is a valid way
+    to supply that task. When no work-link footer is required, no linking flag need be prescribed.
+    Custom footer names and other required footers remain the existing guide commit renderer's
+    responsibility, with no invented flag or config edit. The first delivery is static conditional
+    prose, including outside a configured repository, not a filled brief or a new config-dependent
+    renderer. Review emitted work and brief guides under registry substitution, registry without
+    substitution, both required, ledger-only, no required work link, custom names, and no-config
+    contexts. Preserve all existing footer enforcement, red-first ordering, check execution and
+    publication/wait ownership. Update the existing guide corpus text where necessary; semantic
+    correctness is reviewed against these cases, without a new feature scenario or policy-text regex
+    test. Read T-178 for adjacent brief edits and retain its explicit publication scope.
+  done_when:
+    - run: tools/bin/itos guide work
+    - run: tools/bin/itos guide brief
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/guide.yaml

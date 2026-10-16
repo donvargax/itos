@@ -10002,3 +10002,11 @@ items:
     depends_on: [T-181]
     kind: task
     refs: [itos-cc.yaml, tools/bin/itos-cc-tests, tools/bin/itos-cc-corpus, tools/bin/conformance]
+
+  - id: T-183
+    title: Make guide commit-link examples conditional on the footer policy
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
