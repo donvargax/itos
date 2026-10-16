@@ -232,3 +232,84 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
     When itos runs "work show T-999 --json"
     Then itos exits with code 0
     And its JSON's "checks" is null
+
+  # Slice 145 (#68, q-71), planned next major: the active slice view omits
+  # registry why in text and JSON, whether the slice has scenarios yet or
+  # not. Its current spec is the tagged feature scenarios, not copied idea
+  # questions. This is a read projection, requiring no ledger/registry
+  # migration or temporary slice-note store. Ideas retain their why.
+  # Git history and an explicitly requested --patch retain historical text.
+  # Existing output keys, scenario discovery and history association remain.
+  @ID-SHOW-16 @slice-145 @wip
+  Scenario: slice JSON omits copied idea prose and retains its current scenario reading list
+    Given a committed slice-authority fixture for "slice-1" with the old idea why "Should the old bonus remain?"
+    And its committed feature file specifies the WIP scenario "@ID-AUTHORITY-01" named "The settled bonus rule"
+    When itos runs "work show slice-1 --json"
+    Then itos exits with code 0
+    And its JSON has no property "item.why"
+    And its JSON lists "ID-AUTHORITY-01" with its name file and WIP state
+    And its JSON retains the slice's other metadata questions and associated commits
+    And its JSON has no ledger specification or task check definitions
+
+  @ID-SHOW-17 @slice-145 @wip
+  Scenario: the slice text view points to settled scenarios instead of printing old idea questions
+    Given a committed slice-authority fixture for "slice-1" with the old idea why "Should the old bonus remain?"
+    And its committed feature file specifies the WIP scenario "@ID-AUTHORITY-01" named "The settled bonus rule"
+    When itos runs "work show slice-1"
+    Then itos exits with code 0
+    And its output says "The settled bonus rule"
+    And its output names the scenario's feature file
+    And its output does not say "Should the old bonus remain?"
+
+  # Promotion may precede the first scenario commit. Do not treat the old
+  # idea text as a fallback specification during that interval.
+  @ID-SHOW-18 @slice-145 @wip
+  Scenario: a newly promoted slice without scenarios reports the missing specification without old prose
+    Given a committed slice-authority fixture for the idea "p1-bonus" with the why "Should the old bonus remain?"
+    When itos runs "work promote p1-bonus --kind slice --json"
+    Then itos exits with code 0
+    Given the promoted slice ID is saved
+    When itos shows that promoted slice as text
+    Then itos exits with code 0
+    And its output reports no tagged scenarios for that slice
+    And its output does not say "Should the old bonus remain?"
+    When itos shows that promoted slice as JSON
+    Then itos exits with code 0
+    And its JSON's "scenarios" is []
+    And its JSON has no property "item.why"
+    And its JSON includes the promotion commit
+
+  # Guard: current commit policy can land a newly created feature file
+  # containing WIP scenarios as a docs commit before implementation. The
+  # fixture installs real itos hooks and gives the docs commit every footer
+  # its policy needs; it does not bypass hooks to manufacture this state.
+  @ID-SHOW-19 @slice-145 @guard @wip
+  Scenario: a slice specification can be committed in a new WIP-only feature file before implementation
+    Given a committed slice-authority fixture for "slice-1"
+    And a new uncommitted feature file contains only the WIP scenario "@ID-AUTHORITY-01" tagged "@slice-1"
+    When that new feature file is committed through itos with a valid docs message
+    Then itos exits with code 0
+    When itos runs "work show slice-1 --json"
+    Then itos exits with code 0
+    And its JSON lists "ID-AUTHORITY-01" with its name file and WIP state
+
+  @ID-SHOW-20 @slice-145 @guard @wip
+  Scenario: an unpromoted idea continues to show its unanswered design question
+    Given the work registry has the item "p1-bonus" owned by nobody with the status "todo" and the why "Should the old bonus remain?"
+    When itos runs "work show p1-bonus --json"
+    Then itos exits with code 0
+    And its JSON's "item.why" is "Should the old bonus remain?"
+    When itos runs "work show p1-bonus"
+    Then itos exits with code 0
+    And its output says "Should the old bonus remain?"
+
+  @ID-SHOW-21 @slice-145 @wip
+  Scenario: hiding copied slice prose changes no data and leaves its history explicitly accessible
+    Given a committed slice-authority fixture for "slice-1" with the old idea why "Should the old bonus remain?"
+    And the commit containing that historical registry wording is associated with "slice-1"
+    And the repository files index and HEAD are saved for comparison
+    When itos runs "work show slice-1 --patch --json"
+    Then itos exits with code 0
+    And its JSON has no property "item.why"
+    And an explicitly requested historical patch still contains "Should the old bonus remain?"
+    And the repository files index and HEAD match the saved state
