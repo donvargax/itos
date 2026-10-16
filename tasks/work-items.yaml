@@ -9912,3 +9912,21 @@ items:
       default-policy change is chosen here. Existing installation behavior is not silently redefined
       by the active-shim detection fix.
     refs: [internal/cli/initshim.go, internal/cli/gitshim.go, internal/launch/launch.go]
+
+  - id: bug-113
+    title: Recognize an active launcher shim from a pinned init runtime
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Concrete existing-shim detection fix for #53, specified from p1-init-shim-under-pin. With no
+      --git-shim-dir, recognize an itos at the first executable Git PATH entry using the existing
+      cross-binary identity boundary; do not require inode identity with the pinned cached runtime.
+      Preserve that active entry for plain init and --git-shim without relinking it, running it for
+      identification or claiming it targets the cached runtime. Keep existing JSON shape and
+      truthful PATH standing, --no-git-shim and explicit-directory handling. Preserve bug-104 pinned
+      init dispatch for the rest of initialization. The missing/new installation target and cache
+      advice are separate p1-pinned-shim-install-target work, not changes to guard/default policy.
+    refs: [features/init-shim-identity.feature, internal/cli/initshim.go, internal/cli/gitshim.go, internal/git/bin.go, internal/launch/launch.go]
