@@ -5686,6 +5686,16 @@ items:
       says work show gives every item's why, but a slice's why lives in its scenarios' comments
       (ADR-0034); the guide, or work show itself, should say where to read it for each kind.
 
+      2026-10-15, q-64, #75: the user chose one authoritative task specification in both text and
+      JSON. For a ledger-backed task, work show exposes the ledger specification once and omits the
+      older registry why as a secondary description, whether it is equivalent, partially overlapping
+      or different. Git history retains the older wording; do not add a historical-background
+      section or expose that duplicate in JSON. Ideas continue to use their registry why. Acceptance
+      must include equivalent and divergent descriptions in both outputs and an idea with no ledger
+      specification. Current and historical check display is separate work (#65 and
+      p1-work-show-closing-checks). Exact JSON shape, compatibility and missing-ledger behavior
+      remain to specify before implementation.
+
   - id: p1-config-release-prerelease
     title: itos.yaml accepts release.prerelease, the marker that turns release candidates on
     phase: 1
