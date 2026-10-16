@@ -9522,7 +9522,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-140, slice-141, slice-147]
     kind: idea
     why: >
       Issue #76. Add explicit selection to promotion while keeping no-argument ordered promotion.
@@ -9538,4 +9538,15 @@ items:
       planning, hook bypass, draft-metadata hand edits or rollback of previously successful commits.
       Coordinate with slice-140's bounded assurance and p1-draft-task-fields, without treating
       either as a general projected-queue simulator.
+
+      q-73 selects declared dependencies plus conservative independence checks, with no execution or
+      projected-queue simulator during planning. Specify supported inference explicitly: file drafts
+      and task-field drafts, and parsed work-add command effects; other opaque commands remain
+      barriers to skipping but still work in ordinary queue order. The supported cases must permit
+      real non-prefix selection, including an unrelated field/prose draft and an unqueued work-add
+      idea, rather than replacing the request with prefix-only promotion. Explicit dependency
+      metadata needs a supported edit that preserves private copies and reservations. Track
+      prerequisites across successful promotion and refuse dropping an unsatisfied prerequisite
+      while dependents remain. Final hooks and normal partial-progress behavior remain authoritative
+      after execution starts.
     refs: [internal/cli/draft.go, internal/draft, features/draft.feature]
