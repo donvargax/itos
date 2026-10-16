@@ -9333,3 +9333,24 @@ items:
       scenarios. A fix may need Changes naming released queue cases that promised the old header; it
       does not migrate old Git history.
     refs: [internal/work/queue.go, internal/work/show.go, internal/cli/workdone.go, features/work.feature]
+
+  - id: p1-work-completion-transaction
+    title: Close and dequeue an item in one recoverable commit
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #73, structural first delivery. work done currently commits status and task-check
+      removal, then separately commits queue removal. Combine the existing validated closure,
+      removal of current done_when and dequeue into one commit; preserve the current why, original
+      validation/check semantics and prerequisite green CI. No new receipt schema, evidence reuse,
+      arbitrary caller-supplied success claims, automatic push, retry lifecycle or guard/wait policy
+      changes. Build the complete edit only after validations succeed; reread and revalidate current
+      data after any wait, preserving unrelated changes. A failing hook or write leaves all
+      participating files/index/HEAD restored; stealth updates the same configured data without a
+      commit. Keep existing single-item JSON keys, with queue_commit if emitted identifying the
+      shared close commit. The evidence-binding part of #73 waits on the #71/q-70 design and is
+      separate. This transaction is a prerequisite for batch completion (#70).
+    refs: [internal/cli/workdone.go, internal/cli/committed.go, internal/work/write.go, features/work.feature]
