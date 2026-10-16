@@ -360,3 +360,136 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And its output says "Migration"
     And the draft "snapshot-spec" exists
     And the repository files index and HEAD match the saved state
+
+  # Slice 140 (#46, q-69): recognized minting commands share pure preflight
+  # before direct reservation and before draft creation. The fixture commits
+  # a valid policy, ledger and registry with p1-candidate as an idea; the
+  # saved state includes the draft store, remote ID counter, files, index and
+  # HEAD. Refusal means nonzero exit and the named diagnostic, not any error.
+  # No fixture check may reserve an ID merely to inspect the counter.
+  @ID-DRAFT-25 @slice-140 @wip
+  Scenario Outline: malformed recognized minting commands are refused before reserving or storing anything
+    Given a committed minting preflight fixture
+    And the minting state is saved for comparison
+    When itos attempts the minting command "<command>" in "<mode>" mode
+    Then itos refuses the minting command naming "<diagnostic>"
+    And the minting state matches the saved state
+
+    Examples:
+      | mode   | command                                                    | diagnostic |
+      | direct | work add --kind slice --title 'Missing reason'              | why        |
+      | draft  | work add --kind slice --title 'Missing reason'              | why        |
+      | direct | task add --phase 1 --type build --title 'Task' --why 'Why.'  | check      |
+      | draft  | task add --phase 1 --type build --title 'Task' --why 'Why.'  | check      |
+      | direct | work promote p1-candidate --kind unsupported                | kind       |
+      | draft  | work promote p1-candidate --kind unsupported                | kind       |
+
+  # Each defect is the sole invalid input; every row is exercised both as
+  # the direct command and as draft add candidate -- <command>. The command
+  # fixture supplies all required arguments and never runs task checks.
+  @ID-DRAFT-26 @slice-140 @wip
+  Scenario Outline: decidable semantic failures do not consume IDs in direct or drafted commands
+    Given a committed minting preflight fixture
+    And its "<command>" input has only the defect "<defect>"
+    And the minting state is saved for comparison
+    When itos attempts that input directly and as a command draft in independent copies
+    Then both attempts refuse with a diagnostic for "<defect>"
+    And both copies retain the saved minting state
+
+    Examples:
+      | command      | defect                            |
+      | work add     | undeclared tag                    |
+      | work add     | nonexistent dependency            |
+      | work add     | missing phase in a multiphase registry |
+      | task add     | undeclared task type              |
+      | task add     | nonexistent group                 |
+      | work promote | missing source idea               |
+      | work promote | malformed questions file          |
+      | work promote | unresolved question reference     |
+
+  # An earlier reserved item is a known future dependency; preflight must
+  # not require its registry entry to exist yet. No simulated item is written.
+  @ID-DRAFT-27 @slice-140 @wip
+  Scenario: a later command draft can depend on the ID reserved by an earlier draft
+    Given a committed minting preflight fixture
+    And a valid earlier work-add draft named "first" has reserved an ID
+    And the minting state is saved for comparison
+    When itos drafts another valid work-add command depending on that reserved ID
+    Then itos exits with code 0
+    And the new draft has its own reserved ID
+    And its output explains that dependency creation awaits promotion
+    And no queued command or task check ran
+    And the working tree index and HEAD match the saved minting state
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And both items exist with the later item depending on the earlier item
+    And neither promotion reserves another ID
+
+  # The earlier edit is confined to private copies of the policy and adds
+  # the tag future. Preflight recognizes that the tag check is affected,
+  # without applying the edit, interpreting a projected queue or promising
+  # success. Pending diagnostics identify the check and preceding draft.
+  @ID-DRAFT-28 @slice-140 @wip
+  Scenario: a tag declared by an earlier policy draft remains pending until promotion
+    Given a committed minting preflight fixture without the tag "future"
+    And a complete earlier edit draft named "declare-tag" adds the allowed tag "future"
+    And the minting state is saved for comparison
+    When itos runs the command line "draft add tagged -- work add --kind slice --phase 1 --title 'Tagged' --why 'Why.' --tags future"
+    Then itos exits with code 0
+    And the draft "tagged" has a reserved ID
+    And its output names "declare-tag" and the pending tag validation
+    And the committed policy still does not declare the tag "future"
+    And no queued command or task check ran
+    And the working tree index and HEAD match the saved minting state
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And the reserved item exists with the tag "future"
+
+  # An unrelated notes edit cannot excuse a known invalid tag. Conversely,
+  # an opaque command's effects cannot be proven by running it: mutable
+  # checks it might affect remain pending. This is intentionally bounded.
+  @ID-DRAFT-29 @slice-140 @wip
+  Scenario: unrelated drafts do not postpone a definitively invalid tag check
+    Given a committed minting preflight fixture without the tag "future"
+    And a complete earlier edit draft changes only "notes.md"
+    And the minting state is saved for comparison
+    When itos runs the command line "draft add tagged -- work add --kind slice --phase 1 --title 'Tagged' --why 'Why.' --tags future"
+    Then itos refuses the minting command naming "future"
+    And the minting state matches the saved state
+
+  @ID-DRAFT-30 @slice-140 @wip
+  Scenario: uncertain earlier command effects never suppress argument validation or execute the queue
+    Given a committed minting preflight fixture
+    And an earlier opaque command draft would record its execution
+    And the minting state is saved for comparison
+    When itos runs the command line "draft add invalid -- work add --kind slice --title 'Missing reason'"
+    Then itos refuses the minting command naming "why"
+    And no queued command or task check ran
+    And the minting state matches the saved state
+
+  # Final validation uses the actual state at promotion. The policy change
+  # is committed after creation so a dirty-tree gate cannot cause this red.
+  @ID-DRAFT-31 @slice-140 @wip
+  Scenario: promotion rejects a reserved command whose tag became invalid and retains its reservation
+    Given a committed minting preflight fixture declaring the tag "temporary"
+    And a valid command draft named "tagged" reserves an item tagged "temporary"
+    And a subsequent committed policy removes the tag "temporary"
+    And the minting state is saved for comparison
+    When itos runs "draft promote"
+    Then itos refuses the minting command naming "temporary"
+    And the draft "tagged" still has the same reserved ID
+    And the minting state matches the saved state
+
+  # Guard: pure preflight cannot make a remote counter and a local commit
+  # transactional. A valid command still reserves before its hook runs;
+  # failing that hook may leave the reservation consumed under ADR-0045.
+  @ID-DRAFT-32 @slice-140 @guard @wip
+  Scenario: a later hook failure rolls back files without recycling an already reserved ID
+    Given a committed minting preflight fixture
+    And a recording commit hook rejects the next otherwise valid work-add command
+    And the minting state is saved for comparison
+    When itos runs the command line "work add --kind slice --phase 1 --title 'Valid' --why 'Why.'"
+    Then itos refuses the minting command naming the rejecting hook
+    And the rejecting hook ran after one ID was reserved
+    And the working tree index and HEAD match the saved minting state
+    And the reserved ID remains consumed
