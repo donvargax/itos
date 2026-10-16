@@ -10044,14 +10044,15 @@ items:
       opt-in. Split this concrete default from the broader command-default audit.
     refs: [internal/cli/init.go, internal/cli/initrules.go, internal/cli/initrulesstealth.go, features/init.feature]
 
-  - id: p1-external-config-refusal
+  - id: slice-160
     title: Refuse runtime project configs outside the working tree
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-external-config-refusal.
       Issue #31, q-79: reject an external runtime project config before partial data resolution or
       execution, preserving private stealth configs and policy files read only as import input.
       Shared external metadata and per-branch planning are separate designs.
