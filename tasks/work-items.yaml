@@ -1103,6 +1103,12 @@ items:
       policy decision, not a claim that existing rules or gates have already changed. Related
       direction: neighboring scenarios in done_when and no duplicate subagent runs
       (p1-neighbor-checks-in-done-when, p1-agent-test-runs-once).
+
+      q-82 chose a plain live-test runner first; slice-162, ID-TESTRUN-01..09, now specifies
+      explicit IDs and built-in Gherkin item tags from the working tree. Command adapters lack
+      item-tag metadata, and reliable WIP execution is not claimed. This parent retains the
+      reconsidered red-first policy, WIP runner contract and guard-aware proof; no current mandatory
+      ceremony was changed.
     tags: [tests]
 
   - id: p1-commit-message-file
