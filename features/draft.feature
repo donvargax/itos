@@ -831,8 +831,10 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
   # is duplicate-free and stored in queue order. draft depends <id> --on
   # <ids> replaces that metadata alone; an empty value clears it. Preserve
   # copies, reservation and position. List JSON adds depends_on only when
-  # nonempty. Command replacement preserves dependencies unless explicitly
-  # changed through this metadata operation. No dependency update mints.
+  # nonempty. Command replacement preserves dependencies when --depends-on
+  # is omitted; supplying it validates and replaces the dependency list
+  # together with the command. The depends operation also edits dependencies
+  # without changing command arguments or private copies. Neither mints.
   #
   # Explicit prerequisites must be selected or already successfully
   # promoted. Successful promotion retires satisfied edges from remaining
@@ -850,6 +852,7 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
   # even when its edited prose field differs. Arbitrary command effects and
   # unsupported command footprints are unknown barriers, not empty scopes.
   # Opaque commands still run normally when no predecessor is skipped.
+  # A different repository/config domain with unproven scope is unknown.
   # Never execute hooks, checks or commands merely to infer independence.
   # Recheck inputs before each application; no projected queue simulator or
   # promise of eventual promotability. Once execution starts, successful
