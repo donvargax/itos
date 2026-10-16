@@ -8682,7 +8682,15 @@ items:
       environment and {from} and {to} in its text. Neither itos ci --help nor config check
       --print-defaults says so; --print-defaults could show them as commented examples, as it does
       tests.<kind>.
+
+      First delivery documents actual runtime behavior: plain command, run/cost mapping, and
+      range-selected tests mapping; ci help points to the detailed ci run help. YAML print-defaults
+      gains disabled comment examples without changing its parsed defaults or JSON shape. Explain
+      {from}/{to} and ITOS_FROM/ITOS_TO, including empty from for an all-history run. Explicitly
+      warn that whole is currently accepted but has no effect; p1-ci-step-whole-inert owns resolving
+      that mismatch, with no planner change hidden in this help work.
     tags: [ci, docs]
+    refs: [features/ci-help.feature, internal/cli/help.go, internal/cli/configcheck.go, internal/config/defaults.go, internal/plan/ends.go]
 
   - id: p1-init-shim-under-pin
     title: init under a pin looks for the git shim beside the cached release, not the git on the PATH
