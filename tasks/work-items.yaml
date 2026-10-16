@@ -7446,7 +7446,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [T-144]
+    depends_on: [T-144, T-181, T-182]
     kind: idea
     why: >
       donvargax/itos#44, from itos-cc#34 (closed 2026-10-11): the corpus reaches 567 of the 1,881 Go
@@ -7463,6 +7463,13 @@ items:
       2026-10-12, slice-134: the push proof called two config-check branches uncovered that only
       conformance cases reach, so the agent wrote unit tests duplicating them; every push that adds
       a config refusal pays this until the corpus counts.
+
+      2026-10-15 issue audit: #44 is now specified as CI tasks T-181 (fresh working-tree binary and
+      per-fixture coverage) then T-182 (single listed-suite dispatcher and config wiring). Current
+      Go runner replaces the historical Node proposal. Use portable corpus-<stem> IDs, not
+      colon-bearing directory names. Historical measured counts are evidence from 2026-10-11, not
+      current measurements. Keep this report idea for eventual explicit absorption after both tasks
+      land; no product implementation or mutation campaign is part of specification.
     refs: [itos-cc.yaml, tools/itos/conformance, tools/bin/itos-cc-tests]
 
   - id: slice-119
