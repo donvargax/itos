@@ -9136,6 +9136,16 @@ items:
       can use conditional instructions where the guide has no actual item context; it need not solve
       filled briefs (p1-guide-brief-filled). Required custom footers remain named by the existing
       commit-policy renderer rather than inventing new CLI flags.
+
+      Scope refinement: prefer a wording-only first delivery in guide brief/work, using conditional
+      linking instructions and the existing guide commit policy read. A filled, config-dependent
+      brief generator is not required to fix #66 and remains p1-guide-brief-filled. Remove the
+      unconditional runnable-looking --item example; say when --item satisfies the type's linkage,
+      when a real ledger --task is required as well/instead, and when no linking footer is required.
+      Preserve every configured footer requirement and never silently add a footer to consumers'
+      config. Since this can be a docs change, specify it as a documentation task with review and
+      the relevant existing guide/corpus checks, rather than inventing a new scenario-backed
+      renderer just to adjust the wording.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/guide.go, internal/message/written.go]
 
   - id: slice-137
