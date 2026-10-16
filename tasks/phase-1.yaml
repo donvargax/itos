@@ -1975,3 +1975,25 @@
   done_when:
     - run: tools/bin/itos ci run --help
     - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml
+
+- id: T-180
+  type: docs
+  title: Explain configured proof scope and execution in the README
+  why: >
+    Documentation delivery for #24, with the related #45 and #35 inaccuracies found in README.md
+    Proof of done. Explain beside the example that proof.code.paths controls whether the automatic
+    ranged proof is selected; the configured command and its operands determine what the provider
+    judges. Show an explicitly scoped provider example including cmd and internal, and do not imply
+    that matching files are passed automatically or that a {paths} placeholder exists. Correct the
+    absolute claim that every configured proof only reads saved results and runs no tests: execution
+    is whatever proof.code.check specifies and can include fresh counted mutations. Keep the
+    provider JSON verdict distinct from command exit alone. Explain the current absent-start
+    omission and that work done relies on the required CI result rather than rerunning proof; do not
+    claim every green whole run judged code proof. Preserve current configuration, gates, timing and
+    CLI behavior. This is a concise clarification of an observed ambiguity, not a new receipt, scope
+    placeholder, zero-work refusal or proof policy. Review the README example against the current
+    configuration and corrected CI help after T-179; execute only the existing help acceptance
+    check, with semantic review of prose as a separate criterion and no new policy-text test.
+  done_when:
+    - run: tools/bin/itos ci run --help
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/help.yaml

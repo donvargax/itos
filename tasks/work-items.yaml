@@ -9961,3 +9961,11 @@ items:
       release notes, alter init defaults or bundle the unresolved manual-instruction classification
       part of #50.
     refs: [features/init-status.feature, internal/cli/init.go, tools/itos/conformance/init.yaml]
+
+  - id: T-180
+    title: Explain configured proof scope and execution in the README
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
