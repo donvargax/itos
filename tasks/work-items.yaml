@@ -5707,6 +5707,8 @@ items:
       against the released corpus and scenarios and mark the intentional compatibility change before
       promotion; do not label the contract change a wording-only fix. Current checks and historical
       check recovery remain independent items.
+    deferred: >
+      Wait for the planned next major, as agreed in q-66.
 
   - id: p1-config-release-prerelease
     title: itos.yaml accepts release.prerelease, the marker that turns release candidates on
