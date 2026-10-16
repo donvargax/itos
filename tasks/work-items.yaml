@@ -7665,6 +7665,24 @@ items:
       phases, was refused ('which phase bug-106 is in is not said') after minting bug-106, so the
       retry got bug-107 and bug-106 is burned. work add itself checks after minting too, not only
       draft add.
+
+      Definition split for #46: this item owns side-effect-free preflight before ID reservation in
+      recognized minting commands, both direct and drafted: work add, work promote and task add.
+      Validate parse/type/group/tag/registry and questions-file inputs and resolvable dependency
+      constraints before reserving; known-invalid input must change neither counter, tree nor draft
+      store. A dependency on an ID reserved by an earlier queued draft is pending creation, not
+      automatically unknown: validate what is decidable and retain final validation at promotion
+      without running arbitrary queued commands. Reject dependencies absent from both committed data
+      and known earlier drafts. Recheck at promotion because inputs may have changed. A legitimate
+      later commit/hook failure can leave a reserved ID gap under ADR-0045; this work must not
+      recycle IDs or promise a cross-remote transaction. Original replacement scope is specified
+      separately as p1-draft-replace-reserved-command; missing message footers are
+      p1-draft-message-preflight (#78). New task-promotion preflight must follow q-63 and share the
+      same rules instead of reserving twice. Acceptance distinguishes parse/semantic refusal before
+      reservation, legitimate earlier-draft references, stale promotion input, normal early ID
+      availability and post-reservation failures. Exact support for chained non-minting command
+      effects remains a promotion-time check; do not interpret or execute arbitrary commands during
+      preflight.
     refs: [internal/cli/idmint.go, features/draft.feature]
     tags: [work]
 
