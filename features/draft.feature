@@ -820,3 +820,212 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     Then itos refuses the task draft naming "Upgrading"
     And no queued command task check or project hook ran
     And the minting state matches the saved state
+
+  # Slice 148 (#76, q-73): draft promote [<draft-id>...] selects explicitly;
+  # no arguments retains ordinary ordered promotion. Reject unknown or
+  # duplicate IDs before any execution. Selected drafts run in queue order,
+  # never argument order, with unselected entries/copies unchanged.
+  #
+  # Creation (add/edit, including task mode) accepts --depends-on <ids>
+  # before --; IDs name existing earlier drafts, not work items. The list
+  # is duplicate-free and stored in queue order. draft depends <id> --on
+  # <ids> replaces that metadata alone; an empty value clears it. Preserve
+  # copies, reservation and position. List JSON adds depends_on only when
+  # nonempty. Command replacement preserves dependencies unless explicitly
+  # changed through this metadata operation. No dependency update mints.
+  #
+  # Explicit prerequisites must be selected or already successfully
+  # promoted. Successful promotion retires satisfied edges from remaining
+  # drafts; dropping a prerequisite with queued dependents refuses. Infer
+  # edges from known reserved IDs and missing footer IDs supplied by earlier
+  # known drafts too. Declarations cannot override inferred dependencies.
+  #
+  # Before any selected draft executes, check its skipped predecessors:
+  # known file writes, typed task/field writes, referenced IDs and configured
+  # validation inputs must establish independence. Support file drafts,
+  # task-field drafts and parsed work-add effects initially. A known shared
+  # field/path or relevant policy change blocks selection; disjoint typed
+  # task fields can be independent within one ledger file. Changes to
+  # checks used by the selected message's Task footer are relevant reads,
+  # even when its edited prose field differs. Arbitrary command effects and
+  # unsupported command footprints are unknown barriers, not empty scopes.
+  # Opaque commands still run normally when no predecessor is skipped.
+  # Never execute hooks, checks or commands merely to infer independence.
+  # Recheck inputs before each application; no projected queue simulator or
+  # promise of eventual promotability. Once execution starts, successful
+  # commits remain on a later failure, as today. Keep JSON's existing ok,
+  # promoted and problems fields and normal final validation/checkout gates.
+  @ID-DRAFT-51 @slice-148 @wip
+  Scenario: non-prefix selection promotes only independent drafts in stored queue order
+    Given a committed selective-draft fixture with independent file drafts "first,second,third"
+    And the draft store and repository state are saved for comparison
+    When itos runs "draft promote third first --json"
+    Then itos exits with code 0
+    And its JSON's "promoted" is ["first","third"]
+    And only first and third were committed in that order
+    And the remaining draft list is "second"
+    And second's private files and metadata match the saved state
+
+  @ID-DRAFT-52 @slice-148 @wip
+  Scenario Outline: invalid selection refuses before even a valid selected predecessor runs
+    Given a committed selective-draft fixture with independent file drafts "first,second"
+    And the draft store and repository state are saved for comparison
+    When itos runs "draft promote <selection> --json"
+    Then itos refuses draft selection naming "<diagnostic>"
+    And its JSON's "promoted" is []
+    And no queued command task check or project hook ran
+    And the draft store and repository match the saved state
+
+    Examples:
+      | selection           | diagnostic |
+      | first missing-draft | missing-draft |
+      | first first         | first      |
+
+  @ID-DRAFT-53 @slice-148 @wip
+  Scenario: supported dependency edits preserve private copies reserved IDs and queue position
+    Given a committed selective-draft fixture with an earlier file draft named "first"
+    When itos runs the command line "draft add later --depends-on first -- work add --kind slice --phase 1 --title 'Later' --why 'Why.'"
+    Then itos exits with code 0
+    And draft JSON lists later's dependency on first
+    Given the minting state is saved for comparison
+    When itos runs the command line "draft depends later --on ''"
+    Then itos exits with code 0
+    And later's dependencies are empty
+    And its command reserved ID private files and queue position are unchanged
+    And no additional ID was reserved
+    When itos runs "draft depends later --on first"
+    Then itos exits with code 0
+    And draft JSON lists later's dependency on first
+    And no additional ID was reserved
+
+  @ID-DRAFT-54 @slice-148 @wip
+  Scenario Outline: dependency declarations reject unknown self duplicate and forward references before mutation
+    Given a committed selective-draft fixture with independent file drafts "first,later"
+    And the minting state is saved for comparison
+    When itos runs the command line "<command>"
+    Then itos refuses draft dependencies naming "<diagnostic>"
+    And the minting state matches the saved state
+
+    Examples:
+      | command                                                                                                      | diagnostic |
+      | draft depends first --on first                                                                               | first      |
+      | draft depends first --on later                                                                               | later      |
+      | draft depends later --on missing-draft                                                                       | missing-draft |
+      | draft depends later --on first,first                                                                         | first      |
+      | draft add new --depends-on missing-draft -- work add --kind slice --phase 1 --title 'New' --why 'Why.'          | missing-draft |
+
+  @ID-DRAFT-55 @slice-148 @wip
+  Scenario: explicit transitive prerequisites must be selected without automatically broadening the request
+    Given a committed selective-draft fixture with independent file drafts "first,second,third"
+    And second depends on first and third depends on second
+    And the draft store and repository state are saved for comparison
+    When itos runs "draft promote third second --json"
+    Then itos refuses draft selection naming "first"
+    And its JSON's "promoted" is []
+    And the draft store and repository match the saved state
+    When itos runs "draft promote third first second --json"
+    Then itos exits with code 0
+    And its JSON's "promoted" is ["first","second","third"]
+
+  @ID-DRAFT-56 @slice-148 @wip
+  Scenario: prerequisites cannot be dropped while needed and successful promotion satisfies their edges
+    Given a committed selective-draft fixture with independent file drafts "first,second,third"
+    And third depends on first
+    And the draft store and repository state are saved for comparison
+    When itos runs "draft drop first"
+    Then itos refuses draft dependencies naming "third"
+    And the draft store and repository match the saved state
+    When itos runs "draft promote first"
+    Then itos exits with code 0
+    And third no longer has an unsatisfied dependency on first
+    When itos runs "draft promote third --json"
+    Then itos exits with code 0
+    And its JSON's "promoted" is ["third"]
+    And the remaining draft list is "second"
+
+  @ID-DRAFT-57 @slice-148 @wip
+  Scenario: a reserved work-item dependency blocks selecting its dependent draft alone
+    Given a committed selective-draft fixture with a work-add draft "first" holding a slice ID
+    And a later work-add draft "later" depends on that reserved item ID without declaring a draft dependency
+    And the minting state is saved for comparison
+    When itos runs "draft promote later --json"
+    Then itos refuses draft selection naming "first"
+    And the minting state matches the saved state
+    When itos runs "draft promote later first --json"
+    Then itos exits with code 0
+    And its JSON's "promoted" is ["first","later"]
+    And the later item depends on the retained first item's ID
+    And no additional ID was reserved
+
+  @ID-DRAFT-58 @slice-148 @wip
+  Scenario: a skipped policy draft cannot be treated as irrelevant to a later command's validation
+    Given a committed selective-draft fixture with a private policy edit named "policy"
+    And a later valid work-add draft named "idea"
+    And the draft store and repository state are saved for comparison
+    When itos runs "draft promote idea --json"
+    Then itos refuses draft selection naming "policy" and the configured policy path
+    And no queued command task check or project hook ran
+    And the draft store and repository match the saved state
+    When itos runs "draft promote policy idea --json"
+    Then itos exits with code 0
+    And its JSON's "promoted" is ["policy","idea"]
+
+  @ID-DRAFT-59 @slice-148 @wip
+  Scenario: typed disjoint task fields can be selected independently within the same ledger file
+    Given a committed selective-draft fixture for task "T-001"
+    And a task-field draft "reason" changes only T-001's why
+    And a later task-field draft "title" changes only T-001's title
+    And neither message names task checks or missing footer IDs
+    And the draft store and repository state are saved for comparison
+    When itos runs "draft promote title --json"
+    Then itos exits with code 0
+    And its JSON's "promoted" is ["title"]
+    And T-001's ledger and registry have the edited title
+    And its why still equals the saved committed why
+    And reason's private files and metadata match the saved state
+
+  # Footprint fixtures include a recording opaque command and recording
+  # hooks/checks; none may be invoked during an independence refusal.
+  @ID-DRAFT-60 @slice-148 @wip
+  Scenario Outline: overlapping or unknown effects refuse unsafe skipping without probing by execution
+    Given a committed selective-draft fixture whose skipped predecessor has "<effect>"
+    And the draft store and repository state are saved for comparison
+    When the later draft is selected alone as JSON
+    Then itos refuses draft selection with rule "<rule>"
+    And the refusal identifies the blocking predecessor and relevant scope
+    And no queued command task check or project hook ran
+    And the draft store and repository match the saved state
+
+    Examples:
+      | effect                                              | rule                    |
+      | an ordinary file draft touching the same file        | draft-selection-overlap |
+      | a task-field draft editing the same task field       | draft-selection-overlap |
+      | changed checks named by the selected Task footer     | draft-selection-overlap |
+      | an opaque earlier command                           | draft-selection-unknown |
+      | unknown effects of the selected command across a skip | draft-selection-unknown |
+
+  @ID-DRAFT-61 @slice-148 @wip
+  Scenario: failure after selected execution starts keeps earlier success and all unselected work
+    Given a committed selective-draft fixture with independent file drafts "first,second,third,fourth"
+    And a recording commit hook rejects only third's valid commit
+    And the draft store and repository state are saved for comparison
+    When itos runs "draft promote fourth third first --json"
+    Then itos exits with code 1
+    And its JSON's "promoted" is ["first"]
+    And exactly one successful commit was added by the command
+    And third's failed file changes were restored
+    And the remaining draft list is "second,third,fourth"
+    And second's and fourth's private files and metadata match the saved state
+    And fourth was not executed
+
+  @ID-DRAFT-62 @slice-148 @wip
+  Scenario: replacing a reserved command draft does not silently erase its prerequisites
+    Given a committed selective-draft fixture with an earlier file draft named "first"
+    And a later reserved work-add draft named "later" explicitly depends on first
+    When itos runs the command line "draft add later --replace -- work add --kind slice --phase 1 --title 'Corrected' --why 'Why.'"
+    Then itos exits with code 0
+    And later still depends on first and retains its reserved ID
+    Given the draft store and repository state are saved for comparison
+    When itos runs "draft promote later --json"
+    Then itos refuses draft selection naming "first"
+    And the draft store and repository match the saved state
