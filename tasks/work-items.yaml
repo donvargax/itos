@@ -9175,6 +9175,20 @@ items:
       config. Since this can be a docs change, specify it as a documentation task with review and
       the relevant existing guide/corpus checks, rather than inventing a new scenario-backed
       renderer just to adjust the wording.
+
+      Acceptance for the wording-only delivery: review the emitted work and brief guides against (1)
+      a registry link substituting for Task on test commits, (2) a registry link present without
+      that substitution, (3) required ledger and registry links together, (4) a ledger-only policy,
+      (5) no required work link, (6) custom footer names, and (7) use outside a configured
+      repository. Every example must remain conditional on the policy printed by guide commit; a
+      ledger placeholder must identify a real acceptance task and never a slice ID. Existing
+      arbitrary custom footer requirements remain visible through guide commit and require no new
+      CLI flag. Exercise the shipped guide commands and their existing guide conformance cases;
+      assess semantic wording by review rather than a regex check or a new renderer. No policy,
+      red-first ordering, push waiting, config migration or filled-brief behavior changes belong
+      here. Create its documentation task after slice-138 supplies complete task promotion, then use
+      that task for the wording change. This clarification supersedes the earlier proposal to render
+      config-dependent examples.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/guide.go, internal/message/written.go]
 
   - id: slice-137
