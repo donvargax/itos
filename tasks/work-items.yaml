@@ -9479,3 +9479,26 @@ items:
       machine-output contract removal joins the planned next major under the same release review. No
       implementation is ready until these authority/timing questions are settled.
     refs: [internal/work/show.go, internal/work/write.go, internal/cli/workwrite.go, internal/guide/brief.md, features/work.feature]
+
+  - id: p1-draft-task-fields
+    title: Draft task fields without overwriting unrelated ledger updates
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #74. Allow private specification edits scoped to a task and explicitly selected fields;
+      promotion must preserve unrelated task entries, legitimate done_when removal on another
+      completed task, ordering/comments where supported, and concurrent registry ownership/status.
+      Compare target-field base values against current values; same-field concurrent edits conflict
+      atomically, while unrelated field changes survive. Task deletion, duplicate identity, changed
+      config/layout and closure while a draft targets checks need explicit conflict rules. Do not
+      infer semantic equivalence from substring matching or restore a stale full-file snapshot.
+      Existing whole-file edit/change drafts retain their behavior. Define the user-facing operation
+      and portable/configured field mapping before scenarios; share task-edit logic with
+      p1-task-edit where useful without requiring selective promotion. Candidate first fields are
+      title, why and done_when; no ability to draft ownership/status changes as a side effect of
+      editing acceptance. This is a request for finer granularity, not evidence of reproduced silent
+      data loss.
+    refs: [internal/cli/draft.go, internal/draft, internal/ledger, features/draft.feature]
