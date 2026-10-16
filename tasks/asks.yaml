@@ -276,3 +276,5 @@ questions:
   - id: q-67
     item: "p1-guard-follows-cd"
     question: "Guard directory tracking (#34/#69): recommend a first delivery limited to literal cd in unambiguous && chains, with nested-shell isolation and existing git -C support. This fixes both reported directions without guessing whether a failed cd changed directory. Alternative: also analyze semicolon/conditional/OR branches, conservatively denying when any statically possible target is managed; that adds scope and may retain false-positive denials. Which scope should the first delivery cover?"
+  - id: q-68
+    question: "What role should v8, v9 and v10 have on the path to the first stable itos release? The user clarified this while reconsidering agent Git and CI ownership policy on 2026-10-15."
