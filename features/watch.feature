@@ -236,8 +236,9 @@ Feature: itos push waits for the CI run it started, and itos ci watch for any co
   # with "; step: <name>" and "; started: <timestamp>" when supplied.
   # Stable run/job identity, not response order or display name alone,
   # controls deduplication. No repeating heartbeat or stall diagnosis.
-  # Scripted fake responses advance on provider looks, without real sleeps
-  # or external GitHub requests. Complete runs use exact clone revisions.
+  # Scripted fake responses advance on provider looks; test steps never
+  # sleep or poll externally. itos retains its configured polling cadence.
+  # Complete runs use exact clone revisions and no external GitHub requests.
   @ID-WATCH-20 @slice-144 @wip
   Scenario: a watcher reports discovery job status and active-step transitions once
     Given the fake GitHub scripts these successive watch observations:
