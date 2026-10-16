@@ -9425,3 +9425,11 @@ items:
       policy. Provider capability and exact transition format still need scenarios before
       implementation.
     refs: [internal/cli/watch.go, internal/providers]
+
+  - id: T-178
+    title: State delegated publication scope explicitly in worker briefs
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task

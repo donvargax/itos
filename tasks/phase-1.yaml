@@ -1932,3 +1932,25 @@
   done_when:
     - run: tools/bin/itos guide commit
     - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/guide.yaml
+
+- id: T-178
+  type: docs
+  title: State delegated publication scope explicitly in worker briefs
+  why: >
+    Issue #77. Extend the generic brief instructions/template in internal/guide/brief.md with
+    explicit placeholders for the authorized repository, remote name and destination, target
+    branch/ref, ordinary non-force publication, item/change boundary, and the actual user/repository
+    instruction delegating that publication. The coordinator fills only authorization that exists; a
+    template is not authority to push somewhere else and cannot override approval review. Keep
+    remote URLs free of embedded credentials in the brief; use a sanitized destination or repository
+    identity. Existing permission and branch protection decisions remain external. First delivery is
+    wording-only, usable by a coordinator filling the existing template; structured generated output
+    belongs to p1-guide-brief-filled and is not required here. Preserve existing push/wait/CI
+    ownership policy and repository overrides, including coordinator-only publication when a worker
+    is not delegated to push. Review examples for delegated worker push and coordinator-only push,
+    and require an unset scope to remain visibly unresolved instead of claiming blanket permission.
+    Exercise the shipped guide and existing guide corpus; do not add a policy-text test or invoke a
+    remote write as acceptance.
+  done_when:
+    - run: tools/bin/itos guide brief
+    - run: go run ./tools/bin/conformance --bin tools/bin/itos --only tools/itos/conformance/guide.yaml
