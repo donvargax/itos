@@ -269,3 +269,6 @@ questions:
     item: "p1-ci-scope-registry-changes"
     question: "CI classification (#72): recommend a public read-only classifier plus a documented workflow recipe, preserving the current ci run planner policy. This lets workflows skip expensive platform jobs only for proven bookkeeping while retaining metadata validation and all named checks. Alternative: include opt-in planner integration so ci run also uses the reduced metadata route in this item. Which scope should the specification use?"
     answer: "Classifier and workflow recipe first, as the user selected. Preserve existing ci run planner policy. The recipe retains verify, metadata validation and every named check; an opt-in planner route is separate future work."
+  - id: q-66
+    item: "p1-work-show-why-once"
+    question: "Task inspection, q-64/#75: removing the older item.why from task JSON intentionally changes machine output, which ADR-0035 treats as contract even though the property is already conditional. Recommend delivering the complete text-and-JSON change in the planned next major bundle; alternatively let this change trigger the next major as soon as it is ready. Both preserve the decision to omit historical wording. Which release timing should the item specify?"
