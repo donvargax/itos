@@ -9710,3 +9710,22 @@ items:
       issue comment and its captured-output claim; no new reproduction or independent check
       execution was performed here.
     refs: [internal/cli/task.go, features/task.feature]
+
+  - id: p1-listed-test-fingerprints
+    title: Fingerprint individual named tests independently of neighboring scenarios
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Split the later itos-cc#30 proposal out of #22 TSV interoperability work. A Gherkin
+      fingerprint should depend on the selected scenario executable content, tables, doc strings,
+      outline Examples, applicable Background steps and effective tags; unrelated scenarios,
+      comments, descriptions and file movement should not stale it. This needs a defined canonical
+      representation and protocol/version contract, separate from emitting current two-column
+      live-test TSV. Command adapters should supply their own fingerprints rather than itos
+      interpreting unknown test formats. Do not claim itos-cc currently consumes a third column: its
+      issue #30 remains open as of the 2026-10-15 gh api read. Do not implement cached-evidence
+      reuse or weaken current proof gates in this item.
+    refs: [internal/tests/gherkin.go, internal/tests/tests.go]
