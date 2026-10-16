@@ -10083,3 +10083,19 @@ items:
       using existing configured selection. No WIP guarantee, red-proof interpretation, automatic
       commits, stashing or worktrees. The original idea retains WIP and red-first policy design.
     refs: [internal/tests/run.go, internal/tests/gherkin.go, internal/cli/tests.go]
+
+  - id: p1-historical-range-commands
+    title: Define historical policy epochs for arbitrary range commands
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Residual #55 scope after q-81. Per-commit historical policy fixes types, footer rules, scopes
+      and builtin moves. Arbitrary range commands currently execute once over the requested range
+      under current effective config; replaying commands removed later or partitioning a DAG into
+      policy epochs needs a separate execution/availability model, without worktrees or silently
+      borrowing a new command for old policy. No epoch segmentation or historical script checkout is
+      chosen yet.
+    refs: [internal/cli/verify.go]
