@@ -9934,3 +9934,23 @@ items:
       init dispatch for the rest of initialization. The missing/new installation target and cache
       advice are separate p1-pinned-shim-install-target work, not changes to guard/default policy.
     refs: [features/init-shim-identity.feature, internal/cli/initshim.go, internal/cli/gitshim.go, internal/git/bin.go, internal/launch/launch.go]
+
+  - id: bug-114
+    title: Qualify the existing-config result in init rerun output
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: bug
+    why: >
+      Independent status-wording part of #50. initReport prints that the config exists so init wrote
+      nothing before explicit plugin/shim/rules offers can write files. Replace that global claim
+      with a truthful config-scoped kept/unchanged statement, regardless of the later offer results.
+      Preserve action ordering, agent-rules writing/current reporting, defaults, exit codes and all
+      existing JSON fields. Test both an explicit rules update that writes files and an
+      already-current rerun that does not. This is a fix to observable status output; update the two
+      affected non-help init conformance expectations and name each previous-release case in
+      Changes, with Upgrading none if no consumer action is required. Do not rewrite historical
+      release notes, alter init defaults or bundle the unresolved manual-instruction classification
+      part of #50.
+    refs: [features/init-status.feature, internal/cli/init.go, tools/itos/conformance/init.yaml]
