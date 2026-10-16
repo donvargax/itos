@@ -8669,14 +8669,15 @@ items:
       ci.watch.interval; exit 3 only when the timeout passes.
     tags: [ci, push]
 
-  - id: p1-ci-steps-discoverable
-    title: ci.steps' entry forms and the range a step receives are in itos ci's help and --print-defaults
+  - id: slice-151
+    title: Explain CI step forms and range inputs in CLI help and defaults examples
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-ci-steps-discoverable.
       #57 (2026-10-12): an agent setting up CI read itos's source to learn the step forms ({run,
       cost}, {tests: <kind>}, whole: true) and that a step gets ITOS_FROM and ITOS_TO in its
       environment and {from} and {to} in its text. Neither itos ci --help nor config check
