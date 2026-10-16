@@ -442,3 +442,152 @@ Feature: ci run's log names a merged check by the kind of named tests it ran in
     Then itos exits with code 1
     And its output says "CI failed at: exit 3"
     And its output says "also failed at: exit 4"
+
+  # Slice 137 (#72, q-65): classification and a workflow recipe only;
+  # ci run keeps its policy. Keep schema/docs_only and add classification
+  # (prose, metadata, full) and reasons (stable string codes).
+  # Every scope fixture commits valid policy, ledger, registry and any named
+  # tests before recording the range base. Subsequent steps make real commits.
+  # The When passes those exact base/head SHAs to ci scope --json; fixture
+  # setup is outside the range. Classification is never a validation verdict.
+  @ID-CI-32 @slice-137 @wip
+  Scenario Outline: bookkeeping uses the configured registry path and an explicit field allow-list
+    Given a committed CI scope fixture with registry path "acceptance/work.yaml"
+    And a committed range whose only registry change is "<change>"
+    When itos classifies this committed range with --json
+    Then itos exits with code 0
+    And its JSON's "classification" is "metadata"
+    And its JSON's "docs_only" is false
+    And its JSON's "reasons" equals:
+      """
+      ["registry-bookkeeping"]
+      """
+
+    Examples:
+      | change          |
+      | item owner      |
+      | item status     |
+      | top-level queue |
+      | YAML formatting |
+
+  @ID-CI-33 @slice-137 @wip
+  Scenario: additive classification preserves the existing prose-only result
+    Given a committed CI scope fixture with registry path "tasks/work-items.yaml"
+    And a committed range changing only prose allowed by the committed policy
+    When itos classifies this committed range with --json
+    Then itos exits with code 0
+    And its JSON's "classification" is "prose"
+    And its JSON's "docs_only" is true
+    And its JSON's "reasons" equals:
+      """
+      ["prose-only"]
+      """
+
+  @ID-CI-34 @slice-137 @wip
+  Scenario Outline: non-bookkeeping changes keep full validation even beside an owner change
+    Given a committed CI scope fixture with registry path "tasks/work-items.yaml"
+    And a committed range changing "<subject>" alongside an item owner
+    When itos classifies this committed range with --json
+    Then itos exits with code 0
+    And its JSON's "classification" is "full"
+    And its JSON's "reasons" includes "<reason>"
+
+    Examples:
+      | subject                | reason                     |
+      | registry title         | registry-definition-change |
+      | registry why           | registry-definition-change |
+      | registry dependency    | registry-definition-change |
+      | registry ref           | registry-definition-change |
+      | registry item addition | registry-definition-change |
+      | registry item removal  | registry-definition-change |
+      | registry item rename   | registry-definition-change |
+      | registry phase owner   | registry-definition-change |
+      | task check definition  | non-metadata-path          |
+      | scenario text          | non-metadata-path          |
+      | test fixture           | non-metadata-path          |
+      | implementation source  | non-metadata-path          |
+      | workflow configuration | non-metadata-path          |
+
+  # The fixture declares each referenced task or live scenario at base.
+  @ID-CI-35 @slice-137 @wip
+  Scenario Outline: a named requirement prevents a reduced classification
+    Given a committed CI scope fixture with registry path "tasks/work-items.yaml"
+    And a committed range changing only an item owner and naming a "<requirement>" requirement
+    When itos classifies this committed range with --json
+    Then itos exits with code 0
+    And its JSON's "classification" is "full"
+    And its JSON's "reasons" includes "named-requirement"
+
+    Examples:
+      | requirement |
+      | task        |
+      | scenario    |
+
+  # Endpoints differ only in an owner: temporary changes are real commits
+  # that must remain visible to the classifier after they are reverted.
+  @ID-CI-36 @slice-137 @wip
+  Scenario Outline: endpoint-only diffs cannot hide requirement-affecting intermediate changes
+    Given a committed CI scope fixture with registry path "tasks/work-items.yaml"
+    And a committed range temporarily changing "<subject>" and restoring it before an owner-only final commit
+    When itos classifies this committed range with --json
+    Then itos exits with code 0
+    And its JSON's "classification" is "full"
+    And its JSON's "reasons" includes "intermediate-non-metadata-change"
+
+    Examples:
+      | subject               |
+      | implementation source |
+      | registry dependency   |
+      | task check definition |
+      | execution policy      |
+
+  # Existing config/usage errors keep their exit behavior. These fixtures
+  # have valid config but cannot prove the range or policy grants an exemption.
+  @ID-CI-37 @slice-137 @wip
+  Scenario Outline: unknown history or unproven policy cannot grant a metadata exemption
+    Given a committed CI scope fixture with registry path "tasks/work-items.yaml"
+    And a CI scope fixture with "<problem>"
+    When itos classifies this committed range with --json
+    Then itos exits with code 0
+    And its JSON's "classification" is "full"
+    And its JSON's "reasons" includes "<reason>"
+
+    Examples:
+      | problem                             | reason          |
+      | an empty range                      | unproven-range  |
+      | an unavailable base commit          | unproven-range  |
+      | a shallow clone lacking the base    | unproven-range  |
+      | a base divergent from the target    | unproven-range  |
+      | a zero start SHA                    | unproven-range  |
+      | an uncommitted classification policy | unproven-policy |
+
+  # The recording command is configured before the base. Classification
+  # invokes no CI step, task check, hook or provider to choose the route.
+  @ID-CI-38 @slice-137 @wip
+  Scenario: classification executes no checks and changes no repository files
+    Given a committed CI scope fixture with a recording CI step
+    And a committed range whose only registry change is "item owner"
+    And the repository files and index are saved for comparison
+    When itos classifies this committed range with --json
+    Then itos exits with code 0
+    And its JSON's "classification" is "metadata"
+    And the recording step did not run
+    And the repository files and index match the saved state
+
+  # Invalid registry structure cannot prove bookkeeping. The classifier
+  # reports the full route and this reason; the recipe's separate metadata
+  # validation must still run and reject the malformed data.
+  @ID-CI-39 @slice-137 @wip
+  Scenario Outline: malformed registry data is diagnosed without granting a reduced route
+    Given a committed CI scope fixture with registry path "tasks/work-items.yaml"
+    And a committed range with "<problem>" in the registry
+    When itos classifies this committed range with --json
+    Then itos exits with code 0
+    And its JSON's "classification" is "full"
+    And its JSON's "reasons" includes "invalid-registry"
+
+    Examples:
+      | problem               |
+      | unparseable YAML      |
+      | an unknown field      |
+      | an invalid item shape |
