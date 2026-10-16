@@ -8934,14 +8934,15 @@ items:
     kind: slice
     tags: [status]
 
-  - id: p1-work-done-absorbed-idea
-    title: work done closes an idea another item did, naming that item
+  - id: slice-149
+    title: Close ideas explicitly absorbed by completed work
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-143]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-work-done-absorbed-idea.
       #62 (2026-10-12, from itos-cc): an idea a task absorbs (the task's why names it, its commits
       do the work) can only be dropped, with a why, since work done refuses an idea not yet
       specified; the registry then cannot tell absorbed ideas from abandoned ones. This repository
