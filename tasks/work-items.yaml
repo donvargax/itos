@@ -56,7 +56,7 @@ phases:
 
 queue:
   - p1-guard-follows-cd
-  - p1-task-add-promoted
+  - slice-138
   - p1-text-from-file
   - p1-defer-reason-footer
   - p3-commit-long-text-footer
@@ -4154,14 +4154,15 @@ items:
     kind: idea
     refs: [internal/work/write.go]
 
-  - id: p1-task-add-promoted
-    title: task add writes the ledger entry of a promoted task
+  - id: slice-138
+    title: Promote an idea into a complete ledger-backed task
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-task-add-promoted.
       Found by the code review of 07b0e6d (2026-10-05). task add refuses with work-add-taken when
       the registry already has the item, so a task made by promote needs its ledger entry by hand
       (work/write.go:400).
