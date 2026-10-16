@@ -6803,6 +6803,16 @@ items:
       blanket ledger skipping or claim old green CI proves new acceptance criteria. Finalize the
       evidence-recording/reuse boundary before this item becomes a slice; structural close/dequeue
       is slice-142.
+
+      Direct gh-api inspection of consumer commit 671014753bbce42ff915ab24c066b02f8112b2ac confirms
+      parent 094e634b072f618cdd8aa4e252151fa758553bca, one changed file tasks/phase-1.yaml, and only
+      an appended validation-evidence paragraph in T-80 why. done_when, implementation and tests
+      were unchanged; the commit carries Task: T-80. This verifies the
+      evidence-in-specification-field scenario from #71 without claiming the absent refusal
+      transcript has been recovered. Current work done also reads and executes current ledger checks
+      before CI selection; distinguish that fresh acceptance run from whether an older hosted CI run
+      covers a later task-associated commit. q-70 still needs an answer before choosing receipt
+      storage or revised skip semantics.
     refs: [internal/cli/workwrite.go]
 
   - id: p1-decision-add-answer
