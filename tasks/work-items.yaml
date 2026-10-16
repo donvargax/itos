@@ -8809,7 +8809,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [bug-113]
     kind: idea
     why: >
       #53 (2026-10-12): a pinned itos init runs from ~/.cache/itos/<version> and reports the shim
@@ -8837,6 +8837,10 @@ items:
       past an earlier real Git and call a later shim active, nor execute a candidate to establish
       identity. New/missing-shim installation and default cache advice are now
       p1-pinned-shim-install-target, not hidden additions to this small detection fix.
+
+      The concrete active-existing-shim fix is bug-113. Keep this report item linked for explicit
+      absorption when that fix lands; do not implement it twice. The broader missing/new
+      installation case remains p1-pinned-shim-install-target.
     tags: [init]
     refs: [features/init-shim-identity.feature, internal/cli/initshim.go, internal/cli/gitshim.go, internal/git/bin.go, internal/launch/launch.go]
 
