@@ -8557,7 +8557,21 @@ items:
       announce it. Wanted: a fix line naming the way (an itos decision subcommand to relink or clear
       the item), and itos upgrade rewriting ids it can resolve from the registry's 'Was <idea>.'
       notes.
-    refs: [internal/config]
+
+      q-74 settled explicit relinking first. Interface: decision relink <question-id>... --item
+      <existing-work-id> OR --clear-item, exactly one mode. Support open, answered and recorded
+      questions; change only their optional item association, preserving text, answer, decision
+      value and file order. Resolve a supplied target through the same effective-registry lookup as
+      decision add, any existing kind/status, not ownership or inferred rename prose. --clear-item
+      needs no target lookup. Batch is atomic; unknown IDs/target refuse with exit 1, duplicate IDs
+      or conflicting/missing flags are usage 2. Same link or clearing an absent link is a no-op.
+      Single JSON matches existing question/commit reporting; batch emits questions in request order
+      and one shared commit, null when unchanged or stealth. Config-check stale-link messages keep
+      severity/exit behavior, show supported relink syntax and a directly runnable clear-item
+      command, and carry the same advice in existing JSON fix fields. Private/custom asks paths,
+      normal hooks, unrelated staging and rollback follow existing decision writers. Auto-upgrade
+      repair is now p1-upgrade-repair-question-links.
+    refs: [features/decision-relink.feature, internal/cli/ask.go, internal/cli/configcheck.go, internal/ask/ask.go]
     tags: [work]
 
   - id: p1-upgrade-notes-tidy
