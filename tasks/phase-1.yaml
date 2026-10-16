@@ -1988,8 +1988,10 @@
     judges. Show an explicitly scoped provider example including cmd and internal, and do not imply
     that matching files are passed automatically or that a {paths} placeholder exists. Correct the
     absolute claim that every configured proof only reads saved results and runs no tests: execution
-    is whatever proof.code.check specifies and can include fresh counted mutations. Keep the
-    provider JSON verdict distinct from command exit alone. Explain the current absent-start
+    is whatever proof.code.check specifies and can include fresh counted mutations. Describe the
+    actual provider contract: exit zero passes without requiring or parsing success JSON; a
+    structured exit-one refusal preserves problems, and other failures cannot run. Do not imply
+    success metrics or nonzero judged work are currently validated. Explain the current absent-start
     omission and that work done relies on the required CI result rather than rerunning proof; do not
     claim every green whole run judged code proof. Preserve current configuration, gates, timing and
     CLI behavior. This is a concise clarification of an observed ambiguity, not a new receipt, scope
