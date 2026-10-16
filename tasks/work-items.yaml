@@ -8827,8 +8827,18 @@ items:
       installation/advice remains a separate boundary to settle: the cached runtime has no
       original-launcher-path handoff today. Do not silently point a new shim into a per-release
       cache, claim an inactive later PATH shim is active, or replace arbitrary git programs.
+
+      First delivery fixes the reported active-existing-shim case: with no explicit --git-shim-dir,
+      recognize the first Git executable on PATH as an itos using the existing cross-binary identity
+      boundary, not equality with the cached runtime. Keep that effective shim in both report-only
+      init and explicit --git-shim; never relink it to the cache or claim its target is the running
+      runtime. Preserve current git_shim JSON fields and truthful path-standing data, --no-git-shim,
+      explicit-directory selection/refusal and pinned ownership of the rest of init. Do not search
+      past an earlier real Git and call a later shim active, nor execute a candidate to establish
+      identity. New/missing-shim installation and default cache advice are now
+      p1-pinned-shim-install-target, not hidden additions to this small detection fix.
     tags: [init]
-    refs: [internal/cli/initshim.go, internal/cli/gitshim.go, internal/git/bin.go, internal/launch/launch.go]
+    refs: [features/init-shim-identity.feature, internal/cli/initshim.go, internal/cli/gitshim.go, internal/git/bin.go, internal/launch/launch.go]
 
   - id: T-164
     title: The features-scope self-test holds the nightly to its shape after T-163
