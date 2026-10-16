@@ -308,3 +308,6 @@ questions:
     item: "p1-next-id-names-the-stem"
     question: "For #59, tests next-id also intentionally previews auxiliary tags such as slice and bug. Recommend preserving that behavior and refusing a bare area spelling only when a unique valid full stem can be established from the configured ID pattern (SEC -> ID-SEC), with a concrete correction and no reservation. Alternatively normalize that unambiguous alias and claim IDs as if the full stem was supplied. Which behavior should the first fix use?"
     answer: "Refuse an unambiguous bare area shorthand with a concrete valid full-stem suggestion and no reservation, rather than silently normalizing and claiming an ID. Preserve legitimate auxiliary-tag previews such as slice and bug and the behavior of already-valid full stems."
+  - id: q-76
+    item: "p1-work-done-past-data-commits"
+    question: "For #71, recommend --evidence-file as narrative in the validated close commit body, preserving results in Git instead of task specification. Stealth closes create no Git commit, so this storage cannot retain their evidence. Should the first delivery support project-mode evidence and explicitly refuse the flag under stealth, or also introduce a private evidence journal and readback for stealth? Ordinary stealth closure without the flag stays supported."
