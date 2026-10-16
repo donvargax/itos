@@ -421,6 +421,198 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     And no queued command or task check ran
     And the working tree index and HEAD match the saved minting state
 
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And both items exist with the later item depending on the earlier item
+    And neither promotion reserves another ID
+
+  # The earlier edit is confined to private copies of the policy and adds
+  # the tag future. Preflight recognizes that the tag check is affected,
+  # without applying the edit, interpreting a projected queue or promising
+  # success. Pending diagnostics identify the check and preceding draft.
+  @ID-DRAFT-28 @slice-140 @wip
+  Scenario: a tag declared by an earlier policy draft remains pending until promotion
+    Given a committed minting preflight fixture without the tag "future"
+    And a complete earlier edit draft named "declare-tag" adds the allowed tag "future"
+    And the minting state is saved for comparison
+    When itos runs the command line "draft add tagged -- work add --kind slice --phase 1 --title 'Tagged' --why 'Why.' --tags future"
+    Then itos exits with code 0
+    And the draft "tagged" has a reserved ID
+    And its output names "declare-tag" and the pending tag validation
+    And the committed policy still does not declare the tag "future"
+    And no queued command or task check ran
+    And the working tree index and HEAD match the saved minting state
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And the reserved item exists with the tag "future"
+
+  # An unrelated notes edit cannot excuse a known invalid tag. Conversely,
+  # an opaque command's effects cannot be proven by running it: mutable
+  # checks it might affect remain pending. This is intentionally bounded.
+  @ID-DRAFT-29 @slice-140 @wip
+  Scenario: unrelated drafts do not postpone a definitively invalid tag check
+    Given a committed minting preflight fixture without the tag "future"
+    And a complete earlier edit draft changes only "notes.md"
+    And the minting state is saved for comparison
+    When itos runs the command line "draft add tagged -- work add --kind slice --phase 1 --title 'Tagged' --why 'Why.' --tags future"
+    Then itos refuses the minting command naming "future"
+    And the minting state matches the saved state
+
+  @ID-DRAFT-30 @slice-140 @wip
+  Scenario: uncertain earlier command effects never suppress argument validation or execute the queue
+    Given a committed minting preflight fixture
+    And an earlier opaque command draft would record its execution
+    And the minting state is saved for comparison
+    When itos runs the command line "draft add invalid -- work add --kind slice --title 'Missing reason'"
+    Then itos refuses the minting command naming "why"
+    And no queued command or task check ran
+    And the minting state matches the saved state
+
+  # Final validation uses the actual state at promotion. The policy change
+  # is committed after creation so a dirty-tree gate cannot cause this red.
+  @ID-DRAFT-31 @slice-140 @wip
+  Scenario: promotion rejects a reserved command whose tag became invalid and retains its reservation
+    Given a committed minting preflight fixture declaring the tag "temporary"
+    And a valid command draft named "tagged" reserves an item tagged "temporary"
+    And a subsequent committed policy removes the tag "temporary"
+    And the minting state is saved for comparison
+    When itos runs "draft promote"
+    Then itos refuses the minting command naming "temporary"
+    And the draft "tagged" still has the same reserved ID
+    And the minting state matches the saved state
+
+  # Guard: pure preflight cannot make a remote counter and a local commit
+  # transactional. A valid command still reserves before its hook runs;
+  # failing that hook may leave the reservation consumed under ADR-0045.
+  @ID-DRAFT-32 @slice-140 @guard @wip
+  Scenario: a later hook failure rolls back files without recycling an already reserved ID
+    Given a committed minting preflight fixture
+    And a recording commit hook rejects the next otherwise valid work-add command
+    And the minting state is saved for comparison
+    When itos runs the command line "work add --kind slice --phase 1 --title 'Valid' --why 'Why.'"
+    Then itos refuses the minting command naming the rejecting hook
+    And the rejecting hook ran after one ID was reserved
+    And the working tree index and HEAD match the saved minting state
+    And the reserved ID remains consumed
+
+  # Slice 141 (#46): draft add <id> --replace -- <itos args> replaces a
+  # command draft in place, under the draft-store lock. Validate before
+  # saving; preserve ID, reservation and queue position. The effective
+  # repository and config path must identify the original reservation
+  # domain. Same-kind recognized commands may share the retained ID;
+  # changing between minting and non-minting is refused. A non-minting
+  # command can replace another non-minting command in the same domain.
+  # Replacement never executes a command, runs checks or reserves an ID.
+  @ID-DRAFT-33 @slice-141 @wip
+  Scenario: correcting a drafted task retains its ID and position and promotes the corrected checks
+    Given a committed minting preflight fixture
+    And valid command drafts named "before", "task" and "after" in that order
+    And "task" contains a valid task-add command titled "Old" with one check
+    And the minting state is saved for comparison
+    When itos runs the command line "draft add task --replace -- task add --phase 1 --type build --title 'Corrected' --why 'Why.' --check 'check-one' --timeout 4 --check 'check-two'"
+    Then itos exits with code 0
+    And the draft "task" retains its ID reserved task ID and queue position
+    And its stored command has the corrected title and ordered checks with their timeout
+    And draft JSON lists the retained minted ID and corrected command
+    And no additional ID was reserved
+    And no queued command or task check ran
+    And the working tree index and HEAD match the saved minting state
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And the task with the retained ID has title "Corrected" and the corrected ordered checks
+    And those drafts were applied in the order "before,task,after"
+    And no additional ID was reserved
+
+  # Invalid replacements are tested against the complete original store,
+  # including command bytes and reservation, not merely draft existence.
+  @ID-DRAFT-34 @slice-141 @wip
+  Scenario Outline: invalid replacement leaves the original command draft intact
+    Given a committed minting preflight fixture
+    And a valid work-add command draft named "item" reserves a slice ID
+    And the minting state is saved for comparison
+    When itos runs the command line "draft add item --replace -- <command>"
+    Then itos refuses the minting command naming "<diagnostic>"
+    And the minting state matches the saved state
+
+    Examples:
+      | command                                                                                       | diagnostic |
+      | work add --kind slice --title 'Incomplete'                                                     | why        |
+      | work add --kind slice --phase 1 --title 'Tagged' --why 'Why.' --tags undeclared                   | undeclared |
+      | work add --kind slice --phase 1 --title 'Dependent' --why 'Why.' --depends-on missing-item        | missing-item |
+
+  # Domain fixtures use two valid, independently configured repositories
+  # and a second valid config in the original repository. Refusal must
+  # leave both domains' counters and files unchanged.
+  @ID-DRAFT-35 @slice-141 @wip
+  Scenario Outline: replacement cannot transfer a reservation to another kind or domain
+    Given a committed minting preflight fixture
+    And a valid work-add command draft named "item" reserves a slice ID
+    And a valid replacement that would "<change>"
+    And the minting state in both domains is saved for comparison
+    When itos attempts that replacement with "draft add item --replace"
+    Then itos refuses replacement naming "<diagnostic>"
+    And the minting state in both domains matches the saved state
+
+    Examples:
+      | change                               | diagnostic |
+      | mint a task instead of a slice       | kind       |
+      | mint a bug instead of a slice        | kind       |
+      | mint no item                         | kind       |
+      | use a different repository           | repository |
+      | use another config in the same repository | config |
+
+  @ID-DRAFT-36 @slice-141 @wip
+  Scenario Outline: replace requires an existing command draft and does not convert file drafts
+    Given a committed minting preflight fixture
+    And the target "target" is "<target>"
+    And the minting state is saved for comparison
+    When itos runs the command line "draft add target --replace -- work add --kind slice --phase 1 --title 'New' --why 'Why.'"
+    Then itos refuses replacement naming "<diagnostic>"
+    And the minting state matches the saved state
+
+    Examples:
+      | target                     | diagnostic |
+      | absent                     | target     |
+      | an edit draft with private copies | command |
+      | a captured change draft    | command    |
+
+  # The replacement's shared preflight sees only preceding drafts, not
+  # commands after its preserved position. Later dependents keep their ID.
+  @ID-DRAFT-37 @slice-141 @wip
+  Scenario: replacing a reserved item keeps later drafted dependencies valid
+    Given a committed minting preflight fixture
+    And a valid earlier work-add draft named "first" has reserved an ID
+    And a valid later command draft depends on that reserved ID
+    And the minting state is saved for comparison
+    When itos runs the command line "draft add first --replace -- work add --kind slice --phase 1 --title 'Corrected first' --why 'Why.'"
+    Then itos exits with code 0
+    And the draft "first" retains its ID reserved item ID and queue position
+    And the later draft remains unchanged
+    And no additional ID was reserved
+    When itos runs "draft promote"
+    Then itos exits with code 0
+    And the reserved first item is titled "Corrected first"
+    And the later item depends on the retained first item's ID
+    And no additional ID was reserved
+
+  # Non-minting command replacement does not acquire a reservation.
+  # Without --replace the existing duplicate-name refusal still applies.
+  @ID-DRAFT-38 @slice-141 @wip
+  Scenario: a non-minting command can be corrected without changing duplicate-add behavior
+    Given a committed minting preflight fixture
+    And a command draft named "queue" stores "work queue slice-1"
+    And the minting state is saved for comparison
+    When itos runs the command line "draft add queue -- work queue p1-candidate"
+    Then itos refuses replacement naming "queue"
+    And the minting state matches the saved state
+    When itos runs the command line "draft add queue --replace -- work queue p1-candidate"
+    Then itos exits with code 0
+    And the draft "queue" stores "work queue p1-candidate" in its original position
+    And the draft "queue" has no minted ID
+    And no additional ID was reserved
+    And no queued command or task check ran
+    And the working tree index and HEAD match the saved minting state
+
   # Slice 147 (#74, q-72):
   # draft edit <id> --task <task-id> --fields <list> -m <message>
   # creates a task-field draft; list is a nonempty, duplicate-free subset
@@ -628,194 +820,3 @@ Feature: itos draft, the coordinator's pending changes kept until no work is goi
     Then itos refuses the task draft naming "Upgrading"
     And no queued command task check or project hook ran
     And the minting state matches the saved state
-    When itos runs "draft promote"
-    Then itos exits with code 0
-    And both items exist with the later item depending on the earlier item
-    And neither promotion reserves another ID
-
-  # The earlier edit is confined to private copies of the policy and adds
-  # the tag future. Preflight recognizes that the tag check is affected,
-  # without applying the edit, interpreting a projected queue or promising
-  # success. Pending diagnostics identify the check and preceding draft.
-  @ID-DRAFT-28 @slice-140 @wip
-  Scenario: a tag declared by an earlier policy draft remains pending until promotion
-    Given a committed minting preflight fixture without the tag "future"
-    And a complete earlier edit draft named "declare-tag" adds the allowed tag "future"
-    And the minting state is saved for comparison
-    When itos runs the command line "draft add tagged -- work add --kind slice --phase 1 --title 'Tagged' --why 'Why.' --tags future"
-    Then itos exits with code 0
-    And the draft "tagged" has a reserved ID
-    And its output names "declare-tag" and the pending tag validation
-    And the committed policy still does not declare the tag "future"
-    And no queued command or task check ran
-    And the working tree index and HEAD match the saved minting state
-    When itos runs "draft promote"
-    Then itos exits with code 0
-    And the reserved item exists with the tag "future"
-
-  # An unrelated notes edit cannot excuse a known invalid tag. Conversely,
-  # an opaque command's effects cannot be proven by running it: mutable
-  # checks it might affect remain pending. This is intentionally bounded.
-  @ID-DRAFT-29 @slice-140 @wip
-  Scenario: unrelated drafts do not postpone a definitively invalid tag check
-    Given a committed minting preflight fixture without the tag "future"
-    And a complete earlier edit draft changes only "notes.md"
-    And the minting state is saved for comparison
-    When itos runs the command line "draft add tagged -- work add --kind slice --phase 1 --title 'Tagged' --why 'Why.' --tags future"
-    Then itos refuses the minting command naming "future"
-    And the minting state matches the saved state
-
-  @ID-DRAFT-30 @slice-140 @wip
-  Scenario: uncertain earlier command effects never suppress argument validation or execute the queue
-    Given a committed minting preflight fixture
-    And an earlier opaque command draft would record its execution
-    And the minting state is saved for comparison
-    When itos runs the command line "draft add invalid -- work add --kind slice --title 'Missing reason'"
-    Then itos refuses the minting command naming "why"
-    And no queued command or task check ran
-    And the minting state matches the saved state
-
-  # Final validation uses the actual state at promotion. The policy change
-  # is committed after creation so a dirty-tree gate cannot cause this red.
-  @ID-DRAFT-31 @slice-140 @wip
-  Scenario: promotion rejects a reserved command whose tag became invalid and retains its reservation
-    Given a committed minting preflight fixture declaring the tag "temporary"
-    And a valid command draft named "tagged" reserves an item tagged "temporary"
-    And a subsequent committed policy removes the tag "temporary"
-    And the minting state is saved for comparison
-    When itos runs "draft promote"
-    Then itos refuses the minting command naming "temporary"
-    And the draft "tagged" still has the same reserved ID
-    And the minting state matches the saved state
-
-  # Guard: pure preflight cannot make a remote counter and a local commit
-  # transactional. A valid command still reserves before its hook runs;
-  # failing that hook may leave the reservation consumed under ADR-0045.
-  @ID-DRAFT-32 @slice-140 @guard @wip
-  Scenario: a later hook failure rolls back files without recycling an already reserved ID
-    Given a committed minting preflight fixture
-    And a recording commit hook rejects the next otherwise valid work-add command
-    And the minting state is saved for comparison
-    When itos runs the command line "work add --kind slice --phase 1 --title 'Valid' --why 'Why.'"
-    Then itos refuses the minting command naming the rejecting hook
-    And the rejecting hook ran after one ID was reserved
-    And the working tree index and HEAD match the saved minting state
-    And the reserved ID remains consumed
-
-  # Slice 141 (#46): draft add <id> --replace -- <itos args> replaces a
-  # command draft in place, under the draft-store lock. Validate before
-  # saving; preserve ID, reservation and queue position. The effective
-  # repository and config path must identify the original reservation
-  # domain. Same-kind recognized commands may share the retained ID;
-  # changing between minting and non-minting is refused. A non-minting
-  # command can replace another non-minting command in the same domain.
-  # Replacement never executes a command, runs checks or reserves an ID.
-  @ID-DRAFT-33 @slice-141 @wip
-  Scenario: correcting a drafted task retains its ID and position and promotes the corrected checks
-    Given a committed minting preflight fixture
-    And valid command drafts named "before", "task" and "after" in that order
-    And "task" contains a valid task-add command titled "Old" with one check
-    And the minting state is saved for comparison
-    When itos runs the command line "draft add task --replace -- task add --phase 1 --type build --title 'Corrected' --why 'Why.' --check 'check-one' --timeout 4 --check 'check-two'"
-    Then itos exits with code 0
-    And the draft "task" retains its ID reserved task ID and queue position
-    And its stored command has the corrected title and ordered checks with their timeout
-    And draft JSON lists the retained minted ID and corrected command
-    And no additional ID was reserved
-    And no queued command or task check ran
-    And the working tree index and HEAD match the saved minting state
-    When itos runs "draft promote"
-    Then itos exits with code 0
-    And the task with the retained ID has title "Corrected" and the corrected ordered checks
-    And those drafts were applied in the order "before,task,after"
-    And no additional ID was reserved
-
-  # Invalid replacements are tested against the complete original store,
-  # including command bytes and reservation, not merely draft existence.
-  @ID-DRAFT-34 @slice-141 @wip
-  Scenario Outline: invalid replacement leaves the original command draft intact
-    Given a committed minting preflight fixture
-    And a valid work-add command draft named "item" reserves a slice ID
-    And the minting state is saved for comparison
-    When itos runs the command line "draft add item --replace -- <command>"
-    Then itos refuses the minting command naming "<diagnostic>"
-    And the minting state matches the saved state
-
-    Examples:
-      | command                                                                                       | diagnostic |
-      | work add --kind slice --title 'Incomplete'                                                     | why        |
-      | work add --kind slice --phase 1 --title 'Tagged' --why 'Why.' --tags undeclared                   | undeclared |
-      | work add --kind slice --phase 1 --title 'Dependent' --why 'Why.' --depends-on missing-item        | missing-item |
-
-  # Domain fixtures use two valid, independently configured repositories
-  # and a second valid config in the original repository. Refusal must
-  # leave both domains' counters and files unchanged.
-  @ID-DRAFT-35 @slice-141 @wip
-  Scenario Outline: replacement cannot transfer a reservation to another kind or domain
-    Given a committed minting preflight fixture
-    And a valid work-add command draft named "item" reserves a slice ID
-    And a valid replacement that would "<change>"
-    And the minting state in both domains is saved for comparison
-    When itos attempts that replacement with "draft add item --replace"
-    Then itos refuses replacement naming "<diagnostic>"
-    And the minting state in both domains matches the saved state
-
-    Examples:
-      | change                               | diagnostic |
-      | mint a task instead of a slice       | kind       |
-      | mint a bug instead of a slice        | kind       |
-      | mint no item                         | kind       |
-      | use a different repository           | repository |
-      | use another config in the same repository | config |
-
-  @ID-DRAFT-36 @slice-141 @wip
-  Scenario Outline: replace requires an existing command draft and does not convert file drafts
-    Given a committed minting preflight fixture
-    And the target "target" is "<target>"
-    And the minting state is saved for comparison
-    When itos runs the command line "draft add target --replace -- work add --kind slice --phase 1 --title 'New' --why 'Why.'"
-    Then itos refuses replacement naming "<diagnostic>"
-    And the minting state matches the saved state
-
-    Examples:
-      | target                     | diagnostic |
-      | absent                     | target     |
-      | an edit draft with private copies | command |
-      | a captured change draft    | command    |
-
-  # The replacement's shared preflight sees only preceding drafts, not
-  # commands after its preserved position. Later dependents keep their ID.
-  @ID-DRAFT-37 @slice-141 @wip
-  Scenario: replacing a reserved item keeps later drafted dependencies valid
-    Given a committed minting preflight fixture
-    And a valid earlier work-add draft named "first" has reserved an ID
-    And a valid later command draft depends on that reserved ID
-    And the minting state is saved for comparison
-    When itos runs the command line "draft add first --replace -- work add --kind slice --phase 1 --title 'Corrected first' --why 'Why.'"
-    Then itos exits with code 0
-    And the draft "first" retains its ID reserved item ID and queue position
-    And the later draft remains unchanged
-    And no additional ID was reserved
-    When itos runs "draft promote"
-    Then itos exits with code 0
-    And the reserved first item is titled "Corrected first"
-    And the later item depends on the retained first item's ID
-    And no additional ID was reserved
-
-  # Non-minting command replacement does not acquire a reservation.
-  # Without --replace the existing duplicate-name refusal still applies.
-  @ID-DRAFT-38 @slice-141 @wip
-  Scenario: a non-minting command can be corrected without changing duplicate-add behavior
-    Given a committed minting preflight fixture
-    And a command draft named "queue" stores "work queue slice-1"
-    And the minting state is saved for comparison
-    When itos runs the command line "draft add queue -- work queue p1-candidate"
-    Then itos refuses replacement naming "queue"
-    And the minting state matches the saved state
-    When itos runs the command line "draft add queue --replace -- work queue p1-candidate"
-    Then itos exits with code 0
-    And the draft "queue" stores "work queue p1-candidate" in its original position
-    And the draft "queue" has no minted ID
-    And no additional ID was reserved
-    And no queued command or task check ran
-    And the working tree index and HEAD match the saved minting state
