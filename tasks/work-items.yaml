@@ -7678,14 +7678,15 @@ items:
     refs: [internal/launch/launch.go, internal/cli/initrules.go]
     tags: [init, launcher]
 
-  - id: p1-draft-checks-before-minting
-    title: draft add of a minting command runs that command's checks before it mints, and a drafted command can be redrafted keeping its id
+  - id: slice-140
+    title: Validate decidable minting inputs before reserving IDs
     phase: 1
     owner: null
     status: todo
     depends_on: []
-    kind: idea
+    kind: slice
     why: >
+      Was p1-draft-checks-before-minting.
       Issue #46 (itos-template, 2026-10-11): draft add mints at once (ID-DRAFT-17, kept: the
       coordinator needs the id for the spec and brief), so a command that promote then refuses (an
       undeclared tag) burns the id, and changing a drafted command means drop and redraft, which
@@ -9224,7 +9225,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [p1-draft-checks-before-minting]
+    depends_on: [slice-140]
     kind: idea
     why: >
       Split from p1-draft-checks-before-minting (#46) during definition review. Proposed interface:

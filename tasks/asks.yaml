@@ -281,6 +281,6 @@ questions:
     question: "What role should v8, v9 and v10 have on the path to the first stable itos release? The user clarified this while reconsidering agent Git and CI ownership policy on 2026-10-15."
     answer: "v8 is the active design stage: get the design right there. Use v9 to resolve remaining glaring problems and any necessary breaking changes missed during v8. v10 is the intended first stable release; releasing v1 earlier was premature. This records the user roadmap, not permission to bypass the current compatibility or release gates."
   - id: q-69
-    item: "p1-draft-checks-before-minting"
+    item: "slice-140"
     question: "Draft preflight (#46): an earlier draft may change the config that a later draft needs, such as declaring a tag before creating an item with that tag. Recommend a bounded first delivery: reject definitively invalid arguments and currently decidable metadata before minting, recognize earlier reserved IDs, and leave checks affected by preceding drafts explicitly pending until promotion. Alternative: build projected-state validation of the preceding queue before minting each drafted command. Which assurance should this item promise?"
     answer: "Bounded early checks, as the user selected. Reject errors that can be proved at draft creation; recognize earlier reserved IDs. Checks whose inputs are affected by earlier drafts remain explicitly pending and are revalidated at promotion. Do not build a projected queue simulator in this item or promise that early validation guarantees future promotion."
