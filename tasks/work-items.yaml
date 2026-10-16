@@ -9139,7 +9139,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: []
+    depends_on: [slice-138]
     kind: idea
     why: >
       Issue #66. Proposed contract for specification review: guide brief and guide work must not
