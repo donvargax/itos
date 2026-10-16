@@ -6036,14 +6036,15 @@ items:
       #35; T-180 corrects those prose claims while preserving behavior.
     refs: [README.md, internal/plan/data.go]
 
-  - id: p1-proof-summary
-    title: A passing code proof says what it held, and one that judged nothing fails
+  - id: slice-164
+    title: Report optional code-proof summaries and reject explicit zero work
     phase: 1
     owner: null
     status: todo
     depends_on: [slice-106]
-    kind: idea
+    kind: slice
     why: >
+      Was p1-proof-summary.
       Issue #25 (itos-template, 2026-10-08): a passing proof prints nothing of what it judged. From
       the check's --json (itos-cc's files with killed, survived, excepted, uncovered and judged),
       the CI step prints a line such as 1 function judged, 6 mutants killed, 0 excepted; a check
