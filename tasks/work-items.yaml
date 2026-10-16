@@ -8521,6 +8521,15 @@ items:
       with its scenarios under it is about 10. (3) The notes say two-line block where the block is a
       heading and two lines. (4) init --agent-rules opens with 'itos.yaml is there already, so init
       wrote nothing', which answers a question --agent-rules does not ask.
+
+      Split the independent repeated-header presentation issue into p1-upgrade-group-changed-cases.
+      This parent retains #50 manual-instruction reconciliation, init --agent-rules status wording,
+      and future block description accuracy. Manual footers can combine an automatically completed
+      rule-block refresh with genuine manual cleanup in one text entry: never suppress an entire
+      entry merely because it mentions init --agent-rules. Historical released notes/commit messages
+      stay immutable. Resolving manual instructions needs a concrete representation or an honest
+      presentation of automatic actions alongside original release instructions, not guessed
+      natural-language completion.
     refs: [internal/cli/upgrade.go]
     tags: [upgrade]
 
