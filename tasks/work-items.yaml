@@ -6006,7 +6006,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-106]
+    depends_on: [slice-106, T-180]
     kind: idea
     why: >
       Issue #24 (itos-template, 2026-10-08): proof.code.paths decides whether the check runs, not
@@ -6014,6 +6014,14 @@ items:
       there), so the two drift apart. A {paths} placeholder filled with the changed files the paths
       match keeps them one; or the README says so beside the example. After slice-106, which moves
       the check into itos ci run.
+
+      The documentation alternative explicitly requested by #24 is now task T-180: explain selection
+      versus provider-command scope and show scoped operands, without a new placeholder or runtime
+      policy. This idea retains the optional {paths} feature for later consideration after that
+      clarification, not an implicit expansion of T-180. The README audit also found the stale
+      saved-results-only claim tracked by #45 and the overbroad whole-run proof assurance tracked by
+      #35; T-180 corrects those prose claims while preserving behavior.
+    refs: [README.md, internal/plan/data.go]
 
   - id: p1-proof-summary
     title: A passing code proof says what it held, and one that judged nothing fails
