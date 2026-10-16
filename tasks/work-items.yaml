@@ -9060,3 +9060,30 @@ items:
       change red-first or check execution policy. Exact handling of required custom nonstandard link
       sources must be checked against existing supported footer flag behavior before promotion.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/cli/guide.go, internal/message/written.go]
+
+  - id: p1-ci-scope-registry-changes
+    title: Public CI classification distinguishes registry bookkeeping from test-affecting changes
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #72. Proposed contract for specification review: expose range classification through
+      itos ci scope --json with a workflow recipe that always retains metadata validation and
+      verify. Preserve the existing docs_only field and meaning; add a separate classification and
+      stable reason codes rather than redefining prose. A reduced route must be proven from a known,
+      nonempty, readable ancestral committed range and semantic changes in the configured
+      work.registry, not a hardcoded path. The first allowed registry changes are item owner/status
+      and the top-level queue; unchanged IDs and all other fields are required. Item
+      additions/removals/renames, dependencies, refs, kinds, phase ownership, task definitions,
+      scenarios, fixtures, execution config and unknown fields retain full validation. Any named
+      task/scenario requirement keeps its required work. Check every commit so a
+      requirement-changing intermediate edit cannot be hidden by a net-zero endpoint diff. Unknown,
+      shallow, divergent or empty ranges never yield a metadata exemption; malformed data is
+      diagnosed, not excused. Acceptance covers each allowed field, mixed/nonallowed edits,
+      task/scenario footers, custom paths, net-zero changes, unavailable history and metadata
+      validation failure. The private tools/bin/ci-repo classifier is path-based and cannot be
+      exported unchanged. Still to decide: classifier and recipe only, or also opt-in planner
+      integration; no current planner or workflow policy changes are authorized by this outline.
+    refs: [internal/cli/ci.go, internal/plan, tools/bin/ci-repo/main.go]
