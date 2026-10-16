@@ -105,3 +105,130 @@ Feature: itos work show, one item's spec and commits, the unit an agent reads an
     When itos runs "work show T-001"
     Then itos exits with code 0
     And its output says "The ledger says why." once, before "Scenarios: none tagged @T-001"
+
+  # Slice 136 (#65 and #75): inspection exposes definitions, never a verdict.
+  # The checks setup below replaces only this task's done_when with the YAML
+  # list in the doc string, preserving the background's ledger and config.
+  # JSON retains the written ledger keys and order; omitted defaults stay
+  # omitted. Historical checks removed at close belong to another item.
+  @ID-SHOW-09 @slice-136 @wip
+  Scenario: work show prints current check commands and their execution qualifiers in written order
+    Given the work registry has the item "T-001" owned by nobody with the status "doing"
+    And the ledger's task "T-001" has current checks:
+      """
+      - run: echo run > inspect-run-marker
+        timeout: 9
+        prose: true
+        cost: static
+      - fails: echo fail > inspect-fail-marker
+        timeout: 11
+      - run: echo after > inspect-after-marker
+        after: push
+        timeout: 13
+      """
+    When itos runs "work show T-001"
+    Then itos exits with code 0
+    And its output says "echo run > inspect-run-marker" before "echo fail > inspect-fail-marker"
+    And its output says "echo fail > inspect-fail-marker" before "echo after > inspect-after-marker"
+    And its output says "fails:"
+    And its output says "timeout: 9"
+    And its output says "prose: true"
+    And its output says "cost: static"
+    And its output says "after: push"
+
+  @ID-SHOW-10 @slice-136 @wip
+  Scenario: work show JSON exposes ordered check definitions with their configured fields
+    Given the work registry has the item "T-001" owned by nobody with the status "doing"
+    And the ledger's task "T-001" has current checks:
+      """
+      - run: echo run > inspect-run-marker
+        timeout: 9
+        prose: true
+        cost: static
+      - fails: echo fail > inspect-fail-marker
+        timeout: 11
+      - run: echo after > inspect-after-marker
+        after: push
+        timeout: 13
+      """
+    When itos runs "work show T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "checks" equals:
+      """
+      [
+        {"run":"echo run > inspect-run-marker","timeout":9,"prose":true,"cost":"static"},
+        {"fails":"echo fail > inspect-fail-marker","timeout":11},
+        {"run":"echo after > inspect-after-marker","after":"push","timeout":13}
+      ]
+      """
+
+  # The snapshot step records repository files and index state after setup;
+  # the Then compares that state rather than taking a second snapshot.
+  @ID-SHOW-11 @slice-136 @wip
+  Scenario: exposing run fails and after push checks executes none of them and changes no repository files
+    Given the work registry has the item "T-001" owned by nobody with the status "doing"
+    And the ledger's task "T-001" has current checks:
+      """
+      - run: echo run > inspect-run-marker
+      - fails: echo fail > inspect-fail-marker
+      - run: echo after > inspect-after-marker
+        after: push
+      """
+    And the repository files and index are saved for comparison
+    When itos runs "work show T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "checks" has 3 entries
+    And the file "inspect-run-marker" does not exist
+    And the file "inspect-fail-marker" does not exist
+    And the file "inspect-after-marker" does not exist
+    And the repository files and index match the saved state
+
+  @ID-SHOW-12 @slice-136 @wip
+  Scenario: a closed task with no current checks exposes an empty list rather than an execution verdict
+    Given the work registry has the item "T-001" owned by nobody with the status "done"
+    And the ledger's task "T-001" has current checks:
+      """
+      []
+      """
+    When itos runs "work show T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "checks" equals:
+      """
+      []
+      """
+
+  # Guard: ideas already use their registry why. This case is expected to
+  # pass before the slice; adding task checks must preserve that behavior.
+  @ID-SHOW-13 @slice-136 @guard @wip
+  Scenario: an idea keeps its registry description and has no ledger check definitions
+    Given the work registry has the item "inspect-idea" owned by nobody with the status "todo" and the why "Investigate inspection."
+    When itos runs "work show inspect-idea --json"
+    Then itos exits with code 0
+    And its JSON's "item.why" is "Investigate inspection."
+    And its JSON has no property "checks"
+
+  # Relocation moves the background's ledger files and changes ledger.files;
+  # it does not create a second ledger that the command could read by accident.
+  @ID-SHOW-14 @slice-136 @wip
+  Scenario: check inspection reads the configured ledger layout
+    Given the ledger files are relocated to "acceptance/phase-{group}.yaml"
+    And the work registry has the item "T-001" owned by nobody with the status "doing"
+    And the ledger's task "T-001" has current checks:
+      """
+      - run: echo configured-layout
+      """
+    When itos runs "work show T-001 --json"
+    Then itos exits with code 0
+    And its JSON's "checks" equals:
+      """
+      [{"run":"echo configured-layout"}]
+      """
+
+  # The background has T-001 only. Missing ledger data is unknown, not a
+  # known-empty done_when; preserve work show's best-effort metadata view.
+  @ID-SHOW-15 @slice-136 @wip
+  Scenario: a registry task with no ledger entry reports unknown check definitions
+    Given the work registry has the item "T-999" owned by nobody with the status "doing"
+    When itos runs "work show T-999 --json"
+    Then itos exits with code 0
+    And its JSON's "checks" is null
