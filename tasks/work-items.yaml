@@ -9353,4 +9353,4 @@ items:
       commit. Keep existing single-item JSON keys, with queue_commit if emitted identifying the
       shared close commit. The evidence-binding part of #73 waits on the #71/q-70 design and is
       separate. This transaction is a prerequisite for batch completion (#70).
-    refs: [internal/cli/workdone.go, internal/cli/committed.go, internal/work/write.go, features/work.feature]
+    refs: [internal/cli/workdone.go, internal/cli/workwrite.go, internal/work/write.go, features/work.feature]
