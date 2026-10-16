@@ -9434,3 +9434,27 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-repair-plan
+    title: Plan failed-main restoration from mixed item history
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #80. Reported itos-cc task T-88 failed configured lint at 8093ac9; source-only revert
+      9855d87 was pushed immediately, then attempt/give-back/retake records followed. The report
+      asks for a reviewable failed-SHA/source-revert plan and supported retry bookkeeping, not
+      weaker lint or automatic success. Candidate first delivery is a read-only plan naming failed
+      and known-good revisions, ordinary proposed revert commits, associated item
+      metadata/spec/proof commits to retain, and any ambiguity/conflict that prevents asserting a
+      safe plan. Association with an item is not proof a commit contains only its code: mixed
+      commits require explicit review and no blind revert list. The planner must not revert, commit,
+      push, retake work, reorder the mandatory immediate restoration or rewrite history. Need a
+      product decision on the supported plan interface and how mixed-purpose commits are represented
+      before scenarios or automation. Keep retry transactions separate from structural completion
+      (#73) and the parked guard/CI ownership review; no current workflow-policy change is
+      authorized. Consumer source/CI references are in the GitHub issue; reported sequence is not a
+      new local reproduction.
+    refs: [internal/guide/repair.md, internal/work/show.go, internal/cli/workshow.go]
