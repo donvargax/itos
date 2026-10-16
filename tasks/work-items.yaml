@@ -9361,7 +9361,7 @@ items:
     phase: 1
     owner: null
     status: todo
-    depends_on: [slice-138]
+    depends_on: [slice-138, T-183]
     kind: idea
     why: >
       Issue #66. Proposed contract for specification review: guide brief and guide work must not
@@ -9411,6 +9411,11 @@ items:
       here. Create its documentation task after slice-138 supplies complete task promotion, then use
       that task for the wording change. This clarification supersedes the earlier proposal to render
       config-dependent examples.
+
+      2026-10-15: T-183 now holds the complete wording-only delivery and acceptance checks. It
+      remains blocked on slice-138 as planned; creating the task through the already-working task
+      add does not depend on the promotion repair. The broad config-dependent brief renderer is
+      still outside this delivery. Keep this report for explicit absorption after T-183 lands.
     refs: [internal/guide/brief.md, internal/guide/work.md, internal/guide/guide.go, internal/message/written.go]
 
   - id: slice-137
