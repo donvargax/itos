@@ -10497,6 +10497,25 @@ items:
       The user (2026-10-17): they believe the itos-cc refactor pilot covers the
       adapters-outside-core rule. When the pilot lands, confirm it and start this design from the
       pilot's seams; no separate idea.
+
+      Fossil spike (2026-10-17, an hour, Fossil 2.28, scratch only). Fits: autosync refuses a commit
+      that would fork trunk ('Would fork', and a check-in lock in a true race), so trunk-only work
+      needs no rebase; a review set as a tag (fossil tag add/cancel, fossil amend --tag/--comment)
+      is append-only, audited, synced (tagging needs an explicit fossil sync) and never changes a
+      hash; the review diff works as fossil merge --backout per commit, newest first, then fossil
+      diff --from tip --invert, a later rewrite of a review line showing as a conflict; first-parent
+      ranges are plink.isprim in SQL (0.006 s over 3,552 check-ins); fossil json exists. Import of
+      main alone (git fast-export refs/heads/master --tags | fossil import --git --rename-master
+      trunk) took about 40 s, kept every message byte for byte but the final newline, lost author
+      names, timezones and author dates; the repository is about 1.5 times .git. Blockers: fossil
+      git export appends a FossilOrigin-Name paragraph to each message, so the mirror's
+      Task:/Item:/Changes:/Upgrading: are no longer git trailers; amends never reach the mirror (it
+      stays fast-forward, built from the original comments) and tag cancels don't propagate; about
+      half the timestamps shift by 1 s. Hooks: before-commit can refuse by message locally (bypassed
+      by --no-verify and by amend), hooks are not cloned, and after-receive cannot refuse a push.
+      itos on Fossil would need its own footer reader (event.comment for the amended text) and range
+      walker. Not tried: fossil server over HTTP, --use-author/--attribute, suppressing the mirror's
+      appended line.
     refs: [internal/providers, PLAN.md]
     tags: [providers, work, commit]
 
