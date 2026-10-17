@@ -2219,7 +2219,10 @@
     code, unit tests first); no change to what itos does: a test that finds a bug stops the work and
     is reported. A mutant argued equivalent in its commit is excepted with itos-cc mutation except,
     its reason saying why no test can kill it. Every check fails until its run's sites are all
-    killed, so push once, when itos task passes locally.
+    killed, so push once, when itos task passes locally. One exception to tests only (the user,
+    2026-10-17): itos-cc 0.12.0 reads gluedAt's empty case clause (message/header.go:138) as never
+    run, its cover block holding no statement (itos-cc#53), so a refactor commit gives it a
+    continue, which changes nothing it does; it comes out once a pinned itos-cc fixes #53.
   done_when:
     - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 38896023548 cmd internal
       timeout: 900
