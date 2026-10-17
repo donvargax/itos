@@ -6782,6 +6782,16 @@ items:
       about 29 more survivors no check draws: mostly false to true on error returns whose tests
       check only the error, and some in keySpan, keyText, insert, shift and holds. Not listed site
       by site; p1-mutation-results-committed's complete run will list them.
+
+      T-187's repair (c3dbdfeb, 2026-10-17) found, outside any check's draw: watch.go survivors at
+      154:20, 172:15, 172:21, 172:32, 212:11 (<= to <), 242:17, 251:62, 251:108, 257:52, 258:14 and
+      243:27 uncovered. Two spinning mutants time out instead of dying: cli/init.go:69:10 (n > 0 to
+      n >= 0: i += n - 1 steps back, so the argument loop never ends; CPU only, about 90 s on every
+      run of a step that draws it) and watch.go:138:95 (failing's true to false: temporary failures
+      never give up, so the test sleeps to its 600 s deadline). A timeout counts as killed but costs
+      a run minutes; each wants a test that ends fast under the mutant. watch.go:197's spinning
+      mutant exhausted two hosted runners' memory (itos-cc#54) until T-187's test-side guard;
+      p1-watch-step-function is the structural fix.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
 
   - id: slice-110
