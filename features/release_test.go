@@ -178,16 +178,17 @@ func initializeReleaseSteps(sc *godog.ScenarioContext, w *world) {
 	sc.Step(`^the launcher's last answer from the release server, (a minute|an hour|two hours|a day) old, is "([^"]*)"$`, w.lastAnswer)
 	sc.Step(`^the cache holds the release "([^"]*)"$`, w.cacheHolds)
 
-	sc.Step(`^itos runs "([^"]*)"$`, func(args string) error { return w.itos(strings.Fields(args)...) })
 	// The command line split as a shell splits it, its quotes kept together
-	// (slice 54), for an argument that holds spaces.
-	sc.Step(`^itos runs the command line "([^"]*)"$`, func(line string) error {
+	// (slice 54), for an argument that holds spaces or is empty (slice 138).
+	runLine := func(line string) error {
 		args, err := shellWords(line)
 		if err != nil {
 			return err
 		}
 		return w.itos(args...)
-	})
+	}
+	sc.Step(`^itos runs "([^"]*)"$`, runLine)
+	sc.Step(`^itos runs the command line "([^"]*)"$`, runLine)
 	sc.Step(`^itos runs "([^"]*)" from "([^"]*)"$`, func(args, folder string) error {
 		return w.itosIn(filepath.Join(w.dir, folder), strings.Fields(args)...)
 	})

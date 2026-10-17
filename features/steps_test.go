@@ -49,6 +49,7 @@ type world struct {
 	atOnce        []atOnceRun       // the runs of one command started together, as allAtOnce ran them
 	atOnceWords   []string          // the notes or ideas those runs added, in order
 	threadsBefore string            // the threads file's text, as a step wrote it
+	promotion     *promotionFixture // the task-promotion fixture, when a step wrote one (promote_test.go)
 
 	exit           int
 	stdout, stderr string
@@ -431,6 +432,7 @@ func initializeScenario(sc *godog.ScenarioContext) {
 	initializeDraftSteps(sc, w)
 	initializeProofSteps(sc, w)
 	initializeIDSteps(sc, w)
+	initializePromoteSteps(sc, w)
 
 	sc.Step(`^itos verifies every commit up to HEAD$`, func() error { return w.itos("verify", "", "HEAD") })
 	sc.Step(`^itos checks the config$`, func() error { return w.itos("config", "check") })
