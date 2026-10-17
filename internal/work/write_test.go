@@ -158,8 +158,28 @@ func TestPromote(t *testing.T) {
 	if _, problem, _ := Promote(r, text, "i", "s", "slice", "", nil); problem == nil || problem.Rule != "work-promote-taken" {
 		t.Errorf("s is taken: %+v", problem)
 	}
+	// The first item's id is taken too.
+	if _, problem, _ := Promote(r, text, "i", "i", "slice", "", nil); problem == nil || problem.Rule != "work-promote-taken" {
+		t.Errorf("i is taken: %+v", problem)
+	}
 	if _, problem, _ := Promote(r, text, "i", "nine", "task", "", regexp.MustCompile(`^T-\d+$`)); problem == nil || problem.Rule != "work-promote-not-task-id" {
 		t.Errorf("nine is no task ID: %+v", problem)
+	}
+}
+
+// The body says the idea keeps its place in the queue when the queue holds
+// it, and names no dependants when none depend on it.
+func TestPromoteBody(t *testing.T) {
+	text := "phases: { 1: null }\nitems:\n" +
+		"  - { id: i, title: I, phase: 1, status: todo, kind: idea, why: 'a gap' }\n"
+	for queue, want := range map[string]string{
+		"":             `Make the idea i ("I") the slice slice-1, with itos work promote.`,
+		"queue: [i]\n": `Make the idea i ("I") the slice slice-1, with itos work promote, keeping its place in the queue.`,
+	} {
+		change, problem, err := Promote(registryOf(t, text+queue), text+queue, "i", "slice-1", "slice", "", nil)
+		if err != nil || problem != nil || change.Body != want || len(change.Rewritten) != 0 {
+			t.Errorf("Promote with %q: %q %+v %v, want %q", queue, change.Body, problem, err, want)
+		}
 	}
 }
 

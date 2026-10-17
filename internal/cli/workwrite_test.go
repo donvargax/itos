@@ -150,12 +150,38 @@ func TestRollbackSecondWriteFails(t *testing.T) {
 	asItWas(t)
 }
 
+// A file that cannot even be opened, in a folder that is not there, was not
+// touched, so only the files before it are put back: the error is the
+// write's alone, exit code 0.
+func TestRollbackUntouchedFileIsLeftAlone(t *testing.T) {
+	cfg := rollbackRepo(t)
+	files := rollbackFiles()
+	files[1] = written{path: filepath.Join("missing", "old.yaml"), old: "- id: T-1\n", text: "- id: T-2\n"}
+	_, code, _, err := writeAndCommit(t, cfg, files, "Add T-2.")
+	if code != 0 || err == nil || !strings.Contains(err.Error(), filepath.Join("missing", "old.yaml")+" cannot be written") ||
+		strings.Contains(err.Error(), "put back") {
+		t.Fatalf("exit %d, the error is %v", code, err)
+	}
+	asItWas(t)
+}
+
+// One file a hook refuses is said to be as it was.
+func TestRollbackOneFileSaysItIsAsItWas(t *testing.T) {
+	cfg := rollbackRepo(t)
+	refusingHook(t)
+	_, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles()[:1], "Edit the registry.")
+	if code != ExitPolicy || err != nil || !strings.Contains(stderr, "so registry.yaml is as it was") {
+		t.Fatalf("exit %d, %v\n%s", code, err, stderr)
+	}
+	asItWas(t)
+}
+
 // A git that cannot start the commit, here because the message is longer
 // than any system lets a program be given, puts back what git add staged.
 func TestRollbackGitCannotStart(t *testing.T) {
 	cfg := rollbackRepo(t)
 	_, code, stderr, err := writeAndCommit(t, cfg, rollbackFiles(), strings.Repeat("word ", 1<<20))
-	if err == nil || !strings.Contains(err.Error(), "cannot run git") {
+	if code != 0 || err == nil || !strings.Contains(err.Error(), "cannot run git") {
 		t.Fatalf("exit %d, the error is %v\n%s", code, err, stderr)
 	}
 	asItWas(t)
