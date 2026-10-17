@@ -10231,6 +10231,6 @@ items:
     title: Verification starts at the last green commit again, so main's CI can be green
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task

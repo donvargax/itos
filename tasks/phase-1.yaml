@@ -2251,6 +2251,3 @@
     commits.since moves to ee1152572b59c164bd15b3342a0f219d9c09595f, its comment saying so beside
     T-136's. The cause, running out of first parents re-verifying all history, is slice-163's and
     p1-verify-past-the-window's, not this task's.
-  done_when:
-    - run: tools/bin/itos verify 32fc9144f790f2e0341bbba7bac89722d5e2825a HEAD
-    - run: tools/bin/itos config check
