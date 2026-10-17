@@ -10391,6 +10391,17 @@ items:
       how a claim expires, and how CI judges a trunk that moves every few seconds (the Scion
       article's 'what does CI even mean'). Related: p2-trunk-review-and-release,
       sandbox-for-unattended-runs (memory).
+
+      Prior art (2026-10-17): joelhooks/rat-king (MIT, pre-alpha, nothing running yet), an encrypted
+      agent network on AT Protocol: stable agent identities, encrypted envelopes, a sequenced
+      mailbox log per agent, receipts, and one 'intercom' tool for calls, mail and cc digests. Its
+      mailbox log with receipts is the messaging half of what this idea needs beside reads and
+      writes (an agent telling another what it intends, and knowing it was read); its shipping rules
+      match itos's: report code-ready, deployed and behavior-verified separately, every bundle
+      reports its version and commit, every capability starts off, storage changes expand then
+      migrate then contract. Same author's piper and alchemy-celld share its stack (Effect for
+      contracts and typed failures, XState for lifecycles, Alchemy for infrastructure, Cloudflare
+      and celld as targets).
     tags: [work, commit]
 
   - id: p2-itos-data-store
