@@ -10601,3 +10601,17 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: p1-work-add-task-ledger
+    title: work add --kind task writes no ledger entry, so its Task footer is refused
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Slice 138 made work promote --kind task write the task's ledger entry in the promotion's
+      commit (#54), but work add --kind task still adds a bare registry item of kind task with no
+      ledger entry, so a Task footer naming it is refused as an unknown task, the gap #54 met
+      through promote. Either work add --kind task refuses and names task add, or it takes --type
+      and --check and writes the entry as promote now does.
