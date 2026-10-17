@@ -1109,6 +1109,16 @@ items:
       item-tag metadata, and reliable WIP execution is not claimed. This parent retains the
       reconsidered red-first policy, WIP runner contract and guard-aware proof; no current mandatory
       ceremony was changed.
+
+      2026-10-17: other repositories report agents building everything, then deleting the
+      implementation to show red, as this registry saw on 2026-10-03 (agents stashing their change
+      to run the scenarios); the user finds asking agents for TDD runs against how they work, and
+      wants red proven by automation without loosening the practice. Shape to weigh: (1) at spec
+      time, every @wip scenario not declared a guard fails against the current binary at a Then
+      step, not at an undefined or Given step (this idea); (2) in CI, the scenarios a feat or fix
+      turns live fail against the binary built from its parent and pass on it, whatever order the
+      agent worked in, so the red-first test commit stops being a rule agents must follow. Mutation
+      testing already proves the unit tests can fail.
     tags: [tests]
 
   - id: p1-commit-message-file
