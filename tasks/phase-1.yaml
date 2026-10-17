@@ -2162,3 +2162,37 @@
   done_when:
     - run: go test ./tools/bin/nightly-report -count=1
     - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/tools-bin-programs
+
+- id: T-186
+  type: test
+  title: Tests kill the survivors the nightlies of 2026-10-15 drew
+  why: >
+    First batch of p1-nightly-survivors (the user, 2026-10-17: kill the recorded survivors, keep the
+    random step strict). No product Go changed since bb9bf485, so each nightly step at its run's
+    seed draws the same sites again, and the checks are those steps at those seeds. Run 38807804744
+    (random): cli/gitcommit.go:115:13 readCommitFlags && to ||; cli/initrules.go:76:24
+    parseRulesFlag != to ==; cli/draft.go:73:52 draftsFile || to &&; cli/nextid.go:141:45 taskNextID
+    0 to 1 (its changed-site step failed at coverage and drew nothing). Run 38810070537 (random):
+    cli/ask.go:421:29 askList != to ==; cli/gitconfig.go:122:20 hooksReady 1 to 0;
+    value/docedit.go:792:13 Doc.keyLines 0 to 1; cli/draft.go:754:16 draftPromote || to &&;
+    cli/workdone.go:254:16 doneCommit.runOf || to &&. Run 38810070537 (changed sites since
+    9397855d98441c2276c0333e4938ca16e46a7aeb): docedit.go:792:13 again; work/giveback.go:73:32
+    GiveBackEach 0 to 1; launch/update.go:139:13 notice == to !=; cli/initrulesstealth.go:288:15
+    rulesOffer.runStealth == to !=; message/trailers.go:119:17 trailerBlock 0 to 1;
+    message/header.go:116:35 parse >= to >; config/cross.go:300:40 oneStepProblems && to ||;
+    cli/init.go:298:68 initWrite 1 to 0; draft/draft.go:151:81 parse + to -; cli/commands.go:275:19
+    ciCommand 0 to 1. Also the three drawn by hand on 2026-10-09, which no seed reproduces:
+    cli/gitshim.go:184:34 pathStanding && to ||, cli/push.go:66:36 refusePushArgs ! deleted,
+    work/propose.go:105 propose true to false; each one still present is killed and its test named
+    in the commit. Tests only (_test.go or a scenario where only a scenario reaches the code, unit
+    tests first); no change to what itos does: a test that finds a bug stops the work and is
+    reported. A mutant argued equivalent in its commit is excepted with itos-cc mutation except, its
+    reason saying why no test can kill it. Every check fails until its run's sites are all killed,
+    so push once, when itos task passes locally.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 38807804744 cmd internal
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 38810070537 cmd internal
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 38810070537 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
+      timeout: 900

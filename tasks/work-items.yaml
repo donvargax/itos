@@ -10158,3 +10158,11 @@ items:
     status: todo
     depends_on: []
     kind: task
+
+  - id: T-186
+    title: Tests kill the survivors the nightlies of 2026-10-15 drew
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
