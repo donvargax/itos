@@ -10382,3 +10382,27 @@ items:
       article's 'what does CI even mean'). Related: p2-trunk-review-and-release,
       sandbox-for-unattended-runs (memory).
     tags: [work, commit]
+
+  - id: p2-itos-data-store
+    title: "itos's data outgrows one YAML file per kind: per-item files, with SQLite as a derived index"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's idea (2026-10-17, after Fossil, whose repository is one SQLite database): itos's
+      files could become SQLite. Today tasks/work-items.yaml is 453 KB and phase-1.yaml 158 KB, each
+      one file every item edit rewrites and every concurrent push can conflict on. A SQLite file as
+      the truth in git would lose what itos leans on: diffs and review of registry changes, git
+      blame for item ages, rebasing two pushes that touched it (a binary conflict cannot be
+      resolved), and the moves and footer checks that read the files at a commit. Fossil gets away
+      with it because Fossil is the VCS: its database is the repository, synced by its own protocol
+      from append-only artifacts. For itos on git the shape is: the truth stays text in git, split
+      so concurrent edits rarely meet (one file per item, or append-only event files as Fossil's
+      control artifacts are), and SQLite is a derived index, built from the files at a commit, never
+      committed (as Scion computes derived data), for queries and speed. It also answers bug-38's
+      atomic writes for the derived part only. Fits v9's typed-items redesign; related:
+      p1-archive-closed. Open: per-item files or events, the migration and the verify/moves rules
+      over a split registry.
+    tags: [work, config]
