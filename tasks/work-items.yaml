@@ -10237,6 +10237,16 @@ items:
       moving the changed-site base was offered and declined in favour of waiting. Once #56 dates a
       kill by its killing test, design this as first written. .metrics/mutate is tracked (T-141) but
       holds 12 old snapshots; mutation check cmd internal reports 1,171 functions missing.
+
+      Who refreshes (the user's question, 2026-10-17): CI, with the results kept out of main's
+      history. An agent refreshing before its push is a pre-landing gate, which the user's trunk
+      model removes; it costs local runs (against q-41); and check cannot tell a result that was run
+      from one that was edited. CI committing to main adds a bot commit per push, with a token that
+      can write main, a rebase race with other pushes and a CI re-trigger. Instead: CI restores
+      .metrics/mutate from refs/notes/mutation (or the Actions cache, which expires after 7 days
+      unused), runs the changed and stale functions reusing the rest, and pushes the notes back; a
+      survivor turns the run red and blocks the release. This is p2-trunk-review-and-release's check
+      results keyed to inputs, and a first user of p2-itos-data-store.
     refs: [itos.yaml, itos-cc.yaml, .metrics/mutate, docs/decisions, https://github.com/donvargax/itos-cc/issues/56]
     tags: [ci, tests]
     deferred: >
