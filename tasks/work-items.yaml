@@ -10356,6 +10356,9 @@ items:
       ReviewStack, Reviewable. The de-risking order: local review with hunk, then a UI on GitHub's
       APIs with commit comments, then storage elsewhere (Cloudflare Artifacts, celld) only if the
       product needs it.
+
+      Scope (the user, 2026-10-17): this idea stays the review piece for itos; the wider
+      GitHub-alternative UI is a separate product, noted in p3-github-alternative-notes.
     tags: [review, ci, work]
 
   - id: p2-security-agent-scan
