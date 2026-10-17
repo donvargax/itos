@@ -10250,4 +10250,6 @@ items:
       TestFooterLeadingBlankLine runs the line and its one-space continuation case would kill the
       mutant. Either itos-cc counts a zero-statement block that ran (an issue for itos-cc), or the
       clause gets a statement (continue), a refactor; until one lands, that check cannot pass.
+
+      Seen with itos-cc 0.12.0, the version tools/bin/pinned runs (2026-10-17, T-187).
     refs: [internal/message/header.go]
