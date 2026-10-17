@@ -4998,7 +4998,7 @@ items:
     tags: [tests]
 
   - id: p1-ci-e2e-workflow
-    title: Run a push's E2E step in a workflow of its own (#18)
+    title: "Watch several CI workflows by role, each with its own range, and repair a red one push does not wait on (#18, #84)"
     phase: 1
     owner: null
     status: todo
@@ -5021,6 +5021,24 @@ items:
       shared-checkout/no-worktree and wait/handoff rules. No workflow split, new waiting policy or
       claim of completion is authorized by this audit, and this note does not defer or reprioritize
       the item.
+
+      Issue #84 (2026-10-17, from itos-cc, which split its CI after one push grew from 7 to 18
+      minutes): a full-suite workflow (cd.yml, the whole suite on three systems, then the release)
+      runs on the same push, in parallel with ci.yml, not by workflow_run, so itos sees nothing of
+      it: status and go show neither its run nor its red, ci watch cannot wait on it, and guide
+      repair covers only push and nightly runs. It asks: ci.watch.github takes a list of workflows
+      each with a role (gate: push and work done wait on it, today's workflow; after: same push, not
+      waited on, judged by status and go; nightly), workflow and nightly_workflow kept as
+      shorthands; status shows each one's newest run and its newest green run while the head has not
+      passed; ci watch --workflow <name>; go reports a red after run as repair work, naming the
+      failing jobs and tests and the range's commits and their items; guide repair and guide brief
+      give the loop (a fresh agent reproduces only the failing tests, fixes, pushes; close when that
+      workflow is green); a run cancelled by a newer push is not red (#17); status says whether the
+      newest release run published. Beside #18 this needs no partial plan when the after workflow
+      runs the whole suite, but still a range per workflow: each judges from its own last green run.
+      It fits the user's trunk model (a red full suite blocks the release, not the push, as Amp
+      does). The 2026-10-15 audit's caution stands: reconcile with p1-agent-git-ci-contract before
+      building.
     tags: [ci]
 
   - id: bug-47
