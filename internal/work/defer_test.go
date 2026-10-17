@@ -80,6 +80,13 @@ func TestDeferRefuses(t *testing.T) {
 			t.Errorf("defer %s: %+v, %v", c.id, found, err)
 		}
 	}
+	// What work check finds in the registry with the item deferred refuses
+	// it too, with no change: here an item of a phase the registry lacks.
+	unsound := text + "  - { id: p, title: P, phase: 2, status: todo }\n"
+	if change, found, err := Defer(cfg, registryOf(t, unsound), unsound, "t", "A reason."); err != nil || change.Text != "" ||
+		change.Item != nil || len(found) == 0 {
+		t.Errorf("defer t in a registry with a problem: %+v, %+v, %v", change, found, err)
+	}
 	for _, c := range []struct{ id, rule string }{{"z", "work-unknown-item"}, {"t", "work-resume-not-deferred"}} {
 		_, found, err := Resume(cfg, r, text, c.id)
 		if err != nil || len(found) != 1 || found[0].Rule != c.rule {

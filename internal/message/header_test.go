@@ -98,7 +98,9 @@ func TestHeaderWords(t *testing.T) {
 // paragraph below lines that are none, the header among them, by its number
 // in the message as written, comment and leading blank lines counted (bug
 // 109): footers git does not read without a blank line above them (bug 110).
-// A header with the same text is not it.
+// A line that begins with a space carries on the footer above it; one that
+// begins with a word does not, whatever follows the word. A header with the
+// same text is not it.
 func TestFooterLeadingBlankLine(t *testing.T) {
 	cfg := load(t, "version: 1\ncommits:\n  header_lint: { use: builtin }\n")
 	for _, c := range []struct{ message, comment, want string }{
@@ -109,6 +111,7 @@ func TestFooterLeadingBlankLine(t *testing.T) {
 		{"chore: x\nTask: T-1", "", `line 2, "Task: T-1"`},
 		{"chore: x\n\nbody\n  more\nRefs: 1\n  2\nTask: T-1", "", `line 5, "Refs: 1"`},
 		{"chore: x\n\nbody\nBREAKING CHANGE: gone\nfor good\nRefs: 1", "", `line 6, "Refs: 1"`},
+		{"chore: x\n\nbody\nTask: T-1\n more", "", `line 4, "Task: T-1"`},
 	} {
 		found, err := HeaderProblems(cfg, c.message, c.comment)
 		if err != nil {
@@ -119,7 +122,7 @@ func TestFooterLeadingBlankLine(t *testing.T) {
 			t.Errorf("%q: %+v, want %q", c.message, found, want)
 		}
 	}
-	for _, message := range []string{"chore: x\n\nbody\nTask: T-1\nprose", "chore: x\n\nbody\n\n  T-0\nTask: T-1", "chore: x\n\nsee #12 here"} {
+	for _, message := range []string{"chore: x\n\nbody\nTask: T-1\nprose", "chore: x\n\nbody\nTask: T-1\na b", "chore: x\n\nbody\n\n  T-0\nTask: T-1", "chore: x\n\nsee #12 here"} {
 		found, _ := HeaderProblems(cfg, message, "")
 		if len(found) > 0 {
 			t.Errorf("%q: %+v", message, found)

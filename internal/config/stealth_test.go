@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/donvargax/itos/v8/internal/git"
+	"github.com/donvargax/itos/v8/internal/source"
 	"github.com/donvargax/itos/v8/internal/value"
 )
 
@@ -105,5 +106,39 @@ func TestStealthConfigInALinkedWorktree(t *testing.T) {
 	}
 	if got := Locate("repo"); got != filepath.Join(".git", "itos", "itos.yaml") || !IsStealthIn("repo", got) {
 		t.Errorf("Locate(repo) = %q", got)
+	}
+}
+
+// While itos reads a git tree, as the commit-msg hook reads the index, an
+// itos.yaml in the root wins over the stealth config whether the tree or
+// only the working tree holds it.
+func TestARootConfigInEitherTreeWinsOverTheStealthOne(t *testing.T) {
+	dir := t.TempDir()
+	gitIn(t, dir, "init", "-q")
+	t.Chdir(dir)
+	t.Setenv("ITOS_CONFIG", "")
+	writeFile(t, filepath.Join(".git", "itos", "itos.yaml"), stealthText)
+	index, err := source.At("index")
+	if err != nil {
+		t.Fatal(err)
+	}
+	locate := func() string {
+		t.Helper()
+		got := ""
+		if err := source.ReadingFrom(index, func() error { got = Locate(""); return nil }); err != nil {
+			t.Fatal(err)
+		}
+		return got
+	}
+	writeFile(t, "itos.yaml", stealthText)
+	if got := locate(); got != "itos.yaml" {
+		t.Errorf("an itos.yaml only in the working tree: Locate = %q", got)
+	}
+	gitIn(t, dir, "add", "itos.yaml")
+	if err := os.Remove("itos.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	if got := locate(); got != "itos.yaml" {
+		t.Errorf("an itos.yaml only in the index: Locate = %q", got)
 	}
 }
