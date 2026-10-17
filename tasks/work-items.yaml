@@ -10343,6 +10343,19 @@ items:
       (fossil amend), the shape this idea needs for a review's membership (git notes being git's
       nearest equivalent); tickets, wiki and a timeline UI (fossil ui) live in the repository
       itself.
+
+      On GitHub's own infrastructure (2026-10-17, the user: a faster GitHub UI can use the existing
+      infra): commit comments (line-level, on any commit, no PR) can hold the review's comments on
+      main's commits, each placed on the commit that last touched its line within the review (blame
+      over the review's commits), so the review needs no new storage; the Checks API gives each main
+      commit's check runs and annotations by SHA, shown inline with nothing re-run, which answers
+      the CI concern without a synthetic PR; immutable objects by SHA cache forever and ETag 304s do
+      not count against the rate limit (about 5,000 requests an hour per user), so a caching client
+      can be far faster than GitHub's UI; webhooks need a GitHub App and a small server (a Worker),
+      else ETag polling. Prior art: DiffsHub (swap github.com for diffshub.com, on @pierre/diffs),
+      ReviewStack, Reviewable. The de-risking order: local review with hunk, then a UI on GitHub's
+      APIs with commit comments, then storage elsewhere (Cloudflare Artifacts, celld) only if the
+      product needs it.
     tags: [review, ci, work]
 
   - id: p2-security-agent-scan
