@@ -10261,3 +10261,42 @@ items:
       Filed as itos-cc#53 (2026-10-17). Meanwhile T-187 gives gluedAt's clause a continue (the
       user's call); when a pinned itos-cc fixes #53, take it out and close this.
     refs: [internal/message/header.go]
+
+  - id: p2-trunk-review-and-release
+    title: Trunk-only work with review after the commit, keyed to items, and review debt gating release
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's model (2026-10-17, from their stacked-workflow essay and SVN + FishEye + Crucible
+      experience): a team swarming on a story commits straight to main, with no branches, not even
+      short-lived ones; code that passes tests deploys behind a disabled feature flag; a review is
+      opened later over the commits of a task, chosen even when not consecutive, so writing and
+      reviewing code fall in separate blocks of time and teammates review with fresh eyes. Pair
+      programming does not replace this review. Sources weighed the same day: Anthropic's
+      'Redesigning source control' (Scion: trunk only, refs discouraged, no merge queue, post-merge
+      and pre-deploy testing, reviewers judge intent, approval rules that tell comment-only from
+      logic changes); Thorsten Ball on Amp (no PRs, push to main behind flags, irrefutable proof
+      from agents); joelhooks/piper (a merge train, rejected, but its triage of a failed check,
+      retried once then run on the base without the change, and its bisection of a red range, both
+      fit post-merge testing: see p1-repair-plan). None of them reviews after the commit, which is
+      the user's own piece. The shape: (1) trunk only, post-merge testing with that triage and
+      bisection; (2) review after the commit, its commits chosen by Item: footer, each file diffed
+      from before the review's first commit that touched it to after its last (git can compute this
+      from blobs, as Crucible did per file); (3) itos tracks review debt, the commits on main no
+      review covers, and the debt gates turning on a flag, not the merge; (4) check results keyed to
+      the inputs they read, so a passed check never runs again (as p1-mutation-results-committed
+      does for mutation); (5) approval rules by kind of change, from the types and paths itos
+      already sorts; (6) an agent's handback carries proof itos can verify. The review UI: local
+      first, a diff viewer over two refs itos builds with git plumbing and never pushes, so no CI
+      runs on them (difit, diffity, diffx, Plannotator and viewers built on @pierre/diffs; the user
+      knows of Pierre-based local viewers to find). A borrowed GitHub PR (head a tested main commit,
+      base synthetic, never merged, CI filtered off review/**) is the fallback for annotations;
+      GitHub ties checks and reviews to a branch head's SHA, which is why PRs are a hack here. Open:
+      how the review comments become itos data that outlives the viewer, how itos learns a flag's
+      state, which kinds of change may skip review, and the differentiators the user will add. The
+      user plans to pitch agent-first hosting around this layer later; no new VCS or hosting is
+      built now.
+    tags: [review, ci, work]
