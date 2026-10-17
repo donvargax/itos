@@ -10701,6 +10701,11 @@ items:
       first: it reverses ADR-0013 (the commit-msg hook runs, last, the checks of the tasks a commit
       names), and fits ADR-0043 (checks gate work done, then leave) and the user's 'a check that
       passed never runs again'.
+
+      The user (2026-10-17): implementing agents run no verification of their own; work done runs
+      done_when, so any verification an item needs goes there (or into a gate), and agents are
+      trusted to follow the rule, since nothing can enforce it. Red first stays: seeing a spec fail
+      is building, not verifying.
     refs: [internal/cli/workdone.go, internal/cli/hook.go, docs/decisions]
 
   - id: p1-inbox-marks-triaged
