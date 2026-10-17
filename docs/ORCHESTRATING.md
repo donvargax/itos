@@ -168,3 +168,9 @@ was in this file when the file was reorganized that day.
   line and never ended (bug 35), another slept (slice 83). The brief says:
   push `--no-wait` in the background; use completion notifications. Exit:
   `p1-push-fits-foreground`. Recorded 2026-10-06; last seen 2026-10-06.
+- **Watch CI on every push, a docs one too, and read `git log origin/main..main`
+  before a session's first push**: commits an earlier session left unpushed
+  go out with yours. Over 100 first parents past the last green run, `ci range`
+  falls back to `commits.since` and verify fails old commits on today's rules
+  (T-136, T-188: 213 left commits; main red for hours, unwatched). Exit:
+  slice-163. Recorded 2026-10-17; last seen 2026-10-17.
