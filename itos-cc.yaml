@@ -37,12 +37,13 @@ mutation:
       reason: 'Equivalent: the source edit binds as s == "" || (strings.ContainsAny(s, "/\\\x00") && s == ".") || s == "..", and "." holds none of those characters, so it rejects only "" and ".."; every string the original also rejects (".", or one holding a slash, backslash or NUL) has a character outside [A-Za-z0-9-], which the loop below rejects anyway, so validCategory returns the same for every input.'
     - file: internal/cli/taskadd.go
       function: github.com/donvargax/itos/v8/internal/cli#taskAddArgs
-      hash: a8c37f54b25bc2fd
+      hash: 789b09bfcb0e5815
       line_in_function: 9
       column: 11
       original: "false"
       replacement: "true"
-      reason: "Equivalent: timed is read only beside len(n.Checks) == 0, which refuses with no check, and every --check sets it false before any later read, so its first value is never seen."
+      reason: "Equivalent: timed is read only by checkArg for a --timeout, which refuses while no check is given (len(*checks) == 0) before reading it, and every --check sets it false, so its first value is never seen."
+      line_text: timed := false
     - file: internal/cli/idmint.go
       function: github.com/donvargax/itos/v8/internal/cli#mintItemID
       hash: 0717bed008338f9e
@@ -131,3 +132,21 @@ mutation:
       replacement: "1"
       reason: "Equivalent: gluedAt returns -1 or an index of at least 1, never 0: its loop runs i from len(found)-1 down to 1, and every index it returns is first, set only to such an i and returned only when below len(found), its start; every other return is -1. For every value gluedAt gives, g >= 0, g > 0 and g >= 1 are the same test, so parse marks the same line glued, or none."
       line_text: if g := gluedAt(found[:end]); g >= 0 {
+    - file: internal/cli/workpromote.go
+      function: github.com/donvargax/itos/v8/internal/cli#workPromoteLine
+      hash: 75aaaaba953c0f7d
+      line_in_function: 45
+      column: 11
+      original: "false"
+      replacement: "true"
+      reason: "Equivalent: timed is read only by checkArg for a --timeout, which refuses while no check is given (len(*checks) == 0) before reading it, and every --check sets it false, so its first value is never seen."
+      line_text: timed := false
+    - file: internal/cli/draftmint.go
+      function: github.com/donvargax/itos/v8/internal/cli#mintedKind
+      hash: 2c755792ebb029dc
+      line_in_function: 3
+      column: 27
+      original: <
+      replacement: <=
+      reason: 'Equivalent: a line of exactly two words is work add, work promote or task add with no arguments (any other two words are no minting line), which workAddLine, workPromoteLine and taskAddArgs each refuse, so mintedKind returns "" whether it stops here or there.'
+      line_text: if g.Help || len(g.Rest) < 2 || !slices.Contains(mintingLines, [2]string{g.Rest[0], g.Rest[1]}) {
