@@ -10406,3 +10406,25 @@ items:
       p1-archive-closed. Open: per-item files or events, the migration and the verify/moves rules
       over a split registry.
     tags: [work, config]
+
+  - id: p1-watch-step-function
+    title: The CI watch decides each look in a pure step and bounds every pass by its deadline
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Found 2026-10-17: internal/cli/watch.go:197's mutant (case !ok to case ok) made watchCovered
+      follow an empty run forever, since both of its follow paths continue past the deadline check
+      and the sleep at the loop's foot; the loop ends only because every real follow moves to a
+      newer run, a property of GitHub's data, not of the loop. Under the mutant the test's captured
+      progress grew until two hosted runners died (nightly 39029889396, CI 39046789187; itos-cc#54),
+      and T-187 added a test-side guard. The design: a pure step(state, look) returns the next state
+      and one action, done(result), follow(run) or wait(d); a small driver alone looks, prints,
+      sleeps and checks the deadline, on every pass, so no decision can skip it and the timeout
+      bounds the loop whatever the decisions do; the decisions become a table test with no fake
+      sleep or clock. The shape joelhooks/piper uses (machines decide, an executor acts). A
+      refactor: what itos ci watch and itos push print and exit with stays as it is.
+    refs: [internal/cli/watch.go]
+    tags: [ci, push]
