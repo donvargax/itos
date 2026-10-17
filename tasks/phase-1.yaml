@@ -2168,8 +2168,15 @@
   title: Tests kill the survivors the nightlies of 2026-10-15 drew
   why: >
     First batch of p1-nightly-survivors (the user, 2026-10-17: kill the recorded survivors, keep the
-    random step strict). No product Go changed since bb9bf485, so each nightly step at its run's
-    seed draws the same sites again, and the checks are those steps at those seeds. Run 38807804744
+    random step strict). The checks are the nightly steps at their runs' seeds, which drew the same
+    sites again while no product Go changed since bb9bf485. T-187's refactor (d44cac08, a continue
+    in message/header.go's gluedAt) gave header.go's later sites new identities, and at d44cac08
+    commands.go:275:19 is no longer among 38810070537's changed-site picks: prove it killed by a
+    narrowed run of its file at that seed (--count covering every eligible site of the file, as
+    T-187 did for header.go:138:19), and say so in the commit; every other site below is still
+    picked (T-187's agent listed them). header.go:116:35 and a new 116:38 (0 to 1) survive in
+    parse; T-187's agent believes both equivalent, since gluedAt returns -1 or an index of at least
+    1, so g >= 0, g > 0 and g >= 1 agree: argue it in the commit before excepting. Run 38807804744
     (random): cli/gitcommit.go:115:13 readCommitFlags && to ||; cli/initrules.go:76:24
     parseRulesFlag != to ==; cli/draft.go:73:52 draftsFile || to &&; cli/nextid.go:141:45 taskNextID
     0 to 1 (its changed-site step failed at coverage and drew nothing). Run 38810070537 (random):
