@@ -10199,6 +10199,12 @@ items:
       unused), runs the changed and stale functions reusing the rest, and pushes the notes back; a
       survivor turns the run red and blocks the release. This is p2-trunk-review-and-release's check
       results keyed to inputs, and a first user of p2-itos-data-store.
+
+      Measured by slice-138 (2026-10-17, 8 cores): its scoped run judged 240 sites of 12 functions
+      in 7:51 (about 2 s a site; hosted runners take about 12). The kill loop's three reruns took
+      6:49, 6:46 and 3:12, reusing nothing until the tests stopped changing (run 4 reused 182 of
+      238). Snapshots for 5 files: 742 KB. The user chose to wait for itos-cc#56 before local scoped
+      runs replace q-41/q-55; with #56 the reruns would judge only survivors.
     refs: [itos.yaml, itos-cc.yaml, .metrics/mutate, docs/decisions, https://github.com/donvargax/itos-cc/issues/56]
     tags: [ci, tests]
     deferred: >
