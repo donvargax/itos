@@ -10547,7 +10547,7 @@ items:
     title: work promote ends a ledger error after the reservation as its check does
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
