@@ -10662,3 +10662,19 @@ items:
       or ledger.check.timeout); a failure shows the last lines of its output, or where the full
       output was written; --json carries a reason and an output tail.
     refs: [internal/check, internal/cli]
+
+  - id: p1-ci-scope-empty-from-help
+    title: ci scope's help says what an empty <from> does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      Issue #81 (2026-10-17, from itos-cc): itos ci scope "" HEAD prints docs_only=false (no start:
+      run everything), the right behaviour, and the empty FROM is exactly what ci range returns when
+      no green run is in reach, which is when a workflow asks scope whether to skip its test jobs.
+      ci range's help already says an empty FROM runs everything; ci scope's does not, so a workflow
+      author cannot rely on it without trying. One help line, such as 'An empty <from> (no range:
+      run everything) prints docs_only=false.', and a scenario that holds it.
+    refs: [internal/cli/help.go]
