@@ -6772,6 +6772,11 @@ items:
       cli/push.go:342:20 pushRun.rebase || to &&; cli/watch.go:212:14 watchCovered 0 to 1;
       work/defer.go:60:16 Defer || to &&; message/header.go:138:19 gluedAt 0 to 1 uncovered. All
       under internal/.
+
+      2026-10-17: T-186 and T-187 take every site recorded above, by the seed of the run that drew
+      it (T-187 corrects the last note: watch.go:212, hook.go:383 and header.go:138 were run
+      39029889396's changed-site step). The user keeps the random step strict; how every product
+      site comes to be judged is an open question.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
 
   - id: slice-110
