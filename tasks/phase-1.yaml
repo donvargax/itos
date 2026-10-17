@@ -2157,11 +2157,17 @@
     mutation.uncovered (file:line:col, the change, the function), and count.interrupted when
     present; and when the log shows the runner shut down or the operation cancelled, the last step
     started and that the steps after it did not run. Read from the log, not ci run --json: no
-    artifact plumbing. No change to the plan, its order or any verdict. Was
+    artifact plumbing. Also (the user, 2026-10-17) the two itos-cc mutation steps move to the end
+    of ci.nightly in itos.yaml, random then changed-site, so an interrupted runner costs only them:
+    the steps after them take about 1.5 minutes. No other change to the plan or any verdict; a
+    self-test that holds the nightly's shape follows the new order, no looser. Was
     p1-nightly-report-names-steps (split from slice-133).
   done_when:
     - run: go test ./tools/bin/nightly-report -count=1
     - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/tools-bin-programs
+    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/features-scope
+    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-mutation-budget
+    - run: tools/bin/itos ci plan --nightly | tail -2 | grep -c 'itos-cc mutation run' | grep -qx 2
 
 - id: T-186
   type: test
