@@ -10210,3 +10210,18 @@ items:
       and the changed-site step's base stays at 9397855d until a whole nightly passes.
     refs: [itos.yaml, itos-cc.yaml, .metrics/mutate, docs/decisions]
     tags: [ci, tests]
+
+  - id: p1-nightly-report-reads-ci-run-output
+    title: nightly-report is held to the failure lines itos ci run prints
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      tools/bin/nightly-report (T-185) finds the plan's failed steps by the text internal/ci's
+      driver writes: 'CI failed at' and 'also failed at', a step's '$ ' line after a blank one, '(it
+      exited N)' and '(it gave no exit code)'. Its tests run on two runs' logs, so a change to that
+      wording passes every gate and the Nightly red issue goes back to saying nothing of the plan's
+      failures, unseen until a red night. A self-test could run itos ci run --nightly with failing
+      fake steps, as ci-mutation-budget does, and feed its output to nightly-report's reader.
