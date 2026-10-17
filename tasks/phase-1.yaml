@@ -2196,3 +2196,36 @@
       timeout: 900
     - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 38810070537 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
       timeout: 900
+
+- id: T-187
+  type: test
+  title: Tests kill the survivors the nightlies of 2026-10-16 and 2026-10-17 drew
+  why: >
+    Second batch of p1-nightly-survivors (the user, 2026-10-17: kill the recorded survivors, keep
+    the random step strict), as T-186 does for 2026-10-15: no product Go changed since bb9bf485, so
+    each nightly step at its run's seed draws the same sites again, and the checks are those steps
+    at those seeds. Run 38896023548 (random): cli/initshim.go:66:7 parseShimFlag + to -;
+    config/stealth.go:53:27 Locate || to &&. Run 38896023548 (changed sites since
+    9397855d98441c2276c0333e4938ca16e46a7aeb): cli/status.go:586:7 standing.readCI ! deleted;
+    cli/status.go:592:11 standing.readCI != to ==; cli/watch.go:225:11 watchCovered > to >=;
+    cli/workwrite.go:510:14 workPerson false to true. Run 39029889396 (random): cli/follow.go:222:44
+    followAdd != to ==; cli/push.go:342:20 pushRun.rebase || to &&; work/defer.go:60:16 Defer || to
+    &&. Run 39029889396 (changed sites; the runner shut down after 21 of its 57 sites, so the check
+    judges the rest for the first time and may find more, which this task kills too):
+    cli/watch.go:212:14 watchCovered 0 to 1; cli/hook.go:383:46 stagedRule ! deleted;
+    message/header.go:138:19 gluedAt 0 to 1, uncovered (no test runs its line). The
+    p1-nightly-survivors note of 2026-10-17 put the last three in that run's random step; they are
+    its changed-site step's. Tests only (_test.go or a scenario where only a scenario reaches the
+    code, unit tests first); no change to what itos does: a test that finds a bug stops the work and
+    is reported. A mutant argued equivalent in its commit is excepted with itos-cc mutation except,
+    its reason saying why no test can kill it. Every check fails until its run's sites are all
+    killed, so push once, when itos task passes locally.
+  done_when:
+    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 38896023548 cmd internal
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 38896023548 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --count 20 --json --seed 39029889396 cmd internal
+      timeout: 900
+    - run: tools/bin/pinned itos-cc mutation run --since 9397855d98441c2276c0333e4938ca16e46a7aeb --count 60 --fail-uncovered=lines --json --seed 39029889396 $(go run ./tools/bin/nightly-base -linux-files cmd internal)
+      timeout: 900
