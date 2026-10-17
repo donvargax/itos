@@ -59,3 +59,57 @@ mutation:
       original: "1"
       replacement: "0"
       reason: "Equivalent: %0*d writes every number at least one digit wide, so a width of 0 and a width of 1 write the same ID, and every wider ID of the series raises width past both alike."
+    - file: internal/value/rename.go
+      function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
+      hash: ca1ca6e10f511303
+      line_in_function: 21
+      column: 13
+      original: <
+      replacement: <=
+      reason: "Equivalent: the loop can step past where the original stops only once common is len(from)-1, from and to agreeing on every key before it; going on there also needs more keys in to than in from and from[common] == to[common], so that from holds to, which Rename refused before the loop. It stops at the same common, and never reads past the end of from."
+      line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
+    - file: internal/value/rename.go
+      function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
+      hash: ca1ca6e10f511303
+      line_in_function: 21
+      column: 24
+      original: "-"
+      replacement: +
+      reason: "Equivalent: the loop can step past where the original stops only once common is len(from)-1, from and to agreeing on every key before it; going on there also needs more keys in to than in from and from[common] == to[common], so that from holds to, which Rename refused before the loop. It stops at the same common, and never reads past the end of from."
+      line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
+    - file: internal/value/rename.go
+      function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
+      hash: ca1ca6e10f511303
+      line_in_function: 21
+      column: 25
+      original: "1"
+      replacement: "0"
+      reason: "Equivalent: the loop can step past where the original stops only once common is len(from)-1, from and to agreeing on every key before it; going on there also needs more keys in to than in from and from[common] == to[common], so that from holds to, which Rename refused before the loop. It stops at the same common, and never reads past the end of from."
+      line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
+    - file: internal/value/rename.go
+      function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
+      hash: ca1ca6e10f511303
+      line_in_function: 21
+      column: 37
+      original: <
+      replacement: <=
+      reason: "Equivalent: the loop can step past where the original stops only once common is len(to)-1, from and to agreeing on every key before it; going on there also needs more keys in from than in to and from[common] == to[common], so that to holds from, which Rename refused before the loop. It stops at the same common, and never reads past the end of to."
+      line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
+    - file: internal/value/rename.go
+      function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
+      hash: ca1ca6e10f511303
+      line_in_function: 21
+      column: 46
+      original: "-"
+      replacement: +
+      reason: "Equivalent: the loop can step past where the original stops only once common is len(to)-1, from and to agreeing on every key before it; going on there also needs more keys in from than in to and from[common] == to[common], so that to holds from, which Rename refused before the loop. It stops at the same common, and never reads past the end of to."
+      line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
+    - file: internal/value/rename.go
+      function: github.com/donvargax/itos/v8/internal/value.Doc#Rename
+      hash: ca1ca6e10f511303
+      line_in_function: 21
+      column: 47
+      original: "1"
+      replacement: "0"
+      reason: "Equivalent: the loop can step past where the original stops only once common is len(to)-1, from and to agreeing on every key before it; going on there also needs more keys in from than in to and from[common] == to[common], so that to holds from, which Rename refused before the loop. It stops at the same common, and never reads past the end of to."
+      line_text: for common < len(from)-1 && common < len(to)-1 && from[common] == to[common] {
