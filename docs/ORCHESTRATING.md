@@ -173,4 +173,4 @@ was in this file when the file was reorganized that day.
   go out with yours. Over 100 first parents past the last green run, `ci range`
   falls back to `commits.since` and verify fails old commits on today's rules
   (T-136, T-188: 213 left commits; main red for hours, unwatched). Exit:
-  slice-163. Recorded 2026-10-17; last seen 2026-10-17.
+  p1-verify-verdict-once (slice-163 deferred). Recorded 2026-10-17; last seen 2026-10-17.
