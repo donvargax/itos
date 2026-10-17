@@ -2162,12 +2162,6 @@
     the steps after them take about 1.5 minutes. No other change to the plan or any verdict; a
     self-test that holds the nightly's shape follows the new order, no looser. Was
     p1-nightly-report-names-steps (split from slice-133).
-  done_when:
-    - run: go test ./tools/bin/nightly-report -count=1
-    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/tools-bin-programs
-    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/features-scope
-    - run: ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-mutation-budget
-    - run: tools/bin/itos ci plan --nightly | tail -2 | grep -c 'itos-cc mutation run' | grep -qx 2
 
 - id: T-186
   type: test

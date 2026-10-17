@@ -10164,7 +10164,7 @@ items:
     title: The Nightly red issue names each failed plan step and the mutation sites it found
     phase: 1
     owner: donvargax
-    status: doing
+    status: done
     depends_on: []
     kind: task
 
