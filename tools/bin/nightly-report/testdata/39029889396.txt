@@ -1,0 +1,190 @@
+2026-10-17T11:45:34.5959900Z ##[group]Run tools/bin/itos ci run --nightly
+2026-10-17T11:45:34.5960324Z [36;1mtools/bin/itos ci run --nightly[0m
+2026-10-17T11:45:34.6021756Z shell: /usr/bin/bash -e {0}
+2026-10-17T11:45:34.6022011Z env:
+2026-10-17T11:45:34.6022208Z   GOTOOLCHAIN: go1.27.2
+2026-10-17T11:45:34.6025303Z   GH_TOKEN: ***
+2026-10-17T11:45:34.6025524Z ##[endgroup]
+2026-10-17T11:45:34.6371641Z 
+2026-10-17T11:45:34.6372170Z $ ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/gates
+2026-10-17T11:46:11.5142420Z ok  	github.com/donvargax/itos/v8/tools/selftest/gates	36.687s
+2026-10-17T11:46:11.5191553Z 
+2026-10-17T11:46:11.5192100Z $ ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/go-hooks
+2026-10-17T11:47:28.8623258Z ok  	github.com/donvargax/itos/v8/tools/selftest/go-hooks	77.176s
+2026-10-17T11:47:28.8677135Z 
+2026-10-17T11:47:28.8677632Z $ ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/go-release
+2026-10-17T11:48:34.8588799Z ok  	github.com/donvargax/itos/v8/tools/selftest/go-release	65.798s
+2026-10-17T11:48:34.8655552Z 
+2026-10-17T11:48:34.8656058Z $ ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/bin/config-schema
+2026-10-17T11:48:35.2745501Z ok  	github.com/donvargax/itos/v8/tools/bin/config-schema	0.205s
+2026-10-17T11:48:35.2802843Z 
+2026-10-17T11:48:35.2803572Z $ ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/bin/previous-release
+2026-10-17T11:48:41.2881738Z ok  	github.com/donvargax/itos/v8/tools/bin/previous-release	5.686s
+2026-10-17T11:48:41.2974303Z 
+2026-10-17T11:48:41.2974967Z $ ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/features-scope
+2026-10-17T11:49:17.6686538Z ok  	github.com/donvargax/itos/v8/tools/selftest/features-scope	36.205s
+2026-10-17T11:49:17.6734206Z 
+2026-10-17T11:49:17.6735129Z $ ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/go-dogfood
+2026-10-17T11:49:20.2860295Z ok  	github.com/donvargax/itos/v8/tools/selftest/go-dogfood	2.457s
+2026-10-17T11:49:20.2908577Z 
+2026-10-17T11:49:20.2909418Z $ ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/bin/release-notes
+2026-10-17T11:49:22.1775246Z ok  	github.com/donvargax/itos/v8/tools/bin/release-notes	1.592s
+2026-10-17T11:49:22.1875315Z 
+2026-10-17T11:49:22.1876225Z $ ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/ci-mutation-budget
+2026-10-17T11:49:23.6819286Z ok  	github.com/donvargax/itos/v8/tools/selftest/ci-mutation-budget	1.330s
+2026-10-17T11:49:23.6873294Z 
+2026-10-17T11:49:23.6874044Z $ ITOS_SELFTEST=1 go test -count=1 -run '^TestSelftest$' ./tools/selftest/tools-bin-programs
+2026-10-17T11:49:23.8843792Z ok  	github.com/donvargax/itos/v8/tools/selftest/tools-bin-programs	0.037s
+2026-10-17T11:49:23.8892473Z 
+2026-10-17T11:49:23.8893265Z $ tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal
+2026-10-17T11:53:28.0478630Z itos-cc: [16/19] internal/cli/push.go:342 `||` → `&&` survived its own tests, then survived with ID-PREPUSH-03 ID-PUSH-01 ID-PUSH-02 ID-PUSH-05 (23.1s)
+2026-10-17T11:53:29.6842215Z itos-cc: [17/19] internal/config/schema.go:329 `==` → `!=` killed (1.6s)
+2026-10-17T11:53:30.2083146Z itos-cc: [18/19] internal/tests/tests.go:165 `+` → `-` killed (0.5s)
+2026-10-17T11:53:33.9299044Z itos-cc: [19/19] internal/work/defer.go:60 `||` → `&&` survived its own tests, then survived with ID-WORK-65 ID-WORK-66 ID-WORK-67 ID-WORK-97 (8.9s)
+2026-10-17T11:53:34.1105769Z {
+2026-10-17T11:53:34.1109085Z   "ok": false,
+2026-10-17T11:53:34.1109473Z   "problems": [
+2026-10-17T11:53:34.1109852Z     {
+2026-10-17T11:53:34.1110171Z       "column": 44,
+2026-10-17T11:53:34.1110557Z       "file": "internal/cli/follow.go",
+2026-10-17T11:53:34.1111095Z       "fix": "Add a test that fails with this change.",
+2026-10-17T11:53:34.1111752Z       "function": "github.com/donvargax/itos/v8/internal/cli#followAdd",
+2026-10-17T11:53:34.1113447Z       "identity": "internal/cli/follow.go:github.com/donvargax/itos/v8/internal/cli#followAdd@194:226:e31a2f9bf1c37418:1133:!=\u003e==",
+2026-10-17T11:53:34.1114444Z       "line": 222,
+2026-10-17T11:53:34.1115632Z       "message": "internal/cli/follow.go:222:44: `!=` → `==` in github.com/donvargax/itos/v8/internal/cli#followAdd survived",
+2026-10-17T11:53:34.1117212Z       "original": "!=",
+2026-10-17T11:53:34.1117571Z       "replacement": "==",
+2026-10-17T11:53:34.1118244Z       "rule": "mutation.survived"
+2026-10-17T11:53:34.1118666Z     },
+2026-10-17T11:53:34.1118960Z     {
+2026-10-17T11:53:34.1119262Z       "column": 20,
+2026-10-17T11:53:34.1119640Z       "file": "internal/cli/push.go",
+2026-10-17T11:53:34.1120161Z       "fix": "Add a test that fails with this change.",
+2026-10-17T11:53:34.1120853Z       "function": "github.com/donvargax/itos/v8/internal/cli.pushRun#rebase",
+2026-10-17T11:53:34.1121873Z       "identity": "internal/cli/push.go:github.com/donvargax/itos/v8/internal/cli.pushRun#rebase@326:357:0cb6e203eb5ed3d9:537:||\u003e\u0026\u0026",
+2026-10-17T11:53:34.1122498Z       "line": 342,
+2026-10-17T11:53:34.1123133Z       "message": "internal/cli/push.go:342:20: `||` → `\u0026\u0026` in github.com/donvargax/itos/v8/internal/cli.pushRun#rebase survived",
+2026-10-17T11:53:34.1123677Z       "original": "||",
+2026-10-17T11:53:34.1123903Z       "replacement": "\u0026\u0026",
+2026-10-17T11:53:34.1124200Z       "rule": "mutation.survived"
+2026-10-17T11:53:34.1124434Z     },
+2026-10-17T11:53:34.1124611Z     {
+2026-10-17T11:53:34.1124781Z       "column": 16,
+2026-10-17T11:53:34.1124994Z       "file": "internal/work/defer.go",
+2026-10-17T11:53:34.1125302Z       "fix": "Add a test that fails with this change.",
+2026-10-17T11:53:34.1125672Z       "function": "github.com/donvargax/itos/v8/internal/work#Defer",
+2026-10-17T11:53:34.1126331Z       "identity": "internal/work/defer.go:github.com/donvargax/itos/v8/internal/work#Defer@22:66:bb2acfdaf12010e7:1597:||\u003e\u0026\u0026",
+2026-10-17T11:53:34.1126903Z       "line": 60,
+2026-10-17T11:53:34.1127445Z       "message": "internal/work/defer.go:60:16: `||` → `\u0026\u0026` in github.com/donvargax/itos/v8/internal/work#Defer survived",
+2026-10-17T11:53:34.1128418Z       "original": "||",
+2026-10-17T11:53:34.1128775Z       "replacement": "\u0026\u0026",
+2026-10-17T11:53:34.1129238Z       "rule": "mutation.survived"
+2026-10-17T11:53:34.1129510Z     }
+2026-10-17T11:53:34.1129674Z   ],
+2026-10-17T11:53:34.1129847Z   "sampling": {
+2026-10-17T11:53:34.1130058Z     "algorithm": "fresh-plan-v2",
+2026-10-17T11:53:34.1130315Z     "assurance": "sampled",
+2026-10-17T11:53:34.1131002Z     "bounds": "--count bounds mutant trials, not discovery, coverage, listing, baseline commands or total latency",
+2026-10-17T11:53:34.1131498Z     "budget": 20,
+2026-10-17T11:53:34.1131743Z     "commit": "ee1152572b59c164bd15b3342a0f219d9c09595f",
+2026-10-17T11:53:34.1132097Z     "completion": "completed",
+2026-10-17T11:53:34.1132332Z     "eligible": 10093,
+2026-10-17T11:53:34.1132554Z     "executed": 19,
+2026-10-17T11:53:34.1132757Z     "omitted": 10073,
+2026-10-17T11:53:34.1132968Z     "seed": "39029889396",
+2026-10-17T11:53:34.1133182Z     "selected": 20
+2026-10-17T11:53:34.1133372Z   },
+2026-10-17T11:53:34.1133576Z   "schema": 1,
+2026-10-17T11:53:34.1383178Z   "subjects": {
+2026-10-17T11:53:34.1383512Z     "judged": [
+2026-10-17T11:53:34.2064194Z       {
+2026-10-17T11:53:34.2064301Z         "file": "internal/message/footers.go",
+2026-10-17T11:53:34.2064564Z 
+2026-10-17T11:53:34.2065023Z CI failed at: tools/bin/pinned itos-cc mutation run --count 20 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --json cmd internal (it exited 1)
+2026-10-17T11:53:34.2065198Z         "function": "github.com/donvargax/itos/v8/internal/message#Type"
+2026-10-17T11:53:34.2387019Z       }
+2026-10-17T11:53:34.2387096Z     ]
+2026-10-17T11:53:34.2387169Z   }
+2026-10-17T11:53:34.2387248Z }
+2026-10-17T11:53:34.2387253Z 
+2026-10-17T11:53:34.2388228Z $ base=$(go run ./tools/bin/nightly-base) && files=$(go run ./tools/bin/nightly-base -linux-files cmd internal) && tools/bin/pinned itos-cc mutation run --since "$base" --count 60 --seed "${GITHUB_RUN_ID:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" --fail-uncovered=lines --json $files
+2026-10-17T11:53:34.7616711Z nightly-base: the base is 9397855d98441c2276c0333e4938ca16e46a7aeb, the head commit of the last green run of nightly.yml on main (run 37772629517, 2026-10-08T11:49:36Z)
+2026-10-17T11:57:33.3801573Z itos-cc: [18/57] internal/message/trailers.go:65 `true` → `false` killed (1.3s)
+2026-10-17T11:57:40.9754388Z itos-cc: [19/57] internal/cli/init.go:298 `0` → `1` killed (7.6s)
+2026-10-17T11:57:41.0023569Z itos-cc: [20/57] internal/cli/ci.go:103 `!=` → `==` not judged: context canceled (0.0s)
+2026-10-17T11:57:41.0501111Z ##[error]The runner has received a shutdown signal. This can happen when the runner service is stopped, or a manually started runner is canceled.
+2026-10-17T11:57:41.1024203Z itos-cc: [21/57] internal/cli/watch.go:197 `!` → (deleted) not judged: cancelled: interrupted by SIGTERM (68.8s)
+2026-10-17T11:57:41.4150743Z {
+2026-10-17T11:57:41.4191468Z   "ok": false,
+2026-10-17T11:57:41.4195129Z   "problems": [
+2026-10-17T11:57:41.4218101Z     {
+2026-10-17T11:57:41.4220252Z       "column": 19,
+2026-10-17T11:57:41.4220849Z       "file": "internal/message/header.go",
+2026-10-17T11:57:41.4223368Z       "fix": "Add a test that executes this line and fails with this change.",
+2026-10-17T11:57:41.4225953Z       "function": "github.com/donvargax/itos/v8/internal/message#gluedAt",
+2026-10-17T11:57:41.4229087Z       "identity": "internal/message/header.go:github.com/donvargax/itos/v8/internal/message#gluedAt@129:150:026bc9b76805a633:211:0\u003e1",
+2026-10-17T11:57:41.4231976Z       "line": 138,
+2026-10-17T11:57:41.4233678Z       "message": "internal/message/header.go:138:19: `0` → `1` in github.com/donvargax/itos/v8/internal/message#gluedAt is uncovered: no test executes its line",
+2026-10-17T11:57:41.4236663Z       "original": "0",
+2026-10-17T11:57:41.4239010Z       "replacement": "1",
+2026-10-17T11:57:41.4241327Z       "rule": "mutation.uncovered"
+2026-10-17T11:57:41.4243786Z     },
+2026-10-17T11:57:41.4244267Z     {
+2026-10-17T11:57:41.4246523Z       "column": 14,
+2026-10-17T11:57:41.4249383Z       "file": "internal/cli/watch.go",
+2026-10-17T11:57:41.4251976Z       "fix": "Add a test that fails with this change.",
+2026-10-17T11:57:41.4254500Z       "function": "github.com/donvargax/itos/v8/internal/cli#watchCovered",
+2026-10-17T11:57:41.4257814Z       "identity": "internal/cli/watch.go:github.com/donvargax/itos/v8/internal/cli#watchCovered@111:230:dd2d518618744a9d:3550:0\u003e1",
+2026-10-17T11:57:41.4259031Z       "line": 212,
+2026-10-17T11:57:41.4261990Z       "message": "internal/cli/watch.go:212:14: `0` → `1` in github.com/donvargax/itos/v8/internal/cli#watchCovered survived",
+2026-10-17T11:57:41.4264814Z       "original": "0",
+2026-10-17T11:57:41.4266964Z       "replacement": "1",
+2026-10-17T11:57:41.4275811Z       "rule": "mutation.survived"
+2026-10-17T11:57:41.4276604Z     },
+2026-10-17T11:57:41.4279336Z     {
+2026-10-17T11:57:41.4281602Z       "column": 46,
+2026-10-17T11:57:41.4283962Z       "file": "internal/cli/hook.go",
+2026-10-17T11:57:41.4286639Z       "fix": "Add a test that fails with this change.",
+2026-10-17T11:57:41.4287521Z       "function": "github.com/donvargax/itos/v8/internal/cli#stagedRule",
+2026-10-17T11:57:41.4290782Z       "identity": "internal/cli/hook.go:github.com/donvargax/itos/v8/internal/cli#stagedRule@358:412:82c92696f31c03c4:730:!\u003e",
+2026-10-17T11:57:41.4294672Z       "line": 383,
+2026-10-17T11:57:41.4297809Z       "message": "internal/cli/hook.go:383:46: `!` → (deleted) in github.com/donvargax/itos/v8/internal/cli#stagedRule survived",
+2026-10-17T11:57:41.4301168Z       "original": "!",
+2026-10-17T11:57:41.4303685Z       "replacement": "",
+2026-10-17T11:57:41.4304279Z       "rule": "mutation.survived"
+2026-10-17T11:57:41.4306756Z     },
+2026-10-17T11:57:41.4309725Z     {
+2026-10-17T11:57:41.4312654Z       "fix": "Run it again to judge the selection in full.",
+2026-10-17T11:57:41.4316012Z       "message": "the counted run was interrupted by SIGTERM, so its report is partial: only the judgments it shows are proven",
+2026-10-17T11:57:41.4323464Z       "rule": "count.interrupted"
+2026-10-17T11:57:41.4326120Z     }
+2026-10-17T11:57:41.4328377Z   ],
+2026-10-17T11:57:41.4330748Z   "sampling": {
+2026-10-17T11:57:41.4333738Z     "algorithm": "fresh-plan-v2",
+2026-10-17T11:57:41.4334336Z     "assurance": "sampled",
+2026-10-17T11:57:41.4347813Z     "bounds": "--count bounds mutant trials, not discovery, coverage, listing, baseline commands or total latency",
+2026-10-17T11:57:41.4348909Z     "budget": 60,
+2026-10-17T11:57:41.4354032Z     "commit": "ee1152572b59c164bd15b3342a0f219d9c09595f",
+2026-10-17T11:57:41.4357773Z     "completion": "interrupted",
+2026-10-17T11:57:41.4360294Z     "eligible": 3346,
+2026-10-17T11:57:41.4362863Z     "executed": 19,
+2026-10-17T11:57:41.4363410Z     "omitted": 3286,
+2026-10-17T11:57:41.4366966Z     "seed": "39029889396",
+2026-10-17T11:57:41.4370205Z     "selected": 60,
+2026-10-17T11:57:41.4372963Z     "since": "9397855d98441c2276c0333e4938ca16e46a7aeb",
+2026-10-17T11:57:41.4376767Z     "since_base": "9397855d98441c2276c0333e4938ca16e46a7aeb",
+2026-10-17T11:57:41.4377795Z     "stop": "interrupted while selected sites were judged"
+2026-10-17T11:57:41.4380360Z   },
+2026-10-17T11:57:41.4383035Z   "schema": 1,
+2026-10-17T11:57:41.6189084Z   "subjects": {
+2026-10-17T11:57:41.6189274Z     "judged": [
+2026-10-17T11:57:41.6189459Z       {
+2026-10-17T11:57:41.6189645Z         "file": "internal/ci/ci.go",
+2026-10-17T11:57:41.6189991Z         "function": "github.com/donvargax/itos/v8/internal/ci.driver#check"
+2026-10-17T11:57:41.6350298Z       }
+2026-10-17T11:57:41.6350376Z     ]
+2026-10-17T11:57:41.6350452Z   }
+2026-10-17T11:57:41.6350528Z }
+2026-10-17T11:57:41.7077141Z ##[error]The operation was canceled.
+2026-10-17T11:57:41.7520631Z Cleaning up orphan processes
+2026-10-17T11:57:41.7900691Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830, actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

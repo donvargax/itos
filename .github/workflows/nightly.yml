@@ -132,19 +132,25 @@ jobs:
 
   # The Nightly red issue, from one job once every other is done, so two red jobs never race to
   # open two issues. Red, any job not green: one open issue labelled nightly-red, opened by the
-  # first red run and commented on by every later one, naming each red job with the failing
-  # scenarios its log holds (go test's `--- FAIL: TestFeatures/…` lines) and the run's URL; a job
-  # whose log has none failed outside the features (the gates self-test, say), and the issue says
-  # so. The label is created on the first red run. Green, every job green: the open issue is
-  # closed, naming the run. A cancelled run reports nothing.
+  # first red run and commented on by every later one, naming the run's URL and, for each red job,
+  # what its log says it failed at (tools/bin/nightly-report, T-185): its failing scenarios, the
+  # plan's failed steps with their exit codes and the sites each failed mutation step found, and,
+  # when the runner shut down or the run was cancelled, the step it stopped in. A job whose log
+  # names none of these failed outside them, and the issue says so. The label is created on the
+  # first red run. Green, every job green: the open issue is closed, naming the run. A cancelled
+  # run reports nothing.
   report:
     needs: [nightly, platform]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     permissions:
+      contents: read # the checkout, for tools/bin/nightly-report
       actions: read # the run's jobs and their logs
       issues: write # the Nightly red issue
     steps:
+      # actions/checkout v4.4.0, as the platform job; Go to run tools/bin/nightly-report.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/go-toolchain
       # As the nightly job installs it.
       - name: GitHub CLI
         env:
@@ -160,10 +166,7 @@ jobs:
           rm -rf "$tgz" "$RUNNER_TEMP/gh_${GH_VERSION}_linux_amd64"
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/bin/gh" --version
-      # Each red job of this attempt, read from the API (the run is still going, so not gh run
-      # view's logs), its log stripped of the colours, carriage returns and timestamps GitHub
-      # adds; a failing scenario's line starts with go test's mark, which the step scripts GitHub
-      # echoes into the log never do. A log not yet readable reads as one with no failing scenario.
+      # The body is tools/bin/nightly-report's, from each red job of this attempt and its log.
       - name: Open or comment on the Nightly red issue
         if: ${{ needs.nightly.result != 'success' || needs.platform.result != 'success' }}
         env:
@@ -174,33 +177,7 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           body="$RUNNER_TEMP/nightly-red.md"
-          red=$(gh api --paginate "repos/$GH_REPO/actions/runs/$RUN_ID/attempts/$RUN_ATTEMPT/jobs" \
-            --jq '.jobs[] | select(.conclusion != null and .conclusion != "success" and .conclusion != "skipped") | "\(.id)\t\(.name)\t\(.conclusion)"') || red=""
-          {
-            echo "Nightly run $RUN_URL is red."
-            if [ -z "$red" ]; then
-              echo
-              echo "Its jobs could not be read: see the run's log."
-            fi
-            while IFS=$'\t' read -r id name conclusion; do
-              [ -n "$id" ] || continue
-              echo
-              echo "### $name: $conclusion"
-              echo
-              failing=$(gh api "repos/$GH_REPO/actions/jobs/$id/logs" |
-                sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' -e 's/\r$//' -e 's/^[0-9][0-9TZ:.-]* //' |
-                grep -E -- '^[[:space:]]*--- FAIL: TestFeatures/' || true)
-              if [ -n "$failing" ]; then
-                echo "Failing scenarios:"
-                echo
-                echo '```'
-                echo "$failing"
-                echo '```'
-              else
-                echo "No failing scenario in its log: it failed before the features ran, or outside them. See its log."
-              fi
-            done <<<"$red"
-          } > "$body"
+          go run ./tools/bin/nightly-report -repo "$GH_REPO" -run "$RUN_ID" -attempt "$RUN_ATTEMPT" -url "$RUN_URL" > "$body"
           cat "$body"
           gh label create nightly-red --description "The nightly run is red" --color B60205 2>/dev/null || true
           open=$(gh issue list --label nightly-red --state open --json number --jq '.[0].number // empty')

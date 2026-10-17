@@ -344,7 +344,7 @@ func testToolchain(t *testing.T) {
 	const actionPath = "./.github/actions/go-toolchain"
 	for file, ids := range map[string][]string{
 		"ci.yml":      {"ci", "platform"},
-		"nightly.yml": {"nightly", "platform"},
+		"nightly.yml": {"nightly", "platform", "report"},
 		"release.yml": {"release"},
 	} {
 		w := readWorkflowFile(t, file)
