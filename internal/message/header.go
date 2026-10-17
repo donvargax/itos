@@ -136,6 +136,7 @@ func gluedAt(found []string) int {
 		case trailerLine(l):
 			first = i
 		case gitSpace(l[0]):
+			continue
 		default:
 			if first < len(found) {
 				return first
