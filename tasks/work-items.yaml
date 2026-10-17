@@ -6777,6 +6777,11 @@ items:
       it (T-187 corrects the last note: watch.go:212, hook.go:383 and header.go:138 were run
       39029889396's changed-site step). The user keeps the random step strict; how every product
       site comes to be judged is an open question.
+
+      T-187's agent ran a complete run of value/rename.go's changed functions (2026-10-17) and saw
+      about 29 more survivors no check draws: mostly false to true on error returns whose tests
+      check only the error, and some in keySpan, keyText, insert, shift and holds. Not listed site
+      by site; p1-mutation-results-committed's complete run will list them.
     refs: [internal/cli/gitshim.go, internal/cli/push.go, internal/work/propose.go]
 
   - id: slice-110
