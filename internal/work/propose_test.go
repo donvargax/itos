@@ -82,3 +82,30 @@ func TestStartable(t *testing.T) {
 		}
 	}
 }
+
+// An item whose dependencies are all done can start; one with a dependency
+// not done waits on it.
+func TestProposeStartsWhatDoneItemsFree(t *testing.T) {
+	item := func(id, status string, deps ...any) *value.Map {
+		return value.NewMap("id", id, "title", id, "phase", 1, "owner", "q", "status", status,
+			"depends_on", append([]any{}, deps...))
+	}
+	r := Registry{Phases: value.NewMap("1", nil), Items: []*value.Map{
+		item("done", "done"),
+		item("open", "todo"),
+		item("freed", "todo", "done"),
+		item("held", "todo", "done", "open"),
+	}}
+	p := Propose(r, "q")
+	var next []string
+	for _, i := range p.Next {
+		next = append(next, value.String(i.At("id")))
+	}
+	if len(next) != 2 || next[0] != "open" || next[1] != "freed" {
+		t.Errorf("can start: %v", next)
+	}
+	if len(p.Waiting) != 1 || value.String(p.Waiting[0].Item.At("id")) != "held" || len(p.Waiting[0].On) != 1 ||
+		p.Waiting[0].On[0] != "open" {
+		t.Errorf("waiting: %+v", p.Waiting)
+	}
+}
