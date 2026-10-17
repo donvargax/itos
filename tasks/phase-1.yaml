@@ -2239,3 +2239,16 @@
     commits.since moves to ee1152572b59c164bd15b3342a0f219d9c09595f, its comment saying so beside
     T-136's. The cause, running out of first parents re-verifying all history, is slice-163's and
     p1-verify-past-the-window's, not this task's.
+
+- id: T-189
+  type: refactor
+  title: work promote ends a ledger error after the reservation as its check does
+  why: >
+    Slice 138's mutation run left one changed line uncovered: work promote's return of ledger.Add's
+    error after the id is reserved. The check before the reservation runs ledger.Add on the same
+    ledger with the id ledger.NextID would give, and nothing on the way between them reads a file or
+    runs git when a draft reserved the id, so only a ledger changed in that moment reaches it: no
+    test can. Ending both calls' errors and problems through one helper keeps the branch and lets
+    the check's tests cover it.
+  done_when:
+    - run: go test ./internal/cli -run 'TestWorkPromote|TestPromotedTask' -count=1

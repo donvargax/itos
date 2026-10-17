@@ -10593,3 +10593,11 @@ items:
       refusal writes nothing, but the shared counter moved. Mint after every check passes, or give
       the ID back on refusal. Also: a bug could take its phase from its refs' slice or default to
       the active phase, so the first try need not fail.
+
+  - id: T-189
+    title: work promote ends a ledger error after the reservation as its check does
+    phase: 1
+    owner: null
+    status: todo
+    depends_on: []
+    kind: task
