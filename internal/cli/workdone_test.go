@@ -272,3 +272,27 @@ func TestLandedCIJudgesTheItemsOwnRun(t *testing.T) {
 		t.Fatalf("exit %d, %v\n%s%s", code, err, stdout.String(), stderr.String())
 	}
 }
+
+// The run that judged a commit is named as the commit's own, unless a head
+// that has the commit ran it: then that head's run is named, with the
+// commit. No run, a run with no head, the commit's own run and a commit
+// with nothing to name it by are the commit's own.
+func TestRunOf(t *testing.T) {
+	sha, other := strings.Repeat("a", 40), strings.Repeat("b", 40)
+	j := doneCommit{sha: sha, run: "HEAD's CI run", what: "HEAD"}
+	for _, c := range []struct {
+		j    doneCommit
+		run  *providers.Run
+		want string
+	}{
+		{j, nil, "HEAD's CI run"},
+		{j, &providers.Run{}, "HEAD's CI run"},
+		{j, &providers.Run{HeadSHA: sha}, "HEAD's CI run"},
+		{doneCommit{sha: sha, run: "HEAD's CI run"}, &providers.Run{HeadSHA: other}, "HEAD's CI run"},
+		{j, &providers.Run{HeadSHA: other}, "The CI run of bbbbbbb, which has HEAD,"},
+	} {
+		if got := c.j.runOf(c.run); got != c.want {
+			t.Errorf("%+v.runOf(%+v) = %q, want %q", c.j, c.run, got, c.want)
+		}
+	}
+}

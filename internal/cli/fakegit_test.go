@@ -18,8 +18,9 @@ const fakeGitFailureEnv = "ITOS_CLI_TEST_FAKE_GIT_FAILURE"
 // The environment of a git that runs the real one (wrappedGitEnv, its path)
 // except where a test says: a command line starting with one of the
 // "|"-separated prefixes of wrappedGitFails fails; after one starting with
-// wrappedGitAfter runs, wrappedGitThen is done ("mkdir <dir>", or "gone",
-// the wrapper removing itself, so the next git cannot start).
+// wrappedGitAfter runs, wrappedGitThen is done ("mkdir <dir>"; "gone",
+// the wrapper removing itself, so the next git cannot start; or "fail", the
+// command exiting 1 once it has written what it writes).
 const (
 	wrappedGitEnv   = "ITOS_CLI_TEST_WRAPPED_GIT"
 	wrappedGitFails = "ITOS_CLI_TEST_WRAPPED_GIT_FAILS"
@@ -56,6 +57,8 @@ func wrappedGit(args []string) int {
 			if self, err := os.Executable(); err == nil {
 				_ = os.Remove(self)
 			}
+		} else if then == "fail" {
+			return 1
 		}
 	}
 	return code

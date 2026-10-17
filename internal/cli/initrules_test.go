@@ -404,3 +404,34 @@ func TestRefreshedRules(t *testing.T) {
 		t.Errorf("stealth, markers out of place in the rules file: %v", got)
 	}
 }
+
+// --agent-rules and --no-agent-rules are read wherever they stand, each as
+// often as wanted, but not both.
+func TestParseRulesFlag(t *testing.T) {
+	for _, c := range []struct {
+		args       []string
+		given, err bool
+		write      bool
+	}{
+		{[]string{"--plugin", "--agent-rules"}, true, false, true},
+		{[]string{"--no-agent-rules", "--no-agent-rules"}, true, false, false},
+		{[]string{"--agent-rules", "--agent-rules"}, true, false, true},
+		{[]string{"--agent-rules", "--no-agent-rules"}, true, true, true},
+		{[]string{"--no-agent-rules", "--agent-rules"}, true, true, false},
+		{[]string{"--plugin"}, false, false, false},
+	} {
+		var f rulesFlag
+		var err error
+		for i := 0; i < len(c.args) && err == nil; i++ {
+			var n int
+			n, err = parseRulesFlag(c.args, i, &f)
+			if want := strings.HasSuffix(c.args[i], "agent-rules"); err == nil && (n == 1) != want {
+				t.Errorf("%q at %d: read %d", c.args, i, n)
+			}
+		}
+		if f.given != c.given || f.write != c.write || (err != nil) != c.err ||
+			(err != nil && (ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), "not both"))) {
+			t.Errorf("%q: %+v, %v", c.args, f, err)
+		}
+	}
+}

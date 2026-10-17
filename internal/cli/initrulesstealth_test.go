@@ -141,6 +141,22 @@ func TestStealthRulesOfferOutcomes(t *testing.T) {
 	}
 }
 
+// With no rules yet and no --agent-rules or --no-agent-rules, the offer
+// under a stealth config is said on init's first run when nobody is asked,
+// and left unsaid on a rerun.
+func TestStealthRulesOfferWithNoRulesYet(t *testing.T) {
+	initScratch(t, "commit", nil)
+	for _, rerun := range []bool{false, true} {
+		var log strings.Builder
+		r := rulesOffer{stealth: true, rerun: rerun, log: &log, answers: strings.NewReader("")}
+		got, code := r.run()
+		says := strings.Contains(log.String(), "itos init --agent-rules writes them into .git/itos/AGENTS.md")
+		if got.Action != "offered" || code != 0 || says == rerun {
+			t.Errorf("rerun %v: %s, exit %d:\n%s", rerun, got.Action, code, log.String())
+		}
+	}
+}
+
 // Written once, the rules are current on a rerun with or without
 // --agent-rules.
 func TestStealthRulesOfferCurrent(t *testing.T) {

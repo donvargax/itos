@@ -196,3 +196,16 @@ func sameDir(a, b string) bool {
 	y, errY := os.Stat(b)
 	return errX == nil && errY == nil && os.SameFile(x, y)
 }
+
+// ci's one ref, its range's start, is a commit of the repository, or a
+// usage error naming it, as each ref of a whole range is.
+func TestCIRangesFirstRefIsACommit(t *testing.T) {
+	gitConfigRepo(t, "version: 1\n")
+	for _, args := range [][]string{{"ci", "plan", "nonesuch", "--nightly"}, {"ci", "plan", "nonesuch", "--whole"}} {
+		code, stdout, stderr := run(args...)
+		if code != ExitUsage || stdout != "" ||
+			stderr != "itos: ci plan: nonesuch is not a commit of this repository (itos --help)\n" {
+			t.Errorf("itos %s: exit %d, stdout %q, stderr %q", strings.Join(args, " "), code, stdout, stderr)
+		}
+	}
+}

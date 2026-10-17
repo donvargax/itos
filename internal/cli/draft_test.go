@@ -137,6 +137,25 @@ func TestDraftAddRefusals(t *testing.T) {
 	}
 }
 
+// The drafts' file is in the folder git names as the common one; where git
+// cannot name it, failing even after it printed one, there is none, and
+// draft and draft promote say they need a git repository, exit 3.
+func TestDraftsFileIsWhereGitSays(t *testing.T) {
+	changedNotes(t)
+	if got := draftsFile(); !strings.HasSuffix(got, filepath.Join("itos", draft.Folder, draft.FileName)) {
+		t.Errorf("draftsFile = %q", got)
+	}
+	useWrappedGit(t, "", "rev-parse --path-format=absolute --git-common-dir", "fail")
+	if got := draftsFile(); got != "" {
+		t.Errorf("draftsFile of a git that failed = %q", got)
+	}
+	for _, args := range [][]string{{"draft"}, {"draft", "promote"}} {
+		if code, stdout, stderr := run(args...); code != ExitMissing || stdout != "" || !strings.Contains(stderr, "no git repository") {
+			t.Errorf("%q: exit %d, stdout %q, stderr %q", args, code, stdout, stderr)
+		}
+	}
+}
+
 // draft add --json of a change says its kind, header and paths.
 func TestDraftAddOfAChangeUnderJSON(t *testing.T) {
 	changedNotes(t)

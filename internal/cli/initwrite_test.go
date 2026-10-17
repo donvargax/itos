@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/donvargax/itos/v8/internal/release"
 )
 
 // writeDirect runs initWrite itself, past the check init makes for a config
@@ -74,24 +76,26 @@ func TestInitWriteStopsBeforeWriting(t *testing.T) {
 }
 
 // Under --json init prints one object: its config, the files, HEAD as
-// since, and the pin, or with no release server none and why.
+// since, and the pin, its version and its checksums' digest, or with no
+// release server none and why.
 func TestInitWriteUnderJSON(t *testing.T) {
 	type report struct {
 		Config     string
 		Since      string
-		Pin        *struct{ Version string }
+		Pin        *struct{ Version, Checksums string }
 		PinProblem string `json:"pin_problem"`
 	}
+	sums := "aa  itos-9.2.0-linux-amd64.tar.gz\n"
 	for _, served := range []bool{true, false} {
 		initScratch(t, "commit", nil)
 		if served {
-			releaseServer(t, map[string]string{"/latest/download/checksums.txt": "aa  itos-9.2.0-linux-amd64.tar.gz\n"})
+			releaseServer(t, map[string]string{"/latest/download/checksums.txt": sums})
 		}
 		code, stdout, _, err := initRun(t, true)
 		var got report
 		if code != 0 || err != nil || json.Unmarshal([]byte(stdout), &got) != nil || got.Config != "itos.yaml" ||
 			len(got.Since) != 40 || (got.Pin != nil) != served || (got.PinProblem == "") != served ||
-			(served && got.Pin.Version != "9.2.0") {
+			(served && (got.Pin.Version != "9.2.0" || got.Pin.Checksums != release.SHA256([]byte(sums)))) {
 			t.Errorf("served %v: exit %d, %v:\n%s", served, code, err, stdout)
 		}
 	}

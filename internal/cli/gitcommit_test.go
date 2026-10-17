@@ -51,6 +51,22 @@ func TestWrapBody(t *testing.T) {
 	}
 }
 
+// A link flag takes the next argument as its value only when it has none of
+// its own, written --task=<ids>, and the next is no option; one at the end
+// with no value is a usage error.
+func TestReadCommitFlags(t *testing.T) {
+	f, err := readCommitFlags([]string{"--task=T-1", "notes.md", "--item", "a", "-m", "x"}, nil)
+	if err != nil || !slices.Equal(f.tasks, []string{"T-1"}) || !slices.Equal(f.items, []string{"a"}) ||
+		!slices.Equal(f.git, []string{"notes.md", "-m", "x"}) {
+		t.Errorf("readCommitFlags = %+v, %v", f, err)
+	}
+	for _, args := range [][]string{{"--task"}, {"-m", "x", "--item"}, {"--scenarios", "-m", "x"}} {
+		if _, err := readCommitFlags(args, nil); ExitCode(err) != ExitUsage || !strings.Contains(err.Error(), "needs <") {
+			t.Errorf("readCommitFlags(%q) = %v, not a usage error", args, err)
+		}
+	}
+}
+
 // The options itos commit refuses (slice 128) are read as git reads them: a
 // cluster's letters (-am, -an), git's abbreviation of --no-verify, never a
 // valued option's value (-m -n, -mn, --message --no-verify, -uno) nor what

@@ -62,8 +62,13 @@ func localConfig(t *testing.T, key string) string {
 func TestDeclareHooks(t *testing.T) {
 	gitConfigRepo(t, "version: 1\nhooks: { bin: itos }\n")
 	if err := hooksReady("commit-msg"); kind.Of(err) != kind.Missing ||
+		!strings.HasPrefix(err.Error(), "itos's commit-msg hook is not declared") ||
 		!strings.Contains(err.Error(), "itos hook install") {
 		t.Errorf("ready before hook install: %v", err)
+	}
+	if err := hooksReady("commit-msg", "pre-push"); kind.Of(err) != kind.Missing ||
+		!strings.HasPrefix(err.Error(), "itos's commit-msg and pre-push hooks are not declared") {
+		t.Errorf("both ready before hook install: %v", err)
 	}
 	code, stdout, stderr := run("hook", "install")
 	if code != 0 || stdout != "wrote hook.itos-commit-msg\nwrote hook.itos-pre-push\n" {
