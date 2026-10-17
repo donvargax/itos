@@ -73,12 +73,8 @@ func workPromote(args []string, o Out) (int, error) {
 	if p.kind == "task" {
 		var added ledger.Added
 		var found []out.Problem
-		task, added, found, err = promotedTask(cfg, registry, idea, p)
-		if err != nil {
-			return 0, err
-		}
-		if len(found) > 0 {
-			return refuseWork(found, ExitPolicy, o)
+		if task, added, found, err = promotedTask(cfg, registry, idea, p); err != nil || len(found) > 0 {
+			return stopped(found, err, o)
 		}
 		files = append([]written{{path: added.Path, old: added.Old, created: added.Created}}, files...)
 	}
@@ -105,10 +101,8 @@ func workPromote(args []string, o Out) (int, error) {
 	if p.kind == "task" {
 		task.ID = newID
 		var found []out.Problem
-		if added, found, err = ledger.Add(cfg, task); err != nil {
-			return 0, err
-		} else if len(found) > 0 {
-			return refuseWork(found, ExitPolicy, o)
+		if added, found, err = ledger.Add(cfg, task); err != nil || len(found) > 0 {
+			return stopped(found, err, o)
 		}
 		files[0].text = added.Text
 		body += ", and write its ledger entry, with its why and checks, in " + added.Path
@@ -142,6 +136,17 @@ func workPromote(args []string, o Out) (int, error) {
 		result = "the ledger and the registry are the stealth config's, so nothing is committed"
 	}
 	return reportWork(line+": "+result, change, sha, extra, o)
+}
+
+// stopped is how a step that gives an error or problems ends work promote:
+// the error as it is, else the problems refused (exit 1). The task's ledger
+// entry, judged before the id is reserved and written after it, ends both
+// ways through it (T-189).
+func stopped(found []out.Problem, err error, o Out) (int, error) {
+	if err != nil {
+		return 0, err
+	}
+	return refuseWork(found, ExitPolicy, o)
 }
 
 // anys is the strings as a list out.Emit writes.
