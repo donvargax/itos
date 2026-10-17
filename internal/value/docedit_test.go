@@ -3,6 +3,8 @@ package value
 import (
 	"strings"
 	"testing"
+
+	"go.yaml.in/yaml/v3"
 )
 
 func TestWrap(t *testing.T) {
@@ -302,6 +304,28 @@ func TestDocAdd(t *testing.T) {
 		}
 		if err := d.Add(c.path, "y"); err == nil {
 			t.Errorf("%q: Add was not refused", c.text)
+		}
+	}
+}
+
+// keyLines spans a key's line and the lines its value holds below it; a key
+// it cannot find in the text, or one that does not start its line, is an
+// error with no span.
+func TestKeyLines(t *testing.T) {
+	d, err := OpenDoc("a:\n  b: 1\n\n  c: 2\nd: 3\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if from, end, err := d.keyLines(d.root.Content[0]); err != nil || from != 0 || end != 18 {
+		t.Errorf("a's lines: %d to %d, %v", from, end, err)
+	}
+	inner := d.root.Content[1]
+	if from, end, err := d.keyLines(inner.Content[0]); err != nil || from != 3 || end != 10 {
+		t.Errorf("b's lines: %d to %d, %v", from, end, err)
+	}
+	for _, k := range []*yaml.Node{{Line: 9, Column: 1}, {Line: 2, Column: 9}, {Line: 2, Column: 6}} {
+		if from, end, err := d.keyLines(k); err == nil || from != 0 || end != 0 {
+			t.Errorf("a key at %d:%d: %d to %d, %v", k.Line, k.Column, from, end, err)
 		}
 	}
 }

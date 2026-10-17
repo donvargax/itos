@@ -93,4 +93,9 @@ func TestGiveBackEach(t *testing.T) {
 		strings.Join(refused, " ") != "c z" || len(found) != 2 {
 		t.Errorf("give back a c z: %v, %v, %v", refused, found, err)
 	}
+	// One refused is refused as much as two: nothing is given back.
+	if s, refused, found, err := GiveBackEach(cfg, r, text, []string{"a", "c"}, "p", false, "Blocked."); err != nil ||
+		strings.Join(refused, " ") != "c" || len(found) != 1 || s.Text != "" || s.Header != "" {
+		t.Errorf("give back a c: %+v, %v, %v, %v", s, refused, found, err)
+	}
 }

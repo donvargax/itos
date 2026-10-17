@@ -63,6 +63,17 @@ func TestLoadRefusesAListItosDidNotWrite(t *testing.T) {
 	}
 }
 
+// A draft with no id is named by its place in the list, from 1.
+func TestLoadNamesTheDraftWithNoID(t *testing.T) {
+	path := filepath.Join(t.TempDir(), FileName)
+	if err := os.WriteFile(path, []byte("drafts:\n  - {id: a, command: [work]}\n  - {command: [work]}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Load(path); err == nil || err.Error() != path+`: draft 2 has no id itos can take: ""` {
+		t.Errorf("Load gave %v", err)
+	}
+}
+
 func TestLineQuotesWhatAShellWouldRead(t *testing.T) {
 	d := Draft{Command: []string{"work", "add", "p1-thing", "--title", "A thing", "--why", "It's so."}}
 	if got, want := d.Line(), `itos work add p1-thing --title 'A thing' --why 'It'\''s so.'`; got != want {

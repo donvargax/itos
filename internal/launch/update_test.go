@@ -188,8 +188,8 @@ func TestNoticeFailsSilent(t *testing.T) {
 
 // The notice names the newest release the launcher knows of, not only the
 // server's last answer (bug 48): a release the cache holds, or the itos that
-// runs, newer than that answer is the one told; a pre-release or a build
-// without a version is never told as out.
+// runs, newer than that answer is the one told, and one older is not; a
+// pre-release or a build without a version is never told as out.
 func TestNoticeNamesTheNewestReleaseKnown(t *testing.T) {
 	cache := offline(t)
 	t.Setenv(EnvNoUpdate, "1")
@@ -207,6 +207,7 @@ func TestNoticeNamesTheNewestReleaseKnown(t *testing.T) {
 		{"two/itos.yaml", "9.3.0", "itos 9.3.0 is out"},
 		{"three/itos.yaml", "9.5.0-dev.3.gabc", "itos 9.2.0 is out"},
 		{"four/itos.yaml", "(devel)", "itos 9.2.0 is out"},
+		{"five/itos.yaml", "9.0.5", "itos 9.2.0 is out"},
 	} {
 		var b strings.Builder
 		notice(c.repo, "9.0.0", c.own, &b)

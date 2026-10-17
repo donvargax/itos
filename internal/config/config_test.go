@@ -71,6 +71,11 @@ func TestLoadProblems(t *testing.T) {
 			`a nightly step needs exactly one of run and tests: {"cost":"static"}`,
 			`a nightly step runs tasks: done, which v8 removed: a task's checks are its own progress and leave the ledger at work done: {"tasks":"done","cost":"static"}`,
 		},
+		// A kind the config declares needs its run.whole for a step to run it.
+		"version: 1\ntests: { k: { root: f }, e: { root: g, run: { whole: \"\" } } }\nci: { steps: [{ tests: k }, { tests: e }] }\n": {
+			"a CI step runs tests: k, and tests.k.run.whole is missing",
+			"a CI step runs tests: e, and tests.e.run.whole is missing",
+		},
 	}
 	for text, want := range cases {
 		_, err := load(t, text)

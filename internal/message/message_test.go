@@ -65,6 +65,7 @@ func TestTrailers(t *testing.T) {
 		"chore: x\n\n\t\nTask: T-1":                                       {{"Task", "T-1"}},
 		"chore: x\n\nhttps://x.y/z":                                       nil,
 		"chore: x\n\nTask: T-1\n# c\nItem: b":                             {{"Task", "T-1"}, {"Item", "b"}},
+		"chore: x\n\n# c\nTask: T-1":                                      {{"Task", "T-1"}},
 		"chore: x\n\nprose\n  more\n# c\nSigned-off-by: A":                {{"Signed-off-by", "A"}},
 		"chore: x\n\nBREAKING CHANGE: x\nTask: T-1":                       {{"BREAKING CHANGE", "x"}, {"Task", "T-1"}},
 		"chore: x\n\nBREAKING CHANGES: x\nTask: T-1":                      nil,
