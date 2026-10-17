@@ -10306,6 +10306,18 @@ items:
       state, which kinds of change may skip review, and the differentiators the user will add. The
       user plans to pitch agent-first hosting around this layer later; no new VCS or hosting is
       built now.
+
+      Correction (2026-10-17, from the user's Gemini thread, .tmp/Trunk-Based Development
+      Alternatives.pdf): the per-file span above leaks an unrelated commit into a file both features
+      touch (a1, b1, a2, a3: b1 shows in the span), which the user rejects outright. The review diff
+      is instead head = current main (a real, tested commit) and base = main with the review's
+      commits reverted: b1 is on both sides and drops out, and a revert conflicts only where a later
+      commit rewrote the review's own lines. And which commits a review holds must be data that can
+      change after the push: the Item: footer is the default, with additions and removals kept
+      outside the commit (git notes or the registry), since a footer cannot be corrected without
+      rewriting shared history (the user's objection to Gerrit's Change-Id). The thread's claims
+      that Gerrit topics and Reviewable give a combined diff of non-consecutive commits contradict
+      its own earlier answers and are unverified; Phorge audits are believed per commit.
     tags: [review, ci, work]
 
   - id: p2-security-agent-scan
