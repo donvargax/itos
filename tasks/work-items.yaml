@@ -10428,3 +10428,30 @@ items:
       refactor: what itos ci watch and itos push print and exit with stays as it is.
     refs: [internal/cli/watch.go]
     tags: [ci, push]
+
+  - id: p2-vcs-and-tracker-seams
+    title: "itos runs over more than git and files: a VCS seam and a tracking seam, Fossil the first second backend"
+    phase: 2
+    owner: null
+    status: todo
+    depends_on: []
+    kind: idea
+    why: >
+      The user's call (2026-10-17): itos is not to stay bound to git, and multiple tracking systems
+      are a goal; Fossil is the first candidate, for the user's workflow (autosync commits to trunk,
+      no rebase, fossil amend for metadata after the fact, tickets and wiki inside the repository).
+      Today internal/providers is the one seam, for the world outside the repository (ci.range,
+      ci.watch, identity, people), with GitHub alone behind it and tested only against fake servers,
+      which the user does not count as a tested integration. Two have no seam: the VCS (history and
+      ranges through git rev-list --first-parent and merge-base --is-ancestor, version stamping
+      through git describe, footers parsed as git trailers, the commit-msg and pre-push hooks, the
+      git shim) and tracking (the registry, the ledger and the questions are YAML files in the
+      tree). The work is designing those two seams with Fossil as the backend that proves them, not
+      porting itos: a Fossil VCS (footers as text in the check-in comment, amendments as control
+      artifacts, its own hook set, no shim) and Fossil tickets as a tracker beside the files, with a
+      git export mirror to GitHub to keep Actions where CI is wanted. Waits on the design refactor
+      the user is piloting in itos-cc, whose lessons come back here first; then the discussion
+      resumes from this. Related: p2-itos-data-store, p2-trunk-review-and-release,
+      p3-command-providers-back.
+    refs: [internal/providers, PLAN.md]
+    tags: [providers, work, commit]
