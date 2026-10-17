@@ -239,10 +239,14 @@ func TestWorkPromoteLedgerErrorAfterMinting(t *testing.T) {
 	}
 	gitIn(t, "add", "--", "tasks")
 	gitIn(t, "commit", "-q", "-m", "docs: a ledger")
-	useWrappedGit(t, "", "symbolic-ref", "mkdir "+filepath.Join(dir, "tasks", "phase-2.yaml"))
+	// The counter's store asks git for the remote's address, as nothing the
+	// promote checks before does.
+	useWrappedGit(t, "", "remote get-url", "mkdir "+filepath.Join(dir, "tasks", "phase-2.yaml"))
+	head := gitIn(t, "rev-parse", "HEAD")
 	var stderr strings.Builder
 	code, err := workPromote([]string{"p1-idea", "--kind", "task", "--type", "build", "--check", "true"}, Out{Stderr: &stderr})
 	if code != 0 || err == nil {
 		t.Fatalf("workPromote = (%d, %v), stderr=%q, want the ledger's error", code, err, stderr.String())
 	}
+	unpromoted(t, head, true)
 }
