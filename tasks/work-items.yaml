@@ -10706,6 +10706,12 @@ items:
       done_when, so any verification an item needs goes there (or into a gate), and agents are
       trusted to follow the rule, since nothing can enforce it. Red first stays: seeing a spec fail
       is building, not verifying.
+
+      The user, later the same day, narrowing the above: fast checks may run locally before a push
+      and again in CI, a second round worth paying to keep CI from going red; the commit-msg hook's
+      static task checks stay (ADR-0013 holds for them); the waste to remove is the same test run
+      again on unchanged code. Agreed: work done only accepts CI's pass for the head, and reruns
+      nothing.
     refs: [internal/cli/workdone.go, internal/cli/hook.go, docs/decisions]
 
   - id: p1-inbox-marks-triaged
